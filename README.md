@@ -29,10 +29,11 @@ ORDER BY sum_gross_cost
 ```
 
 Even a simple query demonstrates some of the problems with SQL's lack of
-abstractions — we need to repeat the calculation for each measure multiple
-times. The syntax is also awkward — when developing the query, it's not possible
-to comment out the final line of the `SELECT` list, and we need to repeat the
-columns in the `GROUP BY` clause.
+abstractions — we needlessly repeat the calculation for each measure multiple
+times, when each derives from the previous measure — and again in the `WHERE`
+clause. The syntax is also awkward — when developing the query, commenting out
+the final line of the `SELECT` list causes a syntax error, and we need to repeat
+the columns in the `GROUP BY` clause in the `SELECT` list.
 
 Here's the same query with PRQL:
 
@@ -156,8 +157,19 @@ and colleagues.
   func lag col = window col group_by:sec_id sort:date '(lag 1)
   ```
 
+- Lists
+  - Currently lists require brackets; there's no implicit list like:
+
+    ```
+    employees
+    select salary  # fails, would require `select [salary]`
+    ```
+
+  - For some functions where we're only expecting a single arg, like `select`,
+    we could accept that.
+
 - Line breaks
-  - Currently a line break always creates a piped transformation
+  - Currently a line break always creates a piped transformation outside of a list.
     For example:
 
     ```
@@ -183,18 +195,19 @@ and colleagues.
   ```
 
 - CTE syntax — something like `table =`?
-- Raw syntax — I think have backticks represent raw SQL; i.e. `UPPER` is:
+- Raw syntax — I think we should have backticks represent raw SQL; i.e. `UPPER`
+  could be defined as:
 
   ```prql
-  upper col = `UPPER(`col`)`
+  func upper col = `UPPER(`col`)`
   # or with f-string-like syntax
-  upper col = `UPPER({col})`
+  func upper col = `UPPER({col})`
   # or with " rather than `
-  upper col = "UPPER({col})"
+  func upper col = "UPPER({col})"
   ```
 
 ## References
 
-<https://github.com/tobymao/sqlglot>
-Lots of SQL parsers exist, but we need a SQL _writer_
-<https://github.com/sqlparser-rs/sqlparser-rs>
+- <https://github.com/tobymao/sqlglot>
+- Lots of SQL parsers exist, but we need a SQL _writer_
+- <https://github.com/sqlparser-rs/sqlparser-rs>
