@@ -1,0 +1,11 @@
+[package]
+edition = "2021"
+name = "prql"
+version = "0.1.0"
+
+[dependencies]
+nom = "*"
+
+[dev-dependencies]
+insta = "*"
+
