@@ -84,6 +84,11 @@ SELECT
 FROM prices
 ```
 
+> This might seem like a convoluted example, but it's taken from a real query.
+> Indeed, it's also simpler and smaller than the full logic — note that it
+> starts from `price_adjusted`, whose logic had to be split into a previous
+> query to avoid the SQL becoming even less readable.
+
 Here's the same query with PRQL:
 
 ```prql
@@ -178,13 +183,13 @@ and colleagues.
       col1,
       col2,
     ]
-    filter col1 == col2
+    filter col1 = col2
     ```
 
     ...is equivalent to:
 
     ```
-    tbl | select [col1, col2] | filter col1 == col2
+    tbl | select [col1, col2] | filter col1 = col2
     ```
 
 - Functions' final argument is the result of the previous function; i.e.
