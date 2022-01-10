@@ -92,6 +92,7 @@ FROM prices
 Here's the same query with PRQL:
 
 ```prql
+prql 0.0.1          # Version number.
 
 func lag x = window x group_by:sec_id sort:date lag:1
 func ret x = x / (x | lag) - 1 + cash_dividend_return
@@ -117,6 +118,26 @@ Because we define the functions once rather than copying & pasting the code, we
 get all the benefits of encapsulation and extensibility — we can have reliable &
 tested functions, whose purpose is explicit, which we can share across queries
 and colleagues.
+
+## Principles
+
+PRQL is intended to be a modern, simple, declarative language for transforming
+data, with abstractions such as variables & functions. It's intended to replace
+SQL, not Haskell. While it's at a pre-alpha stage, it has some immutable
+principles:
+
+- PRQL is a linear pipeline of transformations — each line of the query is a
+  transformation of the previous line's result. This makes it easy to read and
+  simple to develop.
+- PRQL transpiles to SQL, so it can be used with any database that uses SQL.
+- PRQL can evolve without breaking backward-compatibility, because its queries
+  can specify their version.
+- PRQL can unify syntax across databases where possible.
+- PRQL should allow for a gradual onramp — it should be practical to mix SQL
+  into a PRQL query, where PRQL doesn't yet have an implementation.
+- PRQL should define the structure of transformations without a minimum of
+  context. (e.g. unlike in SQL, a `select` transformation exclusively selects
+  columns, it doesn't aggregate data)
 
 ## TODOs
 
@@ -146,6 +167,40 @@ and colleagues.
   end
   ```
 
+## Notes
+
+### Lists
+
+- Currently lists require brackets; there's no implicit list like:
+
+  ```
+  employees
+  select salary  # fails, would require `select [salary]`
+  ```
+
+- For some functions where we're only expecting a single arg, like `select`,
+  we could accept a single arg not as a list?
+
+### Line breaks
+
+- Currently a line break always creates a piped transformation outside of a list.
+  For example:
+
+  ```
+  tbl
+  select [
+    col1,
+    col2,
+  ]
+  filter col1 = col2
+  ```
+
+  ...is equivalent to:
+
+  ```
+  tbl | select [col1, col2] | filter col1 = col2
+  ```
+
 ## Thinking about
 
 - Partials — potentially we don't need the `col` in `lag`?
@@ -161,36 +216,6 @@ and colleagues.
   ```
   func lag col = window col group_by:sec_id sort:date '(lag 1)
   ```
-
-- Lists
-  - Currently lists require brackets; there's no implicit list like:
-
-    ```
-    employees
-    select salary  # fails, would require `select [salary]`
-    ```
-
-  - For some functions where we're only expecting a single arg, like `select`,
-    we could accept that.
-
-- Line breaks
-  - Currently a line break always creates a piped transformation outside of a list.
-    For example:
-
-    ```
-    tbl
-    select [
-      col1,
-      col2,
-    ]
-    filter col1 = col2
-    ```
-
-    ...is equivalent to:
-
-    ```
-    tbl | select [col1, col2] | filter col1 = col2
-    ```
 
 - Functions' final argument is the result of the previous function; i.e.
   `group_by` would be like:
