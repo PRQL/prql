@@ -7,7 +7,7 @@ declarative. Unlike SQL, it forms a logical pipeline of transformations, and
 supports abstractions such as variables and functions. It can be used with any
 database that uses SQL, since it transpiles to SQL.
 
-## Variables
+## An example using Variables
 
 Here's a fairly simple SQL query:
 
@@ -39,7 +39,7 @@ Here's the same query with PRQL:
 
 ```prql
 employees
-filter country = 'USA'                         # Each line transforms the previous result.
+filter country = "USA"                         # Each line transforms the previous result.
 gross_salary = salary + payroll_tax            # This _adds_ a column to the result with a variable.
 gross_cost   = gross_salary + healthcare_cost  # Variable can use other variables.
 filter gross_cost > 0
@@ -62,7 +62,7 @@ transformation of the previous line's result. For example, `TOP 20` and `head
 20` both modify the final result — but only PRQL represents it as the final
 transformation.
 
-## Functions
+## An example using Functions
 
 Here's another SQL query, which calculates returns from prices on days with
 valid prices.
@@ -92,9 +92,14 @@ FROM prices
 Here's the same query with PRQL:
 
 ```prql
-prql 0.0.1          # Version number.
+prql 0.0.1 snowflake                                  # Version number & database name.
 
-func lag x = window x group_by:sec_id sort:date lag:1
+func lag x = (
+  window x 
+  group_by sec_id 
+  sort date
+  lag 1
+)
 func ret x = x / (x | lag) - 1 + cash_dividend_return
 func excess x = (x - interest_rate) / 252    
 func if_valid x = is_valid_price ? x : null
@@ -126,18 +131,23 @@ data, with abstractions such as variables & functions. It's intended to replace
 SQL, not Haskell. While it's at a pre-alpha stage, it has some immutable
 principles:
 
-- PRQL is a linear pipeline of transformations — each line of the query is a
-  transformation of the previous line's result. This makes it easy to read and
-  simple to develop.
-- PRQL transpiles to SQL, so it can be used with any database that uses SQL.
-- PRQL can evolve without breaking backward-compatibility, because its queries
-  can specify their version.
-- PRQL can unify syntax across databases where possible.
-- PRQL should allow for a gradual onramp — it should be practical to mix SQL
-  into a PRQL query, where PRQL doesn't yet have an implementation.
-- PRQL should define the structure of transformations without a minimum of
-  context. (e.g. unlike in SQL, a `select` transformation exclusively selects
-  columns, it doesn't aggregate data)
+- *Pipelined* — PRQL is a linear pipeline of transformations — each line of the
+  query is a transformation of the previous line's result. This makes it easy to
+  read and simple to develop.
+- *Analytical* — PRQL's focus is analytical queries; we de-emphasize other
+  SQL features such as inserting data or transactions.
+- *Compatibility* — PRQL transpiles to SQL, so it can be used with any
+  database that uses SQL. Where possible PRQL can unify syntax across databases.
+- *Concise* — PRQL's abstractions allow us to reduce repetition and boilerplate,
+  reducing toil and errors.
+- *Versioned* — PRQL can evolve without breaking backward-compatibility, because
+  its queries can specify their version.
+- *Gradual* — PRQL should allow for a gradual onramp — it should be practical to
+  mix SQL into a PRQL query, where PRQL doesn't yet have an implementation.
+- *Unambiguous* — PRQL should define the structure of transformations with the
+  minimum of context. (e.g. unlike in SQL, a `select` transformation exclusively
+  selects columns, it doesn't aggregate data). We're happy to give up some of
+  the "readable English" goals of SQL, like keywords with multiple-words.
 
 ## TODOs
 
@@ -148,24 +158,6 @@ principles:
 - Demonstrate some more complicated examples — e.g. most of the examples in
   <https://github.com/dbt-labs/dbt-utils> could all be covered much better by
   this.
-- Show how this can build arbitrarily nested data, using the `map` & tabs a bit
-  like in our Julia macros (but without the `do` & `end`); this could also be a
-  clearer syntax for more substantial `jq`-like transformations.:
-
-  ```julia
-  @p begin
-    text
-    strip
-    split(__, "\n")
-    map() do __
-        collect
-        map() do __
-          __ == chars[begin] ? 1 : 0
-        end
-    end
-    hcat(__...)'
-  end
-  ```
 
 ## Notes
 
@@ -173,7 +165,7 @@ principles:
 
 - Currently lists require brackets; there's no implicit list like:
 
-  ```
+  ```prql
   employees
   select salary  # fails, would require `select [salary]`
   ```
@@ -181,12 +173,55 @@ principles:
 - For some functions where we're only expecting a single arg, like `select`,
   we could accept a single arg not as a list?
 
-### Line breaks
+### Joins
+
+- Joins are implemented as `{join_type} {table} {[conditions]}`. For example:
+
+  ```prql
+  employees
+  left_join positions [id=employee_id]
+  ```
+
+  ...is equivalent to...
+
+  ```sql
+  SELECT * FROM employees LEFT JOIN positions ON id = employee_id
+  ```
+
+- Possibly we could shorten `[id=id]` to `id`, and use SQL's `USING`, but it may
+  be ambiguous with using `id` as a boolean column.
+
+### Functions
+
+- Functions can take two disjoint types of arguments:
+  1. Positional arguments. Callers must pass these.
+  2. Named arguments, which can optionally have a default value.
+- So a function like:
+
+  ```prql
+  func lag col sort_col group_col=id = (
+    window col 
+    group_by group_col
+    sort sort_col
+    lag 1
+  )
+  ```
+
+  ...takes three arguments; the first two much be supplied, the third can
+  optionally be supplied with `group_col:sec_id`.
+  
+### Assignments
+
+- To create a column, we use `{column_name } = {calculation}` in a pipeline.
+  Technically this is an "upsert" operation — it'll either create or overwrite a
+  column, depending on whether it already exists.
+
+### Pipelines
 
 - Currently a line break always creates a piped transformation outside of a list.
   For example:
 
-  ```
+  ```prql
   tbl
   select [
     col1,
@@ -197,7 +232,7 @@ principles:
 
   ...is equivalent to:
 
-  ```
+  ```prql
   tbl | select [col1, col2] | filter col1 = col2
   ```
 
@@ -205,22 +240,14 @@ principles:
 
 - Partials — potentially we don't need the `col` in `lag`?
 
-  ```
+  ```prql
   func lag col = window col group_by:sec_id sort:date lag:1
   ```
 
-- Potentially `lag:1` should instead be passed as a function rather than an
-  optional arg, like (even though in SQL you can't pass any function as a window
-  func):
-
-  ```
-  func lag col = window col group_by:sec_id sort:date '(lag 1)
-  ```
-
-- Functions' final argument is the result of the previous function; i.e.
+- The previous result is passed as the final argument of a function; i.e.
   `group_by` would be like:
 
-  ```
+  ```prql
   group_by grouping_cols calc_cols X
   ```
 
@@ -236,8 +263,26 @@ principles:
   func upper col = "UPPER({col})"
   ```
 
-## References
+- Arrays — PRQL is in part inspired by
+  [DataPipes.jl](https://gitlab.com/aplavin/DataPipes.jl), which demonstrates
+  how effective point-free pipelines can be
+  ([Chain.jl](https://github.com/jkrumbiegel/Chain.jl) is similar). One benefit
+  of this is how well it deals with arbitrarily nested pipelines — which are
+  difficult to read in SQL and even in `jq`. Could we do something similar for
+  nested data in PRQL?
+  - Here's a snippet from `DataPipes.jl` — and we could avoid the macros / `do` / `end`):
 
-- <https://github.com/tobymao/sqlglot>
-- Lots of SQL parsers exist, but we need a SQL _writer_
-- <https://github.com/sqlparser-rs/sqlparser-rs>
+    ```julia
+    @p begin
+      text
+      strip
+      split(__, "\n")
+      map() do __
+          collect
+          map() do __
+            __ == chars[begin] ? 1 : 0
+          end
+      end
+      hcat(__...)'
+    end
+    ```
