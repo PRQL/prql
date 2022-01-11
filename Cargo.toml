@@ -5,6 +5,8 @@ version = "0.1.0"
 
 [dependencies]
 nom = "*"
+# We use this for just one function — we could vendor it.
+parse-hyperlinks = "0.23.3"
 
 [dev-dependencies]
 insta = "*"

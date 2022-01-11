@@ -9,6 +9,9 @@ use nom::multi::separated_list0;
 use nom::number::complete::be_u16;
 use nom::sequence::{delimited, preceded, separated_pair, terminated};
 use nom::IResult;
+// We only use this library for this function; we could just vendor the function
+// https://github.com/Geal/nom/issues/1253
+use parse_hyperlinks::take_until_unbalanced;
 
 pub type Column<'a> = &'a str;
 pub type Expr<'a> = &'a str;
@@ -123,12 +126,8 @@ fn test_parse_select() {
 
 pub fn parse_expr(input: &str) -> IResult<&str, &str> {
     // Anything surrounded by parentheses, or anything on the same line.
-    // alt((delimited(tag("("), is_not(""), tag(")")), not_line_ending))(input)
-    // alt((delimited(tag("("), rest, tag(")")), not_line_ending))(input)
-    // TODO: this will fail with nested parentheses, but `rest` doesn't seem to
-    // be working.
     alt((
-        delimited(tag("("), take_until(")"), tag(")")),
+        delimited(tag("("), take_until_unbalanced('(', ')'), tag(")")),
         not_line_ending,
     ))(input)
 }
@@ -136,8 +135,7 @@ pub fn parse_expr(input: &str) -> IResult<&str, &str> {
 #[test]
 fn test_parse_expr() {
     assert_eq!(parse_expr("a + b"), Ok(("", "a + b")));
-    // Failing because of parentheses issue.
-    // assert_eq!(parse_expr("((a + b))"), Ok(("", "(a + b)")));
+    assert_eq!(parse_expr("((a + b))"), Ok(("", "(a + b)")));
     assert_eq!(parse_expr("(a + b)"), Ok(("", "a + b")));
     assert_eq!(
         parse_expr(
