@@ -43,7 +43,7 @@ filter country = "USA"                         # Each line transforms the previo
 gross_salary = salary + payroll_tax            # This _adds_ a column to the result with a variable.
 gross_cost   = gross_salary + healthcare_cost  # Variable can use other variables.
 filter gross_cost > 0
-group_by [title, country] [
+aggregate split:[title, country] [
     average salary,
     sum     salary,
     average gross_salary,
@@ -96,7 +96,7 @@ prql 0.0.1 snowflake                                  # Version number & databas
 
 func lag x = (
   window x 
-  group_by sec_id 
+  split sec_id 
   sort date
   lag 1
 )
@@ -199,16 +199,17 @@ principles:
 - So a function like:
 
   ```prql
-  func lag col sort_col group_col=id = (
+  func lag col sort_col split_col=id = (
     window col 
-    group_by group_col
+    split split_col
     sort sort_col
     lag 1
   )
   ```
 
-  ...takes three arguments; the first two much be supplied, the third can
-  optionally be supplied with `group_col:sec_id`.
+  ...is called `lag`, takes three arguments `col`, `sort_col` & `split_col`, of
+  which the first two much be supplied, the third can optionally be supplied
+  with `split_col:sec_id`.
   
 ### Assignments
 
@@ -245,10 +246,10 @@ principles:
   ```
 
 - The previous result is passed as the final argument of a function; i.e.
-  `group_by` would be like:
+  `aggregate` would be like:
 
   ```prql
-  group_by grouping_cols calc_cols X
+  aggregate split_cols:[] calcs X
   ```
 
 - CTE syntax — something like `table =`?
