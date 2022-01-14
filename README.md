@@ -161,18 +161,6 @@ principles:
 
 ## Notes
 
-### Lists
-
-- Currently lists require brackets; there's no implicit list like:
-
-  ```prql
-  employees
-  select salary  # fails, would require `select [salary]`
-  ```
-
-- For some functions where we're only expecting a single arg, like `select`,
-  we could accept a single arg not as a list?
-
 ### Joins
 
 - Joins are implemented as `{join_type} {table} {[conditions]}`. For example:
@@ -213,14 +201,28 @@ principles:
   
 ### Assignments
 
-- To create a column, we use `{column_name } = {calculation}` in a pipeline.
-  Technically this is an "upsert" operation — it'll either create or overwrite a
+- To create a column, we use `{column_name} = {calculation}` in a pipeline.
+  Technically this is "upserts" the column — it'll either create or overwrite a
   column, depending on whether it already exists.
+- I'd be open to alternative syntax, given that this syntax is generally a new
+  statement in most programming languages. But I can't think of any syntax that's
+  more familiar than this.
+
+### Lists
+
+- Currently lists require brackets; there's no implicit list like:
+
+  ```prql
+  employees
+  select salary  # fails, would require `select [salary]`
+  ```
+
+- For some functions where we're only expecting a single arg, like `select`,
+  we could accept a single arg not as a list?
 
 ### Pipelines
 
-- Currently a line break always creates a piped transformation outside of a list.
-  For example:
+- A line-break generally creates a pipelined transformation. For example:
 
   ```prql
   tbl
@@ -237,13 +239,12 @@ principles:
   tbl | select [col1, col2] | filter col1 = col2
   ```
 
+- A line-break doesn't created a pipeline in a few cases:
+  - Within a list (e.g. the `select` example above).
+  - When the following line is a new statement, by starting with a keyword such
+    as `func`.
+
 ## Thinking about
-
-- Partials — potentially we don't need the `col` in `lag`?
-
-  ```prql
-  func lag col = window col group_by:sec_id sort:date lag:1
-  ```
 
 - The previous result is passed as the final argument of a function; i.e.
   `aggregate` would be like:
@@ -287,3 +288,15 @@ principles:
       hcat(__...)'
     end
     ```
+
+- Partials — how functional do we want to make the lang? e.g. should we have
+  partial functions? e.g. [now based on an old version of `window`] potentially
+  we don't need the `col` in `lag` here?
+
+  ```prql
+  func lag col = window col split:sec_id sort:date lag:1
+  ```
+
+- Boolean logic — how should we represent boolean logic like `or`? With some
+  `or` function that takes `*args` (which we don't currently have a design for)?
+  Or implement didactic operators; either `or` or `||`? (Same for `not`)
