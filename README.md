@@ -43,8 +43,8 @@ filter country = "USA"                         # Each line transforms the previo
 gross_salary = salary + payroll_tax            # This _adds_ a column to the result with a variable.
 gross_cost   = gross_salary + healthcare_cost  # Variable can use other variables.
 filter gross_cost > 0
-aggregate split:[title, country] [
-    average salary,
+aggregate split:[title, country] [             # Split are the columns to group by.
+    average salary,                            # These are the calcs to run on the groups.
     sum     salary,
     average gross_salary,
     sum     gross_salary,
@@ -140,14 +140,14 @@ principles:
   database that uses SQL. Where possible PRQL can unify syntax across databases.
 - *Concise* — PRQL's abstractions allow us to reduce repetition and boilerplate,
   reducing toil and errors.
-- *Versioned* — PRQL can evolve without breaking backward-compatibility, because
+- *Evolve-able* — PRQL can evolve without breaking backward-compatibility, because
   its queries can specify their version.
 - *Gradual* — PRQL should allow for a gradual onramp — it should be practical to
   mix SQL into a PRQL query, where PRQL doesn't yet have an implementation.
 - *Unambiguous* — PRQL should define the structure of transformations with the
   minimum of context. (e.g. unlike in SQL, a `select` transformation exclusively
   selects columns, it doesn't aggregate data). We're happy to give up some of
-  the "readable English" goals of SQL, like keywords with multiple-words.
+  the "readable English" goals of SQL, like keywords with multiple words.
 
 ## TODOs
 
@@ -205,8 +205,10 @@ principles:
   Technically this is "upserts" the column — it'll either create or overwrite a
   column, depending on whether it already exists.
 - I'd be open to alternative syntax, given that this syntax is generally a new
-  statement in most programming languages. But I can't think of any syntax that's
-  more familiar than this.
+  statement in most programming languages.
+  - But I can't think of any syntax that's more familiar than this.
+  - Possibly `let {column_name} {calculation}` would be more consistent with the
+    other keywords?
 
 ### Lists
 
