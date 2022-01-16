@@ -38,9 +38,9 @@ the columns in the `GROUP BY` clause in the `SELECT` list.
 Here's the same query with PRQL:
 
 ```prql
-employees
+from employees
 filter country = "USA"                         # Each line transforms the previous result.
-gross_salary = salary + payroll_tax            # This _adds_ a column to the result with a variable.
+gross_salary = salary + payroll_tax            # This _adds_ a column / variable.
 gross_cost   = gross_salary + healthcare_cost  # Variable can use other variables.
 filter gross_cost > 0
 aggregate split:[title, country] [             # Split are the columns to group by.
@@ -104,7 +104,7 @@ func ret x = x / (x | lag) - 1 + cash_dividend_return
 func excess x = (x - interest_rate) / 252    
 func if_valid x = is_valid_price ? x : null
 
-prices
+from prices
 return_total       = prices_adj   | ret | if_valid    # `|` can be used rather than newlines.
 return_usd         = prices_usd   | ret | if_valid
 return_excess      = return_total | excess
@@ -166,7 +166,7 @@ principles:
 - Joins are implemented as `{join_type} {table} {[conditions]}`. For example:
 
   ```prql
-  employees
+  from employees
   left_join positions [id=employee_id]
   ```
 
@@ -215,7 +215,7 @@ principles:
 - Currently lists require brackets; there's no implicit list like:
 
   ```prql
-  employees
+  from employees
   select salary  # fails, would require `select [salary]`
   ```
 
@@ -227,7 +227,7 @@ principles:
 - A line-break generally creates a pipelined transformation. For example:
 
   ```prql
-  tbl
+  from tbl
   select [
     col1,
     col2,
@@ -238,7 +238,7 @@ principles:
   ...is equivalent to:
 
   ```prql
-  tbl | select [col1, col2] | filter col1 = col2
+  from tbl | select [col1, col2] | filter col1 = col2
   ```
 
 - A line-break doesn't created a pipeline in a few cases:
@@ -302,3 +302,7 @@ principles:
 - Boolean logic — how should we represent boolean logic like `or`? With some
   `or` function that takes `*args` (which we don't currently have a design for)?
   Or implement didactic operators; either `or` or `||`? (Same for `not`)
+
+- `from` — do we need `from`? A previous version of this proposal didn't require
+  this — just start with the table name. But some initial feedback was that
+  removing `from` made it less clear.
