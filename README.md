@@ -8,7 +8,7 @@ logical pipeline of transformations, and supports abstractions such as variables
 and functions. It can be used with any database that uses SQL, since it
 transpiles to SQL.
 
-## An example using Variables
+## An example
 
 Here's a fairly simple SQL query:
 
@@ -33,17 +33,17 @@ HAVING count > 200
 Even this simple query demonstrates some of the problems with SQL's lack of
 abstractions:
 
-- The calculations for each measure are needlessly repeated multiple times, when
-  each derives from the previous measure — and again in the `WHERE` clause.
-- Operators have multiple functions — for example, the `SELECT` operator both
+- Unnecessary repetition — the calculations for each measure are repeated,
+  despite deriving from a previous measure. The repetition in the `WHERE`
+  clause obfuscates the meaning of the expression.
+- Functions have multiple operators — `HAVING` & `WHERE` are fundamentally
+  similar operations applied at different stages of the pipeline but SQL's lack
+  of pipeline-based precedence requires it to have two different operators.
+- Operators have multiple functions — the `SELECT` operator both
   creates new aggregations, and selects which columns to include.
-- Function have multiple operators — for example, `HAVING` & `WHERE` are
-  fundamentally similar operations applied at different stages of the pipeline;
-  SQL's lack of pipeline-based precedence forces it to have multiple operators.
-- Its syntax is far from ideal — when developing the query, commenting out
-  the final line of the `SELECT` list causes a syntax error because of how
-  commas and handled, and we need to repeat the columns in the `GROUP BY` clause
-  in the `SELECT` list.
+- Awkward syntax — when developing the query, commenting out the final line of
+  the `SELECT` list causes a syntax error because of how commas and handled, and
+  we need to repeat the columns in the `GROUP BY` clause in the `SELECT` list.
 
 Here's the same query with PRQL:
 
@@ -71,7 +71,7 @@ As well as using variables to reduce unnecessary repetition, the query is also
 more readable — it flows from top to bottom, each line representing a
 transformation of the previous line's result. For example, `TOP 20` modifies the
 final result in both queries — but only PRQL represents it as the final
-transformation. Context is localized — the `aggregate` function contains both
+transformation. And context is localized — the `aggregate` function contains both
 the calculations and the columns to group by.
 
 ## An example using Functions
