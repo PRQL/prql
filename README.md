@@ -2,10 +2,11 @@
 
 **P**oint-f**R**ee **Q**uery **L**anguage, pronounced "Prequel".
 
-PRQL is a language for transforming data. Like SQL, it's readable, explicit and
-declarative. Unlike SQL, it forms a logical pipeline of transformations, and
-supports abstractions such as variables and functions. It can be used with any
-database that uses SQL, since it transpiles to SQL.
+PRQL is a modern language for transforming data — a simpler and more powerful
+SQL. Like SQL, it's readable, explicit and declarative. Unlike SQL, it forms a
+logical pipeline of transformations, and supports abstractions such as variables
+and functions. It can be used with any database that uses SQL, since it
+transpiles to SQL.
 
 ## An example using Variables
 
@@ -28,12 +29,17 @@ GROUP BY title, country
 ORDER BY sum_gross_cost
 ```
 
-Even a simple query demonstrates some of the problems with SQL's lack of
-abstractions — we needlessly repeat the calculation for each measure multiple
-times, when each derives from the previous measure — and again in the `WHERE`
-clause. The syntax is also awkward — when developing the query, commenting out
-the final line of the `SELECT` list causes a syntax error, and we need to repeat
-the columns in the `GROUP BY` clause in the `SELECT` list.
+Even this simple query demonstrates some of the problems with SQL's lack of
+abstractions:
+
+- We needlessly repeat the calculation for each measure multiple times, when
+  each derives from the previous measure — and again in the `WHERE` clause.
+- SQL mixes together different concepts into the same statement — the `SELECT`
+  statement both creates new aggregations, and selects which columns to include.
+- Its syntax is far from ideal — when developing the query, commenting out
+  the final line of the `SELECT` list causes a syntax error because of how
+  commas and handled, and we need to repeat the columns in the `GROUP BY` clause
+  in the `SELECT` list.
 
 Here's the same query with PRQL:
 
@@ -53,14 +59,15 @@ aggregate split:[title, country] [             # Split are the columns to group 
     count,
 ]
 sort sum_gross_cost                            # Uses the auto-generated column name.
-head 20
+top 20
 ```
 
 As well as using variables to reduce unnecessary repetition, the query is also
 more readable — it flows from top to bottom, each line representing a
-transformation of the previous line's result. For example, `TOP 20` and `head
-20` both modify the final result — but only PRQL represents it as the final
-transformation.
+transformation of the previous line's result. For example, `TOP 20` modifies the
+final result in both queries — but only PRQL represents it as the final
+transformation. Calculations are done with an `aggregate` function which
+locations the columns to split by and the calculation to apply in the same statement.
 
 ## An example using Functions
 
@@ -72,14 +79,14 @@ SELECT
   date,
   -- Can't use a `WHERE` clause, as it would affect the row that the `LAG` function referenced.
   IF(is_valid_price, price_adjusted / LAG(price_adjusted, 1) OVER 
-    (PARTITION BY sec_id ORDER BY date) - 1 + cash_dividend_return, NULL) AS return_total,
+    (PARTITION BY sec_id ORDER BY date) - 1 + dividend_return, NULL) AS return_total,
   IF(is_valid_price, price_adjusted_usd / LAG(price_adjusted_usd, 1) OVER 
-    (PARTITION BY sec_id ORDER BY date) - 1 + cash_dividend_return, NULL) AS return_usd,
+    (PARTITION BY sec_id ORDER BY date) - 1 + dividend_return, NULL) AS return_usd,
   IF(is_valid_price, price_adjusted / LAG(price_adjusted, 1) OVER 
-    (PARTITION BY sec_id ORDER BY date) - 1 + cash_dividend_return, NULL) 
+    (PARTITION BY sec_id ORDER BY date) - 1 + dividend_return, NULL) 
     - interest_rate / 252 AS return_excess,
   IF(is_valid_price, price_adjusted_usd / LAG(price_adjusted_usd, 1) OVER 
-    (PARTITION BY sec_id ORDER BY date) - 1 + cash_dividend_return, NULL) 
+    (PARTITION BY sec_id ORDER BY date) - 1 + dividend_return, NULL) 
     - interest_rate / 252 AS return_usd_excess
 FROM prices
 ```
@@ -92,15 +99,15 @@ FROM prices
 Here's the same query with PRQL:
 
 ```prql
-prql 0.0.1 snowflake                                  # Version number & database name.
+prql version:0.0.1 db:snowflake                       # Version number & database name.
 
-func lag x = (
+func lag_day x = (
   window x 
   split sec_id 
   sort date
   lag 1
 )
-func ret x = x / (x | lag) - 1 + cash_dividend_return
+func ret x = x / (x | lag_day) - 1 + dividend_return
 func excess x = (x - interest_rate) / 252    
 func if_valid x = is_valid_price ? x : null
 
@@ -128,26 +135,24 @@ and colleagues.
 
 PRQL is intended to be a modern, simple, declarative language for transforming
 data, with abstractions such as variables & functions. It's intended to replace
-SQL, not Haskell. While it's at a pre-alpha stage, it has some immutable
-principles:
+SQL, but doesn't have ambitions as a general-purpose programming language. While
+it's at a pre-alpha stage, it has some immutable principles:
 
 - *Pipelined* — PRQL is a linear pipeline of transformations — each line of the
   query is a transformation of the previous line's result. This makes it easy to
-  read and simple to develop.
-- *Analytical* — PRQL's focus is analytical queries; we de-emphasize other
-  SQL features such as inserting data or transactions.
-- *Compatibility* — PRQL transpiles to SQL, so it can be used with any
-  database that uses SQL. Where possible PRQL can unify syntax across databases.
-- *Concise* — PRQL's abstractions allow us to reduce repetition and boilerplate,
-  reducing toil and errors.
-- *Evolve-able* — PRQL can evolve without breaking backward-compatibility, because
-  its queries can specify their version.
-- *Gradual* — PRQL should allow for a gradual onramp — it should be practical to
-  mix SQL into a PRQL query, where PRQL doesn't yet have an implementation.
-- *Unambiguous* — PRQL should define the structure of transformations with the
-  minimum of context. (e.g. unlike in SQL, a `select` transformation exclusively
-  selects columns, it doesn't aggregate data). We're happy to give up some of
-  the "readable English" goals of SQL, like keywords with multiple words.
+  read, and simple to write.
+- *Simple* — PRQL serves both sophisticated engineers and analysts without
+  coding experience. By providing simple, clean abstractions, the
+  language can be both powerful and easy to use.
+- *Compatible* — PRQL transpiles to SQL, so it can be used with any database
+  that uses SQL. Where possible PRQL can unify syntax across databases. PRQL
+  should allow for a gradual onramp — it should be practical to mix SQL into a
+  PRQL query where PRQL doesn't yet have an implementation.
+- *Analytical* — PRQL's focus is analytical queries; we de-emphasize other SQL
+  features such as inserting data or transactions.
+- *Extensible* — PRQL can be extended through its abstractions, and can evolve
+  without breaking backward-compatibility, because its queries can specify their
+  PRQL version.
 
 ## TODOs
 
@@ -301,15 +306,15 @@ principles:
 
 - Boolean logic — how should we represent boolean logic like `or`? With some
   `or` function that takes `*args` (which we don't currently have a design for)?
-  Or implement didactic operators; either `or` or `||`? (Same for `not`)
+  Or implement dyadic operators; either `or` or `||`? (Same for `not`)
 
 - `from` — do we need `from`? A previous version of this proposal didn't require
   this — just start with the table name. But some initial feedback was that
   removing `from` made it less clear.
 
-- Readme syntax — in order to get syntax highlighting for PRQL code, we have to
-  do some awkward HTML in markdown — both using tags and inserting unicode
-  spaces to get indentation. Is there an alternative to this?
+- Readme syntax — we can't get syntax highlighting in GitHub's markdown — is
+  there a solution to this aside from submitting a parser to GitHub /
+  screenshots / creating a website?
 
 - In advance of a full parser & compiler, could we use something like
   [Codex](https://beta.openai.com/examples/default-sql-translate) to generate
