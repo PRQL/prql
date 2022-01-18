@@ -249,10 +249,10 @@ principles:
 ## Thinking about
 
 - The previous result is passed as the final argument of a function; i.e.
-  `aggregate` would be like:
+  `aggregate` would be like; where `X` is taken from the line above:
 
   ```prql
-  aggregate split_cols:[] calcs X
+  aggregate split=[] calcs X
   ```
 
 - CTE syntax — something like `table =`?
@@ -306,3 +306,14 @@ principles:
 - `from` — do we need `from`? A previous version of this proposal didn't require
   this — just start with the table name. But some initial feedback was that
   removing `from` made it less clear.
+
+- Readme syntax — in order to get syntax highlighting for PRQL code, we have to
+  do some awkward HTML in markdown — both using tags and inserting unicode
+  spaces to get indentation. Is there an alternative to this?
+
+- In advance of a full parser & compiler, could we use something like
+  [Codex](https://beta.openai.com/examples/default-sql-translate) to generate
+  the transformations, and let us explore the space? We can provide our owen
+  [examples](https://openai.com/blog/customized-gpt3/), or use
+  [fine-tuning](https://beta.openai.com/docs/guides/fine-tuning/advanced-usage).
+  Changing examples is easier than changing compilers!
