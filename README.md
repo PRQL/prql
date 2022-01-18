@@ -22,20 +22,24 @@ SELECT TOP 20
     SUM(salary + payroll_tax) AS sum_gross_salary,
     AVG(salary + payroll_tax + healthcare_cost) AS average_gross_cost,
     SUM(salary + payroll_tax + healthcare_cost) AS sum_gross_cost,
-    COUNT(*)
+    COUNT(*) as count
 FROM employees
 WHERE salary + payroll_tax + healthcare_cost > 0 AND country = 'USA'
 GROUP BY title, country
 ORDER BY sum_gross_cost
+HAVING count > 200
 ```
 
 Even this simple query demonstrates some of the problems with SQL's lack of
 abstractions:
 
-- We needlessly repeat the calculation for each measure multiple times, when
+- The calculations for each measure are needlessly repeated multiple times, when
   each derives from the previous measure — and again in the `WHERE` clause.
-- SQL mixes together different concepts into the same statement — the `SELECT`
-  statement both creates new aggregations, and selects which columns to include.
+- Operators have multiple functions — for example, the `SELECT` operator both
+  creates new aggregations, and selects which columns to include.
+- Function have multiple operators — for example, `HAVING` & `WHERE` are
+  fundamentally similar operations applied at different stages of the pipeline;
+  SQL's lack of pipeline-based precedence forces it to have multiple operators.
 - Its syntax is far from ideal — when developing the query, commenting out
   the final line of the `SELECT` list causes a syntax error because of how
   commas and handled, and we need to repeat the columns in the `GROUP BY` clause
@@ -59,6 +63,7 @@ aggregate split:[title, country] [             # Split are the columns to group 
     count,
 ]
 sort sum_gross_cost                            # Uses the auto-generated column name.
+filter count > 200
 top 20
 ```
 
@@ -67,7 +72,7 @@ more readable — it flows from top to bottom, each line representing a
 transformation of the previous line's result. For example, `TOP 20` modifies the
 final result in both queries — but only PRQL represents it as the final
 transformation. Context is localized — the `aggregate` function contains both
-its calculation and the columns to group by.
+the calculations and the columns to group by.
 
 ## An example using Functions
 
