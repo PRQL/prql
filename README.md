@@ -66,8 +66,8 @@ As well as using variables to reduce unnecessary repetition, the query is also
 more readable — it flows from top to bottom, each line representing a
 transformation of the previous line's result. For example, `TOP 20` modifies the
 final result in both queries — but only PRQL represents it as the final
-transformation. Calculations are done with an `aggregate` function which
-locations the columns to split by and the calculation to apply in the same statement.
+transformation. Context is localized — the `aggregate` function contains both
+its calculation and the columns to group by.
 
 ## An example using Functions
 
