@@ -47,7 +47,7 @@ abstractions:
 
 Here's the same query with PRQL:
 
-```prql
+```elm
 from employees
 filter country = "USA"                         # Each line transforms the previous result.
 gross_salary = salary + payroll_tax            # This _adds_ a column / variable.
@@ -103,7 +103,7 @@ FROM prices
 
 Here's the same query with PRQL:
 
-```prql
+```elm
 prql version:0.0.1 db:snowflake                       # Version number & database name.
 
 func lag_day x = (
@@ -175,7 +175,7 @@ it's at a pre-alpha stage, it has some immutable principles:
 
 - Joins are implemented as `{join_type} {table} {[conditions]}`. For example:
 
-  ```prql
+  ```elm
   from employees
   left_join positions [id=employee_id]
   ```
@@ -196,7 +196,7 @@ it's at a pre-alpha stage, it has some immutable principles:
   2. Named arguments, which can optionally have a default value.
 - So a function like:
 
-  ```prql
+  ```elm
   func lag col sort_col split_col=id = (
     window col 
     split split_col
@@ -224,7 +224,7 @@ it's at a pre-alpha stage, it has some immutable principles:
 
 - Currently lists require brackets; there's no implicit list like:
 
-  ```prql
+  ```elm
   from employees
   select salary  # fails, would require `select [salary]`
   ```
@@ -236,7 +236,7 @@ it's at a pre-alpha stage, it has some immutable principles:
 
 - A line-break generally creates a pipelined transformation. For example:
 
-  ```prql
+  ```elm
   from tbl
   select [
     col1,
@@ -247,7 +247,7 @@ it's at a pre-alpha stage, it has some immutable principles:
 
   ...is equivalent to:
 
-  ```prql
+  ```elm
   from tbl | select [col1, col2] | filter col1 = col2
   ```
 
@@ -261,7 +261,7 @@ it's at a pre-alpha stage, it has some immutable principles:
 - The previous result is passed as the final argument of a function; i.e.
   `aggregate` would be like; where `X` is taken from the line above:
 
-  ```prql
+  ```elm
   aggregate split=[] calcs X
   ```
 
@@ -269,7 +269,7 @@ it's at a pre-alpha stage, it has some immutable principles:
 - Raw syntax — I think we should have backticks represent raw SQL; i.e. `UPPER`
   could be defined as:
 
-  ```prql
+  ```elm
   func upper col = `UPPER(`col`)`
   # or with f-string-like syntax
   func upper col = `UPPER({col})`
@@ -305,7 +305,7 @@ it's at a pre-alpha stage, it has some immutable principles:
   partial functions? e.g. [now based on an old version of `window`] potentially
   we don't need the `col` in `lag` here?
 
-  ```prql
+  ```elm
   func lag col = window col split:sec_id sort:date lag:1
   ```
 
@@ -320,6 +320,8 @@ it's at a pre-alpha stage, it has some immutable principles:
 - Readme syntax — we can't get syntax highlighting in GitHub's markdown — is
   there a solution to this aside from submitting a parser to GitHub /
   screenshots / creating a website?
+  - Currently we use `elm` as it coincidentally provides the best syntax
+    highlight (open to suggestions for others!).
 
 - In advance of a full parser & compiler, could we use something like
   [Codex](https://beta.openai.com/examples/default-sql-translate) to generate
