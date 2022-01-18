@@ -319,6 +319,15 @@ it's at a pre-alpha stage, it has some immutable principles:
 - In advance of a full parser & compiler, could we use something like
   [Codex](https://beta.openai.com/examples/default-sql-translate) to generate
   the transformations, and let us explore the space? We can provide our owen
-  [examples](https://openai.com/blog/customized-gpt3/), or use
+  [examples](https://openai.com/blog/customized-gpt3/), by using
   [fine-tuning](https://beta.openai.com/docs/guides/fine-tuning/advanced-usage).
   Changing examples is easier than changing compilers!
+
+## Inspired by
+
+- [dplyr](https://dplyr.tidyverse.org/) is a beautiful language for manipulating
+  data, in R. It's the most similar language to PRQL.
+- Julia's [DataPipes.jl](https://gitlab.com/aplavin/DataPipes.jl) &
+  [Chain.jl](https://github.com/jkrumbiegel/Chain.jl), which demonstrate how
+  effective point-free pipelines can be, and how line-breaks can work as pipes.
+- [Ocaml](https://ocaml.org/)'s elegant and simple syntax.
