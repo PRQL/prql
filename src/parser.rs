@@ -1,5 +1,4 @@
 #![allow(unused_imports)]
-// use insta::{assert_debug_snapshot, assert_display_snapshot, assert_snapshot};
 use nom::branch::alt;
 use nom::bytes::complete::{is_not, tag, tag_no_case, take, take_until, take_while1};
 use nom::character::complete::{multispace0, not_line_ending};
