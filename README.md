@@ -316,16 +316,36 @@ advance.
   - When the following line is a new statement, by starting with a keyword such
     as `func`.
 
+### CTEs
+
+- Potentially something like:
+
+  ```elm
+    table newest_employees = (
+      from employees
+      sort tenure
+      take 50
+    )
+
+    from newest_employees
+    join salary [id]
+    select [name, salary]
+  ```
+
+- This is no longer point-free, but that's a feature rather than a requirement.
+  The alternative is subqueries, which are fine in some small queries, but as
+  queries get more complex, become difficult to digest.
+
 ## Thinking about
 
-- The previous result is passed as the final argument of a function; i.e.
-  `aggregate` would be like this; where `X` is taken from the line above:
+- How functions represent the previous result — the previous result is passed as
+  the final argument of a function; i.e. `aggregate` would be like this; where
+  `X` is taken from the line above:
 
   ```elm
   aggregate by=[] calcs X
   ```
 
-- CTE syntax — something like `table =`?
 - Raw syntax — I think we should have backticks represent raw SQL; i.e. `UPPER`
   could be defined as:
 
