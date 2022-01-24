@@ -185,6 +185,8 @@ advance.
 
 - [dplyr](https://dplyr.tidyverse.org/) is a beautiful language for manipulating
   data, in R. It's very similar to PRQL. It only works on in-memory R data.
+  - There's also [dbplyr](https://dbplyr.tidyverse.org/) which compiles a subset
+    of dplyr to SQL. It requires an R runtime.
 - [Kusto](https://docs.microsoft.com/en-us/azure/data-explorer/kusto/query/samples?pivots=azuredataexplorer)
   is also a beautiful pipelined language, very similar to PRQL. But it can only
   use Kusto-compatible DBs.
@@ -202,11 +204,13 @@ advance.
 - [Malloy](https://github.com/looker-open-source/malloy), from @lloydtabb looks
   very interesting, and has the team to make it successful. I'll spend some more
   time checking it out.
+- [FunSQL.jl](https://github.com/MechanicalRabbit/FunSQL.jl) is a library in
+  Julia which compiles a nice query syntax to SQL. It requires a Julia runtime.
 - After writing this proposal (including the name!), I found
   [Preql](https://github.com/erezsh/Preql). Despite the similar name and
   compiling to SQL, it seems to focus more on making the language python-like,
   which is very different to this proposal.
-  
+
 ## TODOs
 
 - Write a basic parser
