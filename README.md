@@ -338,3 +338,14 @@ it's at a pre-alpha stage, it has some immutable principles:
   [Chain.jl](https://github.com/jkrumbiegel/Chain.jl), which demonstrate how
   effective point-free pipelines can be, and how line-breaks can work as pipes.
 - [Ocaml](https://ocaml.org/)'s elegant and simple syntax.
+
+## Similar projects
+
+- [Malloy](https://github.com/looker-open-source/malloy), from @lloydtabb looks
+  very interesting, and has the team to make it successful. I'll spend some more
+  time checking it out.
+- After writing this proposal (including the name!), I found
+  [Preql](https://github.com/erezsh/Preql). Despite the similar name and
+  compiling to SQL, it seems to focus more on making the language python-like,
+  which is very different to this proposal.
+  
