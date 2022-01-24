@@ -145,7 +145,8 @@ it's at a pre-alpha stage, it has some immutable principles:
 
 - *Pipelined* — PRQL is a linear pipeline of transformations — each line of the
   query is a transformation of the previous line's result. This makes it easy to
-  read, and simple to write.
+  read, and simple to write. This is also known as "[point-free
+  style](https://en.wikipedia.org/w/index.php?title=Point-free_programming)".
 - *Simple* — PRQL serves both sophisticated engineers and analysts without
   coding experience. By providing simple, clean abstractions, the
   language can be both powerful and easy to use.
@@ -158,6 +159,27 @@ it's at a pre-alpha stage, it has some immutable principles:
 - *Extensible* — PRQL can be extended through its abstractions, and can evolve
   without breaking backward-compatibility, because its queries can specify their
   PRQL version.
+
+## Interested in seeing this happen?
+
+If you're interested in the ideas here and would like to see them explored:
+
+- Star this repo.
+- Open an issue:
+  - An analytical SQL query that's awkward and we could use as a case for . If
+    you'd like to add a suggestion of the equivalent PRQL, that's very welcome
+    too.
+  - An area that isn't sufficiently discussed in the existing proposal.
+  - An analytical SQL query that you think would be _more_ difficult to express
+    in PRQL.
+- Send the repo to a couple of people whose opinion you respect.
+- Subscribe to [Issue #1](https://github.com/max-sixty/prql/issues/1) for
+  updates.
+- (If you'd be up for helping on the complier, let me know, but it's at a very
+  early stage.)
+
+Any of these will inspire me to spend more time developing this; thank you in
+advance.
 
 ## TODOs
 
