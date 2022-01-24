@@ -42,7 +42,7 @@ abstractions:
 - Operators have multiple functions — the `SELECT` operator both
   creates new aggregations, and selects which columns to include.
 - Awkward syntax — when developing the query, commenting out the final line of
-  the `SELECT` list causes a syntax error because of how commas and handled, and
+  the `SELECT` list causes a syntax error because of how commas are handled, and
   we need to repeat the columns in the `GROUP BY` clause in the `SELECT` list.
 
 Here's the same query with PRQL:
@@ -166,9 +166,9 @@ If you're interested in the ideas here and would like to see them explored:
 
 - Star this repo.
 - Open an issue:
-  - An analytical SQL query that's awkward and we could use as a case for . If
-    you'd like to add a suggestion of the equivalent PRQL, that's very welcome
-    too.
+  - An analytical SQL query that's awkward and we could use as a case for
+    translating to PRQL. If you'd like to add a suggestion of the equivalent
+    PRQL, that's very welcome too.
   - An area that isn't sufficiently discussed in the existing proposal.
   - An analytical SQL query that you think would be _more_ difficult to express
     in PRQL.
