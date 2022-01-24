@@ -54,9 +54,9 @@ Here's the same query with PRQL:
 from employees
 filter country = "USA"                         # Each line transforms the previous result.
 gross_salary = salary + payroll_tax            # This _adds_ a column / variable.
-gross_cost   = gross_salary + healthcare_cost  # Variable can use other variables.
+gross_cost   = gross_salary + healthcare_cost  # Variables can use other variables.
 filter gross_cost > 0
-aggregate split:[title, country] [             # Split are the columns to group by.
+aggregate by:[title, country] [                # `by` are the columns to group by.
     average salary,                            # These are the calcs to run on the groups.
     sum     salary,
     average gross_salary,
@@ -111,7 +111,7 @@ prql version:0.0.1 db:snowflake                       # Version number & databas
 
 func lag_day x = (
   window x 
-  split sec_id 
+  by sec_id 
   sort date
   lag 1
 )
@@ -252,17 +252,17 @@ advance.
 - So a function like:
 
   ```elm
-  func lag col sort_col split_col=id = (
+  func lag col sort_col by_col=id = (
     window col 
-    split split_col
+    by by_col
     sort sort_col
     lag 1
   )
   ```
 
-  ...is called `lag`, takes three arguments `col`, `sort_col` & `split_col`, of
+  ...is called `lag`, takes three arguments `col`, `sort_col` & `by_col`, of
   which the first two much be supplied, the third can optionally be supplied
-  with `split_col:sec_id`.
+  with `by_col:sec_id`.
   
 ### Assignments
 
@@ -314,10 +314,10 @@ advance.
 ## Thinking about
 
 - The previous result is passed as the final argument of a function; i.e.
-  `aggregate` would be like; where `X` is taken from the line above:
+  `aggregate` would be like this; where `X` is taken from the line above:
 
   ```elm
-  aggregate split=[] calcs X
+  aggregate by=[] calcs X
   ```
 
 - CTE syntax — something like `table =`?
@@ -361,7 +361,7 @@ advance.
   we don't need the `col` in `lag` here?
 
   ```elm
-  func lag col = window col split:sec_id sort:date lag:1
+  func lag col = window col by:sec_id sort:date lag:1
   ```
 
 - Boolean logic — how should we represent boolean logic like `or`? With some
