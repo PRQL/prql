@@ -23,11 +23,11 @@ SELECT TOP 20
     SUM(salary) AS sum_salary,
     AVG(salary + payroll_tax) AS average_gross_salary,
     SUM(salary + payroll_tax) AS sum_gross_salary,
-    AVG(salary + payroll_tax + healthcare_cost) AS average_gross_cost,
-    SUM(salary + payroll_tax + healthcare_cost) AS sum_gross_cost,
+    AVG(salary + payroll_tax + benefits_cost) AS average_gross_cost,
+    SUM(salary + payroll_tax + benefits_cost) AS sum_gross_cost,
     COUNT(*) as count
 FROM employees
-WHERE salary + payroll_tax + healthcare_cost > 0 AND country = 'USA'
+WHERE salary + payroll_tax + benefits_cost > 0 AND country = 'USA'
 GROUP BY title, country
 ORDER BY sum_gross_cost
 HAVING count > 200
@@ -52,12 +52,12 @@ Here's the same query with PRQL:
 
 ```elm
 from employees
-filter country = "USA"                         # Each line transforms the previous result.
-gross_salary = salary + payroll_tax            # This _adds_ a column / variable.
-gross_cost   = gross_salary + healthcare_cost  # Variables can use other variables.
+filter country = "USA"                           # Each line transforms the previous result.
+let gross_salary = salary + payroll_tax          # This _adds_ a column / variable.
+let gross_cost   = gross_salary + benefits_cost  # Variables can use other variables.
 filter gross_cost > 0
-aggregate by:[title, country] [                # `by` are the columns to group by.
-    average salary,                            # These are the calcs to run on the groups.
+aggregate by:[title, country] [                  # `by` are the columns to group by.
+    average salary,                              # These are the calcs to run on the groups.
     sum     salary,
     average gross_salary,
     sum     gross_salary,
@@ -65,7 +65,7 @@ aggregate by:[title, country] [                # `by` are the columns to group b
     sum     gross_cost,
     count,
 ]
-sort sum_gross_cost                            # Uses the auto-generated column name.
+sort sum_gross_cost                              # Uses the auto-generated column name.
 filter count > 200
 take 20
 ```
@@ -120,10 +120,10 @@ func excess x = (x - interest_rate) / 252
 func if_valid x = is_valid_price ? x : null
 
 from prices
-return_total       = prices_adj   | ret | if_valid    # `|` can be used rather than newlines.
-return_usd         = prices_usd   | ret | if_valid
-return_excess      = return_total | excess
-return_usd_excess  = return_usd   | excess
+let return_total      = prices_adj   | ret | if_valid    # `|` can be used rather than newlines.
+let return_usd        = prices_usd   | ret | if_valid
+let return_excess     = return_total | excess
+let return_usd_excess = return_usd   | excess
 select [
   date,
   sec_id,
@@ -266,14 +266,15 @@ advance.
   
 ### Assignments
 
-- To create a column, we use `{column_name} = {calculation}` in a pipeline.
-  Technically this is "upserts" the column — it'll either create or overwrite a
+- To create a column, we use `let {column_name} = {calculation}` in a pipeline.
+  Technically this "upserts" the column — it'll either create or overwrite a
   column, depending on whether it already exists.
-- I'd be open to alternative syntax, given that this syntax is generally a new
-  statement in most programming languages.
-  - But I can't think of any syntax that's more familiar than this.
-  - Possibly `let {column_name} {calculation}` would be more consistent with the
-    other keywords?
+- Previously the syntax was just `{column_name} = {calculation}`, but it breaks
+  the pattern of every line starting with a keyword.
+- We could discard the `=` to just have `let {column_name} {calculation}`, which
+  would be more consistent with the other functions, but I think less readable
+  (and definitely less familiar).
+- I'm still open to iterating here.
 
 ### Lists
 
