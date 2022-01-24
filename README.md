@@ -321,15 +321,15 @@ advance.
 - Potentially something like:
 
   ```elm
-    table newest_employees = (
-      from employees
-      sort tenure
-      take 50
-    )
+  table newest_employees = (
+    from employees
+    sort tenure
+    take 50
+  )
 
-    from newest_employees
-    join salary [id]
-    select [name, salary]
+  from newest_employees
+  join salary [id]
+  select [name, salary]
   ```
 
 - This is no longer point-free, but that's a feature rather than a requirement.
