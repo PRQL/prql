@@ -197,6 +197,10 @@ advance.
      there would be some impediment mismatch in some areas. My central criticism
      of Kusto is that it gives up broad compatibility without getting that much
      in return.
+- [Against SQL](https://www.scattered-thoughts.net/writing/against-sql/) gives
+  a fairly complete description of SQL's weaknesses, both for analytical and
+  transactional queries. @jamii consistently writes insightful pieces, and it's
+  worth sponsoring him for his updates.
 - Julia's [DataPipes.jl](https://gitlab.com/aplavin/DataPipes.jl) &
   [Chain.jl](https://github.com/jkrumbiegel/Chain.jl), which demonstrate how
   effective point-free pipelines can be, and how line-breaks can work as pipes.
