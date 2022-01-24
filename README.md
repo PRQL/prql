@@ -181,6 +181,32 @@ If you're interested in the ideas here and would like to see them explored:
 Any of these will inspire me to spend more time developing this; thank you in
 advance.
 
+## Inspired by
+
+- [dplyr](https://dplyr.tidyverse.org/) is a beautiful language for manipulating
+  data, in R. It's very similar to PRQL. It only works on in-memory R data.
+- [Kusto](https://docs.microsoft.com/en-us/azure/data-explorer/kusto/query/samples?pivots=azuredataexplorer)
+  is also a beautiful pipelined language, very similar to PRQL. But it can only
+  use Kusto-compatible DBs.
+  - A Kusto-to-SQL transpiler would be a legitimate alternative to PRQL, though
+     there would be some impediment mismatch in some areas. My central criticism
+     of Kusto is that it gives up broad compatibility without getting that much
+     in return.
+- Julia's [DataPipes.jl](https://gitlab.com/aplavin/DataPipes.jl) &
+  [Chain.jl](https://github.com/jkrumbiegel/Chain.jl), which demonstrate how
+  effective point-free pipelines can be, and how line-breaks can work as pipes.
+- [Ocaml](https://ocaml.org/)'s elegant and simple syntax.
+
+## Similar projects
+
+- [Malloy](https://github.com/looker-open-source/malloy), from @lloydtabb looks
+  very interesting, and has the team to make it successful. I'll spend some more
+  time checking it out.
+- After writing this proposal (including the name!), I found
+  [Preql](https://github.com/erezsh/Preql). Despite the similar name and
+  compiling to SQL, it seems to focus more on making the language python-like,
+  which is very different to this proposal.
+  
 ## TODOs
 
 - Write a basic parser
@@ -351,23 +377,3 @@ advance.
   [examples](https://openai.com/blog/customized-gpt3/), by using
   [fine-tuning](https://beta.openai.com/docs/guides/fine-tuning/advanced-usage).
   Changing examples is easier than changing compilers!
-
-## Inspired by
-
-- [dplyr](https://dplyr.tidyverse.org/) is a beautiful language for manipulating
-  data, in R. It's the most similar language to PRQL.
-- Julia's [DataPipes.jl](https://gitlab.com/aplavin/DataPipes.jl) &
-  [Chain.jl](https://github.com/jkrumbiegel/Chain.jl), which demonstrate how
-  effective point-free pipelines can be, and how line-breaks can work as pipes.
-- [Ocaml](https://ocaml.org/)'s elegant and simple syntax.
-
-## Similar projects
-
-- [Malloy](https://github.com/looker-open-source/malloy), from @lloydtabb looks
-  very interesting, and has the team to make it successful. I'll spend some more
-  time checking it out.
-- After writing this proposal (including the name!), I found
-  [Preql](https://github.com/erezsh/Preql). Despite the similar name and
-  compiling to SQL, it seems to focus more on making the language python-like,
-  which is very different to this proposal.
-  
