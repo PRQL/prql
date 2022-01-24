@@ -64,15 +64,15 @@ aggregate split:[title, country] [             # Split are the columns to group 
 ]
 sort sum_gross_cost                            # Uses the auto-generated column name.
 filter count > 200
-top 20
+take 20
 ```
 
 As well as using variables to reduce unnecessary repetition, the query is also
 more readable — it flows from top to bottom, each line representing a
-transformation of the previous line's result. For example, `TOP 20` modifies the
-final result in both queries — but only PRQL represents it as the final
-transformation. And context is localized — the `aggregate` function contains both
-the calculations and the columns to group by.
+transformation of the previous line's result. For example, `TOP 20` / `take 20`
+modify the final result in both queries — but only PRQL represents it as the
+final transformation. And context is localized — the `aggregate` function
+contains both the calculations and the columns to group by.
 
 ## An example using Functions
 
