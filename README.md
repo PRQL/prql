@@ -178,7 +178,7 @@ If you're interested in the ideas here and would like to see them explored:
 - Send the repo to a couple of people whose opinion you respect.
 - Subscribe to [Issue #1](https://github.com/max-sixty/prql/issues/1) for
   updates.
-- (If you'd be up for helping on the complier, let me know, but it's at a very
+- (If you'd be up for helping on the compiler, let me know, but it's at a very
   early stage.)
 
 Any of these will inspire me to spend more time developing this; thank you in
