@@ -204,7 +204,7 @@ advance.
 - Julia's [DataPipes.jl](https://gitlab.com/aplavin/DataPipes.jl) &
   [Chain.jl](https://github.com/jkrumbiegel/Chain.jl), which demonstrate how
   effective point-free pipelines can be, and how line-breaks can work as pipes.
-- [Ocaml](https://ocaml.org/)'s elegant and simple syntax.
+- [OCaml](https://ocaml.org/)'s elegant and simple syntax.
 
 ## Similar projects
 
