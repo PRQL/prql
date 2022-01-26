@@ -9,7 +9,7 @@ and functions. It can be used with any database that uses SQL, since it
 transpiles to SQL.
 
 PRQL was discussed on Hacker News
-[here](https://news.ycombinator.com/item?id=30060784#30062329).
+[here](https://news.ycombinator.com/item?id=30060784#30062329) and Lobsters [here](https://lobste.rs/s/oavgcx/prql_simpler_more_powerful_sql).
 
 ## An example
 
