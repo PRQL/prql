@@ -228,6 +228,22 @@ advance.
   <https://github.com/dbt-labs/dbt-utils> could all be covered much better by
   this.
 
+## Non-goals
+
+We should focus on solving a distinct problem really well. PRQL's goal is to
+make reading and writing analytical queries easier, so there's a whole set of
+things we shouldn't do, at least initially:
+
+- Build infrastructure outside of queries, like lineage. dbt is excellent at
+  that! ([issue](https://github.com/max-sixty/prql/issues/13)).
+- Build any DDL / insert / index / schema manipulation
+  ([issue](https://github.com/max-sixty/prql/issues/16)).
+- Add typing into the syntax.
+  ([issue](https://github.com/max-sixty/prql/issues/15)).
+  - I can imagine inferred typing in the parser being really helpful with
+    "transpile-time" error-checking and auto-complete, though this would
+    probably require integration with DBs beyond transpiling to SQL.
+
 ## Notes
 
 ### Joins
