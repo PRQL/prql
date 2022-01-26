@@ -194,7 +194,7 @@ advance.
   is also a beautiful pipelined language, very similar to PRQL. But it can only
   use Kusto-compatible DBs.
   - A Kusto-to-SQL transpiler would be a legitimate alternative to PRQL, though
-     there would be some impediment mismatch in some areas. My central criticism
+     there would be some impedance mismatch in some areas. My central criticism
      of Kusto is that it gives up broad compatibility without getting that much
      in return.
 - [Against SQL](https://www.scattered-thoughts.net/writing/against-sql/) gives
