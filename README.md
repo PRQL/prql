@@ -62,10 +62,10 @@ aggregate by:[title, country] [                  # `by` are the columns to group
     average gross_salary,
     sum     gross_salary,
     average gross_cost,
-    sum     gross_cost,
+    let sum_gross_cost = sum gross_cost,
     count,
 ]
-sort sum_gross_cost                              # Uses the auto-generated column name.
+sort sum_gross_cost
 filter count > 200
 take 20
 ```
@@ -86,15 +86,15 @@ valid prices.
 SELECT
   date,
   -- Can't use a `WHERE` clause, as it would affect the row that the `LAG` function referenced.
-  IF(is_valid_price, price_adjusted / LAG(price_adjusted, 1) OVER 
+  IF(is_valid_price, price_adjusted / LAG(price_adjusted, 1) OVER
     (PARTITION BY sec_id ORDER BY date) - 1 + dividend_return, NULL) AS return_total,
-  IF(is_valid_price, price_adjusted_usd / LAG(price_adjusted_usd, 1) OVER 
+  IF(is_valid_price, price_adjusted_usd / LAG(price_adjusted_usd, 1) OVER
     (PARTITION BY sec_id ORDER BY date) - 1 + dividend_return, NULL) AS return_usd,
-  IF(is_valid_price, price_adjusted / LAG(price_adjusted, 1) OVER 
-    (PARTITION BY sec_id ORDER BY date) - 1 + dividend_return, NULL) 
+  IF(is_valid_price, price_adjusted / LAG(price_adjusted, 1) OVER
+    (PARTITION BY sec_id ORDER BY date) - 1 + dividend_return, NULL)
     - interest_rate / 252 AS return_excess,
-  IF(is_valid_price, price_adjusted_usd / LAG(price_adjusted_usd, 1) OVER 
-    (PARTITION BY sec_id ORDER BY date) - 1 + dividend_return, NULL) 
+  IF(is_valid_price, price_adjusted_usd / LAG(price_adjusted_usd, 1) OVER
+    (PARTITION BY sec_id ORDER BY date) - 1 + dividend_return, NULL)
     - interest_rate / 252 AS return_usd_excess
 FROM prices
 ```
@@ -110,13 +110,13 @@ Here's the same query with PRQL:
 prql version:0.1 db:snowflake                         # Version number & database name.
 
 func lag_day x = (
-  window x 
-  by sec_id 
+  window x
+  by sec_id
   sort date
   lag 1
 )
 func ret x = x / (x | lag_day) - 1 + dividend_return
-func excess x = (x - interest_rate) / 252    
+func excess x = (x - interest_rate) / 252
 func if_valid x = is_valid_price ? x : null
 
 from prices
@@ -168,13 +168,13 @@ it's at a pre-alpha stage, it has some immutable principles:
 If you're interested in the ideas here and would like to see them explored:
 
 - Star this repo.
-- Open an issue:
+- Open an issue, or PR an example into the
+  [examples](https://github.com/max-sixty/prql/tree/main/examples):
   - An analytical SQL query that's awkward and we could use as a case for
     translating to PRQL. If you'd like to add a suggestion of the equivalent
     PRQL, that's very welcome too.
-  - An area that isn't sufficiently discussed in the existing proposal.
-  - An analytical SQL query that you think would be _more_ difficult to express
-    in PRQL.
+  - An area that isn't sufficiently discussed in the existing proposal, or would
+    be difficult to express in PRQL.
 - Send the repo to a couple of people whose opinion you respect.
 - Subscribe to [Issue #1](https://github.com/max-sixty/prql/issues/1) for
   updates.
@@ -257,7 +257,7 @@ advance.
 
   ```elm
   func lag col sort_col by_col=id = (
-    window col 
+    window col
     by by_col
     sort sort_col
     lag 1
@@ -267,7 +267,7 @@ advance.
   ...is called `lag`, takes three arguments `col`, `sort_col` & `by_col`, of
   which the first two much be supplied, the third can optionally be supplied
   with `by_col:sec_id`.
-  
+
 ### Assignments
 
 - To create a column, we use `let {column_name} = {calculation}` in a pipeline.
