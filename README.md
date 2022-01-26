@@ -53,16 +53,18 @@ Here's the same query with PRQL:
 ```elm
 from employees
 filter country = "USA"                           # Each line transforms the previous result.
-let gross_salary = salary + payroll_tax          # This _adds_ a column / variable.
-let gross_cost   = gross_salary + benefits_cost  # Variables can use other variables.
+derive [                                         # This adds columns / variables.
+  gross_salary: salary + payroll_tax,
+  gross_cost:   gross_salary + benefits_cost     # Variables can use other variables.
+]           
 filter gross_cost > 0
 aggregate by:[title, country] [                  # `by` are the columns to group by.
-    average salary,                              # These are the calcs to run on the groups.
+    average salary,                              # These are aggregation calcs run on each group.
     sum     salary,
     average gross_salary,
     sum     gross_salary,
     average gross_cost,
-    let sum_gross_cost = sum gross_cost,
+    sum_gross_cost: sum gross_cost,
     count,
 ]
 sort sum_gross_cost
@@ -120,10 +122,12 @@ func excess x = (x - interest_rate) / 252
 func if_valid x = is_valid_price ? x : null
 
 from prices
-let return_total      = prices_adj   | ret | if_valid  # `|` can be used rather than newlines.
-let return_usd        = prices_usd   | ret | if_valid
-let return_excess     = return_total | excess
-let return_usd_excess = return_usd   | excess
+derive [
+  return_total:      prices_adj   | ret | if_valid  # `|` can be used rather than newlines.
+  return_usd:        prices_usd   | ret | if_valid
+  return_excess:     return_total | excess
+  return_usd_excess: return_usd   | excess
+]
 select [
   date,
   sec_id,
@@ -286,27 +290,29 @@ things we shouldn't do, at least initially:
 
 ### Assignments
 
-- To create a column, we use `let {column_name} = {calculation}` in a pipeline.
+- To create a column, we use `derive {column_name}: {calculation}` in a
+  pipeline. `derive` can also take a list of pairs.
   Technically this "upserts" the column — it'll either create or overwrite a
   column, depending on whether it already exists.
+  - Potentially it would be possible to discriminate between those, but we'd
+    need to decide on the syntax.
 - Previously the syntax was just `{column_name} = {calculation}`, but it breaks
   the pattern of every line starting with a keyword.
-- We could discard the `=` to just have `let {column_name} {calculation}`, which
+- We could discard the `=` to just have `derive {column_name} {calculation}`, which
   would be more consistent with the other functions, but I think less readable
   (and definitely less familiar).
-- I'm still open to iterating here.
 
 ### Lists
 
-- Currently lists require brackets; there's no implicit list like:
+- Most keywords that take a single argument can also take a list, so these are equivalent:
 
-  ```elm
-  from employees
-  select salary  # fails, would require `select [salary]`
+  ```diff
+   from employees
+  -select salary
+  +select [salary]
   ```
 
-- For some functions where we're only expecting a single arg, like `select`,
-  we could accept a single arg not as a list?
+- More examples in [**list-equivalence.md**](examples/list-equivalence.md).
 
 ### Pipelines
 
