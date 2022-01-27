@@ -155,6 +155,23 @@ fn test_parse_expr() {
     );
 }
 
+pub fn parse_filter(input: &str) -> IResult<&str, Transformation> {
+    let (remainder, expr) = preceded(tag("filter"), parse_expr)(input)?;
+    Ok((remainder, Transformation::Filter(expr)))
+}
+
+#[test]
+fn test_parse_filter() {
+    assert_eq!(
+        parse_filter("filter country = \"USA\""),
+        Ok(("", Transformation::Filter(" country = \"USA\"")))
+    );
+    assert_eq!(
+        parse_filter("filter gross_cost > 0"),
+        Ok(("", Transformation::Filter(" gross_cost > 0")))
+    );
+}
+
 // pub fn parse_keyword(input: &str) -> IResult<&str, Transformation> {
 //     let select = tag("select");
 //     let filter = tag("filter");
