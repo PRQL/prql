@@ -200,12 +200,13 @@ an area to contribute, check out
 
 I'm broadly envisioning two passes:
 
-- Materialize the query: replace variables with their source, run functions,
+- Materialize the query: replace variables with their definition, run functions,
   etc.
-  - My initial guess is that replacing variables with their source (e.g. the
-    first query) will be much easier than the running functions, even though
-    functions are currently fairly limited in complexity.
-  - Partial progress here would still be a success.
+  - My initial guess is that replacing variables with their definition (e.g.
+    [the first example query](examples/variables-1.md)) will be much easier
+    than the running functions, even though functions are currently fairly
+    limited in complexity.
+  - Partial progress here would still be a success and let us proceed.
 - Write the query to SQL.
 
 ### UX
@@ -222,23 +223,23 @@ could allow the language to be accessible; e.g.:
 One benefit of PRQL over SQL is that auto-complete, type-inference, and
 transpile-time error checking become much more powerful.
 
-This is much harder to build though, since it requires a DB connection to
-understand the schema of the table. So this would come after having a working
-transpiler.
+This is much harder to build though, since it requires a connection to the
+database in order to understand the schema of the table. So this would come
+after having a working transpiler.
 
-### Non-goals
+### "Not yet" goals
 
 We should focus on solving a distinct problem really well. PRQL's goal is to
-make reading and writing analytical queries easier, so there's a whole set of
-things we shouldn't do, at least initially:
+make reading and writing analytical queries easier, and that means at first
+focusing on doing that well and reducing our focus on other areas:
 
 - Build infrastructure outside of queries, like lineage. dbt is excellent at
   that! ([issue](https://github.com/max-sixty/prql/issues/13)).
-- Build DDL / insert / index / schema manipulation
+- Write DDL / insert / index / schema manipulation
   ([issue](https://github.com/max-sixty/prql/issues/16)).
 - Add typing into the syntax.
-  ([issue](https://github.com/max-sixty/prql/issues/15)), though I could be
-  persuaded longer term.
+  ([issue](https://github.com/max-sixty/prql/issues/15)) (though type inference
+  would be above, and this could be a useful extension at some point).
 
 ## Interested in seeing this happen?
 
