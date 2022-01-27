@@ -37,8 +37,3 @@ GROUP BY title, country
 ORDER BY sum_gross_cost
 HAVING count > 200
 ```
-
-### Notes
-
-- We haven't decided on the syntax for naming columns within an `aggregate`
-  expression.
