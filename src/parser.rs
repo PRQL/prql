@@ -16,10 +16,16 @@ pub type Column<'a> = &'a str;
 pub type Expr<'a> = &'a str;
 
 #[derive(Debug, PartialEq, Clone)]
+pub struct Aggregate<'a> {
+    pub by: Vec<Column<'a>>,
+    pub calcs: Vec<Expr<'a>>,
+}
+
+#[derive(Debug, PartialEq, Clone)]
 pub enum Transformation<'a> {
     Select(Vec<Column<'a>>),
     Filter(Expr<'a>),
-    GroupBy(Vec<Column<'a>>),
+    Aggregate(Aggregate<'a>),
     Sort(Vec<Column<'a>>),
 }
 
