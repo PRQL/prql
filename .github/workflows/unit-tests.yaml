@@ -1,0 +1,20 @@
+on: [push]
+
+name: prql unit tests
+
+jobs:
+  _test:
+    name: Rust project
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v2
+      - name: 🔗 Setup rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - name: 🔨 Build and test
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          # args:
