@@ -168,9 +168,86 @@ it's at a pre-alpha stage, it has some immutable principles:
   without breaking backward-compatibility, because its queries can specify their
   PRQL version.
 
+## Roadmap
+
+I'm excited and inspired by the level of enthusiasm behind the project. Many
+projects have fallen at this stage, though, so I'm hoping we can demonstrate
+viability by building things that are within our immediate reach, before
+potentially expanding.
+
+Here's an initial plan — feedback welcome:
+
+### Develop the language
+
+Already since becoming public, the language has improved dramatically, thanks to
+the feedback of dozens of contributors. The current state of the basics is now
+stable (at least I don't expect the examples in the README to change much).
+While we're going to hit corner-cases, we're in a good enough place to start
+writing the code.
+
+I'd encourage continued discussion on Issues, and examples to be added to the
+[examples](https://github.com/max-sixty/prql/tree/main/examples) path.
+
+### Build a parser
+
+We need to parse the PRQL into an AST. We're planning to use nom for this.
+I'm also open to those who've suggested writing a formal grammar concurrently.
+
+*This is the area that needs the most immediate help*. If anyone is looking for
+an area to contribute, check out
+[#26](https://github.com/max-sixty/prql/issues/26) — thank you!
+
+### Build a transpiler
+
+I'm broadly envisioning two passes:
+
+- Materialize the query: replace variables with their definition, run functions,
+  etc.
+  - My initial guess is that replacing variables with their definition (e.g.
+    [the first example query](examples/variables-1.md)) will be much easier
+    than the running functions, even though functions are currently fairly
+    limited in complexity.
+  - Partial progress here would still be a success and let us proceed.
+- Write the query to SQL.
+
+We'll need to make initial progress on the parser before starting here.
+
+### UX
+
+As well as a command-line tool that transpiles queries, it would be great if we
+could allow the language to be accessible; e.g.:
+
+- Syntax highlighting in editors
+- A live transpiler in a browser
+- (I'm sure there's more, ideas welcome)
+
+### Database cohesion
+
+One benefit of PRQL over SQL is that auto-complete, type-inference, and
+transpile-time error checking become much more powerful.
+
+This is much harder to build though, since it requires a connection to the
+database in order to understand the schema of the table. So this would come
+after having a working transpiler.
+
+### Not in focus
+
+We should focus on solving a distinct problem really well. PRQL's goal is to
+make reading and writing analytical queries easier, and so for the moment that
+means putting some things out of scope:
+
+- Building infrastructure outside of queries, like lineage. dbt is excellent at
+  that! ([issue](https://github.com/max-sixty/prql/issues/13)).
+- Compiling DDL / insert / index / schema manipulation
+  ([issue](https://github.com/max-sixty/prql/issues/16)).
+- Add typing into the syntax
+  ([issue](https://github.com/max-sixty/prql/issues/15)) (though type _inference_
+  is above, and this could be a useful extension at some point).
+
 ## Interested in seeing this happen?
 
-If you're interested in the ideas here and would like to see them explored:
+If you're interested in the ideas here and would like to contribute towards them
+being explored:
 
 - Star this repo.
 - Open an issue, or PR an example into the
@@ -183,11 +260,11 @@ If you're interested in the ideas here and would like to see them explored:
 - Send the repo to a couple of people whose opinion you respect.
 - Subscribe to [Issue #1](https://github.com/max-sixty/prql/issues/1) for
   updates.
-- (If you'd be up for helping on the compiler, let me know, but it's at a very
-  early stage.)
+- Contribute towards building the compiler
+  [#26](https://github.com/max-sixty/prql/issues/26).
 
-Any of these will inspire me to spend more time developing this; thank you in
-advance.
+Any of these will inspire others to spend more time developing this; thank you
+in advance.
 
 ## Inspired by
 
@@ -222,32 +299,6 @@ advance.
   [Preql](https://github.com/erezsh/Preql). Despite the similar name and
   compiling to SQL, it seems to focus more on making the language python-like,
   which is very different to this proposal.
-
-## TODOs
-
-- Write a basic parser
-  - Currently writing it using `nom`.
-- Write a basic complier
-  - This should be fairly easy since it's just generating SQL.
-- Demonstrate some more complicated examples — e.g. most of the examples in
-  <https://github.com/dbt-labs/dbt-utils> could all be covered much better by
-  this.
-
-## Non-goals
-
-We should focus on solving a distinct problem really well. PRQL's goal is to
-make reading and writing analytical queries easier, so there's a whole set of
-things we shouldn't do, at least initially:
-
-- Build infrastructure outside of queries, like lineage. dbt is excellent at
-  that! ([issue](https://github.com/max-sixty/prql/issues/13)).
-- Build any DDL / insert / index / schema manipulation
-  ([issue](https://github.com/max-sixty/prql/issues/16)).
-- Add typing into the syntax.
-  ([issue](https://github.com/max-sixty/prql/issues/15)).
-  - I can imagine inferred typing in the parser being really helpful with
-    "transpile-time" error-checking and auto-complete, though this would
-    probably require integration with DBs beyond transpiling to SQL.
 
 ## Notes
 
@@ -378,6 +429,8 @@ things we shouldn't do, at least initially:
   func upper col = `UPPER({col})`
   # or with " rather than `
   func upper col = "UPPER({col})"
+  # or with f" to preserve "
+  func upper col = f"UPPER({col})"
   ```
 
 - Arrays — PRQL is in part inspired by
