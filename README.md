@@ -209,14 +209,16 @@ I'm broadly envisioning two passes:
   - Partial progress here would still be a success and let us proceed.
 - Write the query to SQL.
 
+We'll need to make initial progress on the parser before starting here.
+
 ### UX
 
-As well as a command-line tool that transpiled queries, it would be great if we
+As well as a command-line tool that transpiles queries, it would be great if we
 could allow the language to be accessible; e.g.:
 
 - Syntax highlighting in editors
 - A live transpiler in a browser
-- (I'm sure there's more)
+- (I'm sure there's more, ideas welcome)
 
 ### Database cohesion
 
@@ -227,19 +229,19 @@ This is much harder to build though, since it requires a connection to the
 database in order to understand the schema of the table. So this would come
 after having a working transpiler.
 
-### "Not yet" goals
+### Not in focus
 
 We should focus on solving a distinct problem really well. PRQL's goal is to
-make reading and writing analytical queries easier, and that means at first
-focusing on doing that well and reducing our focus on other areas:
+make reading and writing analytical queries easier, and so for the moment that
+means putting some things out of scope:
 
-- Build infrastructure outside of queries, like lineage. dbt is excellent at
+- Building infrastructure outside of queries, like lineage. dbt is excellent at
   that! ([issue](https://github.com/max-sixty/prql/issues/13)).
-- Write DDL / insert / index / schema manipulation
+- Compiling DDL / insert / index / schema manipulation
   ([issue](https://github.com/max-sixty/prql/issues/16)).
-- Add typing into the syntax.
-  ([issue](https://github.com/max-sixty/prql/issues/15)) (though type inference
-  would be above, and this could be a useful extension at some point).
+- Add typing into the syntax
+  ([issue](https://github.com/max-sixty/prql/issues/15)) (though type _inference_
+  is above, and this could be a useful extension at some point).
 
 ## Interested in seeing this happen?
 
