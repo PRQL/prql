@@ -46,10 +46,7 @@ pub fn parse_column(input: &str) -> IResult<&str, &str> {
 pub fn parse_list(input: &str) -> IResult<&str, Vec<&str>> {
     delimited(
         ws(tag("[")),
-        terminated(
-            separated_list0(ws(tag(",")), parse_column),
-            opt(ws(tag(","))),
-        ),
+        terminated(separated_list0(ws(tag(",")), parse_expr), opt(ws(tag(",")))),
         ws(tag("]")),
     )(input)
 }
@@ -133,7 +130,7 @@ pub fn parse_expr(input: &str) -> IResult<&str, &str> {
     // Anything surrounded by parentheses, or anything on the same line.
     alt((
         delimited(tag("("), take_until_unbalanced('(', ')'), tag(")")),
-        not_line_ending,
+        is_not("\n,"),
     ))(input)
 }
 
@@ -142,6 +139,9 @@ fn test_parse_expr() {
     assert_eq!(parse_expr("a + b"), Ok(("", "a + b")));
     assert_eq!(parse_expr("((a + b))"), Ok(("", "(a + b)")));
     assert_eq!(parse_expr("(a + b)"), Ok(("", "a + b")));
+    assert_eq!(parse_expr("a,b"), Ok((",b", "a")));
+    // invalid prql but testing our assumptions
+    assert_eq!(parse_expr("(a,b)"), Ok(("", "a,b")));
     assert_eq!(
         parse_expr(
             "(a 
@@ -152,6 +152,11 @@ fn test_parse_expr() {
             "a 
         + b"
         ))
+    );
+    assert_eq!(parse_expr("average salary"), Ok(("", "average salary")));
+    assert_eq!(
+        parse_expr("average salary, sum salary"),
+        Ok((", sum salary", "average salary"))
     );
 }
 
@@ -210,7 +215,7 @@ fn test_parse_aggregate() {
         // syntactically valid PRQL.
         // TODO: allow for `by` as an optional arg, in either position (either specifically in `aggregate` or a
         // more general parsing function)
-        parse_aggregate("aggregate by:[title, country] [average, sum]"),
+        parse_aggregate("aggregate by:[title, country] [average salary, sum salary]"),
         Ok((
             "",
             Transformation::Aggregate(Aggregate {
