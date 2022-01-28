@@ -205,6 +205,11 @@ pub fn parse_aggregate(input: &str) -> IResult<&str, Transformation> {
 #[test]
 fn test_parse_aggregate() {
     assert_eq!(
+        // TODO: The current implementation of parse_list can only handle lists of
+        // single words, so that's what the test case has although it is not
+        // syntactically valid PRQL.
+        // TODO: allow for `by` as an optional arg, in either position (either specifically in `aggregate` or a
+        // more general parsing function)
         parse_aggregate("aggregate by:[title, country] [average, sum]"),
         Ok((
             "",
