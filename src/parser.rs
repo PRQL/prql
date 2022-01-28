@@ -184,3 +184,34 @@ fn test_parse_filter() {
 //         _ =>
 //     }
 // }
+
+pub fn parse_aggregate(input: &str) -> IResult<&str, Transformation> {
+    let (remainder, _) = ws(tag("aggregate"))(input)?;
+    let (remainder, _) = ws(tag("by"))(remainder)?;
+    let (remainder, _) = ws(tag(":"))(remainder)?;
+
+    let (remainder, by) = parse_list(remainder)?;
+    let (remainder, calcs) = parse_list(remainder)?;
+
+    Ok((
+        remainder,
+        Transformation::Aggregate(Aggregate {
+            by: by,
+            calcs: calcs,
+        }),
+    ))
+}
+
+#[test]
+fn test_parse_aggregate() {
+    assert_eq!(
+        parse_aggregate("aggregate by:[title, country] [average, sum]"),
+        Ok((
+            "",
+            Transformation::Aggregate(Aggregate {
+                by: vec!["title", "country"],
+                calcs: vec!["average", "sum"]
+            })
+        )),
+    )
+}
