@@ -2,6 +2,8 @@
 edition = "2021"
 name = "prql"
 version = "0.0.1"
+license = "Apache-2.0"
+description = "PRQL is a modern language for transforming data — a simpler and more powerful SQL."
 
 [dependencies]
 nom = "*"
