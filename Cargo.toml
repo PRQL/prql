@@ -7,5 +7,7 @@ description = "PRQL is a modern language for transforming data — a simpler and
 
 [dependencies]
 nom = "^7"
+pest = "*"
+pest_derive = "*"
 # We use this for just one function — we could vendor it.
 parse-hyperlinks = "0.23.3"

@@ -1,0 +1,30 @@
+WHITESPACE = _{ " " }
+// Need to exclude # in strings (and maybe confirm whether this is a good design)
+COMMENT = _{ "#" ~ ANY }
+
+
+program = _{ SOI ~ NEWLINE* ~ pipeline ~ (NEWLINE ~ pipeline )* ~ NEWLINE* ~ EOI }
+
+ident = { ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "." | "_" )* }
+idents = { ident + }
+
+expr = _{ list | ident | idents | pipeline | inline_pipeline }
+
+
+pipe = { NEWLINE | "|" }
+pipeline = { transform ~ (pipe ~ transform)* }
+inline_pipeline = { "(" ~ pipeline ~ ")" }
+
+transform = { function ~ expr }
+
+function = _{ select | filter | aggregate | sort  }
+
+// Functions
+select    = { "select" }
+filter    = { "filter" }
+aggregate = { "aggregate" }
+sort      = { "sort" }
+
+list = { "[" ~ ( expr ~ ("," ~ expr)* ) ~ ","? ~ "]" }
+
+
