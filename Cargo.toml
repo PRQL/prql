@@ -1,13 +1,11 @@
 [package]
 edition = "2021"
 name = "prql"
-version = "0.1.0"
+version = "0.0.1"
+license = "Apache-2.0"
+description = "PRQL is a modern language for transforming data — a simpler and more powerful SQL."
 
 [dependencies]
-nom = "*"
+nom = "^7"
 # We use this for just one function — we could vendor it.
 parse-hyperlinks = "0.23.3"
-
-[dev-dependencies]
-insta = "*"
-
