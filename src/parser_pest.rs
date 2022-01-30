@@ -80,3 +80,16 @@ fn test_parse_query() {
 fn test_parse_idents() {
     assert_debug_snapshot!(parse_idents(r#"country = "USA""#));
 }
+
+pub fn parse_comment(source: &str) -> Result<Pairs<Rule>, Error<Rule>> {
+    let pairs = PrqlParser::parse(Rule::COMMENT, source)?;
+    Ok(pairs)
+}
+
+#[test]
+fn test_parse_comment() {
+    assert_debug_snapshot!(parse_comment(
+        r#"# this is a comment
+        select a"#
+    ));
+}

@@ -1,0 +1,19 @@
+---
+source: src/parser_pest.rs
+assertion_line: 92
+expression: "parse_comment(r#\"# this is a comment\n    select a\"#)"
+
+---
+Ok(
+    [
+        Pair {
+            rule: COMMENT,
+            span: Span {
+                str: "# this is a comment",
+                start: 0,
+                end: 19,
+            },
+            inner: [],
+        },
+    ],
+)
