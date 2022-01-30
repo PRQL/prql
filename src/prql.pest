@@ -30,7 +30,7 @@ idents = { ( ident | operator )+ }
 
 expr = _{ list | idents | ident |  pipeline | inline_pipeline }
 
-operator = _{ "=" | "==" | "!=" | ">" | "<" | ">=" | "<=" | "+" | "-" | "*" | "/" | "%" }
+operator = { "=" | "==" | "!=" | ">" | "<" | ">=" | "<=" | "+" | "-" | "*" | "/" | "%" }
 
 // Functions
 // Currently just writing the inbuilt functions

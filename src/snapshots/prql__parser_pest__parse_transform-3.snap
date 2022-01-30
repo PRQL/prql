@@ -41,6 +41,15 @@ Ok(
                             inner: [],
                         },
                         Pair {
+                            rule: operator,
+                            span: Span {
+                                str: "=",
+                                start: 19,
+                                end: 20,
+                            },
+                            inner: [],
+                        },
+                        Pair {
                             rule: ident,
                             span: Span {
                                 str: "\"USA\"",

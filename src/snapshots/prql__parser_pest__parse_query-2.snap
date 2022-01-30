@@ -1,6 +1,6 @@
 ---
 source: src/parser_pest.rs
-assertion_line: 71
+assertion_line: 70
 expression: "parse_query(r#\"\n    from employees\n    filter country = \"USA\"\n    \"#)"
 
 ---
@@ -92,6 +92,15 @@ Ok(
                                         str: "country",
                                         start: 31,
                                         end: 38,
+                                    },
+                                    inner: [],
+                                },
+                                Pair {
+                                    rule: operator,
+                                    span: Span {
+                                        str: "=",
+                                        start: 39,
+                                        end: 40,
                                     },
                                     inner: [],
                                 },
