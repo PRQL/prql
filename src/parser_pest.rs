@@ -67,13 +67,13 @@ fn test_parse_query() {
     select [a, b]
     "#
     ));
-    // TODO: The comment doesn't seem to be handled correctly.
     assert_debug_snapshot!(parse_query(
         r#"
     from employees
     filter country = "USA"
     "#
     ));
+    // TODO: Test comments
 }
 
 #[test]
