@@ -32,6 +32,11 @@ pub fn parse_expr(source: &str) -> Result<Pairs<Rule>, Error<Rule>> {
     Ok(pairs)
 }
 
+pub fn parse_string(source: &str) -> Result<Pairs<Rule>, Error<Rule>> {
+    let pairs = PrqlParser::parse(Rule::string, source)?;
+    Ok(pairs)
+}
+
 pub fn parse_idents(source: &str) -> Result<Pairs<Rule>, Error<Rule>> {
     let pairs = PrqlParser::parse(Rule::idents, source)?;
     Ok(pairs)
@@ -39,7 +44,12 @@ pub fn parse_idents(source: &str) -> Result<Pairs<Rule>, Error<Rule>> {
 
 #[test]
 fn test_parse_expr() {
-    assert_debug_snapshot!(parse_expr(r#"    filter country = "USA"#));
+    assert_debug_snapshot!(parse_expr(r#"country = "USA""#));
+}
+
+#[test]
+fn test_parse_string() {
+    assert_debug_snapshot!(parse_string(r#""USA""#));
 }
 
 #[test]

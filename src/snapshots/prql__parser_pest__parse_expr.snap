@@ -1,54 +1,44 @@
 ---
 source: src/parser_pest.rs
-assertion_line: 37
-expression: "parse_expr(r#\"    filter country = \"USA\"#)"
+assertion_line: 47
+expression: "parse_expr(r#\"country = \"USA\"\"#)"
 
 ---
 Ok(
     [
         Pair {
-            rule: pipeline,
+            rule: idents,
             span: Span {
-                str: "    filter country = ",
+                str: "country = \"USA\"",
                 start: 0,
-                end: 21,
+                end: 15,
             },
             inner: [
                 Pair {
-                    rule: transform,
+                    rule: ident,
                     span: Span {
-                        str: "    filter country =",
+                        str: "country",
                         start: 0,
-                        end: 20,
+                        end: 7,
+                    },
+                    inner: [],
+                },
+                Pair {
+                    rule: ident,
+                    span: Span {
+                        str: "\"USA\"",
+                        start: 10,
+                        end: 15,
                     },
                     inner: [
                         Pair {
-                            rule: filter,
+                            rule: string,
                             span: Span {
-                                str: "filter",
-                                start: 4,
-                                end: 10,
+                                str: "\"USA\"",
+                                start: 10,
+                                end: 15,
                             },
                             inner: [],
-                        },
-                        Pair {
-                            rule: idents,
-                            span: Span {
-                                str: "country =",
-                                start: 11,
-                                end: 20,
-                            },
-                            inner: [
-                                Pair {
-                                    rule: ident,
-                                    span: Span {
-                                        str: "country",
-                                        start: 11,
-                                        end: 18,
-                                    },
-                                    inner: [],
-                                },
-                            ],
                         },
                     ],
                 },

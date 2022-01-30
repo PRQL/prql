@@ -1,6 +1,6 @@
 ---
 source: src/parser_pest.rs
-assertion_line: 44
+assertion_line: 59
 expression: "parse_transform(r#\"    filter country = \"USA\"\"#)"
 
 ---
@@ -49,7 +49,7 @@ Ok(
                             },
                             inner: [
                                 Pair {
-                                    rule: quoted_string,
+                                    rule: string,
                                     span: Span {
                                         str: "\"USA\"",
                                         start: 21,

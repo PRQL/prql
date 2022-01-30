@@ -14,12 +14,19 @@ inline_pipeline = { "(" ~ pipeline ~ ")" }
 
 transform = { WHITESPACE* ~ function ~ expr }
 
-ident = { ( ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "." | "_" )* ) | quoted_string }
+ident = { ( ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "." | "_" )* ) | string }
 // TODO: escapes
-quoted_string = { "\"" ~ (ASCII_ALPHANUMERIC | " " | "." | "_" | "-" | "\\"  )* ~ "\"" }
+
+
+// https://pest.rs/book/examples/rust/literals.html
+string = { "\"" ~ (ASCII_ALPHANUMERIC)* ~ "\"" }
+// string = { "\"" ~ (raw_string | escape)* ~ "\"" }
+// raw_string = { (!("\\" | "\"") ~ ASCII_ALPHANUMERIC)+ }
+
+// quoted_string = { "\"" ~ (ASCII_ALPHANUMERIC | " " | "." | "_" | "-" | "\\"  )* ~ "\"" }
 
 // TODO: rename (but `expr` is taken — we mean a single "unit")
-idents = { ( ident | operator | quoted_string )+ }
+idents = { ( ident | operator )+ }
 
 expr = _{ list | idents | ident |  pipeline | inline_pipeline }
 

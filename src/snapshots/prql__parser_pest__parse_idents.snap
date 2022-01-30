@@ -1,6 +1,6 @@
 ---
 source: src/parser_pest.rs
-assertion_line: 79
+assertion_line: 81
 expression: "parse_idents(r#\"country = \"USA\"\"#)"
 
 ---
@@ -32,7 +32,7 @@ Ok(
                     },
                     inner: [
                         Pair {
-                            rule: quoted_string,
+                            rule: string,
                             span: Span {
                                 str: "\"USA\"",
                                 start: 10,
