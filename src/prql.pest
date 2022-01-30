@@ -13,6 +13,8 @@ transform = { WHITESPACE* ~ ident ~ expr }
 
 ident = @{ ( ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "." | "_" )* ) }
 
+assign = { ident ~ ":" ~ expr }
+
 // TODO: escapes
 // https://pest.rs/book/examples/rust/literals.html
 string = { "\"" ~ (ASCII_ALPHANUMERIC)* ~ "\"" }
@@ -23,10 +25,10 @@ string = { "\"" ~ (ASCII_ALPHANUMERIC)* ~ "\"" }
 term = _{ ( ident | operator | string) }
 terms = { (term)+ }
 
-expr = _{ list | terms | pipeline | inline_pipeline }
+expr = _{ list | assign | terms | pipeline | inline_pipeline }
 
 operator = @{ "=" | "==" | "!=" | ">" | "<" | ">=" | "<=" | "+" | "-" | "*" | "/" | "%" }
 
-list = { "[" ~ ( expr ~ ("," ~ NEWLINE? ~ expr)* ) ~ ","? ~ "]" }
+list = { "[" ~ NEWLINE? ~ ( expr ~ ("," ~ NEWLINE? ~ expr)* ) ~ ","? ~ NEWLINE? ~ "]" }
 
 

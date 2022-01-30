@@ -80,6 +80,22 @@ fn test_parse_terms() {
     assert_debug_snapshot!(parse_terms(r#"country = "USA""#));
 }
 
+pub fn parse_list(source: &str) -> Result<Pairs<Rule>, Error<Rule>> {
+    let pairs = PrqlParser::parse(Rule::list, source)?;
+    Ok(pairs)
+}
+
+#[test]
+fn test_parse_list() {
+    assert_debug_snapshot!(parse_list(r#"[a, b, c,]"#));
+    assert_debug_snapshot!(parse_list(
+        r#"[                                         
+  gross_salary: salary + payroll_tax,
+  gross_cost:   gross_salary + benefits_cost
+]"#
+    ));
+}
+
 pub fn parse_comment(source: &str) -> Result<Pairs<Rule>, Error<Rule>> {
     let pairs = PrqlParser::parse(Rule::COMMENT, source)?;
     Ok(pairs)
