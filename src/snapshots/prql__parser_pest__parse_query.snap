@@ -1,0 +1,143 @@
+---
+source: src/parser_pest.rs
+assertion_line: 49
+expression: "parse_query(r#\"\n    from employees\n    select [a, b]\n    \"#)"
+
+---
+Ok(
+    [
+        Pair {
+            rule: pipeline,
+            span: Span {
+                str: "from employees\n    select [a, b]",
+                start: 5,
+                end: 37,
+            },
+            inner: [
+                Pair {
+                    rule: transform,
+                    span: Span {
+                        str: "from employees",
+                        start: 5,
+                        end: 19,
+                    },
+                    inner: [
+                        Pair {
+                            rule: from,
+                            span: Span {
+                                str: "from",
+                                start: 5,
+                                end: 9,
+                            },
+                            inner: [],
+                        },
+                        Pair {
+                            rule: idents,
+                            span: Span {
+                                str: "employees",
+                                start: 10,
+                                end: 19,
+                            },
+                            inner: [
+                                Pair {
+                                    rule: ident,
+                                    span: Span {
+                                        str: "employees",
+                                        start: 10,
+                                        end: 19,
+                                    },
+                                    inner: [],
+                                },
+                            ],
+                        },
+                    ],
+                },
+                Pair {
+                    rule: pipe,
+                    span: Span {
+                        str: "\n",
+                        start: 19,
+                        end: 20,
+                    },
+                    inner: [],
+                },
+                Pair {
+                    rule: transform,
+                    span: Span {
+                        str: "select [a, b]",
+                        start: 24,
+                        end: 37,
+                    },
+                    inner: [
+                        Pair {
+                            rule: select,
+                            span: Span {
+                                str: "select",
+                                start: 24,
+                                end: 30,
+                            },
+                            inner: [],
+                        },
+                        Pair {
+                            rule: list,
+                            span: Span {
+                                str: "[a, b]",
+                                start: 31,
+                                end: 37,
+                            },
+                            inner: [
+                                Pair {
+                                    rule: idents,
+                                    span: Span {
+                                        str: "a",
+                                        start: 32,
+                                        end: 33,
+                                    },
+                                    inner: [
+                                        Pair {
+                                            rule: ident,
+                                            span: Span {
+                                                str: "a",
+                                                start: 32,
+                                                end: 33,
+                                            },
+                                            inner: [],
+                                        },
+                                    ],
+                                },
+                                Pair {
+                                    rule: idents,
+                                    span: Span {
+                                        str: "b",
+                                        start: 35,
+                                        end: 36,
+                                    },
+                                    inner: [
+                                        Pair {
+                                            rule: ident,
+                                            span: Span {
+                                                str: "b",
+                                                start: 35,
+                                                end: 36,
+                                            },
+                                            inner: [],
+                                        },
+                                    ],
+                                },
+                            ],
+                        },
+                    ],
+                },
+            ],
+        },
+        Pair {
+            rule: EOI,
+            span: Span {
+                str: "",
+                start: 42,
+                end: 42,
+            },
+            inner: [],
+        },
+    ],
+)

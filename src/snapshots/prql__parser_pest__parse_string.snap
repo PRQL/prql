@@ -1,0 +1,19 @@
+---
+source: src/parser_pest.rs
+assertion_line: 52
+expression: "parse_string(r#\"\"USA\"\"#)"
+
+---
+Ok(
+    [
+        Pair {
+            rule: string,
+            span: Span {
+                str: "\"USA\"",
+                start: 0,
+                end: 5,
+            },
+            inner: [],
+        },
+    ],
+)

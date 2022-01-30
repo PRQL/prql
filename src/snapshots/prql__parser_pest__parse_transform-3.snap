@@ -1,0 +1,76 @@
+---
+source: src/parser_pest.rs
+assertion_line: 59
+expression: "parse_transform(r#\"    filter country = \"USA\"\"#)"
+
+---
+Ok(
+    [
+        Pair {
+            rule: transform,
+            span: Span {
+                str: "    filter country = \"USA\"",
+                start: 0,
+                end: 26,
+            },
+            inner: [
+                Pair {
+                    rule: filter,
+                    span: Span {
+                        str: "filter",
+                        start: 4,
+                        end: 10,
+                    },
+                    inner: [],
+                },
+                Pair {
+                    rule: idents,
+                    span: Span {
+                        str: "country = \"USA\"",
+                        start: 11,
+                        end: 26,
+                    },
+                    inner: [
+                        Pair {
+                            rule: ident,
+                            span: Span {
+                                str: "country",
+                                start: 11,
+                                end: 18,
+                            },
+                            inner: [],
+                        },
+                        Pair {
+                            rule: operator,
+                            span: Span {
+                                str: "=",
+                                start: 19,
+                                end: 20,
+                            },
+                            inner: [],
+                        },
+                        Pair {
+                            rule: ident,
+                            span: Span {
+                                str: "\"USA\"",
+                                start: 21,
+                                end: 26,
+                            },
+                            inner: [
+                                Pair {
+                                    rule: string,
+                                    span: Span {
+                                        str: "\"USA\"",
+                                        start: 21,
+                                        end: 26,
+                                    },
+                                    inner: [],
+                                },
+                            ],
+                        },
+                    ],
+                },
+            ],
+        },
+    ],
+)
