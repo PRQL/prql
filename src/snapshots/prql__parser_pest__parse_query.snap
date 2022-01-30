@@ -1,6 +1,6 @@
 ---
 source: src/parser_pest.rs
-assertion_line: 49
+assertion_line: 64
 expression: "parse_query(r#\"\n    from employees\n    select [a, b]\n    \"#)"
 
 ---
@@ -23,7 +23,7 @@ Ok(
                     },
                     inner: [
                         Pair {
-                            rule: from,
+                            rule: ident,
                             span: Span {
                                 str: "from",
                                 start: 5,
@@ -32,7 +32,7 @@ Ok(
                             inner: [],
                         },
                         Pair {
-                            rule: idents,
+                            rule: terms,
                             span: Span {
                                 str: "employees",
                                 start: 10,
@@ -70,7 +70,7 @@ Ok(
                     },
                     inner: [
                         Pair {
-                            rule: select,
+                            rule: ident,
                             span: Span {
                                 str: "select",
                                 start: 24,
@@ -87,7 +87,7 @@ Ok(
                             },
                             inner: [
                                 Pair {
-                                    rule: idents,
+                                    rule: terms,
                                     span: Span {
                                         str: "a",
                                         start: 32,
@@ -106,7 +106,7 @@ Ok(
                                     ],
                                 },
                                 Pair {
-                                    rule: idents,
+                                    rule: terms,
                                     span: Span {
                                         str: "b",
                                         start: 35,

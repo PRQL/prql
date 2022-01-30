@@ -1,7 +1,7 @@
 ---
 source: src/parser_pest.rs
-assertion_line: 92
-expression: "parse_comment(r#\"# this is a comment\n    select a\"#)"
+assertion_line: 113
+expression: "parse_comment(r#\"# this is a comment\n        select a\"#)"
 
 ---
 Ok(

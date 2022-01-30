@@ -1,13 +1,13 @@
 ---
 source: src/parser_pest.rs
-assertion_line: 81
-expression: "parse_idents(r#\"country = \"USA\"\"#)"
+assertion_line: 103
+expression: "parse_terms(r#\"country = \"USA\"\"#)"
 
 ---
 Ok(
     [
         Pair {
-            rule: idents,
+            rule: terms,
             span: Span {
                 str: "country = \"USA\"",
                 start: 0,
@@ -33,23 +33,13 @@ Ok(
                     inner: [],
                 },
                 Pair {
-                    rule: ident,
+                    rule: string,
                     span: Span {
                         str: "\"USA\"",
                         start: 10,
                         end: 15,
                     },
-                    inner: [
-                        Pair {
-                            rule: string,
-                            span: Span {
-                                str: "\"USA\"",
-                                start: 10,
-                                end: 15,
-                            },
-                            inner: [],
-                        },
-                    ],
+                    inner: [],
                 },
             ],
         },
