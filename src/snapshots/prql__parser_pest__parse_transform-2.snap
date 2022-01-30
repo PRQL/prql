@@ -1,6 +1,6 @@
 ---
 source: src/parser_pest.rs
-assertion_line: 43
+assertion_line: 58
 expression: "parse_transform(r#\"    from employees\"#)"
 
 ---
@@ -15,7 +15,7 @@ Ok(
             },
             inner: [
                 Pair {
-                    rule: from,
+                    rule: ident,
                     span: Span {
                         str: "from",
                         start: 4,
@@ -24,7 +24,7 @@ Ok(
                     inner: [],
                 },
                 Pair {
-                    rule: idents,
+                    rule: terms,
                     span: Span {
                         str: "employees",
                         start: 9,

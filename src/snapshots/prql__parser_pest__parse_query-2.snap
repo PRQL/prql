@@ -23,7 +23,7 @@ Ok(
                     },
                     inner: [
                         Pair {
-                            rule: from,
+                            rule: ident,
                             span: Span {
                                 str: "from",
                                 start: 5,
@@ -32,7 +32,7 @@ Ok(
                             inner: [],
                         },
                         Pair {
-                            rule: idents,
+                            rule: terms,
                             span: Span {
                                 str: "employees",
                                 start: 10,
@@ -70,7 +70,7 @@ Ok(
                     },
                     inner: [
                         Pair {
-                            rule: filter,
+                            rule: ident,
                             span: Span {
                                 str: "filter",
                                 start: 24,
@@ -79,7 +79,7 @@ Ok(
                             inner: [],
                         },
                         Pair {
-                            rule: idents,
+                            rule: terms,
                             span: Span {
                                 str: "country = \"USA\"",
                                 start: 31,
@@ -105,23 +105,13 @@ Ok(
                                     inner: [],
                                 },
                                 Pair {
-                                    rule: ident,
+                                    rule: string,
                                     span: Span {
                                         str: "\"USA\"",
                                         start: 41,
                                         end: 46,
                                     },
-                                    inner: [
-                                        Pair {
-                                            rule: string,
-                                            span: Span {
-                                                str: "\"USA\"",
-                                                start: 41,
-                                                end: 46,
-                                            },
-                                            inner: [],
-                                        },
-                                    ],
+                                    inner: [],
                                 },
                             ],
                         },

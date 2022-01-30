@@ -37,8 +37,8 @@ pub fn parse_string(source: &str) -> Result<Pairs<Rule>, Error<Rule>> {
     Ok(pairs)
 }
 
-pub fn parse_idents(source: &str) -> Result<Pairs<Rule>, Error<Rule>> {
-    let pairs = PrqlParser::parse(Rule::idents, source)?;
+pub fn parse_terms(source: &str) -> Result<Pairs<Rule>, Error<Rule>> {
+    let pairs = PrqlParser::parse(Rule::terms, source)?;
     Ok(pairs)
 }
 
@@ -73,12 +73,11 @@ fn test_parse_query() {
     filter country = "USA"
     "#
     ));
-    // TODO: Test comments
 }
 
 #[test]
-fn test_parse_idents() {
-    assert_debug_snapshot!(parse_idents(r#"country = "USA""#));
+fn test_parse_terms() {
+    assert_debug_snapshot!(parse_terms(r#"country = "USA""#));
 }
 
 pub fn parse_comment(source: &str) -> Result<Pairs<Rule>, Error<Rule>> {

@@ -8,35 +8,25 @@ pipe = { NEWLINE | "|" }
 pipeline = { transform ~ (pipe ~ transform)* }
 inline_pipeline = { "(" ~ pipeline ~ ")" }
 
-transform = { WHITESPACE* ~ function ~ expr }
+// `ident` is the function name
+transform = { WHITESPACE* ~ ident ~ expr }
 
-ident = { ( ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "." | "_" )* ) | string }
-
+ident = @{ ( ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "." | "_" )* ) }
 
 // TODO: escapes
 // https://pest.rs/book/examples/rust/literals.html
 string = { "\"" ~ (ASCII_ALPHANUMERIC)* ~ "\"" }
 // string = { "\"" ~ (raw_string | escape)* ~ "\"" }
 // raw_string = { (!("\\" | "\"") ~ ASCII_ALPHANUMERIC)+ }
-
 // quoted_string = { "\"" ~ (ASCII_ALPHANUMERIC | " " | "." | "_" | "-" | "\\"  )* ~ "\"" }
 
-// TODO: rename (but `expr` is taken — we mean a single "unit")
-idents = { ( ident | operator )+ }
+term = _{ ( ident | operator | string) }
+terms = { (term)+ }
 
-expr = _{ list | idents | ident |  pipeline | inline_pipeline }
+expr = _{ list | terms | pipeline | inline_pipeline }
 
-operator = { "=" | "==" | "!=" | ">" | "<" | ">=" | "<=" | "+" | "-" | "*" | "/" | "%" }
+operator = @{ "=" | "==" | "!=" | ">" | "<" | ">=" | "<=" | "+" | "-" | "*" | "/" | "%" }
 
-// Functions
-// Currently just writing the inbuilt functions
-function = _{ from | select | filter | aggregate | sort  }
-select    = { "select" }
-from    = { "from" }
-filter    = { "filter" }
-aggregate = { "aggregate" }
-sort      = { "sort" }
-
-list = { "[" ~ ( expr ~ ("," ~ expr)* ) ~ ","? ~ "]" }
+list = { "[" ~ ( expr ~ ("," ~ NEWLINE? ~ expr)* ) ~ ","? ~ "]" }
 
 
