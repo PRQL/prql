@@ -9,8 +9,8 @@ on:
 name: prql unit tests
 
 jobs:
-  _test:
-    name: Rust project
+  test:
+    name: Cargo test
     runs-on: ubuntu-latest
     steps:
       - name: 📂 Checkout code
