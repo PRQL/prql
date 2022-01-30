@@ -8,8 +8,9 @@ logical pipeline of transformations, and supports abstractions such as variables
 and functions. It can be used with any database that uses SQL, since it
 transpiles to SQL.
 
-PRQL was discussed on Hacker News
-[here](https://news.ycombinator.com/item?id=30060784#30062329) and Lobsters [here](https://lobste.rs/s/oavgcx/prql_simpler_more_powerful_sql).
+PRQL was discussed on [Hacker
+News](https://news.ycombinator.com/item?id=30060784#30062329) and
+[Lobsters](https://lobste.rs/s/oavgcx/prql_simpler_more_powerful_sql).
 
 ## An example
 
@@ -185,13 +186,14 @@ stable (at least I don't expect the examples in the README to change much).
 While we're going to hit corner-cases, we're in a good enough place to start
 writing the code.
 
-I'd encourage continued discussion on Issues, and examples to be added to the
-[examples](https://github.com/max-sixty/prql/tree/main/examples) path.
+I'd encourage continued discussion on
+[Issues](https://github.com/max-sixty/prql/issues), and examples to be added to
+the [examples](https://github.com/max-sixty/prql/tree/main/examples) path.
 
 ### Build a parser
 
-We need to parse the PRQL into an AST. We're planning to use nom for this.
-I'm also open to those who've suggested writing a formal grammar concurrently.
+We need to parse the PRQL into an AST. We're planning to use pest for this given
+how quickly we can get started.
 
 *This is the area that needs the most immediate help*. If anyone is looking for
 an area to contribute, check out
@@ -224,7 +226,7 @@ could allow the language to be accessible; e.g.:
 ### Database cohesion
 
 One benefit of PRQL over SQL is that auto-complete, type-inference, and
-transpile-time error checking become much more powerful.
+error checking become much more powerful.
 
 This is much harder to build though, since it requires a connection to the
 database in order to understand the schema of the table. So this would come
@@ -238,11 +240,12 @@ means putting some things out of scope:
 
 - Building infrastructure outside of queries, like lineage. dbt is excellent at
   that! ([issue](https://github.com/max-sixty/prql/issues/13)).
-- Compiling DDL / insert / index / schema manipulation
+- Writing DDL / index / schema manipulation / inserting data
   ([issue](https://github.com/max-sixty/prql/issues/16)).
 - Add typing into the syntax
-  ([issue](https://github.com/max-sixty/prql/issues/15)) (though type _inference_
-  is above, and this could be a useful extension at some point).
+  ([issue](https://github.com/max-sixty/prql/issues/15)) (though type
+  _inference_ is a goal above, and this could be a useful extension at some
+  point).
 
 ## Interested in seeing this happen?
 
@@ -250,18 +253,19 @@ If you're interested in the ideas here and would like to contribute towards them
 being explored:
 
 - Star this repo.
-- Open an issue, or PR an example into the
+- Send the repo to a couple of people whose opinion you respect.
+- Subscribe to [Issue #1](https://github.com/max-sixty/prql/issues/1) for
+  updates.
+- Join the (nascent) [Discord](https://discord.gg/57C9u5bm).
+- Contribute towards building the compiler
+  [#26](https://github.com/max-sixty/prql/issues/26).
+- Contribute towards refining the language: PR an example into the
   [examples](https://github.com/max-sixty/prql/tree/main/examples):
   - An analytical SQL query that's awkward and we could use as a case for
     translating to PRQL. If you'd like to add a suggestion of the equivalent
     PRQL, that's very welcome too.
   - An area that isn't sufficiently discussed in the existing proposal, or would
     be difficult to express in PRQL.
-- Send the repo to a couple of people whose opinion you respect.
-- Subscribe to [Issue #1](https://github.com/max-sixty/prql/issues/1) for
-  updates.
-- Contribute towards building the compiler
-  [#26](https://github.com/max-sixty/prql/issues/26).
 
 Any of these will inspire others to spend more time developing this; thank you
 in advance.
@@ -271,7 +275,7 @@ in advance.
 - [dplyr](https://dplyr.tidyverse.org/) is a beautiful language for manipulating
   data, in R. It's very similar to PRQL. It only works on in-memory R data.
   - There's also [dbplyr](https://dbplyr.tidyverse.org/) which compiles a subset
-    of dplyr to SQL. It requires an R runtime.
+    of dplyr to SQL, though requires an R runtime.
 - [Kusto](https://docs.microsoft.com/en-us/azure/data-explorer/kusto/query/samples?pivots=azuredataexplorer)
   is also a beautiful pipelined language, very similar to PRQL. But it can only
   use Kusto-compatible DBs.
@@ -290,15 +294,28 @@ in advance.
 
 ## Similar projects
 
-- [Malloy](https://github.com/looker-open-source/malloy), from @lloydtabb looks
-  very interesting, and has the team to make it successful. I'll spend some more
-  time checking it out.
+- [Ecto](https://hexdocs.pm/ecto/Ecto.html#module-query) is a sophisticated
+  ORM library in Elixir which has pipelined queries as well as more traditional
+  ORM features.
+- [Morel](http://blog.hydromatic.net/2020/02/25/morel-a-functional-language-for-data.html)
+  is a functional language for data, also with a pipeline concept. It doesn't
+  compile to SQL but states that it can access external data.
+- [Malloy](https://github.com/looker-open-source/malloy) from Looker &
+  @lloydtabb in a new language which combines a declarative syntax for querying
+  with a modelling layer.
 - [FunSQL.jl](https://github.com/MechanicalRabbit/FunSQL.jl) is a library in
   Julia which compiles a nice query syntax to SQL. It requires a Julia runtime.
+- [LINQ](https://docs.microsoft.com/en-us/dotnet/csharp/linq/write-linq-queries),
+  is a pipelined language for the `.NET` ecosystem which can (mostly) compile to
+  SQL. It was one of the first languages to take this approach.
+- [Sift][https://github.com/RCHowell/Sift] is an experimental language which
+  heavily uses pipes and relational algebra.
 - After writing this proposal (including the name!), I found
   [Preql](https://github.com/erezsh/Preql). Despite the similar name and
   compiling to SQL, it seems to focus more on making the language python-like,
   which is very different to this proposal.
+
+> If any of these descriptions can be improved, please feel free to PR changes.
 
 ## Notes
 
@@ -323,8 +340,8 @@ in advance.
 ### Functions
 
 - Functions can take two disjoint types of arguments:
-  1. Positional arguments. Callers must pass these.
-  2. Named arguments, which can optionally have a default value.
+  1. Positional arguments, which are required.
+  2. Named arguments, which are optional and have a default value.
 - So a function like:
 
   ```elm
@@ -346,11 +363,11 @@ in advance.
   pipeline. `derive` can also take a list of pairs.
   Technically this "upserts" the column — it'll either create or overwrite a
   column, depending on whether it already exists.
-  - Potentially it would be possible to discriminate between those, but we'd
-    need to decide on the syntax.
+  - Potentially it would be possible to discriminate between those, but during
+    the most recent discussion we didn't find a suitable approach.
 - Previously the syntax was just `{column_name} = {calculation}`, but it breaks
   the pattern of every line starting with a keyword.
-- We could discard the `=` to just have `derive {column_name} {calculation}`, which
+- We could discard the `:` to just have `derive {column_name} ({calculation})`, which
   would be more consistent with the other functions, but I think less readable
   (and definitely less familiar).
 
@@ -392,23 +409,10 @@ in advance.
 
 ### CTEs
 
-- Potentially something like:
-
-  ```elm
-  table newest_employees = (
-    from employees
-    sort tenure
-    take 50
-  )
-
-  from newest_employees
-  join salary [id]
-  select [name, salary]
-  ```
-
+- See [CTE Example](examples/cte-1.md).
 - This is no longer point-free, but that's a feature rather than a requirement.
-  The alternative is subqueries, which are fine in some small queries, but as
-  queries get more complex, become difficult to digest.
+  The alternative is subqueries, which are fine at small scale, but become
+  difficult to digest as complexity increases.
 
 ## Thinking about
 
@@ -478,10 +482,3 @@ in advance.
   screenshots / creating a website?
   - Currently we use `elm` as it coincidentally provides the best syntax
     highlight (open to suggestions for others!).
-
-- In advance of a full parser & compiler, could we use something like
-  [Codex](https://beta.openai.com/examples/default-sql-translate) to generate
-  the transformations, and let us explore the space? We can provide our owen
-  [examples](https://openai.com/blog/customized-gpt3/), by using
-  [fine-tuning](https://beta.openai.com/docs/guides/fine-tuning/advanced-usage).
-  Changing examples is easier than changing compilers!
