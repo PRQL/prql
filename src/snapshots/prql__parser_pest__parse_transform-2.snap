@@ -1,0 +1,48 @@
+---
+source: src/parser_pest.rs
+assertion_line: 43
+expression: "parse_transform(r#\"    from employees\"#)"
+
+---
+Ok(
+    [
+        Pair {
+            rule: transform,
+            span: Span {
+                str: "    from employees",
+                start: 0,
+                end: 18,
+            },
+            inner: [
+                Pair {
+                    rule: from,
+                    span: Span {
+                        str: "from",
+                        start: 4,
+                        end: 8,
+                    },
+                    inner: [],
+                },
+                Pair {
+                    rule: idents,
+                    span: Span {
+                        str: "employees",
+                        start: 9,
+                        end: 18,
+                    },
+                    inner: [
+                        Pair {
+                            rule: ident,
+                            span: Span {
+                                str: "employees",
+                                start: 9,
+                                end: 18,
+                            },
+                            inner: [],
+                        },
+                    ],
+                },
+            ],
+        },
+    ],
+)

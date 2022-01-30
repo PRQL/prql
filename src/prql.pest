@@ -3,24 +3,30 @@ WHITESPACE = _{ " " }
 COMMENT = _{ "#" ~ ANY }
 
 
-program = _{ SOI ~ NEWLINE* ~ pipeline ~ (NEWLINE ~ pipeline )* ~ NEWLINE* ~ EOI }
-
-ident = { ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "." | "_" )* }
-idents = { ident + }
-
-expr = _{ list | ident | idents | pipeline | inline_pipeline }
+query = _{ SOI ~ NEWLINE* ~ pipeline ~ (NEWLINE ~ pipeline )* ~ NEWLINE* ~ EOI }
 
 
 pipe = { NEWLINE | "|" }
 pipeline = { transform ~ (pipe ~ transform)* }
 inline_pipeline = { "(" ~ pipeline ~ ")" }
 
-transform = { function ~ expr }
+transform = { WHITESPACE* ~ function ~ expr }
 
-function = _{ select | filter | aggregate | sort  }
+ident = { ( ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "." | "_" )* ) | quoted_string }
+// TODO: escapes
+quoted_string = { "\"" ~ (ASCII_ALPHANUMERIC | " " | "." | "_" | "-" | "\\"  )* ~ "\"" }
+// TODO: rename
+idents = { ( ident | operator | quoted_string )+ }
+
+expr = _{ list | idents | ident |  pipeline | inline_pipeline }
+
+operator = _{ "=" | "==" | "!=" | ">" | "<" | ">=" | "<=" | "+" | "-" | "*" | "/" | "%" }
 
 // Functions
+// Currently just writing the inbuilt functions
+function = _{ from | select | filter | aggregate | sort  }
 select    = { "select" }
+from    = { "from" }
 filter    = { "filter" }
 aggregate = { "aggregate" }
 sort      = { "sort" }

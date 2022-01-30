@@ -1,0 +1,142 @@
+---
+source: src/parser_pest.rs
+assertion_line: 56
+expression: "parse_query(r#\"\n    from employees\n    filter country = \"USA\"  # Each line transforms the previous result.\n    \"#)"
+
+---
+Ok(
+    [
+        Pair {
+            rule: pipeline,
+            span: Span {
+                str: "from employees\n    filter country = \"USA\"  # Each line transforms the previous result.",
+                start: 5,
+                end: 91,
+            },
+            inner: [
+                Pair {
+                    rule: transform,
+                    span: Span {
+                        str: "from employees",
+                        start: 5,
+                        end: 19,
+                    },
+                    inner: [
+                        Pair {
+                            rule: from,
+                            span: Span {
+                                str: "from",
+                                start: 5,
+                                end: 9,
+                            },
+                            inner: [],
+                        },
+                        Pair {
+                            rule: idents,
+                            span: Span {
+                                str: "employees",
+                                start: 10,
+                                end: 19,
+                            },
+                            inner: [
+                                Pair {
+                                    rule: ident,
+                                    span: Span {
+                                        str: "employees",
+                                        start: 10,
+                                        end: 19,
+                                    },
+                                    inner: [],
+                                },
+                            ],
+                        },
+                    ],
+                },
+                Pair {
+                    rule: pipe,
+                    span: Span {
+                        str: "\n",
+                        start: 19,
+                        end: 20,
+                    },
+                    inner: [],
+                },
+                Pair {
+                    rule: transform,
+                    span: Span {
+                        str: "filter country = \"USA\"  # Each line transforms the previous result.",
+                        start: 24,
+                        end: 91,
+                    },
+                    inner: [
+                        Pair {
+                            rule: filter,
+                            span: Span {
+                                str: "filter",
+                                start: 24,
+                                end: 30,
+                            },
+                            inner: [],
+                        },
+                        Pair {
+                            rule: idents,
+                            span: Span {
+                                str: "country = \"USA\"  # Each line transforms the previous result.",
+                                start: 31,
+                                end: 91,
+                            },
+                            inner: [
+                                Pair {
+                                    rule: ident,
+                                    span: Span {
+                                        str: "country",
+                                        start: 31,
+                                        end: 38,
+                                    },
+                                    inner: [],
+                                },
+                                Pair {
+                                    rule: ident,
+                                    span: Span {
+                                        str: "\"USA\"",
+                                        start: 41,
+                                        end: 46,
+                                    },
+                                    inner: [
+                                        Pair {
+                                            rule: quoted_string,
+                                            span: Span {
+                                                str: "\"USA\"",
+                                                start: 41,
+                                                end: 46,
+                                            },
+                                            inner: [],
+                                        },
+                                    ],
+                                },
+                                Pair {
+                                    rule: ident,
+                                    span: Span {
+                                        str: "Each line transforms the previous result.",
+                                        start: 50,
+                                        end: 91,
+                                    },
+                                    inner: [],
+                                },
+                            ],
+                        },
+                    ],
+                },
+            ],
+        },
+        Pair {
+            rule: EOI,
+            span: Span {
+                str: "",
+                start: 96,
+                end: 96,
+            },
+            inner: [],
+        },
+    ],
+)

@@ -1,0 +1,48 @@
+---
+source: src/parser_pest.rs
+assertion_line: 79
+expression: "parse_idents(r#\"country = \"USA\"\"#)"
+
+---
+Ok(
+    [
+        Pair {
+            rule: idents,
+            span: Span {
+                str: "country = \"USA\"",
+                start: 0,
+                end: 15,
+            },
+            inner: [
+                Pair {
+                    rule: ident,
+                    span: Span {
+                        str: "country",
+                        start: 0,
+                        end: 7,
+                    },
+                    inner: [],
+                },
+                Pair {
+                    rule: ident,
+                    span: Span {
+                        str: "\"USA\"",
+                        start: 10,
+                        end: 15,
+                    },
+                    inner: [
+                        Pair {
+                            rule: quoted_string,
+                            span: Span {
+                                str: "\"USA\"",
+                                start: 10,
+                                end: 15,
+                            },
+                            inner: [],
+                        },
+                    ],
+                },
+            ],
+        },
+    ],
+)
