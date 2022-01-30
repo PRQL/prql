@@ -1,7 +1,7 @@
 ---
 source: src/parser_pest.rs
-assertion_line: 56
-expression: "parse_query(r#\"\n    from employees\n    filter country = \"USA\"  # Each line transforms the previous result.\n    \"#)"
+assertion_line: 61
+expression: "parse_query(r#\"\n    from employees\n    filter country = \"USA\"\n    \"#)"
 
 ---
 Ok(
@@ -9,9 +9,9 @@ Ok(
         Pair {
             rule: pipeline,
             span: Span {
-                str: "from employees\n    filter country = \"USA\"  # Each line transforms the previous result.",
+                str: "from employees\n    filter country = \"USA\"",
                 start: 5,
-                end: 91,
+                end: 46,
             },
             inner: [
                 Pair {
@@ -64,9 +64,9 @@ Ok(
                 Pair {
                     rule: transform,
                     span: Span {
-                        str: "filter country = \"USA\"  # Each line transforms the previous result.",
+                        str: "filter country = \"USA\"",
                         start: 24,
-                        end: 91,
+                        end: 46,
                     },
                     inner: [
                         Pair {
@@ -81,9 +81,9 @@ Ok(
                         Pair {
                             rule: idents,
                             span: Span {
-                                str: "country = \"USA\"  # Each line transforms the previous result.",
+                                str: "country = \"USA\"",
                                 start: 31,
-                                end: 91,
+                                end: 46,
                             },
                             inner: [
                                 Pair {
@@ -114,15 +114,6 @@ Ok(
                                         },
                                     ],
                                 },
-                                Pair {
-                                    rule: ident,
-                                    span: Span {
-                                        str: "Each line transforms the previous result.",
-                                        start: 50,
-                                        end: 91,
-                                    },
-                                    inner: [],
-                                },
                             ],
                         },
                     ],
@@ -133,8 +124,8 @@ Ok(
             rule: EOI,
             span: Span {
                 str: "",
-                start: 96,
-                end: 96,
+                start: 51,
+                end: 51,
             },
             inner: [],
         },

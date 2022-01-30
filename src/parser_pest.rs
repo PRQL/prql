@@ -61,7 +61,7 @@ fn test_parse_query() {
     assert_debug_snapshot!(parse_query(
         r#"
     from employees
-    filter country = "USA"  # Each line transforms the previous result.
+    filter country = "USA"
     "#
     ));
 }
