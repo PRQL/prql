@@ -73,6 +73,29 @@ fn test_parse_query() {
     filter country = "USA"
     "#
     ));
+    assert_debug_snapshot!(parse_query(
+        r#"
+from employees
+filter country = "USA"                           # Each line transforms the previous result.
+derive [                                         # This adds columns / variables.
+  gross_salary: salary + payroll_tax,
+  gross_cost:   gross_salary + benefits_cost     # Variables can use other variables.
+]           
+filter gross_cost > 0
+aggregate by:[title, country] [                  # `by` are the columns to group by.
+    average salary,                              # These are aggregation calcs run on each group.
+    sum     salary,
+    average gross_salary,
+    sum     gross_salary,
+    average gross_cost,
+    sum_gross_cost: sum gross_cost,
+    count,
+]
+sort sum_gross_cost
+filter count > 200
+take 20
+    "#
+    ));
 }
 
 #[test]

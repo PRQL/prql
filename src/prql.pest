@@ -13,7 +13,6 @@ transform = { WHITESPACE* ~ ident ~ expr }
 
 ident = @{ ( ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "." | "_" )* ) }
 
-assign = { ident ~ ":" ~ expr }
 
 // TODO: escapes
 // https://pest.rs/book/examples/rust/literals.html
@@ -21,13 +20,19 @@ string = { "\"" ~ (ASCII_ALPHANUMERIC)* ~ "\"" }
 // string = { "\"" ~ (raw_string | escape)* ~ "\"" }
 // raw_string = { (!("\\" | "\"") ~ ASCII_ALPHANUMERIC)+ }
 // quoted_string = { "\"" ~ (ASCII_ALPHANUMERIC | " " | "." | "_" | "-" | "\\"  )* ~ "\"" }
+number = { (ASCII_DIGIT | ".")+ }
+operator = @{ "=" | "==" | "!=" | ">" | "<" | ">=" | "<=" | "+" | "-" | "*" | "/" | "%" }
 
-term = _{ ( ident | operator | string) }
+term = _{ ( ident | operator | number | string) }
 terms = { (term)+ }
 
-expr = _{ list | assign | terms | pipeline | inline_pipeline }
+expr = _{ (list | assign | terms | inline_pipeline | named_arg )+ }
 
-operator = @{ "=" | "==" | "!=" | ">" | "<" | ">=" | "<=" | "+" | "-" | "*" | "/" | "%" }
+assign = { ident ~ ":" ~ expr }
+
+// No whitestace allowed before the `:`
+// named_arg = @{ ident ~ ":" ~ expr }
+named_arg = { ident ~ ":" ~ expr }
 
 list = { "[" ~ NEWLINE? ~ ( expr ~ ("," ~ NEWLINE? ~ expr)* ) ~ ","? ~ NEWLINE? ~ "]" }
 
