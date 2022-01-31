@@ -1,4 +1,4 @@
 pub mod parser;
-pub mod parser_pest;
+pub mod parser_nom;
 
 fn main() {}
