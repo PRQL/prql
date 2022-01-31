@@ -1,7 +1,7 @@
 ---
-source: src/parser_pest.rs
-assertion_line: 64
-expression: "parse_query(r#\"\n    from employees\n    select [a, b]\n    \"#)"
+source: src/parser.rs
+assertion_line: 70
+expression: "parse_query(r#\"\n    from employees\n    filter country = \"USA\"\n    \"#)"
 
 ---
 Ok(
@@ -9,9 +9,9 @@ Ok(
         Pair {
             rule: pipeline,
             span: Span {
-                str: "from employees\n    select [a, b]",
+                str: "from employees\n    filter country = \"USA\"",
                 start: 5,
-                end: 37,
+                end: 46,
             },
             inner: [
                 Pair {
@@ -64,65 +64,54 @@ Ok(
                 Pair {
                     rule: transform,
                     span: Span {
-                        str: "select [a, b]",
+                        str: "filter country = \"USA\"",
                         start: 24,
-                        end: 37,
+                        end: 46,
                     },
                     inner: [
                         Pair {
                             rule: ident,
                             span: Span {
-                                str: "select",
+                                str: "filter",
                                 start: 24,
                                 end: 30,
                             },
                             inner: [],
                         },
                         Pair {
-                            rule: list,
+                            rule: terms,
                             span: Span {
-                                str: "[a, b]",
+                                str: "country = \"USA\"",
                                 start: 31,
-                                end: 37,
+                                end: 46,
                             },
                             inner: [
                                 Pair {
-                                    rule: terms,
+                                    rule: ident,
                                     span: Span {
-                                        str: "a",
-                                        start: 32,
-                                        end: 33,
+                                        str: "country",
+                                        start: 31,
+                                        end: 38,
                                     },
-                                    inner: [
-                                        Pair {
-                                            rule: ident,
-                                            span: Span {
-                                                str: "a",
-                                                start: 32,
-                                                end: 33,
-                                            },
-                                            inner: [],
-                                        },
-                                    ],
+                                    inner: [],
                                 },
                                 Pair {
-                                    rule: terms,
+                                    rule: operator,
                                     span: Span {
-                                        str: "b",
-                                        start: 35,
-                                        end: 36,
+                                        str: "=",
+                                        start: 39,
+                                        end: 40,
                                     },
-                                    inner: [
-                                        Pair {
-                                            rule: ident,
-                                            span: Span {
-                                                str: "b",
-                                                start: 35,
-                                                end: 36,
-                                            },
-                                            inner: [],
-                                        },
-                                    ],
+                                    inner: [],
+                                },
+                                Pair {
+                                    rule: string,
+                                    span: Span {
+                                        str: "\"USA\"",
+                                        start: 41,
+                                        end: 46,
+                                    },
+                                    inner: [],
                                 },
                             ],
                         },
@@ -134,8 +123,8 @@ Ok(
             rule: EOI,
             span: Span {
                 str: "",
-                start: 42,
-                end: 42,
+                start: 51,
+                end: 51,
             },
             inner: [],
         },

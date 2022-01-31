@@ -1,5 +1,5 @@
 ---
-source: src/parser_pest.rs
+source: src/parser.rs
 assertion_line: 114
 expression: "parse_list(r#\"[                                         \n  gross_salary: salary + payroll_tax,\n  gross_cost:   gross_salary + benefits_cost\n]\"#)"
 

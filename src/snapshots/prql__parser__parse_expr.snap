@@ -1,5 +1,5 @@
 ---
-source: src/parser_pest.rs
+source: src/parser.rs
 assertion_line: 47
 expression: "parse_expr(r#\"country = \"USA\"\"#)"
 
