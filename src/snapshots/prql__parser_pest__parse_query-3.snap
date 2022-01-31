@@ -228,9 +228,9 @@ Ok(
                                 Pair {
                                     rule: assign,
                                     span: Span {
-                                        str: "gross_cost:   gross_salary + benefits_cost     # Variables can use other variables.",
+                                        str: "gross_cost:   gross_salary + benefits_cost",
                                         start: 231,
-                                        end: 314,
+                                        end: 273,
                                     },
                                     inner: [
                                         Pair {
@@ -279,16 +279,16 @@ Ok(
                                                 },
                                             ],
                                         },
-                                        Pair {
-                                            rule: COMMENT,
-                                            span: Span {
-                                                str: "# Variables can use other variables.",
-                                                start: 278,
-                                                end: 314,
-                                            },
-                                            inner: [],
-                                        },
                                     ],
+                                },
+                                Pair {
+                                    rule: COMMENT,
+                                    span: Span {
+                                        str: "# Variables can use other variables.",
+                                        start: 278,
+                                        end: 314,
+                                    },
+                                    inner: [],
                                 },
                             ],
                         },
@@ -386,22 +386,13 @@ Ok(
                             inner: [],
                         },
                         Pair {
-                            rule: assign,
+                            rule: named_arg,
                             span: Span {
-                                str: "by:[title, country] [                  # `by` are the columns to group by.\n    average salary,                              # These are aggregation calcs run on each group.\n    sum     salary,\n    average gross_salary,\n    sum     gross_salary,\n    average gross_cost,\n    sum_gross_cost: sum gross_cost,\n    count,\n]",
+                                str: "by:[title, country]",
                                 start: 360,
-                                end: 677,
+                                end: 379,
                             },
                             inner: [
-                                Pair {
-                                    rule: ident,
-                                    span: Span {
-                                        str: "by",
-                                        start: 360,
-                                        end: 362,
-                                    },
-                                    inner: [],
-                                },
                                 Pair {
                                     rule: list,
                                     span: Span {
@@ -450,158 +441,205 @@ Ok(
                                         },
                                     ],
                                 },
+                            ],
+                        },
+                        Pair {
+                            rule: list,
+                            span: Span {
+                                str: "[                  # `by` are the columns to group by.\n    average salary,                              # These are aggregation calcs run on each group.\n    sum     salary,\n    average gross_salary,\n    sum     gross_salary,\n    average gross_cost,\n    sum_gross_cost: sum gross_cost,\n    count,\n]",
+                                start: 380,
+                                end: 677,
+                            },
+                            inner: [
                                 Pair {
-                                    rule: list,
+                                    rule: COMMENT,
                                     span: Span {
-                                        str: "[                  # `by` are the columns to group by.\n    average salary,                              # These are aggregation calcs run on each group.\n    sum     salary,\n    average gross_salary,\n    sum     gross_salary,\n    average gross_cost,\n    sum_gross_cost: sum gross_cost,\n    count,\n]",
-                                        start: 380,
-                                        end: 677,
+                                        str: "# `by` are the columns to group by.",
+                                        start: 399,
+                                        end: 434,
+                                    },
+                                    inner: [],
+                                },
+                                Pair {
+                                    rule: terms,
+                                    span: Span {
+                                        str: "average salary",
+                                        start: 439,
+                                        end: 453,
                                     },
                                     inner: [
                                         Pair {
-                                            rule: COMMENT,
+                                            rule: ident,
                                             span: Span {
-                                                str: "# `by` are the columns to group by.",
-                                                start: 399,
-                                                end: 434,
+                                                str: "average",
+                                                start: 439,
+                                                end: 446,
                                             },
                                             inner: [],
                                         },
                                         Pair {
-                                            rule: terms,
+                                            rule: ident,
                                             span: Span {
-                                                str: "average salary",
-                                                start: 439,
+                                                str: "salary",
+                                                start: 447,
                                                 end: 453,
                                             },
-                                            inner: [
-                                                Pair {
-                                                    rule: ident,
-                                                    span: Span {
-                                                        str: "average",
-                                                        start: 439,
-                                                        end: 446,
-                                                    },
-                                                    inner: [],
-                                                },
-                                                Pair {
-                                                    rule: ident,
-                                                    span: Span {
-                                                        str: "salary",
-                                                        start: 447,
-                                                        end: 453,
-                                                    },
-                                                    inner: [],
-                                                },
-                                            ],
+                                            inner: [],
+                                        },
+                                    ],
+                                },
+                                Pair {
+                                    rule: COMMENT,
+                                    span: Span {
+                                        str: "# These are aggregation calcs run on each group.",
+                                        start: 484,
+                                        end: 532,
+                                    },
+                                    inner: [],
+                                },
+                                Pair {
+                                    rule: terms,
+                                    span: Span {
+                                        str: "sum     salary",
+                                        start: 537,
+                                        end: 551,
+                                    },
+                                    inner: [
+                                        Pair {
+                                            rule: ident,
+                                            span: Span {
+                                                str: "sum",
+                                                start: 537,
+                                                end: 540,
+                                            },
+                                            inner: [],
                                         },
                                         Pair {
-                                            rule: COMMENT,
+                                            rule: ident,
                                             span: Span {
-                                                str: "# These are aggregation calcs run on each group.",
-                                                start: 484,
-                                                end: 532,
+                                                str: "salary",
+                                                start: 545,
+                                                end: 551,
+                                            },
+                                            inner: [],
+                                        },
+                                    ],
+                                },
+                                Pair {
+                                    rule: terms,
+                                    span: Span {
+                                        str: "average gross_salary",
+                                        start: 557,
+                                        end: 577,
+                                    },
+                                    inner: [
+                                        Pair {
+                                            rule: ident,
+                                            span: Span {
+                                                str: "average",
+                                                start: 557,
+                                                end: 564,
+                                            },
+                                            inner: [],
+                                        },
+                                        Pair {
+                                            rule: ident,
+                                            span: Span {
+                                                str: "gross_salary",
+                                                start: 565,
+                                                end: 577,
+                                            },
+                                            inner: [],
+                                        },
+                                    ],
+                                },
+                                Pair {
+                                    rule: terms,
+                                    span: Span {
+                                        str: "sum     gross_salary",
+                                        start: 583,
+                                        end: 603,
+                                    },
+                                    inner: [
+                                        Pair {
+                                            rule: ident,
+                                            span: Span {
+                                                str: "sum",
+                                                start: 583,
+                                                end: 586,
+                                            },
+                                            inner: [],
+                                        },
+                                        Pair {
+                                            rule: ident,
+                                            span: Span {
+                                                str: "gross_salary",
+                                                start: 591,
+                                                end: 603,
+                                            },
+                                            inner: [],
+                                        },
+                                    ],
+                                },
+                                Pair {
+                                    rule: terms,
+                                    span: Span {
+                                        str: "average gross_cost",
+                                        start: 609,
+                                        end: 627,
+                                    },
+                                    inner: [
+                                        Pair {
+                                            rule: ident,
+                                            span: Span {
+                                                str: "average",
+                                                start: 609,
+                                                end: 616,
+                                            },
+                                            inner: [],
+                                        },
+                                        Pair {
+                                            rule: ident,
+                                            span: Span {
+                                                str: "gross_cost",
+                                                start: 617,
+                                                end: 627,
+                                            },
+                                            inner: [],
+                                        },
+                                    ],
+                                },
+                                Pair {
+                                    rule: assign,
+                                    span: Span {
+                                        str: "sum_gross_cost: sum gross_cost",
+                                        start: 633,
+                                        end: 663,
+                                    },
+                                    inner: [
+                                        Pair {
+                                            rule: ident,
+                                            span: Span {
+                                                str: "sum_gross_cost",
+                                                start: 633,
+                                                end: 647,
                                             },
                                             inner: [],
                                         },
                                         Pair {
                                             rule: terms,
                                             span: Span {
-                                                str: "sum     salary",
-                                                start: 537,
-                                                end: 551,
+                                                str: "sum gross_cost",
+                                                start: 649,
+                                                end: 663,
                                             },
                                             inner: [
                                                 Pair {
                                                     rule: ident,
                                                     span: Span {
                                                         str: "sum",
-                                                        start: 537,
-                                                        end: 540,
-                                                    },
-                                                    inner: [],
-                                                },
-                                                Pair {
-                                                    rule: ident,
-                                                    span: Span {
-                                                        str: "salary",
-                                                        start: 545,
-                                                        end: 551,
-                                                    },
-                                                    inner: [],
-                                                },
-                                            ],
-                                        },
-                                        Pair {
-                                            rule: terms,
-                                            span: Span {
-                                                str: "average gross_salary",
-                                                start: 557,
-                                                end: 577,
-                                            },
-                                            inner: [
-                                                Pair {
-                                                    rule: ident,
-                                                    span: Span {
-                                                        str: "average",
-                                                        start: 557,
-                                                        end: 564,
-                                                    },
-                                                    inner: [],
-                                                },
-                                                Pair {
-                                                    rule: ident,
-                                                    span: Span {
-                                                        str: "gross_salary",
-                                                        start: 565,
-                                                        end: 577,
-                                                    },
-                                                    inner: [],
-                                                },
-                                            ],
-                                        },
-                                        Pair {
-                                            rule: terms,
-                                            span: Span {
-                                                str: "sum     gross_salary",
-                                                start: 583,
-                                                end: 603,
-                                            },
-                                            inner: [
-                                                Pair {
-                                                    rule: ident,
-                                                    span: Span {
-                                                        str: "sum",
-                                                        start: 583,
-                                                        end: 586,
-                                                    },
-                                                    inner: [],
-                                                },
-                                                Pair {
-                                                    rule: ident,
-                                                    span: Span {
-                                                        str: "gross_salary",
-                                                        start: 591,
-                                                        end: 603,
-                                                    },
-                                                    inner: [],
-                                                },
-                                            ],
-                                        },
-                                        Pair {
-                                            rule: terms,
-                                            span: Span {
-                                                str: "average gross_cost",
-                                                start: 609,
-                                                end: 627,
-                                            },
-                                            inner: [
-                                                Pair {
-                                                    rule: ident,
-                                                    span: Span {
-                                                        str: "average",
-                                                        start: 609,
-                                                        end: 616,
+                                                        start: 649,
+                                                        end: 652,
                                                     },
                                                     inner: [],
                                                 },
@@ -609,78 +647,31 @@ Ok(
                                                     rule: ident,
                                                     span: Span {
                                                         str: "gross_cost",
-                                                        start: 617,
-                                                        end: 627,
-                                                    },
-                                                    inner: [],
-                                                },
-                                            ],
-                                        },
-                                        Pair {
-                                            rule: assign,
-                                            span: Span {
-                                                str: "sum_gross_cost: sum gross_cost",
-                                                start: 633,
-                                                end: 663,
-                                            },
-                                            inner: [
-                                                Pair {
-                                                    rule: ident,
-                                                    span: Span {
-                                                        str: "sum_gross_cost",
-                                                        start: 633,
-                                                        end: 647,
-                                                    },
-                                                    inner: [],
-                                                },
-                                                Pair {
-                                                    rule: terms,
-                                                    span: Span {
-                                                        str: "sum gross_cost",
-                                                        start: 649,
+                                                        start: 653,
                                                         end: 663,
                                                     },
-                                                    inner: [
-                                                        Pair {
-                                                            rule: ident,
-                                                            span: Span {
-                                                                str: "sum",
-                                                                start: 649,
-                                                                end: 652,
-                                                            },
-                                                            inner: [],
-                                                        },
-                                                        Pair {
-                                                            rule: ident,
-                                                            span: Span {
-                                                                str: "gross_cost",
-                                                                start: 653,
-                                                                end: 663,
-                                                            },
-                                                            inner: [],
-                                                        },
-                                                    ],
+                                                    inner: [],
                                                 },
                                             ],
                                         },
+                                    ],
+                                },
+                                Pair {
+                                    rule: terms,
+                                    span: Span {
+                                        str: "count",
+                                        start: 669,
+                                        end: 674,
+                                    },
+                                    inner: [
                                         Pair {
-                                            rule: terms,
+                                            rule: ident,
                                             span: Span {
                                                 str: "count",
                                                 start: 669,
                                                 end: 674,
                                             },
-                                            inner: [
-                                                Pair {
-                                                    rule: ident,
-                                                    span: Span {
-                                                        str: "count",
-                                                        start: 669,
-                                                        end: 674,
-                                                    },
-                                                    inner: [],
-                                                },
-                                            ],
+                                            inner: [],
                                         },
                                     ],
                                 },
