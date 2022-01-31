@@ -308,7 +308,7 @@ in advance.
 - [LINQ](https://docs.microsoft.com/en-us/dotnet/csharp/linq/write-linq-queries),
   is a pipelined language for the `.NET` ecosystem which can (mostly) compile to
   SQL. It was one of the first languages to take this approach.
-- [Sift][https://github.com/RCHowell/Sift] is an experimental language which
+- [Sift](https://github.com/RCHowell/Sift) is an experimental language which
   heavily uses pipes and relational algebra.
 - After writing this proposal (including the name!), I found
   [Preql](https://github.com/erezsh/Preql). Despite the similar name and
