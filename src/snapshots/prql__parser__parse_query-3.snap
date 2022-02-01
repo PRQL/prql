@@ -394,6 +394,15 @@ Ok(
                             },
                             inner: [
                                 Pair {
+                                    rule: ident,
+                                    span: Span {
+                                        str: "by",
+                                        start: 360,
+                                        end: 362,
+                                    },
+                                    inner: [],
+                                },
+                                Pair {
                                     rule: list,
                                     span: Span {
                                         str: "[title, country]",

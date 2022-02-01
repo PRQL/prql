@@ -23,15 +23,15 @@ string = { "\"" ~ (ASCII_ALPHANUMERIC)* ~ "\"" }
 number = { (ASCII_DIGIT | ".")+ }
 operator = @{ "=" | "==" | "!=" | ">" | "<" | ">=" | "<=" | "+" | "-" | "*" | "/" | "%" }
 
-term = _{ ( ident | operator | number | string) }
+term = _{ ( ident | operator | number | string ) }
 terms = !{ (term)+ }
 
-expr = _{ (list  | assign | named_arg  | terms | inline_pipeline  )+ }
+expr = _{ ( list | assign | named_arg | terms | inline_pipeline )+ }
 
 // Whitespace required after `:`.
 assign = ${ ident ~ ":" ~ (WHITESPACE)+ ~ expr }
 // No whitestace allowed between these, unlike assign.
-named_arg = @{ ident ~ ":" ~ expr }
+named_arg = ${ ident ~ ":" ~ expr }
 
 list = !{ "[" ~ NEWLINE? ~ ( expr ~ ("," ~ NEWLINE? ~ expr)* ) ~ ","? ~ NEWLINE? ~ "]" }
 
