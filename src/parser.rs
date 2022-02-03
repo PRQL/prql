@@ -86,21 +86,6 @@ pub fn parse<'a>(pairs: Pairs<'a, Rule>) -> Result<Items<'a>, Error<Rule>> {
                         _ => args.push(item),
                     }
                 }
-                // for pair in pairs {
-                //     match pair.as_rule() {
-                //         Rule::assign => {
-                //             if let Item::Assign(a) = parse(pair)? {
-                //                 assigns.push(a);
-                //             } else {
-                //                 panic!("Expected Assign");
-                //             }
-                //         }
-                //         _ => {
-                //             args.push(parse(pair)?);
-                //         }
-                //     }
-                // }
-
                 // TODO: everything is a functioncall now; we need to decide whether
                 // to encode standard functions here.
                 Item::Transformation(Transformation::FunctionCall {
