@@ -55,12 +55,10 @@ pub struct Assign<'a> {
 
 pub fn parse<'a>(pairs: Pairs<'a, Rule>) -> Result<Items<'a>, Error<Rule>> {
     let mut items = vec![];
-    let mut pairs = pairs.clone();
-    while let Some(pair) = pairs.next() {
+    for pair in pairs {
         items.push(match pair.as_rule() {
             Rule::list => Item::List(Box::new(parse(pair.into_inner())?)),
             Rule::assign => {
-                // TODO: should we assert / match to confirm it's an Ident?
                 let items_ = parse(pair.into_inner())?;
                 let lvalue = if let Item::Ident(ident) = items_[0] {
                     ident
