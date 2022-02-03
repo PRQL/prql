@@ -1,7 +1,7 @@
 ---
 source: src/parser.rs
-assertion_line: 64
-expression: "parse_query(r#\"\n    from employees\n    select [a, b]\n    \"#)"
+assertion_line: 153
+expression: "parse_to_pest_tree(r#\"\n    from employees\n    select [a, b]\n    \"#,\n                   Rule::query)"
 
 ---
 Ok(
@@ -32,23 +32,13 @@ Ok(
                             inner: [],
                         },
                         Pair {
-                            rule: terms,
+                            rule: ident,
                             span: Span {
                                 str: "employees",
                                 start: 10,
                                 end: 19,
                             },
-                            inner: [
-                                Pair {
-                                    rule: ident,
-                                    span: Span {
-                                        str: "employees",
-                                        start: 10,
-                                        end: 19,
-                                    },
-                                    inner: [],
-                                },
-                            ],
+                            inner: [],
                         },
                     ],
                 },
@@ -87,42 +77,22 @@ Ok(
                             },
                             inner: [
                                 Pair {
-                                    rule: terms,
+                                    rule: ident,
                                     span: Span {
                                         str: "a",
                                         start: 32,
                                         end: 33,
                                     },
-                                    inner: [
-                                        Pair {
-                                            rule: ident,
-                                            span: Span {
-                                                str: "a",
-                                                start: 32,
-                                                end: 33,
-                                            },
-                                            inner: [],
-                                        },
-                                    ],
+                                    inner: [],
                                 },
                                 Pair {
-                                    rule: terms,
+                                    rule: ident,
                                     span: Span {
                                         str: "b",
                                         start: 35,
                                         end: 36,
                                     },
-                                    inner: [
-                                        Pair {
-                                            rule: ident,
-                                            span: Span {
-                                                str: "b",
-                                                start: 35,
-                                                end: 36,
-                                            },
-                                            inner: [],
-                                        },
-                                    ],
+                                    inner: [],
                                 },
                             ],
                         },

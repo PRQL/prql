@@ -1,7 +1,7 @@
 ---
 source: src/parser.rs
-assertion_line: 57
-expression: "parse_transform(\"select [a, b, c]\")"
+assertion_line: 143
+expression: "parse_to_pest_tree(\"aggregate by:[title] [sum salary]\", Rule::transform)"
 
 ---
 Ok(
@@ -9,80 +9,79 @@ Ok(
         Pair {
             rule: transform,
             span: Span {
-                str: "select [a, b, c]",
+                str: "aggregate by:[title] [sum salary]",
                 start: 0,
-                end: 16,
+                end: 33,
             },
             inner: [
                 Pair {
                     rule: ident,
                     span: Span {
-                        str: "select",
+                        str: "aggregate",
                         start: 0,
-                        end: 6,
+                        end: 9,
                     },
                     inner: [],
                 },
                 Pair {
-                    rule: list,
+                    rule: assign,
                     span: Span {
-                        str: "[a, b, c]",
-                        start: 7,
-                        end: 16,
+                        str: "by:[title] [sum salary]",
+                        start: 10,
+                        end: 33,
                     },
                     inner: [
                         Pair {
-                            rule: terms,
+                            rule: ident,
                             span: Span {
-                                str: "a",
-                                start: 8,
-                                end: 9,
-                            },
-                            inner: [
-                                Pair {
-                                    rule: ident,
-                                    span: Span {
-                                        str: "a",
-                                        start: 8,
-                                        end: 9,
-                                    },
-                                    inner: [],
-                                },
-                            ],
-                        },
-                        Pair {
-                            rule: terms,
-                            span: Span {
-                                str: "b",
-                                start: 11,
+                                str: "by",
+                                start: 10,
                                 end: 12,
                             },
+                            inner: [],
+                        },
+                        Pair {
+                            rule: list,
+                            span: Span {
+                                str: "[title]",
+                                start: 13,
+                                end: 20,
+                            },
                             inner: [
                                 Pair {
                                     rule: ident,
                                     span: Span {
-                                        str: "b",
-                                        start: 11,
-                                        end: 12,
+                                        str: "title",
+                                        start: 14,
+                                        end: 19,
                                     },
                                     inner: [],
                                 },
                             ],
                         },
                         Pair {
-                            rule: terms,
+                            rule: list,
                             span: Span {
-                                str: "c",
-                                start: 14,
-                                end: 15,
+                                str: "[sum salary]",
+                                start: 21,
+                                end: 33,
                             },
                             inner: [
                                 Pair {
                                     rule: ident,
                                     span: Span {
-                                        str: "c",
-                                        start: 14,
-                                        end: 15,
+                                        str: "sum",
+                                        start: 22,
+                                        end: 25,
+                                    },
+                                    inner: [],
+                                },
+                                Pair {
+                                    rule: ident,
+                                    span: Span {
+                                        str: "salary",
+                                        start: 26,
+                                        end: 32,
                                     },
                                     inner: [],
                                 },

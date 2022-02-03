@@ -17,63 +17,173 @@ use pest_derive::Parser;
 #[grammar = "prql.pest"]
 pub struct PrqlParser;
 
-pub fn parse_query(source: &str) -> Result<Pairs<Rule>, Error<Rule>> {
-    let pairs = PrqlParser::parse(Rule::query, source)?;
-    Ok(pairs)
+// aka Column
+pub type Ident<'a> = &'a str;
+pub type Items<'a> = Vec<Item<'a>>;
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum Item<'a> {
+    List(Box<Items<'a>>),
+    Transformation(Transformation<'a>),
+    Ident(Ident<'a>),
+    String(&'a str),
+    Raw(&'a str),
+    Assign(Assign<'a>),
 }
 
-pub fn parse_transform(source: &str) -> Result<Pairs<Rule>, Error<Rule>> {
-    let pairs = PrqlParser::parse(Rule::transform, source)?;
-    Ok(pairs)
+#[derive(Debug, PartialEq, Clone)]
+pub enum Transformation<'a> {
+    Select(Vec<Ident<'a>>),
+    Filter(Box<Item<'a>>),
+    Aggregate {
+        by: Vec<Ident<'a>>,
+        calcs: Vec<Box<Item<'a>>>,
+    },
+    Sort(Vec<Ident<'a>>),
+    FunctionCall {
+        name: &'a str,
+        args: Vec<Item<'a>>,
+        assigns: Vec<Assign<'a>>,
+    },
 }
 
-pub fn parse_expr(source: &str) -> Result<Pairs<Rule>, Error<Rule>> {
-    let pairs = PrqlParser::parse(Rule::expr, source)?;
-    Ok(pairs)
+#[derive(Debug, PartialEq, Clone)]
+pub struct Assign<'a> {
+    pub lvalue: Ident<'a>,
+    pub rvalue: Box<Items<'a>>,
 }
 
-pub fn parse_string(source: &str) -> Result<Pairs<Rule>, Error<Rule>> {
-    let pairs = PrqlParser::parse(Rule::string, source)?;
-    Ok(pairs)
-}
+pub fn parse<'a>(pairs: Pairs<'a, Rule>) -> Result<Items<'a>, Error<Rule>> {
+    let mut items = vec![];
+    let mut pairs = pairs.clone();
+    while let Some(pair) = pairs.next() {
+        items.push(match pair.as_rule() {
+            Rule::list => Item::List(Box::new(parse(pair.into_inner())?)),
+            Rule::assign => {
+                // TODO: should we assert / match to confirm it's an Ident?
+                let items_ = parse(pair.into_inner())?;
+                let lvalue = if let Item::Ident(ident) = items_[0] {
+                    ident
+                } else {
+                    panic!()
+                };
+                let rvalue = Box::new(items_[1..].iter().map(|x| x.clone()).collect());
+                Item::Assign(Assign { lvalue, rvalue })
+            }
+            Rule::transform => {
+                let mut items_ = parse(pair.into_inner())?.into_iter();
+                let name = if let Item::Ident(st) = items_.next().unwrap() {
+                    st
+                } else {
+                    panic!()
+                };
+                let mut args: Vec<Item<'a>> = vec![];
+                let mut assigns: Vec<Assign<'a>> = vec![];
 
-pub fn parse_terms(source: &str) -> Result<Pairs<Rule>, Error<Rule>> {
-    let pairs = PrqlParser::parse(Rule::terms, source)?;
-    Ok(pairs)
+                for item in items_ {
+                    match item {
+                        Item::Assign(assign) => assigns.push(assign),
+                        _ => args.push(item),
+                    }
+                }
+                // for pair in pairs {
+                //     match pair.as_rule() {
+                //         Rule::assign => {
+                //             if let Item::Assign(a) = parse(pair)? {
+                //                 assigns.push(a);
+                //             } else {
+                //                 panic!("Expected Assign");
+                //             }
+                //         }
+                //         _ => {
+                //             args.push(parse(pair)?);
+                //         }
+                //     }
+                // }
+
+                // TODO: everything is a functioncall now; we need to decide whether
+                // to encode standard functions here.
+                Item::Transformation(Transformation::FunctionCall {
+                    name,
+                    args,
+                    assigns,
+                })
+            }
+            Rule::ident => (Item::Ident(pair.as_str())),
+            Rule::string => (Item::String(pair.as_str())),
+            _ => (Item::Raw(pair.as_str())),
+        })
+    }
+    Ok(items)
 }
 
 #[test]
 fn test_parse_expr() {
-    assert_debug_snapshot!(parse_expr(r#"country = "USA""#));
+    for (string, rule) in [
+        (r#"country = "USA""#, Rule::expr),
+        ("aggregate by:[title] [sum salary]", Rule::transform),
+        (
+            r#"[                                         
+  gross_salary: salary + payroll_tax,
+  gross_cost:   gross_salary + benefits_cost
+]"#,
+            Rule::list,
+        ),
+    ] {
+        assert_debug_snapshot!(parse(parse_to_pest_tree(string, rule).unwrap()));
+    }
+}
+
+pub fn parse_to_pest_tree(source: &str, rule: Rule) -> Result<Pairs<Rule>, Error<Rule>> {
+    let pairs = PrqlParser::parse(rule, source)?;
+    Ok(pairs)
 }
 
 #[test]
-fn test_parse_string() {
-    assert_debug_snapshot!(parse_string(r#""USA""#));
+fn test_parse_to_pest_tree() {
+    assert_debug_snapshot!(parse_to_pest_tree(r#"country = "USA""#, Rule::expr));
+    assert_debug_snapshot!(parse_to_pest_tree(r#""USA""#, Rule::string));
+    assert_debug_snapshot!(parse_to_pest_tree("select [a, b, c]", Rule::transform));
+    assert_debug_snapshot!(parse_to_pest_tree(
+        "aggregate by:[title] [sum salary]",
+        Rule::transform
+    ));
+    assert_debug_snapshot!(parse_to_pest_tree(
+        r#"    filter country = "USA""#,
+        Rule::transform
+    ));
+    assert_debug_snapshot!(parse_to_pest_tree(r#"[a, b, c,]"#, Rule::list));
+    assert_debug_snapshot!(parse_to_pest_tree(
+        r#"[                                         
+  gross_salary: salary + payroll_tax,
+  gross_cost:   gross_salary + benefits_cost
+]"#,
+        Rule::list
+    ));
+    assert_debug_snapshot!(parse_to_pest_tree(
+        r#"# this is a comment
+        select a"#,
+        Rule::COMMENT
+    ));
 }
 
 #[test]
-fn test_parse_transform() {
-    assert_debug_snapshot!(parse_transform("select [a, b, c]"));
-    assert_debug_snapshot!(parse_transform(r#"    from employees"#));
-    assert_debug_snapshot!(parse_transform(r#"    filter country = "USA""#));
-}
-
-#[test]
-fn test_parse_query() {
-    assert_debug_snapshot!(parse_query(
+fn test_parse_to_pest_tree_query() {
+    assert_debug_snapshot!(parse_to_pest_tree(
         r#"
     from employees
     select [a, b]
-    "#
+    "#,
+        Rule::query
     ));
-    assert_debug_snapshot!(parse_query(
+    assert_debug_snapshot!(parse_to_pest_tree(
         r#"
     from employees
     filter country = "USA"
-    "#
+    "#,
+        Rule::query
     ));
-    assert_debug_snapshot!(parse_query(
+    assert_debug_snapshot!(parse_to_pest_tree(
         r#"
 from employees
 filter country = "USA"                           # Each line transforms the previous result.
@@ -94,40 +204,7 @@ aggregate by:[title, country] [                  # `by` are the columns to group
 sort sum_gross_cost
 filter count > 200
 take 20
-    "#
-    ));
-}
-
-#[test]
-fn test_parse_terms() {
-    assert_debug_snapshot!(parse_terms(r#"country = "USA""#));
-}
-
-pub fn parse_list(source: &str) -> Result<Pairs<Rule>, Error<Rule>> {
-    let pairs = PrqlParser::parse(Rule::list, source)?;
-    Ok(pairs)
-}
-
-#[test]
-fn test_parse_list() {
-    assert_debug_snapshot!(parse_list(r#"[a, b, c,]"#));
-    assert_debug_snapshot!(parse_list(
-        r#"[                                         
-  gross_salary: salary + payroll_tax,
-  gross_cost:   gross_salary + benefits_cost
-]"#
-    ));
-}
-
-pub fn parse_comment(source: &str) -> Result<Pairs<Rule>, Error<Rule>> {
-    let pairs = PrqlParser::parse(Rule::COMMENT, source)?;
-    Ok(pairs)
-}
-
-#[test]
-fn test_parse_comment() {
-    assert_debug_snapshot!(parse_comment(
-        r#"# this is a comment
-        select a"#
+    "#,
+        Rule::query
     ));
 }

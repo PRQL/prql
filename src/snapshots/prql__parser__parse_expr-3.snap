@@ -1,0 +1,46 @@
+---
+source: src/parser.rs
+assertion_line: 133
+expression: "parse(parse_to_pest_tree(string, rule).unwrap())"
+
+---
+Ok(
+    [
+        List(
+            [
+                Assign(
+                    Assign {
+                        lvalue: "gross_salary",
+                        rvalue: [
+                            Ident(
+                                "salary",
+                            ),
+                            Raw(
+                                "+",
+                            ),
+                            Ident(
+                                "payroll_tax",
+                            ),
+                        ],
+                    },
+                ),
+                Assign(
+                    Assign {
+                        lvalue: "gross_cost",
+                        rvalue: [
+                            Ident(
+                                "gross_salary",
+                            ),
+                            Raw(
+                                "+",
+                            ),
+                            Ident(
+                                "benefits_cost",
+                            ),
+                        ],
+                    },
+                ),
+            ],
+        ),
+    ],
+)

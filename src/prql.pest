@@ -2,7 +2,8 @@ WHITESPACE = _{ " " }
 // Need to exclude # in strings (and maybe confirm whether this the syntax we want)
 COMMENT = { "#" ~ (!NEWLINE ~ ANY) * }
 
-query = _{ SOI ~ NEWLINE* ~ pipeline ~ (NEWLINE ~ pipeline )* ~ NEWLINE* ~ EOI }
+// TODO: add functions / tables
+query = _{ SOI ~ NEWLINE* ~ pipeline ~ NEWLINE* ~ EOI }
 
 pipe = { NEWLINE | "|" }
 pipeline = { transform ~ (pipe ~ transform)* }
@@ -13,7 +14,6 @@ transform = { WHITESPACE* ~ ident ~ expr }
 
 ident = @{ ( ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "." | "_" )* ) }
 
-
 // TODO: escapes
 // https://pest.rs/book/examples/rust/literals.html
 string = { "\"" ~ (ASCII_ALPHANUMERIC)* ~ "\"" }
@@ -23,15 +23,24 @@ string = { "\"" ~ (ASCII_ALPHANUMERIC)* ~ "\"" }
 number = { (ASCII_DIGIT | ".")+ }
 operator = @{ "=" | "==" | "!=" | ">" | "<" | ">=" | "<=" | "+" | "-" | "*" | "/" | "%" }
 
+// We could just put these all into `expr`, though possibly we want to retain a
+// notion of a valid block (i.e. `+` is not a valid expression).
 term = _{ ( ident | operator | number | string ) }
-terms = !{ (term)+ }
 
-expr = _{ ( list | assign | named_arg | terms | inline_pipeline )+ }
+expr = _{ ( list | assign | term | inline_pipeline )+ }
 
-// Whitespace required after `:`.
-assign = ${ ident ~ ":" ~ (WHITESPACE)+ ~ expr }
-// No whitestace allowed between these, unlike assign.
-named_arg = ${ ident ~ ":" ~ expr }
+// Currently handling named_args the same as assignments. That wasn't the
+// original plan; we were going to have
+// derive cost: costA + costB
+// and
+// aggregate by:[title]
+// But it's going to make the semantics very dependent on the placement of
+// whitespace, so it may be better to just have them be the same syntax, given
+// there's no other way of discriminating between them.
+assign = { ident ~ ":" ~ expr }
 
-list = !{ "[" ~ NEWLINE? ~ ( expr ~ ("," ~ NEWLINE? ~ expr)* ) ~ ","? ~ NEWLINE? ~ "]" }
+list = { "[" ~ NEWLINE? ~ ( expr ~ ("," ~ NEWLINE? ~ expr)* ) ~ ","? ~ NEWLINE? ~ "]" }
 
+// TODO:
+// parenthesized expressions (which aren't necessarily inline_pipelines) — maybe
+// that should just be changed to a parenthesized expr?

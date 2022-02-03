@@ -1,7 +1,7 @@
 ---
 source: src/parser.rs
-assertion_line: 59
-expression: "parse_transform(r#\"    filter country = \"USA\"\"#)"
+assertion_line: 142
+expression: "parse_to_pest_tree(\"select [a, b, c]\", Rule::transform)"
 
 ---
 Ok(
@@ -9,52 +9,52 @@ Ok(
         Pair {
             rule: transform,
             span: Span {
-                str: "    filter country = \"USA\"",
+                str: "select [a, b, c]",
                 start: 0,
-                end: 26,
+                end: 16,
             },
             inner: [
                 Pair {
                     rule: ident,
                     span: Span {
-                        str: "filter",
-                        start: 4,
-                        end: 10,
+                        str: "select",
+                        start: 0,
+                        end: 6,
                     },
                     inner: [],
                 },
                 Pair {
-                    rule: terms,
+                    rule: list,
                     span: Span {
-                        str: "country = \"USA\"",
-                        start: 11,
-                        end: 26,
+                        str: "[a, b, c]",
+                        start: 7,
+                        end: 16,
                     },
                     inner: [
                         Pair {
                             rule: ident,
                             span: Span {
-                                str: "country",
+                                str: "a",
+                                start: 8,
+                                end: 9,
+                            },
+                            inner: [],
+                        },
+                        Pair {
+                            rule: ident,
+                            span: Span {
+                                str: "b",
                                 start: 11,
-                                end: 18,
+                                end: 12,
                             },
                             inner: [],
                         },
                         Pair {
-                            rule: operator,
+                            rule: ident,
                             span: Span {
-                                str: "=",
-                                start: 19,
-                                end: 20,
-                            },
-                            inner: [],
-                        },
-                        Pair {
-                            rule: string,
-                            span: Span {
-                                str: "\"USA\"",
-                                start: 21,
-                                end: 26,
+                                str: "c",
+                                start: 14,
+                                end: 15,
                             },
                             inner: [],
                         },

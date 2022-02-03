@@ -1,0 +1,40 @@
+---
+source: src/parser.rs
+assertion_line: 133
+expression: "parse(parse_to_pest_tree(string, rule).unwrap())"
+
+---
+Ok(
+    [
+        Transformation(
+            FunctionCall {
+                name: "aggregate",
+                args: [],
+                assigns: [
+                    Assign {
+                        lvalue: "by",
+                        rvalue: [
+                            List(
+                                [
+                                    Ident(
+                                        "title",
+                                    ),
+                                ],
+                            ),
+                            List(
+                                [
+                                    Ident(
+                                        "sum",
+                                    ),
+                                    Ident(
+                                        "salary",
+                                    ),
+                                ],
+                            ),
+                        ],
+                    },
+                ],
+            },
+        ),
+    ],
+)
