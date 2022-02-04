@@ -1,6 +1,6 @@
 ---
 source: src/parser.rs
-assertion_line: 160
+assertion_line: 182
 expression: "parse_to_pest_tree(r#\"\n    from employees\n    filter country = \"USA\"\n    \"#,\n                   Rule::query)"
 
 ---
@@ -15,7 +15,7 @@ Ok(
             },
             inner: [
                 Pair {
-                    rule: transform,
+                    rule: transformation,
                     span: Span {
                         str: "from employees",
                         start: 5,
@@ -52,7 +52,7 @@ Ok(
                     inner: [],
                 },
                 Pair {
-                    rule: transform,
+                    rule: transformation,
                     span: Span {
                         str: "filter country = \"USA\"",
                         start: 24,

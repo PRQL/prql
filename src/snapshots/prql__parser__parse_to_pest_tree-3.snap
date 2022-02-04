@@ -1,13 +1,13 @@
 ---
 source: src/parser.rs
-assertion_line: 142
-expression: "parse_to_pest_tree(\"select [a, b, c]\", Rule::transform)"
+assertion_line: 149
+expression: "parse_to_pest_tree(\"select [a, b, c]\", Rule::transformation)"
 
 ---
 Ok(
     [
         Pair {
-            rule: transform,
+            rule: transformation,
             span: Span {
                 str: "select [a, b, c]",
                 start: 0,

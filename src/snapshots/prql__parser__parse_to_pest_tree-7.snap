@@ -1,6 +1,6 @@
 ---
 source: src/parser.rs
-assertion_line: 142
+assertion_line: 159
 expression: "parse_to_pest_tree(r#\"[                                         \n  gross_salary: salary + payroll_tax,\n  gross_cost:   gross_salary + benefits_cost\n]\"#,\n                   Rule::list)"
 
 ---

@@ -29,6 +29,7 @@ pub enum Item<'a> {
     String(&'a str),
     Raw(&'a str),
     Assign(Assign<'a>),
+    NamedArg(NamedArg<'a>),
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -43,8 +44,14 @@ pub enum Transformation<'a> {
     FunctionCall {
         name: &'a str,
         args: Vec<Item<'a>>,
-        assigns: Vec<Assign<'a>>,
+        named_args: Vec<NamedArg<'a>>,
     },
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct NamedArg<'a> {
+    pub lvalue: Ident<'a>,
+    pub rvalue: Box<Items<'a>>,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -58,6 +65,16 @@ pub fn parse<'a>(pairs: Pairs<'a, Rule>) -> Result<Items<'a>, Error<Rule>> {
     for pair in pairs {
         items.push(match pair.as_rule() {
             Rule::list => Item::List(Box::new(parse(pair.into_inner())?)),
+            Rule::named_arg => {
+                let items_ = parse(pair.into_inner())?;
+                let lvalue = if let Item::Ident(ident) = items_[0] {
+                    ident
+                } else {
+                    panic!()
+                };
+                let rvalue = Box::new(items_[1..].iter().map(|x| x.clone()).collect());
+                Item::NamedArg(NamedArg { lvalue, rvalue })
+            }
             Rule::assign => {
                 let items_ = parse(pair.into_inner())?;
                 let lvalue = if let Item::Ident(ident) = items_[0] {
@@ -68,28 +85,28 @@ pub fn parse<'a>(pairs: Pairs<'a, Rule>) -> Result<Items<'a>, Error<Rule>> {
                 let rvalue = Box::new(items_[1..].iter().map(|x| x.clone()).collect());
                 Item::Assign(Assign { lvalue, rvalue })
             }
-            Rule::transform => {
+            Rule::transformation => {
                 let mut items_ = parse(pair.into_inner())?.into_iter();
-                let name = if let Item::Ident(st) = items_.next().unwrap() {
-                    st
+                let name = if let Item::Ident(ident) = items_.next().unwrap() {
+                    ident
                 } else {
                     panic!()
                 };
                 let mut args: Vec<Item<'a>> = vec![];
-                let mut assigns: Vec<Assign<'a>> = vec![];
+                let mut named_args: Vec<NamedArg<'a>> = vec![];
 
                 for item in items_ {
                     match item {
-                        Item::Assign(assign) => assigns.push(assign),
+                        Item::NamedArg(named_arg) => named_args.push(named_arg),
                         _ => args.push(item),
                     }
                 }
-                // TODO: everything is a functioncall now; we need to decide whether
+                // TODO: everything is a FunctionCall now; we need to decide whether
                 // to encode standard functions here.
                 Item::Transformation(Transformation::FunctionCall {
                     name,
                     args,
-                    assigns,
+                    named_args,
                 })
             }
             Rule::ident => (Item::Ident(pair.as_str())),
@@ -102,19 +119,22 @@ pub fn parse<'a>(pairs: Pairs<'a, Rule>) -> Result<Items<'a>, Error<Rule>> {
 
 #[test]
 fn test_parse_expr() {
-    for (string, rule) in [
-        (r#"country = "USA""#, Rule::expr),
-        ("aggregate by:[title] [sum salary]", Rule::transform),
-        (
+    assert_debug_snapshot!(parse(
+        parse_to_pest_tree(r#"country = "USA""#, Rule::expr).unwrap()
+    ));
+    assert_debug_snapshot!(parse(
+        parse_to_pest_tree("aggregate by:[title] [sum salary]", Rule::transformation).unwrap()
+    ));
+    assert_debug_snapshot!(parse(
+        parse_to_pest_tree(
             r#"[                                         
   gross_salary: salary + payroll_tax,
   gross_cost:   gross_salary + benefits_cost
 ]"#,
             Rule::list,
-        ),
-    ] {
-        assert_debug_snapshot!(parse(parse_to_pest_tree(string, rule).unwrap()));
-    }
+        )
+        .unwrap()
+    ));
 }
 
 pub fn parse_to_pest_tree(source: &str, rule: Rule) -> Result<Pairs<Rule>, Error<Rule>> {
@@ -126,14 +146,14 @@ pub fn parse_to_pest_tree(source: &str, rule: Rule) -> Result<Pairs<Rule>, Error
 fn test_parse_to_pest_tree() {
     assert_debug_snapshot!(parse_to_pest_tree(r#"country = "USA""#, Rule::expr));
     assert_debug_snapshot!(parse_to_pest_tree(r#""USA""#, Rule::string));
-    assert_debug_snapshot!(parse_to_pest_tree("select [a, b, c]", Rule::transform));
+    assert_debug_snapshot!(parse_to_pest_tree("select [a, b, c]", Rule::transformation));
     assert_debug_snapshot!(parse_to_pest_tree(
-        "aggregate by:[title] [sum salary]",
-        Rule::transform
+        "aggregate by:[title, country] [sum salary]",
+        Rule::transformation
     ));
     assert_debug_snapshot!(parse_to_pest_tree(
-        r#"    filter country = "USA""#,
-        Rule::transform
+        r#"    filter country == "USA""#,
+        Rule::transformation
     ));
     assert_debug_snapshot!(parse_to_pest_tree(r#"[a, b, c,]"#, Rule::list));
     assert_debug_snapshot!(parse_to_pest_tree(

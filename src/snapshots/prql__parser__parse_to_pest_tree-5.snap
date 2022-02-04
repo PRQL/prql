@@ -1,17 +1,17 @@
 ---
 source: src/parser.rs
-assertion_line: 147
-expression: "parse_to_pest_tree(r#\"    filter country = \"USA\"\"#, Rule::transform)"
+assertion_line: 154
+expression: "parse_to_pest_tree(r#\"    filter country == \"USA\"\"#, Rule::transformation)"
 
 ---
 Ok(
     [
         Pair {
-            rule: transform,
+            rule: transformation,
             span: Span {
-                str: "    filter country = \"USA\"",
+                str: "    filter country == \"USA\"",
                 start: 0,
-                end: 26,
+                end: 27,
             },
             inner: [
                 Pair {
@@ -35,9 +35,9 @@ Ok(
                 Pair {
                     rule: operator,
                     span: Span {
-                        str: "=",
+                        str: "==",
                         start: 19,
-                        end: 20,
+                        end: 21,
                     },
                     inner: [],
                 },
@@ -45,8 +45,8 @@ Ok(
                     rule: string,
                     span: Span {
                         str: "\"USA\"",
-                        start: 21,
-                        end: 26,
+                        start: 22,
+                        end: 27,
                     },
                     inner: [],
                 },

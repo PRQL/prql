@@ -1,7 +1,7 @@
 ---
 source: src/parser.rs
-assertion_line: 133
-expression: "parse(parse_to_pest_tree(string, rule).unwrap())"
+assertion_line: 122
+expression: "parse(parse_to_pest_tree(r#\"country = \"USA\"\"#, Rule::expr).unwrap())"
 
 ---
 Ok(
