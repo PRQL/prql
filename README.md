@@ -222,7 +222,8 @@ side:
 
 - Syntax highlighting in editors
 - A live transpiler in a browser
-- Initial type-inference (where it's possible without connecting to the DB).
+- Initial type-inference, where it's possible without connecting to the DB, e.g.
+  [#54](https://github.com/max-sixty/prql/pull/55).
 - (I'm sure there's more, ideas welcome)
 
 ### Database cohesion
