@@ -214,13 +214,16 @@ I'm broadly envisioning two passes:
 
 We'll need to make initial progress on the parser before starting here.
 
-### UX
+### Fast feedback
 
-As well as a command-line tool that transpiles queries, it would be great if we
-could allow the language to be accessible; e.g.:
+As well as a command-line tool that transpiles queries, we'd like to make
+developing in PRQL a wonderful experience, where it feels like it's on your
+side:
 
 - Syntax highlighting in editors
 - A live transpiler in a browser
+- Initial type-inference, where it's possible without connecting to the DB, e.g.
+  [#54](https://github.com/max-sixty/prql/pull/55).
 - (I'm sure there's more, ideas welcome)
 
 ### Database cohesion
@@ -244,7 +247,7 @@ means putting some things out of scope:
   ([issue](https://github.com/max-sixty/prql/issues/16)).
 - Add typing into the syntax
   ([issue](https://github.com/max-sixty/prql/issues/15)) (though type
-  _inference_ is a goal above, and this could be a useful extension at some
+  *inference* is a goal above, and this could be a useful extension at some
   point).
 
 ## Interested in seeing this happen?
