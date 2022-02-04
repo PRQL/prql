@@ -1,18 +1,19 @@
+// TODO: add functions / tables
+
 WHITESPACE = _{ " " }
 // Need to exclude # in strings (and maybe confirm whether this the syntax we want)
 COMMENT = { "#" ~ (!NEWLINE ~ ANY) * }
 
-query = _{ SOI ~ NEWLINE* ~ pipeline ~ (NEWLINE ~ pipeline )* ~ NEWLINE* ~ EOI }
+query = _{ SOI ~ NEWLINE* ~ pipeline ~ NEWLINE* ~ EOI }
 
 pipe = { NEWLINE | "|" }
-pipeline = { transform ~ (pipe ~ transform)* }
-inline_pipeline = { "(" ~ pipeline ~ ")" }
+pipeline = { transformation ~ (pipe ~ transformation)* }
+inline_pipeline = !{ "(" ~ pipeline ~ ")" }
 
-// `ident` is the function name
-transform = { WHITESPACE* ~ ident ~ expr }
+// `ident` is the transformation name
+transformation = { WHITESPACE* ~ ident ~ expr }
 
 ident = @{ ( ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "." | "_" )* ) }
-
 
 // TODO: escapes
 // https://pest.rs/book/examples/rust/literals.html
@@ -21,17 +22,27 @@ string = { "\"" ~ (ASCII_ALPHANUMERIC)* ~ "\"" }
 // raw_string = { (!("\\" | "\"") ~ ASCII_ALPHANUMERIC)+ }
 // quoted_string = { "\"" ~ (ASCII_ALPHANUMERIC | " " | "." | "_" | "-" | "\\"  )* ~ "\"" }
 number = { (ASCII_DIGIT | ".")+ }
-operator = @{ "=" | "==" | "!=" | ">" | "<" | ">=" | "<=" | "+" | "-" | "*" | "/" | "%" }
+operator = @{ "==" | "!=" | "=" | ">" | "<" | ">=" | "<=" | "+" | "-" | "*" | "/" | "%" }
 
+// When taking only the next expression
+single_expr = _{ ( list | term | inline_pipeline ) }
+expr = _{ ( list | named_arg | assign | term | inline_pipeline )+ }
+// We could just put these all into `expr`, though possibly we want to retain a
+// notion of a valid block (i.e. `+` is not a valid expression).
 term = _{ ( ident | operator | number | string ) }
-terms = !{ (term)+ }
-
-expr = _{ ( list | assign | named_arg | terms | inline_pipeline )+ }
-
-// Whitespace required after `:`.
-assign = ${ ident ~ ":" ~ (WHITESPACE)+ ~ expr }
-// No whitestace allowed between these, unlike assign.
-named_arg = ${ ident ~ ":" ~ expr }
-
 list = !{ "[" ~ NEWLINE? ~ ( expr ~ ("," ~ NEWLINE? ~ expr)* ) ~ ","? ~ NEWLINE? ~ "]" }
 
+// Currently named_args and handled slightly differently to assignments:
+// named_args have no whitespace and take one expression immediately after the
+// `:`, while assignments take all of the expressions following the `:`. e.g.:
+// derive cost: costA + costB
+// vs.
+// aggregate by:[title]
+// ref https://github.com/max-sixty/prql/issues/53, this is not an ideal state,
+// since small differences in whitespace have a large different in outcome.
+assign = { ident ~ ":" ~ expr }
+named_arg = ${ ident ~ ":" ~ single_expr }
+
+// TODO:
+// parenthesized expressions (which aren't necessarily inline_pipelines) — maybe
+// that should just be changed to a parenthesized expr?

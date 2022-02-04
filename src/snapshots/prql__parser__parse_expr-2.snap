@@ -1,0 +1,41 @@
+---
+source: src/parser.rs
+assertion_line: 125
+expression: "parse(parse_to_pest_tree(\"aggregate by:[title] [sum salary]\",\n                         Rule::transformation).unwrap())"
+
+---
+Ok(
+    [
+        Transformation(
+            FunctionCall {
+                name: "aggregate",
+                args: [
+                    List(
+                        [
+                            Ident(
+                                "sum",
+                            ),
+                            Ident(
+                                "salary",
+                            ),
+                        ],
+                    ),
+                ],
+                named_args: [
+                    NamedArg {
+                        lvalue: "by",
+                        rvalue: [
+                            List(
+                                [
+                                    Ident(
+                                        "title",
+                                    ),
+                                ],
+                            ),
+                        ],
+                    },
+                ],
+            },
+        ),
+    ],
+)
