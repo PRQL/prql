@@ -152,7 +152,7 @@ fn test_parse_to_pest_tree() {
         Rule::transformation
     ));
     assert_debug_snapshot!(parse_to_pest_tree(
-        r#"    filter country == "USA""#,
+        r#"    filter country = "USA""#,
         Rule::transformation
     ));
     assert_debug_snapshot!(parse_to_pest_tree(r#"[a, b, c,]"#, Rule::list));
