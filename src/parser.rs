@@ -26,14 +26,14 @@ pub enum Item<'a> {
     Raw(&'a str),
     Assign(Assign<'a>),
     NamedArg(NamedArg<'a>),
-    Query(Box<Items<'a>>),
+    Query(Items<'a>),
     Pipeline(Vec<Transformation<'a>>),
     // Holds Item-s directly if a list entry is a single item, otherwise holds
     // Item::Items. This is less verbose than always having Item::Items.
-    List(Box<Items<'a>>),
+    List(Items<'a>),
     // In some cases, as as lists, we need a container for multiple items to
     // discriminate them from, e.g. a series of Idents. `[a, b]` vs `[a b]`.
-    Items(Box<Items<'a>>),
+    Items(Items<'a>),
     TODO(&'a str),
 }
 
@@ -72,21 +72,21 @@ impl<'a> From<&'a str> for TransformationType<'a> {
 #[derive(Debug, PartialEq, Clone)]
 pub struct NamedArg<'a> {
     pub lvalue: Ident<'a>,
-    pub rvalue: Box<Items<'a>>,
+    pub rvalue: Items<'a>,
 }
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Assign<'a> {
     pub lvalue: Ident<'a>,
-    pub rvalue: Box<Items<'a>>,
+    pub rvalue: Items<'a>,
 }
 
 pub fn parse<'a>(pairs: Pairs<'a, Rule>) -> Result<Items<'a>, Error<Rule>> {
     pairs
         .map(|pair| {
             Ok(match pair.as_rule() {
-                Rule::list => Item::List(Box::new(parse(pair.into_inner())?)),
-                Rule::items => Item::Items(Box::new(parse(pair.into_inner())?)),
+                Rule::list => Item::List(parse(pair.into_inner())?),
+                Rule::items => Item::Items(parse(pair.into_inner())?),
                 Rule::named_arg => {
                     let items_ = parse(pair.into_inner())?;
                     let lvalue = if let Item::Ident(ident) = items_[0] {
@@ -94,7 +94,7 @@ pub fn parse<'a>(pairs: Pairs<'a, Rule>) -> Result<Items<'a>, Error<Rule>> {
                     } else {
                         unreachable!()
                     };
-                    let rvalue = Box::new(items_[1..].iter().map(|x| x.clone()).collect());
+                    let rvalue = items_[1..].iter().map(|x| x.clone()).collect();
                     Item::NamedArg(NamedArg { lvalue, rvalue })
                 }
                 Rule::assign => {
@@ -104,7 +104,7 @@ pub fn parse<'a>(pairs: Pairs<'a, Rule>) -> Result<Items<'a>, Error<Rule>> {
                     } else {
                         unreachable!()
                     };
-                    let rvalue = Box::new(items_[1..].iter().map(|x| x.clone()).collect());
+                    let rvalue = items_[1..].iter().map(|x| x.clone()).collect();
                     Item::Assign(Assign { lvalue, rvalue })
                 }
                 Rule::transformation => {
@@ -135,7 +135,7 @@ pub fn parse<'a>(pairs: Pairs<'a, Rule>) -> Result<Items<'a>, Error<Rule>> {
                 }
                 Rule::ident => Item::Ident(pair.as_str()),
                 Rule::string => Item::String(pair.as_str()),
-                Rule::query => Item::Query(Box::new(parse(pair.into_inner())?)),
+                Rule::query => Item::Query(parse(pair.into_inner())?),
                 Rule::pipeline => Item::Pipeline({
                     parse(pair.into_inner())?
                         .into_iter()
