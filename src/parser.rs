@@ -20,11 +20,6 @@ pub type Items<'a> = Vec<Item<'a>>;
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Item<'a> {
-    // Notes on `ListItem` are in prql.pest
-    ListItem(Box<Items<'a>>),
-    // Currently holds `Items`, but if we decide on this approach probably hold
-    // a `ListItem` struct.
-    List(Box<Items<'a>>),
     Transformation(Transformation<'a>),
     Ident(Ident<'a>),
     String(&'a str),
@@ -33,6 +28,12 @@ pub enum Item<'a> {
     NamedArg(NamedArg<'a>),
     Query(Box<Items<'a>>),
     Pipeline(Vec<Transformation<'a>>),
+    // Holds Item-s directly if a list entry is a single item, otherwise holds
+    // Item::Items. This is less verbose than always having Item::Items.
+    List(Box<Items<'a>>),
+    // In some cases, as as lists, we need a container for multiple items to
+    // discriminate them from, e.g. a series of Idents. `[a, b]` vs `[a b]`.
+    Items(Box<Items<'a>>),
     TODO(&'a str),
 }
 
@@ -85,7 +86,7 @@ pub fn parse<'a>(pairs: Pairs<'a, Rule>) -> Result<Items<'a>, Error<Rule>> {
         .map(|pair| {
             Ok(match pair.as_rule() {
                 Rule::list => Item::List(Box::new(parse(pair.into_inner())?)),
-                Rule::list_item => Item::ListItem(Box::new(parse(pair.into_inner())?)),
+                Rule::items => Item::Items(Box::new(parse(pair.into_inner())?)),
                 Rule::named_arg => {
                     let items_ = parse(pair.into_inner())?;
                     let lvalue = if let Item::Ident(ident) = items_[0] {

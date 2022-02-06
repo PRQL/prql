@@ -1,6 +1,6 @@
 ---
 source: src/parser.rs
-assertion_line: 215
+assertion_line: 224
 expression: "parse_to_pest_tree(r#\"[a, b, c,]\"#, Rule::list)"
 
 ---
@@ -15,61 +15,31 @@ Ok(
             },
             inner: [
                 Pair {
-                    rule: list_item,
+                    rule: ident,
                     span: Span {
                         str: "a",
                         start: 1,
                         end: 2,
                     },
-                    inner: [
-                        Pair {
-                            rule: ident,
-                            span: Span {
-                                str: "a",
-                                start: 1,
-                                end: 2,
-                            },
-                            inner: [],
-                        },
-                    ],
+                    inner: [],
                 },
                 Pair {
-                    rule: list_item,
+                    rule: ident,
                     span: Span {
                         str: "b",
                         start: 4,
                         end: 5,
                     },
-                    inner: [
-                        Pair {
-                            rule: ident,
-                            span: Span {
-                                str: "b",
-                                start: 4,
-                                end: 5,
-                            },
-                            inner: [],
-                        },
-                    ],
+                    inner: [],
                 },
                 Pair {
-                    rule: list_item,
+                    rule: ident,
                     span: Span {
                         str: "c",
                         start: 7,
                         end: 8,
                     },
-                    inner: [
-                        Pair {
-                            rule: ident,
-                            span: Span {
-                                str: "c",
-                                start: 7,
-                                end: 8,
-                            },
-                            inner: [],
-                        },
-                    ],
+                    inner: [],
                 },
             ],
         },

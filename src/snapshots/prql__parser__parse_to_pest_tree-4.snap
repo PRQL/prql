@@ -1,6 +1,6 @@
 ---
 source: src/parser.rs
-assertion_line: 207
+assertion_line: 217
 expression: "parse_to_pest_tree(\"aggregate by:[title, country] [sum salary]\",\n                   Rule::transformation)"
 
 ---
@@ -49,42 +49,22 @@ Ok(
                             },
                             inner: [
                                 Pair {
-                                    rule: list_item,
+                                    rule: ident,
                                     span: Span {
                                         str: "title",
                                         start: 14,
                                         end: 19,
                                     },
-                                    inner: [
-                                        Pair {
-                                            rule: ident,
-                                            span: Span {
-                                                str: "title",
-                                                start: 14,
-                                                end: 19,
-                                            },
-                                            inner: [],
-                                        },
-                                    ],
+                                    inner: [],
                                 },
                                 Pair {
-                                    rule: list_item,
+                                    rule: ident,
                                     span: Span {
                                         str: "country",
                                         start: 21,
                                         end: 28,
                                     },
-                                    inner: [
-                                        Pair {
-                                            rule: ident,
-                                            span: Span {
-                                                str: "country",
-                                                start: 21,
-                                                end: 28,
-                                            },
-                                            inner: [],
-                                        },
-                                    ],
+                                    inner: [],
                                 },
                             ],
                         },
@@ -99,7 +79,7 @@ Ok(
                     },
                     inner: [
                         Pair {
-                            rule: list_item,
+                            rule: items,
                             span: Span {
                                 str: "sum salary",
                                 start: 31,

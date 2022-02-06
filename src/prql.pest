@@ -30,8 +30,6 @@ string = { "\"" ~ (ASCII_ALPHANUMERIC)* ~ "\"" }
 number = { (ASCII_DIGIT | ".")+ }
 operator = @{ "==" | "!=" | "=" | ">" | "<" | ">=" | "<=" | "+" | "-" | "*" | "/" | "%" }
 
-// When taking only the next expression
-single_expr = _{ ( list | term | inline_pipeline ) }
 expr = _{ ( list | named_arg | assign | term | inline_pipeline )+ }
 // We could just put these all into `expr`, though possibly we want to retain a
 // notion of a valid block (i.e. `+` is not a valid expression).
@@ -39,10 +37,14 @@ term = _{ ( ident | operator | number | string ) }
 // A non-silent version of `expr`, so we can break up the list. A more general
 // version of this would be to make `expr` non-silent, but it would mean
 // basically everything would be in an `expr`, which would be verbose to parse.
-// Is there a synthesis of this where we have logic here to parse a single expr
-// if possible and fall back to an container type for multiple expr?
-list_item = { expr }
-list = !{ "[" ~ NEWLINE? ~ ( list_item ~ ("," ~ NEWLINE? ~ list_item )* ) ~ ","? ~ NEWLINE? ~ "]" }
+items = { expr }
+// When taking only the next expression
+single_expr = _{ ( list | term | inline_pipeline ) }
+// If possible, parse a single expr, otherwise parse a list of items, adding a
+// layer. In cases like [a, b], we don't need `a` to be Items -> Ident -> a;
+// only Ident -> a; but in [a b], we do need a an Items parent.
+single_expr_if_possible = _{ (( single_expr ~ &("," | "]") ) | items ) }
+list = !{ "[" ~ NEWLINE? ~ single_expr_if_possible ~ ("," ~ NEWLINE? ~ single_expr_if_possible )* ~ ","? ~ NEWLINE? ~ "]" }
 
 // Currently named_args and handled slightly differently to assignments:
 // named_args have no whitespace and take one expression immediately after the

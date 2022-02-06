@@ -1,6 +1,6 @@
 ---
 source: src/parser.rs
-assertion_line: 216
+assertion_line: 226
 expression: "parse_to_pest_tree(r#\"[                                         \n  gross_salary: salary + payroll_tax,\n  gross_cost:   gross_salary + benefits_cost\n]\"#,\n                   Rule::list)"
 
 ---
@@ -15,7 +15,7 @@ Ok(
             },
             inner: [
                 Pair {
-                    rule: list_item,
+                    rule: items,
                     span: Span {
                         str: "gross_salary: salary + payroll_tax",
                         start: 45,
@@ -71,7 +71,7 @@ Ok(
                     ],
                 },
                 Pair {
-                    rule: list_item,
+                    rule: items,
                     span: Span {
                         str: "gross_cost:   gross_salary + benefits_cost",
                         start: 83,
