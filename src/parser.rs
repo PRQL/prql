@@ -92,7 +92,7 @@ pub fn parse<'a>(pairs: Pairs<'a, Rule>) -> Result<Items<'a>, Error<Rule>> {
                     let lvalue = if let Item::Ident(ident) = items_[0] {
                         ident
                     } else {
-                        panic!()
+                        unreachable!()
                     };
                     let rvalue = Box::new(items_[1..].iter().map(|x| x.clone()).collect());
                     Item::NamedArg(NamedArg { lvalue, rvalue })
@@ -102,7 +102,7 @@ pub fn parse<'a>(pairs: Pairs<'a, Rule>) -> Result<Items<'a>, Error<Rule>> {
                     let lvalue = if let Item::Ident(ident) = items_[0] {
                         ident
                     } else {
-                        panic!()
+                        unreachable!()
                     };
                     let rvalue = Box::new(items_[1..].iter().map(|x| x.clone()).collect());
                     Item::Assign(Assign { lvalue, rvalue })
@@ -116,7 +116,7 @@ pub fn parse<'a>(pairs: Pairs<'a, Rule>) -> Result<Items<'a>, Error<Rule>> {
                     let name = if let Item::Ident(ident) = items.next().unwrap() {
                         ident
                     } else {
-                        panic!()
+                        unreachable!()
                     };
                     let mut args: Vec<Item<'a>> = vec![];
                     let mut named_args: Vec<NamedArg<'a>> = vec![];
@@ -141,7 +141,7 @@ pub fn parse<'a>(pairs: Pairs<'a, Rule>) -> Result<Items<'a>, Error<Rule>> {
                         .into_iter()
                         .map(|x| match x {
                             Item::Transformation(transformation) => transformation,
-                            _ => panic!("{:?}", x),
+                            _ => unreachable!("{:?}", x),
                         })
                         .collect()
                 }),
