@@ -1,6 +1,6 @@
 ---
 source: src/parser.rs
-assertion_line: 149
+assertion_line: 206
 expression: "parse_to_pest_tree(\"select [a, b, c]\", Rule::transformation)"
 
 ---
@@ -32,31 +32,61 @@ Ok(
                     },
                     inner: [
                         Pair {
-                            rule: ident,
+                            rule: list_item,
                             span: Span {
                                 str: "a",
                                 start: 8,
                                 end: 9,
                             },
-                            inner: [],
+                            inner: [
+                                Pair {
+                                    rule: ident,
+                                    span: Span {
+                                        str: "a",
+                                        start: 8,
+                                        end: 9,
+                                    },
+                                    inner: [],
+                                },
+                            ],
                         },
                         Pair {
-                            rule: ident,
+                            rule: list_item,
                             span: Span {
                                 str: "b",
                                 start: 11,
                                 end: 12,
                             },
-                            inner: [],
+                            inner: [
+                                Pair {
+                                    rule: ident,
+                                    span: Span {
+                                        str: "b",
+                                        start: 11,
+                                        end: 12,
+                                    },
+                                    inner: [],
+                                },
+                            ],
                         },
                         Pair {
-                            rule: ident,
+                            rule: list_item,
                             span: Span {
                                 str: "c",
                                 start: 14,
                                 end: 15,
                             },
-                            inner: [],
+                            inner: [
+                                Pair {
+                                    rule: ident,
+                                    span: Span {
+                                        str: "c",
+                                        start: 14,
+                                        end: 15,
+                                    },
+                                    inner: [],
+                                },
+                            ],
                         },
                     ],
                 },

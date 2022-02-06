@@ -1,19 +1,9 @@
 ---
 source: src/parser.rs
-assertion_line: 149
+assertion_line: 221
 expression: "parse_to_pest_tree(r#\"# this is a comment\n        select a\"#, Rule::COMMENT)"
 
 ---
 Ok(
-    [
-        Pair {
-            rule: COMMENT,
-            span: Span {
-                str: "# this is a comment",
-                start: 0,
-                end: 19,
-            },
-            inner: [],
-        },
-    ],
+    [],
 )
