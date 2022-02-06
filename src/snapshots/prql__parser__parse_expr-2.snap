@@ -1,6 +1,6 @@
 ---
 source: src/parser.rs
-assertion_line: 156
+assertion_line: 161
 expression: "parse(parse_to_pest_tree(\"aggregate by:[title] [sum salary]\",\n                         Rule::transformation).unwrap())"
 
 ---
@@ -12,7 +12,7 @@ Ok(
                 args: [
                     List(
                         [
-                            ListItem(
+                            Items(
                                 [
                                     Ident(
                                         "sum",
@@ -31,12 +31,8 @@ Ok(
                         rvalue: [
                             List(
                                 [
-                                    ListItem(
-                                        [
-                                            Ident(
-                                                "title",
-                                            ),
-                                        ],
+                                    Ident(
+                                        "title",
                                     ),
                                 ],
                             ),
