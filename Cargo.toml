@@ -6,11 +6,8 @@ name = "prql"
 version = "0.0.1"
 
 [dependencies]
-nom = "^7"
-pest = "*"
-pest_derive = "*"
-# We use this for just one function — we could vendor it.
-parse-hyperlinks = "0.23.3"
+pest = "^2.1"
+pest_derive = "^2.1"
 
 # [dev-dependencies]
 insta = "^1.11"
