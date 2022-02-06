@@ -17,6 +17,7 @@ pub struct PrqlParser;
 // aka Column
 pub type Ident<'a> = &'a str;
 pub type Items<'a> = Vec<Item<'a>>;
+pub type Pipeline<'a> = Vec<Transformation<'a>>;
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Item<'a> {
@@ -27,7 +28,7 @@ pub enum Item<'a> {
     Assign(Assign<'a>),
     NamedArg(NamedArg<'a>),
     Query(Items<'a>),
-    Pipeline(Vec<Transformation<'a>>),
+    Pipeline(Pipeline<'a>),
     // Holds Item-s directly if a list entry is a single item, otherwise holds
     // Item::Items. This is less verbose than always having Item::Items.
     List(Items<'a>),
@@ -49,6 +50,7 @@ pub enum TransformationType<'a> {
     From,
     Select,
     Filter,
+    Derive,
     Aggregate,
     Sort,
     Take,
@@ -61,6 +63,7 @@ impl<'a> From<&'a str> for TransformationType<'a> {
             "from" => TransformationType::From,
             "select" => TransformationType::Select,
             "filter" => TransformationType::Filter,
+            "derive" => TransformationType::Derive,
             "aggregate" => TransformationType::Aggregate,
             "sort" => TransformationType::Sort,
             "take" => TransformationType::Take,
@@ -113,6 +116,7 @@ pub fn parse<'a>(pairs: Pairs<'a, Rule>) -> Result<Items<'a>, Error<Rule>> {
                     // there another approach? Maybe a `to_ident` method on
                     // `Item`, which fails if it's not an `Ident`? (or maybe a
                     // different design all together?)
+                    // Maybe https://crates.io/crates/enum-as-inner?
                     let name = if let Item::Ident(ident) = items.next().unwrap() {
                         ident
                     } else {
