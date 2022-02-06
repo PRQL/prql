@@ -1,12 +1,18 @@
-// TODO: add functions / tables
+// TODO:
+// - add functions / tables
+// - some rules are silent because we don't strictly need them, but that may be
+//   too rushed — maybe we do actually want to know about e.g. comments.
+// - parenthesized expressions (which aren't necessarily inline_pipelines) — maybe
+//   that should just be changed to a parenthesized expr?
+
 
 WHITESPACE = _{ " " }
 // Need to exclude # in strings (and maybe confirm whether this the syntax we want)
-COMMENT = { "#" ~ (!NEWLINE ~ ANY) * }
+COMMENT = _{ "#" ~ (!NEWLINE ~ ANY) * }
 
 query = _{ SOI ~ NEWLINE* ~ pipeline ~ NEWLINE* ~ EOI }
 
-pipe = { NEWLINE | "|" }
+pipe = _{ NEWLINE | "|" }
 pipeline = { transformation ~ (pipe ~ transformation)* }
 inline_pipeline = !{ "(" ~ pipeline ~ ")" }
 
@@ -30,7 +36,13 @@ expr = _{ ( list | named_arg | assign | term | inline_pipeline )+ }
 // We could just put these all into `expr`, though possibly we want to retain a
 // notion of a valid block (i.e. `+` is not a valid expression).
 term = _{ ( ident | operator | number | string ) }
-list = !{ "[" ~ NEWLINE? ~ ( expr ~ ("," ~ NEWLINE? ~ expr)* ) ~ ","? ~ NEWLINE? ~ "]" }
+// A non-silent version of `expr`, so we can break up the list. A more general
+// version of this would be to make `expr` non-silent, but it would mean
+// basically everything would be in an `expr`, which would be verbose to parse.
+// Is there a synthesis of this where we have logic here to parse a single expr
+// if possible and fall back to an container type for multiple expr?
+list_item = { expr }
+list = !{ "[" ~ NEWLINE? ~ ( list_item ~ ("," ~ NEWLINE? ~ list_item )* ) ~ ","? ~ NEWLINE? ~ "]" }
 
 // Currently named_args and handled slightly differently to assignments:
 // named_args have no whitespace and take one expression immediately after the
@@ -42,7 +54,3 @@ list = !{ "[" ~ NEWLINE? ~ ( expr ~ ("," ~ NEWLINE? ~ expr)* ) ~ ","? ~ NEWLINE?
 // since small differences in whitespace have a large different in outcome.
 assign = { ident ~ ":" ~ expr }
 named_arg = ${ ident ~ ":" ~ single_expr }
-
-// TODO:
-// parenthesized expressions (which aren't necessarily inline_pipelines) — maybe
-// that should just be changed to a parenthesized expr?

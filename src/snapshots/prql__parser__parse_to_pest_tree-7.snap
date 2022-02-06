@@ -1,6 +1,6 @@
 ---
 source: src/parser.rs
-assertion_line: 159
+assertion_line: 216
 expression: "parse_to_pest_tree(r#\"[                                         \n  gross_salary: salary + payroll_tax,\n  gross_cost:   gross_salary + benefits_cost\n]\"#,\n                   Rule::list)"
 
 ---
@@ -15,7 +15,7 @@ Ok(
             },
             inner: [
                 Pair {
-                    rule: assign,
+                    rule: list_item,
                     span: Span {
                         str: "gross_salary: salary + payroll_tax",
                         start: 45,
@@ -23,45 +23,55 @@ Ok(
                     },
                     inner: [
                         Pair {
-                            rule: ident,
+                            rule: assign,
                             span: Span {
-                                str: "gross_salary",
+                                str: "gross_salary: salary + payroll_tax",
                                 start: 45,
-                                end: 57,
-                            },
-                            inner: [],
-                        },
-                        Pair {
-                            rule: ident,
-                            span: Span {
-                                str: "salary",
-                                start: 59,
-                                end: 65,
-                            },
-                            inner: [],
-                        },
-                        Pair {
-                            rule: operator,
-                            span: Span {
-                                str: "+",
-                                start: 66,
-                                end: 67,
-                            },
-                            inner: [],
-                        },
-                        Pair {
-                            rule: ident,
-                            span: Span {
-                                str: "payroll_tax",
-                                start: 68,
                                 end: 79,
                             },
-                            inner: [],
+                            inner: [
+                                Pair {
+                                    rule: ident,
+                                    span: Span {
+                                        str: "gross_salary",
+                                        start: 45,
+                                        end: 57,
+                                    },
+                                    inner: [],
+                                },
+                                Pair {
+                                    rule: ident,
+                                    span: Span {
+                                        str: "salary",
+                                        start: 59,
+                                        end: 65,
+                                    },
+                                    inner: [],
+                                },
+                                Pair {
+                                    rule: operator,
+                                    span: Span {
+                                        str: "+",
+                                        start: 66,
+                                        end: 67,
+                                    },
+                                    inner: [],
+                                },
+                                Pair {
+                                    rule: ident,
+                                    span: Span {
+                                        str: "payroll_tax",
+                                        start: 68,
+                                        end: 79,
+                                    },
+                                    inner: [],
+                                },
+                            ],
                         },
                     ],
                 },
                 Pair {
-                    rule: assign,
+                    rule: list_item,
                     span: Span {
                         str: "gross_cost:   gross_salary + benefits_cost",
                         start: 83,
@@ -69,40 +79,50 @@ Ok(
                     },
                     inner: [
                         Pair {
-                            rule: ident,
+                            rule: assign,
                             span: Span {
-                                str: "gross_cost",
+                                str: "gross_cost:   gross_salary + benefits_cost",
                                 start: 83,
-                                end: 93,
-                            },
-                            inner: [],
-                        },
-                        Pair {
-                            rule: ident,
-                            span: Span {
-                                str: "gross_salary",
-                                start: 97,
-                                end: 109,
-                            },
-                            inner: [],
-                        },
-                        Pair {
-                            rule: operator,
-                            span: Span {
-                                str: "+",
-                                start: 110,
-                                end: 111,
-                            },
-                            inner: [],
-                        },
-                        Pair {
-                            rule: ident,
-                            span: Span {
-                                str: "benefits_cost",
-                                start: 112,
                                 end: 125,
                             },
-                            inner: [],
+                            inner: [
+                                Pair {
+                                    rule: ident,
+                                    span: Span {
+                                        str: "gross_cost",
+                                        start: 83,
+                                        end: 93,
+                                    },
+                                    inner: [],
+                                },
+                                Pair {
+                                    rule: ident,
+                                    span: Span {
+                                        str: "gross_salary",
+                                        start: 97,
+                                        end: 109,
+                                    },
+                                    inner: [],
+                                },
+                                Pair {
+                                    rule: operator,
+                                    span: Span {
+                                        str: "+",
+                                        start: 110,
+                                        end: 111,
+                                    },
+                                    inner: [],
+                                },
+                                Pair {
+                                    rule: ident,
+                                    span: Span {
+                                        str: "benefits_cost",
+                                        start: 112,
+                                        end: 125,
+                                    },
+                                    inner: [],
+                                },
+                            ],
                         },
                     ],
                 },

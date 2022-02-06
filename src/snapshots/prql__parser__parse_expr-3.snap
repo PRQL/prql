@@ -1,6 +1,6 @@
 ---
 source: src/parser.rs
-assertion_line: 128
+assertion_line: 159
 expression: "parse(parse_to_pest_tree(r#\"[                                         \n  gross_salary: salary + payroll_tax,\n  gross_cost:   gross_salary + benefits_cost\n]\"#,\n                         Rule::list).unwrap())"
 
 ---
@@ -8,37 +8,45 @@ Ok(
     [
         List(
             [
-                Assign(
-                    Assign {
-                        lvalue: "gross_salary",
-                        rvalue: [
-                            Ident(
-                                "salary",
-                            ),
-                            Raw(
-                                "+",
-                            ),
-                            Ident(
-                                "payroll_tax",
-                            ),
-                        ],
-                    },
+                ListItem(
+                    [
+                        Assign(
+                            Assign {
+                                lvalue: "gross_salary",
+                                rvalue: [
+                                    Ident(
+                                        "salary",
+                                    ),
+                                    Raw(
+                                        "+",
+                                    ),
+                                    Ident(
+                                        "payroll_tax",
+                                    ),
+                                ],
+                            },
+                        ),
+                    ],
                 ),
-                Assign(
-                    Assign {
-                        lvalue: "gross_cost",
-                        rvalue: [
-                            Ident(
-                                "gross_salary",
-                            ),
-                            Raw(
-                                "+",
-                            ),
-                            Ident(
-                                "benefits_cost",
-                            ),
-                        ],
-                    },
+                ListItem(
+                    [
+                        Assign(
+                            Assign {
+                                lvalue: "gross_cost",
+                                rvalue: [
+                                    Ident(
+                                        "gross_salary",
+                                    ),
+                                    Raw(
+                                        "+",
+                                    ),
+                                    Ident(
+                                        "benefits_cost",
+                                    ),
+                                ],
+                            },
+                        ),
+                    ],
                 ),
             ],
         ),
