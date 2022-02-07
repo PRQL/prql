@@ -41,7 +41,7 @@ pub enum Item<'a> {
 #[derive(Debug, PartialEq, Clone)]
 pub struct Transformation<'a> {
     pub name: TransformationType<'a>,
-    pub args: Vec<Item<'a>>,
+    pub args: Items<'a>,
     pub named_args: Vec<NamedArg<'a>>,
 }
 
@@ -84,7 +84,7 @@ pub struct Assign<'a> {
     pub rvalue: Items<'a>,
 }
 
-pub fn parse<'a>(pairs: Pairs<'a, Rule>) -> Result<Items<'a>, Error<Rule>> {
+pub fn parse(pairs: Pairs<Rule>) -> Result<Items, Error<Rule>> {
     pairs
         .map(|pair| {
             Ok(match pair.as_rule() {
@@ -97,7 +97,7 @@ pub fn parse<'a>(pairs: Pairs<'a, Rule>) -> Result<Items<'a>, Error<Rule>> {
                     } else {
                         unreachable!()
                     };
-                    let rvalue = items_[1..].iter().map(|x| x.clone()).collect();
+                    let rvalue = items_[1..].to_vec();
                     Item::NamedArg(NamedArg { lvalue, rvalue })
                 }
                 Rule::assign => {
@@ -107,7 +107,7 @@ pub fn parse<'a>(pairs: Pairs<'a, Rule>) -> Result<Items<'a>, Error<Rule>> {
                     } else {
                         unreachable!()
                     };
-                    let rvalue = items_[1..].iter().map(|x| x.clone()).collect();
+                    let rvalue = items_[1..].to_vec();
                     Item::Assign(Assign { lvalue, rvalue })
                 }
                 Rule::transformation => {
@@ -122,8 +122,8 @@ pub fn parse<'a>(pairs: Pairs<'a, Rule>) -> Result<Items<'a>, Error<Rule>> {
                     } else {
                         unreachable!()
                     };
-                    let mut args: Vec<Item<'a>> = vec![];
-                    let mut named_args: Vec<NamedArg<'a>> = vec![];
+                    let mut args: Vec<Item> = vec![];
+                    let mut named_args: Vec<NamedArg> = vec![];
 
                     for item in items {
                         match item {
@@ -133,8 +133,8 @@ pub fn parse<'a>(pairs: Pairs<'a, Rule>) -> Result<Items<'a>, Error<Rule>> {
                     }
                     Item::Transformation(Transformation {
                         name: name.into(),
-                        args: args,
-                        named_args: named_args,
+                        args,
+                        named_args,
                     })
                 }
                 Rule::ident => Item::Ident(pair.as_str()),
