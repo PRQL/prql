@@ -17,6 +17,7 @@ pub struct PrqlParser;
 // aka Column
 pub type Ident<'a> = &'a str;
 pub type Items<'a> = Vec<Item<'a>>;
+pub type Idents<'a> = Vec<Ident<'a>>;
 pub type Pipeline<'a> = Vec<Transformation<'a>>;
 
 #[derive(Debug, PartialEq, Clone)]
@@ -35,6 +36,8 @@ pub enum Item<'a> {
     // In some cases, as as lists, we need a container for multiple items to
     // discriminate them from, e.g. a series of Idents. `[a, b]` vs `[a b]`.
     Items(Items<'a>),
+    Idents(Idents<'a>),
+    Function(Function<'a>),
     TODO(&'a str),
 }
 
@@ -55,6 +58,13 @@ pub enum TransformationType<'a> {
     Sort,
     Take,
     Custom { name: &'a str },
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct Function<'a> {
+    pub name: Ident<'a>,
+    pub args: Vec<Ident<'a>>,
+    pub body: Items<'a>,
 }
 
 impl<'a> From<&'a str> for TransformationType<'a> {
@@ -137,7 +147,38 @@ pub fn parse(pairs: Pairs<Rule>) -> Result<Items, Error<Rule>> {
                         named_args,
                     })
                 }
+                Rule::function => {
+                    let mut items = parse(pair.into_inner())?.into_iter();
+                    let mut name_and_params = if let Item::Idents(idents) = items.next().unwrap() {
+                        idents
+                    } else {
+                        unreachable!()
+                    };
+
+                    let name = name_and_params.remove(0);
+
+                    let body = if let Item::Items(sub_items) = items.next().unwrap() {
+                        sub_items
+                    } else {
+                        unreachable!()
+                    };
+
+                    Item::Function(Function {
+                        name,
+                        args: name_and_params,
+                        body,
+                    })
+                }
                 Rule::ident => Item::Ident(pair.as_str()),
+                Rule::idents => Item::Idents(
+                    parse(pair.into_inner())?
+                        .into_iter()
+                        .map(|x| match x {
+                            Item::Ident(ident) => ident,
+                            _ => unreachable!("{:?}", x),
+                        })
+                        .collect(),
+                ),
                 Rule::string => Item::String(pair.as_str()),
                 Rule::query => Item::Query(parse(pair.into_inner())?),
                 Rule::pipeline => Item::Pipeline({
@@ -206,6 +247,38 @@ take 20
         )
         .unwrap()
     ));
+}
+
+#[test]
+fn test_parse_function() {
+    assert_debug_snapshot!(parse(
+        parse_to_pest_tree("func identity x = x", Rule::function).unwrap()
+    ));
+
+    assert_debug_snapshot!(parse(
+        parse_to_pest_tree("func plus_one x = x + 1", Rule::function).unwrap()
+    ));
+
+    assert_debug_snapshot!(parse(
+        parse_to_pest_tree("func return_constant = 42", Rule::function).unwrap()
+    ));
+
+    /* TODO: Does not yet parse.
+    assert_debug_snapshot!(parse(
+        parse_to_pest_tree(
+            r#"
+func lag_day x = (
+  window x
+  by sec_id
+  sort date
+  lag 1
+)
+            "#,
+            Rule::function
+        )
+        .unwrap()
+    ));
+    */
 }
 
 pub fn parse_to_pest_tree(source: &str, rule: Rule) -> Result<Pairs<Rule>, Error<Rule>> {

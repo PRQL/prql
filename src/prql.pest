@@ -19,7 +19,10 @@ inline_pipeline = !{ "(" ~ pipeline ~ ")" }
 // `ident` is the transformation name
 transformation = { WHITESPACE* ~ ident ~ expr }
 
+function = { "func" ~ idents ~ "=" ~ items }
+
 ident = @{ ( ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "." | "_" )* ) }
+idents = { ident+ }
 
 // TODO: escapes
 // https://pest.rs/book/examples/rust/literals.html
