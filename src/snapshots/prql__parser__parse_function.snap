@@ -1,23 +1,13 @@
 ---
 source: src/parser.rs
-assertion_line: 254
-expression: "parse(parse_to_pest_tree(\"func identity x = x\", Rule::function).unwrap())"
+assertion_line: 257
+expression: "parse(parse_to_pest_tree(\"func identity x = x\",\n                         Rule::function).unwrap()).unwrap()"
 
 ---
-Ok(
-    [
-        Function(
-            Function {
-                name: "identity",
-                args: [
-                    "x",
-                ],
-                body: [
-                    Ident(
-                        "x",
-                    ),
-                ],
-            },
-        ),
-    ],
-)
+- Function:
+    name: identity
+    args:
+      - x
+    body:
+      - Ident: x
+

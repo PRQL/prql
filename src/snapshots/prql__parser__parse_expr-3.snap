@@ -1,50 +1,21 @@
 ---
 source: src/parser.rs
-assertion_line: 168
-expression: "parse(parse_to_pest_tree(r#\"[                                         \n  gross_salary: salary + payroll_tax,\n  gross_cost:   gross_salary + benefits_cost\n]\"#,\n                         Rule::list).unwrap())"
+assertion_line: 210
+expression: "parse(parse_to_pest_tree(r#\"[                                         \n  gross_salary: salary + payroll_tax,\n  gross_cost:   gross_salary + benefits_cost\n]\"#,\n                         Rule::list).unwrap()).unwrap()"
 
 ---
-Ok(
-    [
-        List(
-            [
-                Assign(
-                    Assign {
-                        lvalue: "gross_salary",
-                        rvalue: [
-                            Ident(
-                                "salary",
-                            ),
-                            Raw(
-                                "+",
-                            ),
-                            Ident(
-                                "payroll_tax",
-                            ),
-                        ],
-                    },
-                ),
-                Items(
-                    [
-                        Assign(
-                            Assign {
-                                lvalue: "gross_cost",
-                                rvalue: [
-                                    Ident(
-                                        "gross_salary",
-                                    ),
-                                    Raw(
-                                        "+",
-                                    ),
-                                    Ident(
-                                        "benefits_cost",
-                                    ),
-                                ],
-                            },
-                        ),
-                    ],
-                ),
-            ],
-        ),
-    ],
-)
+- List:
+    - Assign:
+        lvalue: gross_salary
+        rvalue:
+          - Ident: salary
+          - Raw: +
+          - Ident: payroll_tax
+    - Items:
+        - Assign:
+            lvalue: gross_cost
+            rvalue:
+              - Ident: gross_salary
+              - Raw: +
+              - Ident: benefits_cost
+
