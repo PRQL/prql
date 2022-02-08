@@ -34,5 +34,6 @@ jobs:
       - name: ⌨️ Fmt
         uses: actions-rs/cargo@v1
         with:
-          command: fmt --check
+          command: fmt
+          args: --check
       - uses: Swatinem/rust-cache@v1
