@@ -16,14 +16,16 @@ impl<'a> ContainsVariables<'a> for Pipeline<'a> {
         Self: Sized,
         // Very messy function — we should clean up.
     {
-        // We expect an empty variables, but we take one our of conformity and
-        // use it as a base rather than discard it.
+        // We don't expect to use a variables arg, but the function takes one
+        // out of conformity. We use it as a base rather than discard it in the
+        // case that the function is passed one.
         let mut variables = variables.clone();
 
         self.iter()
             .map(|transformation| match transformation.name {
                 // If it's a derive, add the variables to the hashmap (while
-                // also replacing the variables that came before it).
+                // also replacing its variables with those which came before
+                // it).
                 TransformationType::Derive => Transformation {
                     name: transformation.name.clone(),
                     named_args: transformation.named_args.clone(),
@@ -106,14 +108,7 @@ impl<'a> ContainsVariables<'a> for Item<'a> {
                 Item::Pipeline(transformations.replace_variables(variables))
             }
             Item::NamedArg(named_arg) => Item::NamedArg(named_arg.replace_variables(variables)),
-            Item::Assign(assign) => Item::Assign(Assign {
-                lvalue: assign.lvalue,
-                rvalue: assign
-                    .rvalue
-                    .iter()
-                    .map(|item| item.replace_variables(variables))
-                    .collect(),
-            }),
+            Item::Assign(assign) => Item::Assign(assign.replace_variables(variables)),
             Item::String(_) | Item::Raw(_) | Item::TODO(_) => self.clone(),
             Item::Transformation(transformation) => {
                 Item::Transformation(transformation.replace_variables(variables))
