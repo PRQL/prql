@@ -1,0 +1,21 @@
+---
+source: src/parser.rs
+assertion_line: 262
+expression: "parse(parse_to_pest_tree(\"func return_constant = 42\",\n                         Rule::function).unwrap())"
+
+---
+Ok(
+    [
+        Function(
+            Function {
+                name: "return_constant",
+                args: [],
+                body: [
+                    Raw(
+                        "42",
+                    ),
+                ],
+            },
+        ),
+    ],
+)
