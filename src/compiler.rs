@@ -175,22 +175,45 @@ impl<'a> ContainsVariables<'a> for Transformation<'a> {
 fn test_replace_variables() {
     use crate::parser::{parse, parse_to_pest_tree, Rule};
     use insta::assert_yaml_snapshot;
-    // TODO: fails with
-    // r#"from employees
-    // derive [                                         # This adds columns / variables.
-    //   gross_salary: salary + payroll_tax,
-    //   gross_cost:   gross_salary + benefits_cost     # Variables can use other variables.
-    // ]
-    // "#,
     let ast = &parse(
         parse_to_pest_tree(
             r#"from employees
-derive [
-  gross_salary: salary + payroll_tax,
-  gross_cost:   gross_salary + benefits_cost,
-]           
-"#,
+    derive [                                         # This adds columns / variables.
+      gross_salary: salary + payroll_tax,
+      gross_cost:   gross_salary + benefits_cost     # Variables can use other variables.
+    ]
+    "#,
             Rule::pipeline,
+        )
+        .unwrap(),
+    )
+    .unwrap()[0];
+    assert_yaml_snapshot!(ast.replace_variables(&HashMap::new()));
+
+    let ast = &parse(
+        parse_to_pest_tree(
+            r#"
+from employees
+filter country = "USA"                           # Each line transforms the previous result.
+derive [                                         # This adds columns / variables.
+  gross_salary: salary + payroll_tax,
+  gross_cost:   gross_salary + benefits_cost     # Variables can use other variables.
+]           
+filter gross_cost > 0
+aggregate by:[title, country] [                  # `by` are the columns to group by.
+    average salary,                              # These are aggregation calcs run on each group.
+    sum     salary,
+    average gross_salary,
+    sum     gross_salary,
+    average gross_cost,
+    sum_gross_cost: sum gross_cost,
+    count,
+]
+sort sum_gross_cost
+filter count > 200
+take 20
+    "#,
+            Rule::query,
         )
         .unwrap(),
     )

@@ -11,11 +11,10 @@ expression: "parse(parse_to_pest_tree(r#\"[                                     
           - Ident: salary
           - Raw: +
           - Ident: payroll_tax
-    - Items:
-        - Assign:
-            lvalue: gross_cost
-            rvalue:
-              - Ident: gross_salary
-              - Raw: +
-              - Ident: benefits_cost
+    - Assign:
+        lvalue: gross_cost
+        rvalue:
+          - Ident: gross_salary
+          - Raw: +
+          - Ident: benefits_cost
 

@@ -46,7 +46,7 @@ items = { expr }
 // If possible, parse a single expr, otherwise parse a list of items, adding a
 // layer. In cases like [a, b], we don't need `a` to be Items -> Ident -> a;
 // only Ident -> a; but in [a b], we do need a an Items parent.
-single_expr_if_possible = _{ (( single_expr ~ &("," | "]") ) | items ) }
+single_expr_if_possible = _{ (( single_expr ~ NEWLINE? ~ &("," | "]") ) | items ) }
 list = !{ "[" ~ NEWLINE? ~ single_expr_if_possible ~ ("," ~ NEWLINE? ~ single_expr_if_possible )* ~ ","? ~ NEWLINE? ~ "]" }
 
 // Currently named_args and handled slightly differently to assignments:
