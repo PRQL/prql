@@ -1,12 +1,12 @@
 on:
   push:
     branches:
-      - main
+      - "*"
   pull_request:
     branches:
-      - main
+      - "*"
 
-name: prql unit tests
+name: PRQL Tests
 
 jobs:
   cargo-test:
@@ -23,3 +23,11 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
+      - name: 📎 Clippy
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+      - name: 🅰️ Fmt
+        uses: actions-rs/cargo@v1
+        with:
+          command: format --check

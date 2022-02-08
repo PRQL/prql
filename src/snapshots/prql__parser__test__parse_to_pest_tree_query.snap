@@ -1,7 +1,7 @@
 ---
 source: src/parser.rs
-assertion_line: 237
-expression: "parse_to_pest_tree(r#\"\n    from employees\n    filter country = \"USA\"\n    \"#,\n                   Rule::query)"
+assertion_line: 331
+expression: "parse_to_pest_tree(r#\"\n    from employees\n    select [a, b]\n    \"#,\n                   Rule::query)"
 
 ---
 Ok(
@@ -9,9 +9,9 @@ Ok(
         Pair {
             rule: pipeline,
             span: Span {
-                str: "from employees\n    filter country = \"USA\"",
+                str: "from employees\n    select [a, b]",
                 start: 5,
-                end: 46,
+                end: 37,
             },
             inner: [
                 Pair {
@@ -45,46 +45,47 @@ Ok(
                 Pair {
                     rule: transformation,
                     span: Span {
-                        str: "filter country = \"USA\"",
+                        str: "select [a, b]",
                         start: 24,
-                        end: 46,
+                        end: 37,
                     },
                     inner: [
                         Pair {
                             rule: ident,
                             span: Span {
-                                str: "filter",
+                                str: "select",
                                 start: 24,
                                 end: 30,
                             },
                             inner: [],
                         },
                         Pair {
-                            rule: ident,
+                            rule: list,
                             span: Span {
-                                str: "country",
+                                str: "[a, b]",
                                 start: 31,
-                                end: 38,
+                                end: 37,
                             },
-                            inner: [],
-                        },
-                        Pair {
-                            rule: operator,
-                            span: Span {
-                                str: "=",
-                                start: 39,
-                                end: 40,
-                            },
-                            inner: [],
-                        },
-                        Pair {
-                            rule: string,
-                            span: Span {
-                                str: "\"USA\"",
-                                start: 41,
-                                end: 46,
-                            },
-                            inner: [],
+                            inner: [
+                                Pair {
+                                    rule: ident,
+                                    span: Span {
+                                        str: "a",
+                                        start: 32,
+                                        end: 33,
+                                    },
+                                    inner: [],
+                                },
+                                Pair {
+                                    rule: ident,
+                                    span: Span {
+                                        str: "b",
+                                        start: 35,
+                                        end: 36,
+                                    },
+                                    inner: [],
+                                },
+                            ],
                         },
                     ],
                 },
@@ -94,8 +95,8 @@ Ok(
             rule: EOI,
             span: Span {
                 str: "",
-                start: 51,
-                end: 51,
+                start: 42,
+                end: 42,
             },
             inner: [],
         },
