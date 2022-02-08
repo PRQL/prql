@@ -35,3 +35,4 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: format --check
+      - uses: Swatinem/rust-cache@v1
