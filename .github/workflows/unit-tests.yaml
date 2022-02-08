@@ -20,6 +20,8 @@ jobs:
       - name: 📂 Checkout code
         uses: actions/checkout@v2
       - uses: Swatinem/rust-cache@v1
+        with:
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
       - name: 🔗 Setup rust toolchain
         uses: actions-rs/toolchain@v1
         with:
