@@ -1,0 +1,31 @@
+---
+source: src/compiler.rs
+assertion_line: 220
+expression: "ast.replace_variables(&HashMap::new())"
+
+---
+Pipeline:
+  - name: From
+    args:
+      - Ident: employees
+    named_args: []
+  - name: Derive
+    args:
+      - List:
+          - Assign:
+              lvalue: gross_salary
+              rvalue:
+                - Ident: salary
+                - Raw: +
+                - Ident: payroll_tax
+          - Assign:
+              lvalue: gross_cost
+              rvalue:
+                - Items:
+                    - Ident: salary
+                    - Raw: +
+                    - Ident: payroll_tax
+                - Raw: +
+                - Ident: benefits_cost
+    named_args: []
+
