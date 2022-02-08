@@ -37,25 +37,21 @@ Ok(
                     args: [
                         List(
                             [
-                                Items(
-                                    [
-                                        Assign(
-                                            Assign {
-                                                lvalue: "gross_salary",
-                                                rvalue: [
-                                                    Ident(
-                                                        "salary",
-                                                    ),
-                                                    Raw(
-                                                        "+",
-                                                    ),
-                                                    Ident(
-                                                        "payroll_tax",
-                                                    ),
-                                                ],
-                                            },
-                                        ),
-                                    ],
+                                Assign(
+                                    Assign {
+                                        lvalue: "gross_salary",
+                                        rvalue: [
+                                            Ident(
+                                                "salary",
+                                            ),
+                                            Raw(
+                                                "+",
+                                            ),
+                                            Ident(
+                                                "payroll_tax",
+                                            ),
+                                        ],
+                                    },
                                 ),
                                 Items(
                                     [
@@ -152,22 +148,18 @@ Ok(
                                         ),
                                     ],
                                 ),
-                                Items(
-                                    [
-                                        Assign(
-                                            Assign {
-                                                lvalue: "sum_gross_cost",
-                                                rvalue: [
-                                                    Ident(
-                                                        "sum",
-                                                    ),
-                                                    Ident(
-                                                        "gross_cost",
-                                                    ),
-                                                ],
-                                            },
-                                        ),
-                                    ],
+                                Assign(
+                                    Assign {
+                                        lvalue: "sum_gross_cost",
+                                        rvalue: [
+                                            Ident(
+                                                "sum",
+                                            ),
+                                            Ident(
+                                                "gross_cost",
+                                            ),
+                                        ],
+                                    },
                                 ),
                                 Ident(
                                     "count",
