@@ -31,7 +31,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: clippy
-      - name: 🅰️ Fmt
+      - name: ⌨️ Fmt
         uses: actions-rs/cargo@v1
         with:
           command: format --check
