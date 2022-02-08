@@ -1,12 +1,7 @@
-#![allow(unused_imports)]
-#![allow(unused_must_use)]
-
 use insta;
 use insta::assert_debug_snapshot;
-use insta::assert_snapshot;
-use insta::assert_yaml_snapshot;
 use pest::error::Error;
-use pest::iterators::{Pair, Pairs};
+use pest::iterators::Pairs;
 use pest::Parser;
 use pest_derive::Parser;
 
@@ -14,7 +9,7 @@ use pest_derive::Parser;
 #[grammar = "prql.pest"]
 pub struct PrqlParser;
 
-// aka Column
+// Idents are generally columns
 pub type Ident<'a> = &'a str;
 pub type Items<'a> = Vec<Item<'a>>;
 pub type Idents<'a> = Vec<Ident<'a>>;
@@ -94,6 +89,19 @@ pub struct Assign<'a> {
     pub rvalue: Items<'a>,
 }
 
+impl<'a> Item<'a> {
+    fn as_ident(&self) -> Ident<'a> {
+        // TODO: Make this into a Result when we've got better error handling We
+        // could expand these with (but it will add lots of methods...)
+        // https://crates.io/crates/enum-as-inner?
+        if let Item::Ident(ident) = self {
+            ident
+        } else {
+            panic!("Expected Item::Ident, got {:?}", self)
+        }
+    }
+}
+
 pub fn parse(pairs: Pairs<Rule>) -> Result<Items, Error<Rule>> {
     pairs
         .map(|pair| {
@@ -101,48 +109,41 @@ pub fn parse(pairs: Pairs<Rule>) -> Result<Items, Error<Rule>> {
                 Rule::list => Item::List(parse(pair.into_inner())?),
                 Rule::items => Item::Items(parse(pair.into_inner())?),
                 Rule::named_arg => {
-                    let items_ = parse(pair.into_inner())?;
-                    let lvalue = if let Item::Ident(ident) = items_[0] {
-                        ident
-                    } else {
-                        unreachable!()
-                    };
-                    let rvalue = items_[1..].to_vec();
-                    Item::NamedArg(NamedArg { lvalue, rvalue })
+                    let parsed = parse(pair.into_inner())?;
+                    // Split the pair into its first value, which is always an Ident,
+                    // and the rest of the values.
+                    let (lvalue, rvalue) = parsed.split_first().unwrap();
+
+                    Item::NamedArg(NamedArg {
+                        lvalue: lvalue.as_ident(),
+                        rvalue: rvalue.to_vec(),
+                    })
                 }
                 Rule::assign => {
-                    let items_ = parse(pair.into_inner())?;
-                    let lvalue = if let Item::Ident(ident) = items_[0] {
-                        ident
-                    } else {
-                        unreachable!()
-                    };
-                    let rvalue = items_[1..].to_vec();
-                    Item::Assign(Assign { lvalue, rvalue })
+                    let parsed = parse(pair.into_inner())?;
+                    let (lvalue, rvalue) = parsed.split_first().unwrap();
+
+                    Item::Assign(Assign {
+                        lvalue: lvalue.as_ident(),
+                        rvalue: rvalue.to_vec(),
+                    })
                 }
                 Rule::transformation => {
-                    let mut items = parse(pair.into_inner())?.into_iter();
-                    // TODO: these coercions are unnecessarily verbose — is
-                    // there another approach? Maybe a `to_ident` method on
-                    // `Item`, which fails if it's not an `Ident`? (or maybe a
-                    // different design all together?)
-                    // Maybe https://crates.io/crates/enum-as-inner?
-                    let name = if let Item::Ident(ident) = items.next().unwrap() {
-                        ident
-                    } else {
-                        unreachable!()
-                    };
+                    let parsed = parse(pair.into_inner())?;
+                    let (name, all_args) = parsed.split_first().unwrap();
+
                     let mut args: Vec<Item> = vec![];
                     let mut named_args: Vec<NamedArg> = vec![];
 
-                    for item in items {
-                        match item {
-                            Item::NamedArg(named_arg) => named_args.push(named_arg),
-                            _ => args.push(item),
+                    for arg in all_args {
+                        match arg {
+                            // We seem to need the clones...
+                            Item::NamedArg(named_arg) => named_args.push(named_arg.clone()),
+                            _ => args.push(arg.clone()),
                         }
                     }
                     Item::Transformation(Transformation {
-                        name: name.into(),
+                        name: name.as_ident().into(),
                         args,
                         named_args,
                     })
@@ -173,10 +174,7 @@ pub fn parse(pairs: Pairs<Rule>) -> Result<Items, Error<Rule>> {
                 Rule::idents => Item::Idents(
                     parse(pair.into_inner())?
                         .into_iter()
-                        .map(|x| match x {
-                            Item::Ident(ident) => ident,
-                            _ => unreachable!("{:?}", x),
-                        })
+                        .map(|x| x.as_ident())
                         .collect(),
                 ),
                 Rule::string => Item::String(pair.as_str()),
@@ -264,21 +262,21 @@ fn test_parse_function() {
     ));
 
     /* TODO: Does not yet parse.
-    assert_debug_snapshot!(parse(
-        parse_to_pest_tree(
-            r#"
-func lag_day x = (
-  window x
-  by sec_id
-  sort date
-  lag 1
-)
-            "#,
-            Rule::function
-        )
-        .unwrap()
-    ));
-    */
+        assert_debug_snapshot!(parse(
+            parse_to_pest_tree(
+                r#"
+    func lag_day x = (
+      window x
+      by sec_id
+      sort date
+      lag 1
+    )
+                "#,
+                Rule::function
+            )
+            .unwrap()
+        ));
+        */
 }
 
 pub fn parse_to_pest_tree(source: &str, rule: Rule) -> Result<Pairs<Rule>, Error<Rule>> {
