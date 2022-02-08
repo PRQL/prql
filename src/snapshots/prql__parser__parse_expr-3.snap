@@ -1,6 +1,6 @@
 ---
 source: src/parser.rs
-assertion_line: 164
+assertion_line: 168
 expression: "parse(parse_to_pest_tree(r#\"[                                         \n  gross_salary: salary + payroll_tax,\n  gross_cost:   gross_salary + benefits_cost\n]\"#,\n                         Rule::list).unwrap())"
 
 ---
@@ -8,25 +8,21 @@ Ok(
     [
         List(
             [
-                Items(
-                    [
-                        Assign(
-                            Assign {
-                                lvalue: "gross_salary",
-                                rvalue: [
-                                    Ident(
-                                        "salary",
-                                    ),
-                                    Raw(
-                                        "+",
-                                    ),
-                                    Ident(
-                                        "payroll_tax",
-                                    ),
-                                ],
-                            },
-                        ),
-                    ],
+                Assign(
+                    Assign {
+                        lvalue: "gross_salary",
+                        rvalue: [
+                            Ident(
+                                "salary",
+                            ),
+                            Raw(
+                                "+",
+                            ),
+                            Ident(
+                                "payroll_tax",
+                            ),
+                        ],
+                    },
                 ),
                 Items(
                     [
