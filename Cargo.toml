@@ -9,5 +9,6 @@ version = "0.0.1"
 pest = "^2.1"
 pest_derive = "^2.1"
 
+serde = "^1.0"
 # [dev-dependencies]
 insta = "^1.11"

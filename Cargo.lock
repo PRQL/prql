@@ -209,6 +209,7 @@ dependencies = [
  "insta",
  "pest",
  "pest_derive",
+ "serde",
 ]
 
 [[package]]

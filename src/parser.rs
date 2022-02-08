@@ -1,9 +1,11 @@
 use insta;
 use insta::assert_debug_snapshot;
+use insta::assert_yaml_snapshot;
 use pest::error::Error;
 use pest::iterators::Pairs;
 use pest::Parser;
 use pest_derive::Parser;
+use serde::Serialize;
 
 #[derive(Parser)]
 #[grammar = "prql.pest"]
@@ -15,7 +17,7 @@ pub type Items<'a> = Vec<Item<'a>>;
 pub type Idents<'a> = Vec<Ident<'a>>;
 pub type Pipeline<'a> = Vec<Transformation<'a>>;
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize)]
 pub enum Item<'a> {
     Transformation(Transformation<'a>),
     Ident(Ident<'a>),
@@ -36,14 +38,14 @@ pub enum Item<'a> {
     TODO(&'a str),
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct Transformation<'a> {
     pub name: TransformationType<'a>,
     pub args: Items<'a>,
     pub named_args: Vec<NamedArg<'a>>,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize)]
 pub enum TransformationType<'a> {
     From,
     Select,
@@ -55,7 +57,7 @@ pub enum TransformationType<'a> {
     Custom { name: &'a str },
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct Function<'a> {
     pub name: Ident<'a>,
     pub args: Vec<Ident<'a>>,
@@ -77,13 +79,13 @@ impl<'a> From<&'a str> for TransformationType<'a> {
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct NamedArg<'a> {
     pub lvalue: Ident<'a>,
     pub rvalue: Items<'a>,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct Assign<'a> {
     pub lvalue: Ident<'a>,
     pub rvalue: Items<'a>,
@@ -198,13 +200,14 @@ pub fn parse(pairs: Pairs<Rule>) -> Result<Items, Error<Rule>> {
 
 #[test]
 fn test_parse_expr() {
-    assert_debug_snapshot!(parse(
-        parse_to_pest_tree(r#"country = "USA""#, Rule::expr).unwrap()
-    ));
-    assert_debug_snapshot!(parse(
+    assert_yaml_snapshot!(
+        parse(parse_to_pest_tree(r#"country = "USA""#, Rule::expr).unwrap()).unwrap()
+    );
+    assert_yaml_snapshot!(parse(
         parse_to_pest_tree("aggregate by:[title] [sum salary]", Rule::transformation).unwrap()
-    ));
-    assert_debug_snapshot!(parse(
+    )
+    .unwrap());
+    assert_yaml_snapshot!(parse(
         parse_to_pest_tree(
             r#"[                                         
   gross_salary: salary + payroll_tax,
@@ -213,12 +216,13 @@ fn test_parse_expr() {
             Rule::list,
         )
         .unwrap()
-    ));
+    )
+    .unwrap());
 }
 
 #[test]
 fn test_parse_query() {
-    assert_debug_snapshot!(parse(
+    assert_yaml_snapshot!(parse(
         parse_to_pest_tree(
             r#"
 from employees
@@ -244,22 +248,26 @@ take 20
             Rule::query,
         )
         .unwrap()
-    ));
+    )
+    .unwrap());
 }
 
 #[test]
 fn test_parse_function() {
-    assert_debug_snapshot!(parse(
+    assert_yaml_snapshot!(parse(
         parse_to_pest_tree("func identity x = x", Rule::function).unwrap()
-    ));
+    )
+    .unwrap());
 
-    assert_debug_snapshot!(parse(
+    assert_yaml_snapshot!(parse(
         parse_to_pest_tree("func plus_one x = x + 1", Rule::function).unwrap()
-    ));
+    )
+    .unwrap());
 
-    assert_debug_snapshot!(parse(
+    assert_yaml_snapshot!(parse(
         parse_to_pest_tree("func return_constant = 42", Rule::function).unwrap()
-    ));
+    )
+    .unwrap());
 
     /* TODO: Does not yet parse.
         assert_debug_snapshot!(parse(

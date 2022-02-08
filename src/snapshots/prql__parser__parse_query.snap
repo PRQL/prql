@@ -1,227 +1,86 @@
 ---
 source: src/parser.rs
-assertion_line: 182
-expression: "parse(parse_to_pest_tree(r#\"\nfrom employees\nfilter country = \"USA\"                           # Each line transforms the previous result.\nderive [                                         # This adds columns / variables.\n  gross_salary: salary + payroll_tax,\n  gross_cost:   gross_salary + benefits_cost     # Variables can use other variables.\n]           \nfilter gross_cost > 0\naggregate by:[title, country] [                  # `by` are the columns to group by.\n    average salary,                              # These are aggregation calcs run on each group.\n    sum     salary,\n    average gross_salary,\n    sum     gross_salary,\n    average gross_cost,\n    sum_gross_cost: sum gross_cost,\n    count,\n]\nsort sum_gross_cost\nfilter count > 200\ntake 20\n    \"#,\n                         Rule::query).unwrap())"
+assertion_line: 223
+expression: "parse(parse_to_pest_tree(r#\"\nfrom employees\nfilter country = \"USA\"                           # Each line transforms the previous result.\nderive [                                         # This adds columns / variables.\n  gross_salary: salary + payroll_tax,\n  gross_cost:   gross_salary + benefits_cost     # Variables can use other variables.\n]           \nfilter gross_cost > 0\naggregate by:[title, country] [                  # `by` are the columns to group by.\n    average salary,                              # These are aggregation calcs run on each group.\n    sum     salary,\n    average gross_salary,\n    sum     gross_salary,\n    average gross_cost,\n    sum_gross_cost: sum gross_cost,\n    count,\n]\nsort sum_gross_cost\nfilter count > 200\ntake 20\n    \"#,\n                         Rule::query).unwrap()).unwrap()"
 
 ---
-Ok(
-    [
-        Pipeline(
-            [
-                Transformation {
-                    name: From,
-                    args: [
-                        Ident(
-                            "employees",
-                        ),
-                    ],
-                    named_args: [],
-                },
-                Transformation {
-                    name: Filter,
-                    args: [
-                        Ident(
-                            "country",
-                        ),
-                        Raw(
-                            "=",
-                        ),
-                        String(
-                            "\"USA\"",
-                        ),
-                    ],
-                    named_args: [],
-                },
-                Transformation {
-                    name: Derive,
-                    args: [
-                        List(
-                            [
-                                Assign(
-                                    Assign {
-                                        lvalue: "gross_salary",
-                                        rvalue: [
-                                            Ident(
-                                                "salary",
-                                            ),
-                                            Raw(
-                                                "+",
-                                            ),
-                                            Ident(
-                                                "payroll_tax",
-                                            ),
-                                        ],
-                                    },
-                                ),
-                                Items(
-                                    [
-                                        Assign(
-                                            Assign {
-                                                lvalue: "gross_cost",
-                                                rvalue: [
-                                                    Ident(
-                                                        "gross_salary",
-                                                    ),
-                                                    Raw(
-                                                        "+",
-                                                    ),
-                                                    Ident(
-                                                        "benefits_cost",
-                                                    ),
-                                                ],
-                                            },
-                                        ),
-                                    ],
-                                ),
-                            ],
-                        ),
-                    ],
-                    named_args: [],
-                },
-                Transformation {
-                    name: Filter,
-                    args: [
-                        Ident(
-                            "gross_cost",
-                        ),
-                        Raw(
-                            ">",
-                        ),
-                        Raw(
-                            "0",
-                        ),
-                    ],
-                    named_args: [],
-                },
-                Transformation {
-                    name: Aggregate,
-                    args: [
-                        List(
-                            [
-                                Items(
-                                    [
-                                        Ident(
-                                            "average",
-                                        ),
-                                        Ident(
-                                            "salary",
-                                        ),
-                                    ],
-                                ),
-                                Items(
-                                    [
-                                        Ident(
-                                            "sum",
-                                        ),
-                                        Ident(
-                                            "salary",
-                                        ),
-                                    ],
-                                ),
-                                Items(
-                                    [
-                                        Ident(
-                                            "average",
-                                        ),
-                                        Ident(
-                                            "gross_salary",
-                                        ),
-                                    ],
-                                ),
-                                Items(
-                                    [
-                                        Ident(
-                                            "sum",
-                                        ),
-                                        Ident(
-                                            "gross_salary",
-                                        ),
-                                    ],
-                                ),
-                                Items(
-                                    [
-                                        Ident(
-                                            "average",
-                                        ),
-                                        Ident(
-                                            "gross_cost",
-                                        ),
-                                    ],
-                                ),
-                                Assign(
-                                    Assign {
-                                        lvalue: "sum_gross_cost",
-                                        rvalue: [
-                                            Ident(
-                                                "sum",
-                                            ),
-                                            Ident(
-                                                "gross_cost",
-                                            ),
-                                        ],
-                                    },
-                                ),
-                                Ident(
-                                    "count",
-                                ),
-                            ],
-                        ),
-                    ],
-                    named_args: [
-                        NamedArg {
-                            lvalue: "by",
-                            rvalue: [
-                                List(
-                                    [
-                                        Ident(
-                                            "title",
-                                        ),
-                                        Ident(
-                                            "country",
-                                        ),
-                                    ],
-                                ),
-                            ],
-                        },
-                    ],
-                },
-                Transformation {
-                    name: Sort,
-                    args: [
-                        Ident(
-                            "sum_gross_cost",
-                        ),
-                    ],
-                    named_args: [],
-                },
-                Transformation {
-                    name: Filter,
-                    args: [
-                        Ident(
-                            "count",
-                        ),
-                        Raw(
-                            ">",
-                        ),
-                        Raw(
-                            "200",
-                        ),
-                    ],
-                    named_args: [],
-                },
-                Transformation {
-                    name: Take,
-                    args: [
-                        Raw(
-                            "20",
-                        ),
-                    ],
-                    named_args: [],
-                },
-            ],
-        ),
-        TODO(
-            "",
-        ),
-    ],
-)
+- Pipeline:
+    - name: From
+      args:
+        - Ident: employees
+      named_args: []
+    - name: Filter
+      args:
+        - Ident: country
+        - Raw: "="
+        - String: "\"USA\""
+      named_args: []
+    - name: Derive
+      args:
+        - List:
+            - Assign:
+                lvalue: gross_salary
+                rvalue:
+                  - Ident: salary
+                  - Raw: +
+                  - Ident: payroll_tax
+            - Items:
+                - Assign:
+                    lvalue: gross_cost
+                    rvalue:
+                      - Ident: gross_salary
+                      - Raw: +
+                      - Ident: benefits_cost
+      named_args: []
+    - name: Filter
+      args:
+        - Ident: gross_cost
+        - Raw: ">"
+        - Raw: "0"
+      named_args: []
+    - name: Aggregate
+      args:
+        - List:
+            - Items:
+                - Ident: average
+                - Ident: salary
+            - Items:
+                - Ident: sum
+                - Ident: salary
+            - Items:
+                - Ident: average
+                - Ident: gross_salary
+            - Items:
+                - Ident: sum
+                - Ident: gross_salary
+            - Items:
+                - Ident: average
+                - Ident: gross_cost
+            - Assign:
+                lvalue: sum_gross_cost
+                rvalue:
+                  - Ident: sum
+                  - Ident: gross_cost
+            - Ident: count
+      named_args:
+        - lvalue: by
+          rvalue:
+            - List:
+                - Ident: title
+                - Ident: country
+    - name: Sort
+      args:
+        - Ident: sum_gross_cost
+      named_args: []
+    - name: Filter
+      args:
+        - Ident: count
+        - Raw: ">"
+        - Raw: "200"
+      named_args: []
+    - name: Take
+      args:
+        - Raw: "20"
+      named_args: []
+- TODO: ""
+

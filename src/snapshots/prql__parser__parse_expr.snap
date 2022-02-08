@@ -1,19 +1,10 @@
 ---
 source: src/parser.rs
-assertion_line: 148
-expression: "parse(parse_to_pest_tree(r#\"country = \"USA\"\"#, Rule::expr).unwrap())"
+assertion_line: 203
+expression: "parse(parse_to_pest_tree(r#\"country = \"USA\"\"#, Rule::expr).unwrap()).unwrap()"
 
 ---
-Ok(
-    [
-        Ident(
-            "country",
-        ),
-        Raw(
-            "=",
-        ),
-        String(
-            "\"USA\"",
-        ),
-    ],
-)
+- Ident: country
+- Raw: "="
+- String: "\"USA\""
+
