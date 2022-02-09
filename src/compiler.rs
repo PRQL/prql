@@ -185,28 +185,88 @@ impl<'a> ContainsVariables<'a> for Transformation<'a> {
     }
 }
 
-#[test]
-fn test_replace_variables() {
-    use crate::parser::{parse, parse_to_pest_tree, Rule};
+#[cfg(test)]
+mod test {
+
+    use super::*;
     use insta::assert_yaml_snapshot;
-    let ast = &parse(
-        parse_to_pest_tree(
-            r#"from employees
+
+    #[test]
+    fn test_replace_variables() {
+        use crate::parser::{parse, parse_to_pest_tree, Rule};
+        use insta::assert_yaml_snapshot;
+        let ast = &parse(
+            parse_to_pest_tree(
+                r#"from employees
     derive [                                         # This adds columns / variables.
       gross_salary: salary + payroll_tax,
       gross_cost:   gross_salary + benefits_cost     # Variables can use other variables.
     ]
     "#,
-            Rule::pipeline,
+                Rule::pipeline,
+            )
+            .unwrap(),
         )
-        .unwrap(),
-    )
-    .unwrap()[0];
-    assert_yaml_snapshot!(ast.replace_variables(&HashMap::new()));
+        .unwrap()[0];
 
-    let ast = &parse(
-        parse_to_pest_tree(
-            r#"
+        // Before:
+        assert_yaml_snapshot!(ast, @r###"
+        ---
+        Pipeline:
+          - name: From
+            args:
+              - Ident: employees
+            named_args: []
+          - name: Derive
+            args:
+              - List:
+                  - Assign:
+                      lvalue: gross_salary
+                      rvalue:
+                        - Ident: salary
+                        - Raw: +
+                        - Ident: payroll_tax
+                  - Assign:
+                      lvalue: gross_cost
+                      rvalue:
+                        - Ident: gross_salary
+                        - Raw: +
+                        - Ident: benefits_cost
+            named_args: []
+        "###);
+
+        // After:
+        assert_yaml_snapshot!(ast.replace_variables(&HashMap::new()), @r###"
+        ---
+        Pipeline:
+          - name: From
+            args:
+              - Ident: employees
+            named_args: []
+          - name: Derive
+            args:
+              - List:
+                  - Assign:
+                      lvalue: gross_salary
+                      rvalue:
+                        - Ident: salary
+                        - Raw: +
+                        - Ident: payroll_tax
+                  - Assign:
+                      lvalue: gross_cost
+                      rvalue:
+                        - Items:
+                            - Ident: salary
+                            - Raw: +
+                            - Ident: payroll_tax
+                        - Raw: +
+                        - Ident: benefits_cost
+            named_args: []
+        "###);
+
+        let ast = &parse(
+            parse_to_pest_tree(
+                r#"
 from employees
 filter country = "USA"                           # Each line transforms the previous result.
 derive [                                         # This adds columns / variables.
@@ -227,10 +287,11 @@ sort sum_gross_cost
 filter count > 200
 take 20
     "#,
-            Rule::query,
+                Rule::query,
+            )
+            .unwrap(),
         )
-        .unwrap(),
-    )
-    .unwrap()[0];
-    assert_yaml_snapshot!(ast.replace_variables(&HashMap::new()));
+        .unwrap()[0];
+        assert_yaml_snapshot!(ast.replace_variables(&HashMap::new()));
+    }
 }
