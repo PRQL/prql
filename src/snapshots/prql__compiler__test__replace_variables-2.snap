@@ -1,6 +1,6 @@
 ---
 source: src/compiler.rs
-assertion_line: 272
+assertion_line: 310
 expression: "ast.replace_variables(&HashMap::new())"
 
 ---

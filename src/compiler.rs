@@ -189,12 +189,15 @@ impl<'a> ContainsVariables<'a> for Transformation<'a> {
 mod test {
 
     use super::*;
-    use insta::assert_yaml_snapshot;
+    use insta::{assert_display_snapshot, assert_yaml_snapshot};
 
     #[test]
     fn test_replace_variables() {
         use crate::parser::{parse, parse_to_pest_tree, Rule};
         use insta::assert_yaml_snapshot;
+        use serde_yaml::to_string;
+        use similar::TextDiff;
+
         let ast = &parse(
             parse_to_pest_tree(
                 r#"from employees
@@ -209,59 +212,25 @@ mod test {
         )
         .unwrap()[0];
 
-        // Before:
-        assert_yaml_snapshot!(ast, @r###"
-        ---
-        Pipeline:
-          - name: From
-            args:
-              - Ident: employees
-            named_args: []
-          - name: Derive
-            args:
-              - List:
-                  - Assign:
-                      lvalue: gross_salary
-                      rvalue:
-                        - Ident: salary
-                        - Raw: +
-                        - Ident: payroll_tax
-                  - Assign:
-                      lvalue: gross_cost
-                      rvalue:
-                        - Ident: gross_salary
-                        - Raw: +
-                        - Ident: benefits_cost
-            named_args: []
-        "###);
-
-        // After:
-        assert_yaml_snapshot!(ast.replace_variables(&HashMap::new()), @r###"
-        ---
-        Pipeline:
-          - name: From
-            args:
-              - Ident: employees
-            named_args: []
-          - name: Derive
-            args:
-              - List:
-                  - Assign:
-                      lvalue: gross_salary
-                      rvalue:
-                        - Ident: salary
-                        - Raw: +
-                        - Ident: payroll_tax
-                  - Assign:
-                      lvalue: gross_cost
-                      rvalue:
-                        - Items:
-                            - Ident: salary
-                            - Raw: +
-                            - Ident: payroll_tax
-                        - Raw: +
-                        - Ident: benefits_cost
-            named_args: []
+        // We could make a convenience function for this. It's useful for
+        // showing the diffs of an operation.
+        assert_display_snapshot!(TextDiff::from_lines(
+            &to_string(ast).unwrap(), 
+            &to_string(&ast.replace_variables(&HashMap::new())).unwrap()
+        ).unified_diff(), 
+        @r###"
+        @@ -16,7 +16,10 @@
+                   - Assign:
+                       lvalue: gross_cost
+                       rvalue:
+        -                - Ident: gross_salary
+        +                - Items:
+        +                    - Ident: salary
+        +                    - Raw: +
+        +                    - Ident: payroll_tax
+                         - Raw: +
+                         - Ident: benefits_cost
+             named_args: []
         "###);
 
         let ast = &parse(

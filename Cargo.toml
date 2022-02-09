@@ -8,7 +8,9 @@ version = "0.0.1"
 [dependencies]
 pest = "^2.1"
 pest_derive = "^2.1"
+serde = { version = "^1.0", features = ["derive"] }
 
-serde = "^1.0"
-# [dev-dependencies]
+[dev-dependencies]
 insta = "^1.11"
+similar = "^2.1"
+serde_yaml = "^0.8"
