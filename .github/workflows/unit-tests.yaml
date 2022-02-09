@@ -1,3 +1,5 @@
+name: PRQL Tests
+
 on:
   push:
     branches:
@@ -10,11 +12,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-name: PRQL Tests
-
 jobs:
-  cargo-test:
-    name: Cargo test
+  cargo:
+    name: Cargo
     runs-on: ubuntu-latest
     steps:
       - name: 📂 Checkout code
