@@ -102,6 +102,8 @@ impl<'a> ContainsVariables<'a> for Item<'a> {
                 }
             }
             Item::Items(items) => Item::Items(items.replace_variables(variables)),
+            // See notes in func — possibly this should just parse to Items.
+            Item::Idents(idents) => Item::Idents(idents.replace_variables(variables)),
             Item::List(items) => Item::List(items.replace_variables(variables)),
             Item::Query(items) => Item::Query(items.replace_variables(variables)),
             Item::Pipeline(transformations) => {
@@ -109,14 +111,13 @@ impl<'a> ContainsVariables<'a> for Item<'a> {
             }
             Item::NamedArg(named_arg) => Item::NamedArg(named_arg.replace_variables(variables)),
             Item::Assign(assign) => Item::Assign(assign.replace_variables(variables)),
-            Item::String(_) | Item::Raw(_) | Item::TODO(_) => self.clone(),
             Item::Transformation(transformation) => {
                 Item::Transformation(transformation.replace_variables(variables))
             }
-            Item::Idents(idents) => Item::Idents(idents.replace_variables(variables)),
             // Currently functions don't capture variables, so we don't need to
             // replace them.
             Item::Function(function) => Item::Function(function.clone()),
+            Item::String(_) | Item::Raw(_) | Item::TODO(_) => self.clone(),
         }
     }
 }
