@@ -1,6 +1,6 @@
 ---
 source: src/parser.rs
-assertion_line: 242
+assertion_line: 421
 expression: "parse_to_pest_tree(r#\"\n    from employees\n    select [a, b]\n    \"#,\n                   Rule::query)"
 
 ---

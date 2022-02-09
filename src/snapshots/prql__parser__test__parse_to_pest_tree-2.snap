@@ -1,6 +1,6 @@
 ---
 source: src/parser.rs
-assertion_line: 131
+assertion_line: 393
 expression: "parse_to_pest_tree(r#\"\"USA\"\"#, Rule::string)"
 
 ---

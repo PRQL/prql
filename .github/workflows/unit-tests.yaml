@@ -1,3 +1,5 @@
+name: PRQL Tests
+
 on:
   push:
     branches:
@@ -6,15 +8,19 @@ on:
     branches:
       - main
 
-name: prql unit tests
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  cargo-test:
-    name: Cargo test
+  cargo:
+    name: Cargo
     runs-on: ubuntu-latest
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v2
+      - name: 💰 Cache
+        uses: Swatinem/rust-cache@v1
       - name: 🔗 Setup rust toolchain
         uses: actions-rs/toolchain@v1
         with:
@@ -23,3 +29,13 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
+      - name: 📎 Clippy
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: -- -D warnings
+      - name: ⌨️ Fmt
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --check
