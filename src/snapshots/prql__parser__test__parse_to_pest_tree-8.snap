@@ -1,6 +1,6 @@
 ---
 source: src/parser.rs
-assertion_line: 322
+assertion_line: 412
 expression: "parse_to_pest_tree(r#\"# this is a comment\n        select a\"#, Rule::COMMENT)"
 
 ---

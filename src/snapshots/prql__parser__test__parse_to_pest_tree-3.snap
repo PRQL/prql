@@ -1,6 +1,6 @@
 ---
 source: src/parser.rs
-assertion_line: 304
+assertion_line: 394
 expression: "parse_to_pest_tree(\"select [a, b, c]\", Rule::transformation)"
 
 ---

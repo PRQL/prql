@@ -1,6 +1,6 @@
 ---
 source: src/parser.rs
-assertion_line: 305
+assertion_line: 395
 expression: "parse_to_pest_tree(\"aggregate by:[title, country] [sum salary]\",\n                   Rule::transformation)"
 
 ---

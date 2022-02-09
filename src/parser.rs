@@ -90,9 +90,9 @@ pub struct Assign<'a> {
 }
 
 impl<'a> Item<'a> {
-    fn as_ident(&self) -> Ident<'a> {
-        // TODO: Make this into a Result when we've got better error handling We
-        // could expand these with (but it will add lots of methods...)
+    pub fn as_ident(&self) -> Ident<'a> {
+        // TODO: Make this into a Result when we've got better error handling.
+        // We could expand these with (but it will add lots of methods...)
         // https://crates.io/crates/enum-as-inner?
         if let Item::Ident(ident) = self {
             ident
