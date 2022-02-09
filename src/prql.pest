@@ -45,8 +45,13 @@ term = _{ ( ident | operator | number | string ) }
 items = { expr }
 // If possible, parse a single expr, otherwise parse a list of items, adding a
 // layer. In cases like [a, b], we don't need `a` to be Items -> Ident -> a;
-// only Ident -> a; but in [a b], we do need a an Items parent.
-single_expr_if_possible = _{ (( single_expr ~ &("," | "]") ) | items ) }
+// only Ident -> a; but in [a b], we do need an Items parent to discriminate it
+// from `[a, b]`.
+// Note that it's a bit complicated with `&( NEWLINE? ~ ("," | "]"))` — we want
+// to ensure there is a end to the expression, and we allow a NEWLINE to between
+// the current expression and the new line. (Feel free to change and see the
+// test diffs.)
+single_expr_if_possible = _{ (( single_expr ~ &( NEWLINE? ~ ("," | "]") ) ) | items ) }
 list = !{ "[" ~ NEWLINE? ~ single_expr_if_possible ~ ("," ~ NEWLINE? ~ single_expr_if_possible )* ~ ","? ~ NEWLINE? ~ "]" }
 
 // Currently named_args and handled slightly differently to assignments:

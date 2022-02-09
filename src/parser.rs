@@ -1,6 +1,3 @@
-use insta;
-use insta::assert_debug_snapshot;
-use insta::assert_yaml_snapshot;
 use pest::error::Error;
 use pest::iterators::Pairs;
 use pest::Parser;
@@ -35,6 +32,7 @@ pub enum Item<'a> {
     Items(Items<'a>),
     Idents(Idents<'a>),
     Function(Function<'a>),
+    // Anything not yet implemented.
     TODO(&'a str),
 }
 
@@ -198,32 +196,243 @@ pub fn parse(pairs: Pairs<Rule>) -> Result<Items, Error<Rule>> {
         .collect()
 }
 
-#[test]
-fn test_parse_expr() {
-    assert_yaml_snapshot!(
-        parse(parse_to_pest_tree(r#"country = "USA""#, Rule::expr).unwrap()).unwrap()
-    );
-    assert_yaml_snapshot!(parse(
-        parse_to_pest_tree("aggregate by:[title] [sum salary]", Rule::transformation).unwrap()
-    )
-    .unwrap());
-    assert_yaml_snapshot!(parse(
-        parse_to_pest_tree(
+pub fn parse_to_pest_tree(source: &str, rule: Rule) -> Result<Pairs<Rule>, Error<Rule>> {
+    let pairs = PrqlParser::parse(rule, source)?;
+    Ok(pairs)
+}
+
+#[cfg(test)]
+mod test {
+
+    use super::*;
+    use insta::{assert_debug_snapshot, assert_yaml_snapshot};
+
+    #[test]
+    fn test_parse_expr() {
+        assert_yaml_snapshot!(
+            parse(parse_to_pest_tree(r#"country = "USA""#, Rule::expr).unwrap()).unwrap()
+        , @r###"
+        ---
+        - Ident: country
+        - Raw: "="
+        - String: "\"USA\""
+        "###);
+        assert_yaml_snapshot!(parse(
+            parse_to_pest_tree("aggregate by:[title] [sum salary]", Rule::transformation).unwrap()
+        )
+        .unwrap(), @r###"
+        ---
+        - Transformation:
+            name: Aggregate
+            args:
+              - List:
+                  - Items:
+                      - Ident: sum
+                      - Ident: salary
+            named_args:
+              - lvalue: by
+                rvalue:
+                  - List:
+                      - Ident: title
+        "###);
+        assert_yaml_snapshot!(parse(
+            parse_to_pest_tree(
+                r#"[                                         
+  gross_salary: salary + payroll_tax,
+  gross_cost:   gross_salary + benefits_cost
+]"#,
+                Rule::list,
+            )
+            .unwrap()
+        )
+        .unwrap(), @r###"
+        ---
+        - List:
+            - Assign:
+                lvalue: gross_salary
+                rvalue:
+                  - Ident: salary
+                  - Raw: +
+                  - Ident: payroll_tax
+            - Assign:
+                lvalue: gross_cost
+                rvalue:
+                  - Ident: gross_salary
+                  - Raw: +
+                  - Ident: benefits_cost
+        "###);
+    }
+
+    #[test]
+    fn test_parse_query() {
+        assert_yaml_snapshot!(parse(
+            parse_to_pest_tree(
+                r#"
+from employees
+filter country = "USA"                           # Each line transforms the previous result.
+derive [                                         # This adds columns / variables.
+  gross_salary: salary + payroll_tax,
+  gross_cost:   gross_salary + benefits_cost     # Variables can use other variables.
+]           
+filter gross_cost > 0
+aggregate by:[title, country] [                  # `by` are the columns to group by.
+    average salary,                              # These are aggregation calcs run on each group.
+    sum     salary,
+    average gross_salary,
+    sum     gross_salary,
+    average gross_cost,
+    sum_gross_cost: sum gross_cost,
+    count,
+]
+sort sum_gross_cost
+filter count > 200
+take 20
+    "#,
+                Rule::query,
+            )
+            .unwrap()
+        )
+        .unwrap());
+    }
+
+    #[test]
+    fn test_parse_function() {
+        assert_yaml_snapshot!(parse(
+            parse_to_pest_tree("func identity x = x", Rule::function).unwrap()
+        )
+        .unwrap(), @r###"
+        ---
+        - Function:
+            name: identity
+            args:
+              - x
+            body:
+              - Ident: x
+        "###);
+
+        assert_yaml_snapshot!(parse(
+            parse_to_pest_tree("func plus_one x = x + 1", Rule::function).unwrap()
+        )
+        .unwrap(), @r###"
+        ---
+        - Function:
+            name: plus_one
+            args:
+              - x
+            body:
+              - Ident: x
+              - Raw: +
+              - Raw: "1"
+        "###);
+
+        assert_yaml_snapshot!(parse(
+            parse_to_pest_tree("func return_constant = 42", Rule::function).unwrap()
+        )
+        .unwrap(), @r###"
+        ---
+        - Function:
+            name: return_constant
+            args: []
+            body:
+              - Raw: "42"
+        "###);
+
+        /* TODO: Does not yet parse because `window` not yet implemented.
+            assert_debug_snapshot!(parse(
+                parse_to_pest_tree(
+                    r#"
+        func lag_day x = (
+          window x
+          by sec_id
+          sort date
+          lag 1
+        )
+                    "#,
+                    Rule::function
+                )
+                .unwrap()
+            ));
+            */
+    }
+
+    #[test]
+    fn test_parse_to_pest_tree() {
+        assert_debug_snapshot!(parse_to_pest_tree(r#"country = "USA""#, Rule::expr), @r###"
+        Ok(
+            [
+                Pair {
+                    rule: ident,
+                    span: Span {
+                        str: "country",
+                        start: 0,
+                        end: 7,
+                    },
+                    inner: [],
+                },
+                Pair {
+                    rule: operator,
+                    span: Span {
+                        str: "=",
+                        start: 8,
+                        end: 9,
+                    },
+                    inner: [],
+                },
+                Pair {
+                    rule: string,
+                    span: Span {
+                        str: "\"USA\"",
+                        start: 10,
+                        end: 15,
+                    },
+                    inner: [],
+                },
+            ],
+        )
+        "###);
+        assert_debug_snapshot!(parse_to_pest_tree(r#""USA""#, Rule::string));
+        assert_debug_snapshot!(parse_to_pest_tree("select [a, b, c]", Rule::transformation));
+        assert_debug_snapshot!(parse_to_pest_tree(
+            "aggregate by:[title, country] [sum salary]",
+            Rule::transformation
+        ));
+        assert_debug_snapshot!(parse_to_pest_tree(
+            r#"    filter country = "USA""#,
+            Rule::transformation
+        ));
+        assert_debug_snapshot!(parse_to_pest_tree(r#"[a, b, c,]"#, Rule::list));
+        assert_debug_snapshot!(parse_to_pest_tree(
             r#"[                                         
   gross_salary: salary + payroll_tax,
   gross_cost:   gross_salary + benefits_cost
 ]"#,
-            Rule::list,
-        )
-        .unwrap()
-    )
-    .unwrap());
-}
+            Rule::list
+        ));
+        // Currently not putting comments in our parse tree, so this is blank.
+        assert_debug_snapshot!(parse_to_pest_tree(
+            r#"# this is a comment
+        select a"#,
+            Rule::COMMENT
+        ));
+    }
 
-#[test]
-fn test_parse_query() {
-    assert_yaml_snapshot!(parse(
-        parse_to_pest_tree(
+    #[test]
+    fn test_parse_to_pest_tree_query() {
+        assert_debug_snapshot!(parse_to_pest_tree(
+            r#"
+    from employees
+    select [a, b]
+    "#,
+            Rule::query
+        ));
+        assert_debug_snapshot!(parse_to_pest_tree(
+            r#"
+    from employees
+    filter country = "USA"
+    "#,
+            Rule::query
+        ));
+        assert_debug_snapshot!(parse_to_pest_tree(
             r#"
 from employees
 filter country = "USA"                           # Each line transforms the previous result.
@@ -245,120 +454,7 @@ sort sum_gross_cost
 filter count > 200
 take 20
     "#,
-            Rule::query,
-        )
-        .unwrap()
-    )
-    .unwrap());
-}
-
-#[test]
-fn test_parse_function() {
-    assert_yaml_snapshot!(parse(
-        parse_to_pest_tree("func identity x = x", Rule::function).unwrap()
-    )
-    .unwrap());
-
-    assert_yaml_snapshot!(parse(
-        parse_to_pest_tree("func plus_one x = x + 1", Rule::function).unwrap()
-    )
-    .unwrap());
-
-    assert_yaml_snapshot!(parse(
-        parse_to_pest_tree("func return_constant = 42", Rule::function).unwrap()
-    )
-    .unwrap());
-
-    /* TODO: Does not yet parse.
-        assert_debug_snapshot!(parse(
-            parse_to_pest_tree(
-                r#"
-    func lag_day x = (
-      window x
-      by sec_id
-      sort date
-      lag 1
-    )
-                "#,
-                Rule::function
-            )
-            .unwrap()
+            Rule::query
         ));
-        */
-}
-
-pub fn parse_to_pest_tree(source: &str, rule: Rule) -> Result<Pairs<Rule>, Error<Rule>> {
-    let pairs = PrqlParser::parse(rule, source)?;
-    Ok(pairs)
-}
-
-#[test]
-fn test_parse_to_pest_tree() {
-    assert_debug_snapshot!(parse_to_pest_tree(r#"country = "USA""#, Rule::expr));
-    assert_debug_snapshot!(parse_to_pest_tree(r#""USA""#, Rule::string));
-    assert_debug_snapshot!(parse_to_pest_tree("select [a, b, c]", Rule::transformation));
-    assert_debug_snapshot!(parse_to_pest_tree(
-        "aggregate by:[title, country] [sum salary]",
-        Rule::transformation
-    ));
-    assert_debug_snapshot!(parse_to_pest_tree(
-        r#"    filter country = "USA""#,
-        Rule::transformation
-    ));
-    assert_debug_snapshot!(parse_to_pest_tree(r#"[a, b, c,]"#, Rule::list));
-    assert_debug_snapshot!(parse_to_pest_tree(
-        r#"[                                         
-  gross_salary: salary + payroll_tax,
-  gross_cost:   gross_salary + benefits_cost
-]"#,
-        Rule::list
-    ));
-    // Currently not putting comments in our parse tree, so this is blank.
-    assert_debug_snapshot!(parse_to_pest_tree(
-        r#"# this is a comment
-        select a"#,
-        Rule::COMMENT
-    ));
-}
-
-#[test]
-fn test_parse_to_pest_tree_query() {
-    assert_debug_snapshot!(parse_to_pest_tree(
-        r#"
-    from employees
-    select [a, b]
-    "#,
-        Rule::query
-    ));
-    assert_debug_snapshot!(parse_to_pest_tree(
-        r#"
-    from employees
-    filter country = "USA"
-    "#,
-        Rule::query
-    ));
-    assert_debug_snapshot!(parse_to_pest_tree(
-        r#"
-from employees
-filter country = "USA"                           # Each line transforms the previous result.
-derive [                                         # This adds columns / variables.
-  gross_salary: salary + payroll_tax,
-  gross_cost:   gross_salary + benefits_cost     # Variables can use other variables.
-]           
-filter gross_cost > 0
-aggregate by:[title, country] [                  # `by` are the columns to group by.
-    average salary,                              # These are aggregation calcs run on each group.
-    sum     salary,
-    average gross_salary,
-    sum     gross_salary,
-    average gross_cost,
-    sum_gross_cost: sum gross_cost,
-    count,
-]
-sort sum_gross_cost
-filter count > 200
-take 20
-    "#,
-        Rule::query
-    ));
+    }
 }
