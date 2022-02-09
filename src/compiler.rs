@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::parser::{
-    Assign, Ident, Item, Items, NamedArg, Pipeline, Transformation, TransformationType,
+    Assign, Ident, Idents, Item, Items, NamedArg, Pipeline, Transformation, TransformationType,
 };
 
 /// An object in which we want to replace variables with the items in those variables.
@@ -113,8 +113,10 @@ impl<'a> ContainsVariables<'a> for Item<'a> {
             Item::Transformation(transformation) => {
                 Item::Transformation(transformation.replace_variables(variables))
             }
-            // FIXME
-            _ => unimplemented!(),
+            Item::Idents(idents) => Item::Idents(idents.replace_variables(variables)),
+            // Currently functions don't capture variables, so we don't need to
+            // replace them.
+            Item::Function(function) => Item::Function(function.clone()),
         }
     }
 }
@@ -142,6 +144,17 @@ impl<'a> ContainsVariables<'a> for NamedArg<'a> {
                 .map(|item| item.replace_variables(variables))
                 .collect::<Items<'a>>(),
         }
+    }
+}
+
+impl<'a> ContainsVariables<'a> for Idents<'a> {
+    fn replace_variables(&self, variables: &HashMap<Ident<'a>, Item<'a>>) -> Self {
+        self.iter()
+            // TODO: Not the most elegant approach. Possibly up a level we could parse
+            // `Ident`s into `Items` — but probably push until we add named_args
+            // to functions.
+            .map(|item| Item::Ident(item).replace_variables(variables).as_ident())
+            .collect()
     }
 }
 
