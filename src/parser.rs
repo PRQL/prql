@@ -43,7 +43,7 @@ pub struct Transformation<'a> {
     pub named_args: Vec<NamedArg<'a>>,
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize)]
+#[derive(Debug, PartialEq, Clone, Serialize, Hash, Eq)]
 pub enum TransformationType<'a> {
     From,
     Select,
