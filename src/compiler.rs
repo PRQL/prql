@@ -5,13 +5,13 @@ use crate::parser::{
 };
 
 /// An object in which we want to replace variables with the items in those variables.
-pub trait ContainsVariables<'a> {
+pub trait ContainsVariables {
     #[must_use]
-    fn replace_variables(&self, variables: &HashMap<Ident<'a>, Item<'a>>) -> Self;
+    fn replace_variables(&self, variables: &HashMap<Ident, Item>) -> Self;
 }
 
-impl<'a> ContainsVariables<'a> for Pipeline<'a> {
-    fn replace_variables(&self, variables: &HashMap<Ident<'a>, Item<'a>>) -> Self
+impl ContainsVariables for Pipeline {
+    fn replace_variables(&self, variables: &HashMap<Ident, Item>) -> Self
     where
         Self: Sized,
         // Very messy function — we should clean up.
@@ -86,8 +86,8 @@ fn extract_variables(assign: Assign) -> HashMap<Ident, Item> {
     variables
 }
 
-impl<'a> ContainsVariables<'a> for Item<'a> {
-    fn replace_variables(&self, variables: &HashMap<Ident<'a>, Item<'a>>) -> Self {
+impl ContainsVariables for Item {
+    fn replace_variables(&self, variables: &HashMap<Ident, Item>) -> Self {
         // This is verbose — is there a better approach? If we have to do this
         // again for another function, we could change it to a Visitor pattern.
         // But we'd need to encode things like not replacing `lvalue`s. Many of
@@ -122,53 +122,57 @@ impl<'a> ContainsVariables<'a> for Item<'a> {
     }
 }
 
-impl<'a> ContainsVariables<'a> for Assign<'a> {
-    fn replace_variables(&self, variables: &HashMap<Ident<'a>, Item<'a>>) -> Self {
+impl ContainsVariables for Assign {
+    fn replace_variables(&self, variables: &HashMap<Ident, Item>) -> Self {
         Assign {
-            lvalue: self.lvalue,
+            lvalue: self.lvalue.to_owned(),
             rvalue: self
                 .rvalue
                 .iter()
                 .map(|item| item.replace_variables(variables))
-                .collect::<Items<'a>>(),
+                .collect::<Items>(),
         }
     }
 }
 
-impl<'a> ContainsVariables<'a> for NamedArg<'a> {
-    fn replace_variables(&self, variables: &HashMap<Ident<'a>, Item<'a>>) -> Self {
+impl ContainsVariables for NamedArg {
+    fn replace_variables(&self, variables: &HashMap<Ident, Item>) -> Self {
         NamedArg {
-            lvalue: self.lvalue,
+            lvalue: self.lvalue.to_owned(),
             rvalue: self
                 .rvalue
                 .iter()
                 .map(|item| item.replace_variables(variables))
-                .collect::<Items<'a>>(),
+                .collect::<Items>(),
         }
     }
 }
 
-impl<'a> ContainsVariables<'a> for Idents<'a> {
-    fn replace_variables(&self, variables: &HashMap<Ident<'a>, Item<'a>>) -> Self {
+impl ContainsVariables for Idents {
+    fn replace_variables(&self, variables: &HashMap<Ident, Item>) -> Self {
         self.iter()
             // TODO: Not the most elegant approach. Possibly up a level we could parse
             // `Ident`s into `Items` — but probably push until we add named_args
             // to functions.
-            .map(|item| Item::Ident(item).replace_variables(variables).as_ident())
+            .map(|item| {
+                Item::Ident(item.to_string())
+                    .replace_variables(variables)
+                    .as_ident()
+            })
             .collect()
     }
 }
 
-impl<'a> ContainsVariables<'a> for Items<'a> {
-    fn replace_variables(&self, variables: &HashMap<Ident<'a>, Item<'a>>) -> Self {
+impl ContainsVariables for Items {
+    fn replace_variables(&self, variables: &HashMap<Ident, Item>) -> Self {
         self.iter()
             .map(|item| item.replace_variables(variables))
             .collect()
     }
 }
 
-impl<'a> ContainsVariables<'a> for Transformation<'a> {
-    fn replace_variables(&self, variables: &HashMap<Ident<'a>, Item<'a>>) -> Self {
+impl ContainsVariables for Transformation {
+    fn replace_variables(&self, variables: &HashMap<Ident, Item>) -> Self {
         Transformation {
             name: self.name.to_owned(),
             args: self
