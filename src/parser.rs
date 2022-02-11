@@ -62,12 +62,6 @@ pub struct Function {
     pub body: Items,
 }
 
-// impl From<String> for TransformationType {
-//     fn from(s: String) -> Self {
-//         (s.as_ref()).into()
-//     }
-// }
-
 impl From<&str> for TransformationType {
     fn from(s: &str) -> Self {
         match s {
