@@ -1,7 +1,7 @@
 ---
 source: src/parser.rs
-assertion_line: 428
-expression: "parse_to_pest_tree(r#\"\n    from employees\n    filter country = \"USA\"\n    \"#,\n                   Rule::query)"
+assertion_line: 430
+expression: "parse_to_pest_tree(r#\"\n    from employees\n    filter country = \"USA\"\n    \"#.trim(),\n                   Rule::pipeline)"
 
 ---
 Ok(
@@ -10,24 +10,24 @@ Ok(
             rule: pipeline,
             span: Span {
                 str: "from employees\n    filter country = \"USA\"",
-                start: 5,
-                end: 46,
+                start: 0,
+                end: 41,
             },
             inner: [
                 Pair {
                     rule: transformation,
                     span: Span {
                         str: "from employees",
-                        start: 5,
-                        end: 19,
+                        start: 0,
+                        end: 14,
                     },
                     inner: [
                         Pair {
                             rule: ident,
                             span: Span {
                                 str: "from",
-                                start: 5,
-                                end: 9,
+                                start: 0,
+                                end: 4,
                             },
                             inner: [],
                         },
@@ -35,8 +35,8 @@ Ok(
                             rule: ident,
                             span: Span {
                                 str: "employees",
-                                start: 10,
-                                end: 19,
+                                start: 5,
+                                end: 14,
                             },
                             inner: [],
                         },
@@ -46,16 +46,16 @@ Ok(
                     rule: transformation,
                     span: Span {
                         str: "filter country = \"USA\"",
-                        start: 24,
-                        end: 46,
+                        start: 19,
+                        end: 41,
                     },
                     inner: [
                         Pair {
                             rule: ident,
                             span: Span {
                                 str: "filter",
-                                start: 24,
-                                end: 30,
+                                start: 19,
+                                end: 25,
                             },
                             inner: [],
                         },
@@ -63,8 +63,8 @@ Ok(
                             rule: ident,
                             span: Span {
                                 str: "country",
-                                start: 31,
-                                end: 38,
+                                start: 26,
+                                end: 33,
                             },
                             inner: [],
                         },
@@ -72,8 +72,8 @@ Ok(
                             rule: operator,
                             span: Span {
                                 str: "=",
-                                start: 39,
-                                end: 40,
+                                start: 34,
+                                end: 35,
                             },
                             inner: [],
                         },
@@ -81,23 +81,14 @@ Ok(
                             rule: string,
                             span: Span {
                                 str: "\"USA\"",
-                                start: 41,
-                                end: 46,
+                                start: 36,
+                                end: 41,
                             },
                             inner: [],
                         },
                     ],
                 },
             ],
-        },
-        Pair {
-            rule: EOI,
-            span: Span {
-                str: "",
-                start: 51,
-                end: 51,
-            },
-            inner: [],
         },
     ],
 )

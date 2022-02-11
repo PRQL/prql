@@ -264,7 +264,7 @@ mod test {
     }
 
     #[test]
-    fn test_parse_query() {
+    fn test_parse_pipeline() {
         assert_yaml_snapshot!(parse(
             parse_to_pest_tree(
                 r#"
@@ -287,8 +287,9 @@ aggregate by:[title, country] [                  # `by` are the columns to group
 sort sum_gross_cost
 filter count > 200
 take 20
-    "#,
-                Rule::query,
+    "#
+                .trim(),
+                Rule::pipeline,
             )
             .unwrap()
         )
@@ -417,20 +418,22 @@ take 20
     }
 
     #[test]
-    fn test_parse_to_pest_tree_query() {
+    fn test_parse_to_pest_tree_pipeline() {
         assert_debug_snapshot!(parse_to_pest_tree(
             r#"
     from employees
     select [a, b]
-    "#,
-            Rule::query
+    "#
+            .trim(),
+            Rule::pipeline
         ));
         assert_debug_snapshot!(parse_to_pest_tree(
             r#"
     from employees
     filter country = "USA"
-    "#,
-            Rule::query
+    "#
+            .trim(),
+            Rule::pipeline
         ));
         assert_debug_snapshot!(parse_to_pest_tree(
             r#"
@@ -453,8 +456,9 @@ aggregate by:[title, country] [                  # `by` are the columns to group
 sort sum_gross_cost
 filter count > 200
 take 20
-    "#,
-            Rule::query
+    "#
+            .trim(),
+            Rule::pipeline
         ));
     }
 }
