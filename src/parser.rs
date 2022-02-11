@@ -2,49 +2,49 @@ use pest::error::Error;
 use pest::iterators::Pairs;
 use pest::Parser;
 use pest_derive::Parser;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 #[derive(Parser)]
 #[grammar = "prql.pest"]
 pub struct PrqlParser;
 
 // Idents are generally columns
-pub type Ident<'a> = &'a str;
-pub type Items<'a> = Vec<Item<'a>>;
-pub type Idents<'a> = Vec<Ident<'a>>;
-pub type Pipeline<'a> = Vec<Transformation<'a>>;
+pub type Ident = String;
+pub type Items = Vec<Item>;
+pub type Idents = Vec<Ident>;
+pub type Pipeline = Vec<Transformation>;
 
-#[derive(Debug, PartialEq, Clone, Serialize)]
-pub enum Item<'a> {
-    Transformation(Transformation<'a>),
-    Ident(Ident<'a>),
-    String(&'a str),
-    Raw(&'a str),
-    Assign(Assign<'a>),
-    NamedArg(NamedArg<'a>),
-    Query(Items<'a>),
-    Pipeline(Pipeline<'a>),
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+pub enum Item {
+    Transformation(Transformation),
+    Ident(Ident),
+    String(String),
+    Raw(String),
+    Assign(Assign),
+    NamedArg(NamedArg),
+    Query(Items),
+    Pipeline(Pipeline),
     // Holds Item-s directly if a list entry is a single item, otherwise holds
     // Item::Items. This is less verbose than always having Item::Items.
-    List(Items<'a>),
+    List(Items),
     // In some cases, as as lists, we need a container for multiple items to
     // discriminate them from, e.g. a series of Idents. `[a, b]` vs `[a b]`.
-    Items(Items<'a>),
-    Idents(Idents<'a>),
-    Function(Function<'a>),
+    Items(Items),
+    Idents(Idents),
+    Function(Function),
     // Anything not yet implemented.
-    TODO(&'a str),
+    TODO(String),
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct Transformation<'a> {
-    pub name: TransformationType<'a>,
-    pub args: Items<'a>,
-    pub named_args: Vec<NamedArg<'a>>,
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+pub struct Transformation {
+    pub name: TransformationType,
+    pub args: Items,
+    pub named_args: Vec<NamedArg>,
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize, Hash, Eq)]
-pub enum TransformationType<'a> {
+#[derive(Debug, PartialEq, Clone, Serialize, Hash, Eq, Deserialize)]
+pub enum TransformationType {
     From,
     Select,
     Filter,
@@ -52,18 +52,18 @@ pub enum TransformationType<'a> {
     Aggregate,
     Sort,
     Take,
-    Custom { name: &'a str },
+    Custom { name: String },
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct Function<'a> {
-    pub name: Ident<'a>,
-    pub args: Vec<Ident<'a>>,
-    pub body: Items<'a>,
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+pub struct Function {
+    pub name: Ident,
+    pub args: Vec<Ident>,
+    pub body: Items,
 }
 
-impl<'a> From<&'a str> for TransformationType<'a> {
-    fn from(s: &'a str) -> Self {
+impl From<&str> for TransformationType {
+    fn from(s: &str) -> Self {
         match s {
             "from" => TransformationType::From,
             "select" => TransformationType::Select,
@@ -72,30 +72,30 @@ impl<'a> From<&'a str> for TransformationType<'a> {
             "aggregate" => TransformationType::Aggregate,
             "sort" => TransformationType::Sort,
             "take" => TransformationType::Take,
-            _ => TransformationType::Custom { name: s },
+            _ => TransformationType::Custom { name: s.to_owned() },
         }
     }
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct NamedArg<'a> {
-    pub lvalue: Ident<'a>,
-    pub rvalue: Items<'a>,
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+pub struct NamedArg {
+    pub lvalue: Ident,
+    pub rvalue: Items,
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct Assign<'a> {
-    pub lvalue: Ident<'a>,
-    pub rvalue: Items<'a>,
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+pub struct Assign {
+    pub lvalue: Ident,
+    pub rvalue: Items,
 }
 
-impl<'a> Item<'a> {
-    pub fn as_ident(&self) -> Ident<'a> {
+impl Item {
+    pub fn as_ident(&self) -> Ident {
         // TODO: Make this into a Result when we've got better error handling.
         // We could expand these with (but it will add lots of methods...)
         // https://crates.io/crates/enum-as-inner?
         if let Item::Ident(ident) = self {
-            ident
+            ident.to_owned()
         } else {
             panic!("Expected Item::Ident, got {:?}", self)
         }
@@ -143,7 +143,7 @@ pub fn parse(pairs: Pairs<Rule>) -> Result<Items, Error<Rule>> {
                         }
                     }
                     Item::Transformation(Transformation {
-                        name: name.as_ident().into(),
+                        name: name.as_ident().as_str().into(),
                         args,
                         named_args,
                     })
@@ -170,14 +170,14 @@ pub fn parse(pairs: Pairs<Rule>) -> Result<Items, Error<Rule>> {
                         body,
                     })
                 }
-                Rule::ident => Item::Ident(pair.as_str()),
+                Rule::ident => Item::Ident(pair.as_str().to_string()),
                 Rule::idents => Item::Idents(
                     parse(pair.into_inner())?
                         .into_iter()
                         .map(|x| x.as_ident())
                         .collect(),
                 ),
-                Rule::string => Item::String(pair.as_str()),
+                Rule::string => Item::String(pair.as_str().to_string()),
                 Rule::query => Item::Query(parse(pair.into_inner())?),
                 Rule::pipeline => Item::Pipeline({
                     parse(pair.into_inner())?
@@ -188,9 +188,9 @@ pub fn parse(pairs: Pairs<Rule>) -> Result<Items, Error<Rule>> {
                         })
                         .collect()
                 }),
-                Rule::operator | Rule::number => Item::Raw(pair.as_str()),
+                Rule::operator | Rule::number => Item::Raw(pair.as_str().to_owned()),
                 // Rule::pipeline => Item::Pipeline(Box::new(parse(pair.into_inner())?)),
-                _ => (Item::TODO(pair.as_str())),
+                _ => (Item::TODO(pair.as_str().to_owned())),
             })
         })
         .collect()
