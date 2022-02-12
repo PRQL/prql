@@ -1,5 +1,11 @@
 # PRQL
 
+[![GitHub CI Status](https://img.shields.io/github/workflow/status/max-sixty/prql/tests?logo=github&style=for-the-badge)](https://github.com/max-sixty/pytest-accept/actions?query=workflow:test)
+[![Discord](https://img.shields.io/discord/936728116712316989?style=for-the-badge)](https://discord.gg/eQcfaCmsNc)
+[![Stars](https://img.shields.io/github/stars/max-sixty/prql?style=for-the-badge)](https://github.com/max-sixty/prql/stargazers)
+
+[![pre-commit.ci Status](https://results.pre-commit.ci/badge/github/max-sixty/prql/main.svg)](https://results.pre-commit.ci/latest/github/max-sixty/prql/main)
+
 **P**ipelined **R**elational **Q**uery **L**anguage, pronounced "Prequel".
 
 PRQL is a modern language for transforming data — a simpler and more powerful
@@ -57,7 +63,7 @@ filter country = "USA"                           # Each line transforms the prev
 derive [                                         # This adds columns / variables.
   gross_salary: salary + payroll_tax,
   gross_cost:   gross_salary + benefits_cost     # Variables can use other variables.
-]           
+]
 filter gross_cost > 0
 aggregate by:[title, country] [                  # `by` are the columns to group by.
     average salary,                              # These are aggregation calcs run on each group.
@@ -79,6 +85,12 @@ transformation of the previous line's result. For example, `TOP 20` / `take 20`
 modify the final result in both queries — but only PRQL represents it as the
 final transformation. And context is localized — the `aggregate` function
 contains both the calculations and the columns to group by.
+
+While our main focus is on people, it's also much simpler for code to construct
+or edit PRQL queries. In SQL, adding a filter to a query involves parsing the
+query to find the `WHERE` statement, or wrapping the existing query in a CTE. In
+PRQL, adding a filter involves adding a `filter` transformation on the final
+line.
 
 ## An example using Functions
 
