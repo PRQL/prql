@@ -84,6 +84,12 @@ modify the final result in both queries — but only PRQL represents it as the
 final transformation. And context is localized — the `aggregate` function
 contains both the calculations and the columns to group by.
 
+While our main focus is on people, it's also much simpler for code to construct
+or edit PRQL queries. In SQL, adding a filter to a query involves parsing the
+query to find the `WHERE` statement, or wrapping the existing query in a CTE. In
+PRQL, adding a filter involves adding a `filter` transformation on the final
+line.
+
 ## An example using Functions
 
 Here's another SQL query, which calculates returns from prices on days with
