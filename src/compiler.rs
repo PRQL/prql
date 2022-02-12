@@ -36,7 +36,7 @@ impl ContainsVariables for Pipeline {
                             // These can either have an Assign, or a list of Assigns
                             Item::Assign(assign) => {
                                 let assign_replaced = assign.replace_variables(&variables);
-                                variables.extend(extract_variables(assign_replaced.clone()));
+                                variables.extend(extract_variables(&assign_replaced));
                                 Item::Assign(assign_replaced)
                             }
                             Item::List(assigns) => {
@@ -51,9 +51,8 @@ impl ContainsVariables for Pipeline {
                                             Item::Assign(assign) => {
                                                 let assign_replaced =
                                                     assign.replace_variables(&variables);
-                                                variables.extend(extract_variables(
-                                                    assign_replaced.clone(),
-                                                ));
+                                                variables
+                                                    .extend(extract_variables(&assign_replaced));
 
                                                 Item::Assign(assign_replaced)
                                             }
@@ -78,11 +77,11 @@ impl ContainsVariables for Pipeline {
     }
 }
 
-fn extract_variables(assign: Assign) -> HashMap<Ident, Item> {
+fn extract_variables(assign: &Assign) -> HashMap<Ident, Item> {
     let mut variables = HashMap::new();
     // Not sure we're choosing the correct Item / Items in the types, this is a
     // bit of a smell.
-    variables.insert(assign.lvalue, Item::Items(assign.rvalue));
+    variables.insert(assign.lvalue.clone(), Item::Items(assign.rvalue.clone()));
     variables
 }
 
