@@ -1,7 +1,7 @@
 ---
 source: src/parser.rs
-assertion_line: 404
-expression: "parse_to_pest_tree(r#\"[                                         \n  gross_salary: salary + payroll_tax,\n  gross_cost:   gross_salary + benefits_cost\n]\"#,\n                   Rule::list)"
+assertion_line: 405
+expression: "parse_to_pest_tree(r#\"[\n  gross_salary: salary + payroll_tax,\n  gross_cost:   gross_salary + benefits_cost\n]\"#,\n                   Rule::list)"
 
 ---
 Ok(
@@ -9,25 +9,25 @@ Ok(
         Pair {
             rule: list,
             span: Span {
-                str: "[                                         \n  gross_salary: salary + payroll_tax,\n  gross_cost:   gross_salary + benefits_cost\n]",
+                str: "[\n  gross_salary: salary + payroll_tax,\n  gross_cost:   gross_salary + benefits_cost\n]",
                 start: 0,
-                end: 127,
+                end: 86,
             },
             inner: [
                 Pair {
                     rule: assign,
                     span: Span {
                         str: "gross_salary: salary + payroll_tax",
-                        start: 45,
-                        end: 79,
+                        start: 4,
+                        end: 38,
                     },
                     inner: [
                         Pair {
                             rule: ident,
                             span: Span {
                                 str: "gross_salary",
-                                start: 45,
-                                end: 57,
+                                start: 4,
+                                end: 16,
                             },
                             inner: [],
                         },
@@ -35,8 +35,8 @@ Ok(
                             rule: ident,
                             span: Span {
                                 str: "salary",
-                                start: 59,
-                                end: 65,
+                                start: 18,
+                                end: 24,
                             },
                             inner: [],
                         },
@@ -44,8 +44,8 @@ Ok(
                             rule: operator,
                             span: Span {
                                 str: "+",
-                                start: 66,
-                                end: 67,
+                                start: 25,
+                                end: 26,
                             },
                             inner: [],
                         },
@@ -53,8 +53,8 @@ Ok(
                             rule: ident,
                             span: Span {
                                 str: "payroll_tax",
-                                start: 68,
-                                end: 79,
+                                start: 27,
+                                end: 38,
                             },
                             inner: [],
                         },
@@ -64,16 +64,16 @@ Ok(
                     rule: assign,
                     span: Span {
                         str: "gross_cost:   gross_salary + benefits_cost",
-                        start: 83,
-                        end: 125,
+                        start: 42,
+                        end: 84,
                     },
                     inner: [
                         Pair {
                             rule: ident,
                             span: Span {
                                 str: "gross_cost",
-                                start: 83,
-                                end: 93,
+                                start: 42,
+                                end: 52,
                             },
                             inner: [],
                         },
@@ -81,8 +81,8 @@ Ok(
                             rule: ident,
                             span: Span {
                                 str: "gross_salary",
-                                start: 97,
-                                end: 109,
+                                start: 56,
+                                end: 68,
                             },
                             inner: [],
                         },
@@ -90,8 +90,8 @@ Ok(
                             rule: operator,
                             span: Span {
                                 str: "+",
-                                start: 110,
-                                end: 111,
+                                start: 69,
+                                end: 70,
                             },
                             inner: [],
                         },
@@ -99,8 +99,8 @@ Ok(
                             rule: ident,
                             span: Span {
                                 str: "benefits_cost",
-                                start: 112,
-                                end: 125,
+                                start: 71,
+                                end: 84,
                             },
                             inner: [],
                         },

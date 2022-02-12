@@ -237,7 +237,7 @@ mod test {
         "###);
         assert_yaml_snapshot!(parse(
             parse_to_pest_tree(
-                r#"[                                         
+                r#"[
   gross_salary: salary + payroll_tax,
   gross_cost:   gross_salary + benefits_cost
 ]"#,
@@ -273,7 +273,7 @@ filter country = "USA"                           # Each line transforms the prev
 derive [                                         # This adds columns / variables.
   gross_salary: salary + payroll_tax,
   gross_cost:   gross_salary + benefits_cost     # Variables can use other variables.
-]           
+]
 filter gross_cost > 0
 aggregate by:[title, country] [                  # `by` are the columns to group by.
     average salary,                              # These are aggregation calcs run on each group.
@@ -403,7 +403,7 @@ take 20
         ));
         assert_debug_snapshot!(parse_to_pest_tree(r#"[a, b, c,]"#, Rule::list));
         assert_debug_snapshot!(parse_to_pest_tree(
-            r#"[                                         
+            r#"[
   gross_salary: salary + payroll_tax,
   gross_cost:   gross_salary + benefits_cost
 ]"#,
@@ -442,7 +442,7 @@ filter country = "USA"                           # Each line transforms the prev
 derive [                                         # This adds columns / variables.
   gross_salary: salary + payroll_tax,
   gross_cost:   gross_salary + benefits_cost     # Variables can use other variables.
-]           
+]
 filter gross_cost > 0
 aggregate by:[title, country] [                  # `by` are the columns to group by.
     average salary,                              # These are aggregation calcs run on each group.

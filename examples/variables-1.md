@@ -4,7 +4,7 @@ filter country = "USA"                           # Each line transforms the prev
 derive [                                         # This adds columns / variables.
   gross_salary: salary + payroll_tax,
   gross_cost:   gross_salary + benefits_cost     # Variables can use other variables.
-]           
+]
 filter gross_cost > 0
 aggregate by:[title, country] [                  # `by` are the columns to group by.
     average salary,                              # These are aggregation calcs run on each group.

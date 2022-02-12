@@ -219,9 +219,9 @@ mod test {
         // We could make a convenience function for this. It's useful for
         // showing the diffs of an operation.
         assert_display_snapshot!(TextDiff::from_lines(
-            &to_string(ast).unwrap(), 
+            &to_string(ast).unwrap(),
             &to_string(&ast.replace_variables(&HashMap::new())).unwrap()
-        ).unified_diff(), 
+        ).unified_diff(),
         @r###"
         @@ -16,7 +16,10 @@
                    - Assign:
@@ -245,7 +245,7 @@ filter country = "USA"                           # Each line transforms the prev
 derive [                                         # This adds columns / variables.
   gross_salary: salary + payroll_tax,
   gross_cost:   gross_salary + benefits_cost     # Variables can use other variables.
-]           
+]
 filter gross_cost > 0
 aggregate by:[title, country] [                  # `by` are the columns to group by.
     average salary,                              # These are aggregation calcs run on each group.

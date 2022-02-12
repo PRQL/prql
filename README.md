@@ -4,6 +4,8 @@
 [![Discord](https://img.shields.io/discord/936728116712316989?style=for-the-badge)](https://discord.gg/eQcfaCmsNc)
 [![Stars](https://img.shields.io/github/stars/max-sixty/prql?style=for-the-badge)](https://github.com/max-sixty/prql/stargazers)
 
+[![pre-commit.ci Status](https://results.pre-commit.ci/badge/github/max-sixty/prql/main.svg)](https://results.pre-commit.ci/latest/github/max-sixty/prql/main)
+
 **P**ipelined **R**elational **Q**uery **L**anguage, pronounced "Prequel".
 
 PRQL is a modern language for transforming data — a simpler and more powerful
@@ -61,7 +63,7 @@ filter country = "USA"                           # Each line transforms the prev
 derive [                                         # This adds columns / variables.
   gross_salary: salary + payroll_tax,
   gross_cost:   gross_salary + benefits_cost     # Variables can use other variables.
-]           
+]
 filter gross_cost > 0
 aggregate by:[title, country] [                  # `by` are the columns to group by.
     average salary,                              # These are aggregation calcs run on each group.
