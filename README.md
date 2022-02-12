@@ -1,6 +1,7 @@
 # PRQL
 
 [![GitHub CI Status](https://img.shields.io/github/workflow/status/max-sixty/prql/tests?logo=github&style=for-the-badge)](https://github.com/max-sixty/pytest-accept/actions?query=workflow:test)
+[![pre-commit.ci Status](https://results.pre-commit.ci/badge/github/max-sixty/prql/main.svg)](https://results.pre-commit.ci/latest/github/max-sixty/prql/main)
 [![Discord](https://img.shields.io/discord/936728116712316989?style=for-the-badge)](https://discord.gg/eQcfaCmsNc)
 [![Stars](https://img.shields.io/github/stars/max-sixty/prql?style=for-the-badge)](https://github.com/max-sixty/prql/stargazers)
 
