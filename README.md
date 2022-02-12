@@ -259,7 +259,7 @@ being explored:
 - Send the repo to a couple of people whose opinion you respect.
 - Subscribe to [Issue #1](https://github.com/max-sixty/prql/issues/1) for
   updates.
-- Join the (nascent) [Discord](https://discord.gg/57C9u5bm).
+- Join the [Discord](https://discord.gg/eQcfaCmsNc).
 - Contribute towards building the compiler
   [#26](https://github.com/max-sixty/prql/issues/26).
 - Contribute towards refining the language: PR an example into the
