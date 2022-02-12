@@ -1,5 +1,9 @@
 # PRQL
 
+[![GitHub CI Status](https://img.shields.io/github/workflow/status/max-sixty/prql/tests?logo=github&style=for-the-badge)](https://github.com/max-sixty/pytest-accept/actions?query=workflow:test)
+[![Discord](https://img.shields.io/discord/936728116712316989?style=for-the-badge)](https://discord.gg/eQcfaCmsNc)
+[![Stars](https://img.shields.io/github/stars/max-sixty/prql?style=for-the-badge)](https://github.com/max-sixty/prql/stargazers)
+
 **P**ipelined **R**elational **Q**uery **L**anguage, pronounced "Prequel".
 
 PRQL is a modern language for transforming data — a simpler and more powerful
