@@ -1,4 +1,4 @@
-name: PRQL Tests
+name: tests
 
 on:
   push:
