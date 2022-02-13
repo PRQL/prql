@@ -52,6 +52,7 @@ pub enum TransformationType {
     Aggregate,
     Sort,
     Take,
+    Table,
     Custom { name: String },
 }
 
@@ -72,6 +73,7 @@ impl From<&str> for TransformationType {
             "aggregate" => TransformationType::Aggregate,
             "sort" => TransformationType::Sort,
             "take" => TransformationType::Take,
+            "table" => TransformationType::Table,
             _ => TransformationType::Custom { name: s.to_owned() },
         }
     }
@@ -414,6 +416,14 @@ take 20
             r#"# this is a comment
         select a"#,
             Rule::COMMENT
+        ));
+        assert_debug_snapshot!(parse_to_pest_tree(
+            r#"table newest_employees = (
+    from employees
+    sort tenure
+    take 50
+)"#,
+            Rule::transformation
         ));
     }
 

@@ -1,0 +1,47 @@
+---
+source: src/parser.rs
+assertion_line: 420
+expression: "parse_to_pest_tree(r#\"table newest_employees = (\n    from employees\n    sort tenure\n    take 50\n)\"#,\n                   Rule::transformation)"
+
+---
+Ok(
+    [
+        Pair {
+            rule: transformation,
+            span: Span {
+                str: "table newest_employees =",
+                start: 0,
+                end: 24,
+            },
+            inner: [
+                Pair {
+                    rule: ident,
+                    span: Span {
+                        str: "table",
+                        start: 0,
+                        end: 5,
+                    },
+                    inner: [],
+                },
+                Pair {
+                    rule: ident,
+                    span: Span {
+                        str: "newest_employees",
+                        start: 6,
+                        end: 22,
+                    },
+                    inner: [],
+                },
+                Pair {
+                    rule: operator,
+                    span: Span {
+                        str: "=",
+                        start: 23,
+                        end: 24,
+                    },
+                    inner: [],
+                },
+            ],
+        },
+    ],
+)
