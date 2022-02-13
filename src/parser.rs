@@ -52,6 +52,10 @@ pub enum TransformationType {
     Aggregate,
     Sort,
     Take,
+    InnerJoin,
+    LeftJoin,
+    RightJoin,
+    CrossJoin,
     Custom { name: String },
 }
 
@@ -72,6 +76,10 @@ impl From<&str> for TransformationType {
             "aggregate" => TransformationType::Aggregate,
             "sort" => TransformationType::Sort,
             "take" => TransformationType::Take,
+            "join" | "inner_join" => TransformationType::InnerJoin,
+            "left_join" => TransformationType::LeftJoin,
+            "right_join" => TransformationType::RightJoin,
+            "cross_join" => TransformationType::CrossJoin,
             _ => TransformationType::Custom { name: s.to_owned() },
         }
     }
@@ -414,6 +422,26 @@ take 20
             r#"# this is a comment
         select a"#,
             Rule::COMMENT
+        ));
+        assert_debug_snapshot!(parse_to_pest_tree(
+            r"join country [id=employee_id]",
+            Rule::transformation
+        ));
+        assert_debug_snapshot!(parse_to_pest_tree(
+            r"inner_join country [id=employee_id]",
+            Rule::transformation
+        ));
+        assert_debug_snapshot!(parse_to_pest_tree(
+            r"left_join country [id=employee_id]",
+            Rule::transformation
+        ));
+        assert_debug_snapshot!(parse_to_pest_tree(
+            r"right_join country [id=employee_id]",
+            Rule::transformation
+        ));
+        assert_debug_snapshot!(parse_to_pest_tree(
+            r"cross_join country [id=employee_id]",
+            Rule::transformation
         ));
     }
 
