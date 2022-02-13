@@ -1,0 +1,85 @@
+---
+source: src/parser.rs
+assertion_line: 426
+expression: "parse_to_pest_tree(r\"join country [id=employee_id]\", Rule::transformation)"
+
+---
+Ok(
+    [
+        Pair {
+            rule: transformation,
+            span: Span {
+                str: "join country [id=employee_id]",
+                start: 0,
+                end: 29,
+            },
+            inner: [
+                Pair {
+                    rule: ident,
+                    span: Span {
+                        str: "join",
+                        start: 0,
+                        end: 4,
+                    },
+                    inner: [],
+                },
+                Pair {
+                    rule: ident,
+                    span: Span {
+                        str: "country",
+                        start: 5,
+                        end: 12,
+                    },
+                    inner: [],
+                },
+                Pair {
+                    rule: list,
+                    span: Span {
+                        str: "[id=employee_id]",
+                        start: 13,
+                        end: 29,
+                    },
+                    inner: [
+                        Pair {
+                            rule: items,
+                            span: Span {
+                                str: "id=employee_id",
+                                start: 14,
+                                end: 28,
+                            },
+                            inner: [
+                                Pair {
+                                    rule: ident,
+                                    span: Span {
+                                        str: "id",
+                                        start: 14,
+                                        end: 16,
+                                    },
+                                    inner: [],
+                                },
+                                Pair {
+                                    rule: operator,
+                                    span: Span {
+                                        str: "=",
+                                        start: 16,
+                                        end: 17,
+                                    },
+                                    inner: [],
+                                },
+                                Pair {
+                                    rule: ident,
+                                    span: Span {
+                                        str: "employee_id",
+                                        start: 17,
+                                        end: 28,
+                                    },
+                                    inner: [],
+                                },
+                            ],
+                        },
+                    ],
+                },
+            ],
+        },
+    ],
+)

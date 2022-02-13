@@ -423,6 +423,26 @@ take 20
         select a"#,
             Rule::COMMENT
         ));
+        assert_debug_snapshot!(parse_to_pest_tree(
+            r"join country [id=employee_id]",
+            Rule::transformation
+        ));
+        assert_debug_snapshot!(parse_to_pest_tree(
+            r"inner_join country [id=employee_id]",
+            Rule::transformation
+        ));
+        assert_debug_snapshot!(parse_to_pest_tree(
+            r"left_join country [id=employee_id]",
+            Rule::transformation
+        ));
+        assert_debug_snapshot!(parse_to_pest_tree(
+            r"right_join country [id=employee_id]",
+            Rule::transformation
+        ));
+        assert_debug_snapshot!(parse_to_pest_tree(
+            r"cross_join country [id=employee_id]",
+            Rule::transformation
+        ));
     }
 
     #[test]
