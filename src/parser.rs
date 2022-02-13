@@ -193,8 +193,8 @@ pub fn parse(pairs: Pairs<Rule>) -> Result<Items, Error<Rule>> {
                         unreachable!()
                     };
 
-                    let body = if let Item::Pipeline(pipline) = items.next().unwrap() {
-                        pipline
+                    let body = if let Item::Pipeline(pipeline) = items.next().unwrap() {
+                        pipeline
                     } else {
                         unreachable!()
                     };
