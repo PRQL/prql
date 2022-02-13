@@ -1,7 +1,7 @@
 ---
 source: src/parser.rs
-assertion_line: 426
-expression: "parse_to_pest_tree(r\"join country [id=employee_id]\", Rule::transformation)
+assertion_line: 434
+expression: "parse_to_pest_tree(r\"left_join country [id=employee_id]\",\n                   Rule::transformation)"
 
 ---
 Ok(
@@ -9,17 +9,17 @@ Ok(
         Pair {
             rule: transformation,
             span: Span {
-                str: "join country [id=employee_id]",
+                str: "left_join country [id=employee_id]",
                 start: 0,
-                end: 29,
+                end: 34,
             },
             inner: [
                 Pair {
                     rule: ident,
                     span: Span {
-                        str: "join",
+                        str: "left_join",
                         start: 0,
-                        end: 4,
+                        end: 9,
                     },
                     inner: [],
                 },
@@ -27,8 +27,8 @@ Ok(
                     rule: ident,
                     span: Span {
                         str: "country",
-                        start: 5,
-                        end: 12,
+                        start: 10,
+                        end: 17,
                     },
                     inner: [],
                 },
@@ -36,24 +36,24 @@ Ok(
                     rule: list,
                     span: Span {
                         str: "[id=employee_id]",
-                        start: 13,
-                        end: 29,
+                        start: 18,
+                        end: 34,
                     },
                     inner: [
                         Pair {
                             rule: items,
                             span: Span {
                                 str: "id=employee_id",
-                                start: 14,
-                                end: 28,
+                                start: 19,
+                                end: 33,
                             },
                             inner: [
                                 Pair {
                                     rule: ident,
                                     span: Span {
                                         str: "id",
-                                        start: 14,
-                                        end: 16,
+                                        start: 19,
+                                        end: 21,
                                     },
                                     inner: [],
                                 },
@@ -61,8 +61,8 @@ Ok(
                                     rule: operator,
                                     span: Span {
                                         str: "=",
-                                        start: 16,
-                                        end: 17,
+                                        start: 21,
+                                        end: 22,
                                     },
                                     inner: [],
                                 },
@@ -70,8 +70,8 @@ Ok(
                                     rule: ident,
                                     span: Span {
                                         str: "employee_id",
-                                        start: 17,
-                                        end: 28,
+                                        start: 22,
+                                        end: 33,
                                     },
                                     inner: [],
                                 },
