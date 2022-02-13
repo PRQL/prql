@@ -52,6 +52,10 @@ pub enum TransformationType {
     Aggregate,
     Sort,
     Take,
+    InnerJoin,
+    LeftJoin,
+    RightJoin,
+    CrossJoin,
     Custom { name: String },
 }
 
@@ -72,6 +76,10 @@ impl From<&str> for TransformationType {
             "aggregate" => TransformationType::Aggregate,
             "sort" => TransformationType::Sort,
             "take" => TransformationType::Take,
+            "join" | "inner_join" => TransformationType::InnerJoin,
+            "left_join" => TransformationType::LeftJoin,
+            "right_join" => TransformationType::RightJoin,
+            "cross_join" => TransformationType::CrossJoin,
             _ => TransformationType::Custom { name: s.to_owned() },
         }
     }
