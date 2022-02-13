@@ -32,6 +32,7 @@ pub enum Item {
     Items(Items),
     Idents(Idents),
     Function(Function),
+    Table(Table),
     // Anything not yet implemented.
     TODO(String),
 }
@@ -52,7 +53,6 @@ pub enum TransformationType {
     Aggregate,
     Sort,
     Take,
-    Table,
     InnerJoin,
     LeftJoin,
     RightJoin,
@@ -67,6 +67,12 @@ pub struct Function {
     pub body: Items,
 }
 
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+pub struct Table {
+    pub name: Ident,
+    pub body: Pipeline,
+}
+
 impl From<&str> for TransformationType {
     fn from(s: &str) -> Self {
         match s {
@@ -77,7 +83,6 @@ impl From<&str> for TransformationType {
             "aggregate" => TransformationType::Aggregate,
             "sort" => TransformationType::Sort,
             "take" => TransformationType::Take,
-            "table" => TransformationType::Table,
             "join" | "inner_join" => TransformationType::InnerJoin,
             "left_join" => TransformationType::LeftJoin,
             "right_join" => TransformationType::RightJoin,
@@ -179,6 +184,22 @@ pub fn parse(pairs: Pairs<Rule>) -> Result<Items, Error<Rule>> {
                         args: name_and_params,
                         body,
                     })
+                }
+                Rule::table => {
+                    let mut items = parse(pair.into_inner())?.into_iter();
+                    let name = if let Item::Ident(ident) = items.next().unwrap() {
+                        ident
+                    } else {
+                        unreachable!()
+                    };
+
+                    let body = if let Item::Pipeline(pipline) = items.next().unwrap() {
+                        pipline
+                    } else {
+                        unreachable!()
+                    };
+
+                    Item::Table(Table { name, body })
                 }
                 Rule::ident => Item::Ident(pair.as_str().to_string()),
                 Rule::idents => Item::Idents(
@@ -367,6 +388,56 @@ take 20
     }
 
     #[test]
+    fn test_parse_table() {
+        assert_yaml_snapshot!(parse(
+            parse_to_pest_tree(r#"table newest_employees = ( from employees )"#,
+                Rule::table
+            )
+            .unwrap()
+        )
+        .unwrap(), @r###"
+        ---
+        - Table:
+            name: newest_employees
+            body:
+              - name: From
+                args:
+                  - Ident: employees
+                named_args: []
+        "###);
+        assert_yaml_snapshot!(parse(
+            parse_to_pest_tree(r#"
+        table newest_employees = (
+          from employees
+          sort tenure
+          take 50
+        )
+                "#.trim(),
+                Rule::table
+            )
+            .unwrap()
+        )
+        .unwrap(), @r###"
+        ---
+        - Table:
+            name: newest_employees
+            body:
+              - name: From
+                args:
+                  - Ident: employees
+                named_args: []
+              - name: Sort
+                args:
+                  - Ident: tenure
+                named_args: []
+              - name: Take
+                args:
+                  - Raw: "50"
+                named_args: []
+        "###);
+    }
+
+    #[test]
     fn test_parse_to_pest_tree() {
         assert_debug_snapshot!(parse_to_pest_tree(r#"country = "USA""#, Rule::expr), @r###"
         Ok(
@@ -426,11 +497,6 @@ take 20
             Rule::COMMENT
         ));
         assert_debug_snapshot!(parse_to_pest_tree(
-            r#"table newest_employees = (
-    from employees
-    sort tenure
-    take 50
-)"#,
             r"join country [id=employee_id]",
             Rule::transformation
         ));

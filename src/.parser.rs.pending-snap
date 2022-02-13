@@ -1,0 +1,143 @@
+{"run_id":"1644745363-365770000","line":392,"new":{"module_name":"prql__parser__test","snapshot_name":"parse_table","metadata":{"source":"src/parser.rs","assertion_line":392,"expression":"parse(parse_to_pest_tree(r#\"table newest_employees = ( from employee )\"#,\n                         Rule::table).unwrap()).unwrap()"},"snapshot":"---\n- Table:\n    name: newest_employees\n    body:\n      - Ident: from\n      - Ident: employee\n"},"old":{"module_name":"prql__parser__test","metadata":{},"snapshot":"---\n- Table:\n    name: newest_employees\n    body:\n      - Pipline:\n            - name: From\n                args:\n                    - Ident: employees\n                named_args: []"}}
+{"run_id":"1644745417-293809000","line":332,"new":null,"old":null}
+{"run_id":"1644745417-293809000","line":443,"new":null,"old":null}
+{"run_id":"1644745417-293809000","line":243,"new":null,"old":null}
+{"run_id":"1644745417-293809000","line":345,"new":null,"old":null}
+{"run_id":"1644745417-293809000","line":251,"new":null,"old":null}
+{"run_id":"1644745417-293809000","line":360,"new":null,"old":null}
+{"run_id":"1644745417-293809000","line":269,"new":null,"old":null}
+{"run_id":"1644745468-899775000","line":332,"new":null,"old":null}
+{"run_id":"1644745468-899775000","line":243,"new":null,"old":null}
+{"run_id":"1644745468-899775000","line":443,"new":null,"old":null}
+{"run_id":"1644745468-899775000","line":345,"new":null,"old":null}
+{"run_id":"1644745468-899775000","line":251,"new":null,"old":null}
+{"run_id":"1644745468-899775000","line":360,"new":null,"old":null}
+{"run_id":"1644745468-899775000","line":269,"new":null,"old":null}
+{"run_id":"1644745812-921812000","line":333,"new":null,"old":null}
+{"run_id":"1644745812-921812000","line":244,"new":null,"old":null}
+{"run_id":"1644745812-921812000","line":444,"new":null,"old":null}
+{"run_id":"1644745812-921812000","line":346,"new":null,"old":null}
+{"run_id":"1644745812-921812000","line":252,"new":null,"old":null}
+{"run_id":"1644745812-921812000","line":361,"new":null,"old":null}
+{"run_id":"1644745812-921812000","line":270,"new":null,"old":null}
+{"run_id":"1644745812-921812000","line":393,"new":{"module_name":"prql__parser__test","snapshot_name":"parse_table","metadata":{"source":"src/parser.rs","assertion_line":393,"expression":"parse(parse_to_pest_tree(r#\"table newest_employees = ( from employee )\"#,\n                         Rule::table).unwrap()).unwrap()"},"snapshot":"---\n- Table:\n    name: newest_employees\n    body:\n      - name: From\n        args:\n          - Ident: employee\n        named_args: []\n"},"old":{"module_name":"prql__parser__test","metadata":{},"snapshot":"---\n- Table:\n    name: newest_employees\n    body:\n      - Pipline:\n            - name: From\n                args:\n                    - Ident: employees\n                named_args: []"}}
+{"run_id":"1644745866-72422000","line":332,"new":null,"old":null}
+{"run_id":"1644745866-72422000","line":243,"new":null,"old":null}
+{"run_id":"1644745866-72422000","line":443,"new":null,"old":null}
+{"run_id":"1644745866-72422000","line":345,"new":null,"old":null}
+{"run_id":"1644745866-72422000","line":251,"new":null,"old":null}
+{"run_id":"1644745866-72422000","line":360,"new":null,"old":null}
+{"run_id":"1644745866-72422000","line":269,"new":null,"old":null}
+{"run_id":"1644745866-72422000","line":392,"new":{"module_name":"prql__parser__test","snapshot_name":"parse_table","metadata":{"source":"src/parser.rs","assertion_line":392,"expression":"parse(parse_to_pest_tree(r#\"table newest_employees = ( from employees )\"#,\n                         Rule::table).unwrap()).unwrap()"},"snapshot":"---\n- Table:\n    name: newest_employees\n    body:\n      - name: From\n        args:\n          - Ident: employees\n        named_args: []\n"},"old":{"module_name":"prql__parser__test","metadata":{},"snapshot":"---\n- Table:\n    name: newest_employees\n    body:\n      - Pipline:\n            - name: From\n                args:\n                    - Ident: employees\n                named_args: []"}}
+{"run_id":"1644745881-132411000","line":243,"new":null,"old":null}
+{"run_id":"1644745881-132411000","line":442,"new":null,"old":null}
+{"run_id":"1644745881-132411000","line":332,"new":null,"old":null}
+{"run_id":"1644745881-132411000","line":345,"new":null,"old":null}
+{"run_id":"1644745881-132411000","line":251,"new":null,"old":null}
+{"run_id":"1644745881-132411000","line":360,"new":null,"old":null}
+{"run_id":"1644745881-132411000","line":269,"new":null,"old":null}
+{"run_id":"1644745881-132411000","line":392,"new":{"module_name":"prql__parser__test","snapshot_name":"parse_table","metadata":{"source":"src/parser.rs","assertion_line":392,"expression":"parse(parse_to_pest_tree(r#\"table newest_employees = ( from employees )\"#,\n                         Rule::table).unwrap()).unwrap()"},"snapshot":"---\n- Table:\n    name: newest_employees\n    body:\n      - name: From\n        args:\n          - Ident: employees\n        named_args: []\n"},"old":{"module_name":"prql__parser__test","metadata":{},"snapshot":"---\n- Table:\n    name: newest_employees\n    body:\n        - name: From\n            args:\n                - Ident: employees\n            named_args: []"}}
+{"run_id":"1644745909-343384000","line":243,"new":null,"old":null}
+{"run_id":"1644745909-343384000","line":332,"new":null,"old":null}
+{"run_id":"1644745909-343384000","line":442,"new":null,"old":null}
+{"run_id":"1644745909-343384000","line":345,"new":null,"old":null}
+{"run_id":"1644745909-343384000","line":251,"new":null,"old":null}
+{"run_id":"1644745909-343384000","line":269,"new":null,"old":null}
+{"run_id":"1644745909-343384000","line":360,"new":null,"old":null}
+{"run_id":"1644745909-343384000","line":392,"new":{"module_name":"prql__parser__test","snapshot_name":"parse_table","metadata":{"source":"src/parser.rs","assertion_line":392,"expression":"parse(parse_to_pest_tree(r#\"table newest_employees = ( from employees )\"#,\n                         Rule::table).unwrap()).unwrap()"},"snapshot":"---\n- Table:\n    name: newest_employees\n    body:\n      - name: From\n        args:\n          - Ident: employees\n        named_args: []\n"},"old":{"module_name":"prql__parser__test","metadata":{},"snapshot":"---\n- Table:\n    name: newest_employees\n    body:\n      - name: From\n        args:\n            - Ident: employees\n        named_args: []"}}
+{"run_id":"1644745934-809241000","line":243,"new":null,"old":null}
+{"run_id":"1644745934-809241000","line":442,"new":null,"old":null}
+{"run_id":"1644745934-809241000","line":332,"new":null,"old":null}
+{"run_id":"1644745934-809241000","line":345,"new":null,"old":null}
+{"run_id":"1644745934-809241000","line":251,"new":null,"old":null}
+{"run_id":"1644745934-809241000","line":360,"new":null,"old":null}
+{"run_id":"1644745934-809241000","line":269,"new":null,"old":null}
+{"run_id":"1644745934-809241000","line":392,"new":{"module_name":"prql__parser__test","snapshot_name":"parse_table","metadata":{"source":"src/parser.rs","assertion_line":392,"expression":"parse(parse_to_pest_tree(r#\"table newest_employees = ( from employees )\"#,\n                         Rule::table).unwrap()).unwrap()"},"snapshot":"---\n- Table:\n    name: newest_employees\n    body:\n      - name: From\n        args:\n          - Ident: employees\n        named_args: []\n"},"old":{"module_name":"prql__parser__test","metadata":{},"snapshot":"---\n- Table:\n    name: newest_employees\n    body:\n      - name: From\n        args:\n            - Ident: employees\n              named_args: []"}}
+{"run_id":"1644745943-948737000","line":332,"new":null,"old":null}
+{"run_id":"1644745943-948737000","line":243,"new":null,"old":null}
+{"run_id":"1644745943-948737000","line":442,"new":null,"old":null}
+{"run_id":"1644745943-948737000","line":345,"new":null,"old":null}
+{"run_id":"1644745943-948737000","line":251,"new":null,"old":null}
+{"run_id":"1644745943-948737000","line":360,"new":null,"old":null}
+{"run_id":"1644745943-948737000","line":269,"new":null,"old":null}
+{"run_id":"1644745943-948737000","line":392,"new":{"module_name":"prql__parser__test","snapshot_name":"parse_table","metadata":{"source":"src/parser.rs","assertion_line":392,"expression":"parse(parse_to_pest_tree(r#\"table newest_employees = ( from employees )\"#,\n                         Rule::table).unwrap()).unwrap()"},"snapshot":"---\n- Table:\n    name: newest_employees\n    body:\n      - name: From\n        args:\n          - Ident: employees\n        named_args: []\n"},"old":{"module_name":"prql__parser__test","metadata":{},"snapshot":"---\n- Table:\n    name: newest_employees\n    body:\n      - name: From\n        args:\n            - Ident: employees\n        named_args: []"}}
+{"run_id":"1644745954-200466000","line":243,"new":null,"old":null}
+{"run_id":"1644745954-200466000","line":332,"new":null,"old":null}
+{"run_id":"1644745954-200466000","line":442,"new":null,"old":null}
+{"run_id":"1644745954-200466000","line":392,"new":null,"old":null}
+{"run_id":"1644745954-200466000","line":345,"new":null,"old":null}
+{"run_id":"1644745954-200466000","line":251,"new":null,"old":null}
+{"run_id":"1644745954-200466000","line":360,"new":null,"old":null}
+{"run_id":"1644745954-200466000","line":269,"new":null,"old":null}
+{"run_id":"1644745975-739097000","line":243,"new":null,"old":null}
+{"run_id":"1644745975-739097000","line":392,"new":null,"old":null}
+{"run_id":"1644745975-739097000","line":442,"new":null,"old":null}
+{"run_id":"1644745975-739097000","line":332,"new":null,"old":null}
+{"run_id":"1644745975-739097000","line":345,"new":null,"old":null}
+{"run_id":"1644745975-739097000","line":360,"new":null,"old":null}
+{"run_id":"1644745975-739097000","line":251,"new":null,"old":null}
+{"run_id":"1644745975-739097000","line":269,"new":null,"old":null}
+{"run_id":"1644745975-739097000","line":408,"new":{"module_name":"prql__parser__test","snapshot_name":"parse_table-2","metadata":{"source":"src/parser.rs","assertion_line":408,"expression":"parse(parse_to_pest_tree(r#\"\n        table newest_employees = (\n          from employees\n          sort tenure\n          take 50\n        )\n                                \"#.trim(),\n                         Rule::table).unwrap()).unwrap()"},"snapshot":"---\n- Table:\n    name: newest_employees\n    body:\n      - name: From\n        args:\n          - Ident: employees\n        named_args: []\n      - name: Sort\n        args:\n          - Ident: tenure\n        named_args: []\n      - name: Take\n        args:\n          - Raw: \"50\"\n        named_args: []\n"},"old":{"module_name":"prql__parser__test","metadata":{},"snapshot":"---\n- Table:\n    name: newest_employees\n    body:\n      - Pipline:\n            - name: From\n                args:\n                    - Ident: employees\n                named_args: []\n            - name: Sort\n                args:\n                    - Ident: tenure\n            - name: Take\n                args:\n                    - Raw: \"50\"\n                named_args: []"}}
+{"run_id":"1644745996-142448000","line":243,"new":null,"old":null}
+{"run_id":"1644745996-142448000","line":332,"new":null,"old":null}
+{"run_id":"1644745996-142448000","line":392,"new":null,"old":null}
+{"run_id":"1644745996-142448000","line":441,"new":null,"old":null}
+{"run_id":"1644745996-142448000","line":345,"new":null,"old":null}
+{"run_id":"1644745996-142448000","line":251,"new":null,"old":null}
+{"run_id":"1644745996-142448000","line":360,"new":null,"old":null}
+{"run_id":"1644745996-142448000","line":269,"new":null,"old":null}
+{"run_id":"1644745996-142448000","line":408,"new":{"module_name":"prql__parser__test","snapshot_name":"parse_table-2","metadata":{"source":"src/parser.rs","assertion_line":408,"expression":"parse(parse_to_pest_tree(r#\"\n        table newest_employees = (\n          from employees\n          sort tenure\n          take 50\n        )\n                                \"#.trim(),\n                         Rule::table).unwrap()).unwrap()"},"snapshot":"---\n- Table:\n    name: newest_employees\n    body:\n      - name: From\n        args:\n          - Ident: employees\n        named_args: []\n      - name: Sort\n        args:\n          - Ident: tenure\n        named_args: []\n      - name: Take\n        args:\n          - Raw: \"50\"\n        named_args: []\n"},"old":{"module_name":"prql__parser__test","metadata":{},"snapshot":"---\n- Table:\n    name: newest_employees\n    body:\n        - name: From\n            args:\n                - Ident: employees\n            named_args: []\n        - name: Sort\n            args:\n                - Ident: tenure\n        - name: Take\n            args:\n                - Raw: \"50\"\n            named_args: []"}}
+{"run_id":"1644746027-183158000","line":243,"new":null,"old":null}
+{"run_id":"1644746027-183158000","line":441,"new":null,"old":null}
+{"run_id":"1644746027-183158000","line":392,"new":null,"old":null}
+{"run_id":"1644746027-183158000","line":332,"new":null,"old":null}
+{"run_id":"1644746027-183158000","line":345,"new":null,"old":null}
+{"run_id":"1644746027-183158000","line":360,"new":null,"old":null}
+{"run_id":"1644746027-183158000","line":251,"new":null,"old":null}
+{"run_id":"1644746027-183158000","line":269,"new":null,"old":null}
+{"run_id":"1644746027-183158000","line":408,"new":{"module_name":"prql__parser__test","snapshot_name":"parse_table-2","metadata":{"source":"src/parser.rs","assertion_line":408,"expression":"parse(parse_to_pest_tree(r#\"\n        table newest_employees = (\n          from employees\n          sort tenure\n          take 50\n        )\n                \"#.trim(),\n                         Rule::table).unwrap()).unwrap()"},"snapshot":"---\n- Table:\n    name: newest_employees\n    body:\n      - name: From\n        args:\n          - Ident: employees\n        named_args: []\n      - name: Sort\n        args:\n          - Ident: tenure\n        named_args: []\n      - name: Take\n        args:\n          - Raw: \"50\"\n        named_args: []\n"},"old":{"module_name":"prql__parser__test","metadata":{},"snapshot":"---\n- Table:\n    name: newest_employees\n    body:\n        - name: From\n            args:\n                - Ident: employees\n            named_args: []\n        - name: Sort\n            args:\n                - Ident: tenure\n        - name: Take\n            args:\n                - Raw: \"50\"\n            named_args: []"}}
+{"run_id":"1644746067-379408000","line":332,"new":null,"old":null}
+{"run_id":"1644746067-379408000","line":392,"new":null,"old":null}
+{"run_id":"1644746067-379408000","line":441,"new":null,"old":null}
+{"run_id":"1644746067-379408000","line":243,"new":null,"old":null}
+{"run_id":"1644746067-379408000","line":251,"new":null,"old":null}
+{"run_id":"1644746067-379408000","line":345,"new":null,"old":null}
+{"run_id":"1644746067-379408000","line":360,"new":null,"old":null}
+{"run_id":"1644746067-379408000","line":269,"new":null,"old":null}
+{"run_id":"1644746067-379408000","line":408,"new":{"module_name":"prql__parser__test","snapshot_name":"parse_table-2","metadata":{"source":"src/parser.rs","assertion_line":408,"expression":"parse(parse_to_pest_tree(r#\"\n        table newest_employees = (\n          from employees\n          sort tenure\n          take 50\n        )\n                \"#.trim(),\n                         Rule::table).unwrap()).unwrap()"},"snapshot":"---\n- Table:\n    name: newest_employees\n    body:\n      - name: From\n        args:\n          - Ident: employees\n        named_args: []\n      - name: Sort\n        args:\n          - Ident: tenure\n        named_args: []\n      - name: Take\n        args:\n          - Raw: \"50\"\n        named_args: []\n"},"old":{"module_name":"prql__parser__test","metadata":{},"snapshot":"---\n- Table:\n    name: newest_employees\n    body:\n      - name: From\n        args:\n          - Ident: employees\n        named_args: []\n        - name: Sort\n          args:\n            - Ident: tenure\n        - name: Take\n          args:\n            - Raw: \"50\"\n          named_args: []"}}
+{"run_id":"1644746095-465485000","line":243,"new":null,"old":null}
+{"run_id":"1644746095-465485000","line":392,"new":null,"old":null}
+{"run_id":"1644746095-465485000","line":332,"new":null,"old":null}
+{"run_id":"1644746095-465485000","line":441,"new":null,"old":null}
+{"run_id":"1644746095-465485000","line":345,"new":null,"old":null}
+{"run_id":"1644746095-465485000","line":251,"new":null,"old":null}
+{"run_id":"1644746095-465485000","line":360,"new":null,"old":null}
+{"run_id":"1644746095-465485000","line":269,"new":null,"old":null}
+{"run_id":"1644746095-465485000","line":408,"new":{"module_name":"prql__parser__test","snapshot_name":"parse_table-2","metadata":{"source":"src/parser.rs","assertion_line":408,"expression":"parse(parse_to_pest_tree(r#\"\n        table newest_employees = (\n          from employees\n          sort tenure\n          take 50\n        )\n                \"#.trim(),\n                         Rule::table).unwrap()).unwrap()"},"snapshot":"---\n- Table:\n    name: newest_employees\n    body:\n      - name: From\n        args:\n          - Ident: employees\n        named_args: []\n      - name: Sort\n        args:\n          - Ident: tenure\n        named_args: []\n      - name: Take\n        args:\n          - Raw: \"50\"\n        named_args: []\n"},"old":{"module_name":"prql__parser__test","metadata":{},"snapshot":"---\n- Table:\n    name: newest_employees\n    body:\n      - name: From\n        args:\n          - Ident: employees\n        named_args: []\n      - name: Sort\n        args:\n          - Ident: tenure\n    - name: Take\n        args:\n          - Raw: \"50\"\n        named_args: []"}}
+{"run_id":"1644746103-220297000","line":392,"new":null,"old":null}
+{"run_id":"1644746103-220297000","line":332,"new":null,"old":null}
+{"run_id":"1644746103-220297000","line":243,"new":null,"old":null}
+{"run_id":"1644746103-220297000","line":442,"new":null,"old":null}
+{"run_id":"1644746103-220297000","line":251,"new":null,"old":null}
+{"run_id":"1644746103-220297000","line":345,"new":null,"old":null}
+{"run_id":"1644746103-220297000","line":360,"new":null,"old":null}
+{"run_id":"1644746103-220297000","line":269,"new":null,"old":null}
+{"run_id":"1644746103-220297000","line":408,"new":{"module_name":"prql__parser__test","snapshot_name":"parse_table-2","metadata":{"source":"src/parser.rs","assertion_line":408,"expression":"parse(parse_to_pest_tree(r#\"\n        table newest_employees = (\n          from employees\n          sort tenure\n          take 50\n        )\n                \"#.trim(),\n                         Rule::table).unwrap()).unwrap()"},"snapshot":"---\n- Table:\n    name: newest_employees\n    body:\n      - name: From\n        args:\n          - Ident: employees\n        named_args: []\n      - name: Sort\n        args:\n          - Ident: tenure\n        named_args: []\n      - name: Take\n        args:\n          - Raw: \"50\"\n        named_args: []\n"},"old":{"module_name":"prql__parser__test","metadata":{},"snapshot":"---\n- Table:\n    name: newest_employees\n    body:\n      - name: From\n        args:\n          - Ident: employees\n        named_args: []\n      - name: Sort\n        args:\n          - Ident: tenure\n          named_args: []\n    - name: Take\n        args:\n          - Raw: \"50\"\n        named_args: []"}}
+{"run_id":"1644746111-273875000","line":442,"new":null,"old":null}
+{"run_id":"1644746111-273875000","line":243,"new":null,"old":null}
+{"run_id":"1644746111-273875000","line":332,"new":null,"old":null}
+{"run_id":"1644746111-273875000","line":392,"new":null,"old":null}
+{"run_id":"1644746111-273875000","line":345,"new":null,"old":null}
+{"run_id":"1644746111-273875000","line":251,"new":null,"old":null}
+{"run_id":"1644746111-273875000","line":360,"new":null,"old":null}
+{"run_id":"1644746111-273875000","line":269,"new":null,"old":null}
+{"run_id":"1644746111-273875000","line":408,"new":{"module_name":"prql__parser__test","snapshot_name":"parse_table-2","metadata":{"source":"src/parser.rs","assertion_line":408,"expression":"parse(parse_to_pest_tree(r#\"\n        table newest_employees = (\n          from employees\n          sort tenure\n          take 50\n        )\n                \"#.trim(),\n                         Rule::table).unwrap()).unwrap()"},"snapshot":"---\n- Table:\n    name: newest_employees\n    body:\n      - name: From\n        args:\n          - Ident: employees\n        named_args: []\n      - name: Sort\n        args:\n          - Ident: tenure\n        named_args: []\n      - name: Take\n        args:\n          - Raw: \"50\"\n        named_args: []\n"},"old":{"module_name":"prql__parser__test","metadata":{},"snapshot":"---\n- Table:\n    name: newest_employees\n    body:\n      - name: From\n        args:\n          - Ident: employees\n        named_args: []\n      - name: Sort\n        args:\n          - Ident: tenure\n          named_args: []\n      - name: Take\n        args:\n          - Raw: \"50\"\n        named_args: []"}}
+{"run_id":"1644746118-671350000","line":392,"new":null,"old":null}
+{"run_id":"1644746118-671350000","line":243,"new":null,"old":null}
+{"run_id":"1644746118-671350000","line":332,"new":null,"old":null}
+{"run_id":"1644746118-671350000","line":442,"new":null,"old":null}
+{"run_id":"1644746118-671350000","line":345,"new":null,"old":null}
+{"run_id":"1644746118-671350000","line":251,"new":null,"old":null}
+{"run_id":"1644746118-671350000","line":360,"new":null,"old":null}
+{"run_id":"1644746118-671350000","line":408,"new":null,"old":null}
+{"run_id":"1644746118-671350000","line":269,"new":null,"old":null}
