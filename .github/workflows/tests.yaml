@@ -24,7 +24,7 @@ jobs:
       - name: 🔗 Setup rust toolchain
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: stable
+          toolchain: beta
       - name: 🔨 Build and test
         uses: actions-rs/cargo@v1
         with:
