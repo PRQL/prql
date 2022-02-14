@@ -26,6 +26,7 @@ jobs:
         with:
           toolchain: beta
           override: true
+          components: rustfmt, clippy
       - name: 🔨 Build and test
         uses: actions-rs/cargo@v1
         with:
