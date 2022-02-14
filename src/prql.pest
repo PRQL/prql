@@ -21,6 +21,8 @@ transformation = { WHITESPACE* ~ ident ~ expr }
 
 function = { "func" ~ idents ~ "=" ~ items }
 
+table = { "table" ~ ident ~ "=" ~ "(" ~ NEWLINE* ~ pipeline ~ NEWLINE* ~ ")" }
+
 ident = @{ ( ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "." | "_" )* ) }
 idents = { ident+ }
 

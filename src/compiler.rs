@@ -117,6 +117,7 @@ impl ContainsVariables for Item {
             // Currently functions don't capture variables, so we don't need to
             // replace them.
             Item::Function(function) => Item::Function(function.clone()),
+            Item::Table(table) => Item::Table(table.clone()),
             Item::String(_) | Item::Raw(_) | Item::TODO(_) => self.clone(),
         }
     }

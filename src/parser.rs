@@ -32,6 +32,7 @@ pub enum Item {
     Items(Items),
     Idents(Idents),
     Function(Function),
+    Table(Table),
     // Anything not yet implemented.
     TODO(String),
 }
@@ -61,6 +62,12 @@ pub struct Function {
     pub name: Ident,
     pub args: Vec<Ident>,
     pub body: Items,
+}
+
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+pub struct Table {
+    pub name: Ident,
+    pub pipeline: Pipeline,
 }
 
 impl From<&str> for TransformationType {
@@ -173,6 +180,19 @@ pub fn parse(pairs: Pairs<Rule>) -> Result<Items, Error<Rule>> {
                         args: name_and_params,
                         body,
                     })
+                }
+                Rule::table => {
+                    let mut items = parse(pair.into_inner())?.into_iter();
+                    let name = if let Item::Ident(ident) = items.next().unwrap() {
+                        ident
+                    } else {
+                        unreachable!("{:?}", items)
+                    };
+                    if let Item::Pipeline(pipeline) = items.next().unwrap() {
+                        Item::Table(Table { name, pipeline })
+                    } else {
+                        unreachable!("{:?}", items)
+                    }
                 }
                 Rule::ident => Item::Ident(pair.as_str().to_string()),
                 Rule::idents => Item::Idents(
@@ -358,6 +378,56 @@ take 20
                 .unwrap()
             ));
             */
+    }
+
+    #[test]
+    fn test_parse_table() {
+        assert_yaml_snapshot!(parse(
+            parse_to_pest_tree(r#"table newest_employees = ( from employees )"#,
+                Rule::table
+            )
+            .unwrap()
+        )
+        .unwrap(), @r###"
+        ---
+        - Table:
+            name: newest_employees
+            pipeline:
+              - name: From
+                args:
+                  - Ident: employees
+                named_args: []
+        "###);
+        assert_yaml_snapshot!(parse(
+            parse_to_pest_tree(r#"
+        table newest_employees = (
+          from employees
+          sort tenure
+          take 50
+        )
+                "#.trim(),
+                Rule::table
+            )
+            .unwrap()
+        )
+        .unwrap(), @r###"
+        ---
+        - Table:
+            name: newest_employees
+            pipeline:
+              - name: From
+                args:
+                  - Ident: employees
+                named_args: []
+              - name: Sort
+                args:
+                  - Ident: tenure
+                named_args: []
+              - name: Take
+                args:
+                  - Raw: "50"
+                named_args: []
+        "###);
     }
 
     #[test]
