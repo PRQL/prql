@@ -25,6 +25,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           toolchain: beta
+          override: true
       - name: 🔨 Build and test
         uses: actions-rs/cargo@v1
         with:
