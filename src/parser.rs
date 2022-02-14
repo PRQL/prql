@@ -1,3 +1,4 @@
+use anyhow::{anyhow, Result};
 use pest::error::Error;
 use pest::iterators::Pairs;
 use pest::Parser;
@@ -32,6 +33,7 @@ pub enum Item {
     Items(Items),
     Idents(Idents),
     Function(Function),
+    Table(Table),
     // Anything not yet implemented.
     TODO(String),
 }
@@ -52,10 +54,7 @@ pub enum TransformationType {
     Aggregate,
     Sort,
     Take,
-    InnerJoin,
-    LeftJoin,
-    RightJoin,
-    CrossJoin,
+    Join,
     Custom { name: String },
 }
 
@@ -64,6 +63,12 @@ pub struct Function {
     pub name: Ident,
     pub args: Vec<Ident>,
     pub body: Items,
+}
+
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+pub struct Table {
+    pub name: Ident,
+    pub pipeline: Pipeline,
 }
 
 impl From<&str> for TransformationType {
@@ -76,10 +81,7 @@ impl From<&str> for TransformationType {
             "aggregate" => TransformationType::Aggregate,
             "sort" => TransformationType::Sort,
             "take" => TransformationType::Take,
-            "join" | "inner_join" => TransformationType::InnerJoin,
-            "left_join" => TransformationType::LeftJoin,
-            "right_join" => TransformationType::RightJoin,
-            "cross_join" => TransformationType::CrossJoin,
+            "join" => TransformationType::Join,
             _ => TransformationType::Custom { name: s.to_owned() },
         }
     }
@@ -98,19 +100,19 @@ pub struct Assign {
 }
 
 impl Item {
-    pub fn as_ident(&self) -> Ident {
+    pub fn as_ident(&self) -> Result<&Ident> {
         // TODO: Make this into a Result when we've got better error handling.
         // We could expand these with (but it will add lots of methods...)
         // https://crates.io/crates/enum-as-inner?
         if let Item::Ident(ident) = self {
-            ident.to_owned()
+            Ok(ident)
         } else {
-            panic!("Expected Item::Ident, got {:?}", self)
+            Err(anyhow!("Expected Item::Ident, got {:?}", self))
         }
     }
 }
 
-pub fn parse(pairs: Pairs<Rule>) -> Result<Items, Error<Rule>> {
+pub fn parse(pairs: Pairs<Rule>) -> Result<Items> {
     pairs
         .map(|pair| {
             Ok(match pair.as_rule() {
@@ -123,18 +125,20 @@ pub fn parse(pairs: Pairs<Rule>) -> Result<Items, Error<Rule>> {
                     let (lvalue, rvalue) = parsed.split_first().unwrap();
 
                     Item::NamedArg(NamedArg {
-                        lvalue: lvalue.as_ident(),
+                        lvalue: lvalue.as_ident()?.to_owned(),
                         rvalue: rvalue.to_vec(),
                     })
                 }
                 Rule::assign => {
                     let parsed = parse(pair.into_inner())?;
-                    let (lvalue, rvalue) = parsed.split_first().unwrap();
-
-                    Item::Assign(Assign {
-                        lvalue: lvalue.as_ident(),
-                        rvalue: rvalue.to_vec(),
-                    })
+                    if let [lvalue, Item::Items(rvalue)] = &parsed[..] {
+                        Item::Assign(Assign {
+                            lvalue: lvalue.as_ident()?.to_owned(),
+                            rvalue: rvalue.to_vec(),
+                        })
+                    } else {
+                        panic!("Expected Assign, got {:?}", parsed)
+                    }
                 }
                 Rule::transformation => {
                     let parsed = parse(pair.into_inner())?;
@@ -151,39 +155,41 @@ pub fn parse(pairs: Pairs<Rule>) -> Result<Items, Error<Rule>> {
                         }
                     }
                     Item::Transformation(Transformation {
-                        name: name.as_ident().as_str().into(),
+                        name: name.as_ident()?.as_str().into(),
                         args,
                         named_args,
                     })
                 }
                 Rule::function => {
-                    let mut items = parse(pair.into_inner())?.into_iter();
-                    let mut name_and_params = if let Item::Idents(idents) = items.next().unwrap() {
-                        idents
+                    let parsed = parse(pair.into_inner())?;
+                    if let [Item::Idents(name_and_params), Item::Items(body)] = &parsed[..] {
+                        let (name, params) = name_and_params.split_first().unwrap();
+                        Item::Function(Function {
+                            name: name.to_owned(),
+                            args: params.to_owned(),
+                            body: body.to_owned(),
+                        })
                     } else {
-                        unreachable!()
-                    };
-
-                    let name = name_and_params.remove(0);
-
-                    let body = if let Item::Items(sub_items) = items.next().unwrap() {
-                        sub_items
+                        unreachable!("Expected Function, got {:?}", parsed)
+                    }
+                }
+                Rule::table => {
+                    let parsed = parse(pair.into_inner())?;
+                    if let [name, Item::Pipeline(pipeline)] = &parsed[..] {
+                        Item::Table(Table {
+                            name: name.as_ident()?.to_owned(),
+                            pipeline: pipeline.clone(),
+                        })
                     } else {
-                        unreachable!()
-                    };
-
-                    Item::Function(Function {
-                        name,
-                        args: name_and_params,
-                        body,
-                    })
+                        unreachable!("Expected Table, got {:?}", parsed)
+                    }
                 }
                 Rule::ident => Item::Ident(pair.as_str().to_string()),
                 Rule::idents => Item::Idents(
                     parse(pair.into_inner())?
                         .into_iter()
-                        .map(|x| x.as_ident())
-                        .collect(),
+                        .map(|x| x.as_ident().cloned())
+                        .collect::<Result<Vec<_>>>()?,
                 ),
                 Rule::string => Item::String(pair.as_str().to_string()),
                 Rule::query => Item::Query(parse(pair.into_inner())?),
@@ -197,7 +203,6 @@ pub fn parse(pairs: Pairs<Rule>) -> Result<Items, Error<Rule>> {
                         .collect()
                 }),
                 Rule::operator | Rule::number => Item::Raw(pair.as_str().to_owned()),
-                // Rule::pipeline => Item::Pipeline(Box::new(parse(pair.into_inner())?)),
                 _ => (Item::TODO(pair.as_str().to_owned())),
             })
         })
@@ -365,6 +370,56 @@ take 20
     }
 
     #[test]
+    fn test_parse_table() {
+        assert_yaml_snapshot!(parse(
+            parse_to_pest_tree(r#"table newest_employees = ( from employees )"#,
+                Rule::table
+            )
+            .unwrap()
+        )
+        .unwrap(), @r###"
+        ---
+        - Table:
+            name: newest_employees
+            pipeline:
+              - name: From
+                args:
+                  - Ident: employees
+                named_args: []
+        "###);
+        assert_yaml_snapshot!(parse(
+            parse_to_pest_tree(r#"
+        table newest_employees = (
+          from employees
+          sort tenure
+          take 50
+        )
+                "#.trim(),
+                Rule::table
+            )
+            .unwrap()
+        )
+        .unwrap(), @r###"
+        ---
+        - Table:
+            name: newest_employees
+            pipeline:
+              - name: From
+                args:
+                  - Ident: employees
+                named_args: []
+              - name: Sort
+                args:
+                  - Ident: tenure
+                named_args: []
+              - name: Take
+                args:
+                  - Raw: "50"
+                named_args: []
+        "###);
+    }
+
+    #[test]
     fn test_parse_to_pest_tree() {
         assert_debug_snapshot!(parse_to_pest_tree(r#"country = "USA""#, Rule::expr), @r###"
         Ok(
@@ -428,19 +483,11 @@ take 20
             Rule::transformation
         ));
         assert_debug_snapshot!(parse_to_pest_tree(
-            r"inner_join country [id=employee_id]",
+            r"join side:left country [id=employee_id]",
             Rule::transformation
         ));
         assert_debug_snapshot!(parse_to_pest_tree(
-            r"left_join country [id=employee_id]",
-            Rule::transformation
-        ));
-        assert_debug_snapshot!(parse_to_pest_tree(
-            r"right_join country [id=employee_id]",
-            Rule::transformation
-        ));
-        assert_debug_snapshot!(parse_to_pest_tree(
-            r"cross_join country [id=employee_id]",
+            r"join side:right country [id=employee_id]",
             Rule::transformation
         ));
     }

@@ -14,7 +14,10 @@ impl ContainsVariables for Pipeline {
     fn replace_variables(&self, variables: &HashMap<Ident, Item>) -> Self
     where
         Self: Sized,
-        // Very messy function — we should clean up.
+        // Very messy function — we should clean up. I think probably we should
+        // do a pass of the AST and normalize it — so for example — a Derive
+        // transformation always has a list of Assigns. Then these functions can
+        // be much simpler, and don't need to handle multiple
     {
         // We don't expect to use a variables arg, but the function takes one
         // out of conformity. We use it as a base rather than discard it in the
@@ -113,10 +116,11 @@ impl ContainsVariables for Item {
             Item::Transformation(transformation) => {
                 Item::Transformation(transformation.replace_variables(variables))
             }
-            // Currently functions don't capture variables, so we don't need to
-            // replace them.
-            Item::Function(function) => Item::Function(function.clone()),
-            Item::String(_) | Item::Raw(_) | Item::TODO(_) => self.clone(),
+            // None of these capture variables, so we don't need to replace
+            // them.
+            Item::Function(_) | Item::Table(_) | Item::String(_) | Item::Raw(_) | Item::TODO(_) => {
+                self.clone()
+            }
         }
     }
 }
@@ -129,7 +133,7 @@ impl ContainsVariables for Assign {
                 .rvalue
                 .iter()
                 .map(|item| item.replace_variables(variables))
-                .collect::<Items>(),
+                .collect(),
         }
     }
 }
@@ -142,7 +146,7 @@ impl ContainsVariables for NamedArg {
                 .rvalue
                 .iter()
                 .map(|item| item.replace_variables(variables))
-                .collect::<Items>(),
+                .collect(),
         }
     }
 }
@@ -157,6 +161,8 @@ impl ContainsVariables for Idents {
                 Item::Ident(item.to_string())
                     .replace_variables(variables)
                     .as_ident()
+                    .cloned()
+                    .unwrap()
             })
             .collect()
     }
