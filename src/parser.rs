@@ -170,7 +170,7 @@ pub fn parse(pairs: Pairs<Rule>) -> Result<Items> {
                             body: body.to_owned(),
                         })
                     } else {
-                        unreachable!()
+                        unreachable!("Expected Function, got {:?}", parsed)
                     }
                 }
                 Rule::table => {
@@ -181,7 +181,7 @@ pub fn parse(pairs: Pairs<Rule>) -> Result<Items> {
                             pipeline: pipeline.clone(),
                         })
                     } else {
-                        unreachable!()
+                        unreachable!("Expected Table, got {:?}", parsed)
                     }
                 }
                 Rule::ident => Item::Ident(pair.as_str().to_string()),
