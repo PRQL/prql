@@ -100,12 +100,12 @@ pub struct Assign {
 }
 
 impl Item {
-    pub fn as_ident(&self) -> Result<Ident> {
+    pub fn as_ident(&self) -> Result<&Ident> {
         // TODO: Make this into a Result when we've got better error handling.
         // We could expand these with (but it will add lots of methods...)
         // https://crates.io/crates/enum-as-inner?
         if let Item::Ident(ident) = self {
-            Ok(ident.to_owned())
+            Ok(ident)
         } else {
             Err(anyhow!("Expected Item::Ident, got {:?}", self))
         }
@@ -125,7 +125,7 @@ pub fn parse(pairs: Pairs<Rule>) -> Result<Items> {
                     let (lvalue, rvalue) = parsed.split_first().unwrap();
 
                     Item::NamedArg(NamedArg {
-                        lvalue: lvalue.as_ident()?,
+                        lvalue: lvalue.as_ident()?.to_owned(),
                         rvalue: rvalue.to_vec(),
                     })
                 }
@@ -133,7 +133,7 @@ pub fn parse(pairs: Pairs<Rule>) -> Result<Items> {
                     let parsed = parse(pair.into_inner())?;
                     if let [lvalue, Item::Items(rvalue)] = &parsed[..] {
                         Item::Assign(Assign {
-                            lvalue: lvalue.as_ident()?,
+                            lvalue: lvalue.as_ident()?.to_owned(),
                             rvalue: rvalue.to_vec(),
                         })
                     } else {
@@ -161,45 +161,34 @@ pub fn parse(pairs: Pairs<Rule>) -> Result<Items> {
                     })
                 }
                 Rule::function => {
-                    let mut items = parse(pair.into_inner())?.into_iter();
-                    let mut name_and_params = if let Item::Idents(idents) = items.next().unwrap() {
-                        idents
+                    let parsed = parse(pair.into_inner())?;
+                    if let [Item::Idents(name_and_params), Item::Items(body)] = &parsed[..] {
+                        let (name, params) = name_and_params.split_first().unwrap();
+                        Item::Function(Function {
+                            name: name.to_owned(),
+                            args: params.to_owned(),
+                            body: body.to_owned(),
+                        })
                     } else {
-                        unreachable!()
-                    };
-
-                    let name = name_and_params.remove(0);
-
-                    let body = if let Item::Items(sub_items) = items.next().unwrap() {
-                        sub_items
-                    } else {
-                        unreachable!()
-                    };
-
-                    Item::Function(Function {
-                        name,
-                        args: name_and_params,
-                        body,
-                    })
+                        unreachable!("Expected Function, got {:?}", parsed)
+                    }
                 }
                 Rule::table => {
-                    let mut items = parse(pair.into_inner())?.into_iter();
-                    let name = if let Item::Ident(ident) = items.next().unwrap() {
-                        ident
+                    let parsed = parse(pair.into_inner())?;
+                    if let [name, Item::Pipeline(pipeline)] = &parsed[..] {
+                        Item::Table(Table {
+                            name: name.as_ident()?.to_owned(),
+                            pipeline: pipeline.clone(),
+                        })
                     } else {
-                        unreachable!("{:?}", items)
-                    };
-                    if let Item::Pipeline(pipeline) = items.next().unwrap() {
-                        Item::Table(Table { name, pipeline })
-                    } else {
-                        panic!("Expected Table, got {:?}", items)
+                        unreachable!("Expected Table, got {:?}", parsed)
                     }
                 }
                 Rule::ident => Item::Ident(pair.as_str().to_string()),
                 Rule::idents => Item::Idents(
                     parse(pair.into_inner())?
                         .into_iter()
-                        .map(|x| x.as_ident())
+                        .map(|x| x.as_ident().cloned())
                         .collect::<Result<Vec<_>>>()?,
                 ),
                 Rule::string => Item::String(pair.as_str().to_string()),
