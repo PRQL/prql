@@ -1,0 +1,43 @@
+{"run_id":"1644797319-508675000","line":389,"new":{"module_name":"prql__parser__test","snapshot_name":"parse_table","metadata":{"source":"src/parser.rs","assertion_line":389,"expression":"parse(parse_to_pest_tree(r#\"table newest_employees = ( from employees )\"#,\n                         Rule::table).unwrap()).unwrap()"},"snapshot":"---\n- Table:\n    name: newest_employees\n    body:\n      - Pipeline:\n          - name: From\n            args:\n              - Ident: employees\n            named_args: []\n"},"old":{"module_name":"prql__parser__test","metadata":{},"snapshot":"---\n- Table:\n    name: newest_employees\n    body:\n      - name: From\n        args:\n          - Ident: employees\n        named_args: []"}}
+{"run_id":"1644803019-72662000","line":329,"new":null,"old":null}
+{"run_id":"1644803019-72662000","line":439,"new":null,"old":null}
+{"run_id":"1644803019-72662000","line":240,"new":null,"old":null}
+{"run_id":"1644803019-72662000","line":342,"new":null,"old":null}
+{"run_id":"1644803019-72662000","line":248,"new":null,"old":null}
+{"run_id":"1644803019-72662000","line":357,"new":null,"old":null}
+{"run_id":"1644803019-72662000","line":266,"new":null,"old":null}
+{"run_id":"1644803848-784423000","line":240,"new":null,"old":null}
+{"run_id":"1644803848-784423000","line":329,"new":null,"old":null}
+{"run_id":"1644803848-784423000","line":439,"new":null,"old":null}
+{"run_id":"1644803848-784423000","line":342,"new":null,"old":null}
+{"run_id":"1644803848-784423000","line":248,"new":null,"old":null}
+{"run_id":"1644803848-784423000","line":357,"new":null,"old":null}
+{"run_id":"1644803848-784423000","line":266,"new":null,"old":null}
+{"run_id":"1644803848-784423000","line":389,"new":{"module_name":"prql__parser__test","snapshot_name":"parse_table","metadata":{"source":"src/parser.rs","assertion_line":389,"expression":"parse(parse_to_pest_tree(r#\"table newest_employees = ( from employees )\"#,\n                         Rule::table).unwrap()).unwrap()"},"snapshot":"---\n- Table:\n    name: newest_employees\n    pipline:\n      - name: From\n        args:\n          - Ident: employees\n        named_args: []\n"},"old":{"module_name":"prql__parser__test","metadata":{},"snapshot":"---\n- Table:\n    name: newest_employees\n    body:\n      - name: From\n        args:\n          - Ident: employees\n        named_args: []"}}
+{"run_id":"1644803895-562807000","line":389,"new":null,"old":null}
+{"run_id":"1644803895-562807000","line":439,"new":null,"old":null}
+{"run_id":"1644803895-562807000","line":240,"new":null,"old":null}
+{"run_id":"1644803895-562807000","line":329,"new":null,"old":null}
+{"run_id":"1644803895-562807000","line":248,"new":null,"old":null}
+{"run_id":"1644803895-562807000","line":342,"new":null,"old":null}
+{"run_id":"1644803895-562807000","line":357,"new":null,"old":null}
+{"run_id":"1644803895-562807000","line":266,"new":null,"old":null}
+{"run_id":"1644803895-562807000","line":405,"new":{"module_name":"prql__parser__test","snapshot_name":"parse_table-2","metadata":{"source":"src/parser.rs","assertion_line":405,"expression":"parse(parse_to_pest_tree(r#\"\n        table newest_employees = (\n          from employees\n          sort tenure\n          take 50\n        )\n                \"#.trim(),\n                         Rule::table).unwrap()).unwrap()"},"snapshot":"---\n- Table:\n    name: newest_employees\n    pipline:\n      - name: From\n        args:\n          - Ident: employees\n        named_args: []\n      - name: Sort\n        args:\n          - Ident: tenure\n        named_args: []\n      - name: Take\n        args:\n          - Raw: \"50\"\n        named_args: []\n"},"old":{"module_name":"prql__parser__test","metadata":{},"snapshot":"---\n- Table:\n    name: newest_employees\n    body:\n      - name: From\n        args:\n          - Ident: employees\n        named_args: []\n      - name: Sort\n        args:\n          - Ident: tenure\n        named_args: []\n      - name: Take\n        args:\n          - Raw: \"50\"\n        named_args: []"}}
+{"run_id":"1644803924-556818000","line":389,"new":null,"old":null}
+{"run_id":"1644803924-556818000","line":329,"new":null,"old":null}
+{"run_id":"1644803924-556818000","line":240,"new":null,"old":null}
+{"run_id":"1644803924-556818000","line":439,"new":null,"old":null}
+{"run_id":"1644803924-556818000","line":342,"new":null,"old":null}
+{"run_id":"1644803924-556818000","line":357,"new":null,"old":null}
+{"run_id":"1644803924-556818000","line":405,"new":null,"old":null}
+{"run_id":"1644803924-556818000","line":248,"new":null,"old":null}
+{"run_id":"1644803924-556818000","line":266,"new":null,"old":null}
+{"run_id":"1644803977-133411000","line":240,"new":null,"old":null}
+{"run_id":"1644803977-133411000","line":439,"new":null,"old":null}
+{"run_id":"1644803977-133411000","line":329,"new":null,"old":null}
+{"run_id":"1644803977-133411000","line":389,"new":null,"old":null}
+{"run_id":"1644803977-133411000","line":248,"new":null,"old":null}
+{"run_id":"1644803977-133411000","line":342,"new":null,"old":null}
+{"run_id":"1644803977-133411000","line":405,"new":null,"old":null}
+{"run_id":"1644803977-133411000","line":357,"new":null,"old":null}
+{"run_id":"1644803977-133411000","line":266,"new":null,"old":null}
