@@ -100,12 +100,12 @@ pub struct Assign {
 }
 
 impl Item {
-    pub fn as_ident(&self) -> Result<Ident> {
+    pub fn as_ident(&self) -> Result<&Ident> {
         // TODO: Make this into a Result when we've got better error handling.
         // We could expand these with (but it will add lots of methods...)
         // https://crates.io/crates/enum-as-inner?
         if let Item::Ident(ident) = self {
-            Ok(ident.to_owned())
+            Ok(ident)
         } else {
             Err(anyhow!("Expected Item::Ident, got {:?}", self))
         }
@@ -125,7 +125,7 @@ pub fn parse(pairs: Pairs<Rule>) -> Result<Items> {
                     let (lvalue, rvalue) = parsed.split_first().unwrap();
 
                     Item::NamedArg(NamedArg {
-                        lvalue: lvalue.as_ident()?,
+                        lvalue: lvalue.as_ident()?.to_owned(),
                         rvalue: rvalue.to_vec(),
                     })
                 }
@@ -133,7 +133,7 @@ pub fn parse(pairs: Pairs<Rule>) -> Result<Items> {
                     let parsed = parse(pair.into_inner())?;
                     if let [lvalue, Item::Items(rvalue)] = &parsed[..] {
                         Item::Assign(Assign {
-                            lvalue: lvalue.as_ident()?,
+                            lvalue: lvalue.as_ident()?.to_owned(),
                             rvalue: rvalue.to_vec(),
                         })
                     } else {
@@ -177,7 +177,7 @@ pub fn parse(pairs: Pairs<Rule>) -> Result<Items> {
                     let parsed = parse(pair.into_inner())?;
                     if let [name, Item::Pipeline(pipeline)] = &parsed[..] {
                         Item::Table(Table {
-                            name: name.as_ident()?,
+                            name: name.as_ident()?.to_owned(),
                             pipeline: pipeline.clone(),
                         })
                     } else {
@@ -188,7 +188,7 @@ pub fn parse(pairs: Pairs<Rule>) -> Result<Items> {
                 Rule::idents => Item::Idents(
                     parse(pair.into_inner())?
                         .into_iter()
-                        .map(|x| x.as_ident())
+                        .map(|x| x.as_ident().cloned())
                         .collect::<Result<Vec<_>>>()?,
                 ),
                 Rule::string => Item::String(pair.as_str().to_string()),
