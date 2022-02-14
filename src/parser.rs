@@ -203,7 +203,6 @@ pub fn parse(pairs: Pairs<Rule>) -> Result<Items> {
                         .collect()
                 }),
                 Rule::operator | Rule::number => Item::Raw(pair.as_str().to_owned()),
-                // Rule::pipeline => Item::Pipeline(Box::new(parse(pair.into_inner())?)),
                 _ => (Item::TODO(pair.as_str().to_owned())),
             })
         })
