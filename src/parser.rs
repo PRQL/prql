@@ -1,3 +1,4 @@
+use anyhow::{anyhow, Result};
 use pest::error::Error;
 use pest::iterators::Pairs;
 use pest::Parser;
@@ -99,19 +100,19 @@ pub struct Assign {
 }
 
 impl Item {
-    pub fn as_ident(&self) -> Ident {
+    pub fn as_ident(&self) -> Result<Ident> {
         // TODO: Make this into a Result when we've got better error handling.
         // We could expand these with (but it will add lots of methods...)
         // https://crates.io/crates/enum-as-inner?
         if let Item::Ident(ident) = self {
-            ident.to_owned()
+            Ok(ident.to_owned())
         } else {
-            panic!("Expected Item::Ident, got {:?}", self)
+            Err(anyhow!("Expected Item::Ident, got {:?}", self))
         }
     }
 }
 
-pub fn parse(pairs: Pairs<Rule>) -> Result<Items, Error<Rule>> {
+pub fn parse(pairs: Pairs<Rule>) -> Result<Items> {
     pairs
         .map(|pair| {
             Ok(match pair.as_rule() {
@@ -124,7 +125,7 @@ pub fn parse(pairs: Pairs<Rule>) -> Result<Items, Error<Rule>> {
                     let (lvalue, rvalue) = parsed.split_first().unwrap();
 
                     Item::NamedArg(NamedArg {
-                        lvalue: lvalue.as_ident(),
+                        lvalue: lvalue.as_ident()?,
                         rvalue: rvalue.to_vec(),
                     })
                 }
@@ -132,7 +133,7 @@ pub fn parse(pairs: Pairs<Rule>) -> Result<Items, Error<Rule>> {
                     let parsed = parse(pair.into_inner())?;
                     if let [lvalue, Item::Items(rvalue)] = &parsed[..] {
                         Item::Assign(Assign {
-                            lvalue: lvalue.as_ident(),
+                            lvalue: lvalue.as_ident()?,
                             rvalue: rvalue.to_vec(),
                         })
                     } else {
@@ -154,7 +155,7 @@ pub fn parse(pairs: Pairs<Rule>) -> Result<Items, Error<Rule>> {
                         }
                     }
                     Item::Transformation(Transformation {
-                        name: name.as_ident().as_str().into(),
+                        name: name.as_ident()?.as_str().into(),
                         args,
                         named_args,
                     })
@@ -199,7 +200,7 @@ pub fn parse(pairs: Pairs<Rule>) -> Result<Items, Error<Rule>> {
                     parse(pair.into_inner())?
                         .into_iter()
                         .map(|x| x.as_ident())
-                        .collect(),
+                        .collect::<Result<Vec<_>>>()?,
                 ),
                 Rule::string => Item::String(pair.as_str().to_string()),
                 Rule::query => Item::Query(parse(pair.into_inner())?),

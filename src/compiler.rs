@@ -159,6 +159,7 @@ impl ContainsVariables for Idents {
                 Item::Ident(item.to_string())
                     .replace_variables(variables)
                     .as_ident()
+                    .unwrap()
             })
             .collect()
     }
