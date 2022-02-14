@@ -70,7 +70,7 @@ pub struct Function {
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Table {
     pub name: Ident,
-    pub pipline: Pipeline,
+    pub pipeline: Pipeline,
 }
 
 impl From<&str> for TransformationType {
@@ -190,12 +190,12 @@ pub fn parse(pairs: Pairs<Rule>) -> Result<Items, Error<Rule>> {
                     let name = if let Item::Ident(ident) = items.next().unwrap() {
                         ident
                     } else {
-                        panic!("Expected Table, got {:?}", items)
+                        unreachable!("{:?}", items)
                     };
-                    if let Item::Pipeline(pipline) = items.next().unwrap() {
-                        Item::Table(Table { name, pipline })
+                    if let Item::Pipeline(pipeline) = items.next().unwrap() {
+                        Item::Table(Table { name, pipeline })
                     } else {
-                        panic!("Expected Table, got {:?}", items)
+                        unreachable!("{:?}", items)
                     }
                 }
                 Rule::ident => Item::Ident(pair.as_str().to_string()),
@@ -396,7 +396,7 @@ take 20
         ---
         - Table:
             name: newest_employees
-            pipline:
+            pipeline:
               - name: From
                 args:
                   - Ident: employees
@@ -418,7 +418,7 @@ take 20
         ---
         - Table:
             name: newest_employees
-            pipline:
+            pipeline:
               - name: From
                 args:
                   - Ident: employees
