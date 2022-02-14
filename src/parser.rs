@@ -191,7 +191,7 @@ pub fn parse(pairs: Pairs<Rule>) -> Result<Items, Error<Rule>> {
                     if let Item::Pipeline(pipeline) = items.next().unwrap() {
                         Item::Table(Table { name, pipeline })
                     } else {
-                        unreachable!("{:?}", items)
+                        panic!("Expected Table, got {:?}", items)
                     }
                 }
                 Rule::ident => Item::Ident(pair.as_str().to_string()),
