@@ -161,38 +161,27 @@ pub fn parse(pairs: Pairs<Rule>) -> Result<Items> {
                     })
                 }
                 Rule::function => {
-                    let mut items = parse(pair.into_inner())?.into_iter();
-                    let mut name_and_params = if let Item::Idents(idents) = items.next().unwrap() {
-                        idents
+                    let parsed = parse(pair.into_inner())?;
+                    if let [Item::Idents(name_and_params), Item::Items(body)] = &parsed[..] {
+                        let (name, params) = name_and_params.split_first().unwrap();
+                        Item::Function(Function {
+                            name: name.to_owned(),
+                            args: params.to_owned(),
+                            body: body.to_owned(),
+                        })
                     } else {
                         unreachable!()
-                    };
-
-                    let name = name_and_params.remove(0);
-
-                    let body = if let Item::Items(sub_items) = items.next().unwrap() {
-                        sub_items
-                    } else {
-                        unreachable!()
-                    };
-
-                    Item::Function(Function {
-                        name,
-                        args: name_and_params,
-                        body,
-                    })
+                    }
                 }
                 Rule::table => {
-                    let mut items = parse(pair.into_inner())?.into_iter();
-                    let name = if let Item::Ident(ident) = items.next().unwrap() {
-                        ident
+                    let parsed = parse(pair.into_inner())?;
+                    if let [name, Item::Pipeline(pipeline)] = &parsed[..] {
+                        Item::Table(Table {
+                            name: name.as_ident()?,
+                            pipeline: pipeline.clone(),
+                        })
                     } else {
-                        unreachable!("{:?}", items)
-                    };
-                    if let Item::Pipeline(pipeline) = items.next().unwrap() {
-                        Item::Table(Table { name, pipeline })
-                    } else {
-                        panic!("Expected Table, got {:?}", items)
+                        unreachable!()
                     }
                 }
                 Rule::ident => Item::Ident(pair.as_str().to_string()),
