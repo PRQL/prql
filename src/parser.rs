@@ -123,12 +123,14 @@ pub fn parse(pairs: Pairs<Rule>) -> Result<Items, Error<Rule>> {
                 }
                 Rule::assign => {
                     let parsed = parse(pair.into_inner())?;
-                    let (lvalue, rvalue) = parsed.split_first().unwrap();
-
-                    Item::Assign(Assign {
-                        lvalue: lvalue.as_ident(),
-                        rvalue: rvalue.to_vec(),
-                    })
+                    if let [lvalue, Item::Items(rvalue)] = &parsed[..] {
+                        Item::Assign(Assign {
+                            lvalue: lvalue.as_ident(),
+                            rvalue: rvalue.to_vec(),
+                        })
+                    } else {
+                        panic!("Expected Assign, got {:?}", parsed)
+                    }
                 }
                 Rule::transformation => {
                     let parsed = parse(pair.into_inner())?;
