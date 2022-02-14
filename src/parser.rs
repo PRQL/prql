@@ -100,14 +100,20 @@ pub struct Assign {
 }
 
 impl Item {
+    // We could expand these with (but it will add lots of methods...)
+    // https://crates.io/crates/enum-as-inner?
     pub fn as_ident(&self) -> Result<&Ident> {
-        // TODO: Make this into a Result when we've got better error handling.
-        // We could expand these with (but it will add lots of methods...)
-        // https://crates.io/crates/enum-as-inner?
         if let Item::Ident(ident) = self {
             Ok(ident)
         } else {
             Err(anyhow!("Expected Item::Ident, got {:?}", self))
+        }
+    }
+    pub fn as_named_arg(&self) -> Result<&NamedArg> {
+        if let Item::NamedArg(named_arg) = self {
+            Ok(named_arg)
+        } else {
+            Err(anyhow!("Expected Item::NamedArg, got {:?}", self))
         }
     }
 }
@@ -144,20 +150,18 @@ pub fn parse(pairs: Pairs<Rule>) -> Result<Items> {
                     let parsed = parse(pair.into_inner())?;
                     let (name, all_args) = parsed.split_first().unwrap();
 
-                    let mut args: Vec<Item> = vec![];
-                    let mut named_args: Vec<NamedArg> = vec![];
+                    let (named_args, args) = all_args
+                        .iter()
+                        .cloned()
+                        .partition(|x| matches!(x, Item::NamedArg(_)));
 
-                    for arg in all_args {
-                        match arg {
-                            // We seem to need the clones...
-                            Item::NamedArg(named_arg) => named_args.push(named_arg.clone()),
-                            _ => args.push(arg.clone()),
-                        }
-                    }
                     Item::Transformation(Transformation {
                         name: name.as_ident()?.as_str().into(),
                         args,
-                        named_args,
+                        named_args: named_args
+                            .iter()
+                            .map(|x| x.as_named_arg().cloned())
+                            .collect::<Result<_>>()?,
                     })
                 }
                 Rule::function => {
