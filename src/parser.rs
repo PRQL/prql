@@ -278,6 +278,28 @@ mod test {
                   - Raw: +
                   - Ident: benefits_cost
         "###);
+        assert_yaml_snapshot!(parse(
+                    parse_to_pest_tree(
+                        "gross_salary: (salary + payroll_tax) * (1 + tax_rate)",
+                        Rule::expr,
+                    )
+                    .unwrap()
+                )
+                .unwrap(), @r###"
+        ---
+        - Assign:
+            lvalue: gross_salary
+            rvalue:
+              - Items:
+                  - Ident: salary
+                  - Raw: +
+                  - Ident: payroll_tax
+              - Raw: "*"
+              - Items:
+                  - Raw: "1"
+                  - Raw: +
+                  - Ident: tax_rate
+        "###);
     }
 
     #[test]
@@ -376,7 +398,7 @@ take 20
     #[test]
     fn test_parse_table() {
         assert_yaml_snapshot!(parse(
-            parse_to_pest_tree(r#"table newest_employees = ( from employees )"#,
+            parse_to_pest_tree("table newest_employees = ( from employees )",
                 Rule::table
             )
             .unwrap()
@@ -468,7 +490,7 @@ take 20
             r#"    filter country = "USA""#,
             Rule::transformation
         ));
-        assert_debug_snapshot!(parse_to_pest_tree(r#"[a, b, c,]"#, Rule::list));
+        assert_debug_snapshot!(parse_to_pest_tree("[a, b, c,]", Rule::list));
         assert_debug_snapshot!(parse_to_pest_tree(
             r#"[
   gross_salary: salary + payroll_tax,
@@ -483,17 +505,50 @@ take 20
             Rule::COMMENT
         ));
         assert_debug_snapshot!(parse_to_pest_tree(
-            r"join country [id=employee_id]",
+            "join country [id=employee_id]",
             Rule::transformation
         ));
         assert_debug_snapshot!(parse_to_pest_tree(
-            r"join side:left country [id=employee_id]",
+            "join side:left country [id=employee_id]",
             Rule::transformation
         ));
         assert_debug_snapshot!(parse_to_pest_tree(
-            r"join side:right country [id=employee_id]",
+            "join side:right country [id=employee_id]",
             Rule::transformation
         ));
+        assert_debug_snapshot!(parse_to_pest_tree("1 + 2", Rule::expr), @r###"
+        Ok(
+            [
+                Pair {
+                    rule: number,
+                    span: Span {
+                        str: "1",
+                        start: 0,
+                        end: 1,
+                    },
+                    inner: [],
+                },
+                Pair {
+                    rule: operator,
+                    span: Span {
+                        str: "+",
+                        start: 2,
+                        end: 3,
+                    },
+                    inner: [],
+                },
+                Pair {
+                    rule: number,
+                    span: Span {
+                        str: "2",
+                        start: 4,
+                        end: 5,
+                    },
+                    inner: [],
+                },
+            ],
+        )
+        "###);
     }
 
     #[test]
