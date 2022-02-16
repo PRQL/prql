@@ -1,17 +1,37 @@
 use std::collections::HashMap;
 
-use super::parser::{Items, Pipeline, Transformation, TransformationType};
+use super::parser::{Item, Items, Pipeline, Transformation, TransformationType};
+use itertools::Itertools;
+use serde::{Deserialize, Serialize};
 
-#[allow(dead_code)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Cte {
-    // TODO: Refine this to more concrete types as we build them out.
+    // TODO: Refine this to more concrete types as we build them out, or use
+    // rs-sqlparser https://github.com/max-sixty/prql/issues/97?
+    //
     // Should they be Option<T>? Or just empty if they're not required?
     select: Option<Items>,
     from: Option<Items>,
-    where_: Option<Items>,
+    where_: Option<Transformation>,
     group_by: Option<Items>,
-    having: Option<Items>,
+    having: Option<Transformation>,
     order_by: Option<Transformation>,
+}
+
+/// Combines filters by putting them in parentheses and then joining them with `and`.
+/// Note that this is very hacky and probably `Filter` should be a type which
+/// this is implemented on.
+#[allow(unstable_name_collisions)] // Same behavior as the std lib; we can remove this + itertools when that's released.
+fn combine_filters(filters: Vec<Transformation>) -> Transformation {
+    Transformation {
+        name: TransformationType::Filter,
+        args: filters
+            .into_iter()
+            .map(|filter| Item::Items(filter.args))
+            .intersperse(Item::Raw("and".to_owned()))
+            .collect(),
+        named_args: vec![],
+    }
 }
 
 pub fn to_cte(pipeline: &Pipeline) -> Cte {
@@ -31,26 +51,24 @@ pub fn to_cte(pipeline: &Pipeline) -> Cte {
     // We could combine the next two with a more sophisticated `split_at`
 
     // Find the filters that come before the aggregation.
-    // TODO: combine the filters.
-    let where_ = pipeline
-        .iter()
-        .take_while(|t| t.name != TransformationType::Aggregate)
-        .filter(|t| t.name == TransformationType::Filter)
-        // FIXME: this is just concatting everything; we need to add ANDs (and
-        // probably do it properly)
-        .flat_map(|t| t.args.clone())
-        .collect();
+    let where_ = combine_filters(
+        pipeline
+            .iter()
+            .take_while(|t| t.name != TransformationType::Aggregate)
+            .filter(|t| t.name == TransformationType::Filter)
+            .cloned()
+            .collect(),
+    );
 
     // Find the filters that come after the aggregation.
-    // TODO: combine the filters.
-    let having = pipeline
-        .iter()
-        .skip_while(|t| t.name != TransformationType::Aggregate)
-        .filter(|t| t.name == TransformationType::Filter)
-        // FIXME: this is just concatting everything; we need to add ANDs (and
-        // probably do it well)
-        .flat_map(|t| t.args.clone())
-        .collect();
+    let having = combine_filters(
+        pipeline
+            .iter()
+            .skip_while(|t| t.name != TransformationType::Aggregate)
+            .filter(|t| t.name == TransformationType::Filter)
+            .cloned()
+            .collect(),
+    );
 
     // Find the final sort (none of the others affect the result, and can be discarded).
     let order_by = pipeline
@@ -151,6 +169,7 @@ pub fn to_ctes(pipeline: &Pipeline) -> Vec<Pipeline> {
 mod test {
 
     use super::*;
+    use insta::assert_yaml_snapshot;
     use serde_yaml::from_str;
 
     use crate::parser::Pipeline;
@@ -178,7 +197,7 @@ mod test {
     named_args: []
   - name: Sort
     args:
-      - Ident: sum_gross_cost
+      - Ident: salary
     named_args: []
   - name: Take
     args:
@@ -215,7 +234,7 @@ mod test {
     named_args: []
   - name: Sort
     args:
-      - Ident: sum_gross_cost
+      - Ident: salary
     named_args: []
         "###;
 
@@ -256,6 +275,7 @@ mod test {
       - List:
           - Items:
               - Ident: sum
+              # TODO: this isn't currently defined
               - Ident: average_salary
     named_args: []
         "###;
@@ -263,5 +283,67 @@ mod test {
         let pipeline: Pipeline = from_str(yaml).unwrap();
         let ctes = to_ctes(&pipeline);
         assert_eq!(ctes.len(), 3);
+    }
+
+    #[test]
+    fn test_to_cte() {
+        let yaml: &str = r###"
+  - name: From
+    args:
+      - Ident: employees
+    named_args: []
+  - name: Filter
+    args:
+      - Ident: country
+      - Raw: "="
+      - String: "\"USA\""
+    named_args: []
+  - name: Aggregate
+    args:
+      - List:
+          - Items:
+              - Ident: average
+              - Ident: salary
+    named_args: []
+  - name: Sort
+    args:
+      - Ident: sum_gross_cost
+    named_args: []
+  - name: Take
+    args:
+      - Raw: "20"
+    named_args: []
+        "###;
+
+        let pipeline: Pipeline = from_str(yaml).unwrap();
+        let cte = to_cte(&pipeline);
+        assert_yaml_snapshot!(cte, @r###"
+        ---
+        select:
+          - List:
+              - Items:
+                  - Ident: average
+                  - Ident: salary
+        from:
+          - Ident: employees
+        where_:
+          name: Filter
+          args:
+            - Items:
+                - Ident: country
+                - Raw: "="
+                - String: "\"USA\""
+          named_args: []
+        group_by: ~
+        having:
+          name: Filter
+          args: []
+          named_args: []
+        order_by:
+          name: Sort
+          args:
+            - Ident: sum_gross_cost
+          named_args: []
+        "###);
     }
 }
