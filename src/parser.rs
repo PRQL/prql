@@ -1,122 +1,13 @@
-use anyhow::{anyhow, Result};
+use super::ast::*;
+use anyhow::{Context, Result};
 use pest::error::Error;
 use pest::iterators::Pairs;
 use pest::Parser;
 use pest_derive::Parser;
-use serde::{Deserialize, Serialize};
 
 #[derive(Parser)]
 #[grammar = "prql.pest"]
 pub struct PrqlParser;
-
-// Idents are generally columns
-pub type Ident = String;
-pub type Items = Vec<Item>;
-pub type Idents = Vec<Ident>;
-pub type Pipeline = Vec<Transformation>;
-
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub enum Item {
-    Transformation(Transformation),
-    Ident(Ident),
-    String(String),
-    Raw(String),
-    Assign(Assign),
-    NamedArg(NamedArg),
-    Query(Items),
-    Pipeline(Pipeline),
-    // Holds Item-s directly if a list entry is a single item, otherwise holds
-    // Item::Items. This is less verbose than always having Item::Items.
-    List(Items),
-    // In some cases, as as lists, we need a container for multiple items to
-    // discriminate them from, e.g. a series of Idents. `[a, b]` vs `[a b]`.
-    Items(Items),
-    Idents(Idents),
-    Function(Function),
-    Table(Table),
-    // Anything not yet implemented.
-    TODO(String),
-}
-
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub struct Transformation {
-    pub name: TransformationType,
-    pub args: Items,
-    pub named_args: Vec<NamedArg>,
-}
-
-#[derive(Debug, PartialEq, Clone, Serialize, Hash, Eq, Deserialize)]
-pub enum TransformationType {
-    From,
-    Select,
-    Filter,
-    Derive,
-    Aggregate,
-    Sort,
-    Take,
-    Join,
-    Custom { name: String },
-}
-
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub struct Function {
-    pub name: Ident,
-    pub args: Vec<Ident>,
-    pub body: Items,
-}
-
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub struct Table {
-    pub name: Ident,
-    pub pipeline: Pipeline,
-}
-
-impl From<&str> for TransformationType {
-    fn from(s: &str) -> Self {
-        match s {
-            "from" => TransformationType::From,
-            "select" => TransformationType::Select,
-            "filter" => TransformationType::Filter,
-            "derive" => TransformationType::Derive,
-            "aggregate" => TransformationType::Aggregate,
-            "sort" => TransformationType::Sort,
-            "take" => TransformationType::Take,
-            "join" => TransformationType::Join,
-            _ => TransformationType::Custom { name: s.to_owned() },
-        }
-    }
-}
-
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub struct NamedArg {
-    pub lvalue: Ident,
-    pub rvalue: Items,
-}
-
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub struct Assign {
-    pub lvalue: Ident,
-    pub rvalue: Items,
-}
-
-impl Item {
-    // We could expand these with (but it will add lots of methods...)
-    // https://crates.io/crates/enum-as-inner?
-    pub fn as_ident(&self) -> Result<&Ident> {
-        if let Item::Ident(ident) = self {
-            Ok(ident)
-        } else {
-            Err(anyhow!("Expected Item::Ident, got {:?}", self))
-        }
-    }
-    pub fn as_named_arg(&self) -> Result<&NamedArg> {
-        if let Item::NamedArg(named_arg) = self {
-            Ok(named_arg)
-        } else {
-            Err(anyhow!("Expected Item::NamedArg, got {:?}", self))
-        }
-    }
-}
 
 pub fn parse(pairs: Pairs<Rule>) -> Result<Items> {
     pairs
@@ -148,20 +39,57 @@ pub fn parse(pairs: Pairs<Rule>) -> Result<Items> {
                 }
                 Rule::transformation => {
                     let parsed = parse(pair.into_inner())?;
-                    let (name, all_args) = parsed.split_first().unwrap();
+                    let (name_item, all_args) = parsed.split_first().unwrap();
+                    let name = name_item.as_ident()?;
 
-                    let (named_args, args) = all_args
+                    let (named_arg_items, args): (Vec<Item>, Vec<Item>) = all_args
                         .iter()
                         .cloned()
                         .partition(|x| matches!(x, Item::NamedArg(_)));
 
-                    Item::Transformation(Transformation {
-                        name: name.as_ident()?.as_str().into(),
-                        args,
-                        named_args: named_args
-                            .iter()
-                            .map(|x| x.as_named_arg().cloned())
-                            .collect::<Result<_>>()?,
+                    let named_args: Vec<NamedArg> = named_arg_items
+                        .iter()
+                        .map(|x| x.as_named_arg().cloned())
+                        .collect::<Result<Vec<_>>>()?;
+
+                    Item::Transformation(match name.as_str() {
+                        "from" => Transformation::From(args),
+                        "select" => Transformation::Select(args),
+                        "filter" => Transformation::Filter(args),
+                        "derive" => {
+                            let assigns = args
+                                .first()
+                                .context("Expected at least one argument")?
+                                .to_items()
+                                .iter()
+                                .map(|x| x.as_assign().cloned())
+                                .collect::<Result<Vec<_>>>()?;
+                            Transformation::Derive(assigns)
+                        }
+                        "aggregate" => Transformation::Aggregate {
+                            calcs: args.to_vec(),
+                            by: named_args
+                                .iter()
+                                .find(|x| x.lvalue == "by")
+                                .map(|x| x.rvalue.clone())
+                                .unwrap_or_else(Vec::new),
+                        },
+                        "sort" => Transformation::Sort(args),
+                        "take" => Transformation::Take({
+                            match args.first() {
+                                // TODO: coerce to number
+                                Some(n) => n.as_raw()?.parse()?,
+                                // TOOD: Raise here
+                                // None => return anyhow!("Expected a number"),
+                                None => unimplemented!(),
+                            }
+                        }),
+                        "join" => Transformation::Join(args),
+                        _ => Transformation::Custom {
+                            name: name.to_owned(),
+                            args,
+                            named_args,
+                        },
                     })
                 }
                 Rule::function => {
@@ -240,17 +168,15 @@ mod test {
         .unwrap(), @r###"
         ---
         - Transformation:
-            name: Aggregate
-            args:
-              - List:
-                  - Items:
-                      - Ident: sum
-                      - Ident: salary
-            named_args:
-              - lvalue: by
-                rvalue:
-                  - List:
-                      - Ident: title
+            Aggregate:
+              by:
+                - List:
+                    - Ident: title
+              calcs:
+                - List:
+                    - Items:
+                        - Ident: sum
+                        - Ident: salary
         "###);
         assert_yaml_snapshot!(parse(
             parse_to_pest_tree(
@@ -321,7 +247,7 @@ aggregate by:[title, country] [                  # `by` are the columns to group
     sum     gross_salary,
     average gross_cost,
     sum_gross_cost: sum gross_cost,
-    count,
+    count: count,
 ]
 sort sum_gross_cost
 filter count > 200
@@ -408,10 +334,8 @@ take 20
         - Table:
             name: newest_employees
             pipeline:
-              - name: From
-                args:
+              - From:
                   - Ident: employees
-                named_args: []
         "###);
         assert_yaml_snapshot!(parse(
             parse_to_pest_tree(r#"
@@ -430,18 +354,11 @@ take 20
         - Table:
             name: newest_employees
             pipeline:
-              - name: From
-                args:
+              - From:
                   - Ident: employees
-                named_args: []
-              - name: Sort
-                args:
+              - Sort:
                   - Ident: tenure
-                named_args: []
-              - name: Take
-                args:
-                  - Raw: "50"
-                named_args: []
+              - Take: 50
         "###);
     }
 
@@ -585,7 +502,7 @@ aggregate by:[title, country] [                  # `by` are the columns to group
     sum     gross_salary,
     average gross_cost,
     sum_gross_cost: sum gross_cost,
-    count,
+    count: count,
 ]
 sort sum_gross_cost
 filter count > 200

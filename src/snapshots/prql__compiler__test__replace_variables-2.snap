@@ -1,41 +1,31 @@
 ---
 source: src/compiler.rs
-assertion_line: 310
-expression: "ast.replace_variables(&HashMap::new())"
+assertion_line: 256
+expression: "ast.replace_variables(&mut HashMap::new())"
 
 ---
 Pipeline:
-  - name: From
-    args:
+  - From:
       - Ident: employees
-    named_args: []
-  - name: Filter
-    args:
+  - Filter:
       - Ident: country
       - Raw: "="
       - String: "\"USA\""
-    named_args: []
-  - name: Derive
-    args:
-      - List:
-          - Assign:
-              lvalue: gross_salary
-              rvalue:
-                - Ident: salary
-                - Raw: +
-                - Ident: payroll_tax
-          - Assign:
-              lvalue: gross_cost
-              rvalue:
-                - Items:
-                    - Ident: salary
-                    - Raw: +
-                    - Ident: payroll_tax
-                - Raw: +
-                - Ident: benefits_cost
-    named_args: []
-  - name: Filter
-    args:
+  - Derive:
+      - lvalue: gross_salary
+        rvalue:
+          - Ident: salary
+          - Raw: +
+          - Ident: payroll_tax
+      - lvalue: gross_cost
+        rvalue:
+          - Items:
+              - Ident: salary
+              - Raw: +
+              - Ident: payroll_tax
+          - Raw: +
+          - Ident: benefits_cost
+  - Filter:
       - Items:
           - Items:
               - Ident: salary
@@ -45,41 +35,33 @@ Pipeline:
           - Ident: benefits_cost
       - Raw: ">"
       - Raw: "0"
-    named_args: []
-  - name: Aggregate
-    args:
-      - List:
-          - Items:
-              - Ident: average
-              - Ident: salary
-          - Items:
-              - Ident: sum
-              - Ident: salary
-          - Items:
-              - Ident: average
-              - Items:
-                  - Ident: salary
-                  - Raw: +
-                  - Ident: payroll_tax
-          - Items:
-              - Ident: sum
-              - Items:
-                  - Ident: salary
-                  - Raw: +
-                  - Ident: payroll_tax
-          - Items:
-              - Ident: average
-              - Items:
-                  - Items:
-                      - Ident: salary
-                      - Raw: +
-                      - Ident: payroll_tax
-                  - Raw: +
-                  - Ident: benefits_cost
-          - Assign:
-              lvalue: sum_gross_cost
-              rvalue:
+  - Aggregate:
+      by:
+        - List:
+            - Ident: title
+            - Ident: country
+      calcs:
+        - List:
+            - Items:
+                - Ident: average
+                - Ident: salary
+            - Items:
                 - Ident: sum
+                - Ident: salary
+            - Items:
+                - Ident: average
+                - Items:
+                    - Ident: salary
+                    - Raw: +
+                    - Ident: payroll_tax
+            - Items:
+                - Ident: sum
+                - Items:
+                    - Ident: salary
+                    - Raw: +
+                    - Ident: payroll_tax
+            - Items:
+                - Ident: average
                 - Items:
                     - Items:
                         - Ident: salary
@@ -87,25 +69,26 @@ Pipeline:
                         - Ident: payroll_tax
                     - Raw: +
                     - Ident: benefits_cost
-          - Ident: count
-    named_args:
-      - lvalue: by
-        rvalue:
-          - List:
-              - Ident: title
-              - Ident: country
-  - name: Sort
-    args:
+            - Assign:
+                lvalue: sum_gross_cost
+                rvalue:
+                  - Ident: sum
+                  - Items:
+                      - Items:
+                          - Ident: salary
+                          - Raw: +
+                          - Ident: payroll_tax
+                      - Raw: +
+                      - Ident: benefits_cost
+            - Assign:
+                lvalue: count
+                rvalue:
+                  - Ident: count
+  - Sort:
       - Ident: sum_gross_cost
-    named_args: []
-  - name: Filter
-    args:
-      - Ident: count
+  - Filter:
+      - Ident: sum_gross_cost
       - Raw: ">"
       - Raw: "200"
-    named_args: []
-  - name: Take
-    args:
-      - Raw: "20"
-    named_args: []
+  - Take: 20
 

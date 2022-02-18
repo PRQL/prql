@@ -1,23 +1,16 @@
+use super::ast::*;
 use std::collections::HashMap;
-
-use crate::parser::{
-    Assign, Ident, Idents, Item, Items, NamedArg, Pipeline, Transformation, TransformationType,
-};
 
 /// An object in which we want to replace variables with the items in those variables.
 pub trait ContainsVariables {
     #[must_use]
-    fn replace_variables(&self, variables: &HashMap<Ident, Item>) -> Self;
+    fn replace_variables(&self, variables: &mut HashMap<Ident, Item>) -> Self;
 }
 
 impl ContainsVariables for Pipeline {
-    fn replace_variables(&self, variables: &HashMap<Ident, Item>) -> Self
+    fn replace_variables(&self, variables: &mut HashMap<Ident, Item>) -> Self
     where
         Self: Sized,
-        // Very messy function — we should clean up. I think probably we should
-        // do a pass of the AST and normalize it — so for example — a Derive
-        // transformation always has a list of Assigns. Then these functions can
-        // be much simpler, and don't need to handle multiple
     {
         // We don't expect to use a variables arg, but the function takes one
         // out of conformity. We use it as a base rather than discard it in the
@@ -25,57 +18,7 @@ impl ContainsVariables for Pipeline {
         let mut variables = variables.clone();
 
         self.iter()
-            .map(|transformation| match transformation.name {
-                // If it's a derive, add the variables to the hashmap (while
-                // also replacing its variables with those which came before
-                // it).
-                TransformationType::Derive => Transformation {
-                    name: transformation.name.clone(),
-                    named_args: transformation.named_args.clone(),
-                    args: transformation
-                        .args
-                        .iter()
-                        .map(|arg| match arg {
-                            // These can either have an Assign, or a list of Assigns
-                            Item::Assign(assign) => {
-                                let assign_replaced = assign.replace_variables(&variables);
-                                variables.extend(extract_variables(&assign_replaced));
-                                Item::Assign(assign_replaced)
-                            }
-                            Item::List(assigns) => {
-                                Item::List(
-                                    assigns
-                                        .iter()
-                                        .map(|assign| match assign {
-                                            // This is copy-pasted from above —
-                                            // should we run a normalization
-                                            // step before to move everything
-                                            // into lists?
-                                            Item::Assign(assign) => {
-                                                let assign_replaced =
-                                                    assign.replace_variables(&variables);
-                                                variables
-                                                    .extend(extract_variables(&assign_replaced));
-
-                                                Item::Assign(assign_replaced)
-                                            }
-                                            _ => {
-                                                unreachable!(
-                                                    "Derives should only contain Assigns; {:?}",
-                                                    assign
-                                                )
-                                            }
-                                        })
-                                        .collect(),
-                                )
-                            }
-                            _ => unreachable!("Derives should only contain Assigns"),
-                        })
-                        .collect(),
-                },
-                // For everything else, just replace the variables.
-                _ => transformation.replace_variables(&variables),
-            })
+            .map(|t| t.replace_variables(&mut variables))
             .collect()
     }
 }
@@ -89,12 +32,12 @@ fn extract_variables(assign: &Assign) -> HashMap<Ident, Item> {
 }
 
 impl ContainsVariables for Item {
-    fn replace_variables(&self, variables: &HashMap<Ident, Item>) -> Self {
+    fn replace_variables(&self, variables: &mut HashMap<Ident, Item>) -> Self {
         // This is verbose — is there a better approach? If we have to do this
         // again for another function, we could change it to a Visitor pattern.
         // But we'd need to encode things like not replacing `lvalue`s. Many of
         // these are doing exactly the same thing — iterating through their
-        // itesm.
+        // items.
         match self {
             Item::Ident(ident) => {
                 if variables.contains_key(ident) {
@@ -126,7 +69,7 @@ impl ContainsVariables for Item {
 }
 
 impl ContainsVariables for Assign {
-    fn replace_variables(&self, variables: &HashMap<Ident, Item>) -> Self {
+    fn replace_variables(&self, variables: &mut HashMap<Ident, Item>) -> Self {
         Assign {
             lvalue: self.lvalue.to_owned(),
             rvalue: self
@@ -139,7 +82,7 @@ impl ContainsVariables for Assign {
 }
 
 impl ContainsVariables for NamedArg {
-    fn replace_variables(&self, variables: &HashMap<Ident, Item>) -> Self {
+    fn replace_variables(&self, variables: &mut HashMap<Ident, Item>) -> Self {
         NamedArg {
             lvalue: self.lvalue.to_owned(),
             rvalue: self
@@ -152,7 +95,7 @@ impl ContainsVariables for NamedArg {
 }
 
 impl ContainsVariables for Idents {
-    fn replace_variables(&self, variables: &HashMap<Ident, Item>) -> Self {
+    fn replace_variables(&self, variables: &mut HashMap<Ident, Item>) -> Self {
         self.iter()
             // TODO: Not the most elegant approach. Possibly up a level we could parse
             // `Ident`s into `Items` — but probably push until we add named_args
@@ -169,7 +112,7 @@ impl ContainsVariables for Idents {
 }
 
 impl ContainsVariables for Items {
-    fn replace_variables(&self, variables: &HashMap<Ident, Item>) -> Self {
+    fn replace_variables(&self, variables: &mut HashMap<Ident, Item>) -> Self {
         self.iter()
             .map(|item| item.replace_variables(variables))
             .collect()
@@ -177,19 +120,62 @@ impl ContainsVariables for Items {
 }
 
 impl ContainsVariables for Transformation {
-    fn replace_variables(&self, variables: &HashMap<Ident, Item>) -> Self {
-        Transformation {
-            name: self.name.to_owned(),
-            args: self
-                .args
-                .iter()
-                .map(|item| item.replace_variables(variables))
-                .collect(),
-            named_args: self
-                .named_args
-                .iter()
-                .map(|named_arg| named_arg.replace_variables(variables))
-                .collect(),
+    fn replace_variables(&self, variables: &mut HashMap<Ident, Item>) -> Self {
+        // As above re this being verbose and possibly we write a visitor
+        // pattern to visit all `items`.
+        match self {
+            // If it's a derive, add the variables to the hashmap (while
+            // also replacing its variables with those which came before
+            // it).
+            Transformation::Derive(assigns) => Transformation::Derive({
+                assigns
+                    .iter()
+                    .map(|assign| {
+                        {
+                            // Replace this assign using existing variable
+                            // mapping before adding its variables into the
+                            // variable mapping.
+                            let assign_replaced = assign.replace_variables(variables);
+                            variables.extend(extract_variables(&assign_replaced));
+                            assign_replaced
+                        }
+                    })
+                    .collect()
+            }),
+            Transformation::From(items) => Transformation::From(items.replace_variables(variables)),
+            Transformation::Filter(items) => {
+                Transformation::Filter(items.replace_variables(variables))
+            }
+            Transformation::Sort(ref items) => {
+                Transformation::Sort(items.replace_variables(variables))
+            }
+            Transformation::Join(ref items) => {
+                Transformation::Join(items.replace_variables(variables))
+            }
+            Transformation::Select(ref items) => {
+                Transformation::Select(items.replace_variables(variables))
+            }
+            Transformation::Aggregate { by, calcs } => Transformation::Aggregate {
+                by: by.replace_variables(variables),
+                calcs: calcs.replace_variables(variables),
+            },
+            // For everything else, just visit each object and replace the variables.
+            Transformation::Custom {
+                name,
+                args,
+                named_args,
+            } => Transformation::Custom {
+                name: name.to_owned(),
+                args: args
+                    .iter()
+                    .map(|item| item.replace_variables(variables))
+                    .collect(),
+                named_args: named_args
+                    .iter()
+                    .map(|named_arg| named_arg.replace_variables(variables))
+                    .collect(),
+            },
+            &Transformation::Take(_) => self.clone(),
         }
     }
 }
@@ -225,21 +211,20 @@ mod test {
         // showing the diffs of an operation.
         assert_display_snapshot!(TextDiff::from_lines(
             &to_string(ast).unwrap(),
-            &to_string(&ast.replace_variables(&HashMap::new())).unwrap()
+            &to_string(&ast.replace_variables(&mut HashMap::new())).unwrap()
         ).unified_diff(),
         @r###"
-        @@ -16,7 +16,10 @@
-                   - Assign:
-                       lvalue: gross_cost
-                       rvalue:
-        -                - Ident: gross_salary
-        +                - Items:
-        +                    - Ident: salary
-        +                    - Raw: +
-        +                    - Ident: payroll_tax
-                         - Raw: +
-                         - Ident: benefits_cost
-             named_args: []
+        @@ -10,6 +10,9 @@
+                   - Ident: payroll_tax
+               - lvalue: gross_cost
+                 rvalue:
+        -          - Ident: gross_salary
+        +          - Items:
+        +              - Ident: salary
+        +              - Raw: +
+        +              - Ident: payroll_tax
+                   - Raw: +
+                   - Ident: benefits_cost
         "###);
 
         let ast = &parse(
@@ -259,10 +244,10 @@ aggregate by:[title, country] [                  # `by` are the columns to group
     sum     gross_salary,
     average gross_cost,
     sum_gross_cost: sum gross_cost,
-    count,
+    count: count,
 ]
 sort sum_gross_cost
-filter count > 200
+filter sum_gross_cost > 200
 take 20
     "#,
                 Rule::query,
@@ -270,6 +255,6 @@ take 20
             .unwrap(),
         )
         .unwrap()[0];
-        assert_yaml_snapshot!(ast.replace_variables(&HashMap::new()));
+        assert_yaml_snapshot!(ast.replace_variables(&mut HashMap::new()));
     }
 }
