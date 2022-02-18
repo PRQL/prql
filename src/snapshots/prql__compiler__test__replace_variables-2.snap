@@ -80,11 +80,14 @@ Pipeline:
                           - Ident: payroll_tax
                       - Raw: +
                       - Ident: benefits_cost
-            - Ident: count
+            - Assign:
+                lvalue: count
+                rvalue:
+                  - Ident: count
   - Sort:
       - Ident: sum_gross_cost
   - Filter:
-      - Ident: count
+      - Ident: sum_gross_cost
       - Raw: ">"
       - Raw: "200"
   - Take: 20

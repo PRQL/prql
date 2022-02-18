@@ -121,6 +121,8 @@ impl ContainsVariables for Items {
 
 impl ContainsVariables for Transformation {
     fn replace_variables(&self, variables: &mut HashMap<Ident, Item>) -> Self {
+        // As above re this being verbose and possibly we write a visitor
+        // pattern to visit all `items`.
         match self {
             // If it's a derive, add the variables to the hashmap (while
             // also replacing its variables with those which came before
@@ -242,10 +244,10 @@ aggregate by:[title, country] [                  # `by` are the columns to group
     sum     gross_salary,
     average gross_cost,
     sum_gross_cost: sum gross_cost,
-    count,
+    count: count,
 ]
 sort sum_gross_cost
-filter count > 200
+filter sum_gross_cost > 200
 take 20
     "#,
                 Rule::query,
