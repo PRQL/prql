@@ -1,8 +1,5 @@
+use super::ast::*;
 use std::collections::HashMap;
-
-use crate::parser::{
-    Assign, Ident, Idents, Item, Items, NamedArg, Pipeline, Transformation, TransformationType,
-};
 
 /// An object in which we want to replace variables with the items in those variables.
 pub trait ContainsVariables {
@@ -25,54 +22,25 @@ impl ContainsVariables for Pipeline {
         let mut variables = variables.clone();
 
         self.iter()
-            .map(|transformation| match transformation.name {
+            .map(|transformation| match transformation {
                 // If it's a derive, add the variables to the hashmap (while
                 // also replacing its variables with those which came before
                 // it).
-                TransformationType::Derive => Transformation {
-                    name: transformation.name.clone(),
-                    named_args: transformation.named_args.clone(),
-                    args: transformation
-                        .args
+                Transformation::Derive(assigns) => Transformation::Derive({
+                    assigns
                         .iter()
-                        .map(|arg| match arg {
-                            // These can either have an Assign, or a list of Assigns
-                            Item::Assign(assign) => {
+                        .map(|assign| {
+                            {
+                                // Replace this assign using existing variable
+                                // mapping before adding its variables into the
+                                // variable mapping.
                                 let assign_replaced = assign.replace_variables(&variables);
                                 variables.extend(extract_variables(&assign_replaced));
-                                Item::Assign(assign_replaced)
+                                assign_replaced
                             }
-                            Item::List(assigns) => {
-                                Item::List(
-                                    assigns
-                                        .iter()
-                                        .map(|assign| match assign {
-                                            // This is copy-pasted from above —
-                                            // should we run a normalization
-                                            // step before to move everything
-                                            // into lists?
-                                            Item::Assign(assign) => {
-                                                let assign_replaced =
-                                                    assign.replace_variables(&variables);
-                                                variables
-                                                    .extend(extract_variables(&assign_replaced));
-
-                                                Item::Assign(assign_replaced)
-                                            }
-                                            _ => {
-                                                unreachable!(
-                                                    "Derives should only contain Assigns; {:?}",
-                                                    assign
-                                                )
-                                            }
-                                        })
-                                        .collect(),
-                                )
-                            }
-                            _ => unreachable!("Derives should only contain Assigns"),
                         })
-                        .collect(),
-                },
+                        .collect()
+                }),
                 // For everything else, just replace the variables.
                 _ => transformation.replace_variables(&variables),
             })
@@ -178,18 +146,24 @@ impl ContainsVariables for Items {
 
 impl ContainsVariables for Transformation {
     fn replace_variables(&self, variables: &HashMap<Ident, Item>) -> Self {
-        Transformation {
-            name: self.name.to_owned(),
-            args: self
-                .args
-                .iter()
-                .map(|item| item.replace_variables(variables))
-                .collect(),
-            named_args: self
-                .named_args
-                .iter()
-                .map(|named_arg| named_arg.replace_variables(variables))
-                .collect(),
+        match self {
+            Transformation::Custom {
+                name,
+                args,
+                named_args,
+            } => Transformation::Custom {
+                name: name.to_owned(),
+                args: args
+                    .iter()
+                    .map(|item| item.replace_variables(variables))
+                    .collect(),
+                named_args: named_args
+                    .iter()
+                    .map(|named_arg| named_arg.replace_variables(variables))
+                    .collect(),
+            },
+            // FIXME
+            _ => self.clone(),
         }
     }
 }
@@ -228,18 +202,17 @@ mod test {
             &to_string(&ast.replace_variables(&HashMap::new())).unwrap()
         ).unified_diff(),
         @r###"
-        @@ -16,7 +16,10 @@
-                   - Assign:
-                       lvalue: gross_cost
-                       rvalue:
-        -                - Ident: gross_salary
-        +                - Items:
-        +                    - Ident: salary
-        +                    - Raw: +
-        +                    - Ident: payroll_tax
-                         - Raw: +
-                         - Ident: benefits_cost
-             named_args: []
+        @@ -10,6 +10,9 @@
+                   - Ident: payroll_tax
+               - lvalue: gross_cost
+                 rvalue:
+        -          - Ident: gross_salary
+        +          - Items:
+        +              - Ident: salary
+        +              - Raw: +
+        +              - Ident: payroll_tax
+                   - Raw: +
+                   - Ident: benefits_cost
         "###);
 
         let ast = &parse(

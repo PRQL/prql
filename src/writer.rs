@@ -1,6 +1,6 @@
+use super::ast::*;
 use std::collections::HashMap;
 
-use super::parser::{Item, Items, Pipeline, Transformation, TransformationType};
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 
@@ -11,7 +11,7 @@ pub struct Cte {
     //
     // Should they be Option<T>? Or just empty if they're not required?
     select: Option<Items>,
-    from: Option<Items>,
+    from: Transformation,
     where_: Option<Transformation>,
     group_by: Option<Items>,
     having: Option<Transformation>,
@@ -23,15 +23,18 @@ pub struct Cte {
 /// this is implemented on.
 #[allow(unstable_name_collisions)] // Same behavior as the std lib; we can remove this + itertools when that's released.
 fn combine_filters(filters: Vec<Transformation>) -> Transformation {
-    Transformation {
-        name: TransformationType::Filter,
-        args: filters
+    Transformation::Filter(
+        filters
             .into_iter()
-            .map(|filter| Item::Items(filter.args))
+            .map(|filter| match filter {
+                Transformation::Filter(items) => Item::Items(items),
+                _ => {
+                    panic!("Can only combine filters with other filters.");
+                }
+            })
             .intersperse(Item::Raw("and".to_owned()))
             .collect(),
-        named_args: vec![],
-    }
+    )
 }
 
 pub fn to_cte(pipeline: &Pipeline) -> Cte {
@@ -46,16 +49,18 @@ pub fn to_cte(pipeline: &Pipeline) -> Cte {
 
     let from = pipeline
         .iter()
-        .find(|t| t.name == TransformationType::From)
-        .map(|t| t.args.clone());
+        .find(|t| matches!(t, Transformation::From(_)))
+        .unwrap()
+        .clone();
+
     // We could combine the next two with a more sophisticated `split_at`
 
     // Find the filters that come before the aggregation.
     let where_ = combine_filters(
         pipeline
             .iter()
-            .take_while(|t| t.name != TransformationType::Aggregate)
-            .filter(|t| t.name == TransformationType::Filter)
+            .take_while(|t| !matches!(t, Transformation::Aggregate { by: _, calcs: _ }))
+            .filter(|t| matches!(t, Transformation::Filter(_)))
             .cloned()
             .collect(),
     );
@@ -64,8 +69,8 @@ pub fn to_cte(pipeline: &Pipeline) -> Cte {
     let having = combine_filters(
         pipeline
             .iter()
-            .skip_while(|t| t.name != TransformationType::Aggregate)
-            .filter(|t| t.name == TransformationType::Filter)
+            .skip_while(|t| !matches!(t, Transformation::Aggregate { by: _, calcs: _ }))
+            .filter(|t| matches!(t, Transformation::Filter(_)))
             .cloned()
             .collect(),
     );
@@ -73,32 +78,31 @@ pub fn to_cte(pipeline: &Pipeline) -> Cte {
     // Find the final sort (none of the others affect the result, and can be discarded).
     let order_by = pipeline
         .iter()
-        .filter(|t| t.name == TransformationType::Sort)
+        .filter(|t| matches!(t, Transformation::Sort(_)))
         .cloned()
         .last();
 
-    let selects = pipeline
+    // TODO: clean this rust up
+    let aggregate = pipeline
         .iter()
-        .find(|t| t.name == TransformationType::Aggregate);
-
-    let select_from_aggregate = selects.map(|aggregate| aggregate.args.clone());
-    let group_by = selects
-        .and_then(|aggregate| aggregate.named_args.first())
-        .map(|named_arg| {
-            assert!(named_arg.lvalue == "by");
-            named_arg.rvalue.clone()
-        });
+        .find(|t| matches!(t, Transformation::Aggregate { by: _, calcs: _ }));
+    let (group_by, select_from_aggregate) = match aggregate {
+        Some(Transformation::Aggregate { by, calcs }) => (Some(by.clone()), Some(calcs.clone())),
+        None => (None, None),
+        _ => unreachable!("Expected an aggregate transformation"),
+    };
 
     // Only the final select matters (assuming we don't have notions of `select
     // *` or `select * except`)
     let select_from_select = pipeline
         .iter()
-        .filter(|t| t.name == TransformationType::Select)
-        .last()
-        .map(|t| t.args.clone());
+        .filter_map(|t| match t {
+            Transformation::Select(items) => Some(items.clone()),
+            _ => None,
+        })
+        .last();
 
-    // Code smell that we're using the PRQL AST to store SQL, and so giving
-    // empty named args etc.
+    // TODO: add selects from derives
     let select = [select_from_select, select_from_aggregate]
         .into_iter()
         // This unwraps the Options
@@ -132,26 +136,24 @@ pub fn to_ctes(pipeline: &Pipeline) -> Vec<Pipeline> {
     // TODO: how do we handle the `from` of the next query? Add it here? Have a
     // Vec<Ctc> where this is implicit?
     let mut ctes = vec![];
-    let mut counts: HashMap<&TransformationType, u32> = HashMap::new();
+    let mut counts: HashMap<&str, u32> = HashMap::new();
 
     let mut current_cte: Pipeline = vec![];
 
     // This seems inelegant! I'm sure there's a better way to do this, though
     // note the constraints from above.
     for transformation in pipeline {
-        if let TransformationType::Aggregate = transformation.name {
-            if counts.get(&TransformationType::Aggregate) == Some(&1) {
-                // We have a new CTE
-                ctes.push(current_cte);
-                current_cte = vec![];
-                counts.clear();
-            }
+        if transformation.name() == "aggregate" && counts.get("aggregate") == Some(&1) {
+            // We have a new CTE
+            ctes.push(current_cte);
+            current_cte = vec![];
+            counts.clear();
         }
 
-        *counts.entry(&transformation.name).or_insert(0) += 1;
+        *counts.entry(transformation.name()).or_insert(0) += 1;
         current_cte.push(transformation.to_owned());
 
-        if counts.get(&TransformationType::Take) == Some(&1) {
+        if counts.get("take") == Some(&1) {
             // We have a new CTE
             ctes.push(current_cte);
             current_cte = vec![];
@@ -172,37 +174,31 @@ mod test {
     use insta::assert_yaml_snapshot;
     use serde_yaml::from_str;
 
-    use crate::parser::Pipeline;
+    use crate::ast::Pipeline;
 
     #[test]
     fn test_to_ctes() {
         // One aggregate, take at the end
         let yaml: &str = r###"
-  - name: From
-    args:
-      - Ident: employees
-    named_args: []
-  - name: Filter
-    args:
-      - Ident: country
-      - Raw: "="
-      - String: "\"USA\""
-    named_args: []
-  - name: Aggregate
-    args:
+- From:
+    - Ident: employees
+- Filter:
+    - Ident: country
+    - Raw: "="
+    - String: "\"USA\""
+- Aggregate:
+    by:
+      - List:
+          - Ident: title
+          - Ident: country
+    calcs:
       - List:
           - Items:
               - Ident: average
               - Ident: salary
-    named_args: []
-  - name: Sort
-    args:
-      - Ident: salary
-    named_args: []
-  - name: Take
-    args:
-      - Raw: "20"
-    named_args: []
+- Sort:
+    - Ident: title
+- Take: 20
         "###;
 
         let pipeline: Pipeline = from_str(yaml).unwrap();
@@ -211,31 +207,25 @@ mod test {
 
         // One aggregate, but take at the top
         let yaml: &str = r###"
-  - name: From
-    args:
-      - Ident: employees
-    named_args: []
-  - name: Take
-    args:
-      - Raw: "20"
-    named_args: []
-  - name: Filter
-    args:
-      - Ident: country
-      - Raw: "="
-      - String: "\"USA\""
-    named_args: []
-  - name: Aggregate
-    args:
+- From:
+    - Ident: employees
+- Take: 20
+- Filter:
+    - Ident: country
+    - Raw: "="
+    - String: "\"USA\""
+- Aggregate:
+    by:
+      - List:
+          - Ident: title
+          - Ident: country
+    calcs:
       - List:
           - Items:
               - Ident: average
               - Ident: salary
-    named_args: []
-  - name: Sort
-    args:
-      - Ident: salary
-    named_args: []
+- Sort:
+    - Ident: title
         "###;
 
         let pipeline: Pipeline = from_str(yaml).unwrap();
@@ -244,40 +234,35 @@ mod test {
 
         // A take, then two aggregates
         let yaml: &str = r###"
-  - name: From
-    args:
-      - Ident: employees
-    named_args: []
-  - name: Take
-    args:
-      - Raw: "20"
-    named_args: []
-  - name: Filter
-    args:
-      - Ident: country
-      - Raw: "="
-      - String: "\"USA\""
-    named_args: []
-  - name: Aggregate
-    args:
+- From:
+    - Ident: employees
+- Take: 20
+- Filter:
+    - Ident: country
+    - Raw: "="
+    - String: "\"USA\""
+- Aggregate:
+    by:
+      - List:
+          - Ident: title
+          - Ident: country
+    calcs:
       - List:
           - Items:
               - Ident: average
               - Ident: salary
-    named_args:
-      - lvalue: by
-        rvalue:
-          - List:
-              - Ident: title
-              - Ident: country
-  - name: Aggregate
-    args:
+- Aggregate:
+    by:
+      - List: []
+    calcs:
       - List:
           - Items:
               - Ident: sum
               # TODO: this isn't currently defined
               - Ident: average_salary
-    named_args: []
+- Sort:
+    - Ident: sum_gross_cost
+ 
         "###;
 
         let pipeline: Pipeline = from_str(yaml).unwrap();
@@ -288,31 +273,25 @@ mod test {
     #[test]
     fn test_to_cte() {
         let yaml: &str = r###"
-  - name: From
-    args:
-      - Ident: employees
-    named_args: []
-  - name: Filter
-    args:
-      - Ident: country
-      - Raw: "="
-      - String: "\"USA\""
-    named_args: []
-  - name: Aggregate
-    args:
+- From:
+    - Ident: employees
+- Filter:
+    - Ident: country
+    - Raw: "="
+    - String: "\"USA\""
+- Aggregate:
+    by:
+      - List:
+          - Ident: title
+          - Ident: country
+    calcs:
       - List:
           - Items:
               - Ident: average
               - Ident: salary
-    named_args: []
-  - name: Sort
-    args:
-      - Ident: sum_gross_cost
-    named_args: []
-  - name: Take
-    args:
-      - Raw: "20"
-    named_args: []
+- Sort:
+    - Ident: title
+- Take: 20
         "###;
 
         let pipeline: Pipeline = from_str(yaml).unwrap();
@@ -325,25 +304,23 @@ mod test {
                   - Ident: average
                   - Ident: salary
         from:
-          - Ident: employees
+          From:
+            - Ident: employees
         where_:
-          name: Filter
-          args:
+          Filter:
             - Items:
                 - Ident: country
                 - Raw: "="
                 - String: "\"USA\""
-          named_args: []
-        group_by: ~
+        group_by:
+          - List:
+              - Ident: title
+              - Ident: country
         having:
-          name: Filter
-          args: []
-          named_args: []
+          Filter: []
         order_by:
-          name: Sort
-          args:
-            - Ident: sum_gross_cost
-          named_args: []
+          Sort:
+            - Ident: title
         "###);
     }
 }

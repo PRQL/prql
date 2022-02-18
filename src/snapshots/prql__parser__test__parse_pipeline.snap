@@ -1,84 +1,64 @@
 ---
 source: src/parser.rs
-assertion_line: 268
-expression: "parse(parse_to_pest_tree(r#\"\nfrom employees\nfilter country = \"USA\"                           # Each line transforms the previous result.\nderive [                                         # This adds columns / variables.\n  gross_salary: salary + payroll_tax,\n  gross_cost:   gross_salary + benefits_cost     # Variables can use other variables.\n]           \nfilter gross_cost > 0\naggregate by:[title, country] [                  # `by` are the columns to group by.\n    average salary,                              # These are aggregation calcs run on each group.\n    sum     salary,\n    average gross_salary,\n    sum     gross_salary,\n    average gross_cost,\n    sum_gross_cost: sum gross_cost,\n    count,\n]\nsort sum_gross_cost\nfilter count > 200\ntake 20\n    \"#.trim(),\n                         Rule::pipeline).unwrap()).unwrap()"
+assertion_line: 244
+expression: "parse(parse_to_pest_tree(r#\"\nfrom employees\nfilter country = \"USA\"                           # Each line transforms the previous result.\nderive [                                         # This adds columns / variables.\n  gross_salary: salary + payroll_tax,\n  gross_cost:   gross_salary + benefits_cost     # Variables can use other variables.\n]\nfilter gross_cost > 0\naggregate by:[title, country] [                  # `by` are the columns to group by.\n    average salary,                              # These are aggregation calcs run on each group.\n    sum     salary,\n    average gross_salary,\n    sum     gross_salary,\n    average gross_cost,\n    sum_gross_cost: sum gross_cost,\n    count,\n]\nsort sum_gross_cost\nfilter count > 200\ntake 20\n    \"#.trim(),\n                         Rule::pipeline).unwrap()).unwrap()"
 
 ---
 - Pipeline:
-    - name: From
-      args:
+    - From:
         - Ident: employees
-      named_args: []
-    - name: Filter
-      args:
+    - Filter:
         - Ident: country
         - Raw: "="
         - String: "\"USA\""
-      named_args: []
-    - name: Derive
-      args:
-        - List:
-            - Assign:
-                lvalue: gross_salary
-                rvalue:
-                  - Ident: salary
-                  - Raw: +
-                  - Ident: payroll_tax
-            - Assign:
-                lvalue: gross_cost
-                rvalue:
-                  - Ident: gross_salary
-                  - Raw: +
-                  - Ident: benefits_cost
-      named_args: []
-    - name: Filter
-      args:
+    - Derive:
+        - lvalue: gross_salary
+          rvalue:
+            - Ident: salary
+            - Raw: +
+            - Ident: payroll_tax
+        - lvalue: gross_cost
+          rvalue:
+            - Ident: gross_salary
+            - Raw: +
+            - Ident: benefits_cost
+    - Filter:
         - Ident: gross_cost
         - Raw: ">"
         - Raw: "0"
-      named_args: []
-    - name: Aggregate
-      args:
-        - List:
-            - Items:
-                - Ident: average
-                - Ident: salary
-            - Items:
-                - Ident: sum
-                - Ident: salary
-            - Items:
-                - Ident: average
-                - Ident: gross_salary
-            - Items:
-                - Ident: sum
-                - Ident: gross_salary
-            - Items:
-                - Ident: average
-                - Ident: gross_cost
-            - Assign:
-                lvalue: sum_gross_cost
-                rvalue:
+    - Aggregate:
+        by:
+          - List:
+              - Ident: title
+              - Ident: country
+        calcs:
+          - List:
+              - Items:
+                  - Ident: average
+                  - Ident: salary
+              - Items:
                   - Ident: sum
+                  - Ident: salary
+              - Items:
+                  - Ident: average
+                  - Ident: gross_salary
+              - Items:
+                  - Ident: sum
+                  - Ident: gross_salary
+              - Items:
+                  - Ident: average
                   - Ident: gross_cost
-            - Ident: count
-      named_args:
-        - lvalue: by
-          rvalue:
-            - List:
-                - Ident: title
-                - Ident: country
-    - name: Sort
-      args:
+              - Assign:
+                  lvalue: sum_gross_cost
+                  rvalue:
+                    - Ident: sum
+                    - Ident: gross_cost
+              - Ident: count
+    - Sort:
         - Ident: sum_gross_cost
-      named_args: []
-    - name: Filter
-      args:
+    - Filter:
         - Ident: count
         - Raw: ">"
         - Raw: "200"
-      named_args: []
-    - name: Take
-      args:
-        - Raw: "20"
-      named_args: []
+    - Take: 20
 
