@@ -247,7 +247,7 @@ aggregate by:[title, country] [                  # `by` are the columns to group
     sum     gross_salary,
     average gross_cost,
     sum_gross_cost: sum gross_cost,
-    count,
+    count: count,
 ]
 sort sum_gross_cost
 filter count > 200
@@ -502,7 +502,7 @@ aggregate by:[title, country] [                  # `by` are the columns to group
     sum     gross_salary,
     average gross_cost,
     sum_gross_cost: sum gross_cost,
-    count,
+    count: count,
 ]
 sort sum_gross_cost
 filter count > 200

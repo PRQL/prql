@@ -1,7 +1,7 @@
 ---
 source: src/compiler.rs
-assertion_line: 246
-expression: "ast.replace_variables(&HashMap::new())"
+assertion_line: 256
+expression: "ast.replace_variables(&mut HashMap::new())"
 
 ---
 Pipeline:
@@ -26,7 +26,13 @@ Pipeline:
           - Raw: +
           - Ident: benefits_cost
   - Filter:
-      - Ident: gross_cost
+      - Items:
+          - Items:
+              - Ident: salary
+              - Raw: +
+              - Ident: payroll_tax
+          - Raw: +
+          - Ident: benefits_cost
       - Raw: ">"
       - Raw: "0"
   - Aggregate:
@@ -44,18 +50,36 @@ Pipeline:
                 - Ident: salary
             - Items:
                 - Ident: average
-                - Ident: gross_salary
+                - Items:
+                    - Ident: salary
+                    - Raw: +
+                    - Ident: payroll_tax
             - Items:
                 - Ident: sum
-                - Ident: gross_salary
+                - Items:
+                    - Ident: salary
+                    - Raw: +
+                    - Ident: payroll_tax
             - Items:
                 - Ident: average
-                - Ident: gross_cost
+                - Items:
+                    - Items:
+                        - Ident: salary
+                        - Raw: +
+                        - Ident: payroll_tax
+                    - Raw: +
+                    - Ident: benefits_cost
             - Assign:
                 lvalue: sum_gross_cost
                 rvalue:
                   - Ident: sum
-                  - Ident: gross_cost
+                  - Items:
+                      - Items:
+                          - Ident: salary
+                          - Raw: +
+                          - Ident: payroll_tax
+                      - Raw: +
+                      - Ident: benefits_cost
             - Ident: count
   - Sort:
       - Ident: sum_gross_cost
