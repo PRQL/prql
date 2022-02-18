@@ -262,7 +262,7 @@ mod test {
               - Ident: average_salary
 - Sort:
     - Ident: sum_gross_cost
- 
+
         "###;
 
         let pipeline: Pipeline = from_str(yaml).unwrap();
