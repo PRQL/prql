@@ -52,7 +52,7 @@ pub fn parse(pairs: Pairs<Rule>) -> Result<Items> {
                         .map(|x| x.as_named_arg().cloned())
                         .collect::<Result<Vec<_>>>()?;
 
-                    let transformation = match name.as_str() {
+                    Item::Transformation(match name.as_str() {
                         "from" => Transformation::From(args),
                         "select" => Transformation::Select(args),
                         "filter" => Transformation::Filter(args),
@@ -90,16 +90,7 @@ pub fn parse(pairs: Pairs<Rule>) -> Result<Items> {
                             args,
                             named_args,
                         },
-                    };
-                    Item::Transformation(transformation)
-                    // Item::Transformation(Transformation {
-                    //     name: name.as_ident()?.as_str().into(),
-                    //     args,
-                    //     named_args: named_args
-                    //         .iter()
-                    //         .map(|x| x.as_named_arg().cloned())
-                    //         .collect::<Result<_>>()?,
-                    // })
+                    })
                 }
                 Rule::function => {
                     let parsed = parse(pair.into_inner())?;
