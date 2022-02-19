@@ -34,7 +34,10 @@ pub fn parse(pairs: Pairs<Rule>) -> Result<Items> {
                             rvalue: rvalue.to_vec(),
                         })
                     } else {
-                        panic!("Expected Assign, got {:?}", parsed)
+                        // TODO: return an error, which requires each matched
+                        // item returning an `Ok` (or `Err`) and then collecting
+                        // the results.
+                        panic!("Assign had no contents. Got {:?}", parsed)
                     }
                 }
                 Rule::transformation => {
