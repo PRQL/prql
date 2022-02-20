@@ -230,7 +230,6 @@ impl From<Assign> for SelectItem {
     }
 }
 
-// Hack because of orphan rules
 impl TryFrom<Item> for sqlparser::ast::SelectItem {
     type Error = anyhow::Error;
     fn try_from(item: Item) -> Result<Self> {
@@ -246,7 +245,6 @@ impl TryFrom<Item> for sqlparser::ast::SelectItem {
                         .to_string(),
                 )),
             )),
-
             _ => Err(anyhow!(
                 "Can't convert to SelectItem at the moment; {:?}",
                 item
@@ -331,7 +329,7 @@ mod test {
 - Filter:
     - Ident: country
     - Raw: "="
-    - String: "\"USA\""
+    - String: USA
 - Aggregate:
     by:
       - List:
@@ -359,7 +357,7 @@ mod test {
 - Filter:
     - Ident: country
     - Raw: "="
-    - String: "\"USA\""
+    - String: USA
 - Aggregate:
     by:
       - List:
@@ -386,7 +384,7 @@ mod test {
 - Filter:
     - Ident: country
     - Raw: "="
-    - String: "\"USA\""
+    - String: USA
 - Aggregate:
     by:
       - List:
