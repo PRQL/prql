@@ -308,7 +308,6 @@ impl TryFrom<Item> for sqlparser::ast::Expr {
                         .map(|item| {
                             TryInto::<sqlparser::ast::Expr>::try_into(item.clone()).unwrap()
                         })
-                        // .cloned()
                         .collect::<Vec<sqlparser::ast::Expr>>()
                         .iter()
                         .map(|x| x.to_string())
