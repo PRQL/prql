@@ -1,4 +1,5 @@
 use super::ast::*;
+use itertools::Itertools;
 use std::collections::HashMap;
 
 /// An object in which we want to replace variables with the items in those variables.
@@ -119,6 +120,17 @@ impl ContainsVariables for Items {
     }
 }
 
+impl ContainsVariables for Filter {
+    fn replace_variables(&self, variables: &mut HashMap<Ident, Item>) -> Self {
+        Filter(
+            self.0
+                .iter()
+                .map(|item| item.replace_variables(variables))
+                .collect(),
+        )
+    }
+}
+
 impl ContainsVariables for Transformation {
     fn replace_variables(&self, variables: &mut HashMap<Ident, Item>) -> Self {
         // As above re this being verbose and possibly we write a visitor
@@ -177,6 +189,21 @@ impl ContainsVariables for Transformation {
             },
             &Transformation::Take(_) => self.clone(),
         }
+    }
+}
+
+/// Combines filters by putting them in parentheses and then joining them with `and`.
+// Feels hacky — maybe this should be operation on a different level.
+impl Filter {
+    #[allow(unstable_name_collisions)] // Same behavior as the std lib; we can remove this + itertools when that's released.
+    pub fn combine_filters(filters: Vec<Filter>) -> Filter {
+        Filter(
+            filters
+                .into_iter()
+                .map(|f| Item::Items(f.0))
+                .intersperse(Item::Raw("and".to_owned()))
+                .collect(),
+        )
     }
 }
 

@@ -5,25 +5,6 @@ use anyhow::{anyhow, Result};
 use itertools::Itertools;
 use sqlparser::ast::*;
 
-/// Combines filters by putting them in parentheses and then joining them with `and`.
-/// Note that this is very hacky and probably `Filter` should be a type which
-/// this is implemented on.
-#[allow(unstable_name_collisions)] // Same behavior as the std lib; we can remove this + itertools when that's released.
-fn combine_filters(filters: Vec<Transformation>) -> Transformation {
-    Transformation::Filter(
-        filters
-            .into_iter()
-            .map(|filter| match filter {
-                Transformation::Filter(items) => Item::Items(items),
-                _ => {
-                    panic!("Can only combine filters with other filters.");
-                }
-            })
-            .intersperse(Item::Raw("and".to_owned()))
-            .collect(),
-    )
-}
-
 pub fn to_select(pipeline: &Pipeline) -> Result<sqlparser::ast::Select> {
     // TODO: possibly do validation here? e.g. check there isn't more than one
     // `from`? Or do we rely on `to_select` for that?
@@ -57,33 +38,34 @@ pub fn to_select(pipeline: &Pipeline) -> Result<sqlparser::ast::Select> {
         })
         .collect();
 
-    // We could combine the next two with a more sophisticated `split_at`
-
-    // Find the filters that come before the aggregation.
-    let where_ = match combine_filters(
+    // Split the pipeline into before & after the aggregate
+    let (before, after) = pipeline.split_at(
         pipeline
+            .iter()
+            .position(|t| matches!(t, Transformation::Aggregate { .. }))
+            .unwrap_or(pipeline.len()),
+    );
+    // Convert the filters in a pipeline into an Expr
+    fn filter_of_pipeline(pipeline: &[Transformation]) -> Result<Option<sqlparser::ast::Expr>> {
+        let filters: Vec<Filter> = pipeline
             .iter()
             .take_while(|t| !matches!(t, Transformation::Aggregate { .. }))
-            .filter(|t| matches!(t, Transformation::Filter(_)))
+            .filter_map(|t| match t {
+                Transformation::Filter(filter) => Some(filter),
+                _ => None,
+            })
             .cloned()
-            .collect(),
-    ) {
-        Transformation::Filter(items) => Item::Items(items).try_into()?,
-        _ => unreachable!(),
-    };
+            .collect();
 
-    // Find the filters that come after the aggregation.
-    let having = match combine_filters(
-        pipeline
-            .iter()
-            .skip_while(|t| !matches!(t, Transformation::Aggregate { .. }))
-            .filter(|t| matches!(t, Transformation::Filter(_)))
-            .cloned()
-            .collect(),
-    ) {
-        Transformation::Filter(items) => Item::Items(items).try_into()?,
-        _ => unreachable!(),
-    };
+        Ok(if !filters.is_empty() {
+            Some((Item::Items(Filter::combine_filters(filters).0)).try_into()?)
+        } else {
+            None
+        })
+    }
+    // Find the filters that come before the aggregation.
+    let where_ = filter_of_pipeline(before).unwrap();
+    let having = filter_of_pipeline(after).unwrap();
 
     let take = pipeline
         .iter()
@@ -103,7 +85,6 @@ pub fn to_select(pipeline: &Pipeline) -> Result<sqlparser::ast::Select> {
             Transformation::Sort(items) => Some(
                 items
                     .iter()
-                    // TryInto::<sqlparser::ast::Expr>::try_into
                     .map(|i| i.clone().try_into())
                     .collect::<Result<Vec<_>>>(),
             ),
@@ -179,10 +160,8 @@ pub fn to_select(pipeline: &Pipeline) -> Result<sqlparser::ast::Select> {
         projection: select,
         from,
         group_by,
-
-        // TODO: change these to be options above, rather than empty
-        having: Some(having),
-        selection: Some(where_),
+        having,
+        selection: where_,
         sort_by: order_by,
         lateral_views: vec![],
         distribute_by: vec![],
@@ -344,7 +323,7 @@ mod test {
     use crate::ast::Pipeline;
 
     #[test]
-    fn test_to_ctes() {
+    fn test_queries_of_pipeline() {
         // One aggregate, take at the end
         let yaml: &str = r###"
 - From:
@@ -464,6 +443,6 @@ mod test {
         let pipeline: Pipeline = from_str(yaml).unwrap();
         let cte = to_select(&pipeline).unwrap();
         // TODO: totally wrong but compiles, and we're on our way to fixing it.
-        assert_display_snapshot!(cte, @r###"SELECT TOP (20) average salary FROM employees WHERE country = ""USA"" GROUP BY title country SORT BY title HAVING "###);
+        assert_display_snapshot!(cte, @r###"SELECT TOP (20) average salary FROM employees WHERE country = ""USA"" GROUP BY title country SORT BY title"###);
     }
 }
