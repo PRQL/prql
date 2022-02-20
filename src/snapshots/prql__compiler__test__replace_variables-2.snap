@@ -1,6 +1,6 @@
 ---
 source: src/compiler.rs
-assertion_line: 256
+assertion_line: 285
 expression: "ast.replace_variables(&mut HashMap::new())"
 
 ---
@@ -10,7 +10,7 @@ Pipeline:
   - Filter:
       - Ident: country
       - Raw: "="
-      - String: "\"USA\""
+      - String: USA
   - Derive:
       - lvalue: gross_salary
         rvalue:

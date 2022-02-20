@@ -163,7 +163,7 @@ mod test {
         ---
         - Ident: country
         - Raw: "="
-        - String: "\"USA\""
+        - String: USA
         "###);
         assert_yaml_snapshot!(parse(
             parse_to_pest_tree("aggregate by:[title] [sum salary]", Rule::transformation).unwrap()
@@ -391,16 +391,16 @@ take 20
                 Pair {
                     rule: string,
                     span: Span {
-                        str: "\"USA\"",
-                        start: 10,
-                        end: 15,
+                        str: "USA",
+                        start: 11,
+                        end: 14,
                     },
                     inner: [],
                 },
             ],
         )
         "###);
-        assert_debug_snapshot!(parse_to_pest_tree(r#""USA""#, Rule::string));
+        assert_debug_snapshot!(parse_to_pest_tree(r#"USA"#, Rule::string));
         assert_debug_snapshot!(parse_to_pest_tree("select [a, b, c]", Rule::transformation));
         assert_debug_snapshot!(parse_to_pest_tree(
             "aggregate by:[title, country] [sum salary]",

@@ -29,7 +29,7 @@ expr = _{ ( single_expr )+ }
 single_expr = _{ ( parenthesized_expr | list | named_arg | assign | term | inline_pipeline ) }
 // We could just put these all into `single_expr`, though possibly we want to retain a
 // notion of a valid block (i.e. `+` is not a valid expression).
-term = _{ ( ident | operator | number | string ) }
+term = _{ ( ident | operator | number | quoted_string ) }
 // A non-silent version of `expr`, so we can break up a list or parentheses. A
 // more general version of this would be to make `expr` non-silent, but it would
 // mean basically everything would be in an `expr`, which would be verbose to
@@ -49,10 +49,8 @@ parenthesized_expr = _{ "(" ~ items ~ ")" }
 
 // TODO: escapes
 // https://pest.rs/book/examples/rust/literals.html
-string = { "\"" ~ (ASCII_ALPHANUMERIC)* ~ "\"" }
-// string = { "\"" ~ (raw_string | escape)* ~ "\"" }
-// raw_string = { (!("\\" | "\"") ~ ASCII_ALPHANUMERIC)+ }
-// quoted_string = { "\"" ~ (ASCII_ALPHANUMERIC | " " | "." | "_" | "-" | "\\"  )* ~ "\"" }
+string = { (ASCII_ALPHANUMERIC | " " | "." | "_" | "-" | "\\"  )* }
+quoted_string = _{ "\"" ~ string ~ "\"" }
 number = @{ ( ASCII_DIGIT | "." )+ }
 operator = @{ "==" | "!=" | "=" | ">" | "<" | ">=" | "<=" | "+" | "-" | "*" | "/" | "%" }
 
