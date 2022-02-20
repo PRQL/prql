@@ -275,28 +275,6 @@ impl TryFrom<Item> for sqlparser::ast::SelectItem {
     }
 }
 
-pub trait ToSql {
-    fn to_sql(&self) -> sqlparser::ast::Expr;
-}
-// Tried this but I don't think it works:
-// impl From<&dyn ToSql> for sqlparser::ast::Expr {
-//     fn from(to_sql: &dyn ToSql) -> sqlparser::ast::Expr {
-//         to_sql.to_sql()
-//     }
-// }
-impl ToSql for Items {
-    fn to_sql(&self) -> sqlparser::ast::Expr {
-        sqlparser::ast::Expr::Identifier(sqlparser::ast::Ident::new(
-            self.iter()
-                // FIXME
-                .map(|item| item.as_ident().unwrap())
-                .cloned()
-                .collect::<Vec<String>>()
-                .join(" "),
-        ))
-    }
-}
-
 impl TryFrom<Transformation> for sqlparser::ast::Top {
     type Error = anyhow::Error;
     fn try_from(transformation: Transformation) -> Result<Self> {
