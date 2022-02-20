@@ -43,8 +43,8 @@ pub fn to_select(pipeline: &Pipeline) -> Result<sqlparser::ast::Select> {
                     name: ObjectName(
                         ident
                             .iter()
-                            // .map(|i| i.try_into().unwrap())
-                            .map(|i| TryInto::<sqlparser::ast::Ident>::try_into(i.clone()).unwrap())
+                            .map(|i| i.clone().try_into().unwrap())
+                            // .map(|i| TryInto::<sqlparser::ast::Ident>::try_into(i.clone()).unwrap())
                             .collect(),
                     ),
                     alias: None,
