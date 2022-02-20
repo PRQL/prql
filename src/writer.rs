@@ -323,7 +323,7 @@ mod test {
     use crate::ast::Pipeline;
 
     #[test]
-    fn test_to_ctes() {
+    fn test_queries_of_pipeline() {
         // One aggregate, take at the end
         let yaml: &str = r###"
 - From:
