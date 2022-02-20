@@ -295,7 +295,7 @@ impl TryFrom<Item> for sqlparser::ast::Expr {
                 ),
             )),
             Item::String(ident) => Ok(sqlparser::ast::Expr::Value(
-                sqlparser::ast::Value::DoubleQuotedString(ident),
+                sqlparser::ast::Value::SingleQuotedString(ident),
             )),
             _ => Err(anyhow!("Can't convert to Expr at the moment; {:?}", item)),
         }
@@ -424,7 +424,7 @@ mod test {
 - Filter:
     - Ident: country
     - Raw: "="
-    - String: "\"USA\""
+    - String: USA
 - Aggregate:
     by:
       - List:
@@ -443,6 +443,8 @@ mod test {
         let pipeline: Pipeline = from_str(yaml).unwrap();
         let cte = to_select(&pipeline).unwrap();
         // TODO: totally wrong but compiles, and we're on our way to fixing it.
-        assert_display_snapshot!(cte, @r###"SELECT TOP (20) average salary FROM employees WHERE country = ""USA"" GROUP BY title country SORT BY title"###);
+        assert_display_snapshot!(cte,
+            @"SELECT TOP (20) average salary FROM employees WHERE country = 'USA' GROUP BY title country SORT BY title"
+        );
     }
 }
