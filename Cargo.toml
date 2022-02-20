@@ -11,6 +11,10 @@ pest = "^2.1"
 pest_derive = "^2.1"
 serde_yaml = "^0.8"
 
+[dependencies.sqlparser]
+features = ["serde"]
+version = "^0.14"
+
 [dependencies.serde]
 features = ["derive"]
 version = "^1.0"
