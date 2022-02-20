@@ -1,5 +1,6 @@
 use super::ast::*;
 use anyhow::{Context, Result};
+use itertools::Itertools;
 use pest::error::Error;
 use pest::iterators::Pairs;
 use pest::Parser;
@@ -53,7 +54,7 @@ pub fn parse(pairs: Pairs<Rule>) -> Result<Items> {
                     let named_args: Vec<NamedArg> = named_arg_items
                         .iter()
                         .map(|x| x.as_named_arg().cloned())
-                        .collect::<Result<Vec<_>>>()?;
+                        .try_collect()?;
 
                     Item::Transformation(match name.as_str() {
                         "from" => Transformation::From(args),
@@ -66,7 +67,7 @@ pub fn parse(pairs: Pairs<Rule>) -> Result<Items> {
                                 .to_items()
                                 .iter()
                                 .map(|x| x.as_assign().cloned())
-                                .collect::<Result<Vec<_>>>()?;
+                                .try_collect()?;
                             Transformation::Derive(assigns)
                         }
                         "aggregate" => Transformation::Aggregate {
@@ -124,7 +125,7 @@ pub fn parse(pairs: Pairs<Rule>) -> Result<Items> {
                     parse(pair.into_inner())?
                         .into_iter()
                         .map(|x| x.as_ident().cloned())
-                        .collect::<Result<Vec<_>>>()?,
+                        .try_collect()?,
                 ),
                 Rule::string => Item::String(pair.as_str().to_string()),
                 Rule::query => Item::Query(parse(pair.into_inner())?),

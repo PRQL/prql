@@ -82,12 +82,9 @@ pub fn to_select(pipeline: &Pipeline) -> Result<sqlparser::ast::Select> {
     let order_by = pipeline
         .iter()
         .filter_map(|t| match t {
-            Transformation::Sort(items) => Some(
-                items
-                    .iter()
-                    .map(|i| i.clone().try_into())
-                    .collect::<Result<Vec<_>>>(),
-            ),
+            Transformation::Sort(items) => {
+                Some(items.iter().map(|i| i.clone().try_into()).try_collect())
+            }
             _ => None,
         })
         .last()
@@ -100,12 +97,7 @@ pub fn to_select(pipeline: &Pipeline) -> Result<sqlparser::ast::Select> {
     let (group_bys, select_from_aggregate) = match aggregate {
         Some(Transformation::Aggregate { by, calcs }) => (
             (by.clone()),
-            Some(
-                calcs
-                    .iter()
-                    .map(|x| x.clone().try_into())
-                    .collect::<Result<Vec<_>>>()?,
-            ),
+            Some(calcs.iter().map(|x| x.clone().try_into()).try_collect()?),
         ),
         None => (vec![], None),
         _ => unreachable!("Expected an aggregate transformation"),
@@ -131,12 +123,9 @@ pub fn to_select(pipeline: &Pipeline) -> Result<sqlparser::ast::Select> {
     let select_from_select = pipeline
         .iter()
         .filter_map(|t| match t {
-            Transformation::Select(items) => Some(
-                items
-                    .iter()
-                    .map(|x| (x).clone().try_into())
-                    .collect::<Result<Vec<_>>>(),
-            ),
+            Transformation::Select(items) => {
+                Some(items.iter().map(|x| (x).clone().try_into()).try_collect())
+            }
             _ => None,
         })
         .last()
