@@ -27,16 +27,17 @@ fn combine_filters(filters: Vec<Transformation>) -> Transformation {
 pub fn to_select(pipeline: &Pipeline) -> Result<sqlparser::ast::Select> {
     // TODO: possibly do validation here? e.g. check there isn't more than one
     // `from`? Or do we rely on `to_select` for that?
+    // TODO: this doesn't handle joins at all yet.
 
     // Alternatively we could do a single pass, but we need to split by before &
-    // after the `aggregate`. If we did a single pass, do something like:
-    // group_pairs from https://stackoverflow.com/a/65394297/3064736
+    // after the `aggregate`, even before considering joins. If we did a single
+    // pass, do something like: group_pairs from
+    // https://stackoverflow.com/a/65394297/3064736
     // let grouped = group_pairs(pipeline.iter().map(|t| (t.name, t)));
     // let from = grouped.get(&TransformationType::From).unwrap().first().unwrap().clone();
 
     let from = pipeline
         .iter()
-        // .find(|t| matches!(t, Transformation::From(_)))
         .filter_map(|t| match t {
             Transformation::From(ident) => Some(sqlparser::ast::TableWithJoins {
                 relation: sqlparser::ast::TableFactor::Table {
