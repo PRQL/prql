@@ -58,7 +58,7 @@ pub fn parse(pairs: Pairs<Rule>) -> Result<Items> {
                     Item::Transformation(match name.as_str() {
                         "from" => Transformation::From(args),
                         "select" => Transformation::Select(args),
-                        "filter" => Transformation::Filter(args),
+                        "filter" => Transformation::Filter(Filter(args)),
                         "derive" => {
                             let assigns = args
                                 .first()

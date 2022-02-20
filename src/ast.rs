@@ -36,7 +36,7 @@ pub enum Item {
 pub enum Transformation {
     From(Items),
     Select(Items),
-    Filter(Items),
+    Filter(Filter),
     Derive(Vec<Assign>),
     Aggregate {
         by: Items,
@@ -94,6 +94,9 @@ pub struct Assign {
     pub lvalue: Ident,
     pub rvalue: Items,
 }
+
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+pub struct Filter(pub Items);
 
 impl Item {
     /// Either provide a Vec with the contents of List / Item, or puts a scalar
