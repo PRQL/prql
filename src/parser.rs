@@ -1,5 +1,5 @@
 use super::ast::*;
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Context, Result};
 use itertools::Itertools;
 use pest::error::Error;
 use pest::iterators::Pairs;
@@ -13,33 +13,42 @@ pub struct PrqlParser;
 pub fn parse(pairs: Pairs<Rule>) -> Result<Items> {
     pairs
         .map(|pair| {
+            // TODO: Probably wrap each of the individual branches in a Result,
+            // and don't have this wrapping `Ok`.
             Ok(match pair.as_rule() {
                 Rule::list => Item::List(parse(pair.into_inner())?),
                 Rule::items => Item::Items(parse(pair.into_inner())?),
                 Rule::named_arg => {
                     let parsed = parse(pair.into_inner())?;
                     // Split the pair into its first value, which is always an Ident,
-                    // and the rest of the values.
-                    let (lvalue, rvalue) = parsed.split_first().unwrap();
-
-                    Item::NamedArg(NamedArg {
-                        lvalue: lvalue.as_ident()?.to_owned(),
-                        rvalue: rvalue.to_vec(),
-                    })
+                    // and its second value, which can be an ident / list / etc.
+                    if let [lvalue, rvalue] = &parsed[..] {
+                        Ok(Item::NamedArg(NamedArg {
+                            lvalue: lvalue.as_ident()?.to_owned(),
+                            rvalue: Box::new(rvalue.clone()),
+                        }))
+                    } else {
+                        Err(anyhow!(
+                            "Expected NamedArg to have an lvalue & rvalue. Got {:?}",
+                            parsed
+                        ))
+                    }?
                 }
                 Rule::assign => {
                     let parsed = parse(pair.into_inner())?;
+                    // Split the pair into its first value, which is always an Ident,
+                    // and its other values.
                     if let [lvalue, Item::Items(rvalue)] = &parsed[..] {
-                        Item::Assign(Assign {
+                        Ok(Item::Assign(Assign {
                             lvalue: lvalue.as_ident()?.to_owned(),
                             rvalue: rvalue.to_vec(),
-                        })
+                        }))
                     } else {
-                        // TODO: return an error, which requires each matched
-                        // item returning an `Ok` (or `Err`) and then collecting
-                        // the results.
-                        panic!("Assign had no contents. Got {:?}", parsed)
-                    }
+                        Err(anyhow!(
+                            "Expected assign to have an lvalue & some rvalues. Got {:?}",
+                            parsed
+                        ))
+                    }?
                 }
                 Rule::transformation => {
                     let parsed = parse(pair.into_inner())?;
@@ -78,9 +87,7 @@ pub fn parse(pairs: Pairs<Rule>) -> Result<Items> {
                                 .iter()
                                 // TODO: confirm there are no other named args.
                                 .find(|x| x.lvalue == "by")
-                                // TODO: If we change named_arg to only be a
-                                // single item, then update this.
-                                .map(|x| x.rvalue.first().map_or(vec![], |x| x.to_items()))
+                                .map(|x| x.rvalue.to_items())
                                 .unwrap_or_else(Vec::new),
                         },
                         "sort" => Transformation::Sort(args),
