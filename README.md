@@ -18,6 +18,11 @@ PRQL was discussed on [Hacker
 News](https://news.ycombinator.com/item?id=30060784#30062329) and
 [Lobsters](https://lobste.rs/s/oavgcx/prql_simpler_more_powerful_sql).
 
+PRQL is currently being implemented in:
+
+- Rust: This repo
+- Python: <https://github.com/qorrect/PyPrql>
+
 ## An example
 
 Here's a fairly simple SQL query:
