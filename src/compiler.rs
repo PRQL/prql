@@ -86,11 +86,7 @@ impl ContainsVariables for NamedArg {
     fn replace_variables(&self, variables: &mut HashMap<Ident, Item>) -> Self {
         NamedArg {
             lvalue: self.lvalue.to_owned(),
-            rvalue: self
-                .rvalue
-                .iter()
-                .map(|item| item.replace_variables(variables))
-                .collect(),
+            rvalue: Box::new(self.rvalue.replace_variables(variables)),
         }
     }
 }
