@@ -86,12 +86,14 @@ pub struct Table {
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct NamedArg {
     pub lvalue: Ident,
+    // TODO: I think this should just be a single Item, which requires boxing it.
     pub rvalue: Items,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Assign {
     pub lvalue: Ident,
+    // TODO: I think this should just be a single Item, which requires boxing it.
     pub rvalue: Items,
 }
 

@@ -37,53 +37,51 @@ Pipeline:
       - Raw: "0"
   - Aggregate:
       by:
-        - List:
-            - Ident: title
-            - Ident: country
+        - Ident: title
+        - Ident: country
       calcs:
-        - List:
+        - Items:
+            - Ident: average
+            - Ident: salary
+        - Items:
+            - Ident: sum
+            - Ident: salary
+        - Items:
+            - Ident: average
             - Items:
-                - Ident: average
                 - Ident: salary
+                - Raw: +
+                - Ident: payroll_tax
+        - Items:
+            - Ident: sum
             - Items:
-                - Ident: sum
                 - Ident: salary
+                - Raw: +
+                - Ident: payroll_tax
+        - Items:
+            - Ident: average
             - Items:
-                - Ident: average
                 - Items:
                     - Ident: salary
                     - Raw: +
                     - Ident: payroll_tax
-            - Items:
-                - Ident: sum
-                - Items:
-                    - Ident: salary
-                    - Raw: +
-                    - Ident: payroll_tax
-            - Items:
-                - Ident: average
-                - Items:
-                    - Items:
-                        - Ident: salary
-                        - Raw: +
-                        - Ident: payroll_tax
-                    - Raw: +
-                    - Ident: benefits_cost
-            - Assign:
-                lvalue: sum_gross_cost
-                rvalue:
-                  - Ident: sum
+                - Raw: +
+                - Ident: benefits_cost
+        - Assign:
+            lvalue: sum_gross_cost
+            rvalue:
+              - Ident: sum
+              - Items:
                   - Items:
-                      - Items:
-                          - Ident: salary
-                          - Raw: +
-                          - Ident: payroll_tax
+                      - Ident: salary
                       - Raw: +
-                      - Ident: benefits_cost
-            - Assign:
-                lvalue: count
-                rvalue:
-                  - Ident: count
+                      - Ident: payroll_tax
+                  - Raw: +
+                  - Ident: benefits_cost
+        - Assign:
+            lvalue: count
+            rvalue:
+              - Ident: count
   - Sort:
       - Ident: sum_gross_cost
   - Filter:

@@ -1,0 +1,85 @@
+---
+source: src/writer.rs
+assertion_line: 461
+expression: select
+
+---
+Select {
+    distinct: false,
+    top: Some(
+        Top {
+            with_ties: false,
+            percent: false,
+            quantity: Some(
+                Identifier(
+                    Ident {
+                        value: "20",
+                        quote_style: None,
+                    },
+                ),
+            ),
+        },
+    ),
+    projection: [
+        UnnamedExpr(
+            Identifier(
+                Ident {
+                    value: "average salary",
+                    quote_style: None,
+                },
+            ),
+        ),
+    ],
+    from: [
+        TableWithJoins {
+            relation: Table {
+                name: ObjectName(
+                    [
+                        Ident {
+                            value: "employees",
+                            quote_style: None,
+                        },
+                    ],
+                ),
+                alias: None,
+                args: [],
+                with_hints: [],
+            },
+            joins: [],
+        },
+    ],
+    lateral_views: [],
+    selection: Some(
+        Identifier(
+            Ident {
+                value: "country = 'USA'",
+                quote_style: None,
+            },
+        ),
+    ),
+    group_by: [
+        Identifier(
+            Ident {
+                value: "title",
+                quote_style: None,
+            },
+        ),
+        Identifier(
+            Ident {
+                value: "country",
+                quote_style: None,
+            },
+        ),
+    ],
+    cluster_by: [],
+    distribute_by: [],
+    sort_by: [
+        Identifier(
+            Ident {
+                value: "title",
+                quote_style: None,
+            },
+        ),
+    ],
+    having: None,
+}

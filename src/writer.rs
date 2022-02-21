@@ -102,11 +102,8 @@ pub fn to_select(pipeline: &Pipeline) -> Result<sqlparser::ast::Select> {
         None => (vec![], None),
         _ => unreachable!("Expected an aggregate transformation"),
     };
-    let group_by = group_bys
-        .iter()
-        // TODO: Needs to be changed to treat these as a comma-ed list
-        .map(|i| i.clone().try_into().unwrap())
-        .collect();
+    let group_by = TryInto::<Vec<sqlparser::ast::Expr>>::try_into(Item::List(group_bys))?;
+    // Item::List(group_bys).try_into()?;
 
     let select_from_derive = pipeline
         .iter()
@@ -268,7 +265,7 @@ impl TryFrom<Item> for sqlparser::ast::Expr {
                 sqlparser::ast::Ident::new(ident),
             )),
             // TODO: List needs a different impl
-            Item::Items(items) | Item::List(items) => Ok(sqlparser::ast::Expr::Identifier(
+            Item::Items(items) => Ok(sqlparser::ast::Expr::Identifier(
                 sqlparser::ast::Ident::new(
                     items
                         .iter()
@@ -278,6 +275,8 @@ impl TryFrom<Item> for sqlparser::ast::Expr {
                         .collect::<Vec<sqlparser::ast::Expr>>()
                         .iter()
                         .map(|x| x.to_string())
+                        // Currently a big hack, but maybe OK, since we don't
+                        // need to parse every single expression into sqlparser ast.
                         .join(" "),
                 ),
             )),
@@ -287,6 +286,35 @@ impl TryFrom<Item> for sqlparser::ast::Expr {
             _ => Err(anyhow!("Can't convert to Expr at the moment; {:?}", item)),
         }
     }
+}
+
+impl TryFrom<Item> for Vec<sqlparser::ast::Expr> {
+    type Error = anyhow::Error;
+    fn try_from(item: Item) -> Result<Self> {
+        match item {
+            Item::List(items) => Ok(items.iter().map(|x| x.clone().try_into()).try_collect()?),
+            _ => Err(anyhow!(
+                "Can't convert to Vec<Expr> at the moment; {:?}",
+                item
+            )),
+        }
+    }
+}
+
+#[test]
+fn test_try_from_list_to_vec_expr() {
+    let item = Item::List(vec![
+        Item::Ident("a".to_owned()),
+        Item::Ident("b".to_owned()),
+    ]);
+    let expr: Vec<sqlparser::ast::Expr> = item.try_into().unwrap();
+    assert_eq!(
+        expr,
+        vec![
+            sqlparser::ast::Expr::Identifier(sqlparser::ast::Ident::new("a")),
+            sqlparser::ast::Expr::Identifier(sqlparser::ast::Ident::new("b"))
+        ]
+    );
 }
 
 impl TryFrom<Item> for sqlparser::ast::Ident {
@@ -304,7 +332,7 @@ impl TryFrom<Item> for sqlparser::ast::Ident {
 mod test {
 
     use super::*;
-    use insta::assert_display_snapshot;
+    use insta::{assert_debug_snapshot, assert_display_snapshot};
     use serde_yaml::from_str;
 
     use crate::ast::Pipeline;
@@ -376,23 +404,19 @@ mod test {
     - String: USA
 - Aggregate:
     by:
-      - List:
-          - Ident: title
-          - Ident: country
+        - Ident: title
+        - Ident: country
     calcs:
-      - List:
-          - Items:
-              - Ident: average
-              - Ident: salary
+        - Items:
+            - Ident: average
+            - Ident: salary
 - Aggregate:
-    by:
-      - List: []
+    by: []
     calcs:
-      - List:
-          - Items:
-              - Ident: sum
-              # TODO: this isn't currently defined
-              - Ident: average_salary
+        - Items:
+            - Ident: sum
+            # TODO: this isn't currently defined
+            - Ident: average_salary
 - Sort:
     - Ident: sum_gross_cost
 
@@ -414,24 +438,23 @@ mod test {
     - String: USA
 - Aggregate:
     by:
-      - List:
-          - Ident: title
-          - Ident: country
+        - Ident: title
+        - Ident: country
     calcs:
-      - List:
-          - Items:
-              - Ident: average
-              - Ident: salary
+        - Items:
+            - Ident: average
+            - Ident: salary
 - Sort:
     - Ident: title
 - Take: 20
-        "###;
+            "###;
 
         let pipeline: Pipeline = from_str(yaml).unwrap();
-        let cte = to_select(&pipeline).unwrap();
+        let select = to_select(&pipeline).unwrap();
+        assert_debug_snapshot!(select);
         // TODO: totally wrong but compiles, and we're on our way to fixing it.
-        assert_display_snapshot!(cte,
-            @"SELECT TOP (20) average salary FROM employees WHERE country = 'USA' GROUP BY title country SORT BY title"
+        assert_display_snapshot!(select,
+            @"SELECT TOP (20) average salary FROM employees WHERE country = 'USA' GROUP BY title, country SORT BY title"
         );
     }
 }
