@@ -439,18 +439,7 @@ in advance.
   aggregate by=[] calcs X
   ```
 
-- Raw syntax — I think we should have backticks represent raw SQL; i.e. `UPPER`
-  could be defined as:
-
-  ```elm
-  func upper col = `UPPER(`col`)`
-  # or with f-string-like syntax
-  func upper col = `UPPER({col})`
-  # or with " rather than `
-  func upper col = "UPPER({col})"
-  # or with f" to preserve "
-  func upper col = f"UPPER({col})"
-  ```
+- Literal strings & f-strings: <https://github.com/max-sixty/prql/issues/109>
 
 - Arrays — PRQL is in part inspired by
   [DataPipes.jl](https://gitlab.com/aplavin/DataPipes.jl), which demonstrates
