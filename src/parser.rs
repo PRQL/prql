@@ -71,11 +71,16 @@ pub fn parse(pairs: Pairs<Rule>) -> Result<Items> {
                             Transformation::Derive(assigns)
                         }
                         "aggregate" => Transformation::Aggregate {
-                            calcs: args.to_vec(),
+                            // TODO: confirm there is maximum one arg (which may be
+                            // a list)
+                            calcs: args.first().map_or(vec![], |x| x.to_items()),
                             by: named_args
                                 .iter()
+                                // TODO: confirm there are no other named args.
                                 .find(|x| x.lvalue == "by")
-                                .map(|x| x.rvalue.clone())
+                                // TODO: If we change named_arg to only be a
+                                // single item, then update this.
+                                .map(|x| x.rvalue.first().map_or(vec![], |x| x.to_items()))
                                 .unwrap_or_else(Vec::new),
                         },
                         "sort" => Transformation::Sort(args),
@@ -174,13 +179,11 @@ mod test {
         - Transformation:
             Aggregate:
               by:
-                - List:
-                    - Ident: title
+                - Ident: title
               calcs:
-                - List:
-                    - Items:
-                        - Ident: sum
-                        - Ident: salary
+                - Items:
+                    - Ident: sum
+                    - Ident: salary
         "###);
         assert_yaml_snapshot!(parse(
             parse_to_pest_tree(
