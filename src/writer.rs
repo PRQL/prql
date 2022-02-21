@@ -102,8 +102,7 @@ pub fn to_select(pipeline: &Pipeline) -> Result<sqlparser::ast::Select> {
         None => (vec![], None),
         _ => unreachable!("Expected an aggregate transformation"),
     };
-    let group_by = TryInto::<Vec<sqlparser::ast::Expr>>::try_into(Item::List(group_bys))?;
-    // Item::List(group_bys).try_into()?;
+    let group_by = Item::List(group_bys).try_into()?;
 
     let select_from_derive = pipeline
         .iter()
