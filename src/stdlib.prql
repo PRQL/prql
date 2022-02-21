@@ -1,0 +1,21 @@
+# From https://github.com/qorrect/PyPrql/blob/main/resources/stdlib.prql
+# (discussed on Discord that it's OK to copy here)
+#
+# We'll evaluate how we organize files, and what is a PRQL function vs encoded
+# in the transpiler.
+
+# Aggregate Functions
+
+func min column = f"MIN({column})"
+func max column = f"MAX({column})"
+func sum column = f"SUM({column})"
+func avg column = f"AVG({column})"
+func stddev column = f"STDDEV({column})"
+func average column = f"AVG({column})"
+func count = f"COUNT(*)"
+func count column = f"COUNT({column})"
+func count_distinct column = f"COUNT(DISTINCT `{column}`)"
+
+# Casting functions
+
+func as column type = f"CAST({column} AS {type})"
