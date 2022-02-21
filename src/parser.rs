@@ -92,13 +92,12 @@ pub fn parse(pairs: Pairs<Rule>) -> Result<Items> {
                         },
                         "sort" => Transformation::Sort(args),
                         "take" => Transformation::Take({
+                            // TODO confirm there is only one arg
                             match args.first() {
                                 // TODO: coerce to number
-                                Some(n) => n.as_raw()?.parse()?,
-                                // TOOD: Raise here
-                                // None => return anyhow!("Expected a number"),
-                                None => unimplemented!(),
-                            }
+                                Some(n) => Ok(n.as_raw()?.parse()?),
+                                None => Err(anyhow!("Expected a number; got {:?}", args)),
+                            }?
                         }),
                         "join" => Transformation::Join(args),
                         _ => Transformation::Custom {
@@ -167,6 +166,12 @@ mod test {
 
     use super::*;
     use insta::{assert_debug_snapshot, assert_yaml_snapshot};
+
+    #[test]
+    fn test_parse_take() {
+        assert!(parse_to_pest_tree("take 10", Rule::transformation).is_ok());
+        assert!(parse_to_pest_tree("take", Rule::transformation).is_err());
+    }
 
     #[test]
     fn test_parse_expr() {
