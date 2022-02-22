@@ -149,7 +149,7 @@ impl TryFrom<Vec<Item>> for Transformation {
             }
             "aggregate" => {
                 // This is more compicated rust than I was expecting, and we may
-                // generalize these checks to custom functions anyway.
+                // generalize these checks to Func functions anyway.
                 if args.len() != 1 {
                     return Err(anyhow!(
                         "Expected exactly one unnamed argument for aggregate"
@@ -222,7 +222,7 @@ impl TryFrom<Vec<Item>> for Transformation {
                 }
             }
             "join" => Ok(Transformation::Join(args)),
-            _ => Ok(Transformation::Custom {
+            _ => Ok(Transformation::Func {
                 name: name.to_owned(),
                 args,
                 named_args,
@@ -263,7 +263,7 @@ mod test {
               by:
                 - Ident: title
               calcs:
-                - Custom:
+                - Func:
                     name: sum
                     args:
                       - Ident: salary

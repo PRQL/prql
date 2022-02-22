@@ -372,7 +372,7 @@ mod test {
       - Ident: title
       - Ident: country
     calcs:
-      - Custom:
+      - Func:
           name: average
           args:
             - Ident: salary
@@ -401,7 +401,7 @@ mod test {
       - Ident: title
       - Ident: country
     calcs:
-      - Custom:
+      - Func:
           name: average
           args:
             - Ident: salary
@@ -429,7 +429,7 @@ mod test {
       - Ident: title
       - Ident: country
     calcs:
-      - Custom:
+      - Func:
           name: average
           args:
             - Ident: salary
@@ -440,7 +440,7 @@ mod test {
       - Ident: title
       - Ident: country
     calcs:
-      - Custom:
+      - Func:
           name: average
           args:
             - Ident: salary
@@ -470,7 +470,7 @@ mod test {
       - Ident: title
       - Ident: country
     calcs:
-      - Custom:
+      - Func:
           name: average
           args:
             - Ident: salary
@@ -486,7 +486,7 @@ mod test {
         assert_debug_snapshot!(select);
         // TODO: totally wrong but compiles, and we're on our way to fixing it.
         assert_display_snapshot!(select,
-            @r###"SELECT TOP (20) TODO: Custom { name: "average", args: [Ident("salary")], named_args: [] } FROM employees WHERE country = 'USA' GROUP BY title, country SORT BY title"###
+            @r###"SELECT TOP (20) TODO: Func { name: "average", args: [Ident("salary")], named_args: [] } FROM employees WHERE country = 'USA' GROUP BY title, country SORT BY title"###
         );
     }
 }

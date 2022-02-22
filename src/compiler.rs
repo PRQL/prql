@@ -170,11 +170,11 @@ impl ContainsVariables for Transformation {
                     .collect(),
             },
             // For everything else, just visit each object and replace the variables.
-            Transformation::Custom {
+            Transformation::Func {
                 name,
                 args,
                 named_args,
-            } => Transformation::Custom {
+            } => Transformation::Func {
                 name: name.to_owned(),
                 args: args
                     .iter()

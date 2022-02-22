@@ -50,7 +50,7 @@ pub enum Transformation {
     Sort(Items),
     Take(i64),
     Join(Items),
-    Custom {
+    Func {
         name: String,
         args: Items,
         named_args: Vec<NamedArg>,
@@ -69,7 +69,7 @@ impl Transformation {
             Transformation::Sort(_) => "sort",
             Transformation::Take(_) => "take",
             Transformation::Join(_) => "join",
-            Transformation::Custom { name, .. } => name,
+            Transformation::Func { name, .. } => name,
         }
     }
 }

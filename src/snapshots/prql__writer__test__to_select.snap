@@ -24,7 +24,7 @@ Select {
         UnnamedExpr(
             Identifier(
                 Ident {
-                    value: "TODO: Custom { name: \"average\", args: [Ident(\"salary\")], named_args: [] }",
+                    value: "TODO: Func { name: \"average\", args: [Ident(\"salary\")], named_args: [] }",
                     quote_style: None,
                 },
             ),

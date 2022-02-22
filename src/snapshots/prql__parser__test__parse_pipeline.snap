@@ -33,27 +33,27 @@ expression: "parse(parse_to_pest_tree(r#\"\nfrom employees\nfilter country = \"U
           - Ident: title
           - Ident: country
         calcs:
-          - Custom:
+          - Func:
               name: average
               args:
                 - Ident: salary
               named_args: []
-          - Custom:
+          - Func:
               name: sum
               args:
                 - Ident: salary
               named_args: []
-          - Custom:
+          - Func:
               name: average
               args:
                 - Ident: gross_salary
               named_args: []
-          - Custom:
+          - Func:
               name: sum
               args:
                 - Ident: gross_salary
               named_args: []
-          - Custom:
+          - Func:
               name: average
               args:
                 - Ident: gross_cost
@@ -62,7 +62,7 @@ expression: "parse(parse_to_pest_tree(r#\"\nfrom employees\nfilter country = \"U
           - lvalue: sum_gross_cost
             rvalue:
               Transformation:
-                Custom:
+                Func:
                   name: sum
                   args:
                     - Ident: gross_cost
@@ -70,7 +70,7 @@ expression: "parse(parse_to_pest_tree(r#\"\nfrom employees\nfilter country = \"U
           - lvalue: count
             rvalue:
               Transformation:
-                Custom:
+                Func:
                   name: count
                   args: []
                   named_args: []

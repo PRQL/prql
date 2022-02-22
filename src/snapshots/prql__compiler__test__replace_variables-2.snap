@@ -42,17 +42,17 @@ Pipeline:
         - Ident: title
         - Ident: country
       calcs:
-        - Custom:
+        - Func:
             name: average
             args:
               - Ident: salary
             named_args: []
-        - Custom:
+        - Func:
             name: sum
             args:
               - Ident: salary
             named_args: []
-        - Custom:
+        - Func:
             name: average
             args:
               - Items:
@@ -60,7 +60,7 @@ Pipeline:
                   - Raw: +
                   - Ident: payroll_tax
             named_args: []
-        - Custom:
+        - Func:
             name: sum
             args:
               - Items:
@@ -68,7 +68,7 @@ Pipeline:
                   - Raw: +
                   - Ident: payroll_tax
             named_args: []
-        - Custom:
+        - Func:
             name: average
             args:
               - Items:
@@ -83,7 +83,7 @@ Pipeline:
         - lvalue: sum_gross_cost
           rvalue:
             Transformation:
-              Custom:
+              Func:
                 name: sum
                 args:
                   - Items:
@@ -97,7 +97,7 @@ Pipeline:
         - lvalue: count
           rvalue:
             Transformation:
-              Custom:
+              Func:
                 name: count
                 args: []
                 named_args: []
