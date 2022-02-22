@@ -1,6 +1,6 @@
 ---
 source: src/compiler.rs
-assertion_line: 285
+assertion_line: 283
 expression: "ast.replace_variables(&mut HashMap::new())"
 
 ---
@@ -14,17 +14,19 @@ Pipeline:
   - Derive:
       - lvalue: gross_salary
         rvalue:
-          - Ident: salary
-          - Raw: +
-          - Ident: payroll_tax
+          Items:
+            - Ident: salary
+            - Raw: +
+            - Ident: payroll_tax
       - lvalue: gross_cost
         rvalue:
-          - Items:
-              - Ident: salary
-              - Raw: +
-              - Ident: payroll_tax
-          - Raw: +
-          - Ident: benefits_cost
+          Items:
+            - Items:
+                - Ident: salary
+                - Raw: +
+                - Ident: payroll_tax
+            - Raw: +
+            - Ident: benefits_cost
   - Filter:
       - Items:
           - Items:
@@ -40,37 +42,35 @@ Pipeline:
         - Ident: title
         - Ident: country
       calcs:
-        - Items:
-            - Ident: average
-            - Ident: salary
-        - Items:
-            - Ident: sum
-            - Ident: salary
-        - Items:
-            - Ident: average
-            - Items:
-                - Ident: salary
-                - Raw: +
-                - Ident: payroll_tax
-        - Items:
-            - Ident: sum
-            - Items:
-                - Ident: salary
-                - Raw: +
-                - Ident: payroll_tax
-        - Items:
-            - Ident: average
-            - Items:
-                - Items:
-                    - Ident: salary
-                    - Raw: +
-                    - Ident: payroll_tax
-                - Raw: +
-                - Ident: benefits_cost
-        - Assign:
-            lvalue: sum_gross_cost
-            rvalue:
-              - Ident: sum
+        - Custom:
+            name: average
+            args:
+              - Ident: salary
+            named_args: []
+        - Custom:
+            name: sum
+            args:
+              - Ident: salary
+            named_args: []
+        - Custom:
+            name: average
+            args:
+              - Items:
+                  - Ident: salary
+                  - Raw: +
+                  - Ident: payroll_tax
+            named_args: []
+        - Custom:
+            name: sum
+            args:
+              - Items:
+                  - Ident: salary
+                  - Raw: +
+                  - Ident: payroll_tax
+            named_args: []
+        - Custom:
+            name: average
+            args:
               - Items:
                   - Items:
                       - Ident: salary
@@ -78,10 +78,29 @@ Pipeline:
                       - Ident: payroll_tax
                   - Raw: +
                   - Ident: benefits_cost
-        - Assign:
-            lvalue: count
-            rvalue:
-              - Ident: count
+            named_args: []
+      assigns:
+        - lvalue: sum_gross_cost
+          rvalue:
+            Transformation:
+              Custom:
+                name: sum
+                args:
+                  - Items:
+                      - Items:
+                          - Ident: salary
+                          - Raw: +
+                          - Ident: payroll_tax
+                      - Raw: +
+                      - Ident: benefits_cost
+                named_args: []
+        - lvalue: count
+          rvalue:
+            Transformation:
+              Custom:
+                name: count
+                args: []
+                named_args: []
   - Sort:
       - Ident: sum_gross_cost
   - Filter:

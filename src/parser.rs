@@ -1,3 +1,5 @@
+use std::vec;
+
 use super::ast::*;
 use anyhow::{anyhow, Context, Result};
 use itertools::Itertools;
@@ -14,7 +16,8 @@ pub fn parse(pairs: Pairs<Rule>) -> Result<Items> {
     pairs
         .map(|pair| {
             // TODO: Probably wrap each of the individual branches in a Result,
-            // and don't have this wrapping `Ok`.
+            // and don't have this wrapping `Ok`. Then move some of the panics
+            // to `Err`s.
             Ok(match pair.as_rule() {
                 Rule::list => Item::List(parse(pair.into_inner())?),
                 Rule::items => Item::Items(parse(pair.into_inner())?),
@@ -22,14 +25,14 @@ pub fn parse(pairs: Pairs<Rule>) -> Result<Items> {
                     let parsed = parse(pair.into_inner())?;
                     // Split the pair into its first value, which is always an Ident,
                     // and its second value, which can be an ident / list / etc.
-                    if let [lvalue, rvalue] = &parsed[..] {
+                    if let [name, arg] = &parsed[..] {
                         Ok(Item::NamedArg(NamedArg {
-                            lvalue: lvalue.as_ident()?.to_owned(),
-                            rvalue: Box::new(rvalue.clone()),
+                            name: name.as_ident()?.to_owned(),
+                            arg: Box::new(arg.clone()),
                         }))
                     } else {
                         Err(anyhow!(
-                            "Expected NamedArg to have an lvalue & rvalue. Got {:?}",
+                            "Expected NamedArg to have an name & arg. Got {:?}",
                             parsed
                         ))
                     }?
@@ -41,7 +44,7 @@ pub fn parse(pairs: Pairs<Rule>) -> Result<Items> {
                     if let [lvalue, Item::Items(rvalue)] = &parsed[..] {
                         Ok(Item::Assign(Assign {
                             lvalue: lvalue.as_ident()?.to_owned(),
-                            rvalue: rvalue.to_vec(),
+                            rvalue: Box::new(Item::Items(rvalue.to_vec())),
                         }))
                     } else {
                         Err(anyhow!(
@@ -52,60 +55,7 @@ pub fn parse(pairs: Pairs<Rule>) -> Result<Items> {
                 }
                 Rule::transformation => {
                     let parsed = parse(pair.into_inner())?;
-                    let (name_item, all_args) = parsed.split_first().unwrap();
-                    let name = name_item.as_ident()?;
-
-                    let (named_arg_items, args): (Vec<Item>, Vec<Item>) = all_args
-                        .iter()
-                        .cloned()
-                        .partition(|x| matches!(x, Item::NamedArg(_)));
-
-                    let named_args: Vec<NamedArg> = named_arg_items
-                        .iter()
-                        .map(|x| x.as_named_arg().cloned())
-                        .try_collect()?;
-
-                    Item::Transformation(match name.as_str() {
-                        "from" => Transformation::From(args),
-                        "select" => Transformation::Select(args),
-                        "filter" => Transformation::Filter(Filter(args)),
-                        "derive" => {
-                            let assigns = args
-                                .first()
-                                .context("Expected at least one argument")?
-                                .to_items()
-                                .iter()
-                                .map(|x| x.as_assign().cloned())
-                                .try_collect()?;
-                            Transformation::Derive(assigns)
-                        }
-                        "aggregate" => Transformation::Aggregate {
-                            // TODO: confirm there is maximum one arg (which may be
-                            // a list)
-                            calcs: args.first().map_or(vec![], |x| x.to_items()),
-                            by: named_args
-                                .iter()
-                                // TODO: confirm there are no other named args.
-                                .find(|x| x.lvalue == "by")
-                                .map(|x| x.rvalue.to_items())
-                                .unwrap_or_else(Vec::new),
-                        },
-                        "sort" => Transformation::Sort(args),
-                        "take" => Transformation::Take({
-                            // TODO confirm there is only one arg
-                            match args.first() {
-                                // TODO: coerce to number
-                                Some(n) => Ok(n.as_raw()?.parse()?),
-                                None => Err(anyhow!("Expected a number; got {:?}", args)),
-                            }?
-                        }),
-                        "join" => Transformation::Join(args),
-                        _ => Transformation::Custom {
-                            name: name.to_owned(),
-                            args,
-                            named_args,
-                        },
-                    })
+                    Item::Transformation(parsed.try_into()?)
                 }
                 Rule::function => {
                     let parsed = parse(pair.into_inner())?;
@@ -161,6 +111,122 @@ pub fn parse_to_pest_tree(source: &str, rule: Rule) -> Result<Pairs<Rule>, Error
     Ok(pairs)
 }
 
+// We put this outside the main parse function because we also use it to parse
+// function calls.
+impl TryFrom<Vec<Item>> for Transformation {
+    type Error = anyhow::Error;
+    fn try_from(items: Vec<Item>) -> Result<Self> {
+        let (name_item, all_args) = items.split_first().unwrap();
+        let name = name_item.as_ident()?;
+
+        let (named_arg_items, args): (Vec<Item>, Vec<Item>) = all_args
+            .iter()
+            .cloned()
+            .partition(|x| matches!(x, Item::NamedArg(_)));
+
+        let named_args: Vec<NamedArg> = named_arg_items
+            .iter()
+            .map(|x| x.as_named_arg().cloned())
+            .try_collect()?;
+
+        match name.as_str() {
+            "from" => Ok(Transformation::From(args)),
+            "select" => Ok(Transformation::Select(args)),
+            "filter" => Ok(Transformation::Filter(Filter(args))),
+            "derive" => {
+                let assigns = args
+                    .first()
+                    .context("Expected at least one argument")?
+                    .to_items()
+                    .iter()
+                    .map(|x| x.as_assign().cloned())
+                    .try_collect()?;
+                Ok(Transformation::Derive(assigns))
+            }
+            "aggregate" => {
+                // This is more compicated rust than I was expecting, and we may
+                // generalize these checks to custom functions anyway.
+                if args.len() != 1 {
+                    return Err(anyhow!(
+                        "Expected exactly one unnamed argument for aggregate"
+                    ));
+                }
+                let by = match &named_args[..] {
+                    [NamedArg { name, arg }] => {
+                        if name != "by" {
+                            return Err(anyhow!(
+                                "Expected aggregate to have up to one named arg, named 'by'"
+                            ));
+                        }
+                        (*arg).to_items()
+                    }
+                    [] => vec![],
+                    _ => {
+                        return Err(anyhow!(
+                            "Expected aggregate to have up to one named arg, named 'by'"
+                        ))
+                    }
+                };
+
+                let ops = args.first().unwrap().to_items();
+
+                // Ops should either be calcs or assigns; e.g. one of
+                //   average gross_cost
+                //   sum_gross_cost: sum gross_cost
+
+                let (assigns, calcs): (Vec<Item>, Vec<Item>) = ops
+                    .iter()
+                    .cloned()
+                    .partition(|x| matches!(x, Item::Assign(_)));
+
+                let x = Transformation::Aggregate {
+                    by,
+                    calcs: calcs
+                        .iter()
+                        .cloned()
+                        .map(|x| TryInto::<Transformation>::try_into(x.to_items()))
+                        .try_collect()?,
+                    assigns: assigns
+                        .into_iter()
+                        .map(|x| {
+                            // The assigns need to be parsed as Transformations.
+                            // Potentially there's a nicer way of doing this in
+                            // Rust, so we're not parsing them one way and then
+                            // parsing them another. (I thought about having
+                            // Assign generic in its rvalue, but then Item needs
+                            // that generic parameter too?)
+                            x.as_assign().cloned().map(|assign| Assign {
+                                lvalue: assign.lvalue,
+                                // Make the rvalue items into a transformation.
+                                rvalue: Box::new(Item::Transformation(
+                                    TryInto::<Transformation>::try_into(assign.rvalue.to_items())
+                                        .unwrap(),
+                                )),
+                            })
+                        })
+                        .try_collect()?,
+                };
+                Ok(x)
+            }
+            "sort" => Ok(Transformation::Sort(args)),
+            "take" => {
+                // TODO confirm there is only one arg
+                match args.first() {
+                    // TODO: coerce to number
+                    Some(n) => Ok(Transformation::Take(n.as_raw()?.parse()?)),
+                    None => Err(anyhow!("Expected a number; got {:?}", args)),
+                }
+            }
+            "join" => Ok(Transformation::Join(args)),
+            _ => Ok(Transformation::Custom {
+                name: name.to_owned(),
+                args,
+                named_args,
+            }),
+        }
+    }
+}
+
 #[cfg(test)]
 mod test {
 
@@ -193,9 +259,12 @@ mod test {
               by:
                 - Ident: title
               calcs:
-                - Items:
-                    - Ident: sum
-                    - Ident: salary
+                - Custom:
+                    name: sum
+                    args:
+                      - Ident: salary
+                    named_args: []
+              assigns: []
         "###);
         assert_yaml_snapshot!(parse(
             parse_to_pest_tree(
@@ -213,15 +282,17 @@ mod test {
             - Assign:
                 lvalue: gross_salary
                 rvalue:
-                  - Ident: salary
-                  - Raw: +
-                  - Ident: payroll_tax
+                  Items:
+                    - Ident: salary
+                    - Raw: +
+                    - Ident: payroll_tax
             - Assign:
                 lvalue: gross_cost
                 rvalue:
-                  - Ident: gross_salary
-                  - Raw: +
-                  - Ident: benefits_cost
+                  Items:
+                    - Ident: gross_salary
+                    - Raw: +
+                    - Ident: benefits_cost
         "###);
         assert_yaml_snapshot!(parse(
                     parse_to_pest_tree(
@@ -235,15 +306,16 @@ mod test {
         - Assign:
             lvalue: gross_salary
             rvalue:
-              - Items:
-                  - Ident: salary
-                  - Raw: +
-                  - Ident: payroll_tax
-              - Raw: "*"
-              - Items:
-                  - Raw: "1"
-                  - Raw: +
-                  - Ident: tax_rate
+              Items:
+                - Items:
+                    - Ident: salary
+                    - Raw: +
+                    - Ident: payroll_tax
+                - Raw: "*"
+                - Items:
+                    - Raw: "1"
+                    - Raw: +
+                    - Ident: tax_rate
         "###);
     }
 
