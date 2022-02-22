@@ -113,6 +113,10 @@ pub fn parse_to_pest_tree(source: &str, rule: Rule) -> Result<Pairs<Rule>, Error
 
 // We put this outside the main parse function because we also use it to parse
 // function calls.
+// (I'm not sure whether we should be using it for both — on the one hand,
+// they're fairly similar `sum salary` is a standard function call. But on the
+// other, we were planning to allow `salary | sum`, which doesn't work. We would
+// need to parse the whole of `sum salary` as a pipeline, which _might_ then work.)
 impl TryFrom<Vec<Item>> for Transformation {
     type Error = anyhow::Error;
     fn try_from(items: Vec<Item>) -> Result<Self> {
