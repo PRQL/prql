@@ -58,6 +58,7 @@ parenthesized_expr = _{ "(" ~ items ~ ")" }
 // TODO: escapes
 // https://pest.rs/book/examples/rust/literals.html
 string = { (ASCII_ALPHANUMERIC | " " | "." | "_" | "-" | "\\"  )* }
+// TODO: allow single quotes.
 quoted_string = _{ "\"" ~ string ~ "\"" }
 number = @{ ( ASCII_DIGIT | "." )+ }
 operator = @{ "==" | "!=" | "=" | ">" | "<" | ">=" | "<=" | "+" | "-" | "*" | "/" | "%" }
