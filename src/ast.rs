@@ -31,8 +31,11 @@ pub enum Item {
     TODO(String),
 }
 
+/// Transformation is currently used for a) each transformation in a pipeline
+/// and b) a normal function call.
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-// Need to implement some of these as Structs rather than just `Items`
+// We probably want to implement some of these as Structs rather than just
+// `Items`
 pub enum Transformation {
     From(Items),
     Select(Items),
@@ -40,13 +43,14 @@ pub enum Transformation {
     Derive(Vec<Assign>),
     Aggregate {
         by: Items,
-        calcs: Items,
+        calcs: Vec<Transformation>,
+        assigns: Vec<Assign>,
     },
     // TODO: add ordering
     Sort(Items),
     Take(i64),
     Join(Items),
-    Custom {
+    Func {
         name: String,
         args: Items,
         named_args: Vec<NamedArg>,
@@ -65,7 +69,7 @@ impl Transformation {
             Transformation::Sort(_) => "sort",
             Transformation::Take(_) => "take",
             Transformation::Join(_) => "join",
-            Transformation::Custom { name, .. } => name,
+            Transformation::Func { name, .. } => name,
         }
     }
 }
@@ -85,14 +89,14 @@ pub struct Table {
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct NamedArg {
-    pub lvalue: Ident,
-    pub rvalue: Box<Item>,
+    pub name: Ident,
+    pub arg: Box<Item>,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Assign {
     pub lvalue: Ident,
-    pub rvalue: Items,
+    pub rvalue: Box<Item>,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]

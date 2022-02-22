@@ -28,7 +28,7 @@ fn extract_variables(assign: &Assign) -> HashMap<Ident, Item> {
     let mut variables = HashMap::new();
     // Not sure we're choosing the correct Item / Items in the types, this is a
     // bit of a smell.
-    variables.insert(assign.lvalue.clone(), Item::Items(assign.rvalue.clone()));
+    variables.insert(assign.lvalue.clone(), *(assign.rvalue).clone());
     variables
 }
 
@@ -73,11 +73,7 @@ impl ContainsVariables for Assign {
     fn replace_variables(&self, variables: &mut HashMap<Ident, Item>) -> Self {
         Assign {
             lvalue: self.lvalue.to_owned(),
-            rvalue: self
-                .rvalue
-                .iter()
-                .map(|item| item.replace_variables(variables))
-                .collect(),
+            rvalue: Box::new(self.rvalue.replace_variables(variables)),
         }
     }
 }
@@ -85,8 +81,8 @@ impl ContainsVariables for Assign {
 impl ContainsVariables for NamedArg {
     fn replace_variables(&self, variables: &mut HashMap<Ident, Item>) -> Self {
         NamedArg {
-            lvalue: self.lvalue.to_owned(),
-            rvalue: Box::new(self.rvalue.replace_variables(variables)),
+            name: self.name.to_owned(),
+            arg: Box::new(self.arg.replace_variables(variables)),
         }
     }
 }
@@ -163,16 +159,22 @@ impl ContainsVariables for Transformation {
             Transformation::Select(ref items) => {
                 Transformation::Select(items.replace_variables(variables))
             }
-            Transformation::Aggregate { by, calcs } => Transformation::Aggregate {
+            Transformation::Aggregate { by, calcs, assigns } => Transformation::Aggregate {
                 by: by.replace_variables(variables),
+                // TODO: this is currently matching against the impl on Pipeline
+                // because it's a Vec of Transformation — is that OK?
                 calcs: calcs.replace_variables(variables),
+                assigns: assigns
+                    .iter()
+                    .map(|assign| assign.replace_variables(variables))
+                    .collect(),
             },
             // For everything else, just visit each object and replace the variables.
-            Transformation::Custom {
+            Transformation::Func {
                 name,
                 args,
                 named_args,
-            } => Transformation::Custom {
+            } => Transformation::Func {
                 name: name.to_owned(),
                 args: args
                     .iter()
@@ -237,17 +239,17 @@ mod test {
             &to_string(&ast.replace_variables(&mut HashMap::new())).unwrap()
         ).unified_diff(),
         @r###"
-        @@ -10,6 +10,9 @@
-                   - Ident: payroll_tax
+        @@ -12,6 +12,9 @@
                - lvalue: gross_cost
                  rvalue:
-        -          - Ident: gross_salary
-        +          - Items:
-        +              - Ident: salary
-        +              - Raw: +
-        +              - Ident: payroll_tax
-                   - Raw: +
-                   - Ident: benefits_cost
+                   Items:
+        -            - Ident: gross_salary
+        +            - Items:
+        +                - Ident: salary
+        +                - Raw: +
+        +                - Ident: payroll_tax
+                     - Raw: +
+                     - Ident: benefits_cost
         "###);
 
         let ast = &parse(

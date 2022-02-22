@@ -94,10 +94,20 @@ pub fn to_select(pipeline: &Pipeline) -> Result<sqlparser::ast::Select> {
     let aggregate = pipeline
         .iter()
         .find(|t| matches!(t, Transformation::Aggregate { .. }));
-    let (group_bys, select_from_aggregate) = match aggregate {
-        Some(Transformation::Aggregate { by, calcs }) => (
-            (by.clone()),
-            Some(calcs.iter().map(|x| x.clone().try_into()).try_collect()?),
+    let (group_bys, select_from_aggregate): (Vec<Item>, Option<Vec<SelectItem>>) = match aggregate {
+        Some(Transformation::Aggregate { by, calcs, assigns }) => (
+            by.clone(),
+            // This is inscrutable, sorry for the rust.
+            // It's chaining a) the calcs (such as `sum salary`) and b) the assigns
+            // (such as `sum_salary: sum salary`), and converting them into
+            // SelectItems.
+            Some(
+                calcs
+                    .iter()
+                    .map(|x| x.clone().try_into())
+                    .chain(assigns.iter().map(|x| x.clone().try_into()))
+                    .try_collect()?,
+            ),
         ),
         None => (vec![], None),
         _ => unreachable!("Expected an aggregate transformation"),
@@ -111,8 +121,8 @@ pub fn to_select(pipeline: &Pipeline) -> Result<sqlparser::ast::Select> {
             _ => None,
         })
         .flatten()
-        .map(|assign| assign.into())
-        .collect::<Vec<SelectItem>>();
+        .map(|assign| assign.try_into())
+        .try_collect()?;
 
     // Only the final select matters (assuming we don't have notions of `select
     // *` or `select * except`)
@@ -202,16 +212,16 @@ pub fn queries_of_pipeline(pipeline: &Pipeline) -> Vec<Pipeline> {
     queries
 }
 
-// TODO: change to TryInto.
-impl From<Assign> for SelectItem {
-    fn from(assign: Assign) -> Self {
-        SelectItem::ExprWithAlias {
+impl TryFrom<Assign> for SelectItem {
+    type Error = anyhow::Error;
+    fn try_from(assign: Assign) -> Result<Self> {
+        Ok(SelectItem::ExprWithAlias {
             alias: sqlparser::ast::Ident {
                 value: assign.lvalue,
                 quote_style: None,
             },
-            expr: Item::Items(assign.rvalue).try_into().unwrap(),
-        }
+            expr: (*assign.rvalue).try_into()?,
+        })
     }
 }
 
@@ -235,6 +245,17 @@ impl TryFrom<Item> for sqlparser::ast::SelectItem {
                 item
             )),
         }
+    }
+}
+impl TryFrom<Transformation> for sqlparser::ast::SelectItem {
+    type Error = anyhow::Error;
+    fn try_from(transformation: Transformation) -> Result<Self> {
+        Ok(sqlparser::ast::SelectItem::UnnamedExpr(
+            sqlparser::ast::Expr::Identifier(sqlparser::ast::Ident::new(format!(
+                "TODO: {:?}",
+                &transformation
+            ))),
+        ))
     }
 }
 
@@ -348,14 +369,15 @@ mod test {
     - String: USA
 - Aggregate:
     by:
-      - List:
-          - Ident: title
-          - Ident: country
+      - Ident: title
+      - Ident: country
     calcs:
-      - List:
-          - Items:
-              - Ident: average
-              - Ident: salary
+      - Func:
+          name: average
+          args:
+            - Ident: salary
+          named_args: []
+    assigns: []
 - Sort:
     - Ident: title
 - Take: 20
@@ -376,14 +398,15 @@ mod test {
     - String: USA
 - Aggregate:
     by:
-      - List:
-          - Ident: title
-          - Ident: country
+      - Ident: title
+      - Ident: country
     calcs:
-      - List:
-          - Items:
-              - Ident: average
-              - Ident: salary
+      - Func:
+          name: average
+          args:
+            - Ident: salary
+          named_args: []
+    assigns: []
 - Sort:
     - Ident: title
         "###;
@@ -403,19 +426,26 @@ mod test {
     - String: USA
 - Aggregate:
     by:
-        - Ident: title
-        - Ident: country
+      - Ident: title
+      - Ident: country
     calcs:
-        - Items:
-            - Ident: average
+      - Func:
+          name: average
+          args:
             - Ident: salary
+          named_args: []
+    assigns: []
 - Aggregate:
-    by: []
+    by:
+      - Ident: title
+      - Ident: country
     calcs:
-        - Items:
-            - Ident: sum
-            # TODO: this isn't currently defined
-            - Ident: average_salary
+      - Func:
+          name: average
+          args:
+            - Ident: salary
+          named_args: []
+    assigns: []
 - Sort:
     - Ident: sum_gross_cost
 
@@ -437,12 +467,15 @@ mod test {
     - String: USA
 - Aggregate:
     by:
-        - Ident: title
-        - Ident: country
+      - Ident: title
+      - Ident: country
     calcs:
-        - Items:
-            - Ident: average
+      - Func:
+          name: average
+          args:
             - Ident: salary
+          named_args: []
+    assigns: []
 - Sort:
     - Ident: title
 - Take: 20
@@ -453,7 +486,7 @@ mod test {
         assert_debug_snapshot!(select);
         // TODO: totally wrong but compiles, and we're on our way to fixing it.
         assert_display_snapshot!(select,
-            @"SELECT TOP (20) average salary FROM employees WHERE country = 'USA' GROUP BY title, country SORT BY title"
+            @r###"SELECT TOP (20) TODO: Func { name: "average", args: [Ident("salary")], named_args: [] } FROM employees WHERE country = 'USA' GROUP BY title, country SORT BY title"###
         );
     }
 }
