@@ -94,6 +94,14 @@ pub fn parse(pairs: Pairs<Rule>) -> Result<Items> {
                     .next()
                     .ok_or_else(|| anyhow!("Failed reading string {:?}", &pair))?,
                 Rule::string => Item::String(pair.as_str().to_string()),
+                Rule::s_string => Item::SString(
+                    pair.into_inner()
+                        .map(|x| match x.as_rule() {
+                            Rule::s_string_string => SStringItem::String(x.as_str().to_string()),
+                            _ => SStringItem::Expr(Item::Items(parse(x.into_inner()).unwrap())),
+                        })
+                        .collect(),
+                ),
                 Rule::query => Item::Query(parse(pair.into_inner())?),
                 Rule::pipeline => Item::Pipeline({
                     parse(pair.into_inner())?
@@ -276,6 +284,83 @@ mod test {
         assert_yaml_snapshot!(parse(parse_to_pest_tree(r#"" U S A ""#, Rule::string_literal).unwrap()).unwrap(), @r###"
         ---
         - String: " U S A "
+        "###);
+    }
+
+    #[test]
+    fn test_parse_s_string() {
+        assert_debug_snapshot!(parse_to_pest_tree(r#"s"SUM({col})""#, Rule::s_string), @r###"
+        Ok(
+            [
+                Pair {
+                    rule: s_string,
+                    span: Span {
+                        str: "s\"SUM({col})\"",
+                        start: 0,
+                        end: 13,
+                    },
+                    inner: [
+                        Pair {
+                            rule: s_string_string,
+                            span: Span {
+                                str: "SUM(",
+                                start: 2,
+                                end: 6,
+                            },
+                            inner: [],
+                        },
+                        Pair {
+                            rule: items,
+                            span: Span {
+                                str: "col",
+                                start: 7,
+                                end: 10,
+                            },
+                            inner: [
+                                Pair {
+                                    rule: ident,
+                                    span: Span {
+                                        str: "col",
+                                        start: 7,
+                                        end: 10,
+                                    },
+                                    inner: [],
+                                },
+                            ],
+                        },
+                        Pair {
+                            rule: s_string_string,
+                            span: Span {
+                                str: ")",
+                                start: 11,
+                                end: 12,
+                            },
+                            inner: [],
+                        },
+                    ],
+                },
+            ],
+        )
+        "###);
+        assert_yaml_snapshot!(parse(parse_to_pest_tree(r#"s"SUM({col})""#, Rule::s_string).unwrap()).unwrap(), @r###"
+        ---
+        - SString:
+            - String: SUM(
+            - Expr:
+                Items:
+                  - Ident: col
+            - String: )
+        "###);
+        assert_yaml_snapshot!(parse(parse_to_pest_tree(r#"s"SUM({2 + 2})""#, Rule::s_string).unwrap()).unwrap(), @r###"
+        ---
+        - SString:
+            - String: SUM(
+            - Expr:
+                Items:
+                  - Raw: "2"
+                  - Raw: +
+                  - Raw: "2"
+            - String: )
         "###);
     }
 

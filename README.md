@@ -391,6 +391,25 @@ in advance.
   would be more consistent with the other functions, but I think less readable
   (and definitely less familiar).
 
+### S-Strings
+
+An s-string inserts SQL directly. It's similar in form to a python f-string, but
+the result is SQL, rather than a string literal; i.e.:
+
+```elm
+func sum col = s"SUM({col})"
+sum salary
+```
+
+transpiles to:
+
+```sql
+SUM(salary)
+```
+
+...whereas if it were a python f-string, it would make `"sum(salary)"`, with the
+quotes.
+
 ### Lists
 
 - Most keywords that take a single argument can also take a list, so these are equivalent:

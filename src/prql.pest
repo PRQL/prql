@@ -73,6 +73,9 @@ string_literal = ${ "\"" ~ string ~ "\"" }
 number = ${ ( ASCII_DIGIT | "." )+ }
 operator = ${ "==" | "!=" | "=" | ">" | "<" | ">=" | "<=" | "+" | "-" | "*" | "/" | "%" }
 
+s_string = ${ "s\"" ~ ( s_string_string | ( "{" ~ items ~ "}" ))* ~ "\"" }
+s_string_string = { ( !( "\\" | "\"" | "{" ) ~ ANY )+ }
+
 // Currently named_args and handled slightly differently to assignments:
 // named_args have no whitespace and take one expression immediately after the
 // `:`, while assignments take all of the expressions following the `:`. e.g.:

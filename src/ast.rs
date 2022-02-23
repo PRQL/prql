@@ -27,6 +27,7 @@ pub enum Item {
     Idents(Idents),
     Function(Function),
     Table(Table),
+    SString(Vec<SStringItem>),
     // Anything not yet implemented.
     TODO(String),
 }
@@ -97,6 +98,12 @@ pub struct NamedArg {
 pub struct Assign {
     pub lvalue: Ident,
     pub rvalue: Box<Item>,
+}
+
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+pub enum SStringItem {
+    String(String),
+    Expr(Item),
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]

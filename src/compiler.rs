@@ -65,6 +65,18 @@ impl ContainsVariables for Item {
             Item::Function(_) | Item::Table(_) | Item::String(_) | Item::Raw(_) | Item::TODO(_) => {
                 self.clone()
             }
+            Item::SString(items) => Item::SString(
+                // Replace the Expr but just pass through the Literals.
+                items
+                    .iter()
+                    .map(|x| match x {
+                        SStringItem::String(string) => SStringItem::String(string.clone()),
+                        SStringItem::Expr(expr) => {
+                            SStringItem::Expr(expr.replace_variables(variables))
+                        }
+                    })
+                    .collect(),
+            ),
         }
     }
 }
