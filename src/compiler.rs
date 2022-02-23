@@ -72,11 +72,7 @@ pub trait AstFold {
                 .iter()
                 .map(|i| self.fold_ident(i))
                 .try_collect()?,
-            body: function
-                .body
-                .iter()
-                .map(|i| self.fold_item(i))
-                .try_collect()?,
+            body: self.fold_items(&function.body)?,
         })
     }
     fn fold_table(&mut self, table: &Table) -> Result<Table> {
@@ -108,6 +104,7 @@ pub trait AstFold {
             filter.0.iter().map(|i| self.fold_item(i)).try_collect()?,
         ))
     }
+    // TODO: add generalized method.
     fn fold_transformation(&mut self, transformation: &Transformation) -> Result<Transformation>;
 }
 
