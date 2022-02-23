@@ -26,40 +26,6 @@ pub trait AstFold {
         Ok(ident.clone())
     }
 
-    fn fold_item(&mut self, item: &Item) -> Result<Item> {
-        Ok(match item {
-            Item::Ident(ident) => Item::Ident(self.fold_ident(ident)?),
-            Item::Items(items) => Item::Items(self.fold_items(items)?),
-            Item::Idents(idents) => {
-                Item::Idents(idents.iter().map(|i| self.fold_ident(i)).try_collect()?)
-            }
-            Item::List(items) => Item::List(self.fold_items(items)?),
-            Item::Query(items) => Item::Query(self.fold_items(items)?),
-            Item::Pipeline(transformations) => Item::Pipeline(
-                transformations
-                    .iter()
-                    .map(|t| self.fold_transformation(t))
-                    .try_collect()?,
-            ),
-            Item::NamedArg(named_arg) => Item::NamedArg(self.fold_named_arg(named_arg)?),
-            Item::Assign(assign) => Item::Assign(self.fold_assign(assign)?),
-            Item::Transformation(transformation) => {
-                Item::Transformation(self.fold_transformation(transformation)?)
-            }
-            Item::SString(items) => Item::SString(
-                items
-                    .iter()
-                    .map(|x| self.fold_sstring_item(x))
-                    .try_collect()?,
-            ),
-            // None of these capture variables, so we don't need to replace
-            // them.
-            Item::Function(_) | Item::Table(_) | Item::String(_) | Item::Raw(_) | Item::TODO(_) => {
-                item.clone()
-            }
-        })
-    }
-
     fn fold_items(&mut self, items: &Items) -> Result<Items> {
         items.iter().map(|item| self.fold_item(item)).collect()
     }
@@ -104,8 +70,98 @@ pub trait AstFold {
             filter.0.iter().map(|i| self.fold_item(i)).try_collect()?,
         ))
     }
-    // TODO: add generalized method.
-    fn fold_transformation(&mut self, transformation: &Transformation) -> Result<Transformation>;
+    // For some functions, we want to call a default impl, because copying &
+    // pasting everything apart from a specific match is lots of repetition. So
+    // we define a function outside the trait, by default call it, and let
+    // implementors override the default while calling the function directly for
+    // some cases. Feel free to extend the functions that are separate when
+    // necessary. Ref https://stackoverflow.com/a/66077767/3064736
+    fn fold_transformation(&mut self, transformation: &Transformation) -> Result<Transformation> {
+        fold_transformation(self, transformation)
+    }
+    fn fold_item(&mut self, item: &Item) -> Result<Item> {
+        fold_item(self, item)
+    }
+}
+
+fn fold_transformation<T: ?Sized + AstFold>(
+    fold: &mut T,
+    transformation: &Transformation,
+) -> Result<Transformation> {
+    match transformation {
+        Transformation::Derive(assigns) => Ok(Transformation::Derive({
+            assigns
+                .iter()
+                .map(|assign| fold.fold_assign(assign))
+                .try_collect()?
+        })),
+        Transformation::From(items) => Ok(Transformation::From(fold.fold_items(items)?)),
+        Transformation::Filter(Filter(items)) => {
+            Ok(Transformation::Filter(Filter(fold.fold_items(items)?)))
+        }
+        Transformation::Sort(items) => Ok(Transformation::Sort(fold.fold_items(items)?)),
+        Transformation::Join(items) => Ok(Transformation::Join(fold.fold_items(items)?)),
+        Transformation::Select(items) => Ok(Transformation::Select(fold.fold_items(items)?)),
+        Transformation::Aggregate { by, calcs, assigns } => Ok(Transformation::Aggregate {
+            by: fold.fold_items(by)?,
+            calcs: calcs
+                .iter()
+                .map(|t| fold.fold_transformation(t))
+                .try_collect()?,
+            assigns: assigns
+                .iter()
+                .map(|assign| fold.fold_assign(assign))
+                .try_collect()?,
+        }),
+        Transformation::Func {
+            name,
+            args,
+            named_args,
+        } => Ok(Transformation::Func {
+            // TODO: generalize? Or this never changes?
+            name: name.to_owned(),
+            args: args.iter().map(|item| fold.fold_item(item)).try_collect()?,
+            named_args: named_args
+                .iter()
+                .map(|named_arg| fold.fold_named_arg(named_arg))
+                .try_collect()?,
+        }),
+        // TODO: generalize? Or this never changes?
+        Transformation::Take(_) => Ok(transformation.clone()),
+    }
+}
+fn fold_item<T: ?Sized + AstFold>(fold: &mut T, item: &Item) -> Result<Item> {
+    Ok(match item {
+        Item::Ident(ident) => Item::Ident(fold.fold_ident(ident)?),
+        Item::Items(items) => Item::Items(fold.fold_items(items)?),
+        Item::Idents(idents) => {
+            Item::Idents(idents.iter().map(|i| fold.fold_ident(i)).try_collect()?)
+        }
+        Item::List(items) => Item::List(fold.fold_items(items)?),
+        Item::Query(items) => Item::Query(fold.fold_items(items)?),
+        Item::Pipeline(transformations) => Item::Pipeline(
+            transformations
+                .iter()
+                .map(|t| fold.fold_transformation(t))
+                .try_collect()?,
+        ),
+        Item::NamedArg(named_arg) => Item::NamedArg(fold.fold_named_arg(named_arg)?),
+        Item::Assign(assign) => Item::Assign(fold.fold_assign(assign)?),
+        Item::Transformation(transformation) => {
+            Item::Transformation(fold.fold_transformation(transformation)?)
+        }
+        Item::SString(items) => Item::SString(
+            items
+                .iter()
+                .map(|x| fold.fold_sstring_item(x))
+                .try_collect()?,
+        ),
+        // TODO: implement for these
+        Item::Function(_) | Item::Table(_) => item.clone(),
+        // None of these capture variables, so we don't need to replace
+        // them.
+        Item::String(_) | Item::Raw(_) | Item::TODO(_) => item.clone(),
+    })
 }
 
 struct ReplaceVariables {
@@ -120,8 +176,7 @@ impl ReplaceVariables {
             variables: HashMap::new(),
         }
     }
-
-    fn extract_variables(&mut self, assign: &Assign) -> &Self {
+    fn add_variables(&mut self, assign: &Assign) -> &Self {
         // Not sure we're choosing the correct Item / Items in the types, this is a
         // bit of a smell.
         self.variables
@@ -136,63 +191,24 @@ impl AstFold for ReplaceVariables {
             // If it's a derive, add the variables to the hashmap (while
             // also replacing its variables with those which came before
             // it).
-            Transformation::Derive(assigns) => Ok(Transformation::Derive({
-                assigns
-                    .iter()
-                    .map(|assign| {
-                        {
-                            // Replace this assign using existing variable
-                            // mapping before adding its variables into the
-                            // variable mapping.
-                            // let assign_replaced = self.fold_assign(assign)?;
-                            let assign_replaced = self.fold_assign(assign).unwrap();
-                            self.extract_variables(&assign_replaced);
-                            assign_replaced
-                        }
-                    })
-                    .collect()
-            })),
-            Transformation::From(items) => Ok(Transformation::From(self.fold_items(items)?)),
-            Transformation::Filter(Filter(items)) => {
-                Ok(Transformation::Filter(Filter(self.fold_items(items)?)))
+            Transformation::Derive(assigns) => {
+                // Replace this assign using existing variable mapping before
+                // adding its variables into the variable mapping.
+                for assign in assigns {
+                    let replaced_assign = self.fold_assign(assign)?;
+                    self.add_variables(&replaced_assign);
+                }
+                fold_transformation(self, transformation)
             }
-            Transformation::Sort(items) => Ok(Transformation::Sort(self.fold_items(items)?)),
-            Transformation::Join(items) => Ok(Transformation::Join(self.fold_items(items)?)),
-            Transformation::Select(items) => Ok(Transformation::Select(self.fold_items(items)?)),
-            Transformation::Aggregate { by, calcs, assigns } => Ok(Transformation::Aggregate {
-                by: self.fold_items(by)?,
-                // TODO: this is currently matching against the impl on Pipeline
-                // because it's a Vec of Transformation — is that OK?
-                calcs: calcs
-                    .iter()
-                    .map(|t| self.fold_transformation(t))
-                    .try_collect()?,
-                assigns: assigns
-                    .iter()
-                    .map(|assign| self.fold_assign(assign))
-                    .try_collect()?,
-            }),
-            // For everything else, just visit each object and replace the variables.
-            Transformation::Func {
-                name,
-                args,
-                named_args,
-            } => Ok(Transformation::Func {
-                // TODO: generalize
-                name: name.to_owned(),
-                args: args.iter().map(|item| self.fold_item(item)).try_collect()?,
-                named_args: named_args
-                    .iter()
-                    .map(|named_arg| self.fold_named_arg(named_arg))
-                    .try_collect()?,
-            }),
-            // TODO: generalize
-            Transformation::Take(_) => Ok(transformation.clone()),
+            // For everything else, defer to the standard fold.
+            _ => fold_transformation(self, transformation),
         }
     }
-    // same as above apart from Ident
     fn fold_item(&mut self, item: &Item) -> Result<Item> {
         Ok(match item {
+            // Because this returns an Item rather than an Ident, we need to
+            // have a custom `fold_item` method; a custom `fold_ident` method
+            // wouldn't return the correct type.
             Item::Ident(ident) => {
                 if self.variables.contains_key(ident) {
                     self.variables[ident].clone()
@@ -200,34 +216,7 @@ impl AstFold for ReplaceVariables {
                     Item::Ident(ident.clone())
                 }
             }
-            Item::Items(items) => Item::Items(self.fold_items(items)?),
-            Item::Idents(idents) => {
-                Item::Idents(idents.iter().map(|i| self.fold_ident(i)).try_collect()?)
-            }
-            Item::List(items) => Item::List(self.fold_items(items)?),
-            Item::Query(items) => Item::Query(self.fold_items(items)?),
-            Item::Pipeline(transformations) => Item::Pipeline(
-                transformations
-                    .iter()
-                    .map(|t| self.fold_transformation(t))
-                    .try_collect()?,
-            ),
-            Item::NamedArg(named_arg) => Item::NamedArg(self.fold_named_arg(named_arg)?),
-            Item::Assign(assign) => Item::Assign(self.fold_assign(assign)?),
-            Item::Transformation(transformation) => {
-                Item::Transformation(self.fold_transformation(transformation)?)
-            }
-            Item::SString(items) => Item::SString(
-                items
-                    .iter()
-                    .map(|x| self.fold_sstring_item(x))
-                    .try_collect()?,
-            ),
-            // None of these capture variables, so we don't need to replace
-            // them.
-            Item::Function(_) | Item::Table(_) | Item::String(_) | Item::Raw(_) | Item::TODO(_) => {
-                item.clone()
-            }
+            _ => fold_item(self, item)?,
         })
     }
 }
