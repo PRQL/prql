@@ -1,149 +1,144 @@
 use super::ast::*;
+use anyhow::Result;
 use itertools::Itertools;
 use std::collections::HashMap;
 
-/// An object in which we want to replace variables with the items in those variables.
-pub trait ContainsVariables {
-    #[must_use]
-    fn replace_variables(&self, variables: &mut HashMap<Ident, Item>) -> Self;
-}
+// Fold pattern:
+// - https://rust-unofficial.github.io/patterns/patterns/creational/fold.html
+// Good discussions on the visitor / fold pattern:
+// - https://github.com/rust-unofficial/patterns/discussions/236
+// - https://news.ycombinator.com/item?id=25620110
 
-impl ContainsVariables for Pipeline {
-    fn replace_variables(&self, variables: &mut HashMap<Ident, Item>) -> Self
-    where
-        Self: Sized,
-    {
-        // We don't expect to use a variables arg, but the function takes one
-        // out of conformity. We use it as a base rather than discard it in the
-        // case that the function is passed one.
-        let mut variables = variables.clone();
-
-        self.iter()
-            .map(|t| t.replace_variables(&mut variables))
+// TODO: some of these impls will be too specific because they were copied from
+// when ReplaceVariables was implemented directly. When we find a case that is
+// overfit on ReplaceVariables, we should add the custom impl to
+// ReplaceVariables, and write a more generic impl to this.
+pub trait AstFold {
+    fn fold_pipeline(&mut self, pipeline: &Pipeline) -> Result<Pipeline> {
+        pipeline
+            .iter()
+            .map(|t| self.fold_transformation(t))
             .collect()
     }
-}
 
-fn extract_variables(assign: &Assign) -> HashMap<Ident, Item> {
-    let mut variables = HashMap::new();
-    // Not sure we're choosing the correct Item / Items in the types, this is a
-    // bit of a smell.
-    variables.insert(assign.lvalue.clone(), *(assign.rvalue).clone());
-    variables
-}
+    fn fold_ident(&mut self, ident: &Ident) -> Result<Ident> {
+        Ok(ident.clone())
+    }
 
-impl ContainsVariables for Item {
-    fn replace_variables(&self, variables: &mut HashMap<Ident, Item>) -> Self {
-        // This is verbose — is there a better approach? If we have to do this
-        // again for another function, we could change it to a Visitor pattern.
-        // But we'd need to encode things like not replacing `lvalue`s. Many of
-        // these are doing exactly the same thing — iterating through their
-        // items.
-        match self {
-            Item::Ident(ident) => {
-                if variables.contains_key(ident) {
-                    variables[ident].clone()
-                } else {
-                    self.clone()
-                }
+    fn fold_item(&mut self, item: &Item) -> Result<Item> {
+        Ok(match item {
+            Item::Ident(ident) => Item::Ident(self.fold_ident(ident)?),
+            Item::Items(items) => Item::Items(self.fold_items(items)?),
+            Item::Idents(idents) => {
+                Item::Idents(idents.iter().map(|i| self.fold_ident(i)).try_collect()?)
             }
-            Item::Items(items) => Item::Items(items.replace_variables(variables)),
-            // See notes in func — possibly this should just parse to Items.
-            Item::Idents(idents) => Item::Idents(idents.replace_variables(variables)),
-            Item::List(items) => Item::List(items.replace_variables(variables)),
-            Item::Query(items) => Item::Query(items.replace_variables(variables)),
-            Item::Pipeline(transformations) => {
-                Item::Pipeline(transformations.replace_variables(variables))
-            }
-            Item::NamedArg(named_arg) => Item::NamedArg(named_arg.replace_variables(variables)),
-            Item::Assign(assign) => Item::Assign(assign.replace_variables(variables)),
+            Item::List(items) => Item::List(self.fold_items(items)?),
+            Item::Query(items) => Item::Query(self.fold_items(items)?),
+            Item::Pipeline(transformations) => Item::Pipeline(
+                transformations
+                    .iter()
+                    .map(|t| self.fold_transformation(t))
+                    .try_collect()?,
+            ),
+            Item::NamedArg(named_arg) => Item::NamedArg(self.fold_named_arg(named_arg)?),
+            Item::Assign(assign) => Item::Assign(self.fold_assign(assign)?),
             Item::Transformation(transformation) => {
-                Item::Transformation(transformation.replace_variables(variables))
+                Item::Transformation(self.fold_transformation(transformation)?)
             }
+            Item::SString(items) => Item::SString(
+                items
+                    .iter()
+                    .map(|x| self.fold_sstring_item(x))
+                    .try_collect()?,
+            ),
             // None of these capture variables, so we don't need to replace
             // them.
             Item::Function(_) | Item::Table(_) | Item::String(_) | Item::Raw(_) | Item::TODO(_) => {
-                self.clone()
+                item.clone()
             }
-            Item::SString(items) => Item::SString(
-                // Replace the Expr but just pass through the Literals.
-                items
-                    .iter()
-                    .map(|x| match x {
-                        SStringItem::String(string) => SStringItem::String(string.clone()),
-                        SStringItem::Expr(expr) => {
-                            SStringItem::Expr(expr.replace_variables(variables))
-                        }
-                    })
-                    .collect(),
-            ),
-        }
+        })
     }
-}
 
-impl ContainsVariables for Assign {
-    fn replace_variables(&self, variables: &mut HashMap<Ident, Item>) -> Self {
-        Assign {
-            lvalue: self.lvalue.to_owned(),
-            rvalue: Box::new(self.rvalue.replace_variables(variables)),
-        }
+    fn fold_items(&mut self, items: &Items) -> Result<Items> {
+        items.iter().map(|item| self.fold_item(item)).collect()
     }
-}
 
-impl ContainsVariables for NamedArg {
-    fn replace_variables(&self, variables: &mut HashMap<Ident, Item>) -> Self {
-        NamedArg {
-            name: self.name.to_owned(),
-            arg: Box::new(self.arg.replace_variables(variables)),
-        }
-    }
-}
-
-impl ContainsVariables for Idents {
-    fn replace_variables(&self, variables: &mut HashMap<Ident, Item>) -> Self {
-        self.iter()
-            // TODO: Not the most elegant approach. Possibly up a level we could parse
-            // `Ident`s into `Items` — but probably push until we add named_args
-            // to functions.
-            .map(|item| {
-                Item::Ident(item.to_string())
-                    .replace_variables(variables)
-                    .as_ident()
-                    .cloned()
-                    .unwrap()
-            })
-            .collect()
-    }
-}
-
-impl ContainsVariables for Items {
-    fn replace_variables(&self, variables: &mut HashMap<Ident, Item>) -> Self {
-        self.iter()
-            .map(|item| item.replace_variables(variables))
-            .collect()
-    }
-}
-
-impl ContainsVariables for Filter {
-    fn replace_variables(&self, variables: &mut HashMap<Ident, Item>) -> Self {
-        Filter(
-            self.0
+    fn fold_function(&mut self, function: &Function) -> Result<Function> {
+        Ok(Function {
+            name: self.fold_ident(&function.name)?,
+            args: function
+                .args
                 .iter()
-                .map(|item| item.replace_variables(variables))
-                .collect(),
-        )
+                .map(|i| self.fold_ident(i))
+                .try_collect()?,
+            body: function
+                .body
+                .iter()
+                .map(|i| self.fold_item(i))
+                .try_collect()?,
+        })
+    }
+    fn fold_table(&mut self, table: &Table) -> Result<Table> {
+        Ok(Table {
+            name: self.fold_ident(&table.name)?,
+            pipeline: self.fold_pipeline(&table.pipeline)?,
+        })
+    }
+    fn fold_named_arg(&mut self, named_arg: &NamedArg) -> Result<NamedArg> {
+        Ok(NamedArg {
+            name: self.fold_ident(&named_arg.name)?,
+            arg: Box::new(self.fold_item(&named_arg.arg)?),
+        })
+    }
+    fn fold_assign(&mut self, assign: &Assign) -> Result<Assign> {
+        Ok(Assign {
+            lvalue: self.fold_ident(&assign.lvalue)?,
+            rvalue: Box::new(self.fold_item(&assign.rvalue)?),
+        })
+    }
+    fn fold_sstring_item(&mut self, sstring_item: &SStringItem) -> Result<SStringItem> {
+        Ok(match sstring_item {
+            SStringItem::String(string) => SStringItem::String(string.clone()),
+            SStringItem::Expr(expr) => SStringItem::Expr(self.fold_item(expr)?),
+        })
+    }
+    fn fold_filter(&mut self, filter: &Filter) -> Result<Filter> {
+        Ok(Filter(
+            filter.0.iter().map(|i| self.fold_item(i)).try_collect()?,
+        ))
+    }
+    fn fold_transformation(&mut self, transformation: &Transformation) -> Result<Transformation>;
+}
+
+struct ReplaceVariables {
+    variables: HashMap<Ident, Item>,
+}
+
+impl ReplaceVariables {
+    // Clippy is fine with this (correctly), but rust-analyzer is not (incorrectly).
+    #[allow(dead_code)]
+    fn new() -> Self {
+        Self {
+            variables: HashMap::new(),
+        }
+    }
+
+    fn extract_variables(&mut self, assign: &Assign) -> &Self {
+        // Not sure we're choosing the correct Item / Items in the types, this is a
+        // bit of a smell.
+        self.variables
+            .insert(assign.lvalue.clone(), *(assign.rvalue).clone());
+        self
     }
 }
 
-impl ContainsVariables for Transformation {
-    fn replace_variables(&self, variables: &mut HashMap<Ident, Item>) -> Self {
-        // As above re this being verbose and possibly we write a visitor
-        // pattern to visit all `items`.
-        match self {
+impl AstFold for ReplaceVariables {
+    fn fold_transformation(&mut self, transformation: &Transformation) -> Result<Transformation> {
+        match transformation {
             // If it's a derive, add the variables to the hashmap (while
             // also replacing its variables with those which came before
             // it).
-            Transformation::Derive(assigns) => Transformation::Derive({
+            Transformation::Derive(assigns) => Ok(Transformation::Derive({
                 assigns
                     .iter()
                     .map(|assign| {
@@ -151,54 +146,91 @@ impl ContainsVariables for Transformation {
                             // Replace this assign using existing variable
                             // mapping before adding its variables into the
                             // variable mapping.
-                            let assign_replaced = assign.replace_variables(variables);
-                            variables.extend(extract_variables(&assign_replaced));
+                            // let assign_replaced = self.fold_assign(assign)?;
+                            let assign_replaced = self.fold_assign(assign).unwrap();
+                            self.extract_variables(&assign_replaced);
                             assign_replaced
                         }
                     })
                     .collect()
-            }),
-            Transformation::From(items) => Transformation::From(items.replace_variables(variables)),
-            Transformation::Filter(items) => {
-                Transformation::Filter(items.replace_variables(variables))
+            })),
+            Transformation::From(items) => Ok(Transformation::From(self.fold_items(items)?)),
+            Transformation::Filter(Filter(items)) => {
+                Ok(Transformation::Filter(Filter(self.fold_items(items)?)))
             }
-            Transformation::Sort(ref items) => {
-                Transformation::Sort(items.replace_variables(variables))
-            }
-            Transformation::Join(ref items) => {
-                Transformation::Join(items.replace_variables(variables))
-            }
-            Transformation::Select(ref items) => {
-                Transformation::Select(items.replace_variables(variables))
-            }
-            Transformation::Aggregate { by, calcs, assigns } => Transformation::Aggregate {
-                by: by.replace_variables(variables),
+            Transformation::Sort(items) => Ok(Transformation::Sort(self.fold_items(items)?)),
+            Transformation::Join(items) => Ok(Transformation::Join(self.fold_items(items)?)),
+            Transformation::Select(items) => Ok(Transformation::Select(self.fold_items(items)?)),
+            Transformation::Aggregate { by, calcs, assigns } => Ok(Transformation::Aggregate {
+                by: self.fold_items(by)?,
                 // TODO: this is currently matching against the impl on Pipeline
                 // because it's a Vec of Transformation — is that OK?
-                calcs: calcs.replace_variables(variables),
+                calcs: calcs
+                    .iter()
+                    .map(|t| self.fold_transformation(t))
+                    .try_collect()?,
                 assigns: assigns
                     .iter()
-                    .map(|assign| assign.replace_variables(variables))
-                    .collect(),
-            },
+                    .map(|assign| self.fold_assign(assign))
+                    .try_collect()?,
+            }),
             // For everything else, just visit each object and replace the variables.
             Transformation::Func {
                 name,
                 args,
                 named_args,
-            } => Transformation::Func {
+            } => Ok(Transformation::Func {
+                // TODO: generalize
                 name: name.to_owned(),
-                args: args
-                    .iter()
-                    .map(|item| item.replace_variables(variables))
-                    .collect(),
+                args: args.iter().map(|item| self.fold_item(item)).try_collect()?,
                 named_args: named_args
                     .iter()
-                    .map(|named_arg| named_arg.replace_variables(variables))
-                    .collect(),
-            },
-            &Transformation::Take(_) => self.clone(),
+                    .map(|named_arg| self.fold_named_arg(named_arg))
+                    .try_collect()?,
+            }),
+            // TODO: generalize
+            Transformation::Take(_) => Ok(transformation.clone()),
         }
+    }
+    // same as above apart from Ident
+    fn fold_item(&mut self, item: &Item) -> Result<Item> {
+        Ok(match item {
+            Item::Ident(ident) => {
+                if self.variables.contains_key(ident) {
+                    self.variables[ident].clone()
+                } else {
+                    Item::Ident(ident.clone())
+                }
+            }
+            Item::Items(items) => Item::Items(self.fold_items(items)?),
+            Item::Idents(idents) => {
+                Item::Idents(idents.iter().map(|i| self.fold_ident(i)).try_collect()?)
+            }
+            Item::List(items) => Item::List(self.fold_items(items)?),
+            Item::Query(items) => Item::Query(self.fold_items(items)?),
+            Item::Pipeline(transformations) => Item::Pipeline(
+                transformations
+                    .iter()
+                    .map(|t| self.fold_transformation(t))
+                    .try_collect()?,
+            ),
+            Item::NamedArg(named_arg) => Item::NamedArg(self.fold_named_arg(named_arg)?),
+            Item::Assign(assign) => Item::Assign(self.fold_assign(assign)?),
+            Item::Transformation(transformation) => {
+                Item::Transformation(self.fold_transformation(transformation)?)
+            }
+            Item::SString(items) => Item::SString(
+                items
+                    .iter()
+                    .map(|x| self.fold_sstring_item(x))
+                    .try_collect()?,
+            ),
+            // None of these capture variables, so we don't need to replace
+            // them.
+            Item::Function(_) | Item::Table(_) | Item::String(_) | Item::Raw(_) | Item::TODO(_) => {
+                item.clone()
+            }
+        })
     }
 }
 
@@ -244,11 +276,12 @@ mod test {
         )
         .unwrap()[0];
 
+        let mut fold = ReplaceVariables::new();
         // We could make a convenience function for this. It's useful for
         // showing the diffs of an operation.
         assert_display_snapshot!(TextDiff::from_lines(
             &to_string(ast).unwrap(),
-            &to_string(&ast.replace_variables(&mut HashMap::new())).unwrap()
+            &to_string(&fold.fold_item(ast).unwrap()).unwrap()
         ).unified_diff(),
         @r###"
         @@ -12,6 +12,9 @@
@@ -264,6 +297,7 @@ mod test {
                      - Ident: benefits_cost
         "###);
 
+        let mut fold = ReplaceVariables::new();
         let ast = &parse(
             parse_to_pest_tree(
                 r#"
@@ -292,6 +326,6 @@ take 20
             .unwrap(),
         )
         .unwrap()[0];
-        assert_yaml_snapshot!(ast.replace_variables(&mut HashMap::new()));
+        assert_yaml_snapshot!(&fold.fold_item(ast).unwrap());
     }
 }
