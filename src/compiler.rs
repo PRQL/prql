@@ -6,7 +6,8 @@ use std::collections::HashMap;
 // Fold pattern:
 // - https://rust-unofficial.github.io/patterns/patterns/creational/fold.html
 // Good discussions on the visitor / fold pattern:
-// - https://github.com/rust-unofficial/patterns/discussions/236
+// - https://github.com/rust-unofficial/patterns/discussions/236 (within this,
+//   this comment looked interesting: https://github.com/rust-unofficial/patterns/discussions/236#discussioncomment-393517)
 // - https://news.ycombinator.com/item?id=25620110
 
 // TODO: some of these impls will be too specific because they were copied from
