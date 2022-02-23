@@ -23,6 +23,7 @@ table = { "table" ~ ident ~ "=" ~ "(" ~ NEWLINE* ~ pipeline ~ NEWLINE* ~ ")" }
 query = _{ SOI ~ NEWLINE* ~ pipeline ~ NEWLINE* ~ EOI }
 
 pipe = _{ NEWLINE | "|" }
+// TODO: should this allow for multiple line breaks?
 pipeline = { transformation ~ (pipe ~ transformation)* }
 // `ident` is the transformation name
 transformation = { WHITESPACE* ~ ident ~ expr }
