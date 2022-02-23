@@ -1,19 +1,29 @@
 ---
 source: src/parser.rs
-assertion_line: 403
-expression: "parse_to_pest_tree(r#\"USA\"#, Rule::string)"
+assertion_line: 545
+expression: "parse_to_pest_tree(r#\"\"USA\"\"#, Rule::string_literal)"
 
 ---
 Ok(
     [
         Pair {
-            rule: string,
+            rule: string_literal,
             span: Span {
-                str: "USA",
+                str: "\"USA\"",
                 start: 0,
-                end: 3,
+                end: 5,
             },
-            inner: [],
+            inner: [
+                Pair {
+                    rule: string,
+                    span: Span {
+                        str: "USA",
+                        start: 1,
+                        end: 4,
+                    },
+                    inner: [],
+                },
+            ],
         },
     ],
 )
