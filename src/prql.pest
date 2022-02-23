@@ -37,7 +37,7 @@ expr = _{ ( single_expr )+ }
 single_expr = _{ ( parenthesized_expr | list | named_arg | assign | term | inline_pipeline ) }
 // We could just put these all into `single_expr`, though possibly we want to retain a
 // notion of a valid block (i.e. `+` is not a valid expression).
-term = _{ ( ident | operator | number | quoted_string ) }
+term = _{ ( ident | operator | number | string_literal ) }
 // A non-silent version of `expr`, so we can break up a list or parentheses. A
 // more general version of this would be to make `expr` non-silent, but it would
 // mean basically everything would be in an `expr`, which would be verbose to
@@ -57,11 +57,21 @@ parenthesized_expr = _{ "(" ~ items ~ ")" }
 
 // TODO: escapes
 // https://pest.rs/book/examples/rust/literals.html
-string = { (ASCII_ALPHANUMERIC | " " | "." | "_" | "-" | "\\"  )* }
+
+// We need to have a non-silent rule which contains the quotes, because of
+// https://github.com/pest-parser/pest/issues/583, and then when converting to
+// AST, we only keep the `string` and discard the `string_literal` given it
+// contains the quotes.
+//
+// TODO: I'm still a bit unclear how preceeding and trailing spaces are working
+// -- it seems that inner spaces are included without an atomic operator (or
+// with `ANY`), but prceeding & trailing spaces require both `ANY` _and_ an
+// atomic operator. We have some rudimentary tests for these.
+string = { ( !( "\\" | "\"" ) ~ ANY )+ }
 // TODO: allow single quotes.
-quoted_string = _{ "\"" ~ string ~ "\"" }
-number = @{ ( ASCII_DIGIT | "." )+ }
-operator = @{ "==" | "!=" | "=" | ">" | "<" | ">=" | "<=" | "+" | "-" | "*" | "/" | "%" }
+string_literal = ${ "\"" ~ string ~ "\"" }
+number = ${ ( ASCII_DIGIT | "." )+ }
+operator = ${ "==" | "!=" | "=" | ">" | "<" | ">=" | "<=" | "+" | "-" | "*" | "/" | "%" }
 
 // Currently named_args and handled slightly differently to assignments:
 // named_args have no whitespace and take one expression immediately after the

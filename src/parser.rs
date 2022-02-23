@@ -88,6 +88,11 @@ pub fn parse(pairs: Pairs<Rule>) -> Result<Items> {
                         .map(|x| x.as_ident().cloned())
                         .try_collect()?,
                 ),
+                // Pull out the string itself, which doesn't have the quotes
+                Rule::string_literal => parse(pair.clone().into_inner())?
+                    .into_iter()
+                    .next()
+                    .ok_or_else(|| anyhow!("Failed reading string {:?}", &pair))?,
                 Rule::string => Item::String(pair.as_str().to_string()),
                 Rule::query => Item::Query(parse(pair.into_inner())?),
                 Rule::pipeline => Item::Pipeline({
@@ -241,6 +246,89 @@ mod test {
     fn test_parse_take() {
         assert!(parse_to_pest_tree("take 10", Rule::transformation).is_ok());
         assert!(parse_to_pest_tree("take", Rule::transformation).is_err());
+    }
+
+    #[test]
+    fn test_parse_string() {
+        assert_debug_snapshot!(parse_to_pest_tree(r#"" U S A ""#, Rule::string_literal).unwrap(), @r###"
+        [
+            Pair {
+                rule: string_literal,
+                span: Span {
+                    str: "\" U S A \"",
+                    start: 0,
+                    end: 9,
+                },
+                inner: [
+                    Pair {
+                        rule: string,
+                        span: Span {
+                            str: " U S A ",
+                            start: 1,
+                            end: 8,
+                        },
+                        inner: [],
+                    },
+                ],
+            },
+        ]
+        "###);
+        assert_yaml_snapshot!(parse(parse_to_pest_tree(r#"" U S A ""#, Rule::string_literal).unwrap()).unwrap(), @r###"
+        ---
+        - String: " U S A "
+        "###);
+    }
+
+    #[test]
+    fn test_parse_number() {
+        assert_debug_snapshot!(parse_to_pest_tree(r#"23"#, Rule::number), @r###"
+        Ok(
+            [
+                Pair {
+                    rule: number,
+                    span: Span {
+                        str: "23",
+                        start: 0,
+                        end: 2,
+                    },
+                    inner: [],
+                },
+            ],
+        )
+        "###);
+        assert_debug_snapshot!(parse_to_pest_tree(r#"2 + 2"#, Rule::expr), @r###"
+        Ok(
+            [
+                Pair {
+                    rule: number,
+                    span: Span {
+                        str: "2",
+                        start: 0,
+                        end: 1,
+                    },
+                    inner: [],
+                },
+                Pair {
+                    rule: operator,
+                    span: Span {
+                        str: "+",
+                        start: 2,
+                        end: 3,
+                    },
+                    inner: [],
+                },
+                Pair {
+                    rule: number,
+                    span: Span {
+                        str: "2",
+                        start: 4,
+                        end: 5,
+                    },
+                    inner: [],
+                },
+            ],
+        )
+        "###);
     }
 
     #[test]
@@ -481,18 +569,28 @@ take 20
                     inner: [],
                 },
                 Pair {
-                    rule: string,
+                    rule: string_literal,
                     span: Span {
-                        str: "USA",
-                        start: 11,
-                        end: 14,
+                        str: "\"USA\"",
+                        start: 10,
+                        end: 15,
                     },
-                    inner: [],
+                    inner: [
+                        Pair {
+                            rule: string,
+                            span: Span {
+                                str: "USA",
+                                start: 11,
+                                end: 14,
+                            },
+                            inner: [],
+                        },
+                    ],
                 },
             ],
         )
         "###);
-        assert_debug_snapshot!(parse_to_pest_tree(r#"USA"#, Rule::string));
+        assert_debug_snapshot!(parse_to_pest_tree(r#""USA""#, Rule::string_literal));
         assert_debug_snapshot!(parse_to_pest_tree("select [a, b, c]", Rule::transformation));
         assert_debug_snapshot!(parse_to_pest_tree(
             "aggregate by:[title, country] [sum salary]",
@@ -528,7 +626,7 @@ take 20
             "join side:right country [id=employee_id]",
             Rule::transformation
         ));
-        assert_debug_snapshot!(parse_to_pest_tree("1 + 2", Rule::expr), @r###"
+        assert_debug_snapshot!(parse_to_pest_tree("1  + 2", Rule::expr), @r###"
         Ok(
             [
                 Pair {
@@ -544,8 +642,8 @@ take 20
                     rule: operator,
                     span: Span {
                         str: "+",
-                        start: 2,
-                        end: 3,
+                        start: 3,
+                        end: 4,
                     },
                     inner: [],
                 },
@@ -553,8 +651,8 @@ take 20
                     rule: number,
                     span: Span {
                         str: "2",
-                        start: 4,
-                        end: 5,
+                        start: 5,
+                        end: 6,
                     },
                     inner: [],
                 },
