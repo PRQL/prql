@@ -1,6 +1,6 @@
 ---
 source: src/compiler.rs
-assertion_line: 358
+assertion_line: 357
 expression: "&fold.fold_item(ast).unwrap()"
 
 ---
@@ -136,5 +136,4 @@ Query:
           - Raw: ">"
           - Raw: "200"
       - Take: 20
-  - TODO: ""
 

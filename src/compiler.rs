@@ -398,7 +398,6 @@ take 20
                           args: []
                           named_args: []
                   assigns: []
-          - TODO: ""
         "###);
 
         let mut fold = RunFunctions::new();
@@ -412,7 +411,7 @@ take 20
         .to_string();
         assert!(!diff.is_empty());
         assert_display_snapshot!(diff, @r###"
-        @@ -11,10 +11,7 @@
+        @@ -11,9 +11,6 @@
                - Aggregate:
                    by: []
                    calcs:
@@ -424,7 +423,6 @@ take 20
         +            - Items:
         +                - Ident: testing_count
                    assigns: []
-           - TODO: ""
         "###);
     }
 }

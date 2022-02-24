@@ -14,6 +14,8 @@ pub struct PrqlParser;
 
 pub fn parse(pairs: Pairs<Rule>) -> Result<Items> {
     pairs
+        // Exclude end-of-input at the moment.
+        .filter(|pair| pair.as_rule() != Rule::EOI)
         .map(|pair| {
             // TODO: Probably wrap each of the individual branches in a Result,
             // and don't have this wrapping `Ok`. Then move some of the panics
