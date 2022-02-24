@@ -4,6 +4,7 @@ edition = "2021"
 license = "Apache-2.0"
 name = "prql"
 version = "0.0.1"
+
 [dependencies]
 anyhow = "^1.0"
 itertools = "^0.10"
