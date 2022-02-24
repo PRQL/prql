@@ -3,7 +3,6 @@ use std::vec;
 use super::ast::*;
 use anyhow::{anyhow, Context, Result};
 use itertools::Itertools;
-use pest::error::Error;
 use pest::iterators::Pairs;
 use pest::Parser;
 use pest_derive::Parser;
@@ -25,26 +24,22 @@ pub fn parse(pairs: Pairs<Rule>) -> Result<Items> {
                 Rule::list => Item::List(parse(pair.into_inner())?),
                 Rule::items => Item::Items(parse(pair.into_inner())?),
                 Rule::named_arg => {
-                    let parsed = parse(pair.into_inner())?;
-                    // Split the pair into its first value, which is always an Ident,
-                    // and its second value, which can be an ident / list / etc.
-                    if let [name, arg] = &parsed[..] {
-                        Ok(Item::NamedArg(NamedArg {
-                            name: name.as_ident()?.to_owned(),
-                            arg: Box::new(arg.clone()),
-                        }))
-                    } else {
-                        Err(anyhow!(
-                            "Expected NamedArg to have an name & arg. Got {:?}",
-                            parsed
-                        ))
-                    }?
+                    let parsed: [Item; 2] = parse(pair.into_inner())?
+                        .try_into()
+                        .map_err(|e| anyhow!("Expected two items; {:?}", e))?;
+                    let [name, arg] = parsed;
+                    Item::NamedArg(NamedArg {
+                        name: name.as_ident()?.to_owned(),
+                        arg: Box::new(arg),
+                    })
                 }
                 Rule::assign => {
-                    let parsed = parse(pair.into_inner())?;
+                    let parsed: [Item; 2] = parse(pair.into_inner())?
+                        .try_into()
+                        .map_err(|e| anyhow!("Expected two items; {:?}", e))?;
                     // Split the pair into its first value, which is always an Ident,
                     // and its other values.
-                    if let [lvalue, Item::Items(rvalue)] = &parsed[..] {
+                    if let [lvalue, Item::Items(rvalue)] = parsed {
                         Ok(Item::Assign(Assign {
                             lvalue: lvalue.as_ident()?.to_owned(),
                             rvalue: Box::new(Item::Items(rvalue.to_vec())),
@@ -61,13 +56,15 @@ pub fn parse(pairs: Pairs<Rule>) -> Result<Items> {
                     Item::Transformation(parsed.try_into()?)
                 }
                 Rule::function => {
-                    let parsed = parse(pair.into_inner())?;
-                    if let [Item::Idents(name_and_params), Item::Items(body)] = &parsed[..] {
+                    let parsed: [Item; 2] = parse(pair.into_inner())?
+                        .try_into()
+                        .map_err(|e| anyhow!("Expected two items; {:?}", e))?;
+                    if let [Item::Idents(name_and_params), Item::Items(body)] = parsed {
                         let (name, params) = name_and_params.split_first().unwrap();
                         Item::Function(Function {
                             name: name.to_owned(),
                             args: params.to_owned(),
-                            body: body.to_owned(),
+                            body,
                         })
                     } else {
                         unreachable!("Expected Function, got {:?}", parsed)
@@ -121,7 +118,7 @@ pub fn parse(pairs: Pairs<Rule>) -> Result<Items> {
         .collect()
 }
 
-pub fn parse_to_pest_tree(source: &str, rule: Rule) -> Result<Pairs<Rule>, Error<Rule>> {
+pub fn parse_to_pest_tree(source: &str, rule: Rule) -> Result<Pairs<Rule>> {
     let pairs = PrqlParser::parse(rule, source)?;
     Ok(pairs)
 }
