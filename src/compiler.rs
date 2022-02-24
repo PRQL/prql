@@ -21,25 +21,11 @@ pub trait AstFold {
             .map(|t| self.fold_transformation(t))
             .collect()
     }
-
     fn fold_ident(&mut self, ident: &Ident) -> Result<Ident> {
         Ok(ident.clone())
     }
-
     fn fold_items(&mut self, items: &Items) -> Result<Items> {
         items.iter().map(|item| self.fold_item(item)).collect()
-    }
-
-    fn fold_function(&mut self, function: &Function) -> Result<Function> {
-        Ok(Function {
-            name: self.fold_ident(&function.name)?,
-            args: function
-                .args
-                .iter()
-                .map(|i| self.fold_ident(i))
-                .try_collect()?,
-            body: self.fold_items(&function.body)?,
-        })
     }
     fn fold_table(&mut self, table: &Table) -> Result<Table> {
         Ok(Table {
@@ -51,12 +37,6 @@ pub trait AstFold {
         Ok(NamedArg {
             name: self.fold_ident(&named_arg.name)?,
             arg: Box::new(self.fold_item(&named_arg.arg)?),
-        })
-    }
-    fn fold_assign(&mut self, assign: &Assign) -> Result<Assign> {
-        Ok(Assign {
-            lvalue: self.fold_ident(&assign.lvalue)?,
-            rvalue: Box::new(self.fold_item(&assign.rvalue)?),
         })
     }
     fn fold_sstring_item(&mut self, sstring_item: &SStringItem) -> Result<SStringItem> {
@@ -81,6 +61,12 @@ pub trait AstFold {
     }
     fn fold_item(&mut self, item: &Item) -> Result<Item> {
         fold_item(self, item)
+    }
+    fn fold_function(&mut self, function: &Function) -> Result<Function> {
+        fold_function(self, function)
+    }
+    fn fold_assign(&mut self, assign: &Assign) -> Result<Assign> {
+        fold_assign(self, assign)
     }
 }
 
@@ -163,6 +149,23 @@ fn fold_item<T: ?Sized + AstFold>(fold: &mut T, item: &Item) -> Result<Item> {
         Item::String(_) | Item::Raw(_) | Item::TODO(_) => item.clone(),
     })
 }
+fn fold_function<T: ?Sized + AstFold>(fold: &mut T, function: &Function) -> Result<Function> {
+    Ok(Function {
+        name: fold.fold_ident(&function.name)?,
+        args: function
+            .args
+            .iter()
+            .map(|i| fold.fold_ident(i))
+            .try_collect()?,
+        body: fold.fold_items(&function.body)?,
+    })
+}
+fn fold_assign<T: ?Sized + AstFold>(fold: &mut T, assign: &Assign) -> Result<Assign> {
+    Ok(Assign {
+        lvalue: fold.fold_ident(&assign.lvalue)?,
+        rvalue: Box::new(fold.fold_item(&assign.rvalue)?),
+    })
+}
 
 struct ReplaceVariables {
     variables: HashMap<Ident, Item>,
@@ -186,23 +189,10 @@ impl ReplaceVariables {
 }
 
 impl AstFold for ReplaceVariables {
-    fn fold_transformation(&mut self, transformation: &Transformation) -> Result<Transformation> {
-        match transformation {
-            // If it's a derive, add the variables to the hashmap (while
-            // also replacing its variables with those which came before
-            // it).
-            Transformation::Derive(assigns) => {
-                // Replace this assign using existing variable mapping before
-                // adding its variables into the variable mapping.
-                for assign in assigns {
-                    let replaced_assign = self.fold_assign(assign)?;
-                    self.add_variables(&replaced_assign);
-                }
-                fold_transformation(self, transformation)
-            }
-            // For everything else, defer to the standard fold.
-            _ => fold_transformation(self, transformation),
-        }
+    fn fold_assign(&mut self, assign: &Assign) -> Result<Assign> {
+        let replaced_assign = fold_assign(self, assign)?;
+        self.add_variables(&replaced_assign);
+        Ok(replaced_assign)
     }
     fn fold_item(&mut self, item: &Item) -> Result<Item> {
         Ok(match item {
