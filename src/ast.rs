@@ -44,18 +44,14 @@ pub enum Transformation {
     Derive(Vec<Assign>),
     Aggregate {
         by: Items,
-        calcs: Vec<Transformation>,
+        calcs: Vec<Item>,
         assigns: Vec<Assign>,
     },
     // TODO: add ordering
     Sort(Items),
     Take(i64),
     Join(Items),
-    Func {
-        name: String,
-        args: Items,
-        named_args: Vec<NamedArg>,
-    },
+    Func(FuncCall),
 }
 
 impl Transformation {
@@ -70,16 +66,25 @@ impl Transformation {
             Transformation::Sort(_) => "sort",
             Transformation::Take(_) => "take",
             Transformation::Join(_) => "join",
-            Transformation::Func { name, .. } => name,
+            Transformation::Func(FuncCall { name, .. }) => name,
         }
     }
 }
 
+// This is a function definition.
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Function {
     pub name: Ident,
     pub args: Vec<Ident>,
     pub body: Items,
+}
+
+// This is a function call.
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+pub struct FuncCall {
+    pub name: String,
+    pub args: Items,
+    pub named_args: Vec<NamedArg>,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]

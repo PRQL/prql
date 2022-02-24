@@ -1,6 +1,6 @@
 ---
 source: src/parser.rs
-assertion_line: 324
+assertion_line: 504
 expression: "parse(parse_to_pest_tree(r#\"\nfrom employees\nfilter country = \"USA\"                           # Each line transforms the previous result.\nderive [                                         # This adds columns / variables.\n  gross_salary: salary + payroll_tax,\n  gross_cost:   gross_salary + benefits_cost     # Variables can use other variables.\n]\nfilter gross_cost > 0\naggregate by:[title, country] [                  # `by` are the columns to group by.\n    average salary,                              # These are aggregation calcs run on each group.\n    sum     salary,\n    average gross_salary,\n    sum     gross_salary,\n    average gross_cost,\n    sum_gross_cost: sum gross_cost,\n    count: count,\n]\nsort sum_gross_cost\nfilter count > 200\ntake 20\n    \"#.trim(),\n                Rule::pipeline).unwrap()).unwrap()"
 
 ---
@@ -33,31 +33,36 @@ expression: "parse(parse_to_pest_tree(r#\"\nfrom employees\nfilter country = \"U
           - Ident: title
           - Ident: country
         calcs:
-          - Func:
-              name: average
-              args:
-                - Ident: salary
-              named_args: []
-          - Func:
-              name: sum
-              args:
-                - Ident: salary
-              named_args: []
-          - Func:
-              name: average
-              args:
-                - Ident: gross_salary
-              named_args: []
-          - Func:
-              name: sum
-              args:
-                - Ident: gross_salary
-              named_args: []
-          - Func:
-              name: average
-              args:
-                - Ident: gross_cost
-              named_args: []
+          - Transformation:
+              Func:
+                name: average
+                args:
+                  - Ident: salary
+                named_args: []
+          - Transformation:
+              Func:
+                name: sum
+                args:
+                  - Ident: salary
+                named_args: []
+          - Transformation:
+              Func:
+                name: average
+                args:
+                  - Ident: gross_salary
+                named_args: []
+          - Transformation:
+              Func:
+                name: sum
+                args:
+                  - Ident: gross_salary
+                named_args: []
+          - Transformation:
+              Func:
+                name: average
+                args:
+                  - Ident: gross_cost
+                named_args: []
         assigns:
           - lvalue: sum_gross_cost
             rvalue:

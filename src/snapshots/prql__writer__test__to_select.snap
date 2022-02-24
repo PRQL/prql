@@ -1,6 +1,6 @@
 ---
 source: src/writer.rs
-assertion_line: 477
+assertion_line: 496
 expression: select
 
 ---
@@ -24,7 +24,7 @@ Select {
         UnnamedExpr(
             Identifier(
                 Ident {
-                    value: "TODO: Func { name: \"average\", args: [Ident(\"salary\")], named_args: [] }",
+                    value: "salary",
                     quote_style: None,
                 },
             ),

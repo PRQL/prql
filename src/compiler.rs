@@ -1,5 +1,5 @@
 use super::ast::*;
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use itertools::Itertools;
 use std::collections::HashMap;
 
@@ -65,6 +65,9 @@ pub trait AstFold {
     fn fold_function(&mut self, function: &Function) -> Result<Function> {
         fold_function(self, function)
     }
+    fn fold_func_call(&mut self, func_call: &FuncCall) -> Result<FuncCall> {
+        fold_func_call(self, func_call)
+    }
     fn fold_assign(&mut self, assign: &Assign) -> Result<Assign> {
         fold_assign(self, assign)
     }
@@ -90,31 +93,34 @@ fn fold_transformation<T: ?Sized + AstFold>(
         Transformation::Select(items) => Ok(Transformation::Select(fold.fold_items(items)?)),
         Transformation::Aggregate { by, calcs, assigns } => Ok(Transformation::Aggregate {
             by: fold.fold_items(by)?,
-            calcs: calcs
-                .iter()
-                .map(|t| fold.fold_transformation(t))
-                .try_collect()?,
+            calcs: fold.fold_items(calcs)?,
             assigns: assigns
                 .iter()
                 .map(|assign| fold.fold_assign(assign))
                 .try_collect()?,
         }),
-        Transformation::Func {
-            name,
-            args,
-            named_args,
-        } => Ok(Transformation::Func {
-            // TODO: generalize? Or this never changes?
-            name: name.to_owned(),
-            args: args.iter().map(|item| fold.fold_item(item)).try_collect()?,
-            named_args: named_args
-                .iter()
-                .map(|named_arg| fold.fold_named_arg(named_arg))
-                .try_collect()?,
-        }),
+        Transformation::Func(func_call) => {
+            Ok(Transformation::Func(fold.fold_func_call(func_call)?))
+        }
         // TODO: generalize? Or this never changes?
         Transformation::Take(_) => Ok(transformation.clone()),
     }
+}
+fn fold_func_call<T: ?Sized + AstFold>(fold: &mut T, func_call: &FuncCall) -> Result<FuncCall> {
+    Ok(FuncCall {
+        // TODO: generalize? Or this never changes?
+        name: func_call.name.to_owned(),
+        args: func_call
+            .args
+            .iter()
+            .map(|item| fold.fold_item(item))
+            .try_collect()?,
+        named_args: func_call
+            .named_args
+            .iter()
+            .map(|named_arg| fold.fold_named_arg(named_arg))
+            .try_collect()?,
+    })
 }
 fn fold_item<T: ?Sized + AstFold>(fold: &mut T, item: &Item) -> Result<Item> {
     Ok(match item {
@@ -142,8 +148,9 @@ fn fold_item<T: ?Sized + AstFold>(fold: &mut T, item: &Item) -> Result<Item> {
                 .map(|x| fold.fold_sstring_item(x))
                 .try_collect()?,
         ),
+        Item::Function(func) => Item::Function(fold.fold_function(func)?),
         // TODO: implement for these
-        Item::Function(_) | Item::Table(_) => item.clone(),
+        Item::Table(_) => item.clone(),
         // None of these capture variables, so we don't need to replace
         // them.
         Item::String(_) | Item::Raw(_) | Item::TODO(_) => item.clone(),
@@ -211,6 +218,50 @@ impl AstFold for ReplaceVariables {
     }
 }
 
+#[derive(Debug)]
+struct RunFunctions {
+    // This stores the name twice, but that's probably OK.
+    functions: HashMap<Ident, Function>,
+}
+
+impl RunFunctions {
+    // Clippy is fine with this (correctly), but rust-analyzer is not (incorrectly).
+    #[allow(dead_code)]
+    fn new() -> Self {
+        Self {
+            functions: HashMap::new(),
+        }
+    }
+    fn add_function(&mut self, func: &Function) -> &Self {
+        self.functions.insert(func.name.clone(), func.clone());
+        self
+    }
+    fn run_function(&mut self, func_call: &FuncCall) -> Result<Item> {
+        let func = self
+            .functions
+            .get(&func_call.name)
+            .ok_or_else(|| anyhow!("Function {} not found", func_call.name))?;
+        Ok(Item::Items(func.body.clone()))
+    }
+}
+
+impl AstFold for RunFunctions {
+    fn fold_function(&mut self, func: &Function) -> Result<Function> {
+        let out = fold_function(self, func);
+        // Add function to our list, after running it (no recursive functions atm).
+        self.add_function(func);
+        out
+    }
+    fn fold_item(&mut self, item: &Item) -> Result<Item> {
+        match item {
+            Item::Transformation(Transformation::Func(func_call)) => {
+                Ok(self.run_function(func_call)?)
+            }
+            _ => Ok(fold_item(self, item)?),
+        }
+    }
+}
+
 /// Combines filters by putting them in parentheses and then joining them with `and`.
 // Feels hacky — maybe this should be operation on a different level.
 impl Filter {
@@ -230,12 +281,12 @@ impl Filter {
 mod test {
 
     use super::*;
+    use crate::parser::{parse, parse_to_pest_tree, Rule};
     use insta::{assert_display_snapshot, assert_yaml_snapshot};
 
     #[test]
     fn test_replace_variables() {
-        use crate::parser::{parse, parse_to_pest_tree, Rule};
-        use insta::assert_yaml_snapshot;
+        use super::*;
         use serde_yaml::to_string;
         use similar::TextDiff;
 
@@ -304,5 +355,76 @@ take 20
         )
         .unwrap()[0];
         assert_yaml_snapshot!(&fold.fold_item(ast).unwrap());
+    }
+
+    #[test]
+    fn test_run_functions() {
+        use serde_yaml::to_string;
+        use similar::TextDiff;
+
+        let ast = &parse(
+            parse_to_pest_tree(
+                r#"
+    func count = testing_count
+
+    from employees
+    aggregate [
+      count
+    ]
+    "#,
+                Rule::query,
+            )
+            .unwrap(),
+        )
+        .unwrap()[0];
+
+        assert_yaml_snapshot!(ast, @r###"
+        ---
+        Query:
+          - Function:
+              name: count
+              args: []
+              body:
+                - Ident: testing_count
+          - Pipeline:
+              - From:
+                  - Ident: employees
+              - Aggregate:
+                  by: []
+                  calcs:
+                    - Transformation:
+                        Func:
+                          name: count
+                          args: []
+                          named_args: []
+                  assigns: []
+          - TODO: ""
+        "###);
+
+        let mut fold = RunFunctions::new();
+        // We could make a convenience function for this. It's useful for
+        // showing the diffs of an operation.
+        let diff = TextDiff::from_lines(
+            &to_string(ast).unwrap(),
+            &to_string(&fold.fold_item(ast).unwrap()).unwrap(),
+        )
+        .unified_diff()
+        .to_string();
+        assert!(!diff.is_empty());
+        assert_display_snapshot!(diff, @r###"
+        @@ -11,10 +11,7 @@
+               - Aggregate:
+                   by: []
+                   calcs:
+        -            - Transformation:
+        -                Func:
+        -                  name: count
+        -                  args: []
+        -                  named_args: []
+        +            - Items:
+        +                - Ident: testing_count
+                   assigns: []
+           - TODO: ""
+        "###);
     }
 }

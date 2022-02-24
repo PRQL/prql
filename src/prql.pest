@@ -17,10 +17,10 @@ WHITESPACE = _{ " " }
 // Need to exclude # in strings (and maybe confirm whether this the syntax we want)
 COMMENT = _{ "#" ~ (!NEWLINE ~ ANY) * }
 
+query = { SOI ~ NEWLINE* ~ ((function | table | pipeline) ~ NEWLINE* )* ~ EOI }
+
 function = { "func" ~ idents ~ "=" ~ items }
 table = { "table" ~ ident ~ "=" ~ "(" ~ NEWLINE* ~ pipeline ~ NEWLINE* ~ ")" }
-
-query = _{ SOI ~ NEWLINE* ~ pipeline ~ NEWLINE* ~ EOI }
 
 pipe = _{ NEWLINE | "|" }
 // TODO: should this allow for multiple line breaks?

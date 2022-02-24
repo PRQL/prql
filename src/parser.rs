@@ -19,6 +19,7 @@ pub fn parse(pairs: Pairs<Rule>) -> Result<Items> {
             // and don't have this wrapping `Ok`. Then move some of the panics
             // to `Err`s.
             Ok(match pair.as_rule() {
+                Rule::query => Item::Query(parse(pair.into_inner())?),
                 Rule::list => Item::List(parse(pair.into_inner())?),
                 Rule::items => Item::Items(parse(pair.into_inner())?),
                 Rule::named_arg => {
@@ -102,7 +103,6 @@ pub fn parse(pairs: Pairs<Rule>) -> Result<Items> {
                         })
                         .collect(),
                 ),
-                Rule::query => Item::Query(parse(pair.into_inner())?),
                 Rule::pipeline => Item::Pipeline({
                     parse(pair.into_inner())?
                         .into_iter()
@@ -196,12 +196,12 @@ impl TryFrom<Vec<Item>> for Transformation {
                     .cloned()
                     .partition(|x| matches!(x, Item::Assign(_)));
 
-                let x = Transformation::Aggregate {
+                Ok(Transformation::Aggregate {
                     by,
                     calcs: calcs
                         .iter()
                         .cloned()
-                        .map(|x| TryInto::<Transformation>::try_into(x.to_items()))
+                        .map(|x| x.to_items().try_into().map(Item::Transformation))
                         .try_collect()?,
                     assigns: assigns
                         .into_iter()
@@ -216,14 +216,12 @@ impl TryFrom<Vec<Item>> for Transformation {
                                 lvalue: assign.lvalue,
                                 // Make the rvalue items into a transformation.
                                 rvalue: Box::new(Item::Transformation(
-                                    TryInto::<Transformation>::try_into(assign.rvalue.to_items())
-                                        .unwrap(),
+                                    assign.rvalue.to_items().try_into().unwrap(),
                                 )),
                             })
                         })
                         .try_collect()?,
-                };
-                Ok(x)
+                })
             }
             "sort" => Ok(Transformation::Sort(args)),
             "take" => {
@@ -235,11 +233,11 @@ impl TryFrom<Vec<Item>> for Transformation {
                 }
             }
             "join" => Ok(Transformation::Join(args)),
-            _ => Ok(Transformation::Func {
+            _ => Ok(Transformation::Func(FuncCall {
                 name: name.to_owned(),
                 args,
                 named_args,
-            }),
+            })),
         }
     }
 }
@@ -436,11 +434,12 @@ mod test {
               by:
                 - Ident: title
               calcs:
-                - Func:
-                    name: sum
-                    args:
-                      - Ident: salary
-                    named_args: []
+                - Transformation:
+                    Func:
+                      name: sum
+                      args:
+                        - Ident: salary
+                      named_args: []
               assigns: []
         "###);
         assert_yaml_snapshot!(parse(

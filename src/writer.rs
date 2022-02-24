@@ -232,14 +232,18 @@ impl TryFrom<Item> for sqlparser::ast::SelectItem {
             Item::Ident(ident) => Ok(sqlparser::ast::SelectItem::UnnamedExpr(
                 sqlparser::ast::Expr::Identifier(sqlparser::ast::Ident::new(ident)),
             )),
-            Item::List(items) | Item::Items(items) => Ok(sqlparser::ast::SelectItem::UnnamedExpr(
-                sqlparser::ast::Expr::Identifier(sqlparser::ast::Ident::new(
-                    // TODO: temp hack
-                    TryInto::<sqlparser::ast::Expr>::try_into(Item::Items(items))
-                        .unwrap()
-                        .to_string(),
-                )),
-            )),
+            Item::List(items)
+            | Item::Items(items)
+            | Item::Transformation(Transformation::Func(FuncCall { args: items, .. })) => {
+                Ok(sqlparser::ast::SelectItem::UnnamedExpr(
+                    sqlparser::ast::Expr::Identifier(sqlparser::ast::Ident::new(
+                        // TODO: temp hack
+                        TryInto::<sqlparser::ast::Expr>::try_into(Item::Items(items))
+                            .unwrap()
+                            .to_string(),
+                    )),
+                ))
+            }
             _ => Err(anyhow!(
                 "Can't convert to SelectItem at the moment; {:?}",
                 item
@@ -372,11 +376,12 @@ mod test {
       - Ident: title
       - Ident: country
     calcs:
-      - Func:
-          name: average
-          args:
-            - Ident: salary
-          named_args: []
+      - Transformation:
+          Func:
+              name: sum
+              args:
+              - Ident: salary
+              named_args: []
     assigns: []
 - Sort:
     - Ident: title
@@ -401,11 +406,13 @@ mod test {
       - Ident: title
       - Ident: country
     calcs:
-      - Func:
-          name: average
-          args:
-            - Ident: salary
-          named_args: []
+      - Transformation:
+          Func:
+              name: sum
+              args:
+              - Ident: salary
+              named_args: []
+
     assigns: []
 - Sort:
     - Ident: title
@@ -429,22 +436,24 @@ mod test {
       - Ident: title
       - Ident: country
     calcs:
-      - Func:
-          name: average
-          args:
-            - Ident: salary
-          named_args: []
+      - Transformation:
+          Func:
+              name: sum
+              args:
+              - Ident: salary
+              named_args: []
     assigns: []
 - Aggregate:
     by:
       - Ident: title
       - Ident: country
     calcs:
-      - Func:
-          name: average
-          args:
-            - Ident: salary
-          named_args: []
+      - Transformation:
+          Func:
+              name: average
+              args:
+              - Ident: salary
+              named_args: []
     assigns: []
 - Sort:
     - Ident: sum_gross_cost
@@ -470,11 +479,12 @@ mod test {
       - Ident: title
       - Ident: country
     calcs:
-      - Func:
-          name: average
-          args:
-            - Ident: salary
-          named_args: []
+      - Transformation:
+          Func:
+              name: average
+              args:
+              - Ident: salary
+              named_args: []
     assigns: []
 - Sort:
     - Ident: title
@@ -484,9 +494,9 @@ mod test {
         let pipeline: Pipeline = from_str(yaml).unwrap();
         let select = to_select(&pipeline).unwrap();
         assert_debug_snapshot!(select);
-        // TODO: totally wrong but compiles, and we're on our way to fixing it.
+        // TODO: still wrong but compiles, and we're on our way to making it work
         assert_display_snapshot!(select,
-            @r###"SELECT TOP (20) TODO: Func { name: "average", args: [Ident("salary")], named_args: [] } FROM employees WHERE country = 'USA' GROUP BY title, country SORT BY title"###
+            @"SELECT TOP (20) salary FROM employees WHERE country = 'USA' GROUP BY title, country SORT BY title"
         );
     }
 }
