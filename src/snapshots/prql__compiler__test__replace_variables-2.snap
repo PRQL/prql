@@ -1,7 +1,7 @@
 ---
 source: src/compiler.rs
-assertion_line: 283
-expression: "ast.replace_variables(&mut HashMap::new())"
+assertion_line: 390
+expression: "&fold.fold_item(ast).unwrap()"
 
 ---
 Pipeline:
@@ -102,9 +102,31 @@ Pipeline:
                 args: []
                 named_args: []
   - Sort:
-      - Ident: sum_gross_cost
+      - Transformation:
+          Func:
+            name: sum
+            args:
+              - Items:
+                  - Items:
+                      - Ident: salary
+                      - Raw: +
+                      - Ident: payroll_tax
+                  - Raw: +
+                  - Ident: benefits_cost
+            named_args: []
   - Filter:
-      - Ident: sum_gross_cost
+      - Transformation:
+          Func:
+            name: sum
+            args:
+              - Items:
+                  - Items:
+                      - Ident: salary
+                      - Raw: +
+                      - Ident: payroll_tax
+                  - Raw: +
+                  - Ident: benefits_cost
+            named_args: []
       - Raw: ">"
       - Raw: "200"
   - Take: 20
