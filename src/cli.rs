@@ -144,7 +144,7 @@ impl Cli {
         self.input.read_to_string(&mut source)?;
         let output = match self.format {
             Format::Sql => {
-                format!("TODO! do something useful with source: {}", source)
+                format!("TODO! do something useful with source:\n{}", source)
             }
         };
         self.output.write_all(output.as_bytes())?;

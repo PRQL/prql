@@ -153,7 +153,7 @@ fn fold_item<T: ?Sized + AstFold>(fold: &mut T, item: &Item) -> Result<Item> {
         Item::Table(_) => item.clone(),
         // None of these capture variables, so we don't need to replace
         // them.
-        Item::String(_) | Item::Raw(_) | Item::TODO(_) => item.clone(),
+        Item::String(_) | Item::Raw(_) | Item::Todo(_) => item.clone(),
     })
 }
 fn fold_function<T: ?Sized + AstFold>(fold: &mut T, function: &Function) -> Result<Function> {

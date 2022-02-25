@@ -3,7 +3,9 @@ use std::vec;
 use super::ast::*;
 use anyhow::{anyhow, Context, Result};
 use itertools::Itertools;
+#[cfg(test)]
 use pest::iterators::Pairs;
+#[cfg(test)]
 use pest::Parser;
 use pest_derive::Parser;
 
@@ -11,6 +13,7 @@ use pest_derive::Parser;
 #[grammar = "prql.pest"]
 pub struct PrqlParser;
 
+#[cfg(test)]
 pub fn parse(pairs: Pairs<Rule>) -> Result<Items> {
     pairs
         // Exclude end-of-input at the moment.
@@ -112,12 +115,13 @@ pub fn parse(pairs: Pairs<Rule>) -> Result<Items> {
                         .collect()
                 }),
                 Rule::operator | Rule::number => Item::Raw(pair.as_str().to_owned()),
-                _ => (Item::TODO(pair.as_str().to_owned())),
+                _ => (Item::Todo(pair.as_str().to_owned())),
             })
         })
         .collect()
 }
 
+#[cfg(test)]
 pub fn parse_to_pest_tree(source: &str, rule: Rule) -> Result<Pairs<Rule>> {
     let pairs = PrqlParser::parse(rule, source)?;
     Ok(pairs)

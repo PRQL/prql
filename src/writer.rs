@@ -1,10 +1,12 @@
 use super::ast::*;
+#[cfg(test)]
 use std::collections::HashMap;
 
 use anyhow::{anyhow, Result};
 use itertools::Itertools;
 use sqlparser::ast::*;
 
+#[cfg(test)]
 fn to_select(pipeline: &Pipeline) -> Result<sqlparser::ast::Select> {
     // TODO: possibly do validation here? e.g. check there isn't more than one
     // `from`? Or do we rely on `to_select` for that?
@@ -167,6 +169,7 @@ fn to_select(pipeline: &Pipeline) -> Result<sqlparser::ast::Select> {
 // Alternatively this could be a `TryInto` impl?
 // TODO: this should return a result.
 /// Convert a pipeline into a number of pipelines which can each "fit" into a CTE.
+#[cfg(test)]
 fn queries_of_pipeline(pipeline: &Pipeline) -> Vec<Pipeline> {
     // Before starting a new CTE, we can have a pipeline with:
     // - 1 aggregate.
