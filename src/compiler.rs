@@ -159,7 +159,7 @@ fn fold_item<T: ?Sized + AstFold>(fold: &mut T, item: &Item) -> Result<Item> {
         Item::Table(_) => item.clone(),
         // None of these capture variables, so we don't need to replace
         // them.
-        Item::String(_) | Item::Raw(_) | Item::TODO(_) => item.clone(),
+        Item::String(_) | Item::Raw(_) | Item::Todo(_) => item.clone(),
     })
 }
 fn fold_function<T: ?Sized + AstFold>(fold: &mut T, function: &Function) -> Result<Function> {
@@ -231,13 +231,13 @@ struct RunFunctions {
 }
 
 impl RunFunctions {
-    // Clippy is fine with this (correctly), but rust-analyzer is not (incorrectly).
-    #[allow(dead_code)]
+    #[cfg(test)]
     fn new() -> Self {
         Self {
             functions: HashMap::new(),
         }
     }
+
     fn add_function(&mut self, func: &Function) -> &Self {
         self.functions.insert(func.name.clone(), func.clone());
         self
