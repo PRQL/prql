@@ -128,7 +128,7 @@ enum Format {
 #[derive(Parser)]
 #[clap(name = env!("CARGO_PKG_NAME"), about, version, author)]
 pub struct Cli {
-    #[clap(parse(try_from_os_str = Input::try_from_os_str))]
+    #[clap(parse(try_from_os_str = Input::try_from_os_str), help("Name of file (use '-' to use stdin instead)"))]
     input: Input,
 
     #[clap(short, long, default_value = "-", parse(try_from_os_str = Output::try_from_os_str))]
