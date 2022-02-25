@@ -137,6 +137,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "clio"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5f99cf2749fe5e47ae9ba6eb07b1acf8b050c6921eac19393db3cb20a2d510dd"
+dependencies = [
+ "libc",
+]
+
+[[package]]
 name = "color-eyre"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -467,6 +476,7 @@ version = "0.0.1"
 dependencies = [
  "anyhow",
  "clap",
+ "clio",
  "color-eyre",
  "insta",
  "itertools",

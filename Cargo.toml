@@ -7,6 +7,7 @@ version = "0.0.1"
 
 [dependencies]
 anyhow = "^1.0"
+clio = "^0.2"
 color-eyre = "^0.6"
 itertools = "^0.10"
 pest = "^2.1"
