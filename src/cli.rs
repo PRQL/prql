@@ -142,13 +142,12 @@ impl Cli {
     pub fn execute(&mut self) -> Result<(), Error> {
         let mut source = String::new();
         self.input.read_to_string(&mut source)?;
-        let output;
-        match self.format {
+        let output = match self.format {
             Format::Sql => {
-                output = format!("TODO! do something useful with source: {}", source);
+                format!("TODO! do something useful with source: {}", source)
             }
-        }
-        self.output.write_all(&output.as_bytes())?;
+        };
+        self.output.write_all(output.as_bytes())?;
         Ok(())
     }
 }
