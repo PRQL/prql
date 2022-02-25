@@ -121,7 +121,7 @@ impl Display for Output {
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ArgEnum)]
-enum Format {
+enum Dialect {
     Sql,
 }
 
