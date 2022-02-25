@@ -4,4 +4,4 @@ mod compiler;
 mod parser;
 mod writer;
 
-pub use cli::{Cli, Execute};
+pub use cli::Cli;

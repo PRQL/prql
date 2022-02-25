@@ -138,12 +138,8 @@ pub struct Cli {
     format: Format,
 }
 
-pub trait Execute {
-    fn execute(&mut self) -> Result<(), Error>;
-}
-
-impl Execute for Cli {
-    fn execute(&mut self) -> Result<(), Error> {
+impl Cli {
+    pub fn execute(&mut self) -> Result<(), Error> {
         let mut source = String::new();
         self.input.read_to_string(&mut source)?;
         let output;

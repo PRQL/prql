@@ -3,7 +3,6 @@ use std::process::exit;
 use clap::Parser;
 use color_eyre::eyre::Result;
 use prql::Cli;
-use prql::Execute;
 
 fn main() -> Result<()> {
     color_eyre::install()?;
