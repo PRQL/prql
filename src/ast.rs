@@ -47,7 +47,6 @@ pub enum Transformation {
         calcs: Vec<Item>,
         assigns: Vec<Assign>,
     },
-    // TODO: add ordering
     Sort(Items),
     Take(i64),
     Join(Items),

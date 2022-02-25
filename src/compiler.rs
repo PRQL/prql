@@ -39,12 +39,6 @@ pub trait AstFold {
             arg: Box::new(self.fold_item(&named_arg.arg)?),
         })
     }
-    fn fold_sstring_item(&mut self, sstring_item: &SStringItem) -> Result<SStringItem> {
-        Ok(match sstring_item {
-            SStringItem::String(string) => SStringItem::String(string.clone()),
-            SStringItem::Expr(expr) => SStringItem::Expr(self.fold_item(expr)?),
-        })
-    }
     fn fold_filter(&mut self, filter: &Filter) -> Result<Filter> {
         Ok(Filter(
             filter.0.iter().map(|i| self.fold_item(i)).try_collect()?,
@@ -71,8 +65,20 @@ pub trait AstFold {
     fn fold_assign(&mut self, assign: &Assign) -> Result<Assign> {
         fold_assign(self, assign)
     }
+    fn fold_sstring_item(&mut self, sstring_item: &SStringItem) -> Result<SStringItem> {
+        fold_sstring_item(self, sstring_item)
+    }
 }
 
+fn fold_sstring_item<T: ?Sized + AstFold>(
+    fold: &mut T,
+    sstring_item: &SStringItem,
+) -> Result<SStringItem> {
+    Ok(match sstring_item {
+        SStringItem::String(string) => SStringItem::String(string.clone()),
+        SStringItem::Expr(expr) => SStringItem::Expr(fold.fold_item(expr)?),
+    })
+}
 fn fold_transformation<T: ?Sized + AstFold>(
     fold: &mut T,
     transformation: &Transformation,
@@ -245,6 +251,9 @@ impl RunFunctions {
     }
 }
 
+// One issue is that we don't actually know where a function call will be. So
+// `count foo` could be `count(foo)`, or `foo` could be a function with no args
+// that refers to `bar`, meaning it evaluates to `count(bar)`.
 impl AstFold for RunFunctions {
     fn fold_function(&mut self, func: &Function) -> Result<Function> {
         let out = fold_function(self, func);

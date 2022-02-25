@@ -292,10 +292,8 @@ impl TryFrom<Item> for sqlparser::ast::Expr {
             Item::Items(items) => Ok(sqlparser::ast::Expr::Identifier(
                 sqlparser::ast::Ident::new(
                     items
-                        .iter()
-                        .map(|item| {
-                            TryInto::<sqlparser::ast::Expr>::try_into(item.clone()).unwrap()
-                        })
+                        .into_iter()
+                        .map(|item| TryInto::<sqlparser::ast::Expr>::try_into(item).unwrap())
                         .collect::<Vec<sqlparser::ast::Expr>>()
                         .iter()
                         .map(|x| x.to_string())
@@ -307,16 +305,56 @@ impl TryFrom<Item> for sqlparser::ast::Expr {
             Item::String(ident) => Ok(sqlparser::ast::Expr::Value(
                 sqlparser::ast::Value::SingleQuotedString(ident),
             )),
+            // Fairly hacky — convert everything to a string, then concat it,
+            // then convert to Expr. We can't use the `items` approach above
+            // since we don't want to intersperse with spaces.
+            Item::SString(s_string_items) => {
+                let string = s_string_items
+                    .into_iter()
+                    .map(|s_string_item| match s_string_item {
+                        SStringItem::String(string) => Ok(string),
+                        SStringItem::Expr(item) => TryInto::<sqlparser::ast::Expr>::try_into(item)
+                            .map(|expr| expr.to_string()),
+                    })
+                    // .map_ok(|string| TryInto::<sqlparser::ast::Expr>::try_into(Item::Ident(string)))
+                    .collect::<Result<Vec<String>>>()?
+                    .join("");
+                Item::Ident(string).try_into()
+            }
             _ => Err(anyhow!("Can't convert to Expr at the moment; {:?}", item)),
         }
     }
+}
+
+#[test]
+fn test_try_from_s_string_to_expr() {
+    use insta::assert_yaml_snapshot;
+    use serde_yaml::from_str;
+    let yaml: &str = r"
+SString:
+ - String: SUM(
+ - Expr:
+     Items:
+       - Ident: col
+ - String: )
+";
+    let ast: Item = from_str(yaml).unwrap();
+    let expr: sqlparser::ast::Expr = ast.try_into().unwrap();
+    assert_yaml_snapshot!(
+        expr, @r###"
+    ---
+    Identifier:
+      value: SUM(col)
+      quote_style: ~
+    "###
+    );
 }
 
 impl TryFrom<Item> for Vec<sqlparser::ast::Expr> {
     type Error = anyhow::Error;
     fn try_from(item: Item) -> Result<Self> {
         match item {
-            Item::List(items) => Ok(items.iter().map(|x| x.clone().try_into()).try_collect()?),
+            Item::List(items) => Ok(items.into_iter().map(|x| x.try_into()).try_collect()?),
             _ => Err(anyhow!(
                 "Can't convert to Vec<Expr> at the moment; {:?}",
                 item
