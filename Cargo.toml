@@ -7,10 +7,15 @@ version = "0.0.1"
 
 [dependencies]
 anyhow = "^1.0"
+color-eyre = "^0.6"
 itertools = "^0.10"
 pest = "^2.1"
 pest_derive = "^2.1"
 serde_yaml = "^0.8"
+
+[dependencies.clap]
+features = ["derive"]
+version = "^3.1"
 
 [dependencies.sqlparser]
 features = ["serde"]

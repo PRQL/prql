@@ -1,0 +1,21 @@
+- From:
+    - Ident: employees
+- Filter:
+    - Ident: country
+    - Raw: "="
+    - String: USA
+- Aggregate:
+    by:
+      - Ident: title
+      - Ident: country
+    calcs:
+      - Transformation:
+          Func:
+              name: average
+              args:
+              - Ident: salary
+              named_args: []
+    assigns: []
+- Sort:
+    - Ident: title
+- Take: 20

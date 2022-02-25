@@ -219,7 +219,7 @@ impl AstFold for ReplaceVariables {
 }
 
 #[derive(Debug)]
-struct RunFunctions {
+pub struct RunFunctions {
     // This stores the name twice, but that's probably OK.
     functions: HashMap<Ident, Function>,
 }
@@ -227,7 +227,7 @@ struct RunFunctions {
 impl RunFunctions {
     // Clippy is fine with this (correctly), but rust-analyzer is not (incorrectly).
     #[allow(dead_code)]
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             functions: HashMap::new(),
         }
