@@ -321,20 +321,17 @@ mod test {
             &to_string(&fold.fold_item(ast).unwrap()).unwrap()
         ).unified_diff(),
         @r###"
-        @@ -15,7 +15,12 @@
+        @@ -12,6 +12,9 @@
+               - lvalue: gross_cost
                  rvalue:
                    Items:
-                     - Items:
-        -                - Ident: gross_salary
-        +                - Items:
-        +                    - Items:
-        +                        - Ident: salary
-        +                    - Raw: +
-        +                    - Items:
-        +                        - Ident: payroll_tax
+        -            - Ident: gross_salary
+        +            - Items:
+        +                - Ident: salary
+        +                - Raw: +
+        +                - Ident: payroll_tax
                      - Raw: +
-                     - Items:
-                         - Ident: benefits_cost
+                     - Ident: benefits_cost
         "###);
 
         let mut fold = ReplaceVariables::new();
@@ -388,8 +385,7 @@ take 20
               name: count
               args: []
               body:
-                - Items:
-                    - Ident: testing_count
+                - Ident: testing_count
           - Pipeline:
               - From:
                   - Ident: employees

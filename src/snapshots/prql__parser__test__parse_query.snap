@@ -1,7 +1,7 @@
 ---
 source: src/parser.rs
-assertion_line: 541
-expression: "ast_of_string(r#\"\nfrom employees\nfilter country = \"USA\"                           # Each line transforms the previous result.\nderive [                                         # This adds columns / variables.\n  gross_salary: salary + payroll_tax,\n  gross_cost:   gross_salary + benefits_cost     # Variables can use other variables.\n]\nfilter gross_cost > 0\naggregate by:[title, country] [                  # `by` are the columns to group by.\n    average salary,                              # These are aggregation calcs run on each group.\n    sum     salary,\n    average gross_salary,\n    sum     gross_salary,\n    average gross_cost,\n    sum_gross_cost: sum gross_cost,\n    count: count,\n]\nsort sum_gross_cost\nfilter count > 200\ntake 20\n    \"#.trim(),\n    Rule::query)"
+assertion_line: 579
+expression: "ast_of_string(r#\"\nfrom employees\nfilter country = \"USA\"                           # Each line transforms the previous result.\nderive [                                         # This adds columns / variables.\n  gross_salary: salary + payroll_tax,\n  gross_cost:   gross_salary + benefits_cost     # Variables can use other variables.\n]\nfilter gross_cost > 0\naggregate by:[title, country] [                  # `by` are the columns to group by.\n    average salary,                              # These are aggregation calcs run on each group.\n    sum     salary,\n    average gross_salary,\n    sum     gross_salary,\n    average gross_cost,\n    sum_gross_cost: sum gross_cost,\n    count: count,\n]\nsort sum_gross_cost\nfilter count > 200\ntake 20\n    \"#.trim(),\n        Rule::query)?"
 
 ---
 Query:
@@ -10,35 +10,27 @@ Query:
           - Ident: employees
       - Filter:
           - Expr:
-              - Items:
-                  - Ident: country
+              - Ident: country
               - Raw: "="
-              - Items:
-                  - String: USA
+              - String: USA
       - Derive:
           - lvalue: gross_salary
             rvalue:
               Items:
-                - Items:
-                    - Ident: salary
+                - Ident: salary
                 - Raw: +
-                - Items:
-                    - Ident: payroll_tax
+                - Ident: payroll_tax
           - lvalue: gross_cost
             rvalue:
               Items:
-                - Items:
-                    - Ident: gross_salary
+                - Ident: gross_salary
                 - Raw: +
-                - Items:
-                    - Ident: benefits_cost
+                - Ident: benefits_cost
       - Filter:
           - Expr:
-              - Items:
-                  - Ident: gross_cost
+              - Ident: gross_cost
               - Raw: ">"
-              - Items:
-                  - Raw: "0"
+              - Raw: "0"
       - Aggregate:
           by: []
           calcs:
@@ -47,11 +39,9 @@ Query:
                 arg:
                   List:
                     - Expr:
-                        - Items:
-                            - Ident: title
+                        - Ident: title
                     - Expr:
-                        - Items:
-                            - Ident: country
+                        - Ident: country
             - List:
                 - Expr:
                     - Items:
@@ -74,28 +64,24 @@ Query:
                         - Ident: average
                         - Ident: gross_cost
                 - Expr:
-                    - Items:
-                        - Assign:
-                            lvalue: sum_gross_cost
-                            rvalue:
-                              Items:
-                                - Ident: sum
-                                - Ident: gross_cost
+                    - Assign:
+                        lvalue: sum_gross_cost
+                        rvalue:
+                          Items:
+                            - Ident: sum
+                            - Ident: gross_cost
                 - Expr:
-                    - Items:
-                        - Assign:
-                            lvalue: count
-                            rvalue:
-                              Ident: count
+                    - Assign:
+                        lvalue: count
+                        rvalue:
+                          Ident: count
           assigns: []
       - Sort:
           - Ident: sum_gross_cost
       - Filter:
           - Expr:
-              - Items:
-                  - Ident: count
+              - Ident: count
               - Raw: ">"
-              - Items:
-                  - Raw: "200"
+              - Raw: "200"
       - Take: 20
 
