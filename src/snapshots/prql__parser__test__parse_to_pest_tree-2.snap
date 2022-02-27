@@ -1,27 +1,144 @@
 ---
 source: src/parser.rs
-assertion_line: 545
-expression: "parse_to_pest_tree(r#\"\"USA\"\"#, Rule::string_literal)"
+assertion_line: 708
+expression: "parse_tree_of_str(\"select [a, b, c]\", Rule::transformation)"
 
 ---
 Ok(
     [
         Pair {
-            rule: string_literal,
+            rule: transformation,
             span: Span {
-                str: "\"USA\"",
+                str: "select [a, b, c]",
                 start: 0,
-                end: 5,
+                end: 16,
             },
             inner: [
                 Pair {
-                    rule: string,
+                    rule: ident,
                     span: Span {
-                        str: "USA",
-                        start: 1,
-                        end: 4,
+                        str: "select",
+                        start: 0,
+                        end: 6,
                     },
                     inner: [],
+                },
+                Pair {
+                    rule: expr,
+                    span: Span {
+                        str: "[a, b, c]",
+                        start: 7,
+                        end: 16,
+                    },
+                    inner: [
+                        Pair {
+                            rule: items,
+                            span: Span {
+                                str: "[a, b, c]",
+                                start: 7,
+                                end: 16,
+                            },
+                            inner: [
+                                Pair {
+                                    rule: list,
+                                    span: Span {
+                                        str: "[a, b, c]",
+                                        start: 7,
+                                        end: 16,
+                                    },
+                                    inner: [
+                                        Pair {
+                                            rule: expr,
+                                            span: Span {
+                                                str: "a",
+                                                start: 8,
+                                                end: 9,
+                                            },
+                                            inner: [
+                                                Pair {
+                                                    rule: items,
+                                                    span: Span {
+                                                        str: "a",
+                                                        start: 8,
+                                                        end: 9,
+                                                    },
+                                                    inner: [
+                                                        Pair {
+                                                            rule: ident,
+                                                            span: Span {
+                                                                str: "a",
+                                                                start: 8,
+                                                                end: 9,
+                                                            },
+                                                            inner: [],
+                                                        },
+                                                    ],
+                                                },
+                                            ],
+                                        },
+                                        Pair {
+                                            rule: expr,
+                                            span: Span {
+                                                str: "b",
+                                                start: 11,
+                                                end: 12,
+                                            },
+                                            inner: [
+                                                Pair {
+                                                    rule: items,
+                                                    span: Span {
+                                                        str: "b",
+                                                        start: 11,
+                                                        end: 12,
+                                                    },
+                                                    inner: [
+                                                        Pair {
+                                                            rule: ident,
+                                                            span: Span {
+                                                                str: "b",
+                                                                start: 11,
+                                                                end: 12,
+                                                            },
+                                                            inner: [],
+                                                        },
+                                                    ],
+                                                },
+                                            ],
+                                        },
+                                        Pair {
+                                            rule: expr,
+                                            span: Span {
+                                                str: "c",
+                                                start: 14,
+                                                end: 15,
+                                            },
+                                            inner: [
+                                                Pair {
+                                                    rule: items,
+                                                    span: Span {
+                                                        str: "c",
+                                                        start: 14,
+                                                        end: 15,
+                                                    },
+                                                    inner: [
+                                                        Pair {
+                                                            rule: ident,
+                                                            span: Span {
+                                                                str: "c",
+                                                                start: 14,
+                                                                end: 15,
+                                                            },
+                                                            inner: [],
+                                                        },
+                                                    ],
+                                                },
+                                            ],
+                                        },
+                                    ],
+                                },
+                            ],
+                        },
+                    ],
                 },
             ],
         },

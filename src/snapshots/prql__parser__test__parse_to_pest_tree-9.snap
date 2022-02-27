@@ -1,7 +1,7 @@
 ---
 source: src/parser.rs
-assertion_line: 426
-expression: "parse_to_pest_tree(r\"join country [id=employee_id]\", Rule::transformation)"
+assertion_line: 735
+expression: "parse_tree_of_str(\"join side:left country [id=employee_id]\",\n    Rule::transformation)"
 
 ---
 Ok(
@@ -9,9 +9,9 @@ Ok(
         Pair {
             rule: transformation,
             span: Span {
-                str: "join country [id=employee_id]",
+                str: "join side:left country [id=employee_id]",
                 start: 0,
-                end: 29,
+                end: 39,
             },
             inner: [
                 Pair {
@@ -24,56 +24,124 @@ Ok(
                     inner: [],
                 },
                 Pair {
-                    rule: ident,
+                    rule: expr,
                     span: Span {
-                        str: "country",
+                        str: "side:left country [id=employee_id]",
                         start: 5,
-                        end: 12,
-                    },
-                    inner: [],
-                },
-                Pair {
-                    rule: list,
-                    span: Span {
-                        str: "[id=employee_id]",
-                        start: 13,
-                        end: 29,
+                        end: 39,
                     },
                     inner: [
                         Pair {
                             rule: items,
                             span: Span {
-                                str: "id=employee_id",
-                                start: 14,
-                                end: 28,
+                                str: "side:left country [id=employee_id]",
+                                start: 5,
+                                end: 39,
                             },
                             inner: [
                                 Pair {
+                                    rule: named_arg,
+                                    span: Span {
+                                        str: "side:left",
+                                        start: 5,
+                                        end: 14,
+                                    },
+                                    inner: [
+                                        Pair {
+                                            rule: ident,
+                                            span: Span {
+                                                str: "side",
+                                                start: 5,
+                                                end: 9,
+                                            },
+                                            inner: [],
+                                        },
+                                        Pair {
+                                            rule: ident,
+                                            span: Span {
+                                                str: "left",
+                                                start: 10,
+                                                end: 14,
+                                            },
+                                            inner: [],
+                                        },
+                                    ],
+                                },
+                                Pair {
                                     rule: ident,
                                     span: Span {
-                                        str: "id",
-                                        start: 14,
-                                        end: 16,
+                                        str: "country",
+                                        start: 15,
+                                        end: 22,
                                     },
                                     inner: [],
                                 },
                                 Pair {
-                                    rule: operator,
+                                    rule: list,
                                     span: Span {
-                                        str: "=",
-                                        start: 16,
-                                        end: 17,
+                                        str: "[id=employee_id]",
+                                        start: 23,
+                                        end: 39,
                                     },
-                                    inner: [],
-                                },
-                                Pair {
-                                    rule: ident,
-                                    span: Span {
-                                        str: "employee_id",
-                                        start: 17,
-                                        end: 28,
-                                    },
-                                    inner: [],
+                                    inner: [
+                                        Pair {
+                                            rule: expr,
+                                            span: Span {
+                                                str: "id=employee_id",
+                                                start: 24,
+                                                end: 38,
+                                            },
+                                            inner: [
+                                                Pair {
+                                                    rule: items,
+                                                    span: Span {
+                                                        str: "id",
+                                                        start: 24,
+                                                        end: 26,
+                                                    },
+                                                    inner: [
+                                                        Pair {
+                                                            rule: ident,
+                                                            span: Span {
+                                                                str: "id",
+                                                                start: 24,
+                                                                end: 26,
+                                                            },
+                                                            inner: [],
+                                                        },
+                                                    ],
+                                                },
+                                                Pair {
+                                                    rule: operator,
+                                                    span: Span {
+                                                        str: "=",
+                                                        start: 26,
+                                                        end: 27,
+                                                    },
+                                                    inner: [],
+                                                },
+                                                Pair {
+                                                    rule: items,
+                                                    span: Span {
+                                                        str: "employee_id",
+                                                        start: 27,
+                                                        end: 38,
+                                                    },
+                                                    inner: [
+                                                        Pair {
+                                                            rule: ident,
+                                                            span: Span {
+                                                                str: "employee_id",
+                                                                start: 27,
+                                                                end: 38,
+                                                            },
+                                                            inner: [],
+                                                        },
+                                                    ],
+                                                },
+                                            ],
+                                        },
+                                    ],
                                 },
                             ],
                         },

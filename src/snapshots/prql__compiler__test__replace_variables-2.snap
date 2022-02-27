@@ -1,6 +1,6 @@
 ---
 source: src/compiler.rs
-assertion_line: 357
+assertion_line: 356
 expression: "&fold.fold_item(ast).unwrap()"
 
 ---
@@ -9,131 +9,162 @@ Query:
       - From:
           - Ident: employees
       - Filter:
-          - Ident: country
-          - Raw: "="
-          - String: USA
+          - Expr:
+              - Items:
+                  - Ident: country
+              - Raw: "="
+              - Items:
+                  - String: USA
       - Derive:
           - lvalue: gross_salary
             rvalue:
               Items:
-                - Ident: salary
+                - Items:
+                    - Ident: salary
                 - Raw: +
-                - Ident: payroll_tax
+                - Items:
+                    - Ident: payroll_tax
           - lvalue: gross_cost
             rvalue:
               Items:
                 - Items:
-                    - Ident: salary
-                    - Raw: +
-                    - Ident: payroll_tax
-                - Raw: +
-                - Ident: benefits_cost
-      - Filter:
-          - Items:
-              - Items:
-                  - Ident: salary
-                  - Raw: +
-                  - Ident: payroll_tax
-              - Raw: +
-              - Ident: benefits_cost
-          - Raw: ">"
-          - Raw: "0"
-      - Aggregate:
-          by:
-            - Ident: title
-            - Ident: country
-          calcs:
-            - Transformation:
-                Func:
-                  name: average
-                  args:
-                    - Ident: salary
-                  named_args: []
-            - Transformation:
-                Func:
-                  name: sum
-                  args:
-                    - Ident: salary
-                  named_args: []
-            - Transformation:
-                Func:
-                  name: average
-                  args:
-                    - Items:
-                        - Ident: salary
-                        - Raw: +
-                        - Ident: payroll_tax
-                  named_args: []
-            - Transformation:
-                Func:
-                  name: sum
-                  args:
-                    - Items:
-                        - Ident: salary
-                        - Raw: +
-                        - Ident: payroll_tax
-                  named_args: []
-            - Transformation:
-                Func:
-                  name: average
-                  args:
                     - Items:
                         - Items:
                             - Ident: salary
-                            - Raw: +
-                            - Ident: payroll_tax
                         - Raw: +
-                        - Ident: benefits_cost
-                  named_args: []
-          assigns:
-            - lvalue: sum_gross_cost
-              rvalue:
-                Transformation:
-                  Func:
-                    name: sum
-                    args:
+                        - Items:
+                            - Ident: payroll_tax
+                - Raw: +
+                - Items:
+                    - Ident: benefits_cost
+      - Filter:
+          - Expr:
+              - Items:
+                  - Items:
+                      - Items:
+                          - Items:
+                              - Items:
+                                  - Ident: salary
+                              - Raw: +
+                              - Items:
+                                  - Ident: payroll_tax
+                      - Raw: +
+                      - Items:
+                          - Ident: benefits_cost
+              - Raw: ">"
+              - Items:
+                  - Raw: "0"
+      - Aggregate:
+          by: []
+          calcs:
+            - NamedArg:
+                name: by
+                arg:
+                  List:
+                    - Expr:
+                        - Items:
+                            - Ident: title
+                    - Expr:
+                        - Items:
+                            - Ident: country
+            - List:
+                - Expr:
+                    - Items:
+                        - Ident: average
+                        - Ident: salary
+                - Expr:
+                    - Items:
+                        - Ident: sum
+                        - Ident: salary
+                - Expr:
+                    - Items:
+                        - Ident: average
+                        - Items:
+                            - Items:
+                                - Ident: salary
+                            - Raw: +
+                            - Items:
+                                - Ident: payroll_tax
+                - Expr:
+                    - Items:
+                        - Ident: sum
+                        - Items:
+                            - Items:
+                                - Ident: salary
+                            - Raw: +
+                            - Items:
+                                - Ident: payroll_tax
+                - Expr:
+                    - Items:
+                        - Ident: average
+                        - Items:
+                            - Items:
+                                - Items:
+                                    - Items:
+                                        - Ident: salary
+                                    - Raw: +
+                                    - Items:
+                                        - Ident: payroll_tax
+                            - Raw: +
+                            - Items:
+                                - Ident: benefits_cost
+                - Expr:
+                    - Items:
+                        - Assign:
+                            lvalue: sum_gross_cost
+                            rvalue:
+                              Items:
+                                - Ident: sum
+                                - Items:
+                                    - Items:
+                                        - Items:
+                                            - Items:
+                                                - Ident: salary
+                                            - Raw: +
+                                            - Items:
+                                                - Ident: payroll_tax
+                                    - Raw: +
+                                    - Items:
+                                        - Ident: benefits_cost
+                - Expr:
+                    - Items:
+                        - Assign:
+                            lvalue: count
+                            rvalue:
+                              Ident: count
+          assigns: []
+      - Sort:
+          - Items:
+              - Ident: sum
+              - Items:
+                  - Items:
                       - Items:
                           - Items:
                               - Ident: salary
-                              - Raw: +
+                          - Raw: +
+                          - Items:
                               - Ident: payroll_tax
-                          - Raw: +
-                          - Ident: benefits_cost
-                    named_args: []
-            - lvalue: count
-              rvalue:
-                Transformation:
-                  Func:
-                    name: count
-                    args: []
-                    named_args: []
-      - Sort:
-          - Transformation:
-              Func:
-                name: sum
-                args:
+                  - Raw: +
                   - Items:
-                      - Items:
-                          - Ident: salary
-                          - Raw: +
-                          - Ident: payroll_tax
-                      - Raw: +
                       - Ident: benefits_cost
-                named_args: []
       - Filter:
-          - Transformation:
-              Func:
-                name: sum
-                args:
+          - Expr:
+              - Items:
                   - Items:
+                      - Ident: sum
                       - Items:
-                          - Ident: salary
+                          - Items:
+                              - Items:
+                                  - Items:
+                                      - Ident: salary
+                                  - Raw: +
+                                  - Items:
+                                      - Ident: payroll_tax
                           - Raw: +
-                          - Ident: payroll_tax
-                      - Raw: +
-                      - Ident: benefits_cost
-                named_args: []
-          - Raw: ">"
-          - Raw: "200"
+                          - Items:
+                              - Ident: benefits_cost
+              - Raw: ">"
+              - Items:
+                  - Raw: "200"
       - Take: 20
 

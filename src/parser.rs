@@ -1,6 +1,7 @@
 use std::vec;
 
 use super::ast::*;
+use super::utils::*;
 use anyhow::{anyhow, Context, Result};
 use itertools::Itertools;
 #[cfg(test)]
@@ -13,8 +14,9 @@ use pest_derive::Parser;
 #[grammar = "prql.pest"]
 pub struct PrqlParser;
 
+/// Parses a parse tree of pest Pairs into an AST.
 #[cfg(test)]
-pub fn parse(pairs: Pairs<Rule>) -> Result<Items> {
+pub fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Items> {
     pairs
         // Exclude end-of-input at the moment.
         .filter(|pair| pair.as_rule() != Rule::EOI)
@@ -23,11 +25,27 @@ pub fn parse(pairs: Pairs<Rule>) -> Result<Items> {
             // and don't have this wrapping `Ok`. Then move some of the panics
             // to `Err`s.
             Ok(match pair.as_rule() {
-                Rule::query => Item::Query(parse(pair.into_inner())?),
-                Rule::list => Item::List(parse(pair.into_inner())?),
-                Rule::items => Item::Items(parse(pair.into_inner())?),
+                Rule::query => Item::Query(ast_of_parse_tree(pair.into_inner())?),
+                Rule::list => Item::List(ast_of_parse_tree(pair.into_inner())?),
+                Rule::idents => {
+                    Item::Idents(pair.into_inner().map(|x| x.as_str().to_owned()).collect())
+                }
+                Rule::items => Item::Items(
+                    ast_of_parse_tree(pair.into_inner())?
+                    // Do we want to unnest everything? We need to think about
+                    // this more. Having Items -> Items -> Items -> X, is no
+                    // different from just Items -> X. But `Expr` and `List` can
+                    // be different — maybe we only want to collapse `Items`
+                    // into each other, and we leave other choices up to the
+                    // objects being parsed?
+                        // .iter()
+                        // .map(|x| x.as_item())
+                        // .cloned()
+                        // .collect(),
+                ),
+                Rule::expr => Item::Expr(ast_of_parse_tree(pair.into_inner())?),
                 Rule::named_arg => {
-                    let parsed: [Item; 2] = parse(pair.into_inner())?
+                    let parsed: [Item; 2] = ast_of_parse_tree(pair.into_inner())?
                         .try_into()
                         .map_err(|e| anyhow!("Expected two items; {:?}", e))?;
                     let [name, arg] = parsed;
@@ -37,15 +55,15 @@ pub fn parse(pairs: Pairs<Rule>) -> Result<Items> {
                     })
                 }
                 Rule::assign => {
-                    let parsed: [Item; 2] = parse(pair.into_inner())?
+                    let parsed: [Item; 2] = ast_of_parse_tree(pair.into_inner())?
                         .try_into()
                         .map_err(|e| anyhow!("Expected two items; {:?}", e))?;
                     // Split the pair into its first value, which is always an Ident,
                     // and its other values.
-                    if let [lvalue, Item::Items(rvalue)] = parsed {
+                    if let [lvalue, Item::Expr(rvalue)] = parsed {
                         Ok(Item::Assign(Assign {
                             lvalue: lvalue.as_ident()?.to_owned(),
-                            rvalue: Box::new(Item::Items(rvalue.to_vec())),
+                            rvalue: Box::new(Item::Items(rvalue).as_item().clone()),
                         }))
                     } else {
                         Err(anyhow!(
@@ -55,26 +73,24 @@ pub fn parse(pairs: Pairs<Rule>) -> Result<Items> {
                     }?
                 }
                 Rule::transformation => {
-                    let parsed = parse(pair.into_inner())?;
+                    let parsed = ast_of_parse_tree(pair.into_inner())?;
                     Item::Transformation(parsed.try_into()?)
                 }
                 Rule::function => {
-                    let parsed: [Item; 2] = parse(pair.into_inner())?
-                        .try_into()
-                        .map_err(|e| anyhow!("Expected two items; {:?}", e))?;
-                    if let [Item::Idents(name_and_params), Item::Items(body)] = parsed {
-                        let (name, params) = name_and_params.split_first().unwrap();
+                    let parsed = ast_of_parse_tree(pair.into_inner())?;
+                    if let (Item::Idents(name_and_params), body) = parsed.split_first().unwrap() {
+                        let (name, args) = name_and_params.split_first().unwrap();
                         Item::Function(Function {
                             name: name.to_owned(),
-                            args: params.to_owned(),
-                            body,
+                            args: args.to_owned(),
+                            body: body.to_owned(),
                         })
                     } else {
                         unreachable!("Expected Function, got {:?}", parsed)
                     }
                 }
                 Rule::table => {
-                    let parsed = parse(pair.into_inner())?;
+                    let parsed = ast_of_parse_tree(pair.into_inner())?;
                     if let [name, Item::Pipeline(pipeline)] = &parsed[..] {
                         Item::Table(Table {
                             name: name.as_ident()?.to_owned(),
@@ -85,14 +101,8 @@ pub fn parse(pairs: Pairs<Rule>) -> Result<Items> {
                     }
                 }
                 Rule::ident => Item::Ident(pair.as_str().to_string()),
-                Rule::idents => Item::Idents(
-                    parse(pair.into_inner())?
-                        .into_iter()
-                        .map(|x| x.as_ident().cloned())
-                        .try_collect()?,
-                ),
                 // Pull out the string itself, which doesn't have the quotes
-                Rule::string_literal => parse(pair.clone().into_inner())?
+                Rule::string_literal => ast_of_parse_tree(pair.clone().into_inner())?
                     .into_iter()
                     .next()
                     .ok_or_else(|| anyhow!("Failed reading string {:?}", &pair))?,
@@ -101,12 +111,14 @@ pub fn parse(pairs: Pairs<Rule>) -> Result<Items> {
                     pair.into_inner()
                         .map(|x| match x.as_rule() {
                             Rule::s_string_string => SStringItem::String(x.as_str().to_string()),
-                            _ => SStringItem::Expr(Item::Items(parse(x.into_inner()).unwrap())),
+                            _ => SStringItem::Expr(Item::Items(
+                                ast_of_parse_tree(x.into_inner()).unwrap(),
+                            )),
                         })
                         .collect(),
                 ),
                 Rule::pipeline => Item::Pipeline({
-                    parse(pair.into_inner())?
+                    ast_of_parse_tree(pair.into_inner())?
                         .into_iter()
                         .map(|x| match x {
                             Item::Transformation(transformation) => transformation,
@@ -122,12 +134,13 @@ pub fn parse(pairs: Pairs<Rule>) -> Result<Items> {
 }
 
 #[cfg(test)]
-pub fn parse_to_pest_tree(source: &str, rule: Rule) -> Result<Pairs<Rule>> {
+/// Parse a string into a parse tree, made up of pest Pairs.
+pub fn parse_tree_of_str(source: &str, rule: Rule) -> Result<Pairs<Rule>> {
     let pairs = PrqlParser::parse(rule, source)?;
     Ok(pairs)
 }
 
-// We put this outside the main parse function because we also use it to parse
+// We put this outside the main ast_of_parse_tree function because we also use it to ast_of_parse_tree
 // function calls.
 // (I'm not sure whether we should be using it for both — on the one hand,
 // they're fairly similar `sum salary` is a standard function call. But on the
@@ -136,11 +149,14 @@ pub fn parse_to_pest_tree(source: &str, rule: Rule) -> Result<Pairs<Rule>> {
 impl TryFrom<Vec<Item>> for Transformation {
     type Error = anyhow::Error;
     fn try_from(items: Vec<Item>) -> Result<Self> {
+        // if let Item::Items(items) = items {
         let (name_item, all_args) = items.split_first().unwrap();
         let name = name_item.as_ident()?;
 
         let (named_arg_items, args): (Vec<Item>, Vec<Item>) = all_args
             .iter()
+            // This reduces the nesting.
+            .map(|x| x.as_item())
             .cloned()
             .partition(|x| matches!(x, Item::NamedArg(_)));
 
@@ -155,11 +171,13 @@ impl TryFrom<Vec<Item>> for Transformation {
             "filter" => Ok(Transformation::Filter(Filter(args))),
             "derive" => {
                 let assigns = args
-                    .first()
+                    // TODO: this is inscrutable, clean up.
+                    .into_only()
                     .context("Expected at least one argument")?
-                    .to_items()
-                    .iter()
-                    .map(|x| x.as_assign().cloned())
+                    .into_item()
+                    .into_items()
+                    .into_iter()
+                    .map(|x| x.into_item().as_assign().cloned())
                     .try_collect()?;
                 Ok(Transformation::Derive(assigns))
             }
@@ -178,7 +196,7 @@ impl TryFrom<Vec<Item>> for Transformation {
                                 "Expected aggregate to have up to one named arg, named 'by'"
                             ));
                         }
-                        (*arg).to_items()
+                        (*arg).clone().into_items()
                     }
                     [] => vec![],
                     _ => {
@@ -188,7 +206,7 @@ impl TryFrom<Vec<Item>> for Transformation {
                     }
                 };
 
-                let ops = args.first().unwrap().to_items();
+                let ops = args.first().unwrap().clone().into_items();
 
                 // Ops should either be calcs or assigns; e.g. one of
                 //   average gross_cost
@@ -201,11 +219,7 @@ impl TryFrom<Vec<Item>> for Transformation {
 
                 Ok(Transformation::Aggregate {
                     by,
-                    calcs: calcs
-                        .iter()
-                        .cloned()
-                        .map(|x| x.to_items().try_into().map(Item::Transformation))
-                        .try_collect()?,
+                    calcs,
                     assigns: assigns
                         .into_iter()
                         .map(|x| {
@@ -219,7 +233,7 @@ impl TryFrom<Vec<Item>> for Transformation {
                                 lvalue: assign.lvalue,
                                 // Make the rvalue items into a transformation.
                                 rvalue: Box::new(Item::Transformation(
-                                    assign.rvalue.to_items().try_into().unwrap(),
+                                    assign.rvalue.into_items().try_into().unwrap(),
                                 )),
                             })
                         })
@@ -228,12 +242,10 @@ impl TryFrom<Vec<Item>> for Transformation {
             }
             "sort" => Ok(Transformation::Sort(args)),
             "take" => {
-                // TODO confirm there is only one arg
-                match args.first() {
-                    // TODO: coerce to number
-                    Some(n) => Ok(Transformation::Take(n.as_raw()?.parse()?)),
-                    None => Err(anyhow!("Expected a number; got {:?}", args)),
-                }
+                // TODO: coerce to number
+                args.into_only()
+                    .map(|x| x.as_item().clone())
+                    .map(|n| Ok(Transformation::Take(n.as_raw()?.parse()?)))?
             }
             "join" => Ok(Transformation::Join(args)),
             _ => Ok(Transformation::Func(FuncCall {
@@ -243,6 +255,7 @@ impl TryFrom<Vec<Item>> for Transformation {
             })),
         }
     }
+    // }
 }
 
 #[cfg(test)]
@@ -251,15 +264,24 @@ mod test {
     use super::*;
     use insta::{assert_debug_snapshot, assert_yaml_snapshot};
 
+    fn ast_of_string(string: &str, rule: Rule) -> Item {
+        parse_tree_of_str(string, rule)
+            .and_then(ast_of_parse_tree)
+            .and_then(|x| x.into_only())
+            .unwrap()
+    }
+
     #[test]
     fn test_parse_take() {
-        assert!(parse_to_pest_tree("take 10", Rule::transformation).is_ok());
-        assert!(parse_to_pest_tree("take", Rule::transformation).is_err());
+        assert!(parse_tree_of_str("take 10", Rule::transformation).is_ok());
+        assert!(
+            ast_of_parse_tree(parse_tree_of_str("take", Rule::transformation).unwrap()).is_err()
+        );
     }
 
     #[test]
     fn test_parse_string() {
-        assert_debug_snapshot!(parse_to_pest_tree(r#"" U S A ""#, Rule::string_literal).unwrap(), @r###"
+        assert_debug_snapshot!(parse_tree_of_str(r#"" U S A ""#, Rule::string_literal).unwrap(), @r###"
         [
             Pair {
                 rule: string_literal,
@@ -282,7 +304,7 @@ mod test {
             },
         ]
         "###);
-        assert_yaml_snapshot!(parse(parse_to_pest_tree(r#"" U S A ""#, Rule::string_literal).unwrap()).unwrap(), @r###"
+        assert_yaml_snapshot!(ast_of_parse_tree(parse_tree_of_str(r#"" U S A ""#, Rule::string_literal).unwrap()).unwrap(), @r###"
         ---
         - String: " U S A "
         "###);
@@ -290,7 +312,7 @@ mod test {
 
     #[test]
     fn test_parse_s_string() {
-        assert_debug_snapshot!(parse_to_pest_tree(r#"s"SUM({col})""#, Rule::s_string), @r###"
+        assert_debug_snapshot!(parse_tree_of_str(r#"s"SUM({col})""#, Rule::s_string), @r###"
         Ok(
             [
                 Pair {
@@ -311,7 +333,7 @@ mod test {
                             inner: [],
                         },
                         Pair {
-                            rule: items,
+                            rule: expr,
                             span: Span {
                                 str: "col",
                                 start: 7,
@@ -319,13 +341,23 @@ mod test {
                             },
                             inner: [
                                 Pair {
-                                    rule: ident,
+                                    rule: items,
                                     span: Span {
                                         str: "col",
                                         start: 7,
                                         end: 10,
                                     },
-                                    inner: [],
+                                    inner: [
+                                        Pair {
+                                            rule: ident,
+                                            span: Span {
+                                                str: "col",
+                                                start: 7,
+                                                end: 10,
+                                            },
+                                            inner: [],
+                                        },
+                                    ],
                                 },
                             ],
                         },
@@ -343,166 +375,172 @@ mod test {
             ],
         )
         "###);
-        assert_yaml_snapshot!(parse(parse_to_pest_tree(r#"s"SUM({col})""#, Rule::s_string).unwrap()).unwrap(), @r###"
+        assert_yaml_snapshot!(ast_of_string(r#"s"SUM({col})""#, Rule::s_string), @r###"
         ---
-        - SString:
-            - String: SUM(
-            - Expr:
-                Items:
-                  - Ident: col
-            - String: )
+        SString:
+          - String: SUM(
+          - Expr:
+              Items:
+                - Items:
+                    - Ident: col
+          - String: )
         "###);
-        assert_yaml_snapshot!(parse(parse_to_pest_tree(r#"s"SUM({2 + 2})""#, Rule::s_string).unwrap()).unwrap(), @r###"
+        assert_yaml_snapshot!(ast_of_string(r#"s"SUM({2 + 2})""#, Rule::s_string), @r###"
         ---
-        - SString:
-            - String: SUM(
-            - Expr:
-                Items:
+        SString:
+          - String: SUM(
+          - Expr:
+              Items:
+                - Items:
+                    - Raw: "2"
+                - Raw: +
+                - Items:
+                    - Raw: "2"
+          - String: )
+        "###);
+    }
+
+    #[test]
+    fn test_parse_list() {
+        assert_debug_snapshot!(parse_tree_of_str(r#"[1 + 1, 2]"#, Rule::list).unwrap());
+        assert_yaml_snapshot!(ast_of_string(r#"[1 + 1, 2]"#, Rule::list), @r###"
+        ---
+        List:
+          - Expr:
+              - Items:
+                  - Raw: "1"
+              - Raw: +
+              - Items:
+                  - Raw: "1"
+          - Expr:
+              - Items:
                   - Raw: "2"
-                  - Raw: +
-                  - Raw: "2"
-            - String: )
         "###);
     }
 
     #[test]
     fn test_parse_number() {
-        assert_debug_snapshot!(parse_to_pest_tree(r#"23"#, Rule::number), @r###"
-        Ok(
-            [
-                Pair {
-                    rule: number,
-                    span: Span {
-                        str: "23",
-                        start: 0,
-                        end: 2,
-                    },
-                    inner: [],
+        assert_debug_snapshot!(parse_tree_of_str(r#"23"#, Rule::number).unwrap(), @r###"
+        [
+            Pair {
+                rule: number,
+                span: Span {
+                    str: "23",
+                    start: 0,
+                    end: 2,
                 },
-            ],
-        )
+                inner: [],
+            },
+        ]
         "###);
-        assert_debug_snapshot!(parse_to_pest_tree(r#"2 + 2"#, Rule::expr), @r###"
-        Ok(
-            [
-                Pair {
-                    rule: number,
-                    span: Span {
-                        str: "2",
-                        start: 0,
-                        end: 1,
-                    },
-                    inner: [],
-                },
-                Pair {
-                    rule: operator,
-                    span: Span {
-                        str: "+",
-                        start: 2,
-                        end: 3,
-                    },
-                    inner: [],
-                },
-                Pair {
-                    rule: number,
-                    span: Span {
-                        str: "2",
-                        start: 4,
-                        end: 5,
-                    },
-                    inner: [],
-                },
-            ],
-        )
-        "###);
+        assert_debug_snapshot!(parse_tree_of_str(r#"2 + 2"#, Rule::expr));
     }
 
     #[test]
     fn test_parse_expr() {
         assert_yaml_snapshot!(
-            parse(parse_to_pest_tree(r#"country = "USA""#, Rule::expr).unwrap()).unwrap()
+            ast_of_parse_tree(parse_tree_of_str(r#"country = "USA""#, Rule::expr).unwrap()).unwrap()
         , @r###"
         ---
-        - Ident: country
-        - Raw: "="
-        - String: USA
+        - Expr:
+            - Items:
+                - Ident: country
+            - Raw: "="
+            - Items:
+                - String: USA
         "###);
-        assert_yaml_snapshot!(parse(
-            parse_to_pest_tree("aggregate by:[title] [sum salary]", Rule::transformation).unwrap()
+        assert_yaml_snapshot!(ast_of_parse_tree(
+            parse_tree_of_str("aggregate by:[title] [sum salary]", Rule::transformation).unwrap()
         )
         .unwrap(), @r###"
         ---
         - Transformation:
             Aggregate:
-              by:
-                - Ident: title
+              by: []
               calcs:
-                - Transformation:
-                    Func:
-                      name: sum
-                      args:
-                        - Ident: salary
-                      named_args: []
+                - NamedArg:
+                    name: by
+                    arg:
+                      List:
+                        - Expr:
+                            - Items:
+                                - Ident: title
+                - List:
+                    - Expr:
+                        - Items:
+                            - Ident: sum
+                            - Ident: salary
               assigns: []
         "###);
-        assert_yaml_snapshot!(parse(
-            parse_to_pest_tree(
+        assert_yaml_snapshot!(ast_of_string(
                 r#"[
   gross_salary: salary + payroll_tax,
   gross_cost:   gross_salary + benefits_cost
 ]"#,
                 Rule::list,
-            )
-            .unwrap()
         )
-        .unwrap(), @r###"
+        , @r###"
         ---
-        - List:
-            - Assign:
-                lvalue: gross_salary
-                rvalue:
-                  Items:
-                    - Ident: salary
-                    - Raw: +
-                    - Ident: payroll_tax
-            - Assign:
-                lvalue: gross_cost
-                rvalue:
-                  Items:
-                    - Ident: gross_salary
-                    - Raw: +
-                    - Ident: benefits_cost
+        List:
+          - Expr:
+              - Items:
+                  - Assign:
+                      lvalue: gross_salary
+                      rvalue:
+                        Items:
+                          - Items:
+                              - Ident: salary
+                          - Raw: +
+                          - Items:
+                              - Ident: payroll_tax
+          - Expr:
+              - Items:
+                  - Assign:
+                      lvalue: gross_cost
+                      rvalue:
+                        Items:
+                          - Items:
+                              - Ident: gross_salary
+                          - Raw: +
+                          - Items:
+                              - Ident: benefits_cost
         "###);
-        assert_yaml_snapshot!(parse(
-                    parse_to_pest_tree(
-                        "gross_salary: (salary + payroll_tax) * (1 + tax_rate)",
-                        Rule::expr,
-                    )
-                    .unwrap()
-                )
-                .unwrap(), @r###"
+        assert_yaml_snapshot!(
+            ast_of_string(
+                "gross_salary: (salary + payroll_tax) * (1 + tax_rate)",
+                Rule::expr,
+            ),
+            @r###"
         ---
-        - Assign:
-            lvalue: gross_salary
-            rvalue:
-              Items:
-                - Items:
-                    - Ident: salary
-                    - Raw: +
-                    - Ident: payroll_tax
-                - Raw: "*"
-                - Items:
-                    - Raw: "1"
-                    - Raw: +
-                    - Ident: tax_rate
+        Expr:
+          - Items:
+              - Assign:
+                  lvalue: gross_salary
+                  rvalue:
+                    Items:
+                      - Items:
+                          - Expr:
+                              - Items:
+                                  - Ident: salary
+                              - Raw: +
+                              - Items:
+                                  - Ident: payroll_tax
+                      - Raw: "*"
+                      - Items:
+                          - Expr:
+                              - Items:
+                                  - Raw: "1"
+                              - Raw: +
+                              - Items:
+                                  - Ident: tax_rate
         "###);
     }
 
     #[test]
+    // fn test_parse_query() {
     fn test_parse_pipeline() {
-        assert_yaml_snapshot!(parse(
-            parse_to_pest_tree(
-                r#"
+        assert_yaml_snapshot!(ast_of_string(
+            r#"
 from employees
 filter country = "USA"                           # Each line transforms the previous result.
 derive [                                         # This adds columns / variables.
@@ -523,46 +561,93 @@ sort sum_gross_cost
 filter count > 200
 take 20
     "#
-                .trim(),
-                Rule::pipeline,
-            )
-            .unwrap()
-        )
-        .unwrap());
+            .trim(),
+            Rule::query,
+        ))
     }
 
     #[test]
     fn test_parse_function() {
-        assert_yaml_snapshot!(parse(
-            parse_to_pest_tree("func identity x = x", Rule::function).unwrap()
+        assert_debug_snapshot!(
+            parse_tree_of_str("func plus_one x = x + 1", Rule::function).unwrap()
+        );
+        assert_yaml_snapshot!(ast_of_string(
+            "func identity x = x", Rule::function
         )
-        .unwrap(), @r###"
+        , @r###"
         ---
-        - Function:
-            name: identity
-            args:
-              - x
-            body:
-              - Ident: x
+        Function:
+          name: identity
+          args:
+            - x
+          body:
+            - Items:
+                - Ident: x
+        "###);
+        assert_yaml_snapshot!(ast_of_string(
+            "func plus_one x = (x + 1)", Rule::function
+        )
+        , @r###"
+        ---
+        Function:
+          name: plus_one
+          args:
+            - x
+          body:
+            - Items:
+                - Expr:
+                    - Items:
+                        - Ident: x
+                    - Raw: +
+                    - Items:
+                        - Raw: "1"
+        "###);
+        assert_yaml_snapshot!(ast_of_string(
+            "func plus_one x = x + 1", Rule::function
+        )
+        , @r###"
+        ---
+        Function:
+          name: plus_one
+          args:
+            - x
+          body:
+            - Items:
+                - Ident: x
+            - Raw: +
+            - Items:
+                - Raw: "1"
+        "###);
+        // An example to show that we can't delayer the tree, despite there
+        // being lots of layers.
+        assert_yaml_snapshot!(ast_of_string(
+            "func foo x = (foo bar + 1) (plax) - baz", Rule::function
+        )
+        , @r###"
+        ---
+        Function:
+          name: foo
+          args:
+            - x
+          body:
+            - Items:
+                - Expr:
+                    - Items:
+                        - Ident: foo
+                        - Ident: bar
+                    - Raw: +
+                    - Items:
+                        - Raw: "1"
+                - Expr:
+                    - Items:
+                        - Ident: plax
+            - Raw: "-"
+            - Items:
+                - Ident: baz
         "###);
 
-        assert_yaml_snapshot!(parse(
-            parse_to_pest_tree("func plus_one x = x + 1", Rule::function).unwrap()
-        )
-        .unwrap(), @r###"
-        ---
-        - Function:
-            name: plus_one
-            args:
-              - x
-            body:
-              - Ident: x
-              - Raw: +
-              - Raw: "1"
-        "###);
-
-        assert_yaml_snapshot!(parse(
-            parse_to_pest_tree("func return_constant = 42", Rule::function).unwrap()
+        assert_yaml_snapshot!(ast_of_parse_tree(
+            parse_tree_of_str("func return_constant = 42", Rule::function).unwrap()
         )
         .unwrap(), @r###"
         ---
@@ -570,12 +655,13 @@ take 20
             name: return_constant
             args: []
             body:
-              - Raw: "42"
+              - Items:
+                  - Raw: "42"
         "###);
 
         /* TODO: Does not yet parse because `window` not yet implemented.
-            assert_debug_snapshot!(parse(
-                parse_to_pest_tree(
+            assert_debug_snapshot!(ast_of_parse_tree(
+                parse_tree_of_str(
                     r#"
         func lag_day x = (
           window x
@@ -593,102 +679,53 @@ take 20
 
     #[test]
     fn test_parse_table() {
-        assert_yaml_snapshot!(parse(
-            parse_to_pest_tree("table newest_employees = ( from employees )",
-                Rule::table
-            )
-            .unwrap()
-        )
-        .unwrap(), @r###"
+        assert_yaml_snapshot!(ast_of_string(
+            "table newest_employees = ( from employees )",
+            Rule::table
+        ), @r###"
         ---
-        - Table:
-            name: newest_employees
-            pipeline:
-              - From:
-                  - Ident: employees
+        Table:
+          name: newest_employees
+          pipeline:
+            - From:
+                - Ident: employees
         "###);
-        assert_yaml_snapshot!(parse(
-            parse_to_pest_tree(r#"
+
+        assert_yaml_snapshot!(ast_of_string(
+            r#"
         table newest_employees = (
           from employees
           sort tenure
           take 50
-        )
-                "#.trim(),
-                Rule::table
-            )
-            .unwrap()
-        )
-        .unwrap(), @r###"
+        )"#.trim(), Rule::table),
+         @r###"
         ---
-        - Table:
-            name: newest_employees
-            pipeline:
-              - From:
-                  - Ident: employees
-              - Sort:
-                  - Ident: tenure
-              - Take: 50
+        Table:
+          name: newest_employees
+          pipeline:
+            - From:
+                - Ident: employees
+            - Sort:
+                - Ident: tenure
+            - Take: 50
         "###);
     }
 
     #[test]
     fn test_parse_to_pest_tree() {
-        assert_debug_snapshot!(parse_to_pest_tree(r#"country = "USA""#, Rule::expr), @r###"
-        Ok(
-            [
-                Pair {
-                    rule: ident,
-                    span: Span {
-                        str: "country",
-                        start: 0,
-                        end: 7,
-                    },
-                    inner: [],
-                },
-                Pair {
-                    rule: operator,
-                    span: Span {
-                        str: "=",
-                        start: 8,
-                        end: 9,
-                    },
-                    inner: [],
-                },
-                Pair {
-                    rule: string_literal,
-                    span: Span {
-                        str: "\"USA\"",
-                        start: 10,
-                        end: 15,
-                    },
-                    inner: [
-                        Pair {
-                            rule: string,
-                            span: Span {
-                                str: "USA",
-                                start: 11,
-                                end: 14,
-                            },
-                            inner: [],
-                        },
-                    ],
-                },
-            ],
-        )
-        "###);
-        assert_debug_snapshot!(parse_to_pest_tree(r#""USA""#, Rule::string_literal));
-        assert_debug_snapshot!(parse_to_pest_tree("select [a, b, c]", Rule::transformation));
-        assert_debug_snapshot!(parse_to_pest_tree(
+        // fn test_parse_expr_to_parse_tree() {
+        assert_debug_snapshot!(parse_tree_of_str(r#"country = "USA""#, Rule::expr));
+        assert_debug_snapshot!(parse_tree_of_str("select [a, b, c]", Rule::transformation));
+        assert_debug_snapshot!(parse_tree_of_str(
             "aggregate by:[title, country] [sum salary]",
             Rule::transformation
         ));
-        assert_debug_snapshot!(parse_to_pest_tree(
+        assert_debug_snapshot!(parse_tree_of_str(
             r#"    filter country = "USA""#,
             Rule::transformation
         ));
-        assert_debug_snapshot!(parse_to_pest_tree("[a, b, c,]", Rule::list));
-        assert_debug_snapshot!(parse_to_pest_tree(
+        assert_debug_snapshot!(parse_tree_of_str("[a, b, c,]", Rule::list));
+        assert_debug_snapshot!(parse_tree_of_str(
             r#"[
   gross_salary: salary + payroll_tax,
   gross_cost:   gross_salary + benefits_cost
@@ -696,61 +733,26 @@ take 20
             Rule::list
         ));
         // Currently not putting comments in our parse tree, so this is blank.
-        assert_debug_snapshot!(parse_to_pest_tree(
+        assert_debug_snapshot!(parse_tree_of_str(
             r#"# this is a comment
         select a"#,
             Rule::COMMENT
         ));
-        assert_debug_snapshot!(parse_to_pest_tree(
+        assert_debug_snapshot!(parse_tree_of_str(
             "join country [id=employee_id]",
             Rule::transformation
         ));
-        assert_debug_snapshot!(parse_to_pest_tree(
+        assert_debug_snapshot!(parse_tree_of_str(
             "join side:left country [id=employee_id]",
             Rule::transformation
         ));
-        assert_debug_snapshot!(parse_to_pest_tree(
-            "join side:right country [id=employee_id]",
-            Rule::transformation
-        ));
-        assert_debug_snapshot!(parse_to_pest_tree("1  + 2", Rule::expr), @r###"
-        Ok(
-            [
-                Pair {
-                    rule: number,
-                    span: Span {
-                        str: "1",
-                        start: 0,
-                        end: 1,
-                    },
-                    inner: [],
-                },
-                Pair {
-                    rule: operator,
-                    span: Span {
-                        str: "+",
-                        start: 3,
-                        end: 4,
-                    },
-                    inner: [],
-                },
-                Pair {
-                    rule: number,
-                    span: Span {
-                        str: "2",
-                        start: 5,
-                        end: 6,
-                    },
-                    inner: [],
-                },
-            ],
-        )
-        "###);
+        assert_debug_snapshot!(parse_tree_of_str("1  + 2", Rule::expr));
     }
 
     #[test]
-    fn test_parse_to_pest_tree_pipeline() {
-        assert_debug_snapshot!(parse_to_pest_tree(
+    fn test_parse_tree_of_str_pipeline() {
+        // fn test_parse_pipeline_to_pest_tree() {
+        assert_debug_snapshot!(parse_tree_of_str(
             r#"
     from employees
     select [a, b]
@@ -758,7 +760,7 @@ take 20
             .trim(),
             Rule::pipeline
         ));
-        assert_debug_snapshot!(parse_to_pest_tree(
+        assert_debug_snapshot!(parse_tree_of_str(
             r#"
     from employees
     filter country = "USA"
@@ -766,7 +768,7 @@ take 20
             .trim(),
             Rule::pipeline
         ));
-        assert_debug_snapshot!(parse_to_pest_tree(
+        assert_debug_snapshot!(parse_tree_of_str(
             r#"
 from employees
 filter country = "USA"                           # Each line transforms the previous result.

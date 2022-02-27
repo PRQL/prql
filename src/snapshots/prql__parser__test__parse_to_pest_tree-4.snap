@@ -1,7 +1,7 @@
 ---
 source: src/parser.rs
-assertion_line: 395
-expression: "parse_to_pest_tree(\"aggregate by:[title, country] [sum salary]\",\n                   Rule::transformation)"
+assertion_line: 713
+expression: "parse_tree_of_str(r#\"    filter country = \"USA\"\"#, Rule::transformation)"
 
 ---
 Ok(
@@ -9,100 +9,82 @@ Ok(
         Pair {
             rule: transformation,
             span: Span {
-                str: "aggregate by:[title, country] [sum salary]",
+                str: "    filter country = \"USA\"",
                 start: 0,
-                end: 42,
+                end: 26,
             },
             inner: [
                 Pair {
                     rule: ident,
                     span: Span {
-                        str: "aggregate",
-                        start: 0,
-                        end: 9,
+                        str: "filter",
+                        start: 4,
+                        end: 10,
                     },
                     inner: [],
                 },
                 Pair {
-                    rule: named_arg,
+                    rule: expr,
                     span: Span {
-                        str: "by:[title, country]",
-                        start: 10,
-                        end: 29,
-                    },
-                    inner: [
-                        Pair {
-                            rule: ident,
-                            span: Span {
-                                str: "by",
-                                start: 10,
-                                end: 12,
-                            },
-                            inner: [],
-                        },
-                        Pair {
-                            rule: list,
-                            span: Span {
-                                str: "[title, country]",
-                                start: 13,
-                                end: 29,
-                            },
-                            inner: [
-                                Pair {
-                                    rule: ident,
-                                    span: Span {
-                                        str: "title",
-                                        start: 14,
-                                        end: 19,
-                                    },
-                                    inner: [],
-                                },
-                                Pair {
-                                    rule: ident,
-                                    span: Span {
-                                        str: "country",
-                                        start: 21,
-                                        end: 28,
-                                    },
-                                    inner: [],
-                                },
-                            ],
-                        },
-                    ],
-                },
-                Pair {
-                    rule: list,
-                    span: Span {
-                        str: "[sum salary]",
-                        start: 30,
-                        end: 42,
+                        str: "country = \"USA\"",
+                        start: 11,
+                        end: 26,
                     },
                     inner: [
                         Pair {
                             rule: items,
                             span: Span {
-                                str: "sum salary",
-                                start: 31,
-                                end: 41,
+                                str: "country ",
+                                start: 11,
+                                end: 19,
                             },
                             inner: [
                                 Pair {
                                     rule: ident,
                                     span: Span {
-                                        str: "sum",
-                                        start: 31,
-                                        end: 34,
+                                        str: "country",
+                                        start: 11,
+                                        end: 18,
                                     },
                                     inner: [],
                                 },
+                            ],
+                        },
+                        Pair {
+                            rule: operator,
+                            span: Span {
+                                str: "=",
+                                start: 19,
+                                end: 20,
+                            },
+                            inner: [],
+                        },
+                        Pair {
+                            rule: items,
+                            span: Span {
+                                str: "\"USA\"",
+                                start: 21,
+                                end: 26,
+                            },
+                            inner: [
                                 Pair {
-                                    rule: ident,
+                                    rule: string_literal,
                                     span: Span {
-                                        str: "salary",
-                                        start: 35,
-                                        end: 41,
+                                        str: "\"USA\"",
+                                        start: 21,
+                                        end: 26,
                                     },
-                                    inner: [],
+                                    inner: [
+                                        Pair {
+                                            rule: string,
+                                            span: Span {
+                                                str: "USA",
+                                                start: 22,
+                                                end: 25,
+                                            },
+                                            inner: [],
+                                        },
+                                    ],
                                 },
                             ],
                         },
