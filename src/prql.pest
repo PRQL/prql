@@ -45,7 +45,7 @@ idents = { ident+ }
 // as:
 // - foo bar + 1
 //   - foo bar
-//     - foo 
+//     - foo
 //     - bar
 //   - +
 //   - 1
@@ -59,7 +59,7 @@ idents = { ident+ }
 // We could have them be the same, but then we need logic in the parser to
 // account for where the list item is in this parse tree
 // - foo bar
-//   - foo 
+//   - foo
 //   - bar
 // - +
 // - 1
