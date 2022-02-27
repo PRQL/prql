@@ -9,9 +9,9 @@
 // - Currently there's no concept of what expressions are allowed. e.g. `1 + 1`
 //   is valid, but so is `1 1`. Or `foo bar` is not parsed at this stage as
 //   `foo` being a function and `bar` its argument — it's just parsed into a
-//   list of idents. We could instead parse these explicitly, and then disallow
-//   `1 1`. We would need more structure though; e.g. we'd need to encode terms
-//   like `or` to allow `x or y` but not `x orr y`.
+//   sequence of idents. We could instead parse these explicitly, and then
+//   disallow `1 1`. We would need more structure though; e.g. we'd need to
+//   encode terms like `or` to allow `x or y` but not `x orr y`.
 
 // Potentially:
 // - Make idents a 1st class thing, which stores a vec of strings. All idents
@@ -66,16 +66,15 @@ idents = { ident+ }
 // - 2
 
 // Adding the WHITESPACE is like making it a compound-atomic operator.
-expr = { ( items | separator | WHITESPACE )+ }
+expr = { ( items | operator | WHITESPACE )+ }
 // For when we want to include separators, but don't need to break between them;
 // e.g. in function definitions; where `func x = x + 1` can have `x + 1` as a
-// single list of items.
-expr_silent = _{ ( items | separator | WHITESPACE )+ }
-// items = !{ ( item+ | separator | WHITESPACE | items )+ }
+// single sequence of items. Alternative we could arguably discard this and
+// unnest when creating the AST (which currently we do anyway).
+expr_silent = _{ ( items | operator | WHITESPACE )+ }
 items = !{ item+ }
 // Should assign be here?
 item = _{ ( parenthesized_expr | list | named_arg | assign | ident | number | string_literal | inline_pipeline ) }
-separator = _{ operator | bool_operator }
 list = !{ "[" ~ NEWLINE? ~ expr ~ ("," ~ NEWLINE? ~ expr )* ~ ","? ~ NEWLINE? ~ "]" }
 parenthesized_expr = _{ "(" ~ expr ~ ")" }
 
@@ -97,10 +96,9 @@ string_literal = ${ "\"" ~ string ~ "\"" }
 number = ${ ( ASCII_DIGIT | "." )+ }
 
 // These separate idents from each other — i.e. `foo bar and baz` will parse into
-// a) `foo bar`, `and`, `baz`, where `food bar` is presumably a function call.
-bool_operator = { "and" | "or" | "not" }
-// TODO: review these
-operator = ${ "==" | "!=" | "=" | ">" | "<" | ">=" | "<=" | "+" | "-" | "*" | "/" | "%" }
+// a) `foo bar`, `and`, `baz`, where `foo bar` is presumably a function call.
+// TODO: review operators
+operator = ${ "and" | "or" | "not" | "==" | "!=" | "=" | ">" | "<" | ">=" | "<=" | "+" | "-" | "*" | "/" | "%" }
 
 s_string = ${ "s\"" ~ ( s_string_string | ( "{" ~ expr ~ "}" ))* ~ "\"" }
 s_string_string = { ( !( "\\" | "\"" | "{" ) ~ ANY )+ }
