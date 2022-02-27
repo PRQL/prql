@@ -78,8 +78,13 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Items> {
                 }
                 Rule::function => {
                     let parsed = ast_of_parse_tree(pair.into_inner())?;
-                    if let (Item::Idents(name_and_params), body) = parsed.split_first().unwrap() {
-                        let (name, args) = name_and_params.split_first().unwrap();
+                    if let (Item::Idents(name_and_params), body) = parsed
+                        .split_first()
+                        .ok_or(anyhow!("Expceted at least one item"))?
+                    {
+                        let (name, args) = name_and_params
+                            .split_first()
+                            .ok_or(anyhow!("Expceted at least one item"))?;
                         Item::Function(Function {
                             name: name.to_owned(),
                             args: args.to_owned(),
@@ -109,6 +114,8 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Items> {
                 Rule::string => Item::String(pair.as_str().to_string()),
                 Rule::s_string => Item::SString(
                     pair.into_inner()
+                        // TODO: change unwraps to results (requires some more
+                        // verbose code given it's inside an expression inside a `map`)
                         .map(|x| match x.as_rule() {
                             Rule::s_string_string => SStringItem::String(x.as_str().to_string()),
                             _ => SStringItem::Expr(Item::Items(
@@ -150,7 +157,9 @@ impl TryFrom<Vec<Item>> for Transformation {
     type Error = anyhow::Error;
     fn try_from(items: Vec<Item>) -> Result<Self> {
         // if let Item::Items(items) = items {
-        let (name_item, all_args) = items.split_first().unwrap();
+        let (name_item, all_args) = items
+            .split_first()
+            .ok_or(anyhow!("Expected at least one item"))?;
         let name = name_item.as_ident()?;
 
         let (named_arg_items, args): (Vec<Item>, Vec<Item>) = all_args
@@ -206,7 +215,11 @@ impl TryFrom<Vec<Item>> for Transformation {
                     }
                 };
 
-                let ops = args.first().unwrap().clone().into_items();
+                let ops = args
+                    .first()
+                    .ok_or_else(|| anyhow!("Failed on {:?}", args))
+                    .cloned()
+                    .map(|x| x.into_items())?;
 
                 // Ops should either be calcs or assigns; e.g. one of
                 //   average gross_cost
@@ -305,7 +318,7 @@ mod test {
             },
         ]
         "###);
-        assert_yaml_snapshot!(ast_of_parse_tree(parse_tree_of_str(r#"" U S A ""#, Rule::string_literal).unwrap()).unwrap(), @r###"
+        assert_yaml_snapshot!(ast_of_parse_tree(parse_tree_of_str(r#"" U S A ""#, Rule::string_literal)?)?, @r###"
         ---
         - String: " U S A "
         "###);
@@ -444,7 +457,7 @@ mod test {
     #[test]
     fn test_parse_expr() -> Result<()> {
         assert_yaml_snapshot!(
-            ast_of_parse_tree(parse_tree_of_str(r#"country = "USA""#, Rule::expr).unwrap()).unwrap()
+            ast_of_parse_tree(parse_tree_of_str(r#"country = "USA""#, Rule::expr)?)?
         , @r###"
         ---
         - Expr:
@@ -455,9 +468,9 @@ mod test {
                 - String: USA
         "###);
         assert_yaml_snapshot!(ast_of_parse_tree(
-            parse_tree_of_str("aggregate by:[title] [sum salary]", Rule::transformation).unwrap()
+            parse_tree_of_str("aggregate by:[title] [sum salary]", Rule::transformation)?
         )
-        .unwrap(), @r###"
+        ?, @r###"
         ---
         - Transformation:
             Aggregate:
@@ -572,9 +585,10 @@ take 20
 
     #[test]
     fn test_parse_function() -> Result<()> {
-        assert_debug_snapshot!(
-            parse_tree_of_str("func plus_one x = x + 1", Rule::function).unwrap()
-        );
+        assert_debug_snapshot!(parse_tree_of_str(
+            "func plus_one x = x + 1",
+            Rule::function
+        )?);
         assert_yaml_snapshot!(ast_of_string(
             "func identity x = x", Rule::function
         )?
@@ -651,7 +665,7 @@ take 20
         "###);
 
         assert_yaml_snapshot!(ast_of_parse_tree(
-            parse_tree_of_str("func return_constant = 42", Rule::function).unwrap()
+            parse_tree_of_str("func return_constant = 42", Rule::function)?
         )?, @r###"
         ---
         - Function:
