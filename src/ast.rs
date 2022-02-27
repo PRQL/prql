@@ -1,3 +1,4 @@
+use super::utils::*;
 use anyhow::{anyhow, Result};
 
 use serde::{Deserialize, Serialize};
@@ -11,6 +12,7 @@ pub type Pipeline = Vec<Transformation>;
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub enum Item {
     Transformation(Transformation),
+    // remove?
     Ident(Ident),
     String(String),
     Raw(String),
@@ -21,9 +23,12 @@ pub enum Item {
     // Holds Item-s directly if a list entry is a single item, otherwise holds
     // Item::Items. This is less verbose than always having Item::Items.
     List(Items),
-    // In some cases, as as lists, we need a container for multiple items to
-    // discriminate them from, e.g. a series of Idents. `[a, b]` vs `[a b]`.
+    // Holds Items / Terms, not including separators like `+`.
+    // (possibly rename to Terms)
     Items(Items),
+    // Holds any Items.
+    // (possibly rename to Items)
+    Expr(Items),
     Idents(Idents),
     Function(Function),
     Table(Table),
@@ -117,21 +122,74 @@ impl Item {
     /// Either provide a Vec with the contents of List / Item, or puts a scalar
     /// into a Vec. This is useful when we either have a scalar or a list, and
     /// want to only have to handle a single type.
-    #[must_use]
-    pub fn to_items(&self) -> Vec<Item> {
+    pub fn into_items(self) -> Vec<Item> {
         match self {
-            Item::List(items) | Item::Items(items) => items.clone(),
-            _ => vec![self.clone()],
+            Item::List(items) | Item::Items(items) | Item::Expr(items) => items,
+            _ => vec![self],
         }
     }
+
+    /// The scalar version of `into_items`. It's recursive, so will return the
+    /// lowest possible single item.
+    pub fn into_item(self) -> Item {
+        match self {
+            Item::List(ref items) | Item::Items(ref items) | Item::Expr(ref items) => {
+                if items.len() == 1 {
+                    items[0].clone().into_item()
+                } else {
+                    self
+                }
+            }
+            _ => self,
+        }
+    }
+
+    /// The scalar version of `into_items`. It's recursive, so will return the
+    /// most granular possible single item.
+    pub fn as_item(&self) -> &Item {
+        match self {
+            Item::List(items) | Item::Items(items) | Item::Expr(items) => {
+                items.only().map(|item| item.as_item()).unwrap_or(self)
+            }
+            _ => self,
+        }
+    }
+
+    // /// Returns the same type
+    // pub fn into_unnested(&self) -> Item {
+    //     match self {
+    //         Item::List(items) | Item::Items(items) | Item::Expr(items) => {
+    //         }
+    //         _ => self.clone(),
+    //     }
+    // }
+    // }
 
     // We could expand these with (but it will add lots of methods...)
     // https://crates.io/crates/enum-as-inner?
     pub fn as_ident(&self) -> Result<&Ident> {
-        if let Item::Ident(ident) = self {
-            Ok(ident)
+        match self {
+            Item::Ident(ident) => Ok(ident),
+            // TODO: Hack; ideally remove.
+            Item::Idents(ident) => {
+                if ident.len() == 1 {
+                    Ok(&ident[0])
+                } else {
+                    Err(anyhow!(
+                        "Expected 1 ident, got {}; {:?}",
+                        ident.len(),
+                        ident
+                    ))
+                }
+            }
+            _ => Err(anyhow!("Expected an Ident, got {:?}", self)),
+        }
+    }
+    pub fn as_items(&self) -> Result<&Vec<Item>> {
+        if let Item::Items(items) = self {
+            Ok(items)
         } else {
-            Err(anyhow!("Expected Item::Ident, got {:?}", self))
+            Err(anyhow!("Expected Item::Items, got {:?}", self))
         }
     }
     pub fn as_named_arg(&self) -> Result<&NamedArg> {
@@ -154,5 +212,30 @@ impl Item {
         } else {
             Err(anyhow!("Expected Item::Raw, got {:?}", self))
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    #[test]
+    fn test_as_item() {
+        let atom = Item::Ident("a".to_string());
+
+        // Gets the single item through one level of nesting.
+        let item = Item::List(vec![atom.clone()]);
+        assert_eq!(item.as_item(), &atom);
+
+        // No change when it's the same.
+        let item = atom.clone();
+        assert_eq!(item.as_item(), &item);
+
+        // No change when there are two items in the `items`.
+        let item = Item::Items(vec![atom.clone(), atom.clone()]);
+        assert_eq!(item.as_item(), &item);
+
+        // Gets the single item through two levels of nesting.
+        let item = Item::Items(vec![Item::Items(vec![atom.clone()])]);
+        assert_eq!(item.as_item(), &atom);
     }
 }
