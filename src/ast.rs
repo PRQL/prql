@@ -132,20 +132,11 @@ impl Item {
     /// The scalar version of `into_items`. It's recursive, so will return the
     /// lowest possible single item.
     pub fn into_item(self) -> Item {
-        match self {
-            Item::List(ref items) | Item::Items(ref items) | Item::Expr(ref items) => {
-                if items.len() == 1 {
-                    items[0].clone().into_item()
-                } else {
-                    self
-                }
-            }
-            _ => self,
-        }
+        self.as_item().clone()
     }
 
-    /// The scalar version of `into_items`. It's recursive, so will return the
-    /// most granular possible single item.
+    /// The scalar version of `into_items`. It keeps unwrapping `Items` until it
+    /// finds one with a non-single element.
     pub fn as_item(&self) -> &Item {
         match self {
             Item::List(items) | Item::Items(items) | Item::Expr(items) => {
@@ -155,38 +146,29 @@ impl Item {
         }
     }
 
-    // /// Returns the same type
-    // pub fn into_unnested(&self) -> Item {
-    //     match self {
-    //         Item::List(items) | Item::Items(items) | Item::Expr(items) => {
-    //         }
-    //         _ => self.clone(),
-    //     }
-    // }
-    // }
+    /// Transitively unnest the whole tree, even if the parents have more than
+    /// one child. This is more unnesting that `as_item` / `into_item` do.
+    pub fn into_unnested(self) -> Item {
+        match self {
+            Item::List(items) | Item::Items(items) | Item::Expr(items) => {
+                // TODO: do we want to always return the input type?
+                Item::Items(items.into_iter().map(|item| item.into_unnested()).collect())
+                    .into_item()
+            }
+            _ => self,
+        }
+    }
 
     // We could expand these with (but it will add lots of methods...)
     // https://crates.io/crates/enum-as-inner?
     pub fn as_ident(&self) -> Result<&Ident> {
         match self {
             Item::Ident(ident) => Ok(ident),
-            // TODO: Hack; ideally remove.
-            Item::Idents(ident) => {
-                if ident.len() == 1 {
-                    Ok(&ident[0])
-                } else {
-                    Err(anyhow!(
-                        "Expected 1 ident, got {}; {:?}",
-                        ident.len(),
-                        ident
-                    ))
-                }
-            }
             _ => Err(anyhow!("Expected an Ident, got {:?}", self)),
         }
     }
-    pub fn as_items(&self) -> Result<&Vec<Item>> {
-        if let Item::Items(items) = self {
+    pub fn as_inner_items(&self) -> Result<&Vec<Item>> {
+        if let Item::Items(items) | Item::Expr(items) | Item::List(items) = self {
             Ok(items)
         } else {
             Err(anyhow!("Expected Item::Items, got {:?}", self))
