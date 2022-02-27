@@ -292,29 +292,27 @@ impl Filter {
 #[cfg(test)]
 mod test {
 
-    // use super::*;
-    use crate::parser::{ast_of_parse_tree, parse_tree_of_str, Rule};
+    // use crate::parser::*;
+    use super::*;
     use insta::{assert_display_snapshot, assert_yaml_snapshot};
 
+    use crate::parser::{ast_of_string, Rule};
+
     #[test]
-    fn test_replace_variables() {
+    fn test_replace_variables() -> Result<()> {
         use super::*;
         use serde_yaml::to_string;
         use similar::TextDiff;
 
-        let ast = &ast_of_parse_tree(
-            parse_tree_of_str(
-                r#"from employees
+        let ast = &ast_of_string(
+            r#"from employees
     derive [                                         # This adds columns / variables.
       gross_salary: salary + payroll_tax,
       gross_cost:   gross_salary + benefits_cost     # Variables can use other variables.
     ]
     "#,
-                Rule::pipeline,
-            )
-            .unwrap(),
-        )
-        .unwrap()[0];
+            Rule::pipeline,
+        )?;
 
         let mut fold = ReplaceVariables::new();
         // We could make a convenience function for this. It's useful for
@@ -341,9 +339,8 @@ mod test {
         "###);
 
         let mut fold = ReplaceVariables::new();
-        let ast = &ast_of_parse_tree(
-            parse_tree_of_str(
-                r#"
+        let ast = &ast_of_string(
+            r#"
 from employees
 filter country = "USA"                           # Each line transforms the previous result.
 derive [                                         # This adds columns / variables.
@@ -364,19 +361,17 @@ sort sum_gross_cost
 filter sum_gross_cost > 200
 take 20
     "#,
-                Rule::query,
-            )
-            .unwrap(),
-        )
-        .unwrap()[0];
-        assert_yaml_snapshot!(&fold.fold_item(ast).unwrap());
+            Rule::query,
+        )?;
+        assert_yaml_snapshot!(&fold.fold_item(ast)?);
+
+        Ok(())
     }
 
     #[test]
-    fn test_run_functions() {
-        let ast = &ast_of_parse_tree(
-            parse_tree_of_str(
-                r#"
+    fn test_run_functions() -> Result<()> {
+        let ast = &ast_of_string(
+            r#"
     func count = testing_count
 
     from employees
@@ -384,11 +379,8 @@ take 20
       count
     ]
     "#,
-                Rule::query,
-            )
-            .unwrap(),
-        )
-        .unwrap()[0];
+            Rule::query,
+        )?;
 
         assert_yaml_snapshot!(ast, @r###"
         ---
@@ -438,5 +430,7 @@ take 20
         // +                    - Ident: testing_count
         //            assigns: []
         // "###);
+
+        Ok(())
     }
 }

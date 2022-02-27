@@ -1,0 +1,75 @@
+---
+source: src/parser.rs
+assertion_line: 720
+expression: "parse_tree_of_str(r#\"country = \"USA\"\"#, Rule::expr)?"
+
+---
+[
+    Pair {
+        rule: expr,
+        span: Span {
+            str: "country = \"USA\"",
+            start: 0,
+            end: 15,
+        },
+        inner: [
+            Pair {
+                rule: items,
+                span: Span {
+                    str: "country ",
+                    start: 0,
+                    end: 8,
+                },
+                inner: [
+                    Pair {
+                        rule: ident,
+                        span: Span {
+                            str: "country",
+                            start: 0,
+                            end: 7,
+                        },
+                        inner: [],
+                    },
+                ],
+            },
+            Pair {
+                rule: operator,
+                span: Span {
+                    str: "=",
+                    start: 8,
+                    end: 9,
+                },
+                inner: [],
+            },
+            Pair {
+                rule: items,
+                span: Span {
+                    str: "\"USA\"",
+                    start: 10,
+                    end: 15,
+                },
+                inner: [
+                    Pair {
+                        rule: string_literal,
+                        span: Span {
+                            str: "\"USA\"",
+                            start: 10,
+                            end: 15,
+                        },
+                        inner: [
+                            Pair {
+                                rule: string,
+                                span: Span {
+                                    str: "USA",
+                                    start: 11,
+                                    end: 14,
+                                },
+                                inner: [],
+                            },
+                        ],
+                    },
+                ],
+            },
+        ],
+    },
+]
