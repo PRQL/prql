@@ -14,9 +14,9 @@ use pest_derive::Parser;
 #[grammar = "prql.pest"]
 pub struct PrqlParser;
 
-/// Parses a parse tree of pest Pairs into an AST.
 #[cfg(test)]
-pub fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Items> {
+/// Parses a parse tree of pest Pairs into an AST.
+fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Items> {
     pairs
         // Exclude end-of-input at the moment.
         .filter(|pair| pair.as_rule() != Rule::EOI)
@@ -133,9 +133,9 @@ pub fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Items> {
         .collect()
 }
 
-#[cfg(test)]
 /// Parse a string into a parse tree, made up of pest Pairs.
-pub fn parse_tree_of_str(source: &str, rule: Rule) -> Result<Pairs<Rule>> {
+#[cfg(test)]
+fn parse_tree_of_str(source: &str, rule: Rule) -> Result<Pairs<Rule>> {
     let pairs = PrqlParser::parse(rule, source)?;
     Ok(pairs)
 }
@@ -255,7 +255,14 @@ impl TryFrom<Vec<Item>> for Transformation {
             })),
         }
     }
-    // }
+}
+
+/// Parse a string into an AST.
+#[cfg(test)]
+pub fn ast_of_string(string: &str, rule: Rule) -> Result<Item> {
+    parse_tree_of_str(string, rule)
+        .and_then(ast_of_parse_tree)
+        .and_then(|x| x.into_only())
 }
 
 #[cfg(test)]
@@ -264,24 +271,18 @@ mod test {
     use super::*;
     use insta::{assert_debug_snapshot, assert_yaml_snapshot};
 
-    fn ast_of_string(string: &str, rule: Rule) -> Item {
-        parse_tree_of_str(string, rule)
-            .and_then(ast_of_parse_tree)
-            .and_then(|x| x.into_only())
-            .unwrap()
-    }
-
     #[test]
-    fn test_parse_take() {
+    fn test_parse_take() -> Result<()> {
         assert!(parse_tree_of_str("take 10", Rule::transformation).is_ok());
         assert!(
             ast_of_parse_tree(parse_tree_of_str("take", Rule::transformation).unwrap()).is_err()
         );
+        Ok(())
     }
 
     #[test]
-    fn test_parse_string() {
-        assert_debug_snapshot!(parse_tree_of_str(r#"" U S A ""#, Rule::string_literal).unwrap(), @r###"
+    fn test_parse_string() -> Result<()> {
+        assert_debug_snapshot!(parse_tree_of_str(r#"" U S A ""#, Rule::string_literal)?, @r###"
         [
             Pair {
                 rule: string_literal,
@@ -308,10 +309,11 @@ mod test {
         ---
         - String: " U S A "
         "###);
+        Ok(())
     }
 
     #[test]
-    fn test_parse_s_string() {
+    fn test_parse_s_string() -> Result<()> {
         assert_debug_snapshot!(parse_tree_of_str(r#"s"SUM({col})""#, Rule::s_string), @r###"
         Ok(
             [
@@ -375,7 +377,7 @@ mod test {
             ],
         )
         "###);
-        assert_yaml_snapshot!(ast_of_string(r#"s"SUM({col})""#, Rule::s_string), @r###"
+        assert_yaml_snapshot!(ast_of_string(r#"s"SUM({col})""#, Rule::s_string)?, @r###"
         ---
         SString:
           - String: SUM(
@@ -385,7 +387,7 @@ mod test {
                     - Ident: col
           - String: )
         "###);
-        assert_yaml_snapshot!(ast_of_string(r#"s"SUM({2 + 2})""#, Rule::s_string), @r###"
+        assert_yaml_snapshot!(ast_of_string(r#"s"SUM({2 + 2})""#, Rule::s_string)?, @r###"
         ---
         SString:
           - String: SUM(
@@ -398,12 +400,13 @@ mod test {
                     - Raw: "2"
           - String: )
         "###);
+        Ok(())
     }
 
     #[test]
-    fn test_parse_list() {
-        assert_debug_snapshot!(parse_tree_of_str(r#"[1 + 1, 2]"#, Rule::list).unwrap());
-        assert_yaml_snapshot!(ast_of_string(r#"[1 + 1, 2]"#, Rule::list), @r###"
+    fn test_parse_list() -> Result<()> {
+        assert_debug_snapshot!(parse_tree_of_str(r#"[1 + 1, 2]"#, Rule::list)?);
+        assert_yaml_snapshot!(ast_of_string(r#"[1 + 1, 2]"#, Rule::list)?, @r###"
         ---
         List:
           - Expr:
@@ -416,11 +419,12 @@ mod test {
               - Items:
                   - Raw: "2"
         "###);
+        Ok(())
     }
 
     #[test]
-    fn test_parse_number() {
-        assert_debug_snapshot!(parse_tree_of_str(r#"23"#, Rule::number).unwrap(), @r###"
+    fn test_parse_number() -> Result<()> {
+        assert_debug_snapshot!(parse_tree_of_str(r#"23"#, Rule::number)?, @r###"
         [
             Pair {
                 rule: number,
@@ -433,11 +437,12 @@ mod test {
             },
         ]
         "###);
-        assert_debug_snapshot!(parse_tree_of_str(r#"2 + 2"#, Rule::expr));
+        assert_debug_snapshot!(parse_tree_of_str(r#"2 + 2"#, Rule::expr)?);
+        Ok(())
     }
 
     #[test]
-    fn test_parse_expr() {
+    fn test_parse_expr() -> Result<()> {
         assert_yaml_snapshot!(
             ast_of_parse_tree(parse_tree_of_str(r#"country = "USA""#, Rule::expr).unwrap()).unwrap()
         , @r###"
@@ -477,9 +482,7 @@ mod test {
   gross_salary: salary + payroll_tax,
   gross_cost:   gross_salary + benefits_cost
 ]"#,
-                Rule::list,
-        )
-        , @r###"
+        Rule::list)?, @r###"
         ---
         List:
           - Expr:
@@ -509,7 +512,7 @@ mod test {
             ast_of_string(
                 "gross_salary: (salary + payroll_tax) * (1 + tax_rate)",
                 Rule::expr,
-            ),
+            )?,
             @r###"
         ---
         Expr:
@@ -534,11 +537,11 @@ mod test {
                               - Items:
                                   - Ident: tax_rate
         "###);
+        Ok(())
     }
 
     #[test]
-    // fn test_parse_query() {
-    fn test_parse_pipeline() {
+    fn test_parse_query() -> Result<()> {
         assert_yaml_snapshot!(ast_of_string(
             r#"
 from employees
@@ -563,17 +566,18 @@ take 20
     "#
             .trim(),
             Rule::query,
-        ))
+        )?);
+        Ok(())
     }
 
     #[test]
-    fn test_parse_function() {
+    fn test_parse_function() -> Result<()> {
         assert_debug_snapshot!(
             parse_tree_of_str("func plus_one x = x + 1", Rule::function).unwrap()
         );
         assert_yaml_snapshot!(ast_of_string(
             "func identity x = x", Rule::function
-        )
+        )?
         , @r###"
         ---
         Function:
@@ -586,7 +590,7 @@ take 20
         "###);
         assert_yaml_snapshot!(ast_of_string(
             "func plus_one x = (x + 1)", Rule::function
-        )
+        )?
         , @r###"
         ---
         Function:
@@ -604,7 +608,7 @@ take 20
         "###);
         assert_yaml_snapshot!(ast_of_string(
             "func plus_one x = x + 1", Rule::function
-        )
+        )?
         , @r###"
         ---
         Function:
@@ -622,7 +626,7 @@ take 20
         // being lots of layers.
         assert_yaml_snapshot!(ast_of_string(
             "func foo x = (foo bar + 1) (plax) - baz", Rule::function
-        )
+        )?
         , @r###"
         ---
         Function:
@@ -648,8 +652,7 @@ take 20
 
         assert_yaml_snapshot!(ast_of_parse_tree(
             parse_tree_of_str("func return_constant = 42", Rule::function).unwrap()
-        )
-        .unwrap(), @r###"
+        )?, @r###"
         ---
         - Function:
             name: return_constant
@@ -675,14 +678,15 @@ take 20
                 .unwrap()
             ));
             */
+        Ok(())
     }
 
     #[test]
-    fn test_parse_table() {
+    fn test_parse_table() -> Result<()> {
         assert_yaml_snapshot!(ast_of_string(
             "table newest_employees = ( from employees )",
             Rule::table
-        ), @r###"
+        )?, @r###"
         ---
         Table:
           name: newest_employees
@@ -697,7 +701,7 @@ take 20
           from employees
           sort tenure
           take 50
-        )"#.trim(), Rule::table),
+        )"#.trim(), Rule::table)?,
          @r###"
         ---
         Table:
@@ -709,49 +713,49 @@ take 20
                 - Ident: tenure
             - Take: 50
         "###);
+        Ok(())
     }
 
     #[test]
-    fn test_parse_to_pest_tree() {
-        // fn test_parse_expr_to_parse_tree() {
-        assert_debug_snapshot!(parse_tree_of_str(r#"country = "USA""#, Rule::expr));
-        assert_debug_snapshot!(parse_tree_of_str("select [a, b, c]", Rule::transformation));
+    fn test_parse_into_parse_tree() -> Result<()> {
+        assert_debug_snapshot!(parse_tree_of_str(r#"country = "USA""#, Rule::expr)?);
+        assert_debug_snapshot!(parse_tree_of_str("select [a, b, c]", Rule::transformation)?);
         assert_debug_snapshot!(parse_tree_of_str(
             "aggregate by:[title, country] [sum salary]",
             Rule::transformation
-        ));
+        )?);
         assert_debug_snapshot!(parse_tree_of_str(
             r#"    filter country = "USA""#,
             Rule::transformation
-        ));
-        assert_debug_snapshot!(parse_tree_of_str("[a, b, c,]", Rule::list));
+        )?);
+        assert_debug_snapshot!(parse_tree_of_str("[a, b, c,]", Rule::list)?);
         assert_debug_snapshot!(parse_tree_of_str(
             r#"[
   gross_salary: salary + payroll_tax,
   gross_cost:   gross_salary + benefits_cost
 ]"#,
             Rule::list
-        ));
+        )?);
         // Currently not putting comments in our parse tree, so this is blank.
         assert_debug_snapshot!(parse_tree_of_str(
             r#"# this is a comment
         select a"#,
             Rule::COMMENT
-        ));
+        )?);
         assert_debug_snapshot!(parse_tree_of_str(
             "join country [id=employee_id]",
             Rule::transformation
-        ));
+        )?);
         assert_debug_snapshot!(parse_tree_of_str(
             "join side:left country [id=employee_id]",
             Rule::transformation
-        ));
-        assert_debug_snapshot!(parse_tree_of_str("1  + 2", Rule::expr));
+        )?);
+        assert_debug_snapshot!(parse_tree_of_str("1  + 2", Rule::expr)?);
+        Ok(())
     }
 
     #[test]
-    fn test_parse_tree_of_str_pipeline() {
-        // fn test_parse_pipeline_to_pest_tree() {
+    fn test_parse_pipeline_parse_tree() -> Result<()> {
         assert_debug_snapshot!(parse_tree_of_str(
             r#"
     from employees
@@ -759,7 +763,7 @@ take 20
     "#
             .trim(),
             Rule::pipeline
-        ));
+        )?);
         assert_debug_snapshot!(parse_tree_of_str(
             r#"
     from employees
@@ -767,7 +771,7 @@ take 20
     "#
             .trim(),
             Rule::pipeline
-        ));
+        )?);
         assert_debug_snapshot!(parse_tree_of_str(
             r#"
 from employees
@@ -792,6 +796,7 @@ take 20
     "#
             .trim(),
             Rule::pipeline
-        ));
+        )?);
+        Ok(())
     }
 }
