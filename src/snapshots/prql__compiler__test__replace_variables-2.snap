@@ -1,6 +1,6 @@
 ---
 source: src/compiler.rs
-assertion_line: 365
+assertion_line: 362
 expression: "&fold.fold_item(ast)?"
 
 ---

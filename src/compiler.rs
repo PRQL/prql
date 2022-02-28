@@ -355,7 +355,7 @@ aggregate by:[title, country] [                  # `by` are the columns to group
 sort sum_gross_cost
 filter sum_gross_cost > 200
 take 20
-    "#,
+"#,
             Rule::query,
         )?;
         assert_yaml_snapshot!(&fold.fold_item(ast)?);
@@ -366,14 +366,14 @@ take 20
     #[test]
     fn test_run_functions() -> Result<()> {
         let ast = &ast_of_string(
-            r#"
-    func count = testing_count
+            "
+func count = testing_count
 
-    from employees
-    aggregate [
-      count
-    ]
-    "#,
+from employees
+aggregate [
+  count
+]
+",
             Rule::query,
         )?;
 
