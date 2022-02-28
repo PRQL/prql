@@ -34,13 +34,13 @@ pub trait Only<T> {
     fn only(&self) -> Result<&T>;
 }
 
-impl<T> Only<T> for Vec<T>
+impl<T> Only<T> for [T]
 where
     T: std::fmt::Debug,
 {
     fn only(&self) -> Result<&T> {
         if self.len() == 1 {
-            Ok(&self[0])
+            Ok(self.first().unwrap())
         } else {
             Err(anyhow!("Expected 1 item, got {}; {:?}", self.len(), self))
         }
