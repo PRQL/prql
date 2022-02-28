@@ -317,8 +317,8 @@ mod test {
         // We could make a convenience function for this. It's useful for
         // showing the diffs of an operation.
         assert_display_snapshot!(TextDiff::from_lines(
-            &to_string(ast).unwrap(),
-            &to_string(&fold.fold_item(ast).unwrap()).unwrap()
+            &to_string(ast)?,
+            &to_string(&fold.fold_item(ast)?)?
         ).unified_diff(),
         @r###"
         @@ -12,6 +12,9 @@

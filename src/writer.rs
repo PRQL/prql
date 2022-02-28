@@ -1,13 +1,15 @@
 use super::ast::*;
 #[cfg(test)]
+use anyhow::Error;
+use anyhow::{anyhow, Result};
+#[cfg(test)]
 use std::collections::HashMap;
 
-use anyhow::{anyhow, Result};
 use itertools::Itertools;
 use sqlparser::ast::*;
 
 #[cfg(test)]
-fn to_select(pipeline: &Pipeline) -> Result<sqlparser::ast::Select> {
+fn to_select(pipeline: &Pipeline) -> Result<sqlparser::ast::Select, Error> {
     // TODO: possibly do validation here? e.g. check there isn't more than one
     // `from`? Or do we rely on `to_select` for that?
     // TODO: this doesn't handle joins at all yet.
@@ -330,7 +332,7 @@ impl TryFrom<Item> for sqlparser::ast::Expr {
 }
 
 #[test]
-fn test_try_from_s_string_to_expr() {
+fn test_try_from_s_string_to_expr() -> Result<()> {
     use insta::assert_yaml_snapshot;
     use serde_yaml::from_str;
     let yaml: &str = r"
@@ -341,8 +343,8 @@ SString:
        - Ident: col
  - String: )
 ";
-    let ast: Item = from_str(yaml).unwrap();
-    let expr: sqlparser::ast::Expr = ast.try_into().unwrap();
+    let ast: Item = from_str(yaml)?;
+    let expr: sqlparser::ast::Expr = ast.try_into()?;
     assert_yaml_snapshot!(
         expr, @r###"
     ---
@@ -351,6 +353,7 @@ SString:
       quote_style: ~
     "###
     );
+    Ok(())
 }
 
 impl TryFrom<Item> for Vec<sqlparser::ast::Expr> {
@@ -367,12 +370,12 @@ impl TryFrom<Item> for Vec<sqlparser::ast::Expr> {
 }
 
 #[test]
-fn test_try_from_list_to_vec_expr() {
+fn test_try_from_list_to_vec_expr() -> Result<()> {
     let item = Item::List(vec![
         Item::Ident("a".to_owned()),
         Item::Ident("b".to_owned()),
     ]);
-    let expr: Vec<sqlparser::ast::Expr> = item.try_into().unwrap();
+    let expr: Vec<sqlparser::ast::Expr> = item.try_into()?;
     assert_eq!(
         expr,
         vec![
@@ -380,6 +383,7 @@ fn test_try_from_list_to_vec_expr() {
             sqlparser::ast::Expr::Identifier(sqlparser::ast::Ident::new("b"))
         ]
     );
+    Ok(())
 }
 
 impl TryFrom<Item> for sqlparser::ast::Ident {
@@ -403,7 +407,7 @@ mod test {
     use crate::ast::Pipeline;
 
     #[test]
-    fn test_queries_of_pipeline() {
+    fn test_queries_of_pipeline() -> Result<()> {
         // One aggregate, take at the end
         let yaml: &str = r###"
 - From:
@@ -429,7 +433,7 @@ mod test {
 - Take: 20
         "###;
 
-        let pipeline: Pipeline = from_str(yaml).unwrap();
+        let pipeline: Pipeline = from_str(yaml)?;
         let queries = queries_of_pipeline(&pipeline);
         assert_eq!(queries.len(), 1);
 
@@ -459,7 +463,7 @@ mod test {
     - Ident: title
         "###;
 
-        let pipeline: Pipeline = from_str(yaml).unwrap();
+        let pipeline: Pipeline = from_str(yaml)?;
         let queries = queries_of_pipeline(&pipeline);
         assert_eq!(queries.len(), 2);
 
@@ -501,13 +505,14 @@ mod test {
 
         "###;
 
-        let pipeline: Pipeline = from_str(yaml).unwrap();
+        let pipeline: Pipeline = from_str(yaml)?;
         let queries = queries_of_pipeline(&pipeline);
         assert_eq!(queries.len(), 3);
+        Ok(())
     }
 
     #[test]
-    fn test_to_select() {
+    fn test_to_select() -> Result<()> {
         let yaml: &str = r###"
 - From:
     - Ident: employees
@@ -532,12 +537,13 @@ mod test {
 - Take: 20
             "###;
 
-        let pipeline: Pipeline = from_str(yaml).unwrap();
-        let select = to_select(&pipeline).unwrap();
+        let pipeline: Pipeline = from_str(yaml)?;
+        let select = to_select(&pipeline)?;
         assert_debug_snapshot!(select);
         // TODO: still wrong but compiles, and we're on our way to making it work
         assert_display_snapshot!(select,
             @"SELECT TOP (20) salary FROM employees WHERE country = 'USA' GROUP BY title, country SORT BY title"
         );
+        Ok(())
     }
 }
