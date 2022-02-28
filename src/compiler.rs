@@ -234,7 +234,6 @@ struct RunFunctions {
 
 impl RunFunctions {
     #[allow(dead_code)]
-    #[cfg(test)]
     fn new() -> Self {
         Self {
             functions: HashMap::new(),

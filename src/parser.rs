@@ -4,9 +4,7 @@ use super::ast::*;
 use super::utils::*;
 use anyhow::{anyhow, Context, Result};
 use itertools::Itertools;
-#[cfg(test)]
 use pest::iterators::Pairs;
-#[cfg(test)]
 use pest::Parser;
 use pest_derive::Parser;
 
@@ -14,7 +12,6 @@ use pest_derive::Parser;
 #[grammar = "prql.pest"]
 pub struct PrqlParser;
 
-#[cfg(test)]
 /// Parses a parse tree of pest Pairs into an AST.
 fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Items> {
     pairs
@@ -134,7 +131,6 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Items> {
 }
 
 /// Parse a string into a parse tree, made up of pest Pairs.
-#[cfg(test)]
 fn parse_tree_of_str(source: &str, rule: Rule) -> Result<Pairs<Rule>> {
     PrqlParser::parse(rule, source).map_err(|e| e.into())
 }
@@ -263,7 +259,6 @@ impl TryFrom<Vec<Item>> for Transformation {
 }
 
 /// Parse a string into an AST.
-#[cfg(test)]
 pub fn ast_of_string(string: &str, rule: Rule) -> Result<Item> {
     parse_tree_of_str(string, rule)
         .and_then(ast_of_parse_tree)
