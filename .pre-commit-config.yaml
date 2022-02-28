@@ -19,4 +19,4 @@ repos:
         files: \.md$
 ci:
   # Currently network access isn't supported
-  skip: [fmt, check, clippy, markdown-link-check]
+  skip: [fmt, clippy, markdown-link-check]

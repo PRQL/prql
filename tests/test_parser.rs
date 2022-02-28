@@ -1,5 +1,4 @@
-use anyhow::Result;
-use prql::{ast_of_string, Rule};
+use prql::{ast_of_string, Result, Rule};
 
 #[test]
 fn parse_simple_string_to_ast() -> Result<()> {
