@@ -77,14 +77,14 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Items> {
                     {
                         let (name, args) = name_and_params
                             .split_first()
-                            .ok_or(anyhow!("Expceted at least one item"))?;
+                            .ok_or(anyhow!("Expected at least one item"))?;
                         Item::Function(Function {
                             name: name.to_owned(),
                             args: args.to_owned(),
                             body: body.to_owned(),
                         })
                     } else {
-                        unreachable!("Expected Function, got {:?}", parsed)
+                        unreachable!("Expected Function, got {:?}", 1)
                     }
                 }
                 Rule::table => {
