@@ -1,4 +1,5 @@
 use anyhow::{anyhow, Result};
+use itertools::{Itertools, Position};
 
 // Inspired by version in sqlparser-rs; I'm surprised there isn't a version in
 // the stdlib / Itertools.
@@ -12,20 +13,19 @@ pub trait IntoOnly {
 impl<T, I> IntoOnly for I
 where
     I: IntoIterator<Item = T>,
-    I: std::fmt::Debug,
-    <I as IntoIterator>::IntoIter: std::fmt::Debug,
+    // See below re using Debug.
+    // I: std::fmt::Debug,
+    // <I as IntoIterator>::IntoIter: std::fmt::Debug,
 {
     fn into_only(self) -> Result<T> {
-        let mut iter = self.into_iter();
-        if let (Some(item), None) = (iter.next(), iter.next()) {
-            Ok(item)
-        } else {
-            Err(anyhow!(
-                // Can't get the debug of the iterator because it's already
-                // consumed; is there a way around this? I guess we could show
-                // the items after the second, which is kinda weird.
-                "`into_only` called on collection without exactly one item",
-            ))
+        match self.into_iter().with_position().next() {
+            Some(Position::Only(item)) => Ok(item),
+            // Can't get the debug of the iterator because it's already
+            // consumed; is there a way around this? I guess we could show
+            // the items after the second, which is kinda weird.
+            Some(Position::First(_)) => Err(anyhow!("Expected only one element, but found more",)),
+            None => Err(anyhow!("Expected only one element, but found none",)),
+            _ => unreachable!(),
         }
     }
 }
