@@ -244,12 +244,12 @@ impl RunFunctions {
         self.functions.insert(func.name.clone(), func.clone());
         self
     }
-    fn run_function(&mut self, func_call: &FuncCall) -> Result<Item> {
+    fn run_function(&mut self, items: &[Item]) -> Result<Item> {
         let func = self
             .functions
-            .get(&func_call.name)
-            .ok_or_else(|| anyhow!("Function {} not found", func_call.name))?;
-        Ok(Item::Items(func.body.clone()))
+            .get(items[0].as_ident()?)
+            .ok_or_else(|| anyhow!("Function {:?} not found", items[0]))?;
+        Ok(Item::Items(dbg!(func.body.clone())))
     }
 }
 
@@ -265,8 +265,19 @@ impl AstFold for RunFunctions {
     }
     fn fold_item(&mut self, item: &Item) -> Result<Item> {
         match item {
-            Item::Transformation(Transformation::Func(func_call)) => {
-                Ok(self.run_function(func_call)?)
+            Item::Ident(ident) => {
+                if self.functions.get(ident).is_some() {
+                    return self.run_function(&item.clone().into_items());
+                }
+                fold_item(self, item)
+            }
+            Item::Items(items) => {
+                if let Some(Item::Ident(ident)) = items.first() {
+                    if self.functions.get(ident).is_some() {
+                        return self.run_function(items);
+                    }
+                }
+                fold_item(self, item)
             }
             _ => Ok(fold_item(self, item)?),
         }
@@ -395,35 +406,29 @@ aggregate [
                   assigns: []
         "###);
 
-        // TODO: Fix now we have a new way of running functions.
-        // use serde_yaml::to_string;
-        // use similar::TextDiff;
+        use serde_yaml::to_string;
+        use similar::TextDiff;
 
-        // let mut fold = RunFunctions::new();
-        // // We could make a convenience function for this. It's useful for
-        // // showing the diffs of an operation.
-        // let diff = TextDiff::from_lines(
-        //     &to_string(ast).unwrap(),
-        //     &to_string(&fold.fold_item(ast).unwrap()).unwrap(),
-        // )
-        // .unified_diff()
-        // .to_string();
-        // assert!(!diff.is_empty());
-        // assert_display_snapshot!(diff, @r###"
-        // @@ -12,9 +12,7 @@
-        //        - Aggregate:
-        //            by: []
-        //            calcs:
-        // -            - Transformation:
-        // -                Func:
-        // -                  name: count
-        // -                  args: []
-        // -                  named_args: []
-        // +            - Items:
-        // +                - Items:
-        // +                    - Ident: testing_count
-        //            assigns: []
-        // "###);
+        let mut fold = RunFunctions::new();
+        // We could make a convenience function for this. It's useful for
+        // showing the diffs of an operation.
+        let diff = TextDiff::from_lines(
+            &to_string(ast).unwrap(),
+            &to_string(&fold.fold_item(ast).unwrap()).unwrap(),
+        )
+        .unified_diff()
+        .to_string();
+        assert!(!diff.is_empty());
+        assert_display_snapshot!(diff, @r###"
+        @@ -11,5 +11,6 @@
+               - Aggregate:
+                   by: []
+                   calcs:
+        -            - Ident: count
+        +            - Items:
+        +                - Ident: testing_count
+                   assigns: []
+        "###);
 
         Ok(())
     }
