@@ -70,7 +70,7 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Items> {
                     let parsed = ast_of_parse_tree(pair.into_inner())?;
                     if let (Item::Idents(name_and_params), body) = parsed
                         .split_first()
-                        .ok_or(anyhow!("Expceted at least one item"))?
+                        .ok_or(anyhow!("Expected at least one item"))?
                     {
                         let (name, args) = name_and_params
                             .split_first()
@@ -622,6 +622,20 @@ take 20
           args: []
           body:
             - Raw: "42"
+        "###);
+        assert_yaml_snapshot!(ast_of_string(r#"func count X = s"SUM({X})""#, Rule::function)?, @r###"
+        ---
+        Function:
+          name: count
+          args:
+            - X
+          body:
+            - SString:
+                - String: SUM(
+                - Expr:
+                    Items:
+                      - Ident: X
+                - String: )
         "###);
 
         /* TODO: Does not yet parse because `window` not yet implemented.
