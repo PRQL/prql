@@ -74,7 +74,7 @@ expr = { ( items | operator | WHITESPACE )+ }
 expr_silent = _{ ( items | operator | WHITESPACE )+ }
 items = !{ item+ }
 // Should assign be here?
-item = _{ ( parenthesized_expr | list | named_arg | assign | ident | number | string_literal | inline_pipeline ) }
+item = _{ ( parenthesized_expr | list | named_arg | assign | s_string | ident | number | string_literal | inline_pipeline ) }
 list = !{ "[" ~ NEWLINE? ~ expr ~ ("," ~ NEWLINE? ~ expr )* ~ ","? ~ NEWLINE? ~ "]" }
 parenthesized_expr = _{ "(" ~ expr ~ ")" }
 
