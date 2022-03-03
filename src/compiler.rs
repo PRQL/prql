@@ -293,8 +293,9 @@ impl AstFold for RunFunctions {
             Item::Items(items) => {
                 if let Some(Item::Ident(ident)) = items.first() {
                     if self.functions.get(ident).is_some() {
-                        // FIXME: currently a transformation expects a Expr for
-                        // all the next terms.
+                        // Currently a transformation expects a Expr to wrap
+                        // all the terms after the name. TODO: another area
+                        // that's messy.
                         let (name, body) = items.split_first().unwrap();
                         let func_call_transform =
                             vec![name.clone(), Item::Expr(body.to_vec())].try_into()?;
