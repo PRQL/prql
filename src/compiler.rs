@@ -274,9 +274,9 @@ impl RunFunctions {
             });
         });
         // Take a clone of the body and replace the arguments with their values.
-        replace_variables.fold_items(&func.body.clone())?;
-
-        Ok(Item::Items(func.body.clone()))
+        Ok(Item::Items(
+            replace_variables.fold_items(&func.body.clone())?,
+        ))
     }
 }
 
@@ -530,7 +530,7 @@ aggregate [
         +                            - String: count(
         +                            - Expr:
         +                                Items:
-        +                                  - Ident: x
+        +                                  - Ident: salary
         +                            - String: )
                    assigns: []
         "###);

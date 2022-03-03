@@ -219,7 +219,8 @@ impl TryFrom<Vec<Item>> for Transformation {
                     .first()
                     .ok_or_else(|| anyhow!("Failed on {:?}", args))
                     .cloned()
-                    // Normalize for it being a list or a single op
+                    // Normalize for it being a list or a single op (TODO: this
+                    // is an area that could use some cleaning up)
                     .map(|x| x.into_list().into_inner_items())?;
 
                 // Ops should either be calcs or assigns; e.g. one of
