@@ -1,6 +1,6 @@
 ---
 source: src/compiler.rs
-assertion_line: 362
+assertion_line: 406
 expression: "&fold.fold_item(ast)?"
 
 ---
@@ -9,10 +9,9 @@ Query:
       - From:
           - Ident: employees
       - Filter:
-          - Expr:
-              - Ident: country
-              - Raw: "="
-              - String: USA
+          - Ident: country
+          - Raw: "="
+          - String: USA
       - Derive:
           - lvalue: gross_salary
             rvalue:
@@ -30,27 +29,20 @@ Query:
                 - Raw: +
                 - Ident: benefits_cost
       - Filter:
-          - Expr:
+          - Items:
               - Items:
-                  - Items:
-                      - Ident: salary
-                      - Raw: +
-                      - Ident: payroll_tax
+                  - Ident: salary
                   - Raw: +
-                  - Ident: benefits_cost
-              - Raw: ">"
-              - Raw: "0"
+                  - Ident: payroll_tax
+              - Raw: +
+              - Ident: benefits_cost
+          - Raw: ">"
+          - Raw: "0"
       - Aggregate:
-          by: []
+          by:
+            - Ident: title
+            - Ident: country
           calcs:
-            - NamedArg:
-                name: by
-                arg:
-                  List:
-                    - Expr:
-                        - Ident: title
-                    - Expr:
-                        - Ident: country
             - List:
                 - Expr:
                     - Items:
@@ -114,17 +106,16 @@ Query:
                   - Raw: +
                   - Ident: benefits_cost
       - Filter:
-          - Expr:
+          - Items:
+              - Ident: sum
               - Items:
-                  - Ident: sum
                   - Items:
-                      - Items:
-                          - Ident: salary
-                          - Raw: +
-                          - Ident: payroll_tax
+                      - Ident: salary
                       - Raw: +
-                      - Ident: benefits_cost
-              - Raw: ">"
-              - Raw: "200"
+                      - Ident: payroll_tax
+                  - Raw: +
+                  - Ident: benefits_cost
+          - Raw: ">"
+          - Raw: "200"
       - Take: 20
 

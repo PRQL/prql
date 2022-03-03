@@ -122,38 +122,71 @@ impl Item {
     /// Either provide a Vec with the contents of List / Item, or puts a scalar
     /// into a Vec. This is useful when we either have a scalar or a list, and
     /// want to only have to handle a single type.
-    pub fn into_items(self) -> Vec<Item> {
+    pub fn into_inner_items(self) -> Vec<Item> {
         match self {
-            Item::List(items) | Item::Items(items) | Item::Expr(items) => items,
+            Item::Items(items) | Item::Expr(items) => items,
             _ => vec![self],
         }
     }
 
-    /// The scalar version of `into_items`. It's recursive, so will return the
-    /// lowest possible single item.
-    pub fn into_item(self) -> Item {
-        self.as_item().clone()
+    /// Wrap in an Items unless it already holds multiple items.
+    pub fn into_items(self) -> Item {
+        match self {
+            Item::Items(items) => Item::Items(items),
+            _ => Item::Items(vec![self]),
+        }
     }
 
-    /// The scalar version of `into_items`. It keeps unwrapping `Items` until it
-    /// finds one with a non-single element.
-    pub fn as_item(&self) -> &Item {
+    /// The scalar version / opposite of `into_inner_items`. It keeps unwrapping
+    /// container types until it finds one with a non-single element.
+    pub fn as_scalar(&self) -> &Item {
         match self {
-            Item::List(items) | Item::Items(items) | Item::Expr(items) => {
-                items.only().map(|item| item.as_item()).unwrap_or(self)
+            Item::Items(items) | Item::Expr(items) => {
+                items.only().map(|item| item.as_scalar()).unwrap_or(self)
             }
             _ => self,
         }
     }
 
+    /// Either provide a List with the contents of `self`, or `self` if the item
+    /// is already a list. This is useful when we either have a scalar or a
+    /// list, and want to only have to handle a single type.
+    pub fn into_list(self) -> Item {
+        match self {
+            Item::List(_) => self,
+            _ => Item::List(vec![Item::Expr(vec![self])]),
+        }
+    }
+
+    pub fn into_inner_list_items(self) -> Result<Vec<Vec<Item>>> {
+        match self {
+            Item::List(items) => Ok(items
+                .into_iter()
+                .map(|item| match item {
+                    Item::Expr(items) => items,
+                    _ => unreachable!(),
+                })
+                .collect()),
+            _ => Err(anyhow!("Expected a list, got {:?}", self)),
+        }
+    }
+
     /// Transitively unnest the whole tree, even if the parents have more than
-    /// one child. This is more unnesting that `as_item` / `into_item` do.
+    /// one child. This is more unnesting that `as_scalar` / `as_scalar` do.
+    /// Only removes `Items` (not `Expr` or `List`), though it does walk all the
+    /// containers.
     pub fn into_unnested(self) -> Item {
         match self {
-            Item::List(items) | Item::Items(items) | Item::Expr(items) => {
-                // TODO: do we want to always return the input type?
+            Item::Items(items) => {
                 Item::Items(items.into_iter().map(|item| item.into_unnested()).collect())
-                    .into_item()
+                    .as_scalar()
+                    .clone()
+            }
+            Item::List(items) => {
+                Item::List(items.into_iter().map(|item| item.into_unnested()).collect())
+            }
+            Item::Expr(items) => {
+                Item::Expr(items.into_iter().map(|item| item.into_unnested()).collect())
             }
             _ => self,
         }
@@ -188,6 +221,13 @@ impl Item {
             Err(anyhow!("Expected Item::Assign, got {:?}", self))
         }
     }
+    pub fn as_transformation(&self) -> Result<&Transformation> {
+        if let Item::Transformation(transformation) = self {
+            Ok(transformation)
+        } else {
+            Err(anyhow!("Expected Item::Transformation, got {:?}", self))
+        }
+    }
     pub fn as_raw(&self) -> Result<&String> {
         if let Item::Raw(raw) = self {
             Ok(raw)
@@ -201,23 +241,23 @@ impl Item {
 mod test {
     use super::*;
     #[test]
-    fn test_as_item() {
+    fn test_as_scalar() {
         let atom = Item::Ident("a".to_string());
 
         // Gets the single item through one level of nesting.
-        let item = Item::List(vec![atom.clone()]);
-        assert_eq!(item.as_item(), &atom);
+        let item = Item::Items(vec![atom.clone()]);
+        assert_eq!(item.as_scalar(), &atom);
 
         // No change when it's the same.
         let item = atom.clone();
-        assert_eq!(item.as_item(), &item);
+        assert_eq!(item.as_scalar(), &item);
 
         // No change when there are two items in the `items`.
         let item = Item::Items(vec![atom.clone(), atom.clone()]);
-        assert_eq!(item.as_item(), &item);
+        assert_eq!(item.as_scalar(), &item);
 
         // Gets the single item through two levels of nesting.
         let item = Item::Items(vec![Item::Items(vec![atom.clone()])]);
-        assert_eq!(item.as_item(), &atom);
+        assert_eq!(item.as_scalar(), &atom);
     }
 }
