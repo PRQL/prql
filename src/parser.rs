@@ -32,7 +32,8 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Items> {
                     // element. We don't do this with Expr or List because those are
                     // often meaningful — e.g. a List needs a number of Expr, so that
                     // `[a, b]` is different from `[a b]`.
-                    .into_item(),
+                    .as_scalar()
+                    .clone(),
                 Rule::expr => Item::Expr(ast_of_parse_tree(pair.into_inner())?),
                 Rule::named_arg => {
                     let parsed: [Item; 2] = ast_of_parse_tree(pair.into_inner())?
@@ -53,7 +54,7 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Items> {
                     if let [lvalue, Item::Expr(rvalue)] = parsed {
                         Ok(Item::Assign(Assign {
                             lvalue: lvalue.as_ident()?.to_owned(),
-                            rvalue: Box::new(Item::Items(rvalue).into_item()),
+                            rvalue: Box::new(Item::Items(rvalue).as_scalar().clone()),
                         }))
                     } else {
                         Err(anyhow!(
@@ -144,17 +145,20 @@ fn parse_tree_of_str(source: &str, rule: Rule) -> Result<Pairs<Rule>> {
 impl TryFrom<Vec<Item>> for Transformation {
     type Error = anyhow::Error;
     fn try_from(items: Vec<Item>) -> Result<Self> {
-        // if let Item::Items(items) = items {
-        let (name_item, all_args) = items
+        let (name_item, expr) = items
             .split_first()
             .ok_or(anyhow!("Expected at least one item"))?;
         let name = name_item.as_ident()?;
-
-        let (named_arg_items, args): (Vec<Item>, Vec<Item>) = all_args
-            .iter()
-            // This reduces the nesting.
-            .map(|x| x.as_item())
-            .cloned()
+        // TODO: account for a name-only transformation, with no expr.
+        let (named_arg_items, args): (Vec<Item>, Vec<Item>) = expr
+            .only()?
+            .clone()
+            // Take out of the expr
+            .as_scalar()
+            .clone()
+            // Take out of the items
+            .into_inner_items()
+            .into_iter()
             .partition(|x| matches!(x, Item::NamedArg(_)));
 
         let named_args: Vec<NamedArg> = named_arg_items
@@ -167,14 +171,15 @@ impl TryFrom<Vec<Item>> for Transformation {
             "select" => Ok(Transformation::Select(args)),
             "filter" => Ok(Transformation::Filter(Filter(args))),
             "derive" => {
-                let assigns = args
+                let assigns = (args)
                     .into_only()
                     .context("Expected at least one argument")?
-                    .into_unnested()
-                    .as_inner_items()?
-                    .iter()
+                    // Possibly these two should be an `unnest_list` method?
+                    .into_list()
+                    .into_inner_list_items()?
+                    .into_iter()
                     // TODO: couldn't manage to avoid cloning here.
-                    .map(|x| x.as_assign().cloned())
+                    .map(|x| x.into_only()?.as_assign().cloned())
                     .try_collect()?;
                 Ok(Transformation::Derive(assigns))
             }
@@ -183,7 +188,8 @@ impl TryFrom<Vec<Item>> for Transformation {
                 // generalize these checks to Func functions anyway.
                 if args.len() != 1 {
                     return Err(anyhow!(
-                        "Expected exactly one unnamed argument for aggregate"
+                        "Expected exactly one unnamed argument for aggregate, got {:?}",
+                        args
                     ));
                 }
                 let by = match &named_args[..] {
@@ -193,7 +199,14 @@ impl TryFrom<Vec<Item>> for Transformation {
                                 "Expected aggregate to have up to one named arg, named 'by'"
                             ));
                         }
-                        (*arg).clone().into_items()
+                        (*arg)
+                            .clone()
+                            .into_list()
+                            .into_inner_list_items()?
+                            .into_iter()
+                            .map(Item::Items)
+                            .map(|x| x.into_unnested())
+                            .collect()
                     }
                     [] => vec![],
                     _ => {
@@ -203,11 +216,13 @@ impl TryFrom<Vec<Item>> for Transformation {
                     }
                 };
 
-                let ops = args
+                let ops = (&args)
                     .first()
                     .ok_or_else(|| anyhow!("Failed on {:?}", args))
                     .cloned()
-                    .map(|x| x.into_items())?;
+                    // Normalize for it being a list or a single op (TODO: this
+                    // is an area that could use some cleaning up)
+                    .map(|x| x.into_list().into_inner_items())?;
 
                 // Ops should either be calcs or assigns; e.g. one of
                 //   average gross_cost
@@ -234,7 +249,7 @@ impl TryFrom<Vec<Item>> for Transformation {
                                 lvalue: assign.lvalue,
                                 // Make the rvalue items into a transformation.
                                 rvalue: Box::new(Item::Transformation(
-                                    assign.rvalue.into_items().try_into().unwrap(),
+                                    assign.rvalue.into_inner_items().try_into().unwrap(),
                                 )),
                             })
                         })
@@ -245,7 +260,7 @@ impl TryFrom<Vec<Item>> for Transformation {
             "take" => {
                 // TODO: coerce to number
                 args.into_only()
-                    .map(|x| x.as_item().clone())
+                    .map(|x| x.as_scalar().clone())
                     .map(|n| Ok(Transformation::Take(n.as_raw()?.parse()?)))?
             }
             "join" => Ok(Transformation::Join(args)),
@@ -398,10 +413,9 @@ mod test {
         ---
         Transformation:
           Filter:
-            - Expr:
-                - Ident: country
-                - Raw: "="
-                - String: USA
+            - Ident: country
+            - Raw: "="
+            - String: USA
         "###);
         assert_yaml_snapshot!(
             ast_of_string(r#"filter (upper country) = "USA""#, Rule::transformation)?
@@ -409,12 +423,11 @@ mod test {
         ---
         Transformation:
           Filter:
-            - Expr:
-                - Items:
-                    - Ident: upper
-                    - Ident: country
-                - Raw: "="
-                - String: USA
+            - Items:
+                - Ident: upper
+                - Ident: country
+            - Raw: "="
+            - String: USA
         "###);
         assert_yaml_snapshot!(
             ast_of_string(r#"filter upper country = "USA""#, Rule::transformation)?
@@ -422,12 +435,66 @@ mod test {
         ---
         Transformation:
           Filter:
-            - Expr:
-                - Items:
-                    - Ident: upper
-                    - Ident: country
-                - Raw: "="
-                - String: USA
+            - Items:
+                - Ident: upper
+                - Ident: country
+            - Raw: "="
+            - String: USA
+        "###);
+        Ok(())
+    }
+
+    #[test]
+    fn test_parse_transformation() -> Result<()> {
+        assert_yaml_snapshot!(
+            ast_of_string(r#"count salary"#, Rule::transformation)?
+        , @r###"
+        ---
+        Transformation:
+          Func:
+            name: count
+            args:
+              - Ident: salary
+            named_args: []
+        "###);
+        assert_yaml_snapshot!(
+            ast_of_string("aggregate by:[title] [sum salary]", Rule::transformation)?, @r###"
+        ---
+        Transformation:
+          Aggregate:
+            by:
+              - Ident: title
+            calcs:
+              - List:
+                  - Expr:
+                      - Items:
+                          - Ident: sum
+                          - Ident: salary
+            assigns: []
+        "###);
+
+        let item = ast_of_string("aggregate by:[title] [sum salary]", Rule::transformation)?;
+        let aggregate = item.as_transformation()?;
+        assert!(if let Transformation::Aggregate { by, .. } = aggregate {
+            by.len() == 1 && by[0].as_ident()? == "title"
+        } else {
+            false
+        });
+
+        assert_yaml_snapshot!(
+            ast_of_string("aggregate by:[title] [sum salary]", Rule::transformation)?, @r###"
+        ---
+        Transformation:
+          Aggregate:
+            by:
+              - Ident: title
+            calcs:
+              - List:
+                  - Expr:
+                      - Items:
+                          - Ident: sum
+                          - Ident: salary
+            assigns: []
         "###);
         Ok(())
     }
@@ -442,26 +509,6 @@ mod test {
           - Ident: country
           - Raw: "="
           - String: USA
-        "###);
-        assert_yaml_snapshot!(
-            ast_of_string("aggregate by:[title] [sum salary]", Rule::transformation)?, @r###"
-        ---
-        Transformation:
-          Aggregate:
-            by: []
-            calcs:
-              - NamedArg:
-                  name: by
-                  arg:
-                    List:
-                      - Expr:
-                          - Ident: title
-              - List:
-                  - Expr:
-                      - Items:
-                          - Ident: sum
-                          - Ident: salary
-            assigns: []
         "###);
         assert_yaml_snapshot!(ast_of_string(
                 r#"[

@@ -1,6 +1,6 @@
 ---
 source: src/parser.rs
-assertion_line: 579
+assertion_line: 566
 expression: "ast_of_string(r#\"\nfrom employees\nfilter country = \"USA\"                           # Each line transforms the previous result.\nderive [                                         # This adds columns / variables.\n  gross_salary: salary + payroll_tax,\n  gross_cost:   gross_salary + benefits_cost     # Variables can use other variables.\n]\nfilter gross_cost > 0\naggregate by:[title, country] [                  # `by` are the columns to group by.\n    average salary,                              # These are aggregation calcs run on each group.\n    sum     salary,\n    average gross_salary,\n    sum     gross_salary,\n    average gross_cost,\n    sum_gross_cost: sum gross_cost,\n    count: count,\n]\nsort sum_gross_cost\nfilter count > 200\ntake 20\n    \"#.trim(),\n        Rule::query)?"
 
 ---
@@ -9,10 +9,9 @@ Query:
       - From:
           - Ident: employees
       - Filter:
-          - Expr:
-              - Ident: country
-              - Raw: "="
-              - String: USA
+          - Ident: country
+          - Raw: "="
+          - String: USA
       - Derive:
           - lvalue: gross_salary
             rvalue:
@@ -27,21 +26,14 @@ Query:
                 - Raw: +
                 - Ident: benefits_cost
       - Filter:
-          - Expr:
-              - Ident: gross_cost
-              - Raw: ">"
-              - Raw: "0"
+          - Ident: gross_cost
+          - Raw: ">"
+          - Raw: "0"
       - Aggregate:
-          by: []
+          by:
+            - Ident: title
+            - Ident: country
           calcs:
-            - NamedArg:
-                name: by
-                arg:
-                  List:
-                    - Expr:
-                        - Ident: title
-                    - Expr:
-                        - Ident: country
             - List:
                 - Expr:
                     - Items:
@@ -79,9 +71,8 @@ Query:
       - Sort:
           - Ident: sum_gross_cost
       - Filter:
-          - Expr:
-              - Ident: count
-              - Raw: ">"
-              - Raw: "200"
+          - Ident: count
+          - Raw: ">"
+          - Raw: "200"
       - Take: 20
 

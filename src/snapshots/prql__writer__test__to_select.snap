@@ -1,6 +1,6 @@
 ---
 source: src/writer.rs
-assertion_line: 537
+assertion_line: 542
 expression: select
 
 ---

@@ -1,7 +1,7 @@
 use super::ast::*;
 use anyhow::{anyhow, Result};
 use itertools::Itertools;
-use std::collections::HashMap;
+use std::{collections::HashMap, iter::zip};
 
 // Fold pattern:
 // - https://rust-unofficial.github.io/patterns/patterns/creational/fold.html
@@ -244,18 +244,42 @@ impl RunFunctions {
         self.functions.insert(func.name.clone(), func.clone());
         self
     }
-    fn run_function(&mut self, items: &[Item]) -> Result<Item> {
+    fn run_function(&mut self, func_call: &FuncCall) -> Result<Item> {
         let func = self
             .functions
-            .get(items[0].as_ident()?)
-            .ok_or_else(|| anyhow!("Function {:?} not found", items[0]))?;
-        Ok(Item::Items(dbg!(func.body.clone())))
+            .get(&func_call.name)
+            .ok_or_else(|| anyhow!("Function {:?} not found", func_call.name))?;
+        for arg in &func_call.args {
+            if let Item::Ident(ident) = arg {
+                if self.functions.contains_key(ident) {
+                    return Err(anyhow!("Function {:?} called recursively", func_call.name));
+                }
+            }
+        }
+        if func.args.len() != func_call.args.len() {
+            return Err(anyhow!(
+                "Function {:?} called with wrong number of arguments. Expected {}, got {}",
+                func_call.name,
+                func.args.len(),
+                func_call.args.len()
+            ));
+        }
+        // Make a ReplaceVariables fold which we'll use to replace the variables
+        // in the function with their argument values.
+        let mut replace_variables = ReplaceVariables::new();
+        zip(func.args.iter(), func_call.args.iter()).for_each(|(arg, arg_call)| {
+            replace_variables.add_variables(&Assign {
+                lvalue: arg.clone(),
+                rvalue: Box::new(arg_call.clone()),
+            });
+        });
+        // Take a clone of the body and replace the arguments with their values.
+        Ok(Item::Items(
+            replace_variables.fold_items(&func.body.clone())?,
+        ))
     }
 }
 
-// One issue is that we don't actually know where a function call will be. So
-// `count foo` could be `count(foo)`, or `foo` could be a function with no args
-// that refers to `bar`, meaning it evaluates to `count(bar)`.
 impl AstFold for RunFunctions {
     fn fold_function(&mut self, func: &Function) -> Result<Function> {
         let out = fold_function(self, func);
@@ -264,17 +288,22 @@ impl AstFold for RunFunctions {
         out
     }
     fn fold_item(&mut self, item: &Item) -> Result<Item> {
-        match item {
-            Item::Ident(ident) => {
-                if self.functions.get(ident).is_some() {
-                    return self.run_function(&item.clone().into_items());
-                }
-                fold_item(self, item)
-            }
+        // If it's an ident, it could be a func with no arg, so convert to Items.
+        match (item).clone().into_items() {
             Item::Items(items) => {
                 if let Some(Item::Ident(ident)) = items.first() {
                     if self.functions.get(ident).is_some() {
-                        return self.run_function(items);
+                        // Currently a transformation expects a Expr to wrap
+                        // all the terms after the name. TODO: another area
+                        // that's messy, should we parse a FuncCall directly?
+                        let (name, body) = items.split_first().unwrap();
+                        let func_call_transform =
+                            vec![name.clone(), Item::Expr(body.to_vec())].try_into()?;
+                        if let Transformation::Func(func_call) = func_call_transform {
+                            return self.run_function(&func_call);
+                        } else {
+                            unreachable!()
+                        }
                     }
                 }
                 fold_item(self, item)
@@ -375,7 +404,7 @@ take 20
     }
 
     #[test]
-    fn test_run_functions() -> Result<()> {
+    fn test_run_functions_no_arg() -> Result<()> {
         let ast = &ast_of_string(
             "
 func count = testing_count
@@ -402,7 +431,9 @@ aggregate [
               - Aggregate:
                   by: []
                   calcs:
-                    - Ident: count
+                    - List:
+                        - Expr:
+                            - Ident: count
                   assigns: []
         "###);
 
@@ -420,13 +451,87 @@ aggregate [
         .to_string();
         assert!(!diff.is_empty());
         assert_display_snapshot!(diff, @r###"
-        @@ -11,5 +11,6 @@
-               - Aggregate:
-                   by: []
+        @@ -13,5 +13,6 @@
                    calcs:
-        -            - Ident: count
-        +            - Items:
-        +                - Ident: testing_count
+                     - List:
+                         - Expr:
+        -                    - Ident: count
+        +                    - Items:
+        +                        - Ident: testing_count
+                   assigns: []
+        "###);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_run_functions_args() -> Result<()> {
+        let ast = &ast_of_string(
+            r#"
+func count x = s"count({x})"
+
+from employees
+aggregate [
+  count salary
+]
+"#,
+            Rule::query,
+        )?;
+
+        assert_yaml_snapshot!(ast, @r###"
+        ---
+        Query:
+          - Function:
+              name: count
+              args:
+                - x
+              body:
+                - SString:
+                    - String: count(
+                    - Expr:
+                        Items:
+                          - Ident: x
+                    - String: )
+          - Pipeline:
+              - From:
+                  - Ident: employees
+              - Aggregate:
+                  by: []
+                  calcs:
+                    - List:
+                        - Expr:
+                            - Items:
+                                - Ident: count
+                                - Ident: salary
+                  assigns: []
+        "###);
+
+        use serde_yaml::to_string;
+        use similar::TextDiff;
+
+        let mut fold = RunFunctions::new();
+        // We could make a convenience function for this. It's useful for
+        // showing the diffs of an operation.
+        let diff = TextDiff::from_lines(
+            &to_string(ast).unwrap(),
+            &to_string(&fold.fold_item(ast).unwrap()).unwrap(),
+        )
+        .unified_diff()
+        .to_string();
+        assert!(!diff.is_empty());
+        assert_display_snapshot!(diff, @r###"
+        @@ -20,6 +20,10 @@
+                     - List:
+                         - Expr:
+                             - Items:
+        -                        - Ident: count
+        -                        - Ident: salary
+        +                        - SString:
+        +                            - String: count(
+        +                            - Expr:
+        +                                Items:
+        +                                  - Ident: salary
+        +                            - String: )
                    assigns: []
         "###);
 
