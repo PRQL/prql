@@ -207,6 +207,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a357d28ed41a50f9c765dbfe56cbc04a64e53e5fc58ba79fbc34c10ef3df831f"
 
 [[package]]
+name = "enum-as-inner"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "21cdad81446a7f7dc43f6a77409efeb9733d2fa65553efef6018ef257c959b73"
+dependencies = [
+ "heck",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "eyre"
 version = "0.6.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -478,6 +490,7 @@ dependencies = [
  "clap",
  "clio",
  "color-eyre",
+ "enum-as-inner",
  "insta",
  "itertools",
  "pest",
