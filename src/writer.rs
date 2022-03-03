@@ -418,13 +418,6 @@ mod test {
             ),
         ]
         "###);
-        assert_eq!(
-            expr,
-            vec![
-                sqlparser::ast::Expr::Identifier(sqlparser::ast::Ident::new("a")),
-                sqlparser::ast::Expr::Identifier(sqlparser::ast::Ident::new("b"))
-            ]
-        );
         Ok(())
     }
 
