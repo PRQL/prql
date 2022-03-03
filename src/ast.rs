@@ -9,7 +9,9 @@ pub type Items = Vec<Item>;
 pub type Idents = Vec<Ident>;
 pub type Pipeline = Vec<Transformation>;
 
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+use enum_as_inner::EnumAsInner;
+
+#[derive(Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize)]
 pub enum Item {
     Transformation(Transformation),
     // remove?
@@ -130,7 +132,7 @@ impl Item {
     }
 
     /// Wrap in Items unless it's already an Items.
-    pub fn into_items(self) -> Item {
+    pub fn coerce_to_items(self) -> Item {
         match self {
             Item::Items(items) => Item::Items(items),
             _ => Item::Items(vec![self]),
@@ -151,7 +153,7 @@ impl Item {
     /// Either provide a List with the contents of `self`, or `self` if the item
     /// is already a list. This is useful when we either have a scalar or a
     /// list, and want to only have to handle a single type.
-    pub fn into_list(self) -> Item {
+    pub fn coerce_to_list(self) -> Item {
         match self {
             Item::List(_) => self,
             _ => Item::List(vec![Item::Expr(vec![self])]),
@@ -192,47 +194,11 @@ impl Item {
         }
     }
 
-    // We could expand these with (but it will add lots of methods...)
-    // https://crates.io/crates/enum-as-inner?
-    pub fn as_ident(&self) -> Result<&Ident> {
-        match self {
-            Item::Ident(ident) => Ok(ident),
-            _ => Err(anyhow!("Expected an Ident, got {:?}", self)),
-        }
-    }
     pub fn as_inner_items(&self) -> Result<&Vec<Item>> {
         if let Item::Items(items) | Item::Expr(items) | Item::List(items) = self {
             Ok(items)
         } else {
             Err(anyhow!("Expected Item::Items, got {:?}", self))
-        }
-    }
-    pub fn as_named_arg(&self) -> Result<&NamedArg> {
-        if let Item::NamedArg(named_arg) = self {
-            Ok(named_arg)
-        } else {
-            Err(anyhow!("Expected Item::NamedArg, got {:?}", self))
-        }
-    }
-    pub fn as_assign(&self) -> Result<&Assign> {
-        if let Item::Assign(assign) = self {
-            Ok(assign)
-        } else {
-            Err(anyhow!("Expected Item::Assign, got {:?}", self))
-        }
-    }
-    pub fn as_transformation(&self) -> Result<&Transformation> {
-        if let Item::Transformation(transformation) = self {
-            Ok(transformation)
-        } else {
-            Err(anyhow!("Expected Item::Transformation, got {:?}", self))
-        }
-    }
-    pub fn as_raw(&self) -> Result<&String> {
-        if let Item::Raw(raw) = self {
-            Ok(raw)
-        } else {
-            Err(anyhow!("Expected Item::Raw, got {:?}", self))
         }
     }
 }

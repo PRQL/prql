@@ -41,7 +41,9 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Items> {
                         .map_err(|e| anyhow!("Expected two items; {:?}", e))?;
                     let [name, arg] = parsed;
                     Item::NamedArg(NamedArg {
-                        name: name.as_ident()?.to_owned(),
+                        name: name
+                            .into_ident()
+                            .map_err(|e| anyhow!("Expected Ident; {:?}", e))?,
                         arg: Box::new(arg),
                     })
                 }
@@ -53,7 +55,9 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Items> {
                     // and its other values.
                     if let [lvalue, Item::Expr(rvalue)] = parsed {
                         Ok(Item::Assign(Assign {
-                            lvalue: lvalue.as_ident()?.to_owned(),
+                            lvalue: lvalue
+                                .into_ident()
+                                .map_err(|e| anyhow!("Expected Ident; {:?}", e))?,
                             rvalue: Box::new(Item::Items(rvalue).as_scalar().clone()),
                         }))
                     } else {
@@ -87,14 +91,17 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Items> {
                 }
                 Rule::table => {
                     let parsed = ast_of_parse_tree(pair.into_inner())?;
-                    if let [name, Item::Pipeline(pipeline)] = &parsed[..] {
-                        Item::Table(Table {
-                            name: name.as_ident()?.to_owned(),
-                            pipeline: pipeline.clone(),
-                        })
-                    } else {
-                        unreachable!("Expected Table, got {:?}", parsed)
-                    }
+                    let [name, pipeline]: [Item; 2] = parsed
+                        .try_into()
+                        .map_err(|e| anyhow!("Expected two items; {:?}", e))?;
+                    Item::Table(Table {
+                        name: name
+                            .into_ident()
+                            .map_err(|e| anyhow!("Expected Ident; {:?}", e))?,
+                        pipeline: pipeline
+                            .into_pipeline()
+                            .map_err(|e| anyhow!("Expected Pipeline; {:?}", e))?,
+                    })
                 }
                 Rule::ident => Item::Ident(pair.as_str().to_string()),
                 // Pull out the string itself, which doesn't have the quotes
@@ -148,7 +155,7 @@ impl TryFrom<Vec<Item>> for Transformation {
         let (name_item, expr) = items
             .split_first()
             .ok_or(anyhow!("Expected at least one item"))?;
-        let name = name_item.as_ident()?;
+        let name = name_item.as_ident().ok_or(anyhow!("Expected Ident"))?;
         // TODO: account for a name-only transformation, with no expr.
         let (named_arg_items, args): (Vec<Item>, Vec<Item>) = expr
             .only()?
@@ -163,7 +170,11 @@ impl TryFrom<Vec<Item>> for Transformation {
 
         let named_args: Vec<NamedArg> = named_arg_items
             .iter()
-            .map(|x| x.as_named_arg().cloned())
+            .map(|x| {
+                x.as_named_arg()
+                    .ok_or(anyhow!("Expected NamedArg"))
+                    .cloned()
+            })
             .try_collect()?;
 
         match name.as_str() {
@@ -175,11 +186,16 @@ impl TryFrom<Vec<Item>> for Transformation {
                     .into_only()
                     .context("Expected at least one argument")?
                     // Possibly these two should be an `unnest_list` method?
-                    .into_list()
+                    .coerce_to_list()
                     .into_inner_list_items()?
                     .into_iter()
                     // TODO: couldn't manage to avoid cloning here.
-                    .map(|x| x.into_only()?.as_assign().cloned())
+                    .map(|x| {
+                        x.into_only()?
+                            .as_assign()
+                            .ok_or(anyhow!("Expected Assign"))
+                            .cloned()
+                    })
                     .try_collect()?;
                 Ok(Transformation::Derive(assigns))
             }
@@ -201,7 +217,7 @@ impl TryFrom<Vec<Item>> for Transformation {
                         }
                         (*arg)
                             .clone()
-                            .into_list()
+                            .coerce_to_list()
                             .into_inner_list_items()?
                             .into_iter()
                             .map(Item::Items)
@@ -222,7 +238,7 @@ impl TryFrom<Vec<Item>> for Transformation {
                     .cloned()
                     // Normalize for it being a list or a single op (TODO: this
                     // is an area that could use some cleaning up)
-                    .map(|x| x.into_list().into_inner_items())?;
+                    .map(|x| x.coerce_to_list().into_inner_items())?;
 
                 // Ops should either be calcs or assigns; e.g. one of
                 //   average gross_cost
@@ -245,13 +261,16 @@ impl TryFrom<Vec<Item>> for Transformation {
                             // parsing them another. (I thought about having
                             // Assign generic in its rvalue, but then Item needs
                             // that generic parameter too?)
-                            x.as_assign().cloned().map(|assign| Assign {
-                                lvalue: assign.lvalue,
-                                // Make the rvalue items into a transformation.
-                                rvalue: Box::new(Item::Transformation(
-                                    assign.rvalue.into_inner_items().try_into().unwrap(),
-                                )),
-                            })
+                            x.as_assign()
+                                .ok_or(anyhow!("Expected Assign"))
+                                .cloned()
+                                .map(|assign| Assign {
+                                    lvalue: assign.lvalue,
+                                    // Make the rvalue items into a transformation.
+                                    rvalue: Box::new(Item::Transformation(
+                                        assign.rvalue.into_inner_items().try_into().unwrap(),
+                                    )),
+                                })
                         })
                         .try_collect()?,
                 })
@@ -259,9 +278,11 @@ impl TryFrom<Vec<Item>> for Transformation {
             "sort" => Ok(Transformation::Sort(args)),
             "take" => {
                 // TODO: coerce to number
-                args.into_only()
-                    .map(|x| x.as_scalar().clone())
-                    .map(|n| Ok(Transformation::Take(n.as_raw()?.parse()?)))?
+                args.into_only().map(|x| x.as_scalar().clone()).map(|n| {
+                    Ok(Transformation::Take(
+                        n.as_raw().ok_or(anyhow!("Expected Raw"))?.parse()?,
+                    ))
+                })?
             }
             "join" => Ok(Transformation::Join(args)),
             _ => Ok(Transformation::Func(FuncCall {
@@ -474,9 +495,9 @@ mod test {
         "###);
 
         let item = ast_of_string("aggregate by:[title] [sum salary]", Rule::transformation)?;
-        let aggregate = item.as_transformation()?;
+        let aggregate = item.as_transformation().ok_or(anyhow!("Expected Raw"))?;
         assert!(if let Transformation::Aggregate { by, .. } = aggregate {
-            by.len() == 1 && by[0].as_ident()? == "title"
+            by.len() == 1 && by[0].as_ident().ok_or(anyhow!("Expected Ident"))? == "title"
         } else {
             false
         });

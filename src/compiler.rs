@@ -289,7 +289,7 @@ impl AstFold for RunFunctions {
     }
     fn fold_item(&mut self, item: &Item) -> Result<Item> {
         // If it's an ident, it could be a func with no arg, so convert to Items.
-        match (item).clone().into_items() {
+        match (item).clone().coerce_to_items() {
             Item::Items(items) => {
                 if let Some(Item::Ident(ident)) = items.first() {
                     if self.functions.get(ident).is_some() {
