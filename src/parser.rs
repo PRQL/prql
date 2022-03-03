@@ -150,7 +150,8 @@ impl TryFrom<Vec<Item>> for Transformation {
             .ok_or(anyhow!("Expected at least one item"))?;
         let name = name_item.as_ident()?;
         // TODO: account for a name-only transformation, with no expr.
-        let (named_arg_items, args): (Vec<Item>, Vec<Item>) = (expr.only()?)
+        let (named_arg_items, args): (Vec<Item>, Vec<Item>) = expr
+            .only()?
             .clone()
             // Take out of the expr
             .as_scalar()
@@ -160,7 +161,7 @@ impl TryFrom<Vec<Item>> for Transformation {
             .into_iter()
             .partition(|x| matches!(x, Item::NamedArg(_)));
 
-        let named_args: Vec<NamedArg> = (named_arg_items)
+        let named_args: Vec<NamedArg> = named_arg_items
             .iter()
             .map(|x| x.as_named_arg().cloned())
             .try_collect()?;

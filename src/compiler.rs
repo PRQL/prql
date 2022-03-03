@@ -295,11 +295,10 @@ impl AstFold for RunFunctions {
                     if self.functions.get(ident).is_some() {
                         // Currently a transformation expects a Expr to wrap
                         // all the terms after the name. TODO: another area
-                        // that's messy.
+                        // that's messy, should we parse a FuncCall directly?
                         let (name, body) = items.split_first().unwrap();
                         let func_call_transform =
                             vec![name.clone(), Item::Expr(body.to_vec())].try_into()?;
-                        let _ = &func_call_transform;
                         if let Transformation::Func(func_call) = func_call_transform {
                             return self.run_function(&func_call);
                         } else {
