@@ -116,7 +116,8 @@ fn to_select(pipeline: &Pipeline) -> Result<sqlparser::ast::Select, Error> {
         None => (vec![], None),
         _ => unreachable!("Expected an aggregate transformation"),
     };
-    let group_by = Item::List(group_bys).try_into()?;
+    let group_by =
+        Item::List(group_bys.into_iter().map(|x| ListItem(vec![x])).collect()).try_into()?;
 
     let select_from_derive = pipeline
         .iter()
@@ -237,8 +238,9 @@ impl TryFrom<Item> for sqlparser::ast::SelectItem {
             Item::Ident(ident) => Ok(sqlparser::ast::SelectItem::UnnamedExpr(
                 sqlparser::ast::Expr::Identifier(sqlparser::ast::Ident::new(ident)),
             )),
-            Item::List(items)
-            | Item::Items(items)
+            // TODO: implement
+            // Item::List(items) |
+            Item::Items(items)
             | Item::Transformation(Transformation::Func(FuncCall { args: items, .. })) => {
                 Ok(sqlparser::ast::SelectItem::UnnamedExpr(
                     sqlparser::ast::Expr::Identifier(sqlparser::ast::Ident::new(
@@ -360,30 +362,18 @@ impl TryFrom<Item> for Vec<sqlparser::ast::Expr> {
     type Error = anyhow::Error;
     fn try_from(item: Item) -> Result<Self> {
         match item {
-            Item::List(items) => Ok(items.into_iter().map(|x| x.try_into()).try_collect()?),
+            Item::List(_) => Ok(item
+                // TODO: implement for non-single item ListItems
+                .into_inner_list_single_items()?
+                .into_iter()
+                .map(|x| x.try_into())
+                .try_collect()?),
             _ => Err(anyhow!(
                 "Can't convert to Vec<Expr> at the moment; {:?}",
                 item
             )),
         }
     }
-}
-
-#[test]
-fn test_try_from_list_to_vec_expr() -> Result<()> {
-    let item = Item::List(vec![
-        Item::Ident("a".to_owned()),
-        Item::Ident("b".to_owned()),
-    ]);
-    let expr: Vec<sqlparser::ast::Expr> = item.try_into()?;
-    assert_eq!(
-        expr,
-        vec![
-            sqlparser::ast::Expr::Identifier(sqlparser::ast::Ident::new("a")),
-            sqlparser::ast::Expr::Identifier(sqlparser::ast::Ident::new("b"))
-        ]
-    );
-    Ok(())
 }
 
 impl TryFrom<Item> for sqlparser::ast::Ident {
@@ -399,12 +389,37 @@ impl TryFrom<Item> for sqlparser::ast::Ident {
 
 #[cfg(test)]
 mod test {
-
     use super::*;
     use insta::{assert_debug_snapshot, assert_display_snapshot};
     use serde_yaml::from_str;
 
     use crate::ast::Pipeline;
+
+    #[test]
+    fn test_try_from_list_to_vec_expr() -> Result<()> {
+        let item = Item::List(vec![
+            ListItem(vec![Item::Ident("a".to_owned())]),
+            ListItem(vec![Item::Ident("b".to_owned())]),
+        ]);
+        let expr: Vec<sqlparser::ast::Expr> = item.try_into()?;
+        assert_debug_snapshot!(expr, @r###"
+        [
+            Identifier(
+                Ident {
+                    value: "a",
+                    quote_style: None,
+                },
+            ),
+            Identifier(
+                Ident {
+                    value: "b",
+                    quote_style: None,
+                },
+            ),
+        ]
+        "###);
+        Ok(())
+    }
 
     #[test]
     fn test_queries_of_pipeline() -> Result<()> {

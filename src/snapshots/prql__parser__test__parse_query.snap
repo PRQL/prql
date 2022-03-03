@@ -1,6 +1,6 @@
 ---
 source: src/parser.rs
-assertion_line: 566
+assertion_line: 591
 expression: "ast_of_string(r#\"\nfrom employees\nfilter country = \"USA\"                           # Each line transforms the previous result.\nderive [                                         # This adds columns / variables.\n  gross_salary: salary + payroll_tax,\n  gross_cost:   gross_salary + benefits_cost     # Variables can use other variables.\n]\nfilter gross_cost > 0\naggregate by:[title, country] [                  # `by` are the columns to group by.\n    average salary,                              # These are aggregation calcs run on each group.\n    sum     salary,\n    average gross_salary,\n    sum     gross_salary,\n    average gross_cost,\n    sum_gross_cost: sum gross_cost,\n    count: count,\n]\nsort sum_gross_cost\nfilter count > 200\ntake 20\n    \"#.trim(),\n        Rule::query)?"
 
 ---
@@ -35,38 +35,31 @@ Query:
             - Ident: country
           calcs:
             - List:
-                - Expr:
-                    - Items:
-                        - Ident: average
-                        - Ident: salary
-                - Expr:
-                    - Items:
-                        - Ident: sum
-                        - Ident: salary
-                - Expr:
-                    - Items:
-                        - Ident: average
-                        - Ident: gross_salary
-                - Expr:
-                    - Items:
-                        - Ident: sum
-                        - Ident: gross_salary
-                - Expr:
-                    - Items:
-                        - Ident: average
-                        - Ident: gross_cost
-                - Expr:
-                    - Assign:
-                        lvalue: sum_gross_cost
-                        rvalue:
-                          Items:
-                            - Ident: sum
-                            - Ident: gross_cost
-                - Expr:
-                    - Assign:
-                        lvalue: count
-                        rvalue:
-                          Ident: count
+                - - Items:
+                      - Ident: average
+                      - Ident: salary
+                - - Items:
+                      - Ident: sum
+                      - Ident: salary
+                - - Items:
+                      - Ident: average
+                      - Ident: gross_salary
+                - - Items:
+                      - Ident: sum
+                      - Ident: gross_salary
+                - - Items:
+                      - Ident: average
+                      - Ident: gross_cost
+                - - Assign:
+                      lvalue: sum_gross_cost
+                      rvalue:
+                        Items:
+                          - Ident: sum
+                          - Ident: gross_cost
+                - - Assign:
+                      lvalue: count
+                      rvalue:
+                        Ident: count
           assigns: []
       - Sort:
           - Ident: sum_gross_cost
