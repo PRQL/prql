@@ -129,7 +129,7 @@ impl Item {
         }
     }
 
-    /// Wrap in an Items unless it already holds multiple items.
+    /// Wrap in Items unless it's already an Items.
     pub fn into_items(self) -> Item {
         match self {
             Item::Items(items) => Item::Items(items),

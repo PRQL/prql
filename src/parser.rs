@@ -173,7 +173,7 @@ impl TryFrom<Vec<Item>> for Transformation {
                 let assigns = (args)
                     .into_only()
                     .context("Expected at least one argument")?
-                    // Possibly these two is be an `unnest_list` method?
+                    // Possibly these two should be an `unnest_list` method?
                     .into_list()
                     .into_inner_list_items()?
                     .into_iter()
