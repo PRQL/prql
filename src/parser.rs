@@ -23,7 +23,20 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Items> {
             // to `Err`s.
             Ok(match pair.as_rule() {
                 Rule::query => Item::Query(ast_of_parse_tree(pair.into_inner())?),
-                Rule::list => Item::List(ast_of_parse_tree(pair.into_inner())?),
+                Rule::list => Item::List(
+                    ast_of_parse_tree(pair.into_inner())?
+                        .into_iter()
+                        // This could simply be:
+                        //   ListItem(expr.into_inner_items()))
+                        // but we want to confirm it's an Expr, it would be a
+                        // difficult mistake to catch otherwise.
+                        .map(|expr| match expr {
+                            Item::Expr(_) => ListItem(expr.into_inner_items()),
+                            _ => unreachable!(),
+                        })
+                        .collect(),
+                )
+                .into_unnested(),
                 Rule::idents => {
                     Item::Idents(pair.into_inner().map(|x| x.as_str().to_owned()).collect())
                 }
@@ -378,30 +391,35 @@ mod test {
         assert_yaml_snapshot!(ast_of_string(r#"[1 + 1, 2]"#, Rule::list)?, @r###"
         ---
         List:
-          - Expr:
-              - Raw: "1"
-              - Raw: +
-              - Raw: "1"
-          - Expr:
-              - Raw: "2"
+          - - Raw: "1"
+            - Raw: +
+            - Raw: "1"
+          - - Raw: "2"
+        "###);
+        assert_yaml_snapshot!(ast_of_string(r#"[1 + f 1, 2]"#, Rule::list)?, @r###"
+        ---
+        List:
+          - - Raw: "1"
+            - Raw: +
+            - Items:
+                - Ident: f
+                - Raw: "1"
+          - - Raw: "2"
         "###);
         let ab = ast_of_string(r#"[a b]"#, Rule::list)?;
         let a_comma_b = ast_of_string(r#"[a, b]"#, Rule::list)?;
         assert_yaml_snapshot!(ab, @r###"
         ---
         List:
-          - Expr:
-              - Items:
-                  - Ident: a
-                  - Ident: b
+          - - Items:
+                - Ident: a
+                - Ident: b
         "###);
         assert_yaml_snapshot!(a_comma_b, @r###"
         ---
         List:
-          - Expr:
-              - Ident: a
-          - Expr:
-              - Ident: b
+          - - Ident: a
+          - - Ident: b
         "###);
         assert_ne!(ab, a_comma_b);
         Ok(())
@@ -487,10 +505,9 @@ mod test {
               - Ident: title
             calcs:
               - List:
-                  - Expr:
-                      - Items:
-                          - Ident: sum
-                          - Ident: salary
+                  - - Items:
+                        - Ident: sum
+                        - Ident: salary
             assigns: []
         "###);
 
@@ -511,10 +528,9 @@ mod test {
               - Ident: title
             calcs:
               - List:
-                  - Expr:
-                      - Items:
-                          - Ident: sum
-                          - Ident: salary
+                  - - Items:
+                        - Ident: sum
+                        - Ident: salary
             assigns: []
         "###);
         Ok(())
@@ -539,22 +555,20 @@ mod test {
         Rule::list)?, @r###"
         ---
         List:
-          - Expr:
-              - Assign:
-                  lvalue: gross_salary
-                  rvalue:
-                    Items:
-                      - Ident: salary
-                      - Raw: +
-                      - Ident: payroll_tax
-          - Expr:
-              - Assign:
-                  lvalue: gross_cost
-                  rvalue:
-                    Items:
-                      - Ident: gross_salary
-                      - Raw: +
-                      - Ident: benefits_cost
+          - - Assign:
+                lvalue: gross_salary
+                rvalue:
+                  Items:
+                    - Ident: salary
+                    - Raw: +
+                    - Ident: payroll_tax
+          - - Assign:
+                lvalue: gross_cost
+                rvalue:
+                  Items:
+                    - Ident: gross_salary
+                    - Raw: +
+                    - Ident: benefits_cost
         "###);
         assert_yaml_snapshot!(
             ast_of_string(

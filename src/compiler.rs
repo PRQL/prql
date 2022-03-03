@@ -137,7 +137,21 @@ fn fold_item<T: ?Sized + AstFold>(fold: &mut T, item: &Item) -> Result<Item> {
         Item::Idents(idents) => {
             Item::Idents(idents.iter().map(|i| fold.fold_ident(i)).try_collect()?)
         }
-        Item::List(items) => Item::List(fold.fold_items(items)?),
+        // We could implement a `fold_list_item`...
+        Item::List(items) => Item::List(
+            items
+                .clone()
+                .into_iter()
+                .map(|list_item| {
+                    list_item
+                        .into_inner()
+                        .iter()
+                        .map(|item| fold.fold_item(item))
+                        .try_collect()
+                        .map(ListItem)
+                })
+                .try_collect()?,
+        ),
         Item::Query(items) => Item::Query(fold.fold_items(items)?),
         Item::Pipeline(transformations) => Item::Pipeline(
             transformations
@@ -432,8 +446,7 @@ aggregate [
                   by: []
                   calcs:
                     - List:
-                        - Expr:
-                            - Ident: count
+                        - - Ident: count
                   assigns: []
         "###);
 
@@ -451,13 +464,13 @@ aggregate [
         .to_string();
         assert!(!diff.is_empty());
         assert_display_snapshot!(diff, @r###"
-        @@ -13,5 +13,6 @@
+        @@ -12,5 +12,6 @@
+                   by: []
                    calcs:
                      - List:
-                         - Expr:
-        -                    - Ident: count
-        +                    - Items:
-        +                        - Ident: testing_count
+        -                - - Ident: count
+        +                - - Items:
+        +                      - Ident: testing_count
                    assigns: []
         "###);
 
@@ -499,10 +512,9 @@ aggregate [
                   by: []
                   calcs:
                     - List:
-                        - Expr:
-                            - Items:
-                                - Ident: count
-                                - Ident: salary
+                        - - Items:
+                              - Ident: count
+                              - Ident: salary
                   assigns: []
         "###);
 
@@ -520,18 +532,18 @@ aggregate [
         .to_string();
         assert!(!diff.is_empty());
         assert_display_snapshot!(diff, @r###"
-        @@ -20,6 +20,10 @@
+        @@ -19,6 +19,10 @@
+                   calcs:
                      - List:
-                         - Expr:
-                             - Items:
-        -                        - Ident: count
-        -                        - Ident: salary
-        +                        - SString:
-        +                            - String: count(
-        +                            - Expr:
-        +                                Items:
-        +                                  - Ident: salary
-        +                            - String: )
+                         - - Items:
+        -                      - Ident: count
+        -                      - Ident: salary
+        +                      - SString:
+        +                          - String: count(
+        +                          - Expr:
+        +                              Items:
+        +                                - Ident: salary
+        +                          - String: )
                    assigns: []
         "###);
 

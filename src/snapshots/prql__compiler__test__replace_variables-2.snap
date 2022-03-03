@@ -1,6 +1,6 @@
 ---
 source: src/compiler.rs
-assertion_line: 406
+assertion_line: 415
 expression: "&fold.fold_item(ast)?"
 
 ---
@@ -44,56 +44,49 @@ Query:
             - Ident: country
           calcs:
             - List:
-                - Expr:
-                    - Items:
-                        - Ident: average
-                        - Ident: salary
-                - Expr:
-                    - Items:
-                        - Ident: sum
-                        - Ident: salary
-                - Expr:
-                    - Items:
-                        - Ident: average
-                        - Items:
-                            - Ident: salary
-                            - Raw: +
-                            - Ident: payroll_tax
-                - Expr:
-                    - Items:
-                        - Ident: sum
-                        - Items:
-                            - Ident: salary
-                            - Raw: +
-                            - Ident: payroll_tax
-                - Expr:
-                    - Items:
-                        - Ident: average
-                        - Items:
-                            - Items:
-                                - Ident: salary
-                                - Raw: +
-                                - Ident: payroll_tax
-                            - Raw: +
-                            - Ident: benefits_cost
-                - Expr:
-                    - Assign:
-                        lvalue: sum_gross_cost
-                        rvalue:
-                          Items:
-                            - Ident: sum
-                            - Items:
-                                - Items:
-                                    - Ident: salary
-                                    - Raw: +
-                                    - Ident: payroll_tax
-                                - Raw: +
-                                - Ident: benefits_cost
-                - Expr:
-                    - Assign:
-                        lvalue: count
-                        rvalue:
-                          Ident: count
+                - - Items:
+                      - Ident: average
+                      - Ident: salary
+                - - Items:
+                      - Ident: sum
+                      - Ident: salary
+                - - Items:
+                      - Ident: average
+                      - Items:
+                          - Ident: salary
+                          - Raw: +
+                          - Ident: payroll_tax
+                - - Items:
+                      - Ident: sum
+                      - Items:
+                          - Ident: salary
+                          - Raw: +
+                          - Ident: payroll_tax
+                - - Items:
+                      - Ident: average
+                      - Items:
+                          - Items:
+                              - Ident: salary
+                              - Raw: +
+                              - Ident: payroll_tax
+                          - Raw: +
+                          - Ident: benefits_cost
+                - - Assign:
+                      lvalue: sum_gross_cost
+                      rvalue:
+                        Items:
+                          - Ident: sum
+                          - Items:
+                              - Items:
+                                  - Ident: salary
+                                  - Raw: +
+                                  - Ident: payroll_tax
+                              - Raw: +
+                              - Ident: benefits_cost
+                - - Assign:
+                      lvalue: count
+                      rvalue:
+                        Ident: count
           assigns: []
       - Sort:
           - Items:

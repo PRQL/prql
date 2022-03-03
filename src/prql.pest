@@ -10,13 +10,7 @@
 //   is valid, but so is `1 1`. Or `foo bar` is not parsed at this stage as
 //   `foo` being a function and `bar` its argument — it's just parsed into a
 //   sequence of idents. We could instead parse these explicitly, and then
-//   disallow `1 1`. We would need more structure though; e.g. we'd need to
-//   encode terms like `or` to allow `x or y` but not `x orr y`.
-
-// Potentially:
-// - Make idents a 1st class thing, which stores a vec of strings. All idents
-//   go into this.
-// - It's then evaluated as a variable or function call
+//   disallow `1 1`.
 
 WHITESPACE = _{ " " }
 // Need to exclude # in strings (and maybe confirm whether this the syntax we want)
