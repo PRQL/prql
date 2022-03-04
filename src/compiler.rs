@@ -343,6 +343,15 @@ impl Filter {
 }
 
 #[cfg(test)]
+pub fn compile(ast: Item) -> Result<Item> {
+    let mut run_functions = RunFunctions::new();
+    let mut replace_variables = ReplaceVariables::new();
+    let ast = run_functions.fold_item(&ast)?;
+    let ast = replace_variables.fold_item(&ast)?;
+    Ok(ast)
+}
+
+#[cfg(test)]
 mod test {
 
     use super::*;
@@ -547,6 +556,55 @@ aggregate [
                    assigns: []
         "###);
 
+        Ok(())
+    }
+
+    #[test]
+    fn test_compile() -> Result<()> {
+        let pipeline = ast_of_string(
+            r#"
+func count x = s"count({x})"
+
+from employees
+aggregate [
+  count salary
+]
+"#,
+            Rule::query,
+        )?;
+        let ast = compile(pipeline)?;
+        assert_yaml_snapshot!(ast,
+            @r###"
+        ---
+        Query:
+          - Function:
+              name: count
+              args:
+                - x
+              body:
+                - SString:
+                    - String: count(
+                    - Expr:
+                        Items:
+                          - Ident: x
+                    - String: )
+          - Pipeline:
+              - From:
+                  - Ident: employees
+              - Aggregate:
+                  by: []
+                  calcs:
+                    - List:
+                        - - Items:
+                              - SString:
+                                  - String: count(
+                                  - Expr:
+                                      Items:
+                                        - Ident: salary
+                                  - String: )
+                  assigns: []
+        "###
+        );
         Ok(())
     }
 }

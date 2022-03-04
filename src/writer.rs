@@ -234,12 +234,20 @@ impl TryFrom<Assign> for SelectItem {
 impl TryFrom<Item> for sqlparser::ast::SelectItem {
     type Error = anyhow::Error;
     fn try_from(item: Item) -> Result<Self> {
+        // TODO: extremely hacky
         match item {
             Item::Ident(ident) => Ok(sqlparser::ast::SelectItem::UnnamedExpr(
                 sqlparser::ast::Expr::Identifier(sqlparser::ast::Ident::new(ident)),
             )),
-            // TODO: implement
-            // Item::List(items) |
+            Item::List(_) => Item::Ident(
+                item.into_inner_list_single_items()?
+                    .into_iter()
+                    .map(TryInto::<sqlparser::ast::Expr>::try_into)
+                    .map_ok(|x| x.to_string())
+                    .collect::<Result<Vec<String>>>()?
+                    .join(", "),
+            )
+            .try_into(),
             Item::Items(items)
             | Item::Transformation(Transformation::Func(FuncCall { args: items, .. })) => {
                 Ok(sqlparser::ast::SelectItem::UnnamedExpr(
@@ -394,6 +402,7 @@ mod test {
     use serde_yaml::from_str;
 
     use crate::ast::Pipeline;
+    use crate::parser::{ast_of_string, Rule};
 
     #[test]
     fn test_try_from_list_to_vec_expr() -> Result<()> {
@@ -558,6 +567,34 @@ mod test {
         // TODO: still wrong but compiles, and we're on our way to making it work
         assert_display_snapshot!(select,
             @"SELECT TOP (20) salary FROM employees WHERE country = 'USA' GROUP BY title, country SORT BY title"
+        );
+
+        Ok(())
+    }
+
+    use crate::compiler::compile;
+
+    #[test]
+    fn test_compiled() -> Result<()> {
+        let pipeline = ast_of_string(
+            r#"
+func count x = s"count({x})"
+func sum x = s"sum({x})"
+
+from employees
+aggregate [
+  count salary,
+  sum salary,
+]
+"#,
+            Rule::query,
+        )?;
+        let ast = compile(pipeline)?;
+        // TODO: clean up test; mostly by providing library functions to do this.
+        let pipeline = ast.as_query().unwrap()[2].as_pipeline().unwrap();
+        let select = to_select(pipeline)?;
+        assert_display_snapshot!(select,
+            @"SELECT count(salary), sum(salary) FROM employees"
         );
         Ok(())
     }
