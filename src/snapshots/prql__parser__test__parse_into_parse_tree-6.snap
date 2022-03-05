@@ -1,8 +1,7 @@
 ---
 source: src/parser.rs
-assertion_line: 731
+assertion_line: 790
 expression: "parse_tree_of_str(r#\"[\n  gross_salary: salary + payroll_tax,\n  gross_cost:   gross_salary + benefits_cost\n]\"#,\n        Rule::list)?"
-
 ---
 [
     Pair {

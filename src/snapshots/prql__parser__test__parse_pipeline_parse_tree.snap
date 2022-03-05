@@ -1,8 +1,7 @@
 ---
 source: src/parser.rs
-assertion_line: 758
+assertion_line: 817
 expression: "parse_tree_of_str(r#\"\n    from employees\n    select [a, b]\n    \"#.trim(),\n        Rule::pipeline)?"
-
 ---
 [
     Pair {

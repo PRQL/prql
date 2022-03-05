@@ -1,8 +1,7 @@
 ---
 source: src/parser.rs
-assertion_line: 722
+assertion_line: 781
 expression: "parse_tree_of_str(\"aggregate by:[title, country] [sum salary]\",\n        Rule::transformation)?"
-
 ---
 [
     Pair {

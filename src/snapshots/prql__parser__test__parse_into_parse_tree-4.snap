@@ -1,8 +1,7 @@
 ---
 source: src/parser.rs
-assertion_line: 726
+assertion_line: 785
 expression: "parse_tree_of_str(r#\"    filter country = \"USA\"\"#, Rule::transformation)?"
-
 ---
 [
     Pair {

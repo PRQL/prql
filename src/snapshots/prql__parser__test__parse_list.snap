@@ -1,8 +1,7 @@
 ---
 source: src/parser.rs
-assertion_line: 397
-expression: "parse_tree_of_str(r#\"[1 + 1, 2]\"#, Rule::list).unwrap()"
-
+assertion_line: 390
+expression: "parse_tree_of_str(r#\"[1 + 1, 2]\"#, Rule::list)?"
 ---
 [
     Pair {

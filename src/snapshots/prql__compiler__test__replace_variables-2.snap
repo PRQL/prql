@@ -1,8 +1,7 @@
 ---
 source: src/compiler.rs
-assertion_line: 415
+assertion_line: 424
 expression: "&fold.fold_item(ast)?"
-
 ---
 Query:
   - Pipeline:
