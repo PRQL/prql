@@ -1,8 +1,7 @@
 ---
 source: src/parser.rs
-assertion_line: 744
+assertion_line: 803
 expression: "parse_tree_of_str(\"join country [id=employee_id]\", Rule::transformation)?"
-
 ---
 [
     Pair {

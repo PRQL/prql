@@ -1,7 +1,6 @@
 ---
 source: src/parser.rs
-assertion_line: 739
+assertion_line: 798
 expression: "parse_tree_of_str(r#\"# this is a comment\n        select a\"#, Rule::COMMENT)?"
-
 ---
 []

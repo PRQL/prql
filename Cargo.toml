@@ -28,5 +28,5 @@ features = ["derive"]
 version = "^1.0"
 
 [dev-dependencies]
-insta = "^1.11"
+insta = "^1.13"
 similar = "^2.1"

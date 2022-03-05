@@ -1,8 +1,7 @@
 ---
 source: src/parser.rs
-assertion_line: 766
+assertion_line: 825
 expression: "parse_tree_of_str(r#\"\n    from employees\n    filter country = \"USA\"\n    \"#.trim(),\n        Rule::pipeline)?"
-
 ---
 [
     Pair {

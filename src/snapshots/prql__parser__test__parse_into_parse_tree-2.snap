@@ -1,8 +1,7 @@
 ---
 source: src/parser.rs
-assertion_line: 721
+assertion_line: 780
 expression: "parse_tree_of_str(\"select [a, b, c]\", Rule::transformation)?"
-
 ---
 [
     Pair {

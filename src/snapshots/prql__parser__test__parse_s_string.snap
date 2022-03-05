@@ -1,8 +1,7 @@
 ---
 source: src/parser.rs
-assertion_line: 320
+assertion_line: 364
 expression: "parse_tree_of_str(r#\"s\"SUM({col})\"\"#, Rule::s_string)?"
-
 ---
 [
     Pair {

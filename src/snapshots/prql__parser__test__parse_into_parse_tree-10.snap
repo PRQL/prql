@@ -1,8 +1,7 @@
 ---
 source: src/parser.rs
-assertion_line: 752
+assertion_line: 811
 expression: "parse_tree_of_str(\"1  + 2\", Rule::expr)?"
-
 ---
 [
     Pair {

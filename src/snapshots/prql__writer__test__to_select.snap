@@ -1,8 +1,7 @@
 ---
 source: src/writer.rs
-assertion_line: 542
+assertion_line: 562
 expression: select
-
 ---
 Select {
     distinct: false,
