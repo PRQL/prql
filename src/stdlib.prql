@@ -6,16 +6,18 @@
 
 # Aggregate Functions
 
-func min column = f"MIN({column})"
-func max column = f"MAX({column})"
-func sum column = f"SUM({column})"
-func avg column = f"AVG({column})"
-func stddev column = f"STDDEV({column})"
-func average column = f"AVG({column})"
-func count = f"COUNT(*)"
-func count column = f"COUNT({column})"
-func count_distinct column = f"COUNT(DISTINCT `{column}`)"
+func min column = s"MIN({column})"
+func max column = s"MAX({column})"
+func sum column = s"SUM({column})"
+func avg column = s"AVG({column})"
+func stddev column = s"STDDEV({column})"
+func average column = s"AVG({column})"
+func count = s"COUNT(*)"
+# TODO: decide whether we implement multiple dispatch, which would be required
+for this:
+# func count column = s"COUNT({column})"
+func count_distinct column = s"COUNT(DISTINCT `{column}`)"
 
 # Casting functions
 
-func as column type = f"CAST({column} AS {type})"
+func as column type = s"CAST({column} AS {type})"
