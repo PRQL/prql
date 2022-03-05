@@ -1,4 +1,4 @@
-use crate::parser::{ast_of_string, Rule};
+use crate::*;
 use anyhow::Error;
 use clap::{ArgEnum, Parser};
 use clio::{Input, Output};
@@ -7,6 +7,7 @@ use std::io::{Read, Write};
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ArgEnum)]
 enum Dialect {
     Ast,
+    CompiledAst,
 }
 
 #[derive(Parser)]
@@ -29,7 +30,11 @@ impl Cli {
         match self.format {
             Dialect::Ast => self
                 .output
-                .write_all(&serde_yaml::to_vec(&ast_of_string(&source, Rule::query)?)?)?,
+                .write_all(&serde_yaml::to_vec(&parse(&source)?)?)?,
+            Dialect::CompiledAst => {
+                let compiled = compile(parse(&source)?)?;
+                self.output.write_all(&serde_yaml::to_vec(&compiled)?)?
+            }
         };
         Ok(())
     }

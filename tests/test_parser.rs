@@ -1,9 +1,9 @@
-use prql::{ast_of_string, Result, Rule};
+use prql::{parse, Result};
 
 #[test]
 fn parse_simple_string_to_ast() -> Result<()> {
     assert_eq!(
-        serde_yaml::to_string(&ast_of_string("select 1", Rule::query)?)?,
+        serde_yaml::to_string(&parse("select 1")?)?,
         r#"---
 Query:
   - Pipeline:
