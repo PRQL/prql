@@ -151,7 +151,7 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Items> {
         .collect()
 }
 
-/// Parse a string into a parse tree, made up of pest Pairs.
+/// Parse a string into a parse tree / concrete syntax tree, made up of pest Pairs.
 fn parse_tree_of_str(source: &str, rule: Rule) -> Result<Pairs<Rule>> {
     PrqlParser::parse(rule, source).map_err(|e| e.into())
 }
@@ -165,7 +165,7 @@ fn parse_tree_of_str(source: &str, rule: Rule) -> Result<Pairs<Rule>> {
 impl TryFrom<Vec<Item>> for Transformation {
     type Error = anyhow::Error;
     fn try_from(items: Vec<Item>) -> Result<Self> {
-        let (name_item, expr) = &items
+        let (name_item, expr) = items
             .split_first()
             .ok_or(anyhow!("Expected at least one item"))?;
         let name = name_item.as_ident().ok_or(anyhow!("Expected Ident"))?;
@@ -290,6 +290,11 @@ impl TryFrom<Vec<Item>> for Transformation {
             })),
         }
     }
+}
+
+/// Parse a string into an AST as a query.
+pub fn parse(string: &str) -> Result<Item> {
+    ast_of_string(string, Rule::query)
 }
 
 /// Parse a string into an AST.

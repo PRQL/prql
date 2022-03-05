@@ -25,8 +25,8 @@ pub enum Item {
     Pipeline(Pipeline),
     // Similar to holding an Expr, but we strongly type it so the parsing can be more strict.
     List(Vec<ListItem>),
-    // Holds Items / Terms, not including separators like `+`. Unnesting this
-    // (i.e. Items(Item) -> Item) does not change its semantics. (More detail in
+    // Holds "Terms", not including separators like `+`. Unnesting this (i.e.
+    // Terms([Item]) -> Item) does not change its semantics. (More detail in
     // `prql.pest`)
     Terms(Items),
     // Holds any Items. Unnesting _can_ change semantics (though it's less

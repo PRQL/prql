@@ -342,10 +342,10 @@ impl Filter {
     }
 }
 
-#[cfg(test)]
 pub fn compile(ast: Item) -> Result<Item> {
     let mut run_functions = RunFunctions::new();
     let mut replace_variables = ReplaceVariables::new();
+    // TODO: is it always OK to run these serially?
     let ast = run_functions.fold_item(&ast)?;
     let ast = replace_variables.fold_item(&ast)?;
     Ok(ast)
@@ -602,6 +602,33 @@ aggregate [
                   assigns: []
         "###
         );
+
+        let ast = ast_of_string(
+            r#"
+from employees
+filter country = "USA"                           # Each line transforms the previous result.
+derive [                                         # This adds columns / variables.
+  gross_salary: salary + payroll_tax,
+  gross_cost:   gross_salary + benefits_cost     # Variables can use other variables.
+]
+filter gross_cost > 0
+aggregate by:[title, country] [                  # `by` are the columns to group by.
+    average salary,                              # These are aggregation calcs run on each group.
+    sum     salary,
+    average gross_salary,
+    sum     gross_salary,
+    average gross_cost,
+    sum_gross_cost: sum gross_cost,
+    count: count,
+]
+sort sum_gross_cost
+filter sum_gross_cost > 200
+take 20
+"#,
+            Rule::query,
+        )?;
+        assert_yaml_snapshot!(compile(ast)?);
+
         Ok(())
     }
 }

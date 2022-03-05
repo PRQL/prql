@@ -7,4 +7,5 @@ mod writer;
 
 pub use anyhow::Result; // TODO: create an error type for prql and export here
 pub use cli::Cli;
-pub use parser::{ast_of_string, Rule};
+pub use compiler::compile;
+pub use parser::parse;
