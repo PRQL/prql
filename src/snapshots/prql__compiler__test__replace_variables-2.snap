@@ -14,22 +14,22 @@ Query:
       - Derive:
           - lvalue: gross_salary
             rvalue:
-              Items:
+              Terms:
                 - Ident: salary
                 - Raw: +
                 - Ident: payroll_tax
           - lvalue: gross_cost
             rvalue:
-              Items:
-                - Items:
+              Terms:
+                - Terms:
                     - Ident: salary
                     - Raw: +
                     - Ident: payroll_tax
                 - Raw: +
                 - Ident: benefits_cost
       - Filter:
-          - Items:
-              - Items:
+          - Terms:
+              - Terms:
                   - Ident: salary
                   - Raw: +
                   - Ident: payroll_tax
@@ -42,28 +42,28 @@ Query:
             - Ident: title
             - Ident: country
           calcs:
-            - Items:
+            - Terms:
                 - Ident: average
                 - Ident: salary
-            - Items:
+            - Terms:
                 - Ident: sum
                 - Ident: salary
-            - Items:
+            - Terms:
                 - Ident: average
-                - Items:
+                - Terms:
                     - Ident: salary
                     - Raw: +
                     - Ident: payroll_tax
-            - Items:
+            - Terms:
                 - Ident: sum
-                - Items:
+                - Terms:
                     - Ident: salary
                     - Raw: +
                     - Ident: payroll_tax
-            - Items:
+            - Terms:
                 - Ident: average
-                - Items:
-                    - Items:
+                - Terms:
+                    - Terms:
                         - Ident: salary
                         - Raw: +
                         - Ident: payroll_tax
@@ -72,10 +72,10 @@ Query:
           assigns:
             - lvalue: sum_gross_cost
               rvalue:
-                Items:
+                Terms:
                   - Ident: sum
-                  - Items:
-                      - Items:
+                  - Terms:
+                      - Terms:
                           - Ident: salary
                           - Raw: +
                           - Ident: payroll_tax
@@ -85,20 +85,20 @@ Query:
               rvalue:
                 Ident: count
       - Sort:
-          - Items:
+          - Terms:
               - Ident: sum
-              - Items:
-                  - Items:
+              - Terms:
+                  - Terms:
                       - Ident: salary
                       - Raw: +
                       - Ident: payroll_tax
                   - Raw: +
                   - Ident: benefits_cost
       - Filter:
-          - Items:
+          - Terms:
               - Ident: sum
-              - Items:
-                  - Items:
+              - Terms:
+                  - Terms:
                       - Ident: salary
                       - Raw: +
                       - Ident: payroll_tax

@@ -31,7 +31,7 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Items> {
                         // but we want to confirm it's an Expr, it would be a
                         // difficult mistake to catch otherwise.
                         .map(|expr| match expr {
-                            Item::Expr(_) => ListItem(expr.into_inner_items()),
+                            Item::Items(_) => ListItem(expr.into_inner_items()),
                             _ => unreachable!(),
                         })
                         .collect(),
@@ -40,14 +40,14 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Items> {
                 Rule::idents => {
                     Item::Idents(pair.into_inner().map(|x| x.as_str().to_owned()).collect())
                 }
-                Rule::items => Item::Items(ast_of_parse_tree(pair.into_inner())?)
+                Rule::terms => Item::Terms(ast_of_parse_tree(pair.into_inner())?)
                     // We collapse any Items with a single element into that
                     // element. We don't do this with Expr or List because those are
                     // often meaningful — e.g. a List needs a number of Expr, so that
                     // `[a, b]` is different from `[a b]`.
                     .as_scalar()
                     .clone(),
-                Rule::expr => Item::Expr(ast_of_parse_tree(pair.into_inner())?),
+                Rule::expr => Item::Items(ast_of_parse_tree(pair.into_inner())?),
                 Rule::named_arg => {
                     let parsed: [Item; 2] = ast_of_parse_tree(pair.into_inner())?
                         .try_into()
@@ -66,12 +66,12 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Items> {
                         .map_err(|e| anyhow!("Expected two items; {:?}", e))?;
                     // Split the pair into its first value, which is always an Ident,
                     // and its other values.
-                    if let [lvalue, Item::Expr(rvalue)] = parsed {
+                    if let [lvalue, Item::Items(rvalue)] = parsed {
                         Ok(Item::Assign(Assign {
                             lvalue: lvalue
                                 .into_ident()
                                 .map_err(|e| anyhow!("Expected Ident; {:?}", e))?,
-                            rvalue: Box::new(Item::Items(rvalue).as_scalar().clone()),
+                            rvalue: Box::new(Item::Terms(rvalue).as_scalar().clone()),
                         }))
                     } else {
                         Err(anyhow!(
@@ -129,7 +129,7 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Items> {
                         // verbose code given it's inside an expression inside a `map`)
                         .map(|x| match x.as_rule() {
                             Rule::s_string_string => SStringItem::String(x.as_str().to_string()),
-                            _ => SStringItem::Expr(Item::Items(
+                            _ => SStringItem::Expr(Item::Terms(
                                 ast_of_parse_tree(x.into_inner()).unwrap(),
                             )),
                         })
@@ -175,7 +175,7 @@ impl TryFrom<Vec<Item>> for Transformation {
             // Take out of the expr
             .as_scalar()
             .clone()
-            // Take out of the items
+            // Take out of the terms
             .into_inner_items()
             .into_iter()
             .partition(|x| matches!(x, Item::NamedArg(_)));
@@ -233,7 +233,7 @@ impl TryFrom<Vec<Item>> for Transformation {
                             .coerce_to_list()
                             .into_inner_list_items()?
                             .into_iter()
-                            .map(Item::Items)
+                            .map(Item::Terms)
                             .map(|x| x.into_unnested())
                             .collect()
                     }
@@ -251,7 +251,7 @@ impl TryFrom<Vec<Item>> for Transformation {
                     .coerce_to_list()
                     .into_inner_list_items()?
                     .into_iter()
-                    .map(Item::Items)
+                    .map(Item::Terms)
                     .map(|x| x.into_unnested())
                     .collect();
 
@@ -354,7 +354,7 @@ mod test {
         SString:
           - String: SUM(
           - Expr:
-              Items:
+              Terms:
                 - Ident: col
           - String: )
         "###);
@@ -363,7 +363,7 @@ mod test {
         SString:
           - String: SUM(
           - Expr:
-              Items:
+              Terms:
                 - Raw: "2"
                 - Raw: +
                 - Raw: "2"
@@ -388,7 +388,7 @@ mod test {
         List:
           - - Raw: "1"
             - Raw: +
-            - Items:
+            - Terms:
                 - Ident: f
                 - Raw: "1"
           - - Raw: "2"
@@ -398,7 +398,7 @@ mod test {
         assert_yaml_snapshot!(ab, @r###"
         ---
         List:
-          - - Items:
+          - - Terms:
                 - Ident: a
                 - Ident: b
         "###);
@@ -449,7 +449,7 @@ mod test {
         ---
         Transformation:
           Filter:
-            - Items:
+            - Terms:
                 - Ident: upper
                 - Ident: country
             - Raw: "="
@@ -461,7 +461,7 @@ mod test {
         ---
         Transformation:
           Filter:
-            - Items:
+            - Terms:
                 - Ident: upper
                 - Ident: country
             - Raw: "="
@@ -492,14 +492,14 @@ mod test {
             by:
               - Ident: title
             calcs:
-              - Items:
+              - Terms:
                   - Ident: sum
                   - Ident: salary
             assigns: []
         "###);
 
         if let Transformation::Aggregate { calcs, .. } = aggregate.as_transformation().unwrap() {
-            if !matches!(calcs.into_only()?.as_items().unwrap()[0], Item::Ident(_)) {
+            if !matches!(calcs.into_only()?.as_terms().unwrap()[0], Item::Ident(_)) {
                 panic!("Nesting incorrect");
             }
         } else {
@@ -522,7 +522,7 @@ mod test {
             by:
               - Ident: title
             calcs:
-              - Items:
+              - Terms:
                   - Ident: sum
                   - Ident: salary
             assigns: []
@@ -536,7 +536,7 @@ mod test {
             ast_of_string(r#"country = "USA""#, Rule::expr)?
         , @r###"
         ---
-        Expr:
+        Items:
           - Ident: country
           - Raw: "="
           - String: USA
@@ -552,14 +552,14 @@ mod test {
           - - Assign:
                 lvalue: gross_salary
                 rvalue:
-                  Items:
+                  Terms:
                     - Ident: salary
                     - Raw: +
                     - Ident: payroll_tax
           - - Assign:
                 lvalue: gross_cost
                 rvalue:
-                  Items:
+                  Terms:
                     - Ident: gross_salary
                     - Raw: +
                     - Ident: benefits_cost
@@ -571,17 +571,17 @@ mod test {
             )?,
             @r###"
         ---
-        Expr:
+        Items:
           - Assign:
               lvalue: gross_salary
               rvalue:
-                Items:
-                  - Expr:
+                Terms:
+                  - Items:
                       - Ident: salary
                       - Raw: +
                       - Ident: payroll_tax
                   - Raw: "*"
-                  - Expr:
+                  - Items:
                       - Raw: "1"
                       - Raw: +
                       - Ident: tax_rate
@@ -647,7 +647,7 @@ take 20
           args:
             - x
           body:
-            - Expr:
+            - Items:
                 - Ident: x
                 - Raw: +
                 - Raw: "1"
@@ -678,14 +678,14 @@ take 20
           args:
             - x
           body:
-            - Items:
-                - Expr:
-                    - Items:
+            - Terms:
+                - Items:
+                    - Terms:
                         - Ident: foo
                         - Ident: bar
                     - Raw: +
                     - Raw: "1"
-                - Expr:
+                - Items:
                     - Ident: plax
             - Raw: "-"
             - Ident: baz
@@ -709,7 +709,7 @@ take 20
             - SString:
                 - String: SUM(
                 - Expr:
-                    Items:
+                    Terms:
                       - Ident: X
                 - String: )
         "###);

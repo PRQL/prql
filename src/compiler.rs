@@ -131,9 +131,9 @@ fn fold_func_call<T: ?Sized + AstFold>(fold: &mut T, func_call: &FuncCall) -> Re
 fn fold_item<T: ?Sized + AstFold>(fold: &mut T, item: &Item) -> Result<Item> {
     Ok(match item {
         Item::Ident(ident) => Item::Ident(fold.fold_ident(ident)?),
-        Item::Items(items) => Item::Items(fold.fold_items(items)?),
+        Item::Terms(items) => Item::Terms(fold.fold_items(items)?),
         // TODO: possibly implement for expr.
-        Item::Expr(items) => Item::Expr(fold.fold_items(items)?),
+        Item::Items(items) => Item::Items(fold.fold_items(items)?),
         Item::Idents(idents) => {
             Item::Idents(idents.iter().map(|i| fold.fold_ident(i)).try_collect()?)
         }
@@ -288,7 +288,7 @@ impl RunFunctions {
             });
         });
         // Take a clone of the body and replace the arguments with their values.
-        Ok(Item::Items(
+        Ok(Item::Terms(
             replace_variables.fold_items(&func.body.clone())?,
         ))
     }
@@ -303,8 +303,8 @@ impl AstFold for RunFunctions {
     }
     fn fold_item(&mut self, item: &Item) -> Result<Item> {
         // If it's an ident, it could be a func with no arg, so convert to Items.
-        match (item).clone().coerce_to_items() {
-            Item::Items(items) => {
+        match (item).clone().coerce_to_terms() {
+            Item::Terms(items) => {
                 if let Some(Item::Ident(ident)) = items.first() {
                     if self.functions.get(ident).is_some() {
                         // Currently a transformation expects a Expr to wrap
@@ -312,7 +312,7 @@ impl AstFold for RunFunctions {
                         // that's messy, should we parse a FuncCall directly?
                         let (name, body) = items.split_first().unwrap();
                         let func_call_transform =
-                            vec![name.clone(), Item::Expr(body.to_vec())].try_into()?;
+                            vec![name.clone(), Item::Items(body.to_vec())].try_into()?;
                         if let Transformation::Func(func_call) = func_call_transform {
                             return self.run_function(&func_call);
                         } else {
@@ -335,7 +335,7 @@ impl Filter {
         Filter(
             filters
                 .into_iter()
-                .map(|f| Item::Items(f.0))
+                .map(|f| Item::Terms(f.0))
                 .intersperse(Item::Raw("and".to_owned()))
                 .collect(),
         )
@@ -386,9 +386,9 @@ mod test {
         @@ -12,6 +12,9 @@
                - lvalue: gross_cost
                  rvalue:
-                   Items:
+                   Terms:
         -            - Ident: gross_salary
-        +            - Items:
+        +            - Terms:
         +                - Ident: salary
         +                - Raw: +
         +                - Ident: payroll_tax
@@ -477,7 +477,7 @@ aggregate [
                    by: []
                    calcs:
         -            - Ident: count
-        +            - Items:
+        +            - Terms:
         +                - Ident: testing_count
                    assigns: []
         "###);
@@ -510,7 +510,7 @@ aggregate [
                 - SString:
                     - String: count(
                     - Expr:
-                        Items:
+                        Terms:
                           - Ident: x
                     - String: )
           - Pipeline:
@@ -519,7 +519,7 @@ aggregate [
               - Aggregate:
                   by: []
                   calcs:
-                    - Items:
+                    - Terms:
                         - Ident: count
                         - Ident: salary
                   assigns: []
@@ -542,13 +542,13 @@ aggregate [
         @@ -18,6 +18,10 @@
                    by: []
                    calcs:
-                     - Items:
+                     - Terms:
         -                - Ident: count
         -                - Ident: salary
         +                - SString:
         +                    - String: count(
         +                    - Expr:
-        +                        Items:
+        +                        Terms:
         +                          - Ident: salary
         +                    - String: )
                    assigns: []
@@ -583,7 +583,7 @@ aggregate [
                 - SString:
                     - String: count(
                     - Expr:
-                        Items:
+                        Terms:
                           - Ident: x
                     - String: )
           - Pipeline:
@@ -592,11 +592,11 @@ aggregate [
               - Aggregate:
                   by: []
                   calcs:
-                    - Items:
+                    - Terms:
                         - SString:
                             - String: count(
                             - Expr:
-                                Items:
+                                Terms:
                                   - Ident: salary
                             - String: )
                   assigns: []

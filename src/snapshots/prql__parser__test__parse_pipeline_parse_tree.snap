@@ -1,6 +1,6 @@
 ---
 source: src/parser.rs
-assertion_line: 817
+assertion_line: 811
 expression: "parse_tree_of_str(r#\"\n    from employees\n    select [a, b]\n    \"#.trim(),\n        Rule::pipeline)?"
 ---
 [
@@ -38,7 +38,7 @@ expression: "parse_tree_of_str(r#\"\n    from employees\n    select [a, b]\n    
                         },
                         inner: [
                             Pair {
-                                rule: items,
+                                rule: terms,
                                 span: Span {
                                     str: "employees",
                                     start: 5,
@@ -86,7 +86,7 @@ expression: "parse_tree_of_str(r#\"\n    from employees\n    select [a, b]\n    
                         },
                         inner: [
                             Pair {
-                                rule: items,
+                                rule: terms,
                                 span: Span {
                                     str: "[a, b]",
                                     start: 26,
@@ -110,7 +110,7 @@ expression: "parse_tree_of_str(r#\"\n    from employees\n    select [a, b]\n    
                                                 },
                                                 inner: [
                                                     Pair {
-                                                        rule: items,
+                                                        rule: terms,
                                                         span: Span {
                                                             str: "a",
                                                             start: 27,
@@ -139,7 +139,7 @@ expression: "parse_tree_of_str(r#\"\n    from employees\n    select [a, b]\n    
                                                 },
                                                 inner: [
                                                     Pair {
-                                                        rule: items,
+                                                        rule: terms,
                                                         span: Span {
                                                             str: "b",
                                                             start: 30,

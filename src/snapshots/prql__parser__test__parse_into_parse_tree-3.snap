@@ -1,6 +1,6 @@
 ---
 source: src/parser.rs
-assertion_line: 781
+assertion_line: 775
 expression: "parse_tree_of_str(\"aggregate by:[title, country] [sum salary]\",\n        Rule::transformation)?"
 ---
 [
@@ -30,7 +30,7 @@ expression: "parse_tree_of_str(\"aggregate by:[title, country] [sum salary]\",\n
                 },
                 inner: [
                     Pair {
-                        rule: items,
+                        rule: terms,
                         span: Span {
                             str: "by:[title, country] [sum salary]",
                             start: 10,
@@ -71,7 +71,7 @@ expression: "parse_tree_of_str(\"aggregate by:[title, country] [sum salary]\",\n
                                                 },
                                                 inner: [
                                                     Pair {
-                                                        rule: items,
+                                                        rule: terms,
                                                         span: Span {
                                                             str: "title",
                                                             start: 14,
@@ -100,7 +100,7 @@ expression: "parse_tree_of_str(\"aggregate by:[title, country] [sum salary]\",\n
                                                 },
                                                 inner: [
                                                     Pair {
-                                                        rule: items,
+                                                        rule: terms,
                                                         span: Span {
                                                             str: "country",
                                                             start: 21,
@@ -141,7 +141,7 @@ expression: "parse_tree_of_str(\"aggregate by:[title, country] [sum salary]\",\n
                                         },
                                         inner: [
                                             Pair {
-                                                rule: items,
+                                                rule: terms,
                                                 span: Span {
                                                     str: "sum salary",
                                                     start: 31,

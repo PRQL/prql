@@ -1,6 +1,6 @@
 ---
 source: src/parser.rs
-assertion_line: 807
+assertion_line: 801
 expression: "parse_tree_of_str(\"join side:left country [id=employee_id]\",\n        Rule::transformation)?"
 ---
 [
@@ -30,7 +30,7 @@ expression: "parse_tree_of_str(\"join side:left country [id=employee_id]\",\n   
                 },
                 inner: [
                     Pair {
-                        rule: items,
+                        rule: terms,
                         span: Span {
                             str: "side:left country [id=employee_id]",
                             start: 5,
@@ -91,7 +91,7 @@ expression: "parse_tree_of_str(\"join side:left country [id=employee_id]\",\n   
                                         },
                                         inner: [
                                             Pair {
-                                                rule: items,
+                                                rule: terms,
                                                 span: Span {
                                                     str: "id",
                                                     start: 24,
@@ -119,7 +119,7 @@ expression: "parse_tree_of_str(\"join side:left country [id=employee_id]\",\n   
                                                 inner: [],
                                             },
                                             Pair {
-                                                rule: items,
+                                                rule: terms,
                                                 span: Span {
                                                     str: "employee_id",
                                                     start: 27,

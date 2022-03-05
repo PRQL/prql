@@ -1,6 +1,6 @@
 ---
 source: src/parser.rs
-assertion_line: 790
+assertion_line: 784
 expression: "parse_tree_of_str(r#\"[\n  gross_salary: salary + payroll_tax,\n  gross_cost:   gross_salary + benefits_cost\n]\"#,\n        Rule::list)?"
 ---
 [
@@ -21,7 +21,7 @@ expression: "parse_tree_of_str(r#\"[\n  gross_salary: salary + payroll_tax,\n  g
                 },
                 inner: [
                     Pair {
-                        rule: items,
+                        rule: terms,
                         span: Span {
                             str: "gross_salary: salary + payroll_tax",
                             start: 4,
@@ -54,7 +54,7 @@ expression: "parse_tree_of_str(r#\"[\n  gross_salary: salary + payroll_tax,\n  g
                                         },
                                         inner: [
                                             Pair {
-                                                rule: items,
+                                                rule: terms,
                                                 span: Span {
                                                     str: "salary ",
                                                     start: 18,
@@ -82,7 +82,7 @@ expression: "parse_tree_of_str(r#\"[\n  gross_salary: salary + payroll_tax,\n  g
                                                 inner: [],
                                             },
                                             Pair {
-                                                rule: items,
+                                                rule: terms,
                                                 span: Span {
                                                     str: "payroll_tax",
                                                     start: 27,
@@ -117,7 +117,7 @@ expression: "parse_tree_of_str(r#\"[\n  gross_salary: salary + payroll_tax,\n  g
                 },
                 inner: [
                     Pair {
-                        rule: items,
+                        rule: terms,
                         span: Span {
                             str: "gross_cost:   gross_salary + benefits_cost",
                             start: 42,
@@ -150,7 +150,7 @@ expression: "parse_tree_of_str(r#\"[\n  gross_salary: salary + payroll_tax,\n  g
                                         },
                                         inner: [
                                             Pair {
-                                                rule: items,
+                                                rule: terms,
                                                 span: Span {
                                                     str: "gross_salary ",
                                                     start: 56,
@@ -178,7 +178,7 @@ expression: "parse_tree_of_str(r#\"[\n  gross_salary: salary + payroll_tax,\n  g
                                                 inner: [],
                                             },
                                             Pair {
-                                                rule: items,
+                                                rule: terms,
                                                 span: Span {
                                                     str: "benefits_cost",
                                                     start: 71,
