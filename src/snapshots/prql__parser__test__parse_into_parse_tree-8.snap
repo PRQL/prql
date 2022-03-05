@@ -1,6 +1,6 @@
 ---
 source: src/parser.rs
-assertion_line: 803
+assertion_line: 797
 expression: "parse_tree_of_str(\"join country [id=employee_id]\", Rule::transformation)?"
 ---
 [
@@ -30,7 +30,7 @@ expression: "parse_tree_of_str(\"join country [id=employee_id]\", Rule::transfor
                 },
                 inner: [
                     Pair {
-                        rule: items,
+                        rule: terms,
                         span: Span {
                             str: "country [id=employee_id]",
                             start: 5,
@@ -63,7 +63,7 @@ expression: "parse_tree_of_str(\"join country [id=employee_id]\", Rule::transfor
                                         },
                                         inner: [
                                             Pair {
-                                                rule: items,
+                                                rule: terms,
                                                 span: Span {
                                                     str: "id",
                                                     start: 14,
@@ -91,7 +91,7 @@ expression: "parse_tree_of_str(\"join country [id=employee_id]\", Rule::transfor
                                                 inner: [],
                                             },
                                             Pair {
-                                                rule: items,
+                                                rule: terms,
                                                 span: Span {
                                                     str: "employee_id",
                                                     start: 17,

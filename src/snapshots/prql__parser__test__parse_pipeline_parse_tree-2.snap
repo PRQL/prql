@@ -1,6 +1,6 @@
 ---
 source: src/parser.rs
-assertion_line: 825
+assertion_line: 819
 expression: "parse_tree_of_str(r#\"\n    from employees\n    filter country = \"USA\"\n    \"#.trim(),\n        Rule::pipeline)?"
 ---
 [
@@ -38,7 +38,7 @@ expression: "parse_tree_of_str(r#\"\n    from employees\n    filter country = \"
                         },
                         inner: [
                             Pair {
-                                rule: items,
+                                rule: terms,
                                 span: Span {
                                     str: "employees",
                                     start: 5,
@@ -86,7 +86,7 @@ expression: "parse_tree_of_str(r#\"\n    from employees\n    filter country = \"
                         },
                         inner: [
                             Pair {
-                                rule: items,
+                                rule: terms,
                                 span: Span {
                                     str: "country ",
                                     start: 26,
@@ -114,7 +114,7 @@ expression: "parse_tree_of_str(r#\"\n    from employees\n    filter country = \"
                                 inner: [],
                             },
                             Pair {
-                                rule: items,
+                                rule: terms,
                                 span: Span {
                                     str: "\"USA\"",
                                     start: 36,

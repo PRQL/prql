@@ -1,6 +1,6 @@
 ---
 source: src/parser.rs
-assertion_line: 789
+assertion_line: 783
 expression: "parse_tree_of_str(\"[a, b, c,]\", Rule::list)?"
 ---
 [
@@ -21,7 +21,7 @@ expression: "parse_tree_of_str(\"[a, b, c,]\", Rule::list)?"
                 },
                 inner: [
                     Pair {
-                        rule: items,
+                        rule: terms,
                         span: Span {
                             str: "a",
                             start: 1,
@@ -50,7 +50,7 @@ expression: "parse_tree_of_str(\"[a, b, c,]\", Rule::list)?"
                 },
                 inner: [
                     Pair {
-                        rule: items,
+                        rule: terms,
                         span: Span {
                             str: "b",
                             start: 4,
@@ -79,7 +79,7 @@ expression: "parse_tree_of_str(\"[a, b, c,]\", Rule::list)?"
                 },
                 inner: [
                     Pair {
-                        rule: items,
+                        rule: terms,
                         span: Span {
                             str: "c",
                             start: 7,

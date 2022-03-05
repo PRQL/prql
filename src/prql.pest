@@ -25,8 +25,8 @@ pipe = _{ NEWLINE | "|" }
 // TODO: should this allow for multiple line breaks?
 pipeline = { transformation ~ (pipe ~ transformation)* }
 // `ident` is the transformation name.
-// Should this be `expr` or `items`? With `items`, we can't have `filter x = 1`; only
-// `filter (x = 1)`, so choosing `expr`.
+// Should this be `terms` or `items`? With `terms`, we can't have `filter x = 1`; only
+// `filter (x = 1)`, so choosing `items`.
 transformation = { WHITESPACE* ~ ident ~ expr? }
 // TODO: resolve
 inline_pipeline = !{ "(" ~ pipeline ~ ")" }
@@ -34,7 +34,7 @@ inline_pipeline = !{ "(" ~ pipeline ~ ")" }
 ident = @{ ( ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "." | "_" )* ) }
 idents = { ident+ }
 
-// A central issue around the items vs expr is that we want to be able to parse:
+// A central issue around the terms vs items is that we want to be able to parse:
 //   [foo bar + 1, 2]
 // as:
 // - foo bar + 1
@@ -48,7 +48,7 @@ idents = { ident+ }
 // - A notion of list item that contains anything, including operators (but
 //   not commas); e.g. `foo bar + 1`.
 // - A notion of items that aggregates things between operators, e.g. foo bar.
-// So we call the list item `expr`, and the things between separators `items`.
+// So we call the list item `items`, and the things between separators `terms`.
 //
 // We could have them be the same, but then we need logic in the parser to
 // account for where the list item is in this parse tree
@@ -60,15 +60,15 @@ idents = { ident+ }
 // - 2
 
 // Adding the WHITESPACE is like making it a compound-atomic operator.
-expr = { ( items | operator | WHITESPACE )+ }
+expr = { ( terms | operator | WHITESPACE )+ }
 // For when we want to include separators, but don't need to break between them;
 // e.g. in function definitions; where `func x = x + 1` can have `x + 1` as a
 // single sequence of items. Alternative we could arguably discard this and
 // unnest when creating the AST (which currently we do anyway).
-expr_silent = _{ ( items | operator | WHITESPACE )+ }
-items = !{ item+ }
+expr_silent = _{ ( terms | operator | WHITESPACE )+ }
+terms = !{ term+ }
 // Should assign be here?
-item = _{ ( parenthesized_expr | list | named_arg | assign | s_string | ident | number | string_literal | inline_pipeline ) }
+term = _{ ( parenthesized_expr | list | named_arg | assign | s_string | ident | number | string_literal | inline_pipeline ) }
 list = !{ "[" ~ NEWLINE? ~ expr ~ ("," ~ NEWLINE? ~ expr )* ~ ","? ~ NEWLINE? ~ "]" }
 parenthesized_expr = _{ "(" ~ expr ~ ")" }
 
@@ -116,7 +116,7 @@ s_string_string = { ( !( "\\" | "\"" | "{" ) ~ ANY )+ }
 // `named_arg` to ensure assignments parse as assignments rather than
 // named_args.)
 assign = ${ ident ~ WHITESPACE* ~ ":" ~ WHITESPACE+ ~ expr }
-named_arg = ${ ident ~ ":" ~ item }
+named_arg = ${ ident ~ ":" ~ term }
 
 // We no longer use this, but keeping here for reference, as it was a useful
 // pattern for reducing nesting.

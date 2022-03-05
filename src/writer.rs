@@ -62,7 +62,7 @@ fn to_select(pipeline: &Pipeline) -> Result<sqlparser::ast::Select, Error> {
             .collect();
 
         Ok(if !filters.is_empty() {
-            Some((Item::Items(Filter::combine_filters(filters).0)).try_into()?)
+            Some((Item::Terms(Filter::combine_filters(filters).0)).try_into()?)
         } else {
             None
         })
@@ -245,12 +245,12 @@ impl TryFrom<Item> for sqlparser::ast::SelectItem {
                     .join(", "),
             )
             .try_into(),
-            Item::Items(items)
+            Item::Terms(items)
             | Item::Transformation(Transformation::Func(FuncCall { args: items, .. })) => {
                 Ok(sqlparser::ast::SelectItem::UnnamedExpr(
                     sqlparser::ast::Expr::Identifier(sqlparser::ast::Ident::new(
                         // TODO: temp hack
-                        TryInto::<sqlparser::ast::Expr>::try_into(Item::Items(items))
+                        TryInto::<sqlparser::ast::Expr>::try_into(Item::Terms(items))
                             .unwrap()
                             .to_string(),
                     )),
@@ -301,7 +301,7 @@ impl TryFrom<Item> for sqlparser::ast::Expr {
                 sqlparser::ast::Ident::new(ident),
             )),
             // TODO: List needs a different impl
-            Item::Items(items) => Ok(sqlparser::ast::Expr::Identifier(
+            Item::Terms(items) => Ok(sqlparser::ast::Expr::Identifier(
                 sqlparser::ast::Ident::new(
                     items
                         .into_iter()
@@ -318,7 +318,7 @@ impl TryFrom<Item> for sqlparser::ast::Expr {
                 sqlparser::ast::Value::SingleQuotedString(ident),
             )),
             // Fairly hacky — convert everything to a string, then concat it,
-            // then convert to Expr. We can't use the `items` approach above
+            // then convert to Expr. We can't use the `terms` approach above
             // since we don't want to intersperse with spaces.
             Item::SString(s_string_items) => {
                 let string = s_string_items
@@ -345,7 +345,7 @@ fn test_try_from_s_string_to_expr() -> Result<()> {
 SString:
  - String: SUM(
  - Expr:
-     Items:
+     Terms:
        - Ident: col
  - String: )
 ";

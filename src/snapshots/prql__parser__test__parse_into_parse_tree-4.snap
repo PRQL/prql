@@ -1,6 +1,6 @@
 ---
 source: src/parser.rs
-assertion_line: 785
+assertion_line: 779
 expression: "parse_tree_of_str(r#\"    filter country = \"USA\"\"#, Rule::transformation)?"
 ---
 [
@@ -30,7 +30,7 @@ expression: "parse_tree_of_str(r#\"    filter country = \"USA\"\"#, Rule::transf
                 },
                 inner: [
                     Pair {
-                        rule: items,
+                        rule: terms,
                         span: Span {
                             str: "country ",
                             start: 11,
@@ -58,7 +58,7 @@ expression: "parse_tree_of_str(r#\"    filter country = \"USA\"\"#, Rule::transf
                         inner: [],
                     },
                     Pair {
-                        rule: items,
+                        rule: terms,
                         span: Span {
                             str: "\"USA\"",
                             start: 21,

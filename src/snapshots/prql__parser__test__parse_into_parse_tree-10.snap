@@ -1,6 +1,6 @@
 ---
 source: src/parser.rs
-assertion_line: 811
+assertion_line: 805
 expression: "parse_tree_of_str(\"1  + 2\", Rule::expr)?"
 ---
 [
@@ -13,7 +13,7 @@ expression: "parse_tree_of_str(\"1  + 2\", Rule::expr)?"
         },
         inner: [
             Pair {
-                rule: items,
+                rule: terms,
                 span: Span {
                     str: "1  ",
                     start: 0,
@@ -41,7 +41,7 @@ expression: "parse_tree_of_str(\"1  + 2\", Rule::expr)?"
                 inner: [],
             },
             Pair {
-                rule: items,
+                rule: terms,
                 span: Span {
                     str: "2",
                     start: 5,

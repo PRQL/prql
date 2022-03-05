@@ -1,6 +1,6 @@
 ---
 source: src/parser.rs
-assertion_line: 780
+assertion_line: 774
 expression: "parse_tree_of_str(\"select [a, b, c]\", Rule::transformation)?"
 ---
 [
@@ -30,7 +30,7 @@ expression: "parse_tree_of_str(\"select [a, b, c]\", Rule::transformation)?"
                 },
                 inner: [
                     Pair {
-                        rule: items,
+                        rule: terms,
                         span: Span {
                             str: "[a, b, c]",
                             start: 7,
@@ -54,7 +54,7 @@ expression: "parse_tree_of_str(\"select [a, b, c]\", Rule::transformation)?"
                                         },
                                         inner: [
                                             Pair {
-                                                rule: items,
+                                                rule: terms,
                                                 span: Span {
                                                     str: "a",
                                                     start: 8,
@@ -83,7 +83,7 @@ expression: "parse_tree_of_str(\"select [a, b, c]\", Rule::transformation)?"
                                         },
                                         inner: [
                                             Pair {
-                                                rule: items,
+                                                rule: terms,
                                                 span: Span {
                                                     str: "b",
                                                     start: 11,
@@ -112,7 +112,7 @@ expression: "parse_tree_of_str(\"select [a, b, c]\", Rule::transformation)?"
                                         },
                                         inner: [
                                             Pair {
-                                                rule: items,
+                                                rule: terms,
                                                 span: Span {
                                                     str: "c",
                                                     start: 14,

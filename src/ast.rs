@@ -28,12 +28,10 @@ pub enum Item {
     // Holds Items / Terms, not including separators like `+`. Unnesting this
     // (i.e. Items(Item) -> Item) does not change its semantics. (More detail in
     // `prql.pest`)
-    // (possibly rename to Terms)
-    Items(Items),
+    Terms(Items),
     // Holds any Items. Unnesting _can_ change semantics (though it's less
     // important than when this was used as a ListItem).
-    // (possibly rename to Items)
-    Expr(Items),
+    Items(Items),
     Idents(Idents),
     Function(Function),
     Table(Table),
@@ -148,12 +146,12 @@ impl Item {
     /// want to only have to handle a single type.
     pub fn into_inner_items(self) -> Vec<Item> {
         match self {
-            Item::Items(items) | Item::Expr(items) => items,
+            Item::Terms(items) | Item::Items(items) => items,
             _ => vec![self],
         }
     }
     pub fn as_inner_items(&self) -> Result<&Vec<Item>> {
-        if let Item::Items(items) | Item::Expr(items) = self {
+        if let Item::Terms(items) | Item::Items(items) = self {
             Ok(items)
         } else {
             Err(anyhow!("Expected container type; got {:?}", self))
@@ -166,7 +164,7 @@ impl Item {
         }
     }
     /// For lists that only have one item in each ListItem this returns a Vec of
-    /// those items. (e.g. `[1, a b]` but not `[1 + 2]`, because `+` in an
+    /// those terms. (e.g. `[1, a b]` but not `[1 + 2]`, because `+` in an
     /// operator and so will create an `Items` for each of `1` & `2`)
     pub fn into_inner_list_single_items(self) -> Result<Vec<Item>> {
         match self {
@@ -179,10 +177,10 @@ impl Item {
     }
 
     /// Wrap in Items unless it's already an Items.
-    pub fn coerce_to_items(self) -> Item {
+    pub fn coerce_to_terms(self) -> Item {
         match self {
-            Item::Items(_) => self,
-            _ => Item::Items(vec![self]),
+            Item::Terms(_) => self,
+            _ => Item::Terms(vec![self]),
         }
     }
     /// Either provide a List with the contents of `self`, or `self` if the item
@@ -205,7 +203,7 @@ impl Item {
     // `.unwrap_or` at the end — is there a way?
     pub fn as_scalar(&self) -> &Item {
         match self {
-            Item::Items(items) | Item::Expr(items) => {
+            Item::Terms(items) | Item::Items(items) => {
                 items.only().map(|item| item.as_scalar()).unwrap_or(self)
             }
             _ => self,
@@ -218,8 +216,8 @@ impl Item {
     /// containers.
     pub fn into_unnested(self) -> Item {
         match self {
-            Item::Items(items) => {
-                Item::Items(items.into_iter().map(|item| item.into_unnested()).collect())
+            Item::Terms(items) => {
+                Item::Terms(items.into_iter().map(|item| item.into_unnested()).collect())
                     .as_scalar()
                     .clone()
             }
@@ -233,8 +231,8 @@ impl Item {
                     })
                     .collect(),
             ),
-            Item::Expr(items) => {
-                Item::Expr(items.into_iter().map(|item| item.into_unnested()).collect())
+            Item::Items(items) => {
+                Item::Items(items.into_iter().map(|item| item.into_unnested()).collect())
             }
             _ => self,
         }
@@ -249,19 +247,19 @@ mod test {
         let atom = Item::Ident("a".to_string());
 
         // Gets the single item through one level of nesting.
-        let item = Item::Items(vec![atom.clone()]);
+        let item = Item::Terms(vec![atom.clone()]);
         assert_eq!(item.as_scalar(), &atom);
 
         // No change when it's the same.
         let item = atom.clone();
         assert_eq!(item.as_scalar(), &item);
 
-        // No change when there are two items in the `items`.
-        let item = Item::Items(vec![atom.clone(), atom.clone()]);
+        // No change when there are two items in the `terms`.
+        let item = Item::Terms(vec![atom.clone(), atom.clone()]);
         assert_eq!(item.as_scalar(), &item);
 
         // Gets the single item through two levels of nesting.
-        let item = Item::Items(vec![Item::Items(vec![atom.clone()])]);
+        let item = Item::Terms(vec![Item::Terms(vec![atom.clone()])]);
         assert_eq!(item.as_scalar(), &atom);
     }
 }
