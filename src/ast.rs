@@ -20,14 +20,18 @@ pub enum Item {
     Raw(String),
     Assign(Assign),
     NamedArg(NamedArg),
+    // TODO: Add dialect & prql version onto Query.
     Query(Items),
     Pipeline(Pipeline),
     // Similar to holding an Expr, but we strongly type it so the parsing can be more strict.
     List(Vec<ListItem>),
-    // Holds Items / Terms, not including separators like `+`.
+    // Holds Items / Terms, not including separators like `+`. Unnesting this
+    // (i.e. Items(Item) -> Item) does not change its semantics. (More detail in
+    // `prql.pest`)
     // (possibly rename to Terms)
     Items(Items),
-    // Holds any Items.
+    // Holds any Items. Unnesting _can_ change semantics (though it's less
+    // important than when this was used as a ListItem).
     // (possibly rename to Items)
     Expr(Items),
     Idents(Idents),
@@ -60,6 +64,8 @@ pub enum Transformation {
     Derive(Vec<Assign>),
     Aggregate {
         by: Items,
+        // This is currently one list. TODO: change to a Vec of Items? One Items
+        // would get unnested.
         calcs: Vec<Item>,
         assigns: Vec<Assign>,
     },
@@ -81,6 +87,9 @@ impl Transformation {
             Transformation::Sort(_) => "sort",
             Transformation::Take(_) => "take",
             Transformation::Join(_) => "join",
+            // Currently this is unused, since we don't encode function calls as
+            // anything more than Idents at the moment. We may want to change
+            // that in the future.
             Transformation::Func(FuncCall { name, .. }) => name,
         }
     }
@@ -185,9 +194,15 @@ impl Item {
             _ => Item::List(vec![ListItem(vec![self])]),
         }
     }
+    /// Make a list from a vec of Items
+    pub fn into_list_of_items(items: Items) -> Item {
+        Item::List(items.into_iter().map(|item| ListItem(vec![item])).collect())
+    }
 
     /// The scalar version / opposite of `as_inner_items`. It keeps unwrapping
     /// Item / Expr types until it finds one with a non-single element.
+    // TODO: I can't seem to get a move version of this that works with the
+    // `.unwrap_or` at the end — is there a way?
     pub fn as_scalar(&self) -> &Item {
         match self {
             Item::Items(items) | Item::Expr(items) => {

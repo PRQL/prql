@@ -101,10 +101,9 @@ fn to_select(pipeline: &Pipeline) -> Result<sqlparser::ast::Select, Error> {
     let (group_bys, select_from_aggregate): (Vec<Item>, Option<Vec<SelectItem>>) = match aggregate {
         Some(Transformation::Aggregate { by, calcs, assigns }) => (
             by.clone(),
-            // This is inscrutable, sorry for the rust.
-            // It's chaining a) the calcs (such as `sum salary`) and b) the assigns
-            // (such as `sum_salary: sum salary`), and converting them into
-            // SelectItems.
+            // This is chaining a) the calcs (such as `sum salary`) and b) the
+            // assigns (such as `sum_salary: sum salary`), and converting them
+            // into SelectItems.
             Some(
                 calcs
                     .iter()
@@ -116,9 +115,7 @@ fn to_select(pipeline: &Pipeline) -> Result<sqlparser::ast::Select, Error> {
         None => (vec![], None),
         _ => unreachable!("Expected an aggregate transformation"),
     };
-    let group_by =
-        Item::List(group_bys.into_iter().map(|x| ListItem(vec![x])).collect()).try_into()?;
-
+    let group_by = Item::into_list_of_items(group_bys).try_into()?;
     let select_from_derive = pipeline
         .iter()
         .filter_map(|t| match t {
@@ -331,7 +328,6 @@ impl TryFrom<Item> for sqlparser::ast::Expr {
                         SStringItem::Expr(item) => TryInto::<sqlparser::ast::Expr>::try_into(item)
                             .map(|expr| expr.to_string()),
                     })
-                    // .map_ok(|string| TryInto::<sqlparser::ast::Expr>::try_into(Item::Ident(string)))
                     .collect::<Result<Vec<String>>>()?
                     .join("");
                 Item::Ident(string).try_into()
