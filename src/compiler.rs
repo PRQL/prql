@@ -454,8 +454,7 @@ aggregate [
               - Aggregate:
                   by: []
                   calcs:
-                    - List:
-                        - - Ident: count
+                    - Ident: count
                   assigns: []
         "###);
 
@@ -473,13 +472,13 @@ aggregate [
         .to_string();
         assert!(!diff.is_empty());
         assert_display_snapshot!(diff, @r###"
-        @@ -12,5 +12,6 @@
+        @@ -11,5 +11,6 @@
+               - Aggregate:
                    by: []
                    calcs:
-                     - List:
-        -                - - Ident: count
-        +                - - Items:
-        +                      - Ident: testing_count
+        -            - Ident: count
+        +            - Items:
+        +                - Ident: testing_count
                    assigns: []
         "###);
 
@@ -520,10 +519,9 @@ aggregate [
               - Aggregate:
                   by: []
                   calcs:
-                    - List:
-                        - - Items:
-                              - Ident: count
-                              - Ident: salary
+                    - Items:
+                        - Ident: count
+                        - Ident: salary
                   assigns: []
         "###);
 
@@ -541,18 +539,18 @@ aggregate [
         .to_string();
         assert!(!diff.is_empty());
         assert_display_snapshot!(diff, @r###"
-        @@ -19,6 +19,10 @@
+        @@ -18,6 +18,10 @@
+                   by: []
                    calcs:
-                     - List:
-                         - - Items:
-        -                      - Ident: count
-        -                      - Ident: salary
-        +                      - SString:
-        +                          - String: count(
-        +                          - Expr:
-        +                              Items:
-        +                                - Ident: salary
-        +                          - String: )
+                     - Items:
+        -                - Ident: count
+        -                - Ident: salary
+        +                - SString:
+        +                    - String: count(
+        +                    - Expr:
+        +                        Items:
+        +                          - Ident: salary
+        +                    - String: )
                    assigns: []
         "###);
 
@@ -594,14 +592,13 @@ aggregate [
               - Aggregate:
                   by: []
                   calcs:
-                    - List:
-                        - - Items:
-                              - SString:
-                                  - String: count(
-                                  - Expr:
-                                      Items:
-                                        - Ident: salary
-                                  - String: )
+                    - Items:
+                        - SString:
+                            - String: count(
+                            - Expr:
+                                Items:
+                                  - Ident: salary
+                            - String: )
                   assigns: []
         "###
         );

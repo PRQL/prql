@@ -165,14 +165,13 @@ fn parse_tree_of_str(source: &str, rule: Rule) -> Result<Pairs<Rule>> {
 impl TryFrom<Vec<Item>> for Transformation {
     type Error = anyhow::Error;
     fn try_from(items: Vec<Item>) -> Result<Self> {
-        let (name_item, expr) = items
+        let (name_item, expr) = &items
             .split_first()
             .ok_or(anyhow!("Expected at least one item"))?;
         let name = name_item.as_ident().ok_or(anyhow!("Expected Ident"))?;
         // TODO: account for a name-only transformation, with no expr.
         let (named_arg_items, args): (Vec<Item>, Vec<Item>) = expr
-            .only()?
-            .clone()
+            .into_only()?
             // Take out of the expr
             .as_scalar()
             .clone()
@@ -213,14 +212,15 @@ impl TryFrom<Vec<Item>> for Transformation {
                 Ok(Transformation::Derive(assigns))
             }
             "aggregate" => {
-                // This is more compicated rust than I was expecting, and we may
-                // generalize these checks to Func functions anyway.
-                if args.len() != 1 {
-                    return Err(anyhow!(
-                        "Expected exactly one unnamed argument for aggregate, got {:?}",
-                        args
-                    ));
-                }
+                // We may generalize these checks to custom functions.
+                let arg = args.into_only()?;
+                // Ideally we'd be able to add to the error message with context
+                // without falling afowl of the borrow rules.
+                // Err(anyhow!(
+                //     "Expected exactly one unnamed argument for aggregate, got {:?}",
+                //     args
+                // ))
+                // })?;
                 let by = match &named_args[..] {
                     [NamedArg { name, arg }] => {
                         if name != "by" {
@@ -245,13 +245,15 @@ impl TryFrom<Vec<Item>> for Transformation {
                     }
                 };
 
-                let ops = (&args)
-                    .first()
-                    .ok_or_else(|| anyhow!("Failed on {:?}", args))
-                    .cloned()
+                let ops: Items = arg
                     // Normalize for it being a list or a single op (TODO: this
                     // is an area that could use some cleaning up)
-                    .map(|x| x.coerce_to_list().into_inner_items())?;
+                    .coerce_to_list()
+                    .into_inner_list_items()?
+                    .into_iter()
+                    .map(Item::Items)
+                    .map(|x| x.into_unnested())
+                    .collect();
 
                 // Ops should either be calcs or assigns; e.g. one of
                 //   average gross_cost
@@ -267,24 +269,7 @@ impl TryFrom<Vec<Item>> for Transformation {
                     calcs,
                     assigns: assigns
                         .into_iter()
-                        .map(|x| {
-                            // The assigns need to be parsed as Transformations.
-                            // Potentially there's a nicer way of doing this in
-                            // Rust, so we're not parsing them one way and then
-                            // parsing them another. (I thought about having
-                            // Assign generic in its rvalue, but then Item needs
-                            // that generic parameter too?)
-                            x.as_assign()
-                                .ok_or(anyhow!("Expected Assign"))
-                                .cloned()
-                                .map(|assign| Assign {
-                                    lvalue: assign.lvalue,
-                                    // Make the rvalue items into a transformation.
-                                    rvalue: Box::new(Item::Transformation(
-                                        assign.rvalue.into_inner_items().try_into().unwrap(),
-                                    )),
-                                })
-                        })
+                        .map(|x| x.into_assign().map_err(|_| anyhow!("Expected Assign")))
                         .try_collect()?,
                 })
             }
@@ -316,6 +301,8 @@ pub fn ast_of_string(string: &str, rule: Rule) -> Result<Item> {
 
 #[cfg(test)]
 mod test {
+
+    use core::panic;
 
     use super::*;
     use insta::{assert_debug_snapshot, assert_yaml_snapshot};
@@ -496,20 +483,28 @@ mod test {
               - Ident: salary
             named_args: []
         "###);
+        let aggregate = ast_of_string("aggregate by:[title] [sum salary]", Rule::transformation)?;
         assert_yaml_snapshot!(
-            ast_of_string("aggregate by:[title] [sum salary]", Rule::transformation)?, @r###"
+            aggregate, @r###"
         ---
         Transformation:
           Aggregate:
             by:
               - Ident: title
             calcs:
-              - List:
-                  - - Items:
-                        - Ident: sum
-                        - Ident: salary
+              - Items:
+                  - Ident: sum
+                  - Ident: salary
             assigns: []
         "###);
+
+        if let Transformation::Aggregate { calcs, .. } = aggregate.as_transformation().unwrap() {
+            if !matches!(calcs.into_only()?.as_items().unwrap()[0], Item::Ident(_)) {
+                panic!("Nesting incorrect");
+            }
+        } else {
+            panic!("Nesting incorrect");
+        }
 
         let item = ast_of_string("aggregate by:[title] [sum salary]", Rule::transformation)?;
         let aggregate = item.as_transformation().ok_or(anyhow!("Expected Raw"))?;
@@ -527,10 +522,9 @@ mod test {
             by:
               - Ident: title
             calcs:
-              - List:
-                  - - Items:
-                        - Ident: sum
-                        - Ident: salary
+              - Items:
+                  - Ident: sum
+                  - Ident: salary
             assigns: []
         "###);
         Ok(())
