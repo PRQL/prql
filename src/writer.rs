@@ -348,7 +348,7 @@ impl TryFrom<Item> for sqlparser::ast::Expr {
                     .join("");
                 Item::Ident(string).try_into()
             }
-            _ => Err(anyhow!("Can't convert to Expr at the moment; {:?}", item)),
+            _ => Err(anyhow!("Can't convert to Expr at the moment; {item:?}")),
         }
     }
 }
@@ -402,7 +402,7 @@ impl TryFrom<Item> for sqlparser::ast::Ident {
         match item {
             Item::Ident(ident) => Ok(sqlparser::ast::Ident::new(ident)),
             Item::Raw(ident) => Ok(sqlparser::ast::Ident::new(ident)),
-            _ => Err(anyhow!("Can't convert to Ident at the moment; {:?}", item)),
+            _ => Err(anyhow!("Can't convert to Ident at the moment; {item:?}")),
         }
     }
 }

@@ -51,26 +51,26 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Items> {
                 Rule::named_arg => {
                     let parsed: [Item; 2] = ast_of_parse_tree(pair.into_inner())?
                         .try_into()
-                        .map_err(|e| anyhow!("Expected two items; {:?}", e))?;
+                        .map_err(|e| anyhow!("Expected two items; {e:?}"))?;
                     let [name, arg] = parsed;
                     Item::NamedArg(NamedArg {
                         name: name
                             .into_ident()
-                            .map_err(|e| anyhow!("Expected Ident; {:?}", e))?,
+                            .map_err(|e| anyhow!("Expected Ident; {e:?}"))?,
                         arg: Box::new(arg),
                     })
                 }
                 Rule::assign => {
                     let parsed: [Item; 2] = ast_of_parse_tree(pair.into_inner())?
                         .try_into()
-                        .map_err(|e| anyhow!("Expected two items; {:?}", e))?;
+                        .map_err(|e| anyhow!("Expected two items; {e:?}"))?;
                     // Split the pair into its first value, which is always an Ident,
                     // and its other values.
                     if let [lvalue, Item::Items(rvalue)] = parsed {
                         Ok(Item::Assign(Assign {
                             lvalue: lvalue
                                 .into_ident()
-                                .map_err(|e| anyhow!("Expected Ident; {:?}", e))?,
+                                .map_err(|e| anyhow!("Expected Ident; {e:?}"))?,
                             rvalue: Box::new(Item::Terms(rvalue).as_scalar().clone()),
                         }))
                     } else {
@@ -99,21 +99,21 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Items> {
                             body: body.to_owned(),
                         })
                     } else {
-                        unreachable!("Expected Function, got {:?}", 1)
+                        unreachable!("Expected Function, got {parsed:?}")
                     }
                 }
                 Rule::table => {
                     let parsed = ast_of_parse_tree(pair.into_inner())?;
                     let [name, pipeline]: [Item; 2] = parsed
                         .try_into()
-                        .map_err(|e| anyhow!("Expected two items; {:?}", e))?;
+                        .map_err(|e| anyhow!("Expected two items; {e:?}"))?;
                     Item::Table(Table {
                         name: name
                             .into_ident()
-                            .map_err(|e| anyhow!("Expected Ident; {:?}", e))?,
+                            .map_err(|e| anyhow!("Expected Ident; {e:?}"))?,
                         pipeline: pipeline
                             .into_pipeline()
-                            .map_err(|e| anyhow!("Expected Pipeline; {:?}", e))?,
+                            .map_err(|e| anyhow!("Expected Pipeline; {e:?}"))?,
                     })
                 }
                 Rule::ident => Item::Ident(pair.as_str().to_string()),
@@ -121,7 +121,7 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Items> {
                 Rule::string_literal => ast_of_parse_tree(pair.clone().into_inner())?
                     .into_iter()
                     .next()
-                    .ok_or_else(|| anyhow!("Failed reading string {:?}", &pair))?,
+                    .ok_or_else(|| anyhow!("Failed reading string {pair:?}"))?,
                 Rule::string => Item::String(pair.as_str().to_string()),
                 Rule::s_string => Item::SString(
                     pair.into_inner()
@@ -140,7 +140,7 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Items> {
                         .into_iter()
                         .map(|x| match x {
                             Item::Transformation(transformation) => transformation,
-                            _ => unreachable!("{:?}", x),
+                            _ => unreachable!("{x:?}"),
                         })
                         .collect()
                 }),

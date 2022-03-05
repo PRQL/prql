@@ -154,13 +154,13 @@ impl Item {
         if let Item::Terms(items) | Item::Items(items) = self {
             Ok(items)
         } else {
-            Err(anyhow!("Expected container type; got {:?}", self))
+            Err(anyhow!("Expected container type; got {self:?}"))
         }
     }
     pub fn into_inner_list_items(self) -> Result<Vec<Vec<Item>>> {
         match self {
             Item::List(items) => Ok(items.into_iter().map(|item| item.into_inner()).collect()),
-            _ => Err(anyhow!("Expected a list, got {:?}", self)),
+            _ => Err(anyhow!("Expected a list, got {self:?}")),
         }
     }
     /// For lists that only have one item in each ListItem this returns a Vec of
@@ -172,7 +172,7 @@ impl Item {
                 .into_iter()
                 .map(|list_item| list_item.into_inner().into_only())
                 .try_collect(),
-            _ => Err(anyhow!("Expected a list, got {:?}", self)),
+            _ => Err(anyhow!("Expected a list, got {self:?}")),
         }
     }
 
