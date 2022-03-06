@@ -12,6 +12,23 @@ use pest_derive::Parser;
 #[grammar = "prql.pest"]
 pub struct PrqlParser;
 
+/// Parse a string into an AST as a query.
+pub fn parse(string: &str) -> Result<Item> {
+    ast_of_string(string, Rule::query)
+}
+
+/// Parse a string into an AST.
+pub fn ast_of_string(string: &str, rule: Rule) -> Result<Item> {
+    parse_tree_of_str(string, rule)
+        .and_then(ast_of_parse_tree)
+        .and_then(|x| x.into_only())
+}
+
+/// Parse a string into a parse tree / concrete syntax tree, made up of pest Pairs.
+fn parse_tree_of_str(source: &str, rule: Rule) -> Result<Pairs<Rule>> {
+    Ok(PrqlParser::parse(rule, source)?)
+}
+
 /// Parses a parse tree of pest Pairs into an AST.
 fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Items> {
     pairs
@@ -141,11 +158,6 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Items> {
             })
         })
         .collect()
-}
-
-/// Parse a string into a parse tree / concrete syntax tree, made up of pest Pairs.
-fn parse_tree_of_str(source: &str, rule: Rule) -> Result<Pairs<Rule>> {
-    Ok(PrqlParser::parse(rule, source)?)
 }
 
 // We put this outside the main ast_of_parse_tree function because we also use it to ast_of_parse_tree
@@ -282,18 +294,6 @@ impl TryFrom<Vec<Item>> for Transformation {
             })),
         }
     }
-}
-
-/// Parse a string into an AST as a query.
-pub fn parse(string: &str) -> Result<Item> {
-    ast_of_string(string, Rule::query)
-}
-
-/// Parse a string into an AST.
-pub fn ast_of_string(string: &str, rule: Rule) -> Result<Item> {
-    parse_tree_of_str(string, rule)
-        .and_then(ast_of_parse_tree)
-        .and_then(|x| x.into_only())
 }
 
 #[cfg(test)]
