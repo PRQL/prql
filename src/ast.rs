@@ -56,7 +56,7 @@ impl ListItem {
 // We probably want to implement some of these as Structs rather than just
 // `Items`
 pub enum Transformation {
-    From(Items),
+    From(Ident),
     Select(Items),
     Filter(Filter),
     Derive(Vec<Assign>),

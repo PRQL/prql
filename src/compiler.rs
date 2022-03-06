@@ -90,7 +90,7 @@ fn fold_transformation<T: ?Sized + AstFold>(
                 .map(|assign| fold.fold_assign(assign))
                 .try_collect()?
         })),
-        Transformation::From(items) => Ok(Transformation::From(fold.fold_items(items)?)),
+        Transformation::From(ident) => Ok(Transformation::From(fold.fold_ident(ident)?)),
         Transformation::Filter(Filter(items)) => {
             Ok(Transformation::Filter(Filter(fold.fold_items(items)?)))
         }
@@ -393,7 +393,7 @@ mod test {
             &to_string(&fold.fold_item(ast)?)?
         ).unified_diff(),
         @r###"
-        @@ -12,6 +12,9 @@
+        @@ -11,6 +11,9 @@
                - lvalue: gross_cost
                  rvalue:
                    Terms:
@@ -459,8 +459,7 @@ aggregate [
               body:
                 - Ident: testing_count
           - Pipeline:
-              - From:
-                  - Ident: employees
+              - From: employees
               - Aggregate:
                   by: []
                   calcs:
@@ -482,7 +481,7 @@ aggregate [
         .to_string();
         assert!(!diff.is_empty());
         assert_display_snapshot!(diff, @r###"
-        @@ -11,5 +11,6 @@
+        @@ -10,5 +10,6 @@
                - Aggregate:
                    by: []
                    calcs:
@@ -524,8 +523,7 @@ aggregate [
                           - Ident: x
                     - String: )
           - Pipeline:
-              - From:
-                  - Ident: employees
+              - From: employees
               - Aggregate:
                   by: []
                   calcs:
@@ -549,7 +547,7 @@ aggregate [
         .to_string();
         assert!(!diff.is_empty());
         assert_display_snapshot!(diff, @r###"
-        @@ -18,6 +18,10 @@
+        @@ -17,6 +17,10 @@
                    by: []
                    calcs:
                      - Terms:
@@ -597,8 +595,7 @@ aggregate [
                           - Ident: x
                     - String: )
           - Pipeline:
-              - From:
-                  - Ident: employees
+              - From: employees
               - Aggregate:
                   by: []
                   calcs:

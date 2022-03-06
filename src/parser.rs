@@ -182,7 +182,7 @@ impl TryFrom<Vec<Item>> for Transformation {
             .try_collect()?;
 
         match name.as_str() {
-            "from" => Ok(Transformation::From(args)),
+            "from" => Ok(Transformation::From(args.into_only()?.into_ident()?)),
             "select" => Ok(Transformation::Select(args)),
             "filter" => Ok(Transformation::Filter(Filter(args))),
             "derive" => {
@@ -740,8 +740,7 @@ take 20
         Table:
           name: newest_employees
           pipeline:
-            - From:
-                - Ident: employees
+            - From: employees
         "###);
 
         assert_yaml_snapshot!(ast_of_string(
@@ -756,8 +755,7 @@ take 20
         Table:
           name: newest_employees
           pipeline:
-            - From:
-                - Ident: employees
+            - From: employees
             - Sort:
                 - Ident: tenure
             - Take: 50

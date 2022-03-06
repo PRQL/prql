@@ -28,12 +28,7 @@ fn to_sql_select(pipeline: &Pipeline) -> Result<sqlparser::ast::Select> {
         .filter_map(|t| match t {
             Transformation::From(ident) => Some(sqlparser::ast::TableWithJoins {
                 relation: sqlparser::ast::TableFactor::Table {
-                    name: ObjectName(
-                        ident
-                            .iter()
-                            .map(|i| i.clone().try_into().unwrap())
-                            .collect(),
-                    ),
+                    name: ObjectName(vec![Item::Ident(ident.clone()).try_into().unwrap()]),
                     alias: None,
                     args: vec![],
                     with_hints: vec![],
@@ -351,31 +346,6 @@ impl TryFrom<Item> for sqlparser::ast::Expr {
     }
 }
 
-#[test]
-fn test_try_from_s_string_to_expr() -> Result<()> {
-    use insta::assert_yaml_snapshot;
-    use serde_yaml::from_str;
-    let yaml: &str = r"
-SString:
- - String: SUM(
- - Expr:
-     Terms:
-       - Ident: col
- - String: )
-";
-    let ast: Item = from_str(yaml)?;
-    let expr: sqlparser::ast::Expr = ast.try_into()?;
-    assert_yaml_snapshot!(
-        expr, @r###"
-    ---
-    Identifier:
-      value: SUM(col)
-      quote_style: ~
-    "###
-    );
-    Ok(())
-}
-
 impl TryFrom<Item> for Vec<sqlparser::ast::Expr> {
     type Error = anyhow::Error;
     fn try_from(item: Item) -> Result<Self> {
@@ -410,7 +380,7 @@ pub fn sql_of_ast(ast: &Item) -> Result<String> {
     // FIXME
     let pipeline = ast.as_query().unwrap()[0].as_pipeline().unwrap();
     let select = to_sql_select(pipeline)?;
-    Ok(format!("{select}"))
+    Ok(select.to_string())
 }
 
 #[cfg(test)]
@@ -420,6 +390,31 @@ mod test {
     use serde_yaml::from_str;
 
     use crate::parser::{ast_of_string, Rule};
+
+    #[test]
+    fn test_try_from_s_string_to_expr() -> Result<()> {
+        use insta::assert_yaml_snapshot;
+        use serde_yaml::from_str;
+        let yaml: &str = r"
+SString:
+ - String: SUM(
+ - Expr:
+     Terms:
+       - Ident: col
+ - String: )
+";
+        let ast: Item = from_str(yaml)?;
+        let expr: sqlparser::ast::Expr = ast.try_into()?;
+        assert_yaml_snapshot!(
+            expr, @r###"
+    ---
+    Identifier:
+      value: SUM(col)
+      quote_style: ~
+    "###
+        );
+        Ok(())
+    }
 
     #[test]
     fn test_try_from_list_to_vec_expr() -> Result<()> {
@@ -453,8 +448,7 @@ mod test {
         let yaml: &str = r###"
 Query:
   - Pipeline:
-    - From:
-        - Ident: employees
+    - From: employees
     - Filter:
         - Ident: country
         - Raw: "="
@@ -484,8 +478,7 @@ Query:
         let yaml: &str = r###"
 Query:
   - Pipeline:
-    - From:
-        - Ident: employees
+    - From: employees
     - Take: 20
     - Filter:
         - Ident: country
@@ -516,8 +509,7 @@ Query:
         let yaml: &str = r###"
 Query:
   - Pipeline:
-    - From:
-        - Ident: employees
+    - From: employees
     - Take: 20
     - Filter:
         - Ident: country
@@ -563,8 +555,7 @@ Query:
         let yaml: &str = r###"
 Query:
   - Pipeline:
-    - From:
-        - Ident: employees
+    - From: employees
     - Filter:
         - Ident: country
         - Raw: "="
