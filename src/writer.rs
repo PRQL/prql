@@ -169,7 +169,6 @@ fn to_sql_select(pipeline: &Pipeline) -> Result<sqlparser::ast::Select> {
 }
 
 // Alternatively this could be a `TryInto` impl?
-// TODO: this should return a result.
 /// Convert a query into a number of pipelines which can each "fit" into a CTE.
 #[cfg(test)]
 fn ctes_of_query(query: &Item) -> Result<Vec<Pipeline>> {
@@ -193,8 +192,7 @@ fn ctes_of_query(query: &Item) -> Result<Vec<Pipeline>> {
 
     let pipeline = query
         .as_query()
-        // TODO: handle
-        .unwrap()
+        .ok_or_else(|| anyhow!("Expected a query"))?
         .iter()
         // TODO: implement uses of `table`
         .filter_map(|item| item.as_pipeline())

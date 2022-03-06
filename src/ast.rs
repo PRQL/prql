@@ -239,6 +239,14 @@ impl Item {
     }
 }
 
+use anyhow::Error;
+impl From<Item> for Error {
+    // https://github.com/bluejekyll/enum-as-inner/issues/84
+    fn from(item: Item) -> Self {
+        anyhow!("Failed to convert {item:?}")
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
