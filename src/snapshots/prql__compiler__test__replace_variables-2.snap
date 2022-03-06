@@ -1,12 +1,11 @@
 ---
 source: src/compiler.rs
-assertion_line: 424
+assertion_line: 434
 expression: "&fold.fold_item(ast)?"
 ---
 Query:
   - Pipeline:
-      - From:
-          - Ident: employees
+      - From: employees
       - Filter:
           - Ident: country
           - Raw: "="

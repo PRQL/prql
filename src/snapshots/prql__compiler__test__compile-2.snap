@@ -5,8 +5,7 @@ expression: compile(ast)?
 ---
 Query:
   - Pipeline:
-      - From:
-          - Ident: employees
+      - From: employees
       - Filter:
           - Ident: country
           - Raw: "="
