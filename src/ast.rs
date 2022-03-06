@@ -141,17 +141,17 @@ pub struct Filter(pub Items);
 // back to dynamic types, which makes understanding what the parser is doing
 // more difficult.
 impl Item {
-    /// Either provide a Vec with the contents of Item / Expr, or puts a scalar
+    /// Either provide a Vec with the contents of Items / Terms / Query, or puts a scalar
     /// into a Vec. This is useful when we either have a scalar or a list, and
     /// want to only have to handle a single type.
     pub fn into_inner_items(self) -> Vec<Item> {
         match self {
-            Item::Terms(items) | Item::Items(items) => items,
+            Item::Terms(items) | Item::Items(items) | Item::Query(items) => items,
             _ => vec![self],
         }
     }
     pub fn as_inner_items(&self) -> Result<&Vec<Item>> {
-        if let Item::Terms(items) | Item::Items(items) = self {
+        if let Item::Terms(items) | Item::Items(items) | Item::Query(items) = self {
             Ok(items)
         } else {
             Err(anyhow!("Expected container type; got {self:?}"))

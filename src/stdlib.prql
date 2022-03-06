@@ -14,7 +14,7 @@ func stddev column = s"STDDEV({column})"
 func average column = s"AVG({column})"
 func count = s"COUNT(*)"
 # TODO: decide whether we implement multiple dispatch, which would be required
-for this:
+# for this:
 # func count column = s"COUNT({column})"
 func count_distinct column = s"COUNT(DISTINCT `{column}`)"
 

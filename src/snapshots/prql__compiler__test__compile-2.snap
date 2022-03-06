@@ -1,6 +1,6 @@
 ---
 source: src/compiler.rs
-assertion_line: 630
+assertion_line: 640
 expression: compile(ast)?
 ---
 Query:
@@ -43,67 +43,101 @@ Query:
             - Ident: country
           calcs:
             - Terms:
-                - Ident: average
-                - Ident: salary
+                - SString:
+                    - String: AVG(
+                    - Expr:
+                        Terms:
+                          - Ident: salary
+                    - String: )
             - Terms:
-                - Ident: sum
-                - Ident: salary
+                - SString:
+                    - String: SUM(
+                    - Expr:
+                        Terms:
+                          - Ident: salary
+                    - String: )
             - Terms:
-                - Ident: average
-                - Terms:
-                    - Ident: salary
-                    - Raw: +
-                    - Ident: payroll_tax
+                - SString:
+                    - String: AVG(
+                    - Expr:
+                        Terms:
+                          - Terms:
+                              - Ident: salary
+                              - Raw: +
+                              - Ident: payroll_tax
+                    - String: )
             - Terms:
-                - Ident: sum
-                - Terms:
-                    - Ident: salary
-                    - Raw: +
-                    - Ident: payroll_tax
+                - SString:
+                    - String: SUM(
+                    - Expr:
+                        Terms:
+                          - Terms:
+                              - Ident: salary
+                              - Raw: +
+                              - Ident: payroll_tax
+                    - String: )
             - Terms:
-                - Ident: average
-                - Terms:
-                    - Terms:
-                        - Ident: salary
-                        - Raw: +
-                        - Ident: payroll_tax
-                    - Raw: +
-                    - Ident: benefits_cost
+                - SString:
+                    - String: AVG(
+                    - Expr:
+                        Terms:
+                          - Terms:
+                              - Terms:
+                                  - Ident: salary
+                                  - Raw: +
+                                  - Ident: payroll_tax
+                              - Raw: +
+                              - Ident: benefits_cost
+                    - String: )
           assigns:
             - lvalue: sum_gross_cost
               rvalue:
                 Terms:
-                  - Ident: sum
-                  - Terms:
-                      - Terms:
-                          - Ident: salary
-                          - Raw: +
-                          - Ident: payroll_tax
-                      - Raw: +
-                      - Ident: benefits_cost
+                  - SString:
+                      - String: SUM(
+                      - Expr:
+                          Terms:
+                            - Terms:
+                                - Terms:
+                                    - Ident: salary
+                                    - Raw: +
+                                    - Ident: payroll_tax
+                                - Raw: +
+                                - Ident: benefits_cost
+                      - String: )
             - lvalue: count
               rvalue:
-                Ident: count
+                Terms:
+                  - SString:
+                      - String: COUNT(*)
       - Sort:
           - Terms:
-              - Ident: sum
-              - Terms:
-                  - Terms:
-                      - Ident: salary
-                      - Raw: +
-                      - Ident: payroll_tax
-                  - Raw: +
-                  - Ident: benefits_cost
+              - SString:
+                  - String: SUM(
+                  - Expr:
+                      Terms:
+                        - Terms:
+                            - Terms:
+                                - Ident: salary
+                                - Raw: +
+                                - Ident: payroll_tax
+                            - Raw: +
+                            - Ident: benefits_cost
+                  - String: )
       - Filter:
           - Terms:
-              - Ident: sum
-              - Terms:
-                  - Terms:
-                      - Ident: salary
-                      - Raw: +
-                      - Ident: payroll_tax
-                  - Raw: +
-                  - Ident: benefits_cost
+              - SString:
+                  - String: SUM(
+                  - Expr:
+                      Terms:
+                        - Terms:
+                            - Terms:
+                                - Ident: salary
+                                - Raw: +
+                                - Ident: payroll_tax
+                            - Raw: +
+                            - Ident: benefits_cost
+                  - String: )
           - Raw: ">"
           - Raw: "200"
       - Take: 20

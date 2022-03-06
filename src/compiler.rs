@@ -342,8 +342,18 @@ impl Filter {
     }
 }
 
+fn load_std_lib() -> Result<Items> {
+    use super::parse;
+    let std_lib = include_str!("stdlib.prql");
+    Ok(parse(std_lib)?.into_inner_items())
+}
+
 pub fn compile(ast: Item) -> Result<Item> {
+    let functions = load_std_lib()?;
     let mut run_functions = RunFunctions::new();
+    functions.into_iter().for_each(|f| {
+        run_functions.add_function(&f.into_function().unwrap());
+    });
     let mut replace_variables = ReplaceVariables::new();
     // TODO: is it always OK to run these serially?
     let ast = run_functions.fold_item(&ast)?;
