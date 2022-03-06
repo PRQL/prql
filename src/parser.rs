@@ -54,9 +54,7 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Items> {
                         .map_err(|e| anyhow!("Expected two items; {e:?}"))?;
                     let [name, arg] = parsed;
                     Item::NamedArg(NamedArg {
-                        name: name
-                            .into_ident()
-                            .map_err(|e| anyhow!("Expected Ident; {e:?}"))?,
+                        name: name.into_ident()?,
                         arg: Box::new(arg),
                     })
                 }
@@ -68,9 +66,7 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Items> {
                     // and its other values.
                     if let [lvalue, Item::Items(rvalue)] = parsed {
                         Ok(Item::Assign(Assign {
-                            lvalue: lvalue
-                                .into_ident()
-                                .map_err(|e| anyhow!("Expected Ident; {e:?}"))?,
+                            lvalue: lvalue.into_ident()?,
                             rvalue: Box::new(Item::Terms(rvalue).as_scalar().clone()),
                         }))
                     } else {
@@ -108,12 +104,8 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Items> {
                         .try_into()
                         .map_err(|e| anyhow!("Expected two items; {e:?}"))?;
                     Item::Table(Table {
-                        name: name
-                            .into_ident()
-                            .map_err(|e| anyhow!("Expected Ident; {e:?}"))?,
-                        pipeline: pipeline
-                            .into_pipeline()
-                            .map_err(|e| anyhow!("Expected Pipeline; {e:?}"))?,
+                        name: name.into_ident()?,
+                        pipeline: pipeline.into_pipeline()?,
                     })
                 }
                 Rule::ident => Item::Ident(pair.as_str().to_string()),
@@ -153,7 +145,7 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Items> {
 
 /// Parse a string into a parse tree / concrete syntax tree, made up of pest Pairs.
 fn parse_tree_of_str(source: &str, rule: Rule) -> Result<Pairs<Rule>> {
-    PrqlParser::parse(rule, source).map_err(|e| e.into())
+    Ok(PrqlParser::parse(rule, source)?)
 }
 
 // We put this outside the main ast_of_parse_tree function because we also use it to ast_of_parse_tree
