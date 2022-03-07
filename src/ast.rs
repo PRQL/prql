@@ -214,6 +214,8 @@ impl Item {
     /// than one child. This is more unnesting that `as_scalar' does. Only
     /// removes `Items` (not `Expr` or `List`), though it does walk all the
     /// containers.
+    // TODO: implement as a fold, and include objects like SStrings here, so we
+    // can run it once for a whole query.
     pub fn into_unnested(self) -> Item {
         match self {
             Item::Terms(items) => {
