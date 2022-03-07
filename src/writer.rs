@@ -293,17 +293,7 @@ impl TryFrom<Item> for sqlparser::ast::SelectItem {
             Item::Ident(ident) => Ok(sqlparser::ast::SelectItem::UnnamedExpr(
                 sqlparser::ast::Expr::Identifier(sqlparser::ast::Ident::new(ident)),
             )),
-            Item::List(_) => Item::Ident(
-                item.into_inner_list_single_items()?
-                    .into_iter()
-                    .map(TryInto::<sqlparser::ast::Expr>::try_into)
-                    .map_ok(|x| x.to_string())
-                    .collect::<Result<Vec<String>>>()?
-                    .join(", "),
-            )
-            .try_into(),
-            Item::Terms(items)
-            | Item::Transformation(Transformation::Func(FuncCall { args: items, .. })) => {
+            Item::Terms(items) => {
                 Ok(sqlparser::ast::SelectItem::UnnamedExpr(
                     sqlparser::ast::Expr::Identifier(sqlparser::ast::Ident::new(
                         // TODO: temp hack
@@ -405,8 +395,7 @@ impl TryFrom<Item> for Vec<sqlparser::ast::Expr> {
                 .map(|x| x.try_into())
                 .try_collect()?),
             _ => Err(anyhow!(
-                "Can't convert to Vec<Expr> at the moment; {:?}",
-                item
+                "Can't convert to Vec<Expr> at the moment; {item:?}"
             )),
         }
     }
@@ -496,12 +485,9 @@ SString:
     - Ident: title
     - Ident: country
     calcs:
-    - Transformation:
-        Func:
-            name: sum
-            args:
-            - Ident: salary
-            named_args: []
+    - Terms:
+        - Ident: average
+        - Ident: salary
     assigns: []
 - Sort:
     - Ident: title
@@ -525,13 +511,9 @@ SString:
         - Ident: title
         - Ident: country
         calcs:
-        - Transformation:
-            Func:
-                name: sum
-                args:
-                - Ident: salary
-                named_args: []
-
+        - Terms:
+            - Ident: average
+            - Ident: salary
         assigns: []
     - Sort:
         - Ident: title
@@ -554,24 +536,18 @@ SString:
         - Ident: title
         - Ident: country
         calcs:
-        - Transformation:
-            Func:
-                name: sum
-                args:
-                - Ident: salary
-                named_args: []
+        - Terms:
+            - Ident: average
+            - Ident: salary
         assigns: []
     - Aggregate:
         by:
         - Ident: title
         - Ident: country
         calcs:
-        - Transformation:
-            Func:
-                name: average
-                args:
-                - Ident: salary
-                named_args: []
+        - Terms:
+            - Ident: average
+            - Ident: salary
         assigns: []
     - Sort:
         - Ident: sum_gross_cost
@@ -599,12 +575,9 @@ Query:
         - Ident: title
         - Ident: country
         calcs:
-        - Transformation:
-            Func:
-                name: average
-                args:
-                - Ident: salary
-                named_args: []
+        - Terms:
+            - Ident: average
+            - Ident: salary
         assigns: []
     - Sort:
         - Ident: title
