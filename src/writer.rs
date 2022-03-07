@@ -1,16 +1,52 @@
 use super::ast::*;
 
-#[cfg(test)]
 use super::utils::*;
 use anyhow::{anyhow, Result};
-#[cfg(test)]
 use std::collections::HashMap;
 
 use itertools::Itertools;
 use sqlparser::ast::*;
 
-#[cfg(test)]
-fn to_sql_select(pipeline: &Pipeline) -> Result<sqlparser::ast::Select> {
+pub fn sql_of_ast(ast: &Item) -> Result<String> {
+    // We don't compile functions into SQL.
+    let compilable: Vec<Item> = ast
+        .as_query()
+        .unwrap()
+        .iter()
+        .filter(|item| !matches!(item, Item::Function(_)))
+        .cloned()
+        .collect();
+
+    let items: Vec<Item> = compilable
+        .iter()
+        .map(|item| {
+            match item {
+                Item::Pipeline(pipeline) => {
+                    // TDOO: handle result
+                    let ctes = ctes_of_pipeline(pipeline).unwrap();
+                    if ctes.len() > 1 {
+                        tables_of_pipelines(ctes).map(|x| {
+                            Item::Items(x.into_iter().map(Item::Table).collect::<Vec<Item>>())
+                        })
+                    } else {
+                        ctes.into_only().map(Item::Pipeline)
+                    }
+                }
+                Item::Table(_) => unimplemented!(),
+                _ => unreachable!(),
+            }
+        })
+        .try_collect()?;
+
+    Ok(items
+        .iter()
+        .map(to_sql_select)
+        .collect::<Result<Vec<sqlparser::ast::Select>>>()?
+        .into_only()?
+        .to_string())
+}
+
+fn to_sql_select(item: &Item) -> Result<sqlparser::ast::Select> {
     // TODO: possibly do validation here? e.g. check there isn't more than one
     // `from`? Or do we rely on `to_select` for that?
     // TODO: this doesn't handle joins at all yet.
@@ -22,6 +58,12 @@ fn to_sql_select(pipeline: &Pipeline) -> Result<sqlparser::ast::Select> {
     //   https://stackoverflow.com/a/65394297/3064736 let grouped =
     //   group_pairs(pipeline.iter().map(|t| (t.name, t))); let from =
     //   grouped.get(&TransformationType::From).unwrap().first().unwrap().clone();
+
+    // FIME
+    let pipeline = match item {
+        Item::Pipeline(pipeline) => pipeline,
+        _ => unimplemented!(),
+    };
 
     let from = pipeline
         .iter()
@@ -164,9 +206,8 @@ fn to_sql_select(pipeline: &Pipeline) -> Result<sqlparser::ast::Select> {
 }
 
 // Alternatively this could be a `TryInto` impl?
-/// Convert a query into a number of pipelines which can each "fit" into a CTE.
-#[cfg(test)]
-fn ctes_of_query(query: &Item) -> Result<Vec<Pipeline>> {
+/// Convert a pipeline into a number of pipelines which can each "fit" into a CTE.
+fn ctes_of_pipeline(pipeline: &Pipeline) -> Result<Vec<Pipeline>> {
     // Before starting a new CTE, we can have a pipeline with:
     // - 1 aggregate.
     // - 1 take, and then 0 other transformations.
@@ -177,21 +218,11 @@ fn ctes_of_query(query: &Item) -> Result<Vec<Pipeline>> {
     // So we loop through the Pipeline, and cut it into cte-sized pipelines,
     // which we'll then compose together.
 
-    // TODO: how do we handle the `from` of the next query? Add it here? Have a
-    // Vec<Ctc> where this is implicit?
-    let mut queries = vec![];
+    let mut ctes = vec![];
 
     // TODO: this used to work but we get a borrow checker error when using `str`.
     // let mut counts: HashMap<&str, u32> = HashMap::new();
     let mut counts: HashMap<String, u32> = HashMap::new();
-
-    let pipeline = query
-        .as_query()
-        .ok_or_else(|| anyhow!("Expected a query"))?
-        .iter()
-        // TODO: implement uses of `table`
-        .filter_map(|item| item.as_pipeline())
-        .into_only()?;
 
     let mut current_cte: Pipeline = vec![];
 
@@ -200,8 +231,9 @@ fn ctes_of_query(query: &Item) -> Result<Vec<Pipeline>> {
     for transformation in pipeline {
         let transformation = transformation.to_owned();
         if transformation.name() == "aggregate" && counts.get("aggregate") == Some(&1) {
+            // push_current_cte()
             // We have a new CTE
-            queries.push(current_cte);
+            ctes.push(current_cte);
             current_cte = vec![];
             counts.clear();
         }
@@ -212,16 +244,32 @@ fn ctes_of_query(query: &Item) -> Result<Vec<Pipeline>> {
 
         if counts.get("take") == Some(&1) {
             // We have a new CTE
-            queries.push(current_cte);
+            ctes.push(current_cte);
             current_cte = vec![];
             counts.clear();
         }
     }
     if !current_cte.is_empty() {
-        queries.push(current_cte);
+        ctes.push(current_cte);
     }
 
-    Ok(queries)
+    Ok(ctes)
+}
+
+/// Converts a series of pipelines into a series of tables, by putting the
+/// next pipeline's `from` as the current pipelines's table name.
+fn tables_of_pipelines(pipelines: Vec<Pipeline>) -> Result<Vec<Table>> {
+    let mut tables = vec![];
+    for (n, mut pipeline) in pipelines.into_iter().enumerate() {
+        if n > 0 {
+            pipeline.insert(0, Transformation::From(format!("table_{}", n - 1)));
+        }
+        tables.push(Table {
+            name: "table_".to_owned() + &n.to_string(),
+            pipeline: pipeline.clone(),
+        });
+    }
+    Ok(tables)
 }
 
 impl TryFrom<Assign> for SelectItem {
@@ -376,14 +424,6 @@ impl TryFrom<Item> for sqlparser::ast::Ident {
 }
 
 #[cfg(test)]
-pub fn sql_of_ast(ast: &Item) -> Result<String> {
-    // FIXME
-    let pipeline = ast.as_query().unwrap()[0].as_pipeline().unwrap();
-    let select = to_sql_select(pipeline)?;
-    Ok(select.to_string())
-}
-
-#[cfg(test)]
 mod test {
     use super::*;
     use insta::{assert_debug_snapshot, assert_display_snapshot};
@@ -443,41 +483,37 @@ SString:
     }
 
     #[test]
-    fn test_ctes_of_query() -> Result<()> {
+    fn test_ctes_of_pipeline() -> Result<()> {
         // One aggregate, take at the end
         let yaml: &str = r###"
-Query:
-  - Pipeline:
-    - From: employees
-    - Filter:
-        - Ident: country
-        - Raw: "="
-        - String: USA
-    - Aggregate:
-        by:
-        - Ident: title
-        - Ident: country
-        calcs:
-        - Transformation:
-            Func:
-                name: sum
-                args:
-                - Ident: salary
-                named_args: []
-        assigns: []
-    - Sort:
-        - Ident: title
-    - Take: 20
+- From: employees
+- Filter:
+    - Ident: country
+    - Raw: "="
+    - String: USA
+- Aggregate:
+    by:
+    - Ident: title
+    - Ident: country
+    calcs:
+    - Transformation:
+        Func:
+            name: sum
+            args:
+            - Ident: salary
+            named_args: []
+    assigns: []
+- Sort:
+    - Ident: title
+- Take: 20
         "###;
 
-        let pipeline: Item = from_str(yaml)?;
-        let queries = ctes_of_query(&pipeline)?;
+        let pipeline: Pipeline = from_str(yaml)?;
+        let queries = ctes_of_pipeline(&pipeline)?;
         assert_eq!(queries.len(), 1);
 
         // One aggregate, but take at the top
         let yaml: &str = r###"
-Query:
-  - Pipeline:
     - From: employees
     - Take: 20
     - Filter:
@@ -501,14 +537,12 @@ Query:
         - Ident: title
         "###;
 
-        let pipeline: Item = from_str(yaml)?;
-        let queries = ctes_of_query(&pipeline)?;
+        let pipeline: Pipeline = from_str(yaml)?;
+        let queries = ctes_of_pipeline(&pipeline)?;
         assert_eq!(queries.len(), 2);
 
         // A take, then two aggregates
         let yaml: &str = r###"
-Query:
-  - Pipeline:
     - From: employees
     - Take: 20
     - Filter:
@@ -544,8 +578,8 @@ Query:
 
         "###;
 
-        let pipeline: Item = from_str(yaml)?;
-        let queries = ctes_of_query(&pipeline)?;
+        let pipeline: Pipeline = from_str(yaml)?;
+        let queries = ctes_of_pipeline(&pipeline)?;
         assert_eq!(queries.len(), 3);
         Ok(())
     }
@@ -607,7 +641,7 @@ aggregate [
         let ast = compile(pipeline)?;
         // TODO: clean up test; mostly by providing library functions to do this.
         let pipeline = ast.as_query().unwrap()[2].as_pipeline().unwrap();
-        let select = to_sql_select(pipeline)?;
+        let select = to_sql_select(&Item::Pipeline(pipeline.clone()))?;
         assert_display_snapshot!(select,
             @"SELECT count(salary), sum(salary) FROM employees"
         );
