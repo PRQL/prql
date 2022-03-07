@@ -307,9 +307,7 @@ impl RunFunctions {
             });
         });
         // Take a clone of the body and replace the arguments with their values.
-        Ok(Item::Terms(
-            replace_variables.fold_items(&func.body.clone())?,
-        ))
+        Ok(Item::Terms(replace_variables.fold_items(&func.body)?).into_unnested())
     }
 }
 
@@ -481,13 +479,12 @@ aggregate [
         .to_string();
         assert!(!diff.is_empty());
         assert_display_snapshot!(diff, @r###"
-        @@ -10,5 +10,6 @@
+        @@ -10,5 +10,5 @@
                - Aggregate:
                    by: []
                    calcs:
         -            - Ident: count
-        +            - Terms:
-        +                - Ident: testing_count
+        +            - Ident: testing_count
                    assigns: []
         "###);
 
@@ -547,18 +544,19 @@ aggregate [
         .to_string();
         assert!(!diff.is_empty());
         assert_display_snapshot!(diff, @r###"
-        @@ -17,6 +17,10 @@
+        @@ -16,7 +16,10 @@
+               - Aggregate:
                    by: []
                    calcs:
-                     - Terms:
+        -            - Terms:
         -                - Ident: count
         -                - Ident: salary
-        +                - SString:
-        +                    - String: count(
-        +                    - Expr:
-        +                        Terms:
-        +                          - Ident: salary
-        +                    - String: )
+        +            - SString:
+        +                - String: count(
+        +                - Expr:
+        +                    Terms:
+        +                      - Ident: salary
+        +                - String: )
                    assigns: []
         "###);
 
@@ -599,13 +597,12 @@ aggregate [
               - Aggregate:
                   by: []
                   calcs:
-                    - Terms:
-                        - SString:
-                            - String: count(
-                            - Expr:
-                                Terms:
-                                  - Ident: salary
-                            - String: )
+                    - SString:
+                        - String: count(
+                        - Expr:
+                            Terms:
+                              - Ident: salary
+                        - String: )
                   assigns: []
         "###
         );
