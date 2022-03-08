@@ -14,7 +14,7 @@ pub struct PrqlParser;
 
 /// Parse a string into an AST as a query.
 pub fn parse(string: &str) -> Result<Item> {
-    ast_of_string(string, Rule::query)
+    ast_of_string(string, Rule::query).map(|x| x.into_unnested())
 }
 
 /// Parse a string into an AST.
@@ -52,14 +52,13 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Items> {
                             _ => unreachable!(),
                         })
                         .collect(),
-                )
-                .into_unnested(),
+                ),
                 Rule::idents => {
                     Item::Idents(pair.into_inner().map(|x| x.as_str().to_owned()).collect())
                 }
                 Rule::terms => Item::Terms(ast_of_parse_tree(pair.into_inner())?)
                     // We collapse any Items with a single element into that
-                    // element. We don't do this with Expr or List because those are
+                    // element. We don't do this with Items or List because those are
                     // often meaningful — e.g. a List needs a number of Expr, so that
                     // `[a, b]` is different from `[a b]`.
                     .as_scalar()
@@ -138,9 +137,10 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Items> {
                         // verbose code given it's inside an expression inside a `map`)
                         .map(|x| match x.as_rule() {
                             Rule::s_string_string => SStringItem::String(x.as_str().to_string()),
-                            _ => SStringItem::Expr(Item::Terms(
-                                ast_of_parse_tree(x.into_inner()).unwrap(),
-                            )),
+                            _ => SStringItem::Expr(
+                                Item::Terms(ast_of_parse_tree(x.into_inner()).unwrap())
+                                    .into_unnested(),
+                            ),
                         })
                         .collect(),
                 ),
@@ -351,8 +351,7 @@ mod test {
         SString:
           - String: SUM(
           - Expr:
-              Terms:
-                - Ident: col
+              Ident: col
           - String: )
         "###);
         assert_yaml_snapshot!(ast_of_string(r#"s"SUM({2 + 2})""#, Rule::s_string)?, @r###"
@@ -706,8 +705,7 @@ take 20
             - SString:
                 - String: SUM(
                 - Expr:
-                    Terms:
-                      - Ident: X
+                    Ident: X
                 - String: )
         "###);
 

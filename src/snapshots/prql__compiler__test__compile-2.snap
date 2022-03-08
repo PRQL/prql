@@ -1,6 +1,6 @@
 ---
 source: src/compiler.rs
-assertion_line: 639
+assertion_line: 442
 expression: compile(ast)?
 ---
 Query:
@@ -44,14 +44,28 @@ Query:
             - SString:
                 - String: AVG(
                 - Expr:
+                    Ident: salary
+                - String: )
+            - SString:
+                - String: SUM(
+                - Expr:
+                    Ident: salary
+                - String: )
+            - SString:
+                - String: AVG(
+                - Expr:
                     Terms:
                       - Ident: salary
+                      - Raw: +
+                      - Ident: payroll_tax
                 - String: )
             - SString:
                 - String: SUM(
                 - Expr:
                     Terms:
                       - Ident: salary
+                      - Raw: +
+                      - Ident: payroll_tax
                 - String: )
             - SString:
                 - String: AVG(
@@ -61,27 +75,8 @@ Query:
                           - Ident: salary
                           - Raw: +
                           - Ident: payroll_tax
-                - String: )
-            - SString:
-                - String: SUM(
-                - Expr:
-                    Terms:
-                      - Terms:
-                          - Ident: salary
-                          - Raw: +
-                          - Ident: payroll_tax
-                - String: )
-            - SString:
-                - String: AVG(
-                - Expr:
-                    Terms:
-                      - Terms:
-                          - Terms:
-                              - Ident: salary
-                              - Raw: +
-                              - Ident: payroll_tax
-                          - Raw: +
-                          - Ident: benefits_cost
+                      - Raw: +
+                      - Ident: benefits_cost
                 - String: )
           assigns:
             - lvalue: sum_gross_cost
@@ -91,12 +86,11 @@ Query:
                   - Expr:
                       Terms:
                         - Terms:
-                            - Terms:
-                                - Ident: salary
-                                - Raw: +
-                                - Ident: payroll_tax
+                            - Ident: salary
                             - Raw: +
-                            - Ident: benefits_cost
+                            - Ident: payroll_tax
+                        - Raw: +
+                        - Ident: benefits_cost
                   - String: )
             - lvalue: count
               rvalue:
@@ -108,12 +102,11 @@ Query:
               - Expr:
                   Terms:
                     - Terms:
-                        - Terms:
-                            - Ident: salary
-                            - Raw: +
-                            - Ident: payroll_tax
+                        - Ident: salary
                         - Raw: +
-                        - Ident: benefits_cost
+                        - Ident: payroll_tax
+                    - Raw: +
+                    - Ident: benefits_cost
               - String: )
       - Filter:
           - SString:
@@ -121,12 +114,11 @@ Query:
               - Expr:
                   Terms:
                     - Terms:
-                        - Terms:
-                            - Ident: salary
-                            - Raw: +
-                            - Ident: payroll_tax
+                        - Ident: salary
                         - Raw: +
-                        - Ident: benefits_cost
+                        - Ident: payroll_tax
+                    - Raw: +
+                    - Ident: benefits_cost
               - String: )
           - Raw: ">"
           - Raw: "200"
