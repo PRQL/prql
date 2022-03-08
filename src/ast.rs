@@ -61,9 +61,7 @@ pub enum Transformation {
     Filter(Filter),
     Derive(Vec<Assign>),
     Aggregate {
-        by: Items,
-        // This is currently one list. TODO: change to a Vec of Items? One Items
-        // would get unnested.
+        by: Vec<Item>,
         calcs: Vec<Item>,
         assigns: Vec<Assign>,
     },
@@ -176,7 +174,8 @@ impl Item {
         }
     }
 
-    /// Wrap in Items unless it's already an Items.
+    /// Wrap in Terms unless it's already a Terms.
+    // TODO: not sure whether we really need this.
     pub fn coerce_to_terms(self) -> Item {
         match self {
             Item::Terms(_) => self,
