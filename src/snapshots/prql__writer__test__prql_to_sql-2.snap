@@ -1,18 +1,18 @@
 ---
 source: src/writer.rs
-assertion_line: 646
+assertion_line: 674
 expression: sql
 ---
 SELECT
-  TOP (20) AVG(salary),
+  TOP (20) salary + payroll_tax AS gross_salary,
+  salary + payroll_tax + benefits_cost AS gross_cost,
+  SUM(salary + payroll_tax + benefits_cost) AS sum_gross_cost,
+  COUNT(*) AS count,
+  AVG(salary),
   SUM(salary),
   AVG(salary + payroll_tax),
   SUM(salary + payroll_tax),
-  AVG(salary + payroll_tax + benefits_cost),
-  SUM(salary + payroll_tax + benefits_cost) AS sum_gross_cost,
-  COUNT(*) AS count,
-  salary + payroll_tax AS gross_salary,
-  salary + payroll_tax + benefits_cost AS gross_cost
+  AVG(salary + payroll_tax + benefits_cost)
 FROM
   employees
 WHERE
@@ -20,4 +20,6 @@ WHERE
   and salary + payroll_tax + benefits_cost > 0
 GROUP BY
   title,
-  country SORT BY SUM(salary + payroll_tax + benefits_cost)
+  country
+ORDER BY
+  SUM(salary + payroll_tax + benefits_cost)

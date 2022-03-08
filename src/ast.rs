@@ -1,8 +1,6 @@
-use crate::ast_fold::AstFold;
-
 use super::utils::*;
+use crate::ast_fold::AstFold;
 use anyhow::{anyhow, Result};
-
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 
