@@ -128,28 +128,26 @@ impl AstFold for RunFunctions {
         out
     }
     fn fold_item(&mut self, item: &Item) -> Result<Item> {
-        // If it's an ident, it could be a func with no arg, so convert to Items.
-        match (item).clone().coerce_to_terms() {
-            Item::Terms(items) => {
-                if let Some(Item::Ident(ident)) = items.first() {
-                    if self.functions.get(ident).is_some() {
-                        // Currently a transformation expects a Expr to wrap
-                        // all the terms after the name. TODO: another area
-                        // that's messy, should we parse a FuncCall directly?
-                        let (name, body) = items.split_first().unwrap();
-                        let func_call_transform =
-                            vec![name.clone(), Item::Items(body.to_vec())].try_into()?;
-                        if let Transformation::Func(func_call) = func_call_transform {
-                            return self.run_function(&func_call);
-                        } else {
-                            unreachable!()
-                        }
-                    }
+        // If it's an ident, it could be a func with no arg, so convert to Terms.
+        // match (item).clone().coerce_to_terms() {
+        let items = item.clone().into_inner_items();
+
+        if let Some(Item::Ident(ident)) = items.first() {
+            if self.functions.get(ident).is_some() {
+                // Currently a transformation expects a Expr to wrap
+                // all the terms after the name. TODO: another area
+                // that's messy, should we parse a FuncCall directly?
+                let (name, body) = items.split_first().unwrap();
+                let func_call_transform =
+                    vec![name.clone(), Item::Items(body.to_vec())].try_into()?;
+                if let Transformation::Func(func_call) = func_call_transform {
+                    return self.run_function(&func_call);
+                } else {
+                    unreachable!()
                 }
-                fold_item(self, item)
             }
-            _ => Ok(fold_item(self, item)?),
         }
+        fold_item(self, item)
     }
 }
 
