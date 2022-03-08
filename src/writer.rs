@@ -1,13 +1,17 @@
-use super::ast::*;
+// The average code quality here is quite low — we're basically plugging in test
+// cases and fixing what breaks, with some occasional refactors. I'm not sure
+// that's a terrible approach — the SQL spec is huge, so we're not reasonably
+// going to be isomorphically mapping everything back from SQL to PRQL. But it
+// does mean we should continue to iterate on this file and refactor things when
+// necessary.
 
+use super::ast::*;
 use super::utils::*;
 use anyhow::{anyhow, Result};
-use std::collections::HashMap;
-
 use itertools::Itertools;
-use sqlparser::ast::*;
-
 use sqlformat::{format, FormatOptions, QueryParams};
+use sqlparser::ast::*;
+use std::collections::HashMap;
 
 pub fn sql_of_ast(ast: &Item) -> Result<String> {
     // We don't compile functions into SQL.
@@ -42,8 +46,8 @@ pub fn sql_of_ast(ast: &Item) -> Result<String> {
 
     let sql = items
         .iter()
-        .map(to_sql_select)
-        .collect::<Result<Vec<sqlparser::ast::Select>>>()?
+        .map(to_sql_query)
+        .collect::<Result<Vec<sqlparser::ast::Query>>>()?
         .into_only()?
         .to_string();
 
@@ -51,9 +55,9 @@ pub fn sql_of_ast(ast: &Item) -> Result<String> {
     Ok(formatted)
 }
 
-fn to_sql_select(item: &Item) -> Result<sqlparser::ast::Select> {
+fn to_sql_query(item: &Item) -> Result<sqlparser::ast::Query> {
     // TODO: possibly do validation here? e.g. check there isn't more than one
-    // `from`? Or do we rely on `to_select` for that?
+    // `from`? Or do we rely on `to_query` for that?
     // TODO: this doesn't handle joins at all yet.
 
     // Alternatively we could
@@ -73,8 +77,8 @@ fn to_sql_select(item: &Item) -> Result<sqlparser::ast::Select> {
     let from = pipeline
         .iter()
         .filter_map(|t| match t {
-            Transformation::From(ident) => Some(sqlparser::ast::TableWithJoins {
-                relation: sqlparser::ast::TableFactor::Table {
+            Transformation::From(ident) => Some(TableWithJoins {
+                relation: TableFactor::Table {
                     name: ObjectName(vec![Item::Ident(ident.clone()).try_into().unwrap()]),
                     alias: None,
                     args: vec![],
@@ -94,7 +98,7 @@ fn to_sql_select(item: &Item) -> Result<sqlparser::ast::Select> {
             .unwrap_or(pipeline.len()),
     );
     // Convert the filters in a pipeline into an Expr
-    fn filter_of_pipeline(pipeline: &[Transformation]) -> Result<Option<sqlparser::ast::Expr>> {
+    fn filter_of_pipeline(pipeline: &[Transformation]) -> Result<Option<Expr>> {
         let filters: Vec<Filter> = pipeline
             .iter()
             .take_while(|t| !matches!(t, Transformation::Aggregate { .. }))
@@ -131,7 +135,13 @@ fn to_sql_select(item: &Item) -> Result<sqlparser::ast::Select> {
         .iter()
         .filter_map(|t| match t {
             Transformation::Sort(items) => {
-                Some(items.iter().map(|i| i.clone().try_into()).try_collect())
+                Some(Item::Terms(items.to_owned()).try_into().map(|x| {
+                    vec![OrderByExpr {
+                        expr: x,
+                        asc: None,
+                        nulls_first: None,
+                    }]
+                }))
             }
             _ => None,
         })
@@ -145,14 +155,14 @@ fn to_sql_select(item: &Item) -> Result<sqlparser::ast::Select> {
     let (group_bys, select_from_aggregate): (Vec<Item>, Option<Vec<SelectItem>>) = match aggregate {
         Some(Transformation::Aggregate { by, calcs, assigns }) => (
             by.clone(),
-            // This is chaining a) the calcs (such as `sum salary`) and b) the
-            // assigns (such as `sum_salary: sum salary`), and converting them
-            // into SelectItems.
+            // This is chaining a) the assigns (such as `sum_salary: sum
+            // salary`), and b) the calcs (such as `sum salary`); and converting
+            // them into SelectItems.
             Some(
-                calcs
+                assigns
                     .iter()
                     .map(|x| x.clone().try_into())
-                    .chain(assigns.iter().map(|x| x.clone().try_into()))
+                    .chain(calcs.iter().map(|x| x.clone().try_into()))
                     .try_collect()?,
             ),
         ),
@@ -185,9 +195,9 @@ fn to_sql_select(item: &Item) -> Result<sqlparser::ast::Select> {
         .map(|x| x.unwrap());
 
     let select = [
+        Some(select_from_derive),
         select_from_select,
         select_from_aggregate,
-        Some(select_from_derive),
     ]
     .into_iter()
     // TODO: should we do the option flattening here or in each of the selects?
@@ -195,20 +205,26 @@ fn to_sql_select(item: &Item) -> Result<sqlparser::ast::Select> {
     .flatten()
     .collect();
 
-    Ok(sqlparser::ast::Select {
-        distinct: false,
-        top: take,
-        projection: select,
-        from,
-        group_by,
-        having,
-        selection: where_,
-        // TODO: this is not correct — we need a `Query`, which can use an
-        // `ORDER BY`.
-        sort_by: order_by,
-        lateral_views: vec![],
-        distribute_by: vec![],
-        cluster_by: vec![],
+    Ok(sqlparser::ast::Query {
+        body: SetExpr::Select(Box::new(Select {
+            distinct: false,
+            // TODO: when should this be `TOP` vs `LIMIT` (which is on the `Query` object?)
+            top: take,
+            projection: select,
+            from,
+            group_by,
+            having,
+            selection: where_,
+            sort_by: vec![],
+            lateral_views: vec![],
+            distribute_by: vec![],
+            cluster_by: vec![],
+        })),
+        order_by,
+        with: None,
+        limit: None,
+        offset: None,
+        fetch: None,
     })
 }
 
@@ -292,16 +308,12 @@ impl TryFrom<Assign> for SelectItem {
     }
 }
 
-impl TryFrom<Item> for sqlparser::ast::SelectItem {
+impl TryFrom<Item> for SelectItem {
     type Error = anyhow::Error;
     fn try_from(item: Item) -> Result<Self> {
         match item {
             Item::SString(_) | Item::Ident(_) | Item::Terms(_) => {
-                Ok(sqlparser::ast::SelectItem::UnnamedExpr(TryInto::<
-                    sqlparser::ast::Expr,
-                >::try_into(
-                    item
-                )?))
+                Ok(SelectItem::UnnamedExpr(TryInto::<Expr>::try_into(item)?))
             }
             _ => Err(anyhow!(
                 "Can't convert to SelectItem at the moment; {:?}",
@@ -310,23 +322,20 @@ impl TryFrom<Item> for sqlparser::ast::SelectItem {
         }
     }
 }
-impl TryFrom<Transformation> for sqlparser::ast::SelectItem {
+impl TryFrom<Transformation> for SelectItem {
     type Error = anyhow::Error;
     fn try_from(transformation: Transformation) -> Result<Self> {
-        Ok(sqlparser::ast::SelectItem::UnnamedExpr(
-            sqlparser::ast::Expr::Identifier(sqlparser::ast::Ident::new(format!(
-                "TODO: {:?}",
-                &transformation
-            ))),
-        ))
+        Ok(SelectItem::UnnamedExpr(Expr::Identifier(
+            sqlparser::ast::Ident::new(format!("TODO: {:?}", &transformation)),
+        )))
     }
 }
 
-impl TryFrom<Transformation> for sqlparser::ast::Top {
+impl TryFrom<Transformation> for Top {
     type Error = anyhow::Error;
     fn try_from(transformation: Transformation) -> Result<Self> {
         match transformation {
-            Transformation::Take(take) => Ok(sqlparser::ast::Top {
+            Transformation::Take(take) => Ok(Top {
                 // TODO: implement for number
                 quantity: Some(Item::Raw(take.to_string()).try_into()?),
                 with_ties: false,
@@ -337,54 +346,60 @@ impl TryFrom<Transformation> for sqlparser::ast::Top {
     }
 }
 
-impl TryFrom<Item> for sqlparser::ast::Expr {
+impl TryFrom<Item> for Expr {
     type Error = anyhow::Error;
     fn try_from(item: Item) -> Result<Self> {
         match item {
-            Item::Ident(ident) => Ok(sqlparser::ast::Expr::Identifier(
+            Item::Ident(ident) => Ok(Expr::Identifier(
                 sqlparser::ast::Ident::new(ident),
             )),
-            Item::Raw(ident) => Ok(sqlparser::ast::Expr::Identifier(
+            Item::Raw(ident) => Ok(Expr::Identifier(
                 sqlparser::ast::Ident::new(ident),
             )),
-            // TODO: List needs a different impl
-            Item::Terms(items) => Ok(sqlparser::ast::Expr::Identifier(
+            // For expressions like `country = "USA"`, we take each one, convert
+            // it, and put spaces between them. It's a bit hacky — we could
+            // convert each term to a SQL AST item, but it works for the moment.
+            //
+            // (one question is why that is coming as a `Terms` rather an `Items`?)
+            Item::Terms(items) => Ok(Expr::Identifier(
                 sqlparser::ast::Ident::new(
                     items
                         .into_iter()
-                        .map(|item| TryInto::<sqlparser::ast::Expr>::try_into(item).unwrap())
-                        .collect::<Vec<sqlparser::ast::Expr>>()
+                        .map(|item| TryInto::<Expr>::try_into(item).unwrap())
+                        .collect::<Vec<Expr>>()
                         .iter()
                         .map(|x| x.to_string())
-                        // Currently a big hack, but maybe OK, since we don't
+                        // Currently a hack, but maybe OK, since we don't
                         // need to parse every single expression into sqlparser ast.
                         .join(" "),
                 ),
             )),
-            Item::String(ident) => Ok(sqlparser::ast::Expr::Value(
+            Item::String(ident) => Ok(Expr::Value(
                 sqlparser::ast::Value::SingleQuotedString(ident),
             )),
             // Fairly hacky — convert everything to a string, then concat it,
-            // then convert to Expr. We can't use the `terms` approach above
+            // then convert to Expr. We can't use the `Terms` code above
             // since we don't want to intersperse with spaces.
             Item::SString(s_string_items) => {
                 let string = s_string_items
                     .into_iter()
                     .map(|s_string_item| match s_string_item {
                         SStringItem::String(string) => Ok(string),
-                        SStringItem::Expr(item) => TryInto::<sqlparser::ast::Expr>::try_into(item)
+                        SStringItem::Expr(item) => TryInto::<Expr>::try_into(item)
                             .map(|expr| expr.to_string()),
                     })
                     .collect::<Result<Vec<String>>>()?
                     .join("");
                 Item::Ident(string).try_into()
             }
+            Item::Items(_) => Err(anyhow!(
+                "Not yet implemented for `Items`; (something we probably need to do, see notes above); {item:?}"
+            )),
             _ => Err(anyhow!("Can't convert to Expr at the moment; {item:?}")),
         }
     }
 }
-
-impl TryFrom<Item> for Vec<sqlparser::ast::Expr> {
+impl TryFrom<Item> for Vec<Expr> {
     type Error = anyhow::Error;
     fn try_from(item: Item) -> Result<Self> {
         match item {
@@ -400,7 +415,6 @@ impl TryFrom<Item> for Vec<sqlparser::ast::Expr> {
         }
     }
 }
-
 impl TryFrom<Item> for sqlparser::ast::Ident {
     type Error = anyhow::Error;
     fn try_from(item: Item) -> Result<Self> {
@@ -433,7 +447,7 @@ SString:
  - String: )
 ";
         let ast: Item = from_str(yaml)?;
-        let expr: sqlparser::ast::Expr = ast.try_into()?;
+        let expr: Expr = ast.try_into()?;
         assert_yaml_snapshot!(
             expr, @r###"
     ---
@@ -451,7 +465,7 @@ SString:
             ListItem(vec![Item::Ident("a".to_owned())]),
             ListItem(vec![Item::Ident("b".to_owned())]),
         ]);
-        let expr: Vec<sqlparser::ast::Expr> = item.try_into()?;
+        let expr: Vec<Expr> = item.try_into()?;
         assert_debug_snapshot!(expr, @r###"
         [
             Identifier(
@@ -598,7 +612,9 @@ Query:
           country = 'USA'
         GROUP BY
           title,
-          country SORT BY title
+          country
+        ORDER BY
+          title
         "###
         );
         assert!(select
