@@ -1,4 +1,5 @@
 mod ast;
+mod ast_fold;
 mod cli;
 mod compiler;
 mod parser;

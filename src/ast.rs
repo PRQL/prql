@@ -1,3 +1,5 @@
+use crate::ast_fold::AstFold;
+
 use super::utils::*;
 use anyhow::{anyhow, Result};
 
@@ -209,34 +211,28 @@ impl Item {
             _ => self,
         }
     }
+}
 
+pub trait Unnested {
+    fn into_unnested(self) -> Self;
+}
+impl Unnested for Item {
     /// Transitively unnest the whole tree, traversing even parents with more
     /// than one child. This is more unnesting that `as_scalar' does. Only
-    /// removes `Items` (not `Expr` or `List`), though it does walk all the
+    /// removes `Terms` (not `Items` or `List`), though it does walk all the
     /// containers.
-    // TODO: implement as a fold, and include objects like SStrings here, so we
-    // can run it once for a whole query.
-    pub fn into_unnested(self) -> Item {
-        match self {
-            Item::Terms(items) => {
-                Item::Terms(items.into_iter().map(|item| item.into_unnested()).collect())
-                    .as_scalar()
-                    .clone()
-            }
-            // Unpack, operate on, and then repack the items in a List.
-            Item::List(_) => Item::List(
-                self.into_inner_list_items()
-                    .unwrap()
-                    .into_iter()
-                    .map(|list_item| {
-                        ListItem(list_item.into_iter().map(|x| x.into_unnested()).collect())
-                    })
-                    .collect(),
-            ),
-            Item::Items(items) => {
-                Item::Items(items.into_iter().map(|item| item.into_unnested()).collect())
-            }
-            _ => self,
+    fn into_unnested(self) -> Self {
+        Unnester().fold_item(&self).unwrap()
+    }
+}
+
+use super::ast_fold::fold_item;
+struct Unnester();
+impl AstFold for Unnester {
+    fn fold_item(&mut self, item: &Item) -> Result<Item> {
+        match item {
+            Item::Terms(_) => fold_item(self, &item.as_scalar().clone()),
+            _ => fold_item(self, item),
         }
     }
 }
@@ -271,5 +267,33 @@ mod test {
         // Gets the single item through two levels of nesting.
         let item = Item::Terms(vec![Item::Terms(vec![atom.clone()])]);
         assert_eq!(item.as_scalar(), &atom);
+    }
+
+    #[test]
+    fn test_into_unnested() {
+        let atom = Item::Ident("a".to_string());
+
+        // Gets the single item through one level of nesting.
+        let item = Item::Terms(vec![atom.clone()]);
+        assert_eq!(item.into_unnested(), atom);
+
+        // No change when it's the same.
+        let item = atom.clone();
+        assert_eq!(item.clone().into_unnested(), item);
+
+        // No change when there are two items in the `terms`.
+        let item = Item::Terms(vec![atom.clone(), atom.clone()]);
+        assert_eq!(item.clone().into_unnested(), item);
+
+        // Gets the single item through two levels of nesting.
+        let item = Item::Terms(vec![Item::Terms(vec![atom.clone()])]);
+        assert_eq!(item.into_unnested(), atom);
+
+        // Gets a single item through a parent which isn't nested
+        let item = Item::Terms(vec![
+            Item::Terms(vec![atom.clone()]),
+            Item::Terms(vec![atom.clone()]),
+        ]);
+        assert_eq!(item.into_unnested(), Item::Terms(vec![atom.clone(), atom]));
     }
 }
