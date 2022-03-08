@@ -7,6 +7,8 @@ use std::collections::HashMap;
 use itertools::Itertools;
 use sqlparser::ast::*;
 
+use sqlformat::{format, FormatOptions, QueryParams};
+
 pub fn sql_of_ast(ast: &Item) -> Result<String> {
     // We don't compile functions into SQL.
     let compilable: Vec<Item> = ast
@@ -38,12 +40,15 @@ pub fn sql_of_ast(ast: &Item) -> Result<String> {
         })
         .try_collect()?;
 
-    Ok(items
+    let sql = items
         .iter()
         .map(to_sql_select)
         .collect::<Result<Vec<sqlparser::ast::Select>>>()?
         .into_only()?
-        .to_string())
+        .to_string();
+
+    let formatted = format(&sql, &QueryParams::default(), FormatOptions::default());
+    Ok(formatted)
 }
 
 fn to_sql_select(item: &Item) -> Result<sqlparser::ast::Select> {
@@ -198,6 +203,8 @@ fn to_sql_select(item: &Item) -> Result<sqlparser::ast::Select> {
         group_by,
         having,
         selection: where_,
+        // TODO: this is not correct — we need a `Query`, which can use an
+        // `ORDER BY`.
         sort_by: order_by,
         lateral_views: vec![],
         distribute_by: vec![],
@@ -408,10 +415,10 @@ impl TryFrom<Item> for sqlparser::ast::Ident {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::compiler::compile;
+    use crate::parser::parse;
     use insta::{assert_debug_snapshot, assert_display_snapshot};
     use serde_yaml::from_str;
-
-    use crate::parser::{ast_of_string, Rule};
 
     #[test]
     fn test_try_from_s_string_to_expr() -> Result<()> {
@@ -554,7 +561,7 @@ SString:
     }
 
     #[test]
-    fn test_to_select() -> Result<()> {
+    fn test_sql_of_ast() -> Result<()> {
         let yaml: &str = r###"
 Query:
   - Pipeline:
@@ -582,7 +589,17 @@ Query:
         let pipeline: Item = from_str(yaml)?;
         let select = sql_of_ast(&pipeline)?;
         assert_display_snapshot!(select,
-            @"SELECT TOP (20) AVG(salary) FROM employees WHERE country = 'USA' GROUP BY title, country SORT BY title"
+            @r###"
+        SELECT
+          TOP (20) AVG(salary)
+        FROM
+          employees
+        WHERE
+          country = 'USA'
+        GROUP BY
+          title,
+          country SORT BY title
+        "###
         );
         assert!(select
             .to_lowercase()
@@ -591,11 +608,9 @@ Query:
         Ok(())
     }
 
-    use crate::compiler::compile;
-
     #[test]
-    fn test_compiled() -> Result<()> {
-        let pipeline = ast_of_string(
+    fn test_prql_to_sql() -> Result<()> {
+        let query = parse(
             r#"
     func count x = s"count({x})"
     func sum x = s"sum({x})"
@@ -606,15 +621,48 @@ Query:
       sum salary,
     ]
     "#,
-            Rule::query,
         )?;
-        let ast = compile(pipeline)?;
+        let ast = compile(query)?;
         // TODO: clean up test; mostly by providing library functions to do this.
-        let pipeline = ast.as_query().unwrap()[2].as_pipeline().unwrap();
-        let select = to_sql_select(&Item::Pipeline(pipeline.clone()))?;
-        assert_display_snapshot!(select,
-            @"SELECT count(salary), sum(salary) FROM employees"
+        let sql = sql_of_ast(&ast)?;
+        assert_display_snapshot!(sql,
+            @r###"
+        SELECT
+          count(salary),
+          sum(salary)
+        FROM
+          employees
+        "###
         );
+
+        let query = parse(
+            r#"
+from employees
+filter country = "USA"                           # Each line transforms the previous result.
+derive [                                         # This adds columns / variables.
+  gross_salary: salary + payroll_tax,
+  gross_cost:   gross_salary + benefits_cost     # Variables can use other variables.
+]
+filter gross_cost > 0
+aggregate by:[title, country] [                  # `by` are the columns to group by.
+    average salary,                              # These are aggregation calcs run on each group.
+    sum     salary,
+    average gross_salary,
+    sum     gross_salary,
+    average gross_cost,
+    sum_gross_cost: sum gross_cost,
+    count: count,
+]
+sort sum_gross_cost
+filter count > 200
+take 20
+"#,
+        )?;
+
+        let ast = compile(query)?;
+        let sql = sql_of_ast(&ast)?;
+        assert_display_snapshot!(sql);
+
         Ok(())
     }
 }
