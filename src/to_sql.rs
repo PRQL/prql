@@ -13,6 +13,7 @@ use sqlformat::{format, FormatOptions, QueryParams};
 use sqlparser::ast::*;
 use std::collections::HashMap;
 
+/// Convert a PRQL AST to SQL.
 pub fn sql_of_ast(ast: &Item) -> Result<String> {
     // We don't compile functions into SQL.
     let compilable: Vec<Item> = ast

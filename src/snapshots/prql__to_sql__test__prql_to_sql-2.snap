@@ -1,6 +1,6 @@
 ---
-source: src/writer.rs
-assertion_line: 674
+source: src/to_sql.rs
+assertion_line: 669
 expression: sql
 ---
 SELECT
