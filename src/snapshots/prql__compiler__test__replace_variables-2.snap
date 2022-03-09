@@ -1,78 +1,67 @@
 ---
 source: src/compiler.rs
-assertion_line: 434
+assertion_line: 239
 expression: "&fold.fold_item(ast)?"
 ---
 Query:
-  - Pipeline:
-      - From: employees
-      - Filter:
-          - Ident: country
-          - Raw: "="
-          - String: USA
-      - Derive:
-          - lvalue: gross_salary
-            rvalue:
-              Terms:
-                - Ident: salary
-                - Raw: +
-                - Ident: payroll_tax
-          - lvalue: gross_cost
-            rvalue:
-              Terms:
+  items:
+    - Pipeline:
+        - From: employees
+        - Filter:
+            - Ident: country
+            - Raw: "="
+            - String: USA
+        - Derive:
+            - lvalue: gross_salary
+              rvalue:
+                Terms:
+                  - Ident: salary
+                  - Raw: +
+                  - Ident: payroll_tax
+            - lvalue: gross_cost
+              rvalue:
+                Terms:
+                  - Terms:
+                      - Ident: salary
+                      - Raw: +
+                      - Ident: payroll_tax
+                  - Raw: +
+                  - Ident: benefits_cost
+        - Filter:
+            - Terms:
                 - Terms:
                     - Ident: salary
                     - Raw: +
                     - Ident: payroll_tax
                 - Raw: +
                 - Ident: benefits_cost
-      - Filter:
-          - Terms:
+            - Raw: ">"
+            - Raw: "0"
+        - Aggregate:
+            by:
+              - Ident: title
+              - Ident: country
+            calcs:
               - Terms:
+                  - Ident: average
                   - Ident: salary
-                  - Raw: +
-                  - Ident: payroll_tax
-              - Raw: +
-              - Ident: benefits_cost
-          - Raw: ">"
-          - Raw: "0"
-      - Aggregate:
-          by:
-            - Ident: title
-            - Ident: country
-          calcs:
-            - Terms:
-                - Ident: average
-                - Ident: salary
-            - Terms:
-                - Ident: sum
-                - Ident: salary
-            - Terms:
-                - Ident: average
-                - Terms:
-                    - Ident: salary
-                    - Raw: +
-                    - Ident: payroll_tax
-            - Terms:
-                - Ident: sum
-                - Terms:
-                    - Ident: salary
-                    - Raw: +
-                    - Ident: payroll_tax
-            - Terms:
-                - Ident: average
-                - Terms:
-                    - Terms:
-                        - Ident: salary
-                        - Raw: +
-                        - Ident: payroll_tax
-                    - Raw: +
-                    - Ident: benefits_cost
-          assigns:
-            - lvalue: sum_gross_cost
-              rvalue:
-                Terms:
+              - Terms:
                   - Ident: sum
+                  - Ident: salary
+              - Terms:
+                  - Ident: average
+                  - Terms:
+                      - Ident: salary
+                      - Raw: +
+                      - Ident: payroll_tax
+              - Terms:
+                  - Ident: sum
+                  - Terms:
+                      - Ident: salary
+                      - Raw: +
+                      - Ident: payroll_tax
+              - Terms:
+                  - Ident: average
                   - Terms:
                       - Terms:
                           - Ident: salary
@@ -80,30 +69,42 @@ Query:
                           - Ident: payroll_tax
                       - Raw: +
                       - Ident: benefits_cost
-            - lvalue: count
-              rvalue:
-                Ident: count
-      - Sort:
-          - Terms:
-              - Ident: sum
-              - Terms:
-                  - Terms:
-                      - Ident: salary
-                      - Raw: +
-                      - Ident: payroll_tax
-                  - Raw: +
-                  - Ident: benefits_cost
-      - Filter:
-          - Terms:
-              - Ident: sum
-              - Terms:
-                  - Terms:
-                      - Ident: salary
-                      - Raw: +
-                      - Ident: payroll_tax
-                  - Raw: +
-                  - Ident: benefits_cost
-          - Raw: ">"
-          - Raw: "200"
-      - Take: 20
+            assigns:
+              - lvalue: sum_gross_cost
+                rvalue:
+                  Terms:
+                    - Ident: sum
+                    - Terms:
+                        - Terms:
+                            - Ident: salary
+                            - Raw: +
+                            - Ident: payroll_tax
+                        - Raw: +
+                        - Ident: benefits_cost
+              - lvalue: count
+                rvalue:
+                  Ident: count
+        - Sort:
+            - Terms:
+                - Ident: sum
+                - Terms:
+                    - Terms:
+                        - Ident: salary
+                        - Raw: +
+                        - Ident: payroll_tax
+                    - Raw: +
+                    - Ident: benefits_cost
+        - Filter:
+            - Terms:
+                - Ident: sum
+                - Terms:
+                    - Terms:
+                        - Ident: salary
+                        - Raw: +
+                        - Ident: payroll_tax
+                    - Raw: +
+                    - Ident: benefits_cost
+            - Raw: ">"
+            - Raw: "200"
+        - Take: 20
 

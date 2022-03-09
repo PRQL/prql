@@ -20,8 +20,7 @@ pub enum Item {
     Raw(String),
     Assign(Assign),
     NamedArg(NamedArg),
-    // TODO: Add dialect & prql version onto Query.
-    Query(Items),
+    Query(Query),
     Pipeline(Pipeline),
     // Similar to holding an Expr, but we strongly type it so the parsing can be more strict.
     List(Vec<ListItem>),
@@ -38,6 +37,12 @@ pub enum Item {
     SString(Vec<SStringItem>),
     // Anything not yet implemented.
     Todo(String),
+}
+
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+pub struct Query {
+    // TODO: Add dialect & prql version onto Query.
+    pub items: Items,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
@@ -144,12 +149,14 @@ impl Item {
     /// want to only have to handle a single type.
     pub fn into_inner_items(self) -> Vec<Item> {
         match self {
-            Item::Terms(items) | Item::Items(items) | Item::Query(items) => items,
+            Item::Terms(items) | Item::Items(items) | Item::Query(Query { items }) => items,
             _ => vec![self],
         }
     }
     pub fn as_inner_items(&self) -> Result<&Vec<Item>> {
-        if let Item::Terms(items) | Item::Items(items) | Item::Query(items) = self {
+        if let Item::Terms(items) | Item::Items(items) = self {
+            Ok(items)
+        } else if let Item::Query(Query { items }) = self {
             Ok(items)
         } else {
             Err(anyhow!("Expected container type; got {self:?}"))

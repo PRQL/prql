@@ -6,9 +6,10 @@ fn parse_simple_string_to_ast() -> Result<()> {
         serde_yaml::to_string(&parse("select 1")?)?,
         r#"---
 Query:
-  - Pipeline:
-      - Select:
-          - Raw: "1"
+  items:
+    - Pipeline:
+        - Select:
+            - Raw: "1"
 "#
     );
     Ok(())

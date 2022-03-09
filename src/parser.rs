@@ -37,7 +37,9 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Items> {
             // and don't have this wrapping `Ok`. Then move some of the panics
             // to `Err`s.
             Ok(match pair.as_rule() {
-                Rule::query => Item::Query(ast_of_parse_tree(pair.into_inner())?),
+                Rule::query => Item::Query(Query {
+                    items: ast_of_parse_tree(pair.into_inner())?,
+                }),
                 Rule::list => Item::List(
                     ast_of_parse_tree(pair.into_inner())?
                         .into_iter()

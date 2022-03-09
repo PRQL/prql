@@ -258,18 +258,19 @@ aggregate [
         assert_yaml_snapshot!(ast, @r###"
         ---
         Query:
-          - Function:
-              name: count
-              args: []
-              body:
-                - Ident: testing_count
-          - Pipeline:
-              - From: employees
-              - Aggregate:
-                  by: []
-                  calcs:
-                    - Ident: count
-                  assigns: []
+          items:
+            - Function:
+                name: count
+                args: []
+                body:
+                  - Ident: testing_count
+            - Pipeline:
+                - From: employees
+                - Aggregate:
+                    by: []
+                    calcs:
+                      - Ident: count
+                    assigns: []
         "###);
 
         use serde_yaml::to_string;
@@ -286,13 +287,13 @@ aggregate [
         .to_string();
         assert!(!diff.is_empty());
         assert_display_snapshot!(diff, @r###"
-        @@ -10,5 +10,5 @@
-               - Aggregate:
-                   by: []
-                   calcs:
-        -            - Ident: count
-        +            - Ident: testing_count
-                   assigns: []
+        @@ -11,5 +11,5 @@
+                 - Aggregate:
+                     by: []
+                     calcs:
+        -              - Ident: count
+        +              - Ident: testing_count
+                     assigns: []
         "###);
 
         Ok(())
@@ -315,25 +316,26 @@ aggregate [
         assert_yaml_snapshot!(ast, @r###"
         ---
         Query:
-          - Function:
-              name: count
-              args:
-                - x
-              body:
-                - SString:
-                    - String: count(
-                    - Expr:
-                        Ident: x
-                    - String: )
-          - Pipeline:
-              - From: employees
-              - Aggregate:
-                  by: []
-                  calcs:
-                    - Terms:
-                        - Ident: count
-                        - Ident: salary
-                  assigns: []
+          items:
+            - Function:
+                name: count
+                args:
+                  - x
+                body:
+                  - SString:
+                      - String: count(
+                      - Expr:
+                          Ident: x
+                      - String: )
+            - Pipeline:
+                - From: employees
+                - Aggregate:
+                    by: []
+                    calcs:
+                      - Terms:
+                          - Ident: count
+                          - Ident: salary
+                    assigns: []
         "###);
 
         use serde_yaml::to_string;
@@ -350,19 +352,19 @@ aggregate [
         .to_string();
         assert!(!diff.is_empty());
         assert_display_snapshot!(diff, @r###"
-        @@ -15,7 +15,9 @@
-               - Aggregate:
-                   by: []
-                   calcs:
-        -            - Terms:
-        -                - Ident: count
-        -                - Ident: salary
-        +            - SString:
-        +                - String: count(
-        +                - Expr:
-        +                    Ident: salary
-        +                - String: )
-                   assigns: []
+        @@ -16,7 +16,9 @@
+                 - Aggregate:
+                     by: []
+                     calcs:
+        -              - Terms:
+        -                  - Ident: count
+        -                  - Ident: salary
+        +              - SString:
+        +                  - String: count(
+        +                  - Expr:
+        +                      Ident: salary
+        +                  - String: )
+                     assigns: []
         "###);
 
         Ok(())
@@ -386,27 +388,28 @@ aggregate [
             @r###"
         ---
         Query:
-          - Function:
-              name: count
-              args:
-                - x
-              body:
-                - SString:
-                    - String: count(
-                    - Expr:
-                        Ident: x
-                    - String: )
-          - Pipeline:
-              - From: employees
-              - Aggregate:
-                  by: []
-                  calcs:
-                    - SString:
-                        - String: count(
-                        - Expr:
-                            Ident: salary
-                        - String: )
-                  assigns: []
+          items:
+            - Function:
+                name: count
+                args:
+                  - x
+                body:
+                  - SString:
+                      - String: count(
+                      - Expr:
+                          Ident: x
+                      - String: )
+            - Pipeline:
+                - From: employees
+                - Aggregate:
+                    by: []
+                    calcs:
+                      - SString:
+                          - String: count(
+                          - Expr:
+                              Ident: salary
+                          - String: )
+                    assigns: []
         "###
         );
 
