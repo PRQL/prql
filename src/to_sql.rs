@@ -10,55 +10,84 @@ use super::utils::*;
 use anyhow::{anyhow, Result};
 use itertools::Itertools;
 use sqlformat::{format, FormatOptions, QueryParams};
-use sqlparser::ast::*;
+use sqlparser::ast::{
+    Expr, ObjectName, OrderByExpr, Select, SelectItem, SetExpr, TableFactor, TableWithJoins, Top,
+};
 use std::collections::HashMap;
 
 /// Convert a PRQL AST to SQL.
 pub fn sql_of_ast(ast: &Item) -> Result<String> {
-    // We don't compile functions into SQL.
-    let compilable: Vec<Item> = ast
-        .as_query()
-        .unwrap()
-        .iter()
-        .filter(|item| !matches!(item, Item::Function(_)))
-        .cloned()
-        .collect();
+    let sql_query: sqlparser::ast::Query = ast.as_query().unwrap().clone().try_into()?;
 
-    let items: Vec<Item> = compilable
-        .iter()
-        .map(|item| {
-            match item {
-                Item::Pipeline(pipeline) => {
-                    let ctes = ctes_of_pipeline(pipeline)?;
-                    if ctes.len() > 1 {
-                        tables_of_pipelines(ctes).map(|x| {
-                            Item::Items(x.into_iter().map(Item::Table).collect::<Vec<Item>>())
-                        })
-                    } else {
-                        ctes.into_only().map(Item::Pipeline)
-                    }
-                }
-                // TODO
-                Item::Table(_) => unimplemented!(),
-                _ => unreachable!(),
-            }
-        })
-        .try_collect()?;
+    let sql_query_string = sql_query.to_string();
 
-    let sql = items
-        .iter()
-        .map(to_sql_query)
-        .collect::<Result<Vec<sqlparser::ast::Query>>>()?
-        .into_only()?
-        .to_string();
-
-    let formatted = format(&sql, &QueryParams::default(), FormatOptions::default());
+    let formatted = format(
+        &sql_query_string,
+        &QueryParams::default(),
+        FormatOptions::default(),
+    );
     Ok(formatted)
 }
 
-fn to_sql_query(item: &Item) -> Result<sqlparser::ast::Query> {
+impl TryFrom<Query> for sqlparser::ast::Query {
+    type Error = anyhow::Error;
+    // TODO: implement for Table (though I don't think we can implement the
+    // trait, since it goes into a different type), add tests for pipelines that
+    // need to be split up into CTEs.
+    fn try_from(query: Query) -> Result<Self> {
+        // We don't compile functions into SQL.
+        let compilable: Vec<Item> = query
+            .items
+            .iter()
+            .filter(|item| !matches!(item, Item::Function(_)))
+            .cloned()
+            .collect();
+
+        let items: Vec<Item> = compilable
+            .iter()
+            .map(|item| {
+                match item {
+                    Item::Pipeline(pipeline) => {
+                        let ctes = atomic_pipelines_of_pipeline(pipeline)?;
+                        if ctes.len() > 1 {
+                            tables_of_pipelines(ctes).map(|x| {
+                                Item::Items(x.into_iter().map(Item::Table).collect::<Vec<Item>>())
+                            })
+                        } else {
+                            ctes.into_only().map(Item::Pipeline)
+                        }
+                    }
+                    // TODO
+                    Item::Table(_) => unimplemented!(),
+                    _ => unreachable!(),
+                }
+            })
+            .try_collect()?;
+
+        let query = items
+            .iter()
+            .map(|item| match item {
+                Item::Pipeline(pipeline) => sql_query_of_pipeline(pipeline),
+                _ => unimplemented!(),
+            })
+            .collect::<Result<Vec<sqlparser::ast::Query>>>()?
+            .into_only()?;
+
+        Ok(query)
+    }
+}
+
+// TODO: currently we can't implement a TryFrom for Pipeline because it's a type
+// alias. Possibly at some point we should turn it into a wrapper type. (We can
+// still implement Iter & IntoIterator, though.)
+//
+// impl TryFrom<Pipeline> for sqlparser::ast::Query {
+//     type Error = anyhow::Error;
+//     fn try_from(&pipeline: Pipeline) -> Result<sqlparser::ast::Query> {
+
+fn sql_query_of_pipeline(pipeline: &Pipeline) -> Result<sqlparser::ast::Query> {
     // TODO: possibly do validation here? e.g. check there isn't more than one
-    // `from`? Or do we rely on `to_query` for that?
+    // `from`? Or do we rely on the caller for that?
     // TODO: this doesn't handle joins at all yet.
 
     // Alternatively we could
@@ -68,12 +97,6 @@ fn to_sql_query(item: &Item) -> Result<sqlparser::ast::Query> {
     //   https://stackoverflow.com/a/65394297/3064736 let grouped =
     //   group_pairs(pipeline.iter().map(|t| (t.name, t))); let from =
     //   grouped.get(&TransformationType::From).unwrap().first().unwrap().clone();
-
-    // FIME
-    let pipeline = match item {
-        Item::Pipeline(pipeline) => pipeline,
-        _ => unimplemented!(),
-    };
 
     let from = pipeline
         .iter()
@@ -228,7 +251,7 @@ fn to_sql_query(item: &Item) -> Result<sqlparser::ast::Query> {
 
 // Alternatively this could be a `TryInto` impl?
 /// Convert a pipeline into a number of pipelines which can each "fit" into a CTE.
-fn ctes_of_pipeline(pipeline: &Pipeline) -> Result<Vec<Pipeline>> {
+fn atomic_pipelines_of_pipeline(pipeline: &Pipeline) -> Result<Vec<Pipeline>> {
     // Before starting a new CTE, we can have a pipeline with:
     // - 1 aggregate.
     // - 1 take, and then 0 other transformations.
@@ -499,7 +522,7 @@ SString:
         "###;
 
         let pipeline: Pipeline = from_str(yaml)?;
-        let queries = ctes_of_pipeline(&pipeline)?;
+        let queries = atomic_pipelines_of_pipeline(&pipeline)?;
         assert_eq!(queries.len(), 1);
 
         // One aggregate, but take at the top
@@ -524,7 +547,7 @@ SString:
         "###;
 
         let pipeline: Pipeline = from_str(yaml)?;
-        let queries = ctes_of_pipeline(&pipeline)?;
+        let queries = atomic_pipelines_of_pipeline(&pipeline)?;
         assert_eq!(queries.len(), 2);
 
         // A take, then two aggregates
@@ -559,7 +582,7 @@ SString:
         "###;
 
         let pipeline: Pipeline = from_str(yaml)?;
-        let queries = ctes_of_pipeline(&pipeline)?;
+        let queries = atomic_pipelines_of_pipeline(&pipeline)?;
         assert_eq!(queries.len(), 3);
         Ok(())
     }
@@ -568,26 +591,27 @@ SString:
     fn test_sql_of_ast() -> Result<()> {
         let yaml: &str = r###"
 Query:
-  - Pipeline:
-    - From: employees
-    - Filter:
-        - Ident: country
-        - Raw: "="
-        - String: USA
-    - Aggregate:
-        by:
-        - Ident: title
-        - Ident: country
-        calcs:
-        - SString:
-            - String: AVG(
-            - Expr:
-                Ident: salary
-            - String: )
-        assigns: []
-    - Sort:
-        - Ident: title
-    - Take: 20
+  items:
+    - Pipeline:
+      - From: employees
+      - Filter:
+          - Ident: country
+          - Raw: "="
+          - String: USA
+      - Aggregate:
+          by:
+          - Ident: title
+          - Ident: country
+          calcs:
+          - SString:
+              - String: AVG(
+              - Expr:
+                  Ident: salary
+              - String: )
+          assigns: []
+      - Sort:
+          - Ident: title
+      - Take: 20
             "###;
 
         let pipeline: Item = from_str(yaml)?;
