@@ -175,7 +175,9 @@ impl Item {
     }
 
     /// Wrap in Terms unless it's already a Terms.
-    // TODO: not sure whether we really need this.
+    // TODO: not sure whether we really need this — it's not orthogonal to
+    // `as_scalar` and `into_inner_items`. Ideally we can reduce the number of
+    // these functions.
     pub fn coerce_to_terms(self) -> Item {
         match self {
             Item::Terms(_) => self,
@@ -210,22 +212,22 @@ impl Item {
     }
 }
 
-pub trait Unnested {
+pub trait IntoUnnested {
     fn into_unnested(self) -> Self;
 }
-impl Unnested for Item {
+impl IntoUnnested for Item {
     /// Transitively unnest the whole tree, traversing even parents with more
     /// than one child. This is more unnesting that `as_scalar' does. Only
     /// removes `Terms` (not `Items` or `List`), though it does walk all the
     /// containers.
     fn into_unnested(self) -> Self {
-        Unnester().fold_item(&self).unwrap()
+        Unnest.fold_item(&self).unwrap()
     }
 }
 
 use super::ast_fold::fold_item;
-struct Unnester();
-impl AstFold for Unnester {
+struct Unnest;
+impl AstFold for Unnest {
     fn fold_item(&mut self, item: &Item) -> Result<Item> {
         match item {
             Item::Terms(_) => fold_item(self, &item.as_scalar().clone()),

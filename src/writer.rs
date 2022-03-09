@@ -28,8 +28,7 @@ pub fn sql_of_ast(ast: &Item) -> Result<String> {
         .map(|item| {
             match item {
                 Item::Pipeline(pipeline) => {
-                    // TDOO: handle result
-                    let ctes = ctes_of_pipeline(pipeline).unwrap();
+                    let ctes = ctes_of_pipeline(pipeline)?;
                     if ctes.len() > 1 {
                         tables_of_pipelines(ctes).map(|x| {
                             Item::Items(x.into_iter().map(Item::Table).collect::<Vec<Item>>())
@@ -38,6 +37,7 @@ pub fn sql_of_ast(ast: &Item) -> Result<String> {
                         ctes.into_only().map(Item::Pipeline)
                     }
                 }
+                // TODO
                 Item::Table(_) => unimplemented!(),
                 _ => unreachable!(),
             }
@@ -126,9 +126,8 @@ fn to_sql_query(item: &Item) -> Result<sqlparser::ast::Query> {
             _ => None,
         })
         .last()
-        // TODO: change this into a result that returns an error if there's an
-        // invalid take
-        .map(|x| x.unwrap());
+        // Swap result & option.
+        .map_or(Ok(None), |r| r.map(Some))?;
 
     // Find the final sort (none of the others affect the result, and can be discarded).
     let order_by = pipeline
@@ -148,7 +147,6 @@ fn to_sql_query(item: &Item) -> Result<sqlparser::ast::Query> {
         .last()
         .unwrap_or(Ok(vec![]))?;
 
-    // TODO: clean this rust up
     let aggregate = pipeline
         .iter()
         .find(|t| matches!(t, Transformation::Aggregate { .. }));
@@ -191,8 +189,7 @@ fn to_sql_query(item: &Item) -> Result<sqlparser::ast::Query> {
             _ => None,
         })
         .last()
-        // TODO: handle result
-        .map(|x| x.unwrap());
+        .map_or(Ok(None), |r| r.map(Some))?;
 
     let select = [
         Some(select_from_derive),
@@ -320,14 +317,6 @@ impl TryFrom<Item> for SelectItem {
                 item
             )),
         }
-    }
-}
-impl TryFrom<Transformation> for SelectItem {
-    type Error = anyhow::Error;
-    fn try_from(transformation: Transformation) -> Result<Self> {
-        Ok(SelectItem::UnnamedExpr(Expr::Identifier(
-            sqlparser::ast::Ident::new(format!("TODO: {:?}", &transformation)),
-        )))
     }
 }
 
@@ -639,7 +628,6 @@ Query:
     "#,
         )?;
         let ast = compile(query)?;
-        // TODO: clean up test; mostly by providing library functions to do this.
         let sql = sql_of_ast(&ast)?;
         assert_display_snapshot!(sql,
             @r###"
