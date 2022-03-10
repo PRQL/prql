@@ -31,50 +31,100 @@ pub fn sql_of_ast(ast: &Item) -> Result<String> {
 
 impl TryFrom<Query> for sqlparser::ast::Query {
     type Error = anyhow::Error;
-    // TODO: implement for Table (though I don't think we can implement the
-    // trait, since it goes into a different type), add tests for pipelines that
-    // need to be split up into CTEs.
     fn try_from(query: Query) -> Result<Self> {
-        // We don't compile functions into SQL.
         let compilable: Vec<Item> = query
             .items
             .iter()
+            // We don't compile functions into SQL.
             .filter(|item| !matches!(item, Item::Function(_)))
             .cloned()
             .collect();
 
-        let items: Vec<Item> = compilable
+        let tables: Vec<Table> = compilable
             .iter()
-            .map(|item| {
-                match item {
-                    Item::Pipeline(pipeline) => {
-                        let ctes = atomic_pipelines_of_pipeline(pipeline)?;
-                        if ctes.len() > 1 {
-                            tables_of_pipelines(ctes).map(|x| {
-                                Item::Items(x.into_iter().map(Item::Table).collect::<Vec<Item>>())
-                            })
-                        } else {
-                            ctes.into_only().map(Item::Pipeline)
-                        }
-                    }
-                    // TODO
-                    Item::Table(_) => unimplemented!(),
-                    _ => unreachable!(),
-                }
-            })
-            .try_collect()?;
+            .filter_map(|item| item.as_table().cloned())
+            .collect();
 
-        let query = items
+        let pipeline = compilable
             .iter()
-            .map(|item| match item {
-                Item::Pipeline(pipeline) => sql_query_of_pipeline(pipeline),
-                _ => unimplemented!(),
-            })
-            .collect::<Result<Vec<sqlparser::ast::Query>>>()?
+            .filter(|item| matches!(item, Item::Pipeline(_)))
+            .map(|item| item.as_pipeline().unwrap().clone())
             .into_only()?;
 
-        Ok(query)
+        if !tables.is_empty() {
+            sql_query_of_tables_and_pipeline(&pipeline, &tables)
+        } else {
+            sql_query_of_pipeline(&pipeline)
+        }
     }
+}
+
+impl Table {
+    fn to_sql_cte(&self) -> Result<sqlparser::ast::Cte> {
+        let alias = sqlparser::ast::TableAlias {
+            name: Item::Ident(self.name.clone()).try_into()?,
+            columns: vec![],
+        };
+        Ok(sqlparser::ast::Cte {
+            alias,
+            query: sql_query_of_pipeline(&self.pipeline)?,
+            from: None,
+        })
+    }
+}
+
+fn sql_query_of_pipeline(pipeline: &Pipeline) -> Result<sqlparser::ast::Query> {
+    let atomic_pipelines = atomic_pipelines_of_pipeline(pipeline)?;
+    // Return early if we have a single atomic pipeline.
+    if atomic_pipelines.len() == 1 {
+        return sql_query_of_atomic_pipeline(&atomic_pipelines.into_only()?);
+    }
+    let tables = tables_of_pipelines(atomic_pipelines)?;
+
+    sql_query_of_tables_and_pipeline(pipeline, &tables)
+}
+
+fn sql_query_of_tables_and_pipeline(
+    _pipeline: &Pipeline,
+    tables: &[Table],
+) -> Result<sqlparser::ast::Query> {
+    let ctes = tables.iter().map(|x| x.to_sql_cte()).try_collect()?;
+
+    Ok(sqlparser::ast::Query {
+        with: Some(sqlparser::ast::With {
+            cte_tables: ctes,
+            recursive: false,
+        }),
+        order_by: vec![],
+        limit: None,
+        offset: None,
+        fetch: None,
+        body: sqlparser::ast::SetExpr::Select(Box::new(sqlparser::ast::Select {
+            selection: None,
+            distinct: false,
+            top: None,
+            projection: vec![Item::Ident("*".to_string()).try_into()?],
+            // This TableWithJoins is copied from
+            // `sql_query_of_atomic_pipeline`; TODO: split out.
+            from: vec![TableWithJoins {
+                relation: TableFactor::Table {
+                    name: ObjectName(vec![Item::Ident(tables.last().unwrap().name.clone())
+                        .try_into()
+                        .unwrap()]),
+                    alias: None,
+                    args: vec![],
+                    with_hints: vec![],
+                },
+                joins: vec![],
+            }],
+            group_by: vec![],
+            having: None,
+            lateral_views: vec![],
+            sort_by: vec![],
+            cluster_by: vec![],
+            distribute_by: vec![],
+        })),
+    })
 }
 
 // TODO: currently we can't implement a TryFrom for Pipeline because it's a type
@@ -85,7 +135,7 @@ impl TryFrom<Query> for sqlparser::ast::Query {
 //     type Error = anyhow::Error;
 //     fn try_from(&pipeline: Pipeline) -> Result<sqlparser::ast::Query> {
 
-fn sql_query_of_pipeline(pipeline: &Pipeline) -> Result<sqlparser::ast::Query> {
+fn sql_query_of_atomic_pipeline(pipeline: &Pipeline) -> Result<sqlparser::ast::Query> {
     // TODO: possibly do validation here? e.g. check there isn't more than one
     // `from`? Or do we rely on the caller for that?
     // TODO: this doesn't handle joins at all yet.
@@ -692,6 +742,79 @@ take 20
         let sql = sql_of_ast(&ast)?;
         assert_display_snapshot!(sql);
 
+        Ok(())
+    }
+
+    #[test]
+    fn test_nonatomic() -> Result<()> {
+        // A take, then two aggregates
+        let yaml: &str = r###"
+Query:
+  items:
+    - Pipeline:
+      - From: employees
+      - Take: 20
+      - Filter:
+          - Ident: country
+          - Raw: "="
+          - String: USA
+      - Aggregate:
+          by:
+          - Ident: title
+          - Ident: country
+          calcs:
+          - Terms:
+              - Ident: average
+              - Ident: salary
+          assigns: []
+      - Aggregate:
+          by:
+          - Ident: title
+          - Ident: country
+          calcs:
+          - Terms:
+              - Ident: average
+              - Ident: salary
+          assigns: []
+      - Sort:
+          - Ident: sum_gross_cost
+        "###;
+
+        let query: Item = from_str(yaml)?;
+        assert_display_snapshot!((sql_of_ast(&query)?), @r###"
+        WITH table_0 AS (
+          SELECT
+            TOP (20)
+          FROM
+            employees
+        ),
+        table_1 AS (
+          SELECT
+            average salary
+          FROM
+            table_0
+          WHERE
+            country = 'USA'
+          GROUP BY
+            title,
+            country
+        ),
+        table_2 AS (
+          SELECT
+            average salary
+          FROM
+            table_1
+          GROUP BY
+            title,
+            country
+          ORDER BY
+            sum_gross_cost
+        )
+        SELECT
+          *
+        FROM
+          table_2
+        "###);
         Ok(())
     }
 }
