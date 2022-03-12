@@ -154,10 +154,7 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Items> {
                         .collect()
                 }),
                 Rule::operator | Rule::number => Item::Raw(pair.as_str().to_owned()),
-                _ => {
-                    println!("{:?}", pair);
-                    Item::Todo(pair.as_str().to_owned())
-                }
+                _ => (Item::Todo(pair.as_str().to_owned())),
             })
         })
         .collect()
