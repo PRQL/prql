@@ -340,12 +340,11 @@ in advance.
 ## Notes
 
 ### Joins
-
-- Joins are implemented as `{join_type} {table} {[conditions]}`. For example:
+- Joins are implemented as `join side:{join_type} {table} {[conditions]}`. For example:
 
   ```elm
   from employees
-  left_join positions [id=employee_id]
+  join side:left positions [id=employee_id]
   ```
 
   ...is equivalent to...
@@ -356,6 +355,13 @@ in advance.
 
 - Possibly we could shorten `[id=id]` to `id`, and use SQL's `USING`, but it may
   be ambiguous with using `id` as a boolean column.
+- Previously the syntax was `{join_type} {table} {[conditions]}`. For example:
+
+  ```elm
+  left_join positions [id=employee_id]
+  ```
+
+  ...but it was not expandable.
 
 ### Functions
 
