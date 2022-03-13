@@ -95,13 +95,12 @@ impl RunFunctions {
             .functions
             .get(&func_call.name)
             .ok_or_else(|| anyhow!("Function {:?} not found", func_call.name))?;
-        dbg!(&func_call);
 
         // TODO: check if the function is called recursively.
 
-        if dbg!(func).args.len() != func_call.args.len() {
+        if func.args.len() != func_call.args.len() {
             return Err(anyhow!(
-                "Function {:?} called with wrong number of arguments. Expected {}, got {}",
+                "Function {:?} called with wrong number of arguments. Expected {}, got {}; from {func_call:?}.",
                 func_call.name,
                 func.args.len(),
                 func_call.args.len()
@@ -129,10 +128,10 @@ impl AstFold for RunFunctions {
         out
     }
     fn fold_item(&mut self, item: &Item) -> Result<Item> {
-        // If it's an ident, it could be a func with no arg, so normalize.
-        let items = dbg!(item).clone().coerce_to_terms().into_inner_items();
+        // If it's an ident, it could be a func with no arg, so normalize into a
+        // vec of items whether or not it's currently wrapped in a Terms or not.
+        let items = item.clone().into_inner_terms();
 
-        dbg!(&items);
         if let Some(Item::Ident(ident)) = items.first() {
             if self.functions.get(ident).is_some() {
                 // Currently a transformation expects a Expr to wrap
@@ -140,9 +139,9 @@ impl AstFold for RunFunctions {
                 // that's messy, should we parse a FuncCall directly?
                 let (name, body) = items.split_first().unwrap();
                 let func_call_transform =
-                    dbg!(vec![name.clone(), Item::Terms(body.to_vec())]).try_into()?;
+                    vec![name.clone(), Item::Items(body.to_vec())].try_into()?;
 
-                if let Transformation::Func(func_call) = dbg!(func_call_transform) {
+                if let Transformation::Func(func_call) = func_call_transform {
                     return self.run_function(&func_call);
                 } else {
                     unreachable!()

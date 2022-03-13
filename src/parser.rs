@@ -60,13 +60,11 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Items> {
                 Rule::idents => {
                     Item::Idents(pair.into_inner().map(|x| x.as_str().to_owned()).collect())
                 }
-                Rule::terms => Item::Terms(ast_of_parse_tree(pair.into_inner())?)
-                    // We collapse any Items with a single element into that
-                    // element. We don't do this with Items or List because those are
-                    // often meaningful — e.g. a List needs a number of Expr, so that
-                    // `[a, b]` is different from `[a b]`.
-                    .as_scalar()
-                    .clone(),
+                // We collapse any Terms with a single element into that element
+                // with `into_unnested`. This only unnests `Terms`; not Items or
+                // List because those are often meaningful — e.g. a List needs a
+                // number of Expr, so that `[a, b]` is different from `[a b]`.
+                Rule::terms => Item::Terms(ast_of_parse_tree(pair.into_inner())?).into_unnested(),
                 Rule::expr => Item::Items(ast_of_parse_tree(pair.into_inner())?),
                 Rule::named_arg => {
                     let parsed: [Item; 2] = ast_of_parse_tree(pair.into_inner())?
@@ -87,7 +85,7 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Items> {
                     if let [lvalue, Item::Items(rvalue)] = parsed {
                         Ok(Item::Assign(Assign {
                             lvalue: lvalue.into_ident()?,
-                            rvalue: Box::new(Item::Terms(rvalue).as_scalar().clone()),
+                            rvalue: Box::new(Item::Terms(rvalue).into_unnested()),
                         }))
                     } else {
                         Err(anyhow!(
@@ -180,11 +178,14 @@ impl TryFrom<Vec<Item>> for Transformation {
         // TODO: account for a name-only transformation, with no items.
         let (named_arg_items, args): (Vec<Item>, Vec<Item>) = items
             .into_only()?
-            // Take out of the expr
-            .as_scalar()
+            // Take out of the Items
             .clone()
-            // Take out of the terms
-            .into_inner_items()
+            .into_items()
+            // Unnest the terms (this could use a refactor)
+            .map(Item::Terms)?
+            .into_unnested()
+            .into_inner_terms()
+            // Partition out NamedArgs
             .into_iter()
             .partition(|x| matches!(x, Item::NamedArg(_)));
 
@@ -284,11 +285,8 @@ impl TryFrom<Vec<Item>> for Transformation {
             "sort" => Ok(Transformation::Sort(args)),
             "take" => {
                 // TODO: coerce to number
-                args.into_only().map(|x| x.as_scalar().clone()).map(|n| {
-                    Ok(Transformation::Take(
-                        n.as_raw().ok_or(anyhow!("Expected Raw"))?.parse()?,
-                    ))
-                })?
+                args.into_only()
+                    .map(|n| Ok(Transformation::Take(n.into_raw()?.parse()?)))?
             }
             "join" => Ok(Transformation::Join(args)),
             _ => Ok(Transformation::Func(FuncCall {
@@ -443,15 +441,18 @@ mod test {
             - Raw: "="
             - String: USA
         "###);
+        // TODO: Shoud the next two be different, based on whether there are
+        // parentheses? I think possible not.
         assert_yaml_snapshot!(
             ast_of_string(r#"filter (upper country) = "USA""#, Rule::transformation)?
         , @r###"
         ---
         Transformation:
           Filter:
-            - Terms:
-                - Ident: upper
-                - Ident: country
+            - Items:
+                - Terms:
+                    - Ident: upper
+                    - Ident: country
             - Raw: "="
             - String: USA
         "###);
