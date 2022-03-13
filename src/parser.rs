@@ -442,7 +442,7 @@ mod test {
             - String: USA
         "###);
         // TODO: Shoud the next two be different, based on whether there are
-        // parentheses? I think possible not.
+        // parentheses? I think possibly not.
         assert_yaml_snapshot!(
             ast_of_string(r#"filter (upper country) = "USA""#, Rule::transformation)?
         , @r###"
