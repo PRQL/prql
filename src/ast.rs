@@ -183,13 +183,13 @@ impl Item {
                 .into_iter()
                 .map(|list_item| list_item.into_inner().into_only())
                 .try_collect(),
-            _ => Err(anyhow!("Expected a list, got {self:?}")),
+            _ => Err(anyhow!("Expected a list of single items, got {self:?}")),
         }
     }
 
     /// Wrap in Terms unless it's already a Terms.
-    // TODO: not sure whether we really need this — it's not orthogonal to
-    // `as_scalar` and `into_inner_items`. Ideally we can reduce the number of
+    // TODO: not sure whether we really need this — I don't think it's orthogonal to
+    // `into_inner_terms`. Ideally we can reduce the number of
     // these functions.
     pub fn coerce_to_terms(self) -> Item {
         match self {
@@ -211,13 +211,16 @@ impl Item {
         Item::List(items.into_iter().map(|item| ListItem(vec![item])).collect())
     }
 
-    /// The scalar version / opposite of `as_inner_items`. It keeps unwrapping
-    /// Item / Expr types until it finds one with a non-single element.
+    // The scalar version / opposite of `as_inner_items`. It keeps unwrapping
+    // Item / Expr types until it finds one with a non-single element.
+    //
+    // It's deprecated, with the intention of using `into_items` /
+    // `into_terms` for explicitness, and `into_inner_items` for others uses.
+    //
     // TODO: I can't seem to get a move version of this that works with the
     // `.unwrap_or` at the end — is there a way?
-    // TODO: Possibly remove this in favor of `into_items` etc, and use
-    // `into_unnested` to do the transitive unnesting.
-    pub fn as_scalar(&self) -> &Item {
+    #[cfg(test)]
+    fn as_scalar(&self) -> &Item {
         match self {
             Item::Terms(items) | Item::Items(items) => {
                 items.only().map(|item| item.as_scalar()).unwrap_or(self)
@@ -243,9 +246,30 @@ impl IntoUnnested for Item {
 use super::ast_fold::fold_item;
 struct Unnest;
 impl AstFold for Unnest {
+    // TODO: We could make this Infallible
     fn fold_item(&mut self, item: &Item) -> Result<Item> {
         match item {
-            Item::Terms(_) => fold_item(self, &item.as_scalar().clone()),
+            Item::Terms(terms) => {
+                // Possibly this can be more elegant. One issue with combining
+                // these into a single statement is we can't use `self` twice,
+                // which I think isn't avoidable.
+
+                // Get the inner items, passing each of those to `fold_item`.
+                let inner_terms = terms
+                    .iter()
+                    .map(|term| self.fold_item(term).unwrap())
+                    .collect::<Vec<Item>>();
+
+                // If there's only one item, pass it to `fold_item`, otherwise
+                // pass all the items.
+                fold_item(
+                    self,
+                    &inner_terms
+                        .only()
+                        .cloned()
+                        .unwrap_or(Item::Terms(inner_terms)),
+                )
+            }
             _ => fold_item(self, item),
         }
     }
@@ -286,12 +310,22 @@ mod test {
     #[test]
     fn test_into_unnested() {
         let atom = Item::Ident("a".to_string());
+        let single_term = Item::Terms(vec![atom.clone()]);
+        let single_item = Item::Items(vec![atom.clone()]);
 
         // Gets the single item through one level of nesting.
-        let item = Item::Terms(vec![atom.clone()]);
+        let item = single_term.clone();
         assert_eq!(item.into_unnested(), atom);
 
-        // No change when it's the same.
+        // Doesn't break through an Items.
+        let item = single_item.clone();
+        assert_eq!(&item.clone().into_unnested(), &item);
+
+        // `Terms -> Items -> Terms` goes to `Items -> Terms`
+        let item = Item::Terms(vec![Item::Items(vec![single_term.clone()])]);
+        assert_eq!(item.into_unnested(), single_item);
+
+        // No change on a simple ident.
         let item = atom.clone();
         assert_eq!(item.clone().into_unnested(), item);
 
@@ -300,14 +334,13 @@ mod test {
         assert_eq!(item.clone().into_unnested(), item);
 
         // Gets the single item through two levels of nesting.
-        let item = Item::Terms(vec![Item::Terms(vec![atom.clone()])]);
+        let item = Item::Terms(vec![single_term.clone()]);
         assert_eq!(item.into_unnested(), atom);
 
         // Gets a single item through a parent which isn't nested
-        let item = Item::Terms(vec![
-            Item::Terms(vec![atom.clone()]),
-            Item::Terms(vec![atom.clone()]),
-        ]);
+        let item = Item::Terms(vec![single_term.clone(), single_term.clone()]);
         assert_eq!(item.into_unnested(), Item::Terms(vec![atom.clone(), atom]));
+
+        dbg!(single_term);
     }
 }
