@@ -277,7 +277,7 @@ being explored:
 - Subscribe to [Issue #1](https://github.com/max-sixty/prql/issues/1) for
   updates.
 - Join the [Discord](https://discord.gg/eQcfaCmsNc).
-- Contribute towards building the compiler
+- Contribute towards building the parser
   [#26](https://github.com/max-sixty/prql/issues/26).
 - Contribute towards refining the language: PR an example into the
   [examples](https://github.com/max-sixty/prql/tree/main/examples):
@@ -340,6 +340,7 @@ in advance.
 ## Notes
 
 ### Joins
+
 - Joins are implemented as `join side:{join_type} {table} {[conditions]}`. For example:
 
   ```elm

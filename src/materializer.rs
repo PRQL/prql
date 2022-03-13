@@ -1,10 +1,13 @@
+/// Transform the parsed AST into a "materialized" AST, by executing functions and
+/// replacing variables. The materialized AST is "flat", in the sense that it
+/// contains no query-specific logic.
 use super::ast::*;
 use super::ast_fold::*;
 use anyhow::{anyhow, Result};
 use itertools::Itertools;
 use std::{collections::HashMap, iter::zip};
 
-pub fn compile(ast: Item) -> Result<Item> {
+pub fn materialize(ast: Item) -> Result<Item> {
     let functions = load_std_lib()?;
     let mut run_functions = RunFunctions::new();
     functions.into_iter().for_each(|f| {
@@ -87,18 +90,16 @@ impl RunFunctions {
         self
     }
     fn run_function(&mut self, func_call: &FuncCall) -> Result<Item> {
+        // Get the function
         let func = self
             .functions
             .get(&func_call.name)
             .ok_or_else(|| anyhow!("Function {:?} not found", func_call.name))?;
-        for arg in &func_call.args {
-            if let Item::Ident(ident) = arg {
-                if self.functions.contains_key(ident) {
-                    return Err(anyhow!("Function {:?} called recursively", func_call.name));
-                }
-            }
-        }
-        if func.args.len() != func_call.args.len() {
+        dbg!(&func_call);
+
+        // TODO: check if the function is called recursively.
+
+        if dbg!(func).args.len() != func_call.args.len() {
             return Err(anyhow!(
                 "Function {:?} called with wrong number of arguments. Expected {}, got {}",
                 func_call.name,
@@ -128,10 +129,10 @@ impl AstFold for RunFunctions {
         out
     }
     fn fold_item(&mut self, item: &Item) -> Result<Item> {
-        // If it's an ident, it could be a func with no arg, so convert to Terms.
-        // match (item).clone().coerce_to_terms() {
-        let items = item.clone().into_inner_items();
+        // If it's an ident, it could be a func with no arg, so normalize.
+        let items = dbg!(item).clone().coerce_to_terms().into_inner_items();
 
+        dbg!(&items);
         if let Some(Item::Ident(ident)) = items.first() {
             if self.functions.get(ident).is_some() {
                 // Currently a transformation expects a Expr to wrap
@@ -139,8 +140,9 @@ impl AstFold for RunFunctions {
                 // that's messy, should we parse a FuncCall directly?
                 let (name, body) = items.split_first().unwrap();
                 let func_call_transform =
-                    vec![name.clone(), Item::Items(body.to_vec())].try_into()?;
-                if let Transformation::Func(func_call) = func_call_transform {
+                    dbg!(vec![name.clone(), Item::Terms(body.to_vec())]).try_into()?;
+
+                if let Transformation::Func(func_call) = dbg!(func_call_transform) {
                     return self.run_function(&func_call);
                 } else {
                     unreachable!()
@@ -371,7 +373,7 @@ aggregate [
     }
 
     #[test]
-    fn test_compile() -> Result<()> {
+    fn test_materialize() -> Result<()> {
         let pipeline = ast_of_string(
             r#"
 func count x = s"count({x})"
@@ -383,7 +385,7 @@ aggregate [
 "#,
             Rule::query,
         )?;
-        let ast = compile(pipeline)?;
+        let ast = materialize(pipeline)?;
         assert_yaml_snapshot!(ast,
             @r###"
         ---
@@ -437,7 +439,7 @@ take 20
 "#,
             Rule::query,
         )?;
-        assert_yaml_snapshot!(compile(ast)?);
+        assert_yaml_snapshot!(materialize(ast)?);
 
         Ok(())
     }

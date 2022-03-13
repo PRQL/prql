@@ -1,6 +1,6 @@
 ---
-source: src/compiler.rs
-assertion_line: 239
+source: src/materializer.rs
+assertion_line: 241
 expression: "&fold.fold_item(ast)?"
 ---
 Query:

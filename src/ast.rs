@@ -162,6 +162,12 @@ impl Item {
             Err(anyhow!("Expected container type; got {self:?}"))
         }
     }
+    pub fn into_inner_terms(self) -> Vec<Item> {
+        match self {
+            Item::Terms(terms) => terms,
+            _ => vec![self],
+        }
+    }
     pub fn into_inner_list_items(self) -> Result<Vec<Vec<Item>>> {
         match self {
             Item::List(items) => Ok(items.into_iter().map(|item| item.into_inner()).collect()),
@@ -209,6 +215,8 @@ impl Item {
     /// Item / Expr types until it finds one with a non-single element.
     // TODO: I can't seem to get a move version of this that works with the
     // `.unwrap_or` at the end — is there a way?
+    // TODO: Possibly remove this in favor of `into_items` etc, and use
+    // `into_unnested` to do the transitive unnesting.
     pub fn as_scalar(&self) -> &Item {
         match self {
             Item::Terms(items) | Item::Items(items) => {

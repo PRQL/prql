@@ -1,3 +1,6 @@
+/// A trait to "fold" a PRQL AST (similiar to a visitor), so we can transitively
+/// apply some logic to a whole tree by just defining how we want to handle each
+/// type.
 use super::ast::*;
 use anyhow::Result;
 use itertools::Itertools;

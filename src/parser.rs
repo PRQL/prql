@@ -1,3 +1,7 @@
+/// This module contains the parser, which is responsible for converting a tree
+/// of pest pairs into a tree of AST Items. It has a small function to call into
+/// pest to get the parse tree / concrete syntaxt tree, and then a large
+/// function for turning that into PRQL AST.
 use super::ast::*;
 use super::utils::*;
 use anyhow::{anyhow, Context, Result};
@@ -169,12 +173,12 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Items> {
 impl TryFrom<Vec<Item>> for Transformation {
     type Error = anyhow::Error;
     fn try_from(items: Vec<Item>) -> Result<Self> {
-        let (name_item, expr) = items
+        let (name_item, items) = items
             .split_first()
             .ok_or(anyhow!("Expected at least one item"))?;
         let name = name_item.as_ident().ok_or(anyhow!("Expected Ident"))?;
-        // TODO: account for a name-only transformation, with no expr.
-        let (named_arg_items, args): (Vec<Item>, Vec<Item>) = expr
+        // TODO: account for a name-only transformation, with no items.
+        let (named_arg_items, args): (Vec<Item>, Vec<Item>) = items
             .into_only()?
             // Take out of the expr
             .as_scalar()
