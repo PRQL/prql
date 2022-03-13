@@ -1,10 +1,13 @@
+/// This module is responsible for translating PRQL AST to sqlparser AST, and
+/// then to a String. We use sqlparser because it's trivial to create the string
+/// once it's in their AST (it's just `.to_string()`). It also lets us support a
+/// few dialects of SQL immediately.
 // The average code quality here is quite low — we're basically plugging in test
 // cases and fixing what breaks, with some occasional refactors. I'm not sure
 // that's a terrible approach — the SQL spec is huge, so we're not reasonably
 // going to be isomorphically mapping everything back from SQL to PRQL. But it
 // does mean we should continue to iterate on this file and refactor things when
 // necessary.
-
 use super::ast::*;
 use super::utils::*;
 use anyhow::{anyhow, Result};
@@ -15,9 +18,13 @@ use sqlparser::ast::{
 };
 use std::collections::HashMap;
 
-/// Convert a PRQL AST to SQL.
-pub fn sql_of_ast(ast: &Item) -> Result<String> {
-    let sql_query: sqlparser::ast::Query = ast.as_query().unwrap().clone().try_into()?;
+/// Translate a PRQL AST to SQL string.
+pub fn translate(ast: &Item) -> Result<String> {
+    let sql_query: sqlparser::ast::Query = ast
+        .as_query()
+        .ok_or_else(|| anyhow!("Requires a Query; {ast:?}"))?
+        .clone()
+        .try_into()?;
 
     let sql_query_string = sql_query.to_string();
 
@@ -32,7 +39,7 @@ pub fn sql_of_ast(ast: &Item) -> Result<String> {
 impl TryFrom<Query> for sqlparser::ast::Query {
     type Error = anyhow::Error;
     fn try_from(query: Query) -> Result<Self> {
-        let compilable: Vec<Item> = query
+        let filtered: Vec<Item> = query
             .items
             .iter()
             // We don't compile functions into SQL.
@@ -40,12 +47,12 @@ impl TryFrom<Query> for sqlparser::ast::Query {
             .cloned()
             .collect();
 
-        let tables: Vec<Table> = compilable
+        let tables: Vec<Table> = filtered
             .iter()
             .filter_map(|item| item.as_table().cloned())
             .collect();
 
-        let pipeline = compilable
+        let pipeline = filtered
             .iter()
             .filter(|item| matches!(item, Item::Pipeline(_)))
             .map(|item| item.as_pipeline().unwrap().clone())
@@ -383,7 +390,7 @@ impl TryFrom<Item> for SelectItem {
     type Error = anyhow::Error;
     fn try_from(item: Item) -> Result<Self> {
         match item {
-            Item::SString(_) | Item::Ident(_) | Item::Terms(_) => {
+            Item::SString(_) | Item::Ident(_) | Item::Terms(_) | Item::Raw(_) => {
                 Ok(SelectItem::UnnamedExpr(TryInto::<Expr>::try_into(item)?))
             }
             _ => Err(anyhow!(
@@ -413,19 +420,15 @@ impl TryFrom<Item> for Expr {
     type Error = anyhow::Error;
     fn try_from(item: Item) -> Result<Self> {
         match item {
-            Item::Ident(ident) => Ok(Expr::Identifier(
-                sqlparser::ast::Ident::new(ident),
-            )),
-            Item::Raw(ident) => Ok(Expr::Identifier(
-                sqlparser::ast::Ident::new(ident),
-            )),
+            Item::Ident(ident) => Ok(Expr::Identifier(sqlparser::ast::Ident::new(ident))),
+            Item::Raw(ident) => Ok(Expr::Identifier(sqlparser::ast::Ident::new(ident))),
             // For expressions like `country = "USA"`, we take each one, convert
             // it, and put spaces between them. It's a bit hacky — we could
             // convert each term to a SQL AST item, but it works for the moment.
             //
-            // (one question is why that is coming as a `Terms` rather an `Items`?)
-            Item::Terms(items) => Ok(Expr::Identifier(
-                sqlparser::ast::Ident::new(
+            // (one question is whether we need to surround `Items` with parentheses?)
+            Item::Terms(items) | Item::Items(items) => {
+                Ok(Expr::Identifier(sqlparser::ast::Ident::new(
                     items
                         .into_iter()
                         .map(|item| TryInto::<Expr>::try_into(item).unwrap())
@@ -435,11 +438,11 @@ impl TryFrom<Item> for Expr {
                         // Currently a hack, but maybe OK, since we don't
                         // need to parse every single expression into sqlparser ast.
                         .join(" "),
-                ),
-            )),
-            Item::String(ident) => Ok(Expr::Value(
-                sqlparser::ast::Value::SingleQuotedString(ident),
-            )),
+                )))
+            }
+            Item::String(ident) => Ok(Expr::Value(sqlparser::ast::Value::SingleQuotedString(
+                ident,
+            ))),
             // Fairly hacky — convert everything to a string, then concat it,
             // then convert to Expr. We can't use the `Terms` code above
             // since we don't want to intersperse with spaces.
@@ -448,16 +451,17 @@ impl TryFrom<Item> for Expr {
                     .into_iter()
                     .map(|s_string_item| match s_string_item {
                         SStringItem::String(string) => Ok(string),
-                        SStringItem::Expr(item) => TryInto::<Expr>::try_into(item)
-                            .map(|expr| expr.to_string()),
+                        SStringItem::Expr(item) => {
+                            TryInto::<Expr>::try_into(item).map(|expr| expr.to_string())
+                        }
                     })
                     .collect::<Result<Vec<String>>>()?
                     .join("");
                 Item::Ident(string).try_into()
             }
-            Item::Items(_) => Err(anyhow!(
-                "Not yet implemented for `Items`; (something we probably need to do, see notes above); {item:?}"
-            )),
+            // Item::Items(_) => Err(anyhow!(
+            //     "Not yet implemented for `Items`; (something we probably need to do, see notes above); {item:?}"
+            // )),
             _ => Err(anyhow!("Can't convert to Expr at the moment; {item:?}")),
         }
     }
@@ -492,7 +496,7 @@ impl TryFrom<Item> for sqlparser::ast::Ident {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::compiler::compile;
+    use crate::materializer::materialize;
     use crate::parser::parse;
     use insta::{assert_debug_snapshot, assert_display_snapshot};
     use serde_yaml::from_str;
@@ -665,7 +669,7 @@ Query:
             "###;
 
         let pipeline: Item = from_str(yaml)?;
-        let select = sql_of_ast(&pipeline)?;
+        let select = translate(&pipeline)?;
         assert_display_snapshot!(select,
             @r###"
         SELECT
@@ -702,8 +706,8 @@ Query:
     ]
     "#,
         )?;
-        let ast = compile(query)?;
-        let sql = sql_of_ast(&ast)?;
+        let ast = materialize(query)?;
+        let sql = translate(&ast)?;
         assert_display_snapshot!(sql,
             @r###"
         SELECT
@@ -738,8 +742,8 @@ take 20
 "#,
         )?;
 
-        let ast = compile(query)?;
-        let sql = sql_of_ast(&ast)?;
+        let ast = materialize(query)?;
+        let sql = translate(&ast)?;
         assert_display_snapshot!(sql);
 
         Ok(())
@@ -781,7 +785,7 @@ Query:
         "###;
 
         let query: Item = from_str(yaml)?;
-        assert_display_snapshot!((sql_of_ast(&query)?), @r###"
+        assert_display_snapshot!((translate(&query)?), @r###"
         WITH table_0 AS (
           SELECT
             TOP (20)

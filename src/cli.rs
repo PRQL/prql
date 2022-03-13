@@ -7,7 +7,7 @@ use std::io::{Read, Write};
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ArgEnum)]
 enum Dialect {
     Ast,
-    CompiledAst,
+    MaterializedAst,
     Sql,
 }
 
@@ -32,12 +32,12 @@ impl Cli {
             Dialect::Ast => self
                 .output
                 .write_all(&serde_yaml::to_vec(&parse(&source)?)?)?,
-            Dialect::CompiledAst => {
-                let compiled = compile(parse(&source)?)?;
-                self.output.write_all(&serde_yaml::to_vec(&compiled)?)?
+            Dialect::MaterializedAst => {
+                let materialized = materialize(parse(&source)?)?;
+                self.output.write_all(&serde_yaml::to_vec(&materialized)?)?
             }
             Dialect::Sql => {
-                self.output.write_all(sql_of_prql(&source)?.as_bytes())?;
+                self.output.write_all(transpile(&source)?.as_bytes())?;
             }
         };
         Ok(())

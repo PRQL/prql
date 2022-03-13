@@ -1,7 +1,7 @@
 ---
-source: src/compiler.rs
-assertion_line: 437
-expression: compile(ast)?
+source: src/materializer.rs
+assertion_line: 442
+expression: materialize(ast)?
 ---
 Query:
   items:
