@@ -54,15 +54,10 @@ impl TryFrom<Query> for sqlparser::ast::Query {
 
         let pipeline = filtered
             .iter()
-            .filter(|item| matches!(item, Item::Pipeline(_)))
-            .map(|item| item.as_pipeline().unwrap().clone())
+            .filter_map(|item| item.as_pipeline().cloned())
             .into_only()?;
 
-        if !tables.is_empty() {
-            sql_query_of_tables_and_pipeline(&pipeline, &tables)
-        } else {
-            sql_query_of_pipeline(&pipeline)
-        }
+        sql_query_of_pipeline_and_tables(&pipeline, &tables)
     }
 }
 
@@ -74,27 +69,27 @@ impl Table {
         };
         Ok(sqlparser::ast::Cte {
             alias,
-            query: sql_query_of_pipeline(&self.pipeline)?,
+            query: sql_query_of_pipeline_and_tables(&self.pipeline, &[])?,
             from: None,
         })
     }
 }
 
-fn sql_query_of_pipeline(pipeline: &Pipeline) -> Result<sqlparser::ast::Query> {
-    let atomic_pipelines = atomic_pipelines_of_pipeline(pipeline)?;
-    // Return early if we have a single atomic pipeline.
-    if atomic_pipelines.len() == 1 {
-        return sql_query_of_atomic_pipeline(&atomic_pipelines.into_only()?);
-    }
-    let tables = tables_of_pipelines(atomic_pipelines)?;
-
-    sql_query_of_tables_and_pipeline(pipeline, &tables)
-}
-
-fn sql_query_of_tables_and_pipeline(
-    _pipeline: &Pipeline,
+fn sql_query_of_pipeline_and_tables(
+    pipeline: &Pipeline,
     tables: &[Table],
 ) -> Result<sqlparser::ast::Query> {
+    let atomic_pipelines = atomic_pipelines_of_pipeline(pipeline)?;
+    // Return early if we have a single atomic pipeline.
+    if atomic_pipelines.len() == 1 && tables.is_empty() {
+        return sql_query_of_atomic_pipeline(&atomic_pipelines.into_only()?);
+    }
+    let tables_from_pipeline = tables_of_pipelines(atomic_pipelines)?;
+
+    sql_query_of_tables(&[tables, tables_from_pipeline.as_slice()].concat())
+}
+
+fn sql_query_of_tables(tables: &[Table]) -> Result<sqlparser::ast::Query> {
     let ctes = tables.iter().map(|x| x.to_sql_cte()).try_collect()?;
 
     Ok(sqlparser::ast::Query {
@@ -106,22 +101,13 @@ fn sql_query_of_tables_and_pipeline(
         limit: None,
         offset: None,
         fetch: None,
-        body: sqlparser::ast::SetExpr::Select(Box::new(sqlparser::ast::Select {
+        body: SetExpr::Select(Box::new(Select {
             selection: None,
             distinct: false,
             top: None,
             projection: vec![Item::Ident("*".to_string()).try_into()?],
-            // This TableWithJoins is copied from
-            // `sql_query_of_atomic_pipeline`; TODO: split out.
             from: vec![TableWithJoins {
-                relation: TableFactor::Table {
-                    name: ObjectName(vec![Item::Ident(tables.last().unwrap().name.clone())
-                        .try_into()
-                        .unwrap()]),
-                    alias: None,
-                    args: vec![],
-                    with_hints: vec![],
-                },
+                relation: table_factor_of_ident(&tables.last().unwrap().name.clone()),
                 joins: vec![],
             }],
             group_by: vec![],
@@ -142,6 +128,15 @@ fn sql_query_of_tables_and_pipeline(
 //     type Error = anyhow::Error;
 //     fn try_from(&pipeline: Pipeline) -> Result<sqlparser::ast::Query> {
 
+fn table_factor_of_ident(ident: &Ident) -> TableFactor {
+    TableFactor::Table {
+        name: ObjectName(vec![Item::Ident(ident.clone()).try_into().unwrap()]),
+        alias: None,
+        args: vec![],
+        with_hints: vec![],
+    }
+}
+
 fn sql_query_of_atomic_pipeline(pipeline: &Pipeline) -> Result<sqlparser::ast::Query> {
     // TODO: possibly do validation here? e.g. check there isn't more than one
     // `from`? Or do we rely on the caller for that?
@@ -159,12 +154,7 @@ fn sql_query_of_atomic_pipeline(pipeline: &Pipeline) -> Result<sqlparser::ast::Q
         .iter()
         .filter_map(|t| match t {
             Transformation::From(ident) => Some(TableWithJoins {
-                relation: TableFactor::Table {
-                    name: ObjectName(vec![Item::Ident(ident.clone()).try_into().unwrap()]),
-                    alias: None,
-                    args: vec![],
-                    with_hints: vec![],
-                },
+                relation: table_factor_of_ident(ident),
                 joins: vec![],
             }),
             _ => None,
@@ -498,22 +488,23 @@ mod test {
     use super::*;
     use crate::materializer::materialize;
     use crate::parser::parse;
-    use insta::{assert_debug_snapshot, assert_display_snapshot};
+    use insta::{
+        assert_debug_snapshot, assert_display_snapshot, assert_snapshot, assert_yaml_snapshot,
+    };
     use serde_yaml::from_str;
 
     #[test]
     fn test_try_from_s_string_to_expr() -> Result<()> {
-        use insta::assert_yaml_snapshot;
-        use serde_yaml::from_str;
-        let yaml: &str = r"
+        let ast: Item = from_str(
+            r"
 SString:
  - String: SUM(
  - Expr:
      Terms:
        - Ident: col
  - String: )
-";
-        let ast: Item = from_str(yaml)?;
+",
+        )?;
         let expr: Expr = ast.try_into()?;
         assert_yaml_snapshot!(
             expr, @r###"
@@ -669,8 +660,8 @@ Query:
             "###;
 
         let pipeline: Item = from_str(yaml)?;
-        let select = translate(&pipeline)?;
-        assert_display_snapshot!(select,
+        let sql = translate(&pipeline)?;
+        assert_display_snapshot!(sql,
             @r###"
         SELECT
           TOP (20) AVG(salary)
@@ -685,9 +676,7 @@ Query:
           title
         "###
         );
-        assert!(select
-            .to_lowercase()
-            .contains(&"avg(salary)".to_lowercase()));
+        assert!(sql.to_lowercase().contains(&"avg(salary)".to_lowercase()));
 
         Ok(())
     }
