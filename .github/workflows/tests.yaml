@@ -19,15 +19,6 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v2
-      - name: 🔗 Setup rust toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          # Unsure why CI seems to require this, given it's defined in
-          # `rust-toolchain`? Would be good to unify so we're testing the
-          # correct config.
-          toolchain: stable
-          components: rustfmt, clippy
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v1
       - name: 🔨 Build and test
