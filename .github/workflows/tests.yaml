@@ -23,8 +23,10 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: beta
-          override: true
+          # Unsure why CI seems to require this, given it's defined in
+          # `rust-toolchain`? Would be good to unify so we're testing the
+          # correct config.
+          toolchain: stable
           components: rustfmt, clippy
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v1
