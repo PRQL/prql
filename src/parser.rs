@@ -181,7 +181,12 @@ impl TryFrom<Vec<Item>> for Transformation {
             // Take out of the Items
             .clone()
             .into_items()
-            // Unnest the terms (this could use a refactor)
+            // Unnest the Terms.
+            // We need this because the Items might have a Terms immediately
+            // below it, and so we've just added another level of nesting. But
+            // it's quite messy and this sort of "dynamic" behavior has been the
+            // cause of many long debugging sessions (it's better than it used
+            // to be!).
             .map(Item::Terms)?
             .into_unnested()
             .into_inner_terms()
