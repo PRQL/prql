@@ -50,6 +50,8 @@ take 20
     GROUP BY
       title,
       country
+    HAVING
+      COUNT(*) > 200
     ORDER BY
       SUM(salary + payroll_tax + benefits_cost)
     "###);

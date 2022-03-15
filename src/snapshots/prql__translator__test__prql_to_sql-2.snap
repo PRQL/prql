@@ -1,6 +1,6 @@
 ---
 source: src/translator.rs
-assertion_line: 750
+assertion_line: 770
 expression: sql
 ---
 SELECT
@@ -21,5 +21,7 @@ WHERE
 GROUP BY
   title,
   country
+HAVING
+  COUNT(*) > 200
 ORDER BY
   SUM(salary + payroll_tax + benefits_cost)
