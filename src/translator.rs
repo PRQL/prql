@@ -220,21 +220,19 @@ fn sql_query_of_atomic_pipeline(pipeline: &Pipeline) -> Result<sqlparser::ast::Q
     let aggregate = pipeline
         .iter()
         .find(|t| matches!(t, Transformation::Aggregate { .. }));
-    let (group_bys, select_from_aggregate): (Vec<Item>, Option<Vec<SelectItem>>) = match aggregate {
+    let (group_bys, select_from_aggregate): (Vec<Item>, Vec<SelectItem>) = match aggregate {
         Some(Transformation::Aggregate { by, calcs, assigns }) => (
             by.clone(),
             // This is chaining a) the assigns (such as `sum_salary: sum
             // salary`), and b) the calcs (such as `sum salary`); and converting
             // them into SelectItems.
-            Some(
-                assigns
-                    .iter()
-                    .map(|x| x.clone().try_into())
-                    .chain(calcs.iter().map(|x| x.clone().try_into()))
-                    .try_collect()?,
-            ),
+            assigns
+                .iter()
+                .map(|x| x.clone().try_into())
+                .chain(calcs.iter().map(|x| x.clone().try_into()))
+                .try_collect()?,
         ),
-        None => (vec![], None),
+        None => (vec![], vec![]),
         _ => unreachable!("Expected an aggregate transformation"),
     };
     let group_by = Item::into_list_of_items(group_bys).try_into()?;
@@ -250,25 +248,26 @@ fn sql_query_of_atomic_pipeline(pipeline: &Pipeline) -> Result<sqlparser::ast::Q
 
     // Only the final select matters (assuming we don't have notions of `select
     // *` or `select * except`)
-    let select_from_select = pipeline
+    let select_from_select: Vec<SelectItem> = pipeline
         .iter()
         .filter_map(|t| match t {
-            Transformation::Select(items) => {
-                Some(items.iter().map(|x| (x).clone().try_into()).try_collect())
-            }
+            Transformation::Select(items) => Some(
+                dbg!(items)
+                    .iter()
+                    .map(|x| dbg!(x).clone().try_into())
+                    .try_collect(),
+            ),
             _ => None,
         })
         .last()
-        .map_or(Ok(None), |r| r.map(Some))?;
+        .unwrap_or(Ok(vec![]))?;
 
     let select = [
-        Some(select_from_derive),
-        select_from_select,
+        (select_from_derive),
+        (select_from_select),
         select_from_aggregate,
     ]
     .into_iter()
-    // TODO: should we do the option flattening here or in each of the selects?
-    .flatten()
     .flatten()
     .collect();
 
