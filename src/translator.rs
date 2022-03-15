@@ -172,7 +172,6 @@ fn sql_query_of_atomic_pipeline(pipeline: &Pipeline) -> Result<sqlparser::ast::Q
     fn filter_of_pipeline(pipeline: &[Transformation]) -> Result<Option<Expr>> {
         let filters: Vec<Filter> = pipeline
             .iter()
-            .take_while(|t| !matches!(t, Transformation::Aggregate { .. }))
             .filter_map(|t| match t {
                 Transformation::Filter(filter) => Some(filter),
                 _ => None,
@@ -677,6 +676,42 @@ Query:
         "###
         );
         assert!(sql.to_lowercase().contains(&"avg(salary)".to_lowercase()));
+
+        let query: Item = from_str(
+            r###"
+        Query:
+          items:
+            - Pipeline:
+                - From: employees
+                - Aggregate:
+                    by: []
+                    calcs:
+                      - SString:
+                          - String: count(
+                          - Expr:
+                              Ident: salary
+                          - String: )
+                    assigns:
+                      - lvalue: sum_salary
+                        rvalue:
+                          Ident: salary
+                - Filter:
+                    - Ident: salary
+                    - Raw: ">"
+                    - Raw: "100"
+        "###,
+        )?;
+        let sql = translate(&query)?;
+        assert_snapshot!(sql, @r###"
+        SELECT
+          salary AS sum_salary,
+          count(salary)
+        FROM
+          employees
+        HAVING
+          salary > 100
+        "###);
+        assert!(sql.to_lowercase().contains(&"having".to_lowercase()));
 
         Ok(())
     }
