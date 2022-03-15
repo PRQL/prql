@@ -19,11 +19,11 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v2
-      - name: 🔗 Setup rust toolchain
-        uses: actions-rs/toolchain@v1
-        # with:
-        #   profile: minimal
-        #   components: rustfmt, clippy
+      # - name: 🔗 Setup rust toolchain
+      #   uses: actions-rs/toolchain@v1
+      # with:
+      #   profile: minimal
+      #   components: rustfmt, clippy
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v1
       - name: 🔨 Build and test
