@@ -4,10 +4,11 @@ use itertools::{Itertools, Position};
 // Inspired by version in sqlparser-rs; I'm surprised there isn't a version in
 // the stdlib / Itertools.
 /// Returns the only element of an Iterator, or an error if it has more than one element.
-pub trait IntoOnly {
-    fn into_only(self) -> Result<Self::Item>
-    where
-        Self: IntoIterator;
+pub trait IntoOnly
+where
+    Self: IntoIterator,
+{
+    fn into_only(self) -> Result<Self::Item>;
 }
 
 impl<T, I> IntoOnly for I
