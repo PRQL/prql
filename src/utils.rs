@@ -8,9 +8,6 @@ pub trait IntoOnly {
     fn into_only(self) -> Result<Self::Item>
     where
         Self: IntoIterator;
-    // fn is_only(&self) -> bool
-    // where
-    //     Self: IntoIterator;
 }
 
 impl<T, I> IntoOnly for I
@@ -20,9 +17,6 @@ where
     // I: std::fmt::Debug,
     // <I as IntoIterator>::IntoIter: std::fmt::Debug,
 {
-    // fn is_only(&self) -> bool {
-    //     self.iter().count() == 1
-    // }
     fn into_only(self) -> Result<T> {
         match self.into_iter().with_position().next() {
             Some(Position::Only(item)) => Ok(item),
