@@ -187,20 +187,10 @@ impl Item {
         }
     }
 
-    /// Wrap in Terms unless it's already a Terms.
-    // TODO: not sure whether we really need this — I don't think it's orthogonal to
-    // `into_inner_terms`. Ideally we can reduce the number of
-    // these functions.
-    pub fn coerce_to_terms(self) -> Item {
-        match self {
-            Item::Terms(_) => self,
-            _ => Item::Terms(vec![self]),
-        }
-    }
     /// Either provide a List with the contents of `self`, or `self` if the item
     /// is already a list. This is useful when we either have a scalar or a
     /// list, and want to only have to handle a single type.
-    pub fn coerce_to_list(self) -> Item {
+    fn coerce_to_list(self) -> Item {
         match self {
             Item::List(_) => self,
             _ => Item::List(vec![ListItem(vec![self])]),
@@ -210,23 +200,17 @@ impl Item {
     pub fn into_list_of_items(items: Items) -> Item {
         Item::List(items.into_iter().map(|item| ListItem(vec![item])).collect())
     }
-
-    // The scalar version / opposite of `as_inner_items`. It keeps unwrapping
-    // Item / Expr types until it finds one with a non-single element.
-    //
-    // It's deprecated, with the intention of using `into_items` /
-    // `into_terms` for explicitness, and `into_inner_items` for others uses.
-    //
-    // TODO: I can't seem to get a move version of this that works with the
-    // `.unwrap_or` at the end — is there a way?
-    #[cfg(test)]
-    fn as_scalar(&self) -> &Item {
-        match self {
-            Item::Terms(items) | Item::Items(items) => {
-                items.only().map(|item| item.as_scalar()).unwrap_or(self)
-            }
-            _ => self,
-        }
+    /// Often we don't care whether a List or single item is passed; e.g.
+    /// `select x` vs `select [x, y]`. This equalizes them both to a vec of
+    /// Items, including unnesting any ListItems.
+    pub fn into_items_from_maybe_list(self) -> Items {
+        self.coerce_to_list()
+            .into_inner_list_items()
+            .unwrap()
+            .into_iter()
+            .map(Item::Terms)
+            .map(|x| x.into_unnested())
+            .collect()
     }
 }
 
@@ -286,26 +270,6 @@ impl From<Item> for Error {
 #[cfg(test)]
 mod test {
     use super::*;
-    #[test]
-    fn test_as_scalar() {
-        let atom = Item::Ident("a".to_string());
-
-        // Gets the single item through one level of nesting.
-        let item = Item::Terms(vec![atom.clone()]);
-        assert_eq!(item.as_scalar(), &atom);
-
-        // No change when it's the same.
-        let item = atom.clone();
-        assert_eq!(item.as_scalar(), &item);
-
-        // No change when there are two items in the `terms`.
-        let item = Item::Terms(vec![atom.clone(), atom.clone()]);
-        assert_eq!(item.as_scalar(), &item);
-
-        // Gets the single item through two levels of nesting.
-        let item = Item::Terms(vec![Item::Terms(vec![atom.clone()])]);
-        assert_eq!(item.as_scalar(), &atom);
-    }
 
     #[test]
     fn test_into_unnested() {

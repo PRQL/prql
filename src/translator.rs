@@ -251,20 +251,17 @@ fn sql_query_of_atomic_pipeline(pipeline: &Pipeline) -> Result<sqlparser::ast::Q
     let select_from_select: Vec<SelectItem> = pipeline
         .iter()
         .filter_map(|t| match t {
-            Transformation::Select(items) => Some(
-                dbg!(items)
-                    .iter()
-                    .map(|x| dbg!(x).clone().try_into())
-                    .try_collect(),
-            ),
+            Transformation::Select(items) => {
+                Some(items.iter().map(|x| x.clone().try_into()).try_collect())
+            }
             _ => None,
         })
         .last()
         .unwrap_or(Ok(vec![]))?;
 
     let select = [
-        (select_from_derive),
-        (select_from_select),
+        select_from_derive,
+        select_from_select,
         select_from_aggregate,
     ]
     .into_iter()
@@ -359,6 +356,21 @@ fn tables_of_pipelines(pipelines: Vec<Pipeline>) -> Result<Vec<Table>> {
         });
     }
     Ok(tables)
+}
+
+/// Combines filters by putting them in parentheses and then joining them with `and`.
+// Feels hacky — maybe this should be operation on a different level.
+impl Filter {
+    #[allow(unstable_name_collisions)] // Same behavior as the std lib; we can remove this + itertools when that's released.
+    fn combine_filters(filters: Vec<Filter>) -> Filter {
+        Filter(
+            filters
+                .into_iter()
+                .map(|f| Item::Terms(f.0))
+                .intersperse(Item::Raw("and".to_owned()))
+                .collect(),
+        )
+    }
 }
 
 impl TryFrom<Assign> for SelectItem {

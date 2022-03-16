@@ -56,32 +56,50 @@ take 20
       SUM(salary + payroll_tax + benefits_cost)
     "###);
 
+    let prql = r#"
+    func lag_day x = s"lag_day_todo({x})"
+    func ret x = x / (lag_day x) - 1 + dividend_return
+    func excess x = (x - interest_rate) / 252
+    func if_valid x = s"IF(is_valid_price, {x}, NULL)"
+
+    from prices
+    derive [
+      return_total:      if_valid (ret prices_adj),
+      return_usd:        if_valid (ret prices_usd),
+      return_excess:     excess return_total,
+      return_usd_excess: excess return_usd,
+    ]
+    select [
+      date,
+      sec_id,
+      return_total,
+      return_usd,
+      return_excess,
+      return_usd_excess,
+    ]
+    "#;
+
     // TODO: Compare to canoncial example:
     // - Window func not yet built.
     // - Inline pipeline not working.
-    //     assert_snapshot!(transpile(
-    // r#"
-    // func lag_day x = s"lag_day_todo({x})"
-    // func ret x = x / (lag_day x) - 1 + dividend_return
-    // func excess x = (x - interest_rate) / 252
-    // func if_valid x = s"IF(is_valid_price, {x}, NULL)"
-
-    // from prices
-    // derive [
-    //   return_total:      if_valid (ret prices_adj),
-    //   return_usd:        if_valid (ret prices_usd),
-    //   return_excess:     excess return_total,
-    //   return_usd_excess: excess return_usd,
-    // ]
-    // select [
-    //   date,
-    //   sec_id,
-    //   return_total,
-    //   return_usd,
-    //   return_excess,
-    //   return_usd_excess,
-    // ]
-    // "#)?, @"");
+    // - Function-in-function not working (i.e. lag_day is unreferenced).
+    // TODO: Broken: it's taking columns from both the derives and select; the
+    // select should narrow the columns that it takes.
+    assert_snapshot!(transpile(prql)?, @r###"
+    SELECT
+      IF(is_valid_price, ret prices_adj, NULL) AS return_total,
+      IF(is_valid_price, ret prices_usd, NULL) AS return_usd,
+      IF(is_valid_price, ret prices_adj, NULL) - interest_rate / 252 AS return_excess,
+      IF(is_valid_price, ret prices_usd, NULL) - interest_rate / 252 AS return_usd_excess,
+      date,
+      sec_id,
+      IF(is_valid_price, ret prices_adj, NULL),
+      IF(is_valid_price, ret prices_usd, NULL),
+      IF(is_valid_price, ret prices_adj, NULL) - interest_rate / 252,
+      IF(is_valid_price, ret prices_usd, NULL) - interest_rate / 252
+    FROM
+      prices
+    "###);
 
     Ok(())
 }
