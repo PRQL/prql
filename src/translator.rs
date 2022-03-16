@@ -41,10 +41,9 @@ impl TryFrom<Query> for sqlparser::ast::Query {
     fn try_from(query: Query) -> Result<Self> {
         let filtered: Vec<Item> = query
             .items
-            .iter()
+            .into_iter()
             // We don't compile functions into SQL.
             .filter(|item| !matches!(item, Item::Function(_)))
-            .cloned()
             .collect();
 
         let tables: Vec<Table> = filtered
@@ -107,7 +106,7 @@ fn sql_query_of_tables(tables: &[Table]) -> Result<sqlparser::ast::Query> {
             top: None,
             projection: vec![Item::Ident("*".to_string()).try_into()?],
             from: vec![TableWithJoins {
-                relation: table_factor_of_ident(&tables.last().unwrap().name.clone()),
+                relation: table_factor_of_ident(&tables.last().unwrap().name),
                 joins: vec![],
             }],
             group_by: vec![],

@@ -10,12 +10,12 @@ pub fn materialize(ast: Item) -> Result<Item> {
     let functions = load_std_lib()?;
     let mut run_functions = RunFunctions::new();
     functions.into_iter().for_each(|f| {
-        run_functions.add_function(&f.into_function().unwrap());
+        run_functions.add_function(f.into_function().unwrap());
     });
     let mut replace_variables = ReplaceVariables::new();
     // TODO: is it always OK to run these serially?
-    let ast = run_functions.fold_item(&ast)?;
-    let ast = replace_variables.fold_item(&ast)?;
+    let ast = run_functions.fold_item(ast)?;
+    let ast = replace_variables.fold_item(ast)?;
     Ok(ast)
 }
 
@@ -37,31 +37,30 @@ impl ReplaceVariables {
             variables: HashMap::new(),
         }
     }
-    fn add_variables(&mut self, assign: &Assign) -> &Self {
+    fn add_variables(&mut self, assign: Assign) -> &Self {
         // Not sure we're choosing the correct Item / Items in the types, this is a
         // bit of a smell.
-        self.variables
-            .insert(assign.lvalue.clone(), *assign.rvalue.clone());
+        self.variables.insert(assign.lvalue, *assign.rvalue);
         self
     }
 }
 
 impl AstFold for ReplaceVariables {
-    fn fold_assign(&mut self, assign: &Assign) -> Result<Assign> {
+    fn fold_assign(&mut self, assign: Assign) -> Result<Assign> {
         let replaced_assign = fold_assign(self, assign)?;
-        self.add_variables(&replaced_assign);
+        self.add_variables(replaced_assign.clone());
         Ok(replaced_assign)
     }
-    fn fold_item(&mut self, item: &Item) -> Result<Item> {
+    fn fold_item(&mut self, item: Item) -> Result<Item> {
         Ok(match item {
             // Because this returns an Item rather than an Ident, we need to
             // have a custom `fold_item` method; a custom `fold_ident` method
             // wouldn't return the correct type.
             Item::Ident(ident) => {
-                if self.variables.contains_key(ident) {
-                    self.variables[ident].clone()
+                if self.variables.contains_key(ident.as_str()) {
+                    self.variables[ident.as_str()].clone()
                 } else {
-                    Item::Ident(ident.clone())
+                    Item::Ident(ident)
                 }
             }
             _ => fold_item(self, item)?,
@@ -84,8 +83,8 @@ impl RunFunctions {
         }
     }
 
-    fn add_function(&mut self, func: &Function) -> &Self {
-        self.functions.insert(func.name.clone(), func.clone());
+    fn add_function(&mut self, func: Function) -> &Self {
+        self.functions.insert(func.name.clone(), func);
         self
     }
     fn run_function(&mut self, func_call: &FuncCall) -> Result<Item> {
@@ -109,24 +108,24 @@ impl RunFunctions {
         // in the function with their argument values.
         let mut replace_variables = ReplaceVariables::new();
         zip(func.args.iter(), func_call.args.iter()).for_each(|(arg, arg_call)| {
-            replace_variables.add_variables(&Assign {
+            replace_variables.add_variables(Assign {
                 lvalue: arg.clone(),
                 rvalue: Box::new(arg_call.clone()),
             });
         });
         // Take a clone of the body and replace the arguments with their values.
-        Ok(Item::Terms(replace_variables.fold_items(&func.body)?).into_unnested())
+        Ok(Item::Terms(replace_variables.fold_items(func.body.clone())?).into_unnested())
     }
 }
 
 impl AstFold for RunFunctions {
-    fn fold_function(&mut self, func: &Function) -> Result<Function> {
-        let out = fold_function(self, func);
+    fn fold_function(&mut self, func: Function) -> Result<Function> {
+        let out = fold_function(self, func.clone());
         // Add function to our list, after running it (no recursive functions atm).
         self.add_function(func);
         out
     }
-    fn fold_item(&mut self, item: &Item) -> Result<Item> {
+    fn fold_item(&mut self, item: Item) -> Result<Item> {
         // If it's an ident, it could be a func with no arg, so normalize into a
         // vec of items whether or not it's currently wrapped in a Terms or not.
         let items = item.clone().into_inner_terms();
@@ -164,7 +163,7 @@ mod test {
         use serde_yaml::to_string;
         use similar::TextDiff;
 
-        let ast = &parse(
+        let ast = parse(
             r#"from employees
     derive [                                         # This adds columns / variables.
       gross_salary: salary + payroll_tax,
@@ -177,7 +176,7 @@ mod test {
         // We could make a convenience function for this. It's useful for
         // showing the diffs of an operation.
         assert_display_snapshot!(TextDiff::from_lines(
-            &to_string(ast)?,
+            &to_string(&ast)?,
             &to_string(&fold.fold_item(ast)?)?
         ).unified_diff(),
         @r###"
@@ -195,7 +194,7 @@ mod test {
         "###);
 
         let mut fold = ReplaceVariables::new();
-        let ast = &parse(
+        let ast = parse(
             r#"
 from employees
 filter country = "USA"                           # Each line transforms the previous result.
@@ -225,7 +224,7 @@ take 20
 
     #[test]
     fn test_run_functions_no_arg() -> Result<()> {
-        let ast = &parse(
+        let ast = parse(
             "
 func count = testing_count
 
@@ -261,7 +260,7 @@ aggregate [
         // We could make a convenience function for this. It's useful for
         // showing the diffs of an operation.
         let diff = TextDiff::from_lines(
-            &to_string(ast).unwrap(),
+            &to_string(&ast).unwrap(),
             &to_string(&fold.fold_item(ast).unwrap()).unwrap(),
         )
         .unified_diff()
@@ -282,7 +281,7 @@ aggregate [
 
     #[test]
     fn test_run_functions_args() -> Result<()> {
-        let ast = &parse(
+        let ast = parse(
             r#"
 func count x = s"count({x})"
 
@@ -325,7 +324,7 @@ aggregate [
         // We could make a convenience function for this. It's useful for
         // showing the diffs of an operation.
         let diff = TextDiff::from_lines(
-            &to_string(ast).unwrap(),
+            &to_string(&ast).unwrap(),
             &to_string(&fold.fold_item(ast).unwrap()).unwrap(),
         )
         .unified_diff()
