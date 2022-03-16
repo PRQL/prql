@@ -9,7 +9,6 @@ fn parse_transpile() -> Result<()> {
       1
     "###);
 
-    // TDOO: `HAVING` is missing
     assert_snapshot!(transpile(
 r#"
 from employees
@@ -41,7 +40,8 @@ take 20
       SUM(salary),
       AVG(salary + payroll_tax),
       SUM(salary + payroll_tax),
-      AVG(salary + payroll_tax + benefits_cost)
+      AVG(salary + payroll_tax + benefits_cost),
+      *
     FROM
       employees
     WHERE
@@ -83,14 +83,8 @@ take 20
     // - Window func not yet built.
     // - Inline pipeline not working.
     // - Function-in-function not working (i.e. lag_day is unreferenced).
-    // TODO: Broken: it's taking columns from both the derives and select; the
-    // select should narrow the columns that it takes.
     assert_snapshot!(transpile(prql)?, @r###"
     SELECT
-      IF(is_valid_price, ret prices_adj, NULL) AS return_total,
-      IF(is_valid_price, ret prices_usd, NULL) AS return_usd,
-      IF(is_valid_price, ret prices_adj, NULL) - interest_rate / 252 AS return_excess,
-      IF(is_valid_price, ret prices_usd, NULL) - interest_rate / 252 AS return_usd_excess,
       date,
       sec_id,
       IF(is_valid_price, ret prices_adj, NULL),

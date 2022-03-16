@@ -136,6 +136,53 @@ fn table_factor_of_ident(ident: &Ident) -> TableFactor {
     }
 }
 
+/// Get the selects from a pipeline.
+fn select_columns_of_pipeline(pipeline: &Pipeline) -> Result<Vec<SelectItem>> {
+    let mut selects = vec![];
+    // Whether we should be returning everything not specified.
+    let mut is_exclusive = false;
+
+    for transformation in pipeline {
+        match transformation {
+            Transformation::Select(select) => {
+                // TODO: confirm it's not `select *`?
+                is_exclusive = true;
+                selects.clear();
+                selects.extend(
+                    select
+                        .iter()
+                        .map(|x| x.clone().try_into())
+                        .collect::<Result<Vec<SelectItem>>>()?,
+                )
+            }
+            Transformation::Derive(assigns) => selects.extend(
+                assigns
+                    .iter()
+                    .map(|assign| assign.clone().try_into())
+                    .collect::<Result<Vec<SelectItem>>>()?,
+            ),
+            Transformation::Aggregate { calcs, assigns, .. } => {
+                // This is chaining a) the assigns (such as `sum_salary: sum
+                // salary`), and b) the calcs (such as `sum salary`); and converting
+                // them into SelectItems.
+                selects.extend(
+                    assigns
+                        .iter()
+                        .map(|x| x.clone().try_into())
+                        .chain(calcs.iter().map(|x| x.clone().try_into()))
+                        .collect::<Result<Vec<SelectItem>>>()?,
+                )
+            }
+            _ => {}
+        }
+    }
+    if !is_exclusive {
+        selects.push(SelectItem::Wildcard);
+    }
+
+    Ok(selects)
+}
+
 fn sql_query_of_atomic_pipeline(pipeline: &Pipeline) -> Result<sqlparser::ast::Query> {
     // TODO: possibly do validation here? e.g. check there isn't more than one
     // `from`? Or do we rely on the caller for that?
@@ -219,60 +266,19 @@ fn sql_query_of_atomic_pipeline(pipeline: &Pipeline) -> Result<sqlparser::ast::Q
     let aggregate = pipeline
         .iter()
         .find(|t| matches!(t, Transformation::Aggregate { .. }));
-    let (group_bys, select_from_aggregate): (Vec<Item>, Vec<SelectItem>) = match aggregate {
-        Some(Transformation::Aggregate { by, calcs, assigns }) => (
-            by.clone(),
-            // This is chaining a) the assigns (such as `sum_salary: sum
-            // salary`), and b) the calcs (such as `sum salary`); and converting
-            // them into SelectItems.
-            assigns
-                .iter()
-                .map(|x| x.clone().try_into())
-                .chain(calcs.iter().map(|x| x.clone().try_into()))
-                .try_collect()?,
-        ),
-        None => (vec![], vec![]),
+    let group_bys: Vec<Item> = match aggregate {
+        Some(Transformation::Aggregate { by, .. }) => by.clone(),
+        None => vec![],
         _ => unreachable!("Expected an aggregate transformation"),
     };
     let group_by = Item::into_list_of_items(group_bys).try_into()?;
-    let select_from_derive = pipeline
-        .iter()
-        .filter_map(|t| match t {
-            Transformation::Derive(assigns) => Some(assigns.clone()),
-            _ => None,
-        })
-        .flatten()
-        .map(|assign| assign.try_into())
-        .try_collect()?;
-
-    // Only the final select matters (assuming we don't have notions of `select
-    // *` or `select * except`)
-    let select_from_select: Vec<SelectItem> = pipeline
-        .iter()
-        .filter_map(|t| match t {
-            Transformation::Select(items) => {
-                Some(items.iter().map(|x| x.clone().try_into()).try_collect())
-            }
-            _ => None,
-        })
-        .last()
-        .unwrap_or(Ok(vec![]))?;
-
-    let select = [
-        select_from_derive,
-        select_from_select,
-        select_from_aggregate,
-    ]
-    .into_iter()
-    .flatten()
-    .collect();
 
     Ok(sqlparser::ast::Query {
         body: SetExpr::Select(Box::new(Select {
             distinct: false,
             // TODO: when should this be `TOP` vs `LIMIT` (which is on the `Query` object?)
             top: take,
-            projection: select,
+            projection: select_columns_of_pipeline(pipeline)?,
             from,
             group_by,
             having,
@@ -673,7 +679,8 @@ Query:
         assert_display_snapshot!(sql,
             @r###"
         SELECT
-          TOP (20) AVG(salary)
+          TOP (20) AVG(salary),
+          *
         FROM
           employees
         WHERE
@@ -715,7 +722,8 @@ Query:
         assert_snapshot!(sql, @r###"
         SELECT
           salary AS sum_salary,
-          count(salary)
+          count(salary),
+          *
         FROM
           employees
         HAVING
@@ -746,7 +754,8 @@ Query:
             @r###"
         SELECT
           count(salary),
-          sum(salary)
+          sum(salary),
+          *
         FROM
           employees
         "###
@@ -822,13 +831,14 @@ Query:
         assert_display_snapshot!((translate(&query)?), @r###"
         WITH table_0 AS (
           SELECT
-            TOP (20)
+            TOP (20) *
           FROM
             employees
         ),
         table_1 AS (
           SELECT
-            average salary
+            average salary,
+            *
           FROM
             table_0
           WHERE
@@ -839,7 +849,8 @@ Query:
         ),
         table_2 AS (
           SELECT
-            average salary
+            average salary,
+            *
           FROM
             table_1
           GROUP BY
