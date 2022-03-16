@@ -4,7 +4,6 @@
 use super::ast::*;
 use super::ast_fold::*;
 use anyhow::{anyhow, Result};
-use itertools::Itertools;
 use std::{collections::HashMap, iter::zip};
 
 pub fn materialize(ast: Item) -> Result<Item> {
@@ -42,7 +41,7 @@ impl ReplaceVariables {
         // Not sure we're choosing the correct Item / Items in the types, this is a
         // bit of a smell.
         self.variables
-            .insert(assign.lvalue.clone(), *(assign.rvalue).clone());
+            .insert(assign.lvalue.clone(), *assign.rvalue.clone());
         self
     }
 }
@@ -152,28 +151,12 @@ impl AstFold for RunFunctions {
     }
 }
 
-/// Combines filters by putting them in parentheses and then joining them with `and`.
-// Feels hacky — maybe this should be operation on a different level.
-impl Filter {
-    #[allow(unstable_name_collisions)] // Same behavior as the std lib; we can remove this + itertools when that's released.
-    pub fn combine_filters(filters: Vec<Filter>) -> Filter {
-        Filter(
-            filters
-                .into_iter()
-                .map(|f| Item::Terms(f.0))
-                .intersperse(Item::Raw("and".to_owned()))
-                .collect(),
-        )
-    }
-}
-
 #[cfg(test)]
 mod test {
 
     use super::*;
+    use crate::parse;
     use insta::{assert_display_snapshot, assert_yaml_snapshot};
-
-    use crate::parser::{ast_of_string, Rule};
 
     #[test]
     fn test_replace_variables() -> Result<()> {
@@ -181,14 +164,13 @@ mod test {
         use serde_yaml::to_string;
         use similar::TextDiff;
 
-        let ast = &ast_of_string(
+        let ast = &parse(
             r#"from employees
     derive [                                         # This adds columns / variables.
       gross_salary: salary + payroll_tax,
       gross_cost:   gross_salary + benefits_cost     # Variables can use other variables.
     ]
     "#,
-            Rule::pipeline,
         )?;
 
         let mut fold = ReplaceVariables::new();
@@ -199,21 +181,21 @@ mod test {
             &to_string(&fold.fold_item(ast)?)?
         ).unified_diff(),
         @r###"
-        @@ -11,6 +11,9 @@
-               - lvalue: gross_cost
-                 rvalue:
-                   Terms:
-        -            - Ident: gross_salary
-        +            - Terms:
-        +                - Ident: salary
-        +                - Raw: +
-        +                - Ident: payroll_tax
-                     - Raw: +
-                     - Ident: benefits_cost
+        @@ -13,6 +13,9 @@
+                     - lvalue: gross_cost
+                       rvalue:
+                         Terms:
+        -                  - Ident: gross_salary
+        +                  - Terms:
+        +                      - Ident: salary
+        +                      - Raw: +
+        +                      - Ident: payroll_tax
+                           - Raw: +
+                           - Ident: benefits_cost
         "###);
 
         let mut fold = ReplaceVariables::new();
-        let ast = &ast_of_string(
+        let ast = &parse(
             r#"
 from employees
 filter country = "USA"                           # Each line transforms the previous result.
@@ -235,7 +217,6 @@ sort sum_gross_cost
 filter sum_gross_cost > 200
 take 20
 "#,
-            Rule::query,
         )?;
         assert_yaml_snapshot!(&fold.fold_item(ast)?);
 
@@ -244,7 +225,7 @@ take 20
 
     #[test]
     fn test_run_functions_no_arg() -> Result<()> {
-        let ast = &ast_of_string(
+        let ast = &parse(
             "
 func count = testing_count
 
@@ -253,7 +234,6 @@ aggregate [
   count
 ]
 ",
-            Rule::query,
         )?;
 
         assert_yaml_snapshot!(ast, @r###"
@@ -302,7 +282,7 @@ aggregate [
 
     #[test]
     fn test_run_functions_args() -> Result<()> {
-        let ast = &ast_of_string(
+        let ast = &parse(
             r#"
 func count x = s"count({x})"
 
@@ -311,7 +291,6 @@ aggregate [
   count salary
 ]
 "#,
-            Rule::query,
         )?;
 
         assert_yaml_snapshot!(ast, @r###"
@@ -373,7 +352,7 @@ aggregate [
 
     #[test]
     fn test_materialize() -> Result<()> {
-        let pipeline = ast_of_string(
+        let pipeline = parse(
             r#"
 func count x = s"count({x})"
 
@@ -382,7 +361,6 @@ aggregate [
   count salary
 ]
 "#,
-            Rule::query,
         )?;
         let ast = materialize(pipeline)?;
         assert_yaml_snapshot!(ast,
@@ -414,7 +392,7 @@ aggregate [
         "###
         );
 
-        let ast = ast_of_string(
+        let ast = parse(
             r#"
 from employees
 filter country = "USA"                           # Each line transforms the previous result.
@@ -436,7 +414,32 @@ sort sum_gross_cost
 filter sum_gross_cost > 200
 take 20
 "#,
-            Rule::query,
+        )?;
+        assert_yaml_snapshot!(materialize(ast)?);
+
+        let ast = parse(
+            r#"
+    func lag_day x = s"lag_day_todo({x})"
+    func ret x = x / (lag_day x) - 1 + dividend_return
+    func excess x = (x - interest_rate) / 252
+    func if_valid x = s"IF(is_valid_price, {x}, NULL)"
+
+    from prices
+    derive [
+      return_total:      if_valid (ret prices_adj),
+      return_usd:        if_valid (ret prices_usd),
+      return_excess:     excess return_total,
+      return_usd_excess: excess return_usd,
+    ]
+    select [
+      date,
+      sec_id,
+      return_total,
+      return_usd,
+      return_excess,
+      return_usd_excess,
+    ]
+    "#,
         )?;
         assert_yaml_snapshot!(materialize(ast)?);
 

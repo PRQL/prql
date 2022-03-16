@@ -12,7 +12,7 @@ use pest_derive::Parser;
 
 #[derive(Parser)]
 #[grammar = "prql.pest"]
-pub struct PrqlParser;
+struct PrqlParser;
 
 /// Parse a string into an AST as a query.
 pub fn parse(string: &str) -> Result<Item> {
@@ -20,7 +20,7 @@ pub fn parse(string: &str) -> Result<Item> {
 }
 
 /// Parse a string into an AST.
-pub fn ast_of_string(string: &str, rule: Rule) -> Result<Item> {
+fn ast_of_string(string: &str, rule: Rule) -> Result<Item> {
     parse_tree_of_str(string, rule)
         .and_then(ast_of_parse_tree)
         .and_then(|x| x.into_only())
@@ -205,29 +205,23 @@ impl TryFrom<Vec<Item>> for Transformation {
 
         match name.as_str() {
             "from" => Ok(Transformation::From(args.into_only()?.into_ident()?)),
-            "select" => Ok(Transformation::Select(args)),
+            "select" => Ok(Transformation::Select(
+                args.into_only()?.into_items_from_maybe_list(),
+            )),
             "filter" => Ok(Transformation::Filter(Filter(args))),
             "derive" => {
                 let assigns = (args)
                     .into_only()
                     .context("Expected at least one argument")?
-                    // Possibly these two should be an `unnest_list` method?
-                    .coerce_to_list()
-                    .into_inner_list_items()?
+                    .into_items_from_maybe_list()
                     .into_iter()
-                    // TODO: couldn't manage to avoid cloning here.
-                    .map(|x| {
-                        x.into_only()?
-                            .as_assign()
-                            .ok_or(anyhow!("Expected Assign"))
-                            .cloned()
-                    })
-                    .try_collect()?;
+                    .map(|x| Ok(x.into_assign()?))
+                    .collect::<Result<Vec<Assign>>>()?;
                 Ok(Transformation::Derive(assigns))
             }
             "aggregate" => {
-                // We may generalize these checks to custom functions.
                 let arg = args.into_only()?;
+                // TODO: redo, generalizing with checks on custom functions.
                 // Ideally we'd be able to add to the error message with context
                 // without falling afowl of the borrow rules.
                 // Err(anyhow!(
@@ -242,14 +236,7 @@ impl TryFrom<Vec<Item>> for Transformation {
                                 "Expected aggregate to have up to one named arg, named 'by'"
                             ));
                         }
-                        (*arg)
-                            .clone()
-                            .coerce_to_list()
-                            .into_inner_list_items()?
-                            .into_iter()
-                            .map(Item::Terms)
-                            .map(|x| x.into_unnested())
-                            .collect()
+                        arg.to_owned().into_items_from_maybe_list()
                     }
                     [] => vec![],
                     _ => {
@@ -259,15 +246,7 @@ impl TryFrom<Vec<Item>> for Transformation {
                     }
                 };
 
-                let ops: Items = arg
-                    // Normalize for it being a list or a single op (TODO: this
-                    // is an area that could use some cleaning up)
-                    .coerce_to_list()
-                    .into_inner_list_items()?
-                    .into_iter()
-                    .map(Item::Terms)
-                    .map(|x| x.into_unnested())
-                    .collect();
+                let ops: Items = arg.into_items_from_maybe_list();
 
                 // Ops should either be calcs or assigns; e.g. one of
                 //   average gross_cost
@@ -489,6 +468,30 @@ mod test {
               - Ident: salary
             named_args: []
         "###);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_parse_aggregate() -> Result<()> {
+        let aggregate = ast_of_string(
+            "aggregate by:[title] [sum salary, count]",
+            Rule::transformation,
+        )?;
+        assert_yaml_snapshot!(
+            aggregate, @r###"
+        ---
+        Transformation:
+          Aggregate:
+            by:
+              - Ident: title
+            calcs:
+              - Terms:
+                  - Ident: sum
+                  - Ident: salary
+              - Ident: count
+            assigns: []
+        "###);
         let aggregate = ast_of_string("aggregate by:[title] [sum salary]", Rule::transformation)?;
         assert_yaml_snapshot!(
             aggregate, @r###"
@@ -533,6 +536,30 @@ mod test {
                   - Ident: salary
             assigns: []
         "###);
+        Ok(())
+    }
+
+    #[test]
+    fn test_parse_select() -> Result<()> {
+        assert_yaml_snapshot!(
+            ast_of_string(r#"select x"#, Rule::transformation)?
+        , @r###"
+        ---
+        Transformation:
+          Select:
+            - Ident: x
+        "###);
+
+        assert_yaml_snapshot!(
+            ast_of_string(r#"select [x, y]"#, Rule::transformation)?
+        , @r###"
+        ---
+        Transformation:
+          Select:
+            - Ident: x
+            - Ident: y
+        "###);
+
         Ok(())
     }
 
