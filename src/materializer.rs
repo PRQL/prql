@@ -41,7 +41,7 @@ impl ReplaceVariables {
         // Not sure we're choosing the correct Item / Items in the types, this is a
         // bit of a smell.
         self.variables
-            .insert(assign.lvalue.clone(), *(assign.rvalue).clone());
+            .insert(assign.lvalue.clone(), *assign.rvalue.clone());
         self
     }
 }
