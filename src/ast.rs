@@ -223,7 +223,7 @@ impl IntoUnnested for Item {
     /// removes `Terms` (not `Items` or `List`), though it does walk all the
     /// containers.
     fn into_unnested(self) -> Self {
-        Unnest.fold_item(&self).unwrap()
+        Unnest.fold_item(self).unwrap()
     }
 }
 
@@ -231,7 +231,7 @@ use super::ast_fold::fold_item;
 struct Unnest;
 impl AstFold for Unnest {
     // TODO: We could make this Infallible
-    fn fold_item(&mut self, item: &Item) -> Result<Item> {
+    fn fold_item(&mut self, item: Item) -> Result<Item> {
         match item {
             Item::Terms(terms) => {
                 // Possibly this can be more elegant. One issue with combining
@@ -240,7 +240,7 @@ impl AstFold for Unnest {
 
                 // Get the inner items, passing each of those to `fold_item`.
                 let inner_terms = terms
-                    .iter()
+                    .into_iter()
                     .map(|term| self.fold_item(term).unwrap())
                     .collect::<Vec<Item>>();
 
@@ -248,9 +248,12 @@ impl AstFold for Unnest {
                 // pass all the items.
                 fold_item(
                     self,
-                    &inner_terms
-                        .only()
-                        .cloned()
+                    inner_terms
+                        // We need this clone because of the `unwrap_or` below. An
+                        // alternative approach would be to test whether it's the only
+                        // item without moving it.
+                        .clone()
+                        .into_only()
                         .unwrap_or(Item::Terms(inner_terms)),
                 )
             }
