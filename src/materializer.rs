@@ -4,7 +4,6 @@
 use super::ast::*;
 use super::ast_fold::*;
 use anyhow::{anyhow, Result};
-
 use std::{collections::HashMap, iter::zip};
 
 pub fn materialize(ast: Item) -> Result<Item> {
