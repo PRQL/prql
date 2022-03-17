@@ -143,7 +143,7 @@ pub fn fold_item<T: ?Sized + AstFold>(fold: &mut T, item: Item) -> Result<Item> 
     Ok(match item {
         Item::Ident(ident) => Item::Ident(fold.fold_ident(ident)?),
         Item::Terms(terms) => Item::Terms(fold.fold_terms(terms)?),
-        Item::Items(items) => Item::Items(fold.fold_items(items)?),
+        Item::Expr(items) => Item::Expr(fold.fold_items(items)?),
         Item::Idents(idents) => Item::Idents(
             idents
                 .into_iter()

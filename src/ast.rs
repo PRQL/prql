@@ -32,9 +32,8 @@ pub enum Item {
     // Terms([Item]) -> Item) does not change its semantics. (More detail in
     // `prql.pest`)
     Terms(Items),
-    // Holds any Items. Unnesting _can_ change semantics (though it's less
-    // important than when this was used as a ListItem).
-    Items(Items),
+    // Holds any Items. Unnesting _can_ change semantics.
+    Expr(Items),
     Idents(Idents),
     Function(Function),
     Table(Table),
@@ -153,12 +152,12 @@ impl Item {
     /// want to only have to handle a single type.
     pub fn into_inner_items(self) -> Vec<Item> {
         match self {
-            Item::Terms(items) | Item::Items(items) | Item::Query(Query { items }) => items,
+            Item::Terms(items) | Item::Expr(items) | Item::Query(Query { items }) => items,
             _ => vec![self],
         }
     }
     pub fn as_inner_items(&self) -> Result<&Vec<Item>> {
-        if let Item::Terms(items) | Item::Items(items) = self {
+        if let Item::Terms(items) | Item::Expr(items) = self {
             Ok(items)
         } else if let Item::Query(Query { items }) = self {
             Ok(items)
@@ -206,7 +205,7 @@ impl Item {
     }
     /// Often we don't care whether a List or single item is passed; e.g.
     /// `select x` vs `select [x, y]`. This equalizes them both to a vec of
-    /// Items, including unnesting any ListItems.
+    /// Item-s, including unnesting any ListItems.
     pub fn into_items_from_maybe_list(self) -> Items {
         self.coerce_to_list()
             .into_inner_list_items()
@@ -224,7 +223,7 @@ pub trait IntoUnnested {
 impl IntoUnnested for Item {
     /// Transitively unnest the whole tree, traversing even parents with more
     /// than one child. This is more unnesting that `as_scalar' does. Only
-    /// removes `Terms` (not `Items` or `List`), though it does walk all the
+    /// removes `Terms` (not `Expr` or `List`), though it does walk all the
     /// containers.
     fn into_unnested(self) -> Self {
         Unnest.fold_item(self).unwrap()
@@ -282,18 +281,18 @@ mod test {
     fn test_into_unnested() {
         let atom = Item::Ident("a".to_string());
         let single_term = Item::Terms(vec![atom.clone()]);
-        let single_item = Item::Items(vec![atom.clone()]);
+        let single_item = Item::Expr(vec![atom.clone()]);
 
         // Gets the single item through one level of nesting.
         let item = single_term.clone();
         assert_eq!(item.into_unnested(), atom);
 
-        // Doesn't break through an Items.
+        // Doesn't break through an Expr.
         let item = single_item.clone();
         assert_eq!(&item.clone().into_unnested(), &item);
 
-        // `Terms -> Items -> Terms` goes to `Items -> Terms`
-        let item = Item::Terms(vec![Item::Items(vec![single_term.clone()])]);
+        // `Terms -> Expr -> Terms` goes to `Expr -> Terms`
+        let item = Item::Terms(vec![Item::Expr(vec![single_term.clone()])]);
         assert_eq!(item.into_unnested(), single_item);
 
         // No change on a simple ident.

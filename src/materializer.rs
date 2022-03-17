@@ -30,16 +30,12 @@ struct ReplaceVariables {
 }
 
 impl ReplaceVariables {
-    // Clippy is fine with this (correctly), but rust-analyzer is not (incorrectly).
-    #[allow(dead_code)]
     fn new() -> Self {
         Self {
             variables: HashMap::new(),
         }
     }
     fn add_variables(&mut self, assign: Assign) -> &Self {
-        // Not sure we're choosing the correct Item / Items in the types, this is a
-        // bit of a smell.
         self.variables.insert(assign.lvalue, *assign.rvalue);
         self
     }
@@ -137,7 +133,7 @@ impl AstFold for RunFunctions {
                 // that's messy, should we parse a FuncCall directly?
                 let (name, body) = items.split_first().unwrap();
                 let func_call_transform =
-                    vec![name.clone(), Item::Items(body.to_vec())].try_into()?;
+                    vec![name.clone(), Item::Expr(body.to_vec())].try_into()?;
 
                 if let Transformation::Func(func_call) = func_call_transform {
                     return self.run_function(&func_call);

@@ -25,8 +25,8 @@ pipe = _{ NEWLINE | "|" }
 // TODO: should this allow for multiple line breaks?
 pipeline = { transformation ~ (pipe ~ transformation)* }
 // `ident` is the transformation name.
-// Should this be `terms` or `items`? With `terms`, we can't have `filter x = 1`; only
-// `filter (x = 1)`, so choosing `items`.
+// Should this be `Terms` or `Expr`? With `Terms`, we can't have `filter x = 1`; only
+// `filter (x = 1)`, so choosing `Expr`.
 transformation = { WHITESPACE* ~ ident ~ expr? }
 // We don't model this in the same way as a pipeline, since the first term isn't
 // a transformation. And it's somewhat related to our transformations being
@@ -37,7 +37,7 @@ inline_pipeline = { "(" ~ expr ~ (pipe ~ expr)+ ~ ")" }
 ident = @{ ( ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "." | "_" )* ) }
 idents = { ident+ }
 
-// A central issue around the terms vs items is that we want to be able to parse:
+// A central issue around the Terms vs Expr is that we want to be able to parse:
 //   [foo bar + 1, 2]
 // as:
 // - foo bar + 1
@@ -50,8 +50,8 @@ idents = { ident+ }
 // So this requires two non-silent rules:
 // - A notion of list item that contains anything, including operators (but
 //   not commas); e.g. `foo bar + 1`.
-// - A notion of items that aggregates things between operators, e.g. foo bar.
-// So we call the list item `items`, and the things between separators `terms`.
+// - A notion of Expr that aggregates things between operators, e.g. foo bar.
+// So we call the list item `Expr`, and the things between separators `terms`.
 //
 // We could have them be the same, but then we need logic in the parser to
 // account for where the list item is in this parse tree
@@ -66,7 +66,7 @@ idents = { ident+ }
 expr = { ( terms | operator | WHITESPACE )+ }
 // For when we want to include separators, but don't need to break between them;
 // e.g. in function definitions; where `func x = x + 1` can have `x + 1` as a
-// single sequence of items. Alternative we could arguably discard this and
+// single sequence of Expr. Alternative we could arguably discard this and
 // unnest when creating the AST (which currently we do anyway).
 expr_silent = _{ ( terms | operator | WHITESPACE )+ }
 terms = !{ term+ }
@@ -123,12 +123,12 @@ named_arg = ${ ident ~ ":" ~ term }
 
 // We no longer use this, but keeping here for reference, as it was a useful
 // pattern for reducing nesting.
-// // If possible, parse a single expr, otherwise parse a list of items, adding a
-// // layer. In cases like [a, b], we don't need `a` to be Items -> Ident -> a;
-// // only Ident -> a; but in [a b], we do need an Items parent to discriminate it
+// // If possible, parse a single expr, otherwise parse a list of Expr, adding a
+// // layer. In cases like [a, b], we don't need `a` to be Expr -> Ident -> a;
+// // only Ident -> a; but in [a b], we do need an Expr parent to discriminate it
 // // from `[a, b]`.
 // // Note that it's a bit complicated with `&( NEWLINE? ~ ("," | "]"))` — we want
 // // to ensure there is a end to the expression, and we allow a NEWLINE to be between
 // // the current expression and the ending token. (Feel free to change and see the
 // // test diffs.)
-// // single_expr_if_possible = _{ (( item ~ &( NEWLINE? ~ ("," | "]") ) ) | items ) }
+// // single_expr_if_possible = _{ (( item ~ &( NEWLINE? ~ ("," | "]") ) ) | Expr ) }
