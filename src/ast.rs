@@ -22,6 +22,10 @@ pub enum Item {
     NamedArg(NamedArg),
     Query(Query),
     Pipeline(Pipeline),
+    // Currently this is separate from `Pipeline`, but we could unify them at
+    // some point. We'll need to relax the constraints on `Pipeline` to allow it
+    // to start with a simple expression.
+    InlinePipeline(Items),
     // Similar to holding an Expr, but we strongly type it so the parsing can be more strict.
     List(Vec<ListItem>),
     // Holds "Terms", not including separators like `+`. Unnesting this (i.e.
