@@ -1,6 +1,6 @@
 ---
-source: src/to_sql.rs
-assertion_line: 669
+source: src/translator.rs
+assertion_line: 828
 expression: sql
 ---
 SELECT
@@ -12,7 +12,8 @@ SELECT
   SUM(salary),
   AVG(salary + payroll_tax),
   SUM(salary + payroll_tax),
-  AVG(salary + payroll_tax + benefits_cost)
+  AVG(salary + payroll_tax + benefits_cost),
+  *
 FROM
   employees
 WHERE
@@ -21,5 +22,7 @@ WHERE
 GROUP BY
   title,
   country
+HAVING
+  COUNT(*) > 200
 ORDER BY
   SUM(salary + payroll_tax + benefits_cost)

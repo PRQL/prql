@@ -7,7 +7,8 @@ use std::io::{Read, Write};
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ArgEnum)]
 enum Dialect {
     Ast,
-    CompiledAst,
+    MaterializedAst,
+    Sql,
 }
 
 #[derive(Parser)]
@@ -19,7 +20,7 @@ pub struct Cli {
     #[clap(short, long, default_value = "-", parse(try_from_os_str = Output::try_from))]
     output: Output,
 
-    #[clap(short, long, arg_enum, default_value = "ast")]
+    #[clap(short, long, arg_enum, default_value = "sql")]
     format: Dialect,
 }
 
@@ -31,9 +32,12 @@ impl Cli {
             Dialect::Ast => self
                 .output
                 .write_all(&serde_yaml::to_vec(&parse(&source)?)?)?,
-            Dialect::CompiledAst => {
-                let compiled = compile(parse(&source)?)?;
-                self.output.write_all(&serde_yaml::to_vec(&compiled)?)?
+            Dialect::MaterializedAst => {
+                let materialized = materialize(parse(&source)?)?;
+                self.output.write_all(&serde_yaml::to_vec(&materialized)?)?
+            }
+            Dialect::Sql => {
+                self.output.write_all(transpile(&source)?.as_bytes())?;
             }
         };
         Ok(())

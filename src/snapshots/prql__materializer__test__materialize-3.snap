@@ -1,0 +1,158 @@
+---
+source: src/materializer.rs
+assertion_line: 461
+expression: materialize(ast)?
+---
+Query:
+  items:
+    - Function:
+        name: lag_day
+        args:
+          - x
+        body:
+          - SString:
+              - String: lag_day_todo(
+              - Expr:
+                  Ident: x
+              - String: )
+    - Function:
+        name: ret
+        args:
+          - x
+        body:
+          - Ident: x
+          - Raw: /
+          - Items:
+              - SString:
+                  - String: lag_day_todo(
+                  - Expr:
+                      Ident: x
+                  - String: )
+          - Raw: "-"
+          - Raw: "1"
+          - Raw: +
+          - Ident: dividend_return
+    - Function:
+        name: excess
+        args:
+          - x
+        body:
+          - Items:
+              - Ident: x
+              - Raw: "-"
+              - Ident: interest_rate
+          - Raw: /
+          - Raw: "252"
+    - Function:
+        name: if_valid
+        args:
+          - x
+        body:
+          - SString:
+              - String: "IF(is_valid_price, "
+              - Expr:
+                  Ident: x
+              - String: ", NULL)"
+    - Pipeline:
+        - From: prices
+        - Derive:
+            - lvalue: return_total
+              rvalue:
+                SString:
+                  - String: "IF(is_valid_price, "
+                  - Expr:
+                      Items:
+                        - Terms:
+                            - Ident: ret
+                            - Ident: prices_adj
+                  - String: ", NULL)"
+            - lvalue: return_usd
+              rvalue:
+                SString:
+                  - String: "IF(is_valid_price, "
+                  - Expr:
+                      Items:
+                        - Terms:
+                            - Ident: ret
+                            - Ident: prices_usd
+                  - String: ", NULL)"
+            - lvalue: return_excess
+              rvalue:
+                Terms:
+                  - Items:
+                      - SString:
+                          - String: "IF(is_valid_price, "
+                          - Expr:
+                              Items:
+                                - Terms:
+                                    - Ident: ret
+                                    - Ident: prices_adj
+                          - String: ", NULL)"
+                      - Raw: "-"
+                      - Ident: interest_rate
+                  - Raw: /
+                  - Raw: "252"
+            - lvalue: return_usd_excess
+              rvalue:
+                Terms:
+                  - Items:
+                      - SString:
+                          - String: "IF(is_valid_price, "
+                          - Expr:
+                              Items:
+                                - Terms:
+                                    - Ident: ret
+                                    - Ident: prices_usd
+                          - String: ", NULL)"
+                      - Raw: "-"
+                      - Ident: interest_rate
+                  - Raw: /
+                  - Raw: "252"
+        - Select:
+            - Ident: date
+            - Ident: sec_id
+            - SString:
+                - String: "IF(is_valid_price, "
+                - Expr:
+                    Items:
+                      - Terms:
+                          - Ident: ret
+                          - Ident: prices_adj
+                - String: ", NULL)"
+            - SString:
+                - String: "IF(is_valid_price, "
+                - Expr:
+                    Items:
+                      - Terms:
+                          - Ident: ret
+                          - Ident: prices_usd
+                - String: ", NULL)"
+            - Terms:
+                - Items:
+                    - SString:
+                        - String: "IF(is_valid_price, "
+                        - Expr:
+                            Items:
+                              - Terms:
+                                  - Ident: ret
+                                  - Ident: prices_adj
+                        - String: ", NULL)"
+                    - Raw: "-"
+                    - Ident: interest_rate
+                - Raw: /
+                - Raw: "252"
+            - Terms:
+                - Items:
+                    - SString:
+                        - String: "IF(is_valid_price, "
+                        - Expr:
+                            Items:
+                              - Terms:
+                                  - Ident: ret
+                                  - Ident: prices_usd
+                        - String: ", NULL)"
+                    - Raw: "-"
+                    - Ident: interest_rate
+                - Raw: /
+                - Raw: "252"
+

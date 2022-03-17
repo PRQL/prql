@@ -1,3 +1,7 @@
+/// This module contains the parser, which is responsible for converting a tree
+/// of pest pairs into a tree of AST Items. It has a small function to call into
+/// pest to get the parse tree / concrete syntaxt tree, and then a large
+/// function for turning that into PRQL AST.
 use super::ast::*;
 use super::utils::*;
 use anyhow::{anyhow, Context, Result};
@@ -8,7 +12,7 @@ use pest_derive::Parser;
 
 #[derive(Parser)]
 #[grammar = "prql.pest"]
-pub struct PrqlParser;
+struct PrqlParser;
 
 /// Parse a string into an AST as a query.
 pub fn parse(string: &str) -> Result<Item> {
@@ -16,7 +20,7 @@ pub fn parse(string: &str) -> Result<Item> {
 }
 
 /// Parse a string into an AST.
-pub fn ast_of_string(string: &str, rule: Rule) -> Result<Item> {
+fn ast_of_string(string: &str, rule: Rule) -> Result<Item> {
     parse_tree_of_str(string, rule)
         .and_then(ast_of_parse_tree)
         .and_then(|x| x.into_only())
@@ -56,13 +60,11 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Items> {
                 Rule::idents => {
                     Item::Idents(pair.into_inner().map(|x| x.as_str().to_owned()).collect())
                 }
-                Rule::terms => Item::Terms(ast_of_parse_tree(pair.into_inner())?)
-                    // We collapse any Items with a single element into that
-                    // element. We don't do this with Items or List because those are
-                    // often meaningful — e.g. a List needs a number of Expr, so that
-                    // `[a, b]` is different from `[a b]`.
-                    .as_scalar()
-                    .clone(),
+                // We collapse any Terms with a single element into that element
+                // with `into_unnested`. This only unnests `Terms`; not Items or
+                // List because those are often meaningful — e.g. a List needs a
+                // number of Expr, so that `[a, b]` is different from `[a b]`.
+                Rule::terms => Item::Terms(ast_of_parse_tree(pair.into_inner())?).into_unnested(),
                 Rule::expr => Item::Items(ast_of_parse_tree(pair.into_inner())?),
                 Rule::named_arg => {
                     let parsed: [Item; 2] = ast_of_parse_tree(pair.into_inner())?
@@ -83,7 +85,7 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Items> {
                     if let [lvalue, Item::Items(rvalue)] = parsed {
                         Ok(Item::Assign(Assign {
                             lvalue: lvalue.into_ident()?,
-                            rvalue: Box::new(Item::Terms(rvalue).as_scalar().clone()),
+                            rvalue: Box::new(Item::Terms(rvalue).into_unnested()),
                         }))
                     } else {
                         Err(anyhow!(
@@ -169,18 +171,26 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Items> {
 impl TryFrom<Vec<Item>> for Transformation {
     type Error = anyhow::Error;
     fn try_from(items: Vec<Item>) -> Result<Self> {
-        let (name_item, expr) = items
+        let (name_item, items) = items
             .split_first()
             .ok_or(anyhow!("Expected at least one item"))?;
         let name = name_item.as_ident().ok_or(anyhow!("Expected Ident"))?;
-        // TODO: account for a name-only transformation, with no expr.
-        let (named_arg_items, args): (Vec<Item>, Vec<Item>) = expr
+        // TODO: account for a name-only transformation, with no items.
+        let (named_arg_items, args): (Vec<Item>, Vec<Item>) = items
             .into_only()?
-            // Take out of the expr
-            .as_scalar()
+            // Take out of the Items
             .clone()
-            // Take out of the terms
-            .into_inner_items()
+            .into_items()
+            // Unnest the Terms.
+            // We need this because the Items might have a Terms immediately
+            // below it, and so we've just added another level of nesting. But
+            // it's quite messy and this sort of "dynamic" behavior has been the
+            // cause of many long debugging sessions (it's better than it used
+            // to be!).
+            .map(Item::Terms)?
+            .into_unnested()
+            .into_inner_terms()
+            // Partition out NamedArgs
             .into_iter()
             .partition(|x| matches!(x, Item::NamedArg(_)));
 
@@ -195,29 +205,23 @@ impl TryFrom<Vec<Item>> for Transformation {
 
         match name.as_str() {
             "from" => Ok(Transformation::From(args.into_only()?.into_ident()?)),
-            "select" => Ok(Transformation::Select(args)),
+            "select" => Ok(Transformation::Select(
+                args.into_only()?.into_items_from_maybe_list(),
+            )),
             "filter" => Ok(Transformation::Filter(Filter(args))),
             "derive" => {
                 let assigns = (args)
                     .into_only()
                     .context("Expected at least one argument")?
-                    // Possibly these two should be an `unnest_list` method?
-                    .coerce_to_list()
-                    .into_inner_list_items()?
+                    .into_items_from_maybe_list()
                     .into_iter()
-                    // TODO: couldn't manage to avoid cloning here.
-                    .map(|x| {
-                        x.into_only()?
-                            .as_assign()
-                            .ok_or(anyhow!("Expected Assign"))
-                            .cloned()
-                    })
-                    .try_collect()?;
+                    .map(|x| Ok(x.into_assign()?))
+                    .collect::<Result<Vec<Assign>>>()?;
                 Ok(Transformation::Derive(assigns))
             }
             "aggregate" => {
-                // We may generalize these checks to custom functions.
                 let arg = args.into_only()?;
+                // TODO: redo, generalizing with checks on custom functions.
                 // Ideally we'd be able to add to the error message with context
                 // without falling afowl of the borrow rules.
                 // Err(anyhow!(
@@ -232,14 +236,7 @@ impl TryFrom<Vec<Item>> for Transformation {
                                 "Expected aggregate to have up to one named arg, named 'by'"
                             ));
                         }
-                        (*arg)
-                            .clone()
-                            .coerce_to_list()
-                            .into_inner_list_items()?
-                            .into_iter()
-                            .map(Item::Terms)
-                            .map(|x| x.into_unnested())
-                            .collect()
+                        arg.to_owned().into_items_from_maybe_list()
                     }
                     [] => vec![],
                     _ => {
@@ -249,15 +246,7 @@ impl TryFrom<Vec<Item>> for Transformation {
                     }
                 };
 
-                let ops: Items = arg
-                    // Normalize for it being a list or a single op (TODO: this
-                    // is an area that could use some cleaning up)
-                    .coerce_to_list()
-                    .into_inner_list_items()?
-                    .into_iter()
-                    .map(Item::Terms)
-                    .map(|x| x.into_unnested())
-                    .collect();
+                let ops: Items = arg.into_items_from_maybe_list();
 
                 // Ops should either be calcs or assigns; e.g. one of
                 //   average gross_cost
@@ -280,11 +269,8 @@ impl TryFrom<Vec<Item>> for Transformation {
             "sort" => Ok(Transformation::Sort(args)),
             "take" => {
                 // TODO: coerce to number
-                args.into_only().map(|x| x.as_scalar().clone()).map(|n| {
-                    Ok(Transformation::Take(
-                        n.as_raw().ok_or(anyhow!("Expected Raw"))?.parse()?,
-                    ))
-                })?
+                args.into_only()
+                    .map(|n| Ok(Transformation::Take(n.into_raw()?.parse()?)))?
             }
             "join" => Ok(Transformation::Join(args)),
             _ => Ok(Transformation::Func(FuncCall {
@@ -473,15 +459,18 @@ mod test {
             - Raw: "="
             - String: USA
         "###);
+        // TODO: Shoud the next two be different, based on whether there are
+        // parentheses? I think possibly not.
         assert_yaml_snapshot!(
             ast_of_string(r#"filter (upper country) = "USA""#, Rule::transformation)?
         , @r###"
         ---
         Transformation:
           Filter:
-            - Terms:
-                - Ident: upper
-                - Ident: country
+            - Items:
+                - Terms:
+                    - Ident: upper
+                    - Ident: country
             - Raw: "="
             - String: USA
         "###);
@@ -512,6 +501,30 @@ mod test {
             args:
               - Ident: salary
             named_args: []
+        "###);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_parse_aggregate() -> Result<()> {
+        let aggregate = ast_of_string(
+            "aggregate by:[title] [sum salary, count]",
+            Rule::transformation,
+        )?;
+        assert_yaml_snapshot!(
+            aggregate, @r###"
+        ---
+        Transformation:
+          Aggregate:
+            by:
+              - Ident: title
+            calcs:
+              - Terms:
+                  - Ident: sum
+                  - Ident: salary
+              - Ident: count
+            assigns: []
         "###);
         let aggregate = ast_of_string("aggregate by:[title] [sum salary]", Rule::transformation)?;
         assert_yaml_snapshot!(
@@ -557,6 +570,30 @@ mod test {
                   - Ident: salary
             assigns: []
         "###);
+        Ok(())
+    }
+
+    #[test]
+    fn test_parse_select() -> Result<()> {
+        assert_yaml_snapshot!(
+            ast_of_string(r#"select x"#, Rule::transformation)?
+        , @r###"
+        ---
+        Transformation:
+          Select:
+            - Ident: x
+        "###);
+
+        assert_yaml_snapshot!(
+            ast_of_string(r#"select [x, y]"#, Rule::transformation)?
+        , @r###"
+        ---
+        Transformation:
+          Select:
+            - Ident: x
+            - Ident: y
+        "###);
+
         Ok(())
     }
 

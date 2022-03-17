@@ -1,10 +1,13 @@
+/// This module is responsible for translating PRQL AST to sqlparser AST, and
+/// then to a String. We use sqlparser because it's trivial to create the string
+/// once it's in their AST (it's just `.to_string()`). It also lets us support a
+/// few dialects of SQL immediately.
 // The average code quality here is quite low — we're basically plugging in test
 // cases and fixing what breaks, with some occasional refactors. I'm not sure
 // that's a terrible approach — the SQL spec is huge, so we're not reasonably
 // going to be isomorphically mapping everything back from SQL to PRQL. But it
 // does mean we should continue to iterate on this file and refactor things when
 // necessary.
-
 use super::ast::*;
 use super::utils::*;
 use anyhow::{anyhow, Result};
@@ -15,9 +18,13 @@ use sqlparser::ast::{
 };
 use std::collections::HashMap;
 
-/// Convert a PRQL AST to SQL.
-pub fn sql_of_ast(ast: &Item) -> Result<String> {
-    let sql_query: sqlparser::ast::Query = ast.as_query().unwrap().clone().try_into()?;
+/// Translate a PRQL AST to SQL string.
+pub fn translate(ast: &Item) -> Result<String> {
+    let sql_query: sqlparser::ast::Query = ast
+        .as_query()
+        .ok_or_else(|| anyhow!("Requires a Query; {ast:?}"))?
+        .clone()
+        .try_into()?;
 
     let sql_query_string = sql_query.to_string();
 
@@ -32,30 +39,24 @@ pub fn sql_of_ast(ast: &Item) -> Result<String> {
 impl TryFrom<Query> for sqlparser::ast::Query {
     type Error = anyhow::Error;
     fn try_from(query: Query) -> Result<Self> {
-        let compilable: Vec<Item> = query
+        let filtered: Vec<Item> = query
             .items
-            .iter()
+            .into_iter()
             // We don't compile functions into SQL.
             .filter(|item| !matches!(item, Item::Function(_)))
-            .cloned()
             .collect();
 
-        let tables: Vec<Table> = compilable
+        let tables: Vec<Table> = filtered
             .iter()
             .filter_map(|item| item.as_table().cloned())
             .collect();
 
-        let pipeline = compilable
+        let pipeline = filtered
             .iter()
-            .filter(|item| matches!(item, Item::Pipeline(_)))
-            .map(|item| item.as_pipeline().unwrap().clone())
+            .filter_map(|item| item.as_pipeline().cloned())
             .into_only()?;
 
-        if !tables.is_empty() {
-            sql_query_of_tables_and_pipeline(&pipeline, &tables)
-        } else {
-            sql_query_of_pipeline(&pipeline)
-        }
+        sql_query_of_pipeline_and_tables(&pipeline, &tables)
     }
 }
 
@@ -67,27 +68,27 @@ impl Table {
         };
         Ok(sqlparser::ast::Cte {
             alias,
-            query: sql_query_of_pipeline(&self.pipeline)?,
+            query: sql_query_of_pipeline_and_tables(&self.pipeline, &[])?,
             from: None,
         })
     }
 }
 
-fn sql_query_of_pipeline(pipeline: &Pipeline) -> Result<sqlparser::ast::Query> {
-    let atomic_pipelines = atomic_pipelines_of_pipeline(pipeline)?;
-    // Return early if we have a single atomic pipeline.
-    if atomic_pipelines.len() == 1 {
-        return sql_query_of_atomic_pipeline(&atomic_pipelines.into_only()?);
-    }
-    let tables = tables_of_pipelines(atomic_pipelines)?;
-
-    sql_query_of_tables_and_pipeline(pipeline, &tables)
-}
-
-fn sql_query_of_tables_and_pipeline(
-    _pipeline: &Pipeline,
+fn sql_query_of_pipeline_and_tables(
+    pipeline: &Pipeline,
     tables: &[Table],
 ) -> Result<sqlparser::ast::Query> {
+    let atomic_pipelines = atomic_pipelines_of_pipeline(pipeline)?;
+    // Return early if we have a single atomic pipeline.
+    if atomic_pipelines.len() == 1 && tables.is_empty() {
+        return sql_query_of_atomic_pipeline(&atomic_pipelines.into_only()?);
+    }
+    let tables_from_pipeline = tables_of_pipelines(atomic_pipelines)?;
+
+    sql_query_of_tables(&[tables, tables_from_pipeline.as_slice()].concat())
+}
+
+fn sql_query_of_tables(tables: &[Table]) -> Result<sqlparser::ast::Query> {
     let ctes = tables.iter().map(|x| x.to_sql_cte()).try_collect()?;
 
     Ok(sqlparser::ast::Query {
@@ -99,22 +100,13 @@ fn sql_query_of_tables_and_pipeline(
         limit: None,
         offset: None,
         fetch: None,
-        body: sqlparser::ast::SetExpr::Select(Box::new(sqlparser::ast::Select {
+        body: SetExpr::Select(Box::new(Select {
             selection: None,
             distinct: false,
             top: None,
             projection: vec![Item::Ident("*".to_string()).try_into()?],
-            // This TableWithJoins is copied from
-            // `sql_query_of_atomic_pipeline`; TODO: split out.
             from: vec![TableWithJoins {
-                relation: TableFactor::Table {
-                    name: ObjectName(vec![Item::Ident(tables.last().unwrap().name.clone())
-                        .try_into()
-                        .unwrap()]),
-                    alias: None,
-                    args: vec![],
-                    with_hints: vec![],
-                },
+                relation: table_factor_of_ident(&tables.last().unwrap().name),
                 joins: vec![],
             }],
             group_by: vec![],
@@ -135,6 +127,62 @@ fn sql_query_of_tables_and_pipeline(
 //     type Error = anyhow::Error;
 //     fn try_from(&pipeline: Pipeline) -> Result<sqlparser::ast::Query> {
 
+fn table_factor_of_ident(ident: &Ident) -> TableFactor {
+    TableFactor::Table {
+        name: ObjectName(vec![Item::Ident(ident.clone()).try_into().unwrap()]),
+        alias: None,
+        args: vec![],
+        with_hints: vec![],
+    }
+}
+
+/// Get the selects from a pipeline.
+fn select_columns_of_pipeline(pipeline: &Pipeline) -> Result<Vec<SelectItem>> {
+    let mut selects = vec![];
+    // Whether we should be returning everything not specified.
+    let mut is_exclusive = false;
+
+    for transformation in pipeline {
+        match transformation {
+            Transformation::Select(select) => {
+                // TODO: confirm it's not `select *`?
+                is_exclusive = true;
+                selects.clear();
+                selects.extend(
+                    select
+                        .iter()
+                        .map(|x| x.clone().try_into())
+                        .collect::<Result<Vec<SelectItem>>>()?,
+                )
+            }
+            Transformation::Derive(assigns) => selects.extend(
+                assigns
+                    .iter()
+                    .map(|assign| assign.clone().try_into())
+                    .collect::<Result<Vec<SelectItem>>>()?,
+            ),
+            Transformation::Aggregate { calcs, assigns, .. } => {
+                // This is chaining a) the assigns (such as `sum_salary: sum
+                // salary`), and b) the calcs (such as `sum salary`); and converting
+                // them into SelectItems.
+                selects.extend(
+                    assigns
+                        .iter()
+                        .map(|x| x.clone().try_into())
+                        .chain(calcs.iter().map(|x| x.clone().try_into()))
+                        .collect::<Result<Vec<SelectItem>>>()?,
+                )
+            }
+            _ => {}
+        }
+    }
+    if !is_exclusive {
+        selects.push(SelectItem::Wildcard);
+    }
+
+    Ok(selects)
+}
+
 fn sql_query_of_atomic_pipeline(pipeline: &Pipeline) -> Result<sqlparser::ast::Query> {
     // TODO: possibly do validation here? e.g. check there isn't more than one
     // `from`? Or do we rely on the caller for that?
@@ -152,12 +200,7 @@ fn sql_query_of_atomic_pipeline(pipeline: &Pipeline) -> Result<sqlparser::ast::Q
         .iter()
         .filter_map(|t| match t {
             Transformation::From(ident) => Some(TableWithJoins {
-                relation: TableFactor::Table {
-                    name: ObjectName(vec![Item::Ident(ident.clone()).try_into().unwrap()]),
-                    alias: None,
-                    args: vec![],
-                    with_hints: vec![],
-                },
+                relation: table_factor_of_ident(ident),
                 joins: vec![],
             }),
             _ => None,
@@ -175,7 +218,6 @@ fn sql_query_of_atomic_pipeline(pipeline: &Pipeline) -> Result<sqlparser::ast::Q
     fn filter_of_pipeline(pipeline: &[Transformation]) -> Result<Option<Expr>> {
         let filters: Vec<Filter> = pipeline
             .iter()
-            .take_while(|t| !matches!(t, Transformation::Aggregate { .. }))
             .filter_map(|t| match t {
                 Transformation::Filter(filter) => Some(filter),
                 _ => None,
@@ -224,64 +266,19 @@ fn sql_query_of_atomic_pipeline(pipeline: &Pipeline) -> Result<sqlparser::ast::Q
     let aggregate = pipeline
         .iter()
         .find(|t| matches!(t, Transformation::Aggregate { .. }));
-    let (group_bys, select_from_aggregate): (Vec<Item>, Option<Vec<SelectItem>>) = match aggregate {
-        Some(Transformation::Aggregate { by, calcs, assigns }) => (
-            by.clone(),
-            // This is chaining a) the assigns (such as `sum_salary: sum
-            // salary`), and b) the calcs (such as `sum salary`); and converting
-            // them into SelectItems.
-            Some(
-                assigns
-                    .iter()
-                    .map(|x| x.clone().try_into())
-                    .chain(calcs.iter().map(|x| x.clone().try_into()))
-                    .try_collect()?,
-            ),
-        ),
-        None => (vec![], None),
+    let group_bys: Vec<Item> = match aggregate {
+        Some(Transformation::Aggregate { by, .. }) => by.clone(),
+        None => vec![],
         _ => unreachable!("Expected an aggregate transformation"),
     };
     let group_by = Item::into_list_of_items(group_bys).try_into()?;
-    let select_from_derive = pipeline
-        .iter()
-        .filter_map(|t| match t {
-            Transformation::Derive(assigns) => Some(assigns.clone()),
-            _ => None,
-        })
-        .flatten()
-        .map(|assign| assign.try_into())
-        .try_collect()?;
-
-    // Only the final select matters (assuming we don't have notions of `select
-    // *` or `select * except`)
-    let select_from_select = pipeline
-        .iter()
-        .filter_map(|t| match t {
-            Transformation::Select(items) => {
-                Some(items.iter().map(|x| (x).clone().try_into()).try_collect())
-            }
-            _ => None,
-        })
-        .last()
-        .map_or(Ok(None), |r| r.map(Some))?;
-
-    let select = [
-        Some(select_from_derive),
-        select_from_select,
-        select_from_aggregate,
-    ]
-    .into_iter()
-    // TODO: should we do the option flattening here or in each of the selects?
-    .flatten()
-    .flatten()
-    .collect();
 
     Ok(sqlparser::ast::Query {
         body: SetExpr::Select(Box::new(Select {
             distinct: false,
             // TODO: when should this be `TOP` vs `LIMIT` (which is on the `Query` object?)
             top: take,
-            projection: select,
+            projection: select_columns_of_pipeline(pipeline)?,
             from,
             group_by,
             having,
@@ -366,6 +363,21 @@ fn tables_of_pipelines(pipelines: Vec<Pipeline>) -> Result<Vec<Table>> {
     Ok(tables)
 }
 
+/// Combines filters by putting them in parentheses and then joining them with `and`.
+// Feels hacky — maybe this should be operation on a different level.
+impl Filter {
+    #[allow(unstable_name_collisions)] // Same behavior as the std lib; we can remove this + itertools when that's released.
+    fn combine_filters(filters: Vec<Filter>) -> Filter {
+        Filter(
+            filters
+                .into_iter()
+                .map(|f| Item::Terms(f.0))
+                .intersperse(Item::Raw("and".to_owned()))
+                .collect(),
+        )
+    }
+}
+
 impl TryFrom<Assign> for SelectItem {
     type Error = anyhow::Error;
     fn try_from(assign: Assign) -> Result<Self> {
@@ -383,7 +395,7 @@ impl TryFrom<Item> for SelectItem {
     type Error = anyhow::Error;
     fn try_from(item: Item) -> Result<Self> {
         match item {
-            Item::SString(_) | Item::Ident(_) | Item::Terms(_) => {
+            Item::SString(_) | Item::Ident(_) | Item::Terms(_) | Item::Raw(_) => {
                 Ok(SelectItem::UnnamedExpr(TryInto::<Expr>::try_into(item)?))
             }
             _ => Err(anyhow!(
@@ -413,19 +425,15 @@ impl TryFrom<Item> for Expr {
     type Error = anyhow::Error;
     fn try_from(item: Item) -> Result<Self> {
         match item {
-            Item::Ident(ident) => Ok(Expr::Identifier(
-                sqlparser::ast::Ident::new(ident),
-            )),
-            Item::Raw(ident) => Ok(Expr::Identifier(
-                sqlparser::ast::Ident::new(ident),
-            )),
+            Item::Ident(ident) => Ok(Expr::Identifier(sqlparser::ast::Ident::new(ident))),
+            Item::Raw(ident) => Ok(Expr::Identifier(sqlparser::ast::Ident::new(ident))),
             // For expressions like `country = "USA"`, we take each one, convert
             // it, and put spaces between them. It's a bit hacky — we could
             // convert each term to a SQL AST item, but it works for the moment.
             //
-            // (one question is why that is coming as a `Terms` rather an `Items`?)
-            Item::Terms(items) => Ok(Expr::Identifier(
-                sqlparser::ast::Ident::new(
+            // (one question is whether we need to surround `Items` with parentheses?)
+            Item::Terms(items) | Item::Items(items) => {
+                Ok(Expr::Identifier(sqlparser::ast::Ident::new(
                     items
                         .into_iter()
                         .map(|item| TryInto::<Expr>::try_into(item).unwrap())
@@ -435,11 +443,11 @@ impl TryFrom<Item> for Expr {
                         // Currently a hack, but maybe OK, since we don't
                         // need to parse every single expression into sqlparser ast.
                         .join(" "),
-                ),
-            )),
-            Item::String(ident) => Ok(Expr::Value(
-                sqlparser::ast::Value::SingleQuotedString(ident),
-            )),
+                )))
+            }
+            Item::String(ident) => Ok(Expr::Value(sqlparser::ast::Value::SingleQuotedString(
+                ident,
+            ))),
             // Fairly hacky — convert everything to a string, then concat it,
             // then convert to Expr. We can't use the `Terms` code above
             // since we don't want to intersperse with spaces.
@@ -448,16 +456,17 @@ impl TryFrom<Item> for Expr {
                     .into_iter()
                     .map(|s_string_item| match s_string_item {
                         SStringItem::String(string) => Ok(string),
-                        SStringItem::Expr(item) => TryInto::<Expr>::try_into(item)
-                            .map(|expr| expr.to_string()),
+                        SStringItem::Expr(item) => {
+                            TryInto::<Expr>::try_into(item).map(|expr| expr.to_string())
+                        }
                     })
                     .collect::<Result<Vec<String>>>()?
                     .join("");
                 Item::Ident(string).try_into()
             }
-            Item::Items(_) => Err(anyhow!(
-                "Not yet implemented for `Items`; (something we probably need to do, see notes above); {item:?}"
-            )),
+            // Item::Items(_) => Err(anyhow!(
+            //     "Not yet implemented for `Items`; (something we probably need to do, see notes above); {item:?}"
+            // )),
             _ => Err(anyhow!("Can't convert to Expr at the moment; {item:?}")),
         }
     }
@@ -492,24 +501,25 @@ impl TryFrom<Item> for sqlparser::ast::Ident {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::compiler::compile;
+    use crate::materializer::materialize;
     use crate::parser::parse;
-    use insta::{assert_debug_snapshot, assert_display_snapshot};
+    use insta::{
+        assert_debug_snapshot, assert_display_snapshot, assert_snapshot, assert_yaml_snapshot,
+    };
     use serde_yaml::from_str;
 
     #[test]
     fn test_try_from_s_string_to_expr() -> Result<()> {
-        use insta::assert_yaml_snapshot;
-        use serde_yaml::from_str;
-        let yaml: &str = r"
+        let ast: Item = from_str(
+            r"
 SString:
  - String: SUM(
  - Expr:
      Terms:
        - Ident: col
  - String: )
-";
-        let ast: Item = from_str(yaml)?;
+",
+        )?;
         let expr: Expr = ast.try_into()?;
         assert_yaml_snapshot!(
             expr, @r###"
@@ -665,11 +675,12 @@ Query:
             "###;
 
         let pipeline: Item = from_str(yaml)?;
-        let select = sql_of_ast(&pipeline)?;
-        assert_display_snapshot!(select,
+        let sql = translate(&pipeline)?;
+        assert_display_snapshot!(sql,
             @r###"
         SELECT
-          TOP (20) AVG(salary)
+          TOP (20) AVG(salary),
+          *
         FROM
           employees
         WHERE
@@ -681,9 +692,44 @@ Query:
           title
         "###
         );
-        assert!(select
-            .to_lowercase()
-            .contains(&"avg(salary)".to_lowercase()));
+        assert!(sql.to_lowercase().contains(&"avg(salary)".to_lowercase()));
+
+        let query: Item = from_str(
+            r###"
+        Query:
+          items:
+            - Pipeline:
+                - From: employees
+                - Aggregate:
+                    by: []
+                    calcs:
+                      - SString:
+                          - String: count(
+                          - Expr:
+                              Ident: salary
+                          - String: )
+                    assigns:
+                      - lvalue: sum_salary
+                        rvalue:
+                          Ident: salary
+                - Filter:
+                    - Ident: salary
+                    - Raw: ">"
+                    - Raw: "100"
+        "###,
+        )?;
+        let sql = translate(&query)?;
+        assert_snapshot!(sql, @r###"
+        SELECT
+          salary AS sum_salary,
+          count(salary),
+          *
+        FROM
+          employees
+        HAVING
+          salary > 100
+        "###);
+        assert!(sql.to_lowercase().contains(&"having".to_lowercase()));
 
         Ok(())
     }
@@ -702,13 +748,14 @@ Query:
     ]
     "#,
         )?;
-        let ast = compile(query)?;
-        let sql = sql_of_ast(&ast)?;
+        let ast = materialize(query)?;
+        let sql = translate(&ast)?;
         assert_display_snapshot!(sql,
             @r###"
         SELECT
           count(salary),
-          sum(salary)
+          sum(salary),
+          *
         FROM
           employees
         "###
@@ -738,8 +785,8 @@ take 20
 "#,
         )?;
 
-        let ast = compile(query)?;
-        let sql = sql_of_ast(&ast)?;
+        let ast = materialize(query)?;
+        let sql = translate(&ast)?;
         assert_display_snapshot!(sql);
 
         Ok(())
@@ -781,16 +828,17 @@ Query:
         "###;
 
         let query: Item = from_str(yaml)?;
-        assert_display_snapshot!((sql_of_ast(&query)?), @r###"
+        assert_display_snapshot!((translate(&query)?), @r###"
         WITH table_0 AS (
           SELECT
-            TOP (20)
+            TOP (20) *
           FROM
             employees
         ),
         table_1 AS (
           SELECT
-            average salary
+            average salary,
+            *
           FROM
             table_0
           WHERE
@@ -801,7 +849,8 @@ Query:
         ),
         table_2 AS (
           SELECT
-            average salary
+            average salary,
+            *
           FROM
             table_1
           GROUP BY
