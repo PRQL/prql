@@ -167,6 +167,7 @@ pub fn fold_item<T: ?Sized + AstFold>(fold: &mut T, item: Item) -> Result<Item> 
         Item::Query(Query { items }) => Item::Query(Query {
             items: fold.fold_items(items)?,
         }),
+        Item::InlinePipeline(items) => Item::InlinePipeline(fold.fold_items(items)?),
         Item::Pipeline(transformations) => Item::Pipeline(
             transformations
                 .into_iter()

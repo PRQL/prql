@@ -28,8 +28,11 @@ pipeline = { transformation ~ (pipe ~ transformation)* }
 // Should this be `terms` or `items`? With `terms`, we can't have `filter x = 1`; only
 // `filter (x = 1)`, so choosing `items`.
 transformation = { WHITESPACE* ~ ident ~ expr? }
-// TODO: resolve
-inline_pipeline = !{ "(" ~ pipeline ~ ")" }
+// We don't model this in the same way as a pipeline, since the first term isn't
+// a transformation. And it's somewhat related to our transformations being
+// separate from our function calls (generally just `idents`) at the moment — we
+// could unify them at some point.
+inline_pipeline = { "(" ~ expr ~ (pipe ~ expr)+ ~ ")" }
 
 ident = @{ ( ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "." | "_" )* ) }
 idents = { ident+ }

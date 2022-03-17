@@ -155,6 +155,9 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Items> {
                         })
                         .collect()
                 }),
+                Rule::inline_pipeline => {
+                    Item::InlinePipeline(ast_of_parse_tree(pair.into_inner())?)
+                }
                 Rule::operator | Rule::number => Item::Raw(pair.as_str().to_owned()),
                 _ => (Item::Todo(pair.as_str().to_owned())),
             })
@@ -833,6 +836,43 @@ take 20
             Rule::transformation
         )?);
         assert_debug_snapshot!(parse_tree_of_str("1  + 2", Rule::expr)?);
+        Ok(())
+    }
+
+    #[test]
+    fn test_inline_pipeline() -> Result<()> {
+        assert_debug_snapshot!(parse_tree_of_str(
+            "(salary | percentile 50)",
+            Rule::inline_pipeline
+        )?);
+        assert_yaml_snapshot!(ast_of_string("(salary | percentile 50)", Rule::inline_pipeline)?, @r###"
+        ---
+        InlinePipeline:
+          - Items:
+              - Ident: salary
+          - Items:
+              - Terms:
+                  - Ident: percentile
+                  - Raw: "50"
+        "###);
+        assert_yaml_snapshot!(ast_of_string("func median x = (x | percentile 50)", Rule::query)?, @r###"
+        ---
+        Query:
+          items:
+            - Function:
+                name: median
+                args:
+                  - x
+                body:
+                  - InlinePipeline:
+                      - Items:
+                          - Ident: x
+                      - Items:
+                          - Terms:
+                              - Ident: percentile
+                              - Raw: "50"
+        "###);
+
         Ok(())
     }
 
