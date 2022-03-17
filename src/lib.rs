@@ -12,7 +12,11 @@ pub use materializer::materialize;
 pub use parser::parse;
 pub use translator::translate;
 
-/// Convert PRQL string to SQL string.
+/// Convert a PRQL string to SQL string. This happens in three stages:
+/// - Parsing — take a string and turn it into an AST.
+/// — Materialization — take an AST direct from the PRQL string and materialize
+///   it into an explicit / flat AST by running functions, repacing variables, etc.
+/// — Translation — take an AST and turn it into SQL.
 pub fn transpile(prql: &str) -> Result<String> {
     parse(prql)
         .and_then(materialize)
