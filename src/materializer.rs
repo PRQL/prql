@@ -72,7 +72,6 @@ struct RunFunctions {
 }
 
 impl RunFunctions {
-    #[allow(dead_code)]
     fn new() -> Self {
         Self {
             functions: HashMap::new(),
