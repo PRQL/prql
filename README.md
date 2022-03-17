@@ -186,50 +186,44 @@ it's at a pre-alpha stage, it has some immutable principles:
   without breaking backward-compatibility, because its queries can specify their
   PRQL version.
 
-## Roadmap
+## Roadmap — getting to v0.1
 
 I'm excited and inspired by the level of enthusiasm behind the project. Many
 projects have fallen at this stage, though, so I'm hoping we can demonstrate
-viability by building things that are within our immediate reach, before
-potentially expanding.
+viability by shipping a working version fairly soon.
 
-Here's an initial plan — feedback welcome:
+Currently, we're most of the way to an initial version that will let folks use
+the language for experimentation. The remaining features that we need to
+complete — a few minor, a few major — are listed under the [0.1
+Milestone](https://github.com/max-sixty/prql/milestone/1).
 
 ### Develop the language
 
 Already since becoming public, the language has improved dramatically, thanks to
 the feedback of dozens of contributors. The current state of the basics is now
-stable (at least I don't expect the examples in the README to change much).
-While we're going to hit corner-cases, we're in a good enough place to start
-writing the code.
+stable and while we'll hit corner-cases, I expect we'll only make small changes
+from here.
 
-I'd encourage continued discussion on
-[Issues](https://github.com/max-sixty/prql/issues), and examples to be added to
-the [examples](https://github.com/max-sixty/prql/tree/main/examples) path.
+Feel free to post questions or continue discussions on [Language Design
+Issues](https://github.com/max-sixty/prql/issues?q=is%3Aissue+is%3Aopen+label%3Alanguage-design).
+It would be great to continue building out the
+[examples](https://github.com/max-sixty/prql/tree/main/examples) path.
 
-### Build a parser
+### Parser
 
-We need to parse the PRQL into an AST. We're planning to use pest for this given
-how quickly we can get started.
+This is mostly complete. There are a couple of issues in
+[#26](https://github.com/max-sixty/prql/issues/26) remaining.
 
-*This is the area that needs the most immediate help*. If anyone is looking for
-an area to contribute, check out
-[#26](https://github.com/max-sixty/prql/issues/26) — thank you!
+### Transpiler
 
-### Build a transpiler
+There are two parts to this, both of which have some major features we need
+before hitting v0.1.
 
-I'm broadly envisioning two passes:
+- *Materialize* the query: replace variables with their definition, run
+  functions.
+- *Translate* from a PRQL AST to a SQL AST, and then to a SQL string.
 
-- Materialize the query: replace variables with their definition, run functions,
-  etc.
-  - My initial guess is that replacing variables with their definition (e.g.
-    [the first example query](examples/variables-1.md)) will be much easier
-    than the running functions, even though functions are currently fairly
-    limited in complexity.
-  - Partial progress here would still be a success and let us proceed.
-- Write the query to SQL.
-
-We'll need to make initial progress on the parser before starting here.
+## Roadmap — beyond v0.1
 
 ### Fast feedback
 
@@ -237,16 +231,17 @@ As well as a command-line tool that transpiles queries, we'd like to make
 developing in PRQL a wonderful experience, where it feels like it's on your
 side:
 
-- Syntax highlighting in editors
-- A live transpiler in a browser
+- Syntax highlighting in editors.
+- A live transpiler in a browser, including compiling to wasm
+  [#175](https://github.com/max-sixty/prql/pull/175).
 - Initial type-inference, where it's possible without connecting to the DB, e.g.
-  [#54](https://github.com/max-sixty/prql/pull/55).
+  [#55](https://github.com/max-sixty/prql/pull/55).
 - (I'm sure there's more, ideas welcome)
 
 ### Database cohesion
 
 One benefit of PRQL over SQL is that auto-complete, type-inference, and
-error checking become much more powerful.
+error checking can be much more powerful.
 
 This is much harder to build though, since it requires a connection to the
 database in order to understand the schema of the table. So this would come
@@ -259,11 +254,11 @@ make reading and writing analytical queries easier, and so for the moment that
 means putting some things out of scope:
 
 - Building infrastructure outside of queries, like lineage. dbt is excellent at
-  that! ([issue](https://github.com/max-sixty/prql/issues/13)).
+  that! ([#13](https://github.com/max-sixty/prql/issues/13)).
 - Writing DDL / index / schema manipulation / inserting data
-  ([issue](https://github.com/max-sixty/prql/issues/16)).
+  ([#16](https://github.com/max-sixty/prql/issues/16)).
 - Add typing into the syntax
-  ([issue](https://github.com/max-sixty/prql/issues/15)) (though type
+  ([#15](https://github.com/max-sixty/prql/issues/15)) (though type
   *inference* is a goal above, and this could be a useful extension at some
   point).
 
@@ -277,15 +272,19 @@ being explored:
 - Subscribe to [Issue #1](https://github.com/max-sixty/prql/issues/1) for
   updates.
 - Join the [Discord](https://discord.gg/eQcfaCmsNc).
-- Contribute towards building the parser
-  [#26](https://github.com/max-sixty/prql/issues/26).
-- Contribute towards refining the language: PR an example into the
-  [examples](https://github.com/max-sixty/prql/tree/main/examples):
-  - An analytical SQL query that's awkward and we could use as a case for
-    translating to PRQL. If you'd like to add a suggestion of the equivalent
-    PRQL, that's very welcome too.
-  - An area that isn't sufficiently discussed in the existing proposal, or would
-    be difficult to express in PRQL.
+- Contribute towards the code. There are many ways of contributing, for any
+  level of experience with rust. And if you have rust questions, there are lots of
+  people on the Discord who will patiently help you.
+  - Find an issue labeled [help
+    wanted](https://github.com/max-sixty/prql/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22)
+    or [good first
+    issue](https://github.com/max-sixty/prql/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
+    and try to fix it. Feel free to PR partial solutions, or ask any questions on
+    the Issue or Discord.
+  - Build the code, find examples that yield incorrect results, and post a bug
+    report.
+  - Start with something tiny! Write a test / write a docstring / make some rust
+    nicer — it's a great way to get started in 30 minutes.
 
 Any of these will inspire others to spend more time developing this; thank you
 in advance.
