@@ -194,8 +194,8 @@ viability by shipping a working version fairly soon.
 
 Currently, we're most of the way to an initial version that will let folks use
 the language for experimentation. The remaining features that we need to
-complete — a few minor, a few major — are listed under the
-[0.1 Milestone](https://github.com/max-sixty/prql/milestone/1).
+complete — a few minor, a few major — are listed under the [0.1
+Milestone](https://github.com/max-sixty/prql/milestone/1).
 
 ### Develop the language
 
@@ -214,14 +214,14 @@ It would be great to continue building out the
 This is mostly complete. There are a couple of issues in
 [#26](https://github.com/max-sixty/prql/issues/26) remaining.
 
-### Build a transpiler
+### Transpiler
 
 There are two parts to this, both of which have some major features we need
 before hitting v0.1.
 
-- *Materialize* the query: replace variables with their definition, run functions,
-  etc.
-- *Translation* — from a PRQL AST to a SQL AST, and then to a SQL string.
+- *Materialize* the query: replace variables with their definition, run
+  functions.
+- *Translate* from a PRQL AST to a SQL AST, and then to a SQL string.
 
 ## Roadmap — beyond v0.1
 
@@ -231,16 +231,17 @@ As well as a command-line tool that transpiles queries, we'd like to make
 developing in PRQL a wonderful experience, where it feels like it's on your
 side:
 
-- Syntax highlighting in editors
-- A live transpiler in a browser
+- Syntax highlighting in editors.
+- A live transpiler in a browser, including compiling to wasm
+  [#175](https://github.com/max-sixty/prql/pull/175).
 - Initial type-inference, where it's possible without connecting to the DB, e.g.
-  [#54](https://github.com/max-sixty/prql/pull/55).
+  [#55](https://github.com/max-sixty/prql/pull/55).
 - (I'm sure there's more, ideas welcome)
 
 ### Database cohesion
 
 One benefit of PRQL over SQL is that auto-complete, type-inference, and
-error checking become much more powerful.
+error checking can be much more powerful.
 
 This is much harder to build though, since it requires a connection to the
 database in order to understand the schema of the table. So this would come
@@ -253,11 +254,11 @@ make reading and writing analytical queries easier, and so for the moment that
 means putting some things out of scope:
 
 - Building infrastructure outside of queries, like lineage. dbt is excellent at
-  that! ([issue](https://github.com/max-sixty/prql/issues/13)).
+  that! ([#13](https://github.com/max-sixty/prql/issues/13)).
 - Writing DDL / index / schema manipulation / inserting data
-  ([issue](https://github.com/max-sixty/prql/issues/16)).
+  ([#16](https://github.com/max-sixty/prql/issues/16)).
 - Add typing into the syntax
-  ([issue](https://github.com/max-sixty/prql/issues/15)) (though type
+  ([#15](https://github.com/max-sixty/prql/issues/15)) (though type
   *inference* is a goal above, and this could be a useful extension at some
   point).
 
