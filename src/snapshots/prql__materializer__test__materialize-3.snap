@@ -1,6 +1,6 @@
 ---
 source: src/materializer.rs
-assertion_line: 461
+assertion_line: 443
 expression: materialize(ast)?
 ---
 Query:
@@ -22,7 +22,7 @@ Query:
         body:
           - Ident: x
           - Raw: /
-          - Items:
+          - Expr:
               - SString:
                   - String: lag_day_todo(
                   - Expr:
@@ -37,7 +37,7 @@ Query:
         args:
           - x
         body:
-          - Items:
+          - Expr:
               - Ident: x
               - Raw: "-"
               - Ident: interest_rate
@@ -61,7 +61,7 @@ Query:
                 SString:
                   - String: "IF(is_valid_price, "
                   - Expr:
-                      Items:
+                      Expr:
                         - Terms:
                             - Ident: ret
                             - Ident: prices_adj
@@ -71,7 +71,7 @@ Query:
                 SString:
                   - String: "IF(is_valid_price, "
                   - Expr:
-                      Items:
+                      Expr:
                         - Terms:
                             - Ident: ret
                             - Ident: prices_usd
@@ -79,11 +79,11 @@ Query:
             - lvalue: return_excess
               rvalue:
                 Terms:
-                  - Items:
+                  - Expr:
                       - SString:
                           - String: "IF(is_valid_price, "
                           - Expr:
-                              Items:
+                              Expr:
                                 - Terms:
                                     - Ident: ret
                                     - Ident: prices_adj
@@ -95,11 +95,11 @@ Query:
             - lvalue: return_usd_excess
               rvalue:
                 Terms:
-                  - Items:
+                  - Expr:
                       - SString:
                           - String: "IF(is_valid_price, "
                           - Expr:
-                              Items:
+                              Expr:
                                 - Terms:
                                     - Ident: ret
                                     - Ident: prices_usd
@@ -114,7 +114,7 @@ Query:
             - SString:
                 - String: "IF(is_valid_price, "
                 - Expr:
-                    Items:
+                    Expr:
                       - Terms:
                           - Ident: ret
                           - Ident: prices_adj
@@ -122,17 +122,17 @@ Query:
             - SString:
                 - String: "IF(is_valid_price, "
                 - Expr:
-                    Items:
+                    Expr:
                       - Terms:
                           - Ident: ret
                           - Ident: prices_usd
                 - String: ", NULL)"
             - Terms:
-                - Items:
+                - Expr:
                     - SString:
                         - String: "IF(is_valid_price, "
                         - Expr:
-                            Items:
+                            Expr:
                               - Terms:
                                   - Ident: ret
                                   - Ident: prices_adj
@@ -142,11 +142,11 @@ Query:
                 - Raw: /
                 - Raw: "252"
             - Terms:
-                - Items:
+                - Expr:
                     - SString:
                         - String: "IF(is_valid_price, "
                         - Expr:
-                            Items:
+                            Expr:
                               - Terms:
                                   - Ident: ret
                                   - Ident: prices_usd

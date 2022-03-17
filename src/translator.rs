@@ -431,8 +431,8 @@ impl TryFrom<Item> for Expr {
             // it, and put spaces between them. It's a bit hacky — we could
             // convert each term to a SQL AST item, but it works for the moment.
             //
-            // (one question is whether we need to surround `Items` with parentheses?)
-            Item::Terms(items) | Item::Items(items) => {
+            // (one question is whether we need to surround `Expr` with parentheses?)
+            Item::Terms(items) | Item::Expr(items) => {
                 Ok(Expr::Identifier(sqlparser::ast::Ident::new(
                     items
                         .into_iter()
@@ -464,9 +464,6 @@ impl TryFrom<Item> for Expr {
                     .join("");
                 Item::Ident(string).try_into()
             }
-            // Item::Items(_) => Err(anyhow!(
-            //     "Not yet implemented for `Items`; (something we probably need to do, see notes above); {item:?}"
-            // )),
             _ => Err(anyhow!("Can't convert to Expr at the moment; {item:?}")),
         }
     }

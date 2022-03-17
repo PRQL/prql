@@ -52,7 +52,7 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Items> {
                         // but we want to confirm it's an Expr, it would be a
                         // difficult mistake to catch otherwise.
                         .map(|expr| match expr {
-                            Item::Items(_) => ListItem(expr.into_inner_items()),
+                            Item::Expr(_) => ListItem(expr.into_inner_items()),
                             _ => unreachable!(),
                         })
                         .collect(),
@@ -65,7 +65,7 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Items> {
                 // List because those are often meaningful — e.g. a List needs a
                 // number of Expr, so that `[a, b]` is different from `[a b]`.
                 Rule::terms => Item::Terms(ast_of_parse_tree(pair.into_inner())?).into_unnested(),
-                Rule::expr => Item::Items(ast_of_parse_tree(pair.into_inner())?),
+                Rule::expr => Item::Expr(ast_of_parse_tree(pair.into_inner())?),
                 Rule::named_arg => {
                     let parsed: [Item; 2] = ast_of_parse_tree(pair.into_inner())?
                         .try_into()
@@ -82,7 +82,7 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Items> {
                         .map_err(|e| anyhow!("Expected two items; {e:?}"))?;
                     // Split the pair into its first value, which is always an Ident,
                     // and its other values.
-                    if let [lvalue, Item::Items(rvalue)] = parsed {
+                    if let [lvalue, Item::Expr(rvalue)] = parsed {
                         Ok(Item::Assign(Assign {
                             lvalue: lvalue.into_ident()?,
                             rvalue: Box::new(Item::Terms(rvalue).into_unnested()),
@@ -181,11 +181,11 @@ impl TryFrom<Vec<Item>> for Transformation {
         // TODO: account for a name-only transformation, with no items.
         let (named_arg_items, args): (Vec<Item>, Vec<Item>) = items
             .into_only()?
-            // Take out of the Items
+            // Take out of the Expr
             .clone()
-            .into_items()
+            .into_expr()
             // Unnest the Terms.
-            // We need this because the Items might have a Terms immediately
+            // We need this because the Expr might have a Terms immediately
             // below it, and so we've just added another level of nesting. But
             // it's quite messy and this sort of "dynamic" behavior has been the
             // cause of many long debugging sessions (it's better than it used
@@ -436,7 +436,7 @@ mod test {
         ---
         Transformation:
           Filter:
-            - Items:
+            - Expr:
                 - Terms:
                     - Ident: upper
                     - Ident: country
@@ -572,7 +572,7 @@ mod test {
             ast_of_string(r#"country = "USA""#, Rule::expr)?
         , @r###"
         ---
-        Items:
+        Expr:
           - Ident: country
           - Raw: "="
           - String: USA
@@ -607,17 +607,17 @@ mod test {
             )?,
             @r###"
         ---
-        Items:
+        Expr:
           - Assign:
               lvalue: gross_salary
               rvalue:
                 Terms:
-                  - Items:
+                  - Expr:
                       - Ident: salary
                       - Raw: +
                       - Ident: payroll_tax
                   - Raw: "*"
-                  - Items:
+                  - Expr:
                       - Raw: "1"
                       - Raw: +
                       - Ident: tax_rate
@@ -683,7 +683,7 @@ take 20
           args:
             - x
           body:
-            - Items:
+            - Expr:
                 - Ident: x
                 - Raw: +
                 - Raw: "1"
@@ -715,13 +715,13 @@ take 20
             - x
           body:
             - Terms:
-                - Items:
+                - Expr:
                     - Terms:
                         - Ident: foo
                         - Ident: bar
                     - Raw: +
                     - Raw: "1"
-                - Items:
+                - Expr:
                     - Ident: plax
             - Raw: "-"
             - Ident: baz
@@ -848,9 +848,9 @@ take 20
         assert_yaml_snapshot!(ast_of_string("(salary | percentile 50)", Rule::inline_pipeline)?, @r###"
         ---
         InlinePipeline:
-          - Items:
+          - Expr:
               - Ident: salary
-          - Items:
+          - Expr:
               - Terms:
                   - Ident: percentile
                   - Raw: "50"
@@ -865,9 +865,9 @@ take 20
                   - x
                 body:
                   - InlinePipeline:
-                      - Items:
+                      - Expr:
                           - Ident: x
-                      - Items:
+                      - Expr:
                           - Terms:
                               - Ident: percentile
                               - Raw: "50"
