@@ -113,25 +113,7 @@ impl RunFunctions {
     }
     fn to_function_call(item: Item) -> Result<FuncCall> {
         match item {
-            Item::Terms(terms) => {
-                if let Some(Item::Ident(_)) = terms.first() {
-                    // Currently a transformation expects a Expr to wrap
-                    // all the terms after the name. TODO: another area
-                    // that's messy, let's parse a FuncCall directly; no need to
-                    // go via a Transformation.
-                    let (name, body) = terms.split_first().unwrap();
-                    let func_call_transform: Transformation =
-                        vec![name.clone(), Item::Expr(body.to_vec())].try_into()?;
-
-                    if let Transformation::Func(func_call) = func_call_transform {
-                        Ok(func_call)
-                    } else {
-                        unreachable!()
-                    }
-                } else {
-                    Err(anyhow!("Expected a function call, got {terms:?}"))
-                }
-            }
+            Item::Terms(terms) => terms.try_into(),
             Item::Ident(_) => Self::to_function_call(Item::Terms(item.into_inner_terms())),
             _ => Err(anyhow!(
                 "FuncCalls can only be made from Terms or Ident; found {item:?}"
