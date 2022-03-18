@@ -792,7 +792,8 @@ take 20
     #[test]
     fn test_nonatomic() -> Result<()> {
         // A take, then two aggregates
-        let yaml: &str = r###"
+        let query: Item = from_str(
+            r###"
 Query:
   items:
     - Pipeline:
@@ -822,9 +823,9 @@ Query:
           assigns: []
       - Sort:
           - Ident: sum_gross_cost
-        "###;
+        "###,
+        )?;
 
-        let query: Item = from_str(yaml)?;
         assert_display_snapshot!((translate(&query)?), @r###"
         WITH table_0 AS (
           SELECT

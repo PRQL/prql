@@ -165,6 +165,43 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Items> {
         .collect()
 }
 
+// Currently we don't parse into FuncCalls until after materializer; we leave
+// them as Terms. Possibly we should do that earlier. (If we don't, we can move
+// this into Materializer.)
+impl TryFrom<Vec<Item>> for FuncCall {
+    type Error = anyhow::Error;
+    fn try_from(items: Vec<Item>) -> Result<Self> {
+        let (name_item, items) = items
+            .split_first()
+            .ok_or(anyhow!("Expected at least one item"))?;
+
+        let name = name_item
+            .as_ident()
+            .ok_or(anyhow!("Function name must be Ident; got {name_item:?}"))?;
+
+        // TODO: account for a name-only transformation, with no items.
+        let (named_arg_items, args): (Vec<Item>, Vec<Item>) = items // Partition out NamedArgs
+            .iter()
+            .cloned()
+            .partition(|x| matches!(x, Item::NamedArg(_)));
+
+        let named_args: Vec<NamedArg> = named_arg_items
+            .into_iter()
+            .map(|x| {
+                x.as_named_arg()
+                    .ok_or(anyhow!("Expected NamedArg"))
+                    .cloned()
+            })
+            .try_collect()?;
+
+        Ok(FuncCall {
+            name: name.to_owned(),
+            args,
+            named_args,
+        })
+    }
+}
+
 // We put this outside the main ast_of_parse_tree function because we also use it to ast_of_parse_tree
 // function calls.
 // (I'm not sure whether we should be using it for both — on the one hand,
@@ -174,46 +211,39 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Items> {
 impl TryFrom<Vec<Item>> for Transformation {
     type Error = anyhow::Error;
     fn try_from(items: Vec<Item>) -> Result<Self> {
-        let (name_item, items) = items
+        let (name, items) = items
             .split_first()
             .ok_or(anyhow!("Expected at least one item"))?;
-        let name = name_item.as_ident().ok_or(anyhow!("Expected Ident"))?;
-        // TODO: account for a name-only transformation, with no items.
-        let (named_arg_items, args): (Vec<Item>, Vec<Item>) = items
+
+        // We receive a vector of two items: the name of the transformation, and
+        // its items. So we need to unpack that (possibly we could simplify
+        // this, including receiving them in a nicer AST).
+        let terms = items
             .into_only()?
             // Take out of the Expr
             .clone()
             .into_expr()
             // Unnest the Terms.
-            // We need this because the Expr might have a Terms immediately
+            // This is required because the Expr might have a Terms immediately
             // below it, and so we've just added another level of nesting. But
             // it's quite messy and this sort of "dynamic" behavior has been the
             // cause of many long debugging sessions (it's better than it used
             // to be!).
             .map(Item::Terms)?
             .into_unnested()
-            .into_inner_terms()
-            // Partition out NamedArgs
-            .into_iter()
-            .partition(|x| matches!(x, Item::NamedArg(_)));
+            .into_inner_terms();
+        let func_call: FuncCall = [vec![name.clone()], terms].concat().try_into()?;
 
-        let named_args: Vec<NamedArg> = named_arg_items
-            .iter()
-            .map(|x| {
-                x.as_named_arg()
-                    .ok_or(anyhow!("Expected NamedArg"))
-                    .cloned()
-            })
-            .try_collect()?;
-
-        match name.as_str() {
-            "from" => Ok(Transformation::From(args.into_only()?.into_ident()?)),
-            "select" => Ok(Transformation::Select(
-                args.into_only()?.into_items_from_maybe_list(),
+        match func_call.name.as_str() {
+            "from" => Ok(Transformation::From(
+                func_call.args.into_only()?.into_ident()?,
             )),
-            "filter" => Ok(Transformation::Filter(Filter(args))),
+            "select" => Ok(Transformation::Select(
+                func_call.args.into_only()?.into_items_from_maybe_list(),
+            )),
+            "filter" => Ok(Transformation::Filter(Filter(func_call.args))),
             "derive" => {
-                let assigns = (args)
+                let assigns = (func_call.args)
                     .into_only()
                     .context("Expected at least one argument")?
                     .into_items_from_maybe_list()
@@ -223,7 +253,7 @@ impl TryFrom<Vec<Item>> for Transformation {
                 Ok(Transformation::Derive(assigns))
             }
             "aggregate" => {
-                let arg = args.into_only()?;
+                let arg = func_call.args.into_only()?;
                 // TODO: redo, generalizing with checks on custom functions.
                 // Ideally we'd be able to add to the error message with context
                 // without falling afowl of the borrow rules.
@@ -232,7 +262,7 @@ impl TryFrom<Vec<Item>> for Transformation {
                 //     args
                 // ))
                 // })?;
-                let by = match &named_args[..] {
+                let by = match &func_call.named_args[..] {
                     [NamedArg { name, arg }] => {
                         if name != "by" {
                             return Err(anyhow!(
@@ -269,18 +299,18 @@ impl TryFrom<Vec<Item>> for Transformation {
                         .try_collect()?,
                 })
             }
-            "sort" => Ok(Transformation::Sort(args)),
+            "sort" => Ok(Transformation::Sort(func_call.args)),
             "take" => {
                 // TODO: coerce to number
-                args.into_only()
+                func_call
+                    .args
+                    .into_only()
                     .map(|n| Ok(Transformation::Take(n.into_raw()?.parse()?)))?
             }
-            "join" => Ok(Transformation::Join(args)),
-            _ => Ok(Transformation::Func(FuncCall {
-                name: name.to_owned(),
-                args,
-                named_args,
-            })),
+            "join" => Ok(Transformation::Join(func_call.args)),
+            _ => Err(anyhow!(
+                "Expected a known transformation; got {func_call:?}"
+            )),
         }
     }
 }
@@ -292,6 +322,7 @@ mod test {
 
     use super::*;
     use insta::{assert_debug_snapshot, assert_yaml_snapshot};
+    use serde_yaml::from_str;
 
     #[test]
     fn test_parse_take() -> Result<()> {
@@ -455,23 +486,6 @@ mod test {
             - Raw: "="
             - String: USA
         "###);
-        Ok(())
-    }
-
-    #[test]
-    fn test_parse_transformation() -> Result<()> {
-        assert_yaml_snapshot!(
-            ast_of_string(r#"count salary"#, Rule::transformation)?
-        , @r###"
-        ---
-        Transformation:
-          Func:
-            name: count
-            args:
-              - Ident: salary
-            named_args: []
-        "###);
-
         Ok(())
     }
 
@@ -765,6 +779,29 @@ take 20
                 .unwrap()
             ));
             */
+        Ok(())
+    }
+
+    #[test]
+    fn test_parse_func_call() -> Result<()> {
+        let ast: Item = from_str(
+            r#"
+Terms:
+  - Ident: foo
+  - Ident: bar
+"#,
+        )?;
+
+        dbg!(&ast);
+        let func_call: FuncCall = dbg!(ast.into_terms()?).try_into()?;
+        assert_yaml_snapshot!(func_call, @r###"
+        ---
+        name: foo
+        args:
+          - Ident: bar
+        named_args: []
+        "###);
+
         Ok(())
     }
 
