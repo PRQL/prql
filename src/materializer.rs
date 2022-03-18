@@ -111,36 +111,76 @@ impl RunFunctions {
         // Take a clone of the body and replace the arguments with their values.
         Ok(Item::Terms(replace_variables.fold_items(func.body.clone())?).into_unnested())
     }
+    fn to_function_call(item: Item) -> Result<FuncCall> {
+        match item {
+            Item::Terms(terms) => {
+                if let Some(Item::Ident(_)) = terms.first() {
+                    // Currently a transformation expects a Expr to wrap
+                    // all the terms after the name. TODO: another area
+                    // that's messy, let's parse a FuncCall directly; no need to
+                    // go via a Transformation.
+                    let (name, body) = terms.split_first().unwrap();
+                    let func_call_transform: Transformation =
+                        vec![name.clone(), Item::Expr(body.to_vec())].try_into()?;
+
+                    if let Transformation::Func(func_call) = func_call_transform {
+                        Ok(func_call)
+                    } else {
+                        unreachable!()
+                    }
+                } else {
+                    Err(anyhow!("Expected a function call, got {terms:?}"))
+                }
+            }
+            Item::Ident(_) => Self::to_function_call(Item::Terms(item.into_inner_terms())),
+            _ => Err(anyhow!(
+                "FuncCalls can only be made from Terms or Ident; found {item:?}"
+            )),
+        }
+    }
 }
 
 impl AstFold for RunFunctions {
     fn fold_function(&mut self, func: Function) -> Result<Function> {
         let out = fold_function(self, func.clone());
-        // Add function to our list, after running it (no recursive functions atm).
+        // Add function to our list _after_ running it (no recursive functions atm).
         self.add_function(func);
         out
     }
-    fn fold_item(&mut self, item: Item) -> Result<Item> {
-        // If it's an ident, it could be a func with no arg, so normalize into a
-        // vec of items whether or not it's currently wrapped in a Terms or not.
-        let items = item.clone().into_inner_terms();
+    fn fold_terms(&mut self, terms: Items) -> Result<Items> {
+        // If any of the terms are an Expr, then they may contain other function
+        // calls (e.g. `foo (bar baz)` needs to run `bar baz`), which need to be
+        // run before running this call. So fold those first.
+        // If we just delegate to `fold_terms`, we get a stack overflow; would
+        // be nice to clean this up a bit, but need to resolve that.
+        let terms = terms
+            .into_iter()
+            .map(|term| match term {
+                Item::Expr(_) => self.fold_item(term),
+                _ => Ok(term),
+            })
+            .collect::<Result<Vec<Item>>>()
+            .map(Item::Terms)?;
 
-        if let Some(Item::Ident(ident)) = items.first() {
-            if self.functions.get(ident).is_some() {
-                // Currently a transformation expects a Expr to wrap
-                // all the terms after the name. TODO: another area
-                // that's messy, should we parse a FuncCall directly?
-                let (name, body) = items.split_first().unwrap();
-                let func_call_transform =
-                    vec![name.clone(), Item::Expr(body.to_vec())].try_into()?;
+        if let Ok(func_call) = Self::to_function_call(terms.clone()) {
+            if self.functions.get(&func_call.name).is_some() {
+                let function_result = self.run_function(&func_call)?;
 
-                if let Transformation::Func(func_call) = func_call_transform {
-                    return self.run_function(&func_call);
-                } else {
-                    unreachable!()
-                }
+                // It's important to fold the result of the function call, so
+                // the functions get executed transitively.
+                return Ok(self.fold_item(function_result)?.into_inner_terms());
             }
         }
+        Ok(terms.into_terms()?)
+    }
+    fn fold_item(&mut self, item: Item) -> Result<Item> {
+        let item = match item.clone() {
+            // If it's an ident, try running it as a function, in case it's a
+            // function with no args.
+            Item::Ident(_) => Item::Terms(self.fold_terms(vec![item])?).into_unnested(),
+            // Otherwise just delegate to the upstream fold.
+            _ => item,
+        };
         fold_item(self, item)
     }
 }
@@ -318,27 +358,70 @@ aggregate [
         let mut fold = RunFunctions::new();
         // We could make a convenience function for this. It's useful for
         // showing the diffs of an operation.
-        let diff = TextDiff::from_lines(
-            &to_string(&ast).unwrap(),
-            &to_string(&fold.fold_item(ast).unwrap()).unwrap(),
-        )
-        .unified_diff()
-        .to_string();
+        let diff = TextDiff::from_lines(&to_string(&ast)?, &to_string(&fold.fold_item(ast)?)?)
+            .unified_diff()
+            .to_string();
         assert!(!diff.is_empty());
         assert_display_snapshot!(diff, @r###"
-        @@ -16,7 +16,9 @@
-                 - Aggregate:
+        @@ -17,6 +17,9 @@
                      by: []
                      calcs:
-        -              - Terms:
+                       - Terms:
         -                  - Ident: count
         -                  - Ident: salary
-        +              - SString:
-        +                  - String: count(
-        +                  - Expr:
-        +                      Ident: salary
-        +                  - String: )
+        +                  - SString:
+        +                      - String: count(
+        +                      - Expr:
+        +                          Ident: salary
+        +                      - String: )
                      assigns: []
+        "###);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_run_functions_nested() -> Result<()> {
+        let ast = parse(
+            r#"
+func lag_day x = s"lag_day_todo({x})"
+func ret x = x / (lag_day x) - 1 + dividend_return
+
+from a
+select (ret b)
+"#,
+        )?;
+
+        assert_yaml_snapshot!(ast.clone().into_query()?.items[2], @r###"
+        ---
+        Pipeline:
+          - From: a
+          - Select:
+              - Expr:
+                  - Terms:
+                      - Ident: ret
+                      - Ident: b
+        "###);
+
+        assert_yaml_snapshot!(materialize(ast)?.into_query()?.items[2], @r###"
+        ---
+        Pipeline:
+          - From: a
+          - Select:
+              - Expr:
+                  - Terms:
+                      - Ident: b
+                      - Raw: /
+                      - Expr:
+                          - SString:
+                              - String: lag_day_todo(
+                              - Expr:
+                                  Ident: b
+                              - String: )
+                      - Raw: "-"
+                      - Raw: "1"
+                      - Raw: +
+                      - Ident: dividend_return
         "###);
 
         Ok(())

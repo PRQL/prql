@@ -1,6 +1,6 @@
 ---
 source: src/materializer.rs
-assertion_line: 443
+assertion_line: 530
 expression: materialize(ast)?
 ---
 Query:
@@ -63,8 +63,18 @@ Query:
                   - Expr:
                       Expr:
                         - Terms:
-                            - Ident: ret
                             - Ident: prices_adj
+                            - Raw: /
+                            - Expr:
+                                - SString:
+                                    - String: lag_day_todo(
+                                    - Expr:
+                                        Ident: prices_adj
+                                    - String: )
+                            - Raw: "-"
+                            - Raw: "1"
+                            - Raw: +
+                            - Ident: dividend_return
                   - String: ", NULL)"
             - lvalue: return_usd
               rvalue:
@@ -73,8 +83,18 @@ Query:
                   - Expr:
                       Expr:
                         - Terms:
-                            - Ident: ret
                             - Ident: prices_usd
+                            - Raw: /
+                            - Expr:
+                                - SString:
+                                    - String: lag_day_todo(
+                                    - Expr:
+                                        Ident: prices_usd
+                                    - String: )
+                            - Raw: "-"
+                            - Raw: "1"
+                            - Raw: +
+                            - Ident: dividend_return
                   - String: ", NULL)"
             - lvalue: return_excess
               rvalue:
@@ -85,8 +105,18 @@ Query:
                           - Expr:
                               Expr:
                                 - Terms:
-                                    - Ident: ret
                                     - Ident: prices_adj
+                                    - Raw: /
+                                    - Expr:
+                                        - SString:
+                                            - String: lag_day_todo(
+                                            - Expr:
+                                                Ident: prices_adj
+                                            - String: )
+                                    - Raw: "-"
+                                    - Raw: "1"
+                                    - Raw: +
+                                    - Ident: dividend_return
                           - String: ", NULL)"
                       - Raw: "-"
                       - Ident: interest_rate
@@ -101,8 +131,18 @@ Query:
                           - Expr:
                               Expr:
                                 - Terms:
-                                    - Ident: ret
                                     - Ident: prices_usd
+                                    - Raw: /
+                                    - Expr:
+                                        - SString:
+                                            - String: lag_day_todo(
+                                            - Expr:
+                                                Ident: prices_usd
+                                            - String: )
+                                    - Raw: "-"
+                                    - Raw: "1"
+                                    - Raw: +
+                                    - Ident: dividend_return
                           - String: ", NULL)"
                       - Raw: "-"
                       - Ident: interest_rate
@@ -116,16 +156,36 @@ Query:
                 - Expr:
                     Expr:
                       - Terms:
-                          - Ident: ret
                           - Ident: prices_adj
+                          - Raw: /
+                          - Expr:
+                              - SString:
+                                  - String: lag_day_todo(
+                                  - Expr:
+                                      Ident: prices_adj
+                                  - String: )
+                          - Raw: "-"
+                          - Raw: "1"
+                          - Raw: +
+                          - Ident: dividend_return
                 - String: ", NULL)"
             - SString:
                 - String: "IF(is_valid_price, "
                 - Expr:
                     Expr:
                       - Terms:
-                          - Ident: ret
                           - Ident: prices_usd
+                          - Raw: /
+                          - Expr:
+                              - SString:
+                                  - String: lag_day_todo(
+                                  - Expr:
+                                      Ident: prices_usd
+                                  - String: )
+                          - Raw: "-"
+                          - Raw: "1"
+                          - Raw: +
+                          - Ident: dividend_return
                 - String: ", NULL)"
             - Terms:
                 - Expr:
@@ -134,8 +194,18 @@ Query:
                         - Expr:
                             Expr:
                               - Terms:
-                                  - Ident: ret
                                   - Ident: prices_adj
+                                  - Raw: /
+                                  - Expr:
+                                      - SString:
+                                          - String: lag_day_todo(
+                                          - Expr:
+                                              Ident: prices_adj
+                                          - String: )
+                                  - Raw: "-"
+                                  - Raw: "1"
+                                  - Raw: +
+                                  - Ident: dividend_return
                         - String: ", NULL)"
                     - Raw: "-"
                     - Ident: interest_rate
@@ -148,8 +218,18 @@ Query:
                         - Expr:
                             Expr:
                               - Terms:
-                                  - Ident: ret
                                   - Ident: prices_usd
+                                  - Raw: /
+                                  - Expr:
+                                      - SString:
+                                          - String: lag_day_todo(
+                                          - Expr:
+                                              Ident: prices_usd
+                                          - String: )
+                                  - Raw: "-"
+                                  - Raw: "1"
+                                  - Raw: +
+                                  - Ident: dividend_return
                         - String: ", NULL)"
                     - Raw: "-"
                     - Ident: interest_rate
