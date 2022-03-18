@@ -3,7 +3,7 @@ use prql::transpile;
 use prql::Result;
 
 #[test]
-fn parse_transpile() -> Result<()> {
+fn transpile_variables() -> Result<()> {
     assert_snapshot!(transpile("select 1")?, @r###"
     SELECT
       1
@@ -56,44 +56,40 @@ take 20
       SUM(salary + payroll_tax + benefits_cost)
     "###);
 
+    Ok(())
+}
+
+#[test]
+fn transpile_functions() -> Result<()> {
+    // TODO: Compare to canoncial example:
+    // - Window func not yet built.
     let prql = r#"
     func lag_day x = s"lag_day_todo({x})"
     func ret x = x / (lag_day x) - 1 + dividend_return
-    func excess x = (x - interest_rate) / 252
     func if_valid x = s"IF(is_valid_price, {x}, NULL)"
 
     from prices
     derive [
       return_total:      if_valid (ret prices_adj),
-      return_usd:        if_valid (ret prices_usd),
-      return_excess:     excess return_total,
-      return_usd_excess: excess return_usd,
-    ]
-    select [
-      date,
-      sec_id,
-      return_total,
-      return_usd,
-      return_excess,
-      return_usd_excess,
     ]
     "#;
+    let result = transpile(prql)?;
 
-    // TODO: Compare to canoncial example:
-    // - Window func not yet built.
-    // - Inline pipeline not working.
-    // - Function-in-function not working (i.e. lag_day is unreferenced).
-    assert_snapshot!(transpile(prql)?, @r###"
+    assert_snapshot!(result, @r###"
     SELECT
-      date,
-      sec_id,
-      IF(is_valid_price, ret prices_adj, NULL),
-      IF(is_valid_price, ret prices_usd, NULL),
-      IF(is_valid_price, ret prices_adj, NULL) - interest_rate / 252,
-      IF(is_valid_price, ret prices_usd, NULL) - interest_rate / 252
+      IF(
+        is_valid_price,
+        prices_adj / lag_day_todo(prices_adj) - 1 + dividend_return,
+        NULL
+      ) AS return_total,
+      *
     FROM
       prices
     "###);
+
+    // Assert that the nested function has been run.
+    assert!(!result.contains(&"ret prices_adj"));
+    assert!(!result.contains(&"lag_day prices_adj"));
 
     Ok(())
 }
