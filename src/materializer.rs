@@ -191,14 +191,11 @@ mod test {
 
     use super::*;
     use crate::parse;
-    use insta::{assert_display_snapshot, assert_yaml_snapshot};
+    use insta::{assert_display_snapshot, assert_snapshot, assert_yaml_snapshot};
+    use serde_yaml::to_string;
 
     #[test]
     fn test_replace_variables() -> Result<()> {
-        use super::*;
-        use serde_yaml::to_string;
-        use similar::TextDiff;
-
         let ast = parse(
             r#"from employees
     derive [                                         # This adds columns / variables.
@@ -211,10 +208,10 @@ mod test {
         let mut fold = ReplaceVariables::new();
         // We could make a convenience function for this. It's useful for
         // showing the diffs of an operation.
-        assert_display_snapshot!(TextDiff::from_lines(
+        assert_display_snapshot!(diff(
             &to_string(&ast)?,
             &to_string(&fold.fold_item(ast)?)?
-        ).unified_diff(),
+        ),
         @r###"
         @@ -13,6 +13,9 @@
                      - lvalue: gross_cost
@@ -289,18 +286,10 @@ aggregate [
                     assigns: []
         "###);
 
-        use serde_yaml::to_string;
-        use similar::TextDiff;
-
         let mut fold = RunFunctions::new();
         // We could make a convenience function for this. It's useful for
         // showing the diffs of an operation.
-        let diff = TextDiff::from_lines(
-            &to_string(&ast).unwrap(),
-            &to_string(&fold.fold_item(ast).unwrap()).unwrap(),
-        )
-        .unified_diff()
-        .to_string();
+        let diff = diff(&to_string(&ast)?, &to_string(&fold.fold_item(ast)?)?);
         assert!(!diff.is_empty());
         assert_display_snapshot!(diff, @r###"
         @@ -11,5 +11,5 @@
@@ -353,15 +342,10 @@ aggregate [
                     assigns: []
         "###);
 
-        use serde_yaml::to_string;
-        use similar::TextDiff;
-
         let mut fold = RunFunctions::new();
         // We could make a convenience function for this. It's useful for
         // showing the diffs of an operation.
-        let diff = TextDiff::from_lines(&to_string(&ast)?, &to_string(&fold.fold_item(ast)?)?)
-            .unified_diff()
-            .to_string();
+        let diff = diff(&to_string(&ast)?, &to_string(&fold.fold_item(ast)?)?);
         assert!(!diff.is_empty());
         assert_display_snapshot!(diff, @r###"
         @@ -17,6 +17,9 @@
@@ -439,77 +423,32 @@ aggregate [one: (foo | sum), two: (foo | sum)]
 "#,
         )?;
 
-        assert_yaml_snapshot!(ast, @r###"
-        ---
-        Query:
-          items:
-            - Function:
-                name: sum
-                args:
-                  - x
-                body:
-                  - SString:
-                      - String: SUM(
-                      - Expr:
-                          Ident: x
-                      - String: )
-            - Pipeline:
-                - From: a
-                - Aggregate:
-                    by: []
-                    calcs: []
-                    assigns:
-                      - lvalue: one
-                        rvalue:
-                          InlinePipeline:
-                            - Expr:
-                                - Ident: foo
-                            - Expr:
-                                - Ident: sum
-                      - lvalue: two
-                        rvalue:
-                          InlinePipeline:
-                            - Expr:
-                                - Ident: foo
-                            - Expr:
-                                - Ident: sum
-        "###);
-
         let mut run_functions = RunFunctions::new();
-        assert_yaml_snapshot!(run_functions.fold_item(ast)?, @r###"
-        ---
-        Query:
-          items:
-            - Function:
-                name: sum
-                args:
-                  - x
-                body:
-                  - SString:
-                      - String: SUM(
-                      - Expr:
-                          Ident: x
-                      - String: )
-            - Pipeline:
-                - From: a
-                - Aggregate:
-                    by: []
-                    calcs: []
-                    assigns:
-                      - lvalue: one
-                        rvalue:
-                          SString:
-                            - String: SUM(
-                            - Expr:
-                                Ident: foo
-                            - String: )
-                      - lvalue: two
-                        rvalue:
-                          SString:
-                            - String: SUM(
-                            - Expr:
-                                Ident: foo
-                            - String: )
+        assert_snapshot!(diff(&to_string(&ast)?, &to_string(&run_functions.fold_item(ast)?)?), @r###"
+        @@ -19,15 +19,15 @@
+                     assigns:
+                       - lvalue: one
+                         rvalue:
+        -                  InlinePipeline:
+        +                  SString:
+        +                    - String: SUM(
+                             - Expr:
+        -                        - Ident: foo
+        -                    - Expr:
+        -                        - Ident: sum
+        +                        Ident: foo
+        +                    - String: )
+                       - lvalue: two
+                         rvalue:
+        -                  InlinePipeline:
+        +                  SString:
+        +                    - String: SUM(
+                             - Expr:
+        -                        - Ident: foo
+        -                    - Expr:
+        -                        - Ident: sum
+        +                        Ident: foo
+        +                    - String: )
         "###);
 
         Ok(())

@@ -47,3 +47,9 @@ where
         }
     }
 }
+
+#[cfg(test)]
+pub fn diff(a: &str, b: &str) -> String {
+    use similar::TextDiff;
+    TextDiff::from_lines(a, b).unified_diff().to_string()
+}
