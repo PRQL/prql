@@ -113,7 +113,6 @@ impl RunFunctions {
         Ok(Item::Terms(replace_variables.fold_items(func.body.clone())?).into_unnested())
     }
     fn run_inline_pipeline(&mut self, items: Items) -> Result<Item> {
-        // TODO: Fold the first item; it could be a function call
         let mut items = items.into_iter().map(|x| x.into_expr().unwrap());
         let mut value = items
             .next()
