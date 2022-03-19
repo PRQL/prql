@@ -140,13 +140,13 @@ fn table_factor_of_ident(ident: &Ident) -> TableFactor {
 fn select_columns_of_pipeline(pipeline: &Pipeline) -> Result<Vec<SelectItem>> {
     let mut selects = vec![];
     // Whether we should be returning everything not specified.
-    let mut is_exclusive = false;
+    let mut is_inclusive = true;
 
     for transformation in pipeline {
         match transformation {
             Transformation::Select(select) => {
                 // TODO: confirm it's not `select *`?
-                is_exclusive = true;
+                is_inclusive = false;
                 selects.clear();
                 selects.extend(
                     select
@@ -162,6 +162,8 @@ fn select_columns_of_pipeline(pipeline: &Pipeline) -> Result<Vec<SelectItem>> {
                     .collect::<Result<Vec<SelectItem>>>()?,
             ),
             Transformation::Aggregate { calcs, assigns, .. } => {
+                is_inclusive = false;
+                selects.clear();
                 // This is chaining a) the assigns (such as `sum_salary: sum
                 // salary`), and b) the calcs (such as `sum salary`); and converting
                 // them into SelectItems.
@@ -176,7 +178,7 @@ fn select_columns_of_pipeline(pipeline: &Pipeline) -> Result<Vec<SelectItem>> {
             _ => {}
         }
     }
-    if !is_exclusive {
+    if is_inclusive {
         selects.push(SelectItem::Wildcard);
     }
 
@@ -676,8 +678,7 @@ Query:
         assert_display_snapshot!(sql,
             @r###"
         SELECT
-          TOP (20) AVG(salary),
-          *
+          TOP (20) AVG(salary)
         FROM
           employees
         WHERE
@@ -719,8 +720,7 @@ Query:
         assert_snapshot!(sql, @r###"
         SELECT
           salary AS sum_salary,
-          count(salary),
-          *
+          count(salary)
         FROM
           employees
         HAVING
@@ -751,8 +751,7 @@ Query:
             @r###"
         SELECT
           count(salary),
-          sum(salary),
-          *
+          sum(salary)
         FROM
           employees
         "###
@@ -835,8 +834,7 @@ Query:
         ),
         table_1 AS (
           SELECT
-            average salary,
-            *
+            average salary
           FROM
             table_0
           WHERE
@@ -847,8 +845,7 @@ Query:
         ),
         table_2 AS (
           SELECT
-            average salary,
-            *
+            average salary
           FROM
             table_1
           GROUP BY
