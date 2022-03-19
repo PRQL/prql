@@ -159,24 +159,9 @@ pub enum JoinSide {
 // back to dynamic types, which makes understanding what the parser is doing
 // more difficult.
 impl Item {
-    /// Either provide a Vec with the contents of Items / Terms / Query, or puts a scalar
-    /// into a Vec. This is useful when we either have a scalar or a list, and
-    /// want to only have to handle a single type.
-    pub fn into_inner_items(self) -> Vec<Item> {
-        match self {
-            Item::Terms(items) | Item::Expr(items) | Item::Query(Query { items }) => items,
-            _ => vec![self],
-        }
-    }
-    pub fn as_inner_items(&self) -> Result<&Vec<Item>> {
-        if let Item::Terms(items) | Item::Expr(items) = self {
-            Ok(items)
-        } else if let Item::Query(Query { items }) = self {
-            Ok(items)
-        } else {
-            Err(anyhow!("Expected container type; got {self:?}"))
-        }
-    }
+    /// Either provide a Vec with the contents of Terms, or puts a scalar into a
+    /// Terms. This is useful when we either have a scalar or a Terms, and want
+    /// to only have to handle a single type.
     pub fn into_inner_terms(self) -> Vec<Item> {
         match self {
             Item::Terms(terms) => terms,
@@ -211,7 +196,7 @@ impl Item {
             _ => Item::List(vec![ListItem(vec![self])]),
         }
     }
-    /// Make a list from a vec of Items
+    /// Make a List from a vec of Items
     pub fn into_list_of_items(items: Items) -> Item {
         Item::List(items.into_iter().map(|item| ListItem(vec![item])).collect())
     }

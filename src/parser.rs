@@ -52,7 +52,7 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Items> {
                         // but we want to confirm it's an Expr, it would be a
                         // difficult mistake to catch otherwise.
                         .map(|expr| match expr {
-                            Item::Expr(_) => ListItem(expr.into_inner_items()),
+                            Item::Expr(_) => ListItem(expr.into_expr().unwrap()),
                             _ => unreachable!(),
                         })
                         .collect(),
