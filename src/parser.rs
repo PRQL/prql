@@ -100,22 +100,31 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Items> {
                 }
                 Rule::function => {
                     let parsed = ast_of_parse_tree(pair.into_inner())?;
-                    if let (Item::Idents(name_and_params), body) = parsed
+                    if let (Item::Expr(name_and_params), body) = parsed
                         .split_first()
                         .ok_or(anyhow!("Expected at least one item"))?
                     {
-                        let (name, args) = name_and_params
+                        let (name, params) = name_and_params
                             .split_first()
-                            .ok_or(anyhow!("Expected at least one item"))?;
+                            .ok_or(anyhow!("Function requires a name."))?;
                         Item::Function(Function {
-                            name: name.to_owned(),
-                            args: args.to_owned(),
+                            name: name
+                                .as_ident()
+                                .ok_or(anyhow!("Function name needs to be a word; got {name:?}"))?
+                                .to_owned(),
+                            params: params
+                                .iter()
+                                .cloned()
+                                .map(|arg| arg.try_into())
+                                .collect::<Result<Vec<FunctionParam>>>()?
+                                .to_vec(),
                             body: body.to_owned(),
                         })
                     } else {
                         unreachable!("Expected Function, got {parsed:?}")
                     }
                 }
+                Rule::function_params => Item::Expr(ast_of_parse_tree(pair.into_inner())?),
                 Rule::table => {
                     let parsed = ast_of_parse_tree(pair.into_inner())?;
                     let [name, pipeline]: [Item; 2] = parsed
@@ -202,12 +211,19 @@ impl TryFrom<Vec<Item>> for FuncCall {
     }
 }
 
-// We put this outside the main ast_of_parse_tree function because we also use it to ast_of_parse_tree
-// function calls.
-// (I'm not sure whether we should be using it for both — on the one hand,
-// they're fairly similar `sum salary` is a standard function call. But on the
-// other, we were planning to allow `salary | sum`, which doesn't work. We would
-// need to parse the whole of `sum salary` as a pipeline, which _might_ then work.)
+impl TryFrom<Item> for FunctionParam {
+    type Error = anyhow::Error;
+    fn try_from(item: Item) -> Result<Self> {
+        match item {
+            Item::Ident(name) => Ok(FunctionParam::Required(name)),
+            Item::NamedArg(named_arg) => Ok(FunctionParam::Named(named_arg)),
+            _ => Err(anyhow!("Expected Ident or NamedArg; got {item:?}")),
+        }
+    }
+}
+
+// We put this outside the main ast_of_parse_tree function to reduce the size of
+// that function.
 impl TryFrom<Vec<Item>> for Transformation {
     type Error = anyhow::Error;
     fn try_from(items: Vec<Item>) -> Result<Self> {
@@ -695,8 +711,8 @@ take 20
         ---
         Function:
           name: identity
-          args:
-            - x
+          params:
+            - Required: x
           body:
             - Ident: x
         "###);
@@ -707,8 +723,8 @@ take 20
         ---
         Function:
           name: plus_one
-          args:
-            - x
+          params:
+            - Required: x
           body:
             - Expr:
                 - Ident: x
@@ -722,8 +738,8 @@ take 20
         ---
         Function:
           name: plus_one
-          args:
-            - x
+          params:
+            - Required: x
           body:
             - Ident: x
             - Raw: +
@@ -738,8 +754,8 @@ take 20
         ---
         Function:
           name: foo
-          args:
-            - x
+          params:
+            - Required: x
           body:
             - Terms:
                 - Expr:
@@ -758,7 +774,7 @@ take 20
         ---
         Function:
           name: return_constant
-          args: []
+          params: []
           body:
             - Raw: "42"
         "###);
@@ -766,8 +782,8 @@ take 20
         ---
         Function:
           name: count
-          args:
-            - X
+          params:
+            - Required: X
           body:
             - SString:
                 - String: SUM(
@@ -792,6 +808,23 @@ take 20
                 .unwrap()
             ));
             */
+
+        assert_yaml_snapshot!(ast_of_string(r#"func add x to:a = x + to"#, Rule::function)?, @r###"
+        ---
+        Function:
+          name: add
+          params:
+            - Required: x
+            - Named:
+                name: to
+                arg:
+                  Ident: a
+          body:
+            - Ident: x
+            - Raw: +
+            - Ident: to
+        "###);
+
         Ok(())
     }
 
@@ -911,8 +944,8 @@ Terms:
           items:
             - Function:
                 name: median
-                args:
-                  - x
+                params:
+                  - Required: x
                 body:
                   - InlinePipeline:
                       - Expr:

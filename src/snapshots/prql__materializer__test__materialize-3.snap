@@ -1,14 +1,13 @@
 ---
 source: src/materializer.rs
-assertion_line: 530
 expression: materialize(ast)?
 ---
 Query:
   items:
     - Function:
         name: lag_day
-        args:
-          - x
+        params:
+          - Required: x
         body:
           - SString:
               - String: lag_day_todo(
@@ -17,8 +16,8 @@ Query:
               - String: )
     - Function:
         name: ret
-        args:
-          - x
+        params:
+          - Required: x
         body:
           - Ident: x
           - Raw: /
@@ -34,8 +33,8 @@ Query:
           - Ident: dividend_return
     - Function:
         name: excess
-        args:
-          - x
+        params:
+          - Required: x
         body:
           - Expr:
               - Ident: x
@@ -45,8 +44,8 @@ Query:
           - Raw: "252"
     - Function:
         name: if_valid
-        args:
-          - x
+        params:
+          - Required: x
         body:
           - SString:
               - String: "IF(is_valid_price, "

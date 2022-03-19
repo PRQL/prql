@@ -1,6 +1,5 @@
 ---
 source: src/parser.rs
-assertion_line: 624
 expression: "parse_tree_of_str(\"func plus_one x = x + 1\", Rule::function)?"
 ---
 [
@@ -13,7 +12,7 @@ expression: "parse_tree_of_str(\"func plus_one x = x + 1\", Rule::function)?"
         },
         inner: [
             Pair {
-                rule: idents,
+                rule: function_params,
                 span: Span {
                     str: "plus_one x",
                     start: 5,

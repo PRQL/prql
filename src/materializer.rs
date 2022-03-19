@@ -92,22 +92,25 @@ impl RunFunctions {
 
         // TODO: check if the function is called recursively.
 
-        if func.args.len() != func_call.args.len() {
+        if func.params.len() != func_call.args.len() {
             return Err(anyhow!(
                 "Function {:?} called with wrong number of arguments. Expected {}, got {}; from {func_call:?}.",
                 func_call.name,
-                func.args.len(),
+                func.params.len(),
                 func_call.args.len()
             ));
         }
         // Make a ReplaceVariables fold which we'll use to replace the variables
         // in the function with their argument values.
         let mut replace_variables = ReplaceVariables::new();
-        zip(func.args.iter(), func_call.args.iter()).for_each(|(arg, arg_call)| {
-            replace_variables.add_variables(Assign {
-                lvalue: arg.clone(),
-                rvalue: Box::new(arg_call.clone()),
-            });
+        zip(func.params.iter(), func_call.args.iter()).for_each(|(arg, arg_call)| {
+            // FIXME
+            if let FunctionParam::Required(arg) = arg {
+                replace_variables.add_variables(Assign {
+                    lvalue: arg.clone(),
+                    rvalue: Box::new(arg_call.clone()),
+                });
+            }
         });
         // Take a clone of the body and replace the arguments with their values.
         Ok(Item::Terms(replace_variables.fold_items(func.body.clone())?).into_unnested())
@@ -274,7 +277,7 @@ aggregate [
           items:
             - Function:
                 name: count
-                args: []
+                params: []
                 body:
                   - Ident: testing_count
             - Pipeline:
@@ -323,8 +326,8 @@ aggregate [
           items:
             - Function:
                 name: count
-                args:
-                  - x
+                params:
+                  - Required: x
                 body:
                   - SString:
                       - String: count(
@@ -504,8 +507,8 @@ aggregate [
           items:
             - Function:
                 name: count
-                args:
-                  - x
+                params:
+                  - Required: x
                 body:
                   - SString:
                       - String: count(

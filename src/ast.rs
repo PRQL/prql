@@ -107,8 +107,14 @@ impl Transformation {
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Function {
     pub name: Ident,
-    pub args: Vec<Ident>,
+    pub params: Vec<FunctionParam>,
     pub body: Items,
+}
+/// Parameter of a function definition.
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+pub enum FunctionParam {
+    Required(Ident),
+    Named(NamedArg),
 }
 
 /// Function call.
