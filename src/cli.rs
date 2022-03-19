@@ -1,6 +1,6 @@
 use crate::*;
 use anyhow::Error;
-use clap::{ArgEnum, Parser};
+use clap::{ArgEnum, Args, Parser};
 use clio::{Input, Output};
 use std::io::{Read, Write};
 
@@ -13,7 +13,13 @@ enum Dialect {
 
 #[derive(Parser)]
 #[clap(name = env!("CARGO_PKG_NAME"), about, version, author)]
-pub struct Cli {
+pub enum Cli {
+    Compile(CompileCommand),
+}
+
+#[derive(Args)]
+#[clap()]
+pub struct CompileCommand {
     #[clap(default_value="-", parse(try_from_os_str = Input::try_from))]
     input: Input,
 
@@ -26,20 +32,28 @@ pub struct Cli {
 
 impl Cli {
     pub fn execute(&mut self) -> Result<(), Error> {
-        let mut source = String::new();
-        self.input.read_to_string(&mut source)?;
-        match self.format {
-            Dialect::Ast => self
-                .output
-                .write_all(&serde_yaml::to_vec(&parse(&source)?)?)?,
-            Dialect::MaterializedAst => {
-                let materialized = materialize(parse(&source)?)?;
-                self.output.write_all(&serde_yaml::to_vec(&materialized)?)?
+        match self {
+            Cli::Compile(command) => {
+                let mut source = String::new();
+                command.input.read_to_string(&mut source)?;
+
+                match command.format {
+                    Dialect::Ast => command
+                        .output
+                        .write_all(&serde_yaml::to_vec(&parse(&source)?)?)?,
+                    Dialect::MaterializedAst => {
+                        let materialized = materialize(parse(&source)?)?;
+                        command
+                            .output
+                            .write_all(&serde_yaml::to_vec(&materialized)?)?
+                    }
+                    Dialect::Sql => {
+                        command.output.write_all(transpile(&source)?.as_bytes())?;
+                    }
+                };
             }
-            Dialect::Sql => {
-                self.output.write_all(transpile(&source)?.as_bytes())?;
-            }
-        };
+        }
+
         Ok(())
     }
 }
