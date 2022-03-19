@@ -118,7 +118,8 @@ impl RunFunctions {
         let mut value = items
             .next()
             .ok_or_else(|| anyhow!("Expected at least one item"))?
-            .into_only()?;
+            .into_only()
+            .and_then(|item| self.fold_item(item))?;
         for pipe_contents in items {
             // The value from the previous pipeline becomes the final arg.
             let args = [pipe_contents, vec![value]].concat();
@@ -449,6 +450,37 @@ aggregate [one: (foo | sum), two: (foo | sum)]
         -                        - Ident: sum
         +                        Ident: foo
         +                    - String: )
+        "###);
+
+        // Test it'll run the `sum foo` function first.
+        let ast = parse(
+            r#"
+func sum x = s"SUM({x})"
+func plus_one x = x + 1
+
+from a
+aggregate [a: (sum foo | plus_one)]
+"#,
+        )?;
+
+        assert_yaml_snapshot!(materialize(ast)?.into_query()?.items[2], @r###"
+        ---
+        Pipeline:
+          - From: a
+          - Aggregate:
+              by: []
+              calcs: []
+              assigns:
+                - lvalue: a
+                  rvalue:
+                    Terms:
+                      - SString:
+                          - String: SUM(
+                          - Expr:
+                              Ident: foo
+                          - String: )
+                      - Raw: +
+                      - Raw: "1"
         "###);
 
         Ok(())
