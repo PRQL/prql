@@ -107,17 +107,24 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Items> {
                         let (name, params) = name_and_params
                             .split_first()
                             .ok_or(anyhow!("Function requires a name."))?;
+                        // We could use `.partition` for a single pass...
+                        let positional_params = params
+                            .iter()
+                            .filter_map(|x| x.as_ident())
+                            .cloned()
+                            .collect();
+                        let named_params = params
+                            .iter()
+                            .filter_map(|x| x.as_named_arg())
+                            .cloned()
+                            .collect();
                         Item::Function(Function {
                             name: name
                                 .as_ident()
                                 .ok_or(anyhow!("Function name needs to be a word; got {name:?}"))?
                                 .to_owned(),
-                            params: params
-                                .iter()
-                                .cloned()
-                                .map(|arg| arg.try_into())
-                                .collect::<Result<Vec<FunctionParam>>>()?
-                                .to_vec(),
+                            positional_params,
+                            named_params,
                             body: body.to_owned(),
                         })
                     } else {
@@ -208,17 +215,6 @@ impl TryFrom<Vec<Item>> for FuncCall {
             args,
             named_args,
         })
-    }
-}
-
-impl TryFrom<Item> for FunctionParam {
-    type Error = anyhow::Error;
-    fn try_from(item: Item) -> Result<Self> {
-        match item {
-            Item::Ident(name) => Ok(FunctionParam::Required(name)),
-            Item::NamedArg(named_arg) => Ok(FunctionParam::Named(named_arg)),
-            _ => Err(anyhow!("Expected Ident or NamedArg; got {item:?}")),
-        }
     }
 }
 
@@ -711,8 +707,9 @@ take 20
         ---
         Function:
           name: identity
-          params:
-            - Required: x
+          positional_params:
+            - x
+          named_params: []
           body:
             - Ident: x
         "###);
@@ -723,8 +720,9 @@ take 20
         ---
         Function:
           name: plus_one
-          params:
-            - Required: x
+          positional_params:
+            - x
+          named_params: []
           body:
             - Expr:
                 - Ident: x
@@ -738,8 +736,9 @@ take 20
         ---
         Function:
           name: plus_one
-          params:
-            - Required: x
+          positional_params:
+            - x
+          named_params: []
           body:
             - Ident: x
             - Raw: +
@@ -754,8 +753,9 @@ take 20
         ---
         Function:
           name: foo
-          params:
-            - Required: x
+          positional_params:
+            - x
+          named_params: []
           body:
             - Terms:
                 - Expr:
@@ -774,7 +774,8 @@ take 20
         ---
         Function:
           name: return_constant
-          params: []
+          positional_params: []
+          named_params: []
           body:
             - Raw: "42"
         "###);
@@ -782,8 +783,9 @@ take 20
         ---
         Function:
           name: count
-          params:
-            - Required: X
+          positional_params:
+            - X
+          named_params: []
           body:
             - SString:
                 - String: SUM(
@@ -813,12 +815,12 @@ take 20
         ---
         Function:
           name: add
-          params:
-            - Required: x
-            - Named:
-                name: to
-                arg:
-                  Ident: a
+          positional_params:
+            - x
+          named_params:
+            - name: to
+              arg:
+                Ident: a
           body:
             - Ident: x
             - Raw: +
@@ -944,8 +946,9 @@ Terms:
           items:
             - Function:
                 name: median
-                params:
-                  - Required: x
+                positional_params:
+                  - x
+                named_params: []
                 body:
                   - InlinePipeline:
                       - Expr:

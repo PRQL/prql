@@ -19,6 +19,11 @@ COMMENT = _{ "#" ~ (!NEWLINE ~ ANY) * }
 query = { SOI ~ NEWLINE* ~ (( function | table | pipeline ) ~ ( NEWLINE+ | &EOI ))* ~ EOI }
 
 function = { "func" ~ function_params ~ "=" ~ expr_silent }
+// TODO: we could force the named parameters to follow the positional ones here.
+// But pest requires some special handling because if `ident` is before
+// `named_arg`, then `x:y` will be parsed as `x` and then error on `:y`.
+// Possibly we can mandate whitespace to follow, but pest has annoying magic
+// which removes whitespace in non-atomic rules, so we'd need to explore that.
 function_params = { ( named_arg | ident )* }
 table = { "table" ~ ident ~ "=" ~ "(" ~ NEWLINE* ~ pipeline ~ NEWLINE* ~ ")" }
 

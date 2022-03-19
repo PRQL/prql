@@ -203,15 +203,15 @@ pub fn fold_item<T: ?Sized + AstFold>(fold: &mut T, item: Item) -> Result<Item> 
 pub fn fold_function<T: ?Sized + AstFold>(fold: &mut T, function: Function) -> Result<Function> {
     Ok(Function {
         name: fold.fold_ident(function.name)?,
-        params: function
-            .params
+        positional_params: function
+            .positional_params
             .into_iter()
-            .map(|param| match param {
-                FunctionParam::Required(ident) => {
-                    fold.fold_ident(ident).map(FunctionParam::Required)
-                }
-                FunctionParam::Named(named) => fold.fold_named_arg(named).map(FunctionParam::Named),
-            })
+            .map(|ident| fold.fold_ident(ident))
+            .try_collect()?,
+        named_params: function
+            .named_params
+            .into_iter()
+            .map(|named_param| fold.fold_named_arg(named_param))
             .try_collect()?,
         body: fold.fold_items(function.body)?,
     })
