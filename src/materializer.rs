@@ -92,25 +92,23 @@ impl RunFunctions {
 
         // TODO: check if the function is called recursively.
 
-        if func.params.len() != func_call.args.len() {
+        if func.positional_params.len() != func_call.args.len() {
             return Err(anyhow!(
                 "Function {:?} called with wrong number of arguments. Expected {}, got {}; from {func_call:?}.",
                 func_call.name,
-                func.params.len(),
+                func.positional_params.len(),
                 func_call.args.len()
             ));
         }
         // Make a ReplaceVariables fold which we'll use to replace the variables
         // in the function with their argument values.
         let mut replace_variables = ReplaceVariables::new();
-        zip(func.params.iter(), func_call.args.iter()).for_each(|(arg, arg_call)| {
-            // FIXME
-            if let FunctionParam::Required(arg) = arg {
-                replace_variables.add_variables(Assign {
-                    lvalue: arg.clone(),
-                    rvalue: Box::new(arg_call.clone()),
-                });
-            }
+        zip(func.positional_params.iter(), func_call.args.iter()).for_each(|(arg, arg_call)| {
+            // FIXME: Add named args
+            replace_variables.add_variables(Assign {
+                lvalue: arg.clone(),
+                rvalue: Box::new(arg_call.clone()),
+            });
         });
         // Take a clone of the body and replace the arguments with their values.
         Ok(Item::Terms(replace_variables.fold_items(func.body.clone())?).into_unnested())
@@ -277,7 +275,8 @@ aggregate [
           items:
             - Function:
                 name: count
-                params: []
+                positional_params: []
+                named_params: []
                 body:
                   - Ident: testing_count
             - Pipeline:
@@ -295,7 +294,7 @@ aggregate [
         let diff = diff(&to_string(&ast)?, &to_string(&fold.fold_item(ast)?)?);
         assert!(!diff.is_empty());
         assert_display_snapshot!(diff, @r###"
-        @@ -11,5 +11,5 @@
+        @@ -12,5 +12,5 @@
                  - Aggregate:
                      by: []
                      calcs:
@@ -326,8 +325,9 @@ aggregate [
           items:
             - Function:
                 name: count
-                params:
-                  - Required: x
+                positional_params:
+                  - x
+                named_params: []
                 body:
                   - SString:
                       - String: count(
@@ -351,7 +351,7 @@ aggregate [
         let diff = diff(&to_string(&ast)?, &to_string(&fold.fold_item(ast)?)?);
         assert!(!diff.is_empty());
         assert_display_snapshot!(diff, @r###"
-        @@ -17,6 +17,9 @@
+        @@ -18,6 +18,9 @@
                      by: []
                      calcs:
                        - Terms:
@@ -428,7 +428,7 @@ aggregate [one: (foo | sum), two: (foo | sum)]
 
         let mut run_functions = RunFunctions::new();
         assert_snapshot!(diff(&to_string(&ast)?, &to_string(&run_functions.fold_item(ast)?)?), @r###"
-        @@ -19,15 +19,15 @@
+        @@ -20,15 +20,15 @@
                      assigns:
                        - lvalue: one
                          rvalue:
@@ -507,8 +507,9 @@ aggregate [
           items:
             - Function:
                 name: count
-                params:
-                  - Required: x
+                positional_params:
+                  - x
+                named_params: []
                 body:
                   - SString:
                       - String: count(

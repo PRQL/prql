@@ -107,14 +107,9 @@ impl Transformation {
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Function {
     pub name: Ident,
-    pub params: Vec<FunctionParam>,
+    pub positional_params: Vec<Ident>,
+    pub named_params: Vec<NamedArg>,
     pub body: Items,
-}
-/// Parameter of a function definition.
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub enum FunctionParam {
-    Required(Ident),
-    Named(NamedArg),
 }
 
 /// Function call.
@@ -131,6 +126,9 @@ pub struct Table {
     pub pipeline: Pipeline,
 }
 
+// We use `NamedArg` for both the FuncCall and the function parameter. They're
+// very similar, so it's fine; though we could split them out if that became
+// helpful.
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct NamedArg {
     pub name: Ident,
