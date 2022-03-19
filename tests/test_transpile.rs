@@ -90,3 +90,70 @@ fn transpile_functions() -> Result<()> {
 
     Ok(())
 }
+
+#[test]
+fn transpile_joins() -> Result<()> {
+    // TODO: issues, as outlined in https://github.com/max-sixty/prql/issues/194
+    // - from the point where alias emp_salary is introduced for average salary,
+    //   we should use emp_salary instead of the function call. This currently
+    //   causes problems when declaring average emp_salary producing
+    //   AVG(AVG(salary)). This means that we have to introduce "scopes" that
+    //   encapsulates each of the atomic pipelines.
+    // - we need table aliases in joins and froms because joins get real long.
+    //   Also, I think that using only emp_no in second select will not resolve
+    //   to table_0.emp_no.
+    //   - Possibly use `USING` to make these even shorter,
+    //     though there are very small differences between inner & equi joins.
+    //     Though probably we should favor equi-joins.
+
+    assert_snapshot!(transpile(r#"
+    from employees
+join side:left salaries [salaries.emp_no = employees.emp_no]
+aggregate by:[employees.emp_no] [
+  emp_salary: average salary
+]
+join side:left titles [titles.emp_no = emp_no]
+join dept_emp [dept_emp.emp_no = emp_no]
+aggregate by:[dept_emp.dept_no, titles.title] [
+  avg_salary: average emp_salary
+]
+join side:left departments [departments.dept_no = dept_no]
+select [dept_name, title, avg_salary]
+"#)?, @r###"
+    WITH table_0 AS (
+      SELECT
+        AVG(salary) AS emp_salary
+      FROM
+        employees
+        LEFT JOIN salaries ON salaries.emp_no = employees.emp_no
+      GROUP BY
+        employees.emp_no
+    ),
+    table_1 AS (
+      SELECT
+        AVG(AVG(salary)) AS avg_salary
+      FROM
+        table_0
+        LEFT JOIN titles ON titles.emp_no = emp_no
+        JOIN dept_emp ON dept_emp.emp_no = emp_no
+      GROUP BY
+        dept_emp.dept_no,
+        titles.title
+    ),
+    table_2 AS (
+      SELECT
+        dept_name,
+        title,
+        AVG(AVG(salary))
+      FROM
+        table_1
+        LEFT JOIN departments ON departments.dept_no = dept_no
+    )
+    SELECT
+      *
+    FROM
+      table_2
+    "###);
+
+    Ok(())
+}
