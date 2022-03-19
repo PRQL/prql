@@ -18,7 +18,8 @@ COMMENT = _{ "#" ~ (!NEWLINE ~ ANY) * }
 
 query = { SOI ~ NEWLINE* ~ (( function | table | pipeline ) ~ ( NEWLINE+ | &EOI ))* ~ EOI }
 
-function = { "func" ~ idents ~ "=" ~ expr_silent }
+function = { "func" ~ function_params ~ "=" ~ expr_silent }
+function_params = { ( named_arg | ident )* }
 table = { "table" ~ ident ~ "=" ~ "(" ~ NEWLINE* ~ pipeline ~ NEWLINE* ~ ")" }
 
 pipe = _{ NEWLINE | "|" }
