@@ -294,7 +294,35 @@ impl TryFrom<Vec<Item>> for Transformation {
                     .into_only()
                     .map(|n| Ok(Transformation::Take(n.into_raw()?.parse()?)))?
             }
-            "join" => Ok(Transformation::Join(func_call.args)),
+            "join" => {
+                let side = func_call.named_args.iter().find(|a| a.name == "side");
+                let side = if let Some(side) = side {
+                    match side.arg.to_owned().into_ident()?.as_str() {
+                        "inner" => JoinSide::Inner,
+                        "left" => JoinSide::Left,
+                        "right" => JoinSide::Right,
+                        "full" => JoinSide::Full,
+                        unknown => anyhow::bail!("unknown join side: {}", unknown),
+                    }
+                } else {
+                    JoinSide::Inner
+                };
+
+                let with = func_call
+                    .args
+                    .get(0)
+                    .cloned()
+                    .context("join requires a table name to join with")?
+                    .into_ident()?;
+
+                let on = func_call
+                    .args
+                    .get(1)
+                    .map(|x| x.to_owned().into_items_from_maybe_list())
+                    .unwrap_or_else(Vec::new);
+
+                Ok(Transformation::Join { side, with, on })
+            }
             _ => Err(anyhow!(
                 "Expected a known transformation; got {func_call:?}"
             )),
