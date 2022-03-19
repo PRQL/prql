@@ -32,16 +32,13 @@ filter count > 200
 take 20
 "#)?, @r###"
     SELECT
-      TOP (20) salary + payroll_tax AS gross_salary,
-      salary + payroll_tax + benefits_cost AS gross_cost,
-      SUM(salary + payroll_tax + benefits_cost) AS sum_gross_cost,
+      TOP (20) SUM(salary + payroll_tax + benefits_cost) AS sum_gross_cost,
       COUNT(*) AS count,
       AVG(salary),
       SUM(salary),
       AVG(salary + payroll_tax),
       SUM(salary + payroll_tax),
-      AVG(salary + payroll_tax + benefits_cost),
-      *
+      AVG(salary + payroll_tax + benefits_cost)
     FROM
       employees
     WHERE
