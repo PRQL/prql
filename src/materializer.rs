@@ -23,7 +23,7 @@ pub fn materialize(ast: Item) -> Result<Item> {
 fn load_std_lib() -> Result<Items> {
     use super::parse;
     let std_lib = include_str!("stdlib.prql");
-    Ok(parse(std_lib)?.into_inner_items())
+    Ok(parse(std_lib)?.into_query()?.items)
 }
 
 struct ReplaceVariables {
