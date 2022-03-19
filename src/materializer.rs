@@ -3,6 +3,7 @@
 /// contains no query-specific logic.
 use super::ast::*;
 use super::ast_fold::*;
+use super::utils::*;
 use anyhow::{anyhow, Result};
 use std::{collections::HashMap, iter::zip};
 
@@ -111,6 +112,21 @@ impl RunFunctions {
         // Take a clone of the body and replace the arguments with their values.
         Ok(Item::Terms(replace_variables.fold_items(func.body.clone())?).into_unnested())
     }
+    fn run_inline_pipeline(&mut self, items: Items) -> Result<Item> {
+        let mut items = items.into_iter().map(|x| x.into_expr().unwrap());
+        let mut value = items
+            .next()
+            .ok_or_else(|| anyhow!("Expected at least one item"))?
+            .into_only()
+            .and_then(|item| self.fold_item(item))?;
+        for pipe_contents in items {
+            // The value from the previous pipeline becomes the final arg.
+            let args = [pipe_contents, vec![value]].concat();
+            let func_call: FuncCall = args.try_into()?;
+            value = self.run_function(&func_call)?;
+        }
+        Ok(value)
+    }
     fn to_function_call(item: Item) -> Result<FuncCall> {
         match item {
             Item::Terms(terms) => terms.try_into(),
@@ -160,6 +176,9 @@ impl AstFold for RunFunctions {
             // If it's an ident, try running it as a function, in case it's a
             // function with no args.
             Item::Ident(_) => Item::Terms(self.fold_terms(vec![item])?).into_unnested(),
+            // We replace the InlinePipeline with an Item, so we need to run it
+            // here rather than in `fold_inline_pipeline`.
+            Item::InlinePipeline(items) => self.run_inline_pipeline(items)?,
             // Otherwise just delegate to the upstream fold.
             _ => item,
         };
@@ -172,14 +191,11 @@ mod test {
 
     use super::*;
     use crate::parse;
-    use insta::{assert_display_snapshot, assert_yaml_snapshot};
+    use insta::{assert_display_snapshot, assert_snapshot, assert_yaml_snapshot};
+    use serde_yaml::to_string;
 
     #[test]
     fn test_replace_variables() -> Result<()> {
-        use super::*;
-        use serde_yaml::to_string;
-        use similar::TextDiff;
-
         let ast = parse(
             r#"from employees
     derive [                                         # This adds columns / variables.
@@ -192,10 +208,10 @@ mod test {
         let mut fold = ReplaceVariables::new();
         // We could make a convenience function for this. It's useful for
         // showing the diffs of an operation.
-        assert_display_snapshot!(TextDiff::from_lines(
+        assert_display_snapshot!(diff(
             &to_string(&ast)?,
             &to_string(&fold.fold_item(ast)?)?
-        ).unified_diff(),
+        ),
         @r###"
         @@ -13,6 +13,9 @@
                      - lvalue: gross_cost
@@ -270,18 +286,10 @@ aggregate [
                     assigns: []
         "###);
 
-        use serde_yaml::to_string;
-        use similar::TextDiff;
-
         let mut fold = RunFunctions::new();
         // We could make a convenience function for this. It's useful for
         // showing the diffs of an operation.
-        let diff = TextDiff::from_lines(
-            &to_string(&ast).unwrap(),
-            &to_string(&fold.fold_item(ast).unwrap()).unwrap(),
-        )
-        .unified_diff()
-        .to_string();
+        let diff = diff(&to_string(&ast)?, &to_string(&fold.fold_item(ast)?)?);
         assert!(!diff.is_empty());
         assert_display_snapshot!(diff, @r###"
         @@ -11,5 +11,5 @@
@@ -334,15 +342,10 @@ aggregate [
                     assigns: []
         "###);
 
-        use serde_yaml::to_string;
-        use similar::TextDiff;
-
         let mut fold = RunFunctions::new();
         // We could make a convenience function for this. It's useful for
         // showing the diffs of an operation.
-        let diff = TextDiff::from_lines(&to_string(&ast)?, &to_string(&fold.fold_item(ast)?)?)
-            .unified_diff()
-            .to_string();
+        let diff = diff(&to_string(&ast)?, &to_string(&fold.fold_item(ast)?)?);
         assert!(!diff.is_empty());
         assert_display_snapshot!(diff, @r###"
         @@ -17,6 +17,9 @@
@@ -409,6 +412,78 @@ select (ret b)
         Ok(())
     }
 
+    #[test]
+    fn test_run_inline_pipelines() -> Result<()> {
+        let ast = parse(
+            r#"
+func sum x = s"SUM({x})"
+
+from a
+aggregate [one: (foo | sum), two: (foo | sum)]
+"#,
+        )?;
+
+        let mut run_functions = RunFunctions::new();
+        assert_snapshot!(diff(&to_string(&ast)?, &to_string(&run_functions.fold_item(ast)?)?), @r###"
+        @@ -19,15 +19,15 @@
+                     assigns:
+                       - lvalue: one
+                         rvalue:
+        -                  InlinePipeline:
+        +                  SString:
+        +                    - String: SUM(
+                             - Expr:
+        -                        - Ident: foo
+        -                    - Expr:
+        -                        - Ident: sum
+        +                        Ident: foo
+        +                    - String: )
+                       - lvalue: two
+                         rvalue:
+        -                  InlinePipeline:
+        +                  SString:
+        +                    - String: SUM(
+                             - Expr:
+        -                        - Ident: foo
+        -                    - Expr:
+        -                        - Ident: sum
+        +                        Ident: foo
+        +                    - String: )
+        "###);
+
+        // Test it'll run the `sum foo` function first.
+        let ast = parse(
+            r#"
+func sum x = s"SUM({x})"
+func plus_one x = x + 1
+
+from a
+aggregate [a: (sum foo | plus_one)]
+"#,
+        )?;
+
+        assert_yaml_snapshot!(materialize(ast)?.into_query()?.items[2], @r###"
+        ---
+        Pipeline:
+          - From: a
+          - Aggregate:
+              by: []
+              calcs: []
+              assigns:
+                - lvalue: a
+                  rvalue:
+                    Terms:
+                      - SString:
+                          - String: SUM(
+                          - Expr:
+                              Ident: foo
+                          - String: )
+                      - Raw: +
+                      - Raw: "1"
+        "###);
+
+        Ok(())
+    }
     #[test]
     fn test_materialize() -> Result<()> {
         let pipeline = parse(

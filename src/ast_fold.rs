@@ -77,6 +77,9 @@ pub trait AstFold {
     fn fold_sstring_item(&mut self, sstring_item: SStringItem) -> Result<SStringItem> {
         fold_sstring_item(self, sstring_item)
     }
+    fn fold_inline_pipeline(&mut self, inline_pipeline: Items) -> Result<Items> {
+        fold_inline_pipeline(self, inline_pipeline)
+    }
 }
 pub fn fold_terms<T: ?Sized + AstFold>(fold: &mut T, terms: Items) -> Result<Items> {
     terms.into_iter().map(|item| fold.fold_item(item)).collect()
@@ -167,7 +170,7 @@ pub fn fold_item<T: ?Sized + AstFold>(fold: &mut T, item: Item) -> Result<Item> 
         Item::Query(Query { items }) => Item::Query(Query {
             items: fold.fold_items(items)?,
         }),
-        Item::InlinePipeline(items) => Item::InlinePipeline(fold.fold_items(items)?),
+        Item::InlinePipeline(items) => Item::InlinePipeline(fold.fold_inline_pipeline(items)?),
         Item::Pipeline(transformations) => Item::Pipeline(
             transformations
                 .into_iter()
@@ -209,4 +212,10 @@ pub fn fold_assign<T: ?Sized + AstFold>(fold: &mut T, assign: Assign) -> Result<
         lvalue: fold.fold_ident(assign.lvalue)?,
         rvalue: Box::new(fold.fold_item(*assign.rvalue)?),
     })
+}
+pub fn fold_inline_pipeline<T: ?Sized + AstFold>(
+    fold: &mut T,
+    inline_pipeline: Items,
+) -> Result<Items> {
+    fold.fold_items(inline_pipeline)
 }
