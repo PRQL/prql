@@ -75,13 +75,17 @@ pub enum Transformation {
     },
     Sort(Items),
     Take(i64),
-    Join(Items),
+    Join {
+        side: JoinSide,
+        with: Ident,
+        on: Vec<Item>,
+    },
     Func(FuncCall),
 }
 
 impl Transformation {
     /// Returns the name of the transformation.
-    pub fn name(&self) -> &str {
+    pub fn name(&self) -> &'static str {
         match self {
             Transformation::From(_) => "from",
             Transformation::Select(_) => "select",
@@ -90,11 +94,11 @@ impl Transformation {
             Transformation::Aggregate { .. } => "aggregate",
             Transformation::Sort(_) => "sort",
             Transformation::Take(_) => "take",
-            Transformation::Join(_) => "join",
+            Transformation::Join { .. } => "join",
             // Currently this is unused, since we don't encode function calls as
             // anything more than Idents at the moment. We may want to change
             // that in the future.
-            Transformation::Func(FuncCall { name, .. }) => name,
+            Transformation::Func(_) => "func",
         }
     }
 }
@@ -141,6 +145,14 @@ pub enum SStringItem {
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Filter(pub Items);
+
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+pub enum JoinSide {
+    Inner,
+    Left,
+    Right,
+    Full,
+}
 
 // We've done a lot of iteration on these containers, and it's still very messy.
 // Some of the tradeoff is having an Enum which is flexible, but not falling

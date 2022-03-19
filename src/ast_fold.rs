@@ -109,7 +109,11 @@ pub fn fold_transformation<T: ?Sized + AstFold>(
             Ok(Transformation::Filter(Filter(fold.fold_items(items)?)))
         }
         Transformation::Sort(items) => Ok(Transformation::Sort(fold.fold_items(items)?)),
-        Transformation::Join(items) => Ok(Transformation::Join(fold.fold_items(items)?)),
+        Transformation::Join { side, with, on } => Ok(Transformation::Join {
+            side,
+            with,
+            on: fold.fold_items(on)?,
+        }),
         Transformation::Select(items) => Ok(Transformation::Select(fold.fold_items(items)?)),
         Transformation::Aggregate { by, calcs, assigns } => Ok(Transformation::Aggregate {
             by: fold.fold_items(by)?,
