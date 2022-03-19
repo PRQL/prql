@@ -229,6 +229,11 @@ impl IntoUnnested for Item {
         Unnest.fold_item(self).unwrap()
     }
 }
+impl IntoUnnested for Vec<Item> {
+    fn into_unnested(self) -> Self {
+        Item::Terms(self).into_unnested().into_inner_terms()
+    }
+}
 
 use super::ast_fold::fold_item;
 struct Unnest;

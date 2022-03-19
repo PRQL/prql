@@ -215,23 +215,12 @@ impl TryFrom<Vec<Item>> for Transformation {
             .split_first()
             .ok_or(anyhow!("Expected at least one item"))?;
 
-        // We receive a vector of two items: the name of the transformation, and
-        // its items. So we need to unpack that (possibly we could simplify
-        // this, including receiving them in a nicer AST).
-        let terms = items
-            .into_only()?
-            // Take out of the Expr
-            .clone()
-            .into_expr()
-            // Unnest the Terms.
-            // This is required because the Expr might have a Terms immediately
-            // below it, and so we've just added another level of nesting. But
-            // it's quite messy and this sort of "dynamic" behavior has been the
-            // cause of many long debugging sessions (it's better than it used
-            // to be!).
-            .map(Item::Terms)?
-            .into_unnested()
-            .into_inner_terms();
+        // Unnest the Terms. This is required because it can receive a single
+        // terms of `[a, b] by:c` or multiple terms of `a`, `+` & `b` from `a +
+        // b`, or even just a single `1`, and we want those to all be at the
+        // same level. (this could possibly be improved)
+        let terms = items.to_vec().into_unnested();
+
         let func_call: FuncCall = [vec![name.clone()], terms].concat().try_into()?;
 
         match func_call.name.as_str() {
@@ -285,10 +274,8 @@ impl TryFrom<Vec<Item>> for Transformation {
                 //   average gross_cost
                 //   sum_gross_cost: sum gross_cost
 
-                let (assigns, calcs): (Vec<Item>, Vec<Item>) = ops
-                    .iter()
-                    .cloned()
-                    .partition(|x| matches!(x, Item::Assign(_)));
+                let (assigns, calcs): (Vec<Item>, Vec<Item>) =
+                    ops.into_iter().partition(|x| matches!(x, Item::Assign(_)));
 
                 Ok(Transformation::Aggregate {
                     by,
@@ -317,8 +304,6 @@ impl TryFrom<Vec<Item>> for Transformation {
 
 #[cfg(test)]
 mod test {
-
-    use core::panic;
 
     use super::*;
     use insta::{assert_debug_snapshot, assert_yaml_snapshot};

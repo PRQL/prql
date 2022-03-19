@@ -27,7 +27,7 @@ pipeline = { transformation ~ (pipe ~ transformation)* }
 // `ident` is the transformation name.
 // Should this be `Terms` or `Expr`? With `Terms`, we can't have `filter x = 1`; only
 // `filter (x = 1)`, so choosing `Expr`.
-transformation = { WHITESPACE* ~ ident ~ expr? }
+transformation = { WHITESPACE* ~ ident ~ expr_silent? }
 // We don't model this in the same way as a pipeline, since the first term isn't
 // a transformation. And it's somewhat related to our transformations being
 // separate from our function calls (generally just `idents`) at the moment — we

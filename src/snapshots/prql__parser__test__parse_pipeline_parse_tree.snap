@@ -1,6 +1,6 @@
 ---
 source: src/parser.rs
-assertion_line: 811
+assertion_line: 914
 expression: "parse_tree_of_str(r#\"\n    from employees\n    select [a, b]\n    \"#.trim(),\n        Rule::pipeline)?"
 ---
 [
@@ -30,7 +30,7 @@ expression: "parse_tree_of_str(r#\"\n    from employees\n    select [a, b]\n    
                         inner: [],
                     },
                     Pair {
-                        rule: expr,
+                        rule: terms,
                         span: Span {
                             str: "employees",
                             start: 5,
@@ -38,23 +38,13 @@ expression: "parse_tree_of_str(r#\"\n    from employees\n    select [a, b]\n    
                         },
                         inner: [
                             Pair {
-                                rule: terms,
+                                rule: ident,
                                 span: Span {
                                     str: "employees",
                                     start: 5,
                                     end: 14,
                                 },
-                                inner: [
-                                    Pair {
-                                        rule: ident,
-                                        span: Span {
-                                            str: "employees",
-                                            start: 5,
-                                            end: 14,
-                                        },
-                                        inner: [],
-                                    },
-                                ],
+                                inner: [],
                             },
                         ],
                     },
@@ -78,7 +68,7 @@ expression: "parse_tree_of_str(r#\"\n    from employees\n    select [a, b]\n    
                         inner: [],
                     },
                     Pair {
-                        rule: expr,
+                        rule: terms,
                         span: Span {
                             str: "[a, b]",
                             start: 26,
@@ -86,7 +76,7 @@ expression: "parse_tree_of_str(r#\"\n    from employees\n    select [a, b]\n    
                         },
                         inner: [
                             Pair {
-                                rule: terms,
+                                rule: list,
                                 span: Span {
                                     str: "[a, b]",
                                     start: 26,
@@ -94,15 +84,15 @@ expression: "parse_tree_of_str(r#\"\n    from employees\n    select [a, b]\n    
                                 },
                                 inner: [
                                     Pair {
-                                        rule: list,
+                                        rule: expr,
                                         span: Span {
-                                            str: "[a, b]",
-                                            start: 26,
-                                            end: 32,
+                                            str: "a",
+                                            start: 27,
+                                            end: 28,
                                         },
                                         inner: [
                                             Pair {
-                                                rule: expr,
+                                                rule: terms,
                                                 span: Span {
                                                     str: "a",
                                                     start: 27,
@@ -110,28 +100,28 @@ expression: "parse_tree_of_str(r#\"\n    from employees\n    select [a, b]\n    
                                                 },
                                                 inner: [
                                                     Pair {
-                                                        rule: terms,
+                                                        rule: ident,
                                                         span: Span {
                                                             str: "a",
                                                             start: 27,
                                                             end: 28,
                                                         },
-                                                        inner: [
-                                                            Pair {
-                                                                rule: ident,
-                                                                span: Span {
-                                                                    str: "a",
-                                                                    start: 27,
-                                                                    end: 28,
-                                                                },
-                                                                inner: [],
-                                                            },
-                                                        ],
+                                                        inner: [],
                                                     },
                                                 ],
                                             },
+                                        ],
+                                    },
+                                    Pair {
+                                        rule: expr,
+                                        span: Span {
+                                            str: "b",
+                                            start: 30,
+                                            end: 31,
+                                        },
+                                        inner: [
                                             Pair {
-                                                rule: expr,
+                                                rule: terms,
                                                 span: Span {
                                                     str: "b",
                                                     start: 30,
@@ -139,23 +129,13 @@ expression: "parse_tree_of_str(r#\"\n    from employees\n    select [a, b]\n    
                                                 },
                                                 inner: [
                                                     Pair {
-                                                        rule: terms,
+                                                        rule: ident,
                                                         span: Span {
                                                             str: "b",
                                                             start: 30,
                                                             end: 31,
                                                         },
-                                                        inner: [
-                                                            Pair {
-                                                                rule: ident,
-                                                                span: Span {
-                                                                    str: "b",
-                                                                    start: 30,
-                                                                    end: 31,
-                                                                },
-                                                                inner: [],
-                                                            },
-                                                        ],
+                                                        inner: [],
                                                     },
                                                 ],
                                             },

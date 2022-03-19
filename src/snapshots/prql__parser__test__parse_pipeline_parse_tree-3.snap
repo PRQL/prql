@@ -1,6 +1,6 @@
 ---
 source: src/parser.rs
-assertion_line: 827
+assertion_line: 930
 expression: "parse_tree_of_str(r#\"\nfrom employees\nfilter country = \"USA\"                           # Each line transforms the previous result.\nderive [                                         # This adds columns / variables.\n  gross_salary: salary + payroll_tax,\n  gross_cost:   gross_salary + benefits_cost     # Variables can use other variables.\n]\nfilter gross_cost > 0\naggregate by:[title, country] [                  # `by` are the columns to group by.\n    average salary,                              # These are aggregation calcs run on each group.\n    sum     salary,\n    average gross_salary,\n    sum     gross_salary,\n    average gross_cost,\n    sum_gross_cost: sum gross_cost,\n    count: count,\n]\nsort sum_gross_cost\nfilter count > 200\ntake 20\n    \"#.trim(),\n        Rule::pipeline)?"
 ---
 [
@@ -30,7 +30,7 @@ expression: "parse_tree_of_str(r#\"\nfrom employees\nfilter country = \"USA\"   
                         inner: [],
                     },
                     Pair {
-                        rule: expr,
+                        rule: terms,
                         span: Span {
                             str: "employees",
                             start: 5,
@@ -38,23 +38,13 @@ expression: "parse_tree_of_str(r#\"\nfrom employees\nfilter country = \"USA\"   
                         },
                         inner: [
                             Pair {
-                                rule: terms,
+                                rule: ident,
                                 span: Span {
                                     str: "employees",
                                     start: 5,
                                     end: 14,
                                 },
-                                inner: [
-                                    Pair {
-                                        rule: ident,
-                                        span: Span {
-                                            str: "employees",
-                                            start: 5,
-                                            end: 14,
-                                        },
-                                        inner: [],
-                                    },
-                                ],
+                                inner: [],
                             },
                         ],
                     },
@@ -78,67 +68,57 @@ expression: "parse_tree_of_str(r#\"\nfrom employees\nfilter country = \"USA\"   
                         inner: [],
                     },
                     Pair {
-                        rule: expr,
+                        rule: terms,
                         span: Span {
-                            str: "country = \"USA\"                           # Each line transforms the previous result.",
+                            str: "country ",
                             start: 22,
+                            end: 30,
+                        },
+                        inner: [
+                            Pair {
+                                rule: ident,
+                                span: Span {
+                                    str: "country",
+                                    start: 22,
+                                    end: 29,
+                                },
+                                inner: [],
+                            },
+                        ],
+                    },
+                    Pair {
+                        rule: operator,
+                        span: Span {
+                            str: "=",
+                            start: 30,
+                            end: 31,
+                        },
+                        inner: [],
+                    },
+                    Pair {
+                        rule: terms,
+                        span: Span {
+                            str: "\"USA\"                           # Each line transforms the previous result.",
+                            start: 32,
                             end: 107,
                         },
                         inner: [
                             Pair {
-                                rule: terms,
+                                rule: string_literal,
                                 span: Span {
-                                    str: "country ",
-                                    start: 22,
-                                    end: 30,
+                                    str: "\"USA\"",
+                                    start: 32,
+                                    end: 37,
                                 },
                                 inner: [
                                     Pair {
-                                        rule: ident,
+                                        rule: string,
                                         span: Span {
-                                            str: "country",
-                                            start: 22,
-                                            end: 29,
+                                            str: "USA",
+                                            start: 33,
+                                            end: 36,
                                         },
                                         inner: [],
-                                    },
-                                ],
-                            },
-                            Pair {
-                                rule: operator,
-                                span: Span {
-                                    str: "=",
-                                    start: 30,
-                                    end: 31,
-                                },
-                                inner: [],
-                            },
-                            Pair {
-                                rule: terms,
-                                span: Span {
-                                    str: "\"USA\"                           # Each line transforms the previous result.",
-                                    start: 32,
-                                    end: 107,
-                                },
-                                inner: [
-                                    Pair {
-                                        rule: string_literal,
-                                        span: Span {
-                                            str: "\"USA\"",
-                                            start: 32,
-                                            end: 37,
-                                        },
-                                        inner: [
-                                            Pair {
-                                                rule: string,
-                                                span: Span {
-                                                    str: "USA",
-                                                    start: 33,
-                                                    end: 36,
-                                                },
-                                                inner: [],
-                                            },
-                                        ],
                                     },
                                 ],
                             },
@@ -164,7 +144,7 @@ expression: "parse_tree_of_str(r#\"\nfrom employees\nfilter country = \"USA\"   
                         inner: [],
                     },
                     Pair {
-                        rule: expr,
+                        rule: terms,
                         span: Span {
                             str: "[                                         # This adds columns / variables.\n  gross_salary: salary + payroll_tax,\n  gross_cost:   gross_salary + benefits_cost     # Variables can use other variables.\n]",
                             start: 115,
@@ -172,7 +152,7 @@ expression: "parse_tree_of_str(r#\"\nfrom employees\nfilter country = \"USA\"   
                         },
                         inner: [
                             Pair {
-                                rule: terms,
+                                rule: list,
                                 span: Span {
                                     str: "[                                         # This adds columns / variables.\n  gross_salary: salary + payroll_tax,\n  gross_cost:   gross_salary + benefits_cost     # Variables can use other variables.\n]",
                                     start: 115,
@@ -180,15 +160,15 @@ expression: "parse_tree_of_str(r#\"\nfrom employees\nfilter country = \"USA\"   
                                 },
                                 inner: [
                                     Pair {
-                                        rule: list,
+                                        rule: expr,
                                         span: Span {
-                                            str: "[                                         # This adds columns / variables.\n  gross_salary: salary + payroll_tax,\n  gross_cost:   gross_salary + benefits_cost     # Variables can use other variables.\n]",
-                                            start: 115,
-                                            end: 315,
+                                            str: "gross_salary: salary + payroll_tax",
+                                            start: 192,
+                                            end: 226,
                                         },
                                         inner: [
                                             Pair {
-                                                rule: expr,
+                                                rule: terms,
                                                 span: Span {
                                                     str: "gross_salary: salary + payroll_tax",
                                                     start: 192,
@@ -196,7 +176,7 @@ expression: "parse_tree_of_str(r#\"\nfrom employees\nfilter country = \"USA\"   
                                                 },
                                                 inner: [
                                                     Pair {
-                                                        rule: terms,
+                                                        rule: assign,
                                                         span: Span {
                                                             str: "gross_salary: salary + payroll_tax",
                                                             start: 192,
@@ -204,76 +184,66 @@ expression: "parse_tree_of_str(r#\"\nfrom employees\nfilter country = \"USA\"   
                                                         },
                                                         inner: [
                                                             Pair {
-                                                                rule: assign,
+                                                                rule: ident,
                                                                 span: Span {
-                                                                    str: "gross_salary: salary + payroll_tax",
+                                                                    str: "gross_salary",
                                                                     start: 192,
+                                                                    end: 204,
+                                                                },
+                                                                inner: [],
+                                                            },
+                                                            Pair {
+                                                                rule: expr,
+                                                                span: Span {
+                                                                    str: "salary + payroll_tax",
+                                                                    start: 206,
                                                                     end: 226,
                                                                 },
                                                                 inner: [
                                                                     Pair {
-                                                                        rule: ident,
+                                                                        rule: terms,
                                                                         span: Span {
-                                                                            str: "gross_salary",
-                                                                            start: 192,
-                                                                            end: 204,
+                                                                            str: "salary ",
+                                                                            start: 206,
+                                                                            end: 213,
+                                                                        },
+                                                                        inner: [
+                                                                            Pair {
+                                                                                rule: ident,
+                                                                                span: Span {
+                                                                                    str: "salary",
+                                                                                    start: 206,
+                                                                                    end: 212,
+                                                                                },
+                                                                                inner: [],
+                                                                            },
+                                                                        ],
+                                                                    },
+                                                                    Pair {
+                                                                        rule: operator,
+                                                                        span: Span {
+                                                                            str: "+",
+                                                                            start: 213,
+                                                                            end: 214,
                                                                         },
                                                                         inner: [],
                                                                     },
                                                                     Pair {
-                                                                        rule: expr,
+                                                                        rule: terms,
                                                                         span: Span {
-                                                                            str: "salary + payroll_tax",
-                                                                            start: 206,
+                                                                            str: "payroll_tax",
+                                                                            start: 215,
                                                                             end: 226,
                                                                         },
                                                                         inner: [
                                                                             Pair {
-                                                                                rule: terms,
-                                                                                span: Span {
-                                                                                    str: "salary ",
-                                                                                    start: 206,
-                                                                                    end: 213,
-                                                                                },
-                                                                                inner: [
-                                                                                    Pair {
-                                                                                        rule: ident,
-                                                                                        span: Span {
-                                                                                            str: "salary",
-                                                                                            start: 206,
-                                                                                            end: 212,
-                                                                                        },
-                                                                                        inner: [],
-                                                                                    },
-                                                                                ],
-                                                                            },
-                                                                            Pair {
-                                                                                rule: operator,
-                                                                                span: Span {
-                                                                                    str: "+",
-                                                                                    start: 213,
-                                                                                    end: 214,
-                                                                                },
-                                                                                inner: [],
-                                                                            },
-                                                                            Pair {
-                                                                                rule: terms,
+                                                                                rule: ident,
                                                                                 span: Span {
                                                                                     str: "payroll_tax",
                                                                                     start: 215,
                                                                                     end: 226,
                                                                                 },
-                                                                                inner: [
-                                                                                    Pair {
-                                                                                        rule: ident,
-                                                                                        span: Span {
-                                                                                            str: "payroll_tax",
-                                                                                            start: 215,
-                                                                                            end: 226,
-                                                                                        },
-                                                                                        inner: [],
-                                                                                    },
-                                                                                ],
+                                                                                inner: [],
                                                                             },
                                                                         ],
                                                                     },
@@ -283,8 +253,18 @@ expression: "parse_tree_of_str(r#\"\nfrom employees\nfilter country = \"USA\"   
                                                     },
                                                 ],
                                             },
+                                        ],
+                                    },
+                                    Pair {
+                                        rule: expr,
+                                        span: Span {
+                                            str: "gross_cost:   gross_salary + benefits_cost     # Variables can use other variables.",
+                                            start: 230,
+                                            end: 313,
+                                        },
+                                        inner: [
                                             Pair {
-                                                rule: expr,
+                                                rule: terms,
                                                 span: Span {
                                                     str: "gross_cost:   gross_salary + benefits_cost     # Variables can use other variables.",
                                                     start: 230,
@@ -292,7 +272,7 @@ expression: "parse_tree_of_str(r#\"\nfrom employees\nfilter country = \"USA\"   
                                                 },
                                                 inner: [
                                                     Pair {
-                                                        rule: terms,
+                                                        rule: assign,
                                                         span: Span {
                                                             str: "gross_cost:   gross_salary + benefits_cost     # Variables can use other variables.",
                                                             start: 230,
@@ -300,76 +280,66 @@ expression: "parse_tree_of_str(r#\"\nfrom employees\nfilter country = \"USA\"   
                                                         },
                                                         inner: [
                                                             Pair {
-                                                                rule: assign,
+                                                                rule: ident,
                                                                 span: Span {
-                                                                    str: "gross_cost:   gross_salary + benefits_cost     # Variables can use other variables.",
+                                                                    str: "gross_cost",
                                                                     start: 230,
+                                                                    end: 240,
+                                                                },
+                                                                inner: [],
+                                                            },
+                                                            Pair {
+                                                                rule: expr,
+                                                                span: Span {
+                                                                    str: "gross_salary + benefits_cost     # Variables can use other variables.",
+                                                                    start: 244,
                                                                     end: 313,
                                                                 },
                                                                 inner: [
                                                                     Pair {
-                                                                        rule: ident,
+                                                                        rule: terms,
                                                                         span: Span {
-                                                                            str: "gross_cost",
-                                                                            start: 230,
-                                                                            end: 240,
+                                                                            str: "gross_salary ",
+                                                                            start: 244,
+                                                                            end: 257,
+                                                                        },
+                                                                        inner: [
+                                                                            Pair {
+                                                                                rule: ident,
+                                                                                span: Span {
+                                                                                    str: "gross_salary",
+                                                                                    start: 244,
+                                                                                    end: 256,
+                                                                                },
+                                                                                inner: [],
+                                                                            },
+                                                                        ],
+                                                                    },
+                                                                    Pair {
+                                                                        rule: operator,
+                                                                        span: Span {
+                                                                            str: "+",
+                                                                            start: 257,
+                                                                            end: 258,
                                                                         },
                                                                         inner: [],
                                                                     },
                                                                     Pair {
-                                                                        rule: expr,
+                                                                        rule: terms,
                                                                         span: Span {
-                                                                            str: "gross_salary + benefits_cost     # Variables can use other variables.",
-                                                                            start: 244,
+                                                                            str: "benefits_cost     # Variables can use other variables.",
+                                                                            start: 259,
                                                                             end: 313,
                                                                         },
                                                                         inner: [
                                                                             Pair {
-                                                                                rule: terms,
+                                                                                rule: ident,
                                                                                 span: Span {
-                                                                                    str: "gross_salary ",
-                                                                                    start: 244,
-                                                                                    end: 257,
-                                                                                },
-                                                                                inner: [
-                                                                                    Pair {
-                                                                                        rule: ident,
-                                                                                        span: Span {
-                                                                                            str: "gross_salary",
-                                                                                            start: 244,
-                                                                                            end: 256,
-                                                                                        },
-                                                                                        inner: [],
-                                                                                    },
-                                                                                ],
-                                                                            },
-                                                                            Pair {
-                                                                                rule: operator,
-                                                                                span: Span {
-                                                                                    str: "+",
-                                                                                    start: 257,
-                                                                                    end: 258,
+                                                                                    str: "benefits_cost",
+                                                                                    start: 259,
+                                                                                    end: 272,
                                                                                 },
                                                                                 inner: [],
-                                                                            },
-                                                                            Pair {
-                                                                                rule: terms,
-                                                                                span: Span {
-                                                                                    str: "benefits_cost     # Variables can use other variables.",
-                                                                                    start: 259,
-                                                                                    end: 313,
-                                                                                },
-                                                                                inner: [
-                                                                                    Pair {
-                                                                                        rule: ident,
-                                                                                        span: Span {
-                                                                                            str: "benefits_cost",
-                                                                                            start: 259,
-                                                                                            end: 272,
-                                                                                        },
-                                                                                        inner: [],
-                                                                                    },
-                                                                                ],
                                                                             },
                                                                         ],
                                                                     },
@@ -405,59 +375,49 @@ expression: "parse_tree_of_str(r#\"\nfrom employees\nfilter country = \"USA\"   
                         inner: [],
                     },
                     Pair {
-                        rule: expr,
+                        rule: terms,
                         span: Span {
-                            str: "gross_cost > 0",
+                            str: "gross_cost ",
                             start: 323,
+                            end: 334,
+                        },
+                        inner: [
+                            Pair {
+                                rule: ident,
+                                span: Span {
+                                    str: "gross_cost",
+                                    start: 323,
+                                    end: 333,
+                                },
+                                inner: [],
+                            },
+                        ],
+                    },
+                    Pair {
+                        rule: operator,
+                        span: Span {
+                            str: ">",
+                            start: 334,
+                            end: 335,
+                        },
+                        inner: [],
+                    },
+                    Pair {
+                        rule: terms,
+                        span: Span {
+                            str: "0",
+                            start: 336,
                             end: 337,
                         },
                         inner: [
                             Pair {
-                                rule: terms,
-                                span: Span {
-                                    str: "gross_cost ",
-                                    start: 323,
-                                    end: 334,
-                                },
-                                inner: [
-                                    Pair {
-                                        rule: ident,
-                                        span: Span {
-                                            str: "gross_cost",
-                                            start: 323,
-                                            end: 333,
-                                        },
-                                        inner: [],
-                                    },
-                                ],
-                            },
-                            Pair {
-                                rule: operator,
-                                span: Span {
-                                    str: ">",
-                                    start: 334,
-                                    end: 335,
-                                },
-                                inner: [],
-                            },
-                            Pair {
-                                rule: terms,
+                                rule: number,
                                 span: Span {
                                     str: "0",
                                     start: 336,
                                     end: 337,
                                 },
-                                inner: [
-                                    Pair {
-                                        rule: number,
-                                        span: Span {
-                                            str: "0",
-                                            start: 336,
-                                            end: 337,
-                                        },
-                                        inner: [],
-                                    },
-                                ],
+                                inner: [],
                             },
                         ],
                     },
@@ -481,7 +441,7 @@ expression: "parse_tree_of_str(r#\"\nfrom employees\nfilter country = \"USA\"   
                         inner: [],
                     },
                     Pair {
-                        rule: expr,
+                        rule: terms,
                         span: Span {
                             str: "by:[title, country] [                  # `by` are the columns to group by.\n    average salary,                              # These are aggregation calcs run on each group.\n    sum     salary,\n    average gross_salary,\n    sum     gross_salary,\n    average gross_cost,\n    sum_gross_cost: sum gross_cost,\n    count: count,\n]",
                             start: 348,
@@ -489,40 +449,40 @@ expression: "parse_tree_of_str(r#\"\nfrom employees\nfilter country = \"USA\"   
                         },
                         inner: [
                             Pair {
-                                rule: terms,
+                                rule: named_arg,
                                 span: Span {
-                                    str: "by:[title, country] [                  # `by` are the columns to group by.\n    average salary,                              # These are aggregation calcs run on each group.\n    sum     salary,\n    average gross_salary,\n    sum     gross_salary,\n    average gross_cost,\n    sum_gross_cost: sum gross_cost,\n    count: count,\n]",
+                                    str: "by:[title, country]",
                                     start: 348,
-                                    end: 672,
+                                    end: 367,
                                 },
                                 inner: [
                                     Pair {
-                                        rule: named_arg,
+                                        rule: ident,
                                         span: Span {
-                                            str: "by:[title, country]",
+                                            str: "by",
                                             start: 348,
+                                            end: 350,
+                                        },
+                                        inner: [],
+                                    },
+                                    Pair {
+                                        rule: list,
+                                        span: Span {
+                                            str: "[title, country]",
+                                            start: 351,
                                             end: 367,
                                         },
                                         inner: [
                                             Pair {
-                                                rule: ident,
+                                                rule: expr,
                                                 span: Span {
-                                                    str: "by",
-                                                    start: 348,
-                                                    end: 350,
-                                                },
-                                                inner: [],
-                                            },
-                                            Pair {
-                                                rule: list,
-                                                span: Span {
-                                                    str: "[title, country]",
-                                                    start: 351,
-                                                    end: 367,
+                                                    str: "title",
+                                                    start: 352,
+                                                    end: 357,
                                                 },
                                                 inner: [
                                                     Pair {
-                                                        rule: expr,
+                                                        rule: terms,
                                                         span: Span {
                                                             str: "title",
                                                             start: 352,
@@ -530,28 +490,28 @@ expression: "parse_tree_of_str(r#\"\nfrom employees\nfilter country = \"USA\"   
                                                         },
                                                         inner: [
                                                             Pair {
-                                                                rule: terms,
+                                                                rule: ident,
                                                                 span: Span {
                                                                     str: "title",
                                                                     start: 352,
                                                                     end: 357,
                                                                 },
-                                                                inner: [
-                                                                    Pair {
-                                                                        rule: ident,
-                                                                        span: Span {
-                                                                            str: "title",
-                                                                            start: 352,
-                                                                            end: 357,
-                                                                        },
-                                                                        inner: [],
-                                                                    },
-                                                                ],
+                                                                inner: [],
                                                             },
                                                         ],
                                                     },
+                                                ],
+                                            },
+                                            Pair {
+                                                rule: expr,
+                                                span: Span {
+                                                    str: "country",
+                                                    start: 359,
+                                                    end: 366,
+                                                },
+                                                inner: [
                                                     Pair {
-                                                        rule: expr,
+                                                        rule: terms,
                                                         span: Span {
                                                             str: "country",
                                                             start: 359,
@@ -559,21 +519,288 @@ expression: "parse_tree_of_str(r#\"\nfrom employees\nfilter country = \"USA\"   
                                                         },
                                                         inner: [
                                                             Pair {
-                                                                rule: terms,
+                                                                rule: ident,
                                                                 span: Span {
                                                                     str: "country",
                                                                     start: 359,
                                                                     end: 366,
                                                                 },
+                                                                inner: [],
+                                                            },
+                                                        ],
+                                                    },
+                                                ],
+                                            },
+                                        ],
+                                    },
+                                ],
+                            },
+                            Pair {
+                                rule: list,
+                                span: Span {
+                                    str: "[                  # `by` are the columns to group by.\n    average salary,                              # These are aggregation calcs run on each group.\n    sum     salary,\n    average gross_salary,\n    sum     gross_salary,\n    average gross_cost,\n    sum_gross_cost: sum gross_cost,\n    count: count,\n]",
+                                    start: 368,
+                                    end: 672,
+                                },
+                                inner: [
+                                    Pair {
+                                        rule: expr,
+                                        span: Span {
+                                            str: "average salary",
+                                            start: 427,
+                                            end: 441,
+                                        },
+                                        inner: [
+                                            Pair {
+                                                rule: terms,
+                                                span: Span {
+                                                    str: "average salary",
+                                                    start: 427,
+                                                    end: 441,
+                                                },
+                                                inner: [
+                                                    Pair {
+                                                        rule: ident,
+                                                        span: Span {
+                                                            str: "average",
+                                                            start: 427,
+                                                            end: 434,
+                                                        },
+                                                        inner: [],
+                                                    },
+                                                    Pair {
+                                                        rule: ident,
+                                                        span: Span {
+                                                            str: "salary",
+                                                            start: 435,
+                                                            end: 441,
+                                                        },
+                                                        inner: [],
+                                                    },
+                                                ],
+                                            },
+                                        ],
+                                    },
+                                    Pair {
+                                        rule: expr,
+                                        span: Span {
+                                            str: "sum     salary",
+                                            start: 525,
+                                            end: 539,
+                                        },
+                                        inner: [
+                                            Pair {
+                                                rule: terms,
+                                                span: Span {
+                                                    str: "sum     salary",
+                                                    start: 525,
+                                                    end: 539,
+                                                },
+                                                inner: [
+                                                    Pair {
+                                                        rule: ident,
+                                                        span: Span {
+                                                            str: "sum",
+                                                            start: 525,
+                                                            end: 528,
+                                                        },
+                                                        inner: [],
+                                                    },
+                                                    Pair {
+                                                        rule: ident,
+                                                        span: Span {
+                                                            str: "salary",
+                                                            start: 533,
+                                                            end: 539,
+                                                        },
+                                                        inner: [],
+                                                    },
+                                                ],
+                                            },
+                                        ],
+                                    },
+                                    Pair {
+                                        rule: expr,
+                                        span: Span {
+                                            str: "average gross_salary",
+                                            start: 545,
+                                            end: 565,
+                                        },
+                                        inner: [
+                                            Pair {
+                                                rule: terms,
+                                                span: Span {
+                                                    str: "average gross_salary",
+                                                    start: 545,
+                                                    end: 565,
+                                                },
+                                                inner: [
+                                                    Pair {
+                                                        rule: ident,
+                                                        span: Span {
+                                                            str: "average",
+                                                            start: 545,
+                                                            end: 552,
+                                                        },
+                                                        inner: [],
+                                                    },
+                                                    Pair {
+                                                        rule: ident,
+                                                        span: Span {
+                                                            str: "gross_salary",
+                                                            start: 553,
+                                                            end: 565,
+                                                        },
+                                                        inner: [],
+                                                    },
+                                                ],
+                                            },
+                                        ],
+                                    },
+                                    Pair {
+                                        rule: expr,
+                                        span: Span {
+                                            str: "sum     gross_salary",
+                                            start: 571,
+                                            end: 591,
+                                        },
+                                        inner: [
+                                            Pair {
+                                                rule: terms,
+                                                span: Span {
+                                                    str: "sum     gross_salary",
+                                                    start: 571,
+                                                    end: 591,
+                                                },
+                                                inner: [
+                                                    Pair {
+                                                        rule: ident,
+                                                        span: Span {
+                                                            str: "sum",
+                                                            start: 571,
+                                                            end: 574,
+                                                        },
+                                                        inner: [],
+                                                    },
+                                                    Pair {
+                                                        rule: ident,
+                                                        span: Span {
+                                                            str: "gross_salary",
+                                                            start: 579,
+                                                            end: 591,
+                                                        },
+                                                        inner: [],
+                                                    },
+                                                ],
+                                            },
+                                        ],
+                                    },
+                                    Pair {
+                                        rule: expr,
+                                        span: Span {
+                                            str: "average gross_cost",
+                                            start: 597,
+                                            end: 615,
+                                        },
+                                        inner: [
+                                            Pair {
+                                                rule: terms,
+                                                span: Span {
+                                                    str: "average gross_cost",
+                                                    start: 597,
+                                                    end: 615,
+                                                },
+                                                inner: [
+                                                    Pair {
+                                                        rule: ident,
+                                                        span: Span {
+                                                            str: "average",
+                                                            start: 597,
+                                                            end: 604,
+                                                        },
+                                                        inner: [],
+                                                    },
+                                                    Pair {
+                                                        rule: ident,
+                                                        span: Span {
+                                                            str: "gross_cost",
+                                                            start: 605,
+                                                            end: 615,
+                                                        },
+                                                        inner: [],
+                                                    },
+                                                ],
+                                            },
+                                        ],
+                                    },
+                                    Pair {
+                                        rule: expr,
+                                        span: Span {
+                                            str: "sum_gross_cost: sum gross_cost",
+                                            start: 621,
+                                            end: 651,
+                                        },
+                                        inner: [
+                                            Pair {
+                                                rule: terms,
+                                                span: Span {
+                                                    str: "sum_gross_cost: sum gross_cost",
+                                                    start: 621,
+                                                    end: 651,
+                                                },
+                                                inner: [
+                                                    Pair {
+                                                        rule: assign,
+                                                        span: Span {
+                                                            str: "sum_gross_cost: sum gross_cost",
+                                                            start: 621,
+                                                            end: 651,
+                                                        },
+                                                        inner: [
+                                                            Pair {
+                                                                rule: ident,
+                                                                span: Span {
+                                                                    str: "sum_gross_cost",
+                                                                    start: 621,
+                                                                    end: 635,
+                                                                },
+                                                                inner: [],
+                                                            },
+                                                            Pair {
+                                                                rule: expr,
+                                                                span: Span {
+                                                                    str: "sum gross_cost",
+                                                                    start: 637,
+                                                                    end: 651,
+                                                                },
                                                                 inner: [
                                                                     Pair {
-                                                                        rule: ident,
+                                                                        rule: terms,
                                                                         span: Span {
-                                                                            str: "country",
-                                                                            start: 359,
-                                                                            end: 366,
+                                                                            str: "sum gross_cost",
+                                                                            start: 637,
+                                                                            end: 651,
                                                                         },
-                                                                        inner: [],
+                                                                        inner: [
+                                                                            Pair {
+                                                                                rule: ident,
+                                                                                span: Span {
+                                                                                    str: "sum",
+                                                                                    start: 637,
+                                                                                    end: 640,
+                                                                                },
+                                                                                inner: [],
+                                                                            },
+                                                                            Pair {
+                                                                                rule: ident,
+                                                                                span: Span {
+                                                                                    str: "gross_cost",
+                                                                                    start: 641,
+                                                                                    end: 651,
+                                                                                },
+                                                                                inner: [],
+                                                                            },
+                                                                        ],
                                                                     },
                                                                 ],
                                                             },
@@ -584,282 +811,15 @@ expression: "parse_tree_of_str(r#\"\nfrom employees\nfilter country = \"USA\"   
                                         ],
                                     },
                                     Pair {
-                                        rule: list,
+                                        rule: expr,
                                         span: Span {
-                                            str: "[                  # `by` are the columns to group by.\n    average salary,                              # These are aggregation calcs run on each group.\n    sum     salary,\n    average gross_salary,\n    sum     gross_salary,\n    average gross_cost,\n    sum_gross_cost: sum gross_cost,\n    count: count,\n]",
-                                            start: 368,
-                                            end: 672,
+                                            str: "count: count",
+                                            start: 657,
+                                            end: 669,
                                         },
                                         inner: [
                                             Pair {
-                                                rule: expr,
-                                                span: Span {
-                                                    str: "average salary",
-                                                    start: 427,
-                                                    end: 441,
-                                                },
-                                                inner: [
-                                                    Pair {
-                                                        rule: terms,
-                                                        span: Span {
-                                                            str: "average salary",
-                                                            start: 427,
-                                                            end: 441,
-                                                        },
-                                                        inner: [
-                                                            Pair {
-                                                                rule: ident,
-                                                                span: Span {
-                                                                    str: "average",
-                                                                    start: 427,
-                                                                    end: 434,
-                                                                },
-                                                                inner: [],
-                                                            },
-                                                            Pair {
-                                                                rule: ident,
-                                                                span: Span {
-                                                                    str: "salary",
-                                                                    start: 435,
-                                                                    end: 441,
-                                                                },
-                                                                inner: [],
-                                                            },
-                                                        ],
-                                                    },
-                                                ],
-                                            },
-                                            Pair {
-                                                rule: expr,
-                                                span: Span {
-                                                    str: "sum     salary",
-                                                    start: 525,
-                                                    end: 539,
-                                                },
-                                                inner: [
-                                                    Pair {
-                                                        rule: terms,
-                                                        span: Span {
-                                                            str: "sum     salary",
-                                                            start: 525,
-                                                            end: 539,
-                                                        },
-                                                        inner: [
-                                                            Pair {
-                                                                rule: ident,
-                                                                span: Span {
-                                                                    str: "sum",
-                                                                    start: 525,
-                                                                    end: 528,
-                                                                },
-                                                                inner: [],
-                                                            },
-                                                            Pair {
-                                                                rule: ident,
-                                                                span: Span {
-                                                                    str: "salary",
-                                                                    start: 533,
-                                                                    end: 539,
-                                                                },
-                                                                inner: [],
-                                                            },
-                                                        ],
-                                                    },
-                                                ],
-                                            },
-                                            Pair {
-                                                rule: expr,
-                                                span: Span {
-                                                    str: "average gross_salary",
-                                                    start: 545,
-                                                    end: 565,
-                                                },
-                                                inner: [
-                                                    Pair {
-                                                        rule: terms,
-                                                        span: Span {
-                                                            str: "average gross_salary",
-                                                            start: 545,
-                                                            end: 565,
-                                                        },
-                                                        inner: [
-                                                            Pair {
-                                                                rule: ident,
-                                                                span: Span {
-                                                                    str: "average",
-                                                                    start: 545,
-                                                                    end: 552,
-                                                                },
-                                                                inner: [],
-                                                            },
-                                                            Pair {
-                                                                rule: ident,
-                                                                span: Span {
-                                                                    str: "gross_salary",
-                                                                    start: 553,
-                                                                    end: 565,
-                                                                },
-                                                                inner: [],
-                                                            },
-                                                        ],
-                                                    },
-                                                ],
-                                            },
-                                            Pair {
-                                                rule: expr,
-                                                span: Span {
-                                                    str: "sum     gross_salary",
-                                                    start: 571,
-                                                    end: 591,
-                                                },
-                                                inner: [
-                                                    Pair {
-                                                        rule: terms,
-                                                        span: Span {
-                                                            str: "sum     gross_salary",
-                                                            start: 571,
-                                                            end: 591,
-                                                        },
-                                                        inner: [
-                                                            Pair {
-                                                                rule: ident,
-                                                                span: Span {
-                                                                    str: "sum",
-                                                                    start: 571,
-                                                                    end: 574,
-                                                                },
-                                                                inner: [],
-                                                            },
-                                                            Pair {
-                                                                rule: ident,
-                                                                span: Span {
-                                                                    str: "gross_salary",
-                                                                    start: 579,
-                                                                    end: 591,
-                                                                },
-                                                                inner: [],
-                                                            },
-                                                        ],
-                                                    },
-                                                ],
-                                            },
-                                            Pair {
-                                                rule: expr,
-                                                span: Span {
-                                                    str: "average gross_cost",
-                                                    start: 597,
-                                                    end: 615,
-                                                },
-                                                inner: [
-                                                    Pair {
-                                                        rule: terms,
-                                                        span: Span {
-                                                            str: "average gross_cost",
-                                                            start: 597,
-                                                            end: 615,
-                                                        },
-                                                        inner: [
-                                                            Pair {
-                                                                rule: ident,
-                                                                span: Span {
-                                                                    str: "average",
-                                                                    start: 597,
-                                                                    end: 604,
-                                                                },
-                                                                inner: [],
-                                                            },
-                                                            Pair {
-                                                                rule: ident,
-                                                                span: Span {
-                                                                    str: "gross_cost",
-                                                                    start: 605,
-                                                                    end: 615,
-                                                                },
-                                                                inner: [],
-                                                            },
-                                                        ],
-                                                    },
-                                                ],
-                                            },
-                                            Pair {
-                                                rule: expr,
-                                                span: Span {
-                                                    str: "sum_gross_cost: sum gross_cost",
-                                                    start: 621,
-                                                    end: 651,
-                                                },
-                                                inner: [
-                                                    Pair {
-                                                        rule: terms,
-                                                        span: Span {
-                                                            str: "sum_gross_cost: sum gross_cost",
-                                                            start: 621,
-                                                            end: 651,
-                                                        },
-                                                        inner: [
-                                                            Pair {
-                                                                rule: assign,
-                                                                span: Span {
-                                                                    str: "sum_gross_cost: sum gross_cost",
-                                                                    start: 621,
-                                                                    end: 651,
-                                                                },
-                                                                inner: [
-                                                                    Pair {
-                                                                        rule: ident,
-                                                                        span: Span {
-                                                                            str: "sum_gross_cost",
-                                                                            start: 621,
-                                                                            end: 635,
-                                                                        },
-                                                                        inner: [],
-                                                                    },
-                                                                    Pair {
-                                                                        rule: expr,
-                                                                        span: Span {
-                                                                            str: "sum gross_cost",
-                                                                            start: 637,
-                                                                            end: 651,
-                                                                        },
-                                                                        inner: [
-                                                                            Pair {
-                                                                                rule: terms,
-                                                                                span: Span {
-                                                                                    str: "sum gross_cost",
-                                                                                    start: 637,
-                                                                                    end: 651,
-                                                                                },
-                                                                                inner: [
-                                                                                    Pair {
-                                                                                        rule: ident,
-                                                                                        span: Span {
-                                                                                            str: "sum",
-                                                                                            start: 637,
-                                                                                            end: 640,
-                                                                                        },
-                                                                                        inner: [],
-                                                                                    },
-                                                                                    Pair {
-                                                                                        rule: ident,
-                                                                                        span: Span {
-                                                                                            str: "gross_cost",
-                                                                                            start: 641,
-                                                                                            end: 651,
-                                                                                        },
-                                                                                        inner: [],
-                                                                                    },
-                                                                                ],
-                                                                            },
-                                                                        ],
-                                                                    },
-                                                                ],
-                                                            },
-                                                        ],
-                                                    },
-                                                ],
-                                            },
-                                            Pair {
-                                                rule: expr,
+                                                rule: terms,
                                                 span: Span {
                                                     str: "count: count",
                                                     start: 657,
@@ -867,7 +827,7 @@ expression: "parse_tree_of_str(r#\"\nfrom employees\nfilter country = \"USA\"   
                                                 },
                                                 inner: [
                                                     Pair {
-                                                        rule: terms,
+                                                        rule: assign,
                                                         span: Span {
                                                             str: "count: count",
                                                             start: 657,
@@ -875,24 +835,24 @@ expression: "parse_tree_of_str(r#\"\nfrom employees\nfilter country = \"USA\"   
                                                         },
                                                         inner: [
                                                             Pair {
-                                                                rule: assign,
+                                                                rule: ident,
                                                                 span: Span {
-                                                                    str: "count: count",
+                                                                    str: "count",
                                                                     start: 657,
+                                                                    end: 662,
+                                                                },
+                                                                inner: [],
+                                                            },
+                                                            Pair {
+                                                                rule: expr,
+                                                                span: Span {
+                                                                    str: "count",
+                                                                    start: 664,
                                                                     end: 669,
                                                                 },
                                                                 inner: [
                                                                     Pair {
-                                                                        rule: ident,
-                                                                        span: Span {
-                                                                            str: "count",
-                                                                            start: 657,
-                                                                            end: 662,
-                                                                        },
-                                                                        inner: [],
-                                                                    },
-                                                                    Pair {
-                                                                        rule: expr,
+                                                                        rule: terms,
                                                                         span: Span {
                                                                             str: "count",
                                                                             start: 664,
@@ -900,23 +860,13 @@ expression: "parse_tree_of_str(r#\"\nfrom employees\nfilter country = \"USA\"   
                                                                         },
                                                                         inner: [
                                                                             Pair {
-                                                                                rule: terms,
+                                                                                rule: ident,
                                                                                 span: Span {
                                                                                     str: "count",
                                                                                     start: 664,
                                                                                     end: 669,
                                                                                 },
-                                                                                inner: [
-                                                                                    Pair {
-                                                                                        rule: ident,
-                                                                                        span: Span {
-                                                                                            str: "count",
-                                                                                            start: 664,
-                                                                                            end: 669,
-                                                                                        },
-                                                                                        inner: [],
-                                                                                    },
-                                                                                ],
+                                                                                inner: [],
                                                                             },
                                                                         ],
                                                                     },
@@ -952,7 +902,7 @@ expression: "parse_tree_of_str(r#\"\nfrom employees\nfilter country = \"USA\"   
                         inner: [],
                     },
                     Pair {
-                        rule: expr,
+                        rule: terms,
                         span: Span {
                             str: "sum_gross_cost",
                             start: 678,
@@ -960,23 +910,13 @@ expression: "parse_tree_of_str(r#\"\nfrom employees\nfilter country = \"USA\"   
                         },
                         inner: [
                             Pair {
-                                rule: terms,
+                                rule: ident,
                                 span: Span {
                                     str: "sum_gross_cost",
                                     start: 678,
                                     end: 692,
                                 },
-                                inner: [
-                                    Pair {
-                                        rule: ident,
-                                        span: Span {
-                                            str: "sum_gross_cost",
-                                            start: 678,
-                                            end: 692,
-                                        },
-                                        inner: [],
-                                    },
-                                ],
+                                inner: [],
                             },
                         ],
                     },
@@ -1000,59 +940,49 @@ expression: "parse_tree_of_str(r#\"\nfrom employees\nfilter country = \"USA\"   
                         inner: [],
                     },
                     Pair {
-                        rule: expr,
+                        rule: terms,
                         span: Span {
-                            str: "count > 200",
+                            str: "count ",
                             start: 700,
+                            end: 706,
+                        },
+                        inner: [
+                            Pair {
+                                rule: ident,
+                                span: Span {
+                                    str: "count",
+                                    start: 700,
+                                    end: 705,
+                                },
+                                inner: [],
+                            },
+                        ],
+                    },
+                    Pair {
+                        rule: operator,
+                        span: Span {
+                            str: ">",
+                            start: 706,
+                            end: 707,
+                        },
+                        inner: [],
+                    },
+                    Pair {
+                        rule: terms,
+                        span: Span {
+                            str: "200",
+                            start: 708,
                             end: 711,
                         },
                         inner: [
                             Pair {
-                                rule: terms,
-                                span: Span {
-                                    str: "count ",
-                                    start: 700,
-                                    end: 706,
-                                },
-                                inner: [
-                                    Pair {
-                                        rule: ident,
-                                        span: Span {
-                                            str: "count",
-                                            start: 700,
-                                            end: 705,
-                                        },
-                                        inner: [],
-                                    },
-                                ],
-                            },
-                            Pair {
-                                rule: operator,
-                                span: Span {
-                                    str: ">",
-                                    start: 706,
-                                    end: 707,
-                                },
-                                inner: [],
-                            },
-                            Pair {
-                                rule: terms,
+                                rule: number,
                                 span: Span {
                                     str: "200",
                                     start: 708,
                                     end: 711,
                                 },
-                                inner: [
-                                    Pair {
-                                        rule: number,
-                                        span: Span {
-                                            str: "200",
-                                            start: 708,
-                                            end: 711,
-                                        },
-                                        inner: [],
-                                    },
-                                ],
+                                inner: [],
                             },
                         ],
                     },
@@ -1076,7 +1006,7 @@ expression: "parse_tree_of_str(r#\"\nfrom employees\nfilter country = \"USA\"   
                         inner: [],
                     },
                     Pair {
-                        rule: expr,
+                        rule: terms,
                         span: Span {
                             str: "20",
                             start: 717,
@@ -1084,23 +1014,13 @@ expression: "parse_tree_of_str(r#\"\nfrom employees\nfilter country = \"USA\"   
                         },
                         inner: [
                             Pair {
-                                rule: terms,
+                                rule: number,
                                 span: Span {
                                     str: "20",
                                     start: 717,
                                     end: 719,
                                 },
-                                inner: [
-                                    Pair {
-                                        rule: number,
-                                        span: Span {
-                                            str: "20",
-                                            start: 717,
-                                            end: 719,
-                                        },
-                                        inner: [],
-                                    },
-                                ],
+                                inner: [],
                             },
                         ],
                     },
