@@ -381,10 +381,15 @@ mod test {
             },
         ]
         "###);
-        assert_yaml_snapshot!(ast_of_string(r#"" U S A ""#, Rule::string_literal)?, @r###"
+        let double_quoted_ast = ast_of_string(r#"" U S A ""#, Rule::string_literal)?;
+        assert_yaml_snapshot!(double_quoted_ast, @r###"
         ---
         String: " U S A "
         "###);
+
+        let single_quoted_ast = ast_of_string(r#"' U S A '"#, Rule::string_literal)?;
+        assert_eq!(single_quoted_ast, double_quoted_ast);
+
         Ok(())
     }
 
