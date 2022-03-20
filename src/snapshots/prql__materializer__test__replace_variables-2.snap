@@ -1,6 +1,5 @@
 ---
 source: src/materializer.rs
-assertion_line: 241
 expression: "&fold.fold_item(ast)?"
 ---
 Query:
@@ -85,25 +84,9 @@ Query:
                 rvalue:
                   Ident: count
         - Sort:
-            - Terms:
-                - Ident: sum
-                - Terms:
-                    - Terms:
-                        - Ident: salary
-                        - Raw: +
-                        - Ident: payroll_tax
-                    - Raw: +
-                    - Ident: benefits_cost
+            - Ident: sum_gross_cost
         - Filter:
-            - Terms:
-                - Ident: sum
-                - Terms:
-                    - Terms:
-                        - Ident: salary
-                        - Raw: +
-                        - Ident: payroll_tax
-                    - Raw: +
-                    - Ident: benefits_cost
+            - Ident: sum_gross_cost
             - Raw: ">"
             - Raw: "200"
         - Take: 20

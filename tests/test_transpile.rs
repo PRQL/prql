@@ -64,7 +64,7 @@ take 20
     HAVING
       COUNT(*) > 200
     ORDER BY
-      SUM(salary + payroll_tax + benefits_cost)
+      sum_gross_cost
     "###);
 
     Ok(())
@@ -108,11 +108,6 @@ fn transpile_functions() -> Result<()> {
 #[test]
 fn transpile_joins() -> Result<()> {
     // TODO: issues, as outlined in https://github.com/max-sixty/prql/issues/194
-    // - from the point where alias emp_salary is introduced for average salary,
-    //   we should use emp_salary instead of the function call. This currently
-    //   causes problems when declaring average emp_salary producing
-    //   AVG(AVG(salary)). This means that we have to introduce "scopes" that
-    //   encapsulates each of the atomic pipelines.
     // - we need table aliases in joins and froms because joins get real long.
     //   Also, I think that using only emp_no in second select will not resolve
     //   to table_0.emp_no.
@@ -120,7 +115,8 @@ fn transpile_joins() -> Result<()> {
     //     though there are very small differences between inner & equi joins.
     //     Though probably we should favor equi-joins.
 
-    assert_snapshot!(transpile(r#"
+    let result = transpile(
+        r#"
     from employees
 join side:left salaries [salaries.emp_no = employees.emp_no]
 aggregate by:[employees.emp_no] [
@@ -133,7 +129,10 @@ aggregate by:[dept_emp.dept_no, titles.title] [
 ]
 join side:left departments [departments.dept_no = dept_no]
 select [dept_name, title, avg_salary]
-"#)?, @r###"
+"#,
+    )?;
+
+    assert_snapshot!(result, @r###"
     WITH table_0 AS (
       SELECT
         AVG(salary) AS emp_salary
@@ -145,7 +144,7 @@ select [dept_name, title, avg_salary]
     ),
     table_1 AS (
       SELECT
-        AVG(AVG(salary)) AS avg_salary
+        AVG(emp_salary) AS avg_salary
       FROM
         table_0
         LEFT JOIN titles ON titles.emp_no = emp_no
@@ -158,7 +157,7 @@ select [dept_name, title, avg_salary]
       SELECT
         dept_name,
         title,
-        AVG(AVG(salary))
+        avg_salary
       FROM
         table_1
         LEFT JOIN departments ON departments.dept_no = dept_no
@@ -168,6 +167,9 @@ select [dept_name, title, avg_salary]
     FROM
       table_2
     "###);
+
+    // #213
+    assert!(!result.to_lowercase().contains(&"avg(avg"));
 
     Ok(())
 }
