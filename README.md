@@ -77,10 +77,10 @@ aggregate by:[title, country] [                  # `by` are the columns to group
     sum     gross_salary,
     average gross_cost,
     sum_gross_cost: sum gross_cost,
-    count: count,
+    ct: count *,
 ]
 sort sum_gross_cost
-filter count > 200
+filter ct > 200
 take 20
 ```
 

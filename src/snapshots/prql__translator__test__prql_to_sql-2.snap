@@ -4,7 +4,7 @@ expression: sql
 ---
 SELECT
   TOP (20) SUM(salary + payroll_tax + benefits_cost) AS sum_gross_cost,
-  COUNT(*) AS count,
+  COUNT(*) AS ct,
   AVG(salary),
   SUM(salary),
   AVG(salary + payroll_tax),
@@ -19,6 +19,6 @@ GROUP BY
   title,
   country
 HAVING
-  COUNT(*) > 200
+  ct > 200
 ORDER BY
   sum_gross_cost

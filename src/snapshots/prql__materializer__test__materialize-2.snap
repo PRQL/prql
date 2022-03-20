@@ -92,10 +92,13 @@ Query:
                           - Raw: +
                           - Ident: benefits_cost
                     - String: )
-              - lvalue: count
+              - lvalue: ct
                 rvalue:
                   SString:
-                    - String: COUNT(*)
+                    - String: COUNT(
+                    - Expr:
+                        Raw: "*"
+                    - String: )
         - Sort:
             - Ident: sum_gross_cost
         - Filter:

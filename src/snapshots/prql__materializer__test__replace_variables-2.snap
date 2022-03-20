@@ -80,9 +80,11 @@ Query:
                             - Ident: payroll_tax
                         - Raw: +
                         - Ident: benefits_cost
-              - lvalue: count
+              - lvalue: ct
                 rvalue:
-                  Ident: count
+                  Terms:
+                    - Ident: count
+                    - Raw: "*"
         - Sort:
             - Ident: sum_gross_cost
         - Filter:
