@@ -95,10 +95,11 @@ parenthesized_expr = _{ "(" ~ expr ~ ")" }
 // atomic operator. We have some rudimentary tests for these.
 
 quote = _{ "\"" | "'" }
-string = { ( !( "\\" | quote ) ~ ANY )+ }
+// PEEK refers to the opening quote; either `"` or `'`.
+string = { ( !( "\\" | PEEK ) ~ ANY )+ }
 
 // TODO: allow single quotes.
-string_literal = ${ quote ~ string ~ quote }
+string_literal = ${ PUSH(quote) ~ string ~ POP }
 number = ${ ( ASCII_DIGIT | "." )+ }
 
 // These separate idents from each other — i.e. `foo bar and baz` will parse into
@@ -106,8 +107,8 @@ number = ${ ( ASCII_DIGIT | "." )+ }
 // TODO: review operators
 operator = ${ "and" | "or" | "not" | "==" | "!=" | "=" | ">" | "<" | ">=" | "<=" | "+" | "-" | "*" | "/" | "%" }
 
-s_string = ${ "s\"" ~ ( s_string_string | ( "{" ~ expr ~ "}" ))* ~ "\"" }
-s_string_string = { ( !( "\\" | "\"" | "{" ) ~ ANY )+ }
+s_string = ${ "s" ~ PUSH(quote) ~ ( s_string_string | ( "{" ~ expr ~ "}" ))* ~ POP }
+s_string_string = { ( !( "\\" | PEEK | "{" ) ~ ANY )+ }
 // Currently named_args and handled slightly differently to assignments:
 // named_args have no whitespace and take one expression immediately after the
 // `:`, while assignments take all of the expressions following the `:`. e.g.:
