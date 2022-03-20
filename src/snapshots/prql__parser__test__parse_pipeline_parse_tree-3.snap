@@ -1,15 +1,14 @@
 ---
 source: src/parser.rs
-assertion_line: 930
-expression: "parse_tree_of_str(r#\"\nfrom employees\nfilter country = \"USA\"                           # Each line transforms the previous result.\nderive [                                         # This adds columns / variables.\n  gross_salary: salary + payroll_tax,\n  gross_cost:   gross_salary + benefits_cost     # Variables can use other variables.\n]\nfilter gross_cost > 0\naggregate by:[title, country] [                  # `by` are the columns to group by.\n    average salary,                              # These are aggregation calcs run on each group.\n    sum     salary,\n    average gross_salary,\n    sum     gross_salary,\n    average gross_cost,\n    sum_gross_cost: sum gross_cost,\n    count: count,\n]\nsort sum_gross_cost\nfilter count > 200\ntake 20\n    \"#.trim(),\n        Rule::pipeline)?"
+expression: "parse_tree_of_str(r#\"\nfrom employees\nfilter country = \"USA\"                           # Each line transforms the previous result.\nderive [                                         # This adds columns / variables.\n  gross_salary: salary + payroll_tax,\n  gross_cost:   gross_salary + benefits_cost     # Variables can use other variables.\n]\nfilter gross_cost > 0\naggregate by:[title, country] [                  # `by` are the columns to group by.\n    average salary,                              # These are aggregation calcs run on each group.\n    sum     salary,\n    average gross_salary,\n    sum     gross_salary,\n    average gross_cost,\n    sum_gross_cost: sum gross_cost,\n    count: count *,\n]\nsort sum_gross_cost\nfilter count > 200\ntake 20\n    \"#.trim(),\n        Rule::pipeline)?"
 ---
 [
     Pair {
         rule: pipeline,
         span: Span {
-            str: "from employees\nfilter country = \"USA\"                           # Each line transforms the previous result.\nderive [                                         # This adds columns / variables.\n  gross_salary: salary + payroll_tax,\n  gross_cost:   gross_salary + benefits_cost     # Variables can use other variables.\n]\nfilter gross_cost > 0\naggregate by:[title, country] [                  # `by` are the columns to group by.\n    average salary,                              # These are aggregation calcs run on each group.\n    sum     salary,\n    average gross_salary,\n    sum     gross_salary,\n    average gross_cost,\n    sum_gross_cost: sum gross_cost,\n    count: count,\n]\nsort sum_gross_cost\nfilter count > 200\ntake 20",
+            str: "from employees\nfilter country = \"USA\"                           # Each line transforms the previous result.\nderive [                                         # This adds columns / variables.\n  gross_salary: salary + payroll_tax,\n  gross_cost:   gross_salary + benefits_cost     # Variables can use other variables.\n]\nfilter gross_cost > 0\naggregate by:[title, country] [                  # `by` are the columns to group by.\n    average salary,                              # These are aggregation calcs run on each group.\n    sum     salary,\n    average gross_salary,\n    sum     gross_salary,\n    average gross_cost,\n    sum_gross_cost: sum gross_cost,\n    count: count *,\n]\nsort sum_gross_cost\nfilter count > 200\ntake 20",
             start: 0,
-            end: 719,
+            end: 721,
         },
         inner: [
             Pair {
@@ -426,9 +425,9 @@ expression: "parse_tree_of_str(r#\"\nfrom employees\nfilter country = \"USA\"   
             Pair {
                 rule: transformation,
                 span: Span {
-                    str: "aggregate by:[title, country] [                  # `by` are the columns to group by.\n    average salary,                              # These are aggregation calcs run on each group.\n    sum     salary,\n    average gross_salary,\n    sum     gross_salary,\n    average gross_cost,\n    sum_gross_cost: sum gross_cost,\n    count: count,\n]",
+                    str: "aggregate by:[title, country] [                  # `by` are the columns to group by.\n    average salary,                              # These are aggregation calcs run on each group.\n    sum     salary,\n    average gross_salary,\n    sum     gross_salary,\n    average gross_cost,\n    sum_gross_cost: sum gross_cost,\n    count: count *,\n]",
                     start: 338,
-                    end: 672,
+                    end: 674,
                 },
                 inner: [
                     Pair {
@@ -443,9 +442,9 @@ expression: "parse_tree_of_str(r#\"\nfrom employees\nfilter country = \"USA\"   
                     Pair {
                         rule: terms,
                         span: Span {
-                            str: "by:[title, country] [                  # `by` are the columns to group by.\n    average salary,                              # These are aggregation calcs run on each group.\n    sum     salary,\n    average gross_salary,\n    sum     gross_salary,\n    average gross_cost,\n    sum_gross_cost: sum gross_cost,\n    count: count,\n]",
+                            str: "by:[title, country] [                  # `by` are the columns to group by.\n    average salary,                              # These are aggregation calcs run on each group.\n    sum     salary,\n    average gross_salary,\n    sum     gross_salary,\n    average gross_cost,\n    sum_gross_cost: sum gross_cost,\n    count: count *,\n]",
                             start: 348,
-                            end: 672,
+                            end: 674,
                         },
                         inner: [
                             Pair {
@@ -538,9 +537,9 @@ expression: "parse_tree_of_str(r#\"\nfrom employees\nfilter country = \"USA\"   
                             Pair {
                                 rule: list,
                                 span: Span {
-                                    str: "[                  # `by` are the columns to group by.\n    average salary,                              # These are aggregation calcs run on each group.\n    sum     salary,\n    average gross_salary,\n    sum     gross_salary,\n    average gross_cost,\n    sum_gross_cost: sum gross_cost,\n    count: count,\n]",
+                                    str: "[                  # `by` are the columns to group by.\n    average salary,                              # These are aggregation calcs run on each group.\n    sum     salary,\n    average gross_salary,\n    sum     gross_salary,\n    average gross_cost,\n    sum_gross_cost: sum gross_cost,\n    count: count *,\n]",
                                     start: 368,
-                                    end: 672,
+                                    end: 674,
                                 },
                                 inner: [
                                     Pair {
@@ -813,25 +812,25 @@ expression: "parse_tree_of_str(r#\"\nfrom employees\nfilter country = \"USA\"   
                                     Pair {
                                         rule: expr,
                                         span: Span {
-                                            str: "count: count",
+                                            str: "count: count *",
                                             start: 657,
-                                            end: 669,
+                                            end: 671,
                                         },
                                         inner: [
                                             Pair {
                                                 rule: terms,
                                                 span: Span {
-                                                    str: "count: count",
+                                                    str: "count: count *",
                                                     start: 657,
-                                                    end: 669,
+                                                    end: 671,
                                                 },
                                                 inner: [
                                                     Pair {
                                                         rule: assign,
                                                         span: Span {
-                                                            str: "count: count",
+                                                            str: "count: count *",
                                                             start: 657,
-                                                            end: 669,
+                                                            end: 671,
                                                         },
                                                         inner: [
                                                             Pair {
@@ -846,17 +845,17 @@ expression: "parse_tree_of_str(r#\"\nfrom employees\nfilter country = \"USA\"   
                                                             Pair {
                                                                 rule: expr,
                                                                 span: Span {
-                                                                    str: "count",
+                                                                    str: "count *",
                                                                     start: 664,
-                                                                    end: 669,
+                                                                    end: 671,
                                                                 },
                                                                 inner: [
                                                                     Pair {
                                                                         rule: terms,
                                                                         span: Span {
-                                                                            str: "count",
+                                                                            str: "count ",
                                                                             start: 664,
-                                                                            end: 669,
+                                                                            end: 670,
                                                                         },
                                                                         inner: [
                                                                             Pair {
@@ -869,6 +868,15 @@ expression: "parse_tree_of_str(r#\"\nfrom employees\nfilter country = \"USA\"   
                                                                                 inner: [],
                                                                             },
                                                                         ],
+                                                                    },
+                                                                    Pair {
+                                                                        rule: operator,
+                                                                        span: Span {
+                                                                            str: "*",
+                                                                            start: 670,
+                                                                            end: 671,
+                                                                        },
+                                                                        inner: [],
                                                                     },
                                                                 ],
                                                             },
@@ -888,16 +896,16 @@ expression: "parse_tree_of_str(r#\"\nfrom employees\nfilter country = \"USA\"   
                 rule: transformation,
                 span: Span {
                     str: "sort sum_gross_cost",
-                    start: 673,
-                    end: 692,
+                    start: 675,
+                    end: 694,
                 },
                 inner: [
                     Pair {
                         rule: ident,
                         span: Span {
                             str: "sort",
-                            start: 673,
-                            end: 677,
+                            start: 675,
+                            end: 679,
                         },
                         inner: [],
                     },
@@ -905,16 +913,16 @@ expression: "parse_tree_of_str(r#\"\nfrom employees\nfilter country = \"USA\"   
                         rule: terms,
                         span: Span {
                             str: "sum_gross_cost",
-                            start: 678,
-                            end: 692,
+                            start: 680,
+                            end: 694,
                         },
                         inner: [
                             Pair {
                                 rule: ident,
                                 span: Span {
                                     str: "sum_gross_cost",
-                                    start: 678,
-                                    end: 692,
+                                    start: 680,
+                                    end: 694,
                                 },
                                 inner: [],
                             },
@@ -926,16 +934,16 @@ expression: "parse_tree_of_str(r#\"\nfrom employees\nfilter country = \"USA\"   
                 rule: transformation,
                 span: Span {
                     str: "filter count > 200",
-                    start: 693,
-                    end: 711,
+                    start: 695,
+                    end: 713,
                 },
                 inner: [
                     Pair {
                         rule: ident,
                         span: Span {
                             str: "filter",
-                            start: 693,
-                            end: 699,
+                            start: 695,
+                            end: 701,
                         },
                         inner: [],
                     },
@@ -943,16 +951,16 @@ expression: "parse_tree_of_str(r#\"\nfrom employees\nfilter country = \"USA\"   
                         rule: terms,
                         span: Span {
                             str: "count ",
-                            start: 700,
-                            end: 706,
+                            start: 702,
+                            end: 708,
                         },
                         inner: [
                             Pair {
                                 rule: ident,
                                 span: Span {
                                     str: "count",
-                                    start: 700,
-                                    end: 705,
+                                    start: 702,
+                                    end: 707,
                                 },
                                 inner: [],
                             },
@@ -962,8 +970,8 @@ expression: "parse_tree_of_str(r#\"\nfrom employees\nfilter country = \"USA\"   
                         rule: operator,
                         span: Span {
                             str: ">",
-                            start: 706,
-                            end: 707,
+                            start: 708,
+                            end: 709,
                         },
                         inner: [],
                     },
@@ -971,16 +979,16 @@ expression: "parse_tree_of_str(r#\"\nfrom employees\nfilter country = \"USA\"   
                         rule: terms,
                         span: Span {
                             str: "200",
-                            start: 708,
-                            end: 711,
+                            start: 710,
+                            end: 713,
                         },
                         inner: [
                             Pair {
                                 rule: number,
                                 span: Span {
                                     str: "200",
-                                    start: 708,
-                                    end: 711,
+                                    start: 710,
+                                    end: 713,
                                 },
                                 inner: [],
                             },
@@ -992,16 +1000,16 @@ expression: "parse_tree_of_str(r#\"\nfrom employees\nfilter country = \"USA\"   
                 rule: transformation,
                 span: Span {
                     str: "take 20",
-                    start: 712,
-                    end: 719,
+                    start: 714,
+                    end: 721,
                 },
                 inner: [
                     Pair {
                         rule: ident,
                         span: Span {
                             str: "take",
-                            start: 712,
-                            end: 716,
+                            start: 714,
+                            end: 718,
                         },
                         inner: [],
                     },
@@ -1009,16 +1017,16 @@ expression: "parse_tree_of_str(r#\"\nfrom employees\nfilter country = \"USA\"   
                         rule: terms,
                         span: Span {
                             str: "20",
-                            start: 717,
-                            end: 719,
+                            start: 719,
+                            end: 721,
                         },
                         inner: [
                             Pair {
                                 rule: number,
                                 span: Span {
                                     str: "20",
-                                    start: 717,
-                                    end: 719,
+                                    start: 719,
+                                    end: 721,
                                 },
                                 inner: [],
                             },

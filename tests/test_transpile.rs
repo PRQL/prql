@@ -39,10 +39,10 @@ aggregate by:[title, country] [                  # `by` are the columns to group
     sum     gross_salary,
     average gross_cost,
     sum_gross_cost: sum gross_cost,
-    count: count,
+    count: count *,
 ]
 sort sum_gross_cost
-filter count > 200
+filter ct > 200
 take 20
 "#)?, @r###"
     SELECT
@@ -62,7 +62,7 @@ take 20
       title,
       country
     HAVING
-      COUNT(*) > 200
+      ct > 200
     ORDER BY
       sum_gross_cost
     "###);

@@ -65,7 +65,22 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Items> {
                 // List because those are often meaningful — e.g. a List needs a
                 // number of Expr, so that `[a, b]` is different from `[a b]`.
                 Rule::terms => Item::Terms(ast_of_parse_tree(pair.into_inner())?).into_unnested(),
-                Rule::expr => Item::Expr(ast_of_parse_tree(pair.into_inner())?),
+                Rule::expr => {
+                    let expr = Item::Expr(ast_of_parse_tree(pair.into_inner())?).into_unnested();
+                    // Uber-hack for
+                    // https://github.com/max-sixty/prql/issues/154
+                    // TODO: Resolve!
+                    if expr.as_expr().unwrap().first() == Some(&Item::Ident("count".to_string()))
+                        && expr
+                            .as_expr()
+                            .unwrap()
+                            .contains(&Item::Raw("*".to_string()))
+                    {
+                        Item::Expr(vec![Item::Terms(expr.into_expr().unwrap())])
+                    } else {
+                        expr
+                    }
+                }
                 Rule::named_arg => {
                     let parsed: [Item; 2] = ast_of_parse_tree(pair.into_inner())?
                         .try_into()
@@ -701,10 +716,10 @@ aggregate by:[title, country] [                  # `by` are the columns to group
     sum     gross_salary,
     average gross_cost,
     sum_gross_cost: sum gross_cost,
-    count: count,
+    ct: count,
 ]
 sort sum_gross_cost
-filter count > 200
+filter ct > 200
 take 20
     "#
             .trim(),
@@ -859,13 +874,37 @@ Terms:
 "#,
         )?;
 
-        dbg!(&ast);
-        let func_call: FuncCall = dbg!(ast.into_terms()?).try_into()?;
+        let func_call: FuncCall = ast.into_terms()?.try_into()?;
         assert_yaml_snapshot!(func_call, @r###"
         ---
         name: foo
         args:
           - Ident: bar
+        named_args: []
+        "###);
+
+        // Uber-hack from #154
+        let ast = ast_of_string(r#"count *"#, Rule::expr)?;
+        let func_call: FuncCall = ast.into_expr()?.into_only()?.into_terms()?.try_into()?;
+        assert_yaml_snapshot!(
+            func_call, @r###"
+        ---
+        name: count
+        args:
+          - Raw: "*"
+        named_args: []
+        "###);
+
+        // A non-friendly option for #154
+        let ast = ast_of_string(r#"count s'*'"#, Rule::terms)?;
+        let func_call: FuncCall = ast.into_terms()?.try_into()?;
+        assert_yaml_snapshot!(
+            func_call, @r###"
+        ---
+        name: count
+        args:
+          - SString:
+              - String: "*"
         named_args: []
         "###);
 
@@ -1015,7 +1054,7 @@ aggregate by:[title, country] [                  # `by` are the columns to group
     sum     gross_salary,
     average gross_cost,
     sum_gross_cost: sum gross_cost,
-    count: count,
+    count: count *,
 ]
 sort sum_gross_cost
 filter count > 200

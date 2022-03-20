@@ -12,11 +12,12 @@ func sum column = s"SUM({column})"
 func avg column = s"AVG({column})"
 func stddev column = s"STDDEV({column})"
 func average column = s"AVG({column})"
-func count = s"COUNT(*)"
-# TODO: decide whether we implement multiple dispatch, which would be required
-# for this:
+# TODO: Resolve handling `count *`...
 # https://github.com/max-sixty/prql/issues/154
-# func count column = s"COUNT({column})"
+# func count = s"COUNT(*)"
+func count column = s"COUNT({column})"
+# TODO: Possibly make this into `count distinct:true` (or like `distinct:` as an
+# abbreviation of that?)
 func count_distinct column = s"COUNT(DISTINCT `{column}`)"
 
 # Casting functions
