@@ -100,6 +100,26 @@ impl RunFunctions {
                 func_call.args.len()
             ));
         }
+        let named_args = func.named_params.iter().map(|param| {
+            let value = func_call
+                .named_args
+                .iter()
+                // Quite inefficient — we could instead sort each list and join
+                // them. Is there a native way of doing that?
+                .find(|named_arg| named_arg.name == param.name)
+                // Put the value of the named arg if it's there; otherwise use
+                // the default (which is sorted on `param.arg`).
+                .map_or_else(
+                    || (*param.arg).clone(),
+                    |named_arg| *(named_arg.arg).clone(),
+                );
+
+            Assign {
+                lvalue: param.name.clone(),
+                rvalue: Box::new(value),
+            }
+        });
+
         // Make a ReplaceVariables fold which we'll use to replace the variables
         // in the function with their argument values.
         let mut replace_variables = ReplaceVariables::new();
@@ -110,7 +130,11 @@ impl RunFunctions {
                 rvalue: Box::new(arg_call.clone()),
             });
         });
-        // Take a clone of the body and replace the arguments with their values.
+        named_args.for_each(|arg| {
+            replace_variables.add_variables(arg);
+        });
+        // Take a clone of the function call's body, replace the variables with their
+        // values, and return the modified function call.
         Ok(Item::Terms(replace_variables.fold_items(func.body.clone())?).into_unnested())
     }
     fn run_inline_pipeline(&mut self, items: Items) -> Result<Item> {
@@ -193,6 +217,7 @@ mod test {
     use super::*;
     use crate::parse;
     use insta::{assert_display_snapshot, assert_snapshot, assert_yaml_snapshot};
+    use itertools::Itertools;
     use serde_yaml::to_string;
 
     #[test]
@@ -487,6 +512,47 @@ aggregate [a: (sum foo | plus_one)]
 
         Ok(())
     }
+
+    #[test]
+    fn test_named_args() -> Result<()> {
+        let ast = parse(
+            r#"
+func add x to:1  = x + to
+
+from foo_table
+derive [
+  added:         add bar to:3,
+  added_default: add bar
+]
+"#,
+        )?;
+        assert_yaml_snapshot!(
+        materialize(ast)?
+            .into_query()?
+            .items
+            .iter()
+            .filter_map(|x| x.as_pipeline())
+            .collect_vec(), @r###"
+        ---
+        - - From: foo_table
+          - Derive:
+              - lvalue: added
+                rvalue:
+                  Terms:
+                    - Ident: bar
+                    - Raw: +
+                    - Raw: "3"
+              - lvalue: added_default
+                rvalue:
+                  Terms:
+                    - Ident: bar
+                    - Raw: +
+                    - Raw: "1"
+        "###);
+
+        Ok(())
+    }
+
     #[test]
     fn test_materialize() -> Result<()> {
         let pipeline = parse(
