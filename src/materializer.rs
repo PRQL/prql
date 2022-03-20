@@ -523,11 +523,11 @@ func add x to:1  = x + to
 from foo_table
 derive [
   added:         add bar to:3,
-  added_default: add bar 
+  added_default: add bar
 ]
 "#,
         )?;
-        assert_yaml_snapshot!( 
+        assert_yaml_snapshot!(
         materialize(ast)?
             .into_query()?
             .items
