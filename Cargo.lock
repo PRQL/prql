@@ -504,6 +504,7 @@ name = "prql"
 version = "0.0.1"
 dependencies = [
  "anyhow",
+ "atty",
  "clap",
  "clio",
  "color-eyre",

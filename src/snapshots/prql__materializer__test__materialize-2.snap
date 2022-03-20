@@ -1,6 +1,5 @@
 ---
 source: src/materializer.rs
-assertion_line: 442
 expression: materialize(ast)?
 ---
 Query:
@@ -98,29 +97,9 @@ Query:
                   SString:
                     - String: COUNT(*)
         - Sort:
-            - SString:
-                - String: SUM(
-                - Expr:
-                    Terms:
-                      - Terms:
-                          - Ident: salary
-                          - Raw: +
-                          - Ident: payroll_tax
-                      - Raw: +
-                      - Ident: benefits_cost
-                - String: )
+            - Ident: sum_gross_cost
         - Filter:
-            - SString:
-                - String: SUM(
-                - Expr:
-                    Terms:
-                      - Terms:
-                          - Ident: salary
-                          - Raw: +
-                          - Ident: payroll_tax
-                      - Raw: +
-                      - Ident: benefits_cost
-                - String: )
+            - Ident: sum_gross_cost
             - Raw: ">"
             - Raw: "200"
         - Take: 20

@@ -1,9 +1,23 @@
 use insta::assert_snapshot;
-use prql::transpile;
-use prql::Result;
+use prql::*;
 
 #[test]
-fn parse_transpile() -> Result<()> {
+fn parse_simple_string_to_ast() -> Result<()> {
+    assert_eq!(
+        serde_yaml::to_string(&parse("select 1")?)?,
+        r#"---
+Query:
+  items:
+    - Pipeline:
+        - Select:
+            - Raw: "1"
+"#
+    );
+    Ok(())
+}
+
+#[test]
+fn transpile_variables() -> Result<()> {
     assert_snapshot!(transpile("select 1")?, @r###"
     SELECT
       1
@@ -32,16 +46,13 @@ filter count > 200
 take 20
 "#)?, @r###"
     SELECT
-      TOP (20) salary + payroll_tax AS gross_salary,
-      salary + payroll_tax + benefits_cost AS gross_cost,
-      SUM(salary + payroll_tax + benefits_cost) AS sum_gross_cost,
+      TOP (20) SUM(salary + payroll_tax + benefits_cost) AS sum_gross_cost,
       COUNT(*) AS count,
       AVG(salary),
       SUM(salary),
       AVG(salary + payroll_tax),
       SUM(salary + payroll_tax),
-      AVG(salary + payroll_tax + benefits_cost),
-      *
+      AVG(salary + payroll_tax + benefits_cost)
     FROM
       employees
     WHERE
@@ -53,47 +64,112 @@ take 20
     HAVING
       COUNT(*) > 200
     ORDER BY
-      SUM(salary + payroll_tax + benefits_cost)
+      sum_gross_cost
     "###);
 
+    Ok(())
+}
+
+#[test]
+fn transpile_functions() -> Result<()> {
+    // TODO: Compare to canoncial example:
+    // - Window func not yet built.
     let prql = r#"
     func lag_day x = s"lag_day_todo({x})"
     func ret x = x / (lag_day x) - 1 + dividend_return
-    func excess x = (x - interest_rate) / 252
     func if_valid x = s"IF(is_valid_price, {x}, NULL)"
 
     from prices
     derive [
       return_total:      if_valid (ret prices_adj),
-      return_usd:        if_valid (ret prices_usd),
-      return_excess:     excess return_total,
-      return_usd_excess: excess return_usd,
-    ]
-    select [
-      date,
-      sec_id,
-      return_total,
-      return_usd,
-      return_excess,
-      return_usd_excess,
     ]
     "#;
+    let result = transpile(prql)?;
 
-    // TODO: Compare to canoncial example:
-    // - Window func not yet built.
-    // - Inline pipeline not working.
-    // - Function-in-function not working (i.e. lag_day is unreferenced).
-    assert_snapshot!(transpile(prql)?, @r###"
+    assert_snapshot!(result, @r###"
     SELECT
-      date,
-      sec_id,
-      IF(is_valid_price, ret prices_adj, NULL),
-      IF(is_valid_price, ret prices_usd, NULL),
-      IF(is_valid_price, ret prices_adj, NULL) - interest_rate / 252,
-      IF(is_valid_price, ret prices_usd, NULL) - interest_rate / 252
+      IF(
+        is_valid_price,
+        prices_adj / lag_day_todo(prices_adj) - 1 + dividend_return,
+        NULL
+      ) AS return_total,
+      *
     FROM
       prices
     "###);
+
+    // Assert that the nested function has been run.
+    assert!(!result.contains(&"ret prices_adj"));
+    assert!(!result.contains(&"lag_day prices_adj"));
+
+    Ok(())
+}
+
+#[test]
+fn transpile_joins() -> Result<()> {
+    // TODO: issues, as outlined in https://github.com/max-sixty/prql/issues/194
+    // - we need table aliases in joins and froms because joins get real long.
+    //   Also, I think that using only emp_no in second select will not resolve
+    //   to table_0.emp_no.
+    //   - Possibly use `USING` to make these even shorter,
+    //     though there are very small differences between inner & equi joins.
+    //     Though probably we should favor equi-joins.
+
+    let result = transpile(
+        r#"
+    from employees
+join side:left salaries [salaries.emp_no = employees.emp_no]
+aggregate by:[employees.emp_no] [
+  emp_salary: average salary
+]
+join side:left titles [titles.emp_no = emp_no]
+join dept_emp [dept_emp.emp_no = emp_no]
+aggregate by:[dept_emp.dept_no, titles.title] [
+  avg_salary: average emp_salary
+]
+join side:left departments [departments.dept_no = dept_no]
+select [dept_name, title, avg_salary]
+"#,
+    )?;
+
+    assert_snapshot!(result, @r###"
+    WITH table_0 AS (
+      SELECT
+        AVG(salary) AS emp_salary
+      FROM
+        employees
+        LEFT JOIN salaries ON salaries.emp_no = employees.emp_no
+      GROUP BY
+        employees.emp_no
+    ),
+    table_1 AS (
+      SELECT
+        AVG(emp_salary) AS avg_salary
+      FROM
+        table_0
+        LEFT JOIN titles ON titles.emp_no = emp_no
+        JOIN dept_emp ON dept_emp.emp_no = emp_no
+      GROUP BY
+        dept_emp.dept_no,
+        titles.title
+    ),
+    table_2 AS (
+      SELECT
+        dept_name,
+        title,
+        avg_salary
+      FROM
+        table_1
+        LEFT JOIN departments ON departments.dept_no = dept_no
+    )
+    SELECT
+      *
+    FROM
+      table_2
+    "###);
+
+    // #213
+    assert!(!result.to_lowercase().contains(&"avg(avg"));
 
     Ok(())
 }

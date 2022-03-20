@@ -22,15 +22,18 @@ pub enum Item {
     NamedArg(NamedArg),
     Query(Query),
     Pipeline(Pipeline),
+    // Currently this is separate from `Pipeline`, but we could unify them at
+    // some point. We'll need to relax the constraints on `Pipeline` to allow it
+    // to start with a simple expression.
+    InlinePipeline(Items),
     // Similar to holding an Expr, but we strongly type it so the parsing can be more strict.
     List(Vec<ListItem>),
     // Holds "Terms", not including separators like `+`. Unnesting this (i.e.
     // Terms([Item]) -> Item) does not change its semantics. (More detail in
     // `prql.pest`)
     Terms(Items),
-    // Holds any Items. Unnesting _can_ change semantics (though it's less
-    // important than when this was used as a ListItem).
-    Items(Items),
+    // Holds any Items. Unnesting _can_ change semantics.
+    Expr(Items),
     Idents(Idents),
     Function(Function),
     Table(Table),
@@ -72,13 +75,17 @@ pub enum Transformation {
     },
     Sort(Items),
     Take(i64),
-    Join(Items),
+    Join {
+        side: JoinSide,
+        with: Ident,
+        on: Vec<Item>,
+    },
     Func(FuncCall),
 }
 
 impl Transformation {
     /// Returns the name of the transformation.
-    pub fn name(&self) -> &str {
+    pub fn name(&self) -> &'static str {
         match self {
             Transformation::From(_) => "from",
             Transformation::Select(_) => "select",
@@ -87,11 +94,11 @@ impl Transformation {
             Transformation::Aggregate { .. } => "aggregate",
             Transformation::Sort(_) => "sort",
             Transformation::Take(_) => "take",
-            Transformation::Join(_) => "join",
+            Transformation::Join { .. } => "join",
             // Currently this is unused, since we don't encode function calls as
             // anything more than Idents at the moment. We may want to change
             // that in the future.
-            Transformation::Func(FuncCall { name, .. }) => name,
+            Transformation::Func(_) => "func",
         }
     }
 }
@@ -100,7 +107,8 @@ impl Transformation {
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Function {
     pub name: Ident,
-    pub args: Vec<Ident>,
+    pub positional_params: Vec<Ident>,
+    pub named_params: Vec<NamedArg>,
     pub body: Items,
 }
 
@@ -118,6 +126,9 @@ pub struct Table {
     pub pipeline: Pipeline,
 }
 
+// We use `NamedArg` for both the FuncCall and the function parameter. They're
+// very similar, so it's fine; though we could split them out if that became
+// helpful.
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct NamedArg {
     pub name: Ident,
@@ -139,29 +150,22 @@ pub enum SStringItem {
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Filter(pub Items);
 
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+pub enum JoinSide {
+    Inner,
+    Left,
+    Right,
+    Full,
+}
+
 // We've done a lot of iteration on these containers, and it's still very messy.
 // Some of the tradeoff is having an Enum which is flexible, but not falling
 // back to dynamic types, which makes understanding what the parser is doing
 // more difficult.
 impl Item {
-    /// Either provide a Vec with the contents of Items / Terms / Query, or puts a scalar
-    /// into a Vec. This is useful when we either have a scalar or a list, and
-    /// want to only have to handle a single type.
-    pub fn into_inner_items(self) -> Vec<Item> {
-        match self {
-            Item::Terms(items) | Item::Items(items) | Item::Query(Query { items }) => items,
-            _ => vec![self],
-        }
-    }
-    pub fn as_inner_items(&self) -> Result<&Vec<Item>> {
-        if let Item::Terms(items) | Item::Items(items) = self {
-            Ok(items)
-        } else if let Item::Query(Query { items }) = self {
-            Ok(items)
-        } else {
-            Err(anyhow!("Expected container type; got {self:?}"))
-        }
-    }
+    /// Either provide a Vec with the contents of Terms, or puts a scalar into a
+    /// Terms. This is useful when we either have a scalar or a Terms, and want
+    /// to only have to handle a single type.
     pub fn into_inner_terms(self) -> Vec<Item> {
         match self {
             Item::Terms(terms) => terms,
@@ -196,13 +200,13 @@ impl Item {
             _ => Item::List(vec![ListItem(vec![self])]),
         }
     }
-    /// Make a list from a vec of Items
+    /// Make a List from a vec of Items
     pub fn into_list_of_items(items: Items) -> Item {
         Item::List(items.into_iter().map(|item| ListItem(vec![item])).collect())
     }
     /// Often we don't care whether a List or single item is passed; e.g.
     /// `select x` vs `select [x, y]`. This equalizes them both to a vec of
-    /// Items, including unnesting any ListItems.
+    /// Item-s, including unnesting any ListItems.
     pub fn into_items_from_maybe_list(self) -> Items {
         self.coerce_to_list()
             .into_inner_list_items()
@@ -220,10 +224,15 @@ pub trait IntoUnnested {
 impl IntoUnnested for Item {
     /// Transitively unnest the whole tree, traversing even parents with more
     /// than one child. This is more unnesting that `as_scalar' does. Only
-    /// removes `Terms` (not `Items` or `List`), though it does walk all the
+    /// removes `Terms` (not `Expr` or `List`), though it does walk all the
     /// containers.
     fn into_unnested(self) -> Self {
         Unnest.fold_item(self).unwrap()
+    }
+}
+impl IntoUnnested for Vec<Item> {
+    fn into_unnested(self) -> Self {
+        Item::Terms(self).into_unnested().into_inner_terms()
     }
 }
 
@@ -278,18 +287,18 @@ mod test {
     fn test_into_unnested() {
         let atom = Item::Ident("a".to_string());
         let single_term = Item::Terms(vec![atom.clone()]);
-        let single_item = Item::Items(vec![atom.clone()]);
+        let single_item = Item::Expr(vec![atom.clone()]);
 
         // Gets the single item through one level of nesting.
         let item = single_term.clone();
         assert_eq!(item.into_unnested(), atom);
 
-        // Doesn't break through an Items.
+        // Doesn't break through an Expr.
         let item = single_item.clone();
         assert_eq!(&item.clone().into_unnested(), &item);
 
-        // `Terms -> Items -> Terms` goes to `Items -> Terms`
-        let item = Item::Terms(vec![Item::Items(vec![single_term.clone()])]);
+        // `Terms -> Expr -> Terms` goes to `Expr -> Terms`
+        let item = Item::Terms(vec![Item::Expr(vec![single_term.clone()])]);
         assert_eq!(item.into_unnested(), single_item);
 
         // No change on a simple ident.

@@ -14,7 +14,8 @@ use anyhow::{anyhow, Result};
 use itertools::Itertools;
 use sqlformat::{format, FormatOptions, QueryParams};
 use sqlparser::ast::{
-    Expr, ObjectName, OrderByExpr, Select, SelectItem, SetExpr, TableFactor, TableWithJoins, Top,
+    Expr, Join, JoinConstraint, JoinOperator, ObjectName, OrderByExpr, Select, SelectItem, SetExpr,
+    TableFactor, TableWithJoins, Top,
 };
 use std::collections::HashMap;
 
@@ -140,13 +141,13 @@ fn table_factor_of_ident(ident: &Ident) -> TableFactor {
 fn select_columns_of_pipeline(pipeline: &Pipeline) -> Result<Vec<SelectItem>> {
     let mut selects = vec![];
     // Whether we should be returning everything not specified.
-    let mut is_exclusive = false;
+    let mut is_inclusive = true;
 
     for transformation in pipeline {
         match transformation {
             Transformation::Select(select) => {
                 // TODO: confirm it's not `select *`?
-                is_exclusive = true;
+                is_inclusive = false;
                 selects.clear();
                 selects.extend(
                     select
@@ -162,6 +163,8 @@ fn select_columns_of_pipeline(pipeline: &Pipeline) -> Result<Vec<SelectItem>> {
                     .collect::<Result<Vec<SelectItem>>>()?,
             ),
             Transformation::Aggregate { calcs, assigns, .. } => {
+                is_inclusive = false;
+                selects.clear();
                 // This is chaining a) the assigns (such as `sum_salary: sum
                 // salary`), and b) the calcs (such as `sum salary`); and converting
                 // them into SelectItems.
@@ -176,7 +179,7 @@ fn select_columns_of_pipeline(pipeline: &Pipeline) -> Result<Vec<SelectItem>> {
             _ => {}
         }
     }
-    if !is_exclusive {
+    if is_inclusive {
         selects.push(SelectItem::Wildcard);
     }
 
@@ -196,7 +199,7 @@ fn sql_query_of_atomic_pipeline(pipeline: &Pipeline) -> Result<sqlparser::ast::Q
     //   group_pairs(pipeline.iter().map(|t| (t.name, t))); let from =
     //   grouped.get(&TransformationType::From).unwrap().first().unwrap().clone();
 
-    let from = pipeline
+    let mut from = pipeline
         .iter()
         .filter_map(|t| match t {
             Transformation::From(ident) => Some(TableWithJoins {
@@ -205,7 +208,38 @@ fn sql_query_of_atomic_pipeline(pipeline: &Pipeline) -> Result<sqlparser::ast::Q
             }),
             _ => None,
         })
-        .collect();
+        .collect::<Vec<_>>();
+
+    let joins = pipeline
+        .iter()
+        .filter_map(|t| match t {
+            Transformation::Join { side, with, on } => {
+                let constraint = match Item::Terms(on.to_vec()).try_into() {
+                    Ok(c) => JoinConstraint::On(c),
+                    Err(_) => return None, // this should be handled earlier
+                };
+
+                Some(Join {
+                    relation: table_factor_of_ident(with),
+                    join_operator: match *side {
+                        JoinSide::Inner => JoinOperator::Inner(constraint),
+                        JoinSide::Left => JoinOperator::LeftOuter(constraint),
+                        JoinSide::Right => JoinOperator::RightOuter(constraint),
+                        JoinSide::Full => JoinOperator::FullOuter(constraint),
+                    },
+                })
+            }
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    if !joins.is_empty() {
+        if let Some(from) = from.last_mut() {
+            from.joins = joins;
+        } else {
+            anyhow::bail!("Cannot use 'join' without 'from'")
+        }
+    }
+    let from = from;
 
     // Split the pipeline into before & after the aggregate
     let (before, after) = pipeline.split_at(
@@ -296,54 +330,49 @@ fn sql_query_of_atomic_pipeline(pipeline: &Pipeline) -> Result<sqlparser::ast::Q
     })
 }
 
-// Alternatively this could be a `TryInto` impl?
 /// Convert a pipeline into a number of pipelines which can each "fit" into a CTE.
 fn atomic_pipelines_of_pipeline(pipeline: &Pipeline) -> Result<Vec<Pipeline>> {
     // Before starting a new CTE, we can have a pipeline with:
-    // - 1 aggregate.
-    // - 1 take, and then 0 other transformations.
-    // - (I think filters can be combined. After combining them we can
+    // - 1 aggregate,
+    // - 1 take, and then 0 other transformations,
+    // - many filters, which can be combined. After combining them we can
     //   have 1 filter before the aggregate (`WHERE`) and 1 filter after the
-    //   aggregate (`HAVING`).)
+    //   aggregate (`HAVING`),
+    // - many joins, but only before aggregate, filter, take and sort.
     //
     // So we loop through the Pipeline, and cut it into cte-sized pipelines,
     // which we'll then compose together.
 
-    let mut ctes = vec![];
-
-    // TODO: this used to work but we get a borrow checker error when using `str`.
-    // let mut counts: HashMap<&str, u32> = HashMap::new();
-    let mut counts: HashMap<String, u32> = HashMap::new();
-
-    let mut current_cte: Pipeline = vec![];
-
-    // This seems inelegant! I'm sure there's a better way to do this, though
-    // note the constraints from above.
-    for transformation in pipeline {
-        let transformation = transformation.to_owned();
-        if transformation.name() == "aggregate" && counts.get("aggregate") == Some(&1) {
-            // push_current_cte()
-            // We have a new CTE
-            ctes.push(current_cte);
-            current_cte = vec![];
+    let mut counts: HashMap<&str, u32> = HashMap::new();
+    let mut splits = vec![0];
+    for (i, transformation) in pipeline.iter().enumerate() {
+        if transformation.name() == "join"
+            && (counts.get("aggregate").is_some()
+                || counts.get("filter").is_some()
+                || counts.get("sort").is_some())
+        {
+            splits.push(i);
             counts.clear();
         }
 
-        // As above re `.to_owned`.
-        *counts.entry(transformation.name().to_owned()).or_insert(0) += 1;
-        current_cte.push(transformation.to_owned());
+        if transformation.name() == "aggregate" && counts.get("aggregate") == Some(&1) {
+            splits.push(i);
+            counts.clear();
+        }
+
+        *counts.entry(transformation.name()).or_insert(0) += 1;
 
         if counts.get("take") == Some(&1) {
-            // We have a new CTE
-            ctes.push(current_cte);
-            current_cte = vec![];
+            splits.push(i + 1);
             counts.clear();
         }
     }
-    if !current_cte.is_empty() {
-        ctes.push(current_cte);
-    }
 
+    splits.push(pipeline.len());
+    let ctes = (0..splits.len() - 1)
+        .map(|i| Vec::from(&pipeline[splits[i]..splits[i + 1]]))
+        .filter(|x| !x.is_empty())
+        .collect();
     Ok(ctes)
 }
 
@@ -431,8 +460,8 @@ impl TryFrom<Item> for Expr {
             // it, and put spaces between them. It's a bit hacky — we could
             // convert each term to a SQL AST item, but it works for the moment.
             //
-            // (one question is whether we need to surround `Items` with parentheses?)
-            Item::Terms(items) | Item::Items(items) => {
+            // (one question is whether we need to surround `Expr` with parentheses?)
+            Item::Terms(items) | Item::Expr(items) => {
                 Ok(Expr::Identifier(sqlparser::ast::Ident::new(
                     items
                         .into_iter()
@@ -464,9 +493,6 @@ impl TryFrom<Item> for Expr {
                     .join("");
                 Item::Ident(string).try_into()
             }
-            // Item::Items(_) => Err(anyhow!(
-            //     "Not yet implemented for `Items`; (something we probably need to do, see notes above); {item:?}"
-            // )),
             _ => Err(anyhow!("Can't convert to Expr at the moment; {item:?}")),
         }
     }
@@ -679,8 +705,7 @@ Query:
         assert_display_snapshot!(sql,
             @r###"
         SELECT
-          TOP (20) AVG(salary),
-          *
+          TOP (20) AVG(salary)
         FROM
           employees
         WHERE
@@ -722,8 +747,7 @@ Query:
         assert_snapshot!(sql, @r###"
         SELECT
           salary AS sum_salary,
-          count(salary),
-          *
+          count(salary)
         FROM
           employees
         HAVING
@@ -754,8 +778,7 @@ Query:
             @r###"
         SELECT
           count(salary),
-          sum(salary),
-          *
+          sum(salary)
         FROM
           employees
         "###
@@ -795,7 +818,8 @@ take 20
     #[test]
     fn test_nonatomic() -> Result<()> {
         // A take, then two aggregates
-        let yaml: &str = r###"
+        let query: Item = from_str(
+            r###"
 Query:
   items:
     - Pipeline:
@@ -825,9 +849,9 @@ Query:
           assigns: []
       - Sort:
           - Ident: sum_gross_cost
-        "###;
+        "###,
+        )?;
 
-        let query: Item = from_str(yaml)?;
         assert_display_snapshot!((translate(&query)?), @r###"
         WITH table_0 AS (
           SELECT
@@ -837,8 +861,7 @@ Query:
         ),
         table_1 AS (
           SELECT
-            average salary,
-            *
+            average salary
           FROM
             table_0
           WHERE
@@ -849,8 +872,7 @@ Query:
         ),
         table_2 AS (
           SELECT
-            average salary,
-            *
+            average salary
           FROM
             table_1
           GROUP BY

@@ -24,8 +24,8 @@ where
             // Can't get the debug of the iterator because it's already
             // consumed; is there a way around this? I guess we could show
             // the items after the second, which is kinda weird.
-            Some(Position::First(_)) => Err(anyhow!("Expected only one element, but found more",)),
-            None => Err(anyhow!("Expected only one element, but found none",)),
+            Some(Position::First(_)) => Err(anyhow!("Expected only one element, but found more.",)),
+            None => Err(anyhow!("Expected only one element, but found none.",)),
             _ => unreachable!(),
         }
     }
@@ -46,4 +46,10 @@ where
             Err(anyhow!("Expected 1 item, got {}; {:?}", self.len(), self))
         }
     }
+}
+
+#[cfg(test)]
+pub fn diff(a: &str, b: &str) -> String {
+    use similar::TextDiff;
+    TextDiff::from_lines(a, b).unified_diff().to_string()
 }

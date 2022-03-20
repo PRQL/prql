@@ -77,6 +77,9 @@ pub trait AstFold {
     fn fold_sstring_item(&mut self, sstring_item: SStringItem) -> Result<SStringItem> {
         fold_sstring_item(self, sstring_item)
     }
+    fn fold_inline_pipeline(&mut self, inline_pipeline: Items) -> Result<Items> {
+        fold_inline_pipeline(self, inline_pipeline)
+    }
 }
 pub fn fold_terms<T: ?Sized + AstFold>(fold: &mut T, terms: Items) -> Result<Items> {
     terms.into_iter().map(|item| fold.fold_item(item)).collect()
@@ -106,7 +109,11 @@ pub fn fold_transformation<T: ?Sized + AstFold>(
             Ok(Transformation::Filter(Filter(fold.fold_items(items)?)))
         }
         Transformation::Sort(items) => Ok(Transformation::Sort(fold.fold_items(items)?)),
-        Transformation::Join(items) => Ok(Transformation::Join(fold.fold_items(items)?)),
+        Transformation::Join { side, with, on } => Ok(Transformation::Join {
+            side,
+            with,
+            on: fold.fold_items(on)?,
+        }),
         Transformation::Select(items) => Ok(Transformation::Select(fold.fold_items(items)?)),
         Transformation::Aggregate { by, calcs, assigns } => Ok(Transformation::Aggregate {
             by: fold.fold_items(by)?,
@@ -143,7 +150,7 @@ pub fn fold_item<T: ?Sized + AstFold>(fold: &mut T, item: Item) -> Result<Item> 
     Ok(match item {
         Item::Ident(ident) => Item::Ident(fold.fold_ident(ident)?),
         Item::Terms(terms) => Item::Terms(fold.fold_terms(terms)?),
-        Item::Items(items) => Item::Items(fold.fold_items(items)?),
+        Item::Expr(items) => Item::Expr(fold.fold_items(items)?),
         Item::Idents(idents) => Item::Idents(
             idents
                 .into_iter()
@@ -167,6 +174,7 @@ pub fn fold_item<T: ?Sized + AstFold>(fold: &mut T, item: Item) -> Result<Item> 
         Item::Query(Query { items }) => Item::Query(Query {
             items: fold.fold_items(items)?,
         }),
+        Item::InlinePipeline(items) => Item::InlinePipeline(fold.fold_inline_pipeline(items)?),
         Item::Pipeline(transformations) => Item::Pipeline(
             transformations
                 .into_iter()
@@ -195,10 +203,15 @@ pub fn fold_item<T: ?Sized + AstFold>(fold: &mut T, item: Item) -> Result<Item> 
 pub fn fold_function<T: ?Sized + AstFold>(fold: &mut T, function: Function) -> Result<Function> {
     Ok(Function {
         name: fold.fold_ident(function.name)?,
-        args: function
-            .args
+        positional_params: function
+            .positional_params
             .into_iter()
-            .map(|i| fold.fold_ident(i))
+            .map(|ident| fold.fold_ident(ident))
+            .try_collect()?,
+        named_params: function
+            .named_params
+            .into_iter()
+            .map(|named_param| fold.fold_named_arg(named_param))
             .try_collect()?,
         body: fold.fold_items(function.body)?,
     })
@@ -208,4 +221,10 @@ pub fn fold_assign<T: ?Sized + AstFold>(fold: &mut T, assign: Assign) -> Result<
         lvalue: fold.fold_ident(assign.lvalue)?,
         rvalue: Box::new(fold.fold_item(*assign.rvalue)?),
     })
+}
+pub fn fold_inline_pipeline<T: ?Sized + AstFold>(
+    fold: &mut T,
+    inline_pipeline: Items,
+) -> Result<Items> {
+    fold.fold_items(inline_pipeline)
 }

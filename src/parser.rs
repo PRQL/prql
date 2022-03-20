@@ -52,7 +52,7 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Items> {
                         // but we want to confirm it's an Expr, it would be a
                         // difficult mistake to catch otherwise.
                         .map(|expr| match expr {
-                            Item::Items(_) => ListItem(expr.into_inner_items()),
+                            Item::Expr(_) => ListItem(expr.into_expr().unwrap()),
                             _ => unreachable!(),
                         })
                         .collect(),
@@ -65,7 +65,7 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Items> {
                 // List because those are often meaningful — e.g. a List needs a
                 // number of Expr, so that `[a, b]` is different from `[a b]`.
                 Rule::terms => Item::Terms(ast_of_parse_tree(pair.into_inner())?).into_unnested(),
-                Rule::expr => Item::Items(ast_of_parse_tree(pair.into_inner())?),
+                Rule::expr => Item::Expr(ast_of_parse_tree(pair.into_inner())?),
                 Rule::named_arg => {
                     let parsed: [Item; 2] = ast_of_parse_tree(pair.into_inner())?
                         .try_into()
@@ -82,7 +82,7 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Items> {
                         .map_err(|e| anyhow!("Expected two items; {e:?}"))?;
                     // Split the pair into its first value, which is always an Ident,
                     // and its other values.
-                    if let [lvalue, Item::Items(rvalue)] = parsed {
+                    if let [lvalue, Item::Expr(rvalue)] = parsed {
                         Ok(Item::Assign(Assign {
                             lvalue: lvalue.into_ident()?,
                             rvalue: Box::new(Item::Terms(rvalue).into_unnested()),
@@ -100,22 +100,38 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Items> {
                 }
                 Rule::function => {
                     let parsed = ast_of_parse_tree(pair.into_inner())?;
-                    if let (Item::Idents(name_and_params), body) = parsed
+                    if let (Item::Expr(name_and_params), body) = parsed
                         .split_first()
                         .ok_or(anyhow!("Expected at least one item"))?
                     {
-                        let (name, args) = name_and_params
+                        let (name, params) = name_and_params
                             .split_first()
-                            .ok_or(anyhow!("Expected at least one item"))?;
+                            .ok_or(anyhow!("Function requires a name."))?;
+                        // We could use `.partition` for a single pass...
+                        let positional_params = params
+                            .iter()
+                            .filter_map(|x| x.as_ident())
+                            .cloned()
+                            .collect();
+                        let named_params = params
+                            .iter()
+                            .filter_map(|x| x.as_named_arg())
+                            .cloned()
+                            .collect();
                         Item::Function(Function {
-                            name: name.to_owned(),
-                            args: args.to_owned(),
+                            name: name
+                                .as_ident()
+                                .ok_or(anyhow!("Function name needs to be a word; got {name:?}"))?
+                                .to_owned(),
+                            positional_params,
+                            named_params,
                             body: body.to_owned(),
                         })
                     } else {
                         unreachable!("Expected Function, got {parsed:?}")
                     }
                 }
+                Rule::function_params => Item::Expr(ast_of_parse_tree(pair.into_inner())?),
                 Rule::table => {
                     let parsed = ast_of_parse_tree(pair.into_inner())?;
                     let [name, pipeline]: [Item; 2] = parsed
@@ -155,6 +171,9 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Items> {
                         })
                         .collect()
                 }),
+                Rule::inline_pipeline => {
+                    Item::InlinePipeline(ast_of_parse_tree(pair.into_inner())?)
+                }
                 Rule::operator | Rule::number => Item::Raw(pair.as_str().to_owned()),
                 _ => (Item::Todo(pair.as_str().to_owned())),
             })
@@ -162,40 +181,28 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Items> {
         .collect()
 }
 
-// We put this outside the main ast_of_parse_tree function because we also use it to ast_of_parse_tree
-// function calls.
-// (I'm not sure whether we should be using it for both — on the one hand,
-// they're fairly similar `sum salary` is a standard function call. But on the
-// other, we were planning to allow `salary | sum`, which doesn't work. We would
-// need to parse the whole of `sum salary` as a pipeline, which _might_ then work.)
-impl TryFrom<Vec<Item>> for Transformation {
+// Currently we don't parse into FuncCalls until after materializer; we leave
+// them as Terms. Possibly we should do that earlier. (If we don't, we can move
+// this into Materializer.)
+impl TryFrom<Vec<Item>> for FuncCall {
     type Error = anyhow::Error;
     fn try_from(items: Vec<Item>) -> Result<Self> {
         let (name_item, items) = items
             .split_first()
             .ok_or(anyhow!("Expected at least one item"))?;
-        let name = name_item.as_ident().ok_or(anyhow!("Expected Ident"))?;
+
+        let name = name_item
+            .as_ident()
+            .ok_or(anyhow!("Function name must be Ident; got {name_item:?}"))?;
+
         // TODO: account for a name-only transformation, with no items.
-        let (named_arg_items, args): (Vec<Item>, Vec<Item>) = items
-            .into_only()?
-            // Take out of the Items
-            .clone()
-            .into_items()
-            // Unnest the Terms.
-            // We need this because the Items might have a Terms immediately
-            // below it, and so we've just added another level of nesting. But
-            // it's quite messy and this sort of "dynamic" behavior has been the
-            // cause of many long debugging sessions (it's better than it used
-            // to be!).
-            .map(Item::Terms)?
-            .into_unnested()
-            .into_inner_terms()
-            // Partition out NamedArgs
-            .into_iter()
+        let (named_arg_items, args): (Vec<Item>, Vec<Item>) = items // Partition out NamedArgs
+            .iter()
+            .cloned()
             .partition(|x| matches!(x, Item::NamedArg(_)));
 
         let named_args: Vec<NamedArg> = named_arg_items
-            .iter()
+            .into_iter()
             .map(|x| {
                 x.as_named_arg()
                     .ok_or(anyhow!("Expected NamedArg"))
@@ -203,14 +210,41 @@ impl TryFrom<Vec<Item>> for Transformation {
             })
             .try_collect()?;
 
-        match name.as_str() {
-            "from" => Ok(Transformation::From(args.into_only()?.into_ident()?)),
-            "select" => Ok(Transformation::Select(
-                args.into_only()?.into_items_from_maybe_list(),
+        Ok(FuncCall {
+            name: name.to_owned(),
+            args,
+            named_args,
+        })
+    }
+}
+
+// We put this outside the main ast_of_parse_tree function to reduce the size of
+// that function.
+impl TryFrom<Vec<Item>> for Transformation {
+    type Error = anyhow::Error;
+    fn try_from(items: Vec<Item>) -> Result<Self> {
+        let (name, items) = items
+            .split_first()
+            .ok_or(anyhow!("Expected at least one item"))?;
+
+        // Unnest the Terms. This is required because it can receive a single
+        // terms of `[a, b] by:c` or multiple terms of `a`, `+` & `b` from `a +
+        // b`, or even just a single `1`, and we want those to all be at the
+        // same level. (this could possibly be improved)
+        let terms = items.to_vec().into_unnested();
+
+        let func_call: FuncCall = [vec![name.clone()], terms].concat().try_into()?;
+
+        match func_call.name.as_str() {
+            "from" => Ok(Transformation::From(
+                func_call.args.into_only()?.into_ident()?,
             )),
-            "filter" => Ok(Transformation::Filter(Filter(args))),
+            "select" => Ok(Transformation::Select(
+                func_call.args.into_only()?.into_items_from_maybe_list(),
+            )),
+            "filter" => Ok(Transformation::Filter(Filter(func_call.args))),
             "derive" => {
-                let assigns = (args)
+                let assigns = (func_call.args)
                     .into_only()
                     .context("Expected at least one argument")?
                     .into_items_from_maybe_list()
@@ -220,7 +254,7 @@ impl TryFrom<Vec<Item>> for Transformation {
                 Ok(Transformation::Derive(assigns))
             }
             "aggregate" => {
-                let arg = args.into_only()?;
+                let arg = func_call.args.into_only()?;
                 // TODO: redo, generalizing with checks on custom functions.
                 // Ideally we'd be able to add to the error message with context
                 // without falling afowl of the borrow rules.
@@ -229,7 +263,7 @@ impl TryFrom<Vec<Item>> for Transformation {
                 //     args
                 // ))
                 // })?;
-                let by = match &named_args[..] {
+                let by = match &func_call.named_args[..] {
                     [NamedArg { name, arg }] => {
                         if name != "by" {
                             return Err(anyhow!(
@@ -252,10 +286,8 @@ impl TryFrom<Vec<Item>> for Transformation {
                 //   average gross_cost
                 //   sum_gross_cost: sum gross_cost
 
-                let (assigns, calcs): (Vec<Item>, Vec<Item>) = ops
-                    .iter()
-                    .cloned()
-                    .partition(|x| matches!(x, Item::Assign(_)));
+                let (assigns, calcs): (Vec<Item>, Vec<Item>) =
+                    ops.into_iter().partition(|x| matches!(x, Item::Assign(_)));
 
                 Ok(Transformation::Aggregate {
                     by,
@@ -266,18 +298,46 @@ impl TryFrom<Vec<Item>> for Transformation {
                         .try_collect()?,
                 })
             }
-            "sort" => Ok(Transformation::Sort(args)),
+            "sort" => Ok(Transformation::Sort(func_call.args)),
             "take" => {
                 // TODO: coerce to number
-                args.into_only()
+                func_call
+                    .args
+                    .into_only()
                     .map(|n| Ok(Transformation::Take(n.into_raw()?.parse()?)))?
             }
-            "join" => Ok(Transformation::Join(args)),
-            _ => Ok(Transformation::Func(FuncCall {
-                name: name.to_owned(),
-                args,
-                named_args,
-            })),
+            "join" => {
+                let side = func_call.named_args.iter().find(|a| a.name == "side");
+                let side = if let Some(side) = side {
+                    match side.arg.to_owned().into_ident()?.as_str() {
+                        "inner" => JoinSide::Inner,
+                        "left" => JoinSide::Left,
+                        "right" => JoinSide::Right,
+                        "full" => JoinSide::Full,
+                        unknown => anyhow::bail!("unknown join side: {}", unknown),
+                    }
+                } else {
+                    JoinSide::Inner
+                };
+
+                let with = func_call
+                    .args
+                    .get(0)
+                    .cloned()
+                    .context("join requires a table name to join with")?
+                    .into_ident()?;
+
+                let on = func_call
+                    .args
+                    .get(1)
+                    .map(|x| x.to_owned().into_items_from_maybe_list())
+                    .unwrap_or_else(Vec::new);
+
+                Ok(Transformation::Join { side, with, on })
+            }
+            _ => Err(anyhow!(
+                "Expected a known transformation; got {func_call:?}"
+            )),
         }
     }
 }
@@ -285,10 +345,9 @@ impl TryFrom<Vec<Item>> for Transformation {
 #[cfg(test)]
 mod test {
 
-    use core::panic;
-
     use super::*;
     use insta::{assert_debug_snapshot, assert_yaml_snapshot};
+    use serde_yaml::from_str;
 
     #[test]
     fn test_parse_take() -> Result<()> {
@@ -467,7 +526,7 @@ mod test {
         ---
         Transformation:
           Filter:
-            - Items:
+            - Expr:
                 - Terms:
                     - Ident: upper
                     - Ident: country
@@ -486,23 +545,6 @@ mod test {
             - Raw: "="
             - String: USA
         "###);
-        Ok(())
-    }
-
-    #[test]
-    fn test_parse_transformation() -> Result<()> {
-        assert_yaml_snapshot!(
-            ast_of_string(r#"count salary"#, Rule::transformation)?
-        , @r###"
-        ---
-        Transformation:
-          Func:
-            name: count
-            args:
-              - Ident: salary
-            named_args: []
-        "###);
-
         Ok(())
     }
 
@@ -603,7 +645,7 @@ mod test {
             ast_of_string(r#"country = "USA""#, Rule::expr)?
         , @r###"
         ---
-        Items:
+        Expr:
           - Ident: country
           - Raw: "="
           - String: USA
@@ -638,17 +680,17 @@ mod test {
             )?,
             @r###"
         ---
-        Items:
+        Expr:
           - Assign:
               lvalue: gross_salary
               rvalue:
                 Terms:
-                  - Items:
+                  - Expr:
                       - Ident: salary
                       - Raw: +
                       - Ident: payroll_tax
                   - Raw: "*"
-                  - Items:
+                  - Expr:
                       - Raw: "1"
                       - Raw: +
                       - Ident: tax_rate
@@ -699,8 +741,9 @@ take 20
         ---
         Function:
           name: identity
-          args:
+          positional_params:
             - x
+          named_params: []
           body:
             - Ident: x
         "###);
@@ -711,10 +754,11 @@ take 20
         ---
         Function:
           name: plus_one
-          args:
+          positional_params:
             - x
+          named_params: []
           body:
-            - Items:
+            - Expr:
                 - Ident: x
                 - Raw: +
                 - Raw: "1"
@@ -726,8 +770,9 @@ take 20
         ---
         Function:
           name: plus_one
-          args:
+          positional_params:
             - x
+          named_params: []
           body:
             - Ident: x
             - Raw: +
@@ -742,17 +787,18 @@ take 20
         ---
         Function:
           name: foo
-          args:
+          positional_params:
             - x
+          named_params: []
           body:
             - Terms:
-                - Items:
+                - Expr:
                     - Terms:
                         - Ident: foo
                         - Ident: bar
                     - Raw: +
                     - Raw: "1"
-                - Items:
+                - Expr:
                     - Ident: plax
             - Raw: "-"
             - Ident: baz
@@ -762,7 +808,8 @@ take 20
         ---
         Function:
           name: return_constant
-          args: []
+          positional_params: []
+          named_params: []
           body:
             - Raw: "42"
         "###);
@@ -770,8 +817,9 @@ take 20
         ---
         Function:
           name: count
-          args:
+          positional_params:
             - X
+          named_params: []
           body:
             - SString:
                 - String: SUM(
@@ -796,6 +844,46 @@ take 20
                 .unwrap()
             ));
             */
+
+        assert_yaml_snapshot!(ast_of_string(r#"func add x to:a = x + to"#, Rule::function)?, @r###"
+        ---
+        Function:
+          name: add
+          positional_params:
+            - x
+          named_params:
+            - name: to
+              arg:
+                Ident: a
+          body:
+            - Ident: x
+            - Raw: +
+            - Ident: to
+        "###);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_parse_func_call() -> Result<()> {
+        let ast: Item = from_str(
+            r#"
+Terms:
+  - Ident: foo
+  - Ident: bar
+"#,
+        )?;
+
+        dbg!(&ast);
+        let func_call: FuncCall = dbg!(ast.into_terms()?).try_into()?;
+        assert_yaml_snapshot!(func_call, @r###"
+        ---
+        name: foo
+        args:
+          - Ident: bar
+        named_args: []
+        "###);
+
         Ok(())
     }
 
@@ -867,6 +955,44 @@ take 20
             Rule::transformation
         )?);
         assert_debug_snapshot!(parse_tree_of_str("1  + 2", Rule::expr)?);
+        Ok(())
+    }
+
+    #[test]
+    fn test_inline_pipeline() -> Result<()> {
+        assert_debug_snapshot!(parse_tree_of_str(
+            "(salary | percentile 50)",
+            Rule::inline_pipeline
+        )?);
+        assert_yaml_snapshot!(ast_of_string("(salary | percentile 50)", Rule::inline_pipeline)?, @r###"
+        ---
+        InlinePipeline:
+          - Expr:
+              - Ident: salary
+          - Expr:
+              - Terms:
+                  - Ident: percentile
+                  - Raw: "50"
+        "###);
+        assert_yaml_snapshot!(ast_of_string("func median x = (x | percentile 50)", Rule::query)?, @r###"
+        ---
+        Query:
+          items:
+            - Function:
+                name: median
+                positional_params:
+                  - x
+                named_params: []
+                body:
+                  - InlinePipeline:
+                      - Expr:
+                          - Ident: x
+                      - Expr:
+                          - Terms:
+                              - Ident: percentile
+                              - Raw: "50"
+        "###);
+
         Ok(())
     }
 
