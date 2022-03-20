@@ -68,7 +68,9 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Items> {
                 Rule::expr => {
                     let expr = Item::Expr(ast_of_parse_tree(pair.into_inner())?).into_unnested();
                     // Uber-hack for
-                    // https://github.com/max-sixty/prql/issues/154
+                    // https://github.com/max-sixty/prql/issues/154, by
+                    // specifically putting `count *` into a `Terms`, allowing
+                    // it to be treated as a function call.
                     // TODO: Resolve!
                     if expr.as_expr().unwrap().first() == Some(&Item::Ident("count".to_string()))
                         && expr
