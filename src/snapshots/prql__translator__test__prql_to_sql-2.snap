@@ -1,6 +1,5 @@
 ---
 source: src/translator.rs
-assertion_line: 789
 expression: sql
 ---
 SELECT
@@ -22,4 +21,4 @@ GROUP BY
 HAVING
   COUNT(*) > 200
 ORDER BY
-  SUM(salary + payroll_tax + benefits_cost)
+  sum_gross_cost

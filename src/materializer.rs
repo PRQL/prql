@@ -64,6 +64,19 @@ impl AstFold for ReplaceVariables {
         }
         .into_unnested())
     }
+    // Once we get to an Aggregate, we want to run the replacement, but then we
+    // want to remove the variable, because SQL can support it from then on. If
+    // we don't do this, we get errors like `AVG(AVG(x))` in later CTEs; see #213.
+    fn fold_transformation(&mut self, transformation: Transformation) -> Result<Transformation> {
+        let out = fold_transformation(self, transformation.clone());
+
+        if let Transformation::Aggregate { assigns, .. } = transformation {
+            assigns.iter().for_each(|assign| {
+                self.variables.remove(&assign.lvalue);
+            });
+        }
+        out
+    }
 }
 
 #[derive(Debug)]
@@ -646,6 +659,57 @@ take 20
     "#,
         )?;
         assert_yaml_snapshot!(materialize(ast)?);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_variable_after_aggregate() -> Result<()> {
+        let ast = parse(
+            r#"
+from employees
+aggregate by:[emp_no] [
+  emp_salary: average salary
+]
+aggregate by:[title] [
+  avg_salary: average emp_salary
+]
+"#,
+        )?;
+
+        let materialized = materialize(ast)?;
+
+        assert_yaml_snapshot!(materialized, @r###"
+        ---
+        Query:
+          items:
+            - Pipeline:
+                - From: employees
+                - Aggregate:
+                    by:
+                      - Ident: emp_no
+                    calcs: []
+                    assigns:
+                      - lvalue: emp_salary
+                        rvalue:
+                          SString:
+                            - String: AVG(
+                            - Expr:
+                                Ident: salary
+                            - String: )
+                - Aggregate:
+                    by:
+                      - Ident: title
+                    calcs: []
+                    assigns:
+                      - lvalue: avg_salary
+                        rvalue:
+                          SString:
+                            - String: AVG(
+                            - Expr:
+                                Ident: emp_salary
+                            - String: )
+        "###);
 
         Ok(())
     }
