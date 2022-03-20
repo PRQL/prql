@@ -3,19 +3,20 @@ description = "PRQL is a modern language for transforming data — a simpler and
 edition = "2021"
 license = "Apache-2.0"
 name = "prql"
-version = "0.0.1"
 rust-version = "1.58.0"
+version = "0.0.1"
 
 [dependencies]
 anyhow = "^1.0"
 clio = "^0.2"
 color-eyre = "^0.6"
+atty = {version = "^0.2", optional = true}
 enum-as-inner = "^0.4.0"
 itertools = "^0.10"
 pest = "^2.1"
 pest_derive = "^2.1"
-sqlformat = "^0.1.8"
 serde_yaml = "^0.8"
+sqlformat = "^0.1.8"
 
 [dependencies.clap]
 features = ["derive"]
