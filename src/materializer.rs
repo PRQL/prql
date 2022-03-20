@@ -515,7 +515,6 @@ aggregate [a: (sum foo | plus_one)]
 
     #[test]
     fn test_named_args() -> Result<()> {
-        // Test it'll run the `sum foo` function first.
         let ast = parse(
             r#"
 func add x to:1  = x + to
