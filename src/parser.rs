@@ -144,11 +144,11 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Items> {
                 }
                 Rule::ident => Item::Ident(pair.as_str().to_string()),
                 // Pull out the string itself, which doesn't have the quotes
-                Rule::string_literal | Rule::single_quoted_string_literal => ast_of_parse_tree(pair.clone().into_inner())?
+                Rule::string_literal => ast_of_parse_tree(pair.clone().into_inner())?
                     .into_iter()
                     .next()
                     .ok_or_else(|| anyhow!("Failed reading string {pair:?}"))?,
-                Rule::string | Rule::single_quoted_string => Item::String(pair.as_str().to_string()),
+                Rule::string => Item::String(pair.as_str().to_string()),
                 Rule::s_string => Item::SString(
                     pair.into_inner()
                         // TODO: change unwraps to results (requires some more
@@ -381,46 +381,17 @@ mod test {
             },
         ]
         "###);
-        assert_yaml_snapshot!(ast_of_string(r#"" U S A ""#, Rule::string_literal)?, @r###"
+        let double_quoted_ast = ast_of_string(r#"" U S A ""#, Rule::string_literal)?;
+        assert_yaml_snapshot!(double_quoted_ast, @r###"
         ---
         String: " U S A "
         "###);
+
+        let single_quoted_ast = ast_of_string(r#"' U S A '"#, Rule::string_literal)?;
+        assert_eq!(single_quoted_ast, double_quoted_ast);
+
         Ok(())
     }
-
-
-    #[test]
-    fn test_parse_single_quoted_string() -> Result<()> {
-        assert_debug_snapshot!(parse_tree_of_str(r#"' U S A '"#, Rule::single_quoted_string_literal)?, @r###"
-        [
-            Pair {
-                rule: single_quoted_string_literal,
-                span: Span {
-                    str: "' U S A '",
-                    start: 0,
-                    end: 9,
-                },
-                inner: [
-                    Pair {
-                        rule: single_quoted_string,
-                        span: Span {
-                            str: " U S A ",
-                            start: 1,
-                            end: 8,
-                        },
-                        inner: [],
-                    },
-                ],
-            },
-        ]
-        "###);
-        assert_yaml_snapshot!(ast_of_string(r#"' U S A '"#, Rule::single_quoted_string_literal)?, @r###"
-        ---
-        String: " U S A "
-        "###);
-        Ok(())
-    }
-
 
     #[test]
     fn test_parse_s_string() -> Result<()> {
