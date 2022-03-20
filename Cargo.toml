@@ -8,9 +8,9 @@ version = "0.0.1"
 
 [dependencies]
 anyhow = "^1.0"
+atty = "^0.2"
 clio = "^0.2"
 color-eyre = "^0.6"
-atty = {version = "^0.2", optional = true}
 enum-as-inner = "^0.4.0"
 itertools = "^0.10"
 pest = "^2.1"
