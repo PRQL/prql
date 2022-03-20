@@ -30,11 +30,23 @@ pub struct CompileCommand {
     format: Dialect,
 }
 
+fn is_stdin(input: &Input) -> bool {
+    input.path() == "-"
+}
+
 impl Cli {
     pub fn execute(&mut self) -> Result<(), Error> {
         match self {
             Cli::Compile(command) => {
                 let mut source = String::new();
+
+                // Don't wait without a prompt when running `prql compile` —
+                // it's confusing whether it's waiting for input or not. This
+                // offers the prompt.
+                if is_stdin(&command.input) && atty::is(atty::Stream::Stdin) {
+                    println!("Enter PRQL, then ctrl-d:");
+                    println!();
+                }
                 command.input.read_to_string(&mut source)?;
 
                 match command.format {
