@@ -390,6 +390,20 @@ mod test {
         let single_quoted_ast = ast_of_string(r#"' U S A '"#, Rule::string_literal)?;
         assert_eq!(single_quoted_ast, double_quoted_ast);
 
+        // Single quotes within double quotes should produce a string containing
+        // the single quotes (and vice versa).
+        assert_yaml_snapshot!( ast_of_string(r#""' U S A '""#, Rule::string_literal)? , @r###"
+        ---
+        String: "' U S A '"
+        "###);
+        assert_yaml_snapshot!( ast_of_string(r#"'" U S A "'"#, Rule::string_literal)? , @r###"
+        ---
+        String: "\" U S A \""
+        "###);
+
+        assert!(ast_of_string(r#"" U S A"#, Rule::string_literal).is_err());
+        assert!(ast_of_string(r#"" U S A '"#, Rule::string_literal).is_err());
+
         Ok(())
     }
 
