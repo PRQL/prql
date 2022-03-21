@@ -193,8 +193,10 @@ pub fn fold_item<T: ?Sized + AstFold>(fold: &mut T, item: Item) -> Result<Item> 
                 .try_collect()?,
         ),
         Item::Function(func) => Item::Function(fold.fold_function(func)?),
-        // TODO: implement for these
-        Item::Table(_) => item,
+        Item::Table(table) => Item::Table(Table {
+            name: table.name,
+            pipeline: fold.fold_pipeline(table.pipeline)?,
+        }),
         // None of these capture variables, so we don't need to replace
         // them.
         Item::String(_) | Item::Raw(_) | Item::Todo(_) => item,
