@@ -26,11 +26,9 @@ pub fn compile(prql: &str) -> Result<String> {
 
 /// Exposes some library internals.
 ///
-/// You're unlikely to want to work with these objects but they
-/// are exposed for documentation primarily.
-///
-/// There may be issues with using the exported items without items they rely on
-/// — feel free to request associated items be made public if required.
+/// They are primarily exposed for documentation. There may be issues with using
+/// the exported items without items they rely on — feel free to request
+/// associated items be made public if required.
 pub mod internals {
     pub use crate::ast::Item;
     pub use crate::ast_fold::AstFold;
