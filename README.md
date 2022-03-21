@@ -28,7 +28,7 @@ PRQL just hit 0.1! This means:
 - It's not friendly at the moment:
   - It runs from a CLI only, taking input from a file or stdin and writing to a
     file or stdout.
-  - Error messages are (really) bad.
+  - Error messages are bad.
   - For an interactive experience, combine with a tool like
     [Up](https://github.com/akavel/up).
 - The documentation is lacking.
@@ -59,7 +59,7 @@ WHERE
   has_dog
 ```
 
-More details in `prql compile --help`.
+More details in `prql compile --help`. See below for better examples of PRQL.
 
 ### Python implementation
 
@@ -234,12 +234,13 @@ it's at a pre-alpha stage, it has some immutable principles:
 ## Roadmap
 
 I'm excited and inspired by the level of enthusiasm behind the project, both
-from individual contributors and the broader community users who want more than
-SQL. We currently have an initial version for the [intrepid](#current-status).
+from individual contributors and the broader community of users who are
+unsatisfied with SQL. We currently have an initial working version for the
+intrepid early user.
 
 I'm hoping we can build a beautiful language, an app that's approachable &
 powerful, and a vibrant community. Many projects have reached the current stage
-and fallen, so I'm hoping we can continue the momentum.
+and fallen, so this requires compounding on what we've done so far.
 
 ### Language design
 
@@ -260,7 +261,7 @@ Currently the documentation exists in [tests](tests/test_transpile.rs),
 If you're up for contributing and don't have a preference for writing code or
 not, this is the area that would most benefit from your contribution. Issues are
 tagged with
-[Documentation](https://github.com/max-sixty/prql/labels/documentation).
+[documentation](https://github.com/max-sixty/prql/labels/documentation).
 
 ### Friendliness
 
@@ -268,9 +269,9 @@ Currently the language is not friendly, as described in [Current
 status](#current-status). We'd like to make error messages better, sand off
 sharp corners, etc.
 
-Both cases of unfriendliness and code contributions on this dimension are
+Both bug reports of unfriendliness, and code contributions to improve them are
 welcome; there's a
-[Friendliness](https://github.com/max-sixty/prql/issues?q=is%3Aissue+label%3Afriendlienss+is%3Aopen)
+[friendliness](https://github.com/max-sixty/prql/issues?q=is%3Aissue+label%3Afriendlienss+is%3Aopen)
 label.
 
 ### Fast feedback
@@ -309,10 +310,10 @@ means putting some things out of scope:
   *inference* is a goal above, and this could be a useful extension at some
   point).
 
-## Interested in seeing this happen?
+## Interested in joining?
 
-If you're interested in the ideas here and would like to contribute towards them
-being developed.
+If you're interested in joining the community to build a better SQL, there are
+lots of ways of contributing; big and small:
 
 - Star this repo.
 - Send the repo to a couple of people whose opinion you respect.
