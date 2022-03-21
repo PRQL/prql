@@ -14,12 +14,59 @@ transpiles to SQL.
 
 PRQL was discussed on [Hacker
 News](https://news.ycombinator.com/item?id=30060784#30062329) and
-[Lobsters](https://lobste.rs/s/oavgcx/prql_simpler_more_powerful_sql).
+[Lobsters](https://lobste.rs/s/oavgcx/prql_simpler_more_powerful_sql) earlier
+this year when it was just a proposal.
 
-PRQL is currently being implemented in:
+## Current status
 
-- Rust: This repo
-- Python: <https://github.com/qorrect/PyPrql>
+PRQL just hit 0.1! This means:
+
+- It works™, for basic transformations such as `filter`, `select`, `aggregate`, `take`,
+  `sort`, & `join`. Variables (`derive`), functions (`func`) and CTEs (`table`) work.
+  - More advanced language features are forthcoming, like better inline pipelines, window
+    clauses, and arrays.
+- It's not friendly at the moment:
+  - It runs from a CLI only, taking input from a file or stdin and writing to a
+    file or stdout.
+  - Error messages are (really) bad.
+  - For an interactive experience, combine with a tool like
+    [Up](https://github.com/akavel/up).
+- The documentation is lacking.
+  - Our current top priority is to have some decent documentation.
+- It doesn't support changing the dialect.
+- It has bugs. Please report them!
+- It has sharp corners. Please report grazes!
+- We'll release backward-incompatible changes. The versioning system for the
+  language is not yet built.
+
+### Installation
+
+PRQL can be installed with `cargo`, or built from source.
+
+```sh
+cargo install prql
+```
+
+### Usage
+
+```sh
+echo "from employees | filter has_dog" | prql compile
+SELECT
+  *
+FROM
+  employees
+WHERE
+  has_dog
+```
+
+More details in `prql compile --help`.
+
+### Python implementation
+
+There is a python implementation at
+[qorrect/PyPrql](https://github.com/qorrect/PyPrql), which can be installed with
+`pip install pyprql`. It has some great features, including a native interactive
+console with auto-complete for column names.
 
 ## An example
 
@@ -184,44 +231,47 @@ it's at a pre-alpha stage, it has some immutable principles:
   without breaking backward-compatibility, because its queries can specify their
   PRQL version.
 
-## Roadmap — getting to v0.1
+## Roadmap
 
-I'm excited and inspired by the level of enthusiasm behind the project. Many
-projects have fallen at this stage, though, so I'm hoping we can demonstrate
-viability by shipping a working version fairly soon.
+I'm excited and inspired by the level of enthusiasm behind the project, both
+from individual contributors and the broader community users who want more than
+SQL. We currently have an initial version for the [intrepid](#current-status).
 
-Currently, we're most of the way to an initial version that will let folks use
-the language for experimentation. The remaining features that we need to
-complete — a few minor, a few major — are listed under the [0.1
-Milestone](https://github.com/max-sixty/prql/milestone/1).
+I'm hoping we can build a beautiful language, an app that's approachable &
+powerful, and a vibrant community. Many projects have reached the current stage
+and fallen, so I'm hoping we can continue the momentum.
 
-### Develop the language
+### Language design
 
 Already since becoming public, the language has improved dramatically, thanks to
 the feedback of dozens of contributors. The current state of the basics is now
 stable and while we'll hit corner-cases, I expect we'll only make small changes
-from here.
+to the existing features — even as we continue adding features.
 
 Feel free to post questions or continue discussions on [Language Design
 Issues](https://github.com/max-sixty/prql/issues?q=is%3Aissue+is%3Aopen+label%3Alanguage-design).
-It would be great to continue building out the
-[examples](https://github.com/max-sixty/prql/tree/main/examples) path.
 
-### Parser
+### Documentation
 
-This is mostly complete. There are a couple of issues in
-[#26](https://github.com/max-sixty/prql/issues/26) remaining.
+Currently the documentation exists in [tests](tests/test_transpile.rs),
+[examples](https://github.com/max-sixty/prql/tree/main/examples), and some
+[Notes](#notes) below.
 
-### Transpiler
+If you're up for contributing and don't have a preference for writing code or
+not, this is the area that would most benefit from your contribution. Issues are
+tagged with
+[Documentation](https://github.com/max-sixty/prql/labels/documentation).
 
-There are two parts to this, both of which have some major features we need
-before hitting v0.1.
+### Friendliness
 
-- *Materialize* the query: replace variables with their definition, run
-  functions.
-- *Translate* from a PRQL AST to a SQL AST, and then to a SQL string.
+Currently the language is not friendly, as described in [Current
+status](#current-status). We'd like to make error messages better, sand off
+sharp corners, etc.
 
-## Roadmap — beyond v0.1
+Both cases of unfriendliness and code contributions on this dimension are
+welcome; there's a
+[Friendliness](https://github.com/max-sixty/prql/issues?q=is%3Aissue+label%3Afriendlienss+is%3Aopen)
+label.
 
 ### Fast feedback
 
@@ -241,9 +291,8 @@ side:
 One benefit of PRQL over SQL is that auto-complete, type-inference, and
 error checking can be much more powerful.
 
-This is much harder to build though, since it requires a connection to the
-database in order to understand the schema of the table. So this would come
-after having a working transpiler.
+This is harder to build, since it requires a connection to the database in order
+to understand the schema of the table.
 
 ### Not in focus
 
@@ -263,7 +312,7 @@ means putting some things out of scope:
 ## Interested in seeing this happen?
 
 If you're interested in the ideas here and would like to contribute towards them
-being explored:
+being developed.
 
 - Star this repo.
 - Send the repo to a couple of people whose opinion you respect.
@@ -293,7 +342,7 @@ in advance.
   data, in R. It's very similar to PRQL. It only works on in-memory R data.
   - There's also [dbplyr](https://dbplyr.tidyverse.org/) which compiles a subset
     of dplyr to SQL, though requires an R runtime.
-- [Kusto](https://docs.microsoft.com/en-us/azure/data-explorer/kusto/query/samples?pivots=azuredataexplorer)
+- [Kusto](https://docs.microsoft.com/azure/data-explorer/kusto/query/samples?pivots=azuredataexplorer)
   is also a beautiful pipelined language, very similar to PRQL. But it can only
   use Kusto-compatible DBs.
   - A Kusto-to-SQL transpiler would be a legitimate alternative to PRQL, though
@@ -322,7 +371,7 @@ in advance.
   with a modelling layer.
 - [FunSQL.jl](https://github.com/MechanicalRabbit/FunSQL.jl) is a library in
   Julia which compiles a nice query syntax to SQL. It requires a Julia runtime.
-- [LINQ](https://docs.microsoft.com/en-us/dotnet/csharp/linq/write-linq-queries),
+- [LINQ](https://docs.microsoft.com/dotnet/csharp/linq/write-linq-queries),
   is a pipelined language for the `.NET` ecosystem which can (mostly) compile to
   SQL. It was one of the first languages to take this approach.
 - [Sift](https://github.com/RCHowell/Sift) is an experimental language which
