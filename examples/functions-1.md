@@ -1,3 +1,6 @@
+(This mostly works, apart from window clauses, and the version & db args on the
+first line)
+
 ```elm
 prql version:0.1 db:snowflake                         # Version number & database name.
 

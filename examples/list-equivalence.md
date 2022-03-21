@@ -31,14 +31,15 @@ derive [
 
 ```sql
 SELECT TOP 20
-    title,
-    country,
+    *,
     salary + payroll_tax AS gross_salary,
     salary + payroll_tax + benefits_cost AS gross_cost
 FROM employees
 ```
 
 ---
+
+(not yet working)
 
 ```elm
 # Same as above but split into two lines
