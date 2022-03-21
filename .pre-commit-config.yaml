@@ -13,7 +13,7 @@ repos:
       - id: fmt
       - id: clippy
   - repo: https://github.com/tcort/markdown-link-check
-    rev: v3.9.3
+    rev: v3.10.0
     hooks:
       - id: markdown-link-check
         files: \.md$
