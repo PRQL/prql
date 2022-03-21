@@ -1,12 +1,13 @@
-/// Transform the parsed AST into a "materialized" AST, by executing functions and
-/// replacing variables. The materialized AST is "flat", in the sense that it
-/// contains no query-specific logic.
+//! Transform the parsed AST into a "materialized" AST, by executing functions and
+//! replacing variables. The materialized AST is "flat", in the sense that it
+//! contains no query-specific logic.
 use super::ast::*;
 use super::ast_fold::*;
 use super::utils::*;
 use anyhow::{anyhow, Result};
 use std::{collections::HashMap, iter::zip};
 
+/// "Flatten" a PRQL AST by running functions & replacing variables.
 pub fn materialize(ast: Item) -> Result<Item> {
     let functions = load_std_lib()?;
     let mut run_functions = RunFunctions::new();

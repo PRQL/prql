@@ -1,7 +1,7 @@
-/// This module contains the parser, which is responsible for converting a tree
-/// of pest pairs into a tree of AST Items. It has a small function to call into
-/// pest to get the parse tree / concrete syntaxt tree, and then a large
-/// function for turning that into PRQL AST.
+//! This module contains the parser, which is responsible for converting a tree
+//! of pest pairs into a tree of AST Items. It has a small function to call into
+//! pest to get the parse tree / concrete syntaxt tree, and then a large
+//! function for turning that into PRQL AST.
 use super::ast::*;
 use super::utils::*;
 use anyhow::{anyhow, Context, Result};
@@ -14,12 +14,12 @@ use pest_derive::Parser;
 #[grammar = "prql.pest"]
 struct PrqlParser;
 
-/// Parse a string into an AST as a query.
+/// Build an AST from a PRQL query string.
 pub fn parse(string: &str) -> Result<Item> {
     ast_of_string(string, Rule::query).map(|x| x.into_unnested())
 }
 
-/// Parse a string into an AST.
+/// Parse a string into an AST. Unlike [parse], this can start from any rule.
 fn ast_of_string(string: &str, rule: Rule) -> Result<Item> {
     parse_tree_of_str(string, rule)
         .and_then(ast_of_parse_tree)

@@ -1,8 +1,8 @@
-/// This module is responsible for translating PRQL AST to sqlparser AST, and
-/// then to a String. We use sqlparser because it's trivial to create the string
-/// once it's in their AST (it's just `.to_string()`). It also lets us support a
-/// few dialects of SQL immediately.
-// The average code quality here is quite low — we're basically plugging in test
+//! This module is responsible for translating PRQL AST to sqlparser AST, and
+//! then to a String. We use sqlparser because it's trivial to create the string
+//! once it's in their AST (it's just `.to_string()`). It also lets us support a
+//! few dialects of SQL immediately.
+// The average code quality here is low — we're basically plugging in test
 // cases and fixing what breaks, with some occasional refactors. I'm not sure
 // that's a terrible approach — the SQL spec is huge, so we're not reasonably
 // going to be isomorphically mapping everything back from SQL to PRQL. But it
@@ -19,7 +19,7 @@ use sqlparser::ast::{
 };
 use std::collections::HashMap;
 
-/// Translate a PRQL AST to SQL string.
+/// Translate a PRQL AST into a SQL string.
 pub fn translate(ast: &Item) -> Result<String> {
     let sql_query: sqlparser::ast::Query = ast
         .as_query()

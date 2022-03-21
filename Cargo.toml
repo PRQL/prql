@@ -3,6 +3,7 @@ description = "PRQL is a modern language for transforming data — a simpler and
 edition = "2021"
 license = "Apache-2.0"
 name = "prql"
+repository = "https://github.com/max-sixty/prql"
 rust-version = "1.58.0"
 version = "0.0.2"
 
