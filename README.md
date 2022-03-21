@@ -32,12 +32,13 @@ PRQL just hit 0.1! This means:
   - For an interactive experience, combine with a tool like
     [Up](https://github.com/akavel/up).
 - The documentation is lacking.
-  - Our current top priority is to have some decent documentation.
+  - Our current top priority is to have some decent documentation
+    [#233](https://github.com/max-sixty/prql/issues/232).
 - It doesn't support changing the dialect.
 - It has bugs. Please report them!
 - It has sharp corners. Please report grazes!
 - We'll release backward-incompatible changes. The versioning system for the
-  language is not yet built.
+  language is not yet implemented.
 
 ### Installation
 
