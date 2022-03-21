@@ -14,7 +14,7 @@ pub use translator::translate;
 
 /// Compile a PRQL string into a SQL string.
 ///
-/// This happens in three stages:
+/// This has three stages:
 /// - [parse] — Build an AST from a PRQL query string.
 /// - [materialize] — "Flatten" a PRQL AST by running functions & replacing variables.
 /// - [translate] — Write a SQL string from a PRQL AST.
