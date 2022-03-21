@@ -12,13 +12,15 @@ enum Dialect {
 }
 
 #[derive(Parser)]
-#[clap(name = env!("CARGO_PKG_NAME"), about, version, author)]
+#[clap(name = env!("CARGO_PKG_NAME"), about, version)]
 pub enum Cli {
     Compile(CompileCommand),
 }
 
 #[derive(Args)]
-#[clap()]
+/// Compile a PRQL string into a SQL string.
+///
+/// See https://github.com/max-sixty/prql for more information.
 pub struct CompileCommand {
     #[clap(default_value="-", parse(try_from_os_str = Input::try_from))]
     input: Input,
