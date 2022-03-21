@@ -189,15 +189,6 @@ fn select_columns_of_pipeline(pipeline: &Pipeline) -> Result<Vec<SelectItem>> {
 fn sql_query_of_atomic_pipeline(pipeline: &Pipeline) -> Result<sqlparser::ast::Query> {
     // TODO: possibly do validation here? e.g. check there isn't more than one
     // `from`? Or do we rely on the caller for that?
-    // TODO: this doesn't handle joins at all yet.
-
-    // Alternatively we could
-    // - Do a single pass, but we need to split by before & after the
-    //   `aggregate`, even before considering joins. If we did a single pass, do
-    //   something like: group_pairs from
-    //   https://stackoverflow.com/a/65394297/3064736 let grouped =
-    //   group_pairs(pipeline.iter().map(|t| (t.name, t))); let from =
-    //   grouped.get(&TransformationType::From).unwrap().first().unwrap().clone();
 
     let mut from = pipeline
         .iter()
@@ -214,7 +205,10 @@ fn sql_query_of_atomic_pipeline(pipeline: &Pipeline) -> Result<sqlparser::ast::Q
         .iter()
         .filter_map(|t| match t {
             Transformation::Join { side, with, on } => {
-                let constraint = match Item::Terms(on.to_vec()).try_into() {
+                // TODO: Parse the Join expr, and if it's just a single ident,
+                // then use `USING`, ref https://github.com/max-sixty/prql/issues/231
+                let constraint_expr: Result<Expr> = Item::Terms(on.to_vec()).try_into();
+                let constraint = match constraint_expr {
                     Ok(c) => JoinConstraint::On(c),
                     Err(_) => return None, // this should be handled earlier
                 };
@@ -236,10 +230,9 @@ fn sql_query_of_atomic_pipeline(pipeline: &Pipeline) -> Result<sqlparser::ast::Q
         if let Some(from) = from.last_mut() {
             from.joins = joins;
         } else {
-            anyhow::bail!("Cannot use 'join' without 'from'")
+            return Err(anyhow!("Cannot use 'join' without 'from'"));
         }
     }
-    let from = from;
 
     // Split the pipeline into before & after the aggregate
     let (before, after) = pipeline.split_at(
