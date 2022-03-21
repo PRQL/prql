@@ -60,7 +60,7 @@ impl Cli {
                             .write_all(&serde_yaml::to_vec(&materialized)?)?
                     }
                     Dialect::Sql => {
-                        command.output.write_all(transpile(&source)?.as_bytes())?;
+                        command.output.write_all(compile(&source)?.as_bytes())?;
                     }
                 };
             }

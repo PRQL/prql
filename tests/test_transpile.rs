@@ -1,4 +1,5 @@
 use insta::assert_snapshot;
+use prql::internals::Result;
 use prql::*;
 
 #[test]
@@ -18,12 +19,12 @@ Query:
 
 #[test]
 fn transpile_variables() -> Result<()> {
-    assert_snapshot!(transpile("select 1")?, @r###"
+    assert_snapshot!(compile("select 1")?, @r###"
     SELECT
       1
     "###);
 
-    assert_snapshot!(transpile(
+    assert_snapshot!(compile(
 r#"
 from employees
 filter country = "USA"                           # Each line transforms the previous result.
@@ -84,7 +85,7 @@ fn transpile_functions() -> Result<()> {
       return_total:      if_valid (ret prices_adj),
     ]
     "#;
-    let result = transpile(prql)?;
+    let result = compile(prql)?;
 
     assert_snapshot!(result, @r###"
     SELECT
@@ -115,7 +116,7 @@ fn transpile_joins() -> Result<()> {
     //     though there are very small differences between inner & equi joins.
     //     Though probably we should favor equi-joins.
 
-    let result = transpile(
+    let result = compile(
         r#"
     from employees
 join side:left salaries [salaries.emp_no = employees.emp_no]
