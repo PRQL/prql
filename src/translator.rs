@@ -180,7 +180,7 @@ fn select_columns_of_pipeline(pipeline: &Pipeline) -> Result<Vec<SelectItem>> {
         }
     }
     if is_inclusive {
-        selects.push(SelectItem::Wildcard);
+        selects.insert(0, SelectItem::Wildcard);
     }
 
     Ok(selects)
