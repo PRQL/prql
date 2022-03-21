@@ -2,7 +2,7 @@
 
 [![GitHub CI Status](https://img.shields.io/github/workflow/status/max-sixty/prql/tests?logo=github&style=for-the-badge)](https://github.com/max-sixty/prql/actions?query=workflow:tests)
 [![Discord](https://img.shields.io/discord/936728116712316989?style=for-the-badge)](https://discord.gg/eQcfaCmsNc)
-![docs.rs](https://img.shields.io/docsrs/prql?style=for-the-badge)
+[![docs.rs](https://img.shields.io/docsrs/prql?style=for-the-badge)](https://docs.rs/prql/)
 [![Stars](https://img.shields.io/github/stars/max-sixty/prql?style=for-the-badge)](https://github.com/max-sixty/prql/stargazers)
 
 **P**ipelined **R**elational **Q**uery **L**anguage, pronounced "Prequel".
