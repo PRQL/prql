@@ -51,7 +51,8 @@ cargo install prql
 ### Usage
 
 ```sh
-echo "from employees | filter has_dog" | prql compile
+$ echo "from employees | filter has_dog" | prql compile
+
 SELECT
   *
 FROM
@@ -60,7 +61,7 @@ WHERE
   has_dog
 ```
 
-More details in `prql compile --help`. See below for better examples of PRQL.
+See below for fuller examples of PRQL.
 
 ### Python implementation
 
