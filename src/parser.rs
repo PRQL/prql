@@ -930,6 +930,9 @@ Terms:
             r#"
         table newest_employees = (
           from employees
+          aggregate by:country [
+            average_country_salary: average salary
+          ]
           sort tenure
           take 50
         )"#.trim(), Rule::table)?,
@@ -939,6 +942,16 @@ Terms:
           name: newest_employees
           pipeline:
             - From: employees
+            - Aggregate:
+                by:
+                  - Ident: country
+                calcs: []
+                assigns:
+                  - lvalue: average_country_salary
+                    rvalue:
+                      Terms:
+                        - Ident: average
+                        - Ident: salary
             - Sort:
                 - Ident: tenure
             - Take: 50
