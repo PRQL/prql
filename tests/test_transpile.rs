@@ -89,12 +89,12 @@ fn transpile_functions() -> Result<()> {
 
     assert_snapshot!(result, @r###"
     SELECT
+      *,
       IF(
         is_valid_price,
         prices_adj / lag_day_todo(prices_adj) - 1 + dividend_return,
         NULL
-      ) AS return_total,
-      *
+      ) AS return_total
     FROM
       prices
     "###);
