@@ -97,13 +97,12 @@ parenthesized_expr = _{ "(" ~ expr ~ ")" }
 quote = _{ "\"" | "'" }
 // PEEK refers to the opening quote; either `"` or `'`.
 string = { ( !( "\\" | PEEK ) ~ ANY )+ }
-
-// TODO: allow single quotes.
 string_literal = ${ PUSH(quote) ~ string ~ POP }
+
 number = ${ ( ASCII_DIGIT | "." )+ }
 
 // These separate idents from each other — i.e. `foo bar and baz` will parse into
-// a) `foo bar`, `and`, `baz`, where `foo bar` is presumably a function call.
+// a) `foo bar`, b) `and`, c) `baz`, where `foo bar` is presumably a function call.
 // TODO: review operators
 operator = ${ "and" | "or" | "not" | "==" | "!=" | "=" | ">" | "<" | ">=" | "<=" | "+" | "-" | "*" | "/" | "%" }
 
