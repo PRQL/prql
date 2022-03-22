@@ -1,5 +1,3 @@
-(mostly working, though the join clause could be improved)
-
 ```elm
 table newest_employees = (
   from employees
@@ -15,7 +13,7 @@ table average_salaries = (
 )
 
 from newest_employees
-join average_salaries [country_id=country]     # This could be [country]
+join average_salaries [country]
 select [name, salary, average_country_salary]
 ```
 
@@ -31,5 +29,5 @@ WITH average_salaries AS (
 )
 SELECT name, salary
 FROM newest_employees
-JOIN average_salaries ON country_id = country   # This could be `USING(country)`
+JOIN average_salaries USING(country)
 ```
