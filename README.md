@@ -258,7 +258,7 @@ Issues](https://github.com/max-sixty/prql/issues?q=is%3Aissue+is%3Aopen+label%3A
 ### Documentation
 
 Currently the documentation exists in [tests](tests/test_transpile.rs),
-[examples](https://github.com/max-sixty/prql/tree/main/examples), and some
+[examples](https://github.com/max-sixty/prql/tree/main/examples), [docs.rs](https://docs.rs/prql/latest/prql/) and some
 [Notes](#notes) below.
 
 If you're up for contributing and don't have a preference for writing code or
