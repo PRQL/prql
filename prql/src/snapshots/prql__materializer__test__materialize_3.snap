@@ -4,238 +4,184 @@ expression: materialize(ast)?
 ---
 Query:
   items:
-    - Function:
-        name: lag_day
-        positional_params:
-          - x
-        named_params: []
-        body:
-          - SString:
-              - String: lag_day_todo(
-              - Expr:
-                  Ident: x
-              - String: )
-    - Function:
-        name: ret
-        positional_params:
-          - x
-        named_params: []
-        body:
-          - Ident: x
-          - Raw: /
-          - Expr:
-              - SString:
-                  - String: lag_day_todo(
-                  - Expr:
-                      Ident: x
-                  - String: )
-          - Raw: "-"
-          - Raw: "1"
-          - Raw: +
-          - Ident: dividend_return
-    - Function:
-        name: excess
-        positional_params:
-          - x
-        named_params: []
-        body:
-          - Expr:
-              - Ident: x
-              - Raw: "-"
-              - Ident: interest_rate
-          - Raw: /
-          - Raw: "252"
-    - Function:
-        name: if_valid
-        positional_params:
-          - x
-        named_params: []
-        body:
-          - SString:
-              - String: "IF(is_valid_price, "
-              - Expr:
-                  Ident: x
-              - String: ", NULL)"
     - Pipeline:
-        - From: prices
+        - From:
+            name: prices
+            alias: ~
         - Derive:
-            - lvalue: return_total
-              rvalue:
+            - alias: return_total
+              expr:
                 SString:
                   - String: "IF(is_valid_price, "
                   - Expr:
                       Expr:
-                        - Terms:
-                            - Ident: prices_adj
-                            - Raw: /
+                        - Ident: prices_adj
+                        - Raw: /
+                        - SString:
+                            - String: lag_day_todo(
                             - Expr:
+                                Ident: prices_adj
+                            - String: )
+                        - Raw: "-"
+                        - Raw: "1"
+                        - Raw: +
+                        - Ident: dividend_return
+                  - String: ", NULL)"
+            - alias: return_usd
+              expr:
+                SString:
+                  - String: "IF(is_valid_price, "
+                  - Expr:
+                      Expr:
+                        - Ident: prices_usd
+                        - Raw: /
+                        - SString:
+                            - String: lag_day_todo(
+                            - Expr:
+                                Ident: prices_usd
+                            - String: )
+                        - Raw: "-"
+                        - Raw: "1"
+                        - Raw: +
+                        - Ident: dividend_return
+                  - String: ", NULL)"
+            - alias: return_excess
+              expr:
+                Expr:
+                  - Expr:
+                      - SString:
+                          - String: "IF(is_valid_price, "
+                          - Expr:
+                              Expr:
+                                - Ident: prices_adj
+                                - Raw: /
                                 - SString:
                                     - String: lag_day_todo(
                                     - Expr:
                                         Ident: prices_adj
                                     - String: )
-                            - Raw: "-"
-                            - Raw: "1"
-                            - Raw: +
-                            - Ident: dividend_return
-                  - String: ", NULL)"
-            - lvalue: return_usd
-              rvalue:
-                SString:
-                  - String: "IF(is_valid_price, "
-                  - Expr:
-                      Expr:
-                        - Terms:
-                            - Ident: prices_usd
-                            - Raw: /
-                            - Expr:
-                                - SString:
-                                    - String: lag_day_todo(
-                                    - Expr:
-                                        Ident: prices_usd
-                                    - String: )
-                            - Raw: "-"
-                            - Raw: "1"
-                            - Raw: +
-                            - Ident: dividend_return
-                  - String: ", NULL)"
-            - lvalue: return_excess
-              rvalue:
-                Terms:
-                  - Expr:
-                      - SString:
-                          - String: "IF(is_valid_price, "
-                          - Expr:
-                              Expr:
-                                - Terms:
-                                    - Ident: prices_adj
-                                    - Raw: /
-                                    - Expr:
-                                        - SString:
-                                            - String: lag_day_todo(
-                                            - Expr:
-                                                Ident: prices_adj
-                                            - String: )
-                                    - Raw: "-"
-                                    - Raw: "1"
-                                    - Raw: +
-                                    - Ident: dividend_return
+                                - Raw: "-"
+                                - Raw: "1"
+                                - Raw: +
+                                - Ident: dividend_return
                           - String: ", NULL)"
                       - Raw: "-"
                       - Ident: interest_rate
                   - Raw: /
                   - Raw: "252"
-            - lvalue: return_usd_excess
-              rvalue:
-                Terms:
+            - alias: return_usd_excess
+              expr:
+                Expr:
                   - Expr:
                       - SString:
                           - String: "IF(is_valid_price, "
                           - Expr:
                               Expr:
-                                - Terms:
-                                    - Ident: prices_usd
-                                    - Raw: /
+                                - Ident: prices_usd
+                                - Raw: /
+                                - SString:
+                                    - String: lag_day_todo(
                                     - Expr:
-                                        - SString:
-                                            - String: lag_day_todo(
-                                            - Expr:
-                                                Ident: prices_usd
-                                            - String: )
-                                    - Raw: "-"
-                                    - Raw: "1"
-                                    - Raw: +
-                                    - Ident: dividend_return
+                                        Ident: prices_usd
+                                    - String: )
+                                - Raw: "-"
+                                - Raw: "1"
+                                - Raw: +
+                                - Ident: dividend_return
                           - String: ", NULL)"
                       - Raw: "-"
                       - Ident: interest_rate
                   - Raw: /
                   - Raw: "252"
         - Select:
-            - Ident: date
-            - Ident: sec_id
-            - SString:
-                - String: "IF(is_valid_price, "
-                - Expr:
-                    Expr:
-                      - Terms:
-                          - Ident: prices_adj
-                          - Raw: /
+            - alias: ~
+              expr:
+                Ident: date
+            - alias: ~
+              expr:
+                Ident: sec_id
+            - alias: ~
+              expr:
+                SString:
+                  - String: "IF(is_valid_price, "
+                  - Expr:
+                      Expr:
+                        - Ident: prices_adj
+                        - Raw: /
+                        - SString:
+                            - String: lag_day_todo(
+                            - Expr:
+                                Ident: prices_adj
+                            - String: )
+                        - Raw: "-"
+                        - Raw: "1"
+                        - Raw: +
+                        - Ident: dividend_return
+                  - String: ", NULL)"
+            - alias: ~
+              expr:
+                SString:
+                  - String: "IF(is_valid_price, "
+                  - Expr:
+                      Expr:
+                        - Ident: prices_usd
+                        - Raw: /
+                        - SString:
+                            - String: lag_day_todo(
+                            - Expr:
+                                Ident: prices_usd
+                            - String: )
+                        - Raw: "-"
+                        - Raw: "1"
+                        - Raw: +
+                        - Ident: dividend_return
+                  - String: ", NULL)"
+            - alias: ~
+              expr:
+                Expr:
+                  - Expr:
+                      - SString:
+                          - String: "IF(is_valid_price, "
                           - Expr:
-                              - SString:
-                                  - String: lag_day_todo(
-                                  - Expr:
-                                      Ident: prices_adj
-                                  - String: )
-                          - Raw: "-"
-                          - Raw: "1"
-                          - Raw: +
-                          - Ident: dividend_return
-                - String: ", NULL)"
-            - SString:
-                - String: "IF(is_valid_price, "
-                - Expr:
-                    Expr:
-                      - Terms:
-                          - Ident: prices_usd
-                          - Raw: /
+                              Expr:
+                                - Ident: prices_adj
+                                - Raw: /
+                                - SString:
+                                    - String: lag_day_todo(
+                                    - Expr:
+                                        Ident: prices_adj
+                                    - String: )
+                                - Raw: "-"
+                                - Raw: "1"
+                                - Raw: +
+                                - Ident: dividend_return
+                          - String: ", NULL)"
+                      - Raw: "-"
+                      - Ident: interest_rate
+                  - Raw: /
+                  - Raw: "252"
+            - alias: ~
+              expr:
+                Expr:
+                  - Expr:
+                      - SString:
+                          - String: "IF(is_valid_price, "
                           - Expr:
-                              - SString:
-                                  - String: lag_day_todo(
-                                  - Expr:
-                                      Ident: prices_usd
-                                  - String: )
-                          - Raw: "-"
-                          - Raw: "1"
-                          - Raw: +
-                          - Ident: dividend_return
-                - String: ", NULL)"
-            - Terms:
-                - Expr:
-                    - SString:
-                        - String: "IF(is_valid_price, "
-                        - Expr:
-                            Expr:
-                              - Terms:
-                                  - Ident: prices_adj
-                                  - Raw: /
-                                  - Expr:
-                                      - SString:
-                                          - String: lag_day_todo(
-                                          - Expr:
-                                              Ident: prices_adj
-                                          - String: )
-                                  - Raw: "-"
-                                  - Raw: "1"
-                                  - Raw: +
-                                  - Ident: dividend_return
-                        - String: ", NULL)"
-                    - Raw: "-"
-                    - Ident: interest_rate
-                - Raw: /
-                - Raw: "252"
-            - Terms:
-                - Expr:
-                    - SString:
-                        - String: "IF(is_valid_price, "
-                        - Expr:
-                            Expr:
-                              - Terms:
-                                  - Ident: prices_usd
-                                  - Raw: /
-                                  - Expr:
-                                      - SString:
-                                          - String: lag_day_todo(
-                                          - Expr:
-                                              Ident: prices_usd
-                                          - String: )
-                                  - Raw: "-"
-                                  - Raw: "1"
-                                  - Raw: +
-                                  - Ident: dividend_return
-                        - String: ", NULL)"
-                    - Raw: "-"
-                    - Ident: interest_rate
-                - Raw: /
-                - Raw: "252"
+                              Expr:
+                                - Ident: prices_usd
+                                - Raw: /
+                                - SString:
+                                    - String: lag_day_todo(
+                                    - Expr:
+                                        Ident: prices_usd
+                                    - String: )
+                                - Raw: "-"
+                                - Raw: "1"
+                                - Raw: +
+                                - Ident: dividend_return
+                          - String: ", NULL)"
+                      - Raw: "-"
+                      - Ident: interest_rate
+                  - Raw: /
+                  - Raw: "252"
 

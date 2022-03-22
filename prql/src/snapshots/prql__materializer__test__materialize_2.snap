@@ -5,95 +5,108 @@ expression: materialize(ast)?
 Query:
   items:
     - Pipeline:
-        - From: employees
+        - From:
+            name: employees
+            alias: ~
         - Filter:
-            - Ident: country
-            - Raw: "="
-            - String: USA
+            - Expr:
+                - Ident: country
+                - Raw: "="
+                - String: USA
         - Derive:
-            - lvalue: gross_salary
-              rvalue:
-                Terms:
+            - alias: gross_salary
+              expr:
+                Expr:
                   - Ident: salary
                   - Raw: +
                   - Ident: payroll_tax
-            - lvalue: gross_cost
-              rvalue:
-                Terms:
-                  - Terms:
+            - alias: gross_cost
+              expr:
+                Expr:
+                  - Expr:
                       - Ident: salary
                       - Raw: +
                       - Ident: payroll_tax
                   - Raw: +
                   - Ident: benefits_cost
         - Filter:
-            - Terms:
-                - Terms:
-                    - Ident: salary
+            - Expr:
+                - Expr:
+                    - Expr:
+                        - Ident: salary
+                        - Raw: +
+                        - Ident: payroll_tax
                     - Raw: +
-                    - Ident: payroll_tax
-                - Raw: +
-                - Ident: benefits_cost
-            - Raw: ">"
-            - Raw: "0"
+                    - Ident: benefits_cost
+                - Raw: ">"
+                - Raw: "0"
         - Aggregate:
             by:
               - Ident: title
               - Ident: country
-            calcs:
-              - SString:
-                  - String: AVG(
-                  - Expr:
-                      Ident: salary
-                  - String: )
-              - SString:
-                  - String: SUM(
-                  - Expr:
-                      Ident: salary
-                  - String: )
-              - SString:
-                  - String: AVG(
-                  - Expr:
-                      Terms:
-                        - Ident: salary
-                        - Raw: +
-                        - Ident: payroll_tax
-                  - String: )
-              - SString:
-                  - String: SUM(
-                  - Expr:
-                      Terms:
-                        - Ident: salary
-                        - Raw: +
-                        - Ident: payroll_tax
-                  - String: )
-              - SString:
-                  - String: AVG(
-                  - Expr:
-                      Terms:
-                        - Terms:
-                            - Ident: salary
-                            - Raw: +
-                            - Ident: payroll_tax
-                        - Raw: +
-                        - Ident: benefits_cost
-                  - String: )
-            assigns:
-              - lvalue: sum_gross_cost
-                rvalue:
+            select:
+              - alias: ~
+                expr:
+                  SString:
+                    - String: AVG(
+                    - Expr:
+                        Ident: salary
+                    - String: )
+              - alias: ~
+                expr:
                   SString:
                     - String: SUM(
                     - Expr:
-                        Terms:
-                          - Terms:
+                        Ident: salary
+                    - String: )
+              - alias: ~
+                expr:
+                  SString:
+                    - String: AVG(
+                    - Expr:
+                        Expr:
+                          - Ident: salary
+                          - Raw: +
+                          - Ident: payroll_tax
+                    - String: )
+              - alias: ~
+                expr:
+                  SString:
+                    - String: SUM(
+                    - Expr:
+                        Expr:
+                          - Ident: salary
+                          - Raw: +
+                          - Ident: payroll_tax
+                    - String: )
+              - alias: ~
+                expr:
+                  SString:
+                    - String: AVG(
+                    - Expr:
+                        Expr:
+                          - Expr:
                               - Ident: salary
                               - Raw: +
                               - Ident: payroll_tax
                           - Raw: +
                           - Ident: benefits_cost
                     - String: )
-              - lvalue: ct
-                rvalue:
+              - alias: sum_gross_cost
+                expr:
+                  SString:
+                    - String: SUM(
+                    - Expr:
+                        Expr:
+                          - Expr:
+                              - Ident: salary
+                              - Raw: +
+                              - Ident: payroll_tax
+                          - Raw: +
+                          - Ident: benefits_cost
+                    - String: )
+              - alias: ct
+                expr:
                   SString:
                     - String: COUNT(
                     - Expr:
@@ -102,8 +115,9 @@ Query:
         - Sort:
             - Ident: sum_gross_cost
         - Filter:
-            - Ident: sum_gross_cost
-            - Raw: ">"
-            - Raw: "200"
+            - Expr:
+                - Ident: sum_gross_cost
+                - Raw: ">"
+                - Raw: "200"
         - Take: 20
 

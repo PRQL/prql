@@ -3,8 +3,10 @@
 //! contains no query-specific logic.
 use super::ast::*;
 use super::ast_fold::*;
-use super::utils::*;
+
+use anyhow::Context;
 use anyhow::{anyhow, Result};
+use itertools::Itertools;
 use std::{collections::HashMap, iter::zip};
 
 /// "Flatten" a PRQL AST by running functions & replacing variables.
@@ -12,7 +14,7 @@ pub fn materialize(ast: Item) -> Result<Item> {
     let functions = load_std_lib()?;
     let mut run_functions = RunFunctions::new();
     functions.into_iter().for_each(|f| {
-        run_functions.add_function(f.into_function().unwrap());
+        run_functions.add_def(f.into_func_def().unwrap());
     });
     let mut replace_variables = ReplaceVariables::new();
     // TODO: is it always OK to run these serially?
@@ -21,12 +23,14 @@ pub fn materialize(ast: Item) -> Result<Item> {
     Ok(ast)
 }
 
-fn load_std_lib() -> Result<Items> {
+fn load_std_lib() -> Result<Vec<Item>> {
     use super::parse;
     let std_lib = include_str!("stdlib.prql");
     Ok(parse(std_lib)?.into_query()?.items)
 }
 
+/// Holds currently known variables and their values.
+/// Can fold (walk) over AST and replace variables with their names.
 struct ReplaceVariables {
     variables: HashMap<Ident, Item>,
 }
@@ -37,15 +41,17 @@ impl ReplaceVariables {
             variables: HashMap::new(),
         }
     }
-    fn add_variables(&mut self, assign: Assign) -> &Self {
-        self.variables.insert(assign.lvalue, *assign.rvalue);
+    fn add_variables(&mut self, expr: NamedExpr) -> &Self {
+        if let Some(alias) = expr.alias {
+            self.variables.insert(alias, *expr.expr);
+        }
         self
     }
 }
 
 impl AstFold for ReplaceVariables {
-    fn fold_assign(&mut self, assign: Assign) -> Result<Assign> {
-        let replaced_assign = fold_assign(self, assign)?;
+    fn fold_named_expr(&mut self, assign: NamedExpr) -> Result<NamedExpr> {
+        let replaced_assign = fold_named_expr(self, assign)?;
         self.add_variables(replaced_assign.clone());
         Ok(replaced_assign)
     }
@@ -62,8 +68,7 @@ impl AstFold for ReplaceVariables {
                 }
             }
             _ => fold_item(self, item)?,
-        }
-        .into_unnested())
+        })
     }
     // Once we get to an Aggregate, we want to run the replacement, but then we
     // want to remove the variable, because SQL can support it from then on. If
@@ -71,19 +76,23 @@ impl AstFold for ReplaceVariables {
     fn fold_transformation(&mut self, transformation: Transformation) -> Result<Transformation> {
         let out = fold_transformation(self, transformation.clone());
 
-        if let Transformation::Aggregate { assigns, .. } = transformation {
-            assigns.iter().for_each(|assign| {
-                self.variables.remove(&assign.lvalue);
-            });
+        if let Transformation::Aggregate { select, .. } = transformation {
+            for item in select.iter() {
+                if let Some(alias) = &item.alias {
+                    self.variables.remove(alias);
+                }
+            }
         }
         out
     }
 }
 
+/// Holds currently known functions.
+/// Can fold (walk) over AST and replace function calls with their declared body.
 #[derive(Debug)]
 struct RunFunctions {
     // This stores the name twice, but that's probably OK.
-    functions: HashMap<Ident, Function>,
+    functions: HashMap<Ident, FuncDef>,
 }
 
 impl RunFunctions {
@@ -93,11 +102,11 @@ impl RunFunctions {
         }
     }
 
-    fn add_function(&mut self, func: Function) -> &Self {
+    fn add_def(&mut self, func: FuncDef) -> &Self {
         self.functions.insert(func.name.clone(), func);
         self
     }
-    fn run_function(&mut self, func_call: &FuncCall) -> Result<Item> {
+    fn inline_func_call(&mut self, func_call: &FuncCall) -> Result<Item> {
         // Get the function
         let func = self
             .functions
@@ -128,100 +137,93 @@ impl RunFunctions {
                     |named_arg| *(named_arg.arg).clone(),
                 );
 
-            Assign {
-                lvalue: param.name.clone(),
-                rvalue: Box::new(value),
+            NamedExpr {
+                alias: Some(param.name.clone()),
+                expr: Box::new(value),
             }
         });
 
         // Make a ReplaceVariables fold which we'll use to replace the variables
         // in the function with their argument values.
         let mut replace_variables = ReplaceVariables::new();
-        zip(func.positional_params.iter(), func_call.args.iter()).for_each(|(arg, arg_call)| {
+        for (arg, arg_call) in zip(func.positional_params.iter(), func_call.args.iter()) {
             // FIXME: Add named args
-            replace_variables.add_variables(Assign {
-                lvalue: arg.clone(),
-                rvalue: Box::new(arg_call.clone()),
+            replace_variables.add_variables(NamedExpr {
+                alias: Some(arg.clone()),
+                expr: Box::new(arg_call.clone()),
             });
-        });
-        named_args.for_each(|arg| {
+        }
+        for arg in named_args {
             replace_variables.add_variables(arg);
-        });
+        }
         // Take a clone of the function call's body, replace the variables with their
         // values, and return the modified function call.
-        Ok(Item::Terms(replace_variables.fold_items(func.body.clone())?).into_unnested())
+        replace_variables.fold_item(*func.body.clone())
     }
-    fn run_inline_pipeline(&mut self, items: Items) -> Result<Item> {
-        let mut items = items.into_iter().map(|x| x.into_expr().unwrap());
-        let mut value = items
-            .next()
-            .ok_or_else(|| anyhow!("Expected at least one item"))?
-            .into_only()
-            .and_then(|item| self.fold_item(item))?;
-        for pipe_contents in items {
+
+    fn inline_pipeline(&mut self, pipeline: InlinePipeline) -> Result<Item> {
+        let mut value = self.fold_item(*pipeline.value)?;
+
+        for mut func_call in pipeline.functions {
             // The value from the previous pipeline becomes the final arg.
-            let args = [pipe_contents, vec![value]].concat();
-            let func_call: FuncCall = args.try_into()?;
-            value = self.run_function(&func_call)?;
+            func_call.args.push(value);
+
+            value = self.inline_func_call(&func_call)?;
         }
         Ok(value)
-    }
-    fn to_function_call(item: Item) -> Result<FuncCall> {
-        match item {
-            Item::Terms(terms) => terms.try_into(),
-            Item::Ident(_) => Self::to_function_call(Item::Terms(item.into_inner_terms())),
-            _ => Err(anyhow!(
-                "FuncCalls can only be made from Terms or Ident; found {item:?}"
-            )),
-        }
     }
 }
 
 impl AstFold for RunFunctions {
-    fn fold_function(&mut self, func: Function) -> Result<Function> {
-        let out = fold_function(self, func.clone());
-        // Add function to our list _after_ running it (no recursive functions atm).
-        self.add_function(func);
-        out
+    fn fold_func_call(&mut self, func_call: FuncCall) -> Result<Item> {
+        // fold arguments
+        let func_call = FuncCall {
+            name: func_call.name,
+            args: func_call
+                .args
+                .into_iter()
+                .map(|x| self.fold_item(x))
+                .try_collect()?,
+            named_args: func_call
+                .named_args
+                .into_iter()
+                .map(|x| self.fold_named_arg(x))
+                .try_collect()?,
+        };
+
+        (self.functions.get(&func_call.name))
+            .context(format!("Unknown function {}", func_call.name))?;
+
+        self.inline_func_call(&func_call)
     }
-    fn fold_terms(&mut self, terms: Items) -> Result<Items> {
-        // If any of the terms are an Expr, then they may contain other function
-        // calls (e.g. `foo (bar baz)` needs to run `bar baz`), which need to be
-        // run before running this call. So fold those first.
-        // If we just delegate to `fold_terms`, we get a stack overflow; would
-        // be nice to clean this up a bit, but need to resolve that.
-        let terms = terms
-            .into_iter()
-            .map(|term| match term {
-                Item::Expr(_) => self.fold_item(term),
-                _ => Ok(term),
-            })
-            .collect::<Result<Vec<Item>>>()
-            .map(Item::Terms)?;
 
-        if let Ok(func_call) = Self::to_function_call(terms.clone()) {
-            if self.functions.get(&func_call.name).is_some() {
-                let function_result = self.run_function(&func_call)?;
+    fn fold_items(&mut self, items: Vec<Item>) -> Result<Vec<Item>> {
+        // We cut out function def, so we need to run it
+        // here rather than in `fold_func_def`.
+        let mut r = Vec::with_capacity(items.len());
 
-                // It's important to fold the result of the function call, so
-                // the functions get executed transitively.
-                return Ok(self.fold_item(function_result)?.into_inner_terms());
+        for item in items {
+            match item {
+                Item::FuncDef(func_def) => {
+                    let func_def = fold_func_def(self, func_def)?;
+
+                    self.add_def(func_def);
+                }
+                _ => r.push(self.fold_item(item)?),
             }
         }
-        Ok(terms.into_terms()?)
+        Ok(r)
     }
+
     fn fold_item(&mut self, item: Item) -> Result<Item> {
-        let item = match item.clone() {
-            // If it's an ident, try running it as a function, in case it's a
-            // function with no args.
-            Item::Ident(_) => Item::Terms(self.fold_terms(vec![item])?).into_unnested(),
+        match item.clone() {
             // We replace the InlinePipeline with an Item, so we need to run it
             // here rather than in `fold_inline_pipeline`.
-            Item::InlinePipeline(items) => self.run_inline_pipeline(items)?,
+            Item::InlinePipeline(p) => self.inline_pipeline(p),
+
             // Otherwise just delegate to the upstream fold.
-            _ => item,
-        };
-        fold_item(self, item)
+            _ => fold_item(self, item),
+        }
     }
 }
 
@@ -229,7 +231,7 @@ impl AstFold for RunFunctions {
 mod test {
 
     use super::*;
-    use crate::parse;
+    use crate::{parse, utils::diff};
     use insta::{assert_display_snapshot, assert_snapshot, assert_yaml_snapshot};
     use itertools::Itertools;
     use serde_yaml::to_string;
@@ -239,8 +241,8 @@ mod test {
         let ast = parse(
             r#"from employees
     derive [                                         # This adds columns / variables.
-      gross_salary: salary + payroll_tax,
-      gross_cost:   gross_salary + benefits_cost     # Variables can use other variables.
+      gross_salary ~ salary + payroll_tax,
+      gross_cost ~   gross_salary + benefits_cost     # Variables can use other variables.
     ]
     "#,
         )?;
@@ -253,12 +255,12 @@ mod test {
             &to_string(&fold.fold_item(ast)?)?
         ),
         @r###"
-        @@ -13,6 +13,9 @@
-                     - lvalue: gross_cost
-                       rvalue:
-                         Terms:
+        @@ -15,6 +15,9 @@
+                     - alias: gross_cost
+                       expr:
+                         Expr:
         -                  - Ident: gross_salary
-        +                  - Terms:
+        +                  - Expr:
         +                      - Ident: salary
         +                      - Raw: +
         +                      - Ident: payroll_tax
@@ -277,8 +279,8 @@ mod test {
 from employees
 filter country = "USA"                           # Each line transforms the previous result.
 derive [                                         # This adds columns / variables.
-  gross_salary: salary + payroll_tax,
-  gross_cost:   gross_salary + benefits_cost     # Variables can use other variables.
+  gross_salary ~ salary + payroll_tax,
+  gross_cost   ~ gross_salary + benefits_cost    # Variables can use other variables.
 ]
 filter gross_cost > 0
 aggregate by:[title, country] [                  # `by` are the columns to group by.
@@ -287,8 +289,8 @@ aggregate by:[title, country] [                  # `by` are the columns to group
     average gross_salary,
     sum     gross_salary,
     average gross_cost,
-    sum_gross_cost: sum gross_cost,
-    ct: count *,
+    sum_gross_cost ~ sum gross_cost,
+    ct ~ count *,
 ]
 sort sum_gross_cost
 filter sum_gross_cost > 200
@@ -296,56 +298,6 @@ take 20
 "#,
         )?;
         assert_yaml_snapshot!(&fold.fold_item(ast)?);
-
-        Ok(())
-    }
-
-    #[test]
-    fn test_run_functions_no_arg() -> Result<()> {
-        let ast = parse(
-            "
-func count = testing_count
-
-from employees
-aggregate [
-  count
-]
-",
-        )?;
-
-        assert_yaml_snapshot!(ast, @r###"
-        ---
-        Query:
-          items:
-            - Function:
-                name: count
-                positional_params: []
-                named_params: []
-                body:
-                  - Ident: testing_count
-            - Pipeline:
-                - From: employees
-                - Aggregate:
-                    by: []
-                    calcs:
-                      - Ident: count
-                    assigns: []
-        "###);
-
-        let mut fold = RunFunctions::new();
-        // We could make a convenience function for this. It's useful for
-        // showing the diffs of an operation.
-        let diff = diff(&to_string(&ast)?, &to_string(&fold.fold_item(ast)?)?);
-        assert!(!diff.is_empty());
-        assert_display_snapshot!(diff, @r###"
-        @@ -12,5 +12,5 @@
-                 - Aggregate:
-                     by: []
-                     calcs:
-        -              - Ident: count
-        +              - Ident: testing_count
-                     assigns: []
-        "###);
 
         Ok(())
     }
@@ -367,26 +319,31 @@ aggregate [
         ---
         Query:
           items:
-            - Function:
+            - FuncDef:
                 name: count
                 positional_params:
                   - x
                 named_params: []
                 body:
-                  - SString:
-                      - String: count(
-                      - Expr:
-                          Ident: x
-                      - String: )
+                  SString:
+                    - String: count(
+                    - Expr:
+                        Ident: x
+                    - String: )
             - Pipeline:
-                - From: employees
+                - From:
+                    name: employees
+                    alias: ~
                 - Aggregate:
                     by: []
-                    calcs:
-                      - Terms:
-                          - Ident: count
-                          - Ident: salary
-                    assigns: []
+                    select:
+                      - alias: ~
+                        expr:
+                          FuncCall:
+                            name: count
+                            args:
+                              - Ident: salary
+                            named_args: []
         "###);
 
         let mut fold = RunFunctions::new();
@@ -395,18 +352,38 @@ aggregate [
         let diff = diff(&to_string(&ast)?, &to_string(&fold.fold_item(ast)?)?);
         assert!(!diff.is_empty());
         assert_display_snapshot!(diff, @r###"
-        @@ -18,6 +18,9 @@
-                     by: []
-                     calcs:
-                       - Terms:
-        -                  - Ident: count
-        -                  - Ident: salary
-        +                  - SString:
-        +                      - String: count(
-        +                      - Expr:
-        +                          Ident: salary
-        +                      - String: )
-                     assigns: []
+        @@ -1,17 +1,6 @@
+         ---
+         Query:
+           items:
+        -    - FuncDef:
+        -        name: count
+        -        positional_params:
+        -          - x
+        -        named_params: []
+        -        body:
+        -          SString:
+        -            - String: count(
+        -            - Expr:
+        -                Ident: x
+        -            - String: )
+             - Pipeline:
+                 - From:
+                     name: employees
+        @@ -21,8 +10,8 @@
+                     select:
+                       - alias: ~
+                         expr:
+        -                  FuncCall:
+        -                    name: count
+        -                    args:
+        -                      - Ident: salary
+        -                    named_args: []
+        +                  SString:
+        +                    - String: count(
+        +                    - Expr:
+        +                        Ident: salary
+        +                    - String: )
         "###);
 
         Ok(())
@@ -427,33 +404,40 @@ select (ret b)
         assert_yaml_snapshot!(ast.clone().into_query()?.items[2], @r###"
         ---
         Pipeline:
-          - From: a
+          - From:
+              name: a
+              alias: ~
           - Select:
-              - Expr:
-                  - Terms:
-                      - Ident: ret
+              - alias: ~
+                expr:
+                  FuncCall:
+                    name: ret
+                    args:
                       - Ident: b
+                    named_args: []
         "###);
 
-        assert_yaml_snapshot!(materialize(ast)?.into_query()?.items[2], @r###"
+        assert_yaml_snapshot!(materialize(ast)?.into_query()?.items[0], @r###"
         ---
         Pipeline:
-          - From: a
+          - From:
+              name: a
+              alias: ~
           - Select:
-              - Expr:
-                  - Terms:
-                      - Ident: b
-                      - Raw: /
-                      - Expr:
-                          - SString:
-                              - String: lag_day_todo(
-                              - Expr:
-                                  Ident: b
-                              - String: )
-                      - Raw: "-"
-                      - Raw: "1"
-                      - Raw: +
-                      - Ident: dividend_return
+              - alias: ~
+                expr:
+                  Expr:
+                    - Ident: b
+                    - Raw: /
+                    - SString:
+                        - String: lag_day_todo(
+                        - Expr:
+                            Ident: b
+                        - String: )
+                    - Raw: "-"
+                    - Raw: "1"
+                    - Raw: +
+                    - Ident: dividend_return
         "###);
 
         Ok(())
@@ -466,34 +450,58 @@ select (ret b)
 func sum x = s"SUM({x})"
 
 from a
-aggregate [one: (foo | sum), two: (foo | sum)]
+aggregate [one ~ (foo | sum), two ~ (foo | sum)]
 "#,
         )?;
 
         let mut run_functions = RunFunctions::new();
         assert_snapshot!(diff(&to_string(&ast)?, &to_string(&run_functions.fold_item(ast)?)?), @r###"
-        @@ -20,15 +20,15 @@
-                     assigns:
-                       - lvalue: one
-                         rvalue:
+        @@ -1,17 +1,6 @@
+         ---
+         Query:
+           items:
+        -    - FuncDef:
+        -        name: sum
+        -        positional_params:
+        -          - x
+        -        named_params: []
+        -        body:
+        -          SString:
+        -            - String: SUM(
+        -            - Expr:
+        -                Ident: x
+        -            - String: )
+             - Pipeline:
+                 - From:
+                     name: a
+        @@ -21,19 +10,15 @@
+                     select:
+                       - alias: one
+                         expr:
         -                  InlinePipeline:
+        -                    value:
+        -                      Ident: foo
+        -                    functions:
+        -                      - name: sum
+        -                        args: []
+        -                        named_args: []
         +                  SString:
         +                    - String: SUM(
-                             - Expr:
-        -                        - Ident: foo
-        -                    - Expr:
-        -                        - Ident: sum
+        +                    - Expr:
         +                        Ident: foo
         +                    - String: )
-                       - lvalue: two
-                         rvalue:
+                       - alias: two
+                         expr:
         -                  InlinePipeline:
+        -                    value:
+        -                      Ident: foo
+        -                    functions:
+        -                      - name: sum
+        -                        args: []
+        -                        named_args: []
         +                  SString:
         +                    - String: SUM(
-                             - Expr:
-        -                        - Ident: foo
-        -                    - Expr:
-        -                        - Ident: sum
+        +                    - Expr:
         +                        Ident: foo
         +                    - String: )
         "###);
@@ -505,21 +513,22 @@ func sum x = s"SUM({x})"
 func plus_one x = x + 1
 
 from a
-aggregate [a: (sum foo | plus_one)]
+aggregate [a ~ (sum foo | plus_one)]
 "#,
         )?;
 
-        assert_yaml_snapshot!(materialize(ast)?.into_query()?.items[2], @r###"
+        assert_yaml_snapshot!(materialize(ast)?.into_query()?.items[0], @r###"
         ---
         Pipeline:
-          - From: a
+          - From:
+              name: a
+              alias: ~
           - Aggregate:
               by: []
-              calcs: []
-              assigns:
-                - lvalue: a
-                  rvalue:
-                    Terms:
+              select:
+                - alias: a
+                  expr:
+                    Expr:
                       - SString:
                           - String: SUM(
                           - Expr:
@@ -540,8 +549,8 @@ func add x to:1  = x + to
 
 from foo_table
 derive [
-  added:         add bar to:3,
-  added_default: add bar
+  added         ~ add bar to:3,
+  added_default ~ add bar
 ]
 "#,
         )?;
@@ -553,17 +562,19 @@ derive [
             .filter_map(|x| x.as_pipeline())
             .collect_vec(), @r###"
         ---
-        - - From: foo_table
+        - - From:
+              name: foo_table
+              alias: ~
           - Derive:
-              - lvalue: added
-                rvalue:
-                  Terms:
+              - alias: added
+                expr:
+                  Expr:
                     - Ident: bar
                     - Raw: +
                     - Raw: "3"
-              - lvalue: added_default
-                rvalue:
-                  Terms:
+              - alias: added_default
+                expr:
+                  Expr:
                     - Ident: bar
                     - Raw: +
                     - Raw: "1"
@@ -590,28 +601,20 @@ aggregate [
         ---
         Query:
           items:
-            - Function:
-                name: count
-                positional_params:
-                  - x
-                named_params: []
-                body:
-                  - SString:
-                      - String: count(
-                      - Expr:
-                          Ident: x
-                      - String: )
             - Pipeline:
-                - From: employees
+                - From:
+                    name: employees
+                    alias: ~
                 - Aggregate:
                     by: []
-                    calcs:
-                      - SString:
-                          - String: count(
-                          - Expr:
-                              Ident: salary
-                          - String: )
-                    assigns: []
+                    select:
+                      - alias: ~
+                        expr:
+                          SString:
+                            - String: count(
+                            - Expr:
+                                Ident: salary
+                            - String: )
         "###
         );
         Ok(())
@@ -624,8 +627,8 @@ aggregate [
 from employees
 filter country = "USA"                           # Each line transforms the previous result.
 derive [                                         # This adds columns / variables.
-  gross_salary: salary + payroll_tax,
-  gross_cost:   gross_salary + benefits_cost     # Variables can use other variables.
+  gross_salary ~ salary + payroll_tax,
+  gross_cost   ~ gross_salary + benefits_cost    # Variables can use other variables.
 ]
 filter gross_cost > 0
 aggregate by:[title, country] [                  # `by` are the columns to group by.
@@ -634,8 +637,8 @@ aggregate by:[title, country] [                  # `by` are the columns to group
     average gross_salary,
     sum     gross_salary,
     average gross_cost,
-    sum_gross_cost: sum gross_cost,
-    ct: count *,
+    sum_gross_cost ~ sum gross_cost,
+    ct ~ count *,
 ]
 sort sum_gross_cost
 filter sum_gross_cost > 200
@@ -657,10 +660,10 @@ take 20
 
     from prices
     derive [
-      return_total:      if_valid (ret prices_adj),
-      return_usd:        if_valid (ret prices_usd),
-      return_excess:     excess return_total,
-      return_usd_excess: excess return_usd,
+      return_total      ~ if_valid (ret prices_adj),
+      return_usd        ~ if_valid (ret prices_usd),
+      return_excess     ~ excess return_total,
+      return_usd_excess ~ excess return_usd,
     ]
     select [
       date,
@@ -683,10 +686,10 @@ take 20
             r#"
 from employees
 aggregate by:[emp_no] [
-  emp_salary: average salary
+  emp_salary ~ average salary
 ]
 aggregate by:[title] [
-  avg_salary: average emp_salary
+  avg_salary ~ average emp_salary
 ]
 "#,
         )?;
@@ -698,14 +701,15 @@ aggregate by:[title] [
         Query:
           items:
             - Pipeline:
-                - From: employees
+                - From:
+                    name: employees
+                    alias: ~
                 - Aggregate:
                     by:
                       - Ident: emp_no
-                    calcs: []
-                    assigns:
-                      - lvalue: emp_salary
-                        rvalue:
+                    select:
+                      - alias: emp_salary
+                        expr:
                           SString:
                             - String: AVG(
                             - Expr:
@@ -714,10 +718,9 @@ aggregate by:[title] [
                 - Aggregate:
                     by:
                       - Ident: title
-                    calcs: []
-                    assigns:
-                      - lvalue: avg_salary
-                        rvalue:
+                    select:
+                      - alias: avg_salary
+                        expr:
                           SString:
                             - String: AVG(
                             - Expr:

@@ -10,18 +10,18 @@
 // necessary.
 use super::ast::*;
 use super::utils::*;
-use anyhow::{anyhow, ensure, Result};
+use anyhow::{anyhow, bail, ensure, Result};
 use itertools::Itertools;
 use sqlformat::{format, FormatOptions, QueryParams};
 use sqlparser::ast::{
-    Expr, Join, JoinConstraint, JoinOperator, ObjectName, OrderByExpr, Select, SelectItem, SetExpr,
-    TableFactor, TableWithJoins, Top,
+    self as sql_ast, Expr, Join, JoinConstraint, JoinOperator, ObjectName, OrderByExpr, Select,
+    SelectItem, SetExpr, TableAlias, TableFactor, TableWithJoins, Top,
 };
 use std::collections::HashMap;
 
 /// Translate a PRQL AST into a SQL string.
 pub fn translate(ast: &Item) -> Result<String> {
-    let sql_query: sqlparser::ast::Query = ast
+    let sql_query: sql_ast::Query = ast
         .as_query()
         .ok_or_else(|| anyhow!("Requires a Query; {ast:?}"))?
         .clone()
@@ -37,22 +37,17 @@ pub fn translate(ast: &Item) -> Result<String> {
     Ok(formatted)
 }
 
-impl TryFrom<Query> for sqlparser::ast::Query {
+impl TryFrom<Query> for sql_ast::Query {
     type Error = anyhow::Error;
     fn try_from(query: Query) -> Result<Self> {
-        let filtered: Vec<Item> = query
+        let tables: Vec<Table> = query
             .items
-            .into_iter()
-            // We don't compile functions into SQL.
-            .filter(|item| !matches!(item, Item::Function(_)))
-            .collect();
-
-        let tables: Vec<Table> = filtered
             .iter()
             .filter_map(|item| item.as_table().cloned())
             .collect();
 
-        let pipeline = filtered
+        let pipeline = query
+            .items
             .iter()
             .filter_map(|item| item.as_pipeline().cloned())
             .into_only()?;
@@ -62,12 +57,12 @@ impl TryFrom<Query> for sqlparser::ast::Query {
 }
 
 impl Table {
-    fn to_sql_cte(&self) -> Result<sqlparser::ast::Cte> {
-        let alias = sqlparser::ast::TableAlias {
+    fn to_sql_cte(&self) -> Result<sql_ast::Cte> {
+        let alias = sql_ast::TableAlias {
             name: Item::Ident(self.name.clone()).try_into()?,
             columns: vec![],
         };
-        Ok(sqlparser::ast::Cte {
+        Ok(sql_ast::Cte {
             alias,
             query: sql_query_of_pipeline_and_tables(&self.pipeline, &[])?,
             from: None,
@@ -78,7 +73,7 @@ impl Table {
 fn sql_query_of_pipeline_and_tables(
     pipeline: &Pipeline,
     tables: &[Table],
-) -> Result<sqlparser::ast::Query> {
+) -> Result<sql_ast::Query> {
     let atomic_pipelines = atomic_pipelines_of_pipeline(pipeline)?;
     // Return early if we have a single atomic pipeline.
     if atomic_pipelines.len() == 1 && tables.is_empty() {
@@ -89,11 +84,11 @@ fn sql_query_of_pipeline_and_tables(
     sql_query_of_tables(&[tables, tables_from_pipeline.as_slice()].concat())
 }
 
-fn sql_query_of_tables(tables: &[Table]) -> Result<sqlparser::ast::Query> {
+fn sql_query_of_tables(tables: &[Table]) -> Result<sql_ast::Query> {
     let ctes = tables.iter().map(|x| x.to_sql_cte()).try_collect()?;
 
-    Ok(sqlparser::ast::Query {
-        with: Some(sqlparser::ast::With {
+    Ok(sql_ast::Query {
+        with: Some(sql_ast::With {
             cte_tables: ctes,
             recursive: false,
         }),
@@ -124,14 +119,28 @@ fn sql_query_of_tables(tables: &[Table]) -> Result<sqlparser::ast::Query> {
 // alias. Possibly at some point we should turn it into a wrapper type. (We can
 // still implement Iter & IntoIterator, though.)
 //
-// impl TryFrom<Pipeline> for sqlparser::ast::Query {
+// impl TryFrom<Pipeline> for sqlparser::sql_ast::Query {
 //     type Error = anyhow::Error;
-//     fn try_from(&pipeline: Pipeline) -> Result<sqlparser::ast::Query> {
+//     fn try_from(&pipeline: Pipeline) -> Result<sqlparser::sql_ast::Query> {
 
 fn table_factor_of_ident(ident: &Ident) -> TableFactor {
     TableFactor::Table {
         name: ObjectName(vec![Item::Ident(ident.clone()).try_into().unwrap()]),
         alias: None,
+        args: vec![],
+        with_hints: vec![],
+    }
+}
+
+fn table_factor_of_table_ref(table_ref: &TableRef) -> TableFactor {
+    TableFactor::Table {
+        name: ObjectName(vec![Item::Ident(table_ref.name.clone())
+            .try_into()
+            .unwrap()]),
+        alias: table_ref.alias.clone().map(|a| TableAlias {
+            name: Item::Ident(a).try_into().unwrap(),
+            columns: vec![],
+        }),
         args: vec![],
         with_hints: vec![],
     }
@@ -162,19 +171,14 @@ fn select_columns_of_pipeline(pipeline: &Pipeline) -> Result<Vec<SelectItem>> {
                     .map(|assign| assign.clone().try_into())
                     .collect::<Result<Vec<SelectItem>>>()?,
             ),
-            Transformation::Aggregate {
-                by, calcs, assigns, ..
-            } => {
+            Transformation::Aggregate { by, select, .. } => {
                 is_inclusive = false;
                 selects.clear();
 
                 for x in by {
                     selects.push(x.clone().try_into()?);
                 }
-                for x in assigns {
-                    selects.push(x.clone().try_into()?);
-                }
-                for x in calcs {
+                for x in select {
                     selects.push(x.clone().try_into()?);
                 }
             }
@@ -188,15 +192,15 @@ fn select_columns_of_pipeline(pipeline: &Pipeline) -> Result<Vec<SelectItem>> {
     Ok(selects)
 }
 
-fn sql_query_of_atomic_pipeline(pipeline: &Pipeline) -> Result<sqlparser::ast::Query> {
+fn sql_query_of_atomic_pipeline(pipeline: &Pipeline) -> Result<sql_ast::Query> {
     // TODO: possibly do validation here? e.g. check there isn't more than one
     // `from`? Or do we rely on the caller for that?
 
     let mut from = pipeline
         .iter()
         .filter_map(|t| match t {
-            Transformation::From(ident) => Some(TableWithJoins {
-                relation: table_factor_of_ident(ident),
+            Transformation::From(table_ref) => Some(TableWithJoins {
+                relation: table_factor_of_table_ref(table_ref),
                 joins: vec![],
             }),
             _ => None,
@@ -218,7 +222,7 @@ fn sql_query_of_atomic_pipeline(pipeline: &Pipeline) -> Result<sqlparser::ast::Q
                             .collect::<Result<Vec<_>>>()?,
                     )
                 } else {
-                    Item::Terms(on.to_vec())
+                    Item::Expr(on.to_vec())
                         .try_into()
                         .map(JoinConstraint::On)?
                 };
@@ -263,7 +267,7 @@ fn sql_query_of_atomic_pipeline(pipeline: &Pipeline) -> Result<sqlparser::ast::Q
             .collect();
 
         Ok(if !filters.is_empty() {
-            Some((Item::Terms(Filter::combine_filters(filters).0)).try_into()?)
+            Some((Item::Expr(Filter::combine_filters(filters).0)).try_into()?)
         } else {
             None
         })
@@ -286,15 +290,13 @@ fn sql_query_of_atomic_pipeline(pipeline: &Pipeline) -> Result<sqlparser::ast::Q
     let order_by = pipeline
         .iter()
         .filter_map(|t| match t {
-            Transformation::Sort(items) => {
-                Some(Item::Terms(items.to_owned()).try_into().map(|x| {
-                    vec![OrderByExpr {
-                        expr: x,
-                        asc: None,
-                        nulls_first: None,
-                    }]
-                }))
-            }
+            Transformation::Sort(items) => Some(Item::Expr(items.to_owned()).try_into().map(|x| {
+                vec![OrderByExpr {
+                    expr: x,
+                    asc: None,
+                    nulls_first: None,
+                }]
+            })),
             _ => None,
         })
         .last()
@@ -310,7 +312,7 @@ fn sql_query_of_atomic_pipeline(pipeline: &Pipeline) -> Result<sqlparser::ast::Q
     };
     let group_by = Item::into_list_of_items(group_bys).try_into()?;
 
-    Ok(sqlparser::ast::Query {
+    Ok(sql_ast::Query {
         body: SetExpr::Select(Box::new(Select {
             distinct: false,
             // TODO: when should this be `TOP` vs `LIMIT` (which is on the `Query` object?)
@@ -385,7 +387,13 @@ fn tables_of_pipelines(pipelines: Vec<Pipeline>) -> Result<Vec<Table>> {
     let mut tables = vec![];
     for (n, mut pipeline) in pipelines.into_iter().enumerate() {
         if n > 0 {
-            pipeline.insert(0, Transformation::From(format!("table_{}", n - 1)));
+            pipeline.insert(
+                0,
+                Transformation::From(TableRef {
+                    name: format!("table_{}", n - 1),
+                    alias: None,
+                }),
+            );
         }
         tables.push(Table {
             name: "table_".to_owned() + &n.to_string(),
@@ -403,23 +411,28 @@ impl Filter {
         Filter(
             filters
                 .into_iter()
-                .map(|f| Item::Terms(f.0))
+                .map(|f| Item::Expr(f.0))
                 .intersperse(Item::Raw("and".to_owned()))
                 .collect(),
         )
     }
 }
 
-impl TryFrom<Assign> for SelectItem {
+impl TryFrom<NamedExpr> for SelectItem {
     type Error = anyhow::Error;
-    fn try_from(assign: Assign) -> Result<Self> {
-        Ok(SelectItem::ExprWithAlias {
-            alias: sqlparser::ast::Ident {
-                value: assign.lvalue,
-                quote_style: None,
-            },
-            expr: (*assign.rvalue).try_into()?,
-        })
+    fn try_from(named_expr: NamedExpr) -> Result<Self> {
+        let expr = (*named_expr.expr).try_into()?;
+        if let Some(alias) = named_expr.alias {
+            Ok(SelectItem::ExprWithAlias {
+                alias: sql_ast::Ident {
+                    value: alias,
+                    quote_style: None,
+                },
+                expr,
+            })
+        } else {
+            Ok(SelectItem::UnnamedExpr(expr))
+        }
     }
 }
 
@@ -427,7 +440,7 @@ impl TryFrom<Item> for SelectItem {
     type Error = anyhow::Error;
     fn try_from(item: Item) -> Result<Self> {
         match item {
-            Item::SString(_) | Item::Ident(_) | Item::Terms(_) | Item::Raw(_) => {
+            Item::SString(_) | Item::Ident(_) | Item::Raw(_) => {
                 Ok(SelectItem::UnnamedExpr(TryInto::<Expr>::try_into(item)?))
             }
             _ => Err(anyhow!(
@@ -456,16 +469,16 @@ impl TryFrom<Transformation> for Top {
 impl TryFrom<Item> for Expr {
     type Error = anyhow::Error;
     fn try_from(item: Item) -> Result<Self> {
-        match item {
-            Item::Ident(ident) => Ok(Expr::Identifier(sqlparser::ast::Ident::new(ident))),
-            Item::Raw(ident) => Ok(Expr::Identifier(sqlparser::ast::Ident::new(ident))),
+        Ok(match item {
+            Item::Ident(ident) => Expr::Identifier(sql_ast::Ident::new(ident)),
+            Item::Raw(raw) => Expr::Identifier(sql_ast::Ident::new(raw.to_uppercase())),
             // For expressions like `country = "USA"`, we take each one, convert
             // it, and put spaces between them. It's a bit hacky — we could
             // convert each term to a SQL AST item, but it works for the moment.
             //
             // (one question is whether we need to surround `Expr` with parentheses?)
-            Item::Terms(items) | Item::Expr(items) => {
-                Ok(Expr::Identifier(sqlparser::ast::Ident::new(
+            Item::Expr(items) => {
+                Expr::Identifier(sql_ast::Ident::new(
                     items
                         .into_iter()
                         .map(|item| TryInto::<Expr>::try_into(item).unwrap())
@@ -475,11 +488,9 @@ impl TryFrom<Item> for Expr {
                         // Currently a hack, but maybe OK, since we don't
                         // need to parse every single expression into sqlparser ast.
                         .join(" "),
-                )))
+                ))
             }
-            Item::String(ident) => Ok(Expr::Value(sqlparser::ast::Value::SingleQuotedString(
-                ident,
-            ))),
+            Item::String(s) => Expr::Value(sql_ast::Value::SingleQuotedString(s)),
             // Fairly hacky — convert everything to a string, then concat it,
             // then convert to Expr. We can't use the `Terms` code above
             // since we don't want to intersperse with spaces.
@@ -494,10 +505,10 @@ impl TryFrom<Item> for Expr {
                     })
                     .collect::<Result<Vec<String>>>()?
                     .join("");
-                Item::Ident(string).try_into()
+                Item::Ident(string).try_into()?
             }
-            _ => Err(anyhow!("Can't convert to Expr at the moment; {item:?}")),
-        }
+            _ => bail!("Can't convert to Expr at the moment; {item:?}"),
+        })
     }
 }
 impl TryFrom<Item> for Vec<Expr> {
@@ -516,12 +527,12 @@ impl TryFrom<Item> for Vec<Expr> {
         }
     }
 }
-impl TryFrom<Item> for sqlparser::ast::Ident {
+impl TryFrom<Item> for sql_ast::Ident {
     type Error = anyhow::Error;
     fn try_from(item: Item) -> Result<Self> {
         match item {
-            Item::Ident(ident) => Ok(sqlparser::ast::Ident::new(ident)),
-            Item::Raw(ident) => Ok(sqlparser::ast::Ident::new(ident)),
+            Item::Ident(ident) => Ok(sql_ast::Ident::new(ident)),
+            Item::Raw(ident) => Ok(sql_ast::Ident::new(ident)),
             _ => Err(anyhow!("Can't convert to Ident at the moment; {item:?}")),
         }
     }
@@ -544,7 +555,7 @@ mod test {
 SString:
  - String: SUM(
  - Expr:
-     Terms:
+     Expr:
        - Ident: col
  - String: )
 ",
@@ -564,8 +575,8 @@ SString:
     #[test]
     fn test_try_from_list_to_vec_expr() -> Result<()> {
         let item = Item::List(vec![
-            ListItem(vec![Item::Ident("a".to_owned())]),
-            ListItem(vec![Item::Ident("b".to_owned())]),
+            ListItem(NamedExpr::unnamed(Item::Ident("a".to_owned()))),
+            ListItem(NamedExpr::unnamed(Item::Ident("b".to_owned()))),
         ]);
         let expr: Vec<Expr> = item.try_into()?;
         assert_debug_snapshot!(expr, @r###"
@@ -591,7 +602,9 @@ SString:
     fn test_ctes_of_pipeline_1() -> Result<()> {
         // One aggregate, take at the end
         let yaml: &str = r###"
-- From: employees
+- From:
+    name: employees
+    alias: ~
 - Filter:
     - Ident: country
     - Raw: "="
@@ -600,8 +613,10 @@ SString:
     by:
     - Ident: title
     - Ident: country
-    calcs:
-    - Terms:
+    select:
+    - alias: ~
+      expr:
+        Expr:
         - Ident: average
         - Ident: salary
     assigns: []
@@ -620,7 +635,9 @@ SString:
     fn test_ctes_of_pipeline_2() -> Result<()> {
         // One aggregate, but take at the top
         let yaml: &str = r###"
-    - From: employees
+    - From:
+        name: employees
+        alias: ~
     - Take: 20
     - Filter:
         - Ident: country
@@ -630,8 +647,10 @@ SString:
         by:
         - Ident: title
         - Ident: country
-        calcs:
-        - Terms:
+        select:
+        - alias: ~
+          expr:
+            Expr:
             - Ident: average
             - Ident: salary
         assigns: []
@@ -649,7 +668,9 @@ SString:
     fn test_ctes_of_pipeline_3() -> Result<()> {
         // A take, then two aggregates
         let yaml: &str = r###"
-    - From: employees
+    - From:
+        name: employees
+        alias: ~
     - Take: 20
     - Filter:
         - Ident: country
@@ -659,8 +680,10 @@ SString:
         by:
         - Ident: title
         - Ident: country
-        calcs:
-        - Terms:
+        select:
+        - alias: ~
+          expr:
+            Expr:
             - Ident: average
             - Ident: salary
         assigns: []
@@ -668,8 +691,10 @@ SString:
         by:
         - Ident: title
         - Ident: country
-        calcs:
-        - Terms:
+        select:
+        - alias: ~
+          expr:
+            Expr:
             - Ident: average
             - Ident: salary
         assigns: []
@@ -690,7 +715,9 @@ SString:
 Query:
   items:
     - Pipeline:
-      - From: employees
+      - From:
+          name: employees
+          alias: ~
       - Filter:
           - Ident: country
           - Raw: "="
@@ -699,12 +726,14 @@ Query:
           by:
           - Ident: title
           - Ident: country
-          calcs:
-          - SString:
-              - String: AVG(
-              - Expr:
-                  Ident: salary
-              - String: )
+          select:
+          - alias: ~
+            expr:
+              SString:
+                - String: AVG(
+                - Expr:
+                    Ident: salary
+                - String: )
           assigns: []
       - Sort:
           - Ident: title
@@ -741,18 +770,21 @@ Query:
         Query:
           items:
             - Pipeline:
-                - From: employees
+                - From:
+                    name: employees
+                    alias: ~
                 - Aggregate:
                     by: []
-                    calcs:
-                      - SString:
-                          - String: count(
-                          - Expr:
-                              Ident: salary
-                          - String: )
-                    assigns:
-                      - lvalue: sum_salary
-                        rvalue:
+                    select:
+                      - alias: ~
+                        expr:
+                          SString:
+                            - String: count(
+                            - Expr:
+                                Ident: salary
+                            - String: )
+                      - alias: sum_salary
+                        expr:
                           Ident: salary
                 - Filter:
                     - Ident: salary
@@ -763,8 +795,8 @@ Query:
         let sql = translate(&query)?;
         assert_snapshot!(sql, @r###"
         SELECT
-          salary AS sum_salary,
-          count(salary)
+          count(salary),
+          salary AS sum_salary
         FROM
           employees
         HAVING
@@ -810,8 +842,8 @@ Query:
 from employees
 filter country = "USA"                           # Each line transforms the previous result.
 derive [                                         # This adds columns / variables.
-  gross_salary: salary + payroll_tax,
-  gross_cost:   gross_salary + benefits_cost     # Variables can use other variables.
+  gross_salary ~ salary + payroll_tax,
+  gross_cost ~   gross_salary + benefits_cost    # Variables can use other variables.
 ]
 filter gross_cost > 0
 aggregate by:[title, country] [                  # `by` are the columns to group by.
@@ -820,8 +852,8 @@ aggregate by:[title, country] [                  # `by` are the columns to group
     average gross_salary,
     sum     gross_salary,
     average gross_cost,
-    sum_gross_cost: sum gross_cost,
-    ct: count *,
+    sum_gross_cost ~ sum gross_cost,
+    ct ~ count *,
 ]
 sort sum_gross_cost
 filter ct > 200
@@ -848,7 +880,7 @@ take 20
         table average_salaries = (
             from salaries
             aggregate by:country [
-                average_country_salary: average salary
+                average_country_salary ~ average salary
             ]
         )
         from newest_employees
@@ -904,7 +936,9 @@ take 20
 Query:
   items:
     - Pipeline:
-      - From: employees
+      - From:
+          name: employees
+          alias: ~
       - Take: 20
       - Filter:
           - Ident: country
@@ -914,8 +948,10 @@ Query:
           by:
           - Ident: title
           - Ident: country
-          calcs:
-          - Terms:
+          select:
+          - alias: ~
+            expr:
+              Expr:
               - Ident: average
               - Ident: salary
           assigns: []
@@ -923,8 +959,10 @@ Query:
           by:
           - Ident: title
           - Ident: country
-          calcs:
-          - Terms:
+          select:
+          - alias: ~
+            expr:
+              Expr:
               - Ident: average
               - Ident: salary
           assigns: []
@@ -1061,5 +1099,33 @@ join salaries [employees.employee_id=salaries.employee_id]
           table_1
         "###);
         assert!(!result.contains("employees.employee_id"));
+    }
+
+    #[test]
+    fn test_table_alias() -> Result<()> {
+        // Alias on from
+        let query: Item = parse(
+            r###"
+            from e ~ employees
+            join salaries side:left [salaries.emp_no = e.emp_no]
+            aggregate by:[e.emp_no] [
+              emp_salary ~ average salary
+            ]
+            select [e.emp_no, emp_salary]
+        "###,
+        )?;
+
+        let ast = materialize(query)?;
+        assert_display_snapshot!((translate(&ast)?), @r###"
+        SELECT
+          e.emp_no,
+          emp_salary
+        FROM
+          employees AS e
+          LEFT JOIN salaries ON salaries.emp_no = e.emp_no
+        GROUP BY
+          e.emp_no
+        "###);
+        Ok(())
     }
 }

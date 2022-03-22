@@ -11,7 +11,9 @@ Query:
   items:
     - Pipeline:
         - Select:
-            - Raw: "1"
+            - alias: ~
+              expr:
+                Raw: "1"
 "#
     );
     Ok(())
@@ -29,8 +31,8 @@ r#"
 from employees
 filter country = "USA"                           # Each line transforms the previous result.
 derive [                                         # This adds columns / variables.
-  gross_salary: salary + payroll_tax,
-  gross_cost:   gross_salary + benefits_cost     # Variables can use other variables.
+  gross_salary ~ salary + payroll_tax,
+  gross_cost ~  gross_salary + benefits_cost     # Variables can use other variables.
 ]
 filter gross_cost > 0
 aggregate by:[title, country] [                  # `by` are the columns to group by.
@@ -39,8 +41,8 @@ aggregate by:[title, country] [                  # `by` are the columns to group
     average gross_salary,
     sum     gross_salary,
     average gross_cost,
-    sum_gross_cost: sum gross_cost,
-    count: count *,
+    sum_gross_cost ~ sum gross_cost,
+    count ~ count *,
 ]
 sort sum_gross_cost
 filter ct > 200
@@ -49,18 +51,18 @@ take 20
     SELECT
       TOP (20) title,
       country,
-      SUM(salary + payroll_tax + benefits_cost) AS sum_gross_cost,
-      COUNT(*) AS count,
       AVG(salary),
       SUM(salary),
       AVG(salary + payroll_tax),
       SUM(salary + payroll_tax),
-      AVG(salary + payroll_tax + benefits_cost)
+      AVG(salary + payroll_tax + benefits_cost),
+      SUM(salary + payroll_tax + benefits_cost) AS sum_gross_cost,
+      COUNT(*) AS count
     FROM
       employees
     WHERE
       country = 'USA'
-      and salary + payroll_tax + benefits_cost > 0
+      AND salary + payroll_tax + benefits_cost > 0
     GROUP BY
       title,
       country
@@ -84,7 +86,7 @@ fn transpile_functions() -> Result<()> {
 
     from prices
     derive [
-      return_total:      if_valid (ret prices_adj),
+      return_total ~      if_valid (ret prices_adj),
     ]
     "#;
     let result = compile(prql)?;
@@ -123,12 +125,12 @@ fn transpile_joins() -> Result<()> {
     from employees
 join side:left salaries [salaries.emp_no = employees.emp_no]
 aggregate by:[employees.emp_no] [
-  emp_salary: average salary
+  emp_salary ~ average salary
 ]
 join side:left titles [titles.emp_no = emp_no]
 join dept_emp [dept_emp.emp_no = emp_no]
 aggregate by:[dept_emp.dept_no, titles.title] [
-  avg_salary: average emp_salary
+  avg_salary ~ average emp_salary
 ]
 join side:left departments [departments.dept_no = dept_no]
 select [dept_name, title, avg_salary]
