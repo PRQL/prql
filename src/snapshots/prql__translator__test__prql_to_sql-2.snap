@@ -3,7 +3,9 @@ source: src/translator.rs
 expression: sql
 ---
 SELECT
-  TOP (20) SUM(salary + payroll_tax + benefits_cost) AS sum_gross_cost,
+  TOP (20) title,
+  country,
+  SUM(salary + payroll_tax + benefits_cost) AS sum_gross_cost,
   COUNT(*) AS ct,
   AVG(salary),
   SUM(salary),

@@ -1,0 +1,15 @@
+# Task: The company active pursues gender equality.
+# Prepare an analysis based on salaries and gender distribution by departments.
+
+from employees
+join salaries [salaries.emp_no = employees.emp_no]
+aggregate by:[employees.emp_no, gender] [
+  emp_salary: average salary
+]
+join dept_emp [dept_emp.emp_no = table_0.emp_no]
+aggregate by:[dept_emp.dept_no, gender] [
+  salary_avg: average emp_salary,
+  salary_sd: stddev emp_salary,
+]
+join departments [departments.dept_no = table_1.dept_no]
+select [dept_name, gender, salary_avg, salary_sd]
