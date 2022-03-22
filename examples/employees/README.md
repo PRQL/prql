@@ -1,7 +1,7 @@
 Example queries using [employees database](https://github.com/vrajmohan/pgsql-sample-data.git).
 
 Clone and init the database (requires a local PostgreSQL instance):
- 
+
     $ psql -U postgres -c 'CREATE DATABASE employees;'
     $ git clone https://github.com/vrajmohan/pgsql-sample-data.git
     $ psql -U postgres -d employees -f pgsql-sample-data/employee/employees.dump
