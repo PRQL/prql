@@ -1,12 +1,14 @@
 mod ast;
 mod ast_fold;
+#[cfg(feature = "cli")]
 mod cli;
 mod materializer;
 mod parser;
 mod translator;
 mod utils;
 
-pub(crate) use anyhow::Result;
+pub(crate) use anyhow::Result; // TODO: create an error type for prql and export here
+#[cfg(feature = "cli")]
 pub use cli::Cli;
 pub use materializer::materialize;
 pub use parser::parse;
