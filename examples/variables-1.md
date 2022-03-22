@@ -20,7 +20,7 @@ filter ct > 200
 take 20
 ```
 
-```elm
+```sql
 SELECT
   TOP (20) title,
   country,
@@ -42,4 +42,5 @@ GROUP BY
 HAVING
   ct > 200
 ORDER BY
-  sum_gross_cost```
+  sum_gross_cost
+```

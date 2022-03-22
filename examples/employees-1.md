@@ -16,7 +16,7 @@ join departments [dept_no]
 select [dept_name, gender, salary_avg, salary_sd]
 ```
 
-```elm
+```sql
 WITH table_0 AS (
   SELECT
     emp_no,
@@ -55,4 +55,5 @@ table_2 AS (
 SELECT
   *
 FROM
-  table_2```
+  table_2
+```

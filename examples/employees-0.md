@@ -24,7 +24,7 @@ select [dept_name, title, avg_salary]
 # We don't need to use `employees` table at all, because we could only aggregate `salaries` table by `emp_no`.
 ```
 
-```elm
+```sql
 WITH table_0 AS (
   SELECT
     employees.emp_no,
@@ -60,4 +60,5 @@ table_2 AS (
 SELECT
   *
 FROM
-  table_2```
+  table_2
+```

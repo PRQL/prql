@@ -12,7 +12,7 @@ join titles [emp_no]
 select [dept_no, salary, employees.gender, titles.title]
 ```
 
-```elm
+```sql
 WITH table_0 AS (
   SELECT
     dept_emp.emp_no,
@@ -40,4 +40,5 @@ table_1 AS (
 SELECT
   *
 FROM
-  table_1```
+  table_1
+```

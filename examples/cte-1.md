@@ -17,7 +17,7 @@ join average_salaries [country]
 select [name, salary, average_country_salary]
 ```
 
-```elm
+```sql
 WITH newest_employees AS (
   SELECT
     TOP (50) *
@@ -47,4 +47,5 @@ table_0 AS (
 SELECT
   *
 FROM
-  table_0```
+  table_0
+```

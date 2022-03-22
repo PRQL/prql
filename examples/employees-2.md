@@ -23,7 +23,7 @@ derive [mng_name: s"employees.first_name || ' ' || employees.last_name"]
 select [mng_name, table_1.gender, salary_avg, salary_sd]
 ```
 
-```elm
+```sql
 WITH table_0 AS (
   SELECT
     emp_no,
@@ -65,4 +65,5 @@ table_2 AS (
 SELECT
   *
 FROM
-  table_2```
+  table_2
+```
