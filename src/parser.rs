@@ -4,7 +4,7 @@
 //! function for turning that into PRQL AST.
 use super::ast::*;
 use super::utils::*;
-use anyhow::{anyhow, Context, Result};
+use anyhow::{anyhow, bail, ensure, Context, Result};
 use itertools::Itertools;
 use pest::iterators::Pairs;
 use pest::Parser;
@@ -106,8 +106,7 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Items> {
                         }))
                     } else {
                         Err(anyhow!(
-                            "Expected assign to have an lvalue & some rvalues. Got {:?}",
-                            parsed
+                            "Expected assign to have an lvalue & some rvalues. Got {parsed:?}"
                         ))
                     }?
                 }
@@ -282,18 +281,16 @@ impl TryFrom<Vec<Item>> for Transformation {
                 // })?;
                 let by = match &func_call.named_args[..] {
                     [NamedArg { name, arg }] => {
-                        if name != "by" {
-                            return Err(anyhow!(
-                                "Expected aggregate to have up to one named arg, named 'by'"
-                            ));
-                        }
+                        ensure!(
+                            name == "by",
+                            "Expected aggregate to have up to one named arg, named 'by'"
+                        );
+
                         arg.to_owned().into_items_from_maybe_list()
                     }
                     [] => vec![],
                     _ => {
-                        return Err(anyhow!(
-                            "Expected aggregate to have up to one named arg, named 'by'"
-                        ))
+                        bail!("Expected aggregate to have up to one named arg, named 'by'")
                     }
                 };
 
@@ -331,7 +328,7 @@ impl TryFrom<Vec<Item>> for Transformation {
                         "left" => JoinSide::Left,
                         "right" => JoinSide::Right,
                         "full" => JoinSide::Full,
-                        unknown => anyhow::bail!("unknown join side: {}", unknown),
+                        unknown => bail!("unknown join side: {unknown}"),
                     }
                 } else {
                     JoinSide::Inner
@@ -352,9 +349,7 @@ impl TryFrom<Vec<Item>> for Transformation {
 
                 Ok(Transformation::Join { side, with, on })
             }
-            _ => Err(anyhow!(
-                "Expected a known transformation; got {func_call:?}"
-            )),
+            _ => bail!("Expected a known transformation; got {func_call:?}"),
         }
     }
 }

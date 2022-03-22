@@ -172,5 +172,9 @@ select [dept_name, title, avg_salary]
     // #213
     assert!(!result.to_lowercase().contains(&"avg(avg"));
 
+    // Confirm that equi-joins error when a side is specified.
+    assert!(compile("from employees | join tenure side:left [id]").is_err());
+    assert!(compile("from employees | join tenure [id]").is_ok());
+
     Ok(())
 }

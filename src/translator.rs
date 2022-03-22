@@ -10,7 +10,7 @@
 // necessary.
 use super::ast::*;
 use super::utils::*;
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, ensure, Result};
 use itertools::Itertools;
 use sqlformat::{format, FormatOptions, QueryParams};
 use sqlparser::ast::{
@@ -203,17 +203,25 @@ fn sql_query_of_atomic_pipeline(pipeline: &Pipeline) -> Result<sqlparser::ast::Q
 
     let joins = pipeline
         .iter()
-        .filter_map(|t| match t {
+        .filter(|t| matches!(t, Transformation::Join { .. }))
+        .map(|t| match t {
             Transformation::Join { side, with, on } => {
-                // TODO: Parse the Join expr, and if it's just a single ident,
-                // then use `USING`, ref https://github.com/max-sixty/prql/issues/231
-                let constraint_expr: Result<Expr> = Item::Terms(on.to_vec()).try_into();
-                let constraint = match constraint_expr {
-                    Ok(c) => JoinConstraint::On(c),
-                    Err(_) => return None, // this should be handled earlier
+                let use_equi_join = on.iter().all(|x| matches!(x, Item::Ident(_)));
+
+                let constraint = if use_equi_join {
+                    ensure!(matches!(*side, JoinSide::Inner), "Only inner joins are supported when supplying a simple list of columns; got `{side:?}` for `{on:?}`");
+                    JoinConstraint::Using(
+                        on.iter()
+                            .map(|x| x.clone().try_into())
+                            .collect::<Result<Vec<_>>>()?,
+                    )
+                } else {
+                    Item::Terms(on.to_vec())
+                        .try_into()
+                        .map(JoinConstraint::On)?
                 };
 
-                Some(Join {
+                Ok(Join {
                     relation: table_factor_of_ident(with),
                     join_operator: match *side {
                         JoinSide::Inner => JoinOperator::Inner(constraint),
@@ -223,14 +231,14 @@ fn sql_query_of_atomic_pipeline(pipeline: &Pipeline) -> Result<sqlparser::ast::Q
                     },
                 })
             }
-            _ => None,
+            _ => unreachable!(),
         })
-        .collect::<Vec<_>>();
+        .collect::<Result<Vec<_>>>()?;
     if !joins.is_empty() {
         if let Some(from) = from.last_mut() {
             from.joins = joins;
         } else {
-            return Err(anyhow!("Cannot use 'join' without 'from'"));
+            return Err(anyhow!("Cannot use `join` without `from`"));
         }
     }
 
@@ -851,7 +859,7 @@ take 20
             average_country_salary
           FROM
             newest_employees
-            JOIN average_salaries ON country
+            JOIN average_salaries USING(country)
         )
         SELECT
           *
