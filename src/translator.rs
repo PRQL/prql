@@ -588,7 +588,7 @@ SString:
     }
 
     #[test]
-    fn test_ctes_of_pipeline() -> Result<()> {
+    fn test_ctes_of_pipeline_1() -> Result<()> {
         // One aggregate, take at the end
         let yaml: &str = r###"
 - From: employees
@@ -613,7 +613,11 @@ SString:
         let pipeline: Pipeline = from_str(yaml)?;
         let queries = atomic_pipelines_of_pipeline(&pipeline)?;
         assert_eq!(queries.len(), 1);
+        Ok(())
+    }
 
+    #[test]
+    fn test_ctes_of_pipeline_2() -> Result<()> {
         // One aggregate, but take at the top
         let yaml: &str = r###"
     - From: employees
@@ -638,7 +642,11 @@ SString:
         let pipeline: Pipeline = from_str(yaml)?;
         let queries = atomic_pipelines_of_pipeline(&pipeline)?;
         assert_eq!(queries.len(), 2);
+        Ok(())
+    }
 
+    #[test]
+    fn test_ctes_of_pipeline_3() -> Result<()> {
         // A take, then two aggregates
         let yaml: &str = r###"
     - From: employees
@@ -677,7 +685,7 @@ SString:
     }
 
     #[test]
-    fn test_sql_of_ast() -> Result<()> {
+    fn test_sql_of_ast_1() -> Result<()> {
         let yaml: &str = r###"
 Query:
   items:
@@ -723,7 +731,11 @@ Query:
         "###
         );
         assert!(sql.to_lowercase().contains(&"avg(salary)".to_lowercase()));
+        Ok(())
+    }
 
+    #[test]
+    fn test_sql_of_ast_2() -> Result<()> {
         let query: Item = from_str(
             r###"
         Query:
@@ -764,7 +776,7 @@ Query:
     }
 
     #[test]
-    fn test_prql_to_sql() -> Result<()> {
+    fn test_prql_to_sql_1() -> Result<()> {
         let query = parse(
             r#"
     func count x = s"count({x})"
@@ -788,7 +800,11 @@ Query:
           employees
         "###
         );
+        Ok(())
+    }
 
+    #[test]
+    fn test_prql_to_sql_2() -> Result<()> {
         let query = parse(
             r#"
 from employees
@@ -816,7 +832,11 @@ take 20
         let ast = materialize(query)?;
         let sql = translate(&ast)?;
         assert_display_snapshot!(sql);
+        Ok(())
+    }
 
+    #[test]
+    fn test_prql_to_sql_table() -> Result<()> {
         // table
         let query = parse(
             r#"
