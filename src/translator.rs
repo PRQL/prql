@@ -162,19 +162,21 @@ fn select_columns_of_pipeline(pipeline: &Pipeline) -> Result<Vec<SelectItem>> {
                     .map(|assign| assign.clone().try_into())
                     .collect::<Result<Vec<SelectItem>>>()?,
             ),
-            Transformation::Aggregate { calcs, assigns, .. } => {
+            Transformation::Aggregate {
+                by, calcs, assigns, ..
+            } => {
                 is_inclusive = false;
                 selects.clear();
-                // This is chaining a) the assigns (such as `sum_salary: sum
-                // salary`), and b) the calcs (such as `sum salary`); and converting
-                // them into SelectItems.
-                selects.extend(
-                    assigns
-                        .iter()
-                        .map(|x| x.clone().try_into())
-                        .chain(calcs.iter().map(|x| x.clone().try_into()))
-                        .collect::<Result<Vec<SelectItem>>>()?,
-                )
+
+                for x in by {
+                    selects.push(x.clone().try_into()?);
+                }
+                for x in assigns {
+                    selects.push(x.clone().try_into()?);
+                }
+                for x in calcs {
+                    selects.push(x.clone().try_into()?);
+                }
             }
             _ => {}
         }
@@ -706,7 +708,9 @@ Query:
         assert_display_snapshot!(sql,
             @r###"
         SELECT
-          TOP (20) AVG(salary)
+          TOP (20) title,
+          country,
+          AVG(salary)
         FROM
           employees
         WHERE
@@ -846,6 +850,7 @@ take 20
         ),
         average_salaries AS (
           SELECT
+            country,
             AVG(salary) AS average_country_salary
           FROM
             salaries
@@ -917,6 +922,8 @@ Query:
         ),
         table_1 AS (
           SELECT
+            title,
+            country,
             average salary
           FROM
             table_0
@@ -928,6 +935,8 @@ Query:
         ),
         table_2 AS (
           SELECT
+            title,
+            country,
             average salary
           FROM
             table_1

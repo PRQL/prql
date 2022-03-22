@@ -47,7 +47,9 @@ filter ct > 200
 take 20
 "#)?, @r###"
     SELECT
-      TOP (20) SUM(salary + payroll_tax + benefits_cost) AS sum_gross_cost,
+      TOP (20) title,
+      country,
+      SUM(salary + payroll_tax + benefits_cost) AS sum_gross_cost,
       COUNT(*) AS count,
       AVG(salary),
       SUM(salary),
@@ -136,6 +138,7 @@ select [dept_name, title, avg_salary]
     assert_snapshot!(result, @r###"
     WITH table_0 AS (
       SELECT
+        employees.emp_no,
         AVG(salary) AS emp_salary
       FROM
         employees
@@ -145,6 +148,8 @@ select [dept_name, title, avg_salary]
     ),
     table_1 AS (
       SELECT
+        dept_emp.dept_no,
+        titles.title,
         AVG(emp_salary) AS avg_salary
       FROM
         table_0
