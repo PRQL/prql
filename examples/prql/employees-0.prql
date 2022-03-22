@@ -6,9 +6,8 @@
 # - group by department and title, aggregating average salary
 # - join with department to get department name
 
-from employees
-join side:left salaries [emp_no]
-aggregate by:[employees.emp_no] [
+from salaries
+aggregate by:[emp_no] [
   emp_salary: average salary
 ]
 join side:left titles [emp_no]

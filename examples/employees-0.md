@@ -7,9 +7,8 @@
 # - group by department and title, aggregating average salary
 # - join with department to get department name
 
-from employees
-join side:left salaries [emp_no]
-aggregate by:[employees.emp_no] [
+from salaries
+aggregate by:[emp_no] [
   emp_salary: average salary
 ]
 join side:left titles [emp_no]
@@ -27,13 +26,12 @@ select [dept_name, title, avg_salary]
 ```sql
 WITH table_0 AS (
   SELECT
-    employees.emp_no,
+    emp_no,
     AVG(salary) AS emp_salary
   FROM
-    employees
-    LEFT JOIN salaries USING(emp_no)
+    salaries
   GROUP BY
-    employees.emp_no
+    emp_no
 ),
 table_1 AS (
   SELECT
