@@ -1,4 +1,3 @@
-```elm
 from employees
 filter country = "USA"                           # Each line transforms the previous result.
 derive [                                         # This adds columns / variables.
@@ -18,28 +17,3 @@ aggregate by:[title, country] [                  # `by` are the columns to group
 sort sum_gross_cost
 filter ct > 200
 take 20
-```
-
-```elm
-SELECT
-  TOP (20) title,
-  country,
-  SUM(salary + payroll_tax + benefits_cost) AS sum_gross_cost,
-  COUNT(*) AS ct,
-  AVG(salary),
-  SUM(salary),
-  AVG(salary + payroll_tax),
-  SUM(salary + payroll_tax),
-  AVG(salary + payroll_tax + benefits_cost)
-FROM
-  employees
-WHERE
-  country = 'USA'
-  and salary + payroll_tax + benefits_cost > 0
-GROUP BY
-  title,
-  country
-HAVING
-  ct > 200
-ORDER BY
-  sum_gross_cost```

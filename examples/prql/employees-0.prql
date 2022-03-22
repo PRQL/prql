@@ -1,0 +1,23 @@
+# Task: rank the employee titles according to the average salary for each department.
+
+# My solution:
+# - for each employee, find their average salary,
+# - join employees with their departments and titles (duplicating employees for each of their titles and departments)
+# - group by department and title, aggregating average salary
+# - join with department to get department name
+
+from employees
+join side:left salaries [emp_no]
+aggregate by:[employees.emp_no] [
+  emp_salary: average salary
+]
+join side:left titles [emp_no]
+join dept_emp [emp_no]
+aggregate by:[dept_emp.dept_no, titles.title] [
+  avg_salary: average emp_salary
+]
+join side:left departments [dept_no]
+select [dept_name, title, avg_salary]
+
+# Note that this solution contains a common pitfall in the first few lines: 
+# We don't need to use `employees` table at all, because we could only aggregate `salaries` table by `emp_no`.
