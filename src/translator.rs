@@ -206,10 +206,7 @@ fn sql_query_of_atomic_pipeline(pipeline: &Pipeline) -> Result<sqlparser::ast::Q
         .filter(|t| matches!(t, Transformation::Join { .. }))
         .map(|t| match t {
             Transformation::Join { side, with, on } => {
-                let use_equi_join = on
-                    .iter()
-                    .map(|x| matches!(x, Item::Ident(_)))
-                    .all(std::convert::identity);
+                let use_equi_join = on.iter().all(|x| matches!(x, Item::Ident(_)));
 
                 let constraint = if use_equi_join {
                     ensure!(matches!(*side, JoinSide::Inner), "Only inner joins are supported when supplying a simple list of columns; got `{side:?}` for `{on:?}`");
