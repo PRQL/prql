@@ -1,0 +1,11 @@
+[book]
+authors = ["aljazerzen"]
+language = "en"
+multilingual = false
+src = "src"
+title = "PRQL Language reference"
+description = "Modern language for transforming data — a simpler and more powerful SQL"
+
+[output.html]
+additional-js = ["highlight-prql.js"]
+git-repository-url = "https://github.com/max-sixty/prql"
