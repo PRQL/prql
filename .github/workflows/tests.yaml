@@ -39,5 +39,9 @@ jobs:
   wasm:
     runs-on: ubuntu-latest
     steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v2
+      - name: 💰 Cache
+        uses: Swatinem/rust-cache@v1
       - uses: jetli/wasm-pack-action@v0.3.0
       - run: wasm-pack build -- --features=wasm
