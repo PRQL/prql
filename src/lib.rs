@@ -7,7 +7,7 @@ mod parser;
 mod translator;
 mod utils;
 
-pub(crate) use anyhow::Result; // TODO: create an error type for prql and export here
+pub use anyhow::Result; // TODO: create an error type for prql and export here
 #[cfg(feature = "cli")]
 pub use cli::Cli;
 pub use materializer::materialize;

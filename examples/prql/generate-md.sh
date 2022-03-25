@@ -1,10 +1,14 @@
 #!/bin/bash
 
+set -euxo pipefail
+
 for in in examples/prql/*.prql; do
   echo $in:
   out=examples/$(basename -s .prql $in)
 
-  if prql compile $in -o $out.sql; then
+  # Set the binary to the recently compiled version; if this moves to rust we
+  # can avoid this.
+  if ./target/debug/prql compile $in -o $out.sql; then
     (
       echo '```elm';
       cat $in
