@@ -258,7 +258,7 @@ Issues](https://github.com/max-sixty/prql/issues?q=is%3Aissue+is%3Aopen+label%3A
 ### Documentation
 
 Currently the documentation exists in [tests](tests/test_transpile.rs),
-[examples](https://github.com/max-sixty/prql/tree/main/examples), and some
+[examples](https://github.com/max-sixty/prql/tree/main/examples), [docs.rs](https://docs.rs/prql/latest/prql/) and some
 [Notes](#notes) below.
 
 If you're up for contributing and don't have a preference for writing code or
@@ -386,129 +386,6 @@ in advance.
   which is very different to this proposal.
 
 > If any of these descriptions can be improved, please feel free to PR changes.
-
-## Notes
-
-### Joins
-
-- Joins are implemented as `join side:{join_type} {table} {[conditions]}`. For example:
-
-  ```elm
-  from employees
-  join side:left positions [id=employee_id]
-  ```
-
-  ...is equivalent to...
-
-  ```sql
-  SELECT * FROM employees LEFT JOIN positions ON id = employee_id
-  ```
-
-- Possibly we could shorten `[id=id]` to `id`, and use SQL's `USING`, but it may
-  be ambiguous with using `id` as a boolean column.
-- Previously the syntax was `{join_type} {table} {[conditions]}`. For example:
-
-  ```elm
-  left_join positions [id=employee_id]
-  ```
-
-  ...but it was not expandable.
-
-### Functions
-
-- Functions can take two disjoint types of arguments:
-  1. Positional arguments, which are required.
-  2. Named arguments, which are optional and have a default value.
-- So a function like:
-
-  ```elm
-  func lag col sort_col by_col=id = (
-    window col
-    by by_col
-    sort sort_col
-    lag 1
-  )
-  ```
-
-  ...is called `lag`, takes three arguments `col`, `sort_col` & `by_col`, of
-  which the first two much be supplied, the third can optionally be supplied
-  with `by_col:sec_id`.
-
-### Assignments
-
-- To create a column, we use `derive {column_name}: {calculation}` in a
-  pipeline. `derive` can also take a list of pairs.
-  Technically this "upserts" the column — it'll either create or overwrite a
-  column, depending on whether it already exists.
-  - Potentially it would be possible to discriminate between those, but during
-    the most recent discussion we didn't find a suitable approach.
-- Previously the syntax was just `{column_name} = {calculation}`, but it breaks
-  the pattern of every line starting with a keyword.
-- We could discard the `:` to just have `derive {column_name} ({calculation})`, which
-  would be more consistent with the other functions, but I think less readable
-  (and definitely less familiar).
-
-### S-Strings
-
-An s-string inserts SQL directly. It's similar in form to a python f-string, but
-the result is SQL, rather than a string literal; i.e.:
-
-```elm
-func sum col = s"SUM({col})"
-sum salary
-```
-
-transpiles to:
-
-```sql
-SUM(salary)
-```
-
-...whereas if it were a python f-string, it would make `"sum(salary)"`, with the
-quotes.
-
-### Lists
-
-- Most keywords that take a single argument can also take a list, so these are equivalent:
-
-  ```diff
-   from employees
-  -select salary
-  +select [salary]
-  ```
-
-- More examples in [**list-equivalence.md**](examples/list-equivalence.md).
-
-### Pipelines
-
-- A line-break generally creates a pipelined transformation. For example:
-
-  ```elm
-  from tbl
-  select [
-    col1,
-    col2,
-  ]
-  filter col1 = col2
-  ```
-
-  ...is equivalent to:
-
-  ```elm
-  from tbl | select [col1, col2] | filter col1 = col2
-  ```
-
-- A line-break doesn't created a pipeline in a few cases:
-  - Within a list (e.g. the `select` example above).
-  - When the following line is a new statement, by starting with a keyword such
-    as `func`.
-
-### CTEs
-
-- See [CTE Example](examples/cte-1.md).
-- This is no longer point-free, but that's a feature rather than a requirement.
-  The alternative is subqueries, which are fine at small scale, but become
-  difficult to digest as complexity increases.
 
 ## Thinking about
 

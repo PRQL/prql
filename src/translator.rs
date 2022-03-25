@@ -373,7 +373,7 @@ fn atomic_pipelines_of_pipeline(pipeline: &Pipeline) -> Result<Vec<Pipeline>> {
 
     splits.push(pipeline.len());
     let ctes = (0..splits.len() - 1)
-        .map(|i| Vec::from(&pipeline[splits[i]..splits[i + 1]]))
+        .map(|i| pipeline[splits[i]..splits[i + 1]].to_vec())
         .filter(|x| !x.is_empty())
         .collect();
     Ok(ctes)
@@ -951,6 +951,95 @@ Query:
         FROM
           table_2
         "###);
+
         Ok(())
+    }
+
+    #[test]
+    /// Confirm a nonatomic table works.
+    fn test_nonatomic_table() -> Result<()> {
+        // A take, then two aggregates
+        let query = parse(
+            r###"
+        table a = (
+            from employees
+            take 50
+            aggregate [s"count(*)"]
+        )
+        from a
+        join b [country]
+        select [name, salary, average_country_salary]
+"###,
+        )?;
+
+        assert_display_snapshot!((translate(&query)?), @r###"
+        WITH a AS (
+          WITH table_0 AS (
+            SELECT
+              TOP (50) *
+            FROM
+              employees
+          ),
+          table_1 AS (
+            SELECT
+              count(*)
+            FROM
+              table_0
+          )
+          SELECT
+            *
+          FROM
+            table_1
+        ),
+        table_0 AS (
+          SELECT
+            name,
+            salary,
+            average_country_salary
+          FROM
+            a
+            JOIN b USING(country)
+        )
+        SELECT
+          *
+        FROM
+          table_0
+        "###);
+
+        Ok(())
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_table_references() {
+        let prql = r#"
+from employees
+take 10
+join salaries [employees.employee_id=salaries.employee_id]
+        "#;
+        let result = parse(prql)
+            .and_then(materialize)
+            .and_then(|x| translate(&x))
+            .unwrap();
+        assert_display_snapshot!(result, @r###"
+        WITH table_0 AS (
+          SELECT
+            TOP (10) *
+          FROM
+            employees
+        ),
+        table_1 AS (
+          SELECT
+            *
+          FROM
+            table_0
+            JOIN salaries ON employees.employee_id = salaries.employee_id
+        )
+        SELECT
+          *
+        FROM
+          table_1
+        "###);
+        assert!(!result.contains("employees.employee_id"));
     }
 }
