@@ -8,8 +8,11 @@ rust-version = "1.58.0"
 version = "0.1.0"
 
 [features]
+# We previously had `cli` not compile by default, because of an issue with
+# compiling a dependency with wasm. We no longer exclude it, but we could
+# there's no need to have it in, and we could put it in a separate crate if that
+# would make things more modular.
 cli = ["clio", "atty", "clap", "color-eyre"]
-# Possibly `cli` should be a separate crate?
 default = ["anyhow/backtrace", "cli"]
 wasm = ["wee_alloc", "wasm-bindgen", "console_error_panic_hook"]
 
