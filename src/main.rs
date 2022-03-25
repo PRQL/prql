@@ -1,9 +1,10 @@
-use clap::Parser;
-use color_eyre::eyre::Result;
-use prql::Cli;
 use std::process::exit;
 
-fn main() -> Result<()> {
+#[cfg(feature = "cli")]
+fn main() -> color_eyre::eyre::Result<()> {
+    use clap::Parser;
+    use prql::Cli;
+
     color_eyre::install()?;
     let mut cli = Cli::parse();
 
@@ -13,4 +14,9 @@ fn main() -> Result<()> {
     }
 
     Ok(())
+}
+
+#[cfg(not(feature = "cli"))]
+fn main() -> ! {
+    panic!("Not used as a binary in wasm (but it seems cargo insists we have a `main` function.")
 }
