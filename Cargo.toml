@@ -9,7 +9,8 @@ version = "0.1.0"
 
 [features]
 cli = ["clio", "atty", "clap", "color-eyre"]
-default = ["anyhow/backtrace"]
+# Possibly `cli` should be a separate crate?
+default = ["anyhow/backtrace", "cli"]
 wasm = ["wee_alloc", "wasm-bindgen", "console_error_panic_hook"]
 
 [lib]

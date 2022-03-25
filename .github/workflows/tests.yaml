@@ -42,4 +42,5 @@ jobs:
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v1
       - uses: jetli/wasm-pack-action@v0.3.0
-      - run: wasm-pack build -- --features=wasm
+      # Currently having the `cli` feature fails due to https://github.com/aj-bagwell/clio/pull/3, so we disable default features.
+      - run: wasm-pack build -- --features=wasm --no-default-features

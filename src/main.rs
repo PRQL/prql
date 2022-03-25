@@ -1,6 +1,3 @@
-// TODO: We can't currently build without cli feature as we then don't have a
-// `main` functions — we need to work through building as a library, so we can
-// use with wasm; ref GH #175.
 #[cfg(feature = "cli")]
 fn main() -> color_eyre::eyre::Result<()> {
     use clap::Parser;
@@ -20,5 +17,5 @@ fn main() -> color_eyre::eyre::Result<()> {
 
 #[cfg(not(feature = "cli"))]
 fn main() -> ! {
-    panic!("This binary is not meant to be run directly; it is meant to be used as a library.")
+    panic!("Not used as a binary in wasm (but it seems cargo insists we have a `main` function.")
 }
