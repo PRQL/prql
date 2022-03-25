@@ -1,8 +1,9 @@
+use std::process::exit;
+
 #[cfg(feature = "cli")]
 fn main() -> color_eyre::eyre::Result<()> {
     use clap::Parser;
     use prql::Cli;
-    use std::process::exit;
 
     color_eyre::install()?;
     let mut cli = Cli::parse();
