@@ -14,7 +14,6 @@ concurrency:
 
 jobs:
   cargo:
-    name: Cargo
     runs-on: ubuntu-latest
     steps:
       - name: 📂 Checkout code
