@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - "*"
   pull_request:
     branches:
       - main
@@ -35,3 +36,8 @@ jobs:
         with:
           command: fmt
           args: --check
+  wasm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: jetli/wasm-pack-action@v0.3.0
+      - run: wasm-pack build -- --features=wasm

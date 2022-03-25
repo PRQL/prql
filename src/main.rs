@@ -17,3 +17,8 @@ fn main() -> color_eyre::eyre::Result<()> {
 
     Ok(())
 }
+
+#[cfg(not(feature = "cli"))]
+fn main() -> ! {
+    panic!("This binary is not meant to be run directly; it is meant to be used as a library.")
+}

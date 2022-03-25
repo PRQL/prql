@@ -12,8 +12,7 @@ pub type Pipeline = Vec<Transformation>;
 
 use enum_as_inner::EnumAsInner;
 
-#[derive(Debug, EnumAsInner, PartialEq, Clone)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize)]
 pub enum Item {
     Transformation(Transformation),
     Ident(Ident),
@@ -43,15 +42,13 @@ pub enum Item {
     Todo(String),
 }
 
-#[derive(Debug, PartialEq, Clone)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Query {
     // TODO: Add dialect & prql version onto Query.
     pub items: Items,
 }
 
-#[derive(Debug, PartialEq, Clone)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct ListItem(pub Items);
 
 impl ListItem {
@@ -63,8 +60,7 @@ impl ListItem {
 /// Transformation is currently used for a) each transformation in a pipeline
 /// and sometimes b) a normal function call. But we want to resolve whether (b)
 /// should apply or not.
-#[derive(Debug, PartialEq, Clone)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 // We probably want to implement some of these as Structs rather than just
 // `Items`
 pub enum Transformation {
@@ -108,8 +104,7 @@ impl Transformation {
 }
 
 /// Function definition.
-#[derive(Debug, PartialEq, Clone)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Function {
     pub name: Ident,
     pub positional_params: Vec<Ident>,
@@ -118,16 +113,14 @@ pub struct Function {
 }
 
 /// Function call.
-#[derive(Debug, PartialEq, Clone)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct FuncCall {
     pub name: String,
     pub args: Items,
     pub named_args: Vec<NamedArg>,
 }
 
-#[derive(Debug, PartialEq, Clone)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Table {
     pub name: Ident,
     pub pipeline: Pipeline,
@@ -136,33 +129,28 @@ pub struct Table {
 // We use `NamedArg` for both the FuncCall and the function parameter. They're
 // very similar, so it's fine; though we could split them out if that became
 // helpful.
-#[derive(Debug, PartialEq, Clone)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct NamedArg {
     pub name: Ident,
     pub arg: Box<Item>,
 }
 
-#[derive(Debug, PartialEq, Clone)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Assign {
     pub lvalue: Ident,
     pub rvalue: Box<Item>,
 }
 
-#[derive(Debug, PartialEq, Clone)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub enum SStringItem {
     String(String),
     Expr(Item),
 }
 
-#[derive(Debug, PartialEq, Clone)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Filter(pub Items);
 
-#[derive(Debug, PartialEq, Clone)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub enum JoinSide {
     Inner,
     Left,
