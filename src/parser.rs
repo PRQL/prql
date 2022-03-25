@@ -118,11 +118,11 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Items> {
                     let parsed = ast_of_parse_tree(pair.into_inner())?;
                     if let (Item::Expr(name_and_params), body) = parsed
                         .split_first()
-                        .ok_or(anyhow!("Expected at least one item"))?
+                        .ok_or_else(|| anyhow!("Expected at least one item"))?
                     {
                         let (name, params) = name_and_params
                             .split_first()
-                            .ok_or(anyhow!("Function requires a name."))?;
+                            .ok_or_else(|| anyhow!("Function requires a name."))?;
                         // We could use `.partition` for a single pass...
                         let positional_params = params
                             .iter()
@@ -137,7 +137,9 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Items> {
                         Item::Function(Function {
                             name: name
                                 .as_ident()
-                                .ok_or(anyhow!("Function name needs to be a word; got {name:?}"))?
+                                .ok_or_else(|| {
+                                    anyhow!("Function name needs to be a word; got {name:?}")
+                                })?
                                 .to_owned(),
                             positional_params,
                             named_params,
@@ -205,11 +207,11 @@ impl TryFrom<Vec<Item>> for FuncCall {
     fn try_from(items: Vec<Item>) -> Result<Self> {
         let (name_item, items) = items
             .split_first()
-            .ok_or(anyhow!("Expected at least one item"))?;
+            .ok_or_else(|| anyhow!("Expected at least one item"))?;
 
         let name = name_item
             .as_ident()
-            .ok_or(anyhow!("Function name must be Ident; got {name_item:?}"))?;
+            .ok_or_else(|| anyhow!("Function name must be Ident; got {name_item:?}"))?;
 
         // TODO: account for a name-only transformation, with no items.
         let (named_arg_items, args): (Vec<Item>, Vec<Item>) = items // Partition out NamedArgs
@@ -221,7 +223,7 @@ impl TryFrom<Vec<Item>> for FuncCall {
             .into_iter()
             .map(|x| {
                 x.as_named_arg()
-                    .ok_or(anyhow!("Expected NamedArg"))
+                    .ok_or_else(|| anyhow!("Expected NamedArg"))
                     .cloned()
             })
             .try_collect()?;
@@ -241,7 +243,7 @@ impl TryFrom<Vec<Item>> for Transformation {
     fn try_from(items: Vec<Item>) -> Result<Self> {
         let (name, items) = items
             .split_first()
-            .ok_or(anyhow!("Expected at least one item"))?;
+            .ok_or_else(|| anyhow!("Expected at least one item"))?;
 
         // Unnest the Terms. This is required because it can receive a single
         // terms of `[a, b] by:c` or multiple terms of `a`, `+` & `b` from `a +
@@ -589,9 +591,11 @@ mod test {
         }
 
         let item = ast_of_string("aggregate by:[title] [sum salary]", Rule::transformation)?;
-        let aggregate = item.as_transformation().ok_or(anyhow!("Expected Raw"))?;
+        let aggregate = item
+            .as_transformation()
+            .ok_or_else(|| anyhow!("Expected Raw"))?;
         assert!(if let Transformation::Aggregate { by, .. } = aggregate {
-            by.len() == 1 && by[0].as_ident().ok_or(anyhow!("Expected Ident"))? == "title"
+            by.len() == 1 && by[0].as_ident().ok_or_else(|| anyhow!("Expected Ident"))? == "title"
         } else {
             false
         });
