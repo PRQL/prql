@@ -235,7 +235,7 @@ mod test {
     use serde_yaml::to_string;
 
     #[test]
-    fn test_replace_variables() -> Result<()> {
+    fn test_replace_variables_1() -> Result<()> {
         let ast = parse(
             r#"from employees
     derive [                                         # This adds columns / variables.
@@ -266,6 +266,11 @@ mod test {
                            - Ident: benefits_cost
         "###);
 
+        Ok(())
+    }
+
+    #[test]
+    fn test_replace_variables_2() -> Result<()> {
         let mut fold = ReplaceVariables::new();
         let ast = parse(
             r#"
@@ -568,7 +573,7 @@ derive [
     }
 
     #[test]
-    fn test_materialize() -> Result<()> {
+    fn test_materialize_1() -> Result<()> {
         let pipeline = parse(
             r#"
 func count x = s"count({x})"
@@ -609,7 +614,11 @@ aggregate [
                     assigns: []
         "###
         );
+        Ok(())
+    }
 
+    #[test]
+    fn test_materialize_2() -> Result<()> {
         let ast = parse(
             r#"
 from employees
@@ -634,7 +643,11 @@ take 20
 "#,
         )?;
         assert_yaml_snapshot!(materialize(ast)?);
+        Ok(())
+    }
 
+    #[test]
+    fn test_materialize_3() -> Result<()> {
         let ast = parse(
             r#"
     func lag_day x = s"lag_day_todo({x})"
