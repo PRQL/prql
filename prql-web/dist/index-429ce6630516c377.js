@@ -334,4 +334,3 @@ async function init(input) {
 }
 
 export default init;
-
