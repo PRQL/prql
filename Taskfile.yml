@@ -1,0 +1,8 @@
+version: "3"
+
+tasks:
+  install-dev-tools:
+    desc: Install tools for PRQL development.
+    cmds:
+      - cargo install cargo-insta trunk
+      - rustup target add wasm32-unknown-unknown
