@@ -41,6 +41,12 @@ jobs:
         uses: actions/checkout@v2
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v1
+      - name: 🔗 Setup rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          target: wasm32-unknown-unknown
+          toolchain: stable
       - uses: jetli/trunk-action@v0.1.0
       - run: trunk build
         working-directory: ./prql-web
