@@ -348,7 +348,8 @@ Setting up a local dev environment is simple, thanks to the rust ecosystem:
 - That's it! Running `cargo test` should complete successfully.
 - For more advanced development; e.g. adjusting `insta` outputs or compiling for
   web, run the commands in [Taskfile.yml](Taskfile.yml), either with copy &
-  paste or by installing [Task](https://taskfile.dev/#/installation).
+  paste or by installing [Task](https://taskfile.dev/#/installation) and running
+  `task install-dev-tools`.
 - Any problems: post an issue and we'll help.
 
 ## Inspired by
@@ -371,7 +372,7 @@ Setting up a local dev environment is simple, thanks to the rust ecosystem:
 - Julia's [DataPipes.jl](https://gitlab.com/aplavin/DataPipes.jl) &
   [Chain.jl](https://github.com/jkrumbiegel/Chain.jl), which demonstrate how
   effective point-free pipelines can be, and how line-breaks can work as pipes.
-- [OCaml](https://ocaml.org/)'s elegant and simple syntax.
+- [OCaml](https://ocaml.org/), for its elegant and simple syntax.
 
 ## Similar projects
 
