@@ -6,3 +6,24 @@ tasks:
     cmds:
       - cargo install cargo-insta trunk
       - rustup target add wasm32-unknown-unknown
+      - task: suggest-vscode-extensions
+
+  suggest-vscode-extensions:
+    # Don't suggest anything if code isn't installed, or if the extension is installed.
+    status:
+      - '[ -n "which code" ]'
+      - code --list-extensions | grep prql
+      - code --list-extensions | grep matklad.rust-analyzer
+    cmds:
+      - |
+        echo "It looks like you have VSCode installed but don't have the recommended extensions.
+        Install them with:
+          
+          task install-vscode-extensions
+        "
+
+  install-vscode-extensions:
+    desc: Install recommended VSCode extensions.
+    cmds:
+      - code --install-extension prql.prql
+      - code --insntal-extension matklad.rust-analyzer
