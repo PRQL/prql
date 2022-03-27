@@ -1,0 +1,33 @@
+[package]
+description = "prql-web is an interface for exploring PRQL in the browser."
+edition = "2021"
+license = "Apache-2.0"
+name = "prql-web"
+repository = "https://github.com/max-sixty/prql"
+rust-version = "1.58.0"
+version = "0.1.0"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+prql = {path = "../prql", version = "0.1.0"}
+
+[target.'cfg(target_arch="wasm32")'.dependencies]
+console_error_panic_hook = {version = "0.1.1"}
+sycamore = {version = "0.7.1", features = ["experimental-builder-html"]}
+wasm-bindgen = {version = "0.2"}
+wasm-bindgen-test = {version = "0.2"}
+web-sys = {version = "0.3", features = [
+  'Document',
+  'console',
+  'Element',
+  'HtmlElement',
+  'Node',
+  'Window',
+]}
+wee_alloc = {version = "^0.4.2"}
+
+[dev-dependencies]
+insta = "^1.13"
+similar = "^2.1"
