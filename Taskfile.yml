@@ -19,8 +19,8 @@ tasks:
     silent: true
     cmds:
       - |
-        echo "It looks like you have VSCode installed but don't have the recommended extensions of 
-        - prql 
+        echo "It looks like you have VSCode installed but don't have the recommended extensions of
+        - prql
         - rust-analyzer
 
         Install them with:
