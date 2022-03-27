@@ -474,7 +474,7 @@ impl TryFrom<Item> for Expr {
                         .map(|x| x.to_string())
                         // Currently a hack, but maybe OK, since we don't
                         // need to parse every single expression into sqlparser ast.
-                        .join("  "),
+                        .join(" "),
                 )))
             }
             Item::String(ident) => Ok(Expr::Value(sqlparser::ast::Value::SingleQuotedString(
@@ -484,7 +484,6 @@ impl TryFrom<Item> for Expr {
             // then convert to Expr. We can't use the `Terms` code above
             // since we don't want to intersperse with spaces.
             Item::SString(s_string_items) => {
-                // return Ok(Expr::Identifier(sqlparser::ast::Ident::new("hello")));
                 let string = s_string_items
                     .into_iter()
                     .map(|s_string_item| match s_string_item {
