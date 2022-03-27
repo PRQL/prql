@@ -398,3 +398,12 @@ Setting up a local dev environment is simple, thanks to the rust ecosystem:
   which is very different to this proposal.
 
 > If any of these descriptions can be improved, please feel free to PR changes.
+
+## Our contributors
+
+Many thanks to those who've made our progress possible:
+
+<!-- markdownlint-disable MD033 -->
+<a href="https://github.com/max-sixty/prql/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=max-sixty/prql" />
+</a>
