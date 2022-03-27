@@ -345,7 +345,7 @@ in advance.
 Setting up a local dev environment is simple, thanks to the rust ecosystem:
 
 - Install [`rustup` & `cargo`](https://doc.rust-lang.org/cargo/getting-started/installation.html).
-- That's it! Running `cargo test` should run successfully.
+- That's it! Running `cargo test` should complete successfully.
 - For more advanced development; e.g. adjusting `insta` outputs or compiling for
   web, run the commands in [Taskfile.yml](Taskfile.yml), either with copy &
   paste or by installing [Task](https://taskfile.dev/#/installation).
