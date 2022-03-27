@@ -193,7 +193,7 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Item>> {
                     let parsed = ast_of_parse_tree(pair.into_inner())?;
 
                     let (value, func_curries) = (parsed.split_first())
-                        .context("empty inline pipeline?")?; 
+                        .context("empty inline pipeline?")?;
 
                     let functions = func_curries.iter().cloned().map(|x| x.into_func_call()).try_collect()?;
 
