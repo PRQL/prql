@@ -43,3 +43,4 @@ jobs:
         uses: Swatinem/rust-cache@v1
       - uses: jetli/trunk-action@v0.1.0
       - run: trunk build
+        working-directory: ./prql-web
