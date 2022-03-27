@@ -18,7 +18,7 @@ tasks:
       - |
         echo "It looks like you have VSCode installed but don't have the recommended extensions.
         Install them with:
-          
+
           task install-vscode-extensions
         "
 
