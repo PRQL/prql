@@ -1,3 +1,5 @@
+#![cfg(target_arch = "wasm32")]
+
 // Toy example at the moment.
 
 #[cfg(feature = "wee_alloc")]
