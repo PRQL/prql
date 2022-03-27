@@ -1,4 +1,13 @@
+# Give new contributors an easy way to get everything they need, assuming they have `cargo` and `Taskfile`.
+# This may be somewhat over-engineered.
+
 version: "3"
+
+vars:
+  vscode_extensions: |
+    prql.prql
+    matklad.rust-analyzer
+    mitsuhiko.insta
 
 tasks:
   install-dev-tools:
@@ -11,25 +20,32 @@ tasks:
 
   suggest-vscode-extensions:
     desc: Check and suggest VSCode extensions.
-    # Don't suggest anything if code isn't installed, or if the extensions are installed.
+    vars:
+      extensions:
+        # List extensions, or just return true if we can't find `code`.
+        sh: which code && code --list-extensions || true
+      missing_extensions: |
+        {{ range ( .vscode_extensions | trim | splitLines ) -}}
+          {{ if and $.extensions (not (contains . $.extensions)) }}❌ {{.}} {{else}}✅ {{.}} {{ end }}
+        {{ end -}}
     status:
-      - '[ -n "which code" ]'
-      - code --list-extensions | grep prql
-      - code --list-extensions | grep matklad.rust-analyzer
+      # If vscode isn't installed, or there are no missing extensions, return 0 and exit early.
+      - '[ ! -x "$(which code)" ] || {{ not (contains "❌" .missing_extensions) }}'
     silent: true
     cmds:
       - |
-        echo "It looks like you have VSCode installed but don't have the recommended extensions of
-        - prql
-        - rust-analyzer
+        echo "It looks like VSCode is installed but doesn't have all recommended extensions installed:
+        {{ .missing_extensions }}
 
         Install them with:
 
           task install-vscode-extensions
-        "
+          "
 
   install-vscode-extensions:
     desc: Install recommended VSCode extensions.
     cmds:
-      - code --install-extension prql.prql
-      - code --install-extension matklad.rust-analyzer
+      - |
+        {{ range ( .vscode_extensions | trim | splitLines ) -}}
+          code --install-extension {{.}}
+        {{ end -}}
