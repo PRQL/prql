@@ -3,6 +3,7 @@
 [![GitHub CI Status](https://img.shields.io/github/workflow/status/max-sixty/prql/tests?logo=github&style=for-the-badge)](https://github.com/max-sixty/prql/actions?query=workflow:tests)
 [![Discord](https://img.shields.io/discord/936728116712316989?style=for-the-badge)](https://discord.gg/eQcfaCmsNc)
 [![docs.rs](https://img.shields.io/docsrs/prql?style=for-the-badge)](https://docs.rs/prql/)
+[![GitHub contributors](https://img.shields.io/github/contributors/max-sixty/prql?style=for-the-badge)](https://github.com/max-sixty/prql/graphs/contributors)
 [![Stars](https://img.shields.io/github/stars/max-sixty/prql?style=for-the-badge)](https://github.com/max-sixty/prql/stargazers)
 
 **P**ipelined **R**elational **Q**uery **L**anguage, pronounced "Prequel".
@@ -350,6 +351,8 @@ Setting up a local dev environment is simple, thanks to the rust ecosystem:
   web, run the commands in [Taskfile.yml](Taskfile.yml), either with copy &
   paste or by installing [Task](https://taskfile.dev/#/installation) and running
   `task install-dev-tools`.
+- For quick contributions, hit `.` in GitHub to launch a [github.dev
+  instance](https://github.dev/max-sixty/prql).
 - Any problems: post an issue and we'll help.
 
 ## Inspired by
@@ -403,7 +406,4 @@ Setting up a local dev environment is simple, thanks to the rust ecosystem:
 
 Many thanks to those who've made our progress possible:
 
-<!-- markdownlint-disable MD033 -->
-<a href="https://github.com/max-sixty/prql/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=max-sixty/prql" />
-</a>
+[![Contributors](https://contrib.rocks/image?repo=max-sixty/prql)](https://github.com/max-sixty/prql/graphs/contributors)
