@@ -1048,4 +1048,33 @@ take 20
         )?);
         Ok(())
     }
+
+    #[test]
+    fn test_parse_sql_parameters() -> Result<()> {
+        assert_yaml_snapshot!(parse(r#"
+        from mytable
+        filter [
+            first_name = $1,
+            last_name = $2.name
+        ]
+        "#)?, @r###"
+        ---
+        Query:
+          items:
+            - Pipeline:
+                - From:
+                    name: mytable
+                    alias: ~
+                - Filter:
+                    - Expr:
+                        - Ident: first_name
+                        - Raw: "="
+                        - Ident: $1
+                    - Expr:
+                        - Ident: last_name
+                        - Raw: "="
+                        - Ident: $2.name
+        "###);
+        Ok(())
+    }
 }
