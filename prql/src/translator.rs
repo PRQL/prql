@@ -10,7 +10,7 @@
 // necessary.
 use super::ast::*;
 use super::utils::*;
-use anyhow::{anyhow, bail, ensure, Result};
+use anyhow::{anyhow, bail, Result};
 use itertools::Itertools;
 use sqlformat::{format, FormatOptions, QueryParams};
 use sqlparser::ast::{
@@ -215,16 +215,13 @@ fn sql_query_of_atomic_pipeline(pipeline: &Pipeline) -> Result<sql_ast::Query> {
                 let use_equi_join = on.iter().all(|x| matches!(x, Item::Ident(_)));
 
                 let constraint = if use_equi_join {
-                    ensure!(matches!(*side, JoinSide::Inner), "Only inner joins are supported when supplying a simple list of columns; got `{side:?}` for `{on:?}`");
                     JoinConstraint::Using(
                         on.iter()
                             .map(|x| x.clone().try_into())
                             .collect::<Result<Vec<_>>>()?,
                     )
                 } else {
-                    Item::Expr(on.to_vec())
-                        .try_into()
-                        .map(JoinConstraint::On)?
+                    Item::Expr(on.to_vec()).try_into().map(JoinConstraint::On)?
                 };
 
                 Ok(Join {
