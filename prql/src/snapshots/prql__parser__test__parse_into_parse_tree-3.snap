@@ -1,5 +1,5 @@
 ---
-source: src/parser.rs
+source: prql/src/parser.rs
 expression: "parse_tree_of_str(\"aggregate by:[title, country] [sum salary]\",\n                  Rule::transformation)?"
 ---
 [
@@ -21,11 +21,11 @@ expression: "parse_tree_of_str(\"aggregate by:[title, country] [sum salary]\",\n
                 inner: [],
             },
             Pair {
-                rule: named_arg,
+                rule: named_expr_simple,
                 span: Span {
-                    str: "by:[title, country]",
+                    str: "by:[title, country] ",
                     start: 10,
-                    end: 29,
+                    end: 30,
                 },
                 inner: [
                     Pair {
@@ -38,23 +38,23 @@ expression: "parse_tree_of_str(\"aggregate by:[title, country] [sum salary]\",\n
                         inner: [],
                     },
                     Pair {
-                        rule: list,
+                        rule: expr_simple,
                         span: Span {
-                            str: "[title, country]",
+                            str: "[title, country] ",
                             start: 13,
-                            end: 29,
+                            end: 30,
                         },
                         inner: [
                             Pair {
-                                rule: named_expr,
+                                rule: list,
                                 span: Span {
-                                    str: "title",
-                                    start: 14,
-                                    end: 19,
+                                    str: "[title, country]",
+                                    start: 13,
+                                    end: 29,
                                 },
                                 inner: [
                                     Pair {
-                                        rule: expr,
+                                        rule: named_expr,
                                         span: Span {
                                             str: "title",
                                             start: 14,
@@ -62,28 +62,28 @@ expression: "parse_tree_of_str(\"aggregate by:[title, country] [sum salary]\",\n
                                         },
                                         inner: [
                                             Pair {
-                                                rule: ident,
+                                                rule: expr,
                                                 span: Span {
                                                     str: "title",
                                                     start: 14,
                                                     end: 19,
                                                 },
-                                                inner: [],
+                                                inner: [
+                                                    Pair {
+                                                        rule: ident,
+                                                        span: Span {
+                                                            str: "title",
+                                                            start: 14,
+                                                            end: 19,
+                                                        },
+                                                        inner: [],
+                                                    },
+                                                ],
                                             },
                                         ],
                                     },
-                                ],
-                            },
-                            Pair {
-                                rule: named_expr,
-                                span: Span {
-                                    str: "country",
-                                    start: 21,
-                                    end: 28,
-                                },
-                                inner: [
                                     Pair {
-                                        rule: expr,
+                                        rule: named_expr,
                                         span: Span {
                                             str: "country",
                                             start: 21,
@@ -91,13 +91,23 @@ expression: "parse_tree_of_str(\"aggregate by:[title, country] [sum salary]\",\n
                                         },
                                         inner: [
                                             Pair {
-                                                rule: ident,
+                                                rule: expr,
                                                 span: Span {
                                                     str: "country",
                                                     start: 21,
                                                     end: 28,
                                                 },
-                                                inner: [],
+                                                inner: [
+                                                    Pair {
+                                                        rule: ident,
+                                                        span: Span {
+                                                            str: "country",
+                                                            start: 21,
+                                                            end: 28,
+                                                        },
+                                                        inner: [],
+                                                    },
+                                                ],
                                             },
                                         ],
                                     },
@@ -165,13 +175,23 @@ expression: "parse_tree_of_str(\"aggregate by:[title, country] [sum salary]\",\n
                                                                 inner: [],
                                                             },
                                                             Pair {
-                                                                rule: ident,
+                                                                rule: named_term_simple,
                                                                 span: Span {
                                                                     str: "salary",
                                                                     start: 35,
                                                                     end: 41,
                                                                 },
-                                                                inner: [],
+                                                                inner: [
+                                                                    Pair {
+                                                                        rule: ident,
+                                                                        span: Span {
+                                                                            str: "salary",
+                                                                            start: 35,
+                                                                            end: 41,
+                                                                        },
+                                                                        inner: [],
+                                                                    },
+                                                                ],
                                                             },
                                                         ],
                                                     },

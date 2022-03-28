@@ -1,5 +1,5 @@
 ---
-source: src/parser.rs
+source: prql/src/parser.rs
 expression: "parse_tree_of_str(\"(salary | percentile 50)\", Rule::inline_pipeline)?"
 ---
 [
@@ -48,13 +48,23 @@ expression: "parse_tree_of_str(\"(salary | percentile 50)\", Rule::inline_pipeli
                         inner: [],
                     },
                     Pair {
-                        rule: number,
+                        rule: named_term_simple,
                         span: Span {
                             str: "50",
                             start: 21,
                             end: 23,
                         },
-                        inner: [],
+                        inner: [
+                            Pair {
+                                rule: number,
+                                span: Span {
+                                    str: "50",
+                                    start: 21,
+                                    end: 23,
+                                },
+                                inner: [],
+                            },
+                        ],
                     },
                 ],
             },

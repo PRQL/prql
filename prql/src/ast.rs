@@ -15,7 +15,6 @@ pub enum Item {
     String(String),
     Raw(String),
     NamedExpr(NamedExpr),
-    NamedArg(NamedArg),
     Query(Query),
     Pipeline(Pipeline),
     // Currently this is separate from `Pipeline`, but we could unify them at
@@ -41,10 +40,10 @@ pub struct Query {
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub struct ListItem(pub NamedExpr);
+pub struct ListItem(pub Item);
 
 impl ListItem {
-    pub fn into_inner(self) -> NamedExpr {
+    pub fn into_inner(self) -> Item {
         self.0
     }
 }
@@ -57,12 +56,12 @@ impl ListItem {
 // `Items`
 pub enum Transformation {
     From(TableRef),
-    Select(Vec<NamedExpr>),
+    Select(Vec<Item>),
     Filter(Filter),
-    Derive(Vec<NamedExpr>),
+    Derive(Vec<Item>),
     Aggregate {
         by: Vec<Item>,
-        select: Vec<NamedExpr>,
+        select: Vec<Item>,
     },
     Sort(Vec<Item>),
     Take(i64),
@@ -94,7 +93,7 @@ impl Transformation {
 pub struct FuncDef {
     pub name: Ident,
     pub positional_params: Vec<Ident>,
-    pub named_params: Vec<NamedArg>,
+    pub named_params: Vec<NamedExpr>,
     pub body: Box<Item>,
 }
 
@@ -103,7 +102,7 @@ pub struct FuncDef {
 pub struct FuncCall {
     pub name: String,
     pub args: Vec<Item>,
-    pub named_args: Vec<NamedArg>,
+    pub named_args: Vec<NamedExpr>,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
@@ -118,49 +117,15 @@ pub struct Table {
     pub pipeline: Pipeline,
 }
 
-// We use `NamedArg` for both the FuncCall and the function parameter. They're
-// very similar, so it's fine; though we could split them out if that became
-// helpful.
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub struct NamedArg {
-    pub name: Ident,
-    pub arg: Box<Item>,
-}
-
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct NamedExpr {
-    pub alias: Option<Ident>,
+    pub name: Ident,
     pub expr: Box<Item>,
 }
 
 impl NamedExpr {
-    pub fn unnamed(expr: Item) -> Self {
-        NamedExpr {
-            alias: None,
-            expr: Box::new(expr),
-        }
-    }
-
-    /// Almost all function parameters and list items are wrapped into NamedExpr, which
-    /// can be passed either to this function or to into_list_with_names.
-    pub fn discard_name(self) -> Result<Item> {
-        if self.alias.is_some() {
-            bail!("Cannot use alias for: {self:?}")
-        }
-        Ok(*self.expr)
-    }
-
-    /// Often we don't care whether a List or single item is passed; e.g.
-    /// `select x` vs `select [x, y]`. This equalizes them both to a vec of
-    /// expression, including unnesting any ListItems.
-    pub fn coerce_to_named_exprs(self) -> Vec<NamedExpr> {
-        match self {
-            NamedExpr { alias: None, expr } => match *expr {
-                Item::List(items) => items.into_iter().map(|x| x.into_inner()).collect(),
-                x => vec![NamedExpr::unnamed(x)],
-            },
-            n_expr => vec![n_expr],
-        }
+    pub fn unnamed(expr: Item) -> Item {
+        expr
     }
 }
 
@@ -195,14 +160,11 @@ impl Item {
     /// For lists that only have one item in each ListItem this returns a Vec of
     /// those terms. (e.g. `[1, a b]` but not `[1 + 2]`, because `+` in an
     /// operator and so will create an `Items` for each of `1` & `2`)
-    pub fn into_inner_list_single_items(self) -> Result<Vec<Item>> {
-        match self {
-            Item::List(items) => Ok(items
-                .into_iter()
-                .map(|list_item| *list_item.into_inner().expr)
-                .collect()),
-            _ => Err(anyhow!("Expected a list of single items, got {self:?}")),
-        }
+    pub fn into_inner_list_items(self) -> Result<Vec<Item>> {
+        Ok(match self {
+            Item::List(items) => items.into_iter().map(|x| x.into_inner()).collect(),
+            _ => bail!("Expected a list of single items, got {self:?}"),
+        })
     }
 
     /// Make a List from a vec of Items
@@ -215,12 +177,29 @@ impl Item {
         )
     }
 
+    /// Return an error if this is named expression.
+    pub fn discard_name(self) -> Result<Item> {
+        if let Item::NamedExpr(expr) = self {
+            Err(anyhow!("Cannot use alias for: {expr:?}"))
+        } else {
+            Ok(self)
+        }
+    }
+
+    pub fn into_name_and_expr(self) -> (Option<Ident>, Item) {
+        if let Item::NamedExpr(expr) = self {
+            (Some(expr.name), *expr.expr)
+        } else {
+            (None, self)
+        }
+    }
+
     /// Often we don't care whether a List or single item is passed; e.g.
     /// `select x` vs `select [x, y]`. This equalizes them both to a vec of
     /// Item-ss.
     pub fn coerce_to_items(self) -> Vec<Item> {
         match self {
-            Item::List(items) => items.into_iter().map(|x| *x.into_inner().expr).collect(),
+            Item::List(items) => items.into_iter().map(|x| x.into_inner()).collect(),
             x => vec![x],
         }
     }

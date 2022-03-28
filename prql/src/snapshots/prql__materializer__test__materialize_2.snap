@@ -14,21 +14,23 @@ Query:
                 - Raw: "="
                 - String: USA
         - Derive:
-            - alias: gross_salary
-              expr:
-                Expr:
-                  - Ident: salary
-                  - Raw: +
-                  - Ident: payroll_tax
-            - alias: gross_cost
-              expr:
-                Expr:
-                  - Expr:
-                      - Ident: salary
-                      - Raw: +
-                      - Ident: payroll_tax
-                  - Raw: +
-                  - Ident: benefits_cost
+            - NamedExpr:
+                name: gross_salary
+                expr:
+                  Expr:
+                    - Ident: salary
+                    - Raw: +
+                    - Ident: payroll_tax
+            - NamedExpr:
+                name: gross_cost
+                expr:
+                  Expr:
+                    - Expr:
+                        - Ident: salary
+                        - Raw: +
+                        - Ident: payroll_tax
+                    - Raw: +
+                    - Ident: benefits_cost
         - Filter:
             - Expr:
                 - Expr:
@@ -45,70 +47,62 @@ Query:
               - Ident: title
               - Ident: country
             select:
-              - alias: ~
-                expr:
-                  SString:
-                    - String: AVG(
-                    - Expr:
-                        Ident: salary
-                    - String: )
-              - alias: ~
-                expr:
-                  SString:
-                    - String: SUM(
-                    - Expr:
-                        Ident: salary
-                    - String: )
-              - alias: ~
-                expr:
-                  SString:
-                    - String: AVG(
-                    - Expr:
-                        Expr:
-                          - Ident: salary
-                          - Raw: +
-                          - Ident: payroll_tax
-                    - String: )
-              - alias: ~
-                expr:
-                  SString:
-                    - String: SUM(
-                    - Expr:
-                        Expr:
-                          - Ident: salary
-                          - Raw: +
-                          - Ident: payroll_tax
-                    - String: )
-              - alias: ~
-                expr:
-                  SString:
-                    - String: AVG(
-                    - Expr:
-                        Expr:
-                          - Expr:
-                              - Ident: salary
-                              - Raw: +
-                              - Ident: payroll_tax
-                          - Raw: +
-                          - Ident: benefits_cost
-                    - String: )
-              - alias: sum_gross_cost
-                expr:
-                  SString:
-                    - String: SUM(
-                    - Expr:
-                        Expr:
-                          - Expr:
-                              - Ident: salary
-                              - Raw: +
-                              - Ident: payroll_tax
-                          - Raw: +
-                          - Ident: benefits_cost
-                    - String: )
-              - alias: ct
-                expr:
-                  SString:
-                    - String: COUNT(*)
+              - SString:
+                  - String: AVG(
+                  - Expr:
+                      Ident: salary
+                  - String: )
+              - SString:
+                  - String: SUM(
+                  - Expr:
+                      Ident: salary
+                  - String: )
+              - SString:
+                  - String: AVG(
+                  - Expr:
+                      Expr:
+                        - Ident: salary
+                        - Raw: +
+                        - Ident: payroll_tax
+                  - String: )
+              - SString:
+                  - String: SUM(
+                  - Expr:
+                      Expr:
+                        - Ident: salary
+                        - Raw: +
+                        - Ident: payroll_tax
+                  - String: )
+              - SString:
+                  - String: AVG(
+                  - Expr:
+                      Expr:
+                        - Expr:
+                            - Ident: salary
+                            - Raw: +
+                            - Ident: payroll_tax
+                        - Raw: +
+                        - Ident: benefits_cost
+                  - String: )
+              - NamedExpr:
+                  name: sum_gross_cost
+                  expr:
+                    SString:
+                      - String: SUM(
+                      - Expr:
+                          Expr:
+                            - Expr:
+                                - Ident: salary
+                                - Raw: +
+                                - Ident: payroll_tax
+                            - Raw: +
+                            - Ident: benefits_cost
+                      - String: )
+              - NamedExpr:
+                  name: ct
+                  expr:
+                    SString:
+                      - String: COUNT(*)
         - Sort:
             - Ident: sum_gross_cost
         - Filter:

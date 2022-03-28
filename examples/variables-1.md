@@ -2,8 +2,8 @@
 from employees
 filter country = "USA"                           # Each line transforms the previous result.
 derive [                                         # This adds columns / variables.
-  gross_salary ~ salary + payroll_tax,
-  gross_cost ~   gross_salary + benefits_cost     # Variables can use other variables.
+  gross_salary: salary + payroll_tax,
+  gross_cost:   gross_salary + benefits_cost     # Variables can use other variables.
 ]
 filter gross_cost > 0
 aggregate by:[title, country] [                  # `by` are the columns to group by.
@@ -12,8 +12,8 @@ aggregate by:[title, country] [                  # `by` are the columns to group
     average gross_salary,
     sum     gross_salary,
     average gross_cost,
-    sum_gross_cost ~ sum gross_cost,
-    ct ~ count,
+    sum_gross_cost: sum gross_cost,
+    ct: count,
 ]
 sort sum_gross_cost
 filter ct > 200

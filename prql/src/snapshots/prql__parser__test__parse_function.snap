@@ -1,5 +1,5 @@
 ---
-source: src/parser.rs
+source: prql/src/parser.rs
 expression: "parse_tree_of_str(\"func plus_one x = x + 1\", Rule::func_def)?"
 ---
 [
@@ -29,13 +29,23 @@ expression: "parse_tree_of_str(\"func plus_one x = x + 1\", Rule::func_def)?"
                 },
                 inner: [
                     Pair {
-                        rule: ident,
+                        rule: named_term_simple,
                         span: Span {
                             str: "x",
                             start: 14,
                             end: 15,
                         },
-                        inner: [],
+                        inner: [
+                            Pair {
+                                rule: ident,
+                                span: Span {
+                                    str: "x",
+                                    start: 14,
+                                    end: 15,
+                                },
+                                inner: [],
+                            },
+                        ],
                     },
                 ],
             },

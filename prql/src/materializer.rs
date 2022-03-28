@@ -42,9 +42,7 @@ impl ReplaceVariables {
         }
     }
     fn add_variables(&mut self, expr: NamedExpr) -> &Self {
-        if let Some(alias) = expr.alias {
-            self.variables.insert(alias, *expr.expr);
-        }
+        self.variables.insert(expr.name, *expr.expr);
         self
     }
 }
@@ -78,8 +76,8 @@ impl AstFold for ReplaceVariables {
 
         if let Transformation::Aggregate { select, .. } = transformation {
             for item in select.iter() {
-                if let Some(alias) = &item.alias {
-                    self.variables.remove(alias);
+                if let Some(named) = item.as_named_expr() {
+                    self.variables.remove(&named.name);
                 }
             }
         }
@@ -139,12 +137,12 @@ impl RunFunctions {
                 // Put the value of the named arg if it's there; otherwise use
                 // the default (which is sorted on `param.arg`).
                 .map_or_else(
-                    || (*param.arg).clone(),
-                    |named_arg| *(named_arg.arg).clone(),
+                    || (*param.expr).clone(),
+                    |named_arg| *(named_arg.expr).clone(),
                 );
 
             NamedExpr {
-                alias: Some(param.name.clone()),
+                name: param.name.clone(),
                 expr: Box::new(value),
             }
         });
@@ -154,7 +152,7 @@ impl RunFunctions {
         let mut replace_variables = ReplaceVariables::new();
         for (arg, arg_call) in zip(func.positional_params.iter(), func_call.args.iter()) {
             replace_variables.add_variables(NamedExpr {
-                alias: Some(arg.clone()),
+                name: arg.clone(),
                 expr: Box::new(arg_call.clone()),
             });
         }
@@ -192,7 +190,7 @@ impl AstFold for RunFunctions {
             named_args: func_call
                 .named_args
                 .into_iter()
-                .map(|x| self.fold_named_arg(x))
+                .map(|x| self.fold_named_expr(x))
                 .try_collect()?,
         };
 
@@ -256,8 +254,8 @@ mod test {
         let ast = parse(
             r#"from employees
     derive [                                         # This adds columns / variables.
-      gross_salary ~ salary + payroll_tax,
-      gross_cost ~   gross_salary + benefits_cost     # Variables can use other variables.
+      gross_salary: salary + payroll_tax,
+      gross_cost:   gross_salary + benefits_cost     # Variables can use other variables.
     ]
     "#,
         )?;
@@ -270,17 +268,17 @@ mod test {
             &to_string(&fold.fold_item(ast)?)?
         ),
         @r###"
-        @@ -15,6 +15,9 @@
-                     - alias: gross_cost
-                       expr:
-                         Expr:
-        -                  - Ident: gross_salary
-        +                  - Expr:
-        +                      - Ident: salary
-        +                      - Raw: +
-        +                      - Ident: payroll_tax
-                           - Raw: +
-                           - Ident: benefits_cost
+        @@ -17,6 +17,9 @@
+                         name: gross_cost
+                         expr:
+                           Expr:
+        -                    - Ident: gross_salary
+        +                    - Expr:
+        +                        - Ident: salary
+        +                        - Raw: +
+        +                        - Ident: payroll_tax
+                             - Raw: +
+                             - Ident: benefits_cost
         "###);
 
         Ok(())
@@ -294,8 +292,8 @@ mod test {
 from employees
 filter country = "USA"                           # Each line transforms the previous result.
 derive [                                         # This adds columns / variables.
-  gross_salary ~ salary + payroll_tax,
-  gross_cost   ~ gross_salary + benefits_cost    # Variables can use other variables.
+  gross_salary: salary + payroll_tax,
+  gross_cost  : gross_salary + benefits_cost    # Variables can use other variables.
 ]
 filter gross_cost > 0
 aggregate by:[title, country] [                  # `by` are the columns to group by.
@@ -304,8 +302,8 @@ aggregate by:[title, country] [                  # `by` are the columns to group
     average gross_salary,
     sum     gross_salary,
     average gross_cost,
-    sum_gross_cost ~ sum gross_cost,
-    ct ~ count,
+    sum_gross_cost: sum gross_cost,
+    ct: count,
 ]
 sort sum_gross_cost
 filter sum_gross_cost > 200
@@ -352,13 +350,11 @@ aggregate [
                 - Aggregate:
                     by: []
                     select:
-                      - alias: ~
-                        expr:
-                          FuncCall:
-                            name: count
-                            args:
-                              - Ident: salary
-                            named_args: []
+                      - FuncCall:
+                          name: count
+                          args:
+                            - Ident: salary
+                          named_args: []
         "###);
 
         let mut fold = RunFunctions::new();
@@ -385,20 +381,20 @@ aggregate [
              - Pipeline:
                  - From:
                      name: employees
-        @@ -21,8 +10,8 @@
+        @@ -19,8 +8,8 @@
+                 - Aggregate:
+                     by: []
                      select:
-                       - alias: ~
-                         expr:
-        -                  FuncCall:
-        -                    name: count
-        -                    args:
-        -                      - Ident: salary
-        -                    named_args: []
-        +                  SString:
-        +                    - String: count(
-        +                    - Expr:
-        +                        Ident: salary
-        +                    - String: )
+        -              - FuncCall:
+        -                  name: count
+        -                  args:
+        -                    - Ident: salary
+        -                  named_args: []
+        +              - SString:
+        +                  - String: count(
+        +                  - Expr:
+        +                      Ident: salary
+        +                  - String: )
         "###);
 
         Ok(())
@@ -423,13 +419,11 @@ select (ret b)
               name: a
               alias: ~
           - Select:
-              - alias: ~
-                expr:
-                  FuncCall:
-                    name: ret
-                    args:
-                      - Ident: b
-                    named_args: []
+              - FuncCall:
+                  name: ret
+                  args:
+                    - Ident: b
+                  named_args: []
         "###);
 
         assert_yaml_snapshot!(materialize(ast)?.into_query()?.items[0], @r###"
@@ -439,20 +433,18 @@ select (ret b)
               name: a
               alias: ~
           - Select:
-              - alias: ~
-                expr:
-                  Expr:
-                    - Ident: b
-                    - Raw: /
-                    - SString:
-                        - String: lag_day_todo(
-                        - Expr:
-                            Ident: b
-                        - String: )
-                    - Raw: "-"
-                    - Raw: "1"
-                    - Raw: +
-                    - Ident: dividend_return
+              - Expr:
+                  - Ident: b
+                  - Raw: /
+                  - SString:
+                      - String: lag_day_todo(
+                      - Expr:
+                          Ident: b
+                      - String: )
+                  - Raw: "-"
+                  - Raw: "1"
+                  - Raw: +
+                  - Ident: dividend_return
         "###);
 
         Ok(())
@@ -465,7 +457,7 @@ select (ret b)
 func sum x = s"SUM({x})"
 
 from a
-aggregate [one ~ (foo | sum), two ~ (foo | sum)]
+aggregate [one: (foo | sum), two: (foo | sum)]
 "#,
         )?;
 
@@ -489,36 +481,37 @@ aggregate [one ~ (foo | sum), two ~ (foo | sum)]
              - Pipeline:
                  - From:
                      name: a
-        @@ -21,19 +10,15 @@
-                     select:
-                       - alias: one
-                         expr:
-        -                  InlinePipeline:
-        -                    value:
-        -                      Ident: foo
-        -                    functions:
-        -                      - name: sum
-        -                        args: []
-        -                        named_args: []
-        +                  SString:
-        +                    - String: SUM(
-        +                    - Expr:
-        +                        Ident: foo
-        +                    - String: )
-                       - alias: two
-                         expr:
-        -                  InlinePipeline:
-        -                    value:
-        -                      Ident: foo
-        -                    functions:
-        -                      - name: sum
-        -                        args: []
-        -                        named_args: []
-        +                  SString:
-        +                    - String: SUM(
-        +                    - Expr:
-        +                        Ident: foo
-        +                    - String: )
+        @@ -22,20 +11,16 @@
+                       - NamedExpr:
+                           name: one
+                           expr:
+        -                    InlinePipeline:
+        -                      value:
+        -                        Ident: foo
+        -                      functions:
+        -                        - name: sum
+        -                          args: []
+        -                          named_args: []
+        +                    SString:
+        +                      - String: SUM(
+        +                      - Expr:
+        +                          Ident: foo
+        +                      - String: )
+                       - NamedExpr:
+                           name: two
+                           expr:
+        -                    InlinePipeline:
+        -                      value:
+        -                        Ident: foo
+        -                      functions:
+        -                        - name: sum
+        -                          args: []
+        -                          named_args: []
+        +                    SString:
+        +                      - String: SUM(
+        +                      - Expr:
+        +                          Ident: foo
+        +                      - String: )
         "###);
 
         // Test it'll run the `sum foo` function first.
@@ -528,7 +521,7 @@ func sum x = s"SUM({x})"
 func plus_one x = x + 1
 
 from a
-aggregate [a ~ (sum foo | plus_one)]
+aggregate [a: (sum foo | plus_one)]
 "#,
         )?;
 
@@ -541,16 +534,17 @@ aggregate [a ~ (sum foo | plus_one)]
           - Aggregate:
               by: []
               select:
-                - alias: a
-                  expr:
-                    Expr:
-                      - SString:
-                          - String: SUM(
-                          - Expr:
-                              Ident: foo
-                          - String: )
-                      - Raw: +
-                      - Raw: "1"
+                - NamedExpr:
+                    name: a
+                    expr:
+                      Expr:
+                        - SString:
+                            - String: SUM(
+                            - Expr:
+                                Ident: foo
+                            - String: )
+                        - Raw: +
+                        - Raw: "1"
         "###);
 
         Ok(())
@@ -564,8 +558,8 @@ func add x to:1  = x + to
 
 from foo_table
 derive [
-  added         ~ add bar to:3,
-  added_default ~ add bar
+  added:         add bar to:3,
+  added_default: add bar
 ]
 "#,
         )?;
@@ -581,18 +575,20 @@ derive [
               name: foo_table
               alias: ~
           - Derive:
-              - alias: added
-                expr:
-                  Expr:
-                    - Ident: bar
-                    - Raw: +
-                    - Raw: "3"
-              - alias: added_default
-                expr:
-                  Expr:
-                    - Ident: bar
-                    - Raw: +
-                    - Raw: "1"
+              - NamedExpr:
+                  name: added
+                  expr:
+                    Expr:
+                      - Ident: bar
+                      - Raw: +
+                      - Raw: "3"
+              - NamedExpr:
+                  name: added_default
+                  expr:
+                    Expr:
+                      - Ident: bar
+                      - Raw: +
+                      - Raw: "1"
         "###);
 
         Ok(())
@@ -623,13 +619,11 @@ aggregate [
                 - Aggregate:
                     by: []
                     select:
-                      - alias: ~
-                        expr:
-                          SString:
-                            - String: count(
-                            - Expr:
-                                Ident: salary
-                            - String: )
+                      - SString:
+                          - String: count(
+                          - Expr:
+                              Ident: salary
+                          - String: )
         "###
         );
         Ok(())
@@ -642,8 +636,8 @@ aggregate [
 from employees
 filter country = "USA"                           # Each line transforms the previous result.
 derive [                                         # This adds columns / variables.
-  gross_salary ~ salary + payroll_tax,
-  gross_cost   ~ gross_salary + benefits_cost    # Variables can use other variables.
+  gross_salary: salary + payroll_tax,
+  gross_cost  : gross_salary + benefits_cost    # Variables can use other variables.
 ]
 filter gross_cost > 0
 aggregate by:[title, country] [                  # `by` are the columns to group by.
@@ -652,8 +646,8 @@ aggregate by:[title, country] [                  # `by` are the columns to group
     average gross_salary,
     sum     gross_salary,
     average gross_cost,
-    sum_gross_cost ~ sum gross_cost,
-    ct ~ count,
+    sum_gross_cost: sum gross_cost,
+    ct: count,
 ]
 sort sum_gross_cost
 filter sum_gross_cost > 200
@@ -675,10 +669,10 @@ take 20
 
     from prices
     derive [
-      return_total      ~ if_valid (ret prices_adj),
-      return_usd        ~ if_valid (ret prices_usd),
-      return_excess     ~ excess return_total,
-      return_usd_excess ~ excess return_usd,
+      return_total     : if_valid (ret prices_adj),
+      return_usd       : if_valid (ret prices_usd),
+      return_excess    : excess return_total,
+      return_usd_excess: excess return_usd,
     ]
     select [
       date,
@@ -701,10 +695,10 @@ take 20
             r#"
 from employees
 aggregate by:[emp_no] [
-  emp_salary ~ average salary
+  emp_salary: average salary
 ]
 aggregate by:[title] [
-  avg_salary ~ average emp_salary
+  avg_salary: average emp_salary
 ]
 "#,
         )?;
@@ -723,24 +717,26 @@ aggregate by:[title] [
                     by:
                       - Ident: emp_no
                     select:
-                      - alias: emp_salary
-                        expr:
-                          SString:
-                            - String: AVG(
-                            - Expr:
-                                Ident: salary
-                            - String: )
+                      - NamedExpr:
+                          name: emp_salary
+                          expr:
+                            SString:
+                              - String: AVG(
+                              - Expr:
+                                  Ident: salary
+                              - String: )
                 - Aggregate:
                     by:
                       - Ident: title
                     select:
-                      - alias: avg_salary
-                        expr:
-                          SString:
-                            - String: AVG(
-                            - Expr:
-                                Ident: emp_salary
-                            - String: )
+                      - NamedExpr:
+                          name: avg_salary
+                          expr:
+                            SString:
+                              - String: AVG(
+                              - Expr:
+                                  Ident: emp_salary
+                              - String: )
         "###);
 
         Ok(())

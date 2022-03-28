@@ -5,12 +5,12 @@
 from employees
 join salaries [emp_no]
 aggregate by:[emp_no, gender] [
-  emp_salary ~ average salary
+  emp_salary: average salary
 ]
 join dept_emp [emp_no]
 aggregate by:[dept_no, gender] [
-  salary_avg ~ average emp_salary,
-  salary_sd ~ stddev emp_salary,
+  salary_avg: average emp_salary,
+  salary_sd: stddev emp_salary,
 ]
 join departments [dept_no]
 select [dept_name, gender, salary_avg, salary_sd]

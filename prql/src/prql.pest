@@ -24,14 +24,14 @@ func_def = { "func" ~ ident ~ func_def_params ~ "=" ~ expr }
 // `named_arg`, then `x:y` will be parsed as `x` and then error on `:y`.
 // Possibly we can mandate whitespace to follow, but pest has annoying magic
 // which removes whitespace in non-atomic rules, so we'd need to explore that.
-func_def_params = { ( named_arg | ident )* }
+func_def_params = { ( named_term_simple | ident )* }
 table = { "table" ~ ident ~ "=" ~ "(" ~ NEWLINE* ~ pipeline ~ NEWLINE* ~ ")" }
 
 pipe = _{ NEWLINE+ | "|" }
 pipeline = { transformation ~ (pipe ~ transformation)* }
 
 // `ident` is the transformation name.
-transformation = { WHITESPACE* ~ ident ~ (named_arg | named_expr_simple)* }
+transformation = { WHITESPACE* ~ ident ~ named_expr_simple* }
 
 // We don't model this in the same way as a pipeline, since the first term isn't
 // a transformation. And it's somewhat related to our transformations being
@@ -70,8 +70,8 @@ ident = @{ ( ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "." | "_" )* ) }
 expr = !{ term ~ (operator ~ term)* }
 expr_simple = !{ term_simple ~ (operator ~ term_simple)* }
 
-func_call = { ident ~ (named_arg | term_simple)+ }
-func_curry = { ident ~ (named_arg | term_simple)* }
+func_call = { ident ~ (named_term_simple | term_simple)+ }
+func_curry = { ident ~ (named_term_simple | term_simple)* }
 
 term = _{ ( s_string | func_call | term_simple ) }
 term_simple = _{ ( s_string | ident | parenthesized_expr | list | number | string_literal | inline_pipeline ) }
@@ -106,11 +106,10 @@ operator = ${ "and" | "or" | "not" | "==" | "!=" | "=" | ">" | "<" | ">=" | "<="
 s_string = ${ "s" ~ PUSH(quote) ~ ( s_string_string | ( "{" ~ expr ~ "}" ))* ~ POP }
 s_string_string = { ( !( "\\" | PEEK | "{" ) ~ ANY )+ }
 
-// For assigns and table aliases
-named_expr = { (ident ~ "~")? ~ expr }
-named_expr_simple = { (ident ~ "~")? ~ expr_simple }
-// For function arguments
-named_arg = { ident ~ ":" ~ term_simple }
+// For assigns, table aliases and named arguments
+named_expr = { (ident ~ ":")? ~ expr }
+named_expr_simple = { (ident ~ ":")? ~ expr_simple }
+named_term_simple = { (ident ~ ":")? ~ term_simple }
 
 // We no longer use this, but keeping here for reference, as it was a useful
 // pattern for reducing nesting.

@@ -35,12 +35,6 @@ pub trait AstFold {
             pipeline: self.fold_pipeline(table.pipeline)?,
         })
     }
-    fn fold_named_arg(&mut self, named_arg: NamedArg) -> Result<NamedArg> {
-        Ok(NamedArg {
-            name: self.fold_ident(named_arg.name)?,
-            arg: Box::new(self.fold_item(*named_arg.arg)?),
-        })
-    }
     fn fold_filter(&mut self, filter: Filter) -> Result<Filter> {
         Ok(Filter(
             filter
@@ -95,12 +89,7 @@ pub fn fold_transformation<T: ?Sized + AstFold>(
     transformation: Transformation,
 ) -> Result<Transformation> {
     match transformation {
-        Transformation::Derive(assigns) => Ok(Transformation::Derive({
-            assigns
-                .into_iter()
-                .map(|alias| fold.fold_named_expr(alias))
-                .try_collect()?
-        })),
+        Transformation::Derive(assigns) => Ok(Transformation::Derive(fold.fold_items(assigns)?)),
         Transformation::From(table) => Ok(Transformation::From(fold.fold_table_ref(table)?)),
         Transformation::Filter(Filter(items)) => {
             Ok(Transformation::Filter(Filter(fold.fold_items(items)?)))
@@ -111,18 +100,10 @@ pub fn fold_transformation<T: ?Sized + AstFold>(
             with,
             on: fold.fold_items(on)?,
         }),
-        Transformation::Select(items) => Ok(Transformation::Select(
-            items
-                .into_iter()
-                .map(|x| fold.fold_named_expr(x))
-                .try_collect()?,
-        )),
+        Transformation::Select(items) => Ok(Transformation::Select(fold.fold_items(items)?)),
         Transformation::Aggregate { by, select } => Ok(Transformation::Aggregate {
             by: fold.fold_items(by)?,
-            select: select
-                .into_iter()
-                .map(|x| fold.fold_named_expr(x))
-                .try_collect()?,
+            select: fold.fold_items(select)?,
         }),
         // TODO: generalize? Or this never changes?
         Transformation::Take(_) => Ok(transformation),
@@ -141,7 +122,7 @@ pub fn fold_func_call<T: ?Sized + AstFold>(fold: &mut T, func_call: FuncCall) ->
         named_args: func_call
             .named_args
             .into_iter()
-            .map(|named_arg| fold.fold_named_arg(named_arg))
+            .map(|arg| fold.fold_named_expr(arg))
             .try_collect()?,
     })
 }
@@ -160,7 +141,7 @@ pub fn fold_item<T: ?Sized + AstFold>(fold: &mut T, item: Item) -> Result<Item> 
         Item::List(items) => Item::List(
             items
                 .into_iter()
-                .map(|list_item| fold.fold_named_expr(list_item.into_inner()).map(ListItem))
+                .map(|x| fold.fold_item(x.into_inner()).map(ListItem))
                 .try_collect()?,
         ),
         Item::Query(Query { items }) => Item::Query(Query {
@@ -181,7 +162,6 @@ pub fn fold_item<T: ?Sized + AstFold>(fold: &mut T, item: Item) -> Result<Item> 
                 .map(|t| fold.fold_transformation(t))
                 .try_collect()?,
         ),
-        Item::NamedArg(named_arg) => Item::NamedArg(fold.fold_named_arg(named_arg)?),
         Item::NamedExpr(named_expr) => Item::NamedExpr(fold.fold_named_expr(named_expr)?),
         Item::Transformation(transformation) => {
             Item::Transformation(fold.fold_transformation(transformation)?)
@@ -214,7 +194,7 @@ pub fn fold_func_def<T: ?Sized + AstFold>(fold: &mut T, function: FuncDef) -> Re
         named_params: function
             .named_params
             .into_iter()
-            .map(|named_param| fold.fold_named_arg(named_param))
+            .map(|named_param| fold.fold_named_expr(named_param))
             .try_collect()?,
         body: Box::new(fold.fold_item(*function.body)?),
     })
@@ -224,7 +204,7 @@ pub fn fold_named_expr<T: ?Sized + AstFold>(
     named_expr: NamedExpr,
 ) -> Result<NamedExpr> {
     Ok(NamedExpr {
-        alias: named_expr.alias.map(|a| fold.fold_ident(a)).transpose()?,
+        name: fold.fold_ident(named_expr.name)?,
         expr: Box::new(fold.fold_item(*named_expr.expr)?),
     })
 }

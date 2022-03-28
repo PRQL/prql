@@ -4,19 +4,19 @@
 from employees
 join salaries [emp_no]
 aggregate by:[emp_no, gender] [
-  emp_salary ~ average salary
+  emp_salary: average salary
 ]
 join dept_emp [emp_no]
 join dept_manager [
   (dept_manager.dept_no = dept_emp.dept_no) and s"(dept_emp.from_date, dept_emp.to_date) OVERLAPS (dept_manager.from_date, dept_manager.to_date)"
 ]
 aggregate by:[dept_manager.emp_no, gender] [
-  salary_avg ~ average emp_salary,
-  salary_sd ~ stddev emp_salary
+  salary_avg: average emp_salary,
+  salary_sd: stddev emp_salary
 ]
 derive [
-  mng_no ~ dept_manager.emp_no
+  mng_no: dept_manager.emp_no
 ]
 join employees [emp_no]
-derive [mng_name ~ s"employees.first_name || ' ' || employees.last_name"]
+derive [mng_name: s"employees.first_name || ' ' || employees.last_name"]
 select [mng_name, table_1.gender, salary_avg, salary_sd]

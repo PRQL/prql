@@ -1,22 +1,22 @@
 ---
-source: src/parser.rs
-expression: "parse_tree_of_str(r#\"[\n  gross_salary ~ salary + payroll_tax,\n  gross_cost   ~ gross_salary + benefits_cost\n]\"#,\n                  Rule::list)?"
+source: prql/src/parser.rs
+expression: "parse_tree_of_str(r#\"[\n  gross_salary: salary + payroll_tax,\n  gross_cost  : gross_salary + benefits_cost\n]\"#,\n                  Rule::list)?"
 ---
 [
     Pair {
         rule: list,
         span: Span {
-            str: "[\n  gross_salary ~ salary + payroll_tax,\n  gross_cost   ~ gross_salary + benefits_cost\n]",
+            str: "[\n  gross_salary: salary + payroll_tax,\n  gross_cost  : gross_salary + benefits_cost\n]",
             start: 0,
-            end: 88,
+            end: 86,
         },
         inner: [
             Pair {
                 rule: named_expr,
                 span: Span {
-                    str: "gross_salary ~ salary + payroll_tax",
+                    str: "gross_salary: salary + payroll_tax",
                     start: 4,
-                    end: 39,
+                    end: 38,
                 },
                 inner: [
                     Pair {
@@ -32,16 +32,16 @@ expression: "parse_tree_of_str(r#\"[\n  gross_salary ~ salary + payroll_tax,\n  
                         rule: expr,
                         span: Span {
                             str: "salary + payroll_tax",
-                            start: 19,
-                            end: 39,
+                            start: 18,
+                            end: 38,
                         },
                         inner: [
                             Pair {
                                 rule: ident,
                                 span: Span {
                                     str: "salary",
-                                    start: 19,
-                                    end: 25,
+                                    start: 18,
+                                    end: 24,
                                 },
                                 inner: [],
                             },
@@ -49,8 +49,8 @@ expression: "parse_tree_of_str(r#\"[\n  gross_salary ~ salary + payroll_tax,\n  
                                 rule: operator,
                                 span: Span {
                                     str: "+",
-                                    start: 26,
-                                    end: 27,
+                                    start: 25,
+                                    end: 26,
                                 },
                                 inner: [],
                             },
@@ -58,8 +58,8 @@ expression: "parse_tree_of_str(r#\"[\n  gross_salary ~ salary + payroll_tax,\n  
                                 rule: ident,
                                 span: Span {
                                     str: "payroll_tax",
-                                    start: 28,
-                                    end: 39,
+                                    start: 27,
+                                    end: 38,
                                 },
                                 inner: [],
                             },
@@ -70,17 +70,17 @@ expression: "parse_tree_of_str(r#\"[\n  gross_salary ~ salary + payroll_tax,\n  
             Pair {
                 rule: named_expr,
                 span: Span {
-                    str: "gross_cost   ~ gross_salary + benefits_cost",
-                    start: 43,
-                    end: 86,
+                    str: "gross_cost  : gross_salary + benefits_cost",
+                    start: 42,
+                    end: 84,
                 },
                 inner: [
                     Pair {
                         rule: ident,
                         span: Span {
                             str: "gross_cost",
-                            start: 43,
-                            end: 53,
+                            start: 42,
+                            end: 52,
                         },
                         inner: [],
                     },
@@ -88,16 +88,16 @@ expression: "parse_tree_of_str(r#\"[\n  gross_salary ~ salary + payroll_tax,\n  
                         rule: expr,
                         span: Span {
                             str: "gross_salary + benefits_cost",
-                            start: 58,
-                            end: 86,
+                            start: 56,
+                            end: 84,
                         },
                         inner: [
                             Pair {
                                 rule: ident,
                                 span: Span {
                                     str: "gross_salary",
-                                    start: 58,
-                                    end: 70,
+                                    start: 56,
+                                    end: 68,
                                 },
                                 inner: [],
                             },
@@ -105,8 +105,8 @@ expression: "parse_tree_of_str(r#\"[\n  gross_salary ~ salary + payroll_tax,\n  
                                 rule: operator,
                                 span: Span {
                                     str: "+",
-                                    start: 71,
-                                    end: 72,
+                                    start: 69,
+                                    end: 70,
                                 },
                                 inner: [],
                             },
@@ -114,8 +114,8 @@ expression: "parse_tree_of_str(r#\"[\n  gross_salary ~ salary + payroll_tax,\n  
                                 rule: ident,
                                 span: Span {
                                     str: "benefits_cost",
-                                    start: 73,
-                                    end: 86,
+                                    start: 71,
+                                    end: 84,
                                 },
                                 inner: [],
                             },

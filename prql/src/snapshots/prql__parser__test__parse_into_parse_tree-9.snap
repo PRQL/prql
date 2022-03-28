@@ -1,5 +1,5 @@
 ---
-source: src/parser.rs
+source: prql/src/parser.rs
 expression: "parse_tree_of_str(\"join side:left country [id=employee_id]\",\n                  Rule::transformation)?"
 ---
 [
@@ -21,11 +21,11 @@ expression: "parse_tree_of_str(\"join side:left country [id=employee_id]\",\n   
                 inner: [],
             },
             Pair {
-                rule: named_arg,
+                rule: named_expr_simple,
                 span: Span {
-                    str: "side:left",
+                    str: "side:left ",
                     start: 5,
-                    end: 14,
+                    end: 15,
                 },
                 inner: [
                     Pair {
@@ -38,13 +38,23 @@ expression: "parse_tree_of_str(\"join side:left country [id=employee_id]\",\n   
                         inner: [],
                     },
                     Pair {
-                        rule: ident,
+                        rule: expr_simple,
                         span: Span {
-                            str: "left",
+                            str: "left ",
                             start: 10,
-                            end: 14,
+                            end: 15,
                         },
-                        inner: [],
+                        inner: [
+                            Pair {
+                                rule: ident,
+                                span: Span {
+                                    str: "left",
+                                    start: 10,
+                                    end: 14,
+                                },
+                                inner: [],
+                            },
+                        ],
                     },
                 ],
             },

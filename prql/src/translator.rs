@@ -418,36 +418,22 @@ impl Filter {
     }
 }
 
-impl TryFrom<NamedExpr> for SelectItem {
-    type Error = anyhow::Error;
-    fn try_from(named_expr: NamedExpr) -> Result<Self> {
-        let expr = (*named_expr.expr).try_into()?;
-        if let Some(alias) = named_expr.alias {
-            Ok(SelectItem::ExprWithAlias {
-                alias: sql_ast::Ident {
-                    value: alias,
-                    quote_style: None,
-                },
-                expr,
-            })
-        } else {
-            Ok(SelectItem::UnnamedExpr(expr))
-        }
-    }
-}
-
 impl TryFrom<Item> for SelectItem {
     type Error = anyhow::Error;
     fn try_from(item: Item) -> Result<Self> {
-        match item {
+        Ok(match item {
             Item::SString(_) | Item::Ident(_) | Item::Raw(_) => {
-                Ok(SelectItem::UnnamedExpr(TryInto::<Expr>::try_into(item)?))
+                SelectItem::UnnamedExpr(TryInto::<Expr>::try_into(item)?)
             }
-            _ => Err(anyhow!(
-                "Can't convert to SelectItem at the moment; {:?}",
-                item
-            )),
-        }
+            Item::NamedExpr(named) => SelectItem::ExprWithAlias {
+                alias: sql_ast::Ident {
+                    value: named.name,
+                    quote_style: None,
+                },
+                expr: (*named.expr).try_into()?,
+            },
+            _ => bail!("Can't convert to SelectItem at the moment; {:?}", item),
+        })
     }
 }
 
@@ -517,7 +503,7 @@ impl TryFrom<Item> for Vec<Expr> {
         match item {
             Item::List(_) => Ok(item
                 // TODO: implement for non-single item ListItems
-                .into_inner_list_single_items()?
+                .into_inner_list_items()?
                 .into_iter()
                 .map(|x| x.try_into())
                 .try_collect()?),
@@ -614,11 +600,8 @@ SString:
     - Ident: title
     - Ident: country
     select:
-    - alias: ~
-      expr:
-        Expr:
-        - Ident: average
-        - Ident: salary
+    - Ident: average
+    - Ident: salary
     assigns: []
 - Sort:
     - Ident: title
@@ -648,11 +631,8 @@ SString:
         - Ident: title
         - Ident: country
         select:
-        - alias: ~
-          expr:
-            Expr:
-            - Ident: average
-            - Ident: salary
+          - Ident: average
+          - Ident: salary
         assigns: []
     - Sort:
         - Ident: title
@@ -681,22 +661,16 @@ SString:
         - Ident: title
         - Ident: country
         select:
-        - alias: ~
-          expr:
-            Expr:
-            - Ident: average
-            - Ident: salary
+        - Ident: average
+        - Ident: salary
         assigns: []
     - Aggregate:
         by:
         - Ident: title
         - Ident: country
         select:
-        - alias: ~
-          expr:
-            Expr:
-            - Ident: average
-            - Ident: salary
+        - Ident: average
+        - Ident: salary
         assigns: []
     - Sort:
         - Ident: sum_gross_cost
@@ -727,13 +701,11 @@ Query:
           - Ident: title
           - Ident: country
           select:
-          - alias: ~
-            expr:
-              SString:
-                - String: AVG(
-                - Expr:
-                    Ident: salary
-                - String: )
+          - SString:
+            - String: AVG(
+            - Expr:
+                Ident: salary
+            - String: )
           assigns: []
       - Sort:
           - Ident: title
@@ -776,14 +748,13 @@ Query:
                 - Aggregate:
                     by: []
                     select:
-                      - alias: ~
-                        expr:
-                          SString:
-                            - String: count(
-                            - Expr:
-                                Ident: salary
-                            - String: )
-                      - alias: sum_salary
+                    - SString:
+                        - String: count(
+                        - Expr:
+                            Ident: salary
+                        - String: )
+                    - NamedExpr:
+                        name: sum_salary
                         expr:
                           Ident: salary
                 - Filter:
@@ -842,8 +813,8 @@ Query:
 from employees
 filter country = "USA"                           # Each line transforms the previous result.
 derive [                                         # This adds columns / variables.
-  gross_salary ~ salary + payroll_tax,
-  gross_cost ~   gross_salary + benefits_cost    # Variables can use other variables.
+  gross_salary: salary + payroll_tax,
+  gross_cost:   gross_salary + benefits_cost    # Variables can use other variables.
 ]
 filter gross_cost > 0
 aggregate by:[title, country] [                  # `by` are the columns to group by.
@@ -852,8 +823,8 @@ aggregate by:[title, country] [                  # `by` are the columns to group
     average gross_salary,
     sum     gross_salary,
     average gross_cost,
-    sum_gross_cost ~ sum gross_cost,
-    ct ~ count,
+    sum_gross_cost: sum gross_cost,
+    ct: count,
 ]
 sort sum_gross_cost
 filter ct > 200
@@ -880,7 +851,7 @@ take 20
         table average_salaries = (
             from salaries
             aggregate by:country [
-                average_country_salary ~ average salary
+                average_country_salary: average salary
             ]
         )
         from newest_employees
@@ -949,23 +920,21 @@ Query:
           - Ident: title
           - Ident: country
           select:
-          - alias: ~
-            expr:
-              Expr:
-              - Ident: average
-              - Ident: salary
-          assigns: []
+          - SString:
+            - String: "AVG("
+            - Expr:
+                Ident: salary
+            - String: ")"
       - Aggregate:
           by:
           - Ident: title
           - Ident: country
           select:
-          - alias: ~
-            expr:
-              Expr:
-              - Ident: average
-              - Ident: salary
-          assigns: []
+          - SString:
+            - String: "AVG("
+            - Expr:
+                Ident: salary
+            - String: ")"
       - Sort:
           - Ident: sum_gross_cost
         "###,
@@ -982,7 +951,7 @@ Query:
           SELECT
             title,
             country,
-            average salary
+            AVG(salary)
           FROM
             table_0
           WHERE
@@ -995,7 +964,7 @@ Query:
           SELECT
             title,
             country,
-            average salary
+            AVG(salary)
           FROM
             table_1
           GROUP BY
@@ -1106,10 +1075,10 @@ join salaries [employees.employee_id=salaries.employee_id]
         // Alias on from
         let query: Item = parse(
             r###"
-            from e ~ employees
+            from e: employees
             join salaries side:left [salaries.emp_no = e.emp_no]
             aggregate by:[e.emp_no] [
-              emp_salary ~ average salary
+              emp_salary: average salary
             ]
             select [e.emp_no, emp_salary]
         "###,

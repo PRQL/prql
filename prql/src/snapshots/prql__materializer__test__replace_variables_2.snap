@@ -14,21 +14,23 @@ Query:
                 - Raw: "="
                 - String: USA
         - Derive:
-            - alias: gross_salary
-              expr:
-                Expr:
-                  - Ident: salary
-                  - Raw: +
-                  - Ident: payroll_tax
-            - alias: gross_cost
-              expr:
-                Expr:
-                  - Expr:
-                      - Ident: salary
-                      - Raw: +
-                      - Ident: payroll_tax
-                  - Raw: +
-                  - Ident: benefits_cost
+            - NamedExpr:
+                name: gross_salary
+                expr:
+                  Expr:
+                    - Ident: salary
+                    - Raw: +
+                    - Ident: payroll_tax
+            - NamedExpr:
+                name: gross_cost
+                expr:
+                  Expr:
+                    - Expr:
+                        - Ident: salary
+                        - Raw: +
+                        - Ident: payroll_tax
+                    - Raw: +
+                    - Ident: benefits_cost
         - Filter:
             - Expr:
                 - Expr:
@@ -45,69 +47,61 @@ Query:
               - Ident: title
               - Ident: country
             select:
-              - alias: ~
-                expr:
-                  FuncCall:
-                    name: average
-                    args:
-                      - Ident: salary
-                    named_args: []
-              - alias: ~
-                expr:
-                  FuncCall:
-                    name: sum
-                    args:
-                      - Ident: salary
-                    named_args: []
-              - alias: ~
-                expr:
-                  FuncCall:
-                    name: average
-                    args:
-                      - Expr:
-                          - Ident: salary
-                          - Raw: +
-                          - Ident: payroll_tax
-                    named_args: []
-              - alias: ~
-                expr:
-                  FuncCall:
-                    name: sum
-                    args:
-                      - Expr:
-                          - Ident: salary
-                          - Raw: +
-                          - Ident: payroll_tax
-                    named_args: []
-              - alias: ~
-                expr:
-                  FuncCall:
-                    name: average
-                    args:
-                      - Expr:
-                          - Expr:
-                              - Ident: salary
-                              - Raw: +
-                              - Ident: payroll_tax
-                          - Raw: +
-                          - Ident: benefits_cost
-                    named_args: []
-              - alias: sum_gross_cost
-                expr:
-                  FuncCall:
-                    name: sum
-                    args:
-                      - Expr:
-                          - Expr:
-                              - Ident: salary
-                              - Raw: +
-                              - Ident: payroll_tax
-                          - Raw: +
-                          - Ident: benefits_cost
-                    named_args: []
-              - alias: ct
-                expr:
-                  Ident: count
+              - FuncCall:
+                  name: average
+                  args:
+                    - Ident: salary
+                  named_args: []
+              - FuncCall:
+                  name: sum
+                  args:
+                    - Ident: salary
+                  named_args: []
+              - FuncCall:
+                  name: average
+                  args:
+                    - Expr:
+                        - Ident: salary
+                        - Raw: +
+                        - Ident: payroll_tax
+                  named_args: []
+              - FuncCall:
+                  name: sum
+                  args:
+                    - Expr:
+                        - Ident: salary
+                        - Raw: +
+                        - Ident: payroll_tax
+                  named_args: []
+              - FuncCall:
+                  name: average
+                  args:
+                    - Expr:
+                        - Expr:
+                            - Ident: salary
+                            - Raw: +
+                            - Ident: payroll_tax
+                        - Raw: +
+                        - Ident: benefits_cost
+                  named_args: []
+              - NamedExpr:
+                  name: sum_gross_cost
+                  expr:
+                    FuncCall:
+                      name: sum
+                      args:
+                        - Expr:
+                            - Expr:
+                                - Ident: salary
+                                - Raw: +
+                                - Ident: payroll_tax
+                            - Raw: +
+                            - Ident: benefits_cost
+                      named_args: []
+              - NamedExpr:
+                  name: ct
+                  expr:
+                    Ident: count
         - Sort:
             - Ident: sum_gross_cost
         - Filter:

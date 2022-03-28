@@ -8,7 +8,7 @@ table newest_employees = (
 table average_salaries = (
   from salaries
   aggregate by:country [
-    average_country_salary ~ average salary
+    average_country_salary: average salary
   ]
 )
 
