@@ -207,12 +207,12 @@ impl TryFrom<Vec<Item>> for Transformation {
         match name.as_str() {
             "from" => {
                 let (name, expr) = args.into_only()
-                    .context("Expected from to have exactly one argument.\n  Hint: you can pass it as `from table_name` or `from table_name: my_alias`")?
+                    .context("Expected `from` to have exactly one argument.\n  Hint: you can pass it as `from table_name` or `from alias: table_name`")?
                     .into_name_and_expr();
 
                 let table_ref = TableRef {
                     name: expr.into_ident()
-                    .map_err(|_| anyhow!("From does not support inline expression. You can only pass a table name."))?,
+                    .map_err(|_| anyhow!("`from` does not support inline expressions. You can only pass a table name."))?,
                     alias: name,
                 };
 
