@@ -1,6 +1,5 @@
 ---
 source: src/parser.rs
-assertion_line: 351
 expression: "parse_tree_of_str(r#\"s\"SUM({col})\"\"#, Rule::s_string)?"
 ---
 [
@@ -30,23 +29,13 @@ expression: "parse_tree_of_str(r#\"s\"SUM({col})\"\"#, Rule::s_string)?"
                 },
                 inner: [
                     Pair {
-                        rule: terms,
+                        rule: ident,
                         span: Span {
                             str: "col",
                             start: 7,
                             end: 10,
                         },
-                        inner: [
-                            Pair {
-                                rule: ident,
-                                span: Span {
-                                    str: "col",
-                                    start: 7,
-                                    end: 10,
-                                },
-                                inner: [],
-                            },
-                        ],
+                        inner: [],
                     },
                 ],
             },

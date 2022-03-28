@@ -1,6 +1,5 @@
 ---
 source: src/parser.rs
-assertion_line: 863
 expression: "parse_tree_of_str(\"join country [id=employee_id]\", Rule::transformation)?"
 ---
 [
@@ -22,24 +21,44 @@ expression: "parse_tree_of_str(\"join country [id=employee_id]\", Rule::transfor
                 inner: [],
             },
             Pair {
-                rule: terms,
+                rule: named_expr_simple,
                 span: Span {
-                    str: "country [id=employee_id]",
+                    str: "country ",
                     start: 5,
+                    end: 13,
+                },
+                inner: [
+                    Pair {
+                        rule: expr_simple,
+                        span: Span {
+                            str: "country ",
+                            start: 5,
+                            end: 13,
+                        },
+                        inner: [
+                            Pair {
+                                rule: ident,
+                                span: Span {
+                                    str: "country",
+                                    start: 5,
+                                    end: 12,
+                                },
+                                inner: [],
+                            },
+                        ],
+                    },
+                ],
+            },
+            Pair {
+                rule: named_expr_simple,
+                span: Span {
+                    str: "[id=employee_id]",
+                    start: 13,
                     end: 29,
                 },
                 inner: [
                     Pair {
-                        rule: ident,
-                        span: Span {
-                            str: "country",
-                            start: 5,
-                            end: 12,
-                        },
-                        inner: [],
-                    },
-                    Pair {
-                        rule: list,
+                        rule: expr_simple,
                         span: Span {
                             str: "[id=employee_id]",
                             start: 13,
@@ -47,57 +66,57 @@ expression: "parse_tree_of_str(\"join country [id=employee_id]\", Rule::transfor
                         },
                         inner: [
                             Pair {
-                                rule: expr,
+                                rule: list,
                                 span: Span {
-                                    str: "id=employee_id",
-                                    start: 14,
-                                    end: 28,
+                                    str: "[id=employee_id]",
+                                    start: 13,
+                                    end: 29,
                                 },
                                 inner: [
                                     Pair {
-                                        rule: terms,
+                                        rule: named_expr,
                                         span: Span {
-                                            str: "id",
+                                            str: "id=employee_id",
                                             start: 14,
-                                            end: 16,
-                                        },
-                                        inner: [
-                                            Pair {
-                                                rule: ident,
-                                                span: Span {
-                                                    str: "id",
-                                                    start: 14,
-                                                    end: 16,
-                                                },
-                                                inner: [],
-                                            },
-                                        ],
-                                    },
-                                    Pair {
-                                        rule: operator,
-                                        span: Span {
-                                            str: "=",
-                                            start: 16,
-                                            end: 17,
-                                        },
-                                        inner: [],
-                                    },
-                                    Pair {
-                                        rule: terms,
-                                        span: Span {
-                                            str: "employee_id",
-                                            start: 17,
                                             end: 28,
                                         },
                                         inner: [
                                             Pair {
-                                                rule: ident,
+                                                rule: expr,
                                                 span: Span {
-                                                    str: "employee_id",
-                                                    start: 17,
+                                                    str: "id=employee_id",
+                                                    start: 14,
                                                     end: 28,
                                                 },
-                                                inner: [],
+                                                inner: [
+                                                    Pair {
+                                                        rule: ident,
+                                                        span: Span {
+                                                            str: "id",
+                                                            start: 14,
+                                                            end: 16,
+                                                        },
+                                                        inner: [],
+                                                    },
+                                                    Pair {
+                                                        rule: operator,
+                                                        span: Span {
+                                                            str: "=",
+                                                            start: 16,
+                                                            end: 17,
+                                                        },
+                                                        inner: [],
+                                                    },
+                                                    Pair {
+                                                        rule: ident,
+                                                        span: Span {
+                                                            str: "employee_id",
+                                                            start: 17,
+                                                            end: 28,
+                                                        },
+                                                        inner: [],
+                                                    },
+                                                ],
                                             },
                                         ],
                                     },

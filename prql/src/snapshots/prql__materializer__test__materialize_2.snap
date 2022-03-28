@@ -1,46 +1,52 @@
 ---
-source: src/materializer.rs
+source: prql/src/materializer.rs
 expression: materialize(ast)?
 ---
 Query:
   items:
     - Pipeline:
-        - From: employees
+        - From:
+            name: employees
+            alias: ~
         - Filter:
-            - Ident: country
-            - Raw: "="
-            - String: USA
+            - Expr:
+                - Ident: country
+                - Raw: "="
+                - String: USA
         - Derive:
-            - lvalue: gross_salary
-              rvalue:
-                Terms:
-                  - Ident: salary
-                  - Raw: +
-                  - Ident: payroll_tax
-            - lvalue: gross_cost
-              rvalue:
-                Terms:
-                  - Terms:
-                      - Ident: salary
-                      - Raw: +
-                      - Ident: payroll_tax
-                  - Raw: +
-                  - Ident: benefits_cost
-        - Filter:
-            - Terms:
-                - Terms:
+            - NamedExpr:
+                name: gross_salary
+                expr:
+                  Expr:
                     - Ident: salary
                     - Raw: +
                     - Ident: payroll_tax
-                - Raw: +
-                - Ident: benefits_cost
-            - Raw: ">"
-            - Raw: "0"
+            - NamedExpr:
+                name: gross_cost
+                expr:
+                  Expr:
+                    - Expr:
+                        - Ident: salary
+                        - Raw: +
+                        - Ident: payroll_tax
+                    - Raw: +
+                    - Ident: benefits_cost
+        - Filter:
+            - Expr:
+                - Expr:
+                    - Expr:
+                        - Ident: salary
+                        - Raw: +
+                        - Ident: payroll_tax
+                    - Raw: +
+                    - Ident: benefits_cost
+                - Raw: ">"
+                - Raw: "0"
         - Aggregate:
             by:
               - Ident: title
               - Ident: country
-            calcs:
+            select:
               - SString:
                   - String: AVG(
                   - Expr:
@@ -54,7 +60,7 @@ Query:
               - SString:
                   - String: AVG(
                   - Expr:
-                      Terms:
+                      Expr:
                         - Ident: salary
                         - Raw: +
                         - Ident: payroll_tax
@@ -62,7 +68,7 @@ Query:
               - SString:
                   - String: SUM(
                   - Expr:
-                      Terms:
+                      Expr:
                         - Ident: salary
                         - Raw: +
                         - Ident: payroll_tax
@@ -70,40 +76,39 @@ Query:
               - SString:
                   - String: AVG(
                   - Expr:
-                      Terms:
-                        - Terms:
+                      Expr:
+                        - Expr:
                             - Ident: salary
                             - Raw: +
                             - Ident: payroll_tax
                         - Raw: +
                         - Ident: benefits_cost
                   - String: )
-            assigns:
-              - lvalue: sum_gross_cost
-                rvalue:
-                  SString:
-                    - String: SUM(
-                    - Expr:
-                        Terms:
-                          - Terms:
-                              - Ident: salary
-                              - Raw: +
-                              - Ident: payroll_tax
-                          - Raw: +
-                          - Ident: benefits_cost
-                    - String: )
-              - lvalue: ct
-                rvalue:
-                  SString:
-                    - String: COUNT(
-                    - Expr:
-                        Raw: "*"
-                    - String: )
+              - NamedExpr:
+                  name: sum_gross_cost
+                  expr:
+                    SString:
+                      - String: SUM(
+                      - Expr:
+                          Expr:
+                            - Expr:
+                                - Ident: salary
+                                - Raw: +
+                                - Ident: payroll_tax
+                            - Raw: +
+                            - Ident: benefits_cost
+                      - String: )
+              - NamedExpr:
+                  name: ct
+                  expr:
+                    SString:
+                      - String: COUNT(*)
         - Sort:
             - Ident: sum_gross_cost
         - Filter:
-            - Ident: sum_gross_cost
-            - Raw: ">"
-            - Raw: "200"
+            - Expr:
+                - Ident: sum_gross_cost
+                - Raw: ">"
+                - Raw: "200"
         - Take: 20
 

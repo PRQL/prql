@@ -9,7 +9,7 @@ aggregate by:[emp_no, gender] [
 ]
 join dept_emp [emp_no]
 join dept_manager [
-  (dept_manager.dept_no = dept_emp.dept_no) AND s"(dept_emp.from_date, dept_emp.to_date) OVERLAPS (dept_manager.from_date, dept_manager.to_date)"
+  (dept_manager.dept_no = dept_emp.dept_no) and s"(dept_emp.from_date, dept_emp.to_date) OVERLAPS (dept_manager.from_date, dept_manager.to_date)"
 ]
 aggregate by:[dept_manager.emp_no, gender] [
   salary_avg: average emp_salary,

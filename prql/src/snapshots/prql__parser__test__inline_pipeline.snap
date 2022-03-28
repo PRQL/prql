@@ -1,6 +1,5 @@
 ---
-source: src/parser.rs
-assertion_line: 844
+source: prql/src/parser.rs
 expression: "parse_tree_of_str(\"(salary | percentile 50)\", Rule::inline_pipeline)?"
 ---
 [
@@ -21,28 +20,18 @@ expression: "parse_tree_of_str(\"(salary | percentile 50)\", Rule::inline_pipeli
                 },
                 inner: [
                     Pair {
-                        rule: terms,
+                        rule: ident,
                         span: Span {
-                            str: "salary ",
+                            str: "salary",
                             start: 1,
-                            end: 8,
+                            end: 7,
                         },
-                        inner: [
-                            Pair {
-                                rule: ident,
-                                span: Span {
-                                    str: "salary",
-                                    start: 1,
-                                    end: 7,
-                                },
-                                inner: [],
-                            },
-                        ],
+                        inner: [],
                     },
                 ],
             },
             Pair {
-                rule: expr,
+                rule: func_curry,
                 span: Span {
                     str: "percentile 50",
                     start: 10,
@@ -50,22 +39,22 @@ expression: "parse_tree_of_str(\"(salary | percentile 50)\", Rule::inline_pipeli
                 },
                 inner: [
                     Pair {
-                        rule: terms,
+                        rule: ident,
                         span: Span {
-                            str: "percentile 50",
+                            str: "percentile",
                             start: 10,
+                            end: 20,
+                        },
+                        inner: [],
+                    },
+                    Pair {
+                        rule: named_term_simple,
+                        span: Span {
+                            str: "50",
+                            start: 21,
                             end: 23,
                         },
                         inner: [
-                            Pair {
-                                rule: ident,
-                                span: Span {
-                                    str: "percentile",
-                                    start: 10,
-                                    end: 20,
-                                },
-                                inner: [],
-                            },
                             Pair {
                                 rule: number,
                                 span: Span {

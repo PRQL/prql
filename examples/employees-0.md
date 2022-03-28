@@ -12,6 +12,7 @@ aggregate by:[emp_no] [
   emp_salary: average salary
 ]
 join titles [emp_no]
+# TODO: add a `left` join
 join dept_emp [emp_no]
 aggregate by:[dept_emp.dept_no, titles.title] [
   avg_salary: average emp_salary

@@ -1,10 +1,10 @@
 ---
-source: src/parser.rs
-expression: "parse_tree_of_str(\"func plus_one x = x + 1\", Rule::function)?"
+source: prql/src/parser.rs
+expression: "parse_tree_of_str(\"func plus_one x = x + 1\", Rule::func_def)?"
 ---
 [
     Pair {
-        rule: function,
+        rule: func_def,
         span: Span {
             str: "func plus_one x = x + 1",
             start: 0,
@@ -12,39 +12,49 @@ expression: "parse_tree_of_str(\"func plus_one x = x + 1\", Rule::function)?"
         },
         inner: [
             Pair {
-                rule: function_params,
+                rule: ident,
                 span: Span {
-                    str: "plus_one x",
+                    str: "plus_one",
                     start: 5,
+                    end: 13,
+                },
+                inner: [],
+            },
+            Pair {
+                rule: func_def_params,
+                span: Span {
+                    str: "x",
+                    start: 14,
                     end: 15,
                 },
                 inner: [
                     Pair {
-                        rule: ident,
-                        span: Span {
-                            str: "plus_one",
-                            start: 5,
-                            end: 13,
-                        },
-                        inner: [],
-                    },
-                    Pair {
-                        rule: ident,
+                        rule: named_term_simple,
                         span: Span {
                             str: "x",
                             start: 14,
                             end: 15,
                         },
-                        inner: [],
+                        inner: [
+                            Pair {
+                                rule: ident,
+                                span: Span {
+                                    str: "x",
+                                    start: 14,
+                                    end: 15,
+                                },
+                                inner: [],
+                            },
+                        ],
                     },
                 ],
             },
             Pair {
-                rule: terms,
+                rule: expr,
                 span: Span {
-                    str: "x ",
+                    str: "x + 1",
                     start: 18,
-                    end: 20,
+                    end: 23,
                 },
                 inner: [
                     Pair {
@@ -56,25 +66,15 @@ expression: "parse_tree_of_str(\"func plus_one x = x + 1\", Rule::function)?"
                         },
                         inner: [],
                     },
-                ],
-            },
-            Pair {
-                rule: operator,
-                span: Span {
-                    str: "+",
-                    start: 20,
-                    end: 21,
-                },
-                inner: [],
-            },
-            Pair {
-                rule: terms,
-                span: Span {
-                    str: "1",
-                    start: 22,
-                    end: 23,
-                },
-                inner: [
+                    Pair {
+                        rule: operator,
+                        span: Span {
+                            str: "+",
+                            start: 20,
+                            end: 21,
+                        },
+                        inner: [],
+                    },
                     Pair {
                         rule: number,
                         span: Span {

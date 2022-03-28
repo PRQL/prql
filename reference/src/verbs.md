@@ -150,7 +150,7 @@ aggregate by:[{column identifier}] [{expression or assign operation}]
 from employees
 aggregate by:[title, country] [
   average salary,
-  ct: count *
+  ct: count
 ]
 ```
 ```sql

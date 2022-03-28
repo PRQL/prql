@@ -4,7 +4,7 @@
 //! function for turning that into PRQL AST.
 use super::ast::*;
 use super::utils::*;
-use anyhow::{anyhow, bail, ensure, Context, Result};
+use anyhow::{anyhow, bail, Context, Result};
 use itertools::Itertools;
 use pest::iterators::Pairs;
 use pest::Parser;
@@ -16,7 +16,7 @@ struct PrqlParser;
 
 /// Build an AST from a PRQL query string.
 pub fn parse(string: &str) -> Result<Item> {
-    ast_of_string(string, Rule::query).map(|x| x.into_unnested())
+    ast_of_string(string, Rule::query)
 }
 
 /// Parse a string into an AST. Unlike [parse], this can start from any rule.
@@ -32,7 +32,7 @@ fn parse_tree_of_str(source: &str, rule: Rule) -> Result<Pairs<Rule>> {
 }
 
 /// Parses a parse tree of pest Pairs into an AST.
-fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Items> {
+fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Item>> {
     pairs
         // Exclude end-of-input at the moment.
         .filter(|pair| pair.as_rule() != Rule::EOI)
@@ -47,109 +47,87 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Items> {
                 Rule::list => Item::List(
                     ast_of_parse_tree(pair.into_inner())?
                         .into_iter()
-                        // This could simply be:
-                        //   ListItem(expr.into_inner_items()))
-                        // but we want to confirm it's an Expr, it would be a
-                        // difficult mistake to catch otherwise.
-                        .map(|expr| match expr {
-                            Item::Expr(_) => ListItem(expr.into_expr().unwrap()),
-                            _ => unreachable!(),
-                        })
+                        .map(ListItem)
                         .collect(),
                 ),
-                Rule::idents => {
-                    Item::Idents(pair.into_inner().map(|x| x.as_str().to_owned()).collect())
-                }
-                // We collapse any Terms with a single element into that element
-                // with `into_unnested`. This only unnests `Terms`; not Items or
-                // List because those are often meaningful — e.g. a List needs a
-                // number of Expr, so that `[a, b]` is different from `[a b]`.
-                Rule::terms => Item::Terms(ast_of_parse_tree(pair.into_inner())?).into_unnested(),
-                Rule::expr => {
-                    let expr = Item::Expr(ast_of_parse_tree(pair.into_inner())?).into_unnested();
-                    // Uber-hack for
-                    // https://github.com/max-sixty/prql/issues/154, by
-                    // specifically putting `count *` into a `Terms`, allowing
-                    // it to be treated as a function call.
-                    // TODO: Resolve!
-                    if expr.as_expr().unwrap().first() == Some(&Item::Ident("count".to_string()))
-                        && expr
-                            .as_expr()
-                            .unwrap()
-                            .contains(&Item::Raw("*".to_string()))
-                    {
-                        Item::Expr(vec![Item::Terms(expr.into_expr().unwrap())])
-                    } else {
-                        expr
+                Rule::expr | Rule::expr_simple => ast_of_parse_tree(pair.into_inner())?.into_expr(),
+                Rule::named_expr | Rule::named_expr_simple | Rule::named_term_simple => {
+                    let items = ast_of_parse_tree(pair.into_inner())?;
+                    // this borrow could be removed, but it becomes much less readable without match
+                    match &items[..] {
+                        [Item::Ident(name), item] => Item::NamedExpr(NamedExpr {
+                            name: name.clone(),
+                            expr: Box::new(item.clone()),
+                        }),
+                        [item] => item.clone(),
+                        _ => unreachable!(),
                     }
-                }
-                Rule::named_arg => {
-                    let parsed: [Item; 2] = ast_of_parse_tree(pair.into_inner())?
-                        .try_into()
-                        .map_err(|e| anyhow!("Expected two items; {e:?}"))?;
-                    let [name, arg] = parsed;
-                    Item::NamedArg(NamedArg {
-                        name: name.into_ident()?,
-                        arg: Box::new(arg),
-                    })
-                }
-                Rule::assign => {
-                    let parsed: [Item; 2] = ast_of_parse_tree(pair.into_inner())?
-                        .try_into()
-                        .map_err(|e| anyhow!("Expected two items; {e:?}"))?;
-                    // Split the pair into its first value, which is always an Ident,
-                    // and its other values.
-                    if let [lvalue, Item::Expr(rvalue)] = parsed {
-                        Ok(Item::Assign(Assign {
-                            lvalue: lvalue.into_ident()?,
-                            rvalue: Box::new(Item::Terms(rvalue).into_unnested()),
-                        }))
-                    } else {
-                        Err(anyhow!(
-                            "Expected assign to have an lvalue & some rvalues. Got {parsed:?}"
-                        ))
-                    }?
                 }
                 Rule::transformation => {
                     let parsed = ast_of_parse_tree(pair.into_inner())?;
                     Item::Transformation(parsed.try_into()?)
                 }
-                Rule::function => {
+                Rule::func_def => {
                     let parsed = ast_of_parse_tree(pair.into_inner())?;
-                    if let (Item::Expr(name_and_params), body) = parsed
+
+                    let (name, parsed) = parsed
                         .split_first()
-                        .ok_or_else(|| anyhow!("Expected at least one item"))?
-                    {
-                        let (name, params) = name_and_params
-                            .split_first()
-                            .ok_or_else(|| anyhow!("Function requires a name."))?;
-                        // We could use `.partition` for a single pass...
-                        let positional_params = params
-                            .iter()
-                            .filter_map(|x| x.as_ident())
-                            .cloned()
-                            .collect();
-                        let named_params = params
-                            .iter()
-                            .filter_map(|x| x.as_named_arg())
-                            .cloned()
-                            .collect();
-                        Item::Function(Function {
-                            name: name
-                                .as_ident()
-                                .ok_or_else(|| {
-                                    anyhow!("Function name needs to be a word; got {name:?}")
-                                })?
-                                .to_owned(),
-                            positional_params,
-                            named_params,
-                            body: body.to_owned(),
-                        })
-                    } else {
-                        unreachable!("Expected Function, got {parsed:?}")
-                    }
+                        .ok_or_else(|| anyhow!("Expected at least one item"))?;
+
+                    let name = name.clone().into_ident()?;
+
+                    let (params, body) =
+                        if let Some((Item::Expr(params), body)) = parsed.split_first() {
+                            (params, body)
+                        } else {
+                            unreachable!("expected function params and body, got {parsed:?}")
+                        };
+
+                    let positional_params = params
+                        .iter()
+                        .filter_map(|x| x.as_ident())
+                        .cloned()
+                        .collect();
+                    let named_params = params
+                        .iter()
+                        .filter_map(|x| x.as_named_expr())
+                        .cloned()
+                        .collect();
+
+                    Item::FuncDef(FuncDef {
+                        name,
+                        positional_params,
+                        named_params,
+                        body: Box::from(body.into_only().cloned()?),
+                    })
                 }
-                Rule::function_params => Item::Expr(ast_of_parse_tree(pair.into_inner())?),
+                Rule::func_def_params => Item::Expr(ast_of_parse_tree(pair.into_inner())?),
+                Rule::func_call | Rule::func_curry => {
+                    let items = ast_of_parse_tree(pair.into_inner())?;
+
+                    let (name, params) = items
+                        .split_first()
+                        .ok_or_else(|| anyhow!("Expected at least one item"))?;
+
+                    let name = name.clone().into_ident()?;
+
+                    let (named, args): (Vec<_>, Vec<_>) =
+                        params.iter().partition(|x| matches!(x, Item::NamedExpr(_)));
+
+                    let args = args.into_iter().cloned().collect();
+
+                    let named_args = named
+                        .into_iter()
+                        .cloned()
+                        .map(|x| x.into_named_expr())
+                        .try_collect()?;
+
+                    Item::FuncCall(FuncCall {
+                        name,
+                        args,
+                        named_args,
+                    })
+                }
                 Rule::table => {
                     let parsed = ast_of_parse_tree(pair.into_inner())?;
                     let [name, pipeline]: [Item; 2] = parsed
@@ -169,16 +147,17 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Items> {
                 Rule::string => Item::String(pair.as_str().to_string()),
                 Rule::s_string => Item::SString(
                     pair.into_inner()
-                        // TODO: change unwraps to results (requires some more
-                        // verbose code given it's inside an expression inside a `map`)
-                        .map(|x| match x.as_rule() {
-                            Rule::s_string_string => SStringItem::String(x.as_str().to_string()),
-                            _ => SStringItem::Expr(
-                                Item::Terms(ast_of_parse_tree(x.into_inner()).unwrap())
-                                    .into_unnested(),
-                            ),
+                        .map(|x| {
+                            Ok(match x.as_rule() {
+                                Rule::s_string_string => {
+                                    SStringItem::String(x.as_str().to_string())
+                                }
+                                _ => SStringItem::Expr(
+                                    ast_of_parse_tree(x.into_inner())?.into_expr(),
+                                ),
+                            })
                         })
-                        .collect(),
+                        .collect::<Result<Vec<SStringItem>>>()?,
                 ),
                 Rule::pipeline => Item::Pipeline({
                     ast_of_parse_tree(pair.into_inner())?
@@ -190,7 +169,21 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Items> {
                         .collect()
                 }),
                 Rule::inline_pipeline => {
-                    Item::InlinePipeline(ast_of_parse_tree(pair.into_inner())?)
+                    let parsed = ast_of_parse_tree(pair.into_inner())?;
+
+                    let (value, func_curries) =
+                        (parsed.split_first()).context("empty inline pipeline?")?;
+
+                    let functions = func_curries
+                        .iter()
+                        .cloned()
+                        .map(|x| x.into_func_call())
+                        .try_collect()?;
+
+                    Item::InlinePipeline(InlinePipeline {
+                        value: Box::from(value.clone()),
+                        functions,
+                    })
                 }
                 Rule::operator | Rule::number => Item::Raw(pair.as_str().to_owned()),
                 _ => (Item::Todo(pair.as_str().to_owned())),
@@ -199,80 +192,49 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Items> {
         .collect()
 }
 
-// Currently we don't parse into FuncCalls until after materializer; we leave
-// them as Terms. Possibly we should do that earlier. (If we don't, we can move
-// this into Materializer.)
-impl TryFrom<Vec<Item>> for FuncCall {
-    type Error = anyhow::Error;
-    fn try_from(items: Vec<Item>) -> Result<Self> {
-        let (name_item, items) = items
-            .split_first()
-            .ok_or_else(|| anyhow!("Expected at least one item"))?;
-
-        let name = name_item
-            .as_ident()
-            .ok_or_else(|| anyhow!("Function name must be Ident; got {name_item:?}"))?;
-
-        // TODO: account for a name-only transformation, with no items.
-        let (named_arg_items, args): (Vec<Item>, Vec<Item>) = items // Partition out NamedArgs
-            .iter()
-            .cloned()
-            .partition(|x| matches!(x, Item::NamedArg(_)));
-
-        let named_args: Vec<NamedArg> = named_arg_items
-            .into_iter()
-            .map(|x| {
-                x.as_named_arg()
-                    .ok_or_else(|| anyhow!("Expected NamedArg"))
-                    .cloned()
-            })
-            .try_collect()?;
-
-        Ok(FuncCall {
-            name: name.to_owned(),
-            args,
-            named_args,
-        })
-    }
-}
-
 // We put this outside the main ast_of_parse_tree function to reduce the size of
 // that function.
 impl TryFrom<Vec<Item>> for Transformation {
     type Error = anyhow::Error;
     fn try_from(items: Vec<Item>) -> Result<Self> {
-        let (name, items) = items
+        let (name, args) = items
             .split_first()
             .ok_or_else(|| anyhow!("Expected at least one item"))?;
 
-        // Unnest the Terms. This is required because it can receive a single
-        // terms of `[a, b] by:c` or multiple terms of `a`, `+` & `b` from `a +
-        // b`, or even just a single `1`, and we want those to all be at the
-        // same level. (this could possibly be improved)
-        let terms = items.to_vec().into_unnested();
+        let args: Vec<Item> = args.to_vec();
 
-        let func_call: FuncCall = [vec![name.clone()], terms].concat().try_into()?;
+        let name = name.clone().into_ident()?;
+        match name.as_str() {
+            "from" => {
+                let (name, expr) = args.into_only()
+                    .context("Expected `from` to have exactly one argument.\n  Hint: you can pass it as `from table_name` or `from alias: table_name`")?
+                    .into_name_and_expr();
 
-        match func_call.name.as_str() {
-            "from" => Ok(Transformation::From(
-                func_call.args.into_only()?.into_ident()?,
-            )),
+                let table_ref = TableRef {
+                    name: expr.into_ident()
+                    .map_err(|_| anyhow!("`from` does not support inline expressions. You can only pass a table name."))?,
+                    alias: name,
+                };
+
+                Ok(Transformation::From(table_ref))
+            }
             "select" => Ok(Transformation::Select(
-                func_call.args.into_only()?.into_items_from_maybe_list(),
+                args.into_only()
+                    .context("Expected exactly one argument for `select`")?
+                    .coerce_to_items(),
             )),
-            "filter" => Ok(Transformation::Filter(Filter(func_call.args))),
+            "filter" => {
+                let items = args.into_only()?.discard_name()?.coerce_to_items();
+                Ok(Transformation::Filter(Filter(items)))
+            }
             "derive" => {
-                let assigns = (func_call.args)
+                let assigns = (args)
                     .into_only()
-                    .context("Expected at least one argument")?
-                    .into_items_from_maybe_list()
-                    .into_iter()
-                    .map(|x| Ok(x.into_assign()?))
-                    .collect::<Result<Vec<Assign>>>()?;
+                    .context("Expected exactly one argument for `derive`")?
+                    .coerce_to_items();
                 Ok(Transformation::Derive(assigns))
             }
             "aggregate" => {
-                let arg = func_call.args.into_only()?;
                 // TODO: redo, generalizing with checks on custom functions.
                 // Ideally we'd be able to add to the error message with context
                 // without falling afowl of the borrow rules.
@@ -281,51 +243,29 @@ impl TryFrom<Vec<Item>> for Transformation {
                 //     args
                 // ))
                 // })?;
-                let by = match &func_call.named_args[..] {
-                    [NamedArg { name, arg }] => {
-                        ensure!(
-                            name == "by",
-                            "Expected aggregate to have up to one named arg, named 'by'"
-                        );
+                let (positional, [by]) = unpack_arguments(args, ["by"])?;
+                let by = by.map(|x| x.coerce_to_items()).unwrap_or_default();
 
-                        arg.to_owned().into_items_from_maybe_list()
-                    }
-                    [] => vec![],
-                    _ => {
-                        bail!("Expected aggregate to have up to one named arg, named 'by'")
-                    }
-                };
+                let select = positional
+                    .into_only()
+                    .map(|x| x.coerce_to_items())
+                    .unwrap_or_default();
 
-                let ops: Items = arg.into_items_from_maybe_list();
-
-                // Ops should either be calcs or assigns; e.g. one of
-                //   average gross_cost
-                //   sum_gross_cost: sum gross_cost
-
-                let (assigns, calcs): (Vec<Item>, Vec<Item>) =
-                    ops.into_iter().partition(|x| matches!(x, Item::Assign(_)));
-
-                Ok(Transformation::Aggregate {
-                    by,
-                    calcs,
-                    assigns: assigns
-                        .into_iter()
-                        .map(|x| x.into_assign().map_err(|_| anyhow!("Expected Assign")))
-                        .try_collect()?,
-                })
+                Ok(Transformation::Aggregate { by, select })
             }
-            "sort" => Ok(Transformation::Sort(func_call.args)),
+            "sort" => {
+                let by = args.into_only()?.discard_name()?.coerce_to_items();
+                Ok(Transformation::Sort(by))
+            }
             "take" => {
                 // TODO: coerce to number
-                func_call
-                    .args
-                    .into_only()
-                    .map(|n| Ok(Transformation::Take(n.into_raw()?.parse()?)))?
+                let expr = args.into_only()?.discard_name()?;
+                Ok(Transformation::Take(expr.into_raw()?.parse()?))
             }
             "join" => {
-                let side = func_call.named_args.iter().find(|a| a.name == "side");
+                let (positional, [side]) = unpack_arguments(args, ["side"])?;
                 let side = if let Some(side) = side {
-                    match side.arg.to_owned().into_ident()?.as_str() {
+                    match side.into_ident()?.as_str() {
                         "inner" => JoinSide::Inner,
                         "left" => JoinSide::Left,
                         "right" => JoinSide::Right,
@@ -336,24 +276,47 @@ impl TryFrom<Vec<Item>> for Transformation {
                     JoinSide::Inner
                 };
 
-                let with = func_call
-                    .args
-                    .get(0)
-                    .cloned()
-                    .context("join requires a table name to join with")?
-                    .into_ident()?;
+                let with = (positional.get(0).cloned())
+                    .context("join requires a table name to join with")?;
+                let with = (with.discard_name()?.into_ident())
+                    .map_err(|x| anyhow!("join requires a table name to join with, got {x:?}"))?;
 
-                let on = func_call
-                    .args
-                    .get(1)
-                    .map(|x| x.to_owned().into_items_from_maybe_list())
-                    .unwrap_or_else(Vec::new);
+                let on = if let Some(x) = positional.get(1) {
+                    x.clone().discard_name()?.coerce_to_items()
+                } else {
+                    vec![]
+                };
 
                 Ok(Transformation::Join { side, with, on })
             }
-            _ => bail!("Expected a known transformation; got {func_call:?}"),
+            _ => bail!("Expected a known transformation; got {name}"),
         }
     }
+}
+
+/// Compares expected and passed function parameters
+/// Returns positional and named parameters.
+fn unpack_arguments<const COUNT: usize>(
+    passed: Vec<Item>,
+    expected: [&str; COUNT],
+) -> Result<(Vec<Item>, [Option<Item>; COUNT])> {
+    let mut positional = Vec::new();
+
+    const NONE: Option<Item> = None;
+    let mut named = [NONE; COUNT];
+
+    for p in passed {
+        // Quite inefficient when number of arguments > 10. We could instead use merge join.
+        if let Some(n) = p.as_named_expr() {
+            if let Some((pos, _)) = expected.iter().find_position(|x| x == &&n.name) {
+                named[pos] = Some(*p.into_named_expr().unwrap().expr);
+                continue;
+            }
+        }
+
+        positional.push(p);
+    }
+    Ok((positional, named))
 }
 
 #[cfg(test)]
@@ -361,7 +324,6 @@ mod test {
 
     use super::*;
     use insta::{assert_debug_snapshot, assert_yaml_snapshot};
-    use serde_yaml::from_str;
 
     #[test]
     fn test_parse_take() -> Result<()> {
@@ -437,7 +399,7 @@ mod test {
         SString:
           - String: SUM(
           - Expr:
-              Terms:
+              Expr:
                 - Raw: "2"
                 - Raw: +
                 - Raw: "2"
@@ -452,35 +414,41 @@ mod test {
         assert_yaml_snapshot!(ast_of_string(r#"[1 + 1, 2]"#, Rule::list)?, @r###"
         ---
         List:
-          - - Raw: "1"
-            - Raw: +
-            - Raw: "1"
-          - - Raw: "2"
+          - Expr:
+              - Raw: "1"
+              - Raw: +
+              - Raw: "1"
+          - Raw: "2"
         "###);
         assert_yaml_snapshot!(ast_of_string(r#"[1 + f 1, 2]"#, Rule::list)?, @r###"
         ---
         List:
-          - - Raw: "1"
-            - Raw: +
-            - Terms:
-                - Ident: f
-                - Raw: "1"
-          - - Raw: "2"
+          - Expr:
+              - Raw: "1"
+              - Raw: +
+              - FuncCall:
+                  name: f
+                  args:
+                    - Raw: "1"
+                  named_args: []
+          - Raw: "2"
         "###);
         let ab = ast_of_string(r#"[a b]"#, Rule::list)?;
         let a_comma_b = ast_of_string(r#"[a, b]"#, Rule::list)?;
         assert_yaml_snapshot!(ab, @r###"
         ---
         List:
-          - - Terms:
-                - Ident: a
+          - FuncCall:
+              name: a
+              args:
                 - Ident: b
+              named_args: []
         "###);
         assert_yaml_snapshot!(a_comma_b, @r###"
         ---
         List:
-          - - Ident: a
-          - - Ident: b
+          - Ident: a
+          - Ident: b
         "###);
         assert_ne!(ab, a_comma_b);
         Ok(())
@@ -513,9 +481,10 @@ mod test {
         ---
         Transformation:
           Filter:
-            - Ident: country
-            - Raw: "="
-            - String: USA
+            - Expr:
+                - Ident: country
+                - Raw: "="
+                - String: USA
         "###);
         // TODO: Shoud the next two be different, based on whether there are
         // parentheses? I think possibly not.
@@ -526,24 +495,18 @@ mod test {
         Transformation:
           Filter:
             - Expr:
-                - Terms:
-                    - Ident: upper
-                    - Ident: country
-            - Raw: "="
-            - String: USA
+                - FuncCall:
+                    name: upper
+                    args:
+                      - Ident: country
+                    named_args: []
+                - Raw: "="
+                - String: USA
         "###);
-        assert_yaml_snapshot!(
-            ast_of_string(r#"filter upper country = "USA""#, Rule::transformation)?
-        , @r###"
-        ---
-        Transformation:
-          Filter:
-            - Terms:
-                - Ident: upper
-                - Ident: country
-            - Raw: "="
-            - String: USA
-        "###);
+
+        let res = ast_of_string(r#"filter upper country = "USA""#, Rule::transformation);
+        assert!(res.is_err());
+
         Ok(())
     }
 
@@ -560,12 +523,13 @@ mod test {
           Aggregate:
             by:
               - Ident: title
-            calcs:
-              - Terms:
-                  - Ident: sum
-                  - Ident: salary
+            select:
+              - FuncCall:
+                  name: sum
+                  args:
+                    - Ident: salary
+                  named_args: []
               - Ident: count
-            assigns: []
         "###);
         let aggregate = ast_of_string("aggregate by:[title] [sum salary]", Rule::transformation)?;
         assert_yaml_snapshot!(
@@ -575,20 +539,13 @@ mod test {
           Aggregate:
             by:
               - Ident: title
-            calcs:
-              - Terms:
-                  - Ident: sum
-                  - Ident: salary
-            assigns: []
+            select:
+              - FuncCall:
+                  name: sum
+                  args:
+                    - Ident: salary
+                  named_args: []
         "###);
-
-        if let Transformation::Aggregate { calcs, .. } = aggregate.as_transformation().unwrap() {
-            if !matches!(calcs.into_only()?.as_terms().unwrap()[0], Item::Ident(_)) {
-                panic!("Nesting incorrect");
-            }
-        } else {
-            panic!("Nesting incorrect");
-        }
 
         let item = ast_of_string("aggregate by:[title] [sum salary]", Rule::transformation)?;
         let aggregate = item
@@ -607,11 +564,12 @@ mod test {
           Aggregate:
             by:
               - Ident: title
-            calcs:
-              - Terms:
-                  - Ident: sum
-                  - Ident: salary
-            assigns: []
+            select:
+              - FuncCall:
+                  name: sum
+                  args:
+                    - Ident: salary
+                  named_args: []
         "###);
         Ok(())
     }
@@ -654,47 +612,46 @@ mod test {
         assert_yaml_snapshot!(ast_of_string(
                 r#"[
   gross_salary: salary + payroll_tax,
-  gross_cost:   gross_salary + benefits_cost
+  gross_cost  : gross_salary + benefits_cost,
 ]"#,
         Rule::list)?, @r###"
         ---
         List:
-          - - Assign:
-                lvalue: gross_salary
-                rvalue:
-                  Terms:
-                    - Ident: salary
-                    - Raw: +
-                    - Ident: payroll_tax
-          - - Assign:
-                lvalue: gross_cost
-                rvalue:
-                  Terms:
-                    - Ident: gross_salary
-                    - Raw: +
-                    - Ident: benefits_cost
+          - NamedExpr:
+              name: gross_salary
+              expr:
+                Expr:
+                  - Ident: salary
+                  - Raw: +
+                  - Ident: payroll_tax
+          - NamedExpr:
+              name: gross_cost
+              expr:
+                Expr:
+                  - Ident: gross_salary
+                  - Raw: +
+                  - Ident: benefits_cost
         "###);
         assert_yaml_snapshot!(
             ast_of_string(
                 "gross_salary: (salary + payroll_tax) * (1 + tax_rate)",
-                Rule::expr,
+                Rule::named_expr,
             )?,
             @r###"
         ---
-        Expr:
-          - Assign:
-              lvalue: gross_salary
-              rvalue:
-                Terms:
-                  - Expr:
-                      - Ident: salary
-                      - Raw: +
-                      - Ident: payroll_tax
-                  - Raw: "*"
-                  - Expr:
-                      - Raw: "1"
-                      - Raw: +
-                      - Ident: tax_rate
+        NamedExpr:
+          name: gross_salary
+          expr:
+            Expr:
+              - Expr:
+                  - Ident: salary
+                  - Raw: +
+                  - Ident: payroll_tax
+              - Raw: "*"
+              - Expr:
+                  - Raw: "1"
+                  - Raw: +
+                  - Ident: tax_rate
         "###);
         Ok(())
     }
@@ -704,20 +661,20 @@ mod test {
         assert_yaml_snapshot!(ast_of_string(
             r#"
 from employees
-filter country = "USA"                           # Each line transforms the previous result.
-derive [                                         # This adds columns / variables.
+filter country = "USA"                        # Each line transforms the previous result.
+derive [                                      # This adds columns / variables.
   gross_salary: salary + payroll_tax,
-  gross_cost:   gross_salary + benefits_cost     # Variables can use other variables.
+  gross_cost:   gross_salary + benefits_cost # Variables can use other variables.
 ]
 filter gross_cost > 0
-aggregate by:[title, country] [                  # `by` are the columns to group by.
-    average salary,                              # These are aggregation calcs run on each group.
-    sum     salary,
-    average gross_salary,
-    sum     gross_salary,
-    average gross_cost,
-    sum_gross_cost: sum gross_cost,
-    ct: count,
+aggregate by:[title, country] [               # `by` are the columns to group by.
+                   average salary,            # These are aggregation calcs run on each group.
+                   sum salary,
+                   average gross_salary,
+                   sum gross_salary,
+                   average gross_cost,
+  sum_gross_cost: sum gross_cost,
+  ct            : count,
 ]
 sort sum_gross_cost
 filter ct > 200
@@ -733,100 +690,98 @@ take 20
     fn test_parse_function() -> Result<()> {
         assert_debug_snapshot!(parse_tree_of_str(
             "func plus_one x = x + 1",
-            Rule::function
+            Rule::func_def
         )?);
         assert_yaml_snapshot!(ast_of_string(
-            "func identity x = x", Rule::function
+            "func identity x = x", Rule::func_def
         )?
         , @r###"
         ---
-        Function:
+        FuncDef:
           name: identity
           positional_params:
             - x
           named_params: []
           body:
-            - Ident: x
+            Ident: x
         "###);
         assert_yaml_snapshot!(ast_of_string(
-            "func plus_one x = (x + 1)", Rule::function
+            "func plus_one x = (x + 1)", Rule::func_def
         )?
         , @r###"
         ---
-        Function:
+        FuncDef:
           name: plus_one
           positional_params:
             - x
           named_params: []
           body:
-            - Expr:
-                - Ident: x
-                - Raw: +
-                - Raw: "1"
+            Expr:
+              - Ident: x
+              - Raw: +
+              - Raw: "1"
         "###);
         assert_yaml_snapshot!(ast_of_string(
-            "func plus_one x = x + 1", Rule::function
+            "func plus_one x = x + 1", Rule::func_def
         )?
         , @r###"
         ---
-        Function:
+        FuncDef:
           name: plus_one
           positional_params:
             - x
           named_params: []
           body:
-            - Ident: x
-            - Raw: +
-            - Raw: "1"
+            Expr:
+              - Ident: x
+              - Raw: +
+              - Raw: "1"
         "###);
         // An example to show that we can't delayer the tree, despite there
         // being lots of layers.
         assert_yaml_snapshot!(ast_of_string(
-            "func foo x = (foo bar + 1) (plax) - baz", Rule::function
+            "func foo x = (foo bar + 1) (plax) - baz", Rule::func_def
         )?
         , @r###"
         ---
-        Function:
+        FuncDef:
           name: foo
           positional_params:
             - x
           named_params: []
           body:
-            - Terms:
-                - Expr:
-                    - Terms:
-                        - Ident: foo
-                        - Ident: bar
-                    - Raw: +
-                    - Raw: "1"
-                - Expr:
-                    - Ident: plax
-            - Raw: "-"
-            - Ident: baz
+            Expr:
+              - FuncCall:
+                  name: foo
+                  args:
+                    - Ident: bar
+                  named_args: []
+              - Raw: +
+              - Raw: "1"
         "###);
 
-        assert_yaml_snapshot!(ast_of_string("func return_constant = 42", Rule::function)?, @r###"
+        assert_yaml_snapshot!(ast_of_string("func return_constant = 42", Rule::func_def)?, @r###"
         ---
-        Function:
+        FuncDef:
           name: return_constant
           positional_params: []
           named_params: []
           body:
-            - Raw: "42"
+            Raw: "42"
         "###);
-        assert_yaml_snapshot!(ast_of_string(r#"func count X = s"SUM({X})""#, Rule::function)?, @r###"
+        assert_yaml_snapshot!(ast_of_string(r#"func count X = s"SUM({X})""#, Rule::func_def)?, @r###"
         ---
-        Function:
+        FuncDef:
           name: count
           positional_params:
             - X
           named_params: []
           body:
-            - SString:
-                - String: SUM(
-                - Expr:
-                    Ident: X
-                - String: )
+            SString:
+              - String: SUM(
+              - Expr:
+                  Ident: X
+              - String: )
         "###);
 
         /* TODO: Does not yet parse because `window` not yet implemented.
@@ -840,26 +795,27 @@ take 20
           lag 1
         )
                     "#,
-                    Rule::function
+                    Rule::func_def
                 )
                 .unwrap()
             ));
             */
 
-        assert_yaml_snapshot!(ast_of_string(r#"func add x to:a = x + to"#, Rule::function)?, @r###"
+        assert_yaml_snapshot!(ast_of_string(r#"func add x to:a = x + to"#, Rule::func_def)?, @r###"
         ---
-        Function:
+        FuncDef:
           name: add
           positional_params:
             - x
           named_params:
             - name: to
-              arg:
+              expr:
                 Ident: a
           body:
-            - Ident: x
-            - Raw: +
-            - Ident: to
+            Expr:
+              - Ident: x
+              - Raw: +
+              - Ident: to
         "###);
 
         Ok(())
@@ -867,38 +823,18 @@ take 20
 
     #[test]
     fn test_parse_func_call() -> Result<()> {
-        let ast: Item = from_str(
-            r#"
-Terms:
-  - Ident: foo
-  - Ident: bar
-"#,
-        )?;
-
-        let func_call: FuncCall = ast.into_terms()?.try_into()?;
-        assert_yaml_snapshot!(func_call, @r###"
-        ---
-        name: foo
-        args:
-          - Ident: bar
-        named_args: []
-        "###);
-
-        // Uber-hack from #154
-        let ast = ast_of_string(r#"count *"#, Rule::expr)?;
-        let func_call: FuncCall = ast.into_expr()?.into_only()?.into_terms()?.try_into()?;
+        // Function without argument
+        let ast = ast_of_string(r#"count"#, Rule::expr)?;
+        let ident = ast.into_ident()?;
         assert_yaml_snapshot!(
-            func_call, @r###"
+            ident, @r###"
         ---
-        name: count
-        args:
-          - Raw: "*"
-        named_args: []
+        count
         "###);
 
         // A non-friendly option for #154
-        let ast = ast_of_string(r#"count s'*'"#, Rule::terms)?;
-        let func_call: FuncCall = ast.into_terms()?.try_into()?;
+        let ast = ast_of_string(r#"count s'*'"#, Rule::expr)?;
+        let func_call: FuncCall = ast.into_func_call()?;
         assert_yaml_snapshot!(
             func_call, @r###"
         ---
@@ -907,6 +843,31 @@ Terms:
           - SString:
               - String: "*"
         named_args: []
+        "###);
+
+        assert_yaml_snapshot!(parse(r#"from mytable | select [a and b + c or d e and f]"#)?, @r###"
+        ---
+        Query:
+          items:
+            - Pipeline:
+                - From:
+                    name: mytable
+                    alias: ~
+                - Select:
+                    - Expr:
+                        - Ident: a
+                        - Raw: and
+                        - Ident: b
+                        - Raw: +
+                        - Ident: c
+                        - Raw: or
+                        - FuncCall:
+                            name: d
+                            args:
+                              - Ident: e
+                            named_args: []
+                        - Raw: and
+                        - Ident: f
         "###);
 
         Ok(())
@@ -922,7 +883,9 @@ Terms:
         Table:
           name: newest_employees
           pipeline:
-            - From: employees
+            - From:
+                name: employees
+                alias: ~
         "###);
 
         assert_yaml_snapshot!(ast_of_string(
@@ -940,17 +903,21 @@ Terms:
         Table:
           name: newest_employees
           pipeline:
-            - From: employees
+            - From:
+                name: employees
+                alias: ~
             - Aggregate:
                 by:
                   - Ident: country
-                calcs: []
-                assigns:
-                  - lvalue: average_country_salary
-                    rvalue:
-                      Terms:
-                        - Ident: average
-                        - Ident: salary
+                select:
+                  - NamedExpr:
+                      name: average_country_salary
+                      expr:
+                        FuncCall:
+                          name: average
+                          args:
+                            - Ident: salary
+                          named_args: []
             - Sort:
                 - Ident: tenure
             - Take: 50
@@ -974,7 +941,7 @@ Terms:
         assert_debug_snapshot!(parse_tree_of_str(
             r#"[
   gross_salary: salary + payroll_tax,
-  gross_cost:   gross_salary + benefits_cost
+  gross_cost  : gross_salary + benefits_cost
 ]"#,
             Rule::list
         )?);
@@ -1005,30 +972,32 @@ Terms:
         assert_yaml_snapshot!(ast_of_string("(salary | percentile 50)", Rule::inline_pipeline)?, @r###"
         ---
         InlinePipeline:
-          - Expr:
-              - Ident: salary
-          - Expr:
-              - Terms:
-                  - Ident: percentile
-                  - Raw: "50"
+          value:
+            Ident: salary
+          functions:
+            - name: percentile
+              args:
+                - Raw: "50"
+              named_args: []
         "###);
         assert_yaml_snapshot!(ast_of_string("func median x = (x | percentile 50)", Rule::query)?, @r###"
         ---
         Query:
           items:
-            - Function:
+            - FuncDef:
                 name: median
                 positional_params:
                   - x
                 named_params: []
                 body:
-                  - InlinePipeline:
-                      - Expr:
-                          - Ident: x
-                      - Expr:
-                          - Terms:
-                              - Ident: percentile
-                              - Raw: "50"
+                  InlinePipeline:
+                    value:
+                      Ident: x
+                    functions:
+                      - name: percentile
+                        args:
+                          - Raw: "50"
+                        named_args: []
         "###);
 
         Ok(())
@@ -1058,7 +1027,7 @@ from employees
 filter country = "USA"                           # Each line transforms the previous result.
 derive [                                         # This adds columns / variables.
   gross_salary: salary + payroll_tax,
-  gross_cost:   gross_salary + benefits_cost     # Variables can use other variables.
+  gross_cost  : gross_salary + benefits_cost    # Variables can use other variables.
 ]
 filter gross_cost > 0
 aggregate by:[title, country] [                  # `by` are the columns to group by.
@@ -1068,7 +1037,7 @@ aggregate by:[title, country] [                  # `by` are the columns to group
     sum     gross_salary,
     average gross_cost,
     sum_gross_cost: sum gross_cost,
-    count: count *,
+    count: count,
 ]
 sort sum_gross_cost
 filter count > 200

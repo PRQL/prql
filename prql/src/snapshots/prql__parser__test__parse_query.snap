@@ -1,66 +1,86 @@
 ---
-source: src/parser.rs
-expression: "ast_of_string(r#\"\nfrom employees\nfilter country = \"USA\"                           # Each line transforms the previous result.\nderive [                                         # This adds columns / variables.\n  gross_salary: salary + payroll_tax,\n  gross_cost:   gross_salary + benefits_cost     # Variables can use other variables.\n]\nfilter gross_cost > 0\naggregate by:[title, country] [                  # `by` are the columns to group by.\n    average salary,                              # These are aggregation calcs run on each group.\n    sum     salary,\n    average gross_salary,\n    sum     gross_salary,\n    average gross_cost,\n    sum_gross_cost: sum gross_cost,\n    ct: count,\n]\nsort sum_gross_cost\nfilter ct > 200\ntake 20\n    \"#.trim(),\n        Rule::query)?"
+source: prql/src/parser.rs
+expression: "ast_of_string(r#\"\nfrom employees\nfilter country = \"USA\"                        # Each line transforms the previous result.\nderive [                                      # This adds columns / variables.\n  gross_salary: salary + payroll_tax,\n  gross_cost:   gross_salary + benefits_cost # Variables can use other variables.\n]\nfilter gross_cost > 0\naggregate by:[title, country] [               # `by` are the columns to group by.\n                   average salary,            # These are aggregation calcs run on each group.\n                   sum salary,\n                   average gross_salary,\n                   sum gross_salary,\n                   average gross_cost,\n  sum_gross_cost: sum gross_cost,\n  ct            : count,\n]\nsort sum_gross_cost\nfilter ct > 200\ntake 20\n    \"#.trim(),\n              Rule::query)?"
 ---
 Query:
   items:
     - Pipeline:
-        - From: employees
+        - From:
+            name: employees
+            alias: ~
         - Filter:
-            - Ident: country
-            - Raw: "="
-            - String: USA
+            - Expr:
+                - Ident: country
+                - Raw: "="
+                - String: USA
         - Derive:
-            - lvalue: gross_salary
-              rvalue:
-                Terms:
-                  - Ident: salary
-                  - Raw: +
-                  - Ident: payroll_tax
-            - lvalue: gross_cost
-              rvalue:
-                Terms:
-                  - Ident: gross_salary
-                  - Raw: +
-                  - Ident: benefits_cost
+            - NamedExpr:
+                name: gross_salary
+                expr:
+                  Expr:
+                    - Ident: salary
+                    - Raw: +
+                    - Ident: payroll_tax
+            - NamedExpr:
+                name: gross_cost
+                expr:
+                  Expr:
+                    - Ident: gross_salary
+                    - Raw: +
+                    - Ident: benefits_cost
         - Filter:
-            - Ident: gross_cost
-            - Raw: ">"
-            - Raw: "0"
+            - Expr:
+                - Ident: gross_cost
+                - Raw: ">"
+                - Raw: "0"
         - Aggregate:
             by:
               - Ident: title
               - Ident: country
-            calcs:
-              - Terms:
-                  - Ident: average
-                  - Ident: salary
-              - Terms:
-                  - Ident: sum
-                  - Ident: salary
-              - Terms:
-                  - Ident: average
-                  - Ident: gross_salary
-              - Terms:
-                  - Ident: sum
-                  - Ident: gross_salary
-              - Terms:
-                  - Ident: average
-                  - Ident: gross_cost
-            assigns:
-              - lvalue: sum_gross_cost
-                rvalue:
-                  Terms:
-                    - Ident: sum
+            select:
+              - FuncCall:
+                  name: average
+                  args:
+                    - Ident: salary
+                  named_args: []
+              - FuncCall:
+                  name: sum
+                  args:
+                    - Ident: salary
+                  named_args: []
+              - FuncCall:
+                  name: average
+                  args:
+                    - Ident: gross_salary
+                  named_args: []
+              - FuncCall:
+                  name: sum
+                  args:
+                    - Ident: gross_salary
+                  named_args: []
+              - FuncCall:
+                  name: average
+                  args:
                     - Ident: gross_cost
-              - lvalue: ct
-                rvalue:
-                  Ident: count
+                  named_args: []
+              - NamedExpr:
+                  name: sum_gross_cost
+                  expr:
+                    FuncCall:
+                      name: sum
+                      args:
+                        - Ident: gross_cost
+                      named_args: []
+              - NamedExpr:
+                  name: ct
+                  expr:
+                    Ident: count
         - Sort:
             - Ident: sum_gross_cost
         - Filter:
-            - Ident: ct
-            - Raw: ">"
-            - Raw: "200"
+            - Expr:
+                - Ident: ct
+                - Raw: ">"
+                - Raw: "200"
         - Take: 20
 

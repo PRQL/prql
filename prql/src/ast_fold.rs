@@ -17,7 +17,7 @@ use itertools::Itertools;
 // overfit on ReplaceVariables, we should add the custom impl to
 // ReplaceVariables, and write a more generic impl to this.
 pub trait AstFold {
-    fn fold_pipeline(&mut self, pipeline: Pipeline) -> Result<Pipeline> {
+    fn fold_pipeline(&mut self, pipeline: Vec<Transformation>) -> Result<Vec<Transformation>> {
         pipeline
             .into_iter()
             .map(|t| self.fold_transformation(t))
@@ -26,19 +26,13 @@ pub trait AstFold {
     fn fold_ident(&mut self, ident: Ident) -> Result<Ident> {
         Ok(ident)
     }
-    fn fold_items(&mut self, items: Items) -> Result<Items> {
+    fn fold_items(&mut self, items: Vec<Item>) -> Result<Vec<Item>> {
         items.into_iter().map(|item| self.fold_item(item)).collect()
     }
     fn fold_table(&mut self, table: Table) -> Result<Table> {
         Ok(Table {
             name: self.fold_ident(table.name)?,
             pipeline: self.fold_pipeline(table.pipeline)?,
-        })
-    }
-    fn fold_named_arg(&mut self, named_arg: NamedArg) -> Result<NamedArg> {
-        Ok(NamedArg {
-            name: self.fold_ident(named_arg.name)?,
-            arg: Box::new(self.fold_item(*named_arg.arg)?),
         })
     }
     fn fold_filter(&mut self, filter: Filter) -> Result<Filter> {
@@ -56,33 +50,30 @@ pub trait AstFold {
     // implementors override the default while calling the function directly for
     // some cases. Feel free to extend the functions that are separate when
     // necessary. Ref https://stackoverflow.com/a/66077767/3064736
-    fn fold_terms(&mut self, terms: Items) -> Result<Items> {
-        fold_terms(self, terms)
-    }
     fn fold_transformation(&mut self, transformation: Transformation) -> Result<Transformation> {
         fold_transformation(self, transformation)
     }
     fn fold_item(&mut self, item: Item) -> Result<Item> {
         fold_item(self, item)
     }
-    fn fold_function(&mut self, function: Function) -> Result<Function> {
-        fold_function(self, function)
+    fn fold_func_def(&mut self, function: FuncDef) -> Result<FuncDef> {
+        fold_func_def(self, function)
     }
-    fn fold_func_call(&mut self, func_call: FuncCall) -> Result<FuncCall> {
-        fold_func_call(self, func_call)
+    fn fold_func_call(&mut self, func_call: FuncCall) -> Result<Item> {
+        Ok(Item::FuncCall(fold_func_call(self, func_call)?))
     }
-    fn fold_assign(&mut self, assign: Assign) -> Result<Assign> {
-        fold_assign(self, assign)
+    fn fold_func_curry(&mut self, func_curry: FuncCall) -> Result<FuncCall> {
+        fold_func_call(self, func_curry)
+    }
+    fn fold_table_ref(&mut self, table_ref: TableRef) -> Result<TableRef> {
+        fold_table_ref(self, table_ref)
+    }
+    fn fold_named_expr(&mut self, named_expr: NamedExpr) -> Result<NamedExpr> {
+        fold_named_expr(self, named_expr)
     }
     fn fold_sstring_item(&mut self, sstring_item: SStringItem) -> Result<SStringItem> {
         fold_sstring_item(self, sstring_item)
     }
-    fn fold_inline_pipeline(&mut self, inline_pipeline: Items) -> Result<Items> {
-        fold_inline_pipeline(self, inline_pipeline)
-    }
-}
-pub fn fold_terms<T: ?Sized + AstFold>(fold: &mut T, terms: Items) -> Result<Items> {
-    terms.into_iter().map(|item| fold.fold_item(item)).collect()
 }
 pub fn fold_sstring_item<T: ?Sized + AstFold>(
     fold: &mut T,
@@ -98,13 +89,8 @@ pub fn fold_transformation<T: ?Sized + AstFold>(
     transformation: Transformation,
 ) -> Result<Transformation> {
     match transformation {
-        Transformation::Derive(assigns) => Ok(Transformation::Derive({
-            assigns
-                .into_iter()
-                .map(|assign| fold.fold_assign(assign))
-                .try_collect()?
-        })),
-        Transformation::From(ident) => Ok(Transformation::From(fold.fold_ident(ident)?)),
+        Transformation::Derive(assigns) => Ok(Transformation::Derive(fold.fold_items(assigns)?)),
+        Transformation::From(table) => Ok(Transformation::From(fold.fold_table_ref(table)?)),
         Transformation::Filter(Filter(items)) => {
             Ok(Transformation::Filter(Filter(fold.fold_items(items)?)))
         }
@@ -115,21 +101,15 @@ pub fn fold_transformation<T: ?Sized + AstFold>(
             on: fold.fold_items(on)?,
         }),
         Transformation::Select(items) => Ok(Transformation::Select(fold.fold_items(items)?)),
-        Transformation::Aggregate { by, calcs, assigns } => Ok(Transformation::Aggregate {
+        Transformation::Aggregate { by, select } => Ok(Transformation::Aggregate {
             by: fold.fold_items(by)?,
-            calcs: fold.fold_items(calcs)?,
-            assigns: assigns
-                .into_iter()
-                .map(|assign| fold.fold_assign(assign))
-                .try_collect()?,
+            select: fold.fold_items(select)?,
         }),
-        Transformation::Func(func_call) => {
-            Ok(Transformation::Func(fold.fold_func_call(func_call)?))
-        }
         // TODO: generalize? Or this never changes?
         Transformation::Take(_) => Ok(transformation),
     }
 }
+
 pub fn fold_func_call<T: ?Sized + AstFold>(fold: &mut T, func_call: FuncCall) -> Result<FuncCall> {
     Ok(FuncCall {
         // TODO: generalize? Or this never changes?
@@ -142,47 +122,47 @@ pub fn fold_func_call<T: ?Sized + AstFold>(fold: &mut T, func_call: FuncCall) ->
         named_args: func_call
             .named_args
             .into_iter()
-            .map(|named_arg| fold.fold_named_arg(named_arg))
+            .map(|arg| fold.fold_named_expr(arg))
             .try_collect()?,
     })
 }
+
+pub fn fold_table_ref<T: ?Sized + AstFold>(fold: &mut T, table: TableRef) -> Result<TableRef> {
+    Ok(TableRef {
+        name: fold.fold_ident(table.name)?,
+        alias: table.alias.map(|a| fold.fold_ident(a)).transpose()?,
+    })
+}
+
 pub fn fold_item<T: ?Sized + AstFold>(fold: &mut T, item: Item) -> Result<Item> {
     Ok(match item {
         Item::Ident(ident) => Item::Ident(fold.fold_ident(ident)?),
-        Item::Terms(terms) => Item::Terms(fold.fold_terms(terms)?),
         Item::Expr(items) => Item::Expr(fold.fold_items(items)?),
-        Item::Idents(idents) => Item::Idents(
-            idents
-                .into_iter()
-                .map(|i| fold.fold_ident(i))
-                .try_collect()?,
-        ),
-        // We could implement a `fold_list_item`...
         Item::List(items) => Item::List(
             items
                 .into_iter()
-                .map(|list_item| {
-                    list_item
-                        .into_inner()
-                        .into_iter()
-                        .map(|item| fold.fold_item(item))
-                        .try_collect()
-                        .map(ListItem)
-                })
+                .map(|x| fold.fold_item(x.into_inner()).map(ListItem))
                 .try_collect()?,
         ),
         Item::Query(Query { items }) => Item::Query(Query {
             items: fold.fold_items(items)?,
         }),
-        Item::InlinePipeline(items) => Item::InlinePipeline(fold.fold_inline_pipeline(items)?),
+        Item::InlinePipeline(InlinePipeline { value, functions }) => {
+            Item::InlinePipeline(InlinePipeline {
+                value: Box::from(fold.fold_item(*value)?),
+                functions: functions
+                    .into_iter()
+                    .map(|x| fold.fold_func_curry(x))
+                    .try_collect()?,
+            })
+        }
         Item::Pipeline(transformations) => Item::Pipeline(
             transformations
                 .into_iter()
                 .map(|t| fold.fold_transformation(t))
                 .try_collect()?,
         ),
-        Item::NamedArg(named_arg) => Item::NamedArg(fold.fold_named_arg(named_arg)?),
-        Item::Assign(assign) => Item::Assign(fold.fold_assign(assign)?),
+        Item::NamedExpr(named_expr) => Item::NamedExpr(fold.fold_named_expr(named_expr)?),
         Item::Transformation(transformation) => {
             Item::Transformation(fold.fold_transformation(transformation)?)
         }
@@ -192,7 +172,8 @@ pub fn fold_item<T: ?Sized + AstFold>(fold: &mut T, item: Item) -> Result<Item> 
                 .map(|x| fold.fold_sstring_item(x))
                 .try_collect()?,
         ),
-        Item::Function(func) => Item::Function(fold.fold_function(func)?),
+        Item::FuncDef(func) => Item::FuncDef(fold.fold_func_def(func)?),
+        Item::FuncCall(func_call) => fold.fold_func_call(func_call)?,
         Item::Table(table) => Item::Table(Table {
             name: table.name,
             pipeline: fold.fold_pipeline(table.pipeline)?,
@@ -202,8 +183,8 @@ pub fn fold_item<T: ?Sized + AstFold>(fold: &mut T, item: Item) -> Result<Item> 
         Item::String(_) | Item::Raw(_) | Item::Todo(_) => item,
     })
 }
-pub fn fold_function<T: ?Sized + AstFold>(fold: &mut T, function: Function) -> Result<Function> {
-    Ok(Function {
+pub fn fold_func_def<T: ?Sized + AstFold>(fold: &mut T, function: FuncDef) -> Result<FuncDef> {
+    Ok(FuncDef {
         name: fold.fold_ident(function.name)?,
         positional_params: function
             .positional_params
@@ -213,20 +194,17 @@ pub fn fold_function<T: ?Sized + AstFold>(fold: &mut T, function: Function) -> R
         named_params: function
             .named_params
             .into_iter()
-            .map(|named_param| fold.fold_named_arg(named_param))
+            .map(|named_param| fold.fold_named_expr(named_param))
             .try_collect()?,
-        body: fold.fold_items(function.body)?,
+        body: Box::new(fold.fold_item(*function.body)?),
     })
 }
-pub fn fold_assign<T: ?Sized + AstFold>(fold: &mut T, assign: Assign) -> Result<Assign> {
-    Ok(Assign {
-        lvalue: fold.fold_ident(assign.lvalue)?,
-        rvalue: Box::new(fold.fold_item(*assign.rvalue)?),
-    })
-}
-pub fn fold_inline_pipeline<T: ?Sized + AstFold>(
+pub fn fold_named_expr<T: ?Sized + AstFold>(
     fold: &mut T,
-    inline_pipeline: Items,
-) -> Result<Items> {
-    fold.fold_items(inline_pipeline)
+    named_expr: NamedExpr,
+) -> Result<NamedExpr> {
+    Ok(NamedExpr {
+        name: fold.fold_ident(named_expr.name)?,
+        expr: Box::new(fold.fold_item(*named_expr.expr)?),
+    })
 }

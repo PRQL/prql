@@ -16,34 +16,32 @@ WHITESPACE = _{ " " }
 // Need to exclude # in strings (and maybe confirm whether this the syntax we want)
 COMMENT = _{ "#" ~ (!NEWLINE ~ ANY) * }
 
-query = { SOI ~ NEWLINE* ~ (( function | table | pipeline ) ~ ( NEWLINE+ | &EOI ))* ~ EOI }
+query = { SOI ~ NEWLINE* ~ (( func_def | table | pipeline ) ~ ( NEWLINE+ | &EOI ))* ~ EOI }
 
-function = { "func" ~ function_params ~ "=" ~ expr_silent }
+func_def = { "func" ~ ident ~ func_def_params ~ "=" ~ expr }
 // TODO: we could force the named parameters to follow the positional ones here.
 // But pest requires some special handling because if `ident` is before
 // `named_arg`, then `x:y` will be parsed as `x` and then error on `:y`.
 // Possibly we can mandate whitespace to follow, but pest has annoying magic
 // which removes whitespace in non-atomic rules, so we'd need to explore that.
-function_params = { ( named_arg | ident )* }
+func_def_params = { ( named_term_simple | ident )* }
 table = { "table" ~ ident ~ "=" ~ "(" ~ NEWLINE* ~ pipeline ~ NEWLINE* ~ ")" }
 
-pipe = _{ NEWLINE | "|" }
-// TODO: should this allow for multiple line breaks?
+pipe = _{ NEWLINE+ | "|" }
 pipeline = { transformation ~ (pipe ~ transformation)* }
+
 // `ident` is the transformation name.
-// Should this be `Terms` or `Expr`? With `Terms`, we can't have `filter x = 1`; only
-// `filter (x = 1)`, so choosing `Expr`.
-transformation = { WHITESPACE* ~ ident ~ expr_silent? }
+transformation = { WHITESPACE* ~ ident ~ named_expr_simple* }
+
 // We don't model this in the same way as a pipeline, since the first term isn't
 // a transformation. And it's somewhat related to our transformations being
 // separate from our function calls (generally just `idents`) at the moment — we
 // could unify them at some point.
-inline_pipeline = { "(" ~ expr ~ (pipe ~ expr)+ ~ ")" }
+inline_pipeline = { "(" ~ expr ~ (pipe ~ func_curry)+ ~ ")" }
 
-ident = @{ ( ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "." | "_" )* ) }
-idents = { ident+ }
+ident = @{ !operator ~ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "." | "_" )* }
 
-// A central issue around the Terms vs Expr is that we want to be able to parse:
+// A central issue around the terms vs expr is that we want to be able to parse:
 //   [foo bar + 1, 2]
 // as:
 // - foo bar + 1
@@ -56,8 +54,8 @@ idents = { ident+ }
 // So this requires two non-silent rules:
 // - A notion of list item that contains anything, including operators (but
 //   not commas); e.g. `foo bar + 1`.
-// - A notion of Expr that aggregates things between operators, e.g. foo bar.
-// So we call the list item `Expr`, and the things between separators `terms`.
+// - A notion of expr that aggregates things between operators, e.g. foo bar.
+// So we call the list item `expr`, and the things between separators `terms`.
 //
 // We could have them be the same, but then we need logic in the parser to
 // account for where the list item is in this parse tree
@@ -69,16 +67,15 @@ idents = { ident+ }
 // - 2
 
 // Adding the WHITESPACE is like making it a compound-atomic operator.
-expr = { ( terms | operator | WHITESPACE )+ }
-// For when we want to include separators, but don't need to break between them;
-// e.g. in function definitions; where `func x = x + 1` can have `x + 1` as a
-// single sequence of Expr. Alternative we could arguably discard this and
-// unnest when creating the AST (which currently we do anyway).
-expr_silent = _{ ( terms | operator | WHITESPACE )+ }
-terms = !{ term+ }
-// Should assign be here?
-term = _{ ( parenthesized_expr | list | named_arg | assign | s_string | ident | number | string_literal | inline_pipeline ) }
-list = !{ "[" ~ NEWLINE? ~ expr ~ ("," ~ NEWLINE? ~ expr )* ~ ","? ~ NEWLINE? ~ "]" }
+expr = !{ term ~ (operator ~ term)* }
+expr_simple = !{ term_simple ~ (operator ~ term_simple)* }
+
+func_call = { ident ~ (named_term_simple | term_simple)+ }
+func_curry = { ident ~ (named_term_simple | term_simple)* }
+
+term = _{ ( s_string | func_call | term_simple ) }
+term_simple = _{ ( s_string | ident | parenthesized_expr | list | number | string_literal | inline_pipeline ) }
+list = { "[" ~ NEWLINE? ~ named_expr ~ ("," ~ NEWLINE? ~ named_expr )* ~ ","? ~ NEWLINE? ~ "]" }
 parenthesized_expr = _{ "(" ~ expr ~ ")" }
 
 // TODO: escapes
@@ -102,41 +99,26 @@ string_literal = ${ PUSH(quote) ~ string ~ POP }
 number = ${ ( ASCII_DIGIT | "." )+ }
 
 // These separate idents from each other — i.e. `foo bar and baz` will parse into
-// a) `foo bar`, b) `and`, c) `baz`, where `foo bar` is presumably a function call.
+// [`foo bar`, `and`, `baz`], where `foo bar` is presumably a function call.
 // TODO: review operators
 operator = ${ "and" | "or" | "not" | "==" | "!=" | "=" | ">" | "<" | ">=" | "<=" | "+" | "-" | "*" | "/" | "%" }
 
 s_string = ${ "s" ~ PUSH(quote) ~ ( s_string_string | ( "{" ~ expr ~ "}" ))* ~ POP }
 s_string_string = { ( !( "\\" | PEEK | "{" ) ~ ANY )+ }
-// Currently named_args and handled slightly differently to assignments:
-// named_args have no whitespace and take one expression immediately after the
-// `:`, while assignments take all of the expressions following the `:`. e.g.:
-//
-// derive cost: costA + costB
-//
-// vs.
-//
-// aggregate by:[title]
-//
-// ref https://github.com/max-sixty/prql/issues/53, this is not an ideal state,
-// since small differences in whitespace have a large different in outcome.
-//
-// (The `assign` is more complicated because of
-// https://github.com/pest-parser/pest/issues/502. An alternative would be to
-// rely on precedence rather than whitespace by always having it before
-// `named_arg` to ensure assignments parse as assignments rather than
-// named_args.)
-assign = ${ ident ~ WHITESPACE* ~ ":" ~ WHITESPACE+ ~ expr }
-named_arg = ${ ident ~ ":" ~ term }
+
+// For assigns, table aliases and named arguments
+named_expr = { (ident ~ ":")? ~ expr }
+named_expr_simple = { (ident ~ ":")? ~ expr_simple }
+named_term_simple = { (ident ~ ":")? ~ term_simple }
 
 // We no longer use this, but keeping here for reference, as it was a useful
 // pattern for reducing nesting.
-// // If possible, parse a single expr, otherwise parse a list of Expr, adding a
-// // layer. In cases like [a, b], we don't need `a` to be Expr -> Ident -> a;
-// // only Ident -> a; but in [a b], we do need an Expr parent to discriminate it
+// // If possible, parse a single expr, otherwise parse a list of expr, adding a
+// // layer. In cases like [a, b], we don't need `a` to be expr -> ident -> a;
+// // only ident -> a; but in [a b], we do need an expr parent to discriminate it
 // // from `[a, b]`.
 // // Note that it's a bit complicated with `&( NEWLINE? ~ ("," | "]"))` — we want
 // // to ensure there is a end to the expression, and we allow a NEWLINE to be between
 // // the current expression and the ending token. (Feel free to change and see the
 // // test diffs.)
-// // single_expr_if_possible = _{ (( item ~ &( NEWLINE? ~ ("," | "]") ) ) | Expr ) }
+// // single_expr_if_possible = _{ (( item ~ &( NEWLINE? ~ ("," | "]") ) ) | expr ) }
