@@ -4,6 +4,7 @@ mod ast_fold;
 mod cli;
 mod materializer;
 mod parser;
+mod reporting;
 mod translator;
 mod utils;
 

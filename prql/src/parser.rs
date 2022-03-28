@@ -14,6 +14,9 @@ use pest_derive::Parser;
 #[grammar = "prql.pest"]
 struct PrqlParser;
 
+pub(crate) type PestError = pest::error::Error<Rule>;
+pub(crate) type PestRule = Rule;
+
 /// Build an AST from a PRQL query string.
 pub fn parse(string: &str) -> Result<Item> {
     ast_of_string(string, Rule::query)
@@ -21,9 +24,9 @@ pub fn parse(string: &str) -> Result<Item> {
 
 /// Parse a string into an AST. Unlike [parse], this can start from any rule.
 fn ast_of_string(string: &str, rule: Rule) -> Result<Item> {
-    parse_tree_of_str(string, rule)
-        .and_then(ast_of_parse_tree)
-        .and_then(|x| x.into_only())
+    let pairs = parse_tree_of_str(string, rule)?;  
+
+    ast_of_parse_tree(pairs)?.into_only()
 }
 
 /// Parse a string into a parse tree / concrete syntax tree, made up of pest Pairs.

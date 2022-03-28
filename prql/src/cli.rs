@@ -1,11 +1,11 @@
-use crate::{compile, materialize, parse};
+use crate::{materialize, parse, reporting, translate};
 use anyhow::Error;
 use clap::{ArgEnum, Args, Parser};
 use clio::{Input, Output};
 use std::io::{Read, Write};
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ArgEnum)]
-enum Dialect {
+enum Format {
     Ast,
     MaterializedAst,
     Sql,
@@ -29,7 +29,7 @@ pub struct CompileCommand {
     output: Output,
 
     #[clap(short, long, arg_enum, default_value = "sql")]
-    format: Dialect,
+    format: Format,
 }
 
 fn is_stdin(input: &Input) -> bool {
@@ -40,8 +40,6 @@ impl Cli {
     pub fn execute(&mut self) -> Result<(), Error> {
         match self {
             Cli::Compile(command) => {
-                let mut source = String::new();
-
                 // Don't wait without a prompt when running `prql compile` —
                 // it's confusing whether it's waiting for input or not. This
                 // offers the prompt.
@@ -49,20 +47,19 @@ impl Cli {
                     println!("Enter PRQL, then ctrl-d:");
                     println!();
                 }
-                command.input.read_to_string(&mut source)?;
 
-                match command.format {
-                    Dialect::Ast => command
-                        .output
-                        .write_all(&serde_yaml::to_vec(&parse(&source)?)?)?,
-                    Dialect::MaterializedAst => {
-                        let materialized = materialize(parse(&source)?)?;
-                        command
-                            .output
-                            .write_all(&serde_yaml::to_vec(&materialized)?)?
+                let mut source = String::new();
+                command.input.read_to_string(&mut source)?;
+                let source_id = command.input.path().clone().to_str().unwrap();
+
+                let res = compile_to(command.format, &source);
+
+                match res {
+                    Ok(buf) => {
+                        command.output.write(&buf)?;
                     }
-                    Dialect::Sql => {
-                        command.output.write_all(compile(&source)?.as_bytes())?;
+                    Err(e) => {
+                        reporting::print_error(e, source_id, &source)
                     }
                 };
             }
@@ -70,4 +67,25 @@ impl Cli {
 
         Ok(())
     }
+}
+
+fn compile_to(format: Format, source: &str) -> Result<Vec<u8>, Error> {
+    Ok(match format {
+        Format::Ast => {
+            let ast = parse(source)?;
+
+            serde_yaml::to_vec(&ast)?
+        }
+        Format::MaterializedAst => {
+            let materialized = materialize(parse(source)?)?;
+
+            serde_yaml::to_vec(&materialized)?
+        }
+        Format::Sql => {
+            let materialized = materialize(parse(source)?)?;
+            let sql = translate(&materialized)?;
+
+            sql.as_bytes().to_vec()
+        }
+    })
 }
