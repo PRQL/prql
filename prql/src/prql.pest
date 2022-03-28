@@ -39,7 +39,7 @@ transformation = { WHITESPACE* ~ ident ~ named_expr_simple* }
 // could unify them at some point.
 inline_pipeline = { "(" ~ expr ~ (pipe ~ func_curry)+ ~ ")" }
 
-ident = @{ ( ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "." | "_" )* ) }
+ident = @{ !operator ~ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "." | "_" )* }
 
 // A central issue around the terms vs expr is that we want to be able to parse:
 //   [foo bar + 1, 2]
@@ -99,7 +99,7 @@ string_literal = ${ PUSH(quote) ~ string ~ POP }
 number = ${ ( ASCII_DIGIT | "." )+ }
 
 // These separate idents from each other — i.e. `foo bar and baz` will parse into
-// a) `foo bar`, b) `and`, c) `baz`, where `foo bar` is presumably a function call.
+// [`foo bar`, `and`, `baz`], where `foo bar` is presumably a function call.
 // TODO: review operators
 operator = ${ "and" | "or" | "not" | "==" | "!=" | "=" | ">" | "<" | ">=" | "<=" | "+" | "-" | "*" | "/" | "%" }
 

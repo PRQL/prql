@@ -845,6 +845,31 @@ take 20
         named_args: []
         "###);
 
+        assert_yaml_snapshot!(parse(r#"from mytable | select [a and b + c or d e and f]"#)?, @r###"
+        ---
+        Query:
+          items:
+            - Pipeline:
+                - From:
+                    name: mytable
+                    alias: ~
+                - Select:
+                    - Expr:
+                        - Ident: a
+                        - Raw: and
+                        - Ident: b
+                        - Raw: +
+                        - Ident: c
+                        - Raw: or
+                        - FuncCall:
+                            name: d
+                            args:
+                              - Ident: e
+                            named_args: []
+                        - Raw: and
+                        - Ident: f
+        "###);
+
         Ok(())
     }
 
