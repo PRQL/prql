@@ -11,9 +11,9 @@ from salaries
 aggregate by:[emp_no] [
   emp_salary: average salary
 ]
-join titles [emp_no]
+join t:titles [emp_no]
 join dept_emp side:left [emp_no]
-aggregate by:[dept_emp.dept_no, titles.title] [
+aggregate by:[dept_emp.dept_no, t.title] [
   avg_salary: average emp_salary
 ]
 join departments [dept_no]
@@ -36,15 +36,15 @@ WITH table_0 AS (
 table_1 AS (
   SELECT
     dept_emp.dept_no,
-    titles.title,
+    t.title,
     AVG(emp_salary) AS avg_salary
   FROM
     table_0
-    JOIN titles USING(emp_no)
+    JOIN titles AS t USING(emp_no)
     LEFT JOIN dept_emp USING(emp_no)
   GROUP BY
     dept_emp.dept_no,
-    titles.title
+    t.title
 ),
 table_2 AS (
   SELECT

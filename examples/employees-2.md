@@ -7,20 +7,20 @@ join salaries [emp_no]
 aggregate by:[emp_no, gender] [
   emp_salary: average salary
 ]
-join dept_emp [emp_no]
-join dept_manager [
-  (dept_manager.dept_no = dept_emp.dept_no) and s"(dept_emp.from_date, dept_emp.to_date) OVERLAPS (dept_manager.from_date, dept_manager.to_date)"
+join de:dept_emp [emp_no]
+join dm:dept_manager [
+  (dm.dept_no = de.dept_no) and s"(de.from_date, de.to_date) OVERLAPS (dm.from_date, dm.to_date)"
 ]
-aggregate by:[dept_manager.emp_no, gender] [
+aggregate by:[dm.emp_no, gender] [
   salary_avg: average emp_salary,
   salary_sd: stddev emp_salary
 ]
 derive [
-  mng_no: dept_manager.emp_no
+  mng_no: dm.emp_no
 ]
-join employees [emp_no]
-derive [mng_name: s"employees.first_name || ' ' || employees.last_name"]
-select [mng_name, table_1.gender, salary_avg, salary_sd]
+join managers:employees [emp_no]
+derive [mng_name: s"managers.first_name || ' ' || managers.last_name"]
+select [mng_name, managers.gender, salary_avg, salary_sd]
 ```
 
 ```sql
@@ -38,29 +38,29 @@ WITH table_0 AS (
 ),
 table_1 AS (
   SELECT
-    dept_manager.emp_no,
+    dm.emp_no,
     gender,
     AVG(emp_salary) AS salary_avg,
     STDDEV(emp_salary) AS salary_sd,
-    dept_manager.emp_no AS mng_no
+    dm.emp_no AS mng_no
   FROM
     table_0
-    JOIN dept_emp USING(emp_no)
-    JOIN dept_manager ON dept_manager.dept_no = dept_emp.dept_no
-    AND (dept_emp.from_date, dept_emp.to_date) OVERLAPS (dept_manager.from_date, dept_manager.to_date)
+    JOIN dept_emp AS de USING(emp_no)
+    JOIN dept_manager AS dm ON dm.dept_no = de.dept_no
+    AND (de.from_date, de.to_date) OVERLAPS (dm.from_date, dm.to_date)
   GROUP BY
-    dept_manager.emp_no,
+    dm.emp_no,
     gender
 ),
 table_2 AS (
   SELECT
-    employees.first_name || ' ' || employees.last_name,
-    table_1.gender,
+    managers.first_name || ' ' || managers.last_name,
+    managers.gender,
     salary_avg,
     salary_sd
   FROM
     table_1
-    JOIN employees USING(emp_no)
+    JOIN employees AS managers USING(emp_no)
 )
 SELECT
   *

@@ -97,7 +97,7 @@ pub fn fold_transformation<T: ?Sized + AstFold>(
         Transformation::Sort(items) => Ok(Transformation::Sort(fold.fold_items(items)?)),
         Transformation::Join { side, with, on } => Ok(Transformation::Join {
             side,
-            with,
+            with: fold.fold_table_ref(with)?,
             on: fold.fold_items(on)?,
         }),
         Transformation::Select(items) => Ok(Transformation::Select(fold.fold_items(items)?)),
