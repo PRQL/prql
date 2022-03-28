@@ -12,9 +12,7 @@ func sum column = s"SUM({column})"
 func avg column = s"AVG({column})"
 func stddev column = s"STDDEV({column})"
 func average column = s"AVG({column})"
-# TODO: Resolve handling `count *`...
-# https://github.com/max-sixty/prql/issues/154
-# func count = s"COUNT(*)"
+func count = s"COUNT(*)"
 func count column = s"COUNT({column})"
 # TODO: Possibly make this into `count distinct:true` (or like `distinct:` as an
 # abbreviation of that?)

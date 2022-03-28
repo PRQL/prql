@@ -93,17 +93,24 @@ impl AstFold for ReplaceVariables {
 struct RunFunctions {
     // This stores the name twice, but that's probably OK.
     functions: HashMap<Ident, FuncDef>,
+
+    functions_no_args: HashMap<Ident, FuncDef>,
 }
 
 impl RunFunctions {
     fn new() -> Self {
         Self {
             functions: HashMap::new(),
+            functions_no_args: HashMap::new(),
         }
     }
 
     fn add_def(&mut self, func: FuncDef) -> &Self {
-        self.functions.insert(func.name.clone(), func);
+        if func.named_params.is_empty() && func.positional_params.is_empty() {
+            self.functions_no_args.insert(func.name.clone(), func);
+        } else {
+            self.functions.insert(func.name.clone(), func);
+        }
         self
     }
     fn inline_func_call(&mut self, func_call: &FuncCall) -> Result<Item> {
@@ -127,8 +134,7 @@ impl RunFunctions {
             let value = func_call
                 .named_args
                 .iter()
-                // Quite inefficient — we could instead sort each list and join
-                // them. Is there a native way of doing that?
+                // Quite inefficient when number of arguments > 10
                 .find(|named_arg| named_arg.name == param.name)
                 // Put the value of the named arg if it's there; otherwise use
                 // the default (which is sorted on `param.arg`).
@@ -147,7 +153,6 @@ impl RunFunctions {
         // in the function with their argument values.
         let mut replace_variables = ReplaceVariables::new();
         for (arg, arg_call) in zip(func.positional_params.iter(), func_call.args.iter()) {
-            // FIXME: Add named args
             replace_variables.add_variables(NamedExpr {
                 alias: Some(arg.clone()),
                 expr: Box::new(arg_call.clone()),
@@ -221,6 +226,16 @@ impl AstFold for RunFunctions {
             // here rather than in `fold_inline_pipeline`.
             Item::InlinePipeline(p) => self.inline_pipeline(p),
 
+            // Because this returns an Item rather than an Ident, we need to
+            // have a custom `fold_item` method.
+            Item::Ident(ident) => Ok(
+                if let Some(def) = self.functions_no_args.get(ident.as_str()) {
+                    *def.body.clone()
+                } else {
+                    Item::Ident(ident)
+                },
+            ),
+
             // Otherwise just delegate to the upstream fold.
             _ => fold_item(self, item),
         }
@@ -290,7 +305,7 @@ aggregate by:[title, country] [                  # `by` are the columns to group
     sum     gross_salary,
     average gross_cost,
     sum_gross_cost ~ sum gross_cost,
-    ct ~ count *,
+    ct ~ count,
 ]
 sort sum_gross_cost
 filter sum_gross_cost > 200
@@ -638,7 +653,7 @@ aggregate by:[title, country] [                  # `by` are the columns to group
     sum     gross_salary,
     average gross_cost,
     sum_gross_cost ~ sum gross_cost,
-    ct ~ count *,
+    ct ~ count,
 ]
 sort sum_gross_cost
 filter sum_gross_cost > 200

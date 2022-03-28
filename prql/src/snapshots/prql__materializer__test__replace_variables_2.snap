@@ -1,5 +1,5 @@
 ---
-source: src/materializer.rs
+source: prql/src/materializer.rs
 expression: "&fold.fold_item(ast)?"
 ---
 Query:
@@ -107,11 +107,7 @@ Query:
                     named_args: []
               - alias: ct
                 expr:
-                  FuncCall:
-                    name: count
-                    args:
-                      - Raw: "*"
-                    named_args: []
+                  Ident: count
         - Sort:
             - Ident: sum_gross_cost
         - Filter:

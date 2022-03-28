@@ -1,5 +1,5 @@
 ---
-source: src/materializer.rs
+source: prql/src/materializer.rs
 expression: materialize(ast)?
 ---
 Query:
@@ -108,10 +108,7 @@ Query:
               - alias: ct
                 expr:
                   SString:
-                    - String: COUNT(
-                    - Expr:
-                        Raw: "*"
-                    - String: )
+                    - String: COUNT(*)
         - Sort:
             - Ident: sum_gross_cost
         - Filter:

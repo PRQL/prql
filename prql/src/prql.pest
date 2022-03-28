@@ -74,7 +74,7 @@ func_call = { ident ~ (named_arg | term_simple)+ }
 func_curry = { ident ~ (named_arg | term_simple)* }
 
 term = _{ ( s_string | func_call | term_simple ) }
-term_simple = _{ ( s_string | ident | parenthesized_expr | list | number | all | string_literal | inline_pipeline ) }
+term_simple = _{ ( s_string | ident | parenthesized_expr | list | number | string_literal | inline_pipeline ) }
 list = { "[" ~ NEWLINE? ~ named_expr ~ ("," ~ NEWLINE? ~ named_expr )* ~ ","? ~ NEWLINE? ~ "]" }
 parenthesized_expr = _{ "(" ~ expr ~ ")" }
 
@@ -97,7 +97,6 @@ string = { ( !( "\\" | PEEK ) ~ ANY )+ }
 string_literal = ${ PUSH(quote) ~ string ~ POP }
 
 number = ${ ( ASCII_DIGIT | "." )+ }
-all = { "*" }
 
 // These separate idents from each other — i.e. `foo bar and baz` will parse into
 // a) `foo bar`, b) `and`, c) `baz`, where `foo bar` is presumably a function call.

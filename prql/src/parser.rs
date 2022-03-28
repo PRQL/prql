@@ -248,17 +248,17 @@ impl TryFrom<Vec<Item>> for Transformation {
                 positional
                     .into_only()
                     .context("Expected exactly one argument for `select`")?
-                    .coerce_to_named_list(),
+                    .coerce_to_named_exprs(),
             )),
             "filter" => {
-                let items = positional.into_only()?.discard_name()?.coerce_to_list();
+                let items = positional.into_only()?.discard_name()?.coerce_to_items();
                 Ok(Transformation::Filter(Filter(items)))
             }
             "derive" => {
                 let assigns = (positional)
                     .into_only()
                     .context("Expected exactly one argument for `derive`")?
-                    .coerce_to_named_list();
+                    .coerce_to_named_exprs();
                 Ok(Transformation::Derive(assigns))
             }
             "aggregate" => {
@@ -271,17 +271,17 @@ impl TryFrom<Vec<Item>> for Transformation {
                 // ))
                 // })?;
                 let [by] = require_named_args(named, ["by"])?;
-                let by = by.map(|x| x.coerce_to_list()).unwrap_or_default();
+                let by = by.map(|x| x.coerce_to_items()).unwrap_or_default();
 
                 let select = positional
                     .into_only()
-                    .map(|x| x.coerce_to_named_list())
+                    .map(|x| x.coerce_to_named_exprs())
                     .unwrap_or_default();
 
                 Ok(Transformation::Aggregate { by, select })
             }
             "sort" => {
-                let by = positional.into_only()?.discard_name()?.coerce_to_list();
+                let by = positional.into_only()?.discard_name()?.coerce_to_items();
                 Ok(Transformation::Sort(by))
             }
             "take" => {
@@ -309,7 +309,7 @@ impl TryFrom<Vec<Item>> for Transformation {
                     .map_err(|x| anyhow!("join requires a table name to join with, got {x:?}"))?;
 
                 let on = if let Some(x) = positional.get(1) {
-                    x.clone().discard_name()?.coerce_to_list()
+                    x.clone().discard_name()?.coerce_to_items()
                 } else {
                     vec![]
                 };
@@ -870,16 +870,13 @@ take 20
 
     #[test]
     fn test_parse_func_call() -> Result<()> {
-        // Uber-hack from #154
-        let ast = ast_of_string(r#"count *"#, Rule::expr)?;
-        let func_call: FuncCall = ast.into_func_call()?;
+        // Function without argument
+        let ast = ast_of_string(r#"count"#, Rule::expr)?;
+        let ident = ast.into_ident()?;
         assert_yaml_snapshot!(
-            func_call, @r###"
+            ident, @r###"
         ---
-        name: count
-        args:
-          - Raw: "*"
-        named_args: []
+        count
         "###);
 
         // A non-friendly option for #154
@@ -1061,7 +1058,7 @@ aggregate by:[title, country] [                  # `by` are the columns to group
     sum     gross_salary,
     average gross_cost,
     sum_gross_cost ~ sum gross_cost,
-    count ~ count *,
+    count ~ count,
 ]
 sort sum_gross_cost
 filter count > 200
