@@ -278,11 +278,16 @@ impl TryFrom<Vec<Item>> for Transformation {
 
                 let with = (positional.get(0).cloned())
                     .context("join requires a table name to join with")?;
-                let with = (with.discard_name()?.into_ident())
-                    .map_err(|x| anyhow!("join requires a table name to join with, got {x:?}"))?;
+                let (with_alias, with) = with.into_name_and_expr();
 
-                let on = if let Some(x) = positional.get(1) {
-                    x.clone().discard_name()?.coerce_to_items()
+                let with = TableRef {
+                    name: with.into_ident()
+                        .map_err(|_| anyhow!("`join` does not support inline expressions. You can only pass a table name."))?,
+                    alias: with_alias,
+                };
+
+                let on = if let Some(on) = positional.get(1) {
+                    on.clone().discard_name()?.coerce_to_items()
                 } else {
                     vec![]
                 };

@@ -10,9 +10,9 @@ from salaries
 aggregate by:[emp_no] [
   emp_salary: average salary
 ]
-join titles [emp_no]
+join t:titles [emp_no]
 join dept_emp side:left [emp_no]
-aggregate by:[dept_emp.dept_no, titles.title] [
+aggregate by:[dept_emp.dept_no, t.title] [
   avg_salary: average emp_salary
 ]
 join departments [dept_no]

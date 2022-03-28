@@ -67,7 +67,7 @@ pub enum Transformation {
     Take(i64),
     Join {
         side: JoinSide,
-        with: Ident,
+        with: TableRef,
         on: Vec<Item>,
     },
 }

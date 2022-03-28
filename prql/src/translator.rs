@@ -225,7 +225,7 @@ fn sql_query_of_atomic_pipeline(pipeline: &Pipeline) -> Result<sql_ast::Query> {
                 };
 
                 Ok(Join {
-                    relation: table_factor_of_ident(with),
+                    relation: table_factor_of_table_ref(with),
                     join_operator: match *side {
                         JoinSide::Inner => JoinOperator::Inner(constraint),
                         JoinSide::Left => JoinOperator::LeftOuter(constraint),
