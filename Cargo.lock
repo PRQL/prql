@@ -686,7 +686,6 @@ dependencies = [
  "sycamore",
  "wasm-bindgen",
  "wasm-bindgen-test",
- "web-sys",
  "wee_alloc",
 ]
 
