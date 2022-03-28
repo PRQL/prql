@@ -12,8 +12,7 @@ aggregate by:[emp_no] [
   emp_salary: average salary
 ]
 join titles [emp_no]
-# TODO: add a `left` join
-join dept_emp [emp_no]
+join dept_emp side:left [emp_no]
 aggregate by:[dept_emp.dept_no, titles.title] [
   avg_salary: average emp_salary
 ]
@@ -42,7 +41,7 @@ table_1 AS (
   FROM
     table_0
     JOIN titles USING(emp_no)
-    JOIN dept_emp USING(emp_no)
+    LEFT JOIN dept_emp USING(emp_no)
   GROUP BY
     dept_emp.dept_no,
     titles.title

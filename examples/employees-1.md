@@ -7,7 +7,7 @@ join salaries [emp_no]
 aggregate by:[emp_no, gender] [
   emp_salary: average salary
 ]
-join dept_emp [emp_no]
+join dept_emp [emp_no] side:left
 aggregate by:[dept_no, gender] [
   salary_avg: average emp_salary,
   salary_sd: stddev emp_salary,
@@ -37,7 +37,7 @@ table_1 AS (
     STDDEV(emp_salary) AS salary_sd
   FROM
     table_0
-    JOIN dept_emp USING(emp_no)
+    LEFT JOIN dept_emp USING(emp_no)
   GROUP BY
     dept_no,
     gender
