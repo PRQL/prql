@@ -238,7 +238,7 @@ impl TryFrom<Vec<Item>> for Transformation {
 
                 let table_ref = TableRef {
                     name: named_expr.expr.into_ident()
-                        .map_err(|_| anyhow!("From does not support inline expression. You can only pass table name."))?,
+                        .map_err(|_| anyhow!("From does not support inline expression. You can only pass a table name."))?,
                     alias: named_expr.alias,
                 };
 
