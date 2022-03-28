@@ -306,7 +306,7 @@ fn unpack_arguments<const COUNT: usize>(
     let mut named = [NONE; COUNT];
 
     for p in passed {
-        // Quite inefficient when number of arguments > 10
+        // Quite inefficient when number of arguments > 10. We could instead use merge join.
         if let Some(n) = p.as_named_expr() {
             if let Some((pos, _)) = expected.iter().find_position(|x| x == &&n.name) {
                 named[pos] = Some(*p.into_named_expr().unwrap().expr);

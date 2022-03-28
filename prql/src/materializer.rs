@@ -132,7 +132,7 @@ impl RunFunctions {
             let value = func_call
                 .named_args
                 .iter()
-                // Quite inefficient when number of arguments > 10
+                // Quite inefficient when number of arguments > 10. We could instead use merge join.
                 .find(|named_arg| named_arg.name == param.name)
                 // Put the value of the named arg if it's there; otherwise use
                 // the default (which is sorted on `param.arg`).

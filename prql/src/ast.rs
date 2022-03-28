@@ -123,12 +123,6 @@ pub struct NamedExpr {
     pub expr: Box<Item>,
 }
 
-impl NamedExpr {
-    pub fn unnamed(expr: Item) -> Item {
-        expr
-    }
-}
-
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub enum SStringItem {
     String(String),
@@ -169,12 +163,7 @@ impl Item {
 
     /// Make a List from a vec of Items
     pub fn into_list_of_items(items: Vec<Item>) -> Item {
-        Item::List(
-            items
-                .into_iter()
-                .map(|item| ListItem(NamedExpr::unnamed(item)))
-                .collect(),
-        )
+        Item::List(items.into_iter().map(ListItem).collect())
     }
 
     /// Return an error if this is named expression.

@@ -561,8 +561,8 @@ SString:
     #[test]
     fn test_try_from_list_to_vec_expr() -> Result<()> {
         let item = Item::List(vec![
-            ListItem(NamedExpr::unnamed(Item::Ident("a".to_owned()))),
-            ListItem(NamedExpr::unnamed(Item::Ident("b".to_owned()))),
+            ListItem(Item::Ident("a".to_owned())),
+            ListItem(Item::Ident("b".to_owned())),
         ]);
         let expr: Vec<Expr> = item.try_into()?;
         assert_debug_snapshot!(expr, @r###"
