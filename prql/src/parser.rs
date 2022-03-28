@@ -148,7 +148,7 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Item>> {
                 Rule::s_string => Item::SString(
                     pair.into_inner()
                         .map(|x| {
-                            Ok::<_, anyhow::Error>(match x.as_rule() {
+                            Ok(match x.as_rule() {
                                 Rule::s_string_string => {
                                     SStringItem::String(x.as_str().to_string())
                                 }
@@ -157,7 +157,7 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Item>> {
                                 ),
                             })
                         })
-                        .try_collect()?,
+                        .collect::<Result<Vec<SStringItem>>>()?,
                 ),
                 Rule::pipeline => Item::Pipeline({
                     ast_of_parse_tree(pair.into_inner())?
