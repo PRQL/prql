@@ -1,10 +1,13 @@
 ```elm
-# This doesn't yet work
-
 from mytable
-filter id = $1    # We should be able to pass parameters straight through.
+filter id = $1
 ```
 
 ```sql
-SELECT * FROM mytable WHERE id = $1
+SELECT
+  *
+FROM
+  mytable
+WHERE
+  id = $1
 ```

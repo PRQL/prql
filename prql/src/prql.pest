@@ -39,7 +39,7 @@ transformation = { WHITESPACE* ~ ident ~ named_expr_simple* }
 // could unify them at some point.
 inline_pipeline = { "(" ~ expr ~ (pipe ~ func_curry)+ ~ ")" }
 
-ident = @{ !operator ~ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "." | "_" )* }
+ident = @{ !operator ~ (ASCII_ALPHA | "$") ~ (ASCII_ALPHANUMERIC | "." | "_" )* }
 
 // A central issue around the terms vs expr is that we want to be able to parse:
 //   [foo bar + 1, 2]
