@@ -1,11 +1,12 @@
 use anyhow::{anyhow, bail, Result};
+use enum_as_inner::EnumAsInner;
 use serde::{Deserialize, Serialize};
+
+use crate::utils::*;
 
 // Idents are generally columns
 pub type Ident = String;
 pub type Pipeline = Vec<Transformation>;
-
-use enum_as_inner::EnumAsInner;
 
 #[derive(Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize)]
 pub enum Item {
@@ -149,20 +150,10 @@ impl NamedExpr {
         Ok(*self.expr)
     }
 
-    pub fn map<F>(self, mut f: F) -> Self
-    where
-        F: FnMut(Item) -> Item,
-    {
-        NamedExpr {
-            alias: self.alias,
-            expr: Box::from(f(*self.expr)),
-        }
-    }
-
     /// Often we don't care whether a List or single item is passed; e.g.
     /// `select x` vs `select [x, y]`. This equalizes them both to a vec of
     /// expression, including unnesting any ListItems.
-    pub fn coerce_to_named_list(self) -> Vec<NamedExpr> {
+    pub fn coerce_to_named_exprs(self) -> Vec<NamedExpr> {
         match self {
             NamedExpr { alias: None, expr } => match *expr {
                 Item::List(items) => items.into_iter().map(|x| x.into_inner()).collect(),
@@ -227,7 +218,7 @@ impl Item {
     /// Often we don't care whether a List or single item is passed; e.g.
     /// `select x` vs `select [x, y]`. This equalizes them both to a vec of
     /// Item-ss.
-    pub fn coerce_to_list(self) -> Vec<Item> {
+    pub fn coerce_to_items(self) -> Vec<Item> {
         match self {
             Item::List(items) => items.into_iter().map(|x| *x.into_inner().expr).collect(),
             x => vec![x],
@@ -242,15 +233,14 @@ pub trait IntoExpr {
 impl IntoExpr for Vec<Item> {
     fn into_expr(self) -> Item {
         if self.len() == 1 {
-            self[0].clone()
+            self.into_only().unwrap()
         } else {
             Item::Expr(self)
         }
     }
 }
 
-use anyhow::Error;
-impl From<Item> for Error {
+impl From<Item> for anyhow::Error {
     // https://github.com/bluejekyll/enum-as-inner/issues/84
     fn from(item: Item) -> Self {
         anyhow!("Failed to convert {item:?}")

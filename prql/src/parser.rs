@@ -202,7 +202,7 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Item>> {
                         functions
                     })
                 }
-                Rule::operator | Rule::number | Rule::all => Item::Raw(pair.as_str().to_owned()),
+                Rule::operator | Rule::number => Item::Raw(pair.as_str().to_owned()),
                 _ => (Item::Todo(pair.as_str().to_owned())),
             })
         })
@@ -330,6 +330,7 @@ fn require_named_args<const COUNT: usize>(
     let mut res = [NONE; COUNT];
 
     for p in passed {
+        // Quite inefficient when number of arguments > 10
         if let Some((pos, _)) = expected.iter().find_position(|x| x == &&p.name) {
             res[pos] = Some(*p.arg);
         } else {
