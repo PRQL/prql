@@ -212,13 +212,11 @@ impl AstFold for RunFunctions {
             Item::FuncCall(func_call) => {
                 let mut func_call: Node = self.fold_func_call(func_call)?.into();
                 func_call.span = node.span;
-                
-                self.inline_func_call(&func_call)?.item
-            },
 
-            Item::InlinePipeline(p) => {
-                self.inline_pipeline(p)?
+                self.inline_func_call(&func_call)?.item
             }
+
+            Item::InlinePipeline(p) => self.inline_pipeline(p)?,
 
             Item::Ident(ident) => {
                 if let Some(def) = self.functions_no_args.get(ident.as_str()) {
