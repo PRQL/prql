@@ -3,10 +3,9 @@
 //! contains no query-specific logic.
 use super::ast::*;
 use super::ast_fold::*;
+use crate::error::{Error, Reason};
 
-use anyhow::Context;
-use anyhow::{anyhow, Result};
-use itertools::Itertools;
+use anyhow::{bail, Result};
 use std::{collections::HashMap, iter::zip};
 
 /// "Flatten" a PRQL AST by running functions & replacing variables.
@@ -111,22 +110,26 @@ impl RunFunctions {
         }
         self
     }
-    fn inline_func_call(&mut self, func_call: &FuncCall) -> Result<Item> {
+    fn inline_func_call(&mut self, node: &Node) -> Result<Node> {
+        let func_call = node.item.as_func_call().unwrap();
         // Get the function
-        let func = self
-            .functions
-            .get(&func_call.name)
-            .ok_or_else(|| anyhow!("Function {:?} not found", func_call.name))?;
+        let func = self.functions.get(&func_call.name).ok_or_else(|| {
+            Error::new(Reason::NotFound {
+                name: func_call.name.clone(),
+                namespace: "function".to_string(),
+            })
+            .with_span(node.span)
+        })?;
 
         // TODO: check if the function is called recursively.
 
         if func.positional_params.len() != func_call.args.len() {
-            return Err(anyhow!(
-                "Function {:?} called with wrong number of arguments. Expected {}, got {}; from {func_call:?}.",
-                func_call.name,
-                func.positional_params.len(),
-                func_call.args.len()
-            ));
+            bail!(Error::new(Reason::Expected {
+                who: Some(func_call.name.clone()),
+                expected: format!("{} arguments", func.positional_params.len()),
+                found: format!("{}", func_call.args.len()),
+            })
+            .with_span(node.span));
         }
         let named_args = func.named_params.iter().map(|param| {
             let value = func_call
@@ -161,7 +164,7 @@ impl RunFunctions {
         }
         // Take a clone of the function call's body, replace the variables with their
         // values, and return the modified function call.
-        replace_variables.fold_item(func.body.item.clone())
+        replace_variables.fold_node(*func.body.clone())
     }
 
     fn inline_pipeline(&mut self, pipeline: InlinePipeline) -> Result<Item> {
@@ -169,37 +172,17 @@ impl RunFunctions {
 
         for mut func_call in pipeline.functions {
             // The value from the previous pipeline becomes the final arg.
-            func_call.args.push(value);
+            if let Some(call) = func_call.item.as_func_call_mut() {
+                call.args.push(value);
+            }
 
-            value = self.inline_func_call(&func_call)?.into();
+            value = self.inline_func_call(&func_call)?;
         }
         Ok(value.item)
     }
 }
 
 impl AstFold for RunFunctions {
-    fn fold_func_call(&mut self, func_call: FuncCall) -> Result<Item> {
-        // fold arguments
-        let func_call = FuncCall {
-            name: func_call.name,
-            args: func_call
-                .args
-                .into_iter()
-                .map(|x| self.fold_node(x))
-                .try_collect()?,
-            named_args: func_call
-                .named_args
-                .into_iter()
-                .map(|x| self.fold_named_expr(x))
-                .try_collect()?,
-        };
-
-        (self.functions.get(&func_call.name))
-            .context(format!("Unknown function {}", func_call.name))?;
-
-        self.inline_func_call(&func_call)
-    }
-
     fn fold_nodes(&mut self, items: Vec<Node>) -> Result<Vec<Node>> {
         // We cut out function def, so we need to run it
         // here rather than in `fold_func_def`.
@@ -221,25 +204,28 @@ impl AstFold for RunFunctions {
         Ok(r)
     }
 
-    fn fold_item(&mut self, item: Item) -> Result<Item> {
-        match item.clone() {
-            // We replace the InlinePipeline with an Item, so we need to run it
-            // here rather than in `fold_inline_pipeline`.
-            Item::InlinePipeline(p) => self.inline_pipeline(p),
+    fn fold_node(&mut self, mut node: Node) -> Result<Node> {
+        // We replace Items and also pass node to `inline_func_call`,
+        // so we need to run this here rather than in `fold_func_call` or `fold_item`.
 
-            // Because this returns an Item rather than an Ident, we need to
-            // have a custom `fold_item` method.
-            Item::Ident(ident) => Ok(
+        node.item = match &node.item {
+            Item::FuncCall(_) => self.inline_func_call(&node)?.item,
+
+            Item::InlinePipeline(_) => {
+                self.inline_pipeline(node.item.into_inline_pipeline().unwrap())?
+            }
+
+            Item::Ident(ident) => {
                 if let Some(def) = self.functions_no_args.get(ident.as_str()) {
                     def.body.item.clone()
                 } else {
-                    Item::Ident(ident)
-                },
-            ),
+                    Item::Ident(node.item.into_ident().unwrap())
+                }
+            }
 
-            // Otherwise just delegate to the upstream fold.
-            _ => fold_item(self, item),
-        }
+            _ => fold_item(self, node.item)?,
+        };
+        Ok(node)
     }
 }
 

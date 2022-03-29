@@ -98,10 +98,7 @@ pub fn fold_item<T: ?Sized + AstFold>(fold: &mut T, item: Item) -> Result<Item> 
         Item::InlinePipeline(InlinePipeline { value, functions }) => {
             Item::InlinePipeline(InlinePipeline {
                 value: Box::from(fold.fold_node(*value)?),
-                functions: functions
-                    .into_iter()
-                    .map(|x| fold.fold_func_curry(x))
-                    .try_collect()?,
+                functions: fold.fold_nodes(functions)?,
             })
         }
         Item::Pipeline(transformations) => Item::Pipeline(

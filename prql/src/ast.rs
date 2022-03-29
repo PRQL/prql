@@ -1,8 +1,9 @@
 use anyhow::{anyhow, bail, Result};
 use enum_as_inner::EnumAsInner;
 use serde::{Deserialize, Serialize};
+use strum_macros::Display;
 
-use crate::reporting::Span;
+use crate::error::{Error, Reason, Span};
 use crate::utils::*;
 
 // Idents are generally columns
@@ -17,7 +18,7 @@ pub struct Node {
     pub span: Span,
 }
 
-#[derive(Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize)]
+#[derive(Debug, EnumAsInner, Display, PartialEq, Clone, Serialize, Deserialize)]
 pub enum Item {
     Transformation(Transformation),
     Ident(Ident),
@@ -112,7 +113,7 @@ pub struct FuncCall {
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct InlinePipeline {
     pub value: Box<Node>,
-    pub functions: Vec<FuncCall>,
+    pub functions: Vec<Node>,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
@@ -167,19 +168,22 @@ impl Node {
     }
 
     /// Return an error if this is named expression.
-    pub fn discard_name(self) -> Result<Node> {
-        if let Item::NamedExpr(expr) = self.item {
-            Err(anyhow!("Cannot use alias for: {expr:?}"))
+    pub fn discard_name(self) -> Result<Node, Error> {
+        if let Item::NamedExpr(_) = self.item {
+            Err(Error::new(Reason::Unexpected {
+                found: "alias".to_string(),
+            })
+            .with_span(self.span))
         } else {
             Ok(self)
         }
     }
 
-    pub fn into_name_and_expr(self) -> (Option<Ident>, Item) {
+    pub fn into_name_and_expr(self) -> (Option<Ident>, Node) {
         if let Item::NamedExpr(expr) = self.item {
-            (Some(expr.name), expr.expr.item)
+            (Some(expr.name), *expr.expr)
         } else {
-            (None, self.item)
+            (None, self)
         }
     }
 
@@ -191,6 +195,20 @@ impl Node {
             Item::List(items) => items.into_iter().map(|x| x.into_inner()).collect(),
             _ => vec![self],
         }
+    }
+
+    pub fn unwrap<T, F>(self, f: F, expected: &str) -> Result<T, Error>
+    where
+        F: FnOnce(Item) -> Result<T, Item>,
+    {
+        f(self.item).map_err(|i| {
+            Error::new(Reason::Expected {
+                who: None,
+                expected: expected.to_string(),
+                found: i.to_string(),
+            })
+            .with_span(self.span)
+        })
     }
 }
 

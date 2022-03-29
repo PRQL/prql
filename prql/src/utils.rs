@@ -1,6 +1,11 @@
 use anyhow::{anyhow, Result};
 use itertools::{Itertools, Position};
 
+use crate::{
+    error::{Error, Reason, Span},
+    internals::Node,
+};
+
 // Inspired by version in sqlparser-rs; I'm surprised there isn't a version in
 // the stdlib / Itertools.
 /// Returns the only element of an Iterator, or an error if it has more than one element.
@@ -27,6 +32,36 @@ where
             Some(Position::First(_)) => Err(anyhow!("Expected only one element, but found more.",)),
             None => Err(anyhow!("Expected only one element, but found none.",)),
             _ => unreachable!(),
+        }
+    }
+}
+
+pub trait IntoOnlyNode {
+    fn into_only_node(self, who: &str, occupation: &str) -> Result<Node, Error>;
+}
+
+impl IntoOnlyNode for Vec<Node> {
+    fn into_only_node(mut self, who: &str, occupation: &str) -> Result<Node, Error> {
+        match self.len() {
+            1 => Ok(self.remove(0)),
+            0 => Err(Error {
+                reason: Reason::Expected {
+                    who: Some(who.to_string()),
+                    expected: format!("only one {occupation}"),
+                    found: "none".to_string(),
+                },
+                span: Span::default(),
+                help: None,
+            }),
+            _ => Err(Error {
+                reason: Reason::Expected {
+                    who: Some(who.to_string()),
+                    expected: format!("only one {occupation}"),
+                    found: "more".to_string(),
+                },
+                span: self[1].span,
+                help: None,
+            }),
         }
     }
 }

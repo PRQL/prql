@@ -2,9 +2,9 @@ mod ast;
 mod ast_fold;
 #[cfg(feature = "cli")]
 mod cli;
+mod error;
 mod materializer;
 mod parser;
-mod reporting;
 mod translator;
 mod utils;
 

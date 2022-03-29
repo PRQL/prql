@@ -10,7 +10,10 @@ use pest_derive::Parser;
 
 use super::ast::*;
 use super::utils::*;
-use crate::reporting::Span;
+use crate::error::Error;
+use crate::error::Reason;
+use crate::error::Span;
+use crate::error::WithErrorInfo;
 #[derive(Parser)]
 #[grammar = "prql.pest"]
 struct PrqlParser;
@@ -71,7 +74,7 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
                 }
                 Rule::transformation => {
                     let parsed = ast_of_parse_tree(pair.into_inner())?;
-                    Item::Transformation(parsed.try_into()?)
+                    Item::Transformation(ast_of_transformation(parsed)?)
                 }
                 Rule::func_def => {
                     let parsed = ast_of_parse_tree(pair.into_inner())?;
@@ -193,11 +196,7 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
                     let (value, func_curries) =
                         (parsed.split_first()).context("empty inline pipeline?")?;
 
-                    let functions = func_curries
-                        .iter()
-                        .cloned()
-                        .map(|x| x.item.into_func_call())
-                        .try_collect()?;
+                    let functions = func_curries.to_vec();
 
                     Item::InlinePipeline(InlinePipeline {
                         value: Box::from(value.clone()),
@@ -219,111 +218,120 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
         .collect()
 }
 
-// We put this outside the main ast_of_parse_tree function to reduce the size of
-// that function.
-impl TryFrom<Vec<Node>> for Transformation {
-    type Error = anyhow::Error;
-    fn try_from(items: Vec<Node>) -> Result<Self> {
-        let (name, args) = items
-            .split_first()
-            .ok_or_else(|| anyhow!("Expected at least one item"))?;
+fn ast_of_transformation(items: Vec<Node>) -> Result<Transformation> {
+    let (name, args) = items
+        .split_first()
+        .ok_or_else(|| anyhow!("Expected at least one item"))?;
 
-        let args: Vec<Node> = args.to_vec();
+    let args: Vec<Node> = args.to_vec();
 
-        let name = name.item.clone().into_ident()?;
-        match name.as_str() {
-            "from" => {
-                let (name, expr) = args.into_only()
-                    .context("Expected `from` to have exactly one argument.\n  Hint: you can pass it as `from table_name` or `from alias: table_name`")?
-                    .into_name_and_expr();
+    let name = name.item.clone().into_ident()?;
+    Ok(match name.as_str() {
+        "from" => {
+            let (name, expr) = args
+                .into_only_node("from", "argument")
+                .with_help("you can pass it as `from table_name` or `from alias: table_name`")?
+                .into_name_and_expr();
 
-                let table_ref = TableRef {
-                    name: expr.into_ident()
-                    .map_err(|_| anyhow!("`from` does not support inline expressions. You can only pass a table name."))?,
-                    alias: name,
-                };
+            let table_ref = TableRef {
+                name: expr.unwrap(Item::into_ident, "ident").with_help(
+                    "`from` does not support inline expressions. You can only pass a table name.",
+                )?,
+                alias: name,
+            };
 
-                Ok(Transformation::From(table_ref))
-            }
-            "select" => Ok(Transformation::Select(
-                args.into_only()
-                    .context("Expected exactly one argument for `select`")?
-                    .coerce_to_items(),
-            )),
-            "filter" => {
-                let items = args.into_only()?.discard_name()?.coerce_to_items();
-                Ok(Transformation::Filter(Filter(items)))
-            }
-            "derive" => {
-                let assigns = (args)
-                    .into_only()
-                    .context("Expected exactly one argument for `derive`")?
-                    .coerce_to_items();
-                Ok(Transformation::Derive(assigns))
-            }
-            "aggregate" => {
-                // TODO: redo, generalizing with checks on custom functions.
-                // Ideally we'd be able to add to the error message with context
-                // without falling afowl of the borrow rules.
-                // Err(anyhow!(
-                //     "Expected exactly one unnamed argument for aggregate, got {:?}",
-                //     args
-                // ))
-                // })?;
-                let (positional, [by]) = unpack_arguments(args, ["by"])?;
-                let by = by.map(|x| x.coerce_to_items()).unwrap_or_default();
-
-                let select = positional
-                    .into_only()
-                    .map(|x| x.coerce_to_items())
-                    .unwrap_or_default();
-
-                Ok(Transformation::Aggregate { by, select })
-            }
-            "sort" => {
-                let by = args.into_only()?.discard_name()?.coerce_to_items();
-                Ok(Transformation::Sort(by))
-            }
-            "take" => {
-                // TODO: coerce to number
-                let expr = args.into_only()?.discard_name()?;
-                Ok(Transformation::Take(expr.item.into_raw()?.parse()?))
-            }
-            "join" => {
-                let (positional, [side]) = unpack_arguments(args, ["side"])?;
-                let side = if let Some(side) = side {
-                    match side.item.into_ident()?.as_str() {
-                        "inner" => JoinSide::Inner,
-                        "left" => JoinSide::Left,
-                        "right" => JoinSide::Right,
-                        "full" => JoinSide::Full,
-                        unknown => bail!("unknown join side: {unknown}"),
-                    }
-                } else {
-                    JoinSide::Inner
-                };
-
-                let with = (positional.get(0).cloned())
-                    .context("join requires a table name to join with")?;
-                let (with_alias, with) = with.into_name_and_expr();
-
-                let with = TableRef {
-                    name: with.into_ident()
-                        .map_err(|_| anyhow!("`join` does not support inline expressions. You can only pass a table name."))?,
-                    alias: with_alias,
-                };
-
-                let on = if let Some(on) = positional.get(1) {
-                    on.clone().discard_name()?.coerce_to_items()
-                } else {
-                    vec![]
-                };
-
-                Ok(Transformation::Join { side, with, on })
-            }
-            _ => bail!("Expected a known transformation; got {name}"),
+            Transformation::From(table_ref)
         }
-    }
+        "select" => {
+            Transformation::Select(args.into_only_node("select", "argument")?.coerce_to_items())
+        }
+        "filter" => {
+            let items = args
+                .into_only_node("filter", "argument")?
+                .discard_name()?
+                .coerce_to_items();
+            Transformation::Filter(Filter(items))
+        }
+        "derive" => {
+            let assigns = (args)
+                .into_only_node("derive", "argument")?
+                .coerce_to_items();
+            Transformation::Derive(assigns)
+        }
+        "aggregate" => {
+            // TODO: redo, generalizing with checks on custom functions.
+            // Ideally we'd be able to add to the error message with context
+            // without falling afowl of the borrow rules.
+            // Err(anyhow!(
+            //     "Expected exactly one unnamed argument for aggregate, got {:?}",
+            //     args
+            // ))
+            // })?;
+            let (positional, [by]) = unpack_arguments(args, ["by"]);
+            let by = by.map(|x| x.coerce_to_items()).unwrap_or_default();
+
+            let select = positional
+                .into_only()
+                .map(|x| x.coerce_to_items())
+                .unwrap_or_default();
+
+            Transformation::Aggregate { by, select }
+        }
+        "sort" => {
+            let by = args
+                .into_only_node("sort", "argument")?
+                .discard_name()?
+                .coerce_to_items();
+            Transformation::Sort(by)
+        }
+        "take" => {
+            // TODO: coerce to number
+            let expr = args.into_only_node("take", "argument")?.discard_name()?;
+            Transformation::Take(expr.item.into_raw()?.parse()?)
+        }
+        "join" => {
+            let (positional, [side]) = unpack_arguments(args, ["side"]);
+            let side = if let Some(side) = side {
+                let span = side.span;
+                let ident = side.unwrap(Item::into_ident, "ident")?;
+                match ident.as_str() {
+                    "inner" => JoinSide::Inner,
+                    "left" => JoinSide::Left,
+                    "right" => JoinSide::Right,
+                    "full" => JoinSide::Full,
+
+                    found => bail!(Error::new(Reason::Expected {
+                        who: Some("side".to_string()),
+                        expected: "inner, left, right or full".to_string(),
+                        found: found.to_string()
+                    })
+                    .with_span(span)),
+                }
+            } else {
+                JoinSide::Inner
+            };
+
+            let with =
+                (positional.get(0).cloned()).context("join requires a table name to join with")?;
+            let (with_alias, with) = with.into_name_and_expr();
+
+            let with = TableRef {
+                name: with.unwrap(Item::into_ident, "ident").with_help(
+                    "`join` does not support inline expressions. You can only pass a table name.",
+                )?,
+                alias: with_alias,
+            };
+
+            let on = if let Some(on) = positional.get(1) {
+                on.clone().discard_name()?.coerce_to_items()
+            } else {
+                vec![]
+            };
+
+            Transformation::Join { side, with, on }
+        }
+        _ => bail!("Expected a known transformation; got {name}"),
+    })
 }
 
 /// Compares expected and passed function parameters
@@ -331,7 +339,7 @@ impl TryFrom<Vec<Node>> for Transformation {
 fn unpack_arguments<const COUNT: usize>(
     passed: Vec<Node>,
     expected: [&str; COUNT],
-) -> Result<(Vec<Node>, [Option<Node>; COUNT])> {
+) -> (Vec<Node>, [Option<Node>; COUNT]) {
     let mut positional = Vec::new();
 
     const NONE: Option<Node> = None;
@@ -348,7 +356,7 @@ fn unpack_arguments<const COUNT: usize>(
 
         positional.push(p);
     }
-    Ok((positional, named))
+    (positional, named)
 }
 
 #[cfg(test)]

@@ -1,4 +1,4 @@
-use crate::{materialize, parse, reporting, translate};
+use crate::{error, materialize, parse, translate};
 use anyhow::Error;
 use clap::{ArgEnum, Args, Parser};
 use clio::{Input, Output};
@@ -59,9 +59,9 @@ impl Cli {
                         command.output.write_all(&buf)?;
                     }
                     Err(e) => {
-                        reporting::print_error(e, source_id, &source);
+                        error::print_error(e, source_id, &source);
                         std::process::exit(1)
-                    },
+                    }
                 };
             }
         }
