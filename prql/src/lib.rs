@@ -5,6 +5,7 @@ mod cli;
 mod error;
 mod materializer;
 mod parser;
+mod semantic;
 mod translator;
 mod utils;
 

@@ -17,11 +17,9 @@ use itertools::Itertools;
 // overfit on ReplaceVariables, we should add the custom impl to
 // ReplaceVariables, and write a more generic impl to this.
 pub trait AstFold {
-    fn fold_node(&mut self, node: Node) -> Result<Node> {
-        Ok(Node {
-            span: node.span,
-            item: self.fold_item(node.item)?,
-        })
+    fn fold_node(&mut self, mut node: Node) -> Result<Node> {
+        node.item = self.fold_item(node.item)?;
+        Ok(node)
     }
     fn fold_item(&mut self, item: Item) -> Result<Item> {
         fold_item(self, item)
@@ -66,11 +64,8 @@ pub trait AstFold {
     fn fold_func_def(&mut self, function: FuncDef) -> Result<FuncDef> {
         fold_func_def(self, function)
     }
-    fn fold_func_call(&mut self, func_call: FuncCall) -> Result<Item> {
-        Ok(Item::FuncCall(fold_func_call(self, func_call)?))
-    }
-    fn fold_func_curry(&mut self, func_curry: FuncCall) -> Result<FuncCall> {
-        fold_func_call(self, func_curry)
+    fn fold_func_call(&mut self, func_call: FuncCall) -> Result<FuncCall> {
+        fold_func_call(self, func_call)
     }
     fn fold_table_ref(&mut self, table_ref: TableRef) -> Result<TableRef> {
         fold_table_ref(self, table_ref)
@@ -101,12 +96,7 @@ pub fn fold_item<T: ?Sized + AstFold>(fold: &mut T, item: Item) -> Result<Item> 
                 functions: fold.fold_nodes(functions)?,
             })
         }
-        Item::Pipeline(transformations) => Item::Pipeline(
-            transformations
-                .into_iter()
-                .map(|t| fold.fold_transformation(t))
-                .try_collect()?,
-        ),
+        Item::Pipeline(transformations) => Item::Pipeline(fold.fold_pipeline(transformations)?),
         Item::NamedExpr(named_expr) => Item::NamedExpr(fold.fold_named_expr(named_expr)?),
         Item::Transformation(transformation) => {
             Item::Transformation(fold.fold_transformation(transformation)?)
@@ -118,7 +108,7 @@ pub fn fold_item<T: ?Sized + AstFold>(fold: &mut T, item: Item) -> Result<Item> 
                 .try_collect()?,
         ),
         Item::FuncDef(func) => Item::FuncDef(fold.fold_func_def(func)?),
-        Item::FuncCall(func_call) => fold.fold_func_call(func_call)?,
+        Item::FuncCall(func_call) => Item::FuncCall(fold.fold_func_call(func_call)?),
         Item::Table(table) => Item::Table(Table {
             name: table.name,
             pipeline: fold.fold_pipeline(table.pipeline)?,

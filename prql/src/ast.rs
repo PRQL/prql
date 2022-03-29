@@ -6,7 +6,7 @@ use strum_macros::Display;
 use crate::error::{Error, Reason, Span};
 use crate::utils::*;
 
-// Idents are generally columns
+/// A name. Generally columns, tables, functions, variables.
 pub type Ident = String;
 pub type Pipeline = Vec<Transformation>;
 
@@ -16,6 +16,8 @@ pub struct Node {
     pub item: Item,
     #[serde(skip)]
     pub span: Span,
+    #[serde(skip)]
+    pub declared_at: Option<usize>,
 }
 
 #[derive(Debug, EnumAsInner, Display, PartialEq, Clone, Serialize, Deserialize)]
@@ -105,7 +107,7 @@ pub struct FuncDef {
 /// Function call.
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct FuncCall {
-    pub name: String,
+    pub name: Ident,
     pub args: Vec<Node>,
     pub named_args: Vec<NamedExpr>,
 }
@@ -118,7 +120,7 @@ pub struct InlinePipeline {
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Table {
-    pub name: Ident,
+    pub name: String,
     pub pipeline: Pipeline,
 }
 
@@ -147,8 +149,8 @@ pub enum JoinSide {
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct TableRef {
-    pub name: Ident,
-    pub alias: Option<Ident>,
+    pub name: String,
+    pub alias: Option<String>,
 }
 
 impl Node {
@@ -231,6 +233,7 @@ impl From<Item> for Node {
         Node {
             item,
             span: Span::default(),
+            declared_at: None,
         }
     }
 }

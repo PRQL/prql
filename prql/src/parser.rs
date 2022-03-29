@@ -207,13 +207,12 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
                 _ => unreachable!(),
             };
 
-            Ok(Node {
-                item,
-                span: Span {
-                    start: span.start(),
-                    end: span.end(),
-                },
-            })
+            let mut node = Node::from(item);
+            node.span = Span {
+                start: span.start(),
+                end: span.end(),
+            };
+            Ok(node)
         })
         .collect()
 }

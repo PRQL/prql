@@ -210,7 +210,7 @@ impl AstFold for RunFunctions {
 
         node.item = match node.item {
             Item::FuncCall(func_call) => {
-                let mut func_call: Node = self.fold_func_call(func_call)?.into();
+                let mut func_call: Node = Item::FuncCall(self.fold_func_call(func_call)?).into();
                 func_call.span = node.span;
 
                 self.inline_func_call(&func_call)?.item
