@@ -21,9 +21,7 @@ pub enum Item {
     // some point. We'll need to relax the constraints on `Pipeline` to allow it
     // to start with a simple expression.
     InlinePipeline(InlinePipeline),
-    // Similar to holding an Expr, but we strongly type it so the parsing can be more strict.
     List(Vec<ListItem>),
-    // Holds any Items. Unnesting _can_ change semantics.
     Expr(Vec<Item>),
     FuncDef(FuncDef),
     FuncCall(FuncCall),
@@ -48,12 +46,11 @@ impl ListItem {
     }
 }
 
-/// Transformation is currently used for a) each transformation in a pipeline
-/// and sometimes b) a normal function call. But we want to resolve whether (b)
-/// should apply or not.
+/// Transformation is used for each stage in a pipeline
+/// and sometimes
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 // We probably want to implement some of these as Structs rather than just
-// `Items`
+// `vec<Item>`
 pub enum Transformation {
     From(TableRef),
     Select(Vec<Item>),
@@ -146,10 +143,6 @@ pub struct TableRef {
     pub alias: Option<Ident>,
 }
 
-// We've done a lot of iteration on these containers, and it's still very messy.
-// Some of the tradeoff is having an Enum which is flexible, but not falling
-// back to dynamic types, which makes understanding what the parser is doing
-// more difficult.
 impl Item {
     /// For lists that only have one item in each ListItem this returns a Vec of
     /// those terms. (e.g. `[1, a b]` but not `[1 + 2]`, because `+` in an
