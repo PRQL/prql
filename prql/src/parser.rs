@@ -2,28 +2,35 @@
 //! of pest pairs into a tree of AST Items. It has a small function to call into
 //! pest to get the parse tree / concrete syntaxt tree, and then a large
 //! function for turning that into PRQL AST.
-use super::ast::*;
-use super::utils::*;
 use anyhow::{anyhow, bail, Context, Result};
 use itertools::Itertools;
 use pest::iterators::Pairs;
 use pest::Parser;
 use pest_derive::Parser;
 
+use super::ast::*;
+use super::utils::*;
+use crate::error::Error;
+use crate::error::Reason;
+use crate::error::Span;
+use crate::error::WithErrorInfo;
 #[derive(Parser)]
 #[grammar = "prql.pest"]
 struct PrqlParser;
 
+pub(crate) type PestError = pest::error::Error<Rule>;
+pub(crate) type PestRule = Rule;
+
 /// Build an AST from a PRQL query string.
-pub fn parse(string: &str) -> Result<Item> {
+pub fn parse(string: &str) -> Result<Node> {
     ast_of_string(string, Rule::query)
 }
 
 /// Parse a string into an AST. Unlike [parse], this can start from any rule.
-fn ast_of_string(string: &str, rule: Rule) -> Result<Item> {
-    parse_tree_of_str(string, rule)
-        .and_then(ast_of_parse_tree)
-        .and_then(|x| x.into_only())
+fn ast_of_string(string: &str, rule: Rule) -> Result<Node> {
+    let pairs = parse_tree_of_str(string, rule)?;
+
+    ast_of_parse_tree(pairs)?.into_only()
 }
 
 /// Parse a string into a parse tree / concrete syntax tree, made up of pest Pairs.
@@ -32,17 +39,16 @@ fn parse_tree_of_str(source: &str, rule: Rule) -> Result<Pairs<Rule>> {
 }
 
 /// Parses a parse tree of pest Pairs into an AST.
-fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Item>> {
+fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
     pairs
         // Exclude end-of-input at the moment.
         .filter(|pair| pair.as_rule() != Rule::EOI)
         .map(|pair| {
-            // TODO: Probably wrap each of the individual branches in a Result,
-            // and don't have this wrapping `Ok`. Then move some of the panics
-            // to `Err`s.
-            Ok(match pair.as_rule() {
+            let span = pair.as_span();
+
+            let item = match pair.as_rule() {
                 Rule::query => Item::Query(Query {
-                    items: ast_of_parse_tree(pair.into_inner())?,
+                    nodes: ast_of_parse_tree(pair.into_inner())?,
                 }),
                 Rule::list => Item::List(
                     ast_of_parse_tree(pair.into_inner())?
@@ -55,17 +61,20 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Item>> {
                     let items = ast_of_parse_tree(pair.into_inner())?;
                     // this borrow could be removed, but it becomes much less readable without match
                     match &items[..] {
-                        [Item::Ident(name), item] => Item::NamedExpr(NamedExpr {
+                        [Node {
+                            item: Item::Ident(name),
+                            ..
+                        }, node] => Item::NamedExpr(NamedExpr {
                             name: name.clone(),
-                            expr: Box::new(item.clone()),
+                            expr: Box::new(node.clone()),
                         }),
-                        [item] => item.clone(),
+                        [node] => node.item.clone(),
                         _ => unreachable!(),
                     }
                 }
                 Rule::transformation => {
                     let parsed = ast_of_parse_tree(pair.into_inner())?;
-                    Item::Transformation(parsed.try_into()?)
+                    Item::Transformation(ast_of_transformation(parsed)?)
                 }
                 Rule::func_def => {
                     let parsed = ast_of_parse_tree(pair.into_inner())?;
@@ -74,23 +83,29 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Item>> {
                         .split_first()
                         .ok_or_else(|| anyhow!("Expected at least one item"))?;
 
-                    let name = name.clone().into_ident()?;
+                    let name = name.item.clone().into_ident()?;
 
-                    let (params, body) =
-                        if let Some((Item::Expr(params), body)) = parsed.split_first() {
-                            (params, body)
-                        } else {
-                            unreachable!("expected function params and body, got {parsed:?}")
-                        };
+                    let (params, body) = if let Some((
+                        Node {
+                            item: Item::Expr(params),
+                            ..
+                        },
+                        body,
+                    )) = parsed.split_first()
+                    {
+                        (params, body)
+                    } else {
+                        unreachable!("expected function params and body, got {parsed:?}")
+                    };
 
                     let positional_params = params
                         .iter()
-                        .filter_map(|x| x.as_ident())
+                        .filter_map(|x| x.item.as_ident())
                         .cloned()
                         .collect();
                     let named_params = params
                         .iter()
-                        .filter_map(|x| x.as_named_expr())
+                        .filter_map(|x| x.item.as_named_expr())
                         .cloned()
                         .collect();
 
@@ -109,17 +124,18 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Item>> {
                         .split_first()
                         .ok_or_else(|| anyhow!("Expected at least one item"))?;
 
-                    let name = name.clone().into_ident()?;
+                    let name = name.item.clone().into_ident()?;
 
-                    let (named, args): (Vec<_>, Vec<_>) =
-                        params.iter().partition(|x| matches!(x, Item::NamedExpr(_)));
+                    let (named, args): (Vec<_>, Vec<_>) = params
+                        .iter()
+                        .partition(|x| matches!(x.item, Item::NamedExpr(_)));
 
                     let args = args.into_iter().cloned().collect();
 
                     let named_args = named
                         .into_iter()
                         .cloned()
-                        .map(|x| x.into_named_expr())
+                        .map(|x| x.item.into_named_expr())
                         .try_collect()?;
 
                     Item::FuncCall(FuncCall {
@@ -130,20 +146,23 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Item>> {
                 }
                 Rule::table => {
                     let parsed = ast_of_parse_tree(pair.into_inner())?;
-                    let [name, pipeline]: [Item; 2] = parsed
+                    let [name, pipeline]: [Node; 2] = parsed
                         .try_into()
                         .map_err(|e| anyhow!("Expected two items; {e:?}"))?;
                     Item::Table(Table {
-                        name: name.into_ident()?,
-                        pipeline: pipeline.into_pipeline()?,
+                        name: name.item.into_ident()?,
+                        pipeline: pipeline.item.into_pipeline()?,
                     })
                 }
                 Rule::ident => Item::Ident(pair.as_str().to_string()),
                 // Pull out the string itself, which doesn't have the quotes
-                Rule::string_literal => ast_of_parse_tree(pair.clone().into_inner())?
-                    .into_iter()
-                    .next()
-                    .ok_or_else(|| anyhow!("Failed reading string {pair:?}"))?,
+                Rule::string_literal => {
+                    ast_of_parse_tree(pair.clone().into_inner())?
+                        .into_iter()
+                        .next()
+                        .ok_or_else(|| anyhow!("Failed reading string {pair:?}"))?
+                        .item
+                }
                 Rule::string => Item::String(pair.as_str().to_string()),
                 Rule::s_string => Item::SString(
                     pair.into_inner()
@@ -163,7 +182,10 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Item>> {
                     ast_of_parse_tree(pair.into_inner())?
                         .into_iter()
                         .map(|x| match x {
-                            Item::Transformation(transformation) => transformation,
+                            Node {
+                                item: Item::Transformation(transformation),
+                                ..
+                            } => transformation,
                             _ => unreachable!("{x:?}"),
                         })
                         .collect()
@@ -174,11 +196,7 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Item>> {
                     let (value, func_curries) =
                         (parsed.split_first()).context("empty inline pipeline?")?;
 
-                    let functions = func_curries
-                        .iter()
-                        .cloned()
-                        .map(|x| x.into_func_call())
-                        .try_collect()?;
+                    let functions = func_curries.to_vec();
 
                     Item::InlinePipeline(InlinePipeline {
                         value: Box::from(value.clone()),
@@ -186,142 +204,159 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Item>> {
                     })
                 }
                 Rule::operator | Rule::number => Item::Raw(pair.as_str().to_owned()),
-                _ => (Item::Todo(pair.as_str().to_owned())),
+                _ => unreachable!(),
+            };
+
+            Ok(Node {
+                item,
+                span: Span {
+                    start: span.start(),
+                    end: span.end(),
+                },
             })
         })
         .collect()
 }
 
-// We put this outside the main ast_of_parse_tree function to reduce the size of
-// that function.
-impl TryFrom<Vec<Item>> for Transformation {
-    type Error = anyhow::Error;
-    fn try_from(items: Vec<Item>) -> Result<Self> {
-        let (name, args) = items
-            .split_first()
-            .ok_or_else(|| anyhow!("Expected at least one item"))?;
+fn ast_of_transformation(items: Vec<Node>) -> Result<Transformation> {
+    let (name, args) = items
+        .split_first()
+        .ok_or_else(|| anyhow!("Expected at least one item"))?;
 
-        let args: Vec<Item> = args.to_vec();
+    let args: Vec<Node> = args.to_vec();
 
-        let name = name.clone().into_ident()?;
-        match name.as_str() {
-            "from" => {
-                let (name, expr) = args.into_only()
-                    .context("Expected `from` to have exactly one argument.\n  Hint: you can pass it as `from table_name` or `from alias: table_name`")?
-                    .into_name_and_expr();
+    let name = name.item.clone().into_ident()?;
+    Ok(match name.as_str() {
+        "from" => {
+            let (name, expr) = args
+                .into_only_node("from", "argument")
+                .with_help("you can pass it as `from table_name` or `from alias: table_name`")?
+                .into_name_and_expr();
 
-                let table_ref = TableRef {
-                    name: expr.into_ident()
-                    .map_err(|_| anyhow!("`from` does not support inline expressions. You can only pass a table name."))?,
-                    alias: name,
-                };
+            let table_ref = TableRef {
+                name: expr.unwrap(Item::into_ident, "ident").with_help(
+                    "`from` does not support inline expressions. You can only pass a table name.",
+                )?,
+                alias: name,
+            };
 
-                Ok(Transformation::From(table_ref))
-            }
-            "select" => Ok(Transformation::Select(
-                args.into_only()
-                    .context("Expected exactly one argument for `select`")?
-                    .coerce_to_items(),
-            )),
-            "filter" => {
-                let items = args.into_only()?.discard_name()?.coerce_to_items();
-                Ok(Transformation::Filter(Filter(items)))
-            }
-            "derive" => {
-                let assigns = (args)
-                    .into_only()
-                    .context("Expected exactly one argument for `derive`")?
-                    .coerce_to_items();
-                Ok(Transformation::Derive(assigns))
-            }
-            "aggregate" => {
-                // TODO: redo, generalizing with checks on custom functions.
-                // Ideally we'd be able to add to the error message with context
-                // without falling afowl of the borrow rules.
-                // Err(anyhow!(
-                //     "Expected exactly one unnamed argument for aggregate, got {:?}",
-                //     args
-                // ))
-                // })?;
-                let (positional, [by]) = unpack_arguments(args, ["by"])?;
-                let by = by.map(|x| x.coerce_to_items()).unwrap_or_default();
-
-                let select = positional
-                    .into_only()
-                    .map(|x| x.coerce_to_items())
-                    .unwrap_or_default();
-
-                Ok(Transformation::Aggregate { by, select })
-            }
-            "sort" => {
-                let by = args.into_only()?.discard_name()?.coerce_to_items();
-                Ok(Transformation::Sort(by))
-            }
-            "take" => {
-                // TODO: coerce to number
-                let expr = args.into_only()?.discard_name()?;
-                Ok(Transformation::Take(expr.into_raw()?.parse()?))
-            }
-            "join" => {
-                let (positional, [side]) = unpack_arguments(args, ["side"])?;
-                let side = if let Some(side) = side {
-                    match side.into_ident()?.as_str() {
-                        "inner" => JoinSide::Inner,
-                        "left" => JoinSide::Left,
-                        "right" => JoinSide::Right,
-                        "full" => JoinSide::Full,
-                        unknown => bail!("unknown join side: {unknown}"),
-                    }
-                } else {
-                    JoinSide::Inner
-                };
-
-                let with = (positional.get(0).cloned())
-                    .context("join requires a table name to join with")?;
-                let (with_alias, with) = with.into_name_and_expr();
-
-                let with = TableRef {
-                    name: with.into_ident()
-                        .map_err(|_| anyhow!("`join` does not support inline expressions. You can only pass a table name."))?,
-                    alias: with_alias,
-                };
-
-                let on = if let Some(on) = positional.get(1) {
-                    on.clone().discard_name()?.coerce_to_items()
-                } else {
-                    vec![]
-                };
-
-                Ok(Transformation::Join { side, with, on })
-            }
-            _ => bail!("Expected a known transformation; got {name}"),
+            Transformation::From(table_ref)
         }
-    }
+        "select" => {
+            Transformation::Select(args.into_only_node("select", "argument")?.coerce_to_items())
+        }
+        "filter" => {
+            let items = args
+                .into_only_node("filter", "argument")?
+                .discard_name()?
+                .coerce_to_items();
+            Transformation::Filter(Filter(items))
+        }
+        "derive" => {
+            let assigns = (args)
+                .into_only_node("derive", "argument")?
+                .coerce_to_items();
+            Transformation::Derive(assigns)
+        }
+        "aggregate" => {
+            // TODO: redo, generalizing with checks on custom functions.
+            // Ideally we'd be able to add to the error message with context
+            // without falling afowl of the borrow rules.
+            // Err(anyhow!(
+            //     "Expected exactly one unnamed argument for aggregate, got {:?}",
+            //     args
+            // ))
+            // })?;
+            let (positional, [by]) = unpack_arguments(args, ["by"]);
+            let by = by.map(|x| x.coerce_to_items()).unwrap_or_default();
+
+            let select = positional
+                .into_only()
+                .map(|x| x.coerce_to_items())
+                .unwrap_or_default();
+
+            Transformation::Aggregate { by, select }
+        }
+        "sort" => {
+            let by = args
+                .into_only_node("sort", "argument")?
+                .discard_name()?
+                .coerce_to_items();
+            Transformation::Sort(by)
+        }
+        "take" => {
+            // TODO: coerce to number
+            let expr = args.into_only_node("take", "argument")?.discard_name()?;
+            Transformation::Take(expr.item.into_raw()?.parse()?)
+        }
+        "join" => {
+            let (positional, [side]) = unpack_arguments(args, ["side"]);
+            let side = if let Some(side) = side {
+                let span = side.span;
+                let ident = side.unwrap(Item::into_ident, "ident")?;
+                match ident.as_str() {
+                    "inner" => JoinSide::Inner,
+                    "left" => JoinSide::Left,
+                    "right" => JoinSide::Right,
+                    "full" => JoinSide::Full,
+
+                    found => bail!(Error::new(Reason::Expected {
+                        who: Some("side".to_string()),
+                        expected: "inner, left, right or full".to_string(),
+                        found: found.to_string()
+                    })
+                    .with_span(span)),
+                }
+            } else {
+                JoinSide::Inner
+            };
+
+            let with =
+                (positional.get(0).cloned()).context("join requires a table name to join with")?;
+            let (with_alias, with) = with.into_name_and_expr();
+
+            let with = TableRef {
+                name: with.unwrap(Item::into_ident, "ident").with_help(
+                    "`join` does not support inline expressions. You can only pass a table name.",
+                )?,
+                alias: with_alias,
+            };
+
+            let on = if let Some(on) = positional.get(1) {
+                on.clone().discard_name()?.coerce_to_items()
+            } else {
+                vec![]
+            };
+
+            Transformation::Join { side, with, on }
+        }
+        _ => bail!("Expected a known transformation; got {name}"),
+    })
 }
 
 /// Compares expected and passed function parameters
 /// Returns positional and named parameters.
 fn unpack_arguments<const COUNT: usize>(
-    passed: Vec<Item>,
+    passed: Vec<Node>,
     expected: [&str; COUNT],
-) -> Result<(Vec<Item>, [Option<Item>; COUNT])> {
+) -> (Vec<Node>, [Option<Node>; COUNT]) {
     let mut positional = Vec::new();
 
-    const NONE: Option<Item> = None;
+    const NONE: Option<Node> = None;
     let mut named = [NONE; COUNT];
 
     for p in passed {
         // Quite inefficient when number of arguments > 10. We could instead use merge join.
-        if let Some(n) = p.as_named_expr() {
+        if let Some(n) = p.item.as_named_expr() {
             if let Some((pos, _)) = expected.iter().find_position(|x| x == &&n.name) {
-                named[pos] = Some(*p.into_named_expr().unwrap().expr);
+                named[pos] = Some(*p.item.into_named_expr().unwrap().expr);
                 continue;
             }
         }
 
         positional.push(p);
     }
-    Ok((positional, named))
+    (positional, named)
 }
 
 #[cfg(test)]
@@ -552,12 +587,15 @@ mod test {
                   named_args: []
         "###);
 
-        let item = ast_of_string("aggregate by:[title] [sum salary]", Rule::transformation)?;
-        let aggregate = item
-            .as_transformation()
-            .ok_or_else(|| anyhow!("Expected Raw"))?;
+        let node = ast_of_string("aggregate by:[title] [sum salary]", Rule::transformation)?;
+        let aggregate = (node.item.as_transformation()).ok_or_else(|| anyhow!("Expected Raw"))?;
         assert!(if let Transformation::Aggregate { by, .. } = aggregate {
-            by.len() == 1 && by[0].as_ident().ok_or_else(|| anyhow!("Expected Ident"))? == "title"
+            by.len() == 1
+                && by[0]
+                    .item
+                    .as_ident()
+                    .ok_or_else(|| anyhow!("Expected Ident"))?
+                    == "title"
         } else {
             false
         });
@@ -830,7 +868,7 @@ take 20
     fn test_parse_func_call() -> Result<()> {
         // Function without argument
         let ast = ast_of_string(r#"count"#, Rule::expr)?;
-        let ident = ast.into_ident()?;
+        let ident = ast.item.into_ident()?;
         assert_yaml_snapshot!(
             ident, @r###"
         ---
@@ -839,7 +877,7 @@ take 20
 
         // A non-friendly option for #154
         let ast = ast_of_string(r#"count s'*'"#, Rule::expr)?;
-        let func_call: FuncCall = ast.into_func_call()?;
+        let func_call: FuncCall = ast.item.into_func_call()?;
         assert_yaml_snapshot!(
             func_call, @r###"
         ---
@@ -853,7 +891,7 @@ take 20
         assert_yaml_snapshot!(parse(r#"from mytable | select [a and b + c or d e and f]"#)?, @r###"
         ---
         Query:
-          items:
+          nodes:
             - Pipeline:
                 - From:
                     name: mytable
@@ -980,15 +1018,16 @@ take 20
           value:
             Ident: salary
           functions:
-            - name: percentile
-              args:
-                - Raw: "50"
-              named_args: []
+            - FuncCall:
+                name: percentile
+                args:
+                  - Raw: "50"
+                named_args: []
         "###);
         assert_yaml_snapshot!(ast_of_string("func median x = (x | percentile 50)", Rule::query)?, @r###"
         ---
         Query:
-          items:
+          nodes:
             - FuncDef:
                 name: median
                 positional_params:
@@ -999,10 +1038,11 @@ take 20
                     value:
                       Ident: x
                     functions:
-                      - name: percentile
-                        args:
-                          - Raw: "50"
-                        named_args: []
+                      - FuncCall:
+                          name: percentile
+                          args:
+                            - Raw: "50"
+                          named_args: []
         "###);
 
         Ok(())
@@ -1065,7 +1105,7 @@ take 20
         "#)?, @r###"
         ---
         Query:
-          items:
+          nodes:
             - Pipeline:
                 - From:
                     name: mytable

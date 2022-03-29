@@ -3,7 +3,7 @@ source: prql/src/materializer.rs
 expression: materialize(ast)?
 ---
 Query:
-  items:
+  nodes:
     - Pipeline:
         - From:
             name: prices

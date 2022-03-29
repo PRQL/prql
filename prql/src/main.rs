@@ -18,5 +18,5 @@ fn main() -> color_eyre::eyre::Result<()> {
 
 #[cfg(not(feature = "cli"))]
 fn main() -> ! {
-    panic!("Not used as a binary in wasm (but it seems cargo insists we have a `main` function.")
+    panic!("Not used as a binary in wasm (but it seems cargo insists we have a `main` function).")
 }

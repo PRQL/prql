@@ -1,9 +1,9 @@
 ---
 source: prql/src/materializer.rs
-expression: "&fold.fold_item(ast)?"
+expression: "&fold.fold_node(ast)?"
 ---
 Query:
-  items:
+  nodes:
     - Pipeline:
         - From:
             name: employees

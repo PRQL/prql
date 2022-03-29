@@ -3,30 +3,29 @@
 //! contains no query-specific logic.
 use super::ast::*;
 use super::ast_fold::*;
+use crate::error::{Error, Reason};
 
-use anyhow::Context;
-use anyhow::{anyhow, Result};
-use itertools::Itertools;
+use anyhow::{bail, Result};
 use std::{collections::HashMap, iter::zip};
 
 /// "Flatten" a PRQL AST by running functions & replacing variables.
-pub fn materialize(ast: Item) -> Result<Item> {
+pub fn materialize(ast: Node) -> Result<Node> {
     let functions = load_std_lib()?;
     let mut run_functions = RunFunctions::new();
     functions.into_iter().for_each(|f| {
-        run_functions.add_def(f.into_func_def().unwrap());
+        run_functions.add_def(f.item.into_func_def().unwrap());
     });
     let mut replace_variables = ReplaceVariables::new();
     // TODO: is it always OK to run these serially?
-    let ast = run_functions.fold_item(ast)?;
-    let ast = replace_variables.fold_item(ast)?;
+    let ast = run_functions.fold_node(ast)?;
+    let ast = replace_variables.fold_node(ast)?;
     Ok(ast)
 }
 
-fn load_std_lib() -> Result<Vec<Item>> {
+fn load_std_lib() -> Result<Vec<Node>> {
     use super::parse;
     let std_lib = include_str!("stdlib.prql");
-    Ok(parse(std_lib)?.into_query()?.items)
+    Ok(parse(std_lib)?.item.into_query()?.nodes)
 }
 
 /// Holds currently known variables and their values.
@@ -42,7 +41,7 @@ impl ReplaceVariables {
         }
     }
     fn add_variables(&mut self, expr: NamedExpr) -> &Self {
-        self.variables.insert(expr.name, *expr.expr);
+        self.variables.insert(expr.name, expr.expr.item);
         self
     }
 }
@@ -75,8 +74,8 @@ impl AstFold for ReplaceVariables {
         let out = fold_transformation(self, transformation.clone());
 
         if let Transformation::Aggregate { select, .. } = transformation {
-            for item in select.iter() {
-                if let Some(named) = item.as_named_expr() {
+            for node in select.iter() {
+                if let Some(named) = node.item.as_named_expr() {
                     self.variables.remove(&named.name);
                 }
             }
@@ -111,22 +110,26 @@ impl RunFunctions {
         }
         self
     }
-    fn inline_func_call(&mut self, func_call: &FuncCall) -> Result<Item> {
+    fn inline_func_call(&mut self, node: &Node) -> Result<Node> {
+        let func_call = node.item.as_func_call().unwrap();
         // Get the function
-        let func = self
-            .functions
-            .get(&func_call.name)
-            .ok_or_else(|| anyhow!("Function {:?} not found", func_call.name))?;
+        let func = self.functions.get(&func_call.name).ok_or_else(|| {
+            Error::new(Reason::NotFound {
+                name: func_call.name.clone(),
+                namespace: "function".to_string(),
+            })
+            .with_span(node.span)
+        })?;
 
         // TODO: check if the function is called recursively.
 
         if func.positional_params.len() != func_call.args.len() {
-            return Err(anyhow!(
-                "Function {:?} called with wrong number of arguments. Expected {}, got {}; from {func_call:?}.",
-                func_call.name,
-                func.positional_params.len(),
-                func_call.args.len()
-            ));
+            bail!(Error::new(Reason::Expected {
+                who: Some(func_call.name.clone()),
+                expected: format!("{} arguments", func.positional_params.len()),
+                found: format!("{}", func_call.args.len()),
+            })
+            .with_span(node.span));
         }
         let named_args = func.named_params.iter().map(|param| {
             let value = func_call
@@ -161,82 +164,71 @@ impl RunFunctions {
         }
         // Take a clone of the function call's body, replace the variables with their
         // values, and return the modified function call.
-        replace_variables.fold_item(*func.body.clone())
+        replace_variables.fold_node(*func.body.clone())
     }
 
     fn inline_pipeline(&mut self, pipeline: InlinePipeline) -> Result<Item> {
-        let mut value = self.fold_item(*pipeline.value)?;
+        let mut value = self.fold_node(*pipeline.value)?;
 
         for mut func_call in pipeline.functions {
             // The value from the previous pipeline becomes the final arg.
-            func_call.args.push(value);
+            if let Some(call) = func_call.item.as_func_call_mut() {
+                call.args.push(value);
+            }
 
             value = self.inline_func_call(&func_call)?;
         }
-        Ok(value)
+        Ok(value.item)
     }
 }
 
 impl AstFold for RunFunctions {
-    fn fold_func_call(&mut self, func_call: FuncCall) -> Result<Item> {
-        // fold arguments
-        let func_call = FuncCall {
-            name: func_call.name,
-            args: func_call
-                .args
-                .into_iter()
-                .map(|x| self.fold_item(x))
-                .try_collect()?,
-            named_args: func_call
-                .named_args
-                .into_iter()
-                .map(|x| self.fold_named_expr(x))
-                .try_collect()?,
-        };
-
-        (self.functions.get(&func_call.name))
-            .context(format!("Unknown function {}", func_call.name))?;
-
-        self.inline_func_call(&func_call)
-    }
-
-    fn fold_items(&mut self, items: Vec<Item>) -> Result<Vec<Item>> {
+    fn fold_nodes(&mut self, items: Vec<Node>) -> Result<Vec<Node>> {
         // We cut out function def, so we need to run it
         // here rather than in `fold_func_def`.
         let mut r = Vec::with_capacity(items.len());
 
         for item in items {
             match item {
-                Item::FuncDef(func_def) => {
+                Node {
+                    item: Item::FuncDef(func_def),
+                    ..
+                } => {
                     let func_def = fold_func_def(self, func_def)?;
 
                     self.add_def(func_def);
                 }
-                _ => r.push(self.fold_item(item)?),
+                _ => r.push(self.fold_node(item)?),
             }
         }
         Ok(r)
     }
 
-    fn fold_item(&mut self, item: Item) -> Result<Item> {
-        match item.clone() {
-            // We replace the InlinePipeline with an Item, so we need to run it
-            // here rather than in `fold_inline_pipeline`.
-            Item::InlinePipeline(p) => self.inline_pipeline(p),
+    fn fold_node(&mut self, mut node: Node) -> Result<Node> {
+        // We replace Items and also pass node to `inline_func_call`,
+        // so we need to run this here rather than in `fold_func_call` or `fold_item`.
 
-            // Because this returns an Item rather than an Ident, we need to
-            // have a custom `fold_item` method.
-            Item::Ident(ident) => Ok(
+        node.item = match node.item {
+            Item::FuncCall(func_call) => {
+                let mut func_call: Node = self.fold_func_call(func_call)?.into();
+                func_call.span = node.span;
+
+                self.inline_func_call(&func_call)?.item
+            }
+
+            Item::InlinePipeline(p) => self.inline_pipeline(p)?,
+
+            Item::Ident(ident) => {
                 if let Some(def) = self.functions_no_args.get(ident.as_str()) {
-                    *def.body.clone()
+                    def.body.item.clone()
                 } else {
                     Item::Ident(ident)
-                },
-            ),
+                }
+            }
 
-            // Otherwise just delegate to the upstream fold.
-            _ => fold_item(self, item),
-        }
+            _ => fold_item(self, node.item)?,
+        };
+        Ok(node)
     }
 }
 
@@ -265,7 +257,7 @@ mod test {
         // showing the diffs of an operation.
         assert_display_snapshot!(diff(
             &to_string(&ast)?,
-            &to_string(&fold.fold_item(ast)?)?
+            &to_string(&fold.fold_node(ast)?)?
         ),
         @r###"
         @@ -17,6 +17,9 @@
@@ -310,7 +302,7 @@ filter sum_gross_cost > 200
 take 20
 "#,
         )?;
-        assert_yaml_snapshot!(&fold.fold_item(ast)?);
+        assert_yaml_snapshot!(&fold.fold_node(ast)?);
 
         Ok(())
     }
@@ -331,7 +323,7 @@ aggregate [
         assert_yaml_snapshot!(ast, @r###"
         ---
         Query:
-          items:
+          nodes:
             - FuncDef:
                 name: count
                 positional_params:
@@ -360,13 +352,13 @@ aggregate [
         let mut fold = RunFunctions::new();
         // We could make a convenience function for this. It's useful for
         // showing the diffs of an operation.
-        let diff = diff(&to_string(&ast)?, &to_string(&fold.fold_item(ast)?)?);
+        let diff = diff(&to_string(&ast)?, &to_string(&fold.fold_node(ast)?)?);
         assert!(!diff.is_empty());
         assert_display_snapshot!(diff, @r###"
         @@ -1,17 +1,6 @@
          ---
          Query:
-           items:
+           nodes:
         -    - FuncDef:
         -        name: count
         -        positional_params:
@@ -412,7 +404,7 @@ select (ret b)
 "#,
         )?;
 
-        assert_yaml_snapshot!(ast.clone().into_query()?.items[2], @r###"
+        assert_yaml_snapshot!(ast.clone().item.into_query()?.nodes[2], @r###"
         ---
         Pipeline:
           - From:
@@ -426,7 +418,7 @@ select (ret b)
                   named_args: []
         "###);
 
-        assert_yaml_snapshot!(materialize(ast)?.into_query()?.items[0], @r###"
+        assert_yaml_snapshot!(materialize(ast)?.item.into_query()?.nodes[0], @r###"
         ---
         Pipeline:
           - From:
@@ -462,11 +454,11 @@ aggregate [one: (foo | sum), two: (foo | sum)]
         )?;
 
         let mut run_functions = RunFunctions::new();
-        assert_snapshot!(diff(&to_string(&ast)?, &to_string(&run_functions.fold_item(ast)?)?), @r###"
+        assert_snapshot!(diff(&to_string(&ast)?, &to_string(&run_functions.fold_node(ast)?)?), @r###"
         @@ -1,17 +1,6 @@
          ---
          Query:
-           items:
+           nodes:
         -    - FuncDef:
         -        name: sum
         -        positional_params:
@@ -481,7 +473,7 @@ aggregate [one: (foo | sum), two: (foo | sum)]
              - Pipeline:
                  - From:
                      name: a
-        @@ -22,20 +11,16 @@
+        @@ -22,22 +11,16 @@
                        - NamedExpr:
                            name: one
                            expr:
@@ -489,9 +481,10 @@ aggregate [one: (foo | sum), two: (foo | sum)]
         -                      value:
         -                        Ident: foo
         -                      functions:
-        -                        - name: sum
-        -                          args: []
-        -                          named_args: []
+        -                        - FuncCall:
+        -                            name: sum
+        -                            args: []
+        -                            named_args: []
         +                    SString:
         +                      - String: SUM(
         +                      - Expr:
@@ -504,9 +497,10 @@ aggregate [one: (foo | sum), two: (foo | sum)]
         -                      value:
         -                        Ident: foo
         -                      functions:
-        -                        - name: sum
-        -                          args: []
-        -                          named_args: []
+        -                        - FuncCall:
+        -                            name: sum
+        -                            args: []
+        -                            named_args: []
         +                    SString:
         +                      - String: SUM(
         +                      - Expr:
@@ -525,7 +519,7 @@ aggregate [a: (sum foo | plus_one)]
 "#,
         )?;
 
-        assert_yaml_snapshot!(materialize(ast)?.into_query()?.items[0], @r###"
+        assert_yaml_snapshot!(materialize(ast)?.item.into_query()?.nodes[0], @r###"
         ---
         Pipeline:
           - From:
@@ -563,13 +557,11 @@ derive [
 ]
 "#,
         )?;
-        assert_yaml_snapshot!(
-        materialize(ast)?
-            .into_query()?
-            .items
-            .iter()
-            .filter_map(|x| x.as_pipeline())
-            .collect_vec(), @r###"
+        let query = materialize(ast)?.item.into_query()?;
+        let pipelines = (query.nodes.iter())
+            .filter_map(|x| x.item.as_pipeline())
+            .collect_vec();
+        assert_yaml_snapshot!(pipelines, @r###"
         ---
         - - From:
               name: foo_table
@@ -611,7 +603,7 @@ aggregate [
             @r###"
         ---
         Query:
-          items:
+          nodes:
             - Pipeline:
                 - From:
                     name: employees
@@ -708,7 +700,7 @@ aggregate by:[title] [
         assert_yaml_snapshot!(materialized, @r###"
         ---
         Query:
-          items:
+          nodes:
             - Pipeline:
                 - From:
                     name: employees

@@ -16,7 +16,8 @@ cli = ["clio", "atty", "clap", "color-eyre"]
 default = ["anyhow/backtrace", "cli"]
 
 [dependencies]
-anyhow = {version = "^1.0", features = ["backtrace"]}
+anyhow = "^1.0"
+ariadne = "^0.1"
 atty = {version = "^0.2", optional = true}
 clio = {version = "^0.2", optional = true}
 color-eyre = {version = "^0.6", optional = true}
@@ -26,6 +27,7 @@ pest = "^2.1"
 pest_derive = "^2.1"
 serde_yaml = "^0.8"
 sqlformat = "^0.1.8"
+strum_macros = "^0.24" # for converting enum variants to string
 
 [dependencies.clap]
 features = ["derive"]
