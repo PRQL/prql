@@ -208,18 +208,23 @@ impl AstFold for RunFunctions {
         // We replace Items and also pass node to `inline_func_call`,
         // so we need to run this here rather than in `fold_func_call` or `fold_item`.
 
-        node.item = match &node.item {
-            Item::FuncCall(_) => self.inline_func_call(&node)?.item,
+        node.item = match node.item {
+            Item::FuncCall(func_call) => {
+                let mut func_call: Node = self.fold_func_call(func_call)?.into();
+                func_call.span = node.span;
+                
+                self.inline_func_call(&func_call)?.item
+            },
 
-            Item::InlinePipeline(_) => {
-                self.inline_pipeline(node.item.into_inline_pipeline().unwrap())?
+            Item::InlinePipeline(p) => {
+                self.inline_pipeline(p)?
             }
 
             Item::Ident(ident) => {
                 if let Some(def) = self.functions_no_args.get(ident.as_str()) {
                     def.body.item.clone()
                 } else {
-                    Item::Ident(node.item.into_ident().unwrap())
+                    Item::Ident(ident)
                 }
             }
 
@@ -470,7 +475,7 @@ aggregate [one: (foo | sum), two: (foo | sum)]
              - Pipeline:
                  - From:
                      name: a
-        @@ -22,20 +11,16 @@
+        @@ -22,22 +11,16 @@
                        - NamedExpr:
                            name: one
                            expr:
@@ -478,9 +483,10 @@ aggregate [one: (foo | sum), two: (foo | sum)]
         -                      value:
         -                        Ident: foo
         -                      functions:
-        -                        - name: sum
-        -                          args: []
-        -                          named_args: []
+        -                        - FuncCall:
+        -                            name: sum
+        -                            args: []
+        -                            named_args: []
         +                    SString:
         +                      - String: SUM(
         +                      - Expr:
@@ -493,9 +499,10 @@ aggregate [one: (foo | sum), two: (foo | sum)]
         -                      value:
         -                        Ident: foo
         -                      functions:
-        -                        - name: sum
-        -                          args: []
-        -                          named_args: []
+        -                        - FuncCall:
+        -                            name: sum
+        -                            args: []
+        -                            named_args: []
         +                    SString:
         +                      - String: SUM(
         +                      - Expr:

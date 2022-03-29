@@ -1018,10 +1018,11 @@ take 20
           value:
             Ident: salary
           functions:
-            - name: percentile
-              args:
-                - Raw: "50"
-              named_args: []
+            - FuncCall:
+                name: percentile
+                args:
+                  - Raw: "50"
+                named_args: []
         "###);
         assert_yaml_snapshot!(ast_of_string("func median x = (x | percentile 50)", Rule::query)?, @r###"
         ---
@@ -1037,10 +1038,11 @@ take 20
                     value:
                       Ident: x
                     functions:
-                      - name: percentile
-                        args:
-                          - Raw: "50"
-                        named_args: []
+                      - FuncCall:
+                          name: percentile
+                          args:
+                            - Raw: "50"
+                          named_args: []
         "###);
 
         Ok(())
