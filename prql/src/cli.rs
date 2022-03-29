@@ -50,17 +50,18 @@ impl Cli {
 
                 let mut source = String::new();
                 command.input.read_to_string(&mut source)?;
-                let source_id = command.input.path().clone().to_str().unwrap();
+                let source_id = (*command.input.path()).to_str().unwrap();
 
                 let res = compile_to(command.format, &source);
 
                 match res {
                     Ok(buf) => {
-                        command.output.write(&buf)?;
+                        command.output.write_all(&buf)?;
                     }
                     Err(e) => {
-                        reporting::print_error(e, source_id, &source)
-                    }
+                        reporting::print_error(e, source_id, &source);
+                        std::process::exit(1)
+                    },
                 };
             }
         }

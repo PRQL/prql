@@ -20,8 +20,9 @@ use sqlparser::ast::{
 use std::collections::HashMap;
 
 /// Translate a PRQL AST into a SQL string.
-pub fn translate(ast: &Item) -> Result<String> {
+pub fn translate(ast: &Node) -> Result<String> {
     let sql_query: sql_ast::Query = ast
+        .item
         .as_query()
         .ok_or_else(|| anyhow!("Requires a Query; {ast:?}"))?
         .clone()
@@ -41,15 +42,15 @@ impl TryFrom<Query> for sql_ast::Query {
     type Error = anyhow::Error;
     fn try_from(query: Query) -> Result<Self> {
         let tables: Vec<Table> = query
-            .items
+            .nodes
             .iter()
-            .filter_map(|item| item.as_table().cloned())
+            .filter_map(|node| node.item.as_table().cloned())
             .collect();
 
         let pipeline = query
-            .items
+            .nodes
             .iter()
-            .filter_map(|item| item.as_pipeline().cloned())
+            .filter_map(|node| node.item.as_pipeline().cloned())
             .into_only()?;
 
         sql_query_of_pipeline_and_tables(&pipeline, &tables)
@@ -161,14 +162,14 @@ fn select_columns_of_pipeline(pipeline: &Pipeline) -> Result<Vec<SelectItem>> {
                 selects.extend(
                     select
                         .iter()
-                        .map(|x| x.clone().try_into())
+                        .map(|x| x.item.clone().try_into())
                         .collect::<Result<Vec<SelectItem>>>()?,
                 )
             }
             Transformation::Derive(assigns) => selects.extend(
                 assigns
                     .iter()
-                    .map(|assign| assign.clone().try_into())
+                    .map(|assign| assign.item.clone().try_into())
                     .collect::<Result<Vec<SelectItem>>>()?,
             ),
             Transformation::Aggregate { by, select, .. } => {
@@ -176,10 +177,10 @@ fn select_columns_of_pipeline(pipeline: &Pipeline) -> Result<Vec<SelectItem>> {
                 selects.clear();
 
                 for x in by {
-                    selects.push(x.clone().try_into()?);
+                    selects.push(x.item.clone().try_into()?);
                 }
                 for x in select {
-                    selects.push(x.clone().try_into()?);
+                    selects.push(x.item.clone().try_into()?);
                 }
             }
             _ => {}
@@ -212,12 +213,12 @@ fn sql_query_of_atomic_pipeline(pipeline: &Pipeline) -> Result<sql_ast::Query> {
         .filter(|t| matches!(t, Transformation::Join { .. }))
         .map(|t| match t {
             Transformation::Join { side, with, on } => {
-                let use_equi_join = on.iter().all(|x| matches!(x, Item::Ident(_)));
+                let use_using = (on.iter().map(|x| &x.item)).all(|x| matches!(x, Item::Ident(_)));
 
-                let constraint = if use_equi_join {
+                let constraint = if use_using {
                     JoinConstraint::Using(
                         on.iter()
-                            .map(|x| x.clone().try_into())
+                            .map(|x| x.item.clone().try_into())
                             .collect::<Result<Vec<_>>>()?,
                     )
                 } else {
@@ -302,12 +303,12 @@ fn sql_query_of_atomic_pipeline(pipeline: &Pipeline) -> Result<sql_ast::Query> {
     let aggregate = pipeline
         .iter()
         .find(|t| matches!(t, Transformation::Aggregate { .. }));
-    let group_bys: Vec<Item> = match aggregate {
+    let group_bys: Vec<Node> = match aggregate {
         Some(Transformation::Aggregate { by, .. }) => by.clone(),
         None => vec![],
         _ => unreachable!("Expected an aggregate transformation"),
     };
-    let group_by = Item::into_list_of_items(group_bys).try_into()?;
+    let group_by = Node::into_list_of_nodes(group_bys).item.try_into()?;
 
     Ok(sql_ast::Query {
         body: SetExpr::Select(Box::new(Select {
@@ -408,8 +409,8 @@ impl Filter {
         Filter(
             filters
                 .into_iter()
-                .map(|f| Item::Expr(f.0))
-                .intersperse(Item::Raw("and".to_owned()))
+                .map(|f| Item::Expr(f.0).into())
+                .intersperse(Item::Raw("and".to_owned()).into())
                 .collect(),
         )
     }
@@ -427,7 +428,7 @@ impl TryFrom<Item> for SelectItem {
                     value: named.name,
                     quote_style: None,
                 },
-                expr: (*named.expr).try_into()?,
+                expr: named.expr.item.try_into()?,
             },
             _ => bail!("Can't convert to SelectItem at the moment; {:?}", item),
         })
@@ -464,7 +465,7 @@ impl TryFrom<Item> for Expr {
                 Expr::Identifier(sql_ast::Ident::new(
                     items
                         .into_iter()
-                        .map(|item| TryInto::<Expr>::try_into(item).unwrap())
+                        .map(|node| TryInto::<Expr>::try_into(node.item).unwrap())
                         .collect::<Vec<Expr>>()
                         .iter()
                         .map(|x| x.to_string())
@@ -498,11 +499,11 @@ impl TryFrom<Item> for Vec<Expr> {
     type Error = anyhow::Error;
     fn try_from(item: Item) -> Result<Self> {
         match item {
-            Item::List(_) => Ok(item
+            Item::List(_) => Ok(Into::<Node>::into(item)
                 // TODO: implement for non-single item ListItems
-                .into_inner_list_items()?
+                .into_inner_list_nodes()?
                 .into_iter()
-                .map(|x| x.try_into())
+                .map(|x| x.item.try_into())
                 .try_collect()?),
             _ => Err(anyhow!(
                 "Can't convert to Vec<Expr> at the moment; {item:?}"
@@ -533,7 +534,7 @@ mod test {
 
     #[test]
     fn test_try_from_s_string_to_expr() -> Result<()> {
-        let ast: Item = from_str(
+        let ast: Node = from_str(
             r"
 SString:
  - String: SUM(
@@ -543,7 +544,7 @@ SString:
  - String: )
 ",
         )?;
-        let expr: Expr = ast.try_into()?;
+        let expr: Expr = ast.item.try_into()?;
         assert_yaml_snapshot!(
             expr, @r###"
     ---
@@ -558,8 +559,8 @@ SString:
     #[test]
     fn test_try_from_list_to_vec_expr() -> Result<()> {
         let item = Item::List(vec![
-            ListItem(Item::Ident("a".to_owned())),
-            ListItem(Item::Ident("b".to_owned())),
+            ListItem(Item::Ident("a".to_owned()).into()),
+            ListItem(Item::Ident("b".to_owned()).into()),
         ]);
         let expr: Vec<Expr> = item.try_into()?;
         assert_debug_snapshot!(expr, @r###"
@@ -684,7 +685,7 @@ SString:
     fn test_sql_of_ast_1() -> Result<()> {
         let yaml: &str = r###"
 Query:
-  items:
+  nodes:
     - Pipeline:
       - From:
           name: employees
@@ -709,7 +710,7 @@ Query:
       - Take: 20
             "###;
 
-        let pipeline: Item = from_str(yaml)?;
+        let pipeline: Node = from_str(yaml)?;
         let sql = translate(&pipeline)?;
         assert_display_snapshot!(sql,
             @r###"
@@ -734,10 +735,10 @@ Query:
 
     #[test]
     fn test_sql_of_ast_2() -> Result<()> {
-        let query: Item = from_str(
+        let query: Node = from_str(
             r###"
         Query:
-          items:
+          nodes:
             - Pipeline:
                 - From:
                     name: employees
@@ -899,10 +900,10 @@ take 20
     #[test]
     fn test_nonatomic() -> Result<()> {
         // A take, then two aggregates
-        let query: Item = from_str(
+        let query: Node = from_str(
             r###"
 Query:
-  items:
+  nodes:
     - Pipeline:
       - From:
           name: employees
@@ -1070,7 +1071,7 @@ join salaries [employees.employee_id=salaries.employee_id]
     #[test]
     fn test_table_alias() -> Result<()> {
         // Alias on from
-        let query: Item = parse(
+        let query: Node = parse(
             r###"
             from e: employees
             join salaries side:left [salaries.emp_no = e.emp_no]

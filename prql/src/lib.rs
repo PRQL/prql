@@ -33,7 +33,7 @@ pub fn compile(prql: &str) -> Result<String> {
 /// the exported items without items they rely on — feel free to request
 /// associated items be made public if required.
 pub mod internals {
-    pub use crate::ast::Item;
+    pub use crate::ast::Node;
     pub use crate::ast_fold::AstFold;
     pub use crate::utils::{IntoOnly, Only};
     pub use anyhow::Result; // TODO: create an error type for prql and export here
