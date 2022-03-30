@@ -138,7 +138,7 @@ prql version:0.1 db:snowflake                         # PRQL version & database 
 func excess x = (x - interest_rate) / 252             # Functions are clean and simple.
 func if_valid x = is_valid_price ? x : null
 func lag_day x = (
-  window                                              # Pipelines are for windows too.
+  window                                              # Windows are windows too.
   by sec_id
   sort date
   lag 1
