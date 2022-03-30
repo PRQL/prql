@@ -54,5 +54,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: peaceiris/actions-mdbook@v1
+      - run: ls -al
+      - run: pwd
       - run: mdbook test
-        working-directory: reference/
+        working-directory: ./reference/
