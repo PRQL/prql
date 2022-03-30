@@ -49,4 +49,12 @@ jobs:
           toolchain: stable
       - uses: jetli/trunk-action@v0.1.0
       - run: trunk build
-        working-directory: ./prql-web
+        working-directory: prql-web/
+  book:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v2
+      - uses: peaceiris/actions-mdbook@v1
+      - run: mdbook test
+        working-directory: reference/
