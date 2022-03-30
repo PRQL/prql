@@ -3,10 +3,7 @@ name: github pages
 on:
   push:
     branches:
-      # Currently we do this on every merge. If it was more actively used by non-developers, we could only publish on new tags.
-      # FIXME — add back in
-      # - main
-      - "*"
+      - main
 
 jobs:
   deploy:
