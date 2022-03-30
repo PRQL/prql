@@ -1,0 +1,19 @@
+name: github pages
+
+on:
+  push:
+    branches:
+      # Currently we do this on every merge. If it was more actively used by non-developers, we could only publish on new tags.
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: deploy
+        uses: peaceiris/actions-gh-pages@v3
+        if: ${{ github.ref == 'refs/heads/main' }}
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          mdbook-version: "0.4.10"
+          publish_dir: ./book

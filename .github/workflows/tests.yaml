@@ -50,3 +50,10 @@ jobs:
       - uses: jetli/trunk-action@v0.1.0
       - run: trunk build
         working-directory: ./prql-web
+  book:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: peaceiris/actions-mdbook@v1
+        with:
+          mdbook-version: "0.4.10"
+      - run: mdbook test
