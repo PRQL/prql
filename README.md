@@ -117,7 +117,7 @@ WITH total_returns AS (
       - interest_rate / 252 AS return_usd_excess
   FROM prices
 )
-SELECT 
+SELECT
   *,
   return_total - (interest_rate / 252) AS return_excess,
   EXP(SUM(LN(GREATEST(1 + return_total - (interest_rate / 252), 0.01))) OVER (ORDER BY date)) AS return_excess_index
@@ -144,7 +144,7 @@ func lag_day x = (
   lag 1
   x
 )
-func ret x = x / (x | lag_day) - 1 + dividend_return  
+func ret x = x / (x | lag_day) - 1 + dividend_return
 
 from prices
 join interest_rates [date]
