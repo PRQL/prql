@@ -149,12 +149,12 @@ func ret x = x / (x | lag_day) - 1 + dividend_return
 from prices
 join interest_rates [date]
 derive [
-  return_total:      prices_adj   | ret | if_valid  # `|` can be used rather than newlines.
+  return_total:      prices_adj   | ret | if_valid    # `|` can be used rather than newlines.
   return_usd:        prices_usd   | ret | if_valid
   return_excess:     return_total | excess
   return_usd_excess: return_usd   | excess
   return_excess_index:  (
-    return_total + 1 | excess | greatest 0.01 
+    return_total + 1 | excess | greatest 0.01         # Long logic is clear.
     | ln | (window | sort date | sum) | exp
   )
 ]
@@ -165,6 +165,7 @@ select [
   return_usd,
   return_excess,
   return_usd_excess,
+  return_excess_index,
 ]
 ```
 
