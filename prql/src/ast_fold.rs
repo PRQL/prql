@@ -125,7 +125,7 @@ pub fn fold_sstring_item<T: ?Sized + AstFold>(
 ) -> Result<SStringItem> {
     Ok(match sstring_item {
         SStringItem::String(string) => SStringItem::String(string),
-        SStringItem::Expr(expr) => SStringItem::Expr(fold.fold_item(expr)?),
+        SStringItem::Expr(expr) => SStringItem::Expr(fold.fold_node(expr)?),
     })
 }
 
@@ -179,20 +179,12 @@ pub fn fold_table_ref<T: ?Sized + AstFold>(fold: &mut T, table: TableRef) -> Res
     })
 }
 
-pub fn fold_func_def<T: ?Sized + AstFold>(fold: &mut T, function: FuncDef) -> Result<FuncDef> {
+pub fn fold_func_def<T: ?Sized + AstFold>(fold: &mut T, func_def: FuncDef) -> Result<FuncDef> {
     Ok(FuncDef {
-        name: fold.fold_ident(function.name)?,
-        positional_params: function
-            .positional_params
-            .into_iter()
-            .map(|ident| fold.fold_ident(ident))
-            .try_collect()?,
-        named_params: function
-            .named_params
-            .into_iter()
-            .map(|named_param| fold.fold_named_expr(named_param))
-            .try_collect()?,
-        body: Box::new(fold.fold_node(*function.body)?),
+        name: fold.fold_ident(func_def.name)?,
+        positional_params: fold.fold_nodes(func_def.positional_params)?,
+        named_params: fold.fold_nodes(func_def.named_params)?,
+        body: Box::new(fold.fold_node(*func_def.body)?),
     })
 }
 

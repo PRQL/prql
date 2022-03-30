@@ -99,8 +99,8 @@ impl Transformation {
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct FuncDef {
     pub name: Ident,
-    pub positional_params: Vec<Ident>,
-    pub named_params: Vec<NamedExpr>,
+    pub positional_params: Vec<Node>, // ident
+    pub named_params: Vec<Node>,      // named expr
     pub body: Box<Node>,
 }
 
@@ -133,7 +133,7 @@ pub struct NamedExpr {
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub enum SStringItem {
     String(String),
-    Expr(Item),
+    Expr(Node),
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]

@@ -41,7 +41,7 @@ GROUP BY
   title,
   country
 HAVING
-  ct > 200
+  COUNT(*) > 200
 ORDER BY
-  sum_gross_cost
+  SUM(salary + payroll_tax + benefits_cost)
 ```

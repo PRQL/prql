@@ -3,11 +3,11 @@ use std::ops::Range;
 use anyhow::{Ok, Result};
 use ariadne::{Color, Label, Report, ReportBuilder, ReportKind, Source};
 
-use super::{Declaration, SemanticAnalyzer, VarDec};
+use super::{Declaration, ResolvedQuery, VarDec};
 use crate::ast::FuncDef;
 use crate::internals::{AstFold, Node};
 
-pub fn print(analyzer: &SemanticAnalyzer, source_id: String, source: String) {
+pub fn print(analyzer: &ResolvedQuery, source_id: String, source: String) {
     let mut report = Report::build(ReportKind::Custom("Info", Color::Blue), &source_id, 0);
 
     let source = Source::from(source);
@@ -20,9 +20,9 @@ pub fn print(analyzer: &SemanticAnalyzer, source_id: String, source: String) {
         report: &mut report,
     };
     // traverse ast
-    labeler.fold_node(analyzer.get_ast().clone()).unwrap();
+    labeler.fold_nodes(analyzer.nodes.clone()).unwrap();
     // traverse declarations
-    for (d, _) in &analyzer.declarations {
+    for (d, _) in &analyzer.context.declarations {
         match d {
             Declaration::Variable(VarDec { declaration: n, .. })
             | Declaration::Function(FuncDef { body: n, .. }) => {
@@ -47,7 +47,7 @@ pub fn print(analyzer: &SemanticAnalyzer, source_id: String, source: String) {
 
 /// Traverses AST and add labels for each of the idents and function calls
 struct Labeler<'a> {
-    analyzer: &'a SemanticAnalyzer,
+    analyzer: &'a ResolvedQuery,
     source: &'a Source,
     source_id: &'a str,
     report: &'a mut ReportBuilder<(String, Range<usize>)>,
@@ -56,7 +56,7 @@ struct Labeler<'a> {
 impl<'a> AstFold for Labeler<'a> {
     fn fold_node(&mut self, node: Node) -> Result<Node> {
         if let Some(declared_at) = node.declared_at {
-            let (declaration, span) = &self.analyzer.declarations[declared_at];
+            let (declaration, span) = &self.analyzer.context.declarations[declared_at];
             let message = if let Some(span) = span {
                 let span = self.source.get_line_range(&Range::from(*span));
                 if span.len() <= 1 {

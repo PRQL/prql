@@ -100,12 +100,12 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
 
                     let positional_params = params
                         .iter()
-                        .filter_map(|x| x.item.as_ident())
+                        .filter(|x| matches!(x.item, Item::Ident(_)))
                         .cloned()
                         .collect();
                     let named_params = params
                         .iter()
-                        .filter_map(|x| x.item.as_named_expr())
+                        .filter(|x| matches!(x.item, Item::NamedExpr(_)))
                         .cloned()
                         .collect();
 
@@ -172,7 +172,7 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
                                     SStringItem::String(x.as_str().to_string())
                                 }
                                 _ => SStringItem::Expr(
-                                    ast_of_parse_tree(x.into_inner())?.into_expr(),
+                                    ast_of_parse_tree(x.into_inner())?.into_expr().into(),
                                 ),
                             })
                         })
@@ -742,7 +742,7 @@ take 20
         FuncDef:
           name: identity
           positional_params:
-            - x
+            - Ident: x
           named_params: []
           body:
             Ident: x
@@ -755,7 +755,7 @@ take 20
         FuncDef:
           name: plus_one
           positional_params:
-            - x
+            - Ident: x
           named_params: []
           body:
             Expr:
@@ -771,7 +771,7 @@ take 20
         FuncDef:
           name: plus_one
           positional_params:
-            - x
+            - Ident: x
           named_params: []
           body:
             Expr:
@@ -789,7 +789,7 @@ take 20
         FuncDef:
           name: foo
           positional_params:
-            - x
+            - Ident: x
           named_params: []
           body:
             Expr:
@@ -816,7 +816,7 @@ take 20
         FuncDef:
           name: count
           positional_params:
-            - X
+            - Ident: X
           named_params: []
           body:
             SString:
@@ -848,11 +848,12 @@ take 20
         FuncDef:
           name: add
           positional_params:
-            - x
+            - Ident: x
           named_params:
-            - name: to
-              expr:
-                Ident: a
+            - NamedExpr:
+                name: to
+                expr:
+                  Ident: a
           body:
             Expr:
               - Ident: x
@@ -1030,7 +1031,7 @@ take 20
             - FuncDef:
                 name: median
                 positional_params:
-                  - x
+                  - Ident: x
                 named_params: []
                 body:
                   InlinePipeline:

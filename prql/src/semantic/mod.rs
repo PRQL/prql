@@ -1,15 +1,9 @@
-pub mod analyzer;
-pub mod reporting;
+mod materializer;
+mod reporting;
+mod resolver;
+mod scope;
 
-use anyhow::Result;
-
-use self::analyzer::{Declaration, SemanticAnalyzer, VarDec};
-use super::ast::*;
-
-pub fn analyze(ast: Node) -> Result<SemanticAnalyzer> {
-    let mut analyzer = SemanticAnalyzer::new();
-
-    analyzer.append(ast.item.into_query().unwrap())?;
-
-    Ok(analyzer)
-}
+pub use self::scope::{Context, Declaration, ResolvedQuery, VarDec};
+pub use materializer::materialize;
+pub use reporting::print;
+pub use resolver::{resolve, resolve_new};

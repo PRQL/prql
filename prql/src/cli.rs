@@ -1,4 +1,4 @@
-use crate::{error, materialize, parse, semantic, translate};
+use crate::{error, parse, semantic, translate};
 use anyhow::Error;
 use clap::{ArgEnum, Args, Parser};
 use clio::{Input, Output};
@@ -7,8 +7,6 @@ use std::io::{Read, Write};
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ArgEnum)]
 enum Format {
     Ast,
-    #[clap(name = "ast-mat")]
-    MaterializedAst,
     #[clap(name = "ast-sem")]
     SemanticAst,
     Sql,
@@ -80,22 +78,16 @@ fn compile_to(format: Format, source: &str) -> Result<Vec<u8>, Error> {
 
             serde_yaml::to_vec(&ast)?
         }
-        Format::MaterializedAst => {
-            let materialized = materialize(parse(source)?)?;
-
-            serde_yaml::to_vec(&materialized)?
-        }
         Format::SemanticAst => {
             let ast = parse(source)?;
-            let analyzer = semantic::analyze(ast)?;
+            let query = semantic::resolve_new(ast.item.into_query()?.nodes)?;
 
-            semantic::reporting::print(&analyzer, "".to_string(), source.to_string());
+            semantic::print(&query, "".to_string(), source.to_string());
 
-            vec![]
-            // serde_yaml::to_vec(analyzer.get_ast())?
+            serde_yaml::to_vec(&query.context)?
         }
         Format::Sql => {
-            let materialized = materialize(parse(source)?)?;
+            let materialized = parse(source)?;
             let sql = translate(&materialized)?;
 
             sql.as_bytes().to_vec()
