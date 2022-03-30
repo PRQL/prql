@@ -19,7 +19,7 @@ News](https://news.ycombinator.com/item?id=30060784#30062329) and
 [Lobsters](https://lobste.rs/s/oavgcx/prql_simpler_more_powerful_sql) earlier
 this year when it was just a proposal.
 
-## Two examples
+## Overview
 
 ### A simple example
 
@@ -104,6 +104,7 @@ valid prices.
 WITH total_returns AS (
   SELECT
     date,
+    sec_id,
     -- Can't use a `WHERE` clause, as it would affect the row that the `LAG` function referenced.
     IF(is_valid_price, price_adjusted / LAG(price_adjusted, 1) OVER
       (PARTITION BY sec_id ORDER BY date) - 1 + dividend_return, NULL) AS return_total,
@@ -155,7 +156,7 @@ derive [
   return_usd_excess: return_usd   | excess
   return_excess_index:  (                             # No need for a CTE.
     return_total + 1 | excess | greatest 0.01         # Complicated logic remains clear.
-    | ln | (window | sort date | sum) | exp
+      | ln | (window | sort date | sum) | exp
   )
 ]
 select [
