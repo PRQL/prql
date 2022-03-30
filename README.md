@@ -135,8 +135,7 @@ Here's the same query with PRQL:
 ```elm
 prql version:0.1 db:snowflake                         # PRQL version & database name.
 
-func ret x = x / (x | lag_day) - 1 + dividend_return  # Functions are clean and simple.
-func excess x = (x - interest_rate) / 252
+func excess x = (x - interest_rate) / 252             # Functions are clean and simple.
 func if_valid x = is_valid_price ? x : null
 func lag_day x = 
   window                                              # Pipelines for windows too.
@@ -145,7 +144,7 @@ func lag_day x =
   lag 1
   x
 )
-
+func ret x = x / (x | lag_day) - 1 + dividend_return  
 
 from prices
 join interest_rates [date]
@@ -154,7 +153,8 @@ derive [
   return_usd:        prices_usd   | ret | if_valid
   return_excess:     return_total | excess
   return_usd_excess: return_usd   | excess
-  return_exc_index:  return_total + 1 | excess | greatest 0.01 | ln | (window | sort date | sum) | exp
+  return_exc_index:  (return_total + 1 | excess | greatest 0.01 
+                        | ln | (window | sort date | sum) | exp)
 ]
 select [
   date,
