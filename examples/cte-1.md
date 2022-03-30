@@ -34,18 +34,12 @@ average_salaries AS (
     salaries
   GROUP BY
     country
-),
-table_0 AS (
-  SELECT
-    name,
-    salary,
-    average_country_salary
-  FROM
-    newest_employees
-    JOIN average_salaries USING(country)
 )
 SELECT
-  *
+  name,
+  salary,
+  average_country_salary
 FROM
-  table_0
+  newest_employees
+  JOIN average_salaries USING(country)
 ```

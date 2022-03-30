@@ -25,20 +25,14 @@ WITH table_0 AS (
   GROUP BY
     dept_emp.emp_no,
     dept_emp.dept_no
-),
-table_1 AS (
-  SELECT
-    dept_no,
-    salary,
-    employees.gender,
-    titles.title
-  FROM
-    table_0
-    JOIN employees USING(emp_no)
-    JOIN titles USING(emp_no)
 )
 SELECT
-  *
+  dept_no,
+  salary,
+  employees.gender,
+  titles.title
 FROM
-  table_1
+  table_0
+  JOIN employees USING(emp_no)
+  JOIN titles USING(emp_no)
 ```
