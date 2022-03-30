@@ -41,19 +41,13 @@ table_1 AS (
   GROUP BY
     de.dept_no,
     gender
-),
-table_2 AS (
-  SELECT
-    dept_name,
-    gender,
-    salary_avg,
-    salary_sd
-  FROM
-    table_1
-    JOIN departments USING(dept_no)
 )
 SELECT
-  *
+  dept_name,
+  gender,
+  salary_avg,
+  salary_sd
 FROM
-  table_2
+  table_1
+  JOIN departments USING(dept_no)
 ```

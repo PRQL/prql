@@ -41,7 +41,7 @@ pub fn translate(ast: &Node) -> Result<String> {
 impl TryFrom<Query> for sql_ast::Query {
     type Error = anyhow::Error;
     fn try_from(query: Query) -> Result<Self> {
-        let tables: Vec<Table> = query
+        let mut tables: Vec<Table> = query
             .nodes
             .iter()
             .filter_map(|node| node.item.as_table().cloned())
@@ -52,67 +52,49 @@ impl TryFrom<Query> for sql_ast::Query {
             .iter()
             .filter_map(|node| node.item.as_pipeline().cloned())
             .into_only()?;
+        tables.push(pipeline.into());
 
-        sql_query_of_pipeline_and_tables(&pipeline, &tables)
+        sql_query_of_tables(tables)
     }
 }
 
-impl Table {
-    fn to_sql_cte(&self) -> Result<sql_ast::Cte> {
-        let alias = sql_ast::TableAlias {
-            name: Item::Ident(self.name.clone()).try_into()?,
-            columns: vec![],
-        };
-        Ok(sql_ast::Cte {
-            alias,
-            query: sql_query_of_pipeline_and_tables(&self.pipeline, &[])?,
-            from: None,
-        })
+fn sql_query_of_tables(tables: Vec<Table>) -> Result<sql_ast::Query> {
+    // split to atomics
+    let mut atomics = atomic_tables_of_tables(tables)?;
+    if atomics.is_empty() {
+        bail!("No tables?");
     }
-}
 
-fn sql_query_of_pipeline_and_tables(
-    pipeline: &Pipeline,
-    tables: &[Table],
-) -> Result<sql_ast::Query> {
-    let atomic_pipelines = atomic_pipelines_of_pipeline(pipeline)?;
-    // Return early if we have a single atomic pipeline.
-    if atomic_pipelines.len() == 1 && tables.is_empty() {
-        return sql_query_of_atomic_pipeline(&atomic_pipelines.into_only()?);
-    }
-    let tables_from_pipeline = tables_of_pipelines(atomic_pipelines)?;
+    // take last table
+    let main_query = atomics.remove(atomics.len() - 1);
+    let ctes = atomics;
 
-    sql_query_of_tables(&[tables, tables_from_pipeline.as_slice()].concat())
-}
+    // convert each of the CTEs
+    let ctes: Vec<_> = ctes.into_iter().map(table_to_sql_cte).try_collect()?;
 
-fn sql_query_of_tables(tables: &[Table]) -> Result<sql_ast::Query> {
-    let ctes = tables.iter().map(|x| x.to_sql_cte()).try_collect()?;
+    // convert main query
+    let mut main_query = sql_query_of_atomic_pipeline(main_query.pipeline)?;
 
-    Ok(sql_ast::Query {
-        with: Some(sql_ast::With {
+    // attach CTEs
+    if !ctes.is_empty() {
+        main_query.with = Some(sql_ast::With {
             cte_tables: ctes,
             recursive: false,
-        }),
-        order_by: vec![],
-        limit: None,
-        offset: None,
-        fetch: None,
-        body: SetExpr::Select(Box::new(Select {
-            selection: None,
-            distinct: false,
-            top: None,
-            projection: vec![Item::Ident("*".to_string()).try_into()?],
-            from: vec![TableWithJoins {
-                relation: table_factor_of_ident(&tables.last().unwrap().name),
-                joins: vec![],
-            }],
-            group_by: vec![],
-            having: None,
-            lateral_views: vec![],
-            sort_by: vec![],
-            cluster_by: vec![],
-            distribute_by: vec![],
-        })),
+        });
+    }
+
+    Ok(main_query)
+}
+
+fn table_to_sql_cte(table: Table) -> Result<sql_ast::Cte> {
+    let alias = sql_ast::TableAlias {
+        name: Item::Ident(table.name).try_into()?,
+        columns: vec![],
+    };
+    Ok(sql_ast::Cte {
+        alias,
+        query: sql_query_of_atomic_pipeline(table.pipeline)?,
+        from: None,
     })
 }
 
@@ -123,15 +105,6 @@ fn sql_query_of_tables(tables: &[Table]) -> Result<sql_ast::Query> {
 // impl TryFrom<Pipeline> for sqlparser::sql_ast::Query {
 //     type Error = anyhow::Error;
 //     fn try_from(&pipeline: Pipeline) -> Result<sqlparser::sql_ast::Query> {
-
-fn table_factor_of_ident(ident: &Ident) -> TableFactor {
-    TableFactor::Table {
-        name: ObjectName(vec![Item::Ident(ident.clone()).try_into().unwrap()]),
-        alias: None,
-        args: vec![],
-        with_hints: vec![],
-    }
-}
 
 fn table_factor_of_table_ref(table_ref: &TableRef) -> TableFactor {
     TableFactor::Table {
@@ -193,7 +166,7 @@ fn select_columns_of_pipeline(pipeline: &Pipeline) -> Result<Vec<SelectItem>> {
     Ok(selects)
 }
 
-fn sql_query_of_atomic_pipeline(pipeline: &Pipeline) -> Result<sql_ast::Query> {
+fn sql_query_of_atomic_pipeline(pipeline: Pipeline) -> Result<sql_ast::Query> {
     // TODO: possibly do validation here? e.g. check there isn't more than one
     // `from`? Or do we rely on the caller for that?
 
@@ -315,7 +288,7 @@ fn sql_query_of_atomic_pipeline(pipeline: &Pipeline) -> Result<sql_ast::Query> {
             distinct: false,
             // TODO: when should this be `TOP` vs `LIMIT` (which is on the `Query` object?)
             top: take,
-            projection: select_columns_of_pipeline(pipeline)?,
+            projection: select_columns_of_pipeline(&pipeline)?,
             from,
             group_by,
             having,
@@ -333,7 +306,7 @@ fn sql_query_of_atomic_pipeline(pipeline: &Pipeline) -> Result<sql_ast::Query> {
     })
 }
 
-/// Convert a pipeline into a number of pipelines which can each "fit" into a CTE.
+/// Convert a pipeline into a number of pipelines which can each "fit" into a SELECT.
 fn atomic_pipelines_of_pipeline(pipeline: &Pipeline) -> Result<Vec<Pipeline>> {
     // Before starting a new CTE, we can have a pipeline with:
     // - 1 aggregate,
@@ -379,26 +352,49 @@ fn atomic_pipelines_of_pipeline(pipeline: &Pipeline) -> Result<Vec<Pipeline>> {
     Ok(ctes)
 }
 
-/// Converts a series of pipelines into a series of tables, by putting the
+/// Converts a series of tables into a series of atomic tables, by putting the
 /// next pipeline's `from` as the current pipelines's table name.
-fn tables_of_pipelines(pipelines: Vec<Pipeline>) -> Result<Vec<Table>> {
-    let mut tables = vec![];
-    for (n, mut pipeline) in pipelines.into_iter().enumerate() {
-        if n > 0 {
-            pipeline.insert(
-                0,
-                Transformation::From(TableRef {
-                    name: format!("table_{}", n - 1),
-                    alias: None,
-                }),
-            );
+fn atomic_tables_of_tables(tables: Vec<Table>) -> Result<Vec<Table>> {
+    let mut atomics = Vec::new();
+    let mut index = 0;
+    for t in tables {
+        // split table into atomics
+        let mut t_atomics: Vec<Table> = atomic_pipelines_of_pipeline(&t.pipeline)?
+            .into_iter()
+            .map(Table::from)
+            .collect();
+
+        let (last, ctes) = t_atomics
+            .split_last_mut()
+            .ok_or_else(|| anyhow!("No pipelines?"))?;
+
+        // generate table names for all but last table
+        let mut last_name = None;
+        for cte in ctes {
+            prepend_with_from(&mut cte.pipeline, &last_name);
+
+            cte.name = format!("table_{index}");
+            index += 1;
+            last_name = Some(cte.name.clone());
         }
-        tables.push(Table {
-            name: "table_".to_owned() + &n.to_string(),
-            pipeline: pipeline.clone(),
-        });
+
+        // use original table name
+        prepend_with_from(&mut last.pipeline, &last_name);
+        last.name = t.name;
+
+        atomics.extend(t_atomics);
     }
-    Ok(tables)
+    Ok(atomics)
+}
+
+fn prepend_with_from(pipeline: &mut Pipeline, last_name: &Option<String>) {
+    if let Some(last_name) = last_name {
+        let from = Transformation::From(TableRef {
+            name: last_name.clone(),
+            alias: None,
+        });
+        pipeline.insert(0, from);
+    }
 }
 
 /// Combines filters by putting them in parentheses and then joining them with `and`.
@@ -518,6 +514,14 @@ impl TryFrom<Item> for sql_ast::Ident {
             Item::Ident(ident) => Ok(sql_ast::Ident::new(ident)),
             Item::Raw(ident) => Ok(sql_ast::Ident::new(ident)),
             _ => Err(anyhow!("Can't convert to Ident at the moment; {item:?}")),
+        }
+    }
+}
+impl From<Pipeline> for Table {
+    fn from(pipeline: Pipeline) -> Self {
+        Table {
+            name: String::default(),
+            pipeline,
         }
     }
 }
@@ -877,20 +881,14 @@ take 20
             salaries
           GROUP BY
             country
-        ),
-        table_0 AS (
-          SELECT
-            name,
-            salary,
-            average_country_salary
-          FROM
-            newest_employees
-            JOIN average_salaries USING(country)
         )
         SELECT
-          *
+          name,
+          salary,
+          average_country_salary
         FROM
-          table_0
+          newest_employees
+          JOIN average_salaries USING(country)
         "###
         );
 
@@ -957,24 +955,18 @@ Query:
           GROUP BY
             title,
             country
-        ),
-        table_2 AS (
-          SELECT
-            title,
-            country,
-            AVG(salary)
-          FROM
-            table_1
-          GROUP BY
-            title,
-            country
-          ORDER BY
-            sum_gross_cost
         )
         SELECT
-          *
+          title,
+          country,
+          AVG(salary)
         FROM
-          table_2
+          table_1
+        GROUP BY
+          title,
+          country
+        ORDER BY
+          sum_gross_cost
         "###);
 
         Ok(())
@@ -998,37 +990,25 @@ Query:
         )?;
 
         assert_display_snapshot!((translate(&query)?), @r###"
-        WITH a AS (
-          WITH table_0 AS (
-            SELECT
-              TOP (50) *
-            FROM
-              employees
-          ),
-          table_1 AS (
-            SELECT
-              count(*)
-            FROM
-              table_0
-          )
+        WITH table_0 AS (
           SELECT
-            *
+            TOP (50) *
           FROM
-            table_1
+            employees
         ),
-        table_0 AS (
+        a AS (
           SELECT
-            name,
-            salary,
-            average_country_salary
+            count(*)
           FROM
-            a
-            JOIN b USING(country)
+            table_0
         )
         SELECT
-          *
+          name,
+          salary,
+          average_country_salary
         FROM
-          table_0
+          a
+          JOIN b USING(country)
         "###);
 
         Ok(())
@@ -1052,18 +1032,12 @@ join salaries [employees.employee_id=salaries.employee_id]
             TOP (10) *
           FROM
             employees
-        ),
-        table_1 AS (
-          SELECT
-            *
-          FROM
-            table_0
-            JOIN salaries ON employees.employee_id = salaries.employee_id
         )
         SELECT
           *
         FROM
-          table_1
+          table_0
+          JOIN salaries ON employees.employee_id = salaries.employee_id
         "###);
         assert!(!result.contains("employees.employee_id"));
     }

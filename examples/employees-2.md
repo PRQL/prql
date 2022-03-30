@@ -51,19 +51,13 @@ table_1 AS (
   GROUP BY
     dm.emp_no,
     gender
-),
-table_2 AS (
-  SELECT
-    managers.first_name || ' ' || managers.last_name,
-    managers.gender,
-    salary_avg,
-    salary_sd
-  FROM
-    table_1
-    JOIN employees AS managers USING(emp_no)
 )
 SELECT
-  *
+  managers.first_name || ' ' || managers.last_name,
+  managers.gender,
+  salary_avg,
+  salary_sd
 FROM
-  table_2
+  table_1
+  JOIN employees AS managers USING(emp_no)
 ```
