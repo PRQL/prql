@@ -49,11 +49,10 @@ jobs:
           toolchain: stable
       - uses: jetli/trunk-action@v0.1.0
       - run: trunk build
-        working-directory: ./prql-web
+        working-directory: prql-web/
   book:
     runs-on: ubuntu-latest
     steps:
       - uses: peaceiris/actions-mdbook@v1
-        with:
-          mdbook-version: "0.4.10"
-      - run: cd reference && mdbook test
+      - run: mdbook test
+        working-directory: reference/
