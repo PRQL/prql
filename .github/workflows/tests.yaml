@@ -53,6 +53,8 @@ jobs:
   book:
     runs-on: ubuntu-latest
     steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v2
       - uses: peaceiris/actions-mdbook@v1
       - run: ls -al
       - run: pwd
