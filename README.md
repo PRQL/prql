@@ -19,7 +19,9 @@ News](https://news.ycombinator.com/item?id=30060784#30062329) and
 [Lobsters](https://lobste.rs/s/oavgcx/prql_simpler_more_powerful_sql) earlier
 this year when it was just a proposal.
 
-## An example
+## Overview
+
+### A simple example
 
 Here's a fairly simple SQL query:
 
@@ -91,28 +93,37 @@ While PRQL is designed for reading & writing by people, it's also much simpler
 for code to construct or edit PRQL queries. In SQL, adding a filter to a query
 involves parsing the query to find and then modify the `WHERE` statement, or
 wrapping the existing query in a CTE. In PRQL, adding a filter just involves
-adding a `filter` transformation to the final line.
+appending a `filter` transformation to the query.
 
-## An example using Functions
+### A more complex example
 
 Here's another SQL query, which calculates returns from prices on days with
 valid prices.
 
 ```sql
+WITH total_returns AS (
+  SELECT
+    date,
+    sec_id,
+    -- Can't use a `WHERE` clause, as it would affect the row that the `LAG` function referenced.
+    IF(is_valid_price, price_adjusted / LAG(price_adjusted, 1) OVER
+      (PARTITION BY sec_id ORDER BY date) - 1 + dividend_return, NULL) AS return_total,
+    IF(is_valid_price, price_adjusted_usd / LAG(price_adjusted_usd, 1) OVER
+      (PARTITION BY sec_id ORDER BY date) - 1 + dividend_return, NULL) AS return_usd,
+    IF(is_valid_price, price_adjusted / LAG(price_adjusted, 1) OVER
+      (PARTITION BY sec_id ORDER BY date) - 1 + dividend_return, NULL)
+      - interest_rate / 252 AS return_excess,
+    IF(is_valid_price, price_adjusted_usd / LAG(price_adjusted_usd, 1) OVER
+      (PARTITION BY sec_id ORDER BY date) - 1 + dividend_return, NULL)
+      - interest_rate / 252 AS return_usd_excess
+  FROM prices
+)
 SELECT
-  date,
-  -- Can't use a `WHERE` clause, as it would affect the row that the `LAG` function referenced.
-  IF(is_valid_price, price_adjusted / LAG(price_adjusted, 1) OVER
-    (PARTITION BY sec_id ORDER BY date) - 1 + dividend_return, NULL) AS return_total,
-  IF(is_valid_price, price_adjusted_usd / LAG(price_adjusted_usd, 1) OVER
-    (PARTITION BY sec_id ORDER BY date) - 1 + dividend_return, NULL) AS return_usd,
-  IF(is_valid_price, price_adjusted / LAG(price_adjusted, 1) OVER
-    (PARTITION BY sec_id ORDER BY date) - 1 + dividend_return, NULL)
-    - interest_rate / 252 AS return_excess,
-  IF(is_valid_price, price_adjusted_usd / LAG(price_adjusted_usd, 1) OVER
-    (PARTITION BY sec_id ORDER BY date) - 1 + dividend_return, NULL)
-    - interest_rate / 252 AS return_usd_excess
-FROM prices
+  *,
+  return_total - (interest_rate / 252) AS return_excess,
+  EXP(SUM(LN(GREATEST(1 + return_total - (interest_rate / 252), 0.01))) OVER (ORDER BY date)) AS return_excess_index
+FROM total_returns
+JOIN interest_rates USING (date)
 ```
 
 > This might seem like a convoluted example, but it's taken from a real query.
@@ -123,24 +134,30 @@ FROM prices
 Here's the same query with PRQL:
 
 ```elm
-prql version:0.1 db:snowflake                         # Version number & database name.
+prql version:0.1 db:snowflake                         # PRQL version & database name.
 
+func excess x = (x - interest_rate) / 252             # Functions are clean and simple.
+func if_valid x = is_valid_price ? x : null
 func lag_day x = (
-  window x
+  window                                              # Windows are windows too.
   by sec_id
   sort date
   lag 1
+  x
 )
 func ret x = x / (x | lag_day) - 1 + dividend_return
-func excess x = (x - interest_rate) / 252
-func if_valid x = is_valid_price ? x : null
 
 from prices
+join interest_rates [date]
 derive [
-  return_total:      prices_adj   | ret | if_valid  # `|` can be used rather than newlines.
+  return_total:      prices_adj   | ret | if_valid    # `|` can be used rather than newlines.
   return_usd:        prices_usd   | ret | if_valid
   return_excess:     return_total | excess
   return_usd_excess: return_usd   | excess
+  return_excess_index:  (                             # No need for a CTE.
+    return_total + 1 | excess | greatest 0.01         # Complicated logic remains clear.
+      | ln | (window | sort date | sum) | exp
+  )
 ]
 select [
   date,
@@ -149,13 +166,18 @@ select [
   return_usd,
   return_excess,
   return_usd_excess,
+  return_excess_index,
 ]
 ```
 
 Because we define the functions once rather than copying & pasting the code, we
-get all the benefits of encapsulation and extensibility — we can have reliable &
+get all the benefits of encapsulation and extensibility — we have reliable &
 tested functions, whose purpose is explicit, which we can share across queries
-and colleagues.
+and between colleagues.
+
+We needed a CTE in the SQL query, because the lack of variables would have
+required a nested window clause, which isn't allowed. With PRQL, our logic isn't
+constrained by these arbitrary constraints — and is more compressed as a result.
 
 ## Current status
 
