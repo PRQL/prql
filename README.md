@@ -153,7 +153,7 @@ derive [
   return_usd:        prices_usd   | ret | if_valid
   return_excess:     return_total | excess
   return_usd_excess: return_usd   | excess
-  return_exc_index:  (
+  return_excess_index:  (
     return_total + 1 | excess | greatest 0.01 
     | ln | (window | sort date | sum) | exp
   )
