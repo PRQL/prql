@@ -137,7 +137,7 @@ prql version:0.1 db:snowflake                         # PRQL version & database 
 
 func excess x = (x - interest_rate) / 252             # Functions are clean and simple.
 func if_valid x = is_valid_price ? x : null
-func lag_day x = 
+func lag_day x = (
   window                                              # Pipelines are for windows too.
   by sec_id
   sort date
@@ -153,7 +153,7 @@ derive [
   return_usd:        prices_usd   | ret | if_valid
   return_excess:     return_total | excess
   return_usd_excess: return_usd   | excess
-  return_excess_index:  (
+  return_excess_index:  (                             # No need for a CTE.
     return_total + 1 | excess | greatest 0.01         # Long logic is clear.
     | ln | (window | sort date | sum) | exp
   )
@@ -170,9 +170,14 @@ select [
 ```
 
 Because we define the functions once rather than copying & pasting the code, we
-get all the benefits of encapsulation and extensibility — we can have reliable &
+get all the benefits of encapsulation and extensibility — we have reliable &
 tested functions, whose purpose is explicit, which we can share across queries
-and colleagues.
+and between colleagues.
+
+Note that we needed a CTE in the SQL query, because the lack of variables
+meant we would have needed a nested window clause, which isn't allowed. With
+PRQL, our logic isn't constrained by these arbitrary constraints — and is
+more compressed as a result.
 
 ## Current status
 
