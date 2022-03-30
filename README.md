@@ -154,7 +154,7 @@ derive [
   return_excess:     return_total | excess
   return_usd_excess: return_usd   | excess
   return_excess_index:  (                             # No need for a CTE.
-    return_total + 1 | excess | greatest 0.01         # Long logic is clear.
+    return_total + 1 | excess | greatest 0.01         # Complicated logic remains clear.
     | ln | (window | sort date | sum) | exp
   )
 ]
@@ -174,10 +174,9 @@ get all the benefits of encapsulation and extensibility — we have reliable &
 tested functions, whose purpose is explicit, which we can share across queries
 and between colleagues.
 
-Note that we needed a CTE in the SQL query, because the lack of variables
-meant we would have needed a nested window clause, which isn't allowed. With
-PRQL, our logic isn't constrained by these arbitrary constraints — and is
-more compressed as a result.
+We needed a CTE in the SQL query, because the lack of variables would have
+required a nested window clause, which isn't allowed. With PRQL, our logic isn't
+constrained by these arbitrary constraints — and is more compressed as a result.
 
 ## Current status
 
