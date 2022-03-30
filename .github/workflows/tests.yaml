@@ -56,7 +56,5 @@ jobs:
       - name: 📂 Checkout code
         uses: actions/checkout@v2
       - uses: peaceiris/actions-mdbook@v1
-      - run: ls -al
-      - run: pwd
       - run: mdbook test
-        working-directory: ./reference/
+        working-directory: reference/
