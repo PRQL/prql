@@ -12,15 +12,19 @@ use itertools::zip;
 use itertools::Itertools;
 
 use super::scope::Context;
-use super::scope::ResolvedQuery;
 use super::scope::TableColumn;
 
+pub struct SelectedColumns(pub Vec<Node>);
+
 /// Replaces all resolved functions and variables with their declarations.
-pub fn materialize(mut query: ResolvedQuery) -> Result<(ResolvedQuery, Vec<Node>)> {
-    let mut m = Materializer::new(query.context);
+pub fn materialize(
+    nodes: Vec<Node>,
+    context: Context,
+) -> Result<(Vec<Node>, Context, SelectedColumns)> {
+    let mut m = Materializer::new(context);
 
     // materialize the query
-    query.nodes = m.fold_nodes(query.nodes)?;
+    let nodes = m.fold_nodes(nodes)?;
 
     // materialize each of the columns
     let select = (m.context.table.clone().iter())
@@ -32,8 +36,7 @@ pub fn materialize(mut query: ResolvedQuery) -> Result<(ResolvedQuery, Vec<Node>
         })
         .try_collect()?;
 
-    query.context = m.context;
-    Ok((query, select))
+    Ok((nodes, m.context, SelectedColumns(select)))
 }
 
 /// Can fold (walk) over AST and replace function calls and variable references with their declarations.
@@ -187,7 +190,11 @@ impl AstFold for Materializer {
 mod test {
 
     use super::*;
-    use crate::{parse, semantic::resolve_new, utils::diff};
+    use crate::{
+        parse,
+        semantic::{process, resolve},
+        utils::diff,
+    };
     use insta::{assert_display_snapshot, assert_snapshot, assert_yaml_snapshot};
     use serde_yaml::to_string;
 
@@ -202,13 +209,14 @@ mod test {
     "#,
         )?;
 
-        let res = resolve_new(ast.item.into_query().unwrap().nodes)?;
-        let (mat, _) = materialize(res.clone())?;
+        let (res, context) = resolve(ast.nodes, None)?;
+        let (mat, _, _) = materialize(res.clone(), context)?;
+
         // We could make a convenience function for this. It's useful for
         // showing the diffs of an operation.
         assert_display_snapshot!(diff(
-            &to_string(&res.nodes)?,
-            &to_string(&mat.nodes)?
+            &to_string(&res)?,
+            &to_string(&mat)?
         ),
         @"");
 
@@ -244,9 +252,9 @@ filter sum_gross_cost > 200
 take 20
 "#,
         )?;
-        let res = resolve_new(ast.item.into_query().unwrap().nodes)?;
-        let (mat, _) = materialize(res)?;
-        assert_yaml_snapshot!(&mat.nodes);
+        let (res, context) = resolve(ast.nodes, None)?;
+        let (mat, _, _) = materialize(res, context)?;
+        assert_yaml_snapshot!(&mat);
 
         Ok(())
     }
@@ -266,68 +274,65 @@ aggregate [
 
         assert_yaml_snapshot!(ast, @r###"
         ---
-        Query:
-          nodes:
-            - FuncDef:
-                name: count
-                positional_params:
-                  - Ident: x
-                named_params: []
-                body:
-                  SString:
-                    - String: count(
-                    - Expr:
-                        Ident: x
-                    - String: )
-            - Pipeline:
-                - From:
-                    name: employees
-                    alias: ~
-                - Aggregate:
-                    by: []
-                    select:
-                      - FuncCall:
-                          name: count
-                          args:
-                            - Ident: salary
-                          named_args: []
+        nodes:
+          - FuncDef:
+              name: count
+              positional_params:
+                - Ident: x
+              named_params: []
+              body:
+                SString:
+                  - String: count(
+                  - Expr:
+                      Ident: x
+                  - String: )
+          - Pipeline:
+              - From:
+                  name: employees
+                  alias: ~
+              - Aggregate:
+                  by: []
+                  select:
+                    - FuncCall:
+                        name: count
+                        args:
+                          - Ident: salary
+                        named_args: []
         "###);
 
-        let res = resolve_new(ast.item.clone().into_query().unwrap().nodes)?;
-        let (mat, _) = materialize(res)?;
+        let (mat, _, _) = process(ast.nodes.clone(), None)?;
 
         // We could make a convenience function for this. It's useful for
         // showing the diffs of an operation.
-        let diff = diff(&to_string(&ast)?, &to_string(&mat.nodes)?);
+        let diff = diff(&to_string(&ast)?, &to_string(&mat)?);
         assert!(!diff.is_empty());
         assert_display_snapshot!(diff, @r###"
-        @@ -1,26 +1,8 @@
+        @@ -1,25 +1,8 @@
          ---
-        -Query:
-        -  nodes:
-        -    - FuncDef:
-        -        name: count
-        -        positional_params:
-        -          - Ident: x
-        -        named_params: []
-        -        body:
-        -          SString:
-        -            - String: count(
-        -            - Expr:
-        -                Ident: x
-        -            - String: )
-        -    - Pipeline:
-        -        - From:
-        -            name: employees
-        -            alias: ~
-        -        - Aggregate:
-        -            by: []
-        -            select:
-        -              - FuncCall:
-        -                  name: count
-        -                  args:
-        -                    - Ident: salary
-        -                  named_args: []
+        -nodes:
+        -  - FuncDef:
+        -      name: count
+        -      positional_params:
+        -        - Ident: x
+        -      named_params: []
+        -      body:
+        -        SString:
+        -          - String: count(
+        -          - Expr:
+        -              Ident: x
+        -          - String: )
+        -  - Pipeline:
+        -      - From:
+        -          name: employees
+        -          alias: ~
+        -      - Aggregate:
+        -          by: []
+        -          select:
+        -            - FuncCall:
+        -                name: count
+        -                args:
+        -                  - Ident: salary
+        -                named_args: []
         +- Pipeline:
         +    - From:
         +        name: employees
@@ -352,7 +357,7 @@ select (ret b)
 "#,
         )?;
 
-        assert_yaml_snapshot!(ast.clone().item.into_query()?.nodes[2], @r###"
+        assert_yaml_snapshot!(ast.nodes[2], @r###"
         ---
         Pipeline:
           - From:
@@ -366,9 +371,8 @@ select (ret b)
                   named_args: []
         "###);
 
-        let res = resolve_new(ast.item.into_query().unwrap().nodes)?;
-        let (mat, _) = materialize(res)?;
-        assert_yaml_snapshot!(mat.nodes[0], @r###"
+        let (mat, _, _) = process(ast.nodes, None)?;
+        assert_yaml_snapshot!(mat[0], @r###"
         ---
         Pipeline:
           - From:
@@ -390,10 +394,10 @@ aggregate [one: (foo | sum), two: (foo | sum)]
 "#,
         )?;
 
-        let res = resolve_new(ast.item.into_query().unwrap().nodes)?;
-        let (mat, _) = materialize(res.clone())?;
+        let (res, context) = resolve(ast.nodes, None)?;
+        let (mat, _, _) = materialize(res.clone(), context)?;
 
-        assert_snapshot!(diff(&to_string(&res.nodes)?, &to_string(&mat.nodes)?), @"");
+        assert_snapshot!(diff(&to_string(&res)?, &to_string(&mat)?), @"");
 
         // Test it'll run the `sum foo` function first.
         let ast = parse(
@@ -406,10 +410,9 @@ aggregate [a: (sum foo | plus_one)]
 "#,
         )?;
 
-        let res = resolve_new(ast.item.into_query().unwrap().nodes)?;
-        let (mat, _) = materialize(res)?;
+        let (mat, _, _) = process(ast.nodes, None)?;
 
-        assert_yaml_snapshot!(mat.nodes[0], @r###"
+        assert_yaml_snapshot!(mat[0], @r###"
         ---
         Pipeline:
           - From:
@@ -436,10 +439,9 @@ derive [
 ]
 "#,
         )?;
-        let res = resolve_new(ast.item.into_query().unwrap().nodes)?;
-        let (mat, _) = materialize(res)?;
+        let (mat, _, _) = process(ast.nodes, None)?;
 
-        assert_yaml_snapshot!(mat.nodes, @r###"
+        assert_yaml_snapshot!(mat, @r###"
         ---
         - Pipeline:
             - From:
@@ -463,10 +465,8 @@ aggregate [
 "#,
         )?;
 
-        let res = resolve_new(ast.item.into_query().unwrap().nodes)?;
-        let (mat, _) = materialize(res)?;
-
-        assert_yaml_snapshot!(mat.nodes,
+        let (mat, _, _) = process(ast.nodes, None)?;
+        assert_yaml_snapshot!(mat,
             @r###"
         ---
         - Pipeline:
@@ -511,9 +511,8 @@ take 20
 "#,
         )?;
 
-        let res = resolve_new(ast.item.into_query().unwrap().nodes)?;
-        let (mat, _) = materialize(res)?;
-        assert_yaml_snapshot!(mat.nodes);
+        let (mat, _, _) = process(ast.nodes, None)?;
+        assert_yaml_snapshot!(mat);
         Ok(())
     }
 
@@ -543,9 +542,8 @@ take 20
     ]
     "#,
         )?;
-        let res = resolve_new(ast.item.into_query().unwrap().nodes)?;
-        let (mat, _) = materialize(res)?;
-        assert_yaml_snapshot!(mat.nodes);
+        let (mat, _, _) = process(ast.nodes, None)?;
+        assert_yaml_snapshot!(mat);
 
         Ok(())
     }
@@ -566,10 +564,8 @@ aggregate by:[title] [
 "#,
         )?;
 
-        let res = resolve_new(ast.item.into_query().unwrap().nodes)?;
-        let (mat, _) = materialize(res)?;
-
-        assert_yaml_snapshot!(mat.nodes, @r###"
+        let (mat, _, _) = process(ast.nodes, None)?;
+        assert_yaml_snapshot!(mat, @r###"
         ---
         - Pipeline:
             - From:

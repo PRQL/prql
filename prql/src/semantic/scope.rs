@@ -8,15 +8,6 @@ use strum_macros::Display;
 use crate::ast::*;
 use crate::error::Span;
 
-#[derive(Clone)]
-pub struct ResolvedQuery {
-    // Func decls, tables and a pipeline
-    pub nodes: Vec<Node>,
-
-    // Scope we obtain after analyzing all nodes in AST
-    pub context: Context,
-}
-
 /// Scope within which we can reference variables, functions and tables
 /// Provides fast lookups for different names.
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]

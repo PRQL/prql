@@ -22,8 +22,10 @@ pub(crate) type PestError = pest::error::Error<Rule>;
 pub(crate) type PestRule = Rule;
 
 /// Build an AST from a PRQL query string.
-pub fn parse(string: &str) -> Result<Node> {
-    ast_of_string(string, Rule::query)
+pub fn parse(string: &str) -> Result<Query> {
+    let ast = ast_of_string(string, Rule::query)?;
+
+    ast.item.into_query().map_err(|_| unreachable!())
 }
 
 /// Parse a string into an AST. Unlike [parse], this can start from any rule.
@@ -74,7 +76,7 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
                 }
                 Rule::transformation => {
                     let parsed = ast_of_parse_tree(pair.into_inner())?;
-                    Item::Transformation(ast_of_transformation(parsed)?)
+                    Item::Transform(ast_of_transformation(parsed)?)
                 }
                 Rule::func_def => {
                     let parsed = ast_of_parse_tree(pair.into_inner())?;
@@ -183,7 +185,7 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
                         .into_iter()
                         .map(|x| match x {
                             Node {
-                                item: Item::Transformation(transformation),
+                                item: Item::Transform(transformation),
                                 ..
                             } => transformation,
                             _ => unreachable!("{x:?}"),
@@ -217,7 +219,7 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
         .collect()
 }
 
-fn ast_of_transformation(items: Vec<Node>) -> Result<Transformation> {
+fn ast_of_transformation(items: Vec<Node>) -> Result<Transform> {
     let (name, args) = items
         .split_first()
         .ok_or_else(|| anyhow!("Expected at least one item"))?;
@@ -239,23 +241,21 @@ fn ast_of_transformation(items: Vec<Node>) -> Result<Transformation> {
                 alias: name,
             };
 
-            Transformation::From(table_ref)
+            Transform::From(table_ref)
         }
-        "select" => {
-            Transformation::Select(args.into_only_node("select", "argument")?.coerce_to_items())
-        }
+        "select" => Transform::Select(args.into_only_node("select", "argument")?.coerce_to_items()),
         "filter" => {
             let items = args
                 .into_only_node("filter", "argument")?
                 .discard_name()?
                 .coerce_to_items();
-            Transformation::Filter(Filter(items))
+            Transform::Filter(Filter(items))
         }
         "derive" => {
             let assigns = (args)
                 .into_only_node("derive", "argument")?
                 .coerce_to_items();
-            Transformation::Derive(assigns)
+            Transform::Derive(assigns)
         }
         "aggregate" => {
             // TODO: redo, generalizing with checks on custom functions.
@@ -274,19 +274,19 @@ fn ast_of_transformation(items: Vec<Node>) -> Result<Transformation> {
                 .map(|x| x.coerce_to_items())
                 .unwrap_or_default();
 
-            Transformation::Aggregate { by, select }
+            Transform::Aggregate { by, select }
         }
         "sort" => {
             let by = args
                 .into_only_node("sort", "argument")?
                 .discard_name()?
                 .coerce_to_items();
-            Transformation::Sort(by)
+            Transform::Sort(by)
         }
         "take" => {
             // TODO: coerce to number
             let expr = args.into_only_node("take", "argument")?.discard_name()?;
-            Transformation::Take(expr.item.into_raw()?.parse()?)
+            Transform::Take(expr.item.into_raw()?.parse()?)
         }
         "join" => {
             let (positional, [side]) = unpack_arguments(args, ["side"]);
@@ -327,7 +327,7 @@ fn ast_of_transformation(items: Vec<Node>) -> Result<Transformation> {
                 vec![]
             };
 
-            Transformation::Join { side, with, on }
+            Transform::Join { side, with, on }
         }
         _ => bail!("Expected a known transformation; got {name}"),
     })
@@ -518,7 +518,7 @@ mod test {
             ast_of_string(r#"filter country = "USA""#, Rule::transformation)?
         , @r###"
         ---
-        Transformation:
+        Transform:
           Filter:
             - Expr:
                 - Ident: country
@@ -531,7 +531,7 @@ mod test {
             ast_of_string(r#"filter (upper country) = "USA""#, Rule::transformation)?
         , @r###"
         ---
-        Transformation:
+        Transform:
           Filter:
             - Expr:
                 - FuncCall:
@@ -558,7 +558,7 @@ mod test {
         assert_yaml_snapshot!(
             aggregate, @r###"
         ---
-        Transformation:
+        Transform:
           Aggregate:
             by:
               - Ident: title
@@ -574,7 +574,7 @@ mod test {
         assert_yaml_snapshot!(
             aggregate, @r###"
         ---
-        Transformation:
+        Transform:
           Aggregate:
             by:
               - Ident: title
@@ -587,8 +587,8 @@ mod test {
         "###);
 
         let node = ast_of_string("aggregate by:[title] [sum salary]", Rule::transformation)?;
-        let aggregate = (node.item.as_transformation()).ok_or_else(|| anyhow!("Expected Raw"))?;
-        assert!(if let Transformation::Aggregate { by, .. } = aggregate {
+        let aggregate = (node.item.as_transform()).ok_or_else(|| anyhow!("Expected Raw"))?;
+        assert!(if let Transform::Aggregate { by, .. } = aggregate {
             by.len() == 1
                 && by[0]
                     .item
@@ -602,7 +602,7 @@ mod test {
         assert_yaml_snapshot!(
             ast_of_string("aggregate by:[title] [sum salary]", Rule::transformation)?, @r###"
         ---
-        Transformation:
+        Transform:
           Aggregate:
             by:
               - Ident: title
@@ -622,7 +622,7 @@ mod test {
             ast_of_string(r#"select x"#, Rule::transformation)?
         , @r###"
         ---
-        Transformation:
+        Transform:
           Select:
             - Ident: x
         "###);
@@ -631,7 +631,7 @@ mod test {
             ast_of_string(r#"select [x, y]"#, Rule::transformation)?
         , @r###"
         ---
-        Transformation:
+        Transform:
           Select:
             - Ident: x
             - Ident: y
@@ -890,27 +890,26 @@ take 20
 
         assert_yaml_snapshot!(parse(r#"from mytable | select [a and b + c or d e and f]"#)?, @r###"
         ---
-        Query:
-          nodes:
-            - Pipeline:
-                - From:
-                    name: mytable
-                    alias: ~
-                - Select:
-                    - Expr:
-                        - Ident: a
-                        - Raw: and
-                        - Ident: b
-                        - Raw: +
-                        - Ident: c
-                        - Raw: or
-                        - FuncCall:
-                            name: d
-                            args:
-                              - Ident: e
-                            named_args: []
-                        - Raw: and
-                        - Ident: f
+        nodes:
+          - Pipeline:
+              - From:
+                  name: mytable
+                  alias: ~
+              - Select:
+                  - Expr:
+                      - Ident: a
+                      - Raw: and
+                      - Ident: b
+                      - Raw: +
+                      - Ident: c
+                      - Raw: or
+                      - FuncCall:
+                          name: d
+                          args:
+                            - Ident: e
+                          named_args: []
+                      - Raw: and
+                      - Ident: f
         "###);
 
         Ok(())
@@ -1104,21 +1103,20 @@ take 20
         ]
         "#)?, @r###"
         ---
-        Query:
-          nodes:
-            - Pipeline:
-                - From:
-                    name: mytable
-                    alias: ~
-                - Filter:
-                    - Expr:
-                        - Ident: first_name
-                        - Raw: "="
-                        - Ident: $1
-                    - Expr:
-                        - Ident: last_name
-                        - Raw: "="
-                        - Ident: $2.name
+        nodes:
+          - Pipeline:
+              - From:
+                  name: mytable
+                  alias: ~
+              - Filter:
+                  - Expr:
+                      - Ident: first_name
+                      - Raw: "="
+                      - Ident: $1
+                  - Expr:
+                      - Ident: last_name
+                      - Raw: "="
+                      - Ident: $2.name
         "###);
         Ok(())
     }

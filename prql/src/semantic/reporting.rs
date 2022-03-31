@@ -3,26 +3,26 @@ use std::ops::Range;
 use anyhow::{Ok, Result};
 use ariadne::{Color, Label, Report, ReportBuilder, ReportKind, Source};
 
-use super::{Declaration, ResolvedQuery, VarDec};
+use super::{Context, Declaration, VarDec};
 use crate::ast::FuncDef;
 use crate::internals::{AstFold, Node};
 
-pub fn print(analyzer: &ResolvedQuery, source_id: String, source: String) {
+pub fn print(nodes: &[Node], context: &Context, source_id: String, source: String) {
     let mut report = Report::build(ReportKind::Custom("Info", Color::Blue), &source_id, 0);
 
     let source = Source::from(source);
 
     // label all idents and function calls
     let mut labeler = Labeler {
-        analyzer,
+        context,
         source: &source,
         source_id: &source_id,
         report: &mut report,
     };
     // traverse ast
-    labeler.fold_nodes(analyzer.nodes.clone()).unwrap();
+    labeler.fold_nodes(nodes.to_owned()).unwrap();
     // traverse declarations
-    for (d, _) in &analyzer.context.declarations {
+    for (d, _) in &context.declarations {
         match d {
             Declaration::Variable(VarDec { declaration: n, .. })
             | Declaration::Function(FuncDef { body: n, .. }) => {
@@ -47,7 +47,7 @@ pub fn print(analyzer: &ResolvedQuery, source_id: String, source: String) {
 
 /// Traverses AST and add labels for each of the idents and function calls
 struct Labeler<'a> {
-    analyzer: &'a ResolvedQuery,
+    context: &'a Context,
     source: &'a Source,
     source_id: &'a str,
     report: &'a mut ReportBuilder<(String, Range<usize>)>,
@@ -56,7 +56,7 @@ struct Labeler<'a> {
 impl<'a> AstFold for Labeler<'a> {
     fn fold_node(&mut self, node: Node) -> Result<Node> {
         if let Some(declared_at) = node.declared_at {
-            let (declaration, span) = &self.analyzer.context.declarations[declared_at];
+            let (declaration, span) = &self.context.declarations[declared_at];
             let message = if let Some(span) = span {
                 let span = self.source.get_line_range(&Range::from(*span));
                 if span.len() <= 1 {

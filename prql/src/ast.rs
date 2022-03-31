@@ -8,7 +8,7 @@ use crate::utils::*;
 
 /// A name. Generally columns, tables, functions, variables.
 pub type Ident = String;
-pub type Pipeline = Vec<Transformation>;
+pub type Pipeline = Vec<Transform>;
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Node {
@@ -22,7 +22,7 @@ pub struct Node {
 
 #[derive(Debug, EnumAsInner, Display, PartialEq, Clone, Serialize, Deserialize)]
 pub enum Item {
-    Transformation(Transformation),
+    Transform(Transform),
     Ident(Ident),
     String(String),
     Raw(String),
@@ -61,7 +61,7 @@ impl ListItem {
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 // We probably want to implement some of these as Structs rather than just
 // `vec<Item>`
-pub enum Transformation {
+pub enum Transform {
     From(TableRef),
     Select(Vec<Node>),
     Filter(Filter),
@@ -79,18 +79,18 @@ pub enum Transformation {
     },
 }
 
-impl Transformation {
+impl Transform {
     /// Returns the name of the transformation.
     pub fn name(&self) -> &'static str {
         match self {
-            Transformation::From(_) => "from",
-            Transformation::Select(_) => "select",
-            Transformation::Filter(_) => "filter",
-            Transformation::Derive(_) => "derive",
-            Transformation::Aggregate { .. } => "aggregate",
-            Transformation::Sort(_) => "sort",
-            Transformation::Take(_) => "take",
-            Transformation::Join { .. } => "join",
+            Transform::From(_) => "from",
+            Transform::Select(_) => "select",
+            Transform::Filter(_) => "filter",
+            Transform::Derive(_) => "derive",
+            Transform::Aggregate { .. } => "aggregate",
+            Transform::Sort(_) => "sort",
+            Transform::Take(_) => "take",
+            Transform::Join { .. } => "join",
         }
     }
 }

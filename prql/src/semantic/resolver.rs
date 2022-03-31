@@ -5,7 +5,6 @@ use crate::ast::*;
 use crate::ast_fold::*;
 
 use super::scope::Context;
-use super::scope::ResolvedQuery;
 use super::scope::TableColumn;
 
 /// Runs semantic analysis on the query, using current state.
@@ -13,19 +12,14 @@ use super::scope::TableColumn;
 ///
 /// Note that analyzer removes function declarations, derive and select
 /// transformations from AST and saves them as current context.
-pub fn resolve(context: Context, nodes: Vec<Node>) -> Result<ResolvedQuery> {
+pub fn resolve(nodes: Vec<Node>, context: Option<Context>) -> Result<(Vec<Node>, Context)> {
+    let context = context.unwrap_or_default();
+
     let mut resolver = Resolver::new(context);
 
     let nodes = resolver.fold_nodes(nodes)?;
 
-    Ok(ResolvedQuery {
-        nodes,
-        context: resolver.context,
-    })
-}
-
-pub fn resolve_new(nodes: Vec<Node>) -> Result<ResolvedQuery> {
-    resolve(Context::default(), nodes)
+    Ok((nodes, resolver.context))
 }
 
 /// Can fold (walk) over AST and for each function calls or variable find what they are referencing.
@@ -117,37 +111,37 @@ impl AstFold for Resolver {
         Ok(node)
     }
 
-    fn fold_pipeline(&mut self, pipeline: Vec<Transformation>) -> Result<Vec<Transformation>> {
+    fn fold_pipeline(&mut self, pipeline: Vec<Transform>) -> Result<Vec<Transform>> {
         pipeline
             .into_iter()
             .map(|t| {
                 // let trans_name = t.name();
 
                 Ok(match t {
-                    Transformation::From(_) => {
+                    Transform::From(_) => {
                         self.context.table.clear();
                         self.context.table.push(TableColumn::All);
 
                         Some(fold_transformation(self, t)?)
                     }
 
-                    Transformation::Select(nodes) => {
+                    Transform::Select(nodes) => {
                         self.context.table.clear();
 
                         self.declare_table_columns(nodes)?;
                         None
                     }
-                    Transformation::Derive(nodes) => {
+                    Transform::Derive(nodes) => {
                         self.declare_table_columns(nodes)?;
                         None
                     }
-                    Transformation::Aggregate { by, select } => {
+                    Transform::Aggregate { by, select } => {
                         self.context.table.clear();
 
                         let by = self.declare_table_columns(by)?;
                         self.declare_table_columns(select)?;
 
-                        Some(Transformation::Aggregate { by, select: vec![] })
+                        Some(Transform::Aggregate { by, select: vec![] })
                     }
                     t => Some(fold_transformation(self, t)?),
                 })
