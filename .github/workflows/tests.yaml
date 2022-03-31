@@ -1,5 +1,7 @@
 name: tests
 
+# See https://github.com/max-sixty/prql/issues/37 for TODOs
+
 on:
   push:
     branches:
@@ -14,7 +16,13 @@ concurrency:
 
 jobs:
   cargo:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - os: macos-latest
+          - os: ubuntu-latest
+          - os: windows-latest
+    runs-on: "${{ matrix.os }}"
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v2
@@ -24,6 +32,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
+      # Possibly we could only run these lints on Linux.
       - name: 📎 Clippy
         uses: actions-rs/cargo@v1
         with:
