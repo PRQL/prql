@@ -209,7 +209,7 @@ sort full
         "#,
         )
         .unwrap();
-        assert_snapshot!(String::from_utf8(output).unwrap().trim(), 
+        assert_snapshot!(String::from_utf8(output).unwrap().trim(),
         @r###"
 
         from initial_table
