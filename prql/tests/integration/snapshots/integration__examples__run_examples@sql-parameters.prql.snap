@@ -1,0 +1,11 @@
+---
+source: prql/tests/integration/examples.rs
+expression: sql
+input_file: prql/tests/integration/examples/sql-parameters.prql
+---
+SELECT
+  *
+FROM
+  mytable
+WHERE
+  id = $1

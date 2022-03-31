@@ -8,12 +8,10 @@ fn parse_simple_string_to_ast() -> Result<()> {
         serde_yaml::to_string(&parse("select 1")?)?,
         r#"---
 Query:
-  items:
+  nodes:
     - Pipeline:
         - Select:
-            - alias: ~
-              expr:
-                Raw: "1"
+            - Raw: "1"
 "#
     );
     Ok(())
@@ -160,28 +158,18 @@ select [dept_name, title, avg_salary]
       GROUP BY
         dept_emp.dept_no,
         titles.title
-    ),
-    table_2 AS (
-      SELECT
-        dept_name,
-        title,
-        avg_salary
-      FROM
-        table_1
-        LEFT JOIN departments ON departments.dept_no = dept_no
     )
     SELECT
-      *
+      dept_name,
+      title,
+      avg_salary
     FROM
-      table_2
+      table_1
+      LEFT JOIN departments ON departments.dept_no = dept_no
     "###);
 
     // #213
     assert!(!result.to_lowercase().contains(&"avg(avg"));
-
-    // Confirm that equi-joins error when a side is specified.
-    assert!(compile("from employees | join tenure side:left [id]").is_err());
-    assert!(compile("from employees | join tenure [id]").is_ok());
 
     Ok(())
 }
