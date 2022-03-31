@@ -14,36 +14,18 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-jobs:
-  cargo:
+  test:
+    steps:
+      - name: Test
+        uses: ./.github/workflows/tests.yaml
+        with: "${{ matrix.os }}"
     strategy:
       matrix:
         include:
+          # Windows is very slow, so we don't test on every PR.
           - os: macos-latest
           - os: ubuntu-latest
-          - os: windows-latest
-    runs-on: "${{ matrix.os }}"
-    steps:
-      - name: 📂 Checkout code
-        uses: actions/checkout@v2
-      - name: 💰 Cache
-        uses: Swatinem/rust-cache@v1
-      - name: 🔨 Build and test
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-      # Possibly we could only run these lints on Linux.
-      - name: 📎 Clippy
-        uses: actions-rs/cargo@v1
-        with:
-          command: clippy
-          args: -- -D warnings
-      - name: ⌨️ Fmt
-        uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --check
-  wasm:
+  test-wasm:
     runs-on: ubuntu-latest
     steps:
       - name: 📂 Checkout code
@@ -59,7 +41,7 @@ jobs:
       - uses: jetli/trunk-action@v0.1.0
       - run: trunk build
         working-directory: prql-web/
-  book:
+  test-book:
     runs-on: ubuntu-latest
     steps:
       - name: 📂 Checkout code

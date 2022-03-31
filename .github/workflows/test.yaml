@@ -1,0 +1,30 @@
+on:
+  workflow_call:
+    inputs:
+      os:
+        required: true
+        description: One of macos-latest, ubuntu-latest, or windows-latest
+
+jobs:
+  cargo:
+    runs-on: "${{ inputs.os }}"
+    steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v2
+      - name: 💰 Cache
+        uses: Swatinem/rust-cache@v1
+      - name: 🔨 Build and test
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+      # Possibly we could only run these lints on Linux.
+      - name: 📎 Clippy
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: -- -D warnings
+      - name: ⌨️ Fmt
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --check
