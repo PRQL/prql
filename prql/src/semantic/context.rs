@@ -12,18 +12,18 @@ use crate::error::Span;
 /// Provides fast lookups for different names.
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
 pub struct Context {
-    // current table columns (result of last pipeline)
+    /// current table columns (result of last pipeline)
     pub(super) table: Vec<TableColumn>,
 
-    // For each namespace (table), a list of its variables (columns)
-    // "" is default namespace
-    // "%" is namespace of functions without parameters
+    /// For each namespace (table), a list of its variables (columns)
+    /// "" is default namespace
+    /// "%" is namespace of functions without parameters
     pub(super) scopes: HashMap<String, HashMap<String, usize>>,
 
-    // Functions with parameters (name is duplicated, but that's not much overhead)
+    /// Functions with parameters (name is duplicated, but that's not much overhead)
     pub(super) functions: HashMap<String, usize>,
 
-    // All declarations, even those out of scope
+    /// All declarations, even those out of scope
     pub(super) declarations: Vec<(Declaration, Option<Span>)>,
 }
 
@@ -44,11 +44,11 @@ pub enum Declaration {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[allow(dead_code)]
 pub struct VarDec {
-    // index of the columns in the table
+    /// index of the columns in the table
     pub position: Option<usize>,
-    // the Node whose expr is equivalent to this variable
+    /// the Node whose expr is equivalent to this variable
     pub declaration: Box<Node>,
-    // for aliased columns and functions without arguments
+    /// for aliased columns and functions without arguments
     pub name: Option<String>,
 }
 
@@ -232,7 +232,7 @@ impl Declaration {
 
 impl From<Declaration> for anyhow::Error {
     fn from(dec: Declaration) -> Self {
-        panic!("Unexpected declaration type: {dec:?}");
-        // anyhow::anyhow!("Unexpected declaration type: {dec:?}");
+        // panic!("Unexpected declaration type: {dec:?}");
+        anyhow::anyhow!("Unexpected declaration type: {dec:?}")
     }
 }
