@@ -43,5 +43,5 @@ features = ["derive"]
 version = "^1.0"
 
 [dev-dependencies]
-insta = "^1.13"
+insta = { version = "^1.13", features = ["colors", "glob"] }
 similar = "^2.1"
