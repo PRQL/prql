@@ -32,7 +32,7 @@ table_1 AS (
     gender
 )
 SELECT
-  managers.first_name || ' ' || managers.last_name,
+  managers.first_name || ' ' || managers.last_name AS mng_name,
   managers.gender,
   salary_avg,
   salary_sd

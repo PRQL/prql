@@ -1,9 +1,9 @@
+mod context;
 mod materializer;
 mod reporting;
 mod resolver;
-mod scope;
 
-pub use self::scope::{Context, Declaration, VarDec};
+pub use self::context::{Context, Declaration, VarDec};
 pub use materializer::{materialize, SelectedColumns};
 pub use reporting::print;
 pub use resolver::resolve;
@@ -12,6 +12,10 @@ use crate::ast::{Item, Node, Pipeline};
 use crate::utils::IntoOnly;
 use anyhow::Result;
 
+/// Resolve all variable and function calls then materialize them into their declared values.
+///
+/// Can work with previously resolved context (defined functions, variables).
+/// Also returns materialized columns that can be converted into items for SELECT
 pub fn process(
     nodes: Vec<Node>,
     context: Option<Context>,

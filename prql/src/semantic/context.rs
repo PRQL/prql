@@ -53,12 +53,17 @@ pub struct VarDec {
 }
 
 impl Context {
-    // pub fn get_table_columns(&self) -> Vec<VarDec> {
-    //     self.table
-    //         .iter()
-    //         .filter_map(|id| self.declarations[*id].0.as_variable().cloned())
-    //         .collect()
-    // }
+    pub fn get_table_layout(&self) -> Vec<Option<String>> {
+        self.table
+            .iter()
+            .filter_map(|col| match col {
+                TableColumn::All => None,
+                TableColumn::Declared(id) => Some(id),
+            })
+            .filter_map(|id| self.declarations[*id].0.as_variable().cloned())
+            .map(|c| c.name)
+            .collect()
+    }
 
     /// Takes a declaration with minimal memory copying. A dummy node is left in place.
     pub(super) fn take_declaration(&mut self, id: usize) -> Option<Box<Node>> {
@@ -124,7 +129,10 @@ impl Context {
             VarDec {
                 position,
                 declaration: Box::from(node.clone()),
-                name: None,
+                // if this is an identifier, use it as a name
+                name: (node.item.as_ident())
+                    // but without it's namespace
+                    .map(|i| split_var_name(i.as_str()).1.to_string()),
             }
         };
 
@@ -158,7 +166,7 @@ impl Context {
         let mut overridden = None;
 
         if let Some(name) = name {
-            let (namespace, variable) = name.rsplit_once('.').unwrap_or(("", name));
+            let (namespace, variable) = split_var_name(name);
 
             let default = self.scopes.entry("".to_string()).or_default();
             overridden = default.insert(variable.to_string(), id);
@@ -181,7 +189,7 @@ impl Context {
     }
 
     pub fn lookup_variable(&mut self, ident: &str) -> Option<usize> {
-        let (namespace, variable) = ident.rsplit_once('.').unwrap_or(("", ident));
+        let (namespace, variable) = split_var_name(ident);
 
         if let Some(ns) = self.scopes.get(namespace) {
             if let Some(decl_id) = ns.get(variable) {
@@ -190,6 +198,10 @@ impl Context {
         }
         None
     }
+}
+
+pub(super) fn split_var_name(ident: &str) -> (&str, &str) {
+    ident.rsplit_once('.').unwrap_or(("", ident))
 }
 
 impl Declaration {

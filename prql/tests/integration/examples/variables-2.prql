@@ -1,5 +1,3 @@
-# skip_test
-
 from employees
 aggregate by:[emp_no] [
   emp_salary: average salary          # avg_salary should resolve to "AVG(salary)" (from stdlib)

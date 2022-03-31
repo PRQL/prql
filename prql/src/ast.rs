@@ -93,6 +93,19 @@ impl Transform {
             Transform::Join { .. } => "join",
         }
     }
+
+    pub fn first_node(&self) -> Option<&Node> {
+        match &self {
+            Transform::From(_) => None,
+            Transform::Select(nodes)
+            | Transform::Filter(Filter(nodes))
+            | Transform::Derive(nodes)
+            | Transform::Aggregate { by: nodes, .. }
+            | Transform::Join { on: nodes, .. }
+            | Transform::Sort(nodes) => nodes.first(),
+            Transform::Take(_) => None,
+        }
+    }
 }
 
 /// Function definition.

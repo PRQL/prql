@@ -11,8 +11,7 @@ use anyhow::{bail, Result};
 use itertools::zip;
 use itertools::Itertools;
 
-use super::scope::Context;
-use super::scope::TableColumn;
+use super::context::{split_var_name, Context, TableColumn};
 
 pub struct SelectedColumns(pub Vec<Node>);
 
@@ -55,7 +54,7 @@ impl Materializer {
         let node = self.context.take_declaration(column_id).unwrap();
 
         // materialize
-        let node = self.fold_node(*node)?;
+        let expr_node = self.fold_node(*node)?;
 
         // find column name
         let (decl, _) = &self.context.declarations[column_id];
@@ -66,15 +65,23 @@ impl Materializer {
             self.context
                 .put_declaration(column_id, ident.clone().into());
 
-            // return named expr
-            Item::NamedExpr(NamedExpr {
-                expr: Box::new(node),
-                name: ident.into_ident()?,
-            })
-            .into()
+            // is expr_node just an ident with same name?
+            let name = ident.into_ident()?;
+            let expr_name = expr_node.item.as_ident().map(|n| split_var_name(n).1);
+            if expr_name.map(|n| n == name).unwrap_or(false) {
+                // return just the ident
+                expr_node
+            } else {
+                // return expr with new name
+                Item::NamedExpr(NamedExpr {
+                    expr: Box::new(expr_node),
+                    name,
+                })
+                .into()
+            }
         } else {
             // column is not named, just return its expression
-            node
+            expr_node
         };
 
         Ok(node)

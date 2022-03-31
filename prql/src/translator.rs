@@ -101,7 +101,7 @@ struct AtomicTable {
     pipeline: Vec<Transform>,
 }
 
-fn load_std_lib() -> Result<Vec<Node>> {
+pub fn load_std_lib() -> Result<Vec<Node>> {
     use crate::parse;
     let std_lib = include_str!("./stdlib.prql");
     Ok(parse(std_lib)?.nodes)
@@ -1029,7 +1029,7 @@ join salaries [employees.employee_id=salaries.employee_id]
         assert_display_snapshot!((translate(&query)?), @r###"
         SELECT
           e.emp_no,
-          AVG(salary)
+          AVG(salary) AS emp_salary
         FROM
           employees AS e
           LEFT JOIN salaries ON salaries.emp_no = e.emp_no

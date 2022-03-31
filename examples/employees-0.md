@@ -19,8 +19,6 @@ aggregate by:[dept_emp.dept_no, t.title] [
 join departments [dept_no]
 select [dept_name, title, avg_salary]
 
-# Note that this solution contains a common pitfall in the first few lines:
-# We don't need to use `employees` table at all, because we could only aggregate `salaries` table by `emp_no`.
 ```
 
 ```sql

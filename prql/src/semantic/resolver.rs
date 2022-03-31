@@ -4,8 +4,8 @@ use itertools::Itertools;
 use crate::ast::*;
 use crate::ast_fold::*;
 
-use super::scope::Context;
-use super::scope::TableColumn;
+use super::context::Context;
+use super::context::TableColumn;
 
 /// Runs semantic analysis on the query, using current state.
 /// Appends query to current query.
