@@ -1,5 +1,4 @@
 ```elm
-# skip_test having (from the last filter) must not use alias
 from employees
 filter country = "USA"                           # Each line transforms the previous result.
 derive [                                         # This adds columns / variables.
@@ -41,7 +40,7 @@ GROUP BY
   title,
   country
 HAVING
-  ct > 200
+  COUNT(*) > 200
 ORDER BY
   sum_gross_cost
 ```

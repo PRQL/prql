@@ -1,13 +1,31 @@
-use crate::{error, materialize, parse, translate};
-use anyhow::Error;
+use anyhow::{bail, Error, Result};
+use ariadne::Source;
 use clap::{ArgEnum, Args, Parser};
 use clio::{Input, Output};
-use std::io::{Read, Write};
+use itertools::Itertools;
+use std::{
+    io::{Read, Write},
+    ops::Range,
+};
+
+use crate::ast::{Item, Node};
+use crate::error::{self, Span};
+use crate::semantic::{self, process, process_pipeline, resolve};
+use crate::translator::load_std_lib;
+use crate::{parse, translate};
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ArgEnum)]
 enum Format {
+    /// Abstract syntax tree (parse)
     Ast,
-    MaterializedAst,
+
+    /// PRQL with annotated references to variables and functions
+    #[clap(name = "prql-refs")]
+    PrqlReferences,
+
+    /// PRQL with current table layout
+    PrqlLayouts,
+
     Sql,
 }
 
@@ -77,16 +95,129 @@ fn compile_to(format: Format, source: &str) -> Result<Vec<u8>, Error> {
 
             serde_yaml::to_vec(&ast)?
         }
-        Format::MaterializedAst => {
-            let materialized = materialize(parse(source)?)?;
+        Format::PrqlReferences => {
+            let query = parse(source)?;
+            let (nodes, context) = resolve(query.nodes, None)?;
 
-            serde_yaml::to_vec(&materialized)?
+            semantic::print(&nodes, &context, "".to_string(), source.to_string());
+            vec![]
+        }
+        Format::PrqlLayouts => {
+            let query = parse(source)?;
+
+            // load functions
+            let (functions, other) = query
+                .nodes
+                .into_iter()
+                .partition(|n| matches!(n.item, Item::FuncDef(_)));
+            let std_lib = load_std_lib()?;
+            let functions = [std_lib, functions].concat();
+
+            // resolve
+            let (_, context) = resolve(functions, None)?;
+            let layouts = resolve_with_layouts(other, context)?;
+
+            // combine with source
+            combine_prql_and_layouts(source, layouts)
+                .as_bytes()
+                .to_vec()
         }
         Format::Sql => {
-            let materialized = materialize(parse(source)?)?;
+            let materialized = parse(source)?;
             let sql = translate(&materialized)?;
 
             sql.as_bytes().to_vec()
         }
     })
+}
+
+fn resolve_with_layouts(
+    other: Vec<Node>,
+    mut context: semantic::Context,
+) -> Result<Vec<(Span, Vec<Option<String>>)>> {
+    let mut layouts = Vec::new();
+    for node in other {
+        match node.item {
+            Item::Table(_) => {
+                let span = node.span;
+                let (_, c, _) = process(vec![node], Some(context))?;
+                context = c;
+                layouts.push((span, context.get_table_layout()));
+            }
+            Item::Pipeline(pipeline) => {
+                for t in pipeline {
+                    let span = t.first_node().map(|n| n.span);
+                    let (_, c, _) = process_pipeline(vec![t], Some(context))?;
+                    context = c;
+
+                    if let Some(span) = span {
+                        layouts.push((span, context.get_table_layout()));
+                    }
+                }
+            }
+            item => bail!("Unexpected item {item:?}"),
+        }
+    }
+    Ok(layouts)
+}
+
+fn combine_prql_and_layouts(source: &str, layouts: Vec<(Span, Vec<Option<String>>)>) -> String {
+    let source = Source::from(source);
+    let lines = source.lines().collect_vec();
+    let width = lines.iter().map(|l| l.len()).max().unwrap_or(0);
+
+    let mut printed_lines = 0;
+    let mut result = Vec::new();
+    for (span, cols) in layouts {
+        let line = source.get_line_range(&Range::from(span)).start;
+
+        while printed_lines < line {
+            result.push(lines[printed_lines].chars().collect());
+            printed_lines += 1;
+        }
+
+        let chars: String = lines[printed_lines].chars().collect();
+        printed_lines += 1;
+
+        let cols = cols
+            .into_iter()
+            .map(|c| c.unwrap_or_else(|| "?".to_string()))
+            .join(", ");
+        result.push(format!("{chars:width$} # [{cols}]"));
+    }
+
+    result.into_iter().join("\n")
+}
+
+#[cfg(test)]
+mod tests {
+    use insta::assert_snapshot;
+
+    use super::*;
+
+    #[test]
+    fn prql_layouts_test() {
+        let output = compile_to(
+            Format::PrqlLayouts,
+            &r#"
+from initial_table
+select [first: name, last: last_name, gender]
+derive full_name: first + " " + last
+take 23
+select [last + " " + first, full: full_name, gender]
+sort full
+        "#,
+        )
+        .unwrap();
+        assert_snapshot!(String::from_utf8(output).unwrap().trim(),
+        @r###"
+
+        from initial_table
+        select [first: name, last: last_name, gender]         # [first, last, gender]
+        derive full_name: first + " " + last                  # [first, last, gender, full_name]
+        take 23
+        select [last + " " + first, full: full_name, gender]  # [?, full, gender]
+        sort full                                             # [?, full, gender]
+        "###);
+    }
 }

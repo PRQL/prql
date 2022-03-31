@@ -8,8 +8,6 @@
 // going to be isomorphically mapping everything back from SQL to PRQL. But it
 // does mean we should continue to iterate on this file and refactor things when
 // necessary.
-use super::ast::*;
-use super::utils::*;
 use anyhow::{anyhow, bail, Result};
 use itertools::Itertools;
 use sqlformat::{format, FormatOptions, QueryParams};
@@ -19,14 +17,14 @@ use sqlparser::ast::{
 };
 use std::collections::HashMap;
 
+use super::ast::*;
+use super::utils::*;
+use crate::semantic;
+use crate::semantic::SelectedColumns;
+
 /// Translate a PRQL AST into a SQL string.
-pub fn translate(ast: &Node) -> Result<String> {
-    let sql_query: sql_ast::Query = ast
-        .item
-        .as_query()
-        .ok_or_else(|| anyhow!("Requires a Query; {ast:?}"))?
-        .clone()
-        .try_into()?;
+pub fn translate(query: &Query) -> Result<String> {
+    let sql_query = translate_query(query)?;
 
     let sql_query_string = sql_query.to_string();
 
@@ -38,42 +36,53 @@ pub fn translate(ast: &Node) -> Result<String> {
     Ok(formatted)
 }
 
-impl TryFrom<Query> for sql_ast::Query {
-    type Error = anyhow::Error;
-    fn try_from(query: Query) -> Result<Self> {
-        let mut tables: Vec<Table> = query
-            .nodes
-            .iter()
-            .filter_map(|node| node.item.as_table().cloned())
-            .collect();
+pub fn translate_query(query: &Query) -> Result<sql_ast::Query> {
+    // extract tables and the pipeline
+    let (tables, functions, pipelines) = separate_pipeline(query)?;
 
-        let pipeline = query
-            .nodes
-            .iter()
-            .filter_map(|node| node.item.as_pipeline().cloned())
-            .into_only()?;
-        tables.push(pipeline.into());
+    // load std lib
+    let std_lib = load_std_lib()?;
+    let functions = [std_lib, functions].concat();
 
-        sql_query_of_tables(tables)
-    }
-}
+    // combine tables and main pipeline
+    let pipeline = pipelines.into_only()?.into();
+    let tables = [tables, vec![pipeline]].concat();
 
-fn sql_query_of_tables(tables: Vec<Table>) -> Result<sql_ast::Query> {
     // split to atomics
-    let mut atomics = atomic_tables_of_tables(tables)?;
-    if atomics.is_empty() {
-        bail!("No tables?");
+    let atomics = atomic_tables_of_tables(tables)?;
+
+    // init query context
+    let (_, mut context, _) = semantic::process(functions, None)?;
+
+    // materialize each atomic in two stages
+    let mut materialized = Vec::new();
+    for t in atomics {
+        let (stage_1, stage_2) = split_to_stages(t.pipeline);
+
+        let (stage_1, c, select) = semantic::process_pipeline(stage_1, Some(context))?;
+
+        let (stage_2, c, _) = semantic::process_pipeline(stage_2, Some(c))?;
+        context = c;
+
+        materialized.push(AtomicTable {
+            name: t.name,
+            select,
+            pipeline: [stage_1, stage_2].concat(),
+        });
     }
 
     // take last table
-    let main_query = atomics.remove(atomics.len() - 1);
-    let ctes = atomics;
+    if materialized.is_empty() {
+        bail!("No tables?");
+    }
+    let main_query = materialized.remove(materialized.len() - 1);
+    let ctes = materialized;
 
     // convert each of the CTEs
     let ctes: Vec<_> = ctes.into_iter().map(table_to_sql_cte).try_collect()?;
 
     // convert main query
-    let mut main_query = sql_query_of_atomic_pipeline(main_query.pipeline)?;
+    let mut main_query = sql_query_of_atomic_table(main_query)?;
 
     // attach CTEs
     if !ctes.is_empty() {
@@ -86,14 +95,60 @@ fn sql_query_of_tables(tables: Vec<Table>) -> Result<sql_ast::Query> {
     Ok(main_query)
 }
 
-fn table_to_sql_cte(table: Table) -> Result<sql_ast::Cte> {
+struct AtomicTable {
+    name: String,
+    select: SelectedColumns,
+    pipeline: Vec<Transform>,
+}
+
+pub fn load_std_lib() -> Result<Vec<Node>> {
+    use crate::parse;
+    let std_lib = include_str!("./stdlib.prql");
+    Ok(parse(std_lib)?.nodes)
+}
+
+/// Splits an atomic pipeline into two stages:
+/// - stage 1, that must contain materialized variables (SELECT, WHERE, GROUP BY, HAVING)
+/// - stage 2, that must contain variables by name (ORDER BY)
+fn split_to_stages(mut pipeline: Pipeline) -> (Pipeline, Pipeline) {
+    let (stage_1, stage_2) = pipeline
+        .drain(..)
+        .partition(|t| !matches!(t, Transform::Sort(_)));
+    (stage_1, stage_2)
+}
+
+fn separate_pipeline(query: &Query) -> Result<(Vec<Table>, Vec<Node>, Vec<Pipeline>)> {
+    let mut tables: Vec<Table> = Vec::new();
+    let mut functions: Vec<Node> = Vec::new();
+    let mut pipelines: Vec<Pipeline> = Vec::new();
+    for node in &query.nodes {
+        match node {
+            Node {
+                item: Item::Table(t),
+                ..
+            } => tables.push(t.clone()),
+            Node {
+                item: Item::FuncDef(_),
+                ..
+            } => functions.push(node.clone()),
+            Node {
+                item: Item::Pipeline(p),
+                ..
+            } => pipelines.push(p.clone()),
+            i => bail!("Unexpected item on top level: {i:?}"),
+        }
+    }
+    Ok((tables, functions, pipelines))
+}
+
+fn table_to_sql_cte(table: AtomicTable) -> Result<sql_ast::Cte> {
     let alias = sql_ast::TableAlias {
-        name: Item::Ident(table.name).try_into()?,
+        name: Item::Ident(table.name.clone()).try_into()?,
         columns: vec![],
     };
     Ok(sql_ast::Cte {
         alias,
-        query: sql_query_of_atomic_pipeline(table.pipeline)?,
+        query: sql_query_of_atomic_table(table)?,
         from: None,
     })
 }
@@ -120,60 +175,15 @@ fn table_factor_of_table_ref(table_ref: &TableRef) -> TableFactor {
     }
 }
 
-/// Get the selects from a pipeline.
-fn select_columns_of_pipeline(pipeline: &Pipeline) -> Result<Vec<SelectItem>> {
-    let mut selects = vec![];
-    // Whether we should be returning everything not specified.
-    let mut is_inclusive = true;
-
-    for transformation in pipeline {
-        match transformation {
-            Transformation::Select(select) => {
-                // TODO: confirm it's not `select *`?
-                is_inclusive = false;
-                selects.clear();
-                selects.extend(
-                    select
-                        .iter()
-                        .map(|x| x.item.clone().try_into())
-                        .collect::<Result<Vec<SelectItem>>>()?,
-                )
-            }
-            Transformation::Derive(assigns) => selects.extend(
-                assigns
-                    .iter()
-                    .map(|assign| assign.item.clone().try_into())
-                    .collect::<Result<Vec<SelectItem>>>()?,
-            ),
-            Transformation::Aggregate { by, select, .. } => {
-                is_inclusive = false;
-                selects.clear();
-
-                for x in by {
-                    selects.push(x.item.clone().try_into()?);
-                }
-                for x in select {
-                    selects.push(x.item.clone().try_into()?);
-                }
-            }
-            _ => {}
-        }
-    }
-    if is_inclusive {
-        selects.insert(0, SelectItem::Wildcard);
-    }
-
-    Ok(selects)
-}
-
-fn sql_query_of_atomic_pipeline(pipeline: Pipeline) -> Result<sql_ast::Query> {
+fn sql_query_of_atomic_table(table: AtomicTable) -> Result<sql_ast::Query> {
     // TODO: possibly do validation here? e.g. check there isn't more than one
     // `from`? Or do we rely on the caller for that?
 
-    let mut from = pipeline
+    let mut from = table
+        .pipeline
         .iter()
         .filter_map(|t| match t {
-            Transformation::From(table_ref) => Some(TableWithJoins {
+            Transform::From(table_ref) => Some(TableWithJoins {
                 relation: table_factor_of_table_ref(table_ref),
                 joins: vec![],
             }),
@@ -181,11 +191,12 @@ fn sql_query_of_atomic_pipeline(pipeline: Pipeline) -> Result<sql_ast::Query> {
         })
         .collect::<Vec<_>>();
 
-    let joins = pipeline
+    let joins = table
+        .pipeline
         .iter()
-        .filter(|t| matches!(t, Transformation::Join { .. }))
+        .filter(|t| matches!(t, Transform::Join { .. }))
         .map(|t| match t {
-            Transformation::Join { side, with, on } => {
+            Transform::Join { side, with, on } => {
                 let use_using = (on.iter().map(|x| &x.item)).all(|x| matches!(x, Item::Ident(_)));
 
                 let constraint = if use_using {
@@ -220,18 +231,19 @@ fn sql_query_of_atomic_pipeline(pipeline: Pipeline) -> Result<sql_ast::Query> {
     }
 
     // Split the pipeline into before & after the aggregate
-    let (before, after) = pipeline.split_at(
-        pipeline
+    let (before, after) = table.pipeline.split_at(
+        table
+            .pipeline
             .iter()
-            .position(|t| matches!(t, Transformation::Aggregate { .. }))
-            .unwrap_or(pipeline.len()),
+            .position(|t| matches!(t, Transform::Aggregate { .. }))
+            .unwrap_or(table.pipeline.len()),
     );
     // Convert the filters in a pipeline into an Expr
-    fn filter_of_pipeline(pipeline: &[Transformation]) -> Result<Option<Expr>> {
+    fn filter_of_pipeline(pipeline: &[Transform]) -> Result<Option<Expr>> {
         let filters: Vec<Filter> = pipeline
             .iter()
             .filter_map(|t| match t {
-                Transformation::Filter(filter) => Some(filter),
+                Transform::Filter(filter) => Some(filter),
                 _ => None,
             })
             .cloned()
@@ -247,10 +259,11 @@ fn sql_query_of_atomic_pipeline(pipeline: Pipeline) -> Result<sql_ast::Query> {
     let where_ = filter_of_pipeline(before).unwrap();
     let having = filter_of_pipeline(after).unwrap();
 
-    let take = pipeline
+    let take = table
+        .pipeline
         .iter()
         .filter_map(|t| match t {
-            Transformation::Take(_) => Some(t.clone().try_into()),
+            Transform::Take(_) => Some(t.clone().try_into()),
             _ => None,
         })
         .last()
@@ -258,10 +271,11 @@ fn sql_query_of_atomic_pipeline(pipeline: Pipeline) -> Result<sql_ast::Query> {
         .map_or(Ok(None), |r| r.map(Some))?;
 
     // Find the final sort (none of the others affect the result, and can be discarded).
-    let order_by = pipeline
+    let order_by = table
+        .pipeline
         .iter()
         .filter_map(|t| match t {
-            Transformation::Sort(items) => Some(Item::Expr(items.to_owned()).try_into().map(|x| {
+            Transform::Sort(items) => Some(Item::Expr(items.to_owned()).try_into().map(|x| {
                 vec![OrderByExpr {
                     expr: x,
                     asc: None,
@@ -273,11 +287,12 @@ fn sql_query_of_atomic_pipeline(pipeline: Pipeline) -> Result<sql_ast::Query> {
         .last()
         .unwrap_or(Ok(vec![]))?;
 
-    let aggregate = pipeline
+    let aggregate = table
+        .pipeline
         .iter()
-        .find(|t| matches!(t, Transformation::Aggregate { .. }));
+        .find(|t| matches!(t, Transform::Aggregate { .. }));
     let group_bys: Vec<Node> = match aggregate {
-        Some(Transformation::Aggregate { by, .. }) => by.clone(),
+        Some(Transform::Aggregate { by, .. }) => by.clone(),
         None => vec![],
         _ => unreachable!("Expected an aggregate transformation"),
     };
@@ -288,7 +303,9 @@ fn sql_query_of_atomic_pipeline(pipeline: Pipeline) -> Result<sql_ast::Query> {
             distinct: false,
             // TODO: when should this be `TOP` vs `LIMIT` (which is on the `Query` object?)
             top: take,
-            projection: select_columns_of_pipeline(&pipeline)?,
+            projection: (table.select.0.into_iter())
+                .map(|n| n.item.try_into())
+                .try_collect()?,
             from,
             group_by,
             having,
@@ -359,7 +376,7 @@ fn atomic_tables_of_tables(tables: Vec<Table>) -> Result<Vec<Table>> {
     let mut index = 0;
     for t in tables {
         // split table into atomics
-        let mut t_atomics: Vec<Table> = atomic_pipelines_of_pipeline(&t.pipeline)?
+        let mut t_atomics: Vec<_> = atomic_pipelines_of_pipeline(&t.pipeline)?
             .into_iter()
             .map(Table::from)
             .collect();
@@ -389,7 +406,7 @@ fn atomic_tables_of_tables(tables: Vec<Table>) -> Result<Vec<Table>> {
 
 fn prepend_with_from(pipeline: &mut Pipeline, last_name: &Option<String>) {
     if let Some(last_name) = last_name {
-        let from = Transformation::From(TableRef {
+        let from = Transform::From(TableRef {
             name: last_name.clone(),
             alias: None,
         });
@@ -416,7 +433,7 @@ impl TryFrom<Item> for SelectItem {
     type Error = anyhow::Error;
     fn try_from(item: Item) -> Result<Self> {
         Ok(match item {
-            Item::SString(_) | Item::Ident(_) | Item::Raw(_) => {
+            Item::Expr(_) | Item::SString(_) | Item::Ident(_) | Item::Raw(_) => {
                 SelectItem::UnnamedExpr(TryInto::<Expr>::try_into(item)?)
             }
             Item::NamedExpr(named) => SelectItem::ExprWithAlias {
@@ -431,11 +448,11 @@ impl TryFrom<Item> for SelectItem {
     }
 }
 
-impl TryFrom<Transformation> for Top {
+impl TryFrom<Transform> for Top {
     type Error = anyhow::Error;
-    fn try_from(transformation: Transformation) -> Result<Self> {
+    fn try_from(transformation: Transform) -> Result<Self> {
         match transformation {
-            Transformation::Take(take) => Ok(Top {
+            Transform::Take(take) => Ok(Top {
                 // TODO: implement for number
                 quantity: Some(Item::Raw(take.to_string()).try_into()?),
                 with_ties: false,
@@ -479,8 +496,8 @@ impl TryFrom<Item> for Expr {
                     .into_iter()
                     .map(|s_string_item| match s_string_item {
                         SStringItem::String(string) => Ok(string),
-                        SStringItem::Expr(item) => {
-                            TryInto::<Expr>::try_into(item).map(|expr| expr.to_string())
+                        SStringItem::Expr(node) => {
+                            TryInto::<Expr>::try_into(node.item).map(|expr| expr.to_string())
                         }
                     })
                     .collect::<Result<Vec<String>>>()?
@@ -529,7 +546,6 @@ impl From<Pipeline> for Table {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::materializer::materialize;
     use crate::parser::parse;
     use insta::{
         assert_debug_snapshot, assert_display_snapshot, assert_snapshot, assert_yaml_snapshot,
@@ -687,35 +703,19 @@ SString:
 
     #[test]
     fn test_sql_of_ast_1() -> Result<()> {
-        let yaml: &str = r###"
-Query:
-  nodes:
-    - Pipeline:
-      - From:
-          name: employees
-          alias: ~
-      - Filter:
-          - Ident: country
-          - Raw: "="
-          - String: USA
-      - Aggregate:
-          by:
-          - Ident: title
-          - Ident: country
-          select:
-          - SString:
-            - String: AVG(
-            - Expr:
-                Ident: salary
-            - String: )
-          assigns: []
-      - Sort:
-          - Ident: title
-      - Take: 20
-            "###;
+        let query: Query = parse(
+            &r###"
+        from employees
+        filter country = "USA"
+        aggregate by:[title, country] [
+            average salary
+        ]
+        sort title
+        take 20
+        "###,
+        )?;
 
-        let pipeline: Node = from_str(yaml)?;
-        let sql = translate(&pipeline)?;
+        let sql = translate(&query)?;
         assert_display_snapshot!(sql,
             @r###"
         SELECT
@@ -739,10 +739,9 @@ Query:
 
     #[test]
     fn test_sql_of_ast_2() -> Result<()> {
-        let query: Node = from_str(
+        let query: Query = from_str(
             r###"
-        Query:
-          nodes:
+            nodes:
             - Pipeline:
                 - From:
                     name: employees
@@ -758,7 +757,7 @@ Query:
                     - NamedExpr:
                         name: sum_salary
                         expr:
-                          Ident: salary
+                            Ident: salary
                 - Filter:
                     - Ident: salary
                     - Raw: ">"
@@ -794,8 +793,7 @@ Query:
     ]
     "#,
         )?;
-        let ast = materialize(query)?;
-        let sql = translate(&ast)?;
+        let sql = translate(&query)?;
         assert_display_snapshot!(sql,
             @r###"
         SELECT
@@ -834,8 +832,7 @@ take 20
 "#,
         )?;
 
-        let ast = materialize(query)?;
-        let sql = translate(&ast)?;
+        let sql = translate(&query)?;
         assert_display_snapshot!(sql);
         Ok(())
     }
@@ -861,8 +858,7 @@ take 20
         select [name, salary, average_country_salary]
     "#,
         )?;
-        let ast = materialize(query)?;
-        let sql = translate(&ast)?;
+        let sql = translate(&query)?;
         assert_display_snapshot!(sql,
             @r###"
         WITH newest_employees AS (
@@ -898,41 +894,18 @@ take 20
     #[test]
     fn test_nonatomic() -> Result<()> {
         // A take, then two aggregates
-        let query: Node = from_str(
+        let query: Query = parse(
             r###"
-Query:
-  nodes:
-    - Pipeline:
-      - From:
-          name: employees
-          alias: ~
-      - Take: 20
-      - Filter:
-          - Ident: country
-          - Raw: "="
-          - String: USA
-      - Aggregate:
-          by:
-          - Ident: title
-          - Ident: country
-          select:
-          - SString:
-            - String: "AVG("
-            - Expr:
-                Ident: salary
-            - String: ")"
-      - Aggregate:
-          by:
-          - Ident: title
-          - Ident: country
-          select:
-          - SString:
-            - String: "AVG("
-            - Expr:
-                Ident: salary
-            - String: ")"
-      - Sort:
-          - Ident: sum_gross_cost
+            from employees
+            take 20
+            filter country = "USA"
+            aggregate by:[title, country] [
+                average salary
+            ]
+            aggregate by:[title, country] [
+                average salary
+            ]
+            sort sum_gross_cost
         "###,
         )?;
 
@@ -1022,10 +995,7 @@ from employees
 take 10
 join salaries [employees.employee_id=salaries.employee_id]
         "#;
-        let result = parse(prql)
-            .and_then(materialize)
-            .and_then(|x| translate(&x))
-            .unwrap();
+        let result = parse(prql).and_then(|x| translate(&x)).unwrap();
         assert_display_snapshot!(result, @r###"
         WITH table_0 AS (
           SELECT
@@ -1045,7 +1015,7 @@ join salaries [employees.employee_id=salaries.employee_id]
     #[test]
     fn test_table_alias() -> Result<()> {
         // Alias on from
-        let query: Node = parse(
+        let query: Query = parse(
             r###"
             from e: employees
             join salaries side:left [salaries.emp_no = e.emp_no]
@@ -1056,11 +1026,10 @@ join salaries [employees.employee_id=salaries.employee_id]
         "###,
         )?;
 
-        let ast = materialize(query)?;
-        assert_display_snapshot!((translate(&ast)?), @r###"
+        assert_display_snapshot!((translate(&query)?), @r###"
         SELECT
           e.emp_no,
-          emp_salary
+          AVG(salary) AS emp_salary
         FROM
           employees AS e
           LEFT JOIN salaries ON salaries.emp_no = e.emp_no

@@ -3,28 +3,25 @@ mod ast_fold;
 #[cfg(feature = "cli")]
 mod cli;
 mod error;
-mod materializer;
 mod parser;
+mod semantic;
 mod translator;
 mod utils;
 
-pub use anyhow::Result; // TODO: create an error type for prql and export here
+pub use anyhow::Result;
 #[cfg(feature = "cli")]
 pub use cli::Cli;
-pub use materializer::materialize;
+pub use error::{Error, Reason};
 pub use parser::parse;
 pub use translator::translate;
 
 /// Compile a PRQL string into a SQL string.
 ///
-/// This has three stages:
+/// This has two stages:
 /// - [parse] — Build an AST from a PRQL query string.
-/// - [materialize] — "Flatten" a PRQL AST by running functions & replacing variables.
 /// - [translate] — Write a SQL string from a PRQL AST.
 pub fn compile(prql: &str) -> Result<String> {
-    parse(prql)
-        .and_then(materialize)
-        .and_then(|x| translate(&x))
+    parse(prql).and_then(|x| translate(&x))
 }
 
 /// Exposes some library internals.
@@ -36,5 +33,4 @@ pub mod internals {
     pub use crate::ast::Node;
     pub use crate::ast_fold::AstFold;
     pub use crate::utils::{IntoOnly, Only};
-    pub use anyhow::Result; // TODO: create an error type for prql and export here
 }
