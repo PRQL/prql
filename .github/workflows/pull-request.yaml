@@ -16,6 +16,8 @@ concurrency:
 
 jobs:
   test:
+    #
+    runs-on: ubuntu-latest
     steps:
       - name: Test
         uses: ./.github/workflows/tests.yaml
