@@ -388,9 +388,9 @@ Many thanks to those who've made our progress possible:
 We have a few core developers who are responsible for reviewing code, making
 decisions on the direction of the language, and project administration:
 
-- @aljazerzen
-- @max-sixty
-- @qorrect
+- @aljazerzen — Aljaž Mur Eržen
+- @max-sixty — Maximilian Roos
+- @qorrect — Charlie Sando
 
 We welcome others to join who have a track record of contributions.
 
