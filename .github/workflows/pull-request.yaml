@@ -24,7 +24,7 @@ jobs:
           - ubuntu-latest
           - windows-latest
     steps:
-      - uses: ./.github/test.yaml
+      - uses: ./.github/workflows/test.yaml
         with:
           os: ${{ matrix.os }}
         if: |
