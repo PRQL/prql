@@ -16,15 +16,15 @@ concurrency:
 
 jobs:
   test:
-    # strategy:
-    #   matrix:
-    #     os:
-    #       - macos-latest
-    #       - ubuntu-latest
-    #       - windows-latest
+    strategy:
+      matrix:
+        os:
+          - macos-latest
+          - ubuntu-latest
+          - windows-latest
     uses: ./.github/workflows/test.yaml
-    # with:
-    #   os: ${{ matrix.os }}
+    with:
+      os: ${{ matrix.os }}
     # if: |
     #   ${{ matrix.os }} == 'ubuntu-latest'
     #   || github.head_ref == 'main'
