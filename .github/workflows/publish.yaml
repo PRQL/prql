@@ -19,3 +19,18 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: reference/book/
+  # These are intended for the equivalent of "nightly tests"; i.e. slower tests
+  # that aren't likely to break. Doing them in a separate workflow would be a
+  # cleaner abstraction.
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Test
+        uses: ./.github/workflows/tests.yaml
+        with: "${{ matrix.os }}"
+    strategy:
+      matrix:
+        include:
+          - os: macos-latest
+          - os: windows-latest
+          - os: ubuntu-latest
