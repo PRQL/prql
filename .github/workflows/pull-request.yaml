@@ -16,20 +16,19 @@ concurrency:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        os:
-          - macos-latest
-          - ubuntu-latest
-          - windows-latest
+    # strategy:
+    #   matrix:
+    #     os:
+    #       - macos-latest
+    #       - ubuntu-latest
+    #       - windows-latest
     uses: ./.github/workflows/test.yaml
-    with:
-      os: ${{ matrix.os }}
-    if: |
-      ${{ matrix.os }} == 'ubuntu-latest'
-      || github.head_ref == 'main'
-      || contains(github.event.pull_request.labels.*.name, 'run-full-tests')
+    # with:
+    #   os: ${{ matrix.os }}
+    # if: |
+    #   ${{ matrix.os }} == 'ubuntu-latest'
+    #   || github.head_ref == 'main'
+    #   || contains(github.event.pull_request.labels.*.name, 'run-full-tests')
     # Only run ubuntu on main, since it's fastest. Otherwise only run on `main` or a `run-full-tests` label.
   test-wasm:
     runs-on: ubuntu-latest
