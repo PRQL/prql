@@ -1,5 +1,5 @@
 ---
-source: src/translator.rs
+source: prql/src/translator.rs
 expression: sql
 ---
 SELECT
@@ -21,6 +21,6 @@ GROUP BY
   title,
   country
 HAVING
-  ct > 200
+  COUNT(*) > 200
 ORDER BY
   sum_gross_cost

@@ -1,0 +1,9 @@
+---
+source: prql/src/semantic/materializer.rs
+expression: mat.nodes
+---
+- Pipeline:
+    - From:
+        name: prices
+        alias: ~
+

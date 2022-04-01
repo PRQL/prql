@@ -1,10 +1,11 @@
 use ariadne::{Label, Report, ReportKind, Source};
+use serde::{Deserialize, Serialize};
 use std::error::Error as StdError;
 use std::fmt::{self, Debug, Display, Formatter};
 use std::ops::Range;
 
 use crate::parser::PestError;
-#[derive(Debug, Clone, PartialEq, Copy, Default)]
+#[derive(Debug, Clone, PartialEq, Copy, Default, Serialize, Deserialize)]
 pub struct Span {
     pub start: usize,
     pub end: usize,

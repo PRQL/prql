@@ -10,7 +10,6 @@ aggregate by:[title] [
 select salary_k: avg_salary / 1000    # avg_salary should resolve to "AVG(emp_salary)"
 take 10                               # induces new SELECT
 derive salary: salary_k * 1000        # salary_k should not resolve to "avg_salary / 1000"
-
 ```
 
 ```sql
@@ -25,7 +24,7 @@ WITH table_0 AS (
 ),
 table_1 AS (
   SELECT
-    TOP (10) avg_salary / 1000 AS salary_k
+    TOP (10) AVG(emp_salary) / 1000 AS salary_k
   FROM
     table_0
     JOIN titles USING(emp_no)
@@ -34,7 +33,7 @@ table_1 AS (
 )
 SELECT
   *,
-  avg_salary / 1000 * 1000 AS salary
+  salary_k * 1000 AS salary
 FROM
   table_1
 ```

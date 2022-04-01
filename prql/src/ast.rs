@@ -6,9 +6,9 @@ use strum_macros::Display;
 use crate::error::{Error, Reason, Span};
 use crate::utils::*;
 
-// Idents are generally columns
+/// A name. Generally columns, tables, functions, variables.
 pub type Ident = String;
-pub type Pipeline = Vec<Transformation>;
+pub type Pipeline = Vec<Transform>;
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Node {
@@ -16,11 +16,13 @@ pub struct Node {
     pub item: Item,
     #[serde(skip)]
     pub span: Span,
+    #[serde(skip)]
+    pub declared_at: Option<usize>,
 }
 
 #[derive(Debug, EnumAsInner, Display, PartialEq, Clone, Serialize, Deserialize)]
 pub enum Item {
-    Transformation(Transformation),
+    Transform(Transform),
     Ident(Ident),
     String(String),
     Raw(String),
@@ -59,7 +61,7 @@ impl ListItem {
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 // We probably want to implement some of these as Structs rather than just
 // `vec<Item>`
-pub enum Transformation {
+pub enum Transform {
     From(TableRef),
     Select(Vec<Node>),
     Filter(Filter),
@@ -77,18 +79,31 @@ pub enum Transformation {
     },
 }
 
-impl Transformation {
+impl Transform {
     /// Returns the name of the transformation.
     pub fn name(&self) -> &'static str {
         match self {
-            Transformation::From(_) => "from",
-            Transformation::Select(_) => "select",
-            Transformation::Filter(_) => "filter",
-            Transformation::Derive(_) => "derive",
-            Transformation::Aggregate { .. } => "aggregate",
-            Transformation::Sort(_) => "sort",
-            Transformation::Take(_) => "take",
-            Transformation::Join { .. } => "join",
+            Transform::From(_) => "from",
+            Transform::Select(_) => "select",
+            Transform::Filter(_) => "filter",
+            Transform::Derive(_) => "derive",
+            Transform::Aggregate { .. } => "aggregate",
+            Transform::Sort(_) => "sort",
+            Transform::Take(_) => "take",
+            Transform::Join { .. } => "join",
+        }
+    }
+
+    pub fn first_node(&self) -> Option<&Node> {
+        match &self {
+            Transform::From(_) => None,
+            Transform::Select(nodes)
+            | Transform::Filter(Filter(nodes))
+            | Transform::Derive(nodes)
+            | Transform::Aggregate { by: nodes, .. }
+            | Transform::Join { on: nodes, .. }
+            | Transform::Sort(nodes) => nodes.first(),
+            Transform::Take(_) => None,
         }
     }
 }
@@ -97,15 +112,15 @@ impl Transformation {
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct FuncDef {
     pub name: Ident,
-    pub positional_params: Vec<Ident>,
-    pub named_params: Vec<NamedExpr>,
+    pub positional_params: Vec<Node>, // ident
+    pub named_params: Vec<Node>,      // named expr
     pub body: Box<Node>,
 }
 
 /// Function call.
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct FuncCall {
-    pub name: String,
+    pub name: Ident,
     pub args: Vec<Node>,
     pub named_args: Vec<NamedExpr>,
 }
@@ -118,7 +133,7 @@ pub struct InlinePipeline {
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Table {
-    pub name: Ident,
+    pub name: String,
     pub pipeline: Pipeline,
 }
 
@@ -131,7 +146,7 @@ pub struct NamedExpr {
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub enum SStringItem {
     String(String),
-    Expr(Item),
+    Expr(Node),
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
@@ -147,8 +162,8 @@ pub enum JoinSide {
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct TableRef {
-    pub name: Ident,
-    pub alias: Option<Ident>,
+    pub name: String,
+    pub alias: Option<String>,
 }
 
 impl Node {
@@ -231,6 +246,7 @@ impl From<Item> for Node {
         Node {
             item,
             span: Span::default(),
+            declared_at: None,
         }
     }
 }
