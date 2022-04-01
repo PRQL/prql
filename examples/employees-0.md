@@ -18,7 +18,6 @@ aggregate by:[dept_emp.dept_no, t.title] [
 ]
 join departments [dept_no]
 select [dept_name, title, avg_salary]
-
 ```
 
 ```sql

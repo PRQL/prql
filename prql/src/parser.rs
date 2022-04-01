@@ -1120,4 +1120,20 @@ take 20
         "###);
         Ok(())
     }
+
+    #[test]
+    fn test_tab_characters() -> Result<()> {
+        // #248
+
+        let prql = "from c_invoice
+join doc:c_doctype [c_invoice_id]
+select [
+\tinvoice_no,
+\tdocstatus
+]";
+        let result = parse(prql);
+        assert!(result.is_ok());
+
+        Ok(())
+    }
 }
