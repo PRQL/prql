@@ -36,7 +36,8 @@ jobs:
         with:
           command: fmt
           args: --check
-    runs-on: "${{ inputs.os }}"
+    runs-on: ubuntu-latest
+    # runs-on: "${{ inputs.os }}"
     # Only run ubuntu on main, since it's fastest. Otherwise only run on `main` or a `run-full-tests` label.
     # if: "${{ inputs.os == 'ubuntu-latest' || github.head_ref == 'main' || contains(github.event.pull_request.labels.*.name, 'run-full-tests') }}"
     strategy:
