@@ -12,7 +12,7 @@
 //   sequence of idents. We could instead parse these explicitly, and then
 //   disallow `1 1`.
 
-WHITESPACE = _{ " " }
+WHITESPACE = _{ " " | "\t" }
 // Need to exclude # in strings (and maybe confirm whether this the syntax we want)
 COMMENT = _{ "#" ~ (!NEWLINE ~ ANY) * }
 
