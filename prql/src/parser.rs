@@ -1123,7 +1123,7 @@ take 20
 
     #[test]
     fn test_tab_characters() -> Result<()> {
-        // #248
+        // #284
 
         let prql = "from c_invoice
 join doc:c_doctype [c_invoice_id]
