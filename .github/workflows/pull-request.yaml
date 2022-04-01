@@ -50,7 +50,7 @@ jobs:
           toolchain: stable
       - uses: jetli/trunk-action@v0.1.0
       - name: 🔨 Build
-      - run: trunk build
+        run: trunk build
         working-directory: prql-web/
   test-book:
     runs-on: ubuntu-latest
