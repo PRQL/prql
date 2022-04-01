@@ -19,6 +19,7 @@ jobs:
           command: test
       # Possibly we could only run these lints on Linux.
   lint:
+    runs-on: ${{ inputs.os }}
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v2
