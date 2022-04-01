@@ -336,7 +336,7 @@ means putting some things out of scope:
   *inference* is a goal above, and this could be a useful extension at some
   point).
 
-## Interested in joining?
+## Contributing
 
 If you're interested in joining the community to build a better SQL, there are
 lots of ways of contributing; big and small:
@@ -348,7 +348,7 @@ lots of ways of contributing; big and small:
 - Join the [Discord](https://discord.gg/eQcfaCmsNc).
 - Contribute towards the code. There are many ways of contributing, for any
   level of experience with rust. And if you have rust questions, there are lots of
-  people on the Discord who will patiently help you.
+  friendly people on the Discord who will patiently help you.
   - Find an issue labeled [help
     wanted](https://github.com/max-sixty/prql/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22)
     or [good first
@@ -360,8 +360,8 @@ lots of ways of contributing; big and small:
   - Start with something tiny! Write a test / write a docstring / make some rust
     nicer — it's a great way to get started in 30 minutes.
 
-Any of these will inspire others to spend more time developing this; thank you
-in advance.
+Any of these will inspire others to invest their time and energy into the
+project; thank you in advance.
 
 ### Development environment
 
@@ -370,12 +370,29 @@ Setting up a local dev environment is simple, thanks to the rust ecosystem:
 - Install [`rustup` & `cargo`](https://doc.rust-lang.org/cargo/getting-started/installation.html).
 - That's it! Running `cargo test` should complete successfully.
 - For more advanced development; e.g. adjusting `insta` outputs or compiling for
-  web, run the commands in [Taskfile.yml](Taskfile.yml), either with copy &
-  paste or by installing [Task](https://taskfile.dev/#/installation) and running
-  `task install-dev-tools`.
+  web, run the commands in [Taskfile.yml](Taskfile.yml), either by copying &
+  pasting or by installing [Task](https://taskfile.dev/#/installation) and
+  running `task install-dev-tools`.
 - For quick contributions, hit `.` in GitHub to launch a [github.dev
   instance](https://github.dev/max-sixty/prql).
 - Any problems: post an issue and we'll help.
+
+### Contributors
+
+Many thanks to those who've made our progress possible:
+
+[![Contributors](https://contrib.rocks/image?repo=max-sixty/prql)](https://github.com/max-sixty/prql/graphs/contributors)
+
+### Core developers
+
+We have a few core developers who are responsible for reviewing code, making
+decisions on the direction of the language, and project administration:
+
+- @aljazerzen
+- @max-sixty
+- @qorrect
+
+We welcome others to join who have a track record of contributions.
 
 ## Inspired by
 
@@ -423,9 +440,3 @@ Setting up a local dev environment is simple, thanks to the rust ecosystem:
   which is very different to this proposal.
 
 > If any of these descriptions can be improved, please feel free to PR changes.
-
-## Our contributors
-
-Many thanks to those who've made our progress possible:
-
-[![Contributors](https://contrib.rocks/image?repo=max-sixty/prql)](https://github.com/max-sixty/prql/graphs/contributors)
