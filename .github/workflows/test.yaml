@@ -2,8 +2,9 @@ on:
   workflow_call:
     inputs:
       os:
-        default: ubuntu-latest
+        required: true
         type: string
+        default: ubuntu-latest
 
 jobs:
   test:
@@ -29,9 +30,9 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: clippy
-          args: -- -D warnings
+          args: --all-targets --all -- -D warnings
       - name: ⌨️ Fmt
         uses: actions-rs/cargo@v1
         with:
           command: fmt
-          args: --check
+          args: --all --check
