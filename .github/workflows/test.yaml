@@ -41,10 +41,10 @@ jobs:
     if: "${{ inputs.os == 'ubuntu-latest' || github.head_ref == 'main' || contains(github.event.pull_request.labels.*.name, 'run-full-tests') }}"
     strategy:
       matrix:
-        # Windows is very slow, so we don't test on every PR.
-        - os: macos-latest
-        - os: ubuntu-latest
-        - os: windows-latest
+        os:
+          - macos-latest
+          - ubuntu-latest
+          - windows-latest
   test-wasm:
     runs-on: ubuntu-latest
     steps:
