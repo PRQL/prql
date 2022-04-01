@@ -23,6 +23,7 @@ jobs:
   # that aren't likely to break. Doing them in a separate workflow would be a
   # cleaner abstraction.
   test:
+    runs-on: ubuntu-latest
     steps:
       - name: Test
         uses: ./.github/workflows/tests.yaml

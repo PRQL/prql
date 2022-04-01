@@ -30,9 +30,9 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: clippy
-          args: --all-targets -- -D warnings
+          args: --all-targets --all -- -D warnings
       - name: ⌨️ Fmt
         uses: actions-rs/cargo@v1
         with:
           command: fmt
-          args: --all-targets --check
+          args: --all --check
