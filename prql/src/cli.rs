@@ -199,7 +199,7 @@ mod tests {
     fn prql_layouts_test() {
         let output = compile_to(
             Format::PrqlLayouts,
-            &r#"
+            r#"
 from initial_table
 select [first: name, last: last_name, gender]
 derive full_name: first + " " + last

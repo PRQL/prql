@@ -704,7 +704,7 @@ SString:
     #[test]
     fn test_sql_of_ast_1() -> Result<()> {
         let query: Query = parse(
-            &r###"
+            r###"
         from employees
         filter country = "USA"
         aggregate by:[title, country] [
