@@ -1,0 +1,37 @@
+on:
+  workflow_call:
+    inputs:
+      os:
+        default: ubuntu-latest
+        type: string
+
+jobs:
+  test:
+    runs-on: ${{ inputs.os }}
+    steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v2
+      - name: 💰 Cache
+        uses: Swatinem/rust-cache@v1
+      - name: 📋 Test
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+      # Possibly we could only run these lints on Linux.
+  lint:
+    runs-on: ${{ inputs.os }}
+    steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v2
+      - name: 💰 Cache
+        uses: Swatinem/rust-cache@v1
+      - name: 📎 Clippy
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: -- -D warnings
+      - name: ⌨️ Fmt
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --check
