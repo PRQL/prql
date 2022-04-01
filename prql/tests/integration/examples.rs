@@ -1,5 +1,3 @@
-// TODO: we could add a task in CI to assert that there's no git diff in the
-// examples path?
 use insta::{assert_snapshot, glob};
 use std::fs;
 use std::path::Path;
