@@ -1,21 +1,12 @@
-name: tests
-
-# See https://github.com/max-sixty/prql/issues/37 for TODOs
-
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  workflow_call:
+    inputs:
+      os:
+        required: true
 
 jobs:
   test:
+    runs-on: ${{ inputs.os }}
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v2
@@ -36,39 +27,3 @@ jobs:
         with:
           command: fmt
           args: --check
-    strategy:
-      matrix:
-        os:
-          - macos-latest
-          - ubuntu-latest
-          - windows-latest
-    runs-on: ${{ matrix.os }}
-    # Only run ubuntu on main, since it's fastest. Otherwise only run on `main` or a `run-full-tests` label.
-    if: |
-      ${{ matrix.os }} == 'ubuntu-latest'
-      || github.head_ref == 'main'
-      || contains(github.event.pull_request.labels.*.name, 'run-full-tests')
-  test-wasm:
-    runs-on: ubuntu-latest
-    steps:
-      - name: 📂 Checkout code
-        uses: actions/checkout@v2
-      - name: 💰 Cache
-        uses: Swatinem/rust-cache@v1
-      - name: 🔗 Setup rust toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          target: wasm32-unknown-unknown
-          toolchain: stable
-      - uses: jetli/trunk-action@v0.1.0
-      - run: trunk build
-        working-directory: prql-web/
-  test-book:
-    runs-on: ubuntu-latest
-    steps:
-      - name: 📂 Checkout code
-        uses: actions/checkout@v2
-      - uses: peaceiris/actions-mdbook@v1
-      - run: mdbook test
-        working-directory: reference/
