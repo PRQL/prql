@@ -4,33 +4,21 @@ on:
   push:
     branches:
       - main
+    tags:
+      - "*"
 
 jobs:
-  deploy:
+  publish:
     runs-on: ubuntu-latest
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v2
       - uses: peaceiris/actions-mdbook@v1
-      - run: mdbook build
+      - name: 🔨 Build
+        run: mdbook build
         working-directory: reference/
-      - name: deploy
+      - name: 🚢 Deploy
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: reference/book/
-  # These are intended for the equivalent of "nightly tests"; i.e. slower tests
-  # that aren't likely to break. Doing them in a separate workflow would be a
-  # cleaner abstraction.
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Test
-        uses: ./.github/workflows/tests.yaml
-        with: "${{ matrix.os }}"
-    strategy:
-      matrix:
-        include:
-          - os: macos-latest
-          - os: windows-latest
-          - os: ubuntu-latest
