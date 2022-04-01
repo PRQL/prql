@@ -12,24 +12,25 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress:
+    true
 
+    # - macos-latest
+    # - ubuntu-latest
+    # - windows-latest
 jobs:
-  test:
-    strategy:
-      matrix:
-        os:
-          - macos-latest
-          - ubuntu-latest
-          - windows-latest
+  test-linux:
     uses: ./.github/workflows/test.yaml
     with:
-      os: ${{ matrix.os }}
-    # if: |
-    #   ${{ matrix.os }} == 'ubuntu-latest'
-    #   || github.head_ref == 'main'
-    #   || contains(github.event.pull_request.labels.*.name, 'run-full-tests')
+      os: ubuntu-latest
+  test-windows:
     # Only run ubuntu on main, since it's fastest. Otherwise only run on `main` or a `run-full-tests` label.
+    uses: ./.github/workflows/test.yaml
+    with:
+      os: windows-latest
+    if: |
+      github.head_ref == 'main'
+      || contains(github.event.pull_request.labels.*.name, 'run-full-tests')
   test-wasm:
     runs-on: ubuntu-latest
     steps:
