@@ -13,11 +13,17 @@ jobs:
         uses: actions/checkout@v2
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v1
-      - name: 🔨 Build and test
+      - name: 📋 Test
         uses: actions-rs/cargo@v1
         with:
           command: test
       # Possibly we could only run these lints on Linux.
+  lint:
+    steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v2
+      - name: 💰 Cache
+        uses: Swatinem/rust-cache@v1
       - name: 📎 Clippy
         uses: actions-rs/cargo@v1
         with:

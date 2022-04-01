@@ -15,11 +15,12 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Only run ubuntu on pull-requests, since it's fastest. Run Mac & Windows only
+  # on `main` or a `run-full-tests` label.
   test-linux:
     uses: ./.github/workflows/test.yaml
     with:
       os: ubuntu-latest
-  # Only run ubuntu on main, since it's fastest. Run Mac & Windows only on `main` or a `run-full-tests` label.
   test-mac:
     uses: ./.github/workflows/test.yaml
     with:
@@ -48,6 +49,7 @@ jobs:
           target: wasm32-unknown-unknown
           toolchain: stable
       - uses: jetli/trunk-action@v0.1.0
+      - name: 🔨 Build
       - run: trunk build
         working-directory: prql-web/
   test-book:
@@ -56,5 +58,6 @@ jobs:
       - name: 📂 Checkout code
         uses: actions/checkout@v2
       - uses: peaceiris/actions-mdbook@v1
-      - run: mdbook test
+      - name: 📋 Test
+        run: mdbook test
         working-directory: reference/
