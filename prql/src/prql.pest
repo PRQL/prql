@@ -110,15 +110,3 @@ s_string_string = { ( !( "\\" | PEEK | "{" ) ~ ANY )+ }
 named_expr = { (ident ~ ":")? ~ expr }
 named_expr_simple = { (ident ~ ":")? ~ expr_simple }
 named_term_simple = { (ident ~ ":")? ~ term_simple }
-
-// We no longer use this, but keeping here for reference, as it was a useful
-// pattern for reducing nesting.
-// // If possible, parse a single expr, otherwise parse a list of expr, adding a
-// // layer. In cases like [a, b], we don't need `a` to be expr -> ident -> a;
-// // only ident -> a; but in [a b], we do need an expr parent to discriminate it
-// // from `[a, b]`.
-// // Note that it's a bit complicated with `&( NEWLINE? ~ ("," | "]"))` — we want
-// // to ensure there is a end to the expression, and we allow a NEWLINE to be between
-// // the current expression and the ending token. (Feel free to change and see the
-// // test diffs.)
-// // single_expr_if_possible = _{ (( item ~ &( NEWLINE? ~ ("," | "]") ) ) | expr ) }
