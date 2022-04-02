@@ -5,7 +5,7 @@ license = "Apache-2.0"
 name = "prql"
 repository = "https://github.com/max-sixty/prql"
 rust-version = "1.59.0"
-version = "0.1.0"
+version = "0.1.1"
 
 [features]
 # We previously had `cli` not compile by default, because of an issue with
@@ -43,5 +43,5 @@ features = ["derive"]
 version = "^1.0"
 
 [dev-dependencies]
-insta = { version = "^1.13", features = ["colors", "glob"] }
+insta = {version = "^1.13", features = ["colors", "glob"]}
 similar = "^2.1"
