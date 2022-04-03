@@ -1,6 +1,6 @@
 # PRQL
 
-[![Language Docs](https://img.shields.io/badge/DOCS-LANGUAGE-blue?style=for-the-badge)](lang.prql.builders)
+[![Language Docs](https://img.shields.io/badge/DOCS-LANGUAGE-blue?style=for-the-badge)](https://lang.prql.builders)
 [![Discord](https://img.shields.io/discord/936728116712316989?style=for-the-badge)](https://discord.gg/eQcfaCmsNc)
 [![Rust API Docs](https://img.shields.io/badge/DOCS-RUST-brightgreen?style=for-the-badge&logo=rust)](https://docs.rs/prql/)
 <!-- Doesn't seem to support a different `message` [![docs.rs](https://img.shields.io/docsrs/prql?style=for-the-badge&label=rust&message=rust&logo=rust)](https://docs.rs/prql/) -->
