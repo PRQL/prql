@@ -1,8 +1,9 @@
 # PRQL
 
-[![GitHub CI Status](https://img.shields.io/github/workflow/status/max-sixty/prql/tests?logo=github&style=for-the-badge)](https://github.com/max-sixty/prql/actions?query=workflow:tests)
+[![Language Docs](https://img.shields.io/badge/DOCS-LANGUAGE-blue?style=for-the-badge)](https://lang.prql.builders)
 [![Discord](https://img.shields.io/discord/936728116712316989?style=for-the-badge)](https://discord.gg/eQcfaCmsNc)
-[![docs.rs](https://img.shields.io/docsrs/prql?style=for-the-badge)](https://docs.rs/prql/)
+[![Rust API Docs](https://img.shields.io/badge/DOCS-RUST-brightgreen?style=for-the-badge&logo=rust)](https://docs.rs/prql/)
+[![GitHub CI Status](https://img.shields.io/github/workflow/status/max-sixty/prql/tests?logo=github&style=for-the-badge)](https://github.com/max-sixty/prql/actions?query=workflow:tests)
 [![GitHub contributors](https://img.shields.io/github/contributors/max-sixty/prql?style=for-the-badge)](https://github.com/max-sixty/prql/graphs/contributors)
 [![Stars](https://img.shields.io/github/stars/max-sixty/prql?style=for-the-badge)](https://github.com/max-sixty/prql/stargazers)
 
