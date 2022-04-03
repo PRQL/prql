@@ -15,6 +15,7 @@ prql = {path = "../prql"}
 
 [target.'cfg(target_arch="wasm32")'.dependencies]
 console_error_panic_hook = {version = "0.1.1"}
+gloo-console = {version = "0.2.0"}
 log = "0.4.6"
 monaco = {version = "0.3.0", features = ["yew-components"]}
 wasm-bindgen = {version = "0.2"}

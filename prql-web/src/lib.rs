@@ -2,14 +2,17 @@
 // https://github.com/rustwasm/wasm-bindgen/issues/2774
 #![allow(clippy::unused_unit)]
 
-use monaco::{api::CodeEditorOptions, sys::editor::IDimension};
 use monaco::{
     api::TextModel,
     sys::editor::BuiltinTheme,
     yew::{CodeEditor, CodeEditorLink, CodeEditorProps},
 };
+use monaco::{
+    api::{CodeEditorOptions, DisposableClosure},
+    sys::editor::{IDimension, IModelContentChangedEvent},
+};
 use prql::*;
-use std::rc::Rc;
+use std::{any::Any, rc::Rc};
 use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::prelude::*;
 use yew::{function_component, html, Component, Context, Html};
@@ -27,14 +30,24 @@ const CONTENT: &str = include_str!("../../prql/tests/integration/examples/variab
 struct Editor {
     options: Rc<CodeEditorOptions>,
     model: TextModel,
-    editor_link: CodeEditorLink,
-    sql: String,
+
+    // we need to prevent this from being dropped for the listener to stay active
+    listener: DisposableClosure<dyn FnMut(IModelContentChangedEvent)>,
+    // editor_link: CodeEditorLink,
+    // sql: String,
 }
 impl Component for Editor {
     type Message = Msg;
     type Properties = ();
 
-    fn create(_context: &Context<Self>) -> Self {
+    fn create(ctx: &Context<Self>) -> Self {
+        let model = TextModel::create(CONTENT, Some("rust"), None).unwrap();
+        let listener = model.on_did_change_content(|ev| {
+            gloo_console::log!(ev);
+            // This is a borrow error re `ctx`
+            // ctx.link().callback(move |_: ()| Msg::TextChange);
+        });
+
         Self {
             options: Rc::new(
                 CodeEditorOptions::default()
@@ -43,13 +56,20 @@ impl Component for Editor {
                     // .with_builtin_theme(BuiltinTheme::VsDark)
                     .with_dimension(IDimension::new(800, 600)),
             ),
-            model: TextModel::create(CONTENT, Some("prql"), None).unwrap(),
-            editor_link: CodeEditorLink::default(),
-            sql: String::new(),
+            model,
+
+            // editor_link: CodeEditorLink::default(),
+            // sql: String::new(),
+            listener,
         }
     }
 
     fn changed(&mut self, _context: &Context<Self>) -> bool {
+        true
+    }
+
+    fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
+        gloo_console::log!("Update");
         true
     }
 
@@ -67,14 +87,13 @@ impl Component for Editor {
         // let model = Some(self.model.clone());
         // self.link
         // self.model.on_did_change_content(|_| Msg::TextChange);
-        // let on_did_change_content = self.model.on_did_change_content((|_| ()));
 
         html! {
             <div>
             // <CodeEditor model={Some(self.model.clone())} options={self.options.clone() } on_did_change_content={on_did_change_content} />
             <CodeEditor model={Some(self.model.clone())} options={self.options.clone()} />
             {sql.clone()}
-            {self.sql.clone()}
+            // {self.sql.clone()}
             // <button>
             </div>
         }
