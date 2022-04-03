@@ -13,7 +13,7 @@ tasks:
   install-dev-tools:
     desc: Install tools for PRQL development.
     cmds:
-      - cargo install cargo-insta trunk
+      - cargo install cargo-insta trunk mdbook mdbook-toc
       - rustup target add wasm32-unknown-unknown
       # We only suggest, rather than install; we don't want to intrude.
       - task: suggest-vscode-extensions
