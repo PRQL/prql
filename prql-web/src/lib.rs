@@ -45,7 +45,7 @@ impl Component for Editor {
                 CodeEditorOptions::default()
                     .with_language("prql".to_owned())
                     .with_value(CONTENT.to_owned())
-                    .with_dimension(IDimension::new(800, 600)),
+                    .with_dimension(IDimension::new(800, 300)),
             ),
             model,
             _listener: listener,
