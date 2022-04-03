@@ -11,15 +11,21 @@ version = "0.1.0"
 crate-type = ["cdylib"]
 
 [dependencies]
-prql = {path = "../prql", version = "0.1.0"}
+prql = {path = "../prql"}
 
 [target.'cfg(target_arch="wasm32")'.dependencies]
 console_error_panic_hook = {version = "0.1.1"}
-sycamore = {version = "0.7.1", features = ["experimental-builder-html"]}
+gloo-console = {version = "0.2.0"}
+gloo-events = "0.1.1"
+log = "0.4.6"
+monaco = {version = "0.3.0", features = ["yew-components"]}
 wasm-bindgen = {version = "0.2"}
-wasm-bindgen-test = {version = "0.2"}
+wasm-logger = "0.2.0"
+web-sys = "0.3.56"
 wee_alloc = {version = "^0.4.2"}
+yew = {version = "0.19.0"}
 
 [dev-dependencies]
 insta = "^1.13"
 similar = "^2.1"
+wasm-bindgen-test = {version = "0.2"}
