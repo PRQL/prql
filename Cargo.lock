@@ -579,8 +579,7 @@ dependencies = [
 [[package]]
 name = "monaco"
 version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d1b882423fc90db4603ce73a57e64dd568a66ee6776ac09a91bb05622cf6c1e3"
+source = "git+https://github.com/max-sixty/rust-monaco?branch=options#fe3b8d9e2556f8f43d0adf41e268f678b3595d0b"
 dependencies = [
  "js-sys",
  "paste",
