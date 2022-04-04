@@ -55,7 +55,7 @@ impl Component for Editor {
         // an easier way.
         prql_options.set_language(Some("elm"));
         prql_options.set_value(Some(CONTENT));
-        prql_options.set_dimension(Some(&IDimension::new(800, 400)));
+        prql_options.set_dimension(Some(&IDimension::new(600, 400)));
         prql_options.set_minimap(Some(&minimap_options));
 
         // TODO: almost a copy of the above at the moment; resolve DRY.
@@ -65,7 +65,7 @@ impl Component for Editor {
 
         let sql_options: IStandaloneEditorConstructionOptions =
             IStandaloneEditorConstructionOptions::default();
-        sql_options.set_dimension(Some(&IDimension::new(800, 400)));
+        sql_options.set_dimension(Some(&IDimension::new(600, 400)));
         sql_options.set_minimap(Some(&minimap_options));
 
         // Different options
