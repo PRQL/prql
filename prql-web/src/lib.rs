@@ -2,13 +2,16 @@
 // https://github.com/rustwasm/wasm-bindgen/issues/2774
 #![allow(clippy::unused_unit)]
 
-use monaco::{api::TextModel, yew::CodeEditor};
 use monaco::{
-    api::{CodeEditorOptions, DisposableClosure},
+    api::DisposableClosure,
     sys::editor::{IDimension, IModelContentChangedEvent},
 };
+use monaco::{
+    api::TextModel,
+    sys::editor::{IEditorMinimapOptions, IStandaloneEditorConstructionOptions},
+    yew::CodeEditor,
+};
 use prql::*;
-use std::rc::Rc;
 use wasm_bindgen::prelude::wasm_bindgen;
 
 use yew::{html, Component, Context, Html};
@@ -24,8 +27,10 @@ enum Msg {
 const CONTENT: &str = include_str!("../../prql/tests/integration/examples/variables-1.prql");
 
 struct Editor {
-    options: Rc<CodeEditorOptions>,
-    model: TextModel,
+    prql_options: IStandaloneEditorConstructionOptions,
+    prql_model: TextModel,
+    sql_options: IStandaloneEditorConstructionOptions,
+    sql_model: TextModel,
     // we need to prevent this from being dropped for the listener to stay active
     _listener: DisposableClosure<dyn FnMut(IModelContentChangedEvent)>,
 }
@@ -35,19 +40,43 @@ impl Component for Editor {
     type Properties = ();
 
     fn create(ctx: &Context<Self>) -> Self {
-        let model = TextModel::create(CONTENT, Some("rust"), None).unwrap();
+        let prql_model = TextModel::create(CONTENT, Some("rust"), None).unwrap();
         let callback = ctx.link().callback(|_| Msg::TextChange);
         // move the callback into the closure and trigger it manually
-        let listener = model.on_did_change_content(move |ev| callback.emit(ev));
+        let listener = prql_model.on_did_change_content(move |ev| callback.emit(ev));
+
+        let minimap_options = IEditorMinimapOptions::default();
+        minimap_options.set_enabled(Some(false));
+
+        // Unclear why this doesn't need to be mut?
+        let prql_options: IStandaloneEditorConstructionOptions =
+            IStandaloneEditorConstructionOptions::default();
+        // This way of specifying options is quite verbose, but not sure there's
+        // an easier way.
+        prql_options.set_language(Some("elm"));
+        prql_options.set_value(Some(CONTENT));
+        prql_options.set_dimension(Some(&IDimension::new(800, 400)));
+        prql_options.set_minimap(Some(&minimap_options));
+
+        // TODO: almost a copy of the above at the moment; resolve DRY.
+        let sql_model = TextModel::create(CONTENT, Some("sql"), None).unwrap();
+        let minimap_options = IEditorMinimapOptions::default();
+        minimap_options.set_enabled(Some(false));
+
+        let sql_options: IStandaloneEditorConstructionOptions =
+            IStandaloneEditorConstructionOptions::default();
+        sql_options.set_dimension(Some(&IDimension::new(800, 400)));
+        sql_options.set_minimap(Some(&minimap_options));
+
+        // Different options
+        sql_options.set_language(Some("sql"));
+        sql_options.set_read_only(Some(true));
 
         Self {
-            options: Rc::new(
-                CodeEditorOptions::default()
-                    .with_language("prql".to_owned())
-                    .with_value(CONTENT.to_owned())
-                    .with_dimension(IDimension::new(800, 300)),
-            ),
-            model,
+            prql_options,
+            prql_model,
+            sql_options,
+            sql_model,
             _listener: listener,
         }
     }
@@ -58,17 +87,21 @@ impl Component for Editor {
     }
 
     fn view(&self, _ctx: &Context<Self>) -> Html {
-        let prql = self.model.get_value();
+        let prql = self.prql_model.get_value();
         let sql = compile(&prql).unwrap_or_else(|e| e.to_string());
 
-        gloo_console::log!("{}", sql.clone());
+        self.sql_model.set_value(&sql);
+
+        gloo_console::log!("{}", sql);
 
         html! {
-            <div>
-            <CodeEditor model={Some(self.model.clone())} options={self.options.clone()} />
-            <pre>
-            {sql.clone()}
-            </pre>
+            <div class="grid-container">
+                <div class="grid-child">
+                    <CodeEditor model={Some(self.prql_model.clone())} options={self.prql_options.clone()} />
+                </div>
+                <div class="grid-child">
+                    <CodeEditor model={Some(self.sql_model.clone())} options={self.sql_options.clone()} />
+                </div>
             </div>
         }
     }
