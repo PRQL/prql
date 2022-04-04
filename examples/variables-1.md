@@ -22,7 +22,7 @@ take 20
 
 ```sql
 SELECT
-  TOP (20) title,
+  title,
   country,
   AVG(salary),
   SUM(salary),
@@ -43,4 +43,6 @@ HAVING
   COUNT(*) > 200
 ORDER BY
   sum_gross_cost
+LIMIT
+  20
 ```

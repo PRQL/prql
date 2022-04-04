@@ -267,8 +267,7 @@ fn sql_query_of_atomic_table(table: AtomicTable) -> Result<sql_ast::Query> {
             _ => None,
         })
         .last()
-        // Swap result & option.
-        .map_or(Ok(None), |r| r.map(Some))?;
+        .transpose()?;
 
     // Find the final sort (none of the others affect the result, and can be discarded).
     let order_by = table
@@ -301,8 +300,7 @@ fn sql_query_of_atomic_table(table: AtomicTable) -> Result<sql_ast::Query> {
     Ok(sql_ast::Query {
         body: SetExpr::Select(Box::new(Select {
             distinct: false,
-            // TODO: when should this be `TOP` vs `LIMIT` (which is on the `Query` object?)
-            top: take,
+            top: None,
             projection: (table.select.0.into_iter())
                 .map(|n| n.item.try_into())
                 .try_collect()?,
@@ -317,7 +315,8 @@ fn sql_query_of_atomic_table(table: AtomicTable) -> Result<sql_ast::Query> {
         })),
         order_by,
         with: None,
-        limit: None,
+        // TODO: when should this be `TOP` vs `LIMIT` (which is on the `Query` object?)
+        limit: take,
         offset: None,
         fetch: None,
     })
@@ -445,6 +444,21 @@ impl TryFrom<Item> for SelectItem {
             },
             _ => bail!("Can't convert to SelectItem at the moment; {:?}", item),
         })
+    }
+}
+
+impl TryFrom<Transform> for Expr {
+    type Error = anyhow::Error;
+    fn try_from(transformation: Transform) -> Result<Self> {
+        match transformation {
+            Transform::Take(take) => Ok(
+                // TODO: implement for number
+                Item::Raw(take.to_string()).try_into()?,
+            ),
+            _ => Err(anyhow!(
+                "Expr transformation currently only supported for Take"
+            )),
+        }
     }
 }
 
@@ -719,7 +733,7 @@ SString:
         assert_display_snapshot!(sql,
             @r###"
         SELECT
-          TOP (20) title,
+          title,
           country,
           AVG(salary)
         FROM
@@ -731,6 +745,8 @@ SString:
           country
         ORDER BY
           title
+        LIMIT
+          20
         "###
         );
         assert!(sql.to_lowercase().contains(&"avg(salary)".to_lowercase()));
@@ -863,13 +879,14 @@ take 20
             @r###"
         WITH newest_employees AS (
           SELECT
-            TOP (50) *
+            *
           FROM
             employees
           ORDER BY
             tenure
-        ),
-        average_salaries AS (
+          LIMIT
+            50
+        ), average_salaries AS (
           SELECT
             country,
             AVG(salary) AS average_country_salary
@@ -912,11 +929,12 @@ take 20
         assert_display_snapshot!((translate(&query)?), @r###"
         WITH table_0 AS (
           SELECT
-            TOP (20) *
+            *
           FROM
             employees
-        ),
-        table_1 AS (
+          LIMIT
+            20
+        ), table_1 AS (
           SELECT
             title,
             country,
@@ -965,11 +983,12 @@ take 20
         assert_display_snapshot!((translate(&query)?), @r###"
         WITH table_0 AS (
           SELECT
-            TOP (50) *
+            *
           FROM
             employees
-        ),
-        a AS (
+          LIMIT
+            50
+        ), a AS (
           SELECT
             count(*)
           FROM
@@ -999,9 +1018,11 @@ join salaries [employees.employee_id=salaries.employee_id]
         assert_display_snapshot!(result, @r###"
         WITH table_0 AS (
           SELECT
-            TOP (10) *
+            *
           FROM
             employees
+          LIMIT
+            10
         )
         SELECT
           *
