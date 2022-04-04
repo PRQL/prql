@@ -13,8 +13,8 @@ use monaco::{
 };
 use prql::*;
 use wasm_bindgen::prelude::wasm_bindgen;
-
 use yew::{html, Component, Context, Html};
+use yew_layout::{Column, Row};
 
 #[cfg(feature = "wee_alloc")]
 #[global_allocator]
@@ -55,7 +55,7 @@ impl Component for Editor {
         // an easier way.
         prql_options.set_language(Some("elm"));
         prql_options.set_value(Some(CONTENT));
-        prql_options.set_dimension(Some(&IDimension::new(800, 400)));
+        prql_options.set_dimension(Some(&IDimension::new(600, 400)));
         prql_options.set_minimap(Some(&minimap_options));
 
         // TODO: almost a copy of the above at the moment; resolve DRY.
@@ -65,7 +65,7 @@ impl Component for Editor {
 
         let sql_options: IStandaloneEditorConstructionOptions =
             IStandaloneEditorConstructionOptions::default();
-        sql_options.set_dimension(Some(&IDimension::new(800, 400)));
+        sql_options.set_dimension(Some(&IDimension::new(600, 400)));
         sql_options.set_minimap(Some(&minimap_options));
 
         // Different options
@@ -95,14 +95,14 @@ impl Component for Editor {
         gloo_console::log!("{}", sql);
 
         html! {
-            <div class="grid-container">
-                <div class="grid-child">
+            <Row>
+                <Column>
                     <CodeEditor model={Some(self.prql_model.clone())} options={self.prql_options.clone()} />
-                </div>
-                <div class="grid-child">
+                </Column>
+                <Column>
                     <CodeEditor model={Some(self.sql_model.clone())} options={self.sql_options.clone()} />
-                </div>
-            </div>
+                </Column>
+            </Row>
         }
     }
 }

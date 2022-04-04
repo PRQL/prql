@@ -26,6 +26,7 @@ wasm-logger = "0.2.0"
 web-sys = "0.3.56"
 wee_alloc = {version = "^0.4.2"}
 yew = {version = "0.19.0"}
+yew-layout = "0.7.3"
 
 [dev-dependencies]
 insta = "^1.13"
