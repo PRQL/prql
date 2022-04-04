@@ -1,7 +1,7 @@
 use ariadne::{Label, Report, ReportKind, Source};
 use serde::{Deserialize, Serialize};
 use std::error::Error as StdError;
-use std::fmt::{self, Debug, Display, Formatter};
+use std::fmt::{self, Debug, Display, Formatter, Write};
 use std::ops::Range;
 
 use crate::parser::PestError;
@@ -11,12 +11,20 @@ pub struct Span {
     pub end: usize,
 }
 
-// TODO: return this object when throwing errors
 #[derive(Debug, Clone)]
 pub struct Error {
     pub span: Span,
     pub reason: Reason,
     pub help: Option<String>,
+}
+
+#[derive(Debug)]
+pub struct SourceLocation {
+    /// Line and column
+    pub start: (usize, usize),
+
+    /// Line and column
+    pub end: (usize, usize),
 }
 
 #[derive(Debug, Clone)]
@@ -65,7 +73,36 @@ impl Display for Error {
     }
 }
 
-pub fn print_error(error: anyhow::Error, source_id: &str, source: &str) {
+pub fn format_error(
+    error: anyhow::Error,
+    source_id: &str,
+    source: &str,
+) -> (String, Option<SourceLocation>) {
+    let source = Source::from(source);
+    let location = location(&error, &source);
+
+    (error_message(error, source_id, source), location)
+}
+
+fn location(error: &anyhow::Error, source: &Source) -> Option<SourceLocation> {
+    let span = if let Some(error) = error.downcast_ref::<Error>() {
+        Range::from(error.span)
+    } else if let Some(error) = error.downcast_ref::<PestError>() {
+        pest::as_range(error)
+    } else {
+        return None;
+    };
+
+    let start = source.get_offset_line(span.start)?;
+    let end = source.get_offset_line(span.end)?;
+
+    Some(SourceLocation {
+        start: (start.1, start.2),
+        end: (end.1, end.2),
+    })
+}
+
+fn error_message(error: anyhow::Error, source_id: &str, source: Source) -> String {
     if let Some(error) = error.downcast_ref::<Error>() {
         let span = Range::from(error.span);
 
@@ -79,28 +116,33 @@ pub fn print_error(error: anyhow::Error, source_id: &str, source: &str) {
             report.set_help(help);
         }
 
+        let mut out = Vec::new();
         report
             .finish()
-            .eprint((source_id, Source::from(source)))
+            .write((source_id, source), &mut out)
             .unwrap();
 
-        return;
+        return String::from_utf8(out).unwrap();
     }
 
     if let Some(error) = error.downcast_ref::<PestError>() {
         let span = pest::as_range(error);
+        let mut out = Vec::new();
 
         Report::build(ReportKind::Error, source_id, span.start)
             .with_message("during parsing")
             .with_label(Label::new((source_id, span)).with_message(pest::as_message(error)))
             .finish()
-            .eprint((source_id, Source::from(source)))
+            .write((source_id, source), &mut out)
             .unwrap();
-        return;
+
+        return String::from_utf8(out).unwrap();
     }
 
     // default to basic Display
-    println!("{:}", error);
+    let mut out = String::new();
+    write!(&mut out, "{:#?}", error).unwrap();
+    out
 }
 
 impl Reason {
