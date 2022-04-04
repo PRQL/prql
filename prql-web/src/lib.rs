@@ -13,8 +13,8 @@ use monaco::{
 };
 use prql::*;
 use wasm_bindgen::prelude::wasm_bindgen;
-
 use yew::{html, Component, Context, Html};
+use yew_layout::{Column, Row};
 
 #[cfg(feature = "wee_alloc")]
 #[global_allocator]
@@ -95,14 +95,14 @@ impl Component for Editor {
         gloo_console::log!("{}", sql);
 
         html! {
-            <div class="grid-container">
-                <div class="grid-child">
+            <Row>
+                <Column>
                     <CodeEditor model={Some(self.prql_model.clone())} options={self.prql_options.clone()} />
-                </div>
-                <div class="grid-child">
+                </Column>
+                <Column>
                     <CodeEditor model={Some(self.sql_model.clone())} options={self.sql_options.clone()} />
-                </div>
-            </div>
+                </Column>
+            </Row>
         }
     }
 }
