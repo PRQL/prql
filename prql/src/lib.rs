@@ -23,7 +23,7 @@ pub use translator::translate;
 pub fn compile(prql: &str) -> Result<String, (String, Option<SourceLocation>)> {
     parse(prql)
         .and_then(|x| translate(&x))
-        .map_err(|e| format_error(e, "", prql))
+        .map_err(|e| format_error(e, "", prql, false))
 }
 
 /// Exposes some library internals.

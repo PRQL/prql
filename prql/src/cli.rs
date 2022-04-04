@@ -77,7 +77,7 @@ impl Cli {
                         command.output.write_all(&buf)?;
                     }
                     Err(e) => {
-                        print!("{:}", error::format_error(e, source_id, &source).0);
+                        print!("{:}", error::format_error(e, source_id, &source, true).0);
                         std::process::exit(1)
                     }
                 };

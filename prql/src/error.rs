@@ -1,4 +1,4 @@
-use ariadne::{Label, Report, ReportKind, Source};
+use ariadne::{Config, Label, Report, ReportKind, Source};
 use serde::{Deserialize, Serialize};
 use std::error::Error as StdError;
 use std::fmt::{self, Debug, Display, Formatter, Write};
@@ -77,11 +77,12 @@ pub fn format_error(
     error: anyhow::Error,
     source_id: &str,
     source: &str,
+    color: bool,
 ) -> (String, Option<SourceLocation>) {
     let source = Source::from(source);
     let location = location(&error, &source);
 
-    (error_message(error, source_id, source), location)
+    (error_message(error, source_id, source, color), location)
 }
 
 fn location(error: &anyhow::Error, source: &Source) -> Option<SourceLocation> {
@@ -102,13 +103,16 @@ fn location(error: &anyhow::Error, source: &Source) -> Option<SourceLocation> {
     })
 }
 
-fn error_message(error: anyhow::Error, source_id: &str, source: Source) -> String {
+fn error_message(error: anyhow::Error, source_id: &str, source: Source, color: bool) -> String {
+    let config = Config::default().with_color(color);
+
     if let Some(error) = error.downcast_ref::<Error>() {
         let span = Range::from(error.span);
 
         let message = error.reason.message();
 
         let mut report = Report::build(ReportKind::Error, source_id, span.start)
+            .with_config(config)
             .with_message("")
             .with_label(Label::new((source_id, span)).with_message(&message));
 
@@ -130,6 +134,7 @@ fn error_message(error: anyhow::Error, source_id: &str, source: Source) -> Strin
         let mut out = Vec::new();
 
         Report::build(ReportKind::Error, source_id, span.start)
+            .with_config(config)
             .with_message("during parsing")
             .with_label(Label::new((source_id, span)).with_message(pest::as_message(error)))
             .finish()
