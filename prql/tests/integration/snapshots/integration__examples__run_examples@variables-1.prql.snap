@@ -4,7 +4,7 @@ expression: sql
 input_file: prql/tests/integration/examples/variables-1.prql
 ---
 SELECT
-  TOP (20) title,
+  title,
   country,
   AVG(salary),
   SUM(salary),
@@ -25,3 +25,5 @@ HAVING
   COUNT(*) > 200
 ORDER BY
   sum_gross_cost
+LIMIT
+  20
