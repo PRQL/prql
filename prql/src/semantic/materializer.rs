@@ -20,20 +20,19 @@ pub fn materialize(
     nodes: Vec<Node>,
     context: Context,
 ) -> Result<(Vec<Node>, Context, SelectedColumns)> {
-    let mut m = Materializer::new(context);
+    let mut counter = TableCounter::default();
+    let nodes = counter.fold_nodes(nodes).unwrap();
+
+    let mut m = Materializer {
+        context,
+        remove_namespaces: counter.tables == 1,
+    };
 
     // materialize the query
     let nodes = m.fold_nodes(nodes)?;
 
     // materialize each of the columns
-    let select = (m.context.table.clone().iter())
-        .map(|column| {
-            Ok::<Node, anyhow::Error>(match column {
-                TableColumn::Declared(column_id) => m.materialize_column(*column_id)?,
-                TableColumn::All => Item::Raw("*".to_string()).into(),
-            })
-        })
-        .try_collect()?;
+    let select = m.materialize_columns()?;
 
     Ok((nodes, m.context, SelectedColumns(select)))
 }
@@ -41,50 +40,74 @@ pub fn materialize(
 /// Can fold (walk) over AST and replace function calls and variable references with their declarations.
 pub struct Materializer {
     pub context: Context,
+    pub remove_namespaces: bool,
 }
 
 impl Materializer {
-    pub fn new(context: Context) -> Self {
-        Materializer { context }
+    /// Folds columns and returns expressions that can be used in select.
+    /// Replaces declarations of each column with an identifier.
+    fn materialize_columns(&mut self) -> Result<Vec<Node>> {
+        // This has to be done in two stages, because some of the declarations that
+        // have to be replaced may appear in other columns, where original declaration
+        // is needed.
+
+        // materialize each column
+        let res: Vec<_> = (self.context.frame.clone().iter())
+            .map(|column| match column {
+                TableColumn::Declared(column_id) => self.materialize_column(*column_id),
+                TableColumn::All => Ok((Item::Raw("*".to_string()).into(), None)),
+            })
+            .try_collect()?;
+
+        // replace declarations
+        let res = res
+            .into_iter()
+            .map(|(node, ident)| {
+                if let Some((id, ident)) = ident {
+                    self.context
+                        .replace_declaration(id, Item::Ident(ident).into());
+                }
+
+                node
+            })
+            .collect();
+        Ok(res)
     }
 
     /// Folds the column and returns expression that can be used in select.
-    /// Replaces declaration of the column with an identifier.
-    fn materialize_column(&mut self, column_id: usize) -> Result<Node> {
-        let node = self.context.take_declaration(column_id).unwrap();
+    /// Also returns column id and name if declaration should be replaced.
+    fn materialize_column(&mut self, column_id: usize) -> Result<(Node, Option<(usize, String)>)> {
+        let decl = self.context.declarations[column_id].0.clone();
+
+        // find the new column name (with namespace removed)
+        let ident = (decl.as_name()).map(|i| split_var_name(i.as_str()).1.to_string());
+
+        let node = decl.into_node().unwrap();
 
         // materialize
         let expr_node = self.fold_node(*node)?;
 
-        // find column name
-        let (decl, _) = &self.context.declarations[column_id];
-        let ident = decl.as_name().map(|name| Item::Ident(name.clone()));
+        // println!("{ident:?}:{expr_node:?}");
 
-        let node = if let Some(ident) = ident {
-            // replace declaration with ident
-            self.context
-                .put_declaration(column_id, ident.clone().into());
-
+        Ok(if let Some(ident) = ident {
             // is expr_node just an ident with same name?
-            let name = ident.into_ident()?;
             let expr_name = expr_node.item.as_ident().map(|n| split_var_name(n).1);
-            if expr_name.map(|n| n == name).unwrap_or(false) {
+            let expr_node = if expr_name.map(|n| n == ident).unwrap_or(false) {
                 // return just the ident
                 expr_node
             } else {
                 // return expr with new name
                 Item::NamedExpr(NamedExpr {
                     expr: Box::new(expr_node),
-                    name,
+                    name: ident.clone(),
                 })
                 .into()
-            }
+            };
+            (expr_node, Some((column_id, ident)))
         } else {
             // column is not named, just return its expression
-            expr_node
-        };
-
-        Ok(node)
+            (expr_node, None)
+        })
     }
 
     fn materialize_func_call(&mut self, node: &Node) -> Result<Node> {
@@ -132,11 +155,11 @@ impl Materializer {
                 .get(&param.name)
                 .map_or_else(|| (*param.expr).clone(), |expr| *(*expr).clone());
 
-            self.context.put_declaration(id, value);
+            self.context.replace_declaration(id, value);
         }
         for (param, arg) in zip(func_dec.positional_params.iter(), func_call.args.iter()) {
             self.context
-                .put_declaration(param.declared_at.unwrap(), arg.clone());
+                .replace_declaration(param.declared_at.unwrap(), arg.clone());
         }
 
         // Now fold body as normal node
@@ -175,11 +198,16 @@ impl AstFold for Materializer {
             }
 
             Item::Ident(_) => {
-                if let Some(id) = node.declared_at {
+                let node = if let Some(id) = node.declared_at {
                     let (decl, _) = &self.context.declarations[id];
 
                     let new_node = *decl.clone().into_node()?;
                     self.fold_node(new_node)?
+                } else {
+                    node
+                };
+                if self.remove_namespaces {
+                    remove_namespace(node)
                 } else {
                     node
                 }
@@ -193,13 +221,47 @@ impl AstFold for Materializer {
     }
 }
 
+fn remove_namespace(mut node: Node) -> Node {
+    node.item = match node.item {
+        Item::Ident(ident) => {
+            let (_, variable) = split_var_name(&ident);
+            Item::Ident(variable.to_string())
+        }
+        i => i,
+    };
+    node
+}
+
+/// Counts all tables in scope
+#[derive(Default)]
+struct TableCounter {
+    tables: usize,
+}
+
+impl AstFold for TableCounter {
+    fn fold_func_def(&mut self, function: FuncDef) -> Result<FuncDef> {
+        Ok(function)
+    }
+
+    fn fold_transform(&mut self, transform: Transform) -> Result<Transform> {
+        match &transform {
+            Transform::From(_) | Transform::Join { .. } => {
+                self.tables += 1;
+            }
+            _ => {}
+        }
+        // no need to recurse, transformations cannot be nested
+        Ok(transform)
+    }
+}
+
 #[cfg(test)]
 mod test {
 
     use super::*;
     use crate::{
         parse,
-        semantic::{process, resolve},
+        semantic::{resolve, resolve_and_materialize},
         utils::diff,
     };
     use insta::{assert_display_snapshot, assert_snapshot, assert_yaml_snapshot};
@@ -307,7 +369,7 @@ aggregate [
                         named_args: []
         "###);
 
-        let (mat, _, _) = process(ast.nodes.clone(), None)?;
+        let (mat, _, _) = resolve_and_materialize(ast.nodes.clone(), None)?;
 
         // We could make a convenience function for this. It's useful for
         // showing the diffs of an operation.
@@ -357,10 +419,10 @@ aggregate [
         let ast = parse(
             r#"
 func lag_day x = s"lag_day_todo({x})"
-func ret x = x / (lag_day x) - 1 + dividend_return
+func ret x dividend_return = x / (lag_day x) - 1 + dividend_return
 
 from a
-select (ret b)
+select (ret b c)
 "#,
         )?;
 
@@ -375,10 +437,11 @@ select (ret b)
                   name: ret
                   args:
                     - Ident: b
+                    - Ident: c
                   named_args: []
         "###);
 
-        let (mat, _, _) = process(ast.nodes, None)?;
+        let (mat, _, _) = resolve_and_materialize(ast.nodes, None)?;
         assert_yaml_snapshot!(mat[0], @r###"
         ---
         Pipeline:
@@ -417,7 +480,7 @@ aggregate [a: (sum foo | plus_one)]
 "#,
         )?;
 
-        let (mat, _, _) = process(ast.nodes, None)?;
+        let (mat, _, _) = resolve_and_materialize(ast.nodes, None)?;
 
         assert_yaml_snapshot!(mat[0], @r###"
         ---
@@ -446,7 +509,7 @@ derive [
 ]
 "#,
         )?;
-        let (mat, _, _) = process(ast.nodes, None)?;
+        let (mat, _, _) = resolve_and_materialize(ast.nodes, None)?;
 
         assert_yaml_snapshot!(mat, @r###"
         ---
@@ -472,7 +535,7 @@ aggregate [
 "#,
         )?;
 
-        let (mat, _, _) = process(ast.nodes, None)?;
+        let (mat, _, _) = resolve_and_materialize(ast.nodes, None)?;
         assert_yaml_snapshot!(mat,
             @r###"
         ---
@@ -518,7 +581,7 @@ take 20
 "#,
         )?;
 
-        let (mat, _, _) = process(ast.nodes, None)?;
+        let (mat, _, _) = resolve_and_materialize(ast.nodes, None)?;
         assert_yaml_snapshot!(mat);
         Ok(())
     }
@@ -527,15 +590,17 @@ take 20
     fn test_materialize_3() -> Result<()> {
         let ast = parse(
             r#"
+    func interest_rate = 0.2
+
     func lag_day x = s"lag_day_todo({x})"
-    func ret x = x / (lag_day x) - 1 + dividend_return
+    func ret x dividend_return = x / (lag_day x) - 1 + dividend_return
     func excess x = (x - interest_rate) / 252
     func if_valid x = s"IF(is_valid_price, {x}, NULL)"
-
+    
     from prices
     derive [
-      return_total     : if_valid (ret prices_adj),
-      return_usd       : if_valid (ret prices_usd),
+      return_total     : if_valid (ret prices_adj div_ret),
+      return_usd       : if_valid (ret prices_usd div_ret),
       return_excess    : excess return_total,
       return_usd_excess: excess return_usd,
     ]
@@ -549,7 +614,7 @@ take 20
     ]
     "#,
         )?;
-        let (mat, _, _) = process(ast.nodes, None)?;
+        let (mat, _, _) = resolve_and_materialize(ast.nodes, None)?;
         assert_yaml_snapshot!(mat);
 
         Ok(())
@@ -562,7 +627,7 @@ take 20
 func average column = s"AVG({column})"
 
 from employees
-aggregate by:[emp_no] [
+aggregate by:[title, emp_no] [
   emp_salary: average salary
 ]
 aggregate by:[title] [
@@ -571,7 +636,7 @@ aggregate by:[title] [
 "#,
         )?;
 
-        let (mat, _, _) = process(ast.nodes, None)?;
+        let (mat, _, _) = resolve_and_materialize(ast.nodes, None)?;
         assert_yaml_snapshot!(mat, @r###"
         ---
         - Pipeline:
@@ -580,6 +645,7 @@ aggregate by:[title] [
                 alias: ~
             - Aggregate:
                 by:
+                  - Ident: title
                   - Ident: emp_no
                 select: []
             - Aggregate:

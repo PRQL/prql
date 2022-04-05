@@ -24,7 +24,7 @@ WITH newest_employees AS (
   FROM
     employees
   ORDER BY
-    tenure
+    employees.tenure
   LIMIT
     50
 ), average_salaries AS (

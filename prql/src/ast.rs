@@ -75,7 +75,7 @@ pub enum Transform {
     Join {
         side: JoinSide,
         with: TableRef,
-        on: Vec<Node>,
+        filter: JoinFilter,
     },
 }
 
@@ -101,9 +101,24 @@ impl Transform {
             | Transform::Filter(Filter(nodes))
             | Transform::Derive(nodes)
             | Transform::Aggregate { by: nodes, .. }
-            | Transform::Join { on: nodes, .. }
             | Transform::Sort(nodes) => nodes.first(),
+            Transform::Join { filter, .. } => filter.nodes().first(),
             Transform::Take(_) => None,
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+pub enum JoinFilter {
+    On(Vec<Node>),
+    Using(Vec<Node>),
+}
+
+impl JoinFilter {
+    fn nodes(&self) -> &Vec<Node> {
+        match self {
+            JoinFilter::On(nodes) => nodes,
+            JoinFilter::Using(nodes) => nodes,
         }
     }
 }

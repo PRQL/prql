@@ -19,6 +19,7 @@ use std::collections::HashMap;
 
 use super::ast::*;
 use super::utils::*;
+use crate::ast::JoinFilter;
 use crate::semantic;
 use crate::semantic::SelectedColumns;
 
@@ -52,7 +53,7 @@ pub fn translate_query(query: &Query) -> Result<sql_ast::Query> {
     let atomics = atomic_tables_of_tables(tables)?;
 
     // init query context
-    let (_, mut context, _) = semantic::process(functions, None)?;
+    let (_, mut context, _) = semantic::resolve_and_materialize(functions, None)?;
 
     // materialize each atomic in two stages
     let mut materialized = Vec::new();
@@ -196,17 +197,17 @@ fn sql_query_of_atomic_table(table: AtomicTable) -> Result<sql_ast::Query> {
         .iter()
         .filter(|t| matches!(t, Transform::Join { .. }))
         .map(|t| match t {
-            Transform::Join { side, with, on } => {
-                let use_using = (on.iter().map(|x| &x.item)).all(|x| matches!(x, Item::Ident(_)));
-
-                let constraint = if use_using {
-                    JoinConstraint::Using(
-                        on.iter()
+            Transform::Join { side, with, filter } => {
+                let constraint = match filter {
+                    JoinFilter::On(nodes) => Item::Expr(nodes.to_vec())
+                        .try_into()
+                        .map(JoinConstraint::On)?,
+                    JoinFilter::Using(nodes) => JoinConstraint::Using(
+                        nodes
+                            .iter()
                             .map(|x| x.item.clone().try_into())
                             .collect::<Result<Vec<_>>>()?,
-                    )
-                } else {
-                    Item::Expr(on.to_vec()).try_into().map(JoinConstraint::On)?
+                    ),
                 };
 
                 Ok(Join {
@@ -774,7 +775,6 @@ SString:
           20
         "###
         );
-        assert!(sql.to_lowercase().contains(&"avg(salary)".to_lowercase()));
         Ok(())
     }
 
@@ -790,17 +790,16 @@ SString:
                 - Aggregate:
                     by: []
                     select:
-                    - SString:
-                        - String: count(
-                        - Expr:
-                            Ident: salary
-                        - String: )
                     - NamedExpr:
                         name: sum_salary
                         expr:
-                            Ident: salary
+                            SString:
+                            - String: count(
+                            - Expr:
+                                Ident: salary
+                            - String: )
                 - Filter:
-                    - Ident: salary
+                    - Ident: sum_salary
                     - Raw: ">"
                     - Raw: "100"
         "###,
@@ -808,12 +807,11 @@ SString:
         let sql = translate(&query)?;
         assert_snapshot!(sql, @r###"
         SELECT
-          count(salary),
-          salary AS sum_salary
+          count(salary) AS sum_salary
         FROM
           employees
         HAVING
-          salary > 100
+          count(salary) > 100
         "###);
         assert!(sql.to_lowercase().contains(&"having".to_lowercase()));
 
@@ -908,7 +906,7 @@ take 20
           FROM
             employees
           ORDER BY
-            tenure
+            employees.tenure
           LIMIT
             50
         ), average_salaries AS (
@@ -945,7 +943,7 @@ take 20
                 average salary
             ]
             aggregate by:[title, country] [
-                average salary
+                sum_gross_cost: average salary
             ]
             sort sum_gross_cost
         "###,
@@ -975,7 +973,7 @@ take 20
         SELECT
           title,
           country,
-          AVG(salary)
+          AVG(salary) AS sum_gross_cost
         FROM
           table_1
         GROUP BY
@@ -1032,7 +1030,7 @@ take 20
     }
 
     #[test]
-    #[should_panic]
+    #[should_panic] // TODO: this test
     fn test_table_references() {
         let prql = r#"
 from employees
