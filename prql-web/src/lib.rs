@@ -88,7 +88,7 @@ impl Component for Editor {
 
     fn view(&self, _ctx: &Context<Self>) -> Html {
         let prql = self.prql_model.get_value();
-        let sql = compile(&prql).unwrap_or_else(|e| e.to_string());
+        let sql = compile(&prql).unwrap_or_else(|e| e.0);
 
         self.sql_model.set_value(&sql);
 

@@ -16,8 +16,8 @@ nodes:
 }
 
 #[test]
-fn transpile_variables() -> Result<()> {
-    assert_snapshot!(compile("select 1")?, @r###"
+fn transpile_variables() {
+    assert_snapshot!(compile("select 1").unwrap(), @r###"
     SELECT
       1
     "###);
@@ -43,7 +43,7 @@ aggregate by:[title, country] [                  # `by` are the columns to group
 sort sum_gross_cost
 filter ct > 200
 take 20
-"#)?, @r###"
+"#).unwrap(), @r###"
     SELECT
       title,
       country,
@@ -69,13 +69,11 @@ take 20
     LIMIT
       20
     "###);
-
-    Ok(())
 }
 
 #[test]
-fn transpile_functions() -> Result<()> {
-    // TODO: Compare to canoncial example:
+fn transpile_functions() {
+    // TODO: Compare to canonical example:
     // - Window func not yet built.
     let prql = r#"
     func lag_day x = s"lag_day_todo({x})"
@@ -87,7 +85,7 @@ fn transpile_functions() -> Result<()> {
       return_total:      if_valid (ret prices_adj),
     ]
     "#;
-    let result = compile(prql)?;
+    let result = compile(prql).unwrap();
 
     assert_snapshot!(result, @r###"
     SELECT
@@ -104,12 +102,10 @@ fn transpile_functions() -> Result<()> {
     // Assert that the nested function has been run.
     assert!(!result.contains(&"ret prices_adj"));
     assert!(!result.contains(&"lag_day prices_adj"));
-
-    Ok(())
 }
 
 #[test]
-fn transpile_joins() -> Result<()> {
+fn transpile_joins() {
     // TODO: issues, as outlined in https://github.com/max-sixty/prql/issues/194
     // - we need table aliases in joins and froms because joins get real long.
     //   Also, I think that using only emp_no in second select will not resolve
@@ -133,7 +129,8 @@ aggregate by:[dept_emp.dept_no, titles.title] [
 join side:left departments [departments.dept_no = dept_no]
 select [dept_name, title, avg_salary]
 "#,
-    )?;
+    )
+    .unwrap();
 
     assert_snapshot!(result, @r###"
     WITH table_0 AS (
@@ -170,6 +167,4 @@ select [dept_name, title, avg_salary]
 
     // #213
     assert!(!result.to_lowercase().contains(&"avg(avg"));
-
-    Ok(())
 }
