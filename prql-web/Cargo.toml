@@ -15,6 +15,7 @@ prql = {path = "../prql"}
 
 [target.'cfg(target_arch="wasm32")'.dependencies]
 console_error_panic_hook = {version = "0.1.1"}
+css-style = "0.13.1"
 gloo-console = {version = "0.2.0"}
 gloo-events = "0.1.1"
 log = "0.4.6"

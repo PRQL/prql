@@ -2,6 +2,7 @@
 // https://github.com/rustwasm/wasm-bindgen/issues/2774
 #![allow(clippy::unused_unit)]
 
+use css_style::unit::{percent, px};
 use monaco::{
     api::DisposableClosure,
     sys::editor::{IDimension, IModelContentChangedEvent},
@@ -14,7 +15,7 @@ use monaco::{
 use prql::*;
 use wasm_bindgen::prelude::wasm_bindgen;
 use yew::{html, Component, Context, Html};
-use yew_layout::{Column, Row};
+use yew_layout::{Column, Length, Row};
 
 #[cfg(feature = "wee_alloc")]
 #[global_allocator]
@@ -55,8 +56,11 @@ impl Component for Editor {
         // an easier way.
         prql_options.set_language(Some("elm"));
         prql_options.set_value(Some(CONTENT));
-        prql_options.set_dimension(Some(&IDimension::new(600, 400)));
+        // I'm a bit unclear how this exactly corresponds with yew-layout, and
+        // the automatic layout.
+        prql_options.set_dimension(Some(&IDimension::new(150, 600)));
         prql_options.set_minimap(Some(&minimap_options));
+        prql_options.set_automatic_layout(Some(true));
 
         // TODO: almost a copy of the above at the moment; resolve DRY.
         let sql_model = TextModel::create(CONTENT, Some("sql"), None).unwrap();
@@ -65,8 +69,9 @@ impl Component for Editor {
 
         let sql_options: IStandaloneEditorConstructionOptions =
             IStandaloneEditorConstructionOptions::default();
-        sql_options.set_dimension(Some(&IDimension::new(600, 400)));
+        sql_options.set_dimension(Some(&IDimension::new(150, 600)));
         sql_options.set_minimap(Some(&minimap_options));
+        sql_options.set_automatic_layout(Some(true));
 
         // Different options
         sql_options.set_language(Some("sql"));
@@ -94,12 +99,20 @@ impl Component for Editor {
 
         gloo_console::log!("{}", sql);
 
+        // Suprising behavior from the layouts:
+        // https://gitlab.com/MAlrusayni/yew-layout/-/issues/1
         html! {
-            <Row>
-                <Column>
+            <Row
+            min_length={ Length::Length(px(800)) }
+            >
+                <Column
+                min_width={ Length::Percent(percent(0.5)) }
+                >
                     <CodeEditor model={Some(self.prql_model.clone())} options={self.prql_options.clone()} />
                 </Column>
-                <Column>
+                <Column
+                min_width={ Length::Percent(percent(0.5)) }
+                >
                     <CodeEditor model={Some(self.sql_model.clone())} options={self.sql_options.clone()} />
                 </Column>
             </Row>
