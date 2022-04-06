@@ -189,7 +189,7 @@ mod tests {
     fn test_scopes_during_from() {
         let context = Context::default();
 
-        let mut resolver = Resolver { context: context };
+        let mut resolver = Resolver { context };
 
         let pipeline: Node = from_str(
             r##"
@@ -213,7 +213,7 @@ mod tests {
     fn test_scopes_during_select() {
         let context = Context::default();
 
-        let mut resolver = Resolver { context: context };
+        let mut resolver = Resolver { context };
 
         let pipeline: Node = from_str(
             r##"
