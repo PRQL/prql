@@ -89,7 +89,7 @@ fn transpile_functions() {
 
     assert_snapshot!(result, @r###"
     SELECT
-      *,
+      prices.*,
       IF(
         is_valid_price,
         prices_adj / lag_day_todo(prices_adj) - 1 + dividend_return,

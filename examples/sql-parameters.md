@@ -5,7 +5,7 @@ filter id = $1
 
 ```sql
 SELECT
-  *
+  mytable.*
 FROM
   mytable
 WHERE

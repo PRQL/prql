@@ -65,6 +65,8 @@ pub fn translate_query(query: &Query) -> Result<sql_ast::Query> {
         let (stage_2, c, _) = semantic::process_pipeline(stage_2, Some(c))?;
         context = c;
 
+        context.finish_table(&t.name);
+
         materialized.push(AtomicTable {
             name: t.name,
             select,
@@ -902,7 +904,7 @@ take 20
             @r###"
         WITH newest_employees AS (
           SELECT
-            *
+            employees.*
           FROM
             employees
           ORDER BY
@@ -952,7 +954,7 @@ take 20
         assert_display_snapshot!((translate(&query)?), @r###"
         WITH table_0 AS (
           SELECT
-            *
+            employees.*
           FROM
             employees
           LIMIT
@@ -1006,7 +1008,7 @@ take 20
         assert_display_snapshot!((translate(&query)?), @r###"
         WITH table_0 AS (
           SELECT
-            *
+            employees.*
           FROM
             employees
           LIMIT
@@ -1030,30 +1032,35 @@ take 20
     }
 
     #[test]
-    #[should_panic] // TODO: this test
-    fn test_table_references() {
-        let prql = r#"
-from employees
-take 10
-join salaries [employees.employee_id=salaries.employee_id]
-        "#;
+    fn test_table_names_between_splits() {
+        let prql = r###"
+        from employees
+        join d:department [dept_no]
+        take 10
+        join s:salaries [emp_no]
+        select [employees.emp_no, d.name, s.salary]
+        "###;
         let result = parse(prql).and_then(|x| translate(&x)).unwrap();
         assert_display_snapshot!(result, @r###"
         WITH table_0 AS (
           SELECT
-            *
+            employees.*,
+            d.*,
+            dept_no
           FROM
             employees
+            JOIN department AS d USING(dept_no)
           LIMIT
             10
         )
         SELECT
-          *
+          table_0.emp_no,
+          table_0.name,
+          s.salary
         FROM
           table_0
-          JOIN salaries ON employees.employee_id = salaries.employee_id
+          JOIN salaries AS s USING(emp_no)
         "###);
-        assert!(!result.contains("employees.employee_id"));
     }
 
     #[test]

@@ -132,6 +132,10 @@ impl AstFold for Resolver {
                     Transform::Select(nodes) => {
                         self.context.frame.clear();
 
+                        dbg!(&self.context.tables);
+                        dbg!(&self.context.inverse);
+                        dbg!(&self.context.variables);
+
                         self.fold_and_declare(nodes)?;
 
                         self.context.clear_scopes();
@@ -208,7 +212,7 @@ mod tests {
 
         assert_yaml_snapshot!(resolver.context.frame, @r###"
         ---
-        - All
+        - All: employees
         "###);
         assert!(resolver.context.variables["employees"].len() == 1);
     }

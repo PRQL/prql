@@ -20,7 +20,7 @@ select [name, salary, average_country_salary]
 ```sql
 WITH newest_employees AS (
   SELECT
-    *
+    employees.*
   FROM
     employees
   ORDER BY

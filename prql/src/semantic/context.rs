@@ -39,7 +39,7 @@ pub struct Context {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum TableColumn {
-    All,
+    All(String),
     Declared(usize),
 }
 
@@ -66,11 +66,12 @@ impl Context {
         self.frame
             .iter()
             .filter_map(|col| match col {
-                TableColumn::All => None,
-                TableColumn::Declared(id) => Some(id),
+                TableColumn::All(namespace) => Some(Some(format!("{namespace}.*"))),
+                TableColumn::Declared(id) => {
+                    let var = self.declarations[*id].0.as_variable();
+                    var.map(|c| c.name.clone())
+                }
             })
-            .filter_map(|id| self.declarations[*id].0.as_variable().cloned())
-            .map(|c| c.name)
             .collect()
     }
 
@@ -99,15 +100,15 @@ impl Context {
     /// Removes variables from all scopes, except $ and %. Also clears frame.
     pub(super) fn clear_scopes(&mut self) {
         // point all table aliases to $
-        for alias in self.tables.values_mut() {
-            *alias = "$".to_string();
-        }
+        // for alias in self.tables.values_mut() {
+        // *alias = "$".to_string();
+        // }
 
         // remove namespaces and collect all their variables to "current frame" namespace
         let mut current = self.variables.remove("$").unwrap_or_default();
         current.retain(|_, id| self.frame.iter().any(|c| c == id));
         self.variables.retain(|name, space| match name.as_str() {
-            "%" => true,
+            "%" | "_" | "$" => true,
             _ => {
                 // redirect namespace to $
                 self.tables.insert(name.clone(), "$".to_string());
@@ -122,6 +123,16 @@ impl Context {
         self.variables.insert("$".to_string(), current);
 
         self.refresh_inverse_index();
+    }
+
+    pub fn finish_table(&mut self, table_name: &str) {
+        self.variables.retain(|name, _| match name.as_str() {
+            "_" | "$" | "%" => true,
+            _ => {
+                self.tables.insert(name.clone(), table_name.to_string());
+                false
+            }
+        });
     }
 
     fn declare(&mut self, dec: Declaration, span: Option<Span>) -> usize {
@@ -224,8 +235,9 @@ impl Context {
     }
 
     fn add_to_scope(&mut self, name: Option<&str>, id: usize, in_frame: bool) {
-        if let Some(name) = name {
-            let (namespace, variable) = split_var_name(name);
+        let name = name.map(split_var_name);
+
+        if let Some((namespace, variable)) = name {
             let namespace = if namespace.is_empty() { "$" } else { namespace };
 
             // insert into own namespace
@@ -242,14 +254,13 @@ impl Context {
             }
         }
 
+        // add column to frame
         if in_frame {
-            // add column to frame
-            let is_all = name.map(|n| n.ends_with(".*")).unwrap_or(false);
-            self.frame.push(if is_all {
-                TableColumn::All
+            if let Some((ns, "*")) = name {
+                self.frame.push(TableColumn::All(ns.to_string()));
             } else {
-                TableColumn::Declared(id)
-            });
+                self.frame.push(TableColumn::Declared(id));
+            }
         }
     }
 
@@ -375,7 +386,7 @@ impl From<Declaration> for anyhow::Error {
 impl PartialEq<usize> for TableColumn {
     fn eq(&self, other: &usize) -> bool {
         match self {
-            TableColumn::All => false,
+            TableColumn::All(_) => false,
             TableColumn::Declared(id) => id == other,
         }
     }

@@ -55,7 +55,9 @@ impl Materializer {
         let res: Vec<_> = (self.context.frame.clone().iter())
             .map(|column| match column {
                 TableColumn::Declared(column_id) => self.materialize_column(*column_id),
-                TableColumn::All => Ok((Item::Raw("*".to_string()).into(), None)),
+                TableColumn::All(namespace) => {
+                    Ok((Item::Ident(format!("{namespace}.*")).into(), None))
+                }
             })
             .try_collect()?;
 
