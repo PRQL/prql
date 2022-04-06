@@ -26,13 +26,13 @@ jobs:
         uses: actions/checkout@v2
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v1
-      # `--all-targets` doesn't seem to work here; even with a `toolchain` step.
       - name: 📎 Clippy
         uses: actions-rs/cargo@v1
         with:
           command: clippy
           args: --all-targets --all -- -D warnings
-      - name: 📎 Clippy
+      # `--all-targets` doesn't seem to work here; even with a `toolchain` step, so we run clippy twice.
+      - name: 📎 Clippy wasm
         uses: actions-rs/cargo@v1
         with:
           command: clippy
