@@ -31,7 +31,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: clippy
-          args: --all-targets --all -- -D warnings
+          args: --all-targets --workspace -- -D warnings
       # Note that `--all-targets` doesn't refer to targets like `wasm32-unknown-unknown`. So we need another step here.
       - name: 🔗 Setup rust wasm toolchain
         uses: actions-rs/toolchain@v1
@@ -39,12 +39,11 @@ jobs:
           profile: minimal
           target: wasm32-unknown-unknown
           toolchain: stable
-          default: true
       - name: 📎 Clippy (wasm)
         uses: actions-rs/cargo@v1
         with:
           command: clippy
-          args: --all-targets --workspace -- -D warnings
+          args: --all-targets --workspace --target=wasm32-unknown-unknown -- -D warnings
       - name: ⌨️ Fmt
         uses: actions-rs/cargo@v1
         with:
