@@ -15,7 +15,7 @@ pub struct Node {
     #[serde(flatten)]
     pub item: Item,
     #[serde(skip)]
-    pub span: Span,
+    pub span: Option<Span>,
     #[serde(skip)]
     pub declared_at: Option<usize>,
 }
@@ -260,7 +260,7 @@ impl From<Item> for Node {
     fn from(item: Item) -> Self {
         Node {
             item,
-            span: Span::default(),
+            span: None,
             declared_at: None,
         }
     }

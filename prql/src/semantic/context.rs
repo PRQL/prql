@@ -144,7 +144,7 @@ impl Context {
         let name = func_def.name.clone();
         let is_variable = func_def.named_params.is_empty() && func_def.positional_params.is_empty();
 
-        let span = Some(func_def.body.span);
+        let span = func_def.body.span;
         let id = self.declare(Declaration::Function(func_def), span);
 
         if is_variable {
@@ -200,7 +200,7 @@ impl Context {
         };
 
         let name = var_dec.name.clone();
-        let id = self.declare(Declaration::Variable(var_dec), Some(node.span));
+        let id = self.declare(Declaration::Variable(var_dec), node.span);
 
         self.add_to_scope(name.as_deref(), id, in_frame);
         id
