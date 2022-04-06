@@ -321,13 +321,21 @@ fn ast_of_transformation(items: Vec<Node>) -> Result<Transform> {
                 alias: with_alias,
             };
 
-            let on = if let Some(on) = positional.get(1) {
+            let filter = if let Some(on) = positional.get(1) {
                 on.clone().discard_name()?.coerce_to_items()
             } else {
                 vec![]
             };
 
-            Transform::Join { side, with, on }
+            let use_using = (filter.iter().map(|x| &x.item)).all(|x| matches!(x, Item::Ident(_)));
+
+            let filter = if use_using {
+                JoinFilter::Using(filter)
+            } else {
+                JoinFilter::On(filter)
+            };
+
+            Transform::Join { side, with, filter }
         }
         _ => bail!("Expected a known transformation; got {name}"),
     })

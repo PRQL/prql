@@ -5,11 +5,11 @@ input_file: prql/tests/integration/examples/cte-1.prql
 ---
 WITH newest_employees AS (
   SELECT
-    *
+    employees.*
   FROM
     employees
   ORDER BY
-    tenure
+    employees.tenure
   LIMIT
     50
 ), average_salaries AS (

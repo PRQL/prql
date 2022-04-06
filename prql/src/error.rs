@@ -29,6 +29,7 @@ pub struct SourceLocation {
 
 #[derive(Debug, Clone)]
 pub enum Reason {
+    Simple(String),
     Expected {
         who: Option<String>,
         expected: String,
@@ -153,6 +154,7 @@ fn error_message(error: anyhow::Error, source_id: &str, source: Source, color: b
 impl Reason {
     fn message(&self) -> String {
         match self {
+            Reason::Simple(text) => text.clone(),
             Reason::Expected {
                 who,
                 expected,

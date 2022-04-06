@@ -16,7 +16,7 @@ use anyhow::Result;
 ///
 /// Can work with previously resolved context (defined functions, variables).
 /// Also returns materialized columns that can be converted into items for SELECT
-pub fn process(
+pub fn resolve_and_materialize(
     nodes: Vec<Node>,
     context: Option<Context>,
 ) -> Result<(Vec<Node>, Context, SelectedColumns)> {
@@ -29,7 +29,8 @@ pub fn process_pipeline(
     pipeline: Pipeline,
     context: Option<Context>,
 ) -> Result<(Pipeline, Context, SelectedColumns)> {
-    let (nodes, context, select) = process(vec![Item::Pipeline(pipeline).into()], context)?;
+    let (nodes, context, select) =
+        resolve_and_materialize(vec![Item::Pipeline(pipeline).into()], context)?;
     let pipeline = nodes.into_only()?.item.into_pipeline()?;
     Ok((pipeline, context, select))
 }

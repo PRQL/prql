@@ -19,6 +19,7 @@ use std::collections::HashMap;
 
 use super::ast::*;
 use super::utils::*;
+use crate::ast::JoinFilter;
 use crate::semantic;
 use crate::semantic::SelectedColumns;
 
@@ -52,7 +53,7 @@ pub fn translate_query(query: &Query) -> Result<sql_ast::Query> {
     let atomics = atomic_tables_of_tables(tables)?;
 
     // init query context
-    let (_, mut context, _) = semantic::process(functions, None)?;
+    let (_, mut context, _) = semantic::resolve_and_materialize(functions, None)?;
 
     // materialize each atomic in two stages
     let mut materialized = Vec::new();
@@ -63,6 +64,8 @@ pub fn translate_query(query: &Query) -> Result<sql_ast::Query> {
 
         let (stage_2, c, _) = semantic::process_pipeline(stage_2, Some(c))?;
         context = c;
+
+        context.finish_table(&t.name);
 
         materialized.push(AtomicTable {
             name: t.name,
@@ -196,17 +199,17 @@ fn sql_query_of_atomic_table(table: AtomicTable) -> Result<sql_ast::Query> {
         .iter()
         .filter(|t| matches!(t, Transform::Join { .. }))
         .map(|t| match t {
-            Transform::Join { side, with, on } => {
-                let use_using = (on.iter().map(|x| &x.item)).all(|x| matches!(x, Item::Ident(_)));
-
-                let constraint = if use_using {
-                    JoinConstraint::Using(
-                        on.iter()
+            Transform::Join { side, with, filter } => {
+                let constraint = match filter {
+                    JoinFilter::On(nodes) => Item::Expr(nodes.to_vec())
+                        .try_into()
+                        .map(JoinConstraint::On)?,
+                    JoinFilter::Using(nodes) => JoinConstraint::Using(
+                        nodes
+                            .iter()
                             .map(|x| x.item.clone().try_into())
                             .collect::<Result<Vec<_>>>()?,
-                    )
-                } else {
-                    Item::Expr(on.to_vec()).try_into().map(JoinConstraint::On)?
+                    ),
                 };
 
                 Ok(Join {
@@ -774,7 +777,6 @@ SString:
           20
         "###
         );
-        assert!(sql.to_lowercase().contains(&"avg(salary)".to_lowercase()));
         Ok(())
     }
 
@@ -790,17 +792,16 @@ SString:
                 - Aggregate:
                     by: []
                     select:
-                    - SString:
-                        - String: count(
-                        - Expr:
-                            Ident: salary
-                        - String: )
                     - NamedExpr:
                         name: sum_salary
                         expr:
-                            Ident: salary
+                            SString:
+                            - String: count(
+                            - Expr:
+                                Ident: salary
+                            - String: )
                 - Filter:
-                    - Ident: salary
+                    - Ident: sum_salary
                     - Raw: ">"
                     - Raw: "100"
         "###,
@@ -808,12 +809,11 @@ SString:
         let sql = translate(&query)?;
         assert_snapshot!(sql, @r###"
         SELECT
-          count(salary),
-          salary AS sum_salary
+          count(salary) AS sum_salary
         FROM
           employees
         HAVING
-          salary > 100
+          count(salary) > 100
         "###);
         assert!(sql.to_lowercase().contains(&"having".to_lowercase()));
 
@@ -904,11 +904,11 @@ take 20
             @r###"
         WITH newest_employees AS (
           SELECT
-            *
+            employees.*
           FROM
             employees
           ORDER BY
-            tenure
+            employees.tenure
           LIMIT
             50
         ), average_salaries AS (
@@ -945,7 +945,7 @@ take 20
                 average salary
             ]
             aggregate by:[title, country] [
-                average salary
+                sum_gross_cost: average salary
             ]
             sort sum_gross_cost
         "###,
@@ -954,7 +954,7 @@ take 20
         assert_display_snapshot!((translate(&query)?), @r###"
         WITH table_0 AS (
           SELECT
-            *
+            employees.*
           FROM
             employees
           LIMIT
@@ -975,7 +975,7 @@ take 20
         SELECT
           title,
           country,
-          AVG(salary)
+          AVG(salary) AS sum_gross_cost
         FROM
           table_1
         GROUP BY
@@ -1008,7 +1008,7 @@ take 20
         assert_display_snapshot!((translate(&query)?), @r###"
         WITH table_0 AS (
           SELECT
-            *
+            employees.*
           FROM
             employees
           LIMIT
@@ -1032,30 +1032,59 @@ take 20
     }
 
     #[test]
-    #[should_panic]
-    fn test_table_references() {
-        let prql = r#"
-from employees
-take 10
-join salaries [employees.employee_id=salaries.employee_id]
-        "#;
+    fn test_table_names_between_splits() {
+        let prql = r###"
+        from employees
+        join d:department [dept_no]
+        take 10
+        join s:salaries [emp_no]
+        select [employees.emp_no, d.name, s.salary]
+        "###;
         let result = parse(prql).and_then(|x| translate(&x)).unwrap();
         assert_display_snapshot!(result, @r###"
         WITH table_0 AS (
           SELECT
-            *
+            employees.*,
+            d.*,
+            dept_no
           FROM
             employees
+            JOIN department AS d USING(dept_no)
           LIMIT
             10
         )
         SELECT
-          *
+          table_0.emp_no,
+          table_0.name,
+          s.salary
         FROM
           table_0
-          JOIN salaries ON employees.employee_id = salaries.employee_id
+          JOIN salaries AS s USING(emp_no)
         "###);
-        assert!(!result.contains("employees.employee_id"));
+
+        let prql = r###"
+        from e:employees
+        take 10
+        join salaries [emp_no]
+        select [e.*, salary]
+        "###;
+        let result = parse(prql).and_then(|x| translate(&x)).unwrap();
+        assert_display_snapshot!(result, @r###"
+        WITH table_0 AS (
+          SELECT
+            e.*
+          FROM
+            employees AS e
+          LIMIT
+            10
+        )
+        SELECT
+          table_0.*,
+          salary
+        FROM
+          table_0
+          JOIN salaries USING(emp_no)
+        "###);
     }
 
     #[test]
