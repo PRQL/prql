@@ -73,11 +73,13 @@ impl<'a> AstFold for Labeler<'a> {
                 Declaration::Function(_) => Color::Yellow,
             };
 
-            self.report.add_label(
-                Label::new((self.source_id.to_string(), Range::from(node.span)))
-                    .with_message(message)
-                    .with_color(color),
-            )
+            if let Some(span) = node.span {
+                self.report.add_label(
+                    Label::new((self.source_id.to_string(), Range::from(span)))
+                        .with_message(message)
+                        .with_color(color),
+                );
+            }
         }
         Ok(self.fold_item(node.item)?.into())
     }

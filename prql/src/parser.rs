@@ -210,10 +210,10 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
             };
 
             let mut node = Node::from(item);
-            node.span = Span {
+            node.span = Some(Span {
                 start: span.start(),
                 end: span.end(),
-            };
+            });
             Ok(node)
         })
         .collect()

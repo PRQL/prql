@@ -140,11 +140,14 @@ fn resolve_with_frames(
                 let span = node.span;
                 let (_, c, _) = resolve_and_materialize(vec![node], Some(context))?;
                 context = c;
-                frames.push((span, context.get_frame()));
+
+                if let Some(span) = span {
+                    frames.push((span, context.get_frame()));
+                };
             }
             Item::Pipeline(pipeline) => {
                 for t in pipeline {
-                    let span = t.first_node().map(|n| n.span);
+                    let span = t.first_node().and_then(|n| n.span);
                     let (_, c, _) = process_pipeline(vec![t], Some(context))?;
                     context = c;
 
