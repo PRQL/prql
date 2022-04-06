@@ -472,6 +472,18 @@ mod test {
                   named_args: []
           - Raw: "2"
         "###);
+        // Line breaks
+        assert_yaml_snapshot!(ast_of_string(
+            r#"[1,
+
+                2]"#,
+         Rule::list)?, @r###"
+        ---
+        List:
+          - Raw: "1"
+          - Raw: "2"
+        "###);
+        // Function call in a list
         let ab = ast_of_string(r#"[a b]"#, Rule::list)?;
         let a_comma_b = ast_of_string(r#"[a, b]"#, Rule::list)?;
         assert_yaml_snapshot!(ab, @r###"
