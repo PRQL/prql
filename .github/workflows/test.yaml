@@ -26,7 +26,7 @@ jobs:
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v1
         with:
-          key: wasm-test
+          key: wasm-test-2
       - name: 📎 Clippy (standard)
         uses: actions-rs/cargo@v1
         with:
