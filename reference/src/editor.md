@@ -20,7 +20,7 @@ Chrome & Firefox! -->
         position: fixed;
         height: 100%;
         width: -moz-available;
-        width: -webkit-fill-available;  
+        width: -webkit-fill-available;
         width: stretch;
     }
 </style>
