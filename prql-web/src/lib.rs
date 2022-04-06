@@ -2,11 +2,7 @@
 // https://github.com/rustwasm/wasm-bindgen/issues/2774
 #![allow(clippy::unused_unit)]
 
-use css_style::unit::{percent, px};
-use monaco::{
-    api::DisposableClosure,
-    sys::editor::{IDimension, IModelContentChangedEvent},
-};
+use monaco::{api::DisposableClosure, sys::editor::IModelContentChangedEvent};
 use monaco::{
     api::TextModel,
     sys::editor::{IEditorMinimapOptions, IStandaloneEditorConstructionOptions},
@@ -15,7 +11,6 @@ use monaco::{
 use prql::*;
 use wasm_bindgen::prelude::wasm_bindgen;
 use yew::{classes, html, Component, Context, Html};
-use yew_layout::{Column, Length, Row};
 
 #[cfg(feature = "wee_alloc")]
 #[global_allocator]

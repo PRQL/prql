@@ -18,7 +18,6 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
-      # Possibly we could only run these lints on Linux.
   lint:
     runs-on: ${{ inputs.os }}
     steps:
@@ -26,11 +25,25 @@ jobs:
         uses: actions/checkout@v2
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v1
-      - name: 📎 Clippy
+        with:
+          key: wasm-test-2
+      - name: 📎 Clippy (standard)
         uses: actions-rs/cargo@v1
         with:
           command: clippy
-          args: --all-targets --all -- -D warnings
+          args: --all-targets --workspace -- -D warnings
+      # Note that `--all-targets` doesn't refer to targets like `wasm32-unknown-unknown`. So we need another step here.
+      - name: 🔗 Setup rust wasm toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          target: wasm32-unknown-unknown
+          toolchain: stable
+      - name: 📎 Clippy (wasm)
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: --all-targets --workspace --target=wasm32-unknown-unknown -- -D warnings
       - name: ⌨️ Fmt
         uses: actions-rs/cargo@v1
         with:
