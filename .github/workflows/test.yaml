@@ -26,13 +26,11 @@ jobs:
         uses: actions/checkout@v2
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v1
-        # Trying to get clippy to also check wasm32 code
-      - name: 🔗 Setup rust toolchain
-        uses: actions-rs/toolchain@v1
+      - name: 📎 Clippy
+        uses: actions-rs/cargo@v1
         with:
-          profile: minimal
-          target: wasm32-unknown-unknown
-          toolchain: stable
+          command: clippy
+          args: --all-targets --all --target -- -D warnings
       - name: 📎 Clippy
         uses: actions-rs/cargo@v1
         with:
