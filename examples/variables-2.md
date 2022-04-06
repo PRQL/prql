@@ -24,7 +24,7 @@ WITH table_0 AS (
 )
 SELECT
   AVG(emp_salary) / 1000 AS salary_k,
-  AVG(emp_salary) / 1000 * 1000 AS salary
+  salary_k * 1000 AS salary
 FROM
   table_0
   JOIN titles USING(emp_no)
