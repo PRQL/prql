@@ -476,7 +476,7 @@ mod test {
         assert_yaml_snapshot!(ast_of_string(
             r#"[1,
 
-                2]"#, 
+                2]"#,
          Rule::list)?, @r###"
         ---
         List:
