@@ -21,21 +21,15 @@ WITH table_0 AS (
     employees
   GROUP BY
     emp_no
-),
-table_1 AS (
-  SELECT
-    AVG(emp_salary) / 1000 AS salary_k
-  FROM
-    table_0
-    JOIN titles USING(emp_no)
-  GROUP BY
-    title
-  LIMIT
-    10
 )
 SELECT
-  *,
+  AVG(emp_salary) / 1000 AS salary_k,
   salary_k * 1000 AS salary
 FROM
-  table_1
+  table_0
+  JOIN titles USING(emp_no)
+GROUP BY
+  title
+LIMIT
+  10
 ```

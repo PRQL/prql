@@ -324,40 +324,47 @@ fn sql_query_of_atomic_table(table: AtomicTable) -> Result<sql_ast::Query> {
 
 /// Convert a pipeline into a number of pipelines which can each "fit" into a SELECT.
 fn atomic_pipelines_of_pipeline(pipeline: &Pipeline) -> Result<Vec<Pipeline>> {
-    // Before starting a new CTE, we can have a pipeline with:
-    // - 1 aggregate,
-    // - 1 take, and then 0 other transformations,
-    // - many filters, which can be combined. After combining them we can
-    //   have 1 filter before the aggregate (`WHERE`) and 1 filter after the
-    //   aggregate (`HAVING`),
-    // - many joins, but only before aggregate, filter, take and sort.
+    // Insert a cut, when we find transformation that out of order:
+    // - joins,
+    // - filters (for WHERE)
+    // - aggregate (max 1x)
+    // - sort (max 1x)
+    // - filters (for HAVING)
+    // - take (max 1x)
+    //
+    // Select and derive should already be extracted during resolving phase.
     //
     // So we loop through the Pipeline, and cut it into cte-sized pipelines,
     // which we'll then compose together.
 
     let mut counts: HashMap<&str, u32> = HashMap::new();
     let mut splits = vec![0];
-    for (i, transformation) in pipeline.iter().enumerate() {
-        if transformation.name() == "join"
-            && (counts.get("aggregate").is_some()
-                || counts.get("filter").is_some()
-                || counts.get("sort").is_some())
-        {
+    for (i, transform) in pipeline.iter().enumerate() {
+        let split = match transform.name() {
+            "join" => {
+                counts.get("filter").is_some()
+                    || counts.get("aggregate").is_some()
+                    || counts.get("sort").is_some()
+                    || counts.get("take").is_some()
+            }
+            "aggregate" => {
+                counts.get("aggregate").is_some()
+                    || counts.get("sort").is_some()
+                    || counts.get("take").is_some()
+            }
+            "filter" => counts.get("take").is_some(),
+            "sort" => counts.get("sort").is_some() || counts.get("take").is_some(),
+            "take" => counts.get("take").is_some(),
+
+            _ => false,
+        };
+
+        if split {
             splits.push(i);
             counts.clear();
         }
 
-        if transformation.name() == "aggregate" && counts.get("aggregate") == Some(&1) {
-            splits.push(i);
-            counts.clear();
-        }
-
-        *counts.entry(transformation.name()).or_insert(0) += 1;
-
-        if counts.get("take") == Some(&1) {
-            splits.push(i + 1);
-            counts.clear();
-        }
+        *counts.entry(transform.name()).or_insert(0) += 1;
     }
 
     splits.push(pipeline.len());
@@ -712,6 +719,24 @@ SString:
         let pipeline: Pipeline = from_str(yaml)?;
         let queries = atomic_pipelines_of_pipeline(&pipeline)?;
         assert_eq!(queries.len(), 3);
+        Ok(())
+    }
+
+    #[test]
+    fn test_ctes_of_pipeline_4() -> Result<()> {
+        // A take, then a select
+        let yaml: &str = r###"
+    - From:
+        name: employees
+        alias: ~
+    - Take: 20
+    - Select:
+        - Ident: first_name
+        "###;
+
+        let pipeline: Pipeline = from_str(yaml)?;
+        let queries = atomic_pipelines_of_pipeline(&pipeline)?;
+        assert_eq!(queries.len(), 1);
         Ok(())
     }
 
