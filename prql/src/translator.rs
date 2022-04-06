@@ -340,7 +340,7 @@ fn atomic_pipelines_of_pipeline(pipeline: &Pipeline) -> Result<Vec<Pipeline>> {
     let mut counts: HashMap<&str, u32> = HashMap::new();
     let mut splits = vec![0];
     for (i, transform) in pipeline.iter().enumerate() {
-        
+
         let split = match transform.name() {
             "join" => {
                 counts.get("filter").is_some()
@@ -363,7 +363,7 @@ fn atomic_pipelines_of_pipeline(pipeline: &Pipeline) -> Result<Vec<Pipeline>> {
             "take" => {
                 counts.get("take").is_some()
             },
-            
+
             _ => false,
         };
 
