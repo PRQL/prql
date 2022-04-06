@@ -10,7 +10,7 @@ use monaco::{
 };
 use prql::*;
 use wasm_bindgen::prelude::wasm_bindgen;
-use yew::{classes, html, Component, Context, Html};
+use yew::{classes, html, Callback, Component, Context, Html};
 
 #[cfg(feature = "wee_alloc")]
 #[global_allocator]
