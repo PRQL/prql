@@ -9,7 +9,7 @@ attempts to be as large as the full page. I'm not sure why the height is OK at
 100% given there is also a header. We also need to give different directives to
 Chrome & Firefox! -->
 
-<!-- TODO: 
+<!-- TODO:
 - Remove the "Previous Chapter" bar.
 - Should we have a max-width for very wide browsers?
 - If so, can we get the editors to center?
