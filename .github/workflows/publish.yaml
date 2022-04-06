@@ -3,7 +3,7 @@ name: publish
 on:
   push:
     branches:
-      - main
+      - "*"
     tags:
       - "*"
 
@@ -14,6 +14,8 @@ jobs:
       - name: 📂 Checkout code
         uses: actions/checkout@v2
       - uses: peaceiris/actions-mdbook@v1
+      # We need trunk to build the Editors, which go into the book.
+      - uses: jetli/trunk-action@v0.1.0
       - name: 🔨 Build
         run: mdbook build
         working-directory: reference/
