@@ -30,14 +30,13 @@ jobs:
         with:
           profile: minimal
           target: wasm32-unknown-unknown
-          toolchain: stable
-      - name: 📎 Clippy
+      - name: 📎 Clippy (standard)
         uses: actions-rs/cargo@v1
         with:
           command: clippy
           args: --all-targets --all -- -D warnings
-      # `--all-targets` doesn't seem to work here; even with a `toolchain` step, so we run clippy twice.
-      - name: 📎 Clippy wasm
+      # Note that `--all-targets` doesn't refer to targets like `wasm32-unknown-unknown`. So we need another step here.
+      - name: 📎 Clippy (wasm)
         uses: actions-rs/cargo@v1
         with:
           command: clippy
