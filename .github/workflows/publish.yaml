@@ -13,6 +13,8 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v2
+      - name: 💰 Cache
+        uses: Swatinem/rust-cache@v1
       - uses: peaceiris/actions-mdbook@v1
       # We need trunk to build the Editors, which go into the book.
       - uses: jetli/trunk-action@v0.1.0

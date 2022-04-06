@@ -57,6 +57,8 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v2
+      - name: 💰 Cache
+        uses: Swatinem/rust-cache@v1
       - uses: peaceiris/actions-mdbook@v1
       - name: 📋 Test
         run: mdbook test
