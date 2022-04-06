@@ -16,6 +16,11 @@ jobs:
       - uses: peaceiris/actions-mdbook@v1
       # We need trunk to build the Editors, which go into the book.
       - uses: jetli/trunk-action@v0.1.0
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          target: wasm32-unknown-unknown
+          toolchain: stable
       - name: 🔨 Build
         run: mdbook build
         working-directory: reference/
