@@ -1,5 +1,12 @@
-# Give new contributors an easy way to get everything they need, assuming they have `cargo` and `Taskfile`.
-# This may be somewhat over-engineered.
+# This file gives new contributors an easy way to get everything they need,
+# assuming they have `cargo` and `Taskfile`.
+
+# Generally we shouldn't be requiring running this to have a good dev loop —
+# rust tools are indpendently good, and adding an intermediate layer means we're
+# reimplementing things or getting in the way. Instead, this can be used to
+# aggregate commands that's aren't yet integrated.
+
+# Some of the file may be somewhat over-engineered!
 
 version: "3"
 
@@ -14,7 +21,7 @@ tasks:
     desc: Install tools for PRQL development.
     cmds:
       # `--lock` installs from the underlying lock files (which is not the default?!)
-      - cargo install --locked cargo-insta trunk mdbook
+      - cargo install --locked cargo-insta trunk mdbook default-target
       - rustup target add wasm32-unknown-unknown
       # We only suggest, rather than install; we don't want to intrude.
       - task: suggest-vscode-extensions
@@ -50,3 +57,21 @@ tasks:
         {{ range ( .vscode_extensions | trim | splitLines ) -}}
           code --install-extension {{.}}
         {{ end -}}
+
+  build-all:
+    desc: Build everything. Running this isn't required when developing; it's for caching or as a reference.
+    vars:
+      default_target:
+        sh: default-target
+      targets: |
+        {{ .default_target }}
+        wasm32-unknown-unknown
+    cmds:
+      - |
+        {{ range ( .targets | trim | splitLines ) -}}
+        cargo build --workspace --all-targets --target={{.}}
+        {{ end -}}
+      # Build HTML assets
+      - trunk build prql-web/index.html
+      # Build mdbook (which will also build the HTML assets)
+      - mdbook build reference/
