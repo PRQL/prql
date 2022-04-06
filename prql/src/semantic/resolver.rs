@@ -271,7 +271,7 @@ mod tests {
         assert!(result.is_err());
 
         let prql = r#"
-        from employees 
+        from employees
         select [salary1: salary, salary2: salary1 + 1, age]
         "#;
         let result: String = parse(prql).and_then(|x| translate(&x)).unwrap();

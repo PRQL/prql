@@ -596,7 +596,7 @@ take 20
     func ret x dividend_return = x / (lag_day x) - 1 + dividend_return
     func excess x = (x - interest_rate) / 252
     func if_valid x = s"IF(is_valid_price, {x}, NULL)"
-    
+
     from prices
     derive [
       return_total     : if_valid (ret prices_adj div_ret),
