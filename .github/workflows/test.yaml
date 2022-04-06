@@ -37,7 +37,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: clippy
-          args: --all-targets --all -- -D warnings
+          args: --all-targets --all --target wasm32-unknown-unknown -- -D warnings
       - name: ⌨️ Fmt
         uses: actions-rs/cargo@v1
         with:
