@@ -39,6 +39,7 @@ jobs:
           profile: minimal
           target: wasm32-unknown-unknown
           toolchain: stable
+          default: true
       - name: 📎 Clippy (wasm)
         uses: actions-rs/cargo@v1
         with:
