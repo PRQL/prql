@@ -1061,6 +1061,30 @@ take 20
           table_0
           JOIN salaries AS s USING(emp_no)
         "###);
+
+        let prql = r###"
+        from e:employees
+        take 10
+        join salaries [emp_no]
+        select [e.*, salary]
+        "###;
+        let result = parse(prql).and_then(|x| translate(&x)).unwrap();
+        assert_display_snapshot!(result, @r###"
+        WITH table_0 AS (
+          SELECT
+            e.*
+          FROM
+            employees AS e
+          LIMIT
+            10
+        )
+        SELECT
+          table_0.*,
+          salary
+        FROM
+          table_0
+          JOIN salaries USING(emp_no)
+        "###);
     }
 
     #[test]

@@ -15,7 +15,7 @@ use super::context::Context;
 pub fn resolve(nodes: Vec<Node>, context: Option<Context>) -> Result<(Vec<Node>, Context)> {
     let context = context.unwrap_or_default();
 
-    let mut resolver = Resolver::new(context);
+    let mut resolver = Resolver { context };
 
     let nodes = resolver.fold_nodes(nodes)?;
 
@@ -25,34 +25,6 @@ pub fn resolve(nodes: Vec<Node>, context: Option<Context>) -> Result<(Vec<Node>,
 /// Can fold (walk) over AST and for each function calls or variable find what they are referencing.
 pub struct Resolver {
     pub context: Context,
-}
-
-impl Resolver {
-    fn new(context: Context) -> Self {
-        Resolver { context }
-    }
-
-    fn fold_and_declare(&mut self, nodes: Vec<Node>) -> Result<Vec<Node>> {
-        nodes
-            .into_iter()
-            .map(|node| {
-                let node = self.fold_node(node)?;
-
-                self.context.declare_table_column(&node, true);
-                Ok(node)
-            })
-            .try_collect()
-    }
-
-    fn ensure_in_two_namespaces(&mut self, node: &Node) -> Result<(), String> {
-        let ident = node.item.as_ident().unwrap();
-        let namespaces = self.context.lookup_namespaces_of(ident);
-        match namespaces.len() {
-            0 => Err(format!("Unknown variable `{ident}`")),
-            1 => Err("join using a column name must belong to both tables".to_string()),
-            _ => Ok(()),
-        }
-    }
 }
 
 impl AstFold for Resolver {
@@ -132,10 +104,6 @@ impl AstFold for Resolver {
                     Transform::Select(nodes) => {
                         self.context.frame.clear();
 
-                        dbg!(&self.context.tables);
-                        dbg!(&self.context.inverse);
-                        dbg!(&self.context.variables);
-
                         self.fold_and_declare(nodes)?;
 
                         self.context.clear_scopes();
@@ -184,6 +152,30 @@ impl AstFold for Resolver {
     }
 }
 
+impl Resolver {
+    fn fold_and_declare(&mut self, nodes: Vec<Node>) -> Result<Vec<Node>> {
+        nodes
+            .into_iter()
+            .map(|node| {
+                let node = self.fold_node(node)?;
+
+                self.context.declare_table_column(&node, true);
+                Ok(node)
+            })
+            .try_collect()
+    }
+
+    fn ensure_in_two_namespaces(&mut self, node: &Node) -> Result<(), String> {
+        let ident = node.item.as_ident().unwrap();
+        let namespaces = self.context.lookup_namespaces_of(ident);
+        match namespaces.len() {
+            0 => Err(format!("Unknown variable `{ident}`")),
+            1 => Err("join using a column name must belong to both tables".to_string()),
+            _ => Ok(()),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use insta::{assert_debug_snapshot, assert_snapshot, assert_yaml_snapshot};
@@ -197,7 +189,7 @@ mod tests {
     fn test_scopes_during_from() {
         let context = Context::default();
 
-        let mut resolver = Resolver::new(context);
+        let mut resolver = Resolver { context: context };
 
         let pipeline: Node = from_str(
             r##"
@@ -221,7 +213,7 @@ mod tests {
     fn test_scopes_during_select() {
         let context = Context::default();
 
-        let mut resolver = Resolver::new(context);
+        let mut resolver = Resolver { context: context };
 
         let pipeline: Node = from_str(
             r##"

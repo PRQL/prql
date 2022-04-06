@@ -257,7 +257,12 @@ impl Context {
         // add column to frame
         if in_frame {
             if let Some((ns, "*")) = name {
-                self.frame.push(TableColumn::All(ns.to_string()));
+                let mut namespace = ns.to_string();
+                while let Some(ns) = self.tables.get(&namespace) {
+                    namespace = ns.clone();
+                }
+
+                self.frame.push(TableColumn::All(namespace));
             } else {
                 self.frame.push(TableColumn::Declared(id));
             }
@@ -267,7 +272,7 @@ impl Context {
     pub fn lookup_variable(&mut self, ident: &str) -> Result<Option<usize>, String> {
         let (namespace, variable) = split_var_name(ident);
 
-        if ident == "*" {
+        if variable == "*" {
             return Ok(None);
         }
 
@@ -301,8 +306,6 @@ impl Context {
 
             let ident = Item::Ident(format!("{namespace}.{variable}")).into();
             let id = self.declare_table_column(&ident, false);
-
-            // eprintln!("declared {id} {ident:?}");
 
             Ok(Some(id))
         } else {

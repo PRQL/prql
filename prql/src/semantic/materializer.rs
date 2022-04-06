@@ -89,8 +89,6 @@ impl Materializer {
         // materialize
         let expr_node = self.fold_node(*node)?;
 
-        // println!("{ident:?}:{expr_node:?}");
-
         Ok(if let Some(ident) = ident {
             // is expr_node just an ident with same name?
             let expr_name = expr_node.item.as_ident().map(|n| split_var_name(n).1);
