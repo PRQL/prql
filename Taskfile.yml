@@ -13,7 +13,8 @@ tasks:
   install-dev-tools:
     desc: Install tools for PRQL development.
     cmds:
-      - cargo install cargo-insta trunk
+      # `--lock` installs from the underlying lock files (which is not the default?!)
+      - cargo install --locked cargo-insta trunk
       - rustup target add wasm32-unknown-unknown
       # We only suggest, rather than install; we don't want to intrude.
       - task: suggest-vscode-extensions

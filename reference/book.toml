@@ -20,9 +20,9 @@ git-repository-url = "https://github.com/max-sixty/prql"
 # this increases the overhead for getting started, and the additional layers
 # mean we can't directly use things like `trunk serve`.
 #
-# Note that we use `-c` and not `-a` or `-t`, since if we copy modification
-# times, then it'll run in a loop when running `trunk serve`.
+# Note that we use `-c` and not `-a` or `-t` in rsync, since if we copy
+# modification times, then it'll run in a loop when running `trunk serve`.
 #
-# If there's a better way of doing this (including one that works on Windows),
-# we should change.
+# If there's a better way of doing this (including one that works on Windows,
+# and doesn't swallow actual errors), we should change.
 command = "sh -c 'cd ../prql-web && trunk build --public-url=dist && rsync -cvri dist ../reference/src/ && echo \"Copied!\" && exit 1'"
