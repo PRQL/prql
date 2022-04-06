@@ -89,7 +89,7 @@ pub fn format_error(
 fn location(error: &anyhow::Error, source: &Source) -> Option<SourceLocation> {
     let span = if let Some(error) = error.downcast_ref::<Error>() {
         if let Some(span) = error.span {
-            Range::from(span)    
+            Range::from(span)
         } else {
             return None;
         }
@@ -112,10 +112,9 @@ fn error_message(error: anyhow::Error, source_id: &str, source: Source, color: b
     let config = Config::default().with_color(color);
 
     if let Some(error) = error.downcast_ref::<Error>() {
-        
         let message = error.reason.message();
 
-        if let Some(span) = error.span {        
+        if let Some(span) = error.span {
             let span = Range::from(span);
 
             let mut report = Report::build(ReportKind::Error, source_id, span.start)
@@ -135,7 +134,6 @@ fn error_message(error: anyhow::Error, source_id: &str, source: Source, color: b
 
             return String::from_utf8(out).unwrap();
         } else {
-
             let mut out = format!("Error: {message}");
 
             if let Some(help) = &error.help {

@@ -147,7 +147,7 @@ fn resolve_with_frames(
             }
             Item::Pipeline(pipeline) => {
                 for t in pipeline {
-                    let span = t.first_node().map(|n| n.span).flatten();
+                    let span = t.first_node().and_then(|n| n.span);
                     let (_, c, _) = process_pipeline(vec![t], Some(context))?;
                     context = c;
 
