@@ -3,4 +3,5 @@
 members = [
   "prql",
   "prql-web",
+  "prql-js",
 ]

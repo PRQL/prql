@@ -916,6 +916,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "prql-js"
+version = "0.1.0"
+dependencies = [
+ "console_error_panic_hook",
+ "prql",
+ "wasm-bindgen",
+ "wasm-bindgen-test 0.3.29",
+ "wee_alloc",
+]
+
+[[package]]
 name = "prql-web"
 version = "0.1.0"
 dependencies = [
@@ -929,7 +940,7 @@ dependencies = [
  "prql",
  "similar",
  "wasm-bindgen",
- "wasm-bindgen-test",
+ "wasm-bindgen-test 0.2.50",
  "wasm-logger",
  "web-sys",
  "wee_alloc",
@@ -1446,7 +1457,21 @@ dependencies = [
  "scoped-tls",
  "wasm-bindgen",
  "wasm-bindgen-futures 0.3.27",
- "wasm-bindgen-test-macro",
+ "wasm-bindgen-test-macro 0.2.50",
+]
+
+[[package]]
+name = "wasm-bindgen-test"
+version = "0.3.29"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "45c8d417d87eefa0087e62e3c75ad086be39433449e2961add9a5d9ce5acc2f1"
+dependencies = [
+ "console_error_panic_hook",
+ "js-sys",
+ "scoped-tls",
+ "wasm-bindgen",
+ "wasm-bindgen-futures 0.4.29",
+ "wasm-bindgen-test-macro 0.3.29",
 ]
 
 [[package]]
@@ -1457,6 +1482,16 @@ checksum = "0789dac148a8840bbcf9efe13905463b733fa96543bfbf263790535c11af7ba5"
 dependencies = [
  "proc-macro2 0.4.30",
  "quote 0.6.13",
+]
+
+[[package]]
+name = "wasm-bindgen-test-macro"
+version = "0.3.29"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d0e560d44db5e73b69a9757a15512fe7e1ef93ed2061c928871a4025798293dd"
+dependencies = [
+ "proc-macro2 1.0.37",
+ "quote 1.0.17",
 ]
 
 [[package]]
