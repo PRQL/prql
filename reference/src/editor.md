@@ -3,29 +3,31 @@
 <!-- The `container-container` properties already exist on `editor-container`, but we
 need to re-specify them since there's another layer (maybe avoidable?). -->
 
-<!-- The sizing is done by having the full height, and then giving directives to fill
-the full width excluding the side bar. With just `100%` for the width, the width
-attempts to be as large as the full page. I'm not sure why the height is OK at
-100% given there is also a header. We also need to give different directives to
-Chrome & Firefox! -->
+<!-- We specify all the hierarchy, from html down, to have height=100%, in order to
+get the editors to be full height.
+We then need to add `overflow: hidden` to hide the scrollbars — we previously
+had a different approach, which aligned the content such that we didn't need
+scrollbars, but it didn't work well on Chrome. -->
 
 <!-- TODO:
-- Remove the "Previous Chapter" bar.
-- Should we have a max-width for very wide browsers?
+- Should we have a max-width to limit the width for very wide browsers?
 - If so, can we get the editors to center?
  -->
 
 <style>
+    html, body, .page-wrapper, .page, .content, main, .container-container {
+        height: 100%;
+        overflow: hidden;
+    }
     main {
         /*Override the main CSS so that the Editors can be wide*/
         max-width: none !important;
     }
     .container-container {
-        position: absolute;
-        height: 100%;
-        width: -moz-available;
-        width: -webkit-fill-available;
-        width: stretch;
+        width: 100%;
+    }
+    .nav-chapters {
+        visibility: hidden;
     }
 </style>
 <embed class="container-container" type="text/html" src="./dist/index.html">
