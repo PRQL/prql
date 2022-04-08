@@ -4,10 +4,10 @@
 need to re-specify them since there's another layer (maybe avoidable?). -->
 
 <!-- We specify all the hierarchy, from html down, to have height=100%, in order to
-get the editors to be full height.
-We then need to add `overflow: hidden` to hide the scrollbars — we previously
-had a different approach, which aligned the content such that we didn't need
-scrollbars, but it didn't work well on Chrome. -->
+get the editors to be full height, and add some reductions in `px` to two
+elements, to prevent scroll bars / awkward scrolling when the line breaks run
+on. We previously had a different approach, which aligned the content such that
+we didn't need scrollbars, but it didn't work well on Chrome. -->
 
 <!-- TODO:
 - Should we have a max-width to limit the width for very wide browsers?
@@ -15,9 +15,17 @@ scrollbars, but it didn't work well on Chrome. -->
  -->
 
 <style>
-    html, body, .page-wrapper, .page, .content, main, .container-container {
+    html, body, .page-wrapper, .page , .container-container {
         height: 100%;
-        overflow: hidden;
+        box-sizing: border-box;
+    }
+     main {
+        height: calc(100% - 150px);
+        box-sizing: border-box;
+    }
+    .content {
+        height: calc(100% - 70px);
+        box-sizing: border-box;
     }
     main {
         /*Override the main CSS so that the Editors can be wide*/
@@ -26,7 +34,7 @@ scrollbars, but it didn't work well on Chrome. -->
     .container-container {
         width: 100%;
     }
-    .nav-chapters {
+    .nav-chapters, .nav-wrapper {
         visibility: hidden;
     }
 </style>
