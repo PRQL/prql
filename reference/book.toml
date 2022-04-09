@@ -7,7 +7,7 @@ src = "src"
 title = "PRQL Language Reference (draft)"
 
 [output.html]
-additional-js = ["highlight-prql.js", "highlight-elm.js"]
+additional-js = ["highlight-prql.js"]
 git-repository-url = "https://github.com/prql/prql"
 
 [preprocessor.toc]
