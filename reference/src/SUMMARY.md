@@ -17,6 +17,7 @@
   - [Regex]()
   - [S-Strings](s-strings.md)
 
+- [Transforms](./transforms.md)
 - [Syntax](./syntax.md)
 - [Functions](./functions.md)
 - [Stdlib](./stdlib.md)

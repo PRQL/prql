@@ -1,11 +1,14 @@
 # PRQL
 
+<!-- User badges on first line (language docs & chat) -->
 [![Language Docs](https://img.shields.io/badge/DOCS-LANGUAGE-blue?style=for-the-badge)](https://lang.prql.builders)
-[![Discord](https://img.shields.io/discord/936728116712316989?style=for-the-badge)](https://discord.gg/eQcfaCmsNc)
+[![Discord](https://img.shields.io/discord/936728116712316989?label=discord%20chat&style=for-the-badge)](https://discord.gg/eQcfaCmsNc)
+[![VSCode](https://img.shields.io/visual-studio-marketplace/v/prql.prql?label=vscode&style=for-the-badge)](https://marketplace.visualstudio.com/items?itemName=prql.prql)
+<!-- Dev badges on first line (language docs & chat) -->
 [![Rust API Docs](https://img.shields.io/badge/DOCS-RUST-brightgreen?style=for-the-badge&logo=rust)](https://docs.rs/prql/)
-[![GitHub CI Status](https://img.shields.io/github/workflow/status/max-sixty/prql/tests?logo=github&style=for-the-badge)](https://github.com/max-sixty/prql/actions?query=workflow:tests)
-[![GitHub contributors](https://img.shields.io/github/contributors/max-sixty/prql?style=for-the-badge)](https://github.com/max-sixty/prql/graphs/contributors)
-[![Stars](https://img.shields.io/github/stars/max-sixty/prql?style=for-the-badge)](https://github.com/max-sixty/prql/stargazers)
+[![GitHub CI Status](https://img.shields.io/github/workflow/status/prql/prql/tests?logo=github&style=for-the-badge)](https://github.com/prql/prql/actions?query=workflow:tests)
+[![GitHub contributors](https://img.shields.io/github/contributors/prql/prql?style=for-the-badge)](https://github.com/prql/prql/graphs/contributors)
+[![Stars](https://img.shields.io/github/stars/prql/prql?style=for-the-badge)](https://github.com/prql/prql/stargazers)
 
 **P**ipelined **R**elational **Q**uery **L**anguage, pronounced "Prequel".
 
@@ -196,7 +199,7 @@ PRQL just hit 0.1! This means:
     [Up](https://github.com/akavel/up).
 - The documentation is lacking.
   - Our current top priority is to have some decent documentation
-    [#233](https://github.com/max-sixty/prql/issues/232).
+    [#233](https://github.com/prql/prql/issues/232).
 - It doesn't support changing the dialect.
 - It has bugs. Please report them!
 - It has sharp corners. Please report grazes!
@@ -277,18 +280,18 @@ stable and while we'll hit corner-cases, I expect we'll only make small changes
 to the existing features — even as we continue adding features.
 
 Feel free to post questions or continue discussions on [Language Design
-Issues](https://github.com/max-sixty/prql/issues?q=is%3Aissue+is%3Aopen+label%3Alanguage-design).
+Issues](https://github.com/prql/prql/issues?q=is%3Aissue+is%3Aopen+label%3Alanguage-design).
 
 ### Documentation
 
 Currently the documentation exists in [tests](tests/test_transpile.rs),
-[examples](https://github.com/max-sixty/prql/tree/main/examples), [docs.rs](https://docs.rs/prql/latest/prql/) and some
+[examples](https://github.com/prql/prql/tree/main/examples), [docs.rs](https://docs.rs/prql/latest/prql/) and some
 [Notes](#notes) below.
 
 If you're up for contributing and don't have a preference for writing code or
 not, this is the area that would most benefit from your contribution. Issues are
 tagged with
-[documentation](https://github.com/max-sixty/prql/labels/documentation).
+[documentation](https://github.com/prql/prql/labels/documentation).
 
 ### Friendliness
 
@@ -298,7 +301,7 @@ sharp corners, etc.
 
 Both bug reports of unfriendliness, and code contributions to improve them are
 welcome; there's a
-[friendliness](https://github.com/max-sixty/prql/issues?q=is%3Aissue+label%3Afriendlienss+is%3Aopen)
+[friendliness](https://github.com/prql/prql/issues?q=is%3Aissue+label%3Afriendlienss+is%3Aopen)
 label.
 
 ### Fast feedback
@@ -309,9 +312,9 @@ side:
 
 - Syntax highlighting in editors.
 - A live transpiler in a browser, including compiling to wasm
-  [#175](https://github.com/max-sixty/prql/pull/175).
+  [#175](https://github.com/prql/prql/pull/175).
 - Initial type-inference, where it's possible without connecting to the DB, e.g.
-  [#55](https://github.com/max-sixty/prql/pull/55).
+  [#55](https://github.com/prql/prql/pull/55).
 - (I'm sure there's more, ideas welcome)
 
 ### Database cohesion
@@ -329,11 +332,11 @@ make reading and writing analytical queries easier, and so for the moment that
 means putting some things out of scope:
 
 - Building infrastructure outside of queries, like lineage. dbt is excellent at
-  that! ([#13](https://github.com/max-sixty/prql/issues/13)).
+  that! ([#13](https://github.com/prql/prql/issues/13)).
 - Writing DDL / index / schema manipulation / inserting data
-  ([#16](https://github.com/max-sixty/prql/issues/16)).
+  ([#16](https://github.com/prql/prql/issues/16)).
 - Add typing into the syntax
-  ([#15](https://github.com/max-sixty/prql/issues/15)) (though type
+  ([#15](https://github.com/prql/prql/issues/15)) (though type
   *inference* is a goal above, and this could be a useful extension at some
   point).
 
@@ -344,16 +347,16 @@ lots of ways of contributing; big and small:
 
 - Star this repo.
 - Send the repo to a couple of people whose opinion you respect.
-- Subscribe to [Issue #1](https://github.com/max-sixty/prql/issues/1) for
+- Subscribe to [Issue #1](https://github.com/prql/prql/issues/1) for
   updates.
 - Join the [Discord](https://discord.gg/eQcfaCmsNc).
 - Contribute towards the code. There are many ways of contributing, for any
   level of experience with rust. And if you have rust questions, there are lots of
   friendly people on the Discord who will patiently help you.
   - Find an issue labeled [help
-    wanted](https://github.com/max-sixty/prql/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22)
+    wanted](https://github.com/prql/prql/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22)
     or [good first
-    issue](https://github.com/max-sixty/prql/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
+    issue](https://github.com/prql/prql/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
     and try to fix it. Feel free to PR partial solutions, or ask any questions on
     the Issue or Discord.
   - Build the code, find examples that yield incorrect results, and post a bug
@@ -375,14 +378,14 @@ Setting up a local dev environment is simple, thanks to the rust ecosystem:
   pasting or by installing [Task](https://taskfile.dev/#/installation) and
   running `task install-dev-tools`.
 - For quick contributions, hit `.` in GitHub to launch a [github.dev
-  instance](https://github.dev/max-sixty/prql).
+  instance](https://github.dev/prql/prql).
 - Any problems: post an issue and we'll help.
 
 ### Contributors
 
 Many thanks to those who've made our progress possible:
 
-[![Contributors](https://contrib.rocks/image?repo=max-sixty/prql)](https://github.com/max-sixty/prql/graphs/contributors)
+[![Contributors](https://contrib.rocks/image?repo=prql/prql)](https://github.com/prql/prql/graphs/contributors)
 
 ### Core developers
 
