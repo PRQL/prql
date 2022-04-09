@@ -10,10 +10,13 @@ version = "0.1.0"
 [lib]
 crate-type = ["cdylib"]
 
+[features]
+default = ["wee_alloc"]
+
 [dependencies]
 prql = {path = "../prql"}
 
-[target.'cfg(target_arch="wasm32")'.dependencies]
+[target.'cfg(target_family="wasm")'.dependencies]
 console_error_panic_hook = {version = "0.1.1"}
 css-style = "0.13.1"
 gloo-console = {version = "0.2.0"}
@@ -24,7 +27,7 @@ monaco = {git = "https://github.com/siku2/rust-monaco", branch = "master", featu
 wasm-bindgen = {version = "0.2"}
 wasm-logger = "0.2.0"
 web-sys = "0.3.56"
-wee_alloc = {version = "^0.4.2"}
+wee_alloc = {version = "^0.4.2", optional = true}
 yew = {version = "0.19.0"}
 yew-layout = "0.7.3"
 
