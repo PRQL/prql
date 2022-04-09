@@ -39,7 +39,7 @@ transformation = { WHITESPACE* ~ ident ~ named_expr_simple* }
 // could unify them at some point.
 inline_pipeline = { "(" ~ expr ~ (pipe ~ func_curry)+ ~ ")" }
 
-ident = @{ !operator ~ (ASCII_ALPHA | "$") ~ (ASCII_ALPHANUMERIC | "." | "_" )* }
+ident = @{ !operator ~ (ASCII_ALPHA | "$") ~ (ASCII_ALPHANUMERIC | "." | "_" | "*" )* }
 
 // A central issue around the terms vs expr is that we want to be able to parse:
 //   [foo bar + 1, 2]
@@ -75,7 +75,7 @@ func_curry = { ident ~ (named_term_simple | term_simple)* }
 
 term = _{ ( s_string | func_call | term_simple ) }
 term_simple = _{ ( s_string | ident | parenthesized_expr | list | number | string_literal | inline_pipeline ) }
-list = { "[" ~ NEWLINE? ~ named_expr ~ ("," ~ NEWLINE? ~ named_expr )* ~ ","? ~ NEWLINE? ~ "]" }
+list = { "[" ~ NEWLINE* ~ named_expr ~ ("," ~ NEWLINE* ~ named_expr )* ~ ","? ~ NEWLINE* ~ "]" }
 parenthesized_expr = _{ "(" ~ expr ~ ")" }
 
 // TODO: escapes

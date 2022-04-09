@@ -31,7 +31,7 @@ pub trait AstFold {
     fn fold_pipeline(&mut self, pipeline: Vec<Transform>) -> Result<Vec<Transform>> {
         pipeline
             .into_iter()
-            .map(|t| self.fold_transformation(t))
+            .map(|t| self.fold_transform(t))
             .collect()
     }
     fn fold_ident(&mut self, ident: Ident) -> Result<Ident> {
@@ -58,8 +58,8 @@ pub trait AstFold {
     // implementors override the default while calling the function directly for
     // some cases. Feel free to extend the functions that are separate when
     // necessary. Ref https://stackoverflow.com/a/66077767/3064736
-    fn fold_transformation(&mut self, transformation: Transform) -> Result<Transform> {
-        fold_transformation(self, transformation)
+    fn fold_transform(&mut self, transform: Transform) -> Result<Transform> {
+        fold_transform(self, transform)
     }
     fn fold_func_def(&mut self, function: FuncDef) -> Result<FuncDef> {
         fold_func_def(self, function)
@@ -98,9 +98,7 @@ pub fn fold_item<T: ?Sized + AstFold>(fold: &mut T, item: Item) -> Result<Item> 
         }
         Item::Pipeline(transformations) => Item::Pipeline(fold.fold_pipeline(transformations)?),
         Item::NamedExpr(named_expr) => Item::NamedExpr(fold.fold_named_expr(named_expr)?),
-        Item::Transform(transformation) => {
-            Item::Transform(fold.fold_transformation(transformation)?)
-        }
+        Item::Transform(transformation) => Item::Transform(fold.fold_transform(transformation)?),
         Item::SString(items) => Item::SString(
             items
                 .into_iter()
@@ -129,7 +127,7 @@ pub fn fold_sstring_item<T: ?Sized + AstFold>(
     })
 }
 
-pub fn fold_transformation<T: ?Sized + AstFold>(
+pub fn fold_transform<T: ?Sized + AstFold>(
     fold: &mut T,
     transformation: Transform,
 ) -> Result<Transform> {
@@ -138,10 +136,10 @@ pub fn fold_transformation<T: ?Sized + AstFold>(
         Transform::From(table) => Ok(Transform::From(fold.fold_table_ref(table)?)),
         Transform::Filter(Filter(items)) => Ok(Transform::Filter(Filter(fold.fold_nodes(items)?))),
         Transform::Sort(items) => Ok(Transform::Sort(fold.fold_nodes(items)?)),
-        Transform::Join { side, with, on } => Ok(Transform::Join {
+        Transform::Join { side, with, filter } => Ok(Transform::Join {
             side,
             with: fold.fold_table_ref(with)?,
-            on: fold.fold_nodes(on)?,
+            filter: fold_join_filter(fold, filter)?,
         }),
         Transform::Select(items) => Ok(Transform::Select(fold.fold_nodes(items)?)),
         Transform::Aggregate { by, select } => Ok(Transform::Aggregate {
@@ -151,6 +149,13 @@ pub fn fold_transformation<T: ?Sized + AstFold>(
         // TODO: generalize? Or this never changes?
         Transform::Take(_) => Ok(transformation),
     }
+}
+
+pub fn fold_join_filter<T: ?Sized + AstFold>(fold: &mut T, f: JoinFilter) -> Result<JoinFilter> {
+    Ok(match f {
+        JoinFilter::On(nodes) => JoinFilter::On(fold.fold_nodes(nodes)?),
+        JoinFilter::Using(nodes) => JoinFilter::Using(fold.fold_nodes(nodes)?),
+    })
 }
 
 pub fn fold_func_call<T: ?Sized + AstFold>(fold: &mut T, func_call: FuncCall) -> Result<FuncCall> {

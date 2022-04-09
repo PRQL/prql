@@ -1,6 +1,6 @@
 ---
 source: prql/src/semantic/materializer.rs
-expression: "&mat.nodes"
+expression: "&mat"
 ---
 - Pipeline:
     - From:

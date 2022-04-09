@@ -47,6 +47,7 @@ jobs:
         with:
           profile: minimal
           target: wasm32-unknown-unknown
+          # https://github.com/actions-rs/toolchain/issues/126
           toolchain: stable
       - uses: jetli/trunk-action@v0.1.0
       - name: 🔨 Build
@@ -57,6 +58,8 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v2
+      - name: 💰 Cache
+        uses: Swatinem/rust-cache@v1
       - uses: peaceiris/actions-mdbook@v1
       - name: 📋 Test
         run: mdbook test

@@ -2,7 +2,7 @@ use anyhow::{anyhow, Result};
 use itertools::{Itertools, Position};
 
 use crate::{
-    error::{Error, Reason, Span},
+    error::{Error, Reason},
     internals::Node,
 };
 
@@ -50,7 +50,7 @@ impl IntoOnlyNode for Vec<Node> {
                     expected: format!("only one {occupation}"),
                     found: "none".to_string(),
                 },
-                span: Span::default(),
+                span: None,
                 help: None,
             }),
             _ => Err(Error {

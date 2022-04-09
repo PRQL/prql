@@ -19,6 +19,7 @@ use std::collections::HashMap;
 
 use super::ast::*;
 use super::utils::*;
+use crate::ast::JoinFilter;
 use crate::semantic;
 use crate::semantic::SelectedColumns;
 
@@ -52,7 +53,7 @@ pub fn translate_query(query: &Query) -> Result<sql_ast::Query> {
     let atomics = atomic_tables_of_tables(tables)?;
 
     // init query context
-    let (_, mut context, _) = semantic::process(functions, None)?;
+    let (_, mut context, _) = semantic::resolve_and_materialize(functions, None)?;
 
     // materialize each atomic in two stages
     let mut materialized = Vec::new();
@@ -63,6 +64,8 @@ pub fn translate_query(query: &Query) -> Result<sql_ast::Query> {
 
         let (stage_2, c, _) = semantic::process_pipeline(stage_2, Some(c))?;
         context = c;
+
+        context.finish_table(&t.name);
 
         materialized.push(AtomicTable {
             name: t.name,
@@ -196,17 +199,17 @@ fn sql_query_of_atomic_table(table: AtomicTable) -> Result<sql_ast::Query> {
         .iter()
         .filter(|t| matches!(t, Transform::Join { .. }))
         .map(|t| match t {
-            Transform::Join { side, with, on } => {
-                let use_using = (on.iter().map(|x| &x.item)).all(|x| matches!(x, Item::Ident(_)));
-
-                let constraint = if use_using {
-                    JoinConstraint::Using(
-                        on.iter()
+            Transform::Join { side, with, filter } => {
+                let constraint = match filter {
+                    JoinFilter::On(nodes) => Item::Expr(nodes.to_vec())
+                        .try_into()
+                        .map(JoinConstraint::On)?,
+                    JoinFilter::Using(nodes) => JoinConstraint::Using(
+                        nodes
+                            .iter()
                             .map(|x| x.item.clone().try_into())
                             .collect::<Result<Vec<_>>>()?,
-                    )
-                } else {
-                    Item::Expr(on.to_vec()).try_into().map(JoinConstraint::On)?
+                    ),
                 };
 
                 Ok(Join {
@@ -267,8 +270,7 @@ fn sql_query_of_atomic_table(table: AtomicTable) -> Result<sql_ast::Query> {
             _ => None,
         })
         .last()
-        // Swap result & option.
-        .map_or(Ok(None), |r| r.map(Some))?;
+        .transpose()?;
 
     // Find the final sort (none of the others affect the result, and can be discarded).
     let order_by = table
@@ -301,8 +303,7 @@ fn sql_query_of_atomic_table(table: AtomicTable) -> Result<sql_ast::Query> {
     Ok(sql_ast::Query {
         body: SetExpr::Select(Box::new(Select {
             distinct: false,
-            // TODO: when should this be `TOP` vs `LIMIT` (which is on the `Query` object?)
-            top: take,
+            top: None,
             projection: (table.select.0.into_iter())
                 .map(|n| n.item.try_into())
                 .try_collect()?,
@@ -317,7 +318,8 @@ fn sql_query_of_atomic_table(table: AtomicTable) -> Result<sql_ast::Query> {
         })),
         order_by,
         with: None,
-        limit: None,
+        // TODO: when should this be `TOP` vs `LIMIT` (which is on the `Query` object?)
+        limit: take,
         offset: None,
         fetch: None,
     })
@@ -325,40 +327,47 @@ fn sql_query_of_atomic_table(table: AtomicTable) -> Result<sql_ast::Query> {
 
 /// Convert a pipeline into a number of pipelines which can each "fit" into a SELECT.
 fn atomic_pipelines_of_pipeline(pipeline: &Pipeline) -> Result<Vec<Pipeline>> {
-    // Before starting a new CTE, we can have a pipeline with:
-    // - 1 aggregate,
-    // - 1 take, and then 0 other transformations,
-    // - many filters, which can be combined. After combining them we can
-    //   have 1 filter before the aggregate (`WHERE`) and 1 filter after the
-    //   aggregate (`HAVING`),
-    // - many joins, but only before aggregate, filter, take and sort.
+    // Insert a cut, when we find transformation that out of order:
+    // - joins,
+    // - filters (for WHERE)
+    // - aggregate (max 1x)
+    // - sort (max 1x)
+    // - filters (for HAVING)
+    // - take (max 1x)
+    //
+    // Select and derive should already be extracted during resolving phase.
     //
     // So we loop through the Pipeline, and cut it into cte-sized pipelines,
     // which we'll then compose together.
 
     let mut counts: HashMap<&str, u32> = HashMap::new();
     let mut splits = vec![0];
-    for (i, transformation) in pipeline.iter().enumerate() {
-        if transformation.name() == "join"
-            && (counts.get("aggregate").is_some()
-                || counts.get("filter").is_some()
-                || counts.get("sort").is_some())
-        {
+    for (i, transform) in pipeline.iter().enumerate() {
+        let split = match transform.name() {
+            "join" => {
+                counts.get("filter").is_some()
+                    || counts.get("aggregate").is_some()
+                    || counts.get("sort").is_some()
+                    || counts.get("take").is_some()
+            }
+            "aggregate" => {
+                counts.get("aggregate").is_some()
+                    || counts.get("sort").is_some()
+                    || counts.get("take").is_some()
+            }
+            "filter" => counts.get("take").is_some(),
+            "sort" => counts.get("sort").is_some() || counts.get("take").is_some(),
+            "take" => counts.get("take").is_some(),
+
+            _ => false,
+        };
+
+        if split {
             splits.push(i);
             counts.clear();
         }
 
-        if transformation.name() == "aggregate" && counts.get("aggregate") == Some(&1) {
-            splits.push(i);
-            counts.clear();
-        }
-
-        *counts.entry(transformation.name()).or_insert(0) += 1;
-
-        if counts.get("take") == Some(&1) {
-            splits.push(i + 1);
-            counts.clear();
-        }
+        *counts.entry(transform.name()).or_insert(0) += 1;
     }
 
     splits.push(pipeline.len());
@@ -445,6 +454,21 @@ impl TryFrom<Item> for SelectItem {
             },
             _ => bail!("Can't convert to SelectItem at the moment; {:?}", item),
         })
+    }
+}
+
+impl TryFrom<Transform> for Expr {
+    type Error = anyhow::Error;
+    fn try_from(transformation: Transform) -> Result<Self> {
+        match transformation {
+            Transform::Take(take) => Ok(
+                // TODO: implement for number
+                Item::Raw(take.to_string()).try_into()?,
+            ),
+            _ => Err(anyhow!(
+                "Expr transformation currently only supported for Take"
+            )),
+        }
     }
 }
 
@@ -702,6 +726,24 @@ SString:
     }
 
     #[test]
+    fn test_ctes_of_pipeline_4() -> Result<()> {
+        // A take, then a select
+        let yaml: &str = r###"
+    - From:
+        name: employees
+        alias: ~
+    - Take: 20
+    - Select:
+        - Ident: first_name
+        "###;
+
+        let pipeline: Pipeline = from_str(yaml)?;
+        let queries = atomic_pipelines_of_pipeline(&pipeline)?;
+        assert_eq!(queries.len(), 1);
+        Ok(())
+    }
+
+    #[test]
     fn test_sql_of_ast_1() -> Result<()> {
         let query: Query = parse(
             r###"
@@ -719,7 +761,7 @@ SString:
         assert_display_snapshot!(sql,
             @r###"
         SELECT
-          TOP (20) title,
+          title,
           country,
           AVG(salary)
         FROM
@@ -731,9 +773,10 @@ SString:
           country
         ORDER BY
           title
+        LIMIT
+          20
         "###
         );
-        assert!(sql.to_lowercase().contains(&"avg(salary)".to_lowercase()));
         Ok(())
     }
 
@@ -749,17 +792,16 @@ SString:
                 - Aggregate:
                     by: []
                     select:
-                    - SString:
-                        - String: count(
-                        - Expr:
-                            Ident: salary
-                        - String: )
                     - NamedExpr:
                         name: sum_salary
                         expr:
-                            Ident: salary
+                            SString:
+                            - String: count(
+                            - Expr:
+                                Ident: salary
+                            - String: )
                 - Filter:
-                    - Ident: salary
+                    - Ident: sum_salary
                     - Raw: ">"
                     - Raw: "100"
         "###,
@@ -767,12 +809,11 @@ SString:
         let sql = translate(&query)?;
         assert_snapshot!(sql, @r###"
         SELECT
-          count(salary),
-          salary AS sum_salary
+          count(salary) AS sum_salary
         FROM
           employees
         HAVING
-          salary > 100
+          count(salary) > 100
         "###);
         assert!(sql.to_lowercase().contains(&"having".to_lowercase()));
 
@@ -863,13 +904,14 @@ take 20
             @r###"
         WITH newest_employees AS (
           SELECT
-            TOP (50) *
+            employees.*
           FROM
             employees
           ORDER BY
-            tenure
-        ),
-        average_salaries AS (
+            employees.tenure
+          LIMIT
+            50
+        ), average_salaries AS (
           SELECT
             country,
             AVG(salary) AS average_country_salary
@@ -903,7 +945,7 @@ take 20
                 average salary
             ]
             aggregate by:[title, country] [
-                average salary
+                sum_gross_cost: average salary
             ]
             sort sum_gross_cost
         "###,
@@ -912,11 +954,12 @@ take 20
         assert_display_snapshot!((translate(&query)?), @r###"
         WITH table_0 AS (
           SELECT
-            TOP (20) *
+            employees.*
           FROM
             employees
-        ),
-        table_1 AS (
+          LIMIT
+            20
+        ), table_1 AS (
           SELECT
             title,
             country,
@@ -932,7 +975,7 @@ take 20
         SELECT
           title,
           country,
-          AVG(salary)
+          AVG(salary) AS sum_gross_cost
         FROM
           table_1
         GROUP BY
@@ -965,11 +1008,12 @@ take 20
         assert_display_snapshot!((translate(&query)?), @r###"
         WITH table_0 AS (
           SELECT
-            TOP (50) *
+            employees.*
           FROM
             employees
-        ),
-        a AS (
+          LIMIT
+            50
+        ), a AS (
           SELECT
             count(*)
           FROM
@@ -988,28 +1032,59 @@ take 20
     }
 
     #[test]
-    #[should_panic]
-    fn test_table_references() {
-        let prql = r#"
-from employees
-take 10
-join salaries [employees.employee_id=salaries.employee_id]
-        "#;
+    fn test_table_names_between_splits() {
+        let prql = r###"
+        from employees
+        join d:department [dept_no]
+        take 10
+        join s:salaries [emp_no]
+        select [employees.emp_no, d.name, s.salary]
+        "###;
         let result = parse(prql).and_then(|x| translate(&x)).unwrap();
         assert_display_snapshot!(result, @r###"
         WITH table_0 AS (
           SELECT
-            TOP (10) *
+            employees.*,
+            d.*,
+            dept_no
           FROM
             employees
+            JOIN department AS d USING(dept_no)
+          LIMIT
+            10
         )
         SELECT
-          *
+          table_0.emp_no,
+          table_0.name,
+          s.salary
         FROM
           table_0
-          JOIN salaries ON employees.employee_id = salaries.employee_id
+          JOIN salaries AS s USING(emp_no)
         "###);
-        assert!(!result.contains("employees.employee_id"));
+
+        let prql = r###"
+        from e:employees
+        take 10
+        join salaries [emp_no]
+        select [e.*, salary]
+        "###;
+        let result = parse(prql).and_then(|x| translate(&x)).unwrap();
+        assert_display_snapshot!(result, @r###"
+        WITH table_0 AS (
+          SELECT
+            e.*
+          FROM
+            employees AS e
+          LIMIT
+            10
+        )
+        SELECT
+          table_0.*,
+          salary
+        FROM
+          table_0
+          JOIN salaries USING(emp_no)
+        "###);
     }
 
     #[test]

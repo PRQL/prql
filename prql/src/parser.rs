@@ -210,10 +210,10 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
             };
 
             let mut node = Node::from(item);
-            node.span = Span {
+            node.span = Some(Span {
                 start: span.start(),
                 end: span.end(),
-            };
+            });
             Ok(node)
         })
         .collect()
@@ -321,13 +321,21 @@ fn ast_of_transformation(items: Vec<Node>) -> Result<Transform> {
                 alias: with_alias,
             };
 
-            let on = if let Some(on) = positional.get(1) {
+            let filter = if let Some(on) = positional.get(1) {
                 on.clone().discard_name()?.coerce_to_items()
             } else {
                 vec![]
             };
 
-            Transform::Join { side, with, on }
+            let use_using = (filter.iter().map(|x| &x.item)).all(|x| matches!(x, Item::Ident(_)));
+
+            let filter = if use_using {
+                JoinFilter::Using(filter)
+            } else {
+                JoinFilter::On(filter)
+            };
+
+            Transform::Join { side, with, filter }
         }
         _ => bail!("Expected a known transformation; got {name}"),
     })
@@ -472,6 +480,18 @@ mod test {
                   named_args: []
           - Raw: "2"
         "###);
+        // Line breaks
+        assert_yaml_snapshot!(ast_of_string(
+            r#"[1,
+
+                2]"#,
+         Rule::list)?, @r###"
+        ---
+        List:
+          - Raw: "1"
+          - Raw: "2"
+        "###);
+        // Function call in a list
         let ab = ast_of_string(r#"[a b]"#, Rule::list)?;
         let a_comma_b = ast_of_string(r#"[a, b]"#, Rule::list)?;
         assert_yaml_snapshot!(ab, @r###"

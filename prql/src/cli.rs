@@ -10,7 +10,7 @@ use std::{
 
 use crate::ast::{Item, Node};
 use crate::error::{self, Span};
-use crate::semantic::{self, process, process_pipeline, resolve};
+use crate::semantic::{self, process_pipeline, resolve, resolve_and_materialize};
 use crate::translator::load_std_lib;
 use crate::{parse, translate};
 
@@ -24,7 +24,7 @@ enum Format {
     PrqlReferences,
 
     /// PRQL with current table layout
-    PrqlLayouts,
+    PrqlFrames,
 
     Sql,
 }
@@ -77,7 +77,7 @@ impl Cli {
                         command.output.write_all(&buf)?;
                     }
                     Err(e) => {
-                        error::print_error(e, source_id, &source);
+                        print!("{:}", error::format_error(e, source_id, &source, true).0);
                         std::process::exit(1)
                     }
                 };
@@ -102,7 +102,7 @@ fn compile_to(format: Format, source: &str) -> Result<Vec<u8>, Error> {
             semantic::print(&nodes, &context, "".to_string(), source.to_string());
             vec![]
         }
-        Format::PrqlLayouts => {
+        Format::PrqlFrames => {
             let query = parse(source)?;
 
             // load functions
@@ -115,12 +115,10 @@ fn compile_to(format: Format, source: &str) -> Result<Vec<u8>, Error> {
 
             // resolve
             let (_, context) = resolve(functions, None)?;
-            let layouts = resolve_with_layouts(other, context)?;
+            let frames = resolve_with_frames(other, context)?;
 
             // combine with source
-            combine_prql_and_layouts(source, layouts)
-                .as_bytes()
-                .to_vec()
+            combine_prql_and_frames(source, frames).as_bytes().to_vec()
         }
         Format::Sql => {
             let materialized = parse(source)?;
@@ -131,37 +129,40 @@ fn compile_to(format: Format, source: &str) -> Result<Vec<u8>, Error> {
     })
 }
 
-fn resolve_with_layouts(
+fn resolve_with_frames(
     other: Vec<Node>,
     mut context: semantic::Context,
 ) -> Result<Vec<(Span, Vec<Option<String>>)>> {
-    let mut layouts = Vec::new();
+    let mut frames = Vec::new();
     for node in other {
         match node.item {
             Item::Table(_) => {
                 let span = node.span;
-                let (_, c, _) = process(vec![node], Some(context))?;
+                let (_, c, _) = resolve_and_materialize(vec![node], Some(context))?;
                 context = c;
-                layouts.push((span, context.get_table_layout()));
+
+                if let Some(span) = span {
+                    frames.push((span, context.get_frame()));
+                };
             }
             Item::Pipeline(pipeline) => {
                 for t in pipeline {
-                    let span = t.first_node().map(|n| n.span);
+                    let span = t.first_node().and_then(|n| n.span);
                     let (_, c, _) = process_pipeline(vec![t], Some(context))?;
                     context = c;
 
                     if let Some(span) = span {
-                        layouts.push((span, context.get_table_layout()));
+                        frames.push((span, context.get_frame()));
                     }
                 }
             }
             item => bail!("Unexpected item {item:?}"),
         }
     }
-    Ok(layouts)
+    Ok(frames)
 }
 
-fn combine_prql_and_layouts(source: &str, layouts: Vec<(Span, Vec<Option<String>>)>) -> String {
+fn combine_prql_and_frames(source: &str, layouts: Vec<(Span, Vec<Option<String>>)>) -> String {
     let source = Source::from(source);
     let lines = source.lines().collect_vec();
     let width = lines.iter().map(|l| l.len()).max().unwrap_or(0);
@@ -198,7 +199,7 @@ mod tests {
     #[test]
     fn prql_layouts_test() {
         let output = compile_to(
-            Format::PrqlLayouts,
+            Format::PrqlFrames,
             r#"
 from initial_table
 select [first: name, last: last_name, gender]

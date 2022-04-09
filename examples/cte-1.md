@@ -20,13 +20,14 @@ select [name, salary, average_country_salary]
 ```sql
 WITH newest_employees AS (
   SELECT
-    TOP (50) *
+    employees.*
   FROM
     employees
   ORDER BY
-    tenure
-),
-average_salaries AS (
+    employees.tenure
+  LIMIT
+    50
+), average_salaries AS (
   SELECT
     country,
     AVG(salary) AS average_country_salary

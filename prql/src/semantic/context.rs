@@ -3,33 +3,43 @@ use enum_as_inner::EnumAsInner;
 use serde::Deserialize;
 use serde::Serialize;
 use std::collections::HashMap;
+use std::collections::HashSet;
 use strum_macros::Display;
 
 use crate::ast::*;
 use crate::error::Span;
+
+const DECL_ALL: usize = usize::MAX;
 
 /// Scope within which we can reference variables, functions and tables
 /// Provides fast lookups for different names.
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
 pub struct Context {
     /// current table columns (result of last pipeline)
-    pub(super) table: Vec<TableColumn>,
+    pub(super) frame: Vec<TableColumn>,
 
-    /// For each namespace (table), a list of its variables (columns)
-    /// "" is default namespace
-    /// "%" is namespace of functions without parameters
-    pub(super) scopes: HashMap<String, HashMap<String, usize>>,
+    /// For each namespace (table), a map from column names to their definitions
+    /// "$" is namespace of variables not belonging to any table (aliased, join using)
+    /// "%" is namespace of functions without parameters (global variables)
+    /// "_" is namespace of current function
+    pub(super) variables: HashMap<String, HashMap<String, usize>>,
+
+    /// For each variable, a set of its possible namespaces
+    pub(super) inverse: HashMap<String, HashSet<String>>,
 
     /// Functions with parameters (name is duplicated, but that's not much overhead)
     pub(super) functions: HashMap<String, usize>,
+
+    /// table aliases
+    pub(super) tables: HashMap<String, String>,
 
     /// All declarations, even those out of scope
     pub(super) declarations: Vec<(Declaration, Option<Span>)>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum TableColumn {
-    All,
+    All(String),
     Declared(usize),
 }
 
@@ -42,10 +52,9 @@ pub enum Declaration {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
 pub struct VarDec {
     /// index of the columns in the table
-    pub position: Option<usize>,
+    // pub position: Option<usize>,
     /// the Node whose expr is equivalent to this variable
     pub declaration: Box<Node>,
     /// for aliased columns and functions without arguments
@@ -53,30 +62,21 @@ pub struct VarDec {
 }
 
 impl Context {
-    pub fn get_table_layout(&self) -> Vec<Option<String>> {
-        self.table
+    pub fn get_frame(&self) -> Vec<Option<String>> {
+        self.frame
             .iter()
             .filter_map(|col| match col {
-                TableColumn::All => None,
-                TableColumn::Declared(id) => Some(id),
+                TableColumn::All(namespace) => Some(Some(format!("{namespace}.*"))),
+                TableColumn::Declared(id) => {
+                    let var = self.declarations[*id].0.as_variable();
+                    var.map(|c| c.name.clone())
+                }
             })
-            .filter_map(|id| self.declarations[*id].0.as_variable().cloned())
-            .map(|c| c.name)
             .collect()
     }
 
     /// Takes a declaration with minimal memory copying. A dummy node is left in place.
-    pub(super) fn take_declaration(&mut self, id: usize) -> Option<Box<Node>> {
-        let (decl, _) = self.declarations.get_mut(id).unwrap();
-        let decl = decl.as_node_mut()?;
-
-        let dummy: Node = Item::Expr(vec![]).into();
-        let node = std::mem::replace(decl, Box::new(dummy));
-        Some(node)
-    }
-
-    /// Takes a declaration with minimal memory copying. A dummy node is left in place.
-    pub(super) fn put_declaration(&mut self, id: usize, node: Node) {
+    pub(super) fn replace_declaration(&mut self, id: usize, node: Node) {
         let (decl, _) = self.declarations.get_mut(id).unwrap();
         let decl = decl.as_node_mut();
 
@@ -85,14 +85,54 @@ impl Context {
         }
     }
 
-    pub(super) fn clear_scope(&mut self) {
-        let functions_without_params = self.scopes.get("%").cloned().unwrap_or_default();
+    /// Removes all variables from default variable scope, except for functions without params.
+    pub(super) fn refresh_inverse_index(&mut self) {
+        self.inverse.clear();
 
-        let default = self.scopes.entry("".to_string()).or_default();
-        default.clear();
-        default.extend(functions_without_params);
+        for namespace in &self.variables {
+            for variable in namespace.1 {
+                let entry = self.inverse.entry(variable.0.clone()).or_default();
+                entry.insert(namespace.0.clone());
+            }
+        }
+    }
 
-        self.table.clear();
+    /// Removes variables from all scopes, except $ and %. Also clears frame.
+    pub(super) fn clear_scopes(&mut self) {
+        // point all table aliases to $
+        // for alias in self.tables.values_mut() {
+        // *alias = "$".to_string();
+        // }
+
+        // remove namespaces and collect all their variables to "current frame" namespace
+        let mut current = self.variables.remove("$").unwrap_or_default();
+        current.retain(|_, id| self.frame.iter().any(|c| c == id));
+        self.variables.retain(|name, space| match name.as_str() {
+            "%" | "_" | "$" => true,
+            _ => {
+                // redirect namespace to $
+                self.tables.insert(name.clone(), "$".to_string());
+
+                current
+                    .extend((space.drain()).filter(|(_, id)| self.frame.iter().any(|c| c == id)));
+                false
+            }
+        });
+
+        // insert back variables that are in frame
+        self.variables.insert("$".to_string(), current);
+
+        self.refresh_inverse_index();
+    }
+
+    pub fn finish_table(&mut self, table_name: &str) {
+        self.variables.retain(|name, _| match name.as_str() {
+            "_" | "$" | "%" => true,
+            _ => {
+                self.tables.insert(name.clone(), table_name.to_string());
+                false
+            }
+        });
     }
 
     fn declare(&mut self, dec: Declaration, span: Option<Span>) -> usize {
@@ -104,12 +144,12 @@ impl Context {
         let name = func_def.name.clone();
         let is_variable = func_def.named_params.is_empty() && func_def.positional_params.is_empty();
 
-        let span = Some(func_def.body.span);
+        let span = func_def.body.span;
         let id = self.declare(Declaration::Function(func_def), span);
 
         if is_variable {
             let name = format!("%.{name}");
-            self.declare_variable(Some(&name), id, false);
+            self.add_to_scope(Some(&name), id, false);
         } else {
             self.functions.insert(name, id);
         }
@@ -117,29 +157,61 @@ impl Context {
         id
     }
 
-    pub fn declare_table_column(&mut self, position: usize, node: &Node) {
-        let position = Some(position);
+    pub fn declare_table(&mut self, t: &TableRef) {
+        let name = if let Some(alias) = &t.alias {
+            self.tables.insert(t.name.clone(), alias.clone());
+            alias.clone()
+        } else {
+            t.name.clone()
+        };
+        self.tables.remove(&name);
+
+        self.variables.insert(name.clone(), Default::default());
+
+        self.declare_all_columns(name.as_str());
+    }
+
+    // pub fn rename_table(&mut self, old: &str, new: &str) {
+    //     if let Some(old_ns) = self.variables.remove(old) {
+    //         let new_ns = self.variables.entry(new.to_string()).or_default();
+    //         new_ns.extend(old_ns);
+    //     }
+    //     // self.tables.insert(old.to_string(), new.to_string());
+
+    //     for (_, namespaces) in &mut self.inverse {
+    //         if namespaces.remove(old) {
+    //             namespaces.insert(new.to_string());
+    //         }
+    //     }
+    // }
+
+    pub fn declare_table_column(&mut self, node: &Node, in_frame: bool) -> usize {
         let var_dec = if let Some(named_expr) = node.item.as_named_expr() {
             VarDec {
-                position,
                 declaration: named_expr.expr.clone(),
                 name: Some(named_expr.name.clone()),
             }
         } else {
             VarDec {
-                position,
                 declaration: Box::from(node.clone()),
                 // if this is an identifier, use it as a name
-                name: (node.item.as_ident())
-                    // but without it's namespace
-                    .map(|i| split_var_name(i.as_str()).1.to_string()),
+                name: node.item.as_ident().cloned(),
             }
         };
 
         let name = var_dec.name.clone();
-        let id = self.declare(Declaration::Variable(var_dec), Some(node.span));
+        let id = self.declare(Declaration::Variable(var_dec), node.span);
 
-        self.declare_variable(name.as_deref(), id, true);
+        self.add_to_scope(name.as_deref(), id, in_frame);
+        id
+    }
+
+    /// Puts "*" in scope
+    ///
+    /// Does not actually declare anything.
+    pub fn declare_all_columns(&mut self, namespace: &str) {
+        let name = format!("{namespace}.*");
+        self.add_to_scope(Some(name.as_str()), DECL_ALL, true);
     }
 
     pub fn declare_func_param(&mut self, node: &Node) -> usize {
@@ -150,53 +222,130 @@ impl Context {
         };
 
         let var_dec = VarDec {
-            position: None,
             declaration: Box::new(Item::Ident(name.clone()).into()), // doesn't matter, will get overridden anyway
             name: Some(name.clone()),
         };
 
+        let name = format!("_.{name}");
         let id = self.declare(Declaration::Variable(var_dec), None);
 
-        self.declare_variable(Some(&name), id, false);
+        self.add_to_scope(Some(&name), id, false);
 
         id
     }
 
-    fn declare_variable(&mut self, name: Option<&str>, id: usize, in_table: bool) {
-        let mut overridden = None;
+    fn add_to_scope(&mut self, name: Option<&str>, id: usize, in_frame: bool) {
+        let name = name.map(split_var_name);
 
-        if let Some(name) = name {
-            let (namespace, variable) = split_var_name(name);
+        if let Some((namespace, variable)) = name {
+            let namespace = if namespace.is_empty() { "$" } else { namespace };
 
-            let default = self.scopes.entry("".to_string()).or_default();
-            overridden = default.insert(variable.to_string(), id);
+            // insert into own namespace
+            let own = self.variables.entry(namespace.to_string()).or_default();
+            let overridden = own.insert(variable.to_string(), id);
 
-            if !namespace.is_empty() {
-                let namespace = self.scopes.entry(namespace.to_string()).or_default();
-                namespace.insert(variable.to_string(), id);
+            // insert into default namespace
+            let default = (self.inverse.entry(variable.to_string())).or_default();
+            default.insert(namespace.to_string());
+
+            // remove overridden columns from frame
+            if let Some(overridden) = overridden {
+                self.frame.retain(|col| col != &overridden);
             }
         }
 
-        if in_table {
-            if let Some(overridden) = overridden {
-                self.table.retain(|col| match col {
-                    TableColumn::All => true,
-                    TableColumn::Declared(id) => *id != overridden,
-                });
+        // add column to frame
+        if in_frame {
+            if let Some((ns, "*")) = name {
+                let mut namespace = ns.to_string();
+                while let Some(ns) = self.tables.get(&namespace) {
+                    namespace = ns.clone();
+                }
+
+                self.frame.push(TableColumn::All(namespace));
+            } else {
+                self.frame.push(TableColumn::Declared(id));
             }
-            self.table.push(TableColumn::Declared(id));
         }
     }
 
-    pub fn lookup_variable(&mut self, ident: &str) -> Option<usize> {
+    pub fn lookup_variable(&mut self, ident: &str) -> Result<Option<usize>, String> {
         let (namespace, variable) = split_var_name(ident);
 
-        if let Some(ns) = self.scopes.get(namespace) {
-            if let Some(decl_id) = ns.get(variable) {
-                return Some(*decl_id);
+        if variable == "*" {
+            return Ok(None);
+        }
+
+        let mut namespace = namespace.to_string();
+
+        // try to find the namespace
+        if namespace.is_empty() {
+            namespace = if let Some(ns) = self.lookup_namespace_of(variable)? {
+                ns
+            } else {
+                // matched to *, but multiple possible namespaces
+                // -> return None, treating this ident as raw
+                return Ok(None);
             }
         }
-        None
+
+        // resolve table alias
+        while let Some(ns) = self.tables.get(&namespace) {
+            namespace = ns.clone();
+        }
+
+        let ns = (self.variables.get(&namespace))
+            .ok_or_else(|| format!("Unknown table `{namespace}`"))?;
+
+        if let Some(decl_id) = ns.get(variable) {
+            // variable found, return
+
+            Ok(Some(*decl_id))
+        } else if ns.get("*").is_some() {
+            // because of "*", declare new ident "namespace.variable"
+
+            let ident = Item::Ident(format!("{namespace}.{variable}")).into();
+            let id = self.declare_table_column(&ident, false);
+
+            Ok(Some(id))
+        } else {
+            Err(format!("Unknown variable `{namespace}.{variable}`"))
+        }
+    }
+
+    pub fn lookup_namespace_of(&mut self, variable: &str) -> Result<Option<String>, String> {
+        if let Some(ns) = self.inverse.get(variable) {
+            if ns.len() == 1 {
+                return Ok(ns.iter().next().cloned());
+            }
+
+            if ns.len() > 1 {
+                return Err(format!(
+                    "Ambiguous variable. Could be from either of {:?}",
+                    ns
+                ));
+            }
+        } else if let Some(ns) = self.inverse.get("*") {
+            if ns.len() == 1 {
+                return Ok(ns.iter().next().cloned());
+            }
+            // don't report ambiguous variable, database may be able to resolve them
+            if ns.len() > 1 {
+                return Ok(None);
+            }
+        }
+        Err(format!("Unknown variable `{variable}`"))
+    }
+
+    pub fn lookup_namespaces_of(&mut self, variable: &str) -> HashSet<String> {
+        let mut r = HashSet::new();
+        if let Some(ns) = self.inverse.get(variable) {
+            r.extend(ns.clone());
+        }
+        if let Some(ns) = self.inverse.get("*") {
+            r.extend(ns.clone());
+        }
+        r
     }
 }
 
@@ -234,5 +383,14 @@ impl From<Declaration> for anyhow::Error {
     fn from(dec: Declaration) -> Self {
         // panic!("Unexpected declaration type: {dec:?}");
         anyhow::anyhow!("Unexpected declaration type: {dec:?}")
+    }
+}
+
+impl PartialEq<usize> for TableColumn {
+    fn eq(&self, other: &usize) -> bool {
+        match self {
+            TableColumn::All(_) => false,
+            TableColumn::Declared(id) => id == other,
+        }
     }
 }
