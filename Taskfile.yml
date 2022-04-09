@@ -20,8 +20,8 @@ tasks:
   install-dev-tools:
     desc: Install tools for PRQL development.
     cmds:
-      # `--lock` installs from the underlying lock files (which is not the default?!)
-      - cargo install --locked cargo-insta trunk mdbook default-target
+      # `--locked` installs from the underlying lock files (which is not the default?!)
+      - cargo install --locked cargo-insta default-target trunk mdbook mdbook-toc
       - rustup target add wasm32-unknown-unknown
       # We only suggest, rather than install; we don't want to intrude.
       - task: suggest-vscode-extensions

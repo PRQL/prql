@@ -4,12 +4,15 @@ description = "Modern language for transforming data — a simpler and more powe
 language = "en"
 multilingual = false
 src = "src"
-title = "PRQL Language reference"
+title = "PRQL Language Reference (draft)"
 
 [output.html]
-additional-js = ["highlight-prql.js"]
+additional-js = ["highlight-prql.js", "highlight-elm.js"]
 git-repository-url = "https://github.com/prql/prql"
 
+[preprocessor.toc]
+command = "mdbook-toc"
+renderer = ["html"]
 [preprocessor.trunk]
 # Hacky — build the prql-web app with trunk, and sync the path into the src path
 # so that they get placed into the `dist` path. Then we exit with an error,

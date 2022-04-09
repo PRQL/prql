@@ -10,7 +10,7 @@
 //     "k"  => keywords
 //     "cN" => className
 
-hljs.registerLanguage("prql", function(hljs) {
+hljs.registerLanguage("prql", function (hljs) {
     return {
         case_insensitive: false,
         keywords: {
@@ -45,4 +45,44 @@ hljs.registerLanguage("prql", function(hljs) {
 // This file is inserted after the default highlight.js invocation, which tags
 // unknown-language blocks with CSS classes but doesn't highlight them.
 Array.from(document.querySelectorAll("code.language-prql"))
+    .forEach((a) => console.log(a) || hljs.highlightBlock(a));
+
+// Copied from `prql` for `elm`, which is the language we use on GitHub. TODO:
+// can we DRY?
+hljs.registerLanguage("elm", function (hljs) {
+    return {
+        case_insensitive: false,
+        keywords: {
+            keyword: 'from select derive filter take sort join aggregate func',
+            literal: 'false true null',
+        },
+        contains: [
+            hljs.COMMENT('#', '$'),
+
+            { // named arg
+                className: 'params',
+                begin: '\\w+:(?!\\s)',
+                end: '',
+                relevance: 10
+            },
+            { // s-string
+                className: 'attribute',
+                begin: 's"', end: '"',
+                relevance: 10
+            },
+            { // normal string
+                className: 'string',
+                begin: '"', end: '"',
+                relevance: 10
+            },
+
+        ]
+    };
+
+});
+
+
+// This file is inserted after the default highlight.js invocation, which tags
+// unknown-language blocks with CSS classes but doesn't highlight them.
+Array.from(document.querySelectorAll("code.language-elm"))
     .forEach((a) => console.log(a) || hljs.highlightBlock(a));

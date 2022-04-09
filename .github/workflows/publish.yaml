@@ -16,7 +16,7 @@ jobs:
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v1
       - uses: peaceiris/actions-mdbook@v1
-      # We need trunk to build the Editors, which go into the book.
+      # We need `trunk` & a wasm target to build the Editors, which go into the book.
       - uses: jetli/trunk-action@v0.1.0
       - uses: actions-rs/toolchain@v1
         with:

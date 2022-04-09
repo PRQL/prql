@@ -1,5 +1,8 @@
 # Introduction
 
+> [Note that this is a very early version and actively being worked on; thanks for
+your patience]
+
 PRQL is a modern language for transforming data — a simpler and more powerful
 SQL. Like SQL, it's readable, explicit and declarative. Unlike SQL, it forms a
 logical pipeline of transformations, and supports abstractions such as variables
@@ -31,7 +34,7 @@ take 20
 join countries side:left [country_code]
 derive [
   always_true: true,
-  s_string: s"version()",                  # An S-string, which transpiles directly into SQL
+  db_version: s"version()",                  # An S-string, which transpiles directly into SQL
 ]
 ```
 
