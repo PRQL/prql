@@ -1,22 +1,46 @@
-# Syntax
+# S-Strings
 
-<!-- Here we could explain how function parameters work, what is a list, S-strings, how to do aliases and so on. -->
-
-### S-Strings
-
-An s-string inserts SQL directly. It's similar in form to a python f-string, but
-the result is SQL, rather than a string literal; i.e.:
+An s-string inserts SQL directly, as an escape hatch when there's something that PRQL
+doesn't yet implement. For example, there's no `version()` function in SQL that
+returns the Postgres version, so if we want to use that, we use an s-string:
 
 ```prql
-func sum col = s"SUM({col})"
-sum salary
+from x
+select db_version: s"version()"
 ```
 
-transpiles to:
+...produces...
 
 ```sql
-SUM(salary)
+SELECT
+  version() AS db_version
+FROM
+  x
 ```
 
-...whereas if it were a python f-string, it would make `"sum(salary)"`, with the
-quotes.
+We can embed columns in an f-string using braces. For example, PRQL's standard
+library defines the `average` function as:
+
+```prql
+func average column = s"AVG({column})"
+```
+
+So that:
+
+```prql
+from x
+aggregate average value
+```
+
+...produces...
+
+```sql
+SELECT
+  AVG(value)
+FROM
+  x
+```
+
+For those who have used python, it's similar in to a python f-string, but the
+result is SQL, rather than a string literal — a python f-string
+would produce `"average(salary)"`, with the quotes.
