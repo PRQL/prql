@@ -62,5 +62,5 @@ jobs:
         uses: Swatinem/rust-cache@v1
       - uses: peaceiris/actions-mdbook@v1
       - name: 📋 Test
-        run: mdbook test
+        run: mdbook build
         working-directory: reference/
