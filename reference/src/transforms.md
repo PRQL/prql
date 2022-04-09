@@ -1,6 +1,6 @@
-# Verbs
+# Transforms
 
-Core principle of the language is a pipeline, which is a series of sequential transformations of a table (or data frame). There is only a few different types of transformations which are identified by their verbs.
+Core principle of the language is a pipeline, which is a series of sequential transformations of a table (or data frame). There is only a few different types of transformations:
 
 ## From
 
@@ -93,6 +93,7 @@ sort {column}
 ```
 
 *Arguments:*
+
 - a column identifier of the key to sort by
 
 *Example:*
@@ -111,27 +112,31 @@ join side:{inner|left|right|full} {table} {[conditions]}
 ```
 
 *Arguments:*
+
 - `side` decides which rows to include. Defaults to `inner`
 - table reference
 - list of conditions
   - If all terms are column identifiers, this will compile to `USING(...)`. In this case, both of the tables must have specified column. The result will only contain one column instead one for each table.
 
 *Example:*
+
 ```prql
 from employees
 join side:left positions [id=employee_id]
 ```
+
 ```sql
 SELECT * FROM employees
 LEFT JOIN positions ON id = employee_id
 ```
 
-
 *Example:*
+
 ```prql
 from employees
 join side:full positions [emp_no]
 ```
+
 ```sql
 SELECT * FROM employees
 FULL OUTER JOIN positions ON USING(emp_no)
@@ -146,6 +151,7 @@ aggregate by:[{column identifier}] [{expression or assign operation}]
 ```
 
 *Example:*
+
 ```prql
 from employees
 aggregate by:[title, country] [
@@ -153,6 +159,7 @@ aggregate by:[title, country] [
   ct: count
 ]
 ```
+
 ```sql
 SELECT title, country, AVG(salary), COUNT(*) AS ct
 FROM employees

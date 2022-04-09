@@ -1,7 +1,7 @@
 # Summary
 
 - [Introduction](./introduction.md)
-- [Verbs](./verbs.md)
+- [Transforms](./transforms.md)
 - [Syntax](./syntax.md)
 - [Functions](./functions.md)
 - [Stdlib](./stdlib.md)
