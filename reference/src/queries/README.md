@@ -5,3 +5,5 @@ pipeline of transformations, each one changing the previous result into a new
 result.
 
 - [Pipelines](pipelines.md)
+
+[TODO]
