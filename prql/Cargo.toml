@@ -3,7 +3,7 @@ description = "PRQL is a modern language for transforming data — a simpler and
 edition = "2021"
 license = "Apache-2.0"
 name = "prql"
-repository = "https://github.com/max-sixty/prql"
+repository = "https://github.com/prql/prql"
 rust-version = "1.59.0"
 version = "0.1.1"
 
@@ -16,17 +16,17 @@ cli = ["clio", "atty", "clap", "color-eyre"]
 default = ["anyhow/backtrace", "cli"]
 
 [dependencies]
-anyhow = "^1.0"
-ariadne = "^0.1"
-atty = {version = "^0.2", optional = true}
-clio = {version = "^0.2", optional = true}
-color-eyre = {version = "^0.6", optional = true}
-enum-as-inner = "^0.4.0"
-itertools = "^0.10"
-pest = "^2.1"
-pest_derive = "^2.1"
-serde_yaml = "^0.8"
-sqlformat = "^0.1.8"
+anyhow = "^1.0" 
+ariadne = "^0.1" 
+atty = {version = "^0.2", optional = true} 
+clio = {version = "^0.2", optional = true} 
+color-eyre = {version = "^0.6", optional = true} 
+enum-as-inner = "^0.4.0" 
+itertools = "^0.10" 
+pest = "^2.1" 
+pest_derive = "^2.1" 
+serde_yaml = "^0.8" 
+sqlformat = "^0.1.8" 
 strum_macros = "^0.24" # for converting enum variants to string
 
 [dependencies.clap]

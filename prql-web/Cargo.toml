@@ -3,7 +3,7 @@ description = "prql-web is an interface for exploring PRQL in the browser."
 edition = "2021"
 license = "Apache-2.0"
 name = "prql-web"
-repository = "https://github.com/max-sixty/prql"
+repository = "https://github.com/prql/prql"
 rust-version = "1.58.0"
 version = "0.1.0"
 

@@ -8,7 +8,7 @@ title = "PRQL Language reference"
 
 [output.html]
 additional-js = ["highlight-prql.js"]
-git-repository-url = "https://github.com/max-sixty/prql"
+git-repository-url = "https://github.com/prql/prql"
 
 [preprocessor.trunk]
 # Hacky — build the prql-web app with trunk, and sync the path into the src path

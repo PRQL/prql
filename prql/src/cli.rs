@@ -38,7 +38,7 @@ pub enum Cli {
 #[derive(Args)]
 /// Compile a PRQL string into a SQL string.
 ///
-/// See https://github.com/max-sixty/prql for more information.
+/// See https://github.com/prql/prql for more information.
 pub struct CompileCommand {
     #[clap(default_value="-", parse(try_from_os_str = Input::try_from))]
     input: Input,
