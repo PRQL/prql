@@ -19,9 +19,8 @@ css-style = "0.13.1"
 gloo-console = {version = "0.2.0"}
 gloo-events = "0.1.1"
 log = "0.4.6"
-# Temporarily while we wait for https://github.com/siku2/rust-monaco/pull/21
-# monaco = {version = "0.3.0", features = ["yew-components"]}
-monaco = {git = "https://github.com/max-sixty/rust-monaco", branch = "options", features = ["yew-components"]}
+# On git because of https://github.com/siku2/rust-monaco/pull/21
+monaco = {git = "https://github.com/siku2/rust-monaco", branch = "master", features = ["yew-components"]}
 wasm-bindgen = {version = "0.2"}
 wasm-logger = "0.2.0"
 web-sys = "0.3.56"
