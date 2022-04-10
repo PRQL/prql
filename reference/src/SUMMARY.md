@@ -3,7 +3,6 @@
 - [Introduction](./introduction.md)
 - [Queries](./queries/README.md)
   - [Pipelines](./queries/pipelines.md)
-- [Verbs](./verbs.md)
 - [Language features](./language-features/README.md)
 
   - [F-Strings](./language-features/f-strings.md)
