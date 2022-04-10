@@ -6,8 +6,7 @@
 - [Verbs](./verbs.md)
 - [Language features](./language-features/README.md)
 
-  <!--   - f-strings — `CONCAT(foo, " ", bar)` -> `f"{foo} {bar}"`? -->
-  - [String concat]()
+  - [F-Strings](./language-features/f-strings.md)
     <!-- - Ranges — `BETWEEN 1 AND 3` -> `in 1..3`? -->
   - [Ranges]()
     <!-- - - Dates — `"2021-01-01"` -> `@2021-01-01`? And `DATE_TRUNC(foo_date, YEAR)` -> `foo_date.year`? Or -> `foo_date | as year`? Or `foo_date | to year`? -->
