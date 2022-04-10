@@ -917,7 +917,7 @@ dependencies = [
 
 [[package]]
 name = "prql-js"
-version = "0.1.0"
+version = "0.1.2"
 dependencies = [
  "console_error_panic_hook",
  "prql",

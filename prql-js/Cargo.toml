@@ -1,8 +1,10 @@
 [package]
-name = "prql-js"
-version = "0.1.0"
-authors = ["aljazerzen <aljaz.erzen@gmail.com>"]
+description = "Compiler for PRQL - a modern language for transforming data"
 edition = "2018"
+license = "Apache-2.0"
+name = "prql-js"
+repository = "https://github.com/prql/prql"
+version = "0.1.2"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
@@ -29,7 +31,3 @@ wee_alloc = { version = "0.4.5", optional = true }
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.13"
-
-# [profile.release]
-# Tell `rustc` to optimize for small code size.
-# opt-level = "s"

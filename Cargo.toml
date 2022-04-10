@@ -5,3 +5,7 @@ members = [
   "prql-web",
   "prql-js",
 ]
+
+[profile.release.package.prql-js]
+# Tell `rustc` to optimize for small code size.
+opt-level = "s"
