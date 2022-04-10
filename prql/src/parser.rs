@@ -270,9 +270,8 @@ fn ast_of_transformation(items: Vec<Node>) -> Result<Transform> {
             let by = by.map(|x| x.coerce_to_items()).unwrap_or_default();
 
             let select = positional
-                .into_only()
-                .map(|x| x.coerce_to_items())
-                .unwrap_or_default();
+                .into_only_node("aggregate", "argument")?
+                .coerce_to_items();
 
             Transform::Aggregate { by, select }
         }

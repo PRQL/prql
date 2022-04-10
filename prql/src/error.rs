@@ -2,7 +2,7 @@ use ariadne::{Config, Label, Report, ReportKind, Source};
 use serde::{Deserialize, Serialize};
 use std::error::Error as StdError;
 use std::fmt::{self, Debug, Display, Formatter, Write};
-use std::ops::Range;
+use std::ops::{Add, Range};
 
 use crate::parser::PestError;
 #[derive(Debug, Clone, PartialEq, Copy, Serialize, Deserialize)]
@@ -239,6 +239,17 @@ mod pest {
 impl From<Span> for Range<usize> {
     fn from(a: Span) -> Self {
         a.start..a.end
+    }
+}
+
+impl Add<Span> for Span {
+    type Output = Span;
+
+    fn add(self, rhs: Span) -> Span {
+        Span {
+            start: self.start.min(rhs.start),
+            end: self.end.max(rhs.end),
+        }
     }
 }
 
