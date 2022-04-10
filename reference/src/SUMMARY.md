@@ -15,7 +15,7 @@
   - [Dates]()
     <!--   - Regex — `REGEX_MATCH(foo, "\\w{3}")` -> `foo ~ r"\w{3}"`? Or -> `regex foo r"\w{3}"`? -->
   - [Regex]()
-  - [S-Strings](s-strings.md)
+  - [S-Strings](./language-features/s-strings.md)
 
 - [Transforms](./transforms.md)
 - [Syntax](./syntax.md)
