@@ -12,9 +12,10 @@ use anyhow::{anyhow, bail, Result};
 use itertools::Itertools;
 use sqlformat::{format, FormatOptions, QueryParams};
 use sqlparser::ast::{
-    self as sql_ast, Expr, Join, JoinConstraint, JoinOperator, ObjectName, OrderByExpr, Select,
-    SelectItem, SetExpr, TableAlias, TableFactor, TableWithJoins, Top,
+    self as sql_ast, Expr, FunctionArgExpr, Join, JoinConstraint, JoinOperator, ObjectName,
+    OrderByExpr, Select, SelectItem, SetExpr, TableAlias, TableFactor, TableWithJoins, Top,
 };
+use sqlparser::ast::{Function, FunctionArg};
 use std::collections::HashMap;
 
 use super::ast::*;
@@ -442,14 +443,11 @@ impl TryFrom<Item> for SelectItem {
     type Error = anyhow::Error;
     fn try_from(item: Item) -> Result<Self> {
         Ok(match item {
-            Item::Expr(_) | Item::SString(_) | Item::Ident(_) | Item::Raw(_) => {
+            Item::Expr(_) | Item::SString(_) | Item::FString(_) | Item::Ident(_) | Item::Raw(_) => {
                 SelectItem::UnnamedExpr(TryInto::<Expr>::try_into(item)?)
             }
             Item::NamedExpr(named) => SelectItem::ExprWithAlias {
-                alias: sql_ast::Ident {
-                    value: named.name,
-                    quote_style: None,
-                },
+                alias: sql_ast::Ident::new(named.name),
                 expr: named.expr.item.try_into()?,
             },
             _ => bail!("Can't convert to SelectItem at the moment; {:?}", item),
@@ -513,20 +511,39 @@ impl TryFrom<Item> for Expr {
             }
             Item::String(s) => Expr::Value(sql_ast::Value::SingleQuotedString(s)),
             // Fairly hacky — convert everything to a string, then concat it,
-            // then convert to Expr. We can't use the `Terms` code above
+            // then convert to Expr. We can't use the `Item::Expr` code above
             // since we don't want to intersperse with spaces.
             Item::SString(s_string_items) => {
                 let string = s_string_items
                     .into_iter()
                     .map(|s_string_item| match s_string_item {
-                        SStringItem::String(string) => Ok(string),
-                        SStringItem::Expr(node) => {
+                        InterpolateItem::String(string) => Ok(string),
+                        InterpolateItem::Expr(node) => {
                             TryInto::<Expr>::try_into(node.item).map(|expr| expr.to_string())
                         }
                     })
                     .collect::<Result<Vec<String>>>()?
                     .join("");
                 Item::Ident(string).try_into()?
+            }
+            Item::FString(f_string_items) => {
+                let args = f_string_items
+                    .into_iter()
+                    .map(|item| match item {
+                        InterpolateItem::String(string) => {
+                            Ok(Expr::Value(sql_ast::Value::SingleQuotedString(string)))
+                        }
+                        InterpolateItem::Expr(node) => TryInto::<Expr>::try_into(node.item),
+                    })
+                    .map(|r| r.map(|e| FunctionArg::Unnamed(FunctionArgExpr::Expr(e))))
+                    .collect::<Result<Vec<_>>>()?;
+
+                Expr::Function(Function {
+                    name: ObjectName(vec![sql_ast::Ident::new("CONCAT")]),
+                    args,
+                    distinct: false,
+                    over: None,
+                })
             }
             _ => bail!("Can't convert to Expr at the moment; {item:?}"),
         })
@@ -598,6 +615,38 @@ SString:
     "###
         );
         Ok(())
+    }
+
+    #[test]
+    fn test_f_string() {
+        let query: Query = parse(
+            r###"
+        from employees
+        derive age: year_born - s'now()'
+        select [
+            f"Hello my name is {prefix}{first_name} {last_name}",
+            f"and I am {age} years old."
+        ]
+        "###,
+        )
+        .unwrap();
+
+        let sql = translate(&query).unwrap();
+        assert_display_snapshot!(sql,
+            @r###"
+        SELECT
+          CONCAT(
+            'Hello my name is ',
+            prefix,
+            first_name,
+            ' ',
+            last_name
+          ),
+          CONCAT('and I am ', year_born - now(), ' years old.')
+        FROM
+          employees
+        "###
+        );
     }
 
     #[test]

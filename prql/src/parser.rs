@@ -4,6 +4,7 @@
 //! function for turning that into PRQL AST.
 use anyhow::{anyhow, bail, Context, Result};
 use itertools::Itertools;
+use pest::iterators::Pair;
 use pest::iterators::Pairs;
 use pest::Parser;
 use pest_derive::Parser;
@@ -157,29 +158,14 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
                     })
                 }
                 Rule::ident => Item::Ident(pair.as_str().to_string()),
-                // Pull out the string itself, which doesn't have the quotes
                 Rule::string_literal => {
                     ast_of_parse_tree(pair.clone().into_inner())?
-                        .into_iter()
-                        .next()
-                        .ok_or_else(|| anyhow!("Failed reading string {pair:?}"))?
+                        .into_only()?
                         .item
                 }
                 Rule::string => Item::String(pair.as_str().to_string()),
-                Rule::s_string => Item::SString(
-                    pair.into_inner()
-                        .map(|x| {
-                            Ok(match x.as_rule() {
-                                Rule::s_string_string => {
-                                    SStringItem::String(x.as_str().to_string())
-                                }
-                                _ => SStringItem::Expr(
-                                    ast_of_parse_tree(x.into_inner())?.into_expr().into(),
-                                ),
-                            })
-                        })
-                        .collect::<Result<Vec<SStringItem>>>()?,
-                ),
+                Rule::s_string => Item::SString(ast_of_interpolate_items(pair)?),
+                Rule::f_string => Item::FString(ast_of_interpolate_items(pair)?),
                 Rule::pipeline => Item::Pipeline({
                     ast_of_parse_tree(pair.into_inner())?
                         .into_iter()
@@ -217,6 +203,17 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
             Ok(node)
         })
         .collect()
+}
+
+fn ast_of_interpolate_items(pair: Pair<Rule>) -> Result<Vec<InterpolateItem>> {
+    pair.into_inner()
+        .map(|x| {
+            Ok(match x.as_rule() {
+                Rule::interpolate_string => InterpolateItem::String(x.as_str().to_string()),
+                _ => InterpolateItem::Expr(ast_of_parse_tree(x.into_inner())?.into_expr().into()),
+            })
+        })
+        .collect::<Result<_>>()
 }
 
 fn ast_of_transformation(items: Vec<Node>) -> Result<Transform> {

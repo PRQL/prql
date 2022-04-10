@@ -38,7 +38,8 @@ pub enum Item {
     FuncDef(FuncDef),
     FuncCall(FuncCall),
     Table(Table),
-    SString(Vec<SStringItem>),
+    SString(Vec<InterpolateItem>),
+    FString(Vec<InterpolateItem>),
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
@@ -159,7 +160,7 @@ pub struct NamedExpr {
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub enum SStringItem {
+pub enum InterpolateItem {
     String(String),
     Expr(Node),
 }
