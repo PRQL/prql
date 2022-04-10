@@ -6,11 +6,6 @@
 //   it's not used or tested. It's partly a language question — do those need to
 //   start with `from`? How do these work in the midst of an `aggregate`
 //   transform?
-// - Currently there's no concept of what expressions are allowed. e.g. `1 + 1`
-//   is valid, but so is `1 1`. Or `foo bar` is not parsed at this stage as
-//   `foo` being a function and `bar` its argument — it's just parsed into a
-//   sequence of idents. We could instead parse these explicitly, and then
-//   disallow `1 1`.
 
 WHITESPACE = _{ " " | "\t" }
 // Need to exclude # in strings (and maybe confirm whether this the syntax we want)
@@ -73,8 +68,8 @@ expr_simple = !{ term_simple ~ (operator ~ term_simple)* }
 func_call = { ident ~ (named_term_simple | term_simple)+ }
 func_curry = { ident ~ (named_term_simple | term_simple)* }
 
-term = _{ ( s_string | func_call | term_simple ) }
-term_simple = _{ ( s_string | ident | parenthesized_expr | list | number | string_literal | inline_pipeline ) }
+term = _{ ( s_string | f_string | func_call | term_simple ) }
+term_simple = _{ ( s_string | f_string | ident | parenthesized_expr | list | number | string_literal | inline_pipeline ) }
 list = { "[" ~ NEWLINE* ~ named_expr ~ ("," ~ NEWLINE* ~ named_expr )* ~ ","? ~ NEWLINE* ~ "]" }
 parenthesized_expr = _{ "(" ~ expr ~ ")" }
 
@@ -103,8 +98,9 @@ number = ${ ( ASCII_DIGIT | "." )+ }
 // TODO: review operators
 operator = ${ "and" | "or" | "not" | "==" | "!=" | "=" | ">" | "<" | ">=" | "<=" | "+" | "-" | "*" | "/" | "%" }
 
-s_string = ${ "s" ~ PUSH(quote) ~ ( s_string_string | ( "{" ~ expr ~ "}" ))* ~ POP }
-s_string_string = { ( !( "\\" | PEEK | "{" ) ~ ANY )+ }
+s_string = ${ "s" ~ PUSH(quote) ~ ( interpolate_string | ( "{" ~ expr ~ "}" ))* ~ POP }
+f_string = ${ "f" ~ PUSH(quote) ~ ( interpolate_string | ( "{" ~ expr ~ "}" ))* ~ POP }
+interpolate_string = { ( !( "\\" | PEEK | "{" ) ~ ANY )+ }
 
 // For assigns, table aliases and named arguments
 named_expr = { (ident ~ ":")? ~ expr }

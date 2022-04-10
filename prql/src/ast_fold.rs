@@ -73,8 +73,8 @@ pub trait AstFold {
     fn fold_named_expr(&mut self, named_expr: NamedExpr) -> Result<NamedExpr> {
         fold_named_expr(self, named_expr)
     }
-    fn fold_sstring_item(&mut self, sstring_item: SStringItem) -> Result<SStringItem> {
-        fold_sstring_item(self, sstring_item)
+    fn fold_interpolate_item(&mut self, sstring_item: InterpolateItem) -> Result<InterpolateItem> {
+        fold_interpolate_item(self, sstring_item)
     }
 }
 pub fn fold_item<T: ?Sized + AstFold>(fold: &mut T, item: Item) -> Result<Item> {
@@ -102,7 +102,13 @@ pub fn fold_item<T: ?Sized + AstFold>(fold: &mut T, item: Item) -> Result<Item> 
         Item::SString(items) => Item::SString(
             items
                 .into_iter()
-                .map(|x| fold.fold_sstring_item(x))
+                .map(|x| fold.fold_interpolate_item(x))
+                .try_collect()?,
+        ),
+        Item::FString(items) => Item::FString(
+            items
+                .into_iter()
+                .map(|x| fold.fold_interpolate_item(x))
                 .try_collect()?,
         ),
         Item::FuncDef(func) => Item::FuncDef(fold.fold_func_def(func)?),
@@ -117,13 +123,13 @@ pub fn fold_item<T: ?Sized + AstFold>(fold: &mut T, item: Item) -> Result<Item> 
     })
 }
 
-pub fn fold_sstring_item<T: ?Sized + AstFold>(
+pub fn fold_interpolate_item<T: ?Sized + AstFold>(
     fold: &mut T,
-    sstring_item: SStringItem,
-) -> Result<SStringItem> {
-    Ok(match sstring_item {
-        SStringItem::String(string) => SStringItem::String(string),
-        SStringItem::Expr(expr) => SStringItem::Expr(fold.fold_node(expr)?),
+    interpolate_item: InterpolateItem,
+) -> Result<InterpolateItem> {
+    Ok(match interpolate_item {
+        InterpolateItem::String(string) => InterpolateItem::String(string),
+        InterpolateItem::Expr(expr) => InterpolateItem::Expr(fold.fold_node(expr)?),
     })
 }
 
