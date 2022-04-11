@@ -266,9 +266,15 @@ fn ast_of_transformation(items: Vec<Node>) -> Result<Transform> {
             let (positional, [by]) = unpack_arguments(args, ["by"]);
             let by = by.map(|x| x.coerce_to_items()).unwrap_or_default();
 
-            let select = positional
-                .into_only_node("aggregate", "argument")?
-                .coerce_to_items();
+            let select = match positional.len() {
+                0 => vec![],
+                1 => positional[0].clone().coerce_to_items(),
+                _ => bail!(Error::new(Reason::Expected{
+                    who: Some("aggregate".to_string()),
+                    expected: "only one argument".to_string(),
+                    found: "more".to_string()
+                }).with_span(positional[1].span).with_help("If you are calling a function, you may want to add parenthesis: `aggregate [average amount]`"))
+            };
 
             Transform::Aggregate { by, select }
         }
@@ -1151,5 +1157,67 @@ select [
         assert!(result.is_ok());
 
         Ok(())
+    }
+
+    #[test]
+    fn test_aggregate_positional_arg() {
+        // distinct query #292
+        let prql = "
+        from c_invoice
+        aggregate by:invoice_no
+        ";
+        let result = parse(prql).unwrap();
+        assert_yaml_snapshot!(result, @r###"
+        ---
+        nodes:
+          - Pipeline:
+              - From:
+                  name: c_invoice
+                  alias: ~
+              - Aggregate:
+                  by:
+                    - Ident: invoice_no
+                  select: []
+        "###);
+
+        // oops, two arguments #339
+        let prql = "
+        from c_invoice
+        aggregate average amount
+        ";
+        let result = parse(prql);
+        assert!(result.is_err());
+
+        // oops, two arguments
+        let prql = "
+        from c_invoice
+        aggregate by:date average amount
+        ";
+        let result = parse(prql);
+        assert!(result.is_err());
+
+        // correct function call
+        let prql = "
+        from c_invoice
+        aggregate by:date (average amount)
+        ";
+        let result = parse(prql).unwrap();
+        assert_yaml_snapshot!(result, @r###"
+        ---
+        nodes:
+          - Pipeline:
+              - From:
+                  name: c_invoice
+                  alias: ~
+              - Aggregate:
+                  by:
+                    - Ident: date
+                  select:
+                    - FuncCall:
+                        name: average
+                        args:
+                          - Ident: amount
+                        named_args: []
+        "###);
     }
 }
