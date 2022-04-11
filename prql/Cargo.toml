@@ -27,7 +27,7 @@ pest = "^2.1"
 pest_derive = "^2.1"
 serde_yaml = "^0.8"
 sqlformat = "^0.1.8"
-strum_macros = "^0.24" # for converting enum variants to string
+strum = { version = "^0.24", features = ["std", "derive"] } # for converting enum variants to string
 
 [dependencies.clap]
 features = ["derive"]
