@@ -87,8 +87,9 @@ pub fn fold_item<T: ?Sized + AstFold>(fold: &mut T, item: Item) -> Result<Item> 
                 .map(|x| fold.fold_node(x.into_inner()).map(ListItem))
                 .try_collect()?,
         ),
-        Item::Query(Query { nodes: items }) => Item::Query(Query {
-            nodes: fold.fold_nodes(items)?,
+        Item::Query(query) => Item::Query(Query {
+            nodes: fold.fold_nodes(query.nodes)?,
+            ..query
         }),
         Item::InlinePipeline(InlinePipeline { value, functions }) => {
             Item::InlinePipeline(InlinePipeline {

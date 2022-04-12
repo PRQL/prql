@@ -4,7 +4,7 @@ use serde::Deserialize;
 use serde::Serialize;
 use std::collections::HashMap;
 use std::collections::HashSet;
-use strum_macros::Display;
+use strum::Display;
 
 use crate::ast::*;
 use crate::error::Span;

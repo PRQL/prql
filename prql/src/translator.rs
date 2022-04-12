@@ -11,11 +11,12 @@
 use anyhow::{anyhow, bail, Result};
 use itertools::Itertools;
 use sqlformat::{format, FormatOptions, QueryParams};
+use sqlparser::ast::Value;
 use sqlparser::ast::{
-    self as sql_ast, Expr, FunctionArgExpr, Join, JoinConstraint, JoinOperator, ObjectName,
-    OrderByExpr, Select, SelectItem, SetExpr, TableAlias, TableFactor, TableWithJoins, Top,
+    self as sql_ast, Expr, Function, FunctionArg, FunctionArgExpr, Join, JoinConstraint,
+    JoinOperator, ObjectName, OrderByExpr, Select, SelectItem, SetExpr, TableAlias, TableFactor,
+    TableWithJoins, Top,
 };
-use sqlparser::ast::{Function, FunctionArg};
 use std::collections::HashMap;
 
 use super::ast::*;
@@ -83,10 +84,13 @@ pub fn translate_query(query: &Query) -> Result<sql_ast::Query> {
     let ctes = materialized;
 
     // convert each of the CTEs
-    let ctes: Vec<_> = ctes.into_iter().map(table_to_sql_cte).try_collect()?;
+    let ctes: Vec<_> = ctes
+        .into_iter()
+        .map(|t| table_to_sql_cte(t, &query.dialect))
+        .try_collect()?;
 
     // convert main query
-    let mut main_query = sql_query_of_atomic_table(main_query)?;
+    let mut main_query = sql_query_of_atomic_table(main_query, &query.dialect)?;
 
     // attach CTEs
     if !ctes.is_empty() {
@@ -145,14 +149,14 @@ fn separate_pipeline(query: &Query) -> Result<(Vec<Table>, Vec<Node>, Vec<Pipeli
     Ok((tables, functions, pipelines))
 }
 
-fn table_to_sql_cte(table: AtomicTable) -> Result<sql_ast::Cte> {
+fn table_to_sql_cte(table: AtomicTable, dialect: &Dialect) -> Result<sql_ast::Cte> {
     let alias = sql_ast::TableAlias {
         name: Item::Ident(table.name.clone()).try_into()?,
         columns: vec![],
     };
     Ok(sql_ast::Cte {
         alias,
-        query: sql_query_of_atomic_table(table)?,
+        query: sql_query_of_atomic_table(table, dialect)?,
         from: None,
     })
 }
@@ -179,7 +183,7 @@ fn table_factor_of_table_ref(table_ref: &TableRef) -> TableFactor {
     }
 }
 
-fn sql_query_of_atomic_table(table: AtomicTable) -> Result<sql_ast::Query> {
+fn sql_query_of_atomic_table(table: AtomicTable, dialect: &Dialect) -> Result<sql_ast::Query> {
     // TODO: possibly do validation here? e.g. check there isn't more than one
     // `from`? Or do we rely on the caller for that?
 
@@ -267,11 +271,11 @@ fn sql_query_of_atomic_table(table: AtomicTable) -> Result<sql_ast::Query> {
         .pipeline
         .iter()
         .filter_map(|t| match t {
-            Transform::Take(_) => Some(t.clone().try_into()),
+            Transform::Take(take) => Some(*take),
             _ => None,
         })
-        .last()
-        .transpose()?;
+        .min()
+        .map(expr_of_i64);
 
     // Find the final sort (none of the others affect the result, and can be discarded).
     let order_by = table
@@ -304,7 +308,11 @@ fn sql_query_of_atomic_table(table: AtomicTable) -> Result<sql_ast::Query> {
     Ok(sql_ast::Query {
         body: SetExpr::Select(Box::new(Select {
             distinct: false,
-            top: None,
+            top: if dialect.use_top() {
+                take.clone().map(top_of_expr)
+            } else {
+                None
+            },
             projection: (table.select.0.into_iter())
                 .map(|n| n.item.try_into())
                 .try_collect()?,
@@ -319,8 +327,7 @@ fn sql_query_of_atomic_table(table: AtomicTable) -> Result<sql_ast::Query> {
         })),
         order_by,
         with: None,
-        // TODO: when should this be `TOP` vs `LIMIT` (which is on the `Query` object?)
-        limit: take,
+        limit: if dialect.use_top() { None } else { take },
         offset: None,
         fetch: None,
     })
@@ -455,33 +462,18 @@ impl TryFrom<Item> for SelectItem {
     }
 }
 
-impl TryFrom<Transform> for Expr {
-    type Error = anyhow::Error;
-    fn try_from(transformation: Transform) -> Result<Self> {
-        match transformation {
-            Transform::Take(take) => Ok(
-                // TODO: implement for number
-                Item::Raw(take.to_string()).try_into()?,
-            ),
-            _ => Err(anyhow!(
-                "Expr transformation currently only supported for Take"
-            )),
-        }
-    }
+fn expr_of_i64(number: i64) -> Expr {
+    Expr::Value(Value::Number(
+        number.to_string(),
+        number.leading_zeros() < 32,
+    ))
 }
 
-impl TryFrom<Transform> for Top {
-    type Error = anyhow::Error;
-    fn try_from(transformation: Transform) -> Result<Self> {
-        match transformation {
-            Transform::Take(take) => Ok(Top {
-                // TODO: implement for number
-                quantity: Some(Item::Raw(take.to_string()).try_into()?),
-                with_ties: false,
-                percent: false,
-            }),
-            _ => Err(anyhow!("Top transformation only supported for Take")),
-        }
+fn top_of_expr(take: Expr) -> Top {
+    Top {
+        quantity: Some(take),
+        with_ties: false,
+        percent: false,
     }
 }
 
@@ -1159,6 +1151,46 @@ take 20
           LEFT JOIN salaries ON salaries.emp_no = e.emp_no
         GROUP BY
           e.emp_no
+        "###);
+        Ok(())
+    }
+
+    #[test]
+    fn test_dialects() -> Result<()> {
+        // Generic
+        let query: Query = parse(
+            r###"
+        prql dialect:generic
+        from Employees
+        select [FirstName]
+        take 3
+        "###,
+        )?;
+
+        assert_display_snapshot!((translate(&query)?), @r###"
+        SELECT
+          FirstName
+        FROM
+          Employees
+        LIMIT
+          3
+        "###);
+
+        // SQL server
+        let query: Query = parse(
+            r###"
+        prql dialect:ms_sql_server
+        from Employees
+        select [FirstName]
+        take 3
+        "###,
+        )?;
+
+        assert_display_snapshot!((translate(&query)?), @r###"
+        SELECT
+          TOP (3) FirstName
+        FROM
+          Employees
         "###);
         Ok(())
     }

@@ -11,7 +11,9 @@ WHITESPACE = _{ " " | "\t" }
 // Need to exclude # in strings (and maybe confirm whether this the syntax we want)
 COMMENT = _{ "#" ~ (!NEWLINE ~ ANY) * }
 
-query = { SOI ~ NEWLINE* ~ (( func_def | table | pipeline ) ~ ( NEWLINE+ | &EOI ))* ~ EOI }
+query = { SOI ~ NEWLINE* ~ (query_def ~ NEWLINE+)? ~ (( func_def | table | pipeline ) ~ ( NEWLINE+ | &EOI ))* ~ EOI }
+
+query_def = { WHITESPACE* ~ "prql" ~ named_expr_simple*  }
 
 func_def = { "func" ~ ident ~ func_def_params ~ "=" ~ expr }
 // TODO: we could force the named parameters to follow the positional ones here.

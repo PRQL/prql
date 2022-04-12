@@ -3,6 +3,8 @@ source: prql/src/parser.rs
 expression: "ast_of_string(r#\"\nfrom employees\nfilter country = \"USA\"                        # Each line transforms the previous result.\nderive [                                      # This adds columns / variables.\n  gross_salary: salary + payroll_tax,\n  gross_cost:   gross_salary + benefits_cost # Variables can use other variables.\n]\nfilter gross_cost > 0\naggregate by:[title, country] [               # `by` are the columns to group by.\n                   average salary,            # These are aggregation calcs run on each group.\n                   sum salary,\n                   average gross_salary,\n                   sum gross_salary,\n                   average gross_cost,\n  sum_gross_cost: sum gross_cost,\n  ct            : count,\n]\nsort sum_gross_cost\nfilter ct > 200\ntake 20\n    \"#.trim(),\n              Rule::query)?"
 ---
 Query:
+  version: ~
+  dialect: Generic
   nodes:
     - Pipeline:
         - From:

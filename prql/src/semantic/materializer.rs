@@ -343,6 +343,8 @@ aggregate [
 
         assert_yaml_snapshot!(ast, @r###"
         ---
+        version: ~
+        dialect: Generic
         nodes:
           - FuncDef:
               name: count
@@ -376,8 +378,10 @@ aggregate [
         let diff = diff(&to_string(&ast)?, &to_string(&mat)?);
         assert!(!diff.is_empty());
         assert_display_snapshot!(diff, @r###"
-        @@ -1,25 +1,8 @@
+        @@ -1,27 +1,8 @@
          ---
+        -version: ~
+        -dialect: Generic
         -nodes:
         -  - FuncDef:
         -      name: count

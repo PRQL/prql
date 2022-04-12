@@ -2,6 +2,8 @@
 //! of pest pairs into a tree of AST Items. It has a small function to call into
 //! pest to get the parse tree / concrete syntaxt tree, and then a large
 //! function for turning that into PRQL AST.
+use std::str::FromStr;
+
 use anyhow::{anyhow, bail, Context, Result};
 use itertools::Itertools;
 use pest::iterators::Pair;
@@ -50,9 +52,55 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
             let span = pair.as_span();
 
             let item = match pair.as_rule() {
-                Rule::query => Item::Query(Query {
-                    nodes: ast_of_parse_tree(pair.into_inner())?,
-                }),
+                Rule::query => {
+                    let mut parsed = ast_of_parse_tree(pair.into_inner())?;
+
+                    let has_def = parsed
+                        .first()
+                        .map(|p| matches!(p.item, Item::Query(_)))
+                        .unwrap_or(false);
+
+                    Item::Query(if has_def {
+                        let mut query = parsed.remove(0).item.into_query().unwrap();
+                        query.nodes = parsed;
+                        query
+                    } else {
+                        Query {
+                            dialect: Dialect::default(),
+                            version: None,
+                            nodes: parsed,
+                        }
+                    })
+                }
+                Rule::query_def => {
+                    let parsed = ast_of_parse_tree(pair.into_inner())?;
+
+                    let (_, [version, dialect]) = unpack_arguments(parsed, ["version", "dialect"]);
+
+                    let version = version
+                        .map(|v| v.unwrap(|i| i.into_ident(), "string"))
+                        .transpose()?;
+
+                    let dialect = if let Some(node) = dialect {
+                        let span = node.span;
+                        let dialect = node.unwrap(|i| i.into_ident(), "string")?;
+                        Dialect::from_str(&dialect).map_err(|_| {
+                            Error::new(Reason::NotFound {
+                                name: dialect,
+                                namespace: "dialect".to_string(),
+                            })
+                            .with_span(span)
+                        })?
+                    } else {
+                        Dialect::default()
+                    };
+
+                    Item::Query(Query {
+                        nodes: vec![],
+                        version,
+                        dialect,
+                    })
+                }
                 Rule::list => Item::List(
                     ast_of_parse_tree(pair.into_inner())?
                         .into_iter()
@@ -912,6 +960,8 @@ take 20
 
         assert_yaml_snapshot!(parse(r#"from mytable | select [a and b + c or d e and f]"#)?, @r###"
         ---
+        version: ~
+        dialect: Generic
         nodes:
           - Pipeline:
               - From:
@@ -1048,6 +1098,8 @@ take 20
         assert_yaml_snapshot!(ast_of_string("func median x = (x | percentile 50)", Rule::query)?, @r###"
         ---
         Query:
+          version: ~
+          dialect: Generic
           nodes:
             - FuncDef:
                 name: median
@@ -1125,6 +1177,8 @@ take 20
         ]
         "#)?, @r###"
         ---
+        version: ~
+        dialect: Generic
         nodes:
           - Pipeline:
               - From:
@@ -1169,6 +1223,8 @@ select [
         let result = parse(prql).unwrap();
         assert_yaml_snapshot!(result, @r###"
         ---
+        version: ~
+        dialect: Generic
         nodes:
           - Pipeline:
               - From:
@@ -1204,6 +1260,8 @@ select [
         let result = parse(prql).unwrap();
         assert_yaml_snapshot!(result, @r###"
         ---
+        version: ~
+        dialect: Generic
         nodes:
           - Pipeline:
               - From:
