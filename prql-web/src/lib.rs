@@ -65,7 +65,7 @@ impl Component for SqlEditor {
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
-        let sql = compile(&ctx.props().prql).unwrap_or_else(|e| e.0);
+        let sql = compile(&ctx.props().prql).unwrap_or_else(|e| e.to_string());
         self.model.set_value(&sql);
 
         html! {

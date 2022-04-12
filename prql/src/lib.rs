@@ -20,10 +20,8 @@ pub use translator::translate;
 /// This has two stages:
 /// - [parse] — Build an AST from a PRQL query string.
 /// - [translate] — Write a SQL string from a PRQL AST.
-pub fn compile(prql: &str) -> Result<String, (String, Option<SourceLocation>)> {
-    parse(prql)
-        .and_then(|x| translate(&x))
-        .map_err(|e| format_error(e, "", prql, false))
+pub fn compile(prql: &str) -> Result<String> {
+    parse(prql).and_then(|x| translate(&x))
 }
 
 /// Exposes some library internals.
