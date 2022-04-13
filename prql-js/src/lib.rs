@@ -1,6 +1,7 @@
 #![allow(clippy::unused_unit)]
 mod utils;
 
+use prql::format_error;
 use wasm_bindgen::prelude::*;
 
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
@@ -17,7 +18,7 @@ static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
 #[wasm_bindgen]
 pub fn compile(s: &str) -> CompileResult {
-    let result = prql::compile(s);
+    let result = prql::compile(s).map_err(|e| format_error(e, "", s, false));
 
     // I had to make new CompileResult struct, because I couldn't make wasm_bindgen
     // accept it as a function return value. I also had to implement a few getters. Yuck.

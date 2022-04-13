@@ -20,7 +20,7 @@ enum Msg {
     TextChange,
 }
 
-const CONTENT: &str = include_str!("../../prql/tests/integration/examples/variables-1.prql");
+const CONTENT: &str = include_str!("../../reference/tests/examples/examples/variables-1.prql");
 
 fn default_options() -> IStandaloneEditorConstructionOptions {
     let minimap_options = IEditorMinimapOptions::default();
@@ -65,7 +65,7 @@ impl Component for SqlEditor {
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
-        let sql = compile(&ctx.props().prql).unwrap_or_else(|e| e.0);
+        let sql = compile(&ctx.props().prql).unwrap_or_else(|e| e.to_string());
         self.model.set_value(&sql);
 
         html! {

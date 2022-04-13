@@ -4,6 +4,8 @@ members = [
   "prql",
   "prql-web",
   "prql-js",
+  "reference",
+  "reference/mdbook-prql", # Should this be here or should we exclude?
 ]
 
 [profile.release.package.prql-js]

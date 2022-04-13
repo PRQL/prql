@@ -1,0 +1,18 @@
+---
+source: reference/tests/snapshot.rs
+expression: sql
+input_file: reference/tests/examples/language-features/f-strings-1.prql
+---
+SELECT
+  CONCAT(
+    'http',
+    tls,
+    '://www.',
+    domain,
+    '.',
+    tld,
+    '/',
+    page
+  ) AS url
+FROM
+  x

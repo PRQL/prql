@@ -1,0 +1,9 @@
+---
+source: reference/tests/snapshot.rs
+expression: sql
+input_file: reference/tests/examples/syntax-0.prql
+---
+SELECT
+  tbl.*
+FROM
+  tbl

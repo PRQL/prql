@@ -5,40 +5,21 @@ doesn't yet implement. For example, there's no `version()` function in SQL that
 returns the Postgres version, so if we want to use that, we use an s-string:
 
 ```prql
-from x
-select db_version: s"version()"
-```
-
-...produces...
-
-```sql
-SELECT
-  version() AS db_version
-FROM
-  x
+derive db_version: s"version()"
 ```
 
 We can embed columns in an f-string using braces. For example, PRQL's standard
 library defines the `average` function as:
 
-```prql
+```prql-no-test
 func average column = s"AVG({column})"
 ```
 
-So that:
+So this compiles using the function:
 
 ```prql
 from x
-aggregate average value
-```
-
-...produces...
-
-```sql
-SELECT
-  AVG(value)
-FROM
-  x
+aggregate [average value]
 ```
 
 For those who have used python, it's similar in to a python f-string, but the
