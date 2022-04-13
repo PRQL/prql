@@ -85,7 +85,6 @@ impl Preprocessor for ComparisonPreprocessor {
         eprintln!("Running comparison preprocessor");
         book.for_each_mut(|item: &mut BookItem| {
             if let BookItem::Chapter(chapter) = item {
-                dbg!(&chapter);
                 let new = replace_examples(&chapter.content).unwrap();
                 chapter.content.clear();
                 chapter.content.push_str(&new);
@@ -124,7 +123,7 @@ fn replace_examples(text: &str) -> Result<String> {
     let mut buf = String::new();
     cmark(cmark_acc.iter(), &mut buf)?;
 
-    Ok(dbg!(buf))
+    Ok(buf)
 }
 
 fn table_of_comparison(prql: &str, sql: &str) -> String {

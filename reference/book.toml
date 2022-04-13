@@ -29,7 +29,11 @@ git-repository-url = "https://github.com/prql/prql"
 # and doesn't swallow actual errors), we should change.
 command = "sh -c 'cd $(git rev-parse --show-toplevel)/prql-web && trunk build --public-url=dist && rsync -cvri dist ../reference/src/ && echo \"Copied!\" && exit 1'"
 [preprocessor.prql]
-command = "cd $(git rev-parse --show-toplevel)/reference/comparison-preprocessor && cargo run"
+# TODO: current dev-loop is something like:
+#   cd mdbook-prql/ && cargo install --path . && cd .. &&  mdbook serve
+#
+# Can we get it working like the above so it can compile as part of the build?
+# command = "sh -c 'cd $(git rev-parse --show-toplevel)/reference/comparison-preprocessor && cargo run'"
 
 # Looks cool:
 # https://github.com/tommilligan/mdbook-admonish
