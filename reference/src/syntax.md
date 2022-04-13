@@ -44,3 +44,4 @@
 - This is no longer point-free, but that's a feature rather than a requirement.
   The alternative is subqueries, which are fine at small scale, but become
   difficult to digest as complexity increases.
+
