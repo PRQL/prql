@@ -131,7 +131,7 @@ fn table_of_comparison(prql: &str, sql: &str) -> String {
         r#"
 <table class="comparison">
 <tr>
-<td> PRQL </td> <td> SQL </td>
+<th>PRQL</th><th>SQL</th>
 </tr>
 
 <tr>

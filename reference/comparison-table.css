@@ -16,7 +16,13 @@ Would be good to fix this, or to make the page wider.
     text-align: left;
     vertical-align: top;
 }
-
+.comparison th {
+    width: 50%;
+}
 .comparison td {
-    width: 50%
+    width: 50%;
+    padding: 0;
+}
+.comparison pre {
+    margin: 0;
 }
