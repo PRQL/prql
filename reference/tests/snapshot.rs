@@ -32,7 +32,7 @@ use walkdir::WalkDir;
 
 #[test]
 fn run_examples() -> Result<()> {
-    write_reference_examples()?;
+    // write_reference_examples()?;
     run_reference_examples()?;
 
     Ok(())
