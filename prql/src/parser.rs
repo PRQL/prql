@@ -1312,4 +1312,85 @@ select [
                         named_args: []
         "###);
     }
+
+    #[test]
+    fn test_sort() {
+        assert_yaml_snapshot!(parse("
+        from invoices
+        sort issued_at
+        ").unwrap(), @r###"
+        ---
+        version: ~
+        dialect: Generic
+        nodes:
+          - Pipeline:
+              - From:
+                  name: invoices
+                  alias: ~
+              - Sort:
+                  - direction: Asc
+                    column:
+                      Ident: issued_at
+        "###);
+
+        assert_yaml_snapshot!(parse("
+        from invoices
+        sort desc:issued_at
+        ").unwrap(), @r###"
+        ---
+        version: ~
+        dialect: Generic
+        nodes:
+          - Pipeline:
+              - From:
+                  name: invoices
+                  alias: ~
+              - Sort:
+                  - direction: Desc
+                    column:
+                      Ident: issued_at
+        "###);
+
+        assert_yaml_snapshot!(parse("
+        from invoices
+        sort asc:issued_at
+        ").unwrap(), @r###"
+        ---
+        version: ~
+        dialect: Generic
+        nodes:
+          - Pipeline:
+              - From:
+                  name: invoices
+                  alias: ~
+              - Sort:
+                  - direction: Asc
+                    column:
+                      Ident: issued_at
+        "###);
+
+        assert_yaml_snapshot!(parse("
+        from invoices
+        sort [asc:issued_at, desc:amount, num_of_articles]
+        ").unwrap(), @r###"
+        ---
+        version: ~
+        dialect: Generic
+        nodes:
+          - Pipeline:
+              - From:
+                  name: invoices
+                  alias: ~
+              - Sort:
+                  - direction: Asc
+                    column:
+                      Ident: issued_at
+                  - direction: Desc
+                    column:
+                      Ident: amount
+                  - direction: Asc
+                    column:
+                      Ident: num_of_articles
+        "###);
+    }
 }
