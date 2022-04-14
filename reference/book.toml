@@ -32,7 +32,7 @@ command = "sh -c 'cd $(git rev-parse --show-toplevel)/prql-web && trunk build --
 # # Hack to install the current version of the next preprocessor
 [preprocessor.install-prql]
 before = ["prql"]
-command = "sh -c 'cd mdbook-prql/ && cargo install --path . && exit 1'"
+command = "sh -c 'cd mdbook-prql/ && cargo install --locked --path . && exit 1'"
 
 [preprocessor.prql]
 # TODO: current dev-loop is something like:
