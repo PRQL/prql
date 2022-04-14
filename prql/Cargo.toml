@@ -27,7 +27,8 @@ pest = "^2.1"
 pest_derive = "^2.1"
 serde_yaml = "^0.8"
 sqlformat = "^0.1.8"
-strum = { version = "^0.24", features = ["std", "derive"] } # for converting enum variants to string
+strum = {version = "^0.24", features = ["std", "derive"]}# for converting enum variants to string
+strum_macros = "^0.24" # for converting enum variants to string
 
 [dependencies.clap]
 features = ["derive"]
@@ -43,5 +44,9 @@ features = ["derive"]
 version = "^1.0"
 
 [dev-dependencies]
+globset = "0.4.8"
 insta = {version = "^1.13", features = ["colors", "glob"]}
+pulldown-cmark = "0.9.1"
+pulldown-cmark-to-cmark = "10"
 similar = "^2.1"
+walkdir = "2.3.2"

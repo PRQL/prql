@@ -6,7 +6,7 @@ Core principle of the language is a pipeline, which is a series of sequential tr
 
 > specifies a data source
 
-```prql
+```prql_no_test
 from {table reference}
 ```
 
@@ -20,7 +20,7 @@ from employees
 
 > picks columns based on their names
 
-```prql
+```prql_no_test
 select [{expression}]
 ```
 
@@ -35,7 +35,7 @@ select [first_name, last_name]
 
 > adds new columns that are computed from existing columns
 
-```prql
+```prql_no_test
 derive [{new_name}: {expression}]
 ```
 
@@ -58,22 +58,22 @@ derive [
 
 > picks rows based on their values
 
-```prql
+```prql_no_test
 filter {boolean expression}
 ```
 
 *Example:*
 
-```prql
+```prql_no_test
 from employees
-filter length last_name < 3
+filter (length last_name < 3)
 ```
 
 ## Take
 
 > picks first n rows
 
-```prql
+```prql_no_test
 take {n}
 ```
 
@@ -88,7 +88,7 @@ take 10
 
 > orders the rows by the values of selected columns
 
-```prql
+```prql_no_test
 sort {column}
 ```
 
@@ -107,7 +107,7 @@ sort age
 
 > adds columns from another table, matching rows based on a condition
 
-```prql
+```prql_no_test
 join side:{inner|left|right|full} {table} {[conditions]}
 ```
 
@@ -125,11 +125,6 @@ from employees
 join side:left positions [id=employee_id]
 ```
 
-```sql
-SELECT * FROM employees
-LEFT JOIN positions ON id = employee_id
-```
-
 *Example:*
 
 ```prql
@@ -137,16 +132,11 @@ from employees
 join side:full positions [emp_no]
 ```
 
-```sql
-SELECT * FROM employees
-FULL OUTER JOIN positions ON USING(emp_no)
-```
-
 ## Aggregate
 
 > group rows by one or more columns
 
-```prql
+```prql_no_test
 aggregate by:[{column identifier}] [{expression or assign operation}]
 ```
 
@@ -158,10 +148,4 @@ aggregate by:[title, country] [
   average salary,
   ct: count
 ]
-```
-
-```sql
-SELECT title, country, AVG(salary), COUNT(*) AS ct
-FROM employees
-GROUP BY title, country
 ```

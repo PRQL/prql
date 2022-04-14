@@ -1,0 +1,10 @@
+---
+source: reference/tests/snapshot.rs
+expression: sql
+input_file: reference/tests/examples/queries/pipelines-1.prql
+---
+SELECT
+  employees.*,
+  salary + payroll_tax AS gross_salary
+FROM
+  employees

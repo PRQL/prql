@@ -60,6 +60,7 @@ jobs:
         uses: actions/checkout@v2
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v1
+      - uses: jetli/trunk-action@v0.1.0
       - uses: peaceiris/actions-mdbook@v1
       - name: 📋 Test
         run: mdbook build
