@@ -95,19 +95,14 @@ fn write_reference_examples() -> Result<()> {
 fn run_reference_examples() -> Result<()> {
     glob!("examples/**/*.prql", |path| {
         let prql = fs::read_to_string(path).unwrap();
-
         dbg!(&prql);
-
-        let mut file = File::open(path).unwrap();
-        let mut contents = String::new();
-        file.read_to_string(&mut contents).unwrap();
-
-        dbg!(&contents);
-
-        if prql.contains("skip_test") {
-            return;
-        }
-
+        let sql = compile(&prql).unwrap_or_else(|e| format!("Failed to compile `{prql}`; {e}"));
+        assert_snapshot!(sql);
+    });
+    write_reference_examples();
+    glob!("examples/**/*.prql", |path| {
+        let prql = fs::read_to_string(path).unwrap();
+        dbg!(&prql);
         let sql = compile(&prql).unwrap_or_else(|e| format!("Failed to compile `{prql}`; {e}"));
         assert_snapshot!(sql);
     });
