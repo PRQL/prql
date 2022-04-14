@@ -29,7 +29,7 @@ git-repository-url = "https://github.com/prql/prql"
 # and doesn't swallow actual errors), we should change.
 command = "sh -c 'cd $(git rev-parse --show-toplevel)/prql-web && trunk build --public-url=dist && rsync -cvri dist ../reference/src/ && echo \"Copied!\" && exit 1'"
 
-# # Hack to install the current version of the next preprocessor
+# Hack to install the current version of the next preprocessor
 [preprocessor.install-prql]
 before = ["prql"]
 command = "sh -c 'cd mdbook-prql/ && cargo install --locked --path . && exit 1'"
@@ -41,6 +41,6 @@ command = "sh -c 'cd mdbook-prql/ && cargo install --locked --path . && exit 1'"
 # Can we get it working like the above so it can compile as part of the build?
 # command = "sh -c 'cd $(git rev-parse --show-toplevel)/reference/comparison-preprocessor && cargo run'"
 
-# Looks cool:
+# Other preprocessors which looks cool:
 # https://github.com/tommilligan/mdbook-admonish
 # [preprocessor.toc]
