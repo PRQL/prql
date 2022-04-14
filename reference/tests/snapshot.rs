@@ -3,21 +3,17 @@
 /// - Converts them to SQL using insta, raising an error if there's a diff.
 /// - Replaces the PRQL code block with a comparison table.
 //
-// Overall, this is bad quality code that I shouldn't have written. It also
-// took a long time to write. The intention was reasonable — have a version of
-// the SQL that's committed into the repo, and join our tests with our docs.
-//
-// We don't use a book preprocessor, because we want to the results committed
-// into the repository, so we can see if anything changes (I think this
-// dimension is quite important.)
+// Overall, this is sligthly overengineered — it's complicated and took a long
+// time to write. The intention is good — have a version of the SQL that's
+// committed into the repo, and join our tests with our docs. But it feels like
+// overly custom code for quite a general problem, even if our preferences are
+// slightly different from the general case.
 //
 // Possibly we should be using something like pandoc /
 // https://github.com/gpoore/codebraid / which would run the transformation for
 // us. They introduce a bunch of non-rust dependencies, which is not ideal, but
 // passable. They don't let us customize our formatting (e.g. in a table).
 //
-// Overall, this feels like overly custom code for quite a general problem, even
-// if our preferences are slightly different.
 use anyhow::{bail, Result};
 use globset::Glob;
 use insta::{assert_snapshot, glob};
@@ -32,6 +28,11 @@ use walkdir::WalkDir;
 
 #[test]
 fn run_examples() -> Result<()> {
+    // TODO: This doesn't delete old prql files — probably we should delete them
+    // all first?
+    //
+    // TODO: In CI this could pass by replacing files that are wrong in the
+    // repo; instead we could check if there are any diffs after this has run?
     // write_reference_examples()?;
     run_reference_examples()?;
 
