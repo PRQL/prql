@@ -240,6 +240,30 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
                     })
                 }
                 Rule::operator | Rule::number => Item::Raw(pair.as_str().to_owned()),
+                Rule::range => {
+                    // a bit hacky, but eh
+                    let no_start = &pair.as_span().as_str()[0..2] == "..";
+
+                    let mut parsed = ast_of_parse_tree(pair.into_inner())?;
+
+                    let (start, end) = match parsed.len() {
+                        0 => (None, None),
+                        1 => {
+                            let item = Box::from(parsed.remove(0));
+                            if no_start {
+                                (None, Some(item))
+                            } else {
+                                (Some(item), None)
+                            }
+                        }
+                        2 => (
+                            Some(Box::from(parsed.remove(0))),
+                            Some(Box::from(parsed.remove(0))),
+                        ),
+                        _ => unreachable!(),
+                    };
+                    Item::Range(Range { start, end })
+                }
                 _ => unreachable!(),
             };
 
@@ -1391,6 +1415,55 @@ select [
                   - direction: Asc
                     column:
                       Ident: num_of_articles
+        "###);
+    }
+
+    #[test]
+    fn test_range() {
+        assert_yaml_snapshot!(parse("
+        from employees
+        filter (age | between 18..40)
+        derive greater_than_ten: 11..
+        derive less_than_ten: ..9
+        ").unwrap(), @r###"
+        ---
+        version: ~
+        dialect: Generic
+        nodes:
+          - Pipeline:
+              - From:
+                  name: employees
+                  alias: ~
+              - Filter:
+                  - InlinePipeline:
+                      value:
+                        Ident: age
+                      functions:
+                        - FuncCall:
+                            name: between
+                            args:
+                              - Range:
+                                  start:
+                                    Raw: "18"
+                                  end:
+                                    Raw: "40"
+                            named_args: []
+              - Derive:
+                  - NamedExpr:
+                      name: greater_than_ten
+                      expr:
+                        Range:
+                          start:
+                            Raw: "11"
+                          end: ~
+              - Derive:
+                  - NamedExpr:
+                      name: less_than_ten
+                      expr:
+                        Range:
+                          start: ~
+                          end:
+                            Raw: "9"
         "###);
     }
 }

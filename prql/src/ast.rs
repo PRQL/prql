@@ -34,6 +34,7 @@ pub enum Item {
     // to start with a simple expression.
     InlinePipeline(InlinePipeline),
     List(Vec<ListItem>),
+    Range(Range),
     Expr(Vec<Node>),
     FuncDef(FuncDef),
     FuncCall(FuncCall),
@@ -222,6 +223,12 @@ pub struct ColumnSort<T = Node> {
 pub enum SortDirection {
     Asc,
     Desc,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct Range {
+    pub start: Option<Box<Node>>,
+    pub end: Option<Box<Node>>,
 }
 
 impl Node {

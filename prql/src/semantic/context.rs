@@ -124,8 +124,7 @@ impl Context {
         self.variables.retain(|name, _| match name.as_str() {
             "_" | "$" | "%" => true,
             _ => {
-                self.namespaces
-                    .insert(name.clone(), table_name.to_string());
+                self.namespaces.insert(name.clone(), table_name.to_string());
                 false
             }
         });
@@ -278,7 +277,7 @@ impl Context {
         }
 
         // resolve table alias
-        let namespace = self.resolve_namespace(&namespace);
+        let namespace = self.resolve_namespace(namespace);
 
         let ns = (self.variables.get(&namespace))
             .ok_or_else(|| format!("Unknown table `{namespace}`"))?;
@@ -303,30 +302,30 @@ impl Context {
     pub fn lookup_namespace_of(&self, variable: &str) -> Result<Option<&String>, String> {
         if let Some(ns) = self.inverse.get(variable) {
             // lookup the inverse index
-            
+
             match ns.len() {
                 0 => unreachable!("inverse index contains empty lists?"),
-                
+
                 // single match, great!
                 1 => Ok(ns.iter().next()),
-                
+
                 // ambiguous
                 _ => Err(format!(
                     "Ambiguous variable. Could be from either of {:?}",
                     ns
-                ))
+                )),
             }
         } else if let Some(ns) = self.inverse.get("*") {
             // this variable can be from a namespace that we don't know all columns of
 
             match ns.len() {
                 0 => unreachable!("inverse index contains empty lists?"),
-                
+
                 // single match, great!
                 1 => Ok(ns.iter().next()),
-                
+
                 // don't report ambiguous variable, database may be able to resolve them
-                _ => Ok(None)
+                _ => Ok(None),
             }
         } else {
             Err(format!("Unknown variable `{variable}`"))
