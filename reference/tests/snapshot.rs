@@ -23,8 +23,11 @@ use globset::Glob;
 use insta::{assert_snapshot, glob};
 use prql::*;
 use pulldown_cmark::{CodeBlockKind, Event, Parser, Tag};
-use std::fs;
 use std::path::Path;
+use std::{
+    fs::{self, File},
+    io::Read,
+};
 use walkdir::WalkDir;
 
 #[test]
@@ -94,6 +97,12 @@ fn run_reference_examples() -> Result<()> {
         let prql = fs::read_to_string(path).unwrap();
 
         dbg!(&prql);
+
+        let mut file = File::open(path).unwrap();
+        let mut contents = String::new();
+        file.read_to_string(&mut contents).unwrap();
+
+        dbg!(&contents);
 
         if prql.contains("skip_test") {
             return;
