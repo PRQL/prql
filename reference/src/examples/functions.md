@@ -1,7 +1,7 @@
 (This mostly works, apart from window clauses, and the version & db args on the
 first line)
 
-```prql
+```prql_no_test
 prql version:0.1 db:snowflake                         # Version number & database name.
 
 func lag_day x = (
