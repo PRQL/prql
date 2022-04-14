@@ -8,18 +8,18 @@ returns the Postgres version, so if we want to use that, we use an s-string:
 derive db_version: s"version()"
 ```
 
-We can embed columns in an f-string using braces. For example, PRQL's standard
+We can embed columns in an s-string using braces. For example, PRQL's standard
 library defines the `average` function as:
 
-```prql-no-test
+```prql_no_test
 func average column = s"AVG({column})"
 ```
 
 So this compiles using the function:
 
 ```prql
-from x
-aggregate [average value]
+from employees
+aggregate [average salary]
 ```
 
 For those who have used python, it's similar in to a python f-string, but the

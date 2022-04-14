@@ -1,2 +1,2 @@
-from x
-aggregate [average value]
+from employees
+aggregate [average salary]
