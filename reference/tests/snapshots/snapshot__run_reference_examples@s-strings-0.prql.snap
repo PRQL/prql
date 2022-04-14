@@ -5,5 +5,3 @@ input_file: reference/tests/examples/language-features/s-strings-0.prql
 ---
 SELECT
   version() AS db_version
-FROM
-  x

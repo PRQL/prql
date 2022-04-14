@@ -1,2 +1,1 @@
-from x
-select db_version: s"version()"
+derive db_version: s"version()"
