@@ -16,7 +16,7 @@ const DECL_ALL: usize = usize::MAX;
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
 pub struct Context {
     /// current table columns (result of last pipeline)
-    pub(super) frame: Vec<TableColumn>,
+    pub(super) frame: Frame,
 
     /// For each namespace (table), a map from column names to their definitions
     /// "$" is namespace of variables not belonging to any table (aliased, join using)
@@ -37,7 +37,13 @@ pub struct Context {
     pub(super) declarations: Vec<(Declaration, Option<Span>)>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct Frame {
+    pub columns: Vec<TableColumn>,
+    pub sort: Vec<ColumnSort<usize>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum TableColumn {
     All(String),
     Declared(usize),
@@ -46,31 +52,19 @@ pub enum TableColumn {
 #[derive(Debug, EnumAsInner, Display, Clone, Serialize, Deserialize)]
 #[allow(dead_code)]
 pub enum Declaration {
-    Variable(VarDec),
+    Variable(Box<Node>),
     Table(String),
     Function(FuncDef),
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct VarDec {
-    /// index of the columns in the table
-    // pub position: Option<usize>,
-    /// the Node whose expr is equivalent to this variable
-    pub declaration: Box<Node>,
-    /// for aliased columns and functions without arguments
-    pub name: Option<String>,
 }
 
 impl Context {
     pub fn get_frame(&self) -> Vec<Option<String>> {
         self.frame
+            .columns
             .iter()
-            .filter_map(|col| match col {
-                TableColumn::All(namespace) => Some(Some(format!("{namespace}.*"))),
-                TableColumn::Declared(id) => {
-                    let var = self.declarations[*id].0.as_variable();
-                    var.map(|c| c.name.clone())
-                }
+            .map(|col| match col {
+                TableColumn::All(namespace) => Some(format!("{namespace}.*")),
+                TableColumn::Declared(id) => self.declarations[*id].0.as_name().cloned(),
             })
             .collect()
     }
@@ -106,15 +100,16 @@ impl Context {
 
         // remove namespaces and collect all their variables to "current frame" namespace
         let mut current = self.variables.remove("$").unwrap_or_default();
-        current.retain(|_, id| self.frame.iter().any(|c| c == id));
+        current.retain(|_, id| self.frame.columns.iter().any(|c| c == id));
         self.variables.retain(|name, space| match name.as_str() {
             "%" | "_" | "$" => true,
             _ => {
                 // redirect namespace to $
                 self.tables.insert(name.clone(), "$".to_string());
 
-                current
-                    .extend((space.drain()).filter(|(_, id)| self.frame.iter().any(|c| c == id)));
+                current.extend(
+                    (space.drain()).filter(|(_, id)| self.frame.columns.iter().any(|c| c == id)),
+                );
                 false
             }
         });
@@ -186,21 +181,10 @@ impl Context {
     // }
 
     pub fn declare_table_column(&mut self, node: &Node, in_frame: bool) -> usize {
-        let var_dec = if let Some(named_expr) = node.item.as_named_expr() {
-            VarDec {
-                declaration: named_expr.expr.clone(),
-                name: Some(named_expr.name.clone()),
-            }
-        } else {
-            VarDec {
-                declaration: Box::from(node.clone()),
-                // if this is an identifier, use it as a name
-                name: node.item.as_ident().cloned(),
-            }
-        };
+        let decl = Declaration::Variable(Box::from(node.clone()));
 
-        let name = var_dec.name.clone();
-        let id = self.declare(Declaration::Variable(var_dec), node.span);
+        let name = decl.as_name().cloned();
+        let id = self.declare(decl, node.span);
 
         self.add_to_scope(name.as_deref(), id, in_frame);
         id
@@ -221,13 +205,11 @@ impl Context {
             _ => unreachable!(),
         };
 
-        let var_dec = VarDec {
-            declaration: Box::new(Item::Ident(name.clone()).into()), // doesn't matter, will get overridden anyway
-            name: Some(name.clone()),
-        };
+        // doesn't matter, will get overridden anyway
+        let decl = Box::new(Item::Ident(name.clone()).into());
 
         let name = format!("_.{name}");
-        let id = self.declare(Declaration::Variable(var_dec), None);
+        let id = self.declare(Declaration::Variable(decl), None);
 
         self.add_to_scope(Some(&name), id, false);
 
@@ -250,7 +232,7 @@ impl Context {
 
             // remove overridden columns from frame
             if let Some(overridden) = overridden {
-                self.frame.retain(|col| col != &overridden);
+                self.frame.columns.retain(|col| col != &overridden);
             }
         }
 
@@ -262,9 +244,9 @@ impl Context {
                     namespace = ns.clone();
                 }
 
-                self.frame.push(TableColumn::All(namespace));
+                self.frame.columns.push(TableColumn::All(namespace));
             } else {
-                self.frame.push(TableColumn::Declared(id));
+                self.frame.columns.push(TableColumn::Declared(id));
             }
         }
     }
@@ -354,9 +336,12 @@ pub(super) fn split_var_name(ident: &str) -> (&str, &str) {
 }
 
 impl Declaration {
-    pub fn into_node(self) -> Result<Box<Node>, Self> {
+    pub fn into_expr_node(self) -> Result<Box<Node>, Self> {
         match self {
-            Declaration::Variable(VarDec { declaration, .. }) => Ok(declaration),
+            Declaration::Variable(node) => Ok(match node.item {
+                Item::NamedExpr(named_expr) => named_expr.expr,
+                _ => node,
+            }),
             Declaration::Table(_) => Err(self),
             Declaration::Function(FuncDef { body, .. }) => Ok(body),
         }
@@ -364,7 +349,7 @@ impl Declaration {
 
     pub fn as_node_mut(&mut self) -> Option<&mut Box<Node>> {
         match self {
-            Declaration::Variable(VarDec { declaration, .. }) => Some(declaration),
+            Declaration::Variable(declaration) => Some(declaration),
             Declaration::Table(_) => None,
             Declaration::Function(FuncDef { body, .. }) => Some(body),
         }
@@ -372,7 +357,15 @@ impl Declaration {
 
     pub fn as_name(&self) -> Option<&String> {
         match self {
-            Declaration::Variable(VarDec { name, .. }) => name.as_ref(),
+            Declaration::Variable(node) => match &node.item {
+                Item::NamedExpr(named_expr) => Some(&named_expr.name),
+
+                // if this is an identifier, use it as a name
+                Item::Ident(ident) => Some(ident),
+
+                // everything else is unnamed,
+                _ => None,
+            },
             Declaration::Table(name) => Some(name),
             Declaration::Function(FuncDef { name, .. }) => Some(name),
         }

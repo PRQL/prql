@@ -1,3 +1,4 @@
+use anyhow::anyhow;
 use anyhow::Result;
 use itertools::Itertools;
 
@@ -5,7 +6,7 @@ use crate::ast::*;
 use crate::ast_fold::*;
 use crate::error::{Error, Reason};
 
-use super::context::Context;
+use super::context::{Context, Frame};
 
 /// Runs semantic analysis on the query, using current state.
 /// Appends query to current query.
@@ -93,7 +94,7 @@ impl AstFold for Resolver {
                     Transform::From(t) => {
                         self.context.clear_scopes();
 
-                        self.context.frame.clear();
+                        self.context.frame = Frame::default();
 
                         self.context.declare_table(&t);
 
@@ -102,7 +103,7 @@ impl AstFold for Resolver {
                     }
 
                     Transform::Select(nodes) => {
-                        self.context.frame.clear();
+                        self.context.frame.columns.clear();
 
                         self.fold_and_declare(nodes)?;
 
@@ -114,7 +115,7 @@ impl AstFold for Resolver {
                         None
                     }
                     Transform::Aggregate { by, select } => {
-                        self.context.frame.clear();
+                        self.context.frame.columns.clear();
 
                         let by = self.fold_and_declare(by)?;
 
@@ -143,6 +144,24 @@ impl AstFold for Resolver {
                                 }
                             },
                         })
+                    }
+                    Transform::Sort(sort) => {
+                        let sort = self.fold_column_sorts(sort)?;
+
+                        // map each column into its declated_at
+                        // I have a feeling that there sould be more compact way of doing this...
+                        self.context.frame.sort = sort
+                            .into_iter()
+                            .map(|s| {
+                                Ok::<_, anyhow::Error>(ColumnSort {
+                                    column: (s.column.declared_at)
+                                        .ok_or_else(|| anyhow!("Unresolved ident in sort?"))?,
+                                    direction: s.direction,
+                                })
+                            })
+                            .try_collect()?;
+
+                        None
                     }
                     t => Some(fold_transform(self, t)?),
                 })
@@ -204,7 +223,9 @@ mod tests {
 
         assert_yaml_snapshot!(resolver.context.frame, @r###"
         ---
-        - All: employees
+        columns:
+          - All: employees
+        sort: []
         "###);
         assert!(resolver.context.variables["employees"].len() == 1);
     }
@@ -239,7 +260,7 @@ mod tests {
         .unwrap();
         resolver.fold_node(pipeline).unwrap();
 
-        assert_eq!(resolver.context.frame.len(), 3);
+        assert_eq!(resolver.context.frame.columns.len(), 3);
         assert_debug_snapshot!(resolver.context.variables["$"].iter().sorted(), @r###"
         IntoIter(
             [

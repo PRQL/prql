@@ -3,8 +3,8 @@ mod materializer;
 mod reporting;
 mod resolver;
 
-pub use self::context::{Context, Declaration, VarDec};
-pub use materializer::{materialize, SelectedColumns};
+pub use self::context::{Context, Declaration};
+pub use materializer::{materialize, MaterializedFrame};
 pub use reporting::print;
 pub use resolver::resolve;
 
@@ -19,7 +19,7 @@ use anyhow::Result;
 pub fn resolve_and_materialize(
     nodes: Vec<Node>,
     context: Option<Context>,
-) -> Result<(Vec<Node>, Context, SelectedColumns)> {
+) -> Result<(Vec<Node>, Context, MaterializedFrame)> {
     let (nodes, context) = resolve(nodes, context)?;
     materialize(nodes, context)
 }
@@ -28,7 +28,7 @@ pub fn resolve_and_materialize(
 pub fn process_pipeline(
     pipeline: Pipeline,
     context: Option<Context>,
-) -> Result<(Pipeline, Context, SelectedColumns)> {
+) -> Result<(Pipeline, Context, MaterializedFrame)> {
     let (nodes, context, select) =
         resolve_and_materialize(vec![Item::Pipeline(pipeline).into()], context)?;
     let pipeline = nodes.into_only()?.item.into_pipeline()?;

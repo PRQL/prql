@@ -78,7 +78,9 @@ Query:
                   expr:
                     Ident: count
         - Sort:
-            - Ident: sum_gross_cost
+            - direction: Asc
+              column:
+                Ident: sum_gross_cost
         - Filter:
             - Expr:
                 - Ident: ct

@@ -329,8 +329,40 @@ fn ast_of_transformation(items: Vec<Node>) -> Result<Transform> {
         "sort" => {
             let by = args
                 .into_only_node("sort", "argument")?
-                .discard_name()?
-                .coerce_to_items();
+                .coerce_to_items()
+                .into_iter()
+                .map(|node| {
+                    let (column, direction) = match node.item {
+                        Item::NamedExpr(named_expr) => {
+                            let direction = match named_expr.name.as_str() {
+                                "asc" => SortDirection::Asc,
+                                "desc" => SortDirection::Desc,
+                                _ => {
+                                    return Err(Error::new(Reason::Expected {
+                                        who: Some("sort".to_string()),
+                                        expected: "asc or desc".to_string(),
+                                        found: named_expr.name,
+                                    })
+                                    .with_span(node.span))
+                                }
+                            };
+                            (*named_expr.expr, direction)
+                        }
+                        _ => (node, SortDirection::default()),
+                    };
+
+                    if matches!(column.item, Item::Ident(_)) {
+                        Ok(ColumnSort { direction, column })
+                    } else {
+                        Err(Error::new(Reason::Simple(
+                            "`sort` expects column name, not expression".to_string(),
+                        ))
+                        .with_help("you can introduce a new column with `derive`")
+                        .with_span(column.span))
+                    }
+                })
+                .try_collect()?;
+
             Transform::Sort(by)
         }
         "take" => {
@@ -1033,7 +1065,9 @@ take 20
                             - Ident: salary
                           named_args: []
             - Sort:
-                - Ident: tenure
+                - direction: Asc
+                  column:
+                    Ident: tenure
             - Take: 50
         "###);
         Ok(())

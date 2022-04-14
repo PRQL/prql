@@ -7,19 +7,22 @@ use crate::ast::*;
 use crate::ast_fold::*;
 use crate::error::{Error, Reason};
 
-use anyhow::{bail, Result};
+use anyhow::{anyhow, bail, Result};
 use itertools::zip;
 use itertools::Itertools;
 
 use super::context::{split_var_name, Context, TableColumn};
 
-pub struct SelectedColumns(pub Vec<Node>);
+pub struct MaterializedFrame {
+    pub columns: Vec<Node>,
+    pub sort: Vec<ColumnSort<Ident>>,
+}
 
 /// Replaces all resolved functions and variables with their declarations.
 pub fn materialize(
     nodes: Vec<Node>,
     context: Context,
-) -> Result<(Vec<Node>, Context, SelectedColumns)> {
+) -> Result<(Vec<Node>, Context, MaterializedFrame)> {
     let mut counter = TableCounter::default();
     let nodes = counter.fold_nodes(nodes).unwrap();
 
@@ -32,9 +35,12 @@ pub fn materialize(
     let nodes = m.fold_nodes(nodes)?;
 
     // materialize each of the columns
-    let select = m.materialize_columns()?;
+    let columns = m.materialize_columns()?;
 
-    Ok((nodes, m.context, SelectedColumns(select)))
+    // materialize each of the columns
+    let sort = m.lookup_sort()?;
+
+    Ok((nodes, m.context, MaterializedFrame { columns, sort }))
 }
 
 /// Can fold (walk) over AST and replace function calls and variable references with their declarations.
@@ -50,9 +56,12 @@ impl Materializer {
         // This has to be done in two stages, because some of the declarations that
         // have to be replaced may appear in other columns, where original declaration
         // is needed.
+        // For example:
+        // derive b: a + 1
+        // select [b, b + 1]
 
         // materialize each column
-        let res: Vec<_> = (self.context.frame.clone().iter())
+        let res: Vec<_> = (self.context.frame.columns.clone().iter())
             .map(|column| match column {
                 TableColumn::Declared(column_id) => self.materialize_column(*column_id),
                 TableColumn::All(namespace) => {
@@ -84,7 +93,7 @@ impl Materializer {
         // find the new column name (with namespace removed)
         let ident = (decl.as_name()).map(|i| split_var_name(i.as_str()).1.to_string());
 
-        let node = decl.into_node().unwrap();
+        let node = decl.into_expr_node().unwrap();
 
         // materialize
         let expr_node = self.fold_node(*node)?;
@@ -108,6 +117,28 @@ impl Materializer {
             // column is not named, just return its expression
             (expr_node, None)
         })
+    }
+
+    /// Folds the column and returns expression that can be used in select.
+    /// Also returns column id and name if declaration should be replaced.
+    fn lookup_sort(&mut self) -> Result<Vec<ColumnSort<Ident>>> {
+        let sort = &self.context.frame.sort;
+
+        sort.iter()
+            .cloned()
+            .map(|s| {
+                let decl = self.context.declarations[s.column].0.clone();
+                let column = decl
+                    .as_name()
+                    .ok_or_else(|| anyhow!("unnamed sort column?"))?
+                    .clone();
+
+                Ok(ColumnSort {
+                    column,
+                    direction: s.direction,
+                })
+            })
+            .try_collect()
     }
 
     fn materialize_func_call(&mut self, node: &Node) -> Result<Node> {
@@ -201,7 +232,7 @@ impl AstFold for Materializer {
                 let node = if let Some(id) = node.declared_at {
                     let (decl, _) = &self.context.declarations[id];
 
-                    let new_node = *decl.clone().into_node()?;
+                    let new_node = *decl.clone().into_expr_node()?;
                     self.fold_node(new_node)?
                 } else {
                     node

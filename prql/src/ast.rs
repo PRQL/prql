@@ -101,7 +101,7 @@ pub enum Transform {
         by: Vec<Node>,
         select: Vec<Node>,
     },
-    Sort(Vec<Node>),
+    Sort(Vec<ColumnSort<Node>>),
     Take(i64),
     Join {
         side: JoinSide,
@@ -131,8 +131,8 @@ impl Transform {
             Transform::Select(nodes)
             | Transform::Filter(Filter(nodes))
             | Transform::Derive(nodes)
-            | Transform::Aggregate { by: nodes, .. }
-            | Transform::Sort(nodes) => nodes.first(),
+            | Transform::Aggregate { by: nodes, .. } => nodes.first(),
+            Transform::Sort(columns) => columns.first().map(|c| &c.column),
             Transform::Join { filter, .. } => filter.nodes().first(),
             Transform::Take(_) => None,
         }
@@ -210,6 +210,18 @@ pub enum JoinSide {
 pub struct TableRef {
     pub name: String,
     pub alias: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ColumnSort<T = Node> {
+    pub direction: SortDirection,
+    pub column: T,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum SortDirection {
+    Asc,
+    Desc,
 }
 
 impl Node {
@@ -294,6 +306,12 @@ impl From<Item> for Node {
             span: None,
             declared_at: None,
         }
+    }
+}
+
+impl Default for SortDirection {
+    fn default() -> Self {
+        SortDirection::Asc
     }
 }
 

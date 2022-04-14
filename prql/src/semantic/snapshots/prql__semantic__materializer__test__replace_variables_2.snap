@@ -27,18 +27,6 @@ expression: "&mat"
           - Ident: title
           - Ident: country
         select: []
-    - Sort:
-        - SString:
-            - String: SUM(
-            - Expr:
-                Expr:
-                  - Expr:
-                      - Ident: salary
-                      - Raw: +
-                      - Ident: payroll_tax
-                  - Raw: +
-                  - Ident: benefits_cost
-            - String: )
     - Filter:
         - Expr:
             - SString:
