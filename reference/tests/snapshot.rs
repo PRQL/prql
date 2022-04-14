@@ -93,6 +93,8 @@ fn run_reference_examples() -> Result<()> {
     glob!("examples/**/*.prql", |path| {
         let prql = fs::read_to_string(path).unwrap();
 
+        dbg!(&prql);
+
         if prql.contains("skip_test") {
             return;
         }
