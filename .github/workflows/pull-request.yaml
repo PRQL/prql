@@ -24,7 +24,7 @@ jobs:
   test-mac:
     uses: ./.github/workflows/test.yaml
     with:
-      os: windows-latest
+      os: mac-latest
     if: |
       github.ref_name == 'main'
       || contains(github.event.pull_request.labels.*.name, 'run-full-tests')
