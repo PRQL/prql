@@ -3,7 +3,7 @@ use std::ops::Range;
 use anyhow::{Ok, Result};
 use ariadne::{Color, Label, Report, ReportBuilder, ReportKind, Source};
 
-use super::{Context, Declaration, VarDec};
+use super::{Context, Declaration};
 use crate::ast::FuncDef;
 use crate::internals::{AstFold, Node};
 
@@ -24,8 +24,7 @@ pub fn print(nodes: &[Node], context: &Context, source_id: String, source: Strin
     // traverse declarations
     for (d, _) in &context.declarations {
         match d {
-            Declaration::Variable(VarDec { declaration: n, .. })
-            | Declaration::Function(FuncDef { body: n, .. }) => {
+            Declaration::Variable(n) | Declaration::Function(FuncDef { body: n, .. }) => {
                 labeler.fold_node(*(*n).clone()).unwrap();
             }
             Declaration::Table(_) => todo!(),

@@ -22,8 +22,7 @@ use std::collections::HashMap;
 use super::ast::*;
 use super::utils::*;
 use crate::ast::JoinFilter;
-use crate::semantic;
-use crate::semantic::SelectedColumns;
+use crate::semantic::{self, MaterializedFrame};
 
 /// Translate a PRQL AST into a SQL string.
 pub fn translate(query: &Query) -> Result<String> {
@@ -60,19 +59,15 @@ pub fn translate_query(query: &Query) -> Result<sql_ast::Query> {
     // materialize each atomic in two stages
     let mut materialized = Vec::new();
     for t in atomics {
-        let (stage_1, stage_2) = split_to_stages(t.pipeline);
-
-        let (stage_1, c, select) = semantic::process_pipeline(stage_1, Some(context))?;
-
-        let (stage_2, c, _) = semantic::process_pipeline(stage_2, Some(c))?;
+        let (pipeline, c, frame) = semantic::process_pipeline(t.pipeline, Some(context))?;
         context = c;
 
         context.finish_table(&t.name);
 
         materialized.push(AtomicTable {
             name: t.name,
-            select,
-            pipeline: [stage_1, stage_2].concat(),
+            frame,
+            pipeline,
         });
     }
 
@@ -105,7 +100,7 @@ pub fn translate_query(query: &Query) -> Result<sql_ast::Query> {
 
 struct AtomicTable {
     name: String,
-    select: SelectedColumns,
+    frame: MaterializedFrame,
     pipeline: Vec<Transform>,
 }
 
@@ -113,16 +108,6 @@ pub fn load_std_lib() -> Result<Vec<Node>> {
     use crate::parse;
     let std_lib = include_str!("./stdlib.prql");
     Ok(parse(std_lib)?.nodes)
-}
-
-/// Splits an atomic pipeline into two stages:
-/// - stage 1, that must contain materialized variables (SELECT, WHERE, GROUP BY, HAVING)
-/// - stage 2, that must contain variables by name (ORDER BY)
-fn split_to_stages(mut pipeline: Pipeline) -> (Pipeline, Pipeline) {
-    let (stage_1, stage_2) = pipeline
-        .drain(..)
-        .partition(|t| !matches!(t, Transform::Sort(_)));
-    (stage_1, stage_2)
 }
 
 fn separate_pipeline(query: &Query) -> Result<(Vec<Table>, Vec<Node>, Vec<Pipeline>)> {
@@ -278,21 +263,17 @@ fn sql_query_of_atomic_table(table: AtomicTable, dialect: &Dialect) -> Result<sq
         .map(expr_of_i64);
 
     // Find the final sort (none of the others affect the result, and can be discarded).
-    let order_by = table
-        .pipeline
-        .iter()
-        .filter_map(|t| match t {
-            Transform::Sort(items) => Some(Item::Expr(items.to_owned()).try_into().map(|x| {
-                vec![OrderByExpr {
-                    expr: x,
-                    asc: None,
-                    nulls_first: None,
-                }]
-            })),
-            _ => None,
+    let order_by = (table.frame.sort.iter())
+        .map(|sort| OrderByExpr {
+            expr: Item::Ident(sort.column.clone()).try_into().unwrap(),
+            asc: if matches!(sort.direction, SortDirection::Asc) {
+                None // default order is ASC, so there is no need to emit it
+            } else {
+                Some(false)
+            },
+            nulls_first: None,
         })
-        .last()
-        .unwrap_or(Ok(vec![]))?;
+        .collect();
 
     let aggregate = table
         .pipeline
@@ -313,7 +294,7 @@ fn sql_query_of_atomic_table(table: AtomicTable, dialect: &Dialect) -> Result<sq
             } else {
                 None
             },
-            projection: (table.select.0.into_iter())
+            projection: (table.frame.columns.into_iter())
                 .map(|n| n.item.try_into())
                 .try_collect()?,
             from,
@@ -363,10 +344,7 @@ fn atomic_pipelines_of_pipeline(pipeline: &Pipeline) -> Result<Vec<Pipeline>> {
                     || counts.get("sort").is_some()
                     || counts.get("take").is_some()
             }
-            "filter" => counts.get("take").is_some(),
-            "sort" => counts.get("sort").is_some() || counts.get("take").is_some(),
-            "take" => counts.get("take").is_some(),
-
+            "filter" | "sort" | "take" => counts.get("take").is_some(),
             _ => false,
         };
 
@@ -687,7 +665,9 @@ SString:
     - Ident: salary
     assigns: []
 - Sort:
-    - Ident: title
+    - column:
+        Ident: title
+      direction: Asc
 - Take: 20
         "###;
 
@@ -718,7 +698,9 @@ SString:
           - Ident: salary
         assigns: []
     - Sort:
-        - Ident: title
+        - column:
+            Ident: title
+          direction: Asc
         "###;
 
         let pipeline: Pipeline = from_str(yaml)?;
@@ -756,7 +738,9 @@ SString:
         - Ident: salary
         assigns: []
     - Sort:
-        - Ident: sum_gross_cost
+        - column:
+            Ident: sum_gross_cost
+          direction: Asc
 
         "###;
 
@@ -1192,6 +1176,30 @@ take 20
         FROM
           Employees
         "###);
+        Ok(())
+    }
+
+    #[test]
+    fn test_sorts() -> Result<()> {
+        let query: Query = parse(
+            r###"
+        from Employees
+        sort [id]
+        sort [age, desc:last_name, asc:first_name]
+        "###,
+        )?;
+
+        assert_display_snapshot!((translate(&query)?), @r###"
+        SELECT
+          Employees.*
+        FROM
+          Employees
+        ORDER BY
+          Employees.age,
+          Employees.last_name DESC,
+          Employees.first_name
+        "###);
+
         Ok(())
     }
 }

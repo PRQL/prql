@@ -76,6 +76,15 @@ pub trait AstFold {
     fn fold_interpolate_item(&mut self, sstring_item: InterpolateItem) -> Result<InterpolateItem> {
         fold_interpolate_item(self, sstring_item)
     }
+    fn fold_column_sort(&mut self, column_sort: ColumnSort) -> Result<ColumnSort> {
+        fold_column_sort(self, column_sort)
+    }
+    fn fold_column_sorts(&mut self, columns: Vec<ColumnSort>) -> Result<Vec<ColumnSort>> {
+        columns
+            .into_iter()
+            .map(|c| self.fold_column_sort(c))
+            .try_collect()
+    }
 }
 pub fn fold_item<T: ?Sized + AstFold>(fold: &mut T, item: Item) -> Result<Item> {
     Ok(match item {
@@ -134,6 +143,16 @@ pub fn fold_interpolate_item<T: ?Sized + AstFold>(
     })
 }
 
+pub fn fold_column_sort<T: ?Sized + AstFold>(
+    fold: &mut T,
+    sort_column: ColumnSort,
+) -> Result<ColumnSort> {
+    Ok(ColumnSort {
+        direction: sort_column.direction,
+        column: fold.fold_node(sort_column.column)?,
+    })
+}
+
 pub fn fold_transform<T: ?Sized + AstFold>(
     fold: &mut T,
     transformation: Transform,
@@ -142,7 +161,7 @@ pub fn fold_transform<T: ?Sized + AstFold>(
         Transform::Derive(assigns) => Ok(Transform::Derive(fold.fold_nodes(assigns)?)),
         Transform::From(table) => Ok(Transform::From(fold.fold_table_ref(table)?)),
         Transform::Filter(Filter(items)) => Ok(Transform::Filter(Filter(fold.fold_nodes(items)?))),
-        Transform::Sort(items) => Ok(Transform::Sort(fold.fold_nodes(items)?)),
+        Transform::Sort(items) => Ok(Transform::Sort(fold.fold_column_sorts(items)?)),
         Transform::Join { side, with, filter } => Ok(Transform::Join {
             side,
             with: fold.fold_table_ref(with)?,
