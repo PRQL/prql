@@ -26,14 +26,14 @@ jobs:
     with:
       os: windows-latest
     if: |
-      github.ref_name == 'gha-main'
+      github.ref_name == 'main'
       || contains(github.event.pull_request.labels.*.name, 'run-full-tests')
   test-windows:
     uses: ./.github/workflows/test.yaml
     with:
       os: windows-latest
     if: |
-      github.ref_name == 'gha-main'
+      github.ref_name == 'main'
       || contains(github.event.pull_request.labels.*.name, 'run-full-tests')
   test-book:
     runs-on: ubuntu-latest
