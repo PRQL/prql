@@ -7,6 +7,8 @@ on:
     branches:
       - main
   pull_request:
+    # Add `labeled`, so we can trigger a full run by adding a `run-full-tests` label.
+    types: [opened, reopened, synchronize, labeled]
     branches:
       - main
 
