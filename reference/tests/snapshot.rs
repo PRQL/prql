@@ -19,6 +19,7 @@ use globset::Glob;
 use insta::{assert_snapshot, glob};
 use prql::*;
 use pulldown_cmark::{CodeBlockKind, Event, Parser, Tag};
+use std::io::{BufRead, BufReader, Error, Write};
 use std::path::Path;
 use std::{
     fs::{self, File},
@@ -88,7 +89,7 @@ fn write_reference_examples() -> Result<()> {
                 // on Windows.
                 let mut file = File::create(Path::new(&prql_path))?;
                 for line in example.lines() {
-                    writeln!(file, "{line}")?;
+                    write!(file, "{line}\n")?;
                 }
                 //
 
@@ -108,7 +109,7 @@ fn run_reference_examples() -> Result<()> {
         let sql = compile(&prql).unwrap_or_else(|e| format!("Failed to compile `{prql}`; {e}"));
         assert_snapshot!(sql);
     });
-    write_reference_examples();
+    write_reference_examples()?;
     glob!("examples/**/*.prql", |path| {
         let prql = fs::read_to_string(path).unwrap();
         dbg!(&prql);
