@@ -31,7 +31,7 @@ pub struct Context {
     pub(super) functions: HashMap<String, usize>,
 
     /// table aliases
-    pub(super) tables: HashMap<String, String>,
+    pub(super) namespaces: HashMap<String, String>,
 
     /// All declarations, even those out of scope
     pub(super) declarations: Vec<(Declaration, Option<Span>)>,
@@ -105,7 +105,7 @@ impl Context {
             "%" | "_" | "$" => true,
             _ => {
                 // redirect namespace to $
-                self.tables.insert(name.clone(), "$".to_string());
+                self.namespaces.insert(name.clone(), "$".to_string());
 
                 current.extend(
                     (space.drain()).filter(|(_, id)| self.frame.columns.iter().any(|c| c == id)),
@@ -124,7 +124,7 @@ impl Context {
         self.variables.retain(|name, _| match name.as_str() {
             "_" | "$" | "%" => true,
             _ => {
-                self.tables.insert(name.clone(), table_name.to_string());
+                self.namespaces.insert(name.clone(), table_name.to_string());
                 false
             }
         });
@@ -154,12 +154,12 @@ impl Context {
 
     pub fn declare_table(&mut self, t: &TableRef) {
         let name = if let Some(alias) = &t.alias {
-            self.tables.insert(t.name.clone(), alias.clone());
+            self.namespaces.insert(t.name.clone(), alias.clone());
             alias.clone()
         } else {
             t.name.clone()
         };
-        self.tables.remove(&name);
+        self.namespaces.remove(&name);
 
         self.variables.insert(name.clone(), Default::default());
 
@@ -239,16 +239,21 @@ impl Context {
         // add column to frame
         if in_frame {
             if let Some((ns, "*")) = name {
-                let mut namespace = ns.to_string();
-                while let Some(ns) = self.tables.get(&namespace) {
-                    namespace = ns.clone();
-                }
+                let namespace = self.resolve_namespace(ns);
 
                 self.frame.columns.push(TableColumn::All(namespace));
             } else {
                 self.frame.columns.push(TableColumn::Declared(id));
             }
         }
+    }
+
+    fn resolve_namespace(&self, namespace: &str) -> String {
+        let mut namespace = namespace;
+        while let Some(t) = self.namespaces.get(namespace) {
+            namespace = t;
+        }
+        namespace.to_string()
     }
 
     pub fn lookup_variable(&mut self, ident: &str) -> Result<Option<usize>, String> {
@@ -258,12 +263,12 @@ impl Context {
             return Ok(None);
         }
 
-        let mut namespace = namespace.to_string();
+        let mut namespace = namespace;
 
         // try to find the namespace
         if namespace.is_empty() {
-            namespace = if let Some(ns) = self.lookup_namespace_of(variable)? {
-                ns
+            if let Some(ns) = self.lookup_namespace_of(variable)? {
+                namespace = ns
             } else {
                 // matched to *, but multiple possible namespaces
                 // -> return None, treating this ident as raw
@@ -272,9 +277,7 @@ impl Context {
         }
 
         // resolve table alias
-        while let Some(ns) = self.tables.get(&namespace) {
-            namespace = ns.clone();
-        }
+        let namespace = self.resolve_namespace(namespace);
 
         let ns = (self.variables.get(&namespace))
             .ok_or_else(|| format!("Unknown table `{namespace}`"))?;
@@ -295,28 +298,38 @@ impl Context {
         }
     }
 
-    pub fn lookup_namespace_of(&mut self, variable: &str) -> Result<Option<String>, String> {
+    /// Finds a namespace of a variable.
+    pub fn lookup_namespace_of(&self, variable: &str) -> Result<Option<&String>, String> {
         if let Some(ns) = self.inverse.get(variable) {
-            if ns.len() == 1 {
-                return Ok(ns.iter().next().cloned());
-            }
+            // lookup the inverse index
 
-            if ns.len() > 1 {
-                return Err(format!(
+            match ns.len() {
+                0 => unreachable!("inverse index contains empty lists?"),
+
+                // single match, great!
+                1 => Ok(ns.iter().next()),
+
+                // ambiguous
+                _ => Err(format!(
                     "Ambiguous variable. Could be from either of {:?}",
                     ns
-                ));
+                )),
             }
         } else if let Some(ns) = self.inverse.get("*") {
-            if ns.len() == 1 {
-                return Ok(ns.iter().next().cloned());
+            // this variable can be from a namespace that we don't know all columns of
+
+            match ns.len() {
+                0 => unreachable!("inverse index contains empty lists?"),
+
+                // single match, great!
+                1 => Ok(ns.iter().next()),
+
+                // don't report ambiguous variable, database may be able to resolve them
+                _ => Ok(None),
             }
-            // don't report ambiguous variable, database may be able to resolve them
-            if ns.len() > 1 {
-                return Ok(None);
-            }
+        } else {
+            Err(format!("Unknown variable `{variable}`"))
         }
-        Err(format!("Unknown variable `{variable}`"))
     }
 
     pub fn lookup_namespaces_of(&mut self, variable: &str) -> HashSet<String> {

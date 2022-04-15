@@ -22,6 +22,7 @@ use std::collections::HashMap;
 use super::ast::*;
 use super::utils::*;
 use crate::ast::JoinFilter;
+use crate::error::{Error, Reason};
 use crate::semantic::{self, MaterializedFrame};
 
 /// Translate a PRQL AST into a SQL string.
@@ -249,8 +250,8 @@ fn sql_query_of_atomic_table(table: AtomicTable, dialect: &Dialect) -> Result<sq
         })
     }
     // Find the filters that come before the aggregation.
-    let where_ = filter_of_pipeline(before).unwrap();
-    let having = filter_of_pipeline(after).unwrap();
+    let where_ = filter_of_pipeline(before)?;
+    let having = filter_of_pipeline(after)?;
 
     let take = table
         .pipeline
@@ -470,14 +471,26 @@ impl TryFrom<Item> for Expr {
                 Expr::Identifier(sql_ast::Ident::new(
                     items
                         .into_iter()
-                        .map(|node| TryInto::<Expr>::try_into(node.item).unwrap())
-                        .collect::<Vec<Expr>>()
+                        .map(|node| TryInto::<Expr>::try_into(node.item))
+                        .collect::<Result<Vec<Expr>>>()?
                         .iter()
                         .map(|x| x.to_string())
                         // Currently a hack, but maybe OK, since we don't
                         // need to parse every single expression into sqlparser ast.
                         .join(" "),
                 ))
+            }
+            Item::Range(r) => {
+                fn assert_bound(bound: Option<Box<Node>>) -> Result<Node, Error> {
+                    bound.map(|b| *b).ok_or_else(|| {
+                        Error::new(Reason::Simple(
+                            "range requires both bounds to be used this way".to_string(),
+                        ))
+                    })
+                }
+                let start: Expr = assert_bound(r.start)?.item.try_into()?;
+                let end: Expr = assert_bound(r.end)?.item.try_into()?;
+                Expr::Identifier(sql_ast::Ident::new(format!("{} AND {}", start, end)))
             }
             Item::String(s) => Expr::Value(sql_ast::Value::SingleQuotedString(s)),
             // Fairly hacky — convert everything to a string, then concat it,
@@ -1199,6 +1212,37 @@ take 20
           Employees.last_name DESC,
           Employees.first_name
         "###);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_ranges() -> Result<()> {
+        let query: Query = parse(
+            r###"
+        from employees
+        filter (age | in 18..40)
+        "###,
+        )?;
+
+        assert_display_snapshot!((translate(&query)?), @r###"
+        SELECT
+          employees.*
+        FROM
+          employees
+        WHERE
+          age BETWEEN 18
+          AND 40
+        "###);
+
+        let query: Query = parse(
+            r###"
+        from employees
+        filter (age | in ..40)
+        "###,
+        )?;
+
+        assert!(translate(&query).is_err());
 
         Ok(())
     }

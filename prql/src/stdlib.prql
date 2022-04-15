@@ -18,6 +18,11 @@ func count column = s"COUNT({column})"
 # abbreviation of that?)
 func count_distinct column = s"COUNT(DISTINCT `{column}`)"
 
+# TODO: Introduce a notation for getting start and end out of a ranges
+# could be range.0? or range.start? But to make this happen, we need to make
+# changes to how variables are resolved.
+func in range value = s"{value} BETWEEN {range}"
+
 # Casting functions
 
 func as column type = s"CAST({column} AS {type})"

@@ -96,6 +96,13 @@ pub fn fold_item<T: ?Sized + AstFold>(fold: &mut T, item: Item) -> Result<Item> 
                 .map(|x| fold.fold_node(x.into_inner()).map(ListItem))
                 .try_collect()?,
         ),
+        Item::Range(range) => Item::Range(Range {
+            // This aren't strictly in the hierarchy, so we don't need to
+            // have an assoc. function for `fold_optional_box` — we just
+            // call out to the function in this module
+            start: fold_optional_box(fold, range.start)?,
+            end: fold_optional_box(fold, range.end)?,
+        }),
         Item::Query(query) => Item::Query(Query {
             nodes: fold.fold_nodes(query.nodes)?,
             ..query
@@ -131,6 +138,13 @@ pub fn fold_item<T: ?Sized + AstFold>(fold: &mut T, item: Item) -> Result<Item> 
         // them.
         Item::String(_) | Item::Raw(_) => item,
     })
+}
+
+pub fn fold_optional_box<T: ?Sized + AstFold>(
+    fold: &mut T,
+    opt: Option<Box<Node>>,
+) -> Result<Option<Box<Node>>> {
+    Ok(opt.map(|n| fold.fold_node(*n)).transpose()?.map(Box::from))
 }
 
 pub fn fold_interpolate_item<T: ?Sized + AstFold>(
