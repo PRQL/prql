@@ -88,8 +88,12 @@ fn write_reference_examples() -> Result<()> {
                 // example.to_string().lines())?;` because that seems to break
                 // on Windows.
                 let mut file = File::create(Path::new(&prql_path))?;
+                #[cfg(target_family = "windows")]
+                let line_feed = "\r\n";
+                #[cfg(not(target_family = "windows"))]
+                let line_feed = "\n";
                 for line in example.lines() {
-                    write!(file, "{line}\n")?;
+                    write!(file, "{line}{line_feed}")?;
                 }
                 //
 
