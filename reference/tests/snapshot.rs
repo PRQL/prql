@@ -30,6 +30,10 @@ fn run_examples() -> Result<()> {
     //
     // TODO: In CI this could pass by replacing files that are wrong in the
     // repo; instead we could check if there are any diffs after this has run?
+
+    // Note that on windows, we only get the next _line_, and so we exclude the
+    // writing on Windows. ref https://github.com/prql/prql/issues/356
+    #[cfg(not(target_family = "windows"))]
     write_reference_examples()?;
     run_reference_examples()?;
 
@@ -55,6 +59,9 @@ fn write_reference_examples() -> Result<()> {
             while let Some(event) = parser.next() {
                 match event.clone() {
                     // At the start of a PRQL code block, push the _next_ item.
+                    // Note that on windows, we only get the next _line_, and so
+                    // we exclude the writing in windows. TODO: iterate over the
+                    // lines so this works on windows; https://github.com/prql/prql/issues/356
                     Event::Start(Tag::CodeBlock(CodeBlockKind::Fenced(lang)))
                         if lang == "prql".into() =>
                     {
