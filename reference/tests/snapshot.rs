@@ -63,7 +63,7 @@ fn write_reference_examples() -> Result<()> {
                         if lang == "prql".into() =>
                     {
                         if let Some(Event::Text(text)) = parser.next() {
-                            examples.push(text);
+                            examples.push(dbg!(text));
                         } else {
                             bail!("Expected text after PRQL code block");
                         }
@@ -93,7 +93,8 @@ fn write_reference_examples() -> Result<()> {
                 #[cfg(not(target_family = "windows"))]
                 let line_feed = "\n";
                 for line in example.lines() {
-                    write!(file, dbg!("{line}{line_feed}"))?;
+                    dbg!(line);
+                    write!(file, "{line}{line_feed}")?;
                 }
                 //
 
