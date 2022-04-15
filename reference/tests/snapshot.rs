@@ -93,7 +93,7 @@ fn write_reference_examples() -> Result<()> {
                 #[cfg(not(target_family = "windows"))]
                 let line_feed = "\n";
                 for line in example.lines() {
-                    write!(file, "{line}{line_feed}")?;
+                    write!(file, dbg!("{line}{line_feed}"))?;
                 }
                 //
 
@@ -115,7 +115,7 @@ fn run_reference_examples() -> Result<()> {
     });
     write_reference_examples()?;
     glob!("examples/**/*.prql", |path| {
-        let prql = fs::read_to_string(path).unwrap();
+        let prql = fs::read_to_string(dbg!(path)).unwrap();
         dbg!(&prql);
         let sql = compile(&prql).unwrap_or_else(|e| format!("Failed to compile `{prql}`; {e}"));
         assert_snapshot!(sql);
