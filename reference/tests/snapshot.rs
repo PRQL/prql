@@ -19,12 +19,8 @@ use globset::Glob;
 use insta::{assert_snapshot, glob};
 use prql::*;
 use pulldown_cmark::{CodeBlockKind, Event, Parser, Tag};
-use std::io::{BufRead, BufReader, Error, Write};
+use std::fs;
 use std::path::Path;
-use std::{
-    fs::{self, File},
-    io::Read,
-};
 use walkdir::WalkDir;
 
 #[test]
@@ -34,7 +30,11 @@ fn run_examples() -> Result<()> {
     //
     // TODO: In CI this could pass by replacing files that are wrong in the
     // repo; instead we could check if there are any diffs after this has run?
-    // write_reference_examples()?;
+
+    // Note that on windows, we only get the next _line_, and so we exclude the
+    // writing on Windows. ref https://github.com/prql/prql/issues/356
+    #[cfg(not(target_family = "windows"))]
+    write_reference_examples()?;
     run_reference_examples()?;
 
     Ok(())
@@ -59,11 +59,14 @@ fn write_reference_examples() -> Result<()> {
             while let Some(event) = parser.next() {
                 match event.clone() {
                     // At the start of a PRQL code block, push the _next_ item.
+                    // Note that on windows, we only get the next _line_, and so
+                    // we exclude the writing in windows. TODO: iterate over the
+                    // lines so this works on windows; https://github.com/prql/prql/issues/356
                     Event::Start(Tag::CodeBlock(CodeBlockKind::Fenced(lang)))
                         if lang == "prql".into() =>
                     {
                         if let Some(Event::Text(text)) = parser.next() {
-                            examples.push(dbg!(text));
+                            examples.push(text);
                         } else {
                             bail!("Expected text after PRQL code block");
                         }
@@ -83,20 +86,7 @@ fn write_reference_examples() -> Result<()> {
                 let prql_path = format!("tests/examples/{file_relative}-{i}.prql");
 
                 fs::create_dir_all(Path::new(&prql_path).parent().unwrap())?;
-
-                // We do this rather than `fs::write(prql_path,
-                // example.to_string().lines())?;` because that seems to break
-                // on Windows.
-                let mut file = File::create(Path::new(&prql_path))?;
-                #[cfg(target_family = "windows")]
-                let line_feed = "\r\n";
-                #[cfg(not(target_family = "windows"))]
-                let line_feed = "\n";
-                for line in example.lines() {
-                    dbg!(line);
-                    write!(file, "{line}{line_feed}")?;
-                }
-                //
+                fs::write(prql_path, example.to_string())?;
 
                 Ok::<(), anyhow::Error>(())
             })?;
@@ -110,14 +100,11 @@ fn write_reference_examples() -> Result<()> {
 fn run_reference_examples() -> Result<()> {
     glob!("examples/**/*.prql", |path| {
         let prql = fs::read_to_string(path).unwrap();
-        dbg!(&prql);
-        let sql = compile(&prql).unwrap_or_else(|e| format!("Failed to compile `{prql}`; {e}"));
-        assert_snapshot!(sql);
-    });
-    write_reference_examples()?;
-    glob!("examples/**/*.prql", |path| {
-        let prql = fs::read_to_string(dbg!(path)).unwrap();
-        dbg!(&prql);
+
+        if prql.contains("skip_test") {
+            return;
+        }
+
         let sql = compile(&prql).unwrap_or_else(|e| format!("Failed to compile `{prql}`; {e}"));
         assert_snapshot!(sql);
     });
