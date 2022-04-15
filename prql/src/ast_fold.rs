@@ -97,6 +97,9 @@ pub fn fold_item<T: ?Sized + AstFold>(fold: &mut T, item: Item) -> Result<Item> 
                 .try_collect()?,
         ),
         Item::Range(range) => Item::Range(Range {
+            // This aren't strictly in the hierarchy, so we don't need to
+            // have an assoc. function for `fold_optional_box` — we just
+            // call out to the function in this module
             start: fold_optional_box(fold, range.start)?,
             end: fold_optional_box(fold, range.end)?,
         }),
