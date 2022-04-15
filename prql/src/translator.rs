@@ -250,8 +250,8 @@ fn sql_query_of_atomic_table(table: AtomicTable, dialect: &Dialect) -> Result<sq
         })
     }
     // Find the filters that come before the aggregation.
-    let where_ = filter_of_pipeline(before).unwrap();
-    let having = filter_of_pipeline(after).unwrap();
+    let where_ = filter_of_pipeline(before)?;
+    let having = filter_of_pipeline(after)?;
 
     let take = table
         .pipeline
@@ -471,8 +471,8 @@ impl TryFrom<Item> for Expr {
                 Expr::Identifier(sql_ast::Ident::new(
                     items
                         .into_iter()
-                        .map(|node| TryInto::<Expr>::try_into(node.item).unwrap())
-                        .collect::<Vec<Expr>>()
+                        .map(|node| TryInto::<Expr>::try_into(node.item))
+                        .collect::<Result<Vec<Expr>>>()?
                         .iter()
                         .map(|x| x.to_string())
                         // Currently a hack, but maybe OK, since we don't
@@ -1221,7 +1221,7 @@ take 20
         let query: Query = parse(
             r###"
         from employees
-        filter (age | between 18..40)
+        filter (age | in 18..40)
         "###,
         )?;
 
@@ -1238,7 +1238,7 @@ take 20
         let query: Query = parse(
             r###"
         from employees
-        filter (age | between ..40)
+        filter (age | in ..40)
         "###,
         )?;
 
