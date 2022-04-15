@@ -45,6 +45,10 @@ fn run_examples() -> Result<()> {
 // We could alternatively have used something like
 // https://github.com/earldouglas/codedown, but it's not much code, and it
 // requires no dependencies.
+//
+// We allow dead_code because of the window issue described above. (Can we allow
+// it only for windows?)
+#[allow(dead_code)]
 fn write_reference_examples() -> Result<()> {
     let glob = Glob::new("**/*.md")?.compile_matcher();
 
