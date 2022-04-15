@@ -82,7 +82,15 @@ fn write_reference_examples() -> Result<()> {
                 let prql_path = format!("tests/examples/{file_relative}-{i}.prql");
 
                 fs::create_dir_all(Path::new(&prql_path).parent().unwrap())?;
-                fs::write(prql_path, example.to_string())?;
+
+                // We do this rather than `fs::write(prql_path,
+                // example.to_string().lines())?;` because that seems to break
+                // on Windows.
+                let mut file = File::create(Path::new(&prql_path))?;
+                for line in example.lines() {
+                    writeln!(file, "{line}")?;
+                }
+                //
 
                 Ok::<(), anyhow::Error>(())
             })?;
