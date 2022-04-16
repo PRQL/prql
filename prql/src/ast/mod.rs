@@ -1,12 +1,14 @@
 use anyhow::{anyhow, bail, Result};
 use enum_as_inner::EnumAsInner;
 use serde::{Deserialize, Serialize};
-use strum::{self, Display, EnumString};
+use strum::{self, Display};
 
+pub use self::dialect::*;
 use crate::error::{Error, Reason, Span};
 use crate::utils::*;
 
 pub mod ast_fold;
+pub mod dialect;
 
 /// A name. Generally columns, tables, functions, variables.
 pub type Ident = String;
@@ -48,37 +50,9 @@ pub enum Item {
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Query {
     pub version: Option<String>,
-    #[serde(default)]
-    pub dialect: Dialect,
+    // #[serde(default)]
+    pub dialect: Box<dyn Dialect>,
     pub nodes: Vec<Node>,
-}
-
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, EnumString)]
-pub enum Dialect {
-    #[strum(serialize = "ansi")]
-    Ansi,
-    #[strum(serialize = "click_house")]
-    ClickHouse,
-    #[strum(serialize = "generic")]
-    Generic,
-    #[strum(serialize = "hive")]
-    Hive,
-    #[strum(serialize = "ms", serialize = "microsoft", serialize = "ms_sql_server")]
-    MsSql,
-    #[strum(serialize = "mysql")]
-    MySql,
-    #[strum(serialize = "postgresql", serialize = "pg")]
-    PostgreSql,
-    #[strum(serialize = "sqlite")]
-    SQLite,
-    #[strum(serialize = "snowflake")]
-    Snowflake,
-}
-
-impl Default for Dialect {
-    fn default() -> Self {
-        Dialect::Generic
-    }
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
@@ -328,11 +302,5 @@ impl From<Item> for anyhow::Error {
     // https://github.com/bluejekyll/enum-as-inner/issues/84
     fn from(item: Item) -> Self {
         anyhow!("Failed to convert {item:?}")
-    }
-}
-
-impl Dialect {
-    pub fn use_top(&self) -> bool {
-        matches!(self, Dialect::MsSql)
     }
 }

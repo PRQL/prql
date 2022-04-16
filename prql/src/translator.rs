@@ -99,7 +99,7 @@ pub fn translate_query(query: &Query) -> Result<sql_ast::Query> {
     Ok(main_query)
 }
 
-struct AtomicTable {
+pub struct AtomicTable {
     name: String,
     frame: MaterializedFrame,
     pipeline: Vec<Transform>,
@@ -135,7 +135,7 @@ fn separate_pipeline(query: &Query) -> Result<(Vec<Table>, Vec<Node>, Vec<Pipeli
     Ok((tables, functions, pipelines))
 }
 
-fn table_to_sql_cte(table: AtomicTable, dialect: &Dialect) -> Result<sql_ast::Cte> {
+fn table_to_sql_cte(table: AtomicTable, dialect: &dyn Dialect) -> Result<sql_ast::Cte> {
     let alias = sql_ast::TableAlias {
         name: Item::Ident(table.name.clone()).try_into()?,
         columns: vec![],
@@ -169,7 +169,12 @@ fn table_factor_of_table_ref(table_ref: &TableRef) -> TableFactor {
     }
 }
 
-fn sql_query_of_atomic_table(table: AtomicTable, dialect: &Dialect) -> Result<sql_ast::Query> {
+// impl Translator for
+// fn sql_query_of_atomic_table(table: AtomicTable, dialect: &Dialect) -> Result<sql_ast::Query> {
+fn sql_query_of_atomic_table<D: Dialect>(
+    table: AtomicTable,
+    dialect: &D,
+) -> Result<sql_ast::Query> {
     // TODO: possibly do validation here? e.g. check there isn't more than one
     // `from`? Or do we rely on the caller for that?
 
