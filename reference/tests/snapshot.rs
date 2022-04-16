@@ -17,7 +17,7 @@
 use anyhow::{bail, Result};
 use globset::Glob;
 use insta::{assert_snapshot, glob};
-use prql::*;
+use prql_compiler::*;
 use pulldown_cmark::{CodeBlockKind, Event, Parser, Tag};
 use std::fs;
 use std::path::Path;

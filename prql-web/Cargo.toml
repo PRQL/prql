@@ -14,7 +14,7 @@ crate-type = ["cdylib"]
 default = ["wee_alloc"]
 
 [dependencies]
-prql = {path = "../prql"}
+prql-compiler = {path = "../prql-compiler"}
 
 [target.'cfg(target_family="wasm")'.dependencies]
 console_error_panic_hook = {version = "0.1.1"}

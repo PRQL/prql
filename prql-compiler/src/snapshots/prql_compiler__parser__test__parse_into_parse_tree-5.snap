@@ -1,0 +1,103 @@
+---
+source: prql-compiler/src/parser.rs
+expression: "parse_tree_of_str(\"[a, b, c,]\", Rule::list)?"
+---
+[
+    Pair {
+        rule: list,
+        span: Span {
+            str: "[a, b, c,]",
+            start: 0,
+            end: 10,
+        },
+        inner: [
+            Pair {
+                rule: named_expr,
+                span: Span {
+                    str: "a",
+                    start: 1,
+                    end: 2,
+                },
+                inner: [
+                    Pair {
+                        rule: expr,
+                        span: Span {
+                            str: "a",
+                            start: 1,
+                            end: 2,
+                        },
+                        inner: [
+                            Pair {
+                                rule: ident,
+                                span: Span {
+                                    str: "a",
+                                    start: 1,
+                                    end: 2,
+                                },
+                                inner: [],
+                            },
+                        ],
+                    },
+                ],
+            },
+            Pair {
+                rule: named_expr,
+                span: Span {
+                    str: "b",
+                    start: 4,
+                    end: 5,
+                },
+                inner: [
+                    Pair {
+                        rule: expr,
+                        span: Span {
+                            str: "b",
+                            start: 4,
+                            end: 5,
+                        },
+                        inner: [
+                            Pair {
+                                rule: ident,
+                                span: Span {
+                                    str: "b",
+                                    start: 4,
+                                    end: 5,
+                                },
+                                inner: [],
+                            },
+                        ],
+                    },
+                ],
+            },
+            Pair {
+                rule: named_expr,
+                span: Span {
+                    str: "c",
+                    start: 7,
+                    end: 8,
+                },
+                inner: [
+                    Pair {
+                        rule: expr,
+                        span: Span {
+                            str: "c",
+                            start: 7,
+                            end: 8,
+                        },
+                        inner: [
+                            Pair {
+                                rule: ident,
+                                span: Span {
+                                    str: "c",
+                                    start: 7,
+                                    end: 8,
+                                },
+                                inner: [],
+                            },
+                        ],
+                    },
+                ],
+            },
+        ],
+    },
+]
