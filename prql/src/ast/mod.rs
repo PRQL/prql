@@ -6,6 +6,8 @@ use strum::{self, Display, EnumString};
 use crate::error::{Error, Reason, Span};
 use crate::utils::*;
 
+pub mod ast_fold;
+
 /// A name. Generally columns, tables, functions, variables.
 pub type Ident = String;
 pub type Pipeline = Vec<Transform>;

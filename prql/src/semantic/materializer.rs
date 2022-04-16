@@ -3,8 +3,8 @@
 //! contains no query-specific logic.
 use std::collections::HashMap;
 
+use crate::ast::ast_fold::*;
 use crate::ast::*;
-use crate::ast_fold::*;
 use crate::error::{Error, Reason};
 
 use anyhow::{anyhow, bail, Result};

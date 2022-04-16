@@ -2,8 +2,8 @@ use anyhow::anyhow;
 use anyhow::Result;
 use itertools::Itertools;
 
+use crate::ast::ast_fold::*;
 use crate::ast::*;
-use crate::ast_fold::*;
 use crate::error::{Error, Reason};
 
 use super::context::{Context, Frame};

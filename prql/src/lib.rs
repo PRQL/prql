@@ -1,5 +1,4 @@
 mod ast;
-mod ast_fold;
 #[cfg(feature = "cli")]
 mod cli;
 mod error;
@@ -30,7 +29,7 @@ pub fn compile(prql: &str) -> Result<String> {
 /// the exported items without items they rely on — feel free to request
 /// associated items be made public if required.
 pub mod internals {
+    pub use crate::ast::ast_fold::AstFold;
     pub use crate::ast::Node;
-    pub use crate::ast_fold::AstFold;
     pub use crate::utils::{IntoOnly, Only};
 }
