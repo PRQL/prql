@@ -6,7 +6,7 @@ use clap::{App, Arg, ArgMatches, SubCommand};
 use mdbook::preprocess::PreprocessorContext;
 use mdbook::preprocess::{CmdPreprocessor, Preprocessor};
 use mdbook::{book::Book, BookItem};
-use prql::compile;
+use prql_compiler::compile;
 use pulldown_cmark::{CodeBlockKind, Event, Parser, Tag};
 use pulldown_cmark_to_cmark::cmark;
 use semver::{Version, VersionReq};
