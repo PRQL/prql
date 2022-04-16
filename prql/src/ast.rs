@@ -41,6 +41,7 @@ pub enum Item {
     Table(Table),
     SString(Vec<InterpolateItem>),
     FString(Vec<InterpolateItem>),
+    Interval(Interval),
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
@@ -229,6 +230,18 @@ pub enum SortDirection {
 pub struct Range {
     pub start: Option<Box<Node>>,
     pub end: Option<Box<Node>>,
+}
+
+// I could imagine there being a wrapper of this to represent "2 days 3 hours".
+// Or should that be written as `2days + 3hours`?
+//
+// #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+// pub struct Interval(pub Vec<IntervalPart>);
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct Interval {
+    pub n: i64,       // Do any DBs use floats or decimals for this?
+    pub unit: String, // Could be an enum IntervalType,
 }
 
 impl Node {
