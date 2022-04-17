@@ -245,21 +245,21 @@ it's at a pre-alpha stage, it has some immutable principles:
 
 - *Pipelined* — PRQL is a linear pipeline of transformations — each line of the
   query is a transformation of the previous line's result. This makes it easy to
-  read, and simple to write. This is also known as "[point-free
-  style](https://en.wikipedia.org/w/index.php?title=Point-free_programming)".
+  read, and simple to write. This is also known as
+  "[point-free](https://en.wikipedia.org/w/index.php?title=Point-free_programming)".
 - *Simple* — PRQL serves both sophisticated engineers and analysts without
   coding experience. By providing simple, clean abstractions, the
   language can be both powerful and easy to use.
-- *Compatible* — PRQL transpiles to SQL, so it can be used with any database
-  that uses SQL, and with any existing tools or programming languages that
-  manage SQL. PRQL should allow for a gradual onramp — it should be practical to
-  mix SQL into a PRQL query where PRQL doesn't yet have an implementation. Where
-  possible PRQL can unify syntax across databases.
+- *Open* — PRQL will always be open-source, free-as-in-free, and doesn't
+  prioritize one database over others. By compiling to SQL, PRQL is instantly
+  compatible with most databases, and existing tools or programming languages
+  that manage SQL. Where possible, PRQL unifies syntax across databases.
+- *Extensible* — PRQL can be extended through its abstractions, and its explicit
+  versioning allows changes without breaking backward-compatibility. PRQL allows
+  embedding SQL through S-Strings, where PRQL doesn't yet have an
+  implementation.
 - *Analytical* — PRQL's focus is analytical queries; we de-emphasize other SQL
   features such as inserting data or transactions.
-- *Extensible* — PRQL can be extended through its abstractions, and can evolve
-  without breaking backward-compatibility, because its queries can specify their
-  PRQL version.
 
 ## Roadmap
 
