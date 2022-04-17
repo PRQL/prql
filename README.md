@@ -102,7 +102,7 @@ appending a `filter` transformation to the query.
 ### Try it out
 
 Try it out at <https://lang.prql.builders/editor>, where SQL is compiled
-from the PRQL on every keystroke
+from the PRQL on every keystroke.
 
 [![Editor Link](https://github.com/prql/prql/blob/main/.github/live-editor-screenshot.png?raw=true)](https://lang.prql.builders/editor)
 
