@@ -101,8 +101,8 @@ appending a `filter` transformation to the query.
 
 ### Try it out
 
-Try it out at <https://lang.prql.builders/editor>, where SQL is compiled
-from the PRQL on every keystroke.
+Try it out at <https://lang.prql.builders/editor>, where PRQL is compiled into
+SQL on every keystroke.
 
 [![Editor Link](https://github.com/prql/prql/blob/main/.github/live-editor-screenshot.png?raw=true)](https://lang.prql.builders/editor)
 
@@ -234,7 +234,7 @@ WHERE
   has_dog
 ```
 
-See below for fuller examples of PRQL.
+See above for fuller examples of PRQL.
 
 ### Python implementation
 
@@ -399,9 +399,9 @@ Many thanks to those who've made our progress possible:
 We have a few core developers who are responsible for reviewing code, making
 decisions on the direction of the language, and project administration:
 
-- @aljazerzen — Aljaž Mur Eržen
-- @max-sixty — Maximilian Roos
-- @qorrect — Charlie Sando
+- [**@aljazerzen**](https://github.com/aljazerzen) — Aljaž Mur Eržen
+- [**@max-sixty**](https://github.com/max-sixty) — Maximilian Roos
+- [**@qorrect**](https://github.com/qorrect) — Charlie Sando
 
 We welcome others to join who have a track record of contributions.
 
