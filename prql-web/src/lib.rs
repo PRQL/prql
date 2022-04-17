@@ -8,7 +8,7 @@ use monaco::{
     sys::editor::{IEditorMinimapOptions, IStandaloneEditorConstructionOptions},
     yew::CodeEditor,
 };
-use prql::*;
+use prql_compiler::*;
 use wasm_bindgen::prelude::wasm_bindgen;
 use yew::{classes, html, Component, Context, Html, Properties};
 
