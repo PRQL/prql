@@ -101,10 +101,10 @@ appending a `filter` transformation to the query.
 
 ### Try it out
 
-Try it out at <https://reference.prql.builders/editor>, where SQL is compiled
+Try it out at <https://lang.prql.builders/editor>, where SQL is compiled
 from the PRQL on every keystroke
 
-[![Editor Link](https://github.com/prql/prql/blob/readem/.github/live-editor-screenshot.png?raw=true)](https://reference.prql.builders/editor)
+[![Editor Link](https://github.com/prql/prql/blob/readem/.github/live-editor-screenshot.png?raw=true)](https://lang.prql.builders/editor)
 
 ### A more complex example
 
