@@ -20,7 +20,7 @@ enum Msg {
     TextChange,
 }
 
-const CONTENT: &str = include_str!("../../reference/tests/examples/examples/variables-1.prql");
+const CONTENT: &str = include_str!("../../reference/tests/examples/examples/variables-0.prql");
 
 fn default_options() -> IStandaloneEditorConstructionOptions {
     let minimap_options = IEditorMinimapOptions::default();
