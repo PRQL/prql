@@ -1,0 +1,2 @@
+from orders
+derive should_have_shipped_today: (order_time < t08:30)

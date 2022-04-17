@@ -1,0 +1,2 @@
+from employees
+derive age_at_year_end: (d2022-12-31 - dob)
