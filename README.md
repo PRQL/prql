@@ -99,6 +99,13 @@ involves parsing the query to find and then modify the `WHERE` statement, or
 wrapping the existing query in a CTE. In PRQL, adding a filter just involves
 appending a `filter` transformation to the query.
 
+### Try it out
+
+Try it out at <https://reference.prql.builders/editor>, where SQL is compiled
+from the PRQL on every keystroke
+
+![Editor Link](https://github.com/prql/prql/blob/readme/.github/live-editor-screenshot.png?raw=true)
+
 ### A more complex example
 
 Here's another SQL query, which calculates returns from prices on days with
