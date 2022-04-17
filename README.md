@@ -104,7 +104,7 @@ appending a `filter` transformation to the query.
 Try it out at <https://reference.prql.builders/editor>, where SQL is compiled
 from the PRQL on every keystroke
 
-![Editor Link](https://github.com/prql/prql/blob/readem/.github/live-editor-screenshot.png?raw=true)
+[![Editor Link](https://github.com/prql/prql/blob/readem/.github/live-editor-screenshot.png?raw=true)](https://reference.prql.builders/editor)
 
 ### A more complex example
 
