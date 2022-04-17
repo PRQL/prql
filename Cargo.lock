@@ -769,7 +769,7 @@ dependencies = [
  "itertools",
  "mdbook",
  "mdbook-preprocessor-boilerplate",
- "prql",
+ "prql-compiler",
  "pulldown-cmark",
  "pulldown-cmark-to-cmark",
  "semver",
@@ -1071,7 +1071,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "prql"
+name = "prql-compiler"
 version = "0.1.1"
 dependencies = [
  "anyhow",
@@ -1103,7 +1103,7 @@ name = "prql-js"
 version = "0.1.2"
 dependencies = [
  "console_error_panic_hook",
- "prql",
+ "prql-compiler",
  "wasm-bindgen",
  "wasm-bindgen-test 0.3.30",
  "wee_alloc",
@@ -1117,7 +1117,7 @@ dependencies = [
  "globset",
  "insta",
  "itertools",
- "prql",
+ "prql-compiler",
  "pulldown-cmark",
  "pulldown-cmark-to-cmark",
  "similar",
@@ -1135,7 +1135,7 @@ dependencies = [
  "insta",
  "log",
  "monaco",
- "prql",
+ "prql-compiler",
  "similar",
  "wasm-bindgen",
  "wasm-bindgen-test 0.2.50",

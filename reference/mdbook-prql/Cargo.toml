@@ -14,7 +14,7 @@ insta = {version = "^1.13", features = ["colors", "glob"]}
 itertools = "^0.10"
 mdbook = {version = "0.4.14", default-features = false}
 mdbook-preprocessor-boilerplate = "0.1.1"
-prql = {path = "../../prql"}
+prql-compiler = {path = "../../prql-compiler"}
 pulldown-cmark = "0.9.1"
 pulldown-cmark-to-cmark = "10"
 semver = "1.0"

@@ -1,0 +1,10 @@
+---
+source: reference/tests/snapshot.rs
+expression: sql
+input_file: reference/tests/examples/language-features/dates-0.prql
+---
+SELECT
+  projects.*,
+  start + INTERVAL '10' DAY AS first_check_in
+FROM
+  projects
