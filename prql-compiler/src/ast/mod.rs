@@ -114,6 +114,10 @@ pub enum Transform {
         with: TableRef,
         filter: JoinFilter,
     },
+    Group {
+        by: Vec<Node>,
+        pipeline: Pipeline,
+    },
 }
 
 impl Transform {
@@ -128,6 +132,7 @@ impl Transform {
             Transform::Sort(_) => "sort",
             Transform::Take(_) => "take",
             Transform::Join { .. } => "join",
+            Transform::Group { .. } => "group",
         }
     }
 
@@ -140,6 +145,7 @@ impl Transform {
             | Transform::Aggregate { by: nodes, .. } => nodes.first(),
             Transform::Sort(columns) => columns.first().map(|c| &c.column),
             Transform::Join { filter, .. } => filter.nodes().first(),
+            Transform::Group { by, .. } => by.first(),
             Transform::Take(_) => None,
         }
     }

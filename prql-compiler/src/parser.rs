@@ -439,13 +439,37 @@ fn func_call_to_transform(func_call: Node) -> Result<Transform> {
 
             Transform::Join { side, with, filter }
         }
+        "group" => {
+            let ([by, pipeline], []) = unpack_function(func_call, [])?;
+
+            let by = by
+                .coerce_to_items()
+                .into_iter()
+                // check that they are only idents
+                .map(|n| match n.item {
+                    Item::Ident(_) => Ok(n),
+                    _ => Err(Error::new(Reason::Simple(
+                        "`group` expects only idents for the `by` argument".to_string(),
+                    ))
+                    .with_span(n.span)),
+                })
+                .try_collect()?;
+
+            // check that it is a pipeline
+            let pipeline = pipeline.item.into_pipeline().map_err(|_| {
+                Error::new(Reason::Simple("`group` expects a pipeline".to_string()))
+                    .with_span(pipeline.span)
+            })?;
+
+            Transform::Group { by, pipeline }
+        }
         unknown => bail!(Error::new(Reason::Expected {
             who: None,
             expected: "a known transform".to_string(),
             found: format!("`{unknown}`")
         })
         .with_span(span)
-        .with_help("use one of: from, select, derive, filter, aggregate, join, sort, take")),
+        .with_help("use one of: from, select, derive, filter, aggregate, group, join, sort, take")),
     })
 }
 

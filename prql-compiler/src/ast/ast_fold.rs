@@ -186,6 +186,10 @@ pub fn fold_transform<T: ?Sized + AstFold>(
             by: fold.fold_nodes(by)?,
             select: fold.fold_nodes(select)?,
         }),
+        Transform::Group { by, pipeline } => Ok(Transform::Group {
+            by: fold.fold_nodes(by)?,
+            pipeline: fold.fold_pipeline(pipeline)?,
+        }),
         // TODO: generalize? Or this never changes?
         Transform::Take(_) => Ok(transformation),
     }
