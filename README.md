@@ -418,10 +418,10 @@ We welcome others to join who have a track record of contributions.
      there would be some impedance mismatch in some areas. My central criticism
      of Kusto is that it gives up broad compatibility without getting that much
      in return.
-- [Against SQL](https://www.scattered-thoughts.net/writing/against-sql/) gives
-  a fairly complete description of SQL's weaknesses, both for analytical and
-  transactional queries. @jamii consistently writes insightful pieces, and it's
-  worth sponsoring him for his updates.
+- [Against SQL](https://www.scattered-thoughts.net/writing/against-sql/) gives a
+  fairly complete description of SQL's weaknesses, both for analytical and
+  transactional queries. [**@jamii**](https://github.com/jamii) consistently
+  writes insightful pieces, and it's worth sponsoring him for his updates.
 - Julia's [DataPipes.jl](https://gitlab.com/aplavin/DataPipes.jl) &
   [Chain.jl](https://github.com/jkrumbiegel/Chain.jl), which demonstrate how
   effective point-free pipelines can be, and how line-breaks can work as pipes.
@@ -436,8 +436,8 @@ We welcome others to join who have a track record of contributions.
   is a functional language for data, also with a pipeline concept. It doesn't
   compile to SQL but states that it can access external data.
 - [Malloy](https://github.com/looker-open-source/malloy) from Looker &
-  @lloydtabb in a new language which combines a declarative syntax for querying
-  with a modelling layer.
+  [**@lloydtabb**](https://github.com/lloydtabb) in a new language which
+  combines a declarative syntax for querying with a modelling layer.
 - [FunSQL.jl](https://github.com/MechanicalRabbit/FunSQL.jl) is a library in
   Julia which compiles a nice query syntax to SQL. It requires a Julia runtime.
 - [LINQ](https://docs.microsoft.com/dotnet/csharp/linq/write-linq-queries),
