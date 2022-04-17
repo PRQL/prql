@@ -11,12 +11,12 @@
 use anyhow::{anyhow, bail, Result};
 use itertools::Itertools;
 use sqlformat::{format, FormatOptions, QueryParams};
-use sqlparser::ast::Value;
 use sqlparser::ast::{
     self as sql_ast, Expr, Function, FunctionArg, FunctionArgExpr, Join, JoinConstraint,
     JoinOperator, ObjectName, OrderByExpr, Select, SelectItem, SetExpr, TableAlias, TableFactor,
     TableWithJoins, Top,
 };
+use sqlparser::ast::{DateTimeField, Value};
 use std::collections::HashMap;
 
 use super::ast::*;
@@ -526,6 +526,24 @@ impl TryFrom<Item> for Expr {
                     args,
                     distinct: false,
                     over: None,
+                })
+            }
+            Item::Interval(interval) => {
+                let sql_parser_datetime = match interval.unit.as_str() {
+                    "years" => DateTimeField::Year,
+                    "months" => DateTimeField::Month,
+                    "days" => DateTimeField::Day,
+                    "hours" => DateTimeField::Hour,
+                    "minutes" => DateTimeField::Minute,
+                    "seconds" => DateTimeField::Second,
+                    _ => bail!("Unsupported interval unit: {}", interval.unit),
+                };
+                Expr::Value(Value::Interval {
+                    value: interval.n.to_string(),
+                    leading_field: Some(sql_parser_datetime),
+                    leading_precision: None,
+                    last_field: None,
+                    fractional_seconds_precision: None,
                 })
             }
             _ => bail!("Can't convert to Expr at the moment; {item:?}"),
@@ -1243,6 +1261,26 @@ take 20
         )?;
 
         assert!(translate(&query).is_err());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_interval() -> Result<()> {
+        let query: Query = parse(
+            r###"
+        from projects
+        derive first_check_in: start + 10days
+        "###,
+        )?;
+
+        assert_display_snapshot!((translate(&query)?), @r###"
+        SELECT
+          projects.*,
+          start + INTERVAL '10' DAY AS first_check_in
+        FROM
+          projects
+        "###);
 
         Ok(())
     }

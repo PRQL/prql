@@ -239,7 +239,6 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
                         functions,
                     })
                 }
-                Rule::operator | Rule::number => Item::Raw(pair.as_str().to_owned()),
                 Rule::range => {
                     // a bit hacky, but eh
                     let no_start = &pair.as_span().as_str()[0..2] == "..";
@@ -263,6 +262,21 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
                         _ => unreachable!(),
                     };
                     Item::Range(Range { start, end })
+                }
+                Rule::interval => {
+                    let parsed = ast_of_parse_tree(pair.into_inner())?;
+                    // unimplemented!();
+                    let [n, unit]: [Node; 2] = parsed
+                        .try_into()
+                        .map_err(|e| anyhow!("Expected two items; {e:?}"))?;
+
+                    Item::Interval(Interval {
+                        n: n.item.as_raw().unwrap().parse()?,
+                        unit: unit.item.as_raw().unwrap().clone(),
+                    })
+                }
+                Rule::operator | Rule::number | Rule::interval_kind => {
+                    Item::Raw(pair.as_str().to_owned())
                 }
                 _ => unreachable!(),
             };
@@ -1464,6 +1478,33 @@ select [
                           start: ~
                           end:
                             Raw: "9"
+        "###);
+    }
+
+    #[test]
+    fn test_interval() {
+        assert_yaml_snapshot!(parse("
+        from employees
+        derive age_plus_two_years: (age + 2years)
+        ").unwrap(), @r###"
+        ---
+        version: ~
+        dialect: Generic
+        nodes:
+          - Pipeline:
+              - From:
+                  name: employees
+                  alias: ~
+              - Derive:
+                  - NamedExpr:
+                      name: age_plus_two_years
+                      expr:
+                        Expr:
+                          - Ident: age
+                          - Raw: +
+                          - Interval:
+                              n: 2
+                              unit: years
         "###);
     }
 }
