@@ -6,8 +6,7 @@
 - [Language features](./language-features/README.md)
 
   - [F-Strings](./language-features/f-strings.md)
-    <!-- - Ranges — `BETWEEN 1 AND 3` -> `in 1..3`? -->
-  - [Ranges]()
+  - [Ranges](./language-features/ranges.md)
     <!-- - - Dates — `"2021-01-01"` -> `@2021-01-01`? And `DATE_TRUNC(foo_date, YEAR)` -> `foo_date.year`? Or -> `foo_date | as year`? Or `foo_date | to year`? -->
     <!-- - Offsets — `DATE_ADD(DATE "2008-12-25", INTERVAL 5 DAY)` -> `@2008-12-25 - 5day`? -->
   - [Dates]()
