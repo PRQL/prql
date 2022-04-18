@@ -110,9 +110,14 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
                         .map(ListItem)
                         .collect(),
                 ),
-                Rule::expr | Rule::expr_simple => ast_of_parse_tree(pair.into_inner())?.into_expr(),
+                Rule::expr_mul
+                | Rule::expr_add
+                | Rule::expr_compare
+                | Rule::expr
+                | Rule::expr_call => ast_of_parse_tree(pair.into_inner())?.into_expr(),
+
                 Rule::parenthesized_expr => Item::Expr(ast_of_parse_tree(pair.into_inner())?),
-                Rule::named_expr | Rule::named_expr_simple | Rule::named_term_simple => {
+                Rule::named_expr_call | Rule::named_expr | Rule::named_term => {
                     let items = ast_of_parse_tree(pair.into_inner())?;
                     // this borrow could be removed, but it becomes much less readable without match
                     match &items[..] {
@@ -273,9 +278,13 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
                         unit: unit.item.as_raw().unwrap().clone(),
                     })
                 }
-                Rule::operator | Rule::number | Rule::interval_kind => {
-                    Item::Raw(pair.as_str().to_owned())
-                }
+                Rule::operator_unary
+                | Rule::operator_mul
+                | Rule::operator_add
+                | Rule::operator_compare
+                | Rule::operator_logical
+                | Rule::number
+                | Rule::interval_kind => Item::Raw(pair.as_str().to_owned()),
                 _ => unreachable!(),
             };
 
@@ -560,8 +569,8 @@ mod test {
 
     #[test]
     fn test_parse_s_string() -> Result<()> {
-        assert_debug_snapshot!(parse_tree_of_str(r#"s"SUM({col})""#, Rule::s_string)?);
-        assert_yaml_snapshot!(ast_of_string(r#"s"SUM({col})""#, Rule::s_string)?, @r###"
+        assert_debug_snapshot!(parse_tree_of_str(r#"s"SUM({col})""#, Rule::expr_call)?);
+        assert_yaml_snapshot!(ast_of_string(r#"s"SUM({col})""#, Rule::expr_call)?, @r###"
         ---
         SString:
           - String: SUM(
@@ -569,7 +578,7 @@ mod test {
               Ident: col
           - String: )
         "###);
-        assert_yaml_snapshot!(ast_of_string(r#"s"SUM({2 + 2})""#, Rule::s_string)?, @r###"
+        assert_yaml_snapshot!(ast_of_string(r#"s"SUM({2 + 2})""#, Rule::expr_call)?, @r###"
         ---
         SString:
           - String: SUM(
@@ -584,9 +593,9 @@ mod test {
     }
 
     #[test]
-    fn test_parse_list() -> Result<()> {
-        assert_debug_snapshot!(parse_tree_of_str(r#"[1 + 1, 2]"#, Rule::list)?);
-        assert_yaml_snapshot!(ast_of_string(r#"[1 + 1, 2]"#, Rule::list)?, @r###"
+    fn test_parse_list() {
+        assert_debug_snapshot!(parse_tree_of_str(r#"[1 + 1, 2]"#, Rule::list).unwrap());
+        assert_yaml_snapshot!(ast_of_string(r#"[1 + 1, 2]"#, Rule::list).unwrap(), @r###"
         ---
         List:
           - Expr:
@@ -595,17 +604,18 @@ mod test {
               - Raw: "1"
           - Raw: "2"
         "###);
-        assert_yaml_snapshot!(ast_of_string(r#"[1 + f 1, 2]"#, Rule::list)?, @r###"
+        assert_yaml_snapshot!(ast_of_string(r#"[1 + (f 1), 2]"#, Rule::list).unwrap(), @r###"
         ---
         List:
           - Expr:
               - Raw: "1"
               - Raw: +
-              - FuncCall:
-                  name: f
-                  args:
-                    - Raw: "1"
-                  named_args: {}
+              - Expr:
+                  - FuncCall:
+                      name: f
+                      args:
+                        - Raw: "1"
+                      named_args: {}
           - Raw: "2"
         "###);
         // Line breaks
@@ -613,15 +623,15 @@ mod test {
             r#"[1,
 
                 2]"#,
-         Rule::list)?, @r###"
+         Rule::list).unwrap(), @r###"
         ---
         List:
           - Raw: "1"
           - Raw: "2"
         "###);
         // Function call in a list
-        let ab = ast_of_string(r#"[a b]"#, Rule::list)?;
-        let a_comma_b = ast_of_string(r#"[a, b]"#, Rule::list)?;
+        let ab = ast_of_string(r#"[a b]"#, Rule::list).unwrap();
+        let a_comma_b = ast_of_string(r#"[a, b]"#, Rule::list).unwrap();
         assert_yaml_snapshot!(ab, @r###"
         ---
         List:
@@ -638,7 +648,6 @@ mod test {
           - Ident: b
         "###);
         assert_ne!(ab, a_comma_b);
-        Ok(())
     }
 
     #[test]
@@ -996,10 +1005,10 @@ take 20
     }
 
     #[test]
-    fn test_parse_func_call() -> Result<()> {
+    fn test_parse_func_call() {
         // Function without argument
-        let ast = ast_of_string(r#"count"#, Rule::expr)?;
-        let ident = ast.item.into_ident()?;
+        let ast = ast_of_string(r#"count"#, Rule::expr).unwrap();
+        let ident = ast.item.into_ident().unwrap();
         assert_yaml_snapshot!(
             ident, @r###"
         ---
@@ -1007,8 +1016,8 @@ take 20
         "###);
 
         // A non-friendly option for #154
-        let ast = ast_of_string(r#"count s'*'"#, Rule::expr)?;
-        let func_call: FuncCall = ast.item.into_func_call()?;
+        let ast = ast_of_string(r#"count s'*'"#, Rule::expr_call).unwrap();
+        let func_call: FuncCall = ast.item.into_func_call().unwrap();
         assert_yaml_snapshot!(
             func_call, @r###"
         ---
@@ -1019,7 +1028,7 @@ take 20
         named_args: {}
         "###);
 
-        assert_yaml_snapshot!(parse(r#"from mytable | select [a and b + c or d e and f]"#)?, @r###"
+        assert_yaml_snapshot!(parse(r#"from mytable | select [a and b + c or (d e) and f]"#).unwrap(), @r###"
         ---
         version: ~
         dialect: Generic
@@ -1032,21 +1041,33 @@ take 20
                   - Expr:
                       - Ident: a
                       - Raw: and
-                      - Ident: b
-                      - Raw: +
-                      - Ident: c
+                      - Expr:
+                          - Ident: b
+                          - Raw: +
+                          - Ident: c
                       - Raw: or
-                      - FuncCall:
-                          name: d
-                          args:
-                            - Expr:
+                      - Expr:
+                          - FuncCall:
+                              name: d
+                              args:
                                 - Ident: e
-                                - Raw: and
-                                - Ident: f
-                          named_args: {}
+                              named_args: {}
+                      - Raw: and
+                      - Ident: f
         "###);
 
-        Ok(())
+        let ast = ast_of_string(r#"add bar to:3"#, Rule::expr_call).unwrap();
+        assert_yaml_snapshot!(
+            ast, @r###"
+        ---
+        FuncCall:
+          name: add
+          args:
+            - Ident: bar
+          named_args:
+            to:
+              Raw: "3"
+        "###);
     }
 
     #[test]
@@ -1142,12 +1163,13 @@ take 20
     }
 
     #[test]
-    fn test_inline_pipeline() -> Result<()> {
+    fn test_inline_pipeline() {
         assert_debug_snapshot!(parse_tree_of_str(
             "(salary | percentile 50)",
             Rule::inline_pipeline
-        )?);
-        assert_yaml_snapshot!(ast_of_string("(salary | percentile 50)", Rule::inline_pipeline)?, @r###"
+        )
+        .unwrap());
+        assert_yaml_snapshot!(ast_of_string("(salary | percentile 50)", Rule::inline_pipeline).unwrap(), @r###"
         ---
         InlinePipeline:
           value:
@@ -1159,7 +1181,7 @@ take 20
                   - Raw: "50"
                 named_args: {}
         "###);
-        assert_yaml_snapshot!(ast_of_string("func median x = (x | percentile 50)", Rule::query)?, @r###"
+        assert_yaml_snapshot!(ast_of_string("func median x = (x | percentile 50)", Rule::query).unwrap(), @r###"
         ---
         Query:
           version: ~
@@ -1181,8 +1203,6 @@ take 20
                             - Raw: "50"
                           named_args: {}
         "###);
-
-        Ok(())
     }
 
     #[test]

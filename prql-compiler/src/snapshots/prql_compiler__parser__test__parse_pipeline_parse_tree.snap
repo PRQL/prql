@@ -29,7 +29,7 @@ expression: "parse_tree_of_str(r#\"\n    from employees\n    select [a, b]\n    
                         inner: [],
                     },
                     Pair {
-                        rule: named_expr_simple,
+                        rule: named_expr,
                         span: Span {
                             str: "employees",
                             start: 5,
@@ -37,7 +37,7 @@ expression: "parse_tree_of_str(r#\"\n    from employees\n    select [a, b]\n    
                         },
                         inner: [
                             Pair {
-                                rule: expr_simple,
+                                rule: expr,
                                 span: Span {
                                     str: "employees",
                                     start: 5,
@@ -45,13 +45,43 @@ expression: "parse_tree_of_str(r#\"\n    from employees\n    select [a, b]\n    
                                 },
                                 inner: [
                                     Pair {
-                                        rule: ident,
+                                        rule: expr_compare,
                                         span: Span {
                                             str: "employees",
                                             start: 5,
                                             end: 14,
                                         },
-                                        inner: [],
+                                        inner: [
+                                            Pair {
+                                                rule: expr_add,
+                                                span: Span {
+                                                    str: "employees",
+                                                    start: 5,
+                                                    end: 14,
+                                                },
+                                                inner: [
+                                                    Pair {
+                                                        rule: expr_mul,
+                                                        span: Span {
+                                                            str: "employees",
+                                                            start: 5,
+                                                            end: 14,
+                                                        },
+                                                        inner: [
+                                                            Pair {
+                                                                rule: ident,
+                                                                span: Span {
+                                                                    str: "employees",
+                                                                    start: 5,
+                                                                    end: 14,
+                                                                },
+                                                                inner: [],
+                                                            },
+                                                        ],
+                                                    },
+                                                ],
+                                            },
+                                        ],
                                     },
                                 ],
                             },
@@ -77,7 +107,7 @@ expression: "parse_tree_of_str(r#\"\n    from employees\n    select [a, b]\n    
                         inner: [],
                     },
                     Pair {
-                        rule: named_expr_simple,
+                        rule: named_expr,
                         span: Span {
                             str: "[a, b]",
                             start: 26,
@@ -85,7 +115,7 @@ expression: "parse_tree_of_str(r#\"\n    from employees\n    select [a, b]\n    
                         },
                         inner: [
                             Pair {
-                                rule: expr_simple,
+                                rule: expr,
                                 span: Span {
                                     str: "[a, b]",
                                     start: 26,
@@ -93,7 +123,7 @@ expression: "parse_tree_of_str(r#\"\n    from employees\n    select [a, b]\n    
                                 },
                                 inner: [
                                     Pair {
-                                        rule: list,
+                                        rule: expr_compare,
                                         span: Span {
                                             str: "[a, b]",
                                             start: 26,
@@ -101,58 +131,148 @@ expression: "parse_tree_of_str(r#\"\n    from employees\n    select [a, b]\n    
                                         },
                                         inner: [
                                             Pair {
-                                                rule: named_expr,
+                                                rule: expr_add,
                                                 span: Span {
-                                                    str: "a",
-                                                    start: 27,
-                                                    end: 28,
+                                                    str: "[a, b]",
+                                                    start: 26,
+                                                    end: 32,
                                                 },
                                                 inner: [
                                                     Pair {
-                                                        rule: expr,
+                                                        rule: expr_mul,
                                                         span: Span {
-                                                            str: "a",
-                                                            start: 27,
-                                                            end: 28,
+                                                            str: "[a, b]",
+                                                            start: 26,
+                                                            end: 32,
                                                         },
                                                         inner: [
                                                             Pair {
-                                                                rule: ident,
+                                                                rule: list,
                                                                 span: Span {
-                                                                    str: "a",
-                                                                    start: 27,
-                                                                    end: 28,
+                                                                    str: "[a, b]",
+                                                                    start: 26,
+                                                                    end: 32,
                                                                 },
-                                                                inner: [],
-                                                            },
-                                                        ],
-                                                    },
-                                                ],
-                                            },
-                                            Pair {
-                                                rule: named_expr,
-                                                span: Span {
-                                                    str: "b",
-                                                    start: 30,
-                                                    end: 31,
-                                                },
-                                                inner: [
-                                                    Pair {
-                                                        rule: expr,
-                                                        span: Span {
-                                                            str: "b",
-                                                            start: 30,
-                                                            end: 31,
-                                                        },
-                                                        inner: [
-                                                            Pair {
-                                                                rule: ident,
-                                                                span: Span {
-                                                                    str: "b",
-                                                                    start: 30,
-                                                                    end: 31,
-                                                                },
-                                                                inner: [],
+                                                                inner: [
+                                                                    Pair {
+                                                                        rule: named_expr_call,
+                                                                        span: Span {
+                                                                            str: "a",
+                                                                            start: 27,
+                                                                            end: 28,
+                                                                        },
+                                                                        inner: [
+                                                                            Pair {
+                                                                                rule: expr,
+                                                                                span: Span {
+                                                                                    str: "a",
+                                                                                    start: 27,
+                                                                                    end: 28,
+                                                                                },
+                                                                                inner: [
+                                                                                    Pair {
+                                                                                        rule: expr_compare,
+                                                                                        span: Span {
+                                                                                            str: "a",
+                                                                                            start: 27,
+                                                                                            end: 28,
+                                                                                        },
+                                                                                        inner: [
+                                                                                            Pair {
+                                                                                                rule: expr_add,
+                                                                                                span: Span {
+                                                                                                    str: "a",
+                                                                                                    start: 27,
+                                                                                                    end: 28,
+                                                                                                },
+                                                                                                inner: [
+                                                                                                    Pair {
+                                                                                                        rule: expr_mul,
+                                                                                                        span: Span {
+                                                                                                            str: "a",
+                                                                                                            start: 27,
+                                                                                                            end: 28,
+                                                                                                        },
+                                                                                                        inner: [
+                                                                                                            Pair {
+                                                                                                                rule: ident,
+                                                                                                                span: Span {
+                                                                                                                    str: "a",
+                                                                                                                    start: 27,
+                                                                                                                    end: 28,
+                                                                                                                },
+                                                                                                                inner: [],
+                                                                                                            },
+                                                                                                        ],
+                                                                                                    },
+                                                                                                ],
+                                                                                            },
+                                                                                        ],
+                                                                                    },
+                                                                                ],
+                                                                            },
+                                                                        ],
+                                                                    },
+                                                                    Pair {
+                                                                        rule: named_expr_call,
+                                                                        span: Span {
+                                                                            str: "b",
+                                                                            start: 30,
+                                                                            end: 31,
+                                                                        },
+                                                                        inner: [
+                                                                            Pair {
+                                                                                rule: expr,
+                                                                                span: Span {
+                                                                                    str: "b",
+                                                                                    start: 30,
+                                                                                    end: 31,
+                                                                                },
+                                                                                inner: [
+                                                                                    Pair {
+                                                                                        rule: expr_compare,
+                                                                                        span: Span {
+                                                                                            str: "b",
+                                                                                            start: 30,
+                                                                                            end: 31,
+                                                                                        },
+                                                                                        inner: [
+                                                                                            Pair {
+                                                                                                rule: expr_add,
+                                                                                                span: Span {
+                                                                                                    str: "b",
+                                                                                                    start: 30,
+                                                                                                    end: 31,
+                                                                                                },
+                                                                                                inner: [
+                                                                                                    Pair {
+                                                                                                        rule: expr_mul,
+                                                                                                        span: Span {
+                                                                                                            str: "b",
+                                                                                                            start: 30,
+                                                                                                            end: 31,
+                                                                                                        },
+                                                                                                        inner: [
+                                                                                                            Pair {
+                                                                                                                rule: ident,
+                                                                                                                span: Span {
+                                                                                                                    str: "b",
+                                                                                                                    start: 30,
+                                                                                                                    end: 31,
+                                                                                                                },
+                                                                                                                inner: [],
+                                                                                                            },
+                                                                                                        ],
+                                                                                                    },
+                                                                                                ],
+                                                                                            },
+                                                                                        ],
+                                                                                    },
+                                                                                ],
+                                                                            },
+                                                                        ],
+                                                                    },
+                                                                ],
                                                             },
                                                         ],
                                                     },

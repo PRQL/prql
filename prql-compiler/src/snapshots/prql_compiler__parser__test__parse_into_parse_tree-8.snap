@@ -21,7 +21,7 @@ expression: "parse_tree_of_str(\"join country [id=employee_id]\", Rule::func_cur
                 inner: [],
             },
             Pair {
-                rule: named_expr_simple,
+                rule: named_expr,
                 span: Span {
                     str: "country ",
                     start: 5,
@@ -29,7 +29,7 @@ expression: "parse_tree_of_str(\"join country [id=employee_id]\", Rule::func_cur
                 },
                 inner: [
                     Pair {
-                        rule: expr_simple,
+                        rule: expr,
                         span: Span {
                             str: "country ",
                             start: 5,
@@ -37,20 +37,50 @@ expression: "parse_tree_of_str(\"join country [id=employee_id]\", Rule::func_cur
                         },
                         inner: [
                             Pair {
-                                rule: ident,
+                                rule: expr_compare,
                                 span: Span {
-                                    str: "country",
+                                    str: "country ",
                                     start: 5,
-                                    end: 12,
+                                    end: 13,
                                 },
-                                inner: [],
+                                inner: [
+                                    Pair {
+                                        rule: expr_add,
+                                        span: Span {
+                                            str: "country ",
+                                            start: 5,
+                                            end: 13,
+                                        },
+                                        inner: [
+                                            Pair {
+                                                rule: expr_mul,
+                                                span: Span {
+                                                    str: "country ",
+                                                    start: 5,
+                                                    end: 13,
+                                                },
+                                                inner: [
+                                                    Pair {
+                                                        rule: ident,
+                                                        span: Span {
+                                                            str: "country",
+                                                            start: 5,
+                                                            end: 12,
+                                                        },
+                                                        inner: [],
+                                                    },
+                                                ],
+                                            },
+                                        ],
+                                    },
+                                ],
                             },
                         ],
                     },
                 ],
             },
             Pair {
-                rule: named_expr_simple,
+                rule: named_expr,
                 span: Span {
                     str: "[id=employee_id]",
                     start: 13,
@@ -58,7 +88,7 @@ expression: "parse_tree_of_str(\"join country [id=employee_id]\", Rule::func_cur
                 },
                 inner: [
                     Pair {
-                        rule: expr_simple,
+                        rule: expr,
                         span: Span {
                             str: "[id=employee_id]",
                             start: 13,
@@ -66,7 +96,7 @@ expression: "parse_tree_of_str(\"join country [id=employee_id]\", Rule::func_cur
                         },
                         inner: [
                             Pair {
-                                rule: list,
+                                rule: expr_compare,
                                 span: Span {
                                     str: "[id=employee_id]",
                                     start: 13,
@@ -74,47 +104,127 @@ expression: "parse_tree_of_str(\"join country [id=employee_id]\", Rule::func_cur
                                 },
                                 inner: [
                                     Pair {
-                                        rule: named_expr,
+                                        rule: expr_add,
                                         span: Span {
-                                            str: "id=employee_id",
-                                            start: 14,
-                                            end: 28,
+                                            str: "[id=employee_id]",
+                                            start: 13,
+                                            end: 29,
                                         },
                                         inner: [
                                             Pair {
-                                                rule: expr,
+                                                rule: expr_mul,
                                                 span: Span {
-                                                    str: "id=employee_id",
-                                                    start: 14,
-                                                    end: 28,
+                                                    str: "[id=employee_id]",
+                                                    start: 13,
+                                                    end: 29,
                                                 },
                                                 inner: [
                                                     Pair {
-                                                        rule: ident,
+                                                        rule: list,
                                                         span: Span {
-                                                            str: "id",
-                                                            start: 14,
-                                                            end: 16,
+                                                            str: "[id=employee_id]",
+                                                            start: 13,
+                                                            end: 29,
                                                         },
-                                                        inner: [],
-                                                    },
-                                                    Pair {
-                                                        rule: operator,
-                                                        span: Span {
-                                                            str: "=",
-                                                            start: 16,
-                                                            end: 17,
-                                                        },
-                                                        inner: [],
-                                                    },
-                                                    Pair {
-                                                        rule: ident,
-                                                        span: Span {
-                                                            str: "employee_id",
-                                                            start: 17,
-                                                            end: 28,
-                                                        },
-                                                        inner: [],
+                                                        inner: [
+                                                            Pair {
+                                                                rule: named_expr_call,
+                                                                span: Span {
+                                                                    str: "id=employee_id",
+                                                                    start: 14,
+                                                                    end: 28,
+                                                                },
+                                                                inner: [
+                                                                    Pair {
+                                                                        rule: expr,
+                                                                        span: Span {
+                                                                            str: "id=employee_id",
+                                                                            start: 14,
+                                                                            end: 28,
+                                                                        },
+                                                                        inner: [
+                                                                            Pair {
+                                                                                rule: expr_compare,
+                                                                                span: Span {
+                                                                                    str: "id=employee_id",
+                                                                                    start: 14,
+                                                                                    end: 28,
+                                                                                },
+                                                                                inner: [
+                                                                                    Pair {
+                                                                                        rule: expr_add,
+                                                                                        span: Span {
+                                                                                            str: "id",
+                                                                                            start: 14,
+                                                                                            end: 16,
+                                                                                        },
+                                                                                        inner: [
+                                                                                            Pair {
+                                                                                                rule: expr_mul,
+                                                                                                span: Span {
+                                                                                                    str: "id",
+                                                                                                    start: 14,
+                                                                                                    end: 16,
+                                                                                                },
+                                                                                                inner: [
+                                                                                                    Pair {
+                                                                                                        rule: ident,
+                                                                                                        span: Span {
+                                                                                                            str: "id",
+                                                                                                            start: 14,
+                                                                                                            end: 16,
+                                                                                                        },
+                                                                                                        inner: [],
+                                                                                                    },
+                                                                                                ],
+                                                                                            },
+                                                                                        ],
+                                                                                    },
+                                                                                    Pair {
+                                                                                        rule: operator_compare,
+                                                                                        span: Span {
+                                                                                            str: "=",
+                                                                                            start: 16,
+                                                                                            end: 17,
+                                                                                        },
+                                                                                        inner: [],
+                                                                                    },
+                                                                                    Pair {
+                                                                                        rule: expr_add,
+                                                                                        span: Span {
+                                                                                            str: "employee_id",
+                                                                                            start: 17,
+                                                                                            end: 28,
+                                                                                        },
+                                                                                        inner: [
+                                                                                            Pair {
+                                                                                                rule: expr_mul,
+                                                                                                span: Span {
+                                                                                                    str: "employee_id",
+                                                                                                    start: 17,
+                                                                                                    end: 28,
+                                                                                                },
+                                                                                                inner: [
+                                                                                                    Pair {
+                                                                                                        rule: ident,
+                                                                                                        span: Span {
+                                                                                                            str: "employee_id",
+                                                                                                            start: 17,
+                                                                                                            end: 28,
+                                                                                                        },
+                                                                                                        inner: [],
+                                                                                                    },
+                                                                                                ],
+                                                                                            },
+                                                                                        ],
+                                                                                    },
+                                                                                ],
+                                                                            },
+                                                                        ],
+                                                                    },
+                                                                ],
+                                                            },
+                                                        ],
                                                     },
                                                 ],
                                             },

@@ -29,7 +29,7 @@ expression: "parse_tree_of_str(\"func plus_one x = x + 1\", Rule::func_def)?"
                 },
                 inner: [
                     Pair {
-                        rule: named_term_simple,
+                        rule: named_term,
                         span: Span {
                             str: "x",
                             start: 14,
@@ -58,31 +58,71 @@ expression: "parse_tree_of_str(\"func plus_one x = x + 1\", Rule::func_def)?"
                 },
                 inner: [
                     Pair {
-                        rule: ident,
+                        rule: expr_compare,
                         span: Span {
-                            str: "x",
+                            str: "x + 1",
                             start: 18,
-                            end: 19,
-                        },
-                        inner: [],
-                    },
-                    Pair {
-                        rule: operator,
-                        span: Span {
-                            str: "+",
-                            start: 20,
-                            end: 21,
-                        },
-                        inner: [],
-                    },
-                    Pair {
-                        rule: number,
-                        span: Span {
-                            str: "1",
-                            start: 22,
                             end: 23,
                         },
-                        inner: [],
+                        inner: [
+                            Pair {
+                                rule: expr_add,
+                                span: Span {
+                                    str: "x + 1",
+                                    start: 18,
+                                    end: 23,
+                                },
+                                inner: [
+                                    Pair {
+                                        rule: expr_mul,
+                                        span: Span {
+                                            str: "x ",
+                                            start: 18,
+                                            end: 20,
+                                        },
+                                        inner: [
+                                            Pair {
+                                                rule: ident,
+                                                span: Span {
+                                                    str: "x",
+                                                    start: 18,
+                                                    end: 19,
+                                                },
+                                                inner: [],
+                                            },
+                                        ],
+                                    },
+                                    Pair {
+                                        rule: operator_add,
+                                        span: Span {
+                                            str: "+",
+                                            start: 20,
+                                            end: 21,
+                                        },
+                                        inner: [],
+                                    },
+                                    Pair {
+                                        rule: expr_mul,
+                                        span: Span {
+                                            str: "1",
+                                            start: 22,
+                                            end: 23,
+                                        },
+                                        inner: [
+                                            Pair {
+                                                rule: number,
+                                                span: Span {
+                                                    str: "1",
+                                                    start: 22,
+                                                    end: 23,
+                                                },
+                                                inner: [],
+                                            },
+                                        ],
+                                    },
+                                ],
+                            },
+                        ],
                     },
                 ],
             },
