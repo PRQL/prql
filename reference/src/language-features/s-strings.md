@@ -22,6 +22,10 @@ from employees
 aggregate [average salary]
 ```
 
-For those who have used python, it's similar in to a python f-string, but the
-result is SQL, rather than a string literal — a python f-string
-would produce `"average(salary)"`, with the quotes.
+For those who have used python, s-strings are similar to python f-strings, but
+the result is SQL, rather than a string literal — a python f-string would
+produce `"average(salary)"`, with the quotes.
+
+S-strings in user code are intended as an escape-hatch for an unimplemented
+feature. If we often need s-strings to express something, that's a sign we
+should implement it in PRQL / PRQL's stdlib.
