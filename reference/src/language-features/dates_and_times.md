@@ -12,18 +12,19 @@ in compatibility across databases. We'll always support the
 
 ## Dates
 
-Dates are represented by `d{yyyy-mm-dd}` — a `d` followed by the
- date format.
+Dates are represented by `D{yyyy-mm-dd}` — a `D` followed by the
+date format.
 
 ```prql
 from employees
-derive age_at_year_end: (d2022-12-31 - dob)
+derive age_at_year_end: (D2022-12-31 - dob)
 ```
 
 ## Times
 
-Times are represented by `t{HH:mm:ss.SSS}`, with an optional suffix of timezone
-— a `t` followed by the ISO8601 time format.
+Times are represented by `T{HH:mm:ss.SSS±Z}` with any parts not supplied being
+rounded to zero, including the timezone, which is represented by `+HH:mm`,
+`-HH:mm` or `Z`. This is consistent with the ISO8601 time format.
 
 ```prql
 from orders
@@ -32,11 +33,14 @@ derive should_have_shipped_today: (order_time < t08:30)
 
 ## Timestamps
 
-Timestamps are represented by `ts{yyyy-mm-ddTHH:mm:ss.SSS}`, with an optional suffix of timezone
-— a `ts` followed by the ISO8601 time format, which uses `T` to separate date & time.
+Timestamps are represented by `TS{yyyy-mm-ddTHH:mm:ss.SSS±Z}` /
+`TS{date}T{time}`, with any time parts not supplied being rounded to zero,
+including the timezone, which is represented by `+HH:mm`, `-HH:mm` or `Z`. This
+is `TS` followed by the ISO8601 time format, which uses `T` to separate date &
+time.
 
 ```prql
-derive first_prql_commit: ts2020-01-01T13:19:55-0800
+derive first_prql_commit: TS2020-01-01T13:19:55-0800
 ```
 
 ## Datetimes
@@ -44,11 +48,11 @@ derive first_prql_commit: ts2020-01-01T13:19:55-0800
 Datetimes are supported by some databases (e.g. MySql, BigQuery) in addition to
 timestamps.
 
-Datetimes are represented by `dt{yyyy-mm-ddTHH:mm:ss.SSS}`, with an optional suffix of timezone
-— a `dt` followed by the ISO8601 time format, which uses `T` to separate date & time.
+Datetimes are represented in the same way as Timestamps, but with a `DT` prefix
+rather than a `TS` prefix.
 
 ```prql
-derive pi_day: dt2017-03-14T15:09:26.535898
+derive pi_day: DT2017-03-14T15:09:26.535898
 ```
 
 ## Intervals
