@@ -142,21 +142,10 @@ impl Materializer {
     fn materialize_func_call(&mut self, node: &Node) -> Result<Node> {
         let func_call = node.item.as_func_call().unwrap();
 
-        // TODO: maybe move error reporting and param checking to resolve?
-
         // locate declaration
-        let func_dec = node.declared_at.ok_or_else(|| {
-            Error::new(Reason::NotFound {
-                name: func_call.name.clone(),
-                namespace: "function".to_string(),
-            })
-            .with_span(node.span)
-        })?;
-        let func_dec = self.context.declarations[func_dec]
-            .0
-            .as_function()
-            .unwrap()
-            .clone();
+        let func_dec = node.declared_at.ok_or_else(|| anyhow!("unresolved"))?;
+        let func_dec = &self.context.declarations[func_dec].0;
+        let func_dec = func_dec.as_function().unwrap().clone();
 
         // TODO: check if the function is called recursively.
 
@@ -170,7 +159,7 @@ impl Materializer {
             .with_span(node.span));
         }
 
-        // For each of the params, replace its declared value
+        // for each of the params, replace its declared value
         for param in func_dec.named_params {
             let id = param.declared_at.unwrap();
             let param = param.item.into_named_expr()?;
@@ -312,7 +301,19 @@ mod test {
             &to_string(&res)?,
             &to_string(&mat)?
         ),
-        @"");
+        @r###"
+        @@ -15,6 +15,9 @@
+                     name: gross_cost
+                     expr:
+                       Expr:
+        -                - Ident: gross_salary
+        +                - Expr:
+        +                    - Ident: salary
+        +                    - Raw: +
+        +                    - Ident: payroll_tax
+                         - Raw: +
+                         - Ident: benefits_cost
+        "###);
 
         Ok(())
     }
@@ -478,6 +479,22 @@ select (ret b c)
           - From:
               name: a
               alias: ~
+          - Select:
+              - Expr:
+                  - Expr:
+                      - Expr:
+                          - Ident: b
+                          - Raw: /
+                          - Expr:
+                              - SString:
+                                  - String: lag_day_todo(
+                                  - Expr:
+                                      Ident: b
+                                  - String: )
+                      - Raw: "-"
+                      - Raw: "1"
+                      - Raw: +
+                      - Ident: c
         "###);
 
         Ok(())
@@ -547,6 +564,21 @@ derive [
             - From:
                 name: foo_table
                 alias: ~
+            - Derive:
+                - NamedExpr:
+                    name: added
+                    expr:
+                      Expr:
+                        - Ident: bar
+                        - Raw: +
+                        - Raw: "3"
+                - NamedExpr:
+                    name: added_default
+                    expr:
+                      Expr:
+                        - Ident: bar
+                        - Raw: +
+                        - Raw: "1"
         "###);
 
         Ok(())

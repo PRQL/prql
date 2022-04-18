@@ -1,4 +1,5 @@
 use anyhow::anyhow;
+use anyhow::bail;
 use anyhow::Result;
 use itertools::Itertools;
 
@@ -71,6 +72,14 @@ impl AstFold for Resolver {
             Item::FuncCall(func_call) => {
                 node.declared_at = self.context.functions.get(&func_call.name).cloned();
 
+                if node.declared_at.is_none() {
+                    bail!(Error::new(Reason::NotFound {
+                        name: func_call.name.clone(),
+                        namespace: "function".to_string(),
+                    })
+                    .with_span(node.span));
+                }
+
                 Item::FuncCall(self.fold_func_call(func_call)?)
             }
 
@@ -99,20 +108,22 @@ impl AstFold for Resolver {
                         self.context.declare_table(&t);
 
                         let t = Transform::From(t);
-                        Some(fold_transform(self, t)?)
+                        fold_transform(self, t)?
                     }
 
                     Transform::Select(nodes) => {
                         self.context.frame.columns.clear();
 
-                        self.fold_and_declare(nodes)?;
+                        let nodes = self.fold_and_declare(nodes)?;
 
                         self.context.clear_scopes();
-                        None
+
+                        Transform::Select(nodes)
                     }
                     Transform::Derive(nodes) => {
-                        self.fold_and_declare(nodes)?;
-                        None
+                        let nodes = self.fold_and_declare(nodes)?;
+
+                        Transform::Derive(nodes)
                     }
                     Transform::Aggregate { by, select } => {
                         self.context.frame.columns.clear();
@@ -123,12 +134,12 @@ impl AstFold for Resolver {
 
                         self.context.clear_scopes();
 
-                        Some(Transform::Aggregate { by, select: vec![] })
+                        Transform::Aggregate { by, select: vec![] }
                     }
                     Transform::Join { side, with, filter } => {
                         self.context.declare_table(&with);
 
-                        Some(Transform::Join {
+                        Transform::Join {
                             side,
                             with: self.fold_table_ref(with)?,
                             filter: match filter {
@@ -143,15 +154,16 @@ impl AstFold for Resolver {
                                     JoinFilter::Using(nodes)
                                 }
                             },
-                        })
+                        }
                     }
                     Transform::Sort(sort) => {
                         let sort = self.fold_column_sorts(sort)?;
 
-                        // map each column into its declated_at
-                        // I have a feeling that there sould be more compact way of doing this...
+                        // map each column into its declared_at
+                        // I have a feeling that there should be more compact way of doing this...
                         self.context.frame.sort = sort
-                            .into_iter()
+                            .iter()
+                            .cloned()
                             .map(|s| {
                                 Ok::<_, anyhow::Error>(ColumnSort {
                                     column: (s.column.declared_at)
@@ -161,12 +173,11 @@ impl AstFold for Resolver {
                             })
                             .try_collect()?;
 
-                        None
+                        Transform::Sort(sort)
                     }
-                    t => Some(fold_transform(self, t)?),
+                    t => fold_transform(self, t)?,
                 })
             })
-            .filter_map(|x| x.transpose())
             .try_collect()
     }
 }

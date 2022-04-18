@@ -11,6 +11,24 @@ expression: "&mat"
             - Ident: country
             - Raw: "="
             - String: USA
+    - Derive:
+        - NamedExpr:
+            name: gross_salary
+            expr:
+              Expr:
+                - Ident: salary
+                - Raw: +
+                - Ident: payroll_tax
+        - NamedExpr:
+            name: gross_cost
+            expr:
+              Expr:
+                - Expr:
+                    - Ident: salary
+                    - Raw: +
+                    - Ident: payroll_tax
+                - Raw: +
+                - Ident: benefits_cost
     - Filter:
         - Expr:
             - Expr:
@@ -27,6 +45,20 @@ expression: "&mat"
           - Ident: title
           - Ident: country
         select: []
+    - Sort:
+        - direction: Asc
+          column:
+            SString:
+              - String: SUM(
+              - Expr:
+                  Expr:
+                    - Expr:
+                        - Ident: salary
+                        - Raw: +
+                        - Ident: payroll_tax
+                    - Raw: +
+                    - Ident: benefits_cost
+              - String: )
     - Filter:
         - Expr:
             - SString:
