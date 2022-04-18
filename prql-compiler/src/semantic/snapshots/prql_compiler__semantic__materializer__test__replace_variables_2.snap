@@ -40,11 +40,68 @@ expression: "&mat"
                 - Ident: benefits_cost
             - Raw: ">"
             - Raw: "0"
-    - Aggregate:
+    - Group:
         by:
           - Ident: title
           - Ident: country
-        select: []
+        pipeline:
+          - Aggregate:
+              - SString:
+                  - String: AVG(
+                  - Expr:
+                      Ident: salary
+                  - String: )
+              - SString:
+                  - String: SUM(
+                  - Expr:
+                      Ident: salary
+                  - String: )
+              - SString:
+                  - String: AVG(
+                  - Expr:
+                      Expr:
+                        - Ident: salary
+                        - Raw: +
+                        - Ident: payroll_tax
+                  - String: )
+              - SString:
+                  - String: SUM(
+                  - Expr:
+                      Expr:
+                        - Ident: salary
+                        - Raw: +
+                        - Ident: payroll_tax
+                  - String: )
+              - SString:
+                  - String: AVG(
+                  - Expr:
+                      Expr:
+                        - Expr:
+                            - Ident: salary
+                            - Raw: +
+                            - Ident: payroll_tax
+                        - Raw: +
+                        - Ident: benefits_cost
+                  - String: )
+              - NamedExpr:
+                  name: sum_gross_cost
+                  expr:
+                    SString:
+                      - String: SUM(
+                      - Expr:
+                          Expr:
+                            - Expr:
+                                - Ident: salary
+                                - Raw: +
+                                - Ident: payroll_tax
+                            - Raw: +
+                            - Ident: benefits_cost
+                      - String: )
+              - NamedExpr:
+                  name: ct
+                  expr:
+                    SString:
+                      - String: COUNT(*)
     - Sort:
         - direction: Asc
           column:

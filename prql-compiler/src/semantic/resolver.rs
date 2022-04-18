@@ -101,7 +101,7 @@ impl AstFold for Resolver {
             .map(|t| {
                 Ok(match t {
                     Transform::From(t) => {
-                        self.context.clear_scopes();
+                        self.context.flatten_scope();
 
                         self.context.frame = Frame::default();
 
@@ -114,27 +114,42 @@ impl AstFold for Resolver {
                     Transform::Select(nodes) => {
                         self.context.frame.columns.clear();
 
-                        let nodes = self.fold_and_declare(nodes)?;
+                        let nodes = self.fold_and_declare(nodes, true)?;
 
-                        self.context.clear_scopes();
+                        self.context.flatten_scope();
 
                         Transform::Select(nodes)
                     }
                     Transform::Derive(nodes) => {
-                        let nodes = self.fold_and_declare(nodes)?;
+                        let nodes = self.fold_and_declare(nodes, true)?;
 
                         Transform::Derive(nodes)
                     }
-                    Transform::Aggregate { by, select } => {
+                    Transform::Group { by, pipeline } => {
+
+                        let by = self.fold_nodes(by)?;
+                        self.context.frame.group = nodes_to_declaration_ids(by.clone())?;
+
+                        let pipeline = self.fold_pipeline(pipeline)?;
+
+                        self.context.frame.group.clear();
+
+                        Transform::Group { by, pipeline }
+                    }
+                    Transform::Aggregate(nodes) => {
                         self.context.frame.columns.clear();
+                        self.context.frame.groups_to_columns();
 
-                        let by = self.fold_and_declare(by)?;
+                        let nodes = self.fold_and_declare(nodes, true)?;
 
-                        self.fold_and_declare(select)?;
+                        // dbg!(&self.context.variables);
 
-                        self.context.clear_scopes();
+                        self.context.flatten_scope();
 
-                        Transform::Aggregate { by, select: vec![] }
+                        // dbg!(&self.context.frame.decls_in_use());
+                        // dbg!(&self.context.variables);
+
+                        Transform::Aggregate(nodes)
                     }
                     Transform::Join { side, with, filter } => {
                         self.context.declare_table(&with);
@@ -159,19 +174,7 @@ impl AstFold for Resolver {
                     Transform::Sort(sort) => {
                         let sort = self.fold_column_sorts(sort)?;
 
-                        // map each column into its declared_at
-                        // I have a feeling that there should be more compact way of doing this...
-                        self.context.frame.sort = sort
-                            .iter()
-                            .cloned()
-                            .map(|s| {
-                                Ok::<_, anyhow::Error>(ColumnSort {
-                                    column: (s.column.declared_at)
-                                        .ok_or_else(|| anyhow!("Unresolved ident in sort?"))?,
-                                    direction: s.direction,
-                                })
-                            })
-                            .try_collect()?;
+                        self.context.frame.sort = sort_to_declaration_ids(sort.clone())?;
 
                         Transform::Sort(sort)
                     }
@@ -183,13 +186,13 @@ impl AstFold for Resolver {
 }
 
 impl Resolver {
-    fn fold_and_declare(&mut self, nodes: Vec<Node>) -> Result<Vec<Node>> {
+    fn fold_and_declare(&mut self, nodes: Vec<Node>, in_frame: bool) -> Result<Vec<Node>> {
         nodes
             .into_iter()
             .map(|node| {
                 let node = self.fold_node(node)?;
 
-                self.context.declare_table_column(&node, true);
+                self.context.declare_table_column(&node, in_frame);
                 Ok(node)
             })
             .try_collect()
@@ -204,6 +207,28 @@ impl Resolver {
             _ => Ok(()),
         }
     }
+}
+
+fn sort_to_declaration_ids(sort: Vec<ColumnSort>) -> Result<Vec<ColumnSort<usize>>> {
+    sort.into_iter()
+        .map(|s| {
+            Ok(ColumnSort {
+                column: (s.column.declared_at)
+                    .ok_or_else(|| anyhow!("Unresolved ident in sort?"))?,
+                direction: s.direction,
+            })
+        })
+        .try_collect()
+}
+
+fn nodes_to_declaration_ids(nodes: Vec<Node>) -> Result<Vec<usize>> {
+    nodes
+        .into_iter()
+        .map(|s| {
+            s.declared_at
+                .ok_or_else(|| anyhow!("Unresolved ident in group?"))
+        })
+        .try_collect()
 }
 
 #[cfg(test)]
@@ -237,6 +262,7 @@ mod tests {
         columns:
           - All: employees
         sort: []
+        group: []
         "###);
         assert!(resolver.context.variables["employees"].len() == 1);
     }

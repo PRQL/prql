@@ -101,12 +101,9 @@ impl ListItem {
 pub enum Transform {
     From(TableRef),
     Select(Vec<Node>),
-    Filter(Filter),
+    Filter(Vec<Node>),
     Derive(Vec<Node>),
-    Aggregate {
-        by: Vec<Node>,
-        select: Vec<Node>,
-    },
+    Aggregate(Vec<Node>),
     Sort(Vec<ColumnSort<Node>>),
     Take(i64),
     Join {
@@ -140,9 +137,9 @@ impl Transform {
         match &self {
             Transform::From(_) => None,
             Transform::Select(nodes)
-            | Transform::Filter(Filter(nodes))
+            | Transform::Filter(nodes)
             | Transform::Derive(nodes)
-            | Transform::Aggregate { by: nodes, .. } => nodes.first(),
+            | Transform::Aggregate(nodes) => nodes.first(),
             Transform::Sort(columns) => columns.first().map(|c| &c.column),
             Transform::Join { filter, .. } => filter.nodes().first(),
             Transform::Group { by, .. } => by.first(),
@@ -206,9 +203,6 @@ pub enum InterpolateItem {
     String(String),
     Expr(Node),
 }
-
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub struct Filter(pub Vec<Node>);
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub enum JoinSide {

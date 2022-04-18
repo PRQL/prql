@@ -96,8 +96,11 @@ fn compile_to(format: Format, source: &str) -> Result<Vec<u8>, Error> {
             serde_yaml::to_vec(&ast)?
         }
         Format::PrqlReferences => {
+            let std_lib = load_std_lib()?;
+            let (_, context) = resolve(std_lib, None)?;
+
             let query = parse(source)?;
-            let (nodes, context) = resolve(query.nodes, None)?;
+            let (nodes, context) = resolve(query.nodes, Some(context))?;
 
             semantic::print(&nodes, &context, "".to_string(), source.to_string());
             vec![]

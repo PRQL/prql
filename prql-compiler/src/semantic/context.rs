@@ -41,6 +41,7 @@ pub struct Context {
 pub struct Frame {
     pub columns: Vec<TableColumn>,
     pub sort: Vec<ColumnSort<usize>>,
+    pub group: Vec<usize>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -55,6 +56,27 @@ pub enum Declaration {
     Variable(Box<Node>),
     Table(String),
     Function(FuncDef),
+}
+
+impl Frame {
+    pub fn groups_to_columns(&mut self) {
+        for col in &self.group {
+            self.columns.push(TableColumn::Declared(*col))
+        }
+    }
+
+    pub fn decls_in_use(&self) -> HashSet<usize> {
+        let mut r = HashSet::new();
+        for col in &self.columns {
+            if let TableColumn::Declared(id) = col {
+                r.insert(*id);
+            }
+        }
+        for col in &self.group {
+            r.insert(*col);
+        }
+        r
+    }
 }
 
 impl Context {
@@ -91,25 +113,25 @@ impl Context {
         }
     }
 
-    /// Removes variables from all scopes, except $ and %. Also clears frame.
-    pub(super) fn clear_scopes(&mut self) {
+    /// Removes variables from all scopes, except $ and %.
+    pub(super) fn flatten_scope(&mut self) {
         // point all table aliases to $
         // for alias in self.tables.values_mut() {
         // *alias = "$".to_string();
         // }
 
+        let in_use = self.frame.decls_in_use();
+
         // remove namespaces and collect all their variables to "current frame" namespace
         let mut current = self.variables.remove("$").unwrap_or_default();
-        current.retain(|_, id| self.frame.columns.iter().any(|c| c == id));
+        current.retain(|_, id| in_use.contains(id));
         self.variables.retain(|name, space| match name.as_str() {
             "%" | "_" | "$" => true,
             _ => {
                 // redirect namespace to $
                 self.namespaces.insert(name.clone(), "$".to_string());
 
-                current.extend(
-                    (space.drain()).filter(|(_, id)| self.frame.columns.iter().any(|c| c == id)),
-                );
+                current.extend((space.drain()).filter(|(_, id)| in_use.contains(id)));
                 false
             }
         });
@@ -163,7 +185,7 @@ impl Context {
 
         self.variables.insert(name.clone(), Default::default());
 
-        self.declare_all_columns(name.as_str());
+        self.declare_unknown_columns(name.as_str());
     }
 
     // pub fn rename_table(&mut self, old: &str, new: &str) {
@@ -193,7 +215,7 @@ impl Context {
     /// Puts "*" in scope
     ///
     /// Does not actually declare anything.
-    pub fn declare_all_columns(&mut self, namespace: &str) {
+    pub fn declare_unknown_columns(&mut self, namespace: &str) {
         let name = format!("{namespace}.*");
         self.add_to_scope(Some(name.as_str()), DECL_ALL, true);
     }

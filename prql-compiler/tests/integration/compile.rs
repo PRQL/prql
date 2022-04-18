@@ -27,21 +27,23 @@ fn transpile_variables() {
     assert_snapshot!(compile(
 r#"
 from employees
-filter country = "USA"                           # Each line transforms the previous result.
-derive [                                         # This adds columns / variables.
+filter country = "USA"                       # Each line transforms the previous result.
+derive [                                     # This adds columns / variables.
   gross_salary: salary + payroll_tax,
-  gross_cost:  gross_salary + benefits_cost     # Variables can use other variables.
+  gross_cost:  gross_salary + benefits_cost  # Variables can use other variables.
 ]
 filter gross_cost > 0
-aggregate by:[title, country] [                  # `by` are the columns to group by.
-    average salary,                              # These are aggregation calcs run on each group.
-    sum     salary,
+group [title, country] (                     # For each group use a nested pipeline
+  aggregate [                                # Aggregate each group to a single row
+    average salary,
     average gross_salary,
-    sum     gross_salary,
+    sum salary,
+    sum gross_salary,
     average gross_cost,
     sum_gross_cost: sum gross_cost,
     ct: count,
-]
+  ]
+)
 sort sum_gross_cost
 filter ct > 200
 take 20
@@ -112,14 +114,18 @@ fn transpile_joins() {
         r#"
 from employees
 join side:left salaries [emp_no]
-aggregate by:[employees.emp_no] [
-  emp_salary: average salary
-]
+group employees.emp_no (
+  aggregate [
+    emp_salary: average salary
+  ]
+)
 join titles side:left [titles.emp_no = $.emp_no]
 join dept_emp [dept_emp.emp_no = $.emp_no]
-aggregate by:[dept_emp.dept_no, titles.title] [
-  avg_salary: average emp_salary
-]
+group [dept_emp.dept_no, titles.title] (
+  aggregate [
+    avg_salary: average emp_salary
+  ]
+)
 join side:left departments [departments.dept_no = $.dept_no]
 select [dept_name, title, avg_salary]
 "#,

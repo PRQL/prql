@@ -336,7 +336,7 @@ fn func_call_to_transform(func_call: Node) -> Result<Transform> {
         "filter" => {
             let ([filter], []) = unpack_function(func_call, [])?;
 
-            Transform::Filter(Filter(filter.coerce_to_items()))
+            Transform::Filter(filter.coerce_to_items())
         }
         "derive" => {
             let ([assigns], []) = unpack_function(func_call, [])?;
@@ -344,12 +344,11 @@ fn func_call_to_transform(func_call: Node) -> Result<Transform> {
             Transform::Derive(assigns.coerce_to_items())
         }
         "aggregate" => {
-            let ([select], [by]) = unpack_function(func_call, ["by"])?;
+            let ([select], []) = unpack_function(func_call, [])?;
 
-            let by = by.map(|x| x.coerce_to_items()).unwrap_or_default();
             let select = select.coerce_to_items();
 
-            Transform::Aggregate { by, select }
+            Transform::Aggregate(select)
         }
         "sort" => {
             let ([by], []) = unpack_function(func_call, [])?;
@@ -732,43 +731,44 @@ mod test {
     }
 
     #[test]
-    fn test_parse_aggregate() -> Result<()> {
-        let aggregate = ast_of_string("aggregate by:[title] [sum salary, count]", Rule::pipeline)?;
+    fn test_parse_aggregate() {
+        let aggregate = ast_of_string(r"group [title] (
+            aggregate [sum salary, count]
+        )", Rule::pipeline).unwrap();
         assert_yaml_snapshot!(
             aggregate, @r###"
         ---
         Pipeline:
-          - Aggregate:
+          - Group:
               by:
                 - Ident: title
-              select:
-                - FuncCall:
-                    name: sum
-                    args:
-                      - Ident: salary
-                    named_args: {}
-                - Ident: count
+              pipeline:
+                - Aggregate:
+                    - FuncCall:
+                        name: sum
+                        args:
+                          - Ident: salary
+                        named_args: {}
+                    - Ident: count
         "###);
-        let aggregate = ast_of_string("aggregate by:[title] [sum salary]", Rule::func_curry)?;
+        let aggregate = ast_of_string(r"group [title] (
+            aggregate [sum salary]
+        )", Rule::pipeline).unwrap();
         assert_yaml_snapshot!(
             aggregate, @r###"
         ---
-        FuncCall:
-          name: aggregate
-          args:
-            - List:
-                - FuncCall:
-                    name: sum
-                    args:
-                      - Ident: salary
-                    named_args: {}
-          named_args:
-            by:
-              List:
+        Pipeline:
+          - Group:
+              by:
                 - Ident: title
+              pipeline:
+                - Aggregate:
+                    - FuncCall:
+                        name: sum
+                        args:
+                          - Ident: salary
+                        named_args: {}
         "###);
-
-        Ok(())
     }
 
     #[test]
@@ -871,7 +871,8 @@ derive [                                      # This adds columns / variables.
   gross_cost:   gross_salary + benefits_cost # Variables can use other variables.
 ]
 filter gross_cost > 0
-aggregate by:[title, country] [               # `by` are the columns to group by.
+group [title, country] (
+aggregate [               # `by` are the columns to group by.
                    average salary,            # These are aggregation calcs run on each group.
                    sum salary,
                    average gross_salary,
@@ -879,7 +880,7 @@ aggregate by:[title, country] [               # `by` are the columns to group by
                    average gross_cost,
   sum_gross_cost: sum gross_cost,
   ct            : count,
-]
+] )
 sort sum_gross_cost
 filter ct > 200
 take 20
@@ -1062,22 +1063,24 @@ take 20
                   name: mytable
                   alias: ~
               - Select:
-                  - Expr:
-                      - Ident: a
-                      - Raw: and
-                      - Expr:
-                          - Ident: b
-                          - Raw: +
-                          - Ident: c
-                      - Raw: or
-                      - Expr:
-                          - FuncCall:
-                              name: d
-                              args:
-                                - Ident: e
-                              named_args: {}
-                      - Raw: and
-                      - Ident: f
+                  - FuncCall:
+                      name: a
+                      args:
+                        - Ident: and
+                        - Expr:
+                            - Ident: b
+                            - Raw: +
+                            - Ident: c
+                        - Ident: or
+                        - Expr:
+                            - FuncCall:
+                                name: d
+                                args:
+                                  - Ident: e
+                                named_args: {}
+                        - Ident: and
+                        - Ident: f
+                      named_args: {}
         "###);
 
         let ast = ast_of_string(r#"add bar to:3"#, Rule::expr_call).unwrap();
@@ -1113,9 +1116,11 @@ take 20
             r#"
         table newest_employees = (
           from employees
-          aggregate by:country [
-            average_country_salary: average salary
-          ]
+          group country (
+            aggregate [
+                average_country_salary: average salary
+            ]
+          )
           sort tenure
           take 50
         )"#.trim(), Rule::table)?,
@@ -1127,18 +1132,19 @@ take 20
             - From:
                 name: employees
                 alias: ~
-            - Aggregate:
+            - Group:
                 by:
                   - Ident: country
-                select:
-                  - NamedExpr:
-                      name: average_country_salary
-                      expr:
-                        FuncCall:
-                          name: average
-                          args:
-                            - Ident: salary
-                          named_args: {}
+                pipeline:
+                  - Aggregate:
+                      - NamedExpr:
+                          name: average_country_salary
+                          expr:
+                            FuncCall:
+                              name: average
+                              args:
+                                - Ident: salary
+                              named_args: {}
             - Sort:
                 - direction: Asc
                   column:
@@ -1153,7 +1159,9 @@ take 20
         assert_debug_snapshot!(parse_tree_of_str(r#"country = "USA""#, Rule::expr)?);
         assert_debug_snapshot!(parse_tree_of_str("select [a, b, c]", Rule::func_curry)?);
         assert_debug_snapshot!(parse_tree_of_str(
-            "aggregate by:[title, country] [sum salary]",
+            "group [title, country] (
+                aggregate [sum salary]
+            )",
             Rule::pipeline
         )?);
         assert_debug_snapshot!(parse_tree_of_str(
@@ -1256,15 +1264,17 @@ derive [                                         # This adds columns / variables
   gross_cost  : gross_salary + benefits_cost    # Variables can use other variables.
 ]
 filter gross_cost > 0
-aggregate by:[title, country] [                  # `by` are the columns to group by.
-    average salary,                              # These are aggregation calcs run on each group.
-    sum     salary,
-    average gross_salary,
-    sum     gross_salary,
-    average gross_cost,
-    sum_gross_cost: sum gross_cost,
-    count: count,
-]
+group [title, country] (
+    aggregate [                                  # `by` are the columns to group by.
+        average salary,                          # These are aggregation calcs run on each group.
+        sum     salary,
+        average gross_salary,
+        sum     gross_salary,
+        average gross_cost,
+        sum_gross_cost: sum gross_cost,
+        count: count,
+    ]
+)
 sort sum_gross_cost
 filter count > 200
 take 20
@@ -1325,7 +1335,9 @@ select [
         // distinct query #292
         let prql = "
         from c_invoice
-        aggregate by:invoice_no []
+        group invoice_no (
+            take 1
+        )
         ";
         let result = parse(prql).unwrap();
         assert_yaml_snapshot!(result, @r###"
@@ -1337,10 +1349,11 @@ select [
               - From:
                   name: c_invoice
                   alias: ~
-              - Aggregate:
+              - Group:
                   by:
                     - Ident: invoice_no
-                  select: []
+                  pipeline:
+                    - Take: 1
         "###);
 
         // oops, two arguments #339
@@ -1354,7 +1367,7 @@ select [
         // oops, two arguments
         let prql = "
         from c_invoice
-        aggregate by:date average amount
+        group date (aggregate average amount)
         ";
         let result = parse(prql);
         assert!(result.is_err());
@@ -1362,7 +1375,9 @@ select [
         // correct function call
         let prql = "
         from c_invoice
-        aggregate by:date (average amount)
+        group date (
+            aggregate (average amount)
+        )
         ";
         let result = parse(prql).unwrap();
         assert_yaml_snapshot!(result, @r###"
@@ -1374,16 +1389,17 @@ select [
               - From:
                   name: c_invoice
                   alias: ~
-              - Aggregate:
+              - Group:
                   by:
                     - Ident: date
-                  select:
-                    - Expr:
-                        - FuncCall:
-                            name: average
-                            args:
-                              - Ident: amount
-                            named_args: {}
+                  pipeline:
+                    - Aggregate:
+                        - Expr:
+                            - FuncCall:
+                                name: average
+                                args:
+                                  - Ident: amount
+                                named_args: {}
         "###);
     }
 

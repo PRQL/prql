@@ -24,9 +24,7 @@ func_def = { "func" ~ ident ~ func_def_params ~ "=" ~ expr }
 func_def_params = { ( named_term | ident )* }
 table = { "table" ~ ident ~ "=" ~ pipeline_block }
 
-pipe = _{ NEWLINE+ | "|" }
-
-pipeline = { WHITESPACE* ~ func_curry ~ (pipe ~ func_curry)* }
+pipeline = { WHITESPACE* ~ func_curry ~ ((NEWLINE+ | "|") ~ func_curry)* }
 
 pipeline_block = _{ "(" ~ NEWLINE* ~ pipeline ~ NEWLINE* ~ ")" }
 
@@ -34,7 +32,7 @@ pipeline_block = _{ "(" ~ NEWLINE* ~ pipeline ~ NEWLINE* ~ ")" }
 // a transformation. And it's somewhat related to our transformations being
 // separate from our function calls (generally just `idents`) at the moment — we
 // could unify them at some point.
-inline_pipeline = { "(" ~ expr_call ~ (pipe ~ func_curry)+ ~ ")" }
+inline_pipeline = { "(" ~ expr_call ~ ("|" ~ func_curry)+ ~ ")" }
 
 ident = @{ !operator ~ !keyword ~ (ASCII_ALPHA | "$") ~ (ASCII_ALPHANUMERIC | "." | "_" | "*" )* }
 keyword = _{ "prql" | "table" | "func" }
@@ -113,7 +111,7 @@ operator_unary = ${ "-" }
 operator_mul = ${ "*" | "/" | "%" }
 operator_add = ${ "+" | "-" }
 operator_compare = ${ "==" | "!=" | "=" | ">" | "<" | ">=" | "<=" }
-operator_logical = ${ "and" | "or" | "not" }
+operator_logical = ${ !ASCII_ALPHANUMERIC ~ ("and" | "or" | "not") ~ !ASCII_ALPHANUMERIC }
 
 s_string = ${ "s" ~ PUSH(quote) ~ ( interpolate_string | ( "{" ~ expr_call ~ "}" ))* ~ POP }
 f_string = ${ "f" ~ PUSH(quote) ~ ( interpolate_string | ( "{" ~ expr_call ~ "}" ))* ~ POP }

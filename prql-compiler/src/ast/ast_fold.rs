@@ -43,15 +43,6 @@ pub trait AstFold {
             pipeline: self.fold_pipeline(table.pipeline)?,
         })
     }
-    fn fold_filter(&mut self, filter: Filter) -> Result<Filter> {
-        Ok(Filter(
-            filter
-                .0
-                .into_iter()
-                .map(|i| self.fold_node(i))
-                .try_collect()?,
-        ))
-    }
     // For some functions, we want to call a default impl, because copying &
     // pasting everything apart from a specific match is lots of repetition. So
     // we define a function outside the trait, by default call it, and let
@@ -174,7 +165,7 @@ pub fn fold_transform<T: ?Sized + AstFold>(
     match transformation {
         Transform::Derive(assigns) => Ok(Transform::Derive(fold.fold_nodes(assigns)?)),
         Transform::From(table) => Ok(Transform::From(fold.fold_table_ref(table)?)),
-        Transform::Filter(Filter(items)) => Ok(Transform::Filter(Filter(fold.fold_nodes(items)?))),
+        Transform::Filter(items) => Ok(Transform::Filter(fold.fold_nodes(items)?)),
         Transform::Sort(items) => Ok(Transform::Sort(fold.fold_column_sorts(items)?)),
         Transform::Join { side, with, filter } => Ok(Transform::Join {
             side,
@@ -182,10 +173,7 @@ pub fn fold_transform<T: ?Sized + AstFold>(
             filter: fold_join_filter(fold, filter)?,
         }),
         Transform::Select(items) => Ok(Transform::Select(fold.fold_nodes(items)?)),
-        Transform::Aggregate { by, select } => Ok(Transform::Aggregate {
-            by: fold.fold_nodes(by)?,
-            select: fold.fold_nodes(select)?,
-        }),
+        Transform::Aggregate(nodes) => Ok(Transform::Aggregate(fold.fold_nodes(nodes)?)),
         Transform::Group { by, pipeline } => Ok(Transform::Group {
             by: fold.fold_nodes(by)?,
             pipeline: fold.fold_pipeline(pipeline)?,

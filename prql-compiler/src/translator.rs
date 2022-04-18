@@ -234,7 +234,7 @@ fn sql_query_of_atomic_table(table: AtomicTable, dialect: &Dialect) -> Result<sq
     );
     // Convert the filters in a pipeline into an Expr
     fn filter_of_pipeline(pipeline: &[Transform]) -> Result<Option<Expr>> {
-        let filters: Vec<Filter> = pipeline
+        let filters: Vec<Vec<Node>> = pipeline
             .iter()
             .filter_map(|t| match t {
                 Transform::Filter(filter) => Some(filter),
@@ -244,7 +244,7 @@ fn sql_query_of_atomic_table(table: AtomicTable, dialect: &Dialect) -> Result<sq
             .collect();
 
         Ok(if !filters.is_empty() {
-            Some((Item::Expr(Filter::combine_filters(filters).0)).try_into()?)
+            Some((Item::Expr(combine_filters(filters))).try_into()?)
         } else {
             None
         })
@@ -276,15 +276,7 @@ fn sql_query_of_atomic_table(table: AtomicTable, dialect: &Dialect) -> Result<sq
         })
         .collect();
 
-    let aggregate = table
-        .pipeline
-        .iter()
-        .find(|t| matches!(t, Transform::Aggregate { .. }));
-    let group_bys: Vec<Node> = match aggregate {
-        Some(Transform::Aggregate { by, .. }) => by.clone(),
-        None => vec![],
-        _ => unreachable!("Expected an aggregate transformation"),
-    };
+    let group_bys: Vec<Node> = vec![]; // TODO -------------
     let group_by = Node::into_list_of_nodes(group_bys).item.try_into()?;
 
     Ok(sql_ast::Query {
@@ -410,19 +402,14 @@ fn prepend_with_from(pipeline: &mut Pipeline, last_name: &Option<String>) {
     }
 }
 
-/// Combines filters by putting them in parentheses and then joining them with `and`.
-// Feels hacky — maybe this should be operation on a different level.
-impl Filter {
-    #[allow(unstable_name_collisions)] // Same behavior as the std lib; we can remove this + itertools when that's released.
-    fn combine_filters(filters: Vec<Filter>) -> Filter {
-        Filter(
-            filters
-                .into_iter()
-                .map(|f| Item::Expr(f.0).into())
-                .intersperse(Item::Raw("and".to_owned()).into())
-                .collect(),
-        )
-    }
+/// Combines filters by putting them in parentheses and then joining them with `and`.   
+#[allow(unstable_name_collisions)] // Same behavior as the std lib; we can remove this + itertools when that's released.
+fn combine_filters(filters: Vec<Vec<Node>>) -> Vec<Node> {
+    filters
+        .into_iter()
+        .map(|f| Item::Expr(f).into())
+        .intersperse(Item::Raw("and".to_owned()).into())
+        .collect()
 }
 
 impl TryFrom<Item> for SelectItem {
@@ -430,7 +417,7 @@ impl TryFrom<Item> for SelectItem {
     fn try_from(item: Item) -> Result<Self> {
         Ok(match item {
             Item::Expr(_) | Item::SString(_) | Item::FString(_) | Item::Ident(_) | Item::Raw(_) => {
-                SelectItem::UnnamedExpr(TryInto::<Expr>::try_into(item)?)
+                SelectItem::UnnamedExpr(Expr::try_from(item)?)
             }
             Item::NamedExpr(named) => SelectItem::ExprWithAlias {
                 alias: sql_ast::Ident::new(named.name),
@@ -688,13 +675,8 @@ SString:
     - Raw: "="
     - String: USA
 - Aggregate:
-    by:
-    - Ident: title
-    - Ident: country
-    select:
     - Ident: average
     - Ident: salary
-    assigns: []
 - Sort:
     - column:
         Ident: title
@@ -721,13 +703,8 @@ SString:
         - Raw: "="
         - String: USA
     - Aggregate:
-        by:
-        - Ident: title
-        - Ident: country
-        select:
-          - Ident: average
-          - Ident: salary
-        assigns: []
+        - Ident: average
+        - Ident: salary
     - Sort:
         - column:
             Ident: title
@@ -753,21 +730,11 @@ SString:
         - Raw: "="
         - String: USA
     - Aggregate:
-        by:
-        - Ident: title
-        - Ident: country
-        select:
         - Ident: average
         - Ident: salary
-        assigns: []
     - Aggregate:
-        by:
-        - Ident: title
-        - Ident: country
-        select:
         - Ident: average
         - Ident: salary
-        assigns: []
     - Sort:
         - column:
             Ident: sum_gross_cost
@@ -805,9 +772,9 @@ SString:
             r###"
         from employees
         filter country = "USA"
-        aggregate by:[title, country] [
-            average salary
-        ]
+        group [title, country] (
+            aggregate [average salary]
+        )
         sort title
         take 20
         "###,
@@ -846,8 +813,6 @@ SString:
                     name: employees
                     alias: ~
                 - Aggregate:
-                    by: []
-                    select:
                     - NamedExpr:
                         name: sum_salary
                         expr:
@@ -911,18 +876,20 @@ from employees
 filter country = "USA"                           # Each line transforms the previous result.
 derive [                                         # This adds columns / variables.
   gross_salary: salary + payroll_tax,
-  gross_cost:   gross_salary + benefits_cost    # Variables can use other variables.
+  gross_cost:   gross_salary + benefits_cost     # Variables can use other variables.
 ]
 filter gross_cost > 0
-aggregate by:[title, country] [                  # `by` are the columns to group by.
-    average salary,                              # These are aggregation calcs run on each group.
-    sum     salary,
-    average gross_salary,
-    sum     gross_salary,
-    average gross_cost,
-    sum_gross_cost: sum gross_cost,
-    ct: count,
-]
+group [title, country] (
+    aggregate  [                                 # `by` are the columns to group by.
+        average salary,                          # These are aggregation calcs run on each group.
+        sum     salary,
+        average gross_salary,
+        sum     gross_salary,
+        average gross_cost,
+        sum_gross_cost: sum gross_cost,
+        ct: count,
+    ]
+)
 sort sum_gross_cost
 filter ct > 200
 take 20
@@ -946,9 +913,11 @@ take 20
         )
         table average_salaries = (
             from salaries
-            aggregate by:country [
-                average_country_salary: average salary
-            ]
+            group country (
+                aggregate [
+                    average_country_salary: average salary
+                ]
+            )
         )
         from newest_employees
         join average_salaries [country]
@@ -997,12 +966,16 @@ take 20
             from employees
             take 20
             filter country = "USA"
-            aggregate by:[title, country] [
-                average salary
-            ]
-            aggregate by:[title, country] [
-                sum_gross_cost: average salary
-            ]
+            group [title, country] (
+                aggregate [
+                    salary: average salary
+                ]
+            )
+            group [title, country] (
+                aggregate [
+                    sum_gross_cost: average salary
+                ]
+            )
             sort sum_gross_cost
         "###,
         )?;
@@ -1150,9 +1123,11 @@ take 20
             r###"
             from (e: employees)
             join salaries side:left [salaries.emp_no = e.emp_no]
-            aggregate by:[e.emp_no] [
-              emp_salary: average salary
-            ]
+            group [e.emp_no] (
+                aggregate [
+                    emp_salary: average salary
+                ]
+            )
             select [e.emp_no, emp_salary]
         "###,
         )?;

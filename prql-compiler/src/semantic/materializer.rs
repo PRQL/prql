@@ -95,11 +95,11 @@ impl Materializer {
 
         // materialize
         let expr_node = self.fold_node(*node)?;
+        let expr_ident = expr_node.item.as_ident().map(|n| split_var_name(n).1);
 
         Ok(if let Some(ident) = ident {
             // is expr_node just an ident with same name?
-            let expr_name = expr_node.item.as_ident().map(|n| split_var_name(n).1);
-            let expr_node = if expr_name.map(|n| n == ident).unwrap_or(false) {
+            let expr_node = if expr_ident.map(|n| n == ident).unwrap_or(false) {
                 // return just the ident
                 expr_node
             } else {
@@ -333,15 +333,17 @@ derive [                                         # This adds columns / variables
   gross_cost  : gross_salary + benefits_cost    # Variables can use other variables.
 ]
 filter gross_cost > 0
-aggregate by:[title, country] [                  # `by` are the columns to group by.
-    average salary,                              # These are aggregation calcs run on each group.
-    sum     salary,
-    average gross_salary,
-    sum     gross_salary,
-    average gross_cost,
-    sum_gross_cost: sum gross_cost,
-    ct: count,
-]
+group [title, country] (
+    aggregate [                  # `by` are the columns to group by.
+        average salary,                              # These are aggregation calcs run on each group.
+        sum     salary,
+        average gross_salary,
+        sum     gross_salary,
+        average gross_cost,
+        sum_gross_cost: sum gross_cost,
+        ct: count,
+    ]
+)
 sort sum_gross_cost
 filter sum_gross_cost > 200
 take 20
@@ -388,13 +390,11 @@ aggregate [
                   name: employees
                   alias: ~
               - Aggregate:
-                  by: []
-                  select:
-                    - FuncCall:
-                        name: count
-                        args:
-                          - Ident: salary
-                        named_args: {}
+                  - FuncCall:
+                      name: count
+                      args:
+                        - Ident: salary
+                      named_args: {}
         "###);
 
         let (mat, _, _) = resolve_and_materialize(ast.nodes.clone(), None)?;
@@ -404,7 +404,7 @@ aggregate [
         let diff = diff(&to_string(&ast)?, &to_string(&mat)?);
         assert!(!diff.is_empty());
         assert_display_snapshot!(diff, @r###"
-        @@ -1,27 +1,8 @@
+        @@ -1,25 +1,11 @@
          ---
         -version: ~
         -dialect: Generic
@@ -425,20 +425,21 @@ aggregate [
         -          name: employees
         -          alias: ~
         -      - Aggregate:
-        -          by: []
-        -          select:
-        -            - FuncCall:
-        -                name: count
-        -                args:
-        -                  - Ident: salary
-        -                named_args: {}
+        -          - FuncCall:
+        -              name: count
+        -              args:
+        -                - Ident: salary
+        -              named_args: {}
         +- Pipeline:
         +    - From:
         +        name: employees
         +        alias: ~
         +    - Aggregate:
-        +        by: []
-        +        select: []
+        +        - SString:
+        +            - String: count(
+        +            - Expr:
+        +                Ident: salary
+        +            - String: )
         "###);
 
         Ok(())
@@ -514,7 +515,41 @@ aggregate [one: (foo | sum), two: (foo | sum)]
         let (res, context) = resolve(ast.nodes, None)?;
         let (mat, _, _) = materialize(res.clone(), context)?;
 
-        assert_snapshot!(diff(&to_string(&res)?, &to_string(&mat)?), @"");
+        assert_snapshot!(diff(&to_string(&res)?, &to_string(&mat)?), @r###"
+        @@ -7,22 +7,16 @@
+                 - NamedExpr:
+                     name: one
+                     expr:
+        -              InlinePipeline:
+        -                value:
+        -                  Ident: foo
+        -                functions:
+        -                  - FuncCall:
+        -                      name: sum
+        -                      args: []
+        -                      named_args: {}
+        +              SString:
+        +                - String: SUM(
+        +                - Expr:
+        +                    Ident: foo
+        +                - String: )
+                 - NamedExpr:
+                     name: two
+                     expr:
+        -              InlinePipeline:
+        -                value:
+        -                  Ident: foo
+        -                functions:
+        -                  - FuncCall:
+        -                      name: sum
+        -                      args: []
+        -                      named_args: {}
+        +              SString:
+        +                - String: SUM(
+        +                - Expr:
+        +                    Ident: foo
+        +                - String: )
+        "###);
 
         // Test it'll run the `sum foo` function first.
         let ast = parse(
@@ -536,8 +571,17 @@ aggregate [a: (sum foo | plus_one)]
               name: a
               alias: ~
           - Aggregate:
-              by: []
-              select: []
+              - NamedExpr:
+                  name: a
+                  expr:
+                    Expr:
+                      - SString:
+                          - String: SUM(
+                          - Expr:
+                              Ident: foo
+                          - String: )
+                      - Raw: +
+                      - Raw: "1"
         "###);
 
         Ok(())
@@ -606,8 +650,11 @@ aggregate [
                 name: employees
                 alias: ~
             - Aggregate:
-                by: []
-                select: []
+                - SString:
+                    - String: count(
+                    - Expr:
+                        Ident: salary
+                    - String: )
         "###
         );
         Ok(())
@@ -628,15 +675,17 @@ derive [                                         # This adds columns / variables
   gross_cost  : gross_salary + benefits_cost    # Variables can use other variables.
 ]
 filter gross_cost > 0
-aggregate by:[title, country] [                  # `by` are the columns to group by.
-    average salary,                              # These are aggregation calcs run on each group.
-    sum     salary,
-    average gross_salary,
-    sum     gross_salary,
-    average gross_cost,
-    sum_gross_cost: sum gross_cost,
-    ct: count,
-]
+group [title, country] (
+    aggregate [                  # `by` are the columns to group by.
+        average salary,                              # These are aggregation calcs run on each group.
+        sum     salary,
+        average gross_salary,
+        sum     gross_salary,
+        average gross_cost,
+        sum_gross_cost: sum gross_cost,
+        ct: count,
+    ]
+)
 sort sum_gross_cost
 filter sum_gross_cost > 200
 take 20
@@ -689,12 +738,12 @@ take 20
 func average column = s"AVG({column})"
 
 from employees
-aggregate by:[title, emp_no] [
-  emp_salary: average salary
-]
-aggregate by:[title] [
-  avg_salary: average emp_salary
-]
+group [title, emp_no] (
+    aggregate [emp_salary: average salary]
+)
+group [title] (
+    aggregate [avg_salary: average emp_salary]
+)
 "#,
         )?;
 
@@ -705,15 +754,37 @@ aggregate by:[title] [
             - From:
                 name: employees
                 alias: ~
-            - Aggregate:
+            - Group:
                 by:
                   - Ident: title
                   - Ident: emp_no
-                select: []
-            - Aggregate:
+                pipeline:
+                  - Aggregate:
+                      - NamedExpr:
+                          name: emp_salary
+                          expr:
+                            SString:
+                              - String: AVG(
+                              - Expr:
+                                  Ident: salary
+                              - String: )
+            - Group:
                 by:
                   - Ident: title
-                select: []
+                pipeline:
+                  - Aggregate:
+                      - NamedExpr:
+                          name: avg_salary
+                          expr:
+                            SString:
+                              - String: AVG(
+                              - Expr:
+                                  SString:
+                                    - String: AVG(
+                                    - Expr:
+                                        Ident: salary
+                                    - String: )
+                              - String: )
         "###);
 
         Ok(())

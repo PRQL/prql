@@ -4,7 +4,6 @@ use anyhow::{Ok, Result};
 use ariadne::{Color, Label, Report, ReportBuilder, ReportKind, Source};
 
 use super::{Context, Declaration};
-use crate::ast::FuncDef;
 use crate::internals::{AstFold, Node};
 
 pub fn print(nodes: &[Node], context: &Context, source_id: String, source: String) {
@@ -22,17 +21,17 @@ pub fn print(nodes: &[Node], context: &Context, source_id: String, source: Strin
     // traverse ast
     labeler.fold_nodes(nodes.to_owned()).unwrap();
     // traverse declarations
-    for (d, _) in &context.declarations {
-        match d {
-            Declaration::Variable(n) | Declaration::Function(FuncDef { body: n, .. }) => {
-                labeler.fold_node(*(*n).clone()).unwrap();
-            }
-            Declaration::Table(_) => todo!(),
-        }
-    }
+    // for (d, _) in &context.declarations {
+    //     match d {
+    //         Declaration::Variable(n) | Declaration::Function(FuncDef { body: n, .. }) => {
+    //             labeler.fold_node(*(*n).clone()).unwrap();
+    //         }
+    //         Declaration::Table(_) => todo!(),
+    //     }
+    // }
 
     // label all declarations
-    // for (dec, span) in &analyzer.declarations {
+    // for (dec, span) in &context.declarations {
     //     if let Some(span) = span {
     //         report.add_label(
     //             Label::new((source_id.clone(), Range::from(*span)))
