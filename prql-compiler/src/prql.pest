@@ -31,9 +31,7 @@ pipeline = { transformation ~ (pipe ~ transformation)* }
 transformation = { WHITESPACE* ~ ident ~ named_expr_simple* }
 
 // We don't model this in the same way as a pipeline, since the first term isn't
-// a transformation. And it's somewhat related to our transformations being
-// separate from our function calls (generally just `idents`) at the moment — we
-// could unify them at some point.
+// a transformation. We could unify them at some point.
 inline_pipeline = { "(" ~ expr ~ (pipe ~ func_curry)+ ~ ")" }
 
 ident = @{ !operator ~ (ASCII_ALPHA | "$") ~ (ASCII_ALPHANUMERIC | "." | "_" | "*" )* }
