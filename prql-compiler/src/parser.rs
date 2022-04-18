@@ -2,6 +2,7 @@
 //! of pest pairs into a tree of AST Items. It has a small function to call into
 //! pest to get the parse tree / concrete syntaxt tree, and then a large
 //! function for turning that into PRQL AST.
+use std::collections::HashMap;
 use std::str::FromStr;
 
 use anyhow::{anyhow, bail, Context, Result};
@@ -13,10 +14,8 @@ use pest_derive::Parser;
 
 use super::ast::*;
 use super::utils::*;
-use crate::error::Error;
-use crate::error::Reason;
-use crate::error::Span;
-use crate::error::WithErrorInfo;
+use crate::error::{Error, Reason, Span, WithErrorInfo};
+
 #[derive(Parser)]
 #[grammar = "prql.pest"]
 struct PrqlParser;
@@ -75,13 +74,17 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
                 Rule::query_def => {
                     let parsed = ast_of_parse_tree(pair.into_inner())?;
 
-                    let (_, [version, dialect]) = unpack_arguments(parsed, ["version", "dialect"]);
+                    let mut params: HashMap<_, _> = parsed
+                        .into_iter()
+                        .map(|x| x.item.into_named_expr().map(|n| (n.name, n.expr)))
+                        .try_collect()?;
 
-                    let version = version
+                    let version = params
+                        .remove("version")
                         .map(|v| v.unwrap(|i| i.into_ident(), "string"))
                         .transpose()?;
 
-                    let dialect = if let Some(node) = dialect {
+                    let dialect = if let Some(node) = params.remove("dialect") {
                         let span = node.span;
                         let dialect = node.unwrap(|i| i.into_ident(), "string")?;
                         Dialect::from_str(&dialect).map_err(|_| {
@@ -108,6 +111,7 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
                         .collect(),
                 ),
                 Rule::expr | Rule::expr_simple => ast_of_parse_tree(pair.into_inner())?.into_expr(),
+                Rule::parenthesized_expr => Item::Expr(ast_of_parse_tree(pair.into_inner())?),
                 Rule::named_expr | Rule::named_expr_simple | Rule::named_term_simple => {
                     let items = ast_of_parse_tree(pair.into_inner())?;
                     // this borrow could be removed, but it becomes much less readable without match
@@ -123,10 +127,10 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
                         _ => unreachable!(),
                     }
                 }
-                Rule::transformation => {
-                    let parsed = ast_of_parse_tree(pair.into_inner())?;
-                    Item::Transform(ast_of_transformation(parsed)?)
-                }
+                // Rule::func_curry => {
+                //     let parsed = ast_of_parse_tree(pair.into_inner())?;
+                //     Item::Transform(ast_of_transformation(parsed)?)
+                // }
                 Rule::func_def => {
                     let parsed = ast_of_parse_tree(pair.into_inner())?;
 
@@ -186,7 +190,7 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
                     let named_args = named
                         .into_iter()
                         .cloned()
-                        .map(|x| x.item.into_named_expr())
+                        .map(|x| x.item.into_named_expr().map(|n| (n.name, n.expr)))
                         .try_collect()?;
 
                     Item::FuncCall(FuncCall {
@@ -217,14 +221,8 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
                 Rule::pipeline => Item::Pipeline({
                     ast_of_parse_tree(pair.into_inner())?
                         .into_iter()
-                        .map(|x| match x {
-                            Node {
-                                item: Item::Transform(transformation),
-                                ..
-                            } => transformation,
-                            _ => unreachable!("{x:?}"),
-                        })
-                        .collect()
+                        .map(func_call_to_transform)
+                        .try_collect()?
                 }),
                 Rule::inline_pipeline => {
                     let parsed = ast_of_parse_tree(pair.into_inner())?;
@@ -302,20 +300,15 @@ fn ast_of_interpolate_items(pair: Pair<Rule>) -> Result<Vec<InterpolateItem>> {
         .collect::<Result<_>>()
 }
 
-fn ast_of_transformation(items: Vec<Node>) -> Result<Transform> {
-    let (name, args) = items
-        .split_first()
-        .ok_or_else(|| anyhow!("Expected at least one item"))?;
+fn func_call_to_transform(func_call: Node) -> Result<Transform> {
+    let span = func_call.span;
+    let func_call = func_call.item.into_func_call()?;
 
-    let args: Vec<Node> = args.to_vec();
-
-    let name = name.item.clone().into_ident()?;
-    Ok(match name.as_str() {
+    Ok(match func_call.name.as_str() {
         "from" => {
-            let (name, expr) = args
-                .into_only_node("from", "argument")
-                .with_help("you can pass it as `from table_name` or `from alias: table_name`")?
-                .into_name_and_expr();
+            let ([with], []) = unpack_function(func_call, [])?;
+
+            let (name, expr) = with.into_name_and_expr();
 
             let table_ref = TableRef {
                 name: expr.unwrap(Item::into_ident, "ident").with_help(
@@ -326,47 +319,33 @@ fn ast_of_transformation(items: Vec<Node>) -> Result<Transform> {
 
             Transform::From(table_ref)
         }
-        "select" => Transform::Select(args.into_only_node("select", "argument")?.coerce_to_items()),
+        "select" => {
+            let ([assigns], []) = unpack_function(func_call, [])?;
+
+            Transform::Select(assigns.coerce_to_items())
+        }
         "filter" => {
-            let items = args
-                .into_only_node("filter", "argument")?
-                .discard_name()?
-                .coerce_to_items();
-            Transform::Filter(Filter(items))
+            let ([filter], []) = unpack_function(func_call, [])?;
+
+            Transform::Filter(Filter(filter.coerce_to_items()))
         }
         "derive" => {
-            let assigns = (args)
-                .into_only_node("derive", "argument")?
-                .coerce_to_items();
-            Transform::Derive(assigns)
+            let ([assigns], []) = unpack_function(func_call, [])?;
+
+            Transform::Derive(assigns.coerce_to_items())
         }
         "aggregate" => {
-            // TODO: redo, generalizing with checks on custom functions.
-            // Ideally we'd be able to add to the error message with context
-            // without falling afowl of the borrow rules.
-            // Err(anyhow!(
-            //     "Expected exactly one unnamed argument for aggregate, got {:?}",
-            //     args
-            // ))
-            // })?;
-            let (positional, [by]) = unpack_arguments(args, ["by"]);
-            let by = by.map(|x| x.coerce_to_items()).unwrap_or_default();
+            let ([select], [by]) = unpack_function(func_call, ["by"])?;
 
-            let select = match positional.len() {
-                0 => vec![],
-                1 => positional[0].clone().coerce_to_items(),
-                _ => bail!(Error::new(Reason::Expected{
-                    who: Some("aggregate".to_string()),
-                    expected: "only one argument".to_string(),
-                    found: "more".to_string()
-                }).with_span(positional[1].span).with_help("If you are calling a function, you may want to add parenthesis: `aggregate [average amount]`"))
-            };
+            let by = by.map(|x| x.coerce_to_items()).unwrap_or_default();
+            let select = select.coerce_to_items();
 
             Transform::Aggregate { by, select }
         }
         "sort" => {
-            let by = args
-                .into_only_node("sort", "argument")?
+            let ([by], []) = unpack_function(func_call, [])?;
+
+            let by = by
                 .coerce_to_items()
                 .into_iter()
                 .map(|node| {
@@ -404,12 +383,14 @@ fn ast_of_transformation(items: Vec<Node>) -> Result<Transform> {
             Transform::Sort(by)
         }
         "take" => {
+            let ([expr], []) = unpack_function(func_call, [])?;
+
             // TODO: coerce to number
-            let expr = args.into_only_node("take", "argument")?.discard_name()?;
-            Transform::Take(expr.item.into_raw()?.parse()?)
+            Transform::Take(expr.discard_name()?.item.into_raw()?.parse()?)
         }
         "join" => {
-            let (positional, [side]) = unpack_arguments(args, ["side"]);
+            let ([with, filter], [side]) = unpack_function(func_call, ["side"])?;
+
             let side = if let Some(side) = side {
                 let span = side.span;
                 let ident = side.unwrap(Item::into_ident, "ident")?;
@@ -430,10 +411,7 @@ fn ast_of_transformation(items: Vec<Node>) -> Result<Transform> {
                 JoinSide::Inner
             };
 
-            let with =
-                (positional.get(0).cloned()).context("join requires a table name to join with")?;
             let (with_alias, with) = with.into_name_and_expr();
-
             let with = TableRef {
                 name: with.unwrap(Item::into_ident, "ident").with_help(
                     "`join` does not support inline expressions. You can only pass a table name.",
@@ -441,12 +419,7 @@ fn ast_of_transformation(items: Vec<Node>) -> Result<Transform> {
                 alias: with_alias,
             };
 
-            let filter = if let Some(on) = positional.get(1) {
-                on.clone().discard_name()?.coerce_to_items()
-            } else {
-                vec![]
-            };
-
+            let filter = filter.discard_name()?.coerce_to_items();
             let use_using = (filter.iter().map(|x| &x.item)).all(|x| matches!(x, Item::Ident(_)));
 
             let filter = if use_using {
@@ -457,35 +430,70 @@ fn ast_of_transformation(items: Vec<Node>) -> Result<Transform> {
 
             Transform::Join { side, with, filter }
         }
-        _ => bail!("Expected a known transformation; got {name}"),
+        unknown => bail!(Error::new(Reason::Expected {
+            who: None,
+            expected: "a known transform".to_string(),
+            found: format!("`{unknown}`")
+        })
+        .with_span(span)
+        .with_help("use one of: from, select, derive, filter, aggregate, join, sort, take")),
     })
 }
 
 /// Compares expected and passed function parameters
 /// Returns positional and named parameters.
-fn unpack_arguments<const COUNT: usize>(
-    passed: Vec<Node>,
-    expected: [&str; COUNT],
-) -> (Vec<Node>, [Option<Node>; COUNT]) {
-    let mut positional = Vec::new();
-
+fn unpack_function<const P: usize, const N: usize>(
+    mut func_call: FuncCall,
+    expected: [&str; N],
+) -> Result<([Node; P], [Option<Node>; N]), Error> {
+    // named
     const NONE: Option<Node> = None;
-    let mut named = [NONE; COUNT];
+    let mut named = [NONE; N];
 
-    for p in passed {
-        // Quite inefficient when number of arguments > 10. We could instead use merge join.
-        if let Some(n) = p.item.as_named_expr() {
-            if let Some((pos, _)) = expected.iter().find_position(|x| x == &&n.name) {
-                named[pos] = Some(*p.item.into_named_expr().unwrap().expr);
-                continue;
-            }
+    for (i, e) in expected.into_iter().enumerate() {
+        if let Some(val) = func_call.named_args.remove(e) {
+            named[i] = Some(*val);
         }
-
-        positional.push(p);
     }
-    (positional, named)
+
+    if !func_call.named_args.is_empty() {
+        let arg = func_call.named_args.into_iter().next().unwrap();
+
+        return Err(Error::new(Reason::Unexpected {
+            found: format!("argument `{}`", arg.0),
+        })
+        .with_span(arg.1.span)
+        .with_help(format!(
+            "`{}` expects only named arguments: {}",
+            func_call.name,
+            expected.iter().map(|e| format!("`{e}`")).join(", ")
+        )));
+    }
+
+    let positional = expect_len(func_call.args, &func_call.name)?;
+
+    Ok((positional, named))
 }
 
+fn expect_len<const N: usize>(v: Vec<Node>, func_name: &str) -> Result<[Node; N], Error> {
+    let len = v.len();
+    let span = v.first().and_then(|x| x.span);
+
+    v.try_into().map_err(|_| {
+        let mut err = Error::new(Reason::Expected {
+            who: Some(func_name.to_string()),
+            expected: format!("{N} arguments"),
+            found: len.to_string(),
+        })
+        .with_span(span);
+
+        if len > N {
+            err = err.with_help(format!("If you are calling a function, you may want to add braces: `{func_name} [average amount]`"))
+        }
+
+        err
+    })
+}
 #[cfg(test)]
 mod test {
 
@@ -494,8 +502,8 @@ mod test {
 
     #[test]
     fn test_parse_take() -> Result<()> {
-        assert!(parse_tree_of_str("take 10", Rule::transformation).is_ok());
-        assert!(ast_of_string("take", Rule::transformation).is_err());
+        assert!(parse_tree_of_str("take 10", Rule::pipeline).is_ok());
+        assert!(ast_of_string("take", Rule::pipeline).is_err());
         Ok(())
     }
 
@@ -597,7 +605,7 @@ mod test {
                   name: f
                   args:
                     - Raw: "1"
-                  named_args: []
+                  named_args: {}
           - Raw: "2"
         "###);
         // Line breaks
@@ -621,7 +629,7 @@ mod test {
               name: a
               args:
                 - Ident: b
-              named_args: []
+              named_args: {}
         "###);
         assert_yaml_snapshot!(a_comma_b, @r###"
         ---
@@ -655,35 +663,36 @@ mod test {
     #[test]
     fn test_parse_filter() -> Result<()> {
         assert_yaml_snapshot!(
-            ast_of_string(r#"filter country = "USA""#, Rule::transformation)?
+            ast_of_string(r#"filter country = "USA""#, Rule::pipeline)?
         , @r###"
         ---
-        Transform:
-          Filter:
-            - Expr:
-                - Ident: country
-                - Raw: "="
-                - String: USA
+        Pipeline:
+          - Filter:
+              - Expr:
+                  - Ident: country
+                  - Raw: "="
+                  - String: USA
         "###);
         // TODO: Shoud the next two be different, based on whether there are
         // parentheses? I think possibly not.
         assert_yaml_snapshot!(
-            ast_of_string(r#"filter (upper country) = "USA""#, Rule::transformation)?
+            ast_of_string(r#"filter (upper country) = "USA""#, Rule::pipeline)?
         , @r###"
         ---
-        Transform:
-          Filter:
-            - Expr:
-                - FuncCall:
-                    name: upper
-                    args:
-                      - Ident: country
-                    named_args: []
-                - Raw: "="
-                - String: USA
+        Pipeline:
+          - Filter:
+              - Expr:
+                  - Expr:
+                      - FuncCall:
+                          name: upper
+                          args:
+                            - Ident: country
+                          named_args: {}
+                  - Raw: "="
+                  - String: USA
         "###);
 
-        let res = ast_of_string(r#"filter upper country = "USA""#, Rule::transformation);
+        let res = ast_of_string(r#"filter upper country = "USA""#, Rule::pipeline);
         assert!(res.is_err());
 
         Ok(())
@@ -691,90 +700,68 @@ mod test {
 
     #[test]
     fn test_parse_aggregate() -> Result<()> {
-        let aggregate = ast_of_string(
-            "aggregate by:[title] [sum salary, count]",
-            Rule::transformation,
-        )?;
+        let aggregate = ast_of_string("aggregate by:[title] [sum salary, count]", Rule::pipeline)?;
         assert_yaml_snapshot!(
             aggregate, @r###"
         ---
-        Transform:
-          Aggregate:
-            by:
-              - Ident: title
-            select:
-              - FuncCall:
-                  name: sum
-                  args:
-                    - Ident: salary
-                  named_args: []
-              - Ident: count
+        Pipeline:
+          - Aggregate:
+              by:
+                - Ident: title
+              select:
+                - FuncCall:
+                    name: sum
+                    args:
+                      - Ident: salary
+                    named_args: {}
+                - Ident: count
         "###);
-        let aggregate = ast_of_string("aggregate by:[title] [sum salary]", Rule::transformation)?;
+        let aggregate = ast_of_string("aggregate by:[title] [sum salary]", Rule::func_curry)?;
         assert_yaml_snapshot!(
             aggregate, @r###"
         ---
-        Transform:
-          Aggregate:
+        FuncCall:
+          name: aggregate
+          args:
+            - List:
+                - FuncCall:
+                    name: sum
+                    args:
+                      - Ident: salary
+                    named_args: {}
+          named_args:
             by:
-              - Ident: title
-            select:
-              - FuncCall:
-                  name: sum
-                  args:
-                    - Ident: salary
-                  named_args: []
+              List:
+                - Ident: title
         "###);
 
-        let node = ast_of_string("aggregate by:[title] [sum salary]", Rule::transformation)?;
-        let aggregate = (node.item.as_transform()).ok_or_else(|| anyhow!("Expected Raw"))?;
-        assert!(if let Transform::Aggregate { by, .. } = aggregate {
-            by.len() == 1
-                && by[0]
-                    .item
-                    .as_ident()
-                    .ok_or_else(|| anyhow!("Expected Ident"))?
-                    == "title"
-        } else {
-            false
-        });
-
-        assert_yaml_snapshot!(
-            ast_of_string("aggregate by:[title] [sum salary]", Rule::transformation)?, @r###"
-        ---
-        Transform:
-          Aggregate:
-            by:
-              - Ident: title
-            select:
-              - FuncCall:
-                  name: sum
-                  args:
-                    - Ident: salary
-                  named_args: []
-        "###);
         Ok(())
     }
 
     #[test]
     fn test_parse_select() -> Result<()> {
         assert_yaml_snapshot!(
-            ast_of_string(r#"select x"#, Rule::transformation)?
+            ast_of_string(r#"select x"#, Rule::func_curry)?
         , @r###"
         ---
-        Transform:
-          Select:
+        FuncCall:
+          name: select
+          args:
             - Ident: x
+          named_args: {}
         "###);
 
         assert_yaml_snapshot!(
-            ast_of_string(r#"select [x, y]"#, Rule::transformation)?
+            ast_of_string(r#"select [x, y]"#, Rule::func_curry)?
         , @r###"
         ---
-        Transform:
-          Select:
-            - Ident: x
-            - Ident: y
+        FuncCall:
+          name: select
+          args:
+            - List:
+                - Ident: x
+                - Ident: y
+          named_args: {}
         "###);
 
         Ok(())
@@ -826,14 +813,16 @@ mod test {
           expr:
             Expr:
               - Expr:
-                  - Ident: salary
-                  - Raw: +
-                  - Ident: payroll_tax
+                  - Expr:
+                      - Ident: salary
+                      - Raw: +
+                      - Ident: payroll_tax
               - Raw: "*"
               - Expr:
-                  - Raw: "1"
-                  - Raw: +
-                  - Ident: tax_rate
+                  - Expr:
+                      - Raw: "1"
+                      - Raw: +
+                      - Ident: tax_rate
         "###);
         Ok(())
     }
@@ -899,9 +888,10 @@ take 20
           named_params: []
           body:
             Expr:
-              - Ident: x
-              - Raw: +
-              - Raw: "1"
+              - Expr:
+                  - Ident: x
+                  - Raw: +
+                  - Raw: "1"
         "###);
         assert_yaml_snapshot!(ast_of_string(
             "func plus_one x = x + 1", Rule::func_def
@@ -936,10 +926,11 @@ take 20
               - FuncCall:
                   name: foo
                   args:
-                    - Ident: bar
-                  named_args: []
-              - Raw: +
-              - Raw: "1"
+                    - Expr:
+                        - Ident: bar
+                        - Raw: +
+                        - Raw: "1"
+                  named_args: {}
         "###);
 
         assert_yaml_snapshot!(ast_of_string("func return_constant = 42", Rule::func_def)?, @r###"
@@ -1025,7 +1016,7 @@ take 20
         args:
           - SString:
               - String: "*"
-        named_args: []
+        named_args: {}
         "###);
 
         assert_yaml_snapshot!(parse(r#"from mytable | select [a and b + c or d e and f]"#)?, @r###"
@@ -1048,10 +1039,11 @@ take 20
                       - FuncCall:
                           name: d
                           args:
-                            - Ident: e
-                          named_args: []
-                      - Raw: and
-                      - Ident: f
+                            - Expr:
+                                - Ident: e
+                                - Raw: and
+                                - Ident: f
+                          named_args: {}
         "###);
 
         Ok(())
@@ -1101,7 +1093,7 @@ take 20
                           name: average
                           args:
                             - Ident: salary
-                          named_args: []
+                          named_args: {}
             - Sort:
                 - direction: Asc
                   column:
@@ -1114,14 +1106,14 @@ take 20
     #[test]
     fn test_parse_into_parse_tree() -> Result<()> {
         assert_debug_snapshot!(parse_tree_of_str(r#"country = "USA""#, Rule::expr)?);
-        assert_debug_snapshot!(parse_tree_of_str("select [a, b, c]", Rule::transformation)?);
+        assert_debug_snapshot!(parse_tree_of_str("select [a, b, c]", Rule::func_curry)?);
         assert_debug_snapshot!(parse_tree_of_str(
             "aggregate by:[title, country] [sum salary]",
-            Rule::transformation
+            Rule::pipeline
         )?);
         assert_debug_snapshot!(parse_tree_of_str(
             r#"    filter country = "USA""#,
-            Rule::transformation
+            Rule::pipeline
         )?);
         assert_debug_snapshot!(parse_tree_of_str("[a, b, c,]", Rule::list)?);
         assert_debug_snapshot!(parse_tree_of_str(
@@ -1139,11 +1131,11 @@ take 20
         )?);
         assert_debug_snapshot!(parse_tree_of_str(
             "join country [id=employee_id]",
-            Rule::transformation
+            Rule::func_curry
         )?);
         assert_debug_snapshot!(parse_tree_of_str(
             "join side:left country [id=employee_id]",
-            Rule::transformation
+            Rule::func_curry
         )?);
         assert_debug_snapshot!(parse_tree_of_str("1  + 2", Rule::expr)?);
         Ok(())
@@ -1165,7 +1157,7 @@ take 20
                 name: percentile
                 args:
                   - Raw: "50"
-                named_args: []
+                named_args: {}
         "###);
         assert_yaml_snapshot!(ast_of_string("func median x = (x | percentile 50)", Rule::query)?, @r###"
         ---
@@ -1187,7 +1179,7 @@ take 20
                           name: percentile
                           args:
                             - Raw: "50"
-                          named_args: []
+                          named_args: {}
         "###);
 
         Ok(())
@@ -1274,13 +1266,12 @@ take 20
         // #284
 
         let prql = "from c_invoice
-join doc:c_doctype [c_invoice_id]
+join (doc:c_doctype) [c_invoice_id]
 select [
 \tinvoice_no,
 \tdocstatus
 ]";
-        let result = parse(prql);
-        assert!(result.is_ok());
+        parse(prql)?;
 
         Ok(())
     }
@@ -1290,7 +1281,7 @@ select [
         // distinct query #292
         let prql = "
         from c_invoice
-        aggregate by:invoice_no
+        aggregate by:invoice_no []
         ";
         let result = parse(prql).unwrap();
         assert_yaml_snapshot!(result, @r###"
@@ -1343,11 +1334,12 @@ select [
                   by:
                     - Ident: date
                   select:
-                    - FuncCall:
-                        name: average
-                        args:
-                          - Ident: amount
-                        named_args: []
+                    - Expr:
+                        - FuncCall:
+                            name: average
+                            args:
+                              - Ident: amount
+                            named_args: {}
         "###);
     }
 
@@ -1373,7 +1365,7 @@ select [
 
         assert_yaml_snapshot!(parse("
         from invoices
-        sort desc:issued_at
+        sort [desc:issued_at]
         ").unwrap(), @r###"
         ---
         version: ~
@@ -1391,7 +1383,7 @@ select [
 
         assert_yaml_snapshot!(parse("
         from invoices
-        sort asc:issued_at
+        sort [asc:issued_at]
         ").unwrap(), @r###"
         ---
         version: ~
@@ -1437,8 +1429,8 @@ select [
         assert_yaml_snapshot!(parse("
         from employees
         filter (age | between 18..40)
-        derive greater_than_ten: 11..
-        derive less_than_ten: ..9
+        derive [greater_than_ten: 11..]
+        derive [less_than_ten: ..9]
         ").unwrap(), @r###"
         ---
         version: ~
@@ -1461,7 +1453,7 @@ select [
                                     Raw: "18"
                                   end:
                                     Raw: "40"
-                            named_args: []
+                            named_args: {}
               - Derive:
                   - NamedExpr:
                       name: greater_than_ten
@@ -1485,7 +1477,7 @@ select [
     fn test_interval() {
         assert_yaml_snapshot!(parse("
         from employees
-        derive age_plus_two_years: (age + 2years)
+        derive [age_plus_two_years: (age + 2years)]
         ").unwrap(), @r###"
         ---
         version: ~
@@ -1500,11 +1492,12 @@ select [
                       name: age_plus_two_years
                       expr:
                         Expr:
-                          - Ident: age
-                          - Raw: +
-                          - Interval:
-                              n: 2
-                              unit: years
+                          - Expr:
+                              - Ident: age
+                              - Raw: +
+                              - Interval:
+                                  n: 2
+                                  unit: years
         "###);
     }
 }

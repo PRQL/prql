@@ -1,8 +1,6 @@
 //! Transform the parsed AST into a "materialized" AST, by executing functions and
 //! replacing variables. The materialized AST is "flat", in the sense that it
 //! contains no query-specific logic.
-use std::collections::HashMap;
-
 use crate::ast::ast_fold::*;
 use crate::ast::*;
 use crate::error::{Error, Reason};
@@ -173,16 +171,12 @@ impl Materializer {
         }
 
         // For each of the params, replace its declared value
-        let arguments: HashMap<&String, &Box<Node>> = func_call
-            .named_args
-            .iter()
-            .map(|e| (&e.name, &e.expr))
-            .collect();
         for param in func_dec.named_params {
             let id = param.declared_at.unwrap();
             let param = param.item.into_named_expr()?;
 
-            let value = arguments
+            let value = func_call
+                .named_args
                 .get(&param.name)
                 .map_or_else(|| (*param.expr).clone(), |expr| *(*expr).clone());
 
@@ -399,7 +393,7 @@ aggregate [
                         name: count
                         args:
                           - Ident: salary
-                        named_args: []
+                        named_args: {}
         "###);
 
         let (mat, _, _) = resolve_and_materialize(ast.nodes.clone(), None)?;
@@ -436,7 +430,7 @@ aggregate [
         -                name: count
         -                args:
         -                  - Ident: salary
-        -                named_args: []
+        -                named_args: {}
         +- Pipeline:
         +    - From:
         +        name: employees
@@ -468,12 +462,13 @@ select (ret b c)
               name: a
               alias: ~
           - Select:
-              - FuncCall:
-                  name: ret
-                  args:
-                    - Ident: b
-                    - Ident: c
-                  named_args: []
+              - Expr:
+                  - FuncCall:
+                      name: ret
+                      args:
+                        - Ident: b
+                        - Ident: c
+                      named_args: {}
         "###);
 
         let (mat, _, _) = resolve_and_materialize(ast.nodes, None)?;

@@ -203,7 +203,7 @@ mod tests {
             r#"
 from initial_table
 select [first: name, last: last_name, gender]
-derive full_name: first + " " + last
+derive [full_name: first + " " + last]
 take 23
 select [last + " " + first, full: full_name, gender]
 sort full
@@ -215,7 +215,7 @@ sort full
 
         from initial_table
         select [first: name, last: last_name, gender]         # [first, last, gender]
-        derive full_name: first + " " + last                  # [first, last, gender, full_name]
+        derive [full_name: first + " " + last]                # [first, last, gender, full_name]
         take 23
         select [last + " " + first, full: full_name, gender]  # [?, full, gender]
         sort full                                             # [?, full, gender]

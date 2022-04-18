@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use anyhow::{anyhow, bail, Result};
 use enum_as_inner::EnumAsInner;
 use serde::{Deserialize, Serialize};
@@ -30,7 +32,7 @@ pub enum Item {
     Raw(String),
     NamedExpr(NamedExpr),
     Query(Query),
-    Pipeline(Pipeline),
+    Pipeline(Vec<Transform>),
     // Currently this is separate from `Pipeline`, but we could unify them at
     // some point. We'll need to relax the constraints on `Pipeline` to allow it
     // to start with a simple expression.
@@ -172,7 +174,7 @@ pub struct FuncDef {
 pub struct FuncCall {
     pub name: Ident,
     pub args: Vec<Node>,
-    pub named_args: Vec<NamedExpr>,
+    pub named_args: HashMap<Ident, Box<Node>>,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
@@ -275,10 +277,17 @@ impl Node {
     }
 
     pub fn into_name_and_expr(self) -> (Option<Ident>, Node) {
-        if let Item::NamedExpr(expr) = self.item {
+        // unwrap expr with only one child
+        let expr = if let Item::Expr(mut expr) = self.item {
+            expr.remove(0)
+        } else {
+            self
+        };
+
+        if let Item::NamedExpr(expr) = expr.item {
             (Some(expr.name), *expr.expr)
         } else {
-            (None, self)
+            (None, expr)
         }
     }
 

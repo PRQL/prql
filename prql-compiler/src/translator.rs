@@ -623,7 +623,7 @@ SString:
         let query: Query = parse(
             r###"
         from employees
-        derive age: year_born - s'now()'
+        derive [age: year_born - s'now()']
         select [
             f"Hello my name is {prefix}{first_name} {last_name}",
             f"and I am {age} years old."
@@ -1091,9 +1091,9 @@ take 20
     fn test_table_names_between_splits() {
         let prql = r###"
         from employees
-        join d:department [dept_no]
+        join (d:department) [dept_no]
         take 10
-        join s:salaries [emp_no]
+        join (s:salaries) [emp_no]
         select [employees.emp_no, d.name, s.salary]
         "###;
         let result = parse(prql).and_then(|x| translate(&x)).unwrap();
@@ -1119,7 +1119,7 @@ take 20
         "###);
 
         let prql = r###"
-        from e:employees
+        from (e:employees)
         take 10
         join salaries [emp_no]
         select [e.*, salary]
@@ -1148,7 +1148,7 @@ take 20
         // Alias on from
         let query: Query = parse(
             r###"
-            from e: employees
+            from (e: employees)
             join salaries side:left [salaries.emp_no = e.emp_no]
             aggregate by:[e.emp_no] [
               emp_salary: average salary
@@ -1270,7 +1270,7 @@ take 20
         let query: Query = parse(
             r###"
         from projects
-        derive first_check_in: start + 10days
+        derive [first_check_in: start + 10days]
         "###,
         )?;
 

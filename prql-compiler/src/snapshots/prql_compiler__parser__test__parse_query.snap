@@ -44,27 +44,27 @@ Query:
                   name: average
                   args:
                     - Ident: salary
-                  named_args: []
+                  named_args: {}
               - FuncCall:
                   name: sum
                   args:
                     - Ident: salary
-                  named_args: []
+                  named_args: {}
               - FuncCall:
                   name: average
                   args:
                     - Ident: gross_salary
-                  named_args: []
+                  named_args: {}
               - FuncCall:
                   name: sum
                   args:
                     - Ident: gross_salary
-                  named_args: []
+                  named_args: {}
               - FuncCall:
                   name: average
                   args:
                     - Ident: gross_cost
-                  named_args: []
+                  named_args: {}
               - NamedExpr:
                   name: sum_gross_cost
                   expr:
@@ -72,7 +72,7 @@ Query:
                       name: sum
                       args:
                         - Ident: gross_cost
-                      named_args: []
+                      named_args: {}
               - NamedExpr:
                   name: ct
                   expr:

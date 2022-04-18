@@ -199,6 +199,16 @@ pub fn fold_join_filter<T: ?Sized + AstFold>(fold: &mut T, f: JoinFilter) -> Res
 }
 
 pub fn fold_func_call<T: ?Sized + AstFold>(fold: &mut T, func_call: FuncCall) -> Result<FuncCall> {
+    // alternative way, looks nicer but requires cloning
+    // for item in &mut call.args {
+    //     *item = fold.fold_node(item.clone())?;
+    // }
+
+    // for item in &mut call.named_args.values_mut() {
+    //     let item = item.as_mut();
+    //     *item = fold.fold_node(item.clone())?;
+    // }
+
     Ok(FuncCall {
         // TODO: generalize? Or this never changes?
         name: func_call.name.to_owned(),
@@ -210,7 +220,7 @@ pub fn fold_func_call<T: ?Sized + AstFold>(fold: &mut T, func_call: FuncCall) ->
         named_args: func_call
             .named_args
             .into_iter()
-            .map(|arg| fold.fold_named_expr(arg))
+            .map(|(name, expr)| fold.fold_node(*expr).map(|e| (name, Box::from(e))))
             .try_collect()?,
     })
 }

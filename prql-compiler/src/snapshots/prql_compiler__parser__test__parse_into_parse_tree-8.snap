@@ -1,10 +1,10 @@
 ---
 source: prql-compiler/src/parser.rs
-expression: "parse_tree_of_str(\"join country [id=employee_id]\", Rule::transformation)?"
+expression: "parse_tree_of_str(\"join country [id=employee_id]\", Rule::func_curry)?"
 ---
 [
     Pair {
-        rule: transformation,
+        rule: func_curry,
         span: Span {
             str: "join country [id=employee_id]",
             start: 0,

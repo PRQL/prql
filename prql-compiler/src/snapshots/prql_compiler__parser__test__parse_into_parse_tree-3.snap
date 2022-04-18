@@ -1,10 +1,10 @@
 ---
 source: prql-compiler/src/parser.rs
-expression: "parse_tree_of_str(\"aggregate by:[title, country] [sum salary]\",\n                  Rule::transformation)?"
+expression: "parse_tree_of_str(\"aggregate by:[title, country] [sum salary]\",\n                  Rule::pipeline)?"
 ---
 [
     Pair {
-        rule: transformation,
+        rule: pipeline,
         span: Span {
             str: "aggregate by:[title, country] [sum salary]",
             start: 0,
@@ -12,57 +12,57 @@ expression: "parse_tree_of_str(\"aggregate by:[title, country] [sum salary]\",\n
         },
         inner: [
             Pair {
-                rule: ident,
+                rule: func_curry,
                 span: Span {
-                    str: "aggregate",
+                    str: "aggregate by:[title, country] [sum salary]",
                     start: 0,
-                    end: 9,
-                },
-                inner: [],
-            },
-            Pair {
-                rule: named_expr_simple,
-                span: Span {
-                    str: "by:[title, country] ",
-                    start: 10,
-                    end: 30,
+                    end: 42,
                 },
                 inner: [
                     Pair {
                         rule: ident,
                         span: Span {
-                            str: "by",
-                            start: 10,
-                            end: 12,
+                            str: "aggregate",
+                            start: 0,
+                            end: 9,
                         },
                         inner: [],
                     },
                     Pair {
-                        rule: expr_simple,
+                        rule: named_expr_simple,
                         span: Span {
-                            str: "[title, country] ",
-                            start: 13,
+                            str: "by:[title, country] ",
+                            start: 10,
                             end: 30,
                         },
                         inner: [
                             Pair {
-                                rule: list,
+                                rule: ident,
                                 span: Span {
-                                    str: "[title, country]",
+                                    str: "by",
+                                    start: 10,
+                                    end: 12,
+                                },
+                                inner: [],
+                            },
+                            Pair {
+                                rule: expr_simple,
+                                span: Span {
+                                    str: "[title, country] ",
                                     start: 13,
-                                    end: 29,
+                                    end: 30,
                                 },
                                 inner: [
                                     Pair {
-                                        rule: named_expr,
+                                        rule: list,
                                         span: Span {
-                                            str: "title",
-                                            start: 14,
-                                            end: 19,
+                                            str: "[title, country]",
+                                            start: 13,
+                                            end: 29,
                                         },
                                         inner: [
                                             Pair {
-                                                rule: expr,
+                                                rule: named_expr,
                                                 span: Span {
                                                     str: "title",
                                                     start: 14,
@@ -70,28 +70,28 @@ expression: "parse_tree_of_str(\"aggregate by:[title, country] [sum salary]\",\n
                                                 },
                                                 inner: [
                                                     Pair {
-                                                        rule: ident,
+                                                        rule: expr,
                                                         span: Span {
                                                             str: "title",
                                                             start: 14,
                                                             end: 19,
                                                         },
-                                                        inner: [],
+                                                        inner: [
+                                                            Pair {
+                                                                rule: ident,
+                                                                span: Span {
+                                                                    str: "title",
+                                                                    start: 14,
+                                                                    end: 19,
+                                                                },
+                                                                inner: [],
+                                                            },
+                                                        ],
                                                     },
                                                 ],
                                             },
-                                        ],
-                                    },
-                                    Pair {
-                                        rule: named_expr,
-                                        span: Span {
-                                            str: "country",
-                                            start: 21,
-                                            end: 28,
-                                        },
-                                        inner: [
                                             Pair {
-                                                rule: expr,
+                                                rule: named_expr,
                                                 span: Span {
                                                     str: "country",
                                                     start: 21,
@@ -99,13 +99,23 @@ expression: "parse_tree_of_str(\"aggregate by:[title, country] [sum salary]\",\n
                                                 },
                                                 inner: [
                                                     Pair {
-                                                        rule: ident,
+                                                        rule: expr,
                                                         span: Span {
                                                             str: "country",
                                                             start: 21,
                                                             end: 28,
                                                         },
-                                                        inner: [],
+                                                        inner: [
+                                                            Pair {
+                                                                rule: ident,
+                                                                span: Span {
+                                                                    str: "country",
+                                                                    start: 21,
+                                                                    end: 28,
+                                                                },
+                                                                inner: [],
+                                                            },
+                                                        ],
                                                     },
                                                 ],
                                             },
@@ -115,18 +125,8 @@ expression: "parse_tree_of_str(\"aggregate by:[title, country] [sum salary]\",\n
                             },
                         ],
                     },
-                ],
-            },
-            Pair {
-                rule: named_expr_simple,
-                span: Span {
-                    str: "[sum salary]",
-                    start: 30,
-                    end: 42,
-                },
-                inner: [
                     Pair {
-                        rule: expr_simple,
+                        rule: named_expr_simple,
                         span: Span {
                             str: "[sum salary]",
                             start: 30,
@@ -134,7 +134,7 @@ expression: "parse_tree_of_str(\"aggregate by:[title, country] [sum salary]\",\n
                         },
                         inner: [
                             Pair {
-                                rule: list,
+                                rule: expr_simple,
                                 span: Span {
                                     str: "[sum salary]",
                                     start: 30,
@@ -142,15 +142,15 @@ expression: "parse_tree_of_str(\"aggregate by:[title, country] [sum salary]\",\n
                                 },
                                 inner: [
                                     Pair {
-                                        rule: named_expr,
+                                        rule: list,
                                         span: Span {
-                                            str: "sum salary",
-                                            start: 31,
-                                            end: 41,
+                                            str: "[sum salary]",
+                                            start: 30,
+                                            end: 42,
                                         },
                                         inner: [
                                             Pair {
-                                                rule: expr,
+                                                rule: named_expr,
                                                 span: Span {
                                                     str: "sum salary",
                                                     start: 31,
@@ -158,7 +158,7 @@ expression: "parse_tree_of_str(\"aggregate by:[title, country] [sum salary]\",\n
                                                 },
                                                 inner: [
                                                     Pair {
-                                                        rule: func_call,
+                                                        rule: expr,
                                                         span: Span {
                                                             str: "sum salary",
                                                             start: 31,
@@ -166,30 +166,50 @@ expression: "parse_tree_of_str(\"aggregate by:[title, country] [sum salary]\",\n
                                                         },
                                                         inner: [
                                                             Pair {
-                                                                rule: ident,
+                                                                rule: func_call,
                                                                 span: Span {
-                                                                    str: "sum",
+                                                                    str: "sum salary",
                                                                     start: 31,
-                                                                    end: 34,
-                                                                },
-                                                                inner: [],
-                                                            },
-                                                            Pair {
-                                                                rule: named_term_simple,
-                                                                span: Span {
-                                                                    str: "salary",
-                                                                    start: 35,
                                                                     end: 41,
                                                                 },
                                                                 inner: [
                                                                     Pair {
                                                                         rule: ident,
                                                                         span: Span {
+                                                                            str: "sum",
+                                                                            start: 31,
+                                                                            end: 34,
+                                                                        },
+                                                                        inner: [],
+                                                                    },
+                                                                    Pair {
+                                                                        rule: named_expr_simple,
+                                                                        span: Span {
                                                                             str: "salary",
                                                                             start: 35,
                                                                             end: 41,
                                                                         },
-                                                                        inner: [],
+                                                                        inner: [
+                                                                            Pair {
+                                                                                rule: expr_simple,
+                                                                                span: Span {
+                                                                                    str: "salary",
+                                                                                    start: 35,
+                                                                                    end: 41,
+                                                                                },
+                                                                                inner: [
+                                                                                    Pair {
+                                                                                        rule: ident,
+                                                                                        span: Span {
+                                                                                            str: "salary",
+                                                                                            start: 35,
+                                                                                            end: 41,
+                                                                                        },
+                                                                                        inner: [],
+                                                                                    },
+                                                                                ],
+                                                                            },
+                                                                        ],
                                                                     },
                                                                 ],
                                                             },

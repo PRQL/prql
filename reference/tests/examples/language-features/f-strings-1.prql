@@ -1,2 +1,4 @@
 from x
-select url: f"http{tls}://www.{domain}.{tld}/{page}"
+select [
+  url: f"http{tls}://www.{domain}.{tld}/{page}"
+]

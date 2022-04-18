@@ -25,7 +25,8 @@ func_def_params = { ( named_term_simple | ident )* }
 table = { "table" ~ ident ~ "=" ~ "(" ~ NEWLINE* ~ pipeline ~ NEWLINE* ~ ")" }
 
 pipe = _{ NEWLINE+ | "|" }
-pipeline = { transformation ~ (pipe ~ transformation)* }
+
+pipeline = { WHITESPACE* ~ func_curry ~ (pipe ~ func_curry)* }
 
 // `ident` is the transformation name.
 transformation = { WHITESPACE* ~ ident ~ named_expr_simple* }
@@ -63,17 +64,16 @@ ident = @{ !operator ~ (ASCII_ALPHA | "$") ~ (ASCII_ALPHANUMERIC | "." | "_" | "
 // - 1
 // - 2
 
-// Adding the WHITESPACE is like making it a compound-atomic operator.
 expr = !{ term ~ (operator ~ term)* }
 expr_simple = !{ term_simple ~ (operator ~ term_simple)* }
 
-func_call = { ident ~ (named_term_simple | term_simple)+ }
-func_curry = { ident ~ (named_term_simple | term_simple)* }
+func_call = { ident ~ (named_expr_simple | expr_simple)+ }
+func_curry = { ident ~ (named_expr_simple | expr_simple)* }
 
 term = _{ ( s_string | f_string | func_call | term_simple ) }
 term_simple = _{ ( s_string | f_string | ident | parenthesized_expr | list | range | interval | number | string_literal | inline_pipeline ) }
-list = { "[" ~ NEWLINE* ~ named_expr ~ ("," ~ NEWLINE* ~ named_expr )* ~ ","? ~ NEWLINE* ~ "]" }
-parenthesized_expr = _{ "(" ~ expr ~ ")" }
+list = { "[" ~ (NEWLINE* ~ named_expr ~ ("," ~ NEWLINE* ~ named_expr )* ~ ","?)? ~ NEWLINE* ~ "]" }
+parenthesized_expr = { "(" ~ (named_expr | expr) ~ ")" }
 
 // TODO: escapes
 // https://pest.rs/book/examples/rust/literals.html
