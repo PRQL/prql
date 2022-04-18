@@ -101,9 +101,25 @@ range = ${ number? ~ ".." ~ number? }
 // TODO: review operators
 operator = ${ "and" | "or" | "not" | "==" | "!=" | "=" | ">" | "<" | ">=" | "<=" | "+" | "-" | "*" | "/" | "%" }
 
+// TODO: allow a raw s-string / f-string (but not an s-f string...)
 s_string = ${ "s" ~ PUSH(quote) ~ ( interpolate_string | ( "{" ~ expr ~ "}" ))* ~ POP }
 f_string = ${ "f" ~ PUSH(quote) ~ ( interpolate_string | ( "{" ~ expr ~ "}" ))* ~ POP }
 interpolate_string = { ( !( "\\" | PEEK | "{" ) ~ ANY )+ }
+
+// From https://pest.rs/book/grammars/syntax.html#the-stack-wip
+r_string = {
+    "r" ~ PUSH("#"*) ~ "\""    // push the number signs onto the stack
+    ~ r_string_literal
+    ~ "\"" ~ POP               // match a quotation mark and the number signs
+}
+r_string_literal = {
+    (
+        // unless the next character is a quotation mark followed by the correct
+        // amount of number signs, consume one character
+        !("\"" ~ PEEK)    
+        ~ ANY             
+    )*
+}
 
 // For assigns, table aliases and named arguments
 named_expr = { (ident ~ ":")? ~ expr }

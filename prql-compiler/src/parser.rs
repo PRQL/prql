@@ -1507,4 +1507,22 @@ select [
                               unit: years
         "###);
     }
+
+    #[test]
+    fn test_r_string() {
+        assert_yaml_snapshot!(parse(r###"
+        derive x: r#"r-string test"#
+        "###).unwrap(), @r###"
+        ---
+        version: ~
+        dialect: Generic
+        nodes:
+          - Pipeline:
+              - Derive:
+                  - NamedExpr:
+                      name: x
+                      expr:
+                        Ident: r
+        "### )
+    }
 }
