@@ -355,7 +355,7 @@ If you're interested in joining the community to build a better SQL, there are
 lots of ways of contributing; big and small:
 
 - Star this repo.
-- Send the repo to a couple of people whose opinion you respect.
+- Send a link to PRQL to a couple of people whose opinion you respect.
 - Subscribe to [Issue #1](https://github.com/prql/prql/issues/1) for
   updates.
 - Join the [Discord](https://discord.gg/eQcfaCmsNc).
@@ -368,10 +368,17 @@ lots of ways of contributing; big and small:
     issue](https://github.com/prql/prql/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
     and try to fix it. Feel free to PR partial solutions, or ask any questions on
     the Issue or Discord.
-  - Build the code, find examples that yield incorrect results, and post a bug
-    report.
   - Start with something tiny! Write a test / write a docstring / make some rust
     nicer — it's a great way to get started in 30 minutes.
+- Contribute towards the language.
+  - Find instances where the compiler produces incorrect results, and post a bug
+    report — feel free to use the [online
+    compiler](https://lang.prql.builders/editor).
+  - Open an issue / append to an existing issue with examples of queries that
+    are difficult to express in PRQL — especially if more difficult than SQL.
+  - With sufficient examples, suggest a change to the language! (Though
+    suggestions *without* examples are difficult to engage with, so please do
+    anchor suggestions in examples.)
 
 Any of these will inspire others to invest their time and energy into the
 project; thank you in advance.
