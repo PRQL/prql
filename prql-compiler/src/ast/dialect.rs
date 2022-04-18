@@ -1,9 +1,9 @@
 use core::fmt::Debug;
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 use strum::{self, EnumString};
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize, EnumString)]
-pub enum DialectEnum {
+pub enum Dialect {
     #[strum(serialize = "ansi")]
     Ansi,
     #[strum(serialize = "click_house")]
@@ -24,31 +24,36 @@ pub enum DialectEnum {
     Snowflake,
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub struct MsSqlDialect;
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub struct MySqlDialect;
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub struct GenericDialect;
-
-// pub trait Dialect: Debug + Serialize + DeserializeOwned {
-pub trait Dialect: Debug + PartialEq {
-    fn use_top() -> bool
-    where
-        Self: Sized,
-    {
-        true
+impl Dialect {
+    pub fn handler(&self) -> Box<dyn DialectHandler> {
+        match self {
+            Dialect::MsSql => Box::new(MsSqlDialect),
+            _ => Box::new(GenericDialect),
+        }
     }
-    // fn default() -> Self {
-    //     GenericDialect
-    // }
-    // fn table_to_sql_cte(&self, table: crate::translator::AtomicTable) -> Result<sql_ast::Cte>;
 }
 
-impl Dialect for GenericDialect {}
+impl Default for Dialect {
+    fn default() -> Self {
+        Dialect::Generic
+    }
+}
 
-impl Dialect for MsSqlDialect {
-    fn use_top() -> bool {
+pub struct GenericDialect;
+pub struct MsSqlDialect;
+
+pub trait DialectHandler {
+    fn use_top(&self) -> bool;
+}
+
+impl DialectHandler for GenericDialect {
+    fn use_top(&self) -> bool {
         false
+    }
+}
+
+impl DialectHandler for MsSqlDialect {
+    fn use_top(&self) -> bool {
+        true
     }
 }

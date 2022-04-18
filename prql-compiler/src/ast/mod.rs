@@ -51,8 +51,8 @@ pub enum Item {
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Query {
     pub version: Option<String>,
-    // #[serde(default)]
-    pub dialect: Box<dyn Dialect>,
+    #[serde(default)]
+    pub dialect: Dialect,
     pub nodes: Vec<Node>,
 }
 

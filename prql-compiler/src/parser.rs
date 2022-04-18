@@ -66,7 +66,7 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
                         query
                     } else {
                         Query {
-                            dialect: GenericDialect,
+                            dialect: Dialect::default(),
                             version: None,
                             nodes: parsed,
                         }

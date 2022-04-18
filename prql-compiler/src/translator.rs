@@ -135,7 +135,7 @@ fn separate_pipeline(query: &Query) -> Result<(Vec<Table>, Vec<Node>, Vec<Pipeli
     Ok((tables, functions, pipelines))
 }
 
-fn table_to_sql_cte(table: AtomicTable, dialect: &dyn Dialect) -> Result<sql_ast::Cte> {
+fn table_to_sql_cte(table: AtomicTable, dialect: &Dialect) -> Result<sql_ast::Cte> {
     let alias = sql_ast::TableAlias {
         name: Item::Ident(table.name.clone()).try_into()?,
         columns: vec![],
@@ -171,10 +171,7 @@ fn table_factor_of_table_ref(table_ref: &TableRef) -> TableFactor {
 
 // impl Translator for
 // fn sql_query_of_atomic_table(table: AtomicTable, dialect: &Dialect) -> Result<sql_ast::Query> {
-fn sql_query_of_atomic_table<D: Dialect>(
-    table: AtomicTable,
-    dialect: &D,
-) -> Result<sql_ast::Query> {
+fn sql_query_of_atomic_table(table: AtomicTable, dialect: &Dialect) -> Result<sql_ast::Query> {
     // TODO: possibly do validation here? e.g. check there isn't more than one
     // `from`? Or do we rely on the caller for that?
 
@@ -292,6 +289,8 @@ fn sql_query_of_atomic_table<D: Dialect>(
     };
     let group_by = Node::into_list_of_nodes(group_bys).item.try_into()?;
 
+    let dialect = dialect.handler();
+
     Ok(sql_ast::Query {
         body: SetExpr::Select(Box::new(Select {
             distinct: false,
@@ -304,13 +303,13 @@ fn sql_query_of_atomic_table<D: Dialect>(
                 .map(|n| n.item.try_into())
                 .try_collect()?,
             from,
-            group_by,
-            having,
-            selection: where_,
-            sort_by: vec![],
             lateral_views: vec![],
-            distribute_by: vec![],
+            selection: where_,
+            group_by,
             cluster_by: vec![],
+            distribute_by: vec![],
+            sort_by: vec![],
+            having,
         })),
         order_by,
         with: None,
