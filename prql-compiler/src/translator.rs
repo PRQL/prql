@@ -98,7 +98,7 @@ pub fn translate_query(query: &Query) -> Result<sql_ast::Query> {
     Ok(main_query)
 }
 
-struct AtomicTable {
+pub struct AtomicTable {
     name: String,
     frame: MaterializedFrame,
     pipeline: Vec<Transform>,
@@ -168,6 +168,8 @@ fn table_factor_of_table_ref(table_ref: &TableRef) -> TableFactor {
     }
 }
 
+// impl Translator for
+// fn sql_query_of_atomic_table(table: AtomicTable, dialect: &Dialect) -> Result<sql_ast::Query> {
 fn sql_query_of_atomic_table(table: AtomicTable, dialect: &Dialect) -> Result<sql_ast::Query> {
     // TODO: possibly do validation here? e.g. check there isn't more than one
     // `from`? Or do we rely on the caller for that?
@@ -278,6 +280,8 @@ fn sql_query_of_atomic_table(table: AtomicTable, dialect: &Dialect) -> Result<sq
     let group_bys: Vec<Node> = vec![]; // TODO -------------
     let group_by = Node::into_list_of_nodes(group_bys).item.try_into()?;
 
+    let dialect = dialect.handler();
+
     Ok(sql_ast::Query {
         body: SetExpr::Select(Box::new(Select {
             distinct: false,
@@ -290,13 +294,13 @@ fn sql_query_of_atomic_table(table: AtomicTable, dialect: &Dialect) -> Result<sq
                 .map(|n| n.item.try_into())
                 .try_collect()?,
             from,
-            group_by,
-            having,
-            selection: where_,
-            sort_by: vec![],
             lateral_views: vec![],
-            distribute_by: vec![],
+            selection: where_,
+            group_by,
             cluster_by: vec![],
+            distribute_by: vec![],
+            sort_by: vec![],
+            having,
         })),
         order_by,
         with: None,
