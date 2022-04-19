@@ -77,3 +77,26 @@ jobs:
       - name: 🔨 Build
         run: trunk build
         working-directory: prql-web/
+  code-cov:
+    runs-on: ubuntu-latest
+    # If this caches the tarpaulin install correctly, then we can enable for all builds.
+    # But at first glance, this is taking 3 min, so we only run on `main` atm.
+    if: |
+      github.ref_name == 'main'
+      || contains(github.event.pull_request.labels.*.name, 'run-full-tests')
+    steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v2
+      - name: 💰 Cache
+        uses: Swatinem/rust-cache@v1
+      - name: Run cargo-tarpaulin
+        uses: actions-rs/tarpaulin@v0.1
+        with:
+          args: "-- --test-threads 1"
+      - name: Upload to codecov.io
+        uses: codecov/codecov-action@v2
+      - name: Archive code coverage results
+        uses: actions/upload-artifact@v1
+        with:
+          name: code-coverage-report
+          path: cobertura.xml
