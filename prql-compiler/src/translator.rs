@@ -41,15 +41,14 @@ pub fn translate(query: &Query) -> Result<String> {
 
 pub fn translate_query(query: &Query) -> Result<sql_ast::Query> {
     // extract tables and the pipeline
-    let (tables, functions, pipelines) = separate_pipeline(query)?;
+    let (tables, functions, pipeline) = separate_pipeline(query)?;
 
     // load std lib
     let std_lib = load_std_lib()?;
     let functions = [std_lib, functions].concat();
 
     // combine tables and main pipeline
-    let pipeline = pipelines.into_only()?.into();
-    let tables = [tables, vec![pipeline]].concat();
+    let tables = [tables, vec![pipeline.into()]].concat();
 
     // split to atomics
     let atomics = atomic_tables_of_tables(tables)?;
@@ -111,10 +110,10 @@ pub fn load_std_lib() -> Result<Vec<Node>> {
     Ok(parse(std_lib)?.nodes)
 }
 
-fn separate_pipeline(query: &Query) -> Result<(Vec<Table>, Vec<Node>, Vec<Pipeline>)> {
+fn separate_pipeline(query: &Query) -> Result<(Vec<Table>, Vec<Node>, Vec<Transform>)> {
     let mut tables: Vec<Table> = Vec::new();
     let mut functions: Vec<Node> = Vec::new();
-    let mut pipelines: Vec<Pipeline> = Vec::new();
+    let mut pipelines: Vec<Vec<Transform>> = Vec::new();
     for node in &query.nodes {
         match node {
             Node {
@@ -126,13 +125,13 @@ fn separate_pipeline(query: &Query) -> Result<(Vec<Table>, Vec<Node>, Vec<Pipeli
                 ..
             } => functions.push(node.clone()),
             Node {
-                item: Item::Pipeline(p),
+                item: Item::FramePipeline(p),
                 ..
             } => pipelines.push(p.clone()),
             i => bail!("Unexpected item on top level: {i:?}"),
         }
     }
-    Ok((tables, functions, pipelines))
+    Ok((tables, functions, pipelines.into_only()?))
 }
 
 fn table_to_sql_cte(table: AtomicTable, dialect: &Dialect) -> Result<sql_ast::Cte> {
@@ -308,7 +307,7 @@ fn sql_query_of_atomic_table(table: AtomicTable, dialect: &Dialect) -> Result<sq
 }
 
 /// Convert a pipeline into a number of pipelines which can each "fit" into a SELECT.
-fn atomic_pipelines_of_pipeline(pipeline: &Pipeline) -> Result<Vec<Pipeline>> {
+fn atomic_pipelines_of_pipeline(pipeline: &[Transform]) -> Result<Vec<Vec<Transform>>> {
     // Insert a cut, when we find transformation that out of order:
     // - joins,
     // - filters (for WHERE)
@@ -392,7 +391,7 @@ fn atomic_tables_of_tables(tables: Vec<Table>) -> Result<Vec<Table>> {
     Ok(atomics)
 }
 
-fn prepend_with_from(pipeline: &mut Pipeline, last_name: &Option<String>) {
+fn prepend_with_from(pipeline: &mut Vec<Transform>, last_name: &Option<String>) {
     if let Some(last_name) = last_name {
         let from = Transform::From(TableRef {
             name: last_name.clone(),
@@ -563,8 +562,8 @@ impl TryFrom<Item> for sql_ast::Ident {
         }
     }
 }
-impl From<Pipeline> for Table {
-    fn from(pipeline: Pipeline) -> Self {
+impl From<Vec<Transform>> for Table {
+    fn from(pipeline: Vec<Transform>) -> Self {
         Table {
             name: String::default(),
             pipeline,
@@ -684,7 +683,7 @@ SString:
 - Take: 20
         "###;
 
-        let pipeline: Pipeline = from_str(yaml)?;
+        let pipeline: Vec<Transform> = from_str(yaml)?;
         let queries = atomic_pipelines_of_pipeline(&pipeline)?;
         assert_eq!(queries.len(), 1);
         Ok(())
@@ -711,7 +710,7 @@ SString:
           direction: Asc
         "###;
 
-        let pipeline: Pipeline = from_str(yaml)?;
+        let pipeline: Vec<Transform> = from_str(yaml)?;
         let queries = atomic_pipelines_of_pipeline(&pipeline)?;
         assert_eq!(queries.len(), 2);
         Ok(())
@@ -742,7 +741,7 @@ SString:
 
         "###;
 
-        let pipeline: Pipeline = from_str(yaml)?;
+        let pipeline: Vec<Transform> = from_str(yaml)?;
         let queries = atomic_pipelines_of_pipeline(&pipeline)?;
         assert_eq!(queries.len(), 3);
         Ok(())
@@ -760,7 +759,7 @@ SString:
         - Ident: first_name
         "###;
 
-        let pipeline: Pipeline = from_str(yaml)?;
+        let pipeline: Vec<Transform> = from_str(yaml)?;
         let queries = atomic_pipelines_of_pipeline(&pipeline)?;
         assert_eq!(queries.len(), 1);
         Ok(())
@@ -808,7 +807,7 @@ SString:
         let query: Query = from_str(
             r###"
             nodes:
-            - Pipeline:
+            - FramePipeline:
                 - From:
                     name: employees
                     alias: ~

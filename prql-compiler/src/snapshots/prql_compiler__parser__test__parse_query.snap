@@ -6,7 +6,7 @@ Query:
   version: ~
   dialect: Generic
   nodes:
-    - Pipeline:
+    - FramePipeline:
         - From:
             name: employees
             alias: ~

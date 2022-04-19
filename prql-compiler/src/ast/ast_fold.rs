@@ -28,7 +28,7 @@ pub trait AstFold {
         items.into_iter().map(|item| self.fold_node(item)).collect()
     }
 
-    fn fold_pipeline(&mut self, pipeline: Vec<Transform>) -> Result<Vec<Transform>> {
+    fn fold_frame_pipeline(&mut self, pipeline: Vec<Transform>) -> Result<Vec<Transform>> {
         pipeline
             .into_iter()
             .map(|t| self.fold_transform(t))
@@ -40,7 +40,7 @@ pub trait AstFold {
     fn fold_table(&mut self, table: Table) -> Result<Table> {
         Ok(Table {
             name: self.fold_ident(table.name)?,
-            pipeline: self.fold_pipeline(table.pipeline)?,
+            pipeline: self.fold_frame_pipeline(table.pipeline)?,
         })
     }
     // For some functions, we want to call a default impl, because copying &
@@ -87,24 +87,24 @@ pub fn fold_item<T: ?Sized + AstFold>(fold: &mut T, item: Item) -> Result<Item> 
                 .map(|x| fold.fold_node(x.into_inner()).map(ListItem))
                 .try_collect()?,
         ),
-        Item::Range(range) => Item::Range(Range {
+        Item::Range(Range { start, end }) => Item::Range(Range {
             // This aren't strictly in the hierarchy, so we don't need to
             // have an assoc. function for `fold_optional_box` — we just
             // call out to the function in this module
-            start: fold_optional_box(fold, range.start)?,
-            end: fold_optional_box(fold, range.end)?,
+            start: fold_optional_box(fold, start)?,
+            end: fold_optional_box(fold, end)?,
         }),
         Item::Query(query) => Item::Query(Query {
             nodes: fold.fold_nodes(query.nodes)?,
             ..query
         }),
-        Item::InlinePipeline(InlinePipeline { value, functions }) => {
-            Item::InlinePipeline(InlinePipeline {
-                value: Box::from(fold.fold_node(*value)?),
-                functions: fold.fold_nodes(functions)?,
-            })
+        Item::Pipeline(Pipeline { value, functions }) => Item::Pipeline(Pipeline {
+            value: fold_optional_box(fold, value)?,
+            functions: fold.fold_nodes(functions)?,
+        }),
+        Item::FramePipeline(transformations) => {
+            Item::FramePipeline(fold.fold_frame_pipeline(transformations)?)
         }
-        Item::Pipeline(transformations) => Item::Pipeline(fold.fold_pipeline(transformations)?),
         Item::NamedExpr(named_expr) => Item::NamedExpr(fold.fold_named_expr(named_expr)?),
         Item::Transform(transformation) => Item::Transform(fold.fold_transform(transformation)?),
         Item::SString(items) => Item::SString(
@@ -123,7 +123,7 @@ pub fn fold_item<T: ?Sized + AstFold>(fold: &mut T, item: Item) -> Result<Item> 
         Item::FuncCall(func_call) => Item::FuncCall(fold.fold_func_call(func_call)?),
         Item::Table(table) => Item::Table(Table {
             name: table.name,
-            pipeline: fold.fold_pipeline(table.pipeline)?,
+            pipeline: fold.fold_frame_pipeline(table.pipeline)?,
         }),
         // None of these capture variables, so we don't need to replace
         // them.
@@ -176,7 +176,7 @@ pub fn fold_transform<T: ?Sized + AstFold>(
         Transform::Aggregate(nodes) => Ok(Transform::Aggregate(fold.fold_nodes(nodes)?)),
         Transform::Group { by, pipeline } => Ok(Transform::Group {
             by: fold.fold_nodes(by)?,
-            pipeline: fold.fold_pipeline(pipeline)?,
+            pipeline: fold.fold_frame_pipeline(pipeline)?,
         }),
         // TODO: generalize? Or this never changes?
         Transform::Take(_) => Ok(transformation),

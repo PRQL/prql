@@ -9,7 +9,7 @@ fn parse_simple_string_to_ast() -> Result<()> {
 version: ~
 dialect: Generic
 nodes:
-  - Pipeline:
+  - FramePipeline:
       - Select:
           - Raw: "1"
 "#

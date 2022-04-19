@@ -5,7 +5,7 @@
 use std::collections::HashMap;
 use std::str::FromStr;
 
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{anyhow, bail, Result};
 use itertools::Itertools;
 use pest::iterators::Pair;
 use pest::iterators::Pairs;
@@ -59,17 +59,15 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
                         .map(|p| matches!(p.item, Item::Query(_)))
                         .unwrap_or(false);
 
-                    Item::Query(if has_def {
-                        let mut query = parsed.remove(0).item.into_query().unwrap();
-                        query.nodes = parsed;
-                        query
+                    let mut query = if has_def {
+                        parsed.remove(0).item.into_query().unwrap()
                     } else {
-                        Query {
-                            dialect: Dialect::default(),
-                            version: None,
-                            nodes: parsed,
-                        }
-                    })
+                        Query::default()
+                    };
+
+                    query.nodes = parsed.into_iter().map(parse_transforms).try_collect()?;
+
+                    Item::Query(query)
                 }
                 Rule::query_def => {
                     let parsed = ast_of_parse_tree(pair.into_inner())?;
@@ -211,7 +209,7 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
                         .map_err(|e| anyhow!("Expected two items; {e:?}"))?;
                     Item::Table(Table {
                         name: name.item.into_ident()?,
-                        pipeline: pipeline.item.into_pipeline()?,
+                        pipeline: parse_transforms(pipeline)?.item.into_frame_pipeline()?,
                     })
                 }
                 Rule::ident => Item::Ident(pair.as_str().to_string()),
@@ -223,23 +221,25 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
                 Rule::string => Item::String(pair.as_str().to_string()),
                 Rule::s_string => Item::SString(ast_of_interpolate_items(pair)?),
                 Rule::f_string => Item::FString(ast_of_interpolate_items(pair)?),
-                Rule::pipeline => Item::Pipeline({
-                    ast_of_parse_tree(pair.into_inner())?
-                        .into_iter()
-                        .map(func_call_to_transform)
-                        .try_collect()?
+                Rule::pipeline => Item::Pipeline(Pipeline {
+                    value: None,
+                    functions: ast_of_parse_tree(pair.into_inner())?,
                 }),
-                Rule::inline_pipeline => {
-                    let parsed = ast_of_parse_tree(pair.into_inner())?;
+                Rule::parenthesized_pipeline => {
+                    let mut parsed = ast_of_parse_tree(pair.into_inner())?;
+                    // this is either [expr, pipeline] or [pipeline]
 
-                    let (value, func_curries) =
-                        (parsed.split_first()).context("empty inline pipeline?")?;
+                    let first = parsed.remove(0);
 
-                    let functions = func_curries.to_vec();
+                    Item::Pipeline(if let Item::Pipeline(pipeline) = first.item {
+                        // no value
+                        pipeline
+                    } else {
+                        // prepend value
+                        let mut pipeline = parsed.remove(0).item.into_pipeline()?;
 
-                    Item::InlinePipeline(InlinePipeline {
-                        value: Box::from(value.clone()),
-                        functions,
+                        pipeline.value = Some(Box::new(first));
+                        pipeline
                     })
                 }
                 Rule::range => {
@@ -307,6 +307,21 @@ fn ast_of_interpolate_items(pair: Pair<Rule>) -> Result<Vec<InterpolateItem>> {
             })
         })
         .collect::<Result<_>>()
+}
+
+// TODO: move this function (and dependencies) to resolver
+fn parse_transforms(mut pipeline: Node) -> Result<Node> {
+    pipeline.item = match pipeline.item {
+        Item::Pipeline(Pipeline { functions, .. }) => {
+            let transforms = functions
+                .into_iter()
+                .map(func_call_to_transform)
+                .try_collect()?;
+            Item::FramePipeline(transforms)
+        }
+        i => i,
+    };
+    Ok(pipeline)
 }
 
 fn func_call_to_transform(func_call: Node) -> Result<Transform> {
@@ -454,11 +469,15 @@ fn func_call_to_transform(func_call: Node) -> Result<Transform> {
                 })
                 .try_collect()?;
 
-            // check that it is a pipeline
-            let pipeline = pipeline.item.into_pipeline().map_err(|_| {
-                Error::new(Reason::Simple("`group` expects a pipeline".to_string()))
-                    .with_span(pipeline.span)
-            })?;
+            // convert to frame pipeline
+            let span = pipeline.span;
+            let pipeline = parse_transforms(pipeline)?
+                .item
+                .into_frame_pipeline()
+                .map_err(|_| {
+                    Error::new(Reason::Simple("`group` expects a pipeline".to_string()))
+                        .with_span(span)
+                })?;
 
             Transform::Group { by, pipeline }
         }
@@ -534,8 +553,8 @@ mod test {
 
     #[test]
     fn test_parse_take() -> Result<()> {
-        assert!(parse_tree_of_str("take 10", Rule::pipeline).is_ok());
-        assert!(ast_of_string("take", Rule::pipeline).is_err());
+        assert!(parse_tree_of_str("take 10", Rule::query).is_ok());
+        assert!(ast_of_string("take", Rule::query).is_err());
         Ok(())
     }
 
@@ -695,36 +714,42 @@ mod test {
     #[test]
     fn test_parse_filter() -> Result<()> {
         assert_yaml_snapshot!(
-            ast_of_string(r#"filter country = "USA""#, Rule::pipeline)?
+            ast_of_string(r#"filter country = "USA""#, Rule::query)?
         , @r###"
         ---
-        Pipeline:
-          - Filter:
-              - Expr:
-                  - Ident: country
-                  - Raw: "="
-                  - String: USA
+        Query:
+          version: ~
+          dialect: Generic
+          nodes:
+            - FramePipeline:
+                - Filter:
+                    - Expr:
+                        - Ident: country
+                        - Raw: "="
+                        - String: USA
         "###);
-        // TODO: Shoud the next two be different, based on whether there are
-        // parentheses? I think possibly not.
         assert_yaml_snapshot!(
-            ast_of_string(r#"filter (upper country) = "USA""#, Rule::pipeline)?
+            ast_of_string(r#"filter (upper country) = "USA""#, Rule::query)?
         , @r###"
         ---
-        Pipeline:
-          - Filter:
-              - Expr:
-                  - Expr:
-                      - FuncCall:
-                          name: upper
-                          args:
-                            - Ident: country
-                          named_args: {}
-                  - Raw: "="
-                  - String: USA
+        Query:
+          version: ~
+          dialect: Generic
+          nodes:
+            - FramePipeline:
+                - Filter:
+                    - Expr:
+                        - Expr:
+                            - FuncCall:
+                                name: upper
+                                args:
+                                  - Ident: country
+                                named_args: {}
+                        - Raw: "="
+                        - String: USA
         "###);
 
-        let res = ast_of_string(r#"filter upper country = "USA""#, Rule::pipeline);
+        let res = ast_of_string(r#"filter upper country = "USA""#, Rule::query);
         assert!(res.is_err());
 
         Ok(())
@@ -732,42 +757,72 @@ mod test {
 
     #[test]
     fn test_parse_aggregate() {
-        let aggregate = ast_of_string(r"group [title] (
+        let aggregate = ast_of_string(
+            r"group [title] (
             aggregate [sum salary, count]
-        )", Rule::pipeline).unwrap();
+        )",
+            Rule::pipeline,
+        )
+        .unwrap();
         assert_yaml_snapshot!(
             aggregate, @r###"
         ---
         Pipeline:
-          - Group:
-              by:
-                - Ident: title
-              pipeline:
-                - Aggregate:
-                    - FuncCall:
-                        name: sum
-                        args:
-                          - Ident: salary
-                        named_args: {}
-                    - Ident: count
+          value: ~
+          functions:
+            - FuncCall:
+                name: group
+                args:
+                  - List:
+                      - Ident: title
+                  - Pipeline:
+                      value: ~
+                      functions:
+                        - FuncCall:
+                            name: aggregate
+                            args:
+                              - List:
+                                  - FuncCall:
+                                      name: sum
+                                      args:
+                                        - Ident: salary
+                                      named_args: {}
+                                  - Ident: count
+                            named_args: {}
+                named_args: {}
         "###);
-        let aggregate = ast_of_string(r"group [title] (
+        let aggregate = ast_of_string(
+            r"group [title] (
             aggregate [sum salary]
-        )", Rule::pipeline).unwrap();
+        )",
+            Rule::pipeline,
+        )
+        .unwrap();
         assert_yaml_snapshot!(
             aggregate, @r###"
         ---
         Pipeline:
-          - Group:
-              by:
-                - Ident: title
-              pipeline:
-                - Aggregate:
-                    - FuncCall:
-                        name: sum
-                        args:
-                          - Ident: salary
-                        named_args: {}
+          value: ~
+          functions:
+            - FuncCall:
+                name: group
+                args:
+                  - List:
+                      - Ident: title
+                  - Pipeline:
+                      value: ~
+                      functions:
+                        - FuncCall:
+                            name: aggregate
+                            args:
+                              - List:
+                                  - FuncCall:
+                                      name: sum
+                                      args:
+                                        - Ident: salary
+                                      named_args: {}
+                            named_args: {}
+                named_args: {}
         "###);
     }
 
@@ -1058,7 +1113,7 @@ take 20
         version: ~
         dialect: Generic
         nodes:
-          - Pipeline:
+          - FramePipeline:
               - From:
                   name: mytable
                   alias: ~
@@ -1100,7 +1155,7 @@ take 20
     #[test]
     fn test_parse_table() -> Result<()> {
         assert_yaml_snapshot!(ast_of_string(
-            "table newest_employees = ( from employees )",
+            "table newest_employees = (| from employees )",
             Rule::table
         )?, @r###"
         ---
@@ -1198,12 +1253,12 @@ take 20
     fn test_inline_pipeline() {
         assert_debug_snapshot!(parse_tree_of_str(
             "(salary | percentile 50)",
-            Rule::inline_pipeline
+            Rule::parenthesized_pipeline
         )
         .unwrap());
-        assert_yaml_snapshot!(ast_of_string("(salary | percentile 50)", Rule::inline_pipeline).unwrap(), @r###"
+        assert_yaml_snapshot!(ast_of_string("(salary | percentile 50)", Rule::parenthesized_pipeline).unwrap(), @r###"
         ---
-        InlinePipeline:
+        Pipeline:
           value:
             Ident: salary
           functions:
@@ -1225,7 +1280,7 @@ take 20
                   - Ident: x
                 named_params: []
                 body:
-                  InlinePipeline:
+                  Pipeline:
                     value:
                       Ident: x
                     functions:
@@ -1298,7 +1353,7 @@ take 20
         version: ~
         dialect: Generic
         nodes:
-          - Pipeline:
+          - FramePipeline:
               - From:
                   name: mytable
                   alias: ~
@@ -1345,7 +1400,7 @@ select [
         version: ~
         dialect: Generic
         nodes:
-          - Pipeline:
+          - FramePipeline:
               - From:
                   name: c_invoice
                   alias: ~
@@ -1385,7 +1440,7 @@ select [
         version: ~
         dialect: Generic
         nodes:
-          - Pipeline:
+          - FramePipeline:
               - From:
                   name: c_invoice
                   alias: ~
@@ -1413,7 +1468,7 @@ select [
         version: ~
         dialect: Generic
         nodes:
-          - Pipeline:
+          - FramePipeline:
               - From:
                   name: invoices
                   alias: ~
@@ -1431,7 +1486,7 @@ select [
         version: ~
         dialect: Generic
         nodes:
-          - Pipeline:
+          - FramePipeline:
               - From:
                   name: invoices
                   alias: ~
@@ -1449,7 +1504,7 @@ select [
         version: ~
         dialect: Generic
         nodes:
-          - Pipeline:
+          - FramePipeline:
               - From:
                   name: invoices
                   alias: ~
@@ -1467,7 +1522,7 @@ select [
         version: ~
         dialect: Generic
         nodes:
-          - Pipeline:
+          - FramePipeline:
               - From:
                   name: invoices
                   alias: ~
@@ -1496,12 +1551,12 @@ select [
         version: ~
         dialect: Generic
         nodes:
-          - Pipeline:
+          - FramePipeline:
               - From:
                   name: employees
                   alias: ~
               - Filter:
-                  - InlinePipeline:
+                  - Pipeline:
                       value:
                         Ident: age
                       functions:
@@ -1543,7 +1598,7 @@ select [
         version: ~
         dialect: Generic
         nodes:
-          - Pipeline:
+          - FramePipeline:
               - From:
                   name: employees
                   alias: ~

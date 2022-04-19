@@ -12,7 +12,6 @@ pub mod ast_fold;
 
 /// A name. Generally columns, tables, functions, variables.
 pub type Ident = String;
-pub type Pipeline = Vec<Transform>;
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Node {
@@ -26,17 +25,16 @@ pub struct Node {
 
 #[derive(Debug, EnumAsInner, Display, PartialEq, Clone, Serialize, Deserialize)]
 pub enum Item {
-    Transform(Transform),
     Ident(Ident),
     String(String),
     Raw(String),
     NamedExpr(NamedExpr),
     Query(Query),
-    Pipeline(Vec<Transform>),
-    // Currently this is separate from `Pipeline`, but we could unify them at
-    // some point. We'll need to relax the constraints on `Pipeline` to allow it
-    // to start with a simple expression.
-    InlinePipeline(InlinePipeline),
+    /// Generic pipeline that (may) start with a value
+    Pipeline(Pipeline),
+    /// Pipeline operating on a frame. Does not start with a value
+    FramePipeline(Vec<Transform>),
+    Transform(Transform),
     List(Vec<ListItem>),
     Range(Range),
     Expr(Vec<Node>),
@@ -48,7 +46,7 @@ pub enum Item {
     Interval(Interval),
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, Default)]
 pub struct Query {
     pub version: Option<String>,
     #[serde(default)]
@@ -113,7 +111,7 @@ pub enum Transform {
     },
     Group {
         by: Vec<Node>,
-        pipeline: Pipeline,
+        pipeline: Vec<Transform>,
     },
 }
 
@@ -181,15 +179,15 @@ pub struct FuncCall {
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub struct InlinePipeline {
-    pub value: Box<Node>,
+pub struct Pipeline {
+    pub value: Option<Box<Node>>,
     pub functions: Vec<Node>,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Table {
     pub name: String,
-    pub pipeline: Pipeline,
+    pub pipeline: Vec<Transform>,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]

@@ -2,7 +2,7 @@
 source: prql-compiler/src/semantic/materializer.rs
 expression: mat
 ---
-- Pipeline:
+- FramePipeline:
     - From:
         name: prices
         alias: ~

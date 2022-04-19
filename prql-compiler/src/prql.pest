@@ -22,17 +22,10 @@ func_def = { "func" ~ ident ~ func_def_params ~ "=" ~ expr }
 // Possibly we can mandate whitespace to follow, but pest has annoying magic
 // which removes whitespace in non-atomic rules, so we'd need to explore that.
 func_def_params = { ( named_term | ident )* }
-table = { "table" ~ ident ~ "=" ~ pipeline_block }
+table = { "table" ~ ident ~ "=" ~ parenthesized_pipeline }
 
-pipeline = { WHITESPACE* ~ func_curry ~ ((NEWLINE+ | "|") ~ func_curry)* }
-
-pipeline_block = _{ "(" ~ NEWLINE* ~ pipeline ~ NEWLINE* ~ ")" }
-
-// We don't model this in the same way as a pipeline, since the first term isn't
-// a transformation. And it's somewhat related to our transformations being
-// separate from our function calls (generally just `idents`) at the moment — we
-// could unify them at some point.
-inline_pipeline = { "(" ~ expr_call ~ ("|" ~ func_curry)+ ~ ")" }
+pipe = _{ NEWLINE | "|" }
+pipeline = { WHITESPACE* ~ func_curry ~ (pipe ~ func_curry)* }
 
 ident = @{ !operator ~ !keyword ~ (ASCII_ALPHA | "$") ~ (ASCII_ALPHANUMERIC | "." | "_" | "*" )* }
 keyword = _{ "prql" | "table" | "func" }
@@ -63,8 +56,8 @@ keyword = _{ "prql" | "table" | "func" }
 // - 2
 
 // white space is required to prevent matching s"string"
-func_call = ${ ident ~ WHITESPACE+ ~ (named_expr | pipeline_block)+ }
-func_curry = { ident ~ (named_expr | pipeline_block)* }
+func_call = ${ ident ~ WHITESPACE+ ~ named_expr+ }
+func_curry = { ident ~ named_expr* }
 
 // For assigns, table aliases and named arguments
 named_expr_call = { (ident ~ ":")? ~ expr_call }
@@ -79,9 +72,10 @@ expr_compare = !{ expr_add ~ (operator_compare ~ expr_add)? }
 expr_add = !{ expr_mul ~ (operator_add ~ expr_mul)* }
 expr_mul = !{ term ~ (operator_mul ~ term)* }
 
-term = _{ ( s_string | f_string | ident | parenthesized_expr | list | range | interval | number | string_literal | inline_pipeline ) }
+term = _{ ( s_string | f_string | ident | parenthesized_expr | list | range | interval | number | string_literal | parenthesized_pipeline) }
 list = { "[" ~ (NEWLINE* ~ named_expr_call ~ ("," ~ NEWLINE* ~ named_expr_call )* ~ ","?)? ~ NEWLINE* ~ "]" }
 parenthesized_expr = { "(" ~ named_expr_call ~ ")" }
+parenthesized_pipeline = { "(" ~ expr_call? ~ pipe ~ pipeline ~ NEWLINE* ~ ")" }
 
 // TODO: escapes
 // https://pest.rs/book/examples/rust/literals.html

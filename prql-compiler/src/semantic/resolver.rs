@@ -74,7 +74,7 @@ impl AstFold for Resolver {
 
                 if node.declared_at.is_none() {
                     bail!(Error::new(Reason::NotFound {
-                        name: func_call.name.clone(),
+                        name: func_call.name,
                         namespace: "function".to_string(),
                     })
                     .with_span(node.span));
@@ -95,7 +95,7 @@ impl AstFold for Resolver {
         Ok(node)
     }
 
-    fn fold_pipeline(&mut self, pipeline: Vec<Transform>) -> Result<Vec<Transform>> {
+    fn fold_frame_pipeline(&mut self, pipeline: Vec<Transform>) -> Result<Vec<Transform>> {
         pipeline
             .into_iter()
             .map(|t| {
@@ -126,11 +126,10 @@ impl AstFold for Resolver {
                         Transform::Derive(nodes)
                     }
                     Transform::Group { by, pipeline } => {
-
                         let by = self.fold_nodes(by)?;
                         self.context.frame.group = nodes_to_declaration_ids(by.clone())?;
 
-                        let pipeline = self.fold_pipeline(pipeline)?;
+                        let pipeline = self.fold_frame_pipeline(pipeline)?;
 
                         self.context.frame.group.clear();
 
@@ -248,7 +247,7 @@ mod tests {
 
         let pipeline: Node = from_str(
             r##"
-            Pipeline:
+            FramePipeline:
                 - From:
                     name: employees
                     alias: ~
@@ -275,7 +274,7 @@ mod tests {
 
         let pipeline: Node = from_str(
             r##"
-            Pipeline:
+            FramePipeline:
                 - From:
                     name: employees
                     alias: ~

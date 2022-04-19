@@ -197,8 +197,11 @@ impl AstFold for Materializer {
                 self.materialize_func_call(&func_call)?
             }
 
-            Item::InlinePipeline(p) => {
-                let mut value = self.fold_node(*p.value)?;
+            Item::Pipeline(p) => {
+                let value = (p.value)
+                    .ok_or_else(|| anyhow!("inline pipeline must start with an expression"))?;
+
+                let mut value = self.fold_node(*value)?;
 
                 for mut func_call in p.functions {
                     // The value from the previous pipeline becomes the final arg.
@@ -385,7 +388,7 @@ aggregate [
                   - Expr:
                       Ident: x
                   - String: )
-          - Pipeline:
+          - FramePipeline:
               - From:
                   name: employees
                   alias: ~
@@ -420,7 +423,7 @@ aggregate [
         -          - Expr:
         -              Ident: x
         -          - String: )
-        -  - Pipeline:
+        -  - FramePipeline:
         -      - From:
         -          name: employees
         -          alias: ~
@@ -430,7 +433,7 @@ aggregate [
         -              args:
         -                - Ident: salary
         -              named_args: {}
-        +- Pipeline:
+        +- FramePipeline:
         +    - From:
         +        name: employees
         +        alias: ~
@@ -459,7 +462,7 @@ select (ret b c)
 
         assert_yaml_snapshot!(ast.nodes[2], @r###"
         ---
-        Pipeline:
+        FramePipeline:
           - From:
               name: a
               alias: ~
@@ -476,7 +479,7 @@ select (ret b c)
         let (mat, _, _) = resolve_and_materialize(ast.nodes, None)?;
         assert_yaml_snapshot!(mat[0], @r###"
         ---
-        Pipeline:
+        FramePipeline:
           - From:
               name: a
               alias: ~
@@ -520,7 +523,7 @@ aggregate [one: (foo | sum), two: (foo | sum)]
                  - NamedExpr:
                      name: one
                      expr:
-        -              InlinePipeline:
+        -              Pipeline:
         -                value:
         -                  Ident: foo
         -                functions:
@@ -536,7 +539,7 @@ aggregate [one: (foo | sum), two: (foo | sum)]
                  - NamedExpr:
                      name: two
                      expr:
-        -              InlinePipeline:
+        -              Pipeline:
         -                value:
         -                  Ident: foo
         -                functions:
@@ -566,7 +569,7 @@ aggregate [a: (sum foo | plus_one)]
 
         assert_yaml_snapshot!(mat[0], @r###"
         ---
-        Pipeline:
+        FramePipeline:
           - From:
               name: a
               alias: ~
@@ -604,7 +607,7 @@ derive [
 
         assert_yaml_snapshot!(mat, @r###"
         ---
-        - Pipeline:
+        - FramePipeline:
             - From:
                 name: foo_table
                 alias: ~
@@ -645,7 +648,7 @@ aggregate [
         assert_yaml_snapshot!(mat,
             @r###"
         ---
-        - Pipeline:
+        - FramePipeline:
             - From:
                 name: employees
                 alias: ~
@@ -750,7 +753,7 @@ group [title] (
         let (mat, _, _) = resolve_and_materialize(ast.nodes, None)?;
         assert_yaml_snapshot!(mat, @r###"
         ---
-        - Pipeline:
+        - FramePipeline:
             - From:
                 name: employees
                 alias: ~
