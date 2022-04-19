@@ -3,10 +3,12 @@ use std::ops::Range;
 use anyhow::{Ok, Result};
 use ariadne::{Color, Label, Report, ReportBuilder, ReportKind, Source};
 
-use super::{Context, Declaration};
-use crate::internals::{AstFold, Node};
+use super::{Context, Declaration, Frame};
+use crate::ast::*;
+use crate::ast::ast_fold::*;
+use crate::error::Span;
 
-pub fn print(nodes: &[Node], context: &Context, source_id: String, source: String) {
+pub fn label_references(nodes: &[Node], context: &Context, source_id: String, source: String) {
     let mut report = Report::build(ReportKind::Custom("Info", Color::Blue), &source_id, 0);
 
     let source = Source::from(source);
@@ -77,6 +79,30 @@ impl<'a> AstFold for Labeler<'a> {
                         .with_message(message)
                         .with_color(color),
                 );
+            }
+        }
+        Ok(self.fold_item(node.item)?.into())
+    }
+}
+
+pub fn collect_frames(nodes: Vec<Node>) -> Vec<(Span, Frame)> {
+    let mut collector = FrameCollector { frames: vec![] };
+
+    collector.fold_nodes(nodes).unwrap();
+
+    collector.frames
+}
+
+/// Traverses AST and collects all node.frame
+struct FrameCollector {
+    frames: Vec<(Span, Frame)>,
+}
+
+impl AstFold for FrameCollector {
+    fn fold_node(&mut self, node: Node) -> Result<Node> {
+        if let Some(frame) = node.frame {
+            if let Some(span) = node.span {
+                self.frames.push((span, frame));
             }
         }
         Ok(self.fold_item(node.item)?.into())

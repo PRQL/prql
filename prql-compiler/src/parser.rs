@@ -855,23 +855,21 @@ take 20
                     name: select
                     args:
                       - List:
-                          - FuncCall:
-                              name: a
-                              args:
-                                - Ident: and
-                                - Expr:
-                                    - Ident: b
-                                    - Raw: +
-                                    - Ident: c
-                                - Ident: or
-                                - FuncCall:
-                                    name: d
-                                    args:
-                                      - Ident: e
-                                    named_args: {}
-                                - Ident: and
-                                - Ident: f
-                              named_args: {}
+                          - Expr:
+                              - Ident: a
+                              - Raw: and
+                              - Expr:
+                                  - Ident: b
+                                  - Raw: +
+                                  - Ident: c
+                              - Raw: or
+                              - FuncCall:
+                                  name: d
+                                  args:
+                                    - Ident: e
+                                  named_args: {}
+                              - Raw: and
+                              - Ident: f
                     named_args: {}
         "###);
 

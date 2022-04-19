@@ -39,17 +39,14 @@ pub struct Table {
     pub pipeline: Box<Node>,
 }
 
-/// Transformation is used for each stage in a pipeline
-/// and sometimes
+/// Transform is a stage of a pipeline. It is created from a FuncCall during parsing.
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-// We probably want to implement some of these as Structs rather than just
-// `vec<Item>`
 pub enum Transform {
     From(TableRef),
-    Select(Vec<Node>),
+    Select(Select),
     Filter(Vec<Node>),
-    Derive(Vec<Node>),
-    Aggregate(Vec<Node>),
+    Derive(Select),
+    Aggregate(Select),
     Sort(Vec<ColumnSort<Node>>),
     Take(i64),
     Join {
@@ -78,18 +75,22 @@ impl Transform {
             Transform::Group { .. } => "group",
         }
     }
+}
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+pub struct Select {
+    pub assigns: Vec<Node>,
+    pub group: Vec<Node>,
+    pub window: Option<Vec<Node>>,
+    pub sort: Option<Vec<Node>>,
+}
 
-    pub fn first_node(&self) -> Option<&Node> {
-        match &self {
-            Transform::From(_) => None,
-            Transform::Select(nodes)
-            | Transform::Filter(nodes)
-            | Transform::Derive(nodes)
-            | Transform::Aggregate(nodes) => nodes.first(),
-            Transform::Sort(columns) => columns.first().map(|c| &c.column),
-            Transform::Join { filter, .. } => filter.nodes().first(),
-            Transform::Group { by, .. } => by.first(),
-            Transform::Take(_) => None,
+impl Select {
+    pub fn new(assigns: Vec<Node>) -> Self {
+        Select {
+            assigns,
+            group: Vec::new(),
+            window: None,
+            sort: None,
         }
     }
 }
@@ -104,15 +105,6 @@ pub struct TableRef {
 pub enum JoinFilter {
     On(Vec<Node>),
     Using(Vec<Node>),
-}
-
-impl JoinFilter {
-    fn nodes(&self) -> &Vec<Node> {
-        match self {
-            JoinFilter::On(nodes) => nodes,
-            JoinFilter::Using(nodes) => nodes,
-        }
-    }
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]

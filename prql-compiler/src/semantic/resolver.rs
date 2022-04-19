@@ -104,7 +104,11 @@ impl AstFold for Resolver {
                 if let Some(FuncKind::Transform) = func_def.kind {
                     let transform = cast_transforms::cast_transform(func_call, node.span)?;
 
-                    Item::Transform(self.fold_transform(transform)?)
+                    let transform = self.fold_transform(transform)?;
+
+                    node.frame = Some(self.context.frame.clone());
+
+                    Item::Transform(transform)
                 } else {
                     Item::FuncCall(self.fold_func_call(func_call)?)
                 }
@@ -137,38 +141,41 @@ impl AstFold for Resolver {
                 fold_transform(self, t)?
             }
 
-            Transform::Select(nodes) => {
+            Transform::Select(mut select) => {
                 self.context.frame.columns.clear();
 
-                let nodes = self.fold_and_declare(nodes, true)?;
+                select.assigns = self.fold_and_declare(select.assigns, true)?;
+                self.apply_context(&mut select)?;
 
                 self.context.flatten_scope();
 
-                Transform::Select(nodes)
+                Transform::Select(select)
             }
-            Transform::Derive(nodes) => {
-                let nodes = self.fold_and_declare(nodes, true)?;
+            Transform::Derive(mut select) => {
+                select.assigns = self.fold_and_declare(select.assigns, true)?;
+                self.apply_context(&mut select)?;
 
-                Transform::Derive(nodes)
+                Transform::Derive(select)
             }
             Transform::Group { by, pipeline } => {
                 let by = self.fold_nodes(by)?;
-                self.context.frame.group = nodes_to_declaration_ids(by.clone())?;
+                self.context.frame.group = self.ensure_declared(&by);
 
                 let pipeline = Box::new(self.fold_node(*pipeline)?);
 
                 self.context.frame.group.clear();
                 Transform::Group { by, pipeline }
             }
-            Transform::Aggregate(nodes) => {
+            Transform::Aggregate(mut select) => {
                 self.context.frame.columns.clear();
                 self.context.frame.groups_to_columns();
 
-                let nodes = self.fold_and_declare(nodes, true)?;
+                select.assigns = self.fold_and_declare(select.assigns, true)?;
+                self.apply_context(&mut select)?;
 
                 self.context.flatten_scope();
 
-                Transform::Aggregate(nodes)
+                Transform::Aggregate(select)
             }
             Transform::Join { side, with, filter } => {
                 self.context.declare_table(&with);
@@ -215,6 +222,19 @@ impl Resolver {
             .try_collect()
     }
 
+    fn ensure_declared(&mut self, nodes: &[Node]) -> Vec<usize> {
+        nodes
+            .iter()
+            .map(|s| {
+                if let Some(id) = s.declared_at {
+                    id
+                } else {
+                    self.context.declare_table_column(s, false)
+                }
+            })
+            .collect()
+    }
+
     fn ensure_in_two_namespaces(&mut self, node: &Node) -> Result<(), String> {
         let ident = node.item.as_ident().unwrap();
         let namespaces = self.context.lookup_namespaces_of(ident);
@@ -223,6 +243,16 @@ impl Resolver {
             1 => Err("join using a column name must belong to both tables".to_string()),
             _ => Ok(()),
         }
+    }
+
+    fn apply_context(&self, select: &mut Select) -> Result<()> {
+        select.group = (self.context.frame.group)
+            .iter()
+            .map(|id| self.context.declarations[*id].0.clone())
+            .map(|d| d.into_variable().map(|x| *x))
+            .try_collect()?;
+
+        Ok(())
     }
 
     fn validate_function_call(
@@ -263,8 +293,8 @@ impl Resolver {
             .collect();
 
         // validate number of parameters
-        let expected_len = func_def.positional_params.len();
-        let passed_len = func_call.args.len() + is_curry as usize;
+        let expected_len = func_def.positional_params.len() - is_curry as usize;
+        let passed_len = func_call.args.len();
         if expected_len != passed_len {
             let mut err = Error::new(Reason::Expected {
                 who: Some(func_call.name.clone()),
@@ -272,7 +302,7 @@ impl Resolver {
                 found: format!("{}", passed_len),
             });
 
-            if passed_len > expected_len && func_call.args.len() >= 2 {
+            if passed_len > expected_len && passed_len >= 2 {
                 err = err.with_help(format!(
                     "If you are calling a function, you may want to add braces: `{} [{:?} {:?}]`",
                     func_call.name, func_call.args[0], func_call.args[1]
@@ -298,16 +328,6 @@ fn sort_to_declaration_ids(sort: Vec<ColumnSort>) -> Result<Vec<ColumnSort<usize
         .try_collect()
 }
 
-fn nodes_to_declaration_ids(nodes: Vec<Node>) -> Result<Vec<usize>> {
-    nodes
-        .into_iter()
-        .map(|s| {
-            s.declared_at
-                .ok_or_else(|| anyhow!("Unresolved ident in group?"))
-        })
-        .try_collect()
-}
-
 /// Loads `internal.prql` which contains type definitions of transforms
 pub fn init_context() -> Context {
     use crate::parse;
@@ -323,7 +343,7 @@ mod tests {
     use insta::{assert_debug_snapshot, assert_snapshot, assert_yaml_snapshot};
     use serde_yaml::from_str;
 
-    use crate::{parse, translate};
+    use crate::{parse, resolve_and_translate};
 
     use super::*;
 
@@ -431,7 +451,7 @@ mod tests {
         from employees
         select [salary1: salary, salary2: salary1 + 1, age]
         "#;
-        let result: String = parse(prql).and_then(|x| translate(&x)).unwrap();
+        let result: String = parse(prql).and_then(resolve_and_translate).unwrap();
         assert_snapshot!(result, @r###"
         SELECT
           salary AS salary1,
@@ -470,7 +490,7 @@ mod tests {
         join salaries [emp_no]
         select first_name      # this could belong to either table!
         "#;
-        let result = parse(prql).and_then(|x| translate(&x)).unwrap();
+        let result = parse(prql).and_then(resolve_and_translate).unwrap();
         assert_snapshot!(result, @r###"
         SELECT
           first_name
@@ -483,7 +503,7 @@ mod tests {
         from employees
         select first_name      # this can only be from employees
         "#;
-        let result = parse(prql).and_then(|x| translate(&x)).unwrap();
+        let result = parse(prql).and_then(resolve_and_translate).unwrap();
         assert_snapshot!(result, @r###"
         SELECT
           first_name
@@ -497,7 +517,7 @@ mod tests {
         join salaries [emp_no]
         select [first_name, emp_no, salary]
         "#;
-        let result = parse(prql).and_then(|x| translate(&x)).unwrap();
+        let result = parse(prql).and_then(resolve_and_translate).unwrap();
         assert_snapshot!(result, @r###"
         SELECT
           employees.first_name,

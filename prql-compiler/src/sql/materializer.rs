@@ -8,7 +8,7 @@ use anyhow::{anyhow, Result};
 use itertools::zip;
 use itertools::Itertools;
 
-use crate::semantic::{split_var_name, Context, TableColumn};
+use crate::semantic::{split_var_name, Context, Frame, TableColumn};
 
 pub struct MaterializedFrame {
     pub columns: Vec<Node>,
@@ -17,11 +17,12 @@ pub struct MaterializedFrame {
 
 /// Replaces all resolved functions and variables with their declarations.
 pub fn materialize(
-    nodes: Vec<Node>,
+    pipeline: Pipeline,
+    frame: Frame,
     context: Context,
-) -> Result<(Vec<Node>, Context, MaterializedFrame)> {
+) -> Result<(Pipeline, MaterializedFrame, Context)> {
     let mut counter = TableCounter::default();
-    let nodes = counter.fold_nodes(nodes).unwrap();
+    let pipeline = counter.fold_pipeline(pipeline).unwrap();
 
     let mut m = Materializer {
         context,
@@ -29,15 +30,15 @@ pub fn materialize(
     };
 
     // materialize the query
-    let nodes = m.fold_nodes(nodes)?;
+    let pipeline = m.fold_pipeline(pipeline)?;
 
     // materialize each of the columns
-    let columns = m.materialize_columns()?;
+    let columns = m.materialize_columns(frame.columns)?;
 
     // materialize each of the columns
-    let sort = m.lookup_sort()?;
+    let sort = m.lookup_sort(frame.sort)?;
 
-    Ok((nodes, m.context, MaterializedFrame { columns, sort }))
+    Ok((pipeline, MaterializedFrame { columns, sort }, m.context))
 }
 
 /// Can fold (walk) over AST and replace function calls and variable references with their declarations.
@@ -49,7 +50,7 @@ pub struct Materializer {
 impl Materializer {
     /// Folds columns and returns expressions that can be used in select.
     /// Replaces declarations of each column with an identifier.
-    fn materialize_columns(&mut self) -> Result<Vec<Node>> {
+    fn materialize_columns(&mut self, columns: Vec<TableColumn>) -> Result<Vec<Node>> {
         // This has to be done in two stages, because some of the declarations that
         // have to be replaced may appear in other columns, where original declaration
         // is needed.
@@ -58,7 +59,8 @@ impl Materializer {
         // select [b, b + 1]
 
         // materialize each column
-        let res: Vec<_> = (self.context.frame.columns.clone().iter())
+        let res: Vec<_> = columns
+            .iter()
             .map(|column| match column {
                 TableColumn::Declared(column_id) => self.materialize_column(*column_id),
                 TableColumn::All(namespace) => {
@@ -118,11 +120,8 @@ impl Materializer {
 
     /// Folds the column and returns expression that can be used in select.
     /// Also returns column id and name if declaration should be replaced.
-    fn lookup_sort(&mut self) -> Result<Vec<ColumnSort<Ident>>> {
-        let sort = &self.context.frame.sort;
-
-        sort.iter()
-            .cloned()
+    fn lookup_sort(&mut self, sort: Vec<ColumnSort<usize>>) -> Result<Vec<ColumnSort<Ident>>> {
+        sort.into_iter()
             .map(|s| {
                 let decl = self.context.declarations[s.column].0.clone();
                 let column = decl
@@ -273,9 +272,19 @@ impl AstFold for TableCounter {
 mod test {
 
     use super::*;
-    use crate::{parse, semantic::resolve, sql::resolve_and_materialize, utils::diff};
+    use crate::{parse, semantic::resolve, utils::diff};
     use insta::{assert_display_snapshot, assert_snapshot, assert_yaml_snapshot};
     use serde_yaml::to_string;
+
+    fn resolve_and_materialize(nodes: Vec<Node>) -> Result<Vec<Node>> {
+        let (res, context) = resolve(nodes, None)?;
+        
+        let pipeline = res.last().unwrap().item.as_pipeline().unwrap();
+        let frame = pipeline.functions.last().unwrap().frame.clone().unwrap();
+
+        let (mat, _, _) = materialize(res.into(), frame, context)?;
+        Ok(mat.functions)
+    }
 
     #[test]
     fn test_replace_variables_1() -> Result<()> {
@@ -286,29 +295,73 @@ mod test {
       gross_cost:   gross_salary + benefits_cost     # Variables can use other variables.
     ]
     "#,
-        )?;
+        )?
+        .nodes;
 
-        let (res, context) = resolve(ast.nodes, None)?;
-        let (mat, _, _) = materialize(res.clone(), context)?;
+        let mat = resolve_and_materialize(ast.clone()).unwrap();
 
         // We could make a convenience function for this. It's useful for
         // showing the diffs of an operation.
         assert_display_snapshot!(diff(
-            &to_string(&res)?,
+            &to_string(&ast)?,
             &to_string(&mat)?
         ),
         @r###"
-        @@ -19,6 +19,9 @@
-                         name: gross_cost
-                         expr:
-                           Expr:
-        -                    - Ident: gross_salary
-        +                    - Expr:
-        +                        - Ident: salary
-        +                        - Raw: +
-        +                        - Ident: payroll_tax
-                             - Raw: +
-                             - Ident: benefits_cost
+        @@ -2,27 +2,30 @@
+         - Pipeline:
+             value: ~
+             functions:
+        -      - FuncCall:
+        -          name: from
+        -          args:
+        -            - Ident: employees
+        -          named_args: {}
+        -      - FuncCall:
+        -          name: derive
+        -          args:
+        -            - List:
+        -                - NamedExpr:
+        -                    name: gross_salary
+        -                    expr:
+        -                      Expr:
+        -                        - Ident: salary
+        -                        - Raw: +
+        -                        - Ident: payroll_tax
+        -                - NamedExpr:
+        -                    name: gross_cost
+        -                    expr:
+        -                      Expr:
+        -                        - Ident: gross_salary
+        -                        - Raw: +
+        -                        - Ident: benefits_cost
+        -          named_args: {}
+        +      - Transform:
+        +          From:
+        +            name: employees
+        +            alias: ~
+        +      - Transform:
+        +          Derive:
+        +            assigns:
+        +              - NamedExpr:
+        +                  name: gross_salary
+        +                  expr:
+        +                    Expr:
+        +                      - Ident: salary
+        +                      - Raw: +
+        +                      - Ident: payroll_tax
+        +              - NamedExpr:
+        +                  name: gross_cost
+        +                  expr:
+        +                    Expr:
+        +                      - Expr:
+        +                          - Ident: salary
+        +                          - Raw: +
+        +                          - Ident: payroll_tax
+        +                      - Raw: +
+        +                      - Ident: benefits_cost
+        +            group: []
+        +            window: ~
+        +            sort: ~
         "###);
 
         Ok(())
@@ -344,9 +397,9 @@ sort sum_gross_cost
 filter sum_gross_cost > 200
 take 20
 "#,
-        )?;
-        let (res, context) = resolve(ast.nodes, None)?;
-        let (mat, _, _) = materialize(res, context)?;
+        )?.nodes;
+
+        let mat = resolve_and_materialize(ast.clone()).unwrap();
         assert_yaml_snapshot!(&mat);
 
         Ok(())
@@ -356,108 +409,104 @@ take 20
     fn test_run_functions_args() -> Result<()> {
         let ast = parse(
             r#"
-func count x = s"count({x})"
+        func count x = s"count({x})"
 
-from employees
-aggregate [
-  count salary
-]
-"#,
-        )?;
+        from employees
+        aggregate [
+        count salary
+        ]
+        "#,
+        )?
+        .nodes;
 
         assert_yaml_snapshot!(ast, @r###"
         ---
-        version: ~
-        dialect: Generic
-        nodes:
-          - FuncDef:
-              name: count
-              kind: ~
-              positional_params:
-                - Ident: x
-              named_params: []
-              body:
-                SString:
-                  - String: count(
-                  - Expr:
-                      Ident: x
-                  - String: )
-          - Pipeline:
-              value: ~
-              functions:
-                - FuncCall:
-                    name: from
-                    args:
-                      - Ident: employees
-                    named_args: {}
-                - FuncCall:
-                    name: aggregate
-                    args:
-                      - List:
-                          - FuncCall:
-                              name: count
-                              args:
-                                - Ident: salary
-                              named_args: {}
-                    named_args: {}
+        - FuncDef:
+            name: count
+            kind: ~
+            positional_params:
+              - Ident: x
+            named_params: []
+            body:
+              SString:
+                - String: count(
+                - Expr:
+                    Ident: x
+                - String: )
+        - Pipeline:
+            value: ~
+            functions:
+              - FuncCall:
+                  name: from
+                  args:
+                    - Ident: employees
+                  named_args: {}
+              - FuncCall:
+                  name: aggregate
+                  args:
+                    - List:
+                        - FuncCall:
+                            name: count
+                            args:
+                              - Ident: salary
+                            named_args: {}
+                  named_args: {}
         "###);
 
-        let (mat, _, _) = resolve_and_materialize(ast.nodes.clone(), None)?;
+        let mat = resolve_and_materialize(ast.clone()).unwrap();
 
         // We could make a convenience function for this. It's useful for
         // showing the diffs of an operation.
         let diff = diff(&to_string(&ast)?, &to_string(&mat)?);
         assert!(!diff.is_empty());
         assert_display_snapshot!(diff, @r###"
-        @@ -1,34 +1,15 @@
+        @@ -1,31 +1,19 @@
          ---
-        -version: ~
-        -dialect: Generic
-        -nodes:
-        -  - FuncDef:
-        -      name: count
-        -      kind: ~
-        -      positional_params:
-        -        - Ident: x
-        -      named_params: []
-        -      body:
-        -        SString:
-        -          - String: count(
-        -          - Expr:
-        -              Ident: x
-        -          - String: )
-        -  - Pipeline:
-        -      value: ~
-        -      functions:
-        -        - FuncCall:
-        -            name: from
-        -            args:
-        -              - Ident: employees
-        -            named_args: {}
-        -        - FuncCall:
-        -            name: aggregate
-        -            args:
-        -              - List:
-        -                  - FuncCall:
-        -                      name: count
-        -                      args:
-        -                        - Ident: salary
-        -                      named_args: {}
-        -            named_args: {}
-        +- Pipeline:
-        +    value: ~
-        +    functions:
+        -- FuncDef:
+        -    name: count
+        -    kind: ~
+        -    positional_params:
+        -      - Ident: x
+        -    named_params: []
+        -    body:
+        -      SString:
+        -        - String: count(
+        -        - Expr:
+        -            Ident: x
+        -        - String: )
+         - Pipeline:
+             value: ~
+             functions:
+        -      - FuncCall:
+        -          name: from
+        -          args:
+        -            - Ident: employees
+        -          named_args: {}
+        -      - FuncCall:
+        -          name: aggregate
+        -          args:
+        -            - List:
+        -                - FuncCall:
+        -                    name: count
+        -                    args:
+        -                      - Ident: salary
+        -                    named_args: {}
+        -          named_args: {}
         +      - Transform:
         +          From:
         +            name: employees
         +            alias: ~
         +      - Transform:
         +          Aggregate:
-        +            - SString:
-        +                - String: count(
-        +                - Expr:
-        +                    Ident: salary
-        +                - String: )
+        +            assigns:
+        +              - SString:
+        +                  - String: count(
+        +                  - Expr:
+        +                      Ident: salary
+        +                  - String: )
+        +            group: []
+        +            window: ~
+        +            sort: ~
         "###);
 
         Ok(())
@@ -467,15 +516,16 @@ aggregate [
     fn test_run_functions_nested() -> Result<()> {
         let ast = parse(
             r#"
-func lag_day x = s"lag_day_todo({x})"
-func ret x dividend_return = x / (lag_day x) - 1 + dividend_return
+        func lag_day x = s"lag_day_todo({x})"
+        func ret x dividend_return = x / (lag_day x) - 1 + dividend_return
 
-from a
-select (ret b c)
-"#,
-        )?;
+        from a
+        select (ret b c)
+        "#,
+        )?
+        .nodes;
 
-        assert_yaml_snapshot!(ast.nodes[2], @r###"
+        assert_yaml_snapshot!(ast[2], @r###"
         ---
         Pipeline:
           value: ~
@@ -497,31 +547,35 @@ select (ret b c)
                 named_args: {}
         "###);
 
-        let (mat, _, _) = resolve_and_materialize(ast.nodes, None)?;
-        assert_yaml_snapshot!(mat[0], @r###"
+        let mat = resolve_and_materialize(ast.clone()).unwrap();
+        assert_yaml_snapshot!(mat, @r###"
         ---
-        Pipeline:
-          value: ~
-          functions:
-            - Transform:
-                From:
-                  name: a
-                  alias: ~
-            - Transform:
-                Select:
-                  - Expr:
+        - Pipeline:
+            value: ~
+            functions:
+              - Transform:
+                  From:
+                    name: a
+                    alias: ~
+              - Transform:
+                  Select:
+                    assigns:
                       - Expr:
-                          - Ident: b
-                          - Raw: /
-                          - SString:
-                              - String: lag_day_todo(
-                              - Expr:
-                                  Ident: b
-                              - String: )
-                      - Raw: "-"
-                      - Raw: "1"
-                      - Raw: +
-                      - Ident: c
+                          - Expr:
+                              - Ident: b
+                              - Raw: /
+                              - SString:
+                                  - String: lag_day_todo(
+                                  - Expr:
+                                      Ident: b
+                                  - String: )
+                          - Raw: "-"
+                          - Raw: "1"
+                          - Raw: +
+                          - Ident: c
+                    group: []
+                    window: ~
+                    sort: ~
         "###);
 
         Ok(())
@@ -531,87 +585,132 @@ select (ret b c)
     fn test_run_inline_pipelines() -> Result<()> {
         let ast = parse(
             r#"
-func sum x = s"SUM({x})"
+        func sum x = s"SUM({x})"
 
-from a
-aggregate [one: (foo | sum), two: (foo | sum)]
-"#,
-        )?;
+        from a
+        aggregate [one: (foo | sum), two: (foo | sum)]
+        "#,
+        )?
+        .nodes;
 
-        let (res, context) = resolve(ast.nodes, None)?;
-        let (mat, _, _) = materialize(res.clone(), context)?;
+        let mat = resolve_and_materialize(ast.clone()).unwrap();
 
-        assert_snapshot!(diff(&to_string(&res)?, &to_string(&mat)?), @r###"
-        @@ -11,22 +11,16 @@
-                     - NamedExpr:
-                         name: one
-                         expr:
-        -                  Pipeline:
-        -                    value:
-        -                      Ident: foo
-        -                    functions:
-        -                      - FuncCall:
-        -                          name: sum
-        -                          args: []
-        -                          named_args: {}
-        +                  SString:
-        +                    - String: SUM(
-        +                    - Expr:
-        +                        Ident: foo
-        +                    - String: )
-                     - NamedExpr:
-                         name: two
-                         expr:
-        -                  Pipeline:
-        -                    value:
-        -                      Ident: foo
-        -                    functions:
-        -                      - FuncCall:
-        -                          name: sum
-        -                          args: []
-        -                          named_args: {}
-        +                  SString:
-        +                    - String: SUM(
-        +                    - Expr:
-        +                        Ident: foo
-        +                    - String: )
+        assert_snapshot!(diff(&to_string(&ast)?, &to_string(&mat)?), @r###"
+        @@ -1,48 +1,30 @@
+         ---
+        -- FuncDef:
+        -    name: sum
+        -    kind: ~
+        -    positional_params:
+        -      - Ident: x
+        -    named_params: []
+        -    body:
+        -      SString:
+        -        - String: SUM(
+        -        - Expr:
+        -            Ident: x
+        -        - String: )
+         - Pipeline:
+             value: ~
+             functions:
+        -      - FuncCall:
+        -          name: from
+        -          args:
+        -            - Ident: a
+        -          named_args: {}
+        -      - FuncCall:
+        -          name: aggregate
+        -          args:
+        -            - List:
+        -                - NamedExpr:
+        -                    name: one
+        -                    expr:
+        -                      Pipeline:
+        -                        value:
+        +      - Transform:
+        +          From:
+        +            name: a
+        +            alias: ~
+        +      - Transform:
+        +          Aggregate:
+        +            assigns:
+        +              - NamedExpr:
+        +                  name: one
+        +                  expr:
+        +                    SString:
+        +                      - String: SUM(
+        +                      - Expr:
+                                   Ident: foo
+        -                        functions:
+        -                          - FuncCall:
+        -                              name: sum
+        -                              args: []
+        -                              named_args: {}
+        -                - NamedExpr:
+        -                    name: two
+        -                    expr:
+        -                      Pipeline:
+        -                        value:
+        +                      - String: )
+        +              - NamedExpr:
+        +                  name: two
+        +                  expr:
+        +                    SString:
+        +                      - String: SUM(
+        +                      - Expr:
+                                   Ident: foo
+        -                        functions:
+        -                          - FuncCall:
+        -                              name: sum
+        -                              args: []
+        -                              named_args: {}
+        -          named_args: {}
+        +                      - String: )
+        +            group: []
+        +            window: ~
+        +            sort: ~
         "###);
 
         // Test it'll run the `sum foo` function first.
         let ast = parse(
             r#"
-func sum x = s"SUM({x})"
-func plus_one x = x + 1
+        func sum x = s"SUM({x})"
+        func plus_one x = x + 1
 
-from a
-aggregate [a: (sum foo | plus_one)]
-"#,
-        )?;
+        from a
+        aggregate [a: (sum foo | plus_one)]
+        "#,
+        )?
+        .nodes;
 
-        let (mat, _, _) = resolve_and_materialize(ast.nodes, None)?;
+        let mat = resolve_and_materialize(ast.clone()).unwrap();
 
-        assert_yaml_snapshot!(mat[0], @r###"
+        assert_yaml_snapshot!(mat, @r###"
         ---
-        Pipeline:
-          value: ~
-          functions:
-            - Transform:
-                From:
-                  name: a
-                  alias: ~
-            - Transform:
-                Aggregate:
-                  - NamedExpr:
-                      name: a
-                      expr:
-                        Expr:
-                          - SString:
-                              - String: SUM(
-                              - Expr:
-                                  Ident: foo
-                              - String: )
-                          - Raw: +
-                          - Raw: "1"
+        - Pipeline:
+            value: ~
+            functions:
+              - Transform:
+                  From:
+                    name: a
+                    alias: ~
+              - Transform:
+                  Aggregate:
+                    assigns:
+                      - NamedExpr:
+                          name: a
+                          expr:
+                            Expr:
+                              - SString:
+                                  - String: SUM(
+                                  - Expr:
+                                      Ident: foo
+                                  - String: )
+                              - Raw: +
+                              - Raw: "1"
+                    group: []
+                    window: ~
+                    sort: ~
         "###);
 
         Ok(())
@@ -621,16 +720,17 @@ aggregate [a: (sum foo | plus_one)]
     fn test_named_args() -> Result<()> {
         let ast = parse(
             r#"
-func add x to:1  = x + to
+        func add x to:1  = x + to
 
-from foo_table
-derive [
-  added:         add bar to:3,
-  added_default: add bar
-]
-"#,
-        )?;
-        let (mat, _, _) = resolve_and_materialize(ast.nodes, None)?;
+        from foo_table
+        derive [
+        added:         add bar to:3,
+        added_default: add bar
+        ]
+        "#,
+        )?
+        .nodes;
+        let mat = resolve_and_materialize(ast.clone()).unwrap();
 
         assert_yaml_snapshot!(mat, @r###"
         ---
@@ -643,20 +743,24 @@ derive [
                     alias: ~
               - Transform:
                   Derive:
-                    - NamedExpr:
-                        name: added
-                        expr:
-                          Expr:
-                            - Ident: bar
-                            - Raw: +
-                            - Raw: "3"
-                    - NamedExpr:
-                        name: added_default
-                        expr:
-                          Expr:
-                            - Ident: bar
-                            - Raw: +
-                            - Raw: "1"
+                    assigns:
+                      - NamedExpr:
+                          name: added
+                          expr:
+                            Expr:
+                              - Ident: bar
+                              - Raw: +
+                              - Raw: "3"
+                      - NamedExpr:
+                          name: added_default
+                          expr:
+                            Expr:
+                              - Ident: bar
+                              - Raw: +
+                              - Raw: "1"
+                    group: []
+                    window: ~
+                    sort: ~
         "###);
 
         Ok(())
@@ -666,16 +770,17 @@ derive [
     fn test_materialize_1() -> Result<()> {
         let ast = parse(
             r#"
-func count x = s"count({x})"
+        func count x = s"count({x})"
 
-from employees
-aggregate [
-  count salary
-]
-"#,
-        )?;
+        from employees
+        aggregate [
+        count salary
+        ]
+        "#,
+        )?
+        .nodes;
 
-        let (mat, _, _) = resolve_and_materialize(ast.nodes, None)?;
+        let mat = resolve_and_materialize(ast.clone()).unwrap();
         assert_yaml_snapshot!(mat,
             @r###"
         ---
@@ -688,11 +793,15 @@ aggregate [
                     alias: ~
               - Transform:
                   Aggregate:
-                    - SString:
-                        - String: count(
-                        - Expr:
-                            Ident: salary
-                        - String: )
+                    assigns:
+                      - SString:
+                          - String: count(
+                          - Expr:
+                              Ident: salary
+                          - String: )
+                    group: []
+                    window: ~
+                    sort: ~
         "###
         );
         Ok(())
@@ -728,9 +837,9 @@ sort sum_gross_cost
 filter sum_gross_cost > 200
 take 20
 "#,
-        )?;
+        )?.nodes;
 
-        let (mat, _, _) = resolve_and_materialize(ast.nodes, None)?;
+        let mat = resolve_and_materialize(ast.clone()).unwrap();
         assert_yaml_snapshot!(mat);
         Ok(())
     }
@@ -762,8 +871,8 @@ take 20
       return_usd_excess,
     ]
     "#,
-        )?;
-        let (mat, _, _) = resolve_and_materialize(ast.nodes, None)?;
+        )?.nodes;
+        let mat = resolve_and_materialize(ast.clone()).unwrap();
         assert_yaml_snapshot!(mat);
 
         Ok(())
@@ -783,9 +892,9 @@ group [title] (
     aggregate [avg_salary: average emp_salary]
 )
 "#,
-        )?;
+        )?.nodes;
 
-        let (mat, _, _) = resolve_and_materialize(ast.nodes, None)?;
+        let mat = resolve_and_materialize(ast.clone()).unwrap();
         assert_yaml_snapshot!(mat, @r###"
         ---
         - Pipeline:
@@ -806,14 +915,20 @@ group [title] (
                         functions:
                           - Transform:
                               Aggregate:
-                                - NamedExpr:
-                                    name: emp_salary
-                                    expr:
-                                      SString:
-                                        - String: AVG(
-                                        - Expr:
-                                            Ident: salary
-                                        - String: )
+                                assigns:
+                                  - NamedExpr:
+                                      name: emp_salary
+                                      expr:
+                                        SString:
+                                          - String: AVG(
+                                          - Expr:
+                                              Ident: salary
+                                          - String: )
+                                group:
+                                  - Ident: title
+                                  - Ident: emp_no
+                                window: ~
+                                sort: ~
               - Transform:
                   Group:
                     by:
@@ -824,18 +939,23 @@ group [title] (
                         functions:
                           - Transform:
                               Aggregate:
-                                - NamedExpr:
-                                    name: avg_salary
-                                    expr:
-                                      SString:
-                                        - String: AVG(
-                                        - Expr:
-                                            SString:
-                                              - String: AVG(
-                                              - Expr:
-                                                  Ident: salary
-                                              - String: )
-                                        - String: )
+                                assigns:
+                                  - NamedExpr:
+                                      name: avg_salary
+                                      expr:
+                                        SString:
+                                          - String: AVG(
+                                          - Expr:
+                                              SString:
+                                                - String: AVG(
+                                                - Expr:
+                                                    Ident: salary
+                                                - String: )
+                                          - String: )
+                                group:
+                                  - Ident: title
+                                window: ~
+                                sort: ~
         "###);
 
         Ok(())

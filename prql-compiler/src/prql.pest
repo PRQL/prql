@@ -102,7 +102,7 @@ operator_unary = ${ "-" }
 operator_mul = ${ "*" | "/" | "%" }
 operator_add = ${ "+" | "-" }
 operator_compare = ${ "==" | "!=" | "=" | ">" | "<" | ">=" | "<=" }
-operator_logical = ${ !ASCII_ALPHANUMERIC ~ ("and" | "or" | "not") ~ !ASCII_ALPHANUMERIC }
+operator_logical = ${ ("and" | "or" | "not") ~ &WHITESPACE }
 
 s_string = ${ "s" ~ PUSH(quote) ~ ( interpolate_string | ( "{" ~ expr_call ~ "}" ))* ~ POP }
 f_string = ${ "f" ~ PUSH(quote) ~ ( interpolate_string | ( "{" ~ expr_call ~ "}" ))* ~ POP }

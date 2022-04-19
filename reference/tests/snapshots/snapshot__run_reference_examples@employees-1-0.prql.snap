@@ -29,7 +29,7 @@ table_1 AS (
     gender
 )
 SELECT
-  dept_name,
+  departments.dept_name,
   gender,
   salary_avg,
   salary_sd

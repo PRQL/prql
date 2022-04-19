@@ -1,14 +1,13 @@
 ---
-source: reference/tests/snapshot.rs
+source: prql-compiler/src/sql/translator.rs
 expression: sql
-input_file: reference/tests/examples/examples/variables-0.prql
 ---
 SELECT
   title,
   country,
   AVG(salary),
-  AVG(salary + payroll_tax),
   SUM(salary),
+  AVG(salary + payroll_tax),
   SUM(salary + payroll_tax),
   AVG(salary + payroll_tax + benefits_cost),
   SUM(salary + payroll_tax + benefits_cost) AS sum_gross_cost,

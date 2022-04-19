@@ -1,4 +1,5 @@
 mod materializer;
+mod un_group;
 mod translator;
 
 pub use materializer::{materialize, MaterializedFrame};
@@ -6,31 +7,18 @@ pub use translator::translate;
 
 use anyhow::Result;
 
-use crate::ast::{Item, Node, Pipeline};
-use crate::semantic::*;
-use crate::utils::*;
+use crate::ast::{Node, Query};
+use crate::semantic;
 
-/// Resolve all variable and function calls then materialize them into their declared values.
-///
-/// Can work with previously resolved context (defined functions, variables).
-/// Also returns materialized columns that can be converted into items for SELECT
-pub fn resolve_and_materialize(
-    nodes: Vec<Node>,
-    context: Option<Context>,
-) -> Result<(Vec<Node>, Context, MaterializedFrame)> {
-    let (nodes, context) = resolve(nodes, context)?;
-    materialize(nodes, context)
-}
+/// Resolve all variable and function calls using SQL stdlib and then translate AST into SQL.
+pub fn resolve_and_translate(mut query: Query) -> Result<String> {
+    let std_lib = load_std_lib()?;
+    let (_, context) = semantic::resolve(std_lib, None)?;
 
-/// Utility wrapper. See [process]
-pub fn resolve_and_materialize_pipeline(
-    pipeline: Pipeline,
-    context: Option<Context>,
-) -> Result<(Pipeline, Context, MaterializedFrame)> {
-    let (nodes, context, select) =
-        resolve_and_materialize(vec![Item::Pipeline(pipeline).into()], context)?;
-    let pipeline = nodes.into_only()?.item.into_pipeline()?;
-    Ok((pipeline, context, select))
+    let (nodes, context) = semantic::resolve(query.nodes, Some(context))?;
+
+    query.nodes = nodes;
+    translate(query, context)
 }
 
 pub fn load_std_lib() -> Result<Vec<Node>> {

@@ -12,7 +12,8 @@ pub use anyhow::Result;
 pub use cli::Cli;
 pub use error::{format_error, SourceLocation};
 pub use parser::parse;
-pub use sql::translate;
+pub use semantic::*;
+pub use sql::{resolve_and_translate, translate};
 
 /// Compile a PRQL string into a SQL string.
 ///
@@ -20,7 +21,7 @@ pub use sql::translate;
 /// - [parse] — Build an AST from a PRQL query string.
 /// - [translate] — Write a SQL string from a PRQL AST.
 pub fn compile(prql: &str) -> Result<String> {
-    parse(prql).and_then(|x| translate(&x))
+    parse(prql).and_then(|x| resolve_and_translate(x))
 }
 
 /// Exposes some library internals.

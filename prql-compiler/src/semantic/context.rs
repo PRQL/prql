@@ -37,14 +37,14 @@ pub struct Context {
     pub(crate) declarations: Vec<(Declaration, Option<Span>)>,
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct Frame {
     pub columns: Vec<TableColumn>,
     pub sort: Vec<ColumnSort<usize>>,
     pub group: Vec<usize>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum TableColumn {
     All(String),
     Declared(usize),
@@ -77,20 +77,19 @@ impl Frame {
         }
         r
     }
-}
 
-impl Context {
-    pub fn get_frame(&self) -> Vec<Option<String>> {
-        self.frame
-            .columns
+    pub fn get_columns(&self, context: &Context) -> Vec<Option<String>> {
+        self.columns
             .iter()
             .map(|col| match col {
                 TableColumn::All(namespace) => Some(format!("{namespace}.*")),
-                TableColumn::Declared(id) => self.declarations[*id].0.as_name().cloned(),
+                TableColumn::Declared(id) => context.declarations[*id].0.as_name().cloned(),
             })
             .collect()
     }
+}
 
+impl Context {
     /// Takes a declaration with minimal memory copying. A dummy node is left in place.
     pub(crate) fn replace_declaration(&mut self, id: usize, node: Node) {
         let (decl, _) = self.declarations.get_mut(id).unwrap();
@@ -143,6 +142,7 @@ impl Context {
     }
 
     pub fn finish_table(&mut self, table_name: &str) {
+        // TODO: convert to operations on declarations
         self.variables.retain(|name, _| match name.as_str() {
             "_" | "$" | "%" => true,
             _ => {

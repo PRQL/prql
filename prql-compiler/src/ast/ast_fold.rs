@@ -24,8 +24,8 @@ pub trait AstFold {
     fn fold_item(&mut self, item: Item) -> Result<Item> {
         fold_item(self, item)
     }
-    fn fold_nodes(&mut self, items: Vec<Node>) -> Result<Vec<Node>> {
-        items.into_iter().map(|item| self.fold_node(item)).collect()
+    fn fold_nodes(&mut self, nodes: Vec<Node>) -> Result<Vec<Node>> {
+        nodes.into_iter().map(|node| self.fold_node(node)).collect()
     }
     fn fold_ident(&mut self, ident: Ident) -> Result<Ident> {
         Ok(ident)
@@ -84,9 +84,6 @@ pub fn fold_item<T: ?Sized + AstFold>(fold: &mut T, item: Item) -> Result<Item> 
                 .try_collect()?,
         ),
         Item::Range(Range { start, end }) => Item::Range(Range {
-            // This aren't strictly in the hierarchy, so we don't need to
-            // have an assoc. function for `fold_optional_box` — we just
-            // call out to the function in this module
             start: fold_optional_box(fold, start)?,
             end: fold_optional_box(fold, end)?,
         }),
@@ -125,6 +122,9 @@ pub fn fold_pipeline<T: ?Sized + AstFold>(fold: &mut T, pipeline: Pipeline) -> R
     })
 }
 
+// This aren't strictly in the hierarchy, so we don't need to
+// have an assoc. function for `fold_optional_box` — we just
+// call out to the function in this module
 pub fn fold_optional_box<T: ?Sized + AstFold>(
     fold: &mut T,
     opt: Option<Box<Node>>,
@@ -157,8 +157,12 @@ pub fn fold_transform<T: ?Sized + AstFold>(
     transformation: Transform,
 ) -> Result<Transform> {
     match transformation {
-        Transform::Derive(assigns) => Ok(Transform::Derive(fold.fold_nodes(assigns)?)),
         Transform::From(table) => Ok(Transform::From(fold.fold_table_ref(table)?)),
+
+        Transform::Derive(select) => Ok(Transform::Derive(fold_select(fold, select)?)),
+        Transform::Select(select) => Ok(Transform::Select(fold_select(fold, select)?)),
+        Transform::Aggregate(select) => Ok(Transform::Aggregate(fold_select(fold, select)?)),
+
         Transform::Filter(items) => Ok(Transform::Filter(fold.fold_nodes(items)?)),
         Transform::Sort(items) => Ok(Transform::Sort(fold.fold_column_sorts(items)?)),
         Transform::Join { side, with, filter } => Ok(Transform::Join {
@@ -166,8 +170,6 @@ pub fn fold_transform<T: ?Sized + AstFold>(
             with: fold.fold_table_ref(with)?,
             filter: fold_join_filter(fold, filter)?,
         }),
-        Transform::Select(items) => Ok(Transform::Select(fold.fold_nodes(items)?)),
-        Transform::Aggregate(nodes) => Ok(Transform::Aggregate(fold.fold_nodes(nodes)?)),
         Transform::Group { by, pipeline } => Ok(Transform::Group {
             by: fold.fold_nodes(by)?,
             pipeline: Box::new(fold.fold_node(*pipeline)?),
@@ -175,6 +177,15 @@ pub fn fold_transform<T: ?Sized + AstFold>(
         // TODO: generalize? Or this never changes?
         Transform::Take(_) => Ok(transformation),
     }
+}
+
+pub fn fold_select<T: ?Sized + AstFold>(fold: &mut T, select: Select) -> Result<Select> {
+    Ok(Select {
+        assigns: fold.fold_nodes(select.assigns)?,
+        group: fold.fold_nodes(select.group)?,
+        window: select.window.map(|x| fold.fold_nodes(x)).transpose()?,
+        sort: select.sort.map(|x| fold.fold_nodes(x)).transpose()?,
+    })
 }
 
 pub fn fold_join_filter<T: ?Sized + AstFold>(fold: &mut T, f: JoinFilter) -> Result<JoinFilter> {

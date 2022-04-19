@@ -23,7 +23,7 @@ pub fn cast_transform(func_call: FuncCall, span: Option<Span>) -> Result<Transfo
         "select" => {
             let ([assigns], []) = unpack(func_call, [])?;
 
-            Transform::Select(assigns.coerce_to_items())
+            Transform::Select(Select::new(assigns.coerce_to_items()))
         }
         "filter" => {
             let ([filter], []) = unpack(func_call, [])?;
@@ -33,14 +33,12 @@ pub fn cast_transform(func_call: FuncCall, span: Option<Span>) -> Result<Transfo
         "derive" => {
             let ([assigns], []) = unpack(func_call, [])?;
 
-            Transform::Derive(assigns.coerce_to_items())
+            Transform::Derive(Select::new(assigns.coerce_to_items()))
         }
         "aggregate" => {
-            let ([select], []) = unpack(func_call, [])?;
+            let ([assigns], []) = unpack(func_call, [])?;
 
-            let select = select.coerce_to_items();
-
-            Transform::Aggregate(select)
+            Transform::Aggregate(Select::new(assigns.coerce_to_items()))
         }
         "sort" => {
             let ([by], []) = unpack(func_call, [])?;
@@ -85,7 +83,6 @@ pub fn cast_transform(func_call: FuncCall, span: Option<Span>) -> Result<Transfo
         "take" => {
             let ([expr], []) = unpack(func_call, [])?;
 
-            // TODO: coerce to number
             Transform::Take(expr.discard_name()?.item.into_raw()?.parse()?)
         }
         "join" => {
@@ -288,11 +285,16 @@ mod tests {
                         functions:
                           - Transform:
                               Aggregate:
-                                - FuncCall:
-                                    name: average
-                                    args:
-                                      - Ident: amount
-                                    named_args: {}
+                                assigns:
+                                  - FuncCall:
+                                      name: average
+                                      args:
+                                        - Ident: amount
+                                      named_args: {}
+                                group:
+                                  - Ident: c_invoice.date
+                                window: ~
+                                sort: ~
         "###);
     }
 }

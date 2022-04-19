@@ -19,6 +19,6 @@ FROM
   table_0
   JOIN titles USING(emp_no)
 GROUP BY
-  title
+  titles.title
 LIMIT
   10

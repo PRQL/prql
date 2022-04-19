@@ -8,7 +8,7 @@
 // going to be isomorphically mapping everything back from SQL to PRQL. But it
 // does mean we should continue to iterate on this file and refactor things when
 // necessary.
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{anyhow, bail, Result};
 use itertools::Itertools;
 use sqlformat::{format, FormatOptions, QueryParams};
 use sqlparser::ast::{
@@ -22,13 +22,13 @@ use std::collections::HashMap;
 use crate::ast::JoinFilter;
 use crate::ast::*;
 use crate::error::{Error, Reason};
-use crate::semantic::{self};
+use crate::semantic::Context;
 
-use super::{load_std_lib, MaterializedFrame};
+use super::{un_group, MaterializedFrame};
 
 /// Translate a PRQL AST into a SQL string.
-pub fn translate(query: &Query) -> Result<String> {
-    let sql_query = translate_query(query)?;
+pub fn translate(query: Query, context: Context) -> Result<String> {
+    let sql_query = translate_query(query, context)?;
 
     let sql_query_string = sql_query.to_string();
 
@@ -40,28 +40,20 @@ pub fn translate(query: &Query) -> Result<String> {
     Ok(formatted)
 }
 
-pub fn translate_query(query: &Query) -> Result<sql_ast::Query> {
+pub fn translate_query(query: Query, mut context: Context) -> Result<sql_ast::Query> {
     // extract tables and the pipeline
-    let (tables, functions, pipeline) = separate_pipeline(query)?;
-
-    // load std lib
-    let std_lib = load_std_lib()?;
-    let functions = [std_lib, functions].concat();
-
-    // combine tables and main pipeline
-    let tables = [tables, vec![pipeline.into()]].concat();
+    let tables = into_tables(query.nodes)?;
 
     // split to atomics
     let atomics = atomic_tables_of_tables(tables)?;
 
-    // init query context
-    let (_, mut context) = semantic::resolve(functions, None)?;
-
     // materialize each atomic in two stages
     let mut materialized = Vec::new();
     for t in atomics {
-        let (pipeline, c, frame) =
-            super::resolve_and_materialize_pipeline(t.pipeline, Some(context))?;
+        let last_node = t.pipeline.functions.last().unwrap();
+        let frame = last_node.frame.clone().unwrap();
+
+        let (pipeline, frame, c) = super::materialize(t.pipeline, frame, context)?;
         context = c;
 
         context.finish_table(&t.name);
@@ -106,19 +98,18 @@ pub struct AtomicTable {
     frame: Option<MaterializedFrame>,
 }
 
-fn separate_pipeline(query: &Query) -> Result<(Vec<Table>, Vec<Node>, Vec<Node>)> {
+fn into_tables(nodes: Vec<Node>) -> Result<Vec<Table>> {
     let mut tables: Vec<Table> = Vec::new();
-    let mut functions: Vec<Node> = Vec::new();
-    let mut pipelines: Vec<Node> = Vec::new();
-    for node in &query.nodes {
-        match &node.item {
-            Item::Table(t) => tables.push(t.clone()),
-            Item::FuncDef(_) => functions.push(node.clone()),
-            Item::Pipeline(p) => pipelines.extend(p.functions.clone()),
+    let mut pipeline: Vec<Node> = Vec::new();
+    for node in nodes {
+        match node.item {
+            Item::Table(t) => tables.push(t),
+            Item::Pipeline(p) => pipeline.extend(p.functions),
             i => bail!("Unexpected item on top level: {i:?}"),
         }
     }
-    Ok((tables, functions, pipelines))
+
+    Ok([tables, vec![pipeline.into()]].concat())
 }
 
 fn table_to_sql_cte(table: AtomicTable, dialect: &Dialect) -> Result<sql_ast::Cte> {
@@ -215,12 +206,12 @@ fn sql_query_of_atomic_table(table: AtomicTable, dialect: &Dialect) -> Result<sq
     }
 
     // Split the pipeline into before & after the aggregate
-    let (before, after) = transforms.split_at(
-        transforms
-            .iter()
-            .position(|t| matches!(t, Transform::Aggregate { .. }))
-            .unwrap_or(transforms.len()),
-    );
+    let aggregate_position = transforms
+        .iter()
+        .position(|t| matches!(t, Transform::Aggregate { .. }))
+        .unwrap_or(transforms.len());
+    let (before, after) = transforms.split_at(aggregate_position);
+
     // Convert the filters in a pipeline into an Expr
     fn filter_of_pipeline(pipeline: &[Transform]) -> Result<Option<Expr>> {
         let filters: Vec<Vec<Node>> = pipeline
@@ -264,7 +255,13 @@ fn sql_query_of_atomic_table(table: AtomicTable, dialect: &Dialect) -> Result<sq
         })
         .collect();
 
-    let group_bys: Vec<Node> = vec![]; // TODO -------------
+    let aggregate = transforms.get(aggregate_position);
+
+    let group_bys: Vec<Node> = match aggregate {
+        Some(Transform::Aggregate(select)) => select.group.clone(),
+        None => vec![],
+        _ => unreachable!("Expected an aggregate transformation"),
+    };
     let group_by = Node::into_list_of_nodes(group_bys).item.try_into()?;
 
     let dialect = dialect.handler();
@@ -298,7 +295,7 @@ fn sql_query_of_atomic_table(table: AtomicTable, dialect: &Dialect) -> Result<sq
 }
 
 /// Convert a pipeline into a number of pipelines which can each "fit" into a SELECT.
-fn atomic_pipelines_of_pipeline(pipeline: &Pipeline) -> Result<Vec<AtomicTable>> {
+fn atomic_pipelines_of_pipeline(pipeline: Pipeline) -> Result<Vec<AtomicTable>> {
     // Insert a cut, when we find transformation that out of order:
     // - joins,
     // - filters (for WHERE)
@@ -311,15 +308,15 @@ fn atomic_pipelines_of_pipeline(pipeline: &Pipeline) -> Result<Vec<AtomicTable>>
     //
     // So we loop through the Pipeline, and cut it into cte-sized pipelines,
     // which we'll then compose together.
-    let pipeline = &pipeline.functions;
+    let pipeline = un_group::un_group(pipeline.functions)?;
 
     let mut counts: HashMap<&str, u32> = HashMap::new();
     let mut splits = vec![0];
     for (i, function) in pipeline.iter().enumerate() {
-        let func_call = (function.item.as_func_call()).context("expected FuncCall")?;
-        let transform = func_call.name.as_str();
+        let transform =
+            (function.item.as_transform()).ok_or_else(|| anyhow!("expected Transform"))?;
 
-        let split = match transform {
+        let split = match transform.name() {
             "join" => {
                 counts.get("filter").is_some()
                     || counts.get("aggregate").is_some()
@@ -340,7 +337,7 @@ fn atomic_pipelines_of_pipeline(pipeline: &Pipeline) -> Result<Vec<AtomicTable>>
             counts.clear();
         }
 
-        *counts.entry(transform).or_insert(0) += 1;
+        *counts.entry(transform.name()).or_insert(0) += 1;
     }
 
     splits.push(pipeline.len());
@@ -360,7 +357,7 @@ fn atomic_tables_of_tables(tables: Vec<Table>) -> Result<Vec<AtomicTable>> {
     for t in tables {
         // split table into atomics
         let pipeline = t.pipeline.item.into_pipeline()?;
-        let mut t_atomics: Vec<_> = atomic_pipelines_of_pipeline(&pipeline)?;
+        let mut t_atomics: Vec<_> = atomic_pipelines_of_pipeline(pipeline)?;
 
         let (last, ctes) = t_atomics
             .split_last_mut()
@@ -577,7 +574,7 @@ impl From<Vec<Node>> for AtomicTable {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::parser::parse;
+    use crate::{parser::parse, resolve, resolve_and_translate, sql::load_std_lib};
     use insta::{
         assert_debug_snapshot, assert_display_snapshot, assert_snapshot, assert_yaml_snapshot,
     };
@@ -621,7 +618,7 @@ SString:
         )
         .unwrap();
 
-        let sql = translate(&query).unwrap();
+        let sql = resolve_and_translate(query).unwrap();
         assert_display_snapshot!(sql,
             @r###"
         SELECT
@@ -665,20 +662,29 @@ SString:
         Ok(())
     }
 
+    fn parse_and_resolve(prql: &str) -> Result<Pipeline> {
+        let std_lib = load_std_lib()?;
+        let (_, context) = resolve(std_lib, None)?;
+
+        let (mut nodes, _) = resolve(parse(prql)?.nodes, Some(context))?;
+        let pipeline = nodes.remove(nodes.len() - 1);
+        let pipeline = pipeline.item.into_pipeline()?;
+        Ok(pipeline)
+    }
+
     #[test]
-    fn test_ctes_of_pipeline_1() -> Result<()> {
+    fn test_ctes_of_pipeline() -> Result<()> {
         // One aggregate, take at the end
         let prql: &str = r###"
         from employees
         filter country = "USA"
-        aggregate [average salary]
-        sort title
+        aggregate [sal: average salary]
+        sort sal
         take 20
         "###;
 
-        let query = parse(prql)?;
-        let pipeline = query.nodes[0].item.as_pipeline().unwrap();
-        let queries = atomic_pipelines_of_pipeline(&pipeline)?;
+        let pipeline = parse_and_resolve(prql)?;
+        let queries = atomic_pipelines_of_pipeline(pipeline)?;
         assert_eq!(queries.len(), 1);
 
         // One aggregate, but take at the top
@@ -686,13 +692,12 @@ SString:
         from employees
         take 20
         filter country = "USA"
-        aggregate [average salary]
-        sort title
+        aggregate [sal: average salary]
+        sort sal
         "###;
 
-        let query = parse(prql)?;
-        let pipeline = query.nodes[0].item.as_pipeline().unwrap();
-        let queries = atomic_pipelines_of_pipeline(&pipeline)?;
+        let pipeline = parse_and_resolve(prql)?;
+        let queries = atomic_pipelines_of_pipeline(pipeline)?;
         assert_eq!(queries.len(), 2);
 
         // A take, then two aggregates
@@ -700,14 +705,13 @@ SString:
         from employees
         take 20
         filter country = "USA"
-        aggregate [average salary]
-        aggregate [average salary]
-        sort title
+        aggregate [sal: average salary]
+        aggregate [sal: average sal]
+        sort sal
         "###;
 
-        let query = parse(prql)?;
-        let pipeline = query.nodes[0].item.as_pipeline().unwrap();
-        let queries = atomic_pipelines_of_pipeline(&pipeline)?;
+        let pipeline = parse_and_resolve(prql)?;
+        let queries = atomic_pipelines_of_pipeline(pipeline)?;
         assert_eq!(queries.len(), 3);
 
         // A take, then a select
@@ -717,9 +721,8 @@ SString:
         select first_name
         "###;
 
-        let query = parse(prql)?;
-        let pipeline = query.nodes[0].item.as_pipeline().unwrap();
-        let queries = atomic_pipelines_of_pipeline(&pipeline)?;
+        let pipeline = parse_and_resolve(prql)?;
+        let queries = atomic_pipelines_of_pipeline(pipeline)?;
         assert_eq!(queries.len(), 1);
         Ok(())
     }
@@ -738,7 +741,7 @@ SString:
         "###,
         )?;
 
-        let sql = translate(&query)?;
+        let sql = resolve_and_translate(query)?;
         assert_display_snapshot!(sql,
             @r###"
         SELECT
@@ -770,7 +773,7 @@ SString:
         filter sum_salary > 100
         "###,
         )?;
-        let sql = translate(&query)?;
+        let sql = resolve_and_translate(query)?;
         assert_snapshot!(sql, @r###"
         SELECT
           count(salary) AS sum_salary
@@ -798,7 +801,7 @@ SString:
     ]
     "#,
         )?;
-        let sql = translate(&query)?;
+        let sql = resolve_and_translate(query)?;
         assert_display_snapshot!(sql,
             @r###"
         SELECT
@@ -839,7 +842,7 @@ take 20
 "#,
         )?;
 
-        let sql = translate(&query)?;
+        let sql = resolve_and_translate(query)?;
         assert_display_snapshot!(sql);
         Ok(())
     }
@@ -867,7 +870,7 @@ take 20
         select [name, salary, average_country_salary]
     "#,
         )?;
-        let sql = translate(&query)?;
+        let sql = resolve_and_translate(query)?;
         assert_display_snapshot!(sql,
             @r###"
         WITH newest_employees AS (
@@ -923,7 +926,7 @@ take 20
         "###,
         )?;
 
-        assert_display_snapshot!((translate(&query)?), @r###"
+        assert_display_snapshot!((resolve_and_translate(query)?), @r###"
         WITH table_0 AS (
           SELECT
             employees.*
@@ -935,7 +938,7 @@ take 20
           SELECT
             title,
             country,
-            AVG(salary)
+            AVG(salary) AS salary
           FROM
             table_0
           WHERE
@@ -977,7 +980,7 @@ take 20
 "###,
         )?;
 
-        assert_display_snapshot!((translate(&query)?), @r###"
+        assert_display_snapshot!((resolve_and_translate(query)?), @r###"
         WITH table_0 AS (
           SELECT
             employees.*
@@ -1012,7 +1015,7 @@ take 20
         join s:salaries [emp_no]
         select [employees.emp_no, d.name, s.salary]
         "###;
-        let result = parse(prql).and_then(|x| translate(&x)).unwrap();
+        let result = parse(prql).and_then(|x| resolve_and_translate(x)).unwrap();
         assert_display_snapshot!(result, @r###"
         WITH table_0 AS (
           SELECT
@@ -1040,7 +1043,7 @@ take 20
         join salaries [emp_no]
         select [e.*, salary]
         "###;
-        let result = parse(prql).and_then(|x| translate(&x)).unwrap();
+        let result = parse(prql).and_then(|x| resolve_and_translate(x)).unwrap();
         assert_display_snapshot!(result, @r###"
         WITH table_0 AS (
           SELECT
@@ -1075,7 +1078,7 @@ take 20
         "###,
         )?;
 
-        assert_display_snapshot!((translate(&query)?), @r###"
+        assert_display_snapshot!((resolve_and_translate(query)?), @r###"
         SELECT
           e.emp_no,
           AVG(salary) AS emp_salary
@@ -1100,7 +1103,7 @@ take 20
         "###,
         )?;
 
-        assert_display_snapshot!((translate(&query)?), @r###"
+        assert_display_snapshot!((resolve_and_translate(query)?), @r###"
         SELECT
           FirstName
         FROM
@@ -1119,7 +1122,7 @@ take 20
         "###,
         )?;
 
-        assert_display_snapshot!((translate(&query)?), @r###"
+        assert_display_snapshot!((resolve_and_translate(query)?), @r###"
         SELECT
           TOP (3) FirstName
         FROM
@@ -1138,7 +1141,7 @@ take 20
         "###,
         )?;
 
-        assert_display_snapshot!((translate(&query)?), @r###"
+        assert_display_snapshot!((resolve_and_translate(query)?), @r###"
         SELECT
           Employees.*
         FROM
@@ -1161,7 +1164,7 @@ take 20
         "###,
         )?;
 
-        assert_display_snapshot!((translate(&query)?), @r###"
+        assert_display_snapshot!((resolve_and_translate(query)?), @r###"
         SELECT
           employees.*
         FROM
@@ -1178,7 +1181,7 @@ take 20
         "###,
         )?;
 
-        assert!(translate(&query).is_err());
+        assert!(resolve_and_translate(query).is_err());
 
         Ok(())
     }
@@ -1192,7 +1195,7 @@ take 20
         "###,
         )?;
 
-        assert_display_snapshot!((translate(&query)?), @r###"
+        assert_display_snapshot!((resolve_and_translate(query)?), @r###"
         SELECT
           projects.*,
           start + INTERVAL '10' DAY AS first_check_in

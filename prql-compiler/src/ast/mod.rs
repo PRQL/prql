@@ -9,6 +9,7 @@ pub use self::dialect::*;
 pub use self::item::*;
 pub use self::query::*;
 use crate::error::{Error, Reason, Span};
+use crate::semantic::Frame;
 use crate::utils::*;
 
 pub mod ast_fold;
@@ -19,7 +20,7 @@ pub mod query;
 /// A name. Generally columns, tables, functions, variables.
 pub type Ident = String;
 
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Node {
     #[serde(flatten)]
     pub item: Item,
@@ -27,6 +28,8 @@ pub struct Node {
     pub span: Option<Span>,
     #[serde(skip)]
     pub declared_at: Option<usize>,
+    #[serde(skip)]
+    pub frame: Option<Frame>,
 }
 
 impl Node {
@@ -117,6 +120,7 @@ impl From<Item> for Node {
             item,
             span: None,
             declared_at: None,
+            frame: None,
         }
     }
 }
