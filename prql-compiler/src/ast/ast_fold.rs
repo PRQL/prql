@@ -27,20 +27,13 @@ pub trait AstFold {
     fn fold_nodes(&mut self, items: Vec<Node>) -> Result<Vec<Node>> {
         items.into_iter().map(|item| self.fold_node(item)).collect()
     }
-
-    fn fold_frame_pipeline(&mut self, pipeline: Vec<Transform>) -> Result<Vec<Transform>> {
-        pipeline
-            .into_iter()
-            .map(|t| self.fold_transform(t))
-            .collect()
-    }
     fn fold_ident(&mut self, ident: Ident) -> Result<Ident> {
         Ok(ident)
     }
     fn fold_table(&mut self, table: Table) -> Result<Table> {
         Ok(Table {
             name: self.fold_ident(table.name)?,
-            pipeline: self.fold_frame_pipeline(table.pipeline)?,
+            pipeline: Box::new(self.fold_node(*table.pipeline)?),
         })
     }
     // For some functions, we want to call a default impl, because copying &
@@ -51,6 +44,9 @@ pub trait AstFold {
     // necessary. Ref https://stackoverflow.com/a/66077767/3064736
     fn fold_transform(&mut self, transform: Transform) -> Result<Transform> {
         fold_transform(self, transform)
+    }
+    fn fold_pipeline(&mut self, pipeline: Pipeline) -> Result<Pipeline> {
+        fold_pipeline(self, pipeline)
     }
     fn fold_func_def(&mut self, function: FuncDef) -> Result<FuncDef> {
         fold_func_def(self, function)
@@ -98,13 +94,7 @@ pub fn fold_item<T: ?Sized + AstFold>(fold: &mut T, item: Item) -> Result<Item> 
             nodes: fold.fold_nodes(query.nodes)?,
             ..query
         }),
-        Item::Pipeline(Pipeline { value, functions }) => Item::Pipeline(Pipeline {
-            value: fold_optional_box(fold, value)?,
-            functions: fold.fold_nodes(functions)?,
-        }),
-        Item::FramePipeline(transformations) => {
-            Item::FramePipeline(fold.fold_frame_pipeline(transformations)?)
-        }
+        Item::Pipeline(p) => Item::Pipeline(fold.fold_pipeline(p)?),
         Item::NamedExpr(named_expr) => Item::NamedExpr(fold.fold_named_expr(named_expr)?),
         Item::Transform(transformation) => Item::Transform(fold.fold_transform(transformation)?),
         Item::SString(items) => Item::SString(
@@ -121,13 +111,17 @@ pub fn fold_item<T: ?Sized + AstFold>(fold: &mut T, item: Item) -> Result<Item> 
         ),
         Item::FuncDef(func) => Item::FuncDef(fold.fold_func_def(func)?),
         Item::FuncCall(func_call) => Item::FuncCall(fold.fold_func_call(func_call)?),
-        Item::Table(table) => Item::Table(Table {
-            name: table.name,
-            pipeline: fold.fold_frame_pipeline(table.pipeline)?,
-        }),
+        Item::Table(table) => Item::Table(fold.fold_table(table)?),
         // None of these capture variables, so we don't need to replace
         // them.
         Item::String(_) | Item::Raw(_) | Item::Interval(_) => item,
+    })
+}
+
+pub fn fold_pipeline<T: ?Sized + AstFold>(fold: &mut T, pipeline: Pipeline) -> Result<Pipeline> {
+    Ok(Pipeline {
+        value: fold_optional_box(fold, pipeline.value)?,
+        functions: fold.fold_nodes(pipeline.functions)?,
     })
 }
 
@@ -176,7 +170,7 @@ pub fn fold_transform<T: ?Sized + AstFold>(
         Transform::Aggregate(nodes) => Ok(Transform::Aggregate(fold.fold_nodes(nodes)?)),
         Transform::Group { by, pipeline } => Ok(Transform::Group {
             by: fold.fold_nodes(by)?,
-            pipeline: fold.fold_frame_pipeline(pipeline)?,
+            pipeline: Box::new(fold.fold_node(*pipeline)?),
         }),
         // TODO: generalize? Or this never changes?
         Transform::Take(_) => Ok(transformation),
@@ -227,6 +221,7 @@ pub fn fold_table_ref<T: ?Sized + AstFold>(fold: &mut T, table: TableRef) -> Res
 pub fn fold_func_def<T: ?Sized + AstFold>(fold: &mut T, func_def: FuncDef) -> Result<FuncDef> {
     Ok(FuncDef {
         name: fold.fold_ident(func_def.name)?,
+        kind: func_def.kind,
         positional_params: fold.fold_nodes(func_def.positional_params)?,
         named_params: fold.fold_nodes(func_def.named_params)?,
         body: Box::new(fold.fold_node(*func_def.body)?),

@@ -1,7 +1,6 @@
 /// Abstract syntax tree for PRQL language
-/// 
+///
 /// The central struct here is [Node], that can be of different kinds, described with [item::Item].
-
 use anyhow::{bail, Result};
 use serde::{Deserialize, Serialize};
 use strum::{self};

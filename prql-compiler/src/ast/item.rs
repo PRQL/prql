@@ -1,12 +1,12 @@
 use std::collections::HashMap;
 
-use anyhow::{anyhow};
+use anyhow::anyhow;
 use enum_as_inner::EnumAsInner;
+use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use strum::{self, Display};
 
 pub use super::*;
-
 
 #[derive(Debug, EnumAsInner, Display, PartialEq, Clone, Serialize, Deserialize)]
 pub enum Item {
@@ -15,10 +15,7 @@ pub enum Item {
     Raw(String),
     NamedExpr(NamedExpr),
     Query(Query),
-    /// Generic pipeline that (may) start with a value
     Pipeline(Pipeline),
-    /// Pipeline operating on a frame. Does not start with a value
-    FramePipeline(Vec<Transform>),
     Transform(Transform),
     List(Vec<ListItem>),
     Range(Range),
@@ -40,9 +37,10 @@ impl ListItem {
     }
 }
 
-
-
 /// Function call.
+///
+/// Note that `named_args` cannot be determined during parsing, but only during resolving.
+/// Until then, they are stored in args as named expression.
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct FuncCall {
     pub name: Ident,
@@ -86,9 +84,36 @@ pub struct Interval {
     pub unit: String, // Could be an enum IntervalType,
 }
 
+impl Pipeline {
+    pub fn into_transforms(self) -> Result<Vec<Transform>, Item> {
+        self.functions
+            .into_iter()
+            .map(|f| f.item.into_transform())
+            .try_collect()
+    }
+
+    pub fn as_transforms(&self) -> Option<Vec<&Transform>> {
+        self.functions
+            .iter()
+            .map(|f| f.item.as_transform())
+            .collect()
+    }
+}
+impl From<Vec<Node>> for Pipeline {
+    fn from(functions: Vec<Node>) -> Self {
+        let value = None;
+        Pipeline { functions, value }
+    }
+}
+
 impl From<Item> for anyhow::Error {
-  // https://github.com/bluejekyll/enum-as-inner/issues/84
-  fn from(item: Item) -> Self {
-      anyhow!("Failed to convert {item:?}")
-  }
+    // https://github.com/bluejekyll/enum-as-inner/issues/84
+    #[allow(unreachable_code)]
+    fn from(item: Item) -> Self {
+        #[cfg(debug_assertions)]
+        {
+            // panic!("Failed to convert {item:?}")
+        }
+        anyhow!("Failed to convert {item:?}")
+    }
 }

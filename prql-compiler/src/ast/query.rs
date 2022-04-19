@@ -1,9 +1,8 @@
 /// Types for outer-scope AST nodes (query, table, func def, transform)
-
 use serde::{Deserialize, Serialize};
+use strum::EnumString;
 
-use super::{Dialect, Node, Ident};
-
+use super::{Dialect, Ident, Node};
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize, Default)]
 pub struct Query {
@@ -17,15 +16,27 @@ pub struct Query {
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct FuncDef {
     pub name: Ident,
+    #[serde(default)]
+    pub kind: Option<FuncKind>,
     pub positional_params: Vec<Node>, // ident
     pub named_params: Vec<Node>,      // named expr
     pub body: Box<Node>,
 }
 
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, EnumString)]
+pub enum FuncKind {
+    #[strum(serialize = "transform")]
+    Transform,
+    #[strum(serialize = "aggregation")]
+    Aggregation,
+    #[strum(serialize = "window")]
+    Window,
+}
+
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Table {
     pub name: String,
-    pub pipeline: Vec<Transform>,
+    pub pipeline: Box<Node>,
 }
 
 /// Transformation is used for each stage in a pipeline
@@ -48,7 +59,7 @@ pub enum Transform {
     },
     Group {
         by: Vec<Node>,
-        pipeline: Vec<Transform>,
+        pipeline: Box<Node>,
     },
 }
 
@@ -125,7 +136,7 @@ pub enum SortDirection {
 }
 
 impl Default for SortDirection {
-  fn default() -> Self {
-      SortDirection::Asc
-  }
+    fn default() -> Self {
+        SortDirection::Asc
+    }
 }

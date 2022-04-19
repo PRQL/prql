@@ -1,3 +1,4 @@
+mod cast_transforms;
 mod context;
 mod materializer;
 mod reporting;
@@ -8,7 +9,7 @@ pub use materializer::{materialize, MaterializedFrame};
 pub use reporting::print;
 pub use resolver::resolve;
 
-use crate::ast::{Item, Node, Transform};
+use crate::ast::{Item, Node, Pipeline};
 use crate::utils::IntoOnly;
 use anyhow::Result;
 
@@ -26,11 +27,11 @@ pub fn resolve_and_materialize(
 
 /// Utility wrapper. See [process]
 pub fn process_pipeline(
-    pipeline: Vec<Transform>,
+    pipeline: Pipeline,
     context: Option<Context>,
-) -> Result<(Vec<Transform>, Context, MaterializedFrame)> {
+) -> Result<(Pipeline, Context, MaterializedFrame)> {
     let (nodes, context, select) =
-        resolve_and_materialize(vec![Item::FramePipeline(pipeline).into()], context)?;
-    let pipeline = nodes.into_only()?.item.into_frame_pipeline()?;
+        resolve_and_materialize(vec![Item::Pipeline(pipeline).into()], context)?;
+    let pipeline = nodes.into_only()?.item.into_pipeline()?;
     Ok((pipeline, context, select))
 }

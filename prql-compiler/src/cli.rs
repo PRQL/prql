@@ -8,10 +8,13 @@ use std::{
     ops::Range,
 };
 
-use crate::ast::{Item, Node};
 use crate::error::{self, Span};
-use crate::semantic::{self, process_pipeline, resolve, resolve_and_materialize};
+use crate::semantic::{self, resolve, resolve_and_materialize};
 use crate::translator::load_std_lib;
+use crate::{
+    ast::{Item, Node},
+    semantic::process_pipeline,
+};
 use crate::{parse, translate};
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ArgEnum)]
@@ -148,10 +151,11 @@ fn resolve_with_frames(
                     frames.push((span, context.get_frame()));
                 };
             }
-            Item::FramePipeline(pipeline) => {
-                for t in pipeline {
-                    let span = t.first_node().and_then(|n| n.span);
-                    let (_, c, _) = process_pipeline(vec![t], Some(context))?;
+            Item::Pipeline(pipeline) => {
+                for f in pipeline.functions {
+                    let span = f.span;
+
+                    let (_, c, _) = process_pipeline(vec![f].into(), Some(context))?;
                     context = c;
 
                     if let Some(span) = span {
@@ -206,7 +210,7 @@ mod tests {
             r#"
 from initial_table
 select [first: name, last: last_name, gender]
-derive [full_name: first + " " + last]
+derive full_name: first + " " + last
 take 23
 select [last + " " + first, full: full_name, gender]
 sort full
@@ -215,11 +219,10 @@ sort full
         .unwrap();
         assert_snapshot!(String::from_utf8(output).unwrap().trim(),
         @r###"
-
-        from initial_table
+        from initial_table                                    # [initial_table.*]
         select [first: name, last: last_name, gender]         # [first, last, gender]
-        derive [full_name: first + " " + last]                # [first, last, gender, full_name]
-        take 23
+        derive full_name: first + " " + last                  # [first, last, gender, full_name]
+        take 23                                               # [first, last, gender, full_name]
         select [last + " " + first, full: full_name, gender]  # [?, full, gender]
         sort full                                             # [?, full, gender]
         "###);

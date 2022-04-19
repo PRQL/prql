@@ -12,6 +12,15 @@ expression: "parse_tree_of_str(\"func plus_one x = x + 1\", Rule::func_def)?"
         },
         inner: [
             Pair {
+                rule: func_def_flags,
+                span: Span {
+                    str: "",
+                    start: 5,
+                    end: 5,
+                },
+                inner: [],
+            },
+            Pair {
                 rule: ident,
                 span: Span {
                     str: "plus_one",

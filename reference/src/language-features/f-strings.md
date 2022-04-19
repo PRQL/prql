@@ -5,18 +5,14 @@ Currently PRQL supports this for concatenating strings:
 
 ```prql
 from x
-select [
-  full_name: f"{first} {last}"
-]
+select full_name: f"{first} {last}"
 ```
 
 This can be much easier to read for longer strings, relative to the SQL approach:
 
 ```prql
 from x
-select [
-  url: f"http{tls}://www.{domain}.{tld}/{page}"
-]
+select url: f"http{tls}://www.{domain}.{tld}/{page}"
 ```
 
 In the future, this may extend to other types of formatting, such as datetimes,

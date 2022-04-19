@@ -1,12 +1,13 @@
-use anyhow::anyhow;
-use anyhow::bail;
-use anyhow::Result;
+use std::collections::HashSet;
+
+use anyhow::{anyhow, Result};
 use itertools::Itertools;
 
 use crate::ast::ast_fold::*;
 use crate::ast::*;
-use crate::error::{Error, Reason};
+use crate::error::{Error, Reason, WithErrorInfo};
 
+use super::cast_transforms;
 use super::context::{Context, Frame};
 
 /// Runs semantic analysis on the query, using current state.
@@ -15,9 +16,9 @@ use super::context::{Context, Frame};
 /// Note that analyzer removes function declarations, derive and select
 /// transformations from AST and saves them as current context.
 pub fn resolve(nodes: Vec<Node>, context: Option<Context>) -> Result<(Vec<Node>, Context)> {
-    let context = context.unwrap_or_default();
+    let context = context.unwrap_or_else(init_context);
 
-    let mut resolver = Resolver { context };
+    let mut resolver = Resolver::new(context);
 
     let nodes = resolver.fold_nodes(nodes)?;
 
@@ -27,21 +28,39 @@ pub fn resolve(nodes: Vec<Node>, context: Option<Context>) -> Result<(Vec<Node>,
 /// Can fold (walk) over AST and for each function calls or variable find what they are referencing.
 pub struct Resolver {
     pub context: Context,
+
+    /// True iff resolving a function curry (in a pipeline)
+    within_curry: bool,
+}
+impl Resolver {
+    fn new(context: Context) -> Self {
+        Resolver {
+            context,
+            within_curry: false,
+        }
+    }
 }
 
 impl AstFold for Resolver {
+    fn fold_pipeline(&mut self, pipeline: Pipeline) -> Result<Pipeline> {
+        let value = fold_optional_box(self, pipeline.value)?;
+
+        self.within_curry = true;
+        let functions = self.fold_nodes(pipeline.functions)?;
+        self.within_curry = false;
+
+        Ok(Pipeline { value, functions })
+    }
+
     // save functions declarations
     fn fold_nodes(&mut self, items: Vec<Node>) -> Result<Vec<Node>> {
         // We cut out function def, so we need to run it
         // here rather than in `fold_func_def`.
         items
             .into_iter()
-            .map(|item| {
-                Ok(match item {
-                    Node {
-                        item: Item::FuncDef(mut func_def),
-                        ..
-                    } => {
+            .map(|node| {
+                Ok(match node.item {
+                    Item::FuncDef(mut func_def) => {
                         // declare variables
                         for param in &mut func_def.named_params {
                             param.declared_at = Some(self.context.declare_func_param(param));
@@ -60,7 +79,7 @@ impl AstFold for Resolver {
                         self.context.declare_func(func_def);
                         None
                     }
-                    _ => Some(self.fold_node(item)?),
+                    _ => Some(self.fold_node(node)?),
                 })
             })
             .filter_map(|x| x.transpose())
@@ -68,19 +87,27 @@ impl AstFold for Resolver {
     }
 
     fn fold_node(&mut self, mut node: Node) -> Result<Node> {
+        let within_curry = self.within_curry;
+        self.within_curry = false;
+
         node.item = match node.item {
             Item::FuncCall(func_call) => {
+                // find declaration
                 node.declared_at = self.context.functions.get(&func_call.name).cloned();
 
-                if node.declared_at.is_none() {
-                    bail!(Error::new(Reason::NotFound {
-                        name: func_call.name,
-                        namespace: "function".to_string(),
-                    })
-                    .with_span(node.span));
-                }
+                // validate function call
+                let (func_call, func_def) = self
+                    .validate_function_call(node.declared_at, func_call, within_curry)
+                    .with_span(node.span)?;
 
-                Item::FuncCall(self.fold_func_call(func_call)?)
+                // fold (and cast if this is a transform)
+                if let Some(FuncKind::Transform) = func_def.kind {
+                    let transform = cast_transforms::cast_transform(func_call, node.span)?;
+
+                    Item::Transform(self.fold_transform(transform)?)
+                } else {
+                    Item::FuncCall(self.fold_func_call(func_call)?)
+                }
             }
 
             Item::Ident(ident) => {
@@ -92,95 +119,86 @@ impl AstFold for Resolver {
 
             item => fold_item(self, item)?,
         };
+
+        self.within_curry = within_curry;
         Ok(node)
     }
 
-    fn fold_frame_pipeline(&mut self, pipeline: Vec<Transform>) -> Result<Vec<Transform>> {
-        pipeline
-            .into_iter()
-            .map(|t| {
-                Ok(match t {
-                    Transform::From(t) => {
-                        self.context.flatten_scope();
+    fn fold_transform(&mut self, t: Transform) -> Result<Transform> {
+        Ok(match t {
+            Transform::From(t) => {
+                self.context.flatten_scope();
 
-                        self.context.frame = Frame::default();
+                self.context.frame = Frame::default();
 
-                        self.context.declare_table(&t);
+                self.context.declare_table(&t);
 
-                        let t = Transform::From(t);
-                        fold_transform(self, t)?
-                    }
+                let t = Transform::From(t);
+                fold_transform(self, t)?
+            }
 
-                    Transform::Select(nodes) => {
-                        self.context.frame.columns.clear();
+            Transform::Select(nodes) => {
+                self.context.frame.columns.clear();
 
-                        let nodes = self.fold_and_declare(nodes, true)?;
+                let nodes = self.fold_and_declare(nodes, true)?;
 
-                        self.context.flatten_scope();
+                self.context.flatten_scope();
 
-                        Transform::Select(nodes)
-                    }
-                    Transform::Derive(nodes) => {
-                        let nodes = self.fold_and_declare(nodes, true)?;
+                Transform::Select(nodes)
+            }
+            Transform::Derive(nodes) => {
+                let nodes = self.fold_and_declare(nodes, true)?;
 
-                        Transform::Derive(nodes)
-                    }
-                    Transform::Group { by, pipeline } => {
-                        let by = self.fold_nodes(by)?;
-                        self.context.frame.group = nodes_to_declaration_ids(by.clone())?;
+                Transform::Derive(nodes)
+            }
+            Transform::Group { by, pipeline } => {
+                let by = self.fold_nodes(by)?;
+                self.context.frame.group = nodes_to_declaration_ids(by.clone())?;
 
-                        let pipeline = self.fold_frame_pipeline(pipeline)?;
+                let pipeline = Box::new(self.fold_node(*pipeline)?);
 
-                        self.context.frame.group.clear();
+                self.context.frame.group.clear();
+                Transform::Group { by, pipeline }
+            }
+            Transform::Aggregate(nodes) => {
+                self.context.frame.columns.clear();
+                self.context.frame.groups_to_columns();
 
-                        Transform::Group { by, pipeline }
-                    }
-                    Transform::Aggregate(nodes) => {
-                        self.context.frame.columns.clear();
-                        self.context.frame.groups_to_columns();
+                let nodes = self.fold_and_declare(nodes, true)?;
 
-                        let nodes = self.fold_and_declare(nodes, true)?;
+                self.context.flatten_scope();
 
-                        // dbg!(&self.context.variables);
+                Transform::Aggregate(nodes)
+            }
+            Transform::Join { side, with, filter } => {
+                self.context.declare_table(&with);
 
-                        self.context.flatten_scope();
-
-                        // dbg!(&self.context.frame.decls_in_use());
-                        // dbg!(&self.context.variables);
-
-                        Transform::Aggregate(nodes)
-                    }
-                    Transform::Join { side, with, filter } => {
-                        self.context.declare_table(&with);
-
-                        Transform::Join {
-                            side,
-                            with: self.fold_table_ref(with)?,
-                            filter: match filter {
-                                JoinFilter::On(nodes) => JoinFilter::On(self.fold_nodes(nodes)?),
-                                JoinFilter::Using(nodes) => {
-                                    for node in &nodes {
-                                        self.ensure_in_two_namespaces(node).map_err(|e| {
-                                            Error::new(Reason::Simple(e)).with_span(node.span)
-                                        })?;
-                                        self.context.declare_table_column(node, true);
-                                    }
-                                    JoinFilter::Using(nodes)
-                                }
-                            },
+                Transform::Join {
+                    side,
+                    with: self.fold_table_ref(with)?,
+                    filter: match filter {
+                        JoinFilter::On(nodes) => JoinFilter::On(self.fold_nodes(nodes)?),
+                        JoinFilter::Using(nodes) => {
+                            for node in &nodes {
+                                self.ensure_in_two_namespaces(node).map_err(|e| {
+                                    Error::new(Reason::Simple(e)).with_span(node.span)
+                                })?;
+                                self.context.declare_table_column(node, true);
+                            }
+                            JoinFilter::Using(nodes)
                         }
-                    }
-                    Transform::Sort(sort) => {
-                        let sort = self.fold_column_sorts(sort)?;
+                    },
+                }
+            }
+            Transform::Sort(sort) => {
+                let sort = self.fold_column_sorts(sort)?;
 
-                        self.context.frame.sort = sort_to_declaration_ids(sort.clone())?;
+                self.context.frame.sort = sort_to_declaration_ids(sort.clone())?;
 
-                        Transform::Sort(sort)
-                    }
-                    t => fold_transform(self, t)?,
-                })
-            })
-            .try_collect()
+                Transform::Sort(sort)
+            }
+            t => fold_transform(self, t)?,
+        })
     }
 }
 
@@ -206,6 +224,66 @@ impl Resolver {
             _ => Ok(()),
         }
     }
+
+    fn validate_function_call(
+        &self,
+        declared_at: Option<usize>,
+        mut func_call: FuncCall,
+        is_curry: bool,
+    ) -> Result<(FuncCall, FuncDef), Error> {
+        if declared_at.is_none() {
+            return Err(Error::new(Reason::NotFound {
+                name: func_call.name,
+                namespace: "function".to_string(),
+            }));
+        }
+
+        let func_dec = declared_at.unwrap();
+        let func_dec = &self.context.declarations[func_dec].0;
+        let func_def = func_dec.as_function().unwrap().clone();
+
+        // extract needed named args from positionals
+        let named_params: HashSet<_> = (func_def.named_params)
+            .iter()
+            .map(|param| &param.item.as_named_expr().unwrap().name)
+            .collect();
+        let (named, positional) = func_call.args.into_iter().partition(|arg| {
+            // TODO: replace with drain_filter when it hits stable
+            if let Item::NamedExpr(ne) = &arg.item {
+                named_params.contains(&ne.name)
+            } else {
+                false
+            }
+        });
+        func_call.args = positional;
+        func_call.named_args = named
+            .into_iter()
+            .map(|arg| arg.item.into_named_expr().unwrap())
+            .map(|ne| (ne.name, ne.expr))
+            .collect();
+
+        // validate number of parameters
+        let expected_len = func_def.positional_params.len();
+        let passed_len = func_call.args.len() + is_curry as usize;
+        if expected_len != passed_len {
+            let mut err = Error::new(Reason::Expected {
+                who: Some(func_call.name.clone()),
+                expected: format!("{} arguments", expected_len),
+                found: format!("{}", passed_len),
+            });
+
+            if passed_len > expected_len && func_call.args.len() >= 2 {
+                err = err.with_help(format!(
+                    "If you are calling a function, you may want to add braces: `{} [{:?} {:?}]`",
+                    func_call.name, func_call.args[0], func_call.args[1]
+                ));
+            }
+
+            return Err(err);
+        }
+
+        Ok((func_call, func_def))
+    }
 }
 
 fn sort_to_declaration_ids(sort: Vec<ColumnSort>) -> Result<Vec<ColumnSort<usize>>> {
@@ -230,6 +308,16 @@ fn nodes_to_declaration_ids(nodes: Vec<Node>) -> Result<Vec<usize>> {
         .try_collect()
 }
 
+/// Loads `internal.prql` which contains type definitions of transforms
+pub fn init_context() -> Context {
+    use crate::parse;
+    let transforms = include_str!("./transforms.prql");
+    let transforms = parse(transforms).unwrap().nodes;
+
+    let (_, context) = resolve(transforms, Some(Context::default())).unwrap();
+    context
+}
+
 #[cfg(test)]
 mod tests {
     use insta::{assert_debug_snapshot, assert_snapshot, assert_yaml_snapshot};
@@ -241,16 +329,20 @@ mod tests {
 
     #[test]
     fn test_scopes_during_from() {
-        let context = Context::default();
+        let context = init_context();
 
-        let mut resolver = Resolver { context };
+        let mut resolver = Resolver::new(context);
 
         let pipeline: Node = from_str(
             r##"
-            FramePipeline:
-                - From:
-                    name: employees
-                    alias: ~
+            Pipeline:
+              value: ~
+              functions:
+                - FuncCall:
+                    name: from
+                    args:
+                    - Ident: employees
+                    named_args: {}
         "##,
         )
         .unwrap();
@@ -268,29 +360,37 @@ mod tests {
 
     #[test]
     fn test_scopes_during_select() {
-        let context = Context::default();
+        let context = init_context();
 
-        let mut resolver = Resolver { context };
+        let mut resolver = Resolver::new(context);
 
         let pipeline: Node = from_str(
             r##"
-            FramePipeline:
-                - From:
-                    name: employees
-                    alias: ~
-                - Select:
-                    - NamedExpr:
-                        name: salary_1
-                        expr:
-                            Ident: salary
-                    - NamedExpr:
-                        name: salary_2
-                        expr:
-                            Expr:
-                              - Ident: salary_1
-                              - Raw: +
-                              - Raw: '1'
-                    - Ident: age
+            Pipeline:
+              value: ~
+              functions:
+                - FuncCall:
+                    name: from
+                    args:
+                    - Ident: employees
+                    named_args: {}
+                - FuncCall:
+                    name: select
+                    args:
+                    - List:
+                        - NamedExpr:
+                            name: salary_1
+                            expr:
+                                Ident: salary
+                        - NamedExpr:
+                            name: salary_2
+                            expr:
+                                Expr:
+                                - Ident: salary_1
+                                - Raw: +
+                                - Raw: "1"
+                        - Ident: age
+                    named_args: {}
         "##,
         )
         .unwrap();
@@ -302,15 +402,15 @@ mod tests {
             [
                 (
                     "age",
-                    4,
+                    34,
                 ),
                 (
                     "salary_1",
-                    1,
+                    31,
                 ),
                 (
                     "salary_2",
-                    2,
+                    32,
                 ),
             ],
         )

@@ -43,9 +43,7 @@ derive [{new_name}: {expression}]
 
 ```prql
 from employees
-derive [
-  gross_salary: salary + payroll_tax
-]
+derive gross_salary: salary + payroll_tax
 ```
 
 ```prql

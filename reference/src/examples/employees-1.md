@@ -7,7 +7,7 @@ join salaries [emp_no]
 aggregate by:[emp_no, gender] [
   emp_salary: average salary
 ]
-join (de:dept_emp) [emp_no] side:left
+join de:dept_emp [emp_no] side:left
 aggregate by:[de.dept_no, gender] [
   salary_avg: average emp_salary,
   salary_sd: stddev emp_salary,
