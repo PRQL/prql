@@ -73,13 +73,15 @@ term_simple = _{ ( s_string | f_string | ident | parenthesized_expr | list | ran
 list = { "[" ~ NEWLINE* ~ named_expr ~ ("," ~ NEWLINE* ~ named_expr )* ~ ","? ~ NEWLINE* ~ "]" }
 parenthesized_expr = _{ "(" ~ expr ~ ")" }
 
-// TODO: escapes
+// We haven't implemented escapes — I think we can mostly pass those through to
+// SQL, but there may be things we're missing.
 // https://pest.rs/book/examples/rust/literals.html
 
-// We need to have a non-silent rule which contains the quotes, because of
-// https://github.com/pest-parser/pest/issues/583, and then when converting to
-// AST, we only keep the `string` and discard the `string_literal` given it
-// contains the quotes.
+// We need to have a non-silent rule which contains the quotes
+// — `string_literal` in this case — because of
+// https://github.com/pest-parser/pest/issues/583. Then when converting to AST,
+// we only keep the `string` and discard the `string_literal` given it contains
+// the quotes.
 //
 // TODO: I'm still a bit unclear how preceeding and trailing spaces are working
 // -- it seems that inner spaces are included without an atomic operator (or
@@ -88,7 +90,7 @@ parenthesized_expr = _{ "(" ~ expr ~ ")" }
 
 quote = _{ "\"" | "'" }
 // PEEK refers to the opening quote; either `"` or `'`.
-string = { ( !( "\\" | PEEK ) ~ ANY )+ }
+string = { ( !( PEEK ) ~ ANY )+ }
 string_literal = ${ PUSH(quote) ~ string ~ POP }
 
 number = ${ ( ASCII_DIGIT )+ ~ ("." ~ ( ASCII_DIGIT )+)? }
@@ -103,7 +105,7 @@ operator = ${ "and" | "or" | "not" | "==" | "!=" | "=" | ">" | "<" | ">=" | "<="
 
 s_string = ${ "s" ~ PUSH(quote) ~ ( interpolate_string | ( "{" ~ expr ~ "}" ))* ~ POP }
 f_string = ${ "f" ~ PUSH(quote) ~ ( interpolate_string | ( "{" ~ expr ~ "}" ))* ~ POP }
-interpolate_string = { ( !( "\\" | PEEK | "{" ) ~ ANY )+ }
+interpolate_string = { ( !( PEEK | "{" ) ~ ANY )+ }
 
 // For assigns, table aliases and named arguments
 named_expr = { (ident ~ ":")? ~ expr }
