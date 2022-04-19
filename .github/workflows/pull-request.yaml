@@ -79,8 +79,9 @@ jobs:
         working-directory: prql-web/
   code-cov:
     runs-on: ubuntu-latest
-    # If this caches the tarpaulin install correctly, then we can enable for all builds.
-    # But at first glance, this is taking 3 min, so we only run on `main` atm.
+    # Currently this runs `cargo clean` which makes the run taking 4 min. TODO:
+    # see whether `skip_clean` is reliable and then add this job to every
+    # commit.
     if: |
       github.ref_name == 'main'
       || contains(github.event.pull_request.labels.*.name, 'run-full-tests')
