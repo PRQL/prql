@@ -4,7 +4,7 @@ mod cli;
 mod error;
 mod parser;
 mod semantic;
-mod translator;
+mod sql;
 mod utils;
 
 pub use anyhow::Result;
@@ -12,7 +12,7 @@ pub use anyhow::Result;
 pub use cli::Cli;
 pub use error::{format_error, SourceLocation};
 pub use parser::parse;
-pub use translator::translate;
+pub use sql::translate;
 
 /// Compile a PRQL string into a SQL string.
 ///

@@ -16,25 +16,25 @@ const DECL_ALL: usize = usize::MAX;
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
 pub struct Context {
     /// current table columns (result of last pipeline)
-    pub(super) frame: Frame,
+    pub frame: Frame,
 
     /// For each namespace (table), a map from column names to their definitions
     /// "$" is namespace of variables not belonging to any table (aliased, join using)
     /// "%" is namespace of functions without parameters (global variables)
     /// "_" is namespace of current function
-    pub(super) variables: HashMap<String, HashMap<String, usize>>,
+    pub(crate) variables: HashMap<String, HashMap<String, usize>>,
 
     /// For each variable, a set of its possible namespaces
-    pub(super) inverse: HashMap<String, HashSet<String>>,
+    pub(crate) inverse: HashMap<String, HashSet<String>>,
 
     /// Functions with parameters (name is duplicated, but that's not much overhead)
-    pub(super) functions: HashMap<String, usize>,
+    pub(crate) functions: HashMap<String, usize>,
 
     /// table aliases
-    pub(super) namespaces: HashMap<String, String>,
+    pub(crate) namespaces: HashMap<String, String>,
 
     /// All declarations, even those out of scope
-    pub(super) declarations: Vec<(Declaration, Option<Span>)>,
+    pub(crate) declarations: Vec<(Declaration, Option<Span>)>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -92,7 +92,7 @@ impl Context {
     }
 
     /// Takes a declaration with minimal memory copying. A dummy node is left in place.
-    pub(super) fn replace_declaration(&mut self, id: usize, node: Node) {
+    pub(crate) fn replace_declaration(&mut self, id: usize, node: Node) {
         let (decl, _) = self.declarations.get_mut(id).unwrap();
         let decl = decl.as_node_mut();
 
@@ -366,7 +366,7 @@ impl Context {
     }
 }
 
-pub(super) fn split_var_name(ident: &str) -> (&str, &str) {
+pub fn split_var_name(ident: &str) -> (&str, &str) {
     ident.rsplit_once('.').unwrap_or(("", ident))
 }
 

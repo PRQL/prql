@@ -187,7 +187,7 @@ mod tests {
 
     use crate::parse;
     use crate::semantic::resolve;
-    use crate::translator::load_std_lib;
+    use crate::sql::load_std_lib;
 
     #[test]
     fn test_simple_casts() {

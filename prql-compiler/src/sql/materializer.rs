@@ -8,7 +8,7 @@ use anyhow::{anyhow, Result};
 use itertools::zip;
 use itertools::Itertools;
 
-use super::context::{split_var_name, Context, TableColumn};
+use crate::semantic::{split_var_name, Context, TableColumn};
 
 pub struct MaterializedFrame {
     pub columns: Vec<Node>,
@@ -273,11 +273,7 @@ impl AstFold for TableCounter {
 mod test {
 
     use super::*;
-    use crate::{
-        parse,
-        semantic::{resolve, resolve_and_materialize},
-        utils::diff,
-    };
+    use crate::{parse, semantic::resolve, sql::resolve_and_materialize, utils::diff};
     use insta::{assert_display_snapshot, assert_snapshot, assert_yaml_snapshot};
     use serde_yaml::to_string;
 

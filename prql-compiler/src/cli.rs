@@ -8,13 +8,9 @@ use std::{
     ops::Range,
 };
 
+use crate::{ast::{Item, Node}, sql::{load_std_lib, resolve_and_materialize, resolve_and_materialize_pipeline}};
 use crate::error::{self, Span};
-use crate::semantic::{self, resolve, resolve_and_materialize};
-use crate::translator::load_std_lib;
-use crate::{
-    ast::{Item, Node},
-    semantic::process_pipeline,
-};
+use crate::semantic::{self, resolve};
 use crate::{parse, translate};
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ArgEnum)]
@@ -155,7 +151,7 @@ fn resolve_with_frames(
                 for f in pipeline.functions {
                     let span = f.span;
 
-                    let (_, c, _) = process_pipeline(vec![f].into(), Some(context))?;
+                    let (_, c, _) = resolve_and_materialize_pipeline(vec![f].into(), Some(context))?;
                     context = c;
 
                     if let Some(span) = span {

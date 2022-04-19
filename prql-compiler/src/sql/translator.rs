@@ -19,10 +19,12 @@ use sqlparser::ast::{
 use sqlparser::ast::{DateTimeField, Value};
 use std::collections::HashMap;
 
-use super::ast::*;
 use crate::ast::JoinFilter;
+use crate::ast::*;
 use crate::error::{Error, Reason};
-use crate::semantic::{self, MaterializedFrame};
+use crate::semantic::{self};
+
+use super::{load_std_lib, MaterializedFrame};
 
 /// Translate a PRQL AST into a SQL string.
 pub fn translate(query: &Query) -> Result<String> {
@@ -53,12 +55,13 @@ pub fn translate_query(query: &Query) -> Result<sql_ast::Query> {
     let atomics = atomic_tables_of_tables(tables)?;
 
     // init query context
-    let (_, mut context, _) = semantic::resolve_and_materialize(functions, None)?;
+    let (_, mut context) = semantic::resolve(functions, None)?;
 
     // materialize each atomic in two stages
     let mut materialized = Vec::new();
     for t in atomics {
-        let (pipeline, c, frame) = semantic::process_pipeline(t.pipeline, Some(context))?;
+        let (pipeline, c, frame) =
+            super::resolve_and_materialize_pipeline(t.pipeline, Some(context))?;
         context = c;
 
         context.finish_table(&t.name);
@@ -101,12 +104,6 @@ pub struct AtomicTable {
     name: String,
     pipeline: Pipeline,
     frame: Option<MaterializedFrame>,
-}
-
-pub fn load_std_lib() -> Result<Vec<Node>> {
-    use crate::parse;
-    let std_lib = include_str!("./stdlib.prql");
-    Ok(parse(std_lib)?.nodes)
 }
 
 fn separate_pipeline(query: &Query) -> Result<(Vec<Table>, Vec<Node>, Vec<Node>)> {

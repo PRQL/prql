@@ -1,6 +1,6 @@
 ---
-source: prql-compiler/src/semantic/materializer.rs
-expression: mat
+source: prql-compiler/src/sql/materializer.rs
+expression: "&mat"
 ---
 - Pipeline:
     value: ~
