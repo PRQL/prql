@@ -85,12 +85,9 @@ jobs:
       - name: Run cargo-tarpaulin
         uses: actions-rs/tarpaulin@v0.1
         with:
-          # version: '0.15.0'
           args: "-- --test-threads 1"
       - name: Upload to codecov.io
         uses: codecov/codecov-action@v2
-        # with:
-        #   token: ${{secrets.CODECOV_TOKEN}}
       - name: Archive code coverage results
         uses: actions/upload-artifact@v1
         with:
