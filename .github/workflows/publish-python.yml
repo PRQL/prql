@@ -13,7 +13,7 @@ jobs:
       with:
         manylinux: auto
         command: build
-        args: --release -o dist -m prql-python
+        args: --release -o dist -m prql-python/Cargo.toml
     - name: Upload wheels
       uses: actions/upload-artifact@v2
       with:
@@ -27,7 +27,7 @@ jobs:
     - uses: messense/maturin-action@v1
       with:
         command: build
-        args: --release --no-sdist -o dist
+        args: --release --no-sdist -o dist -m prql-python/Cargo.toml
     - name: Upload wheels
       uses: actions/upload-artifact@v2
       with:
@@ -41,7 +41,7 @@ jobs:
     - uses: messense/maturin-action@v1
       with:
         command: build
-        args: --release --no-sdist -o dist --universal2
+        args: --release --no-sdist -o dist --universal2 -m prql-python/Cargo.toml
     - name: Upload wheels
       uses: actions/upload-artifact@v2
       with:
