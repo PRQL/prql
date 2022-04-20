@@ -4,6 +4,10 @@ on:
   push:
   pull_request:
 
+defaults:
+  run:
+    working-directory: prql-python
+
 jobs:
   linux:
     runs-on: ubuntu-latest
@@ -13,7 +17,6 @@ jobs:
       with:
         manylinux: auto
         command: build
-        working-directory: prql-python
         args: --release -o dist
     - name: Upload wheels
       uses: actions/upload-artifact@v2
