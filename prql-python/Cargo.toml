@@ -1,9 +1,8 @@
 [package]
 name = "prql-python"
-version = "0.1.0"
+version = "0.0.1"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [lib]
 name = "prql_python"
 crate-type = ["cdylib"]
@@ -11,3 +10,6 @@ crate-type = ["cdylib"]
 [dependencies]
 pyo3 = { version = "0.16.3", features = ["extension-module","abi3-py37"] }
 prql-compiler = { path = "../prql-compiler" }
+
+[env]
+PYO3_NO_PYTHON=1
