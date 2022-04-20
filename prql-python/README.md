@@ -3,9 +3,9 @@
 `prql-python` exposes the prql-compiler rust package via the python method `to_sql(query:str)->str`
 
 
-#### Installation 
+#### Installation
 `pip install prql-python`
-#### Usage 
+#### Usage
 
 ```python
 import prql_python as prql
@@ -20,7 +20,7 @@ prql_query = '''
 sql = prql.to_sql(prql_query)
 ```
 
-Relies on [pyo3](https://github.com/PyO3/pyo3) for all the magic.  
+Relies on [pyo3](https://github.com/PyO3/pyo3) for all the magic.
 
 ```rust
 #[pyfunction]
