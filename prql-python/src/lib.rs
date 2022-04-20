@@ -6,7 +6,7 @@ use prql_compiler::compile;
 pub fn compile_prql(query: &str) -> PyResult<String> {
 
     match compile(query) {
-        Ok(code) => Ok(code.replace("\n", "")),
+        Ok(code) => Ok(code.replace('\n', "")),
         Err(err) => Err(PyErr::new::<exceptions::PyTypeError, _>(format!("{}", err))),
     }
 }
