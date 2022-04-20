@@ -1,4 +1,4 @@
-name: publish-python
+name: CI
 
 on:
   push:
@@ -10,7 +10,9 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - uses: messense/maturin-action@v1
-      working-directory: prql-project
+      defaults:
+        run:
+          working-directory: prql-python
       with:
         manylinux: auto
         command: build
@@ -26,7 +28,6 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - uses: messense/maturin-action@v1
-      working-directory: prql-project
       with:
         command: build
         args: --release --no-sdist -o dist
@@ -41,7 +42,6 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - uses: messense/maturin-action@v1
-      working-directory: prql-project
       with:
         command: build
         args: --release --no-sdist -o dist --universal2
@@ -58,12 +58,10 @@ jobs:
     needs: [ macos, windows, linux ]
     steps:
       - uses: actions/download-artifact@v2
-        working-directory: prql-project
         with:
           name: wheels
       - name: Publish to PyPI
         uses: messense/maturin-action@v1
-        working-directory: prql-project
         env:
           MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
         with:
