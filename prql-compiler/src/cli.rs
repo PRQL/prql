@@ -8,18 +8,21 @@ use std::{
     ops::Range,
 };
 
-use crate::{semantic, sql::resolve_and_translate};
+use crate::{parse, ast::Item};
 use crate::sql::load_std_lib;
 use crate::{
     error::{self, Span},
     semantic::{Context, Frame},
 };
-use crate::parse;
+use crate::{semantic, sql::resolve_and_translate};
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ArgEnum)]
 enum Format {
     /// Abstract syntax tree (parse)
     Ast,
+
+    /// Formatted PRQL
+    Fmt,
 
     /// PRQL with annotated references to variables and functions
     #[clap(name = "prql-refs")]
@@ -96,6 +99,12 @@ fn compile_to(format: Format, source: &str) -> Result<Vec<u8>, Error> {
             let ast = parse(source)?;
 
             serde_yaml::to_vec(&ast)?
+        }
+        Format::Fmt => {
+            let query = parse(source)?;
+            let query = Item::Query(query);
+
+            format!("{query}").as_bytes().to_vec()
         }
         Format::PrqlReferences => {
             let std_lib = load_std_lib()?;

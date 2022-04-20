@@ -4,7 +4,6 @@ use serde::Deserialize;
 use serde::Serialize;
 use std::collections::HashMap;
 use std::collections::HashSet;
-use strum::Display;
 
 use crate::ast::*;
 use crate::error::Span;
@@ -50,7 +49,7 @@ pub enum TableColumn {
     Declared(usize),
 }
 
-#[derive(Debug, EnumAsInner, Display, Clone, Serialize, Deserialize)]
+#[derive(Debug, EnumAsInner, Clone, Serialize, Deserialize, strum::Display)]
 #[allow(dead_code)]
 pub enum Declaration {
     Variable(Box<Node>),

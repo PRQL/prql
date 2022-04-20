@@ -316,7 +316,7 @@ fn atomic_pipelines_of_pipeline(pipeline: Pipeline) -> Result<Vec<AtomicTable>> 
         let transform =
             (function.item.as_transform()).ok_or_else(|| anyhow!("expected Transform"))?;
 
-        let split = match transform.name() {
+        let split = match transform.as_ref() {
             "join" => {
                 counts.get("filter").is_some()
                     || counts.get("aggregate").is_some()
@@ -337,7 +337,7 @@ fn atomic_pipelines_of_pipeline(pipeline: Pipeline) -> Result<Vec<AtomicTable>> 
             counts.clear();
         }
 
-        *counts.entry(transform.name()).or_insert(0) += 1;
+        *counts.entry(transform.as_ref()).or_insert(0) += 1;
     }
 
     splits.push(pipeline.len());

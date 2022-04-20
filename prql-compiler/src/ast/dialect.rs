@@ -1,8 +1,8 @@
 use core::fmt::Debug;
 use serde::{Deserialize, Serialize};
-use strum::{self, EnumString};
+use strum;
 
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, EnumString)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, strum::EnumString, strum::Display)]
 pub enum Dialect {
     #[strum(serialize = "ansi")]
     Ansi,

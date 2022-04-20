@@ -40,7 +40,7 @@ pub struct Table {
 }
 
 /// Transform is a stage of a pipeline. It is created from a FuncCall during parsing.
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, strum::AsRefStr)]
 pub enum Transform {
     From(TableRef),
     Select(Select),
@@ -58,23 +58,6 @@ pub enum Transform {
         by: Vec<Node>,
         pipeline: Box<Node>,
     },
-}
-
-impl Transform {
-    /// Returns the name of the transformation.
-    pub fn name(&self) -> &'static str {
-        match self {
-            Transform::From(_) => "from",
-            Transform::Select(_) => "select",
-            Transform::Filter(_) => "filter",
-            Transform::Derive(_) => "derive",
-            Transform::Aggregate { .. } => "aggregate",
-            Transform::Sort(_) => "sort",
-            Transform::Take(_) => "take",
-            Transform::Join { .. } => "join",
-            Transform::Group { .. } => "group",
-        }
-    }
 }
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Select {

@@ -3,7 +3,6 @@
 /// The central struct here is [Node], that can be of different kinds, described with [item::Item].
 use anyhow::{bail, Result};
 use serde::{Deserialize, Serialize};
-use strum::{self};
 
 pub use self::dialect::*;
 pub use self::item::*;
@@ -16,6 +15,10 @@ pub mod ast_fold;
 pub mod dialect;
 pub mod item;
 pub mod query;
+
+pub fn display(query: Query) -> String {
+    format!("{}", Item::Query(query))
+}
 
 /// A name. Generally columns, tables, functions, variables.
 pub type Ident = String;
