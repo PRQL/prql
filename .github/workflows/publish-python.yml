@@ -1,4 +1,4 @@
-name: CI
+name: publish-prql-python
 
 on:
   push:
@@ -7,12 +7,12 @@ on:
 jobs:
   linux:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: prql-python
     steps:
     - uses: actions/checkout@v2
     - uses: messense/maturin-action@v1
-      defaults:
-        run:
-          working-directory: prql-python
       with:
         manylinux: auto
         command: build
