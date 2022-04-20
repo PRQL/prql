@@ -99,6 +99,15 @@ involves parsing the query to find and then modify the `WHERE` statement, or
 wrapping the existing query in a CTE. In PRQL, adding a filter just involves
 appending a `filter` transformation to the query.
 
+### Try it out
+
+Try it out at <https://lang.prql.builders/editor>, where PRQL is compiled into
+SQL on every keystroke.
+
+> The link will not open in a new tab by default.
+
+[![Editor Link](https://github.com/prql/prql/blob/main/.github/live-editor-screenshot.png?raw=true)](https://lang.prql.builders/editor)
+
 ### A more complex example
 
 Here's another SQL query, which calculates returns from prices on days with
@@ -227,7 +236,7 @@ WHERE
   has_dog
 ```
 
-See below for fuller examples of PRQL.
+See above for fuller examples of PRQL.
 
 ### Python implementation
 
@@ -346,7 +355,7 @@ If you're interested in joining the community to build a better SQL, there are
 lots of ways of contributing; big and small:
 
 - Star this repo.
-- Send the repo to a couple of people whose opinion you respect.
+- Send a link to PRQL to a couple of people whose opinion you respect.
 - Subscribe to [Issue #1](https://github.com/prql/prql/issues/1) for
   updates.
 - Join the [Discord](https://discord.gg/eQcfaCmsNc).
@@ -359,10 +368,17 @@ lots of ways of contributing; big and small:
     issue](https://github.com/prql/prql/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
     and try to fix it. Feel free to PR partial solutions, or ask any questions on
     the Issue or Discord.
-  - Build the code, find examples that yield incorrect results, and post a bug
-    report.
   - Start with something tiny! Write a test / write a docstring / make some rust
     nicer — it's a great way to get started in 30 minutes.
+- Contribute towards the language.
+  - Find instances where the compiler produces incorrect results, and post a bug
+    report — feel free to use the [online
+    compiler](https://lang.prql.builders/editor).
+  - Open an issue / append to an existing issue with examples of queries that
+    are difficult to express in PRQL — especially if more difficult than SQL.
+  - With sufficient examples, suggest a change to the language! (Though
+    suggestions *without* examples are difficult to engage with, so please do
+    anchor suggestions in examples.)
 
 Any of these will inspire others to invest their time and energy into the
 project; thank you in advance.
@@ -392,9 +408,9 @@ Many thanks to those who've made our progress possible:
 We have a few core developers who are responsible for reviewing code, making
 decisions on the direction of the language, and project administration:
 
-- @aljazerzen — Aljaž Mur Eržen
-- @max-sixty — Maximilian Roos
-- @qorrect — Charlie Sando
+- [**@aljazerzen**](https://github.com/aljazerzen) — Aljaž Mur Eržen
+- [**@max-sixty**](https://github.com/max-sixty) — Maximilian Roos
+- [**@qorrect**](https://github.com/qorrect) — Charlie Sando
 
 We welcome others to join who have a track record of contributions.
 
@@ -411,10 +427,10 @@ We welcome others to join who have a track record of contributions.
      there would be some impedance mismatch in some areas. My central criticism
      of Kusto is that it gives up broad compatibility without getting that much
      in return.
-- [Against SQL](https://www.scattered-thoughts.net/writing/against-sql/) gives
-  a fairly complete description of SQL's weaknesses, both for analytical and
-  transactional queries. @jamii consistently writes insightful pieces, and it's
-  worth sponsoring him for his updates.
+- [Against SQL](https://www.scattered-thoughts.net/writing/against-sql/) gives a
+  fairly complete description of SQL's weaknesses, both for analytical and
+  transactional queries. [**@jamii**](https://github.com/jamii) consistently
+  writes insightful pieces, and it's worth sponsoring him for his updates.
 - Julia's [DataPipes.jl](https://gitlab.com/aplavin/DataPipes.jl) &
   [Chain.jl](https://github.com/jkrumbiegel/Chain.jl), which demonstrate how
   effective point-free pipelines can be, and how line-breaks can work as pipes.
@@ -429,8 +445,8 @@ We welcome others to join who have a track record of contributions.
   is a functional language for data, also with a pipeline concept. It doesn't
   compile to SQL but states that it can access external data.
 - [Malloy](https://github.com/looker-open-source/malloy) from Looker &
-  @lloydtabb in a new language which combines a declarative syntax for querying
-  with a modelling layer.
+  [**@lloydtabb**](https://github.com/lloydtabb) in a new language which
+  combines a declarative syntax for querying with a modelling layer.
 - [FunSQL.jl](https://github.com/MechanicalRabbit/FunSQL.jl) is a library in
   Julia which compiles a nice query syntax to SQL. It requires a Julia runtime.
 - [LINQ](https://docs.microsoft.com/dotnet/csharp/linq/write-linq-queries),

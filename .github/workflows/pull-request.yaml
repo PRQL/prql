@@ -26,7 +26,7 @@ jobs:
   test-mac:
     uses: ./.github/workflows/test.yaml
     with:
-      os: mac-latest
+      os: macos-latest
     if: |
       github.ref_name == 'main'
       || contains(github.event.pull_request.labels.*.name, 'run-full-tests')
@@ -77,3 +77,27 @@ jobs:
       - name: 🔨 Build
         run: trunk build
         working-directory: prql-web/
+  code-cov:
+    runs-on: ubuntu-latest
+    # Currently this runs `cargo clean` which makes the run taking 4 min. TODO:
+    # see whether `skip_clean` is reliable and then add this job to every
+    # commit.
+    if: |
+      github.ref_name == 'main'
+      || contains(github.event.pull_request.labels.*.name, 'run-full-tests')
+    steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v2
+      - name: 💰 Cache
+        uses: Swatinem/rust-cache@v1
+      - name: Run cargo-tarpaulin
+        uses: actions-rs/tarpaulin@v0.1
+        with:
+          args: "-- --test-threads 1"
+      - name: Upload to codecov.io
+        uses: codecov/codecov-action@v2
+      - name: Archive code coverage results
+        uses: actions/upload-artifact@v1
+        with:
+          name: code-coverage-report
+          path: cobertura.xml

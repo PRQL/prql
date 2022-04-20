@@ -318,17 +318,38 @@ mod test {
 
         // Single quotes within double quotes should produce a string containing
         // the single quotes (and vice versa).
-        assert_yaml_snapshot!( ast_of_string(r#""' U S A '""#, Rule::string_literal)? , @r###"
+        assert_yaml_snapshot!(ast_of_string(r#""' U S A '""#, Rule::string_literal)? , @r###"
         ---
         String: "' U S A '"
         "###);
-        assert_yaml_snapshot!( ast_of_string(r#"'" U S A "'"#, Rule::string_literal)? , @r###"
+        assert_yaml_snapshot!(ast_of_string(r#"'" U S A "'"#, Rule::string_literal)? , @r###"
         ---
         String: "\" U S A \""
         "###);
 
         assert!(ast_of_string(r#"" U S A"#, Rule::string_literal).is_err());
         assert!(ast_of_string(r#"" U S A '"#, Rule::string_literal).is_err());
+
+        // Escapes get passed through (the insta snapshot has them escaped I
+        // think, which isn't that clear, so repeated below).
+        let escaped_string = ast_of_string(r#"" \U S A ""#, Rule::string_literal)?;
+        assert_yaml_snapshot!(escaped_string, @r###"
+        ---
+        String: " \\U S A "
+        "###);
+        assert_eq!(escaped_string.item.as_string().unwrap(), r#" \U S A "#);
+
+        // Currently we don't allow escaping closing quotes — because it's not
+        // trivial to do in pest, and I'm not sure it's a great idea either — we
+        // should arguably encourage r-strings. (Though no objection if someone
+        // wants to implement it, this test is recording current behavior rather
+        // than maintaining a contract).
+        let escaped_quotes = ast_of_string(r#"" Canada \""#, Rule::string_literal)?;
+        assert_yaml_snapshot!(escaped_quotes, @r###"
+        ---
+        String: " Canada \\"
+        "###);
+        assert_eq!(escaped_quotes.item.as_string().unwrap(), r#" Canada \"#);
 
         Ok(())
     }

@@ -74,13 +74,15 @@ list = { "[" ~ (NEWLINE* ~ named_expr_call ~ ("," ~ NEWLINE* ~ named_expr_call )
 parenthesized_expr = _{ "(" ~ expr_call ~ ")" }
 parenthesized_pipeline = { "(" ~ expr_call? ~ pipe ~ pipeline ~ NEWLINE* ~ ")" }
 
-// TODO: escapes
+// We haven't implemented escapes — I think we can mostly pass those through to
+// SQL, but there may be things we're missing.
 // https://pest.rs/book/examples/rust/literals.html
 
-// We need to have a non-silent rule which contains the quotes, because of
-// https://github.com/pest-parser/pest/issues/583, and then when converting to
-// AST, we only keep the `string` and discard the `string_literal` given it
-// contains the quotes.
+// We need to have a non-silent rule which contains the quotes
+// — `string_literal` in this case — because of
+// https://github.com/pest-parser/pest/issues/583. Then when converting to AST,
+// we only keep the `string` and discard the `string_literal` given it contains
+// the quotes.
 //
 // TODO: I'm still a bit unclear how preceeding and trailing spaces are working
 // -- it seems that inner spaces are included without an atomic operator (or
@@ -89,7 +91,7 @@ parenthesized_pipeline = { "(" ~ expr_call? ~ pipe ~ pipeline ~ NEWLINE* ~ ")" }
 
 quote = _{ "\"" | "'" }
 // PEEK refers to the opening quote; either `"` or `'`.
-string = { ( !( "\\" | PEEK ) ~ ANY )+ }
+string = { ( !( PEEK ) ~ ANY )+ }
 string_literal = ${ PUSH(quote) ~ string ~ POP }
 
 number = ${ ( ASCII_DIGIT )+ ~ ("." ~ ( ASCII_DIGIT )+)? }
@@ -106,7 +108,7 @@ operator_logical = ${ ("and" | "or" | "not") ~ &WHITESPACE }
 
 s_string = ${ "s" ~ PUSH(quote) ~ ( interpolate_string | ( "{" ~ expr_call ~ "}" ))* ~ POP }
 f_string = ${ "f" ~ PUSH(quote) ~ ( interpolate_string | ( "{" ~ expr_call ~ "}" ))* ~ POP }
-interpolate_string = { ( !( "\\" | PEEK | "{" ) ~ ANY )+ }
+interpolate_string = { ( !( PEEK | "{" ) ~ ANY )+ }
 
 interval_kind = { "microseconds" | "milliseconds" | "seconds" | "minutes" | "hours" | "days" | "weeks" | "months" | "years" }
 interval = ${ number ~ interval_kind }
