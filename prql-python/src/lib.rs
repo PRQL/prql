@@ -1,6 +1,6 @@
+use prql_compiler::compile;
 use pyo3::exceptions;
 use pyo3::prelude::*;
-use prql_compiler::compile;
 
 #[pyfunction]
 pub fn to_sql(query: &str) -> PyResult<String> {
