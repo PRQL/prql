@@ -28,7 +28,7 @@ rounded to zero, including the timezone, which is represented by `+HH:mm`,
 
 ```prql
 from orders
-derive should_have_shipped_today: (order_time < t08:30)
+derive should_have_shipped_today: (order_time < T08:30)
 ```
 
 ## Timestamps

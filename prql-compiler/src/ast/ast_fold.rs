@@ -136,7 +136,13 @@ pub fn fold_item<T: ?Sized + AstFold>(fold: &mut T, item: Item) -> Result<Item> 
         }),
         // None of these capture variables, so we don't need to replace
         // them.
-        Item::String(_) | Item::Raw(_) | Item::Interval(_) => item,
+        Item::String(_)
+        | Item::Raw(_)
+        | Item::Interval(_)
+        | Item::Date(_)
+        | Item::Time(_)
+        | Item::DateTime(_)
+        | Item::Timestamp(_) => item,
     })
 }
 

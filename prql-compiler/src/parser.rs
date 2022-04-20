@@ -275,10 +275,32 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
                         unit: unit.item.as_raw().unwrap().clone(),
                     })
                 }
-                Rule::operator | Rule::number | Rule::interval_kind => {
-                    Item::Raw(pair.as_str().to_owned())
+                Rule::date => {
+                    let parsed = ast_of_parse_tree(pair.into_inner());
+                    Item::Date(parsed?.into_only()?.item.into_raw()?)
                 }
-                _ => unreachable!(),
+                Rule::time => {
+                    let parsed = ast_of_parse_tree(pair.into_inner());
+                    Item::Time(parsed?.into_only()?.item.into_raw()?)
+                }
+                // TODO: repeat for timestamp
+                Rule::datetime => {
+                    let parsed = ast_of_parse_tree(pair.into_inner());
+                    Item::DateTime(
+                        parsed?
+                            .iter()
+                            .cloned()
+                            .map(|x| Ok(x.item.into_raw()?))
+                            .collect::<Result<Vec<String>>>()?
+                            .join("T"),
+                    )
+                }
+                Rule::operator
+                | Rule::number
+                | Rule::interval_kind
+                | Rule::date_inner
+                | Rule::time_inner => Item::Raw(pair.as_str().to_owned()),
+                _ => unreachable!("{pair}"),
             };
 
             let mut node = Node::from(item);
@@ -1482,29 +1504,27 @@ select [
     }
 
     #[test]
-    fn test_interval() {
+    fn test_dates() -> Result<()> {
         assert_yaml_snapshot!(parse("
-        from employees
-        derive age_plus_two_years: (age + 2years)
+        derive [
+            date: D2011-02-01,
+            datetime: DT2011-02-01T10:00,
+            time: T14:00,
+            timestamp: TS2011-02-01T10:00,
+        ]
         ").unwrap(), @r###"
         ---
         version: ~
         dialect: Generic
         nodes:
           - Pipeline:
-              - From:
-                  name: employees
-                  alias: ~
               - Derive:
                   - NamedExpr:
-                      name: age_plus_two_years
+                      name: date
                       expr:
-                        Expr:
-                          - Ident: age
-                          - Raw: +
-                          - Interval:
-                              n: 2
-                              unit: years
+                        Date: 2011-02-01
         "###);
+
+        Ok(())
     }
 }

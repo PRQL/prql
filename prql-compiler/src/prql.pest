@@ -69,7 +69,7 @@ func_call = { ident ~ (named_term_simple | term_simple)+ }
 func_curry = { ident ~ (named_term_simple | term_simple)* }
 
 term = _{ ( s_string | f_string | func_call | term_simple ) }
-term_simple = _{ ( s_string | f_string | ident | parenthesized_expr | list | range | interval | number | string_literal | inline_pipeline ) }
+term_simple = _{ ( s_string | f_string | date | datetime | time | timestamp | ident | parenthesized_expr | list | range | interval | number | string_literal | inline_pipeline ) }
 list = { "[" ~ NEWLINE* ~ named_expr ~ ("," ~ NEWLINE* ~ named_expr )* ~ ","? ~ NEWLINE* ~ "]" }
 parenthesized_expr = _{ "(" ~ expr ~ ")" }
 
@@ -112,3 +112,12 @@ named_term_simple = { (ident ~ ":")? ~ term_simple }
 
 interval_kind = { "microseconds" | "milliseconds" | "seconds" | "minutes" | "hours" | "days" | "weeks" | "months" | "years" }
 interval = ${ number ~ interval_kind }
+
+// We use the `inner` types as containing the data that we want to retain in the AST.
+date_inner = ${ ASCII_DIGIT{4} ~ "-" ~ ASCII_DIGIT{2} ~ "-" ~ ASCII_DIGIT{2} }
+// Times are liberally defined atm, we could make this more robust.
+time_inner = ${ ASCII_DIGIT{2} ~ ( ASCII_DIGIT | ":" | "." | "+" | "-" | "Z" )* }
+date = ${ "D" ~ date_inner }
+time = ${ "T" ~ date_inner }
+datetime = ${ "DT" ~ date_inner ~ "T" ~ time_inner }
+timestamp = ${ "TS" ~ date_inner ~ "T" ~ time_inner }

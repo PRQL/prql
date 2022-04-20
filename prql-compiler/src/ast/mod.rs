@@ -44,6 +44,10 @@ pub enum Item {
     SString(Vec<InterpolateItem>),
     FString(Vec<InterpolateItem>),
     Interval(Interval),
+    Date(String),
+    Time(String),
+    DateTime(String),
+    Timestamp(String),
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
