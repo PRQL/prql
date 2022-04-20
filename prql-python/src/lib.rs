@@ -1,10 +1,14 @@
-
+use pyo3::exceptions;
 use pyo3::prelude::*;
 use prql_compiler::compile;
 
 #[pyfunction]
 fn compile_prql(query: &str) -> PyResult<String> {
-    Ok(compile(query).unwrap())
+
+    match compile(query) {
+        Ok(code) => Ok(code),
+        Err(err) => Err(PyErr::new::<exceptions::PyTypeError, _>(format!("{}", err))),
+    }
 }
 
 /// A Python module implemented in Rust.
