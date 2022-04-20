@@ -3,10 +3,10 @@ use pyo3::prelude::*;
 use prql_compiler::compile;
 
 #[pyfunction]
-fn compile_prql(query: &str) -> PyResult<String> {
+pub fn compile_prql(query: &str) -> PyResult<String> {
 
     match compile(query) {
-        Ok(code) => Ok(code),
+        Ok(code) => Ok(code.replace("\n", "")),
         Err(err) => Err(PyErr::new::<exceptions::PyTypeError, _>(format!("{}", err))),
     }
 }
