@@ -1,28 +1,26 @@
 # PRQL-python
 
-> PRQL-python exposes the prql_compiler rust package via an exposed method `to_sql(query)`
+> PRQL-python exposes the prql_compiler rust package via an exposed python method `to_sql(query:str)->str`
 
 
+#### Hypothetical Installation 
+`pip install prql-python`
+#### Usage 
+
+```elm
+prql_query = '''
+from employees
+join salaries [emp_no]
+aggregate by:[emp_no, gender] [
+  emp_salary: average salary
+]
+join departments [dept_no]
+'''
+```
 ```python
 import prql_python as prql
+prql.to_sql(prql_query)
+```
 
-prql.to_sql('''
-```
-```elm
-    from employees
-    join salaries [emp_no]
-    aggregate by:[emp_no, gender] [
-      emp_salary: average salary
-    ]
-    join de:dept_emp [emp_no] side:left
-    aggregate by:[de.dept_no, gender] [
-      salary_avg: average emp_salary,
-      salary_sd: stddev emp_salary,
-    ]
-    join departments [dept_no]
-    select [dept_''')
-```
-```python
-''')
-```
-Uses the wonderful Rust crate [pyo3](https://github.com/PyO3/pyo3) .
+Relies on [pyo3](https://github.com/PyO3/pyo3) for all the magic.  
+
