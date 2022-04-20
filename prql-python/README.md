@@ -26,5 +26,6 @@ Relies on [pyo3](https://github.com/PyO3/pyo3) for all the magic.
 
 ```rust
 #[pyfunction]
-pub fn to_sql(query: &str) -> PyResult<String> {
+pub fn to_sql(query: &str) -> PyResult<String>
+fn prql_python(_py: Python, m: &PyModule) -> PyResult<()>
 ```

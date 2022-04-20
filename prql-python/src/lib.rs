@@ -5,8 +5,10 @@ use pyo3::prelude::*;
 #[pyfunction]
 pub fn to_sql(query: &str) -> PyResult<String> {
     match compile(query) {
-        Ok(code) => Ok(code.replace('\n', "")),
-        Err(err) => Err(PyErr::new::<exceptions::PyTypeError, _>(format!("{}", err))),
+        Ok(sql) => Ok(sql.replace('\n', "")),
+        Err(err) => Err(
+            PyErr::new::<exceptions::PySyntaxError, _>(format!("{}", err))
+        ),
     }
 }
 
