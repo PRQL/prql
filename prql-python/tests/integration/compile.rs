@@ -1,8 +1,9 @@
 use prql_compiler::*;
-use prql_python::compile_prql;
+use prql_python::to_sql;
 
 #[test]
 fn parse_for_python() -> Result<()> {
-    compile_prql("from employees").unwrap();
+    let sql = to_sql("from employees").unwrap();
+    println!("{}", sql);
     Ok(())
 }

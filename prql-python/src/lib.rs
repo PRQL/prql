@@ -3,17 +3,15 @@ use pyo3::prelude::*;
 use prql_compiler::compile;
 
 #[pyfunction]
-pub fn compile_prql(query: &str) -> PyResult<String> {
-
+pub fn to_sql(query: &str) -> PyResult<String> {
     match compile(query) {
         Ok(code) => Ok(code.replace('\n', "")),
         Err(err) => Err(PyErr::new::<exceptions::PyTypeError, _>(format!("{}", err))),
     }
 }
 
-/// A Python module implemented in Rust.
 #[pymodule]
 fn prql_python(_py: Python, m: &PyModule) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(compile_prql, m)?)?;
+    m.add_function(wrap_pyfunction!(to_sql, m)?)?;
     Ok(())
 }
