@@ -1,3 +1,5 @@
+#![cfg(not(target_family = "wasm"))]
+
 use pyo3::exceptions;
 use pyo3::prelude::*;
 use prql_compiler::compile;

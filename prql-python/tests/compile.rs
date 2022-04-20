@@ -1,3 +1,4 @@
+#![cfg(not(target_family = "wasm"))]
 use prql_compiler::*;
 use prql_python::to_sql;
 
