@@ -3,6 +3,7 @@
 //! contains no query-specific logic.
 use crate::ast::ast_fold::*;
 use crate::ast::*;
+use crate::Declaration;
 
 use anyhow::{anyhow, Result};
 use itertools::zip;
@@ -20,6 +21,7 @@ pub fn materialize(
     pipeline: Pipeline,
     frame: Frame,
     context: Context,
+    as_table: Option<&str>,
 ) -> Result<(Pipeline, MaterializedFrame, Context)> {
     let mut counter = TableCounter::default();
     let pipeline = counter.fold_pipeline(pipeline).unwrap();
@@ -33,10 +35,15 @@ pub fn materialize(
     let pipeline = m.fold_pipeline(pipeline)?;
 
     // materialize each of the columns
-    let columns = m.materialize_columns(frame.columns)?;
+    let columns = m.anchor_columns(frame.columns, as_table)?;
 
     // materialize each of the columns
     let sort = m.lookup_sort(frame.sort)?;
+
+    // rename tables for future pipelines
+    if let Some(as_table) = as_table {
+        m.rename_tables(frame.tables, as_table);
+    }
 
     Ok((pipeline, MaterializedFrame { columns, sort }, m.context))
 }
@@ -48,74 +55,78 @@ pub struct Materializer {
 }
 
 impl Materializer {
-    /// Folds columns and returns expressions that can be used in select.
-    /// Replaces declarations of each column with an identifier.
-    fn materialize_columns(&mut self, columns: Vec<TableColumn>) -> Result<Vec<Node>> {
-        // This has to be done in two stages, because some of the declarations that
-        // have to be replaced may appear in other columns, where original declaration
-        // is needed.
-        // For example:
-        // derive b: a + 1
-        // select [b, b + 1]
+    /// Looks up column declarations and replaces them with an identifiers.
+    fn anchor_columns(
+        &mut self,
+        columns: Vec<TableColumn>,
+        as_table: Option<&str>,
+    ) -> Result<Vec<Node>> {
+        let as_table = as_table.map(|table| {
+            let decl = Declaration::Table(table.to_string());
+            self.context.declare(decl, None)
+        });
 
-        // materialize each column
-        let res: Vec<_> = columns
-            .iter()
-            .map(|column| match column {
-                TableColumn::Declared(column_id) => self.materialize_column(*column_id),
-                TableColumn::All(namespace) => {
-                    Ok((Item::Ident(format!("{namespace}.*")).into(), None))
-                }
-            })
-            .try_collect()?;
-
-        // replace declarations
-        let res = res
+        columns
             .into_iter()
-            .map(|(node, ident)| {
-                if let Some((id, ident)) = ident {
-                    self.context
-                        .replace_declaration(id, Item::Ident(ident).into());
-                }
+            .map(|column| {
+                Ok(match column {
+                    TableColumn::Named(name, id) => {
+                        let expr_node = self.lookup_declaration(id)?;
 
-                node
+                        let name = split_var_name(&name).1.to_string(); 
+                        
+                        let decl = Declaration::ExternRef {
+                            variable: name.clone(),
+                            table: as_table,
+                        };
+                        self.context.replace_declaration(id, decl);
+
+                        // is expr_node just an ident with same name?
+                        let expr_ident = expr_node.item.as_ident().map(|n| split_var_name(n).1);
+
+                        if expr_ident.map(|n| n == name).unwrap_or(false) {
+                            // return just the ident
+                            expr_node
+                        } else {
+                            // return expr with new name
+                            Item::NamedExpr(NamedExpr {
+                                expr: Box::new(expr_node),
+                                name,
+                            })
+                            .into()
+                        }
+                    }
+                    TableColumn::Unnamed(id) => {
+                        // no need to replace declaration, since it cannot be referenced again
+                        self.lookup_declaration(id)?
+                    }
+                    TableColumn::All(namespace) => {
+                        let (decl, _) = &self.context.declarations[namespace];
+                        let table = decl.as_table().unwrap();
+                        Item::Ident(format!("{table}.*")).into()
+                    },
+                })
             })
-            .collect();
-        Ok(res)
+            .try_collect()
     }
 
-    /// Folds the column and returns expression that can be used in select.
-    /// Also returns column id and name if declaration should be replaced.
-    fn materialize_column(&mut self, column_id: usize) -> Result<(Node, Option<(usize, String)>)> {
-        let decl = self.context.declarations[column_id].0.clone();
+    fn rename_tables(&mut self, tables: Vec<usize>, new_table: &str) {
+        for id in tables {
+            let (decl, _) = self.context.declarations.get_mut(id).unwrap();
 
-        // find the new column name (with namespace removed)
-        let ident = (decl.as_name()).map(|i| split_var_name(i.as_str()).1.to_string());
+            let table = decl.as_table_mut().unwrap();
+            *table = new_table.to_string();
+        }
+    }
 
-        let node = decl.into_expr_node().unwrap();
+    fn lookup_declaration(&mut self, id: usize) -> Result<Node> {
+        let (decl, _) = &self.context.declarations[id];
+        if !matches!(decl, &Declaration::Expression { .. }) {
+            self.materialize_declaration(id)?;
+        }
 
-        // materialize
-        let expr_node = self.fold_node(*node)?;
-        let expr_ident = expr_node.item.as_ident().map(|n| split_var_name(n).1);
-
-        Ok(if let Some(ident) = ident {
-            // is expr_node just an ident with same name?
-            let expr_node = if expr_ident.map(|n| n == ident).unwrap_or(false) {
-                // return just the ident
-                expr_node
-            } else {
-                // return expr with new name
-                Item::NamedExpr(NamedExpr {
-                    expr: Box::new(expr_node),
-                    name: ident.clone(),
-                })
-                .into()
-            };
-            (expr_node, Some((column_id, ident)))
-        } else {
-            // column is not named, just return its expression
-            (expr_node, None)
-        })
+        let (decl, _) = &self.context.declarations[id];
+        Ok(*decl.clone().into_expression()?)
     }
 
     /// Folds the column and returns expression that can be used in select.
@@ -123,11 +134,8 @@ impl Materializer {
     fn lookup_sort(&mut self, sort: Vec<ColumnSort<usize>>) -> Result<Vec<ColumnSort<Ident>>> {
         sort.into_iter()
             .map(|s| {
-                let decl = self.context.declarations[s.column].0.clone();
-                let column = decl
-                    .as_name()
-                    .ok_or_else(|| anyhow!("unnamed sort column?"))?
-                    .clone();
+                let ident = self.lookup_declaration(s.column)?;
+                let column = ident.item.into_ident()?;
 
                 Ok(ColumnSort {
                     column,
@@ -135,6 +143,47 @@ impl Materializer {
                 })
             })
             .try_collect()
+    }
+
+    fn materialize_declaration(&mut self, id: usize) -> Result<Node> {
+        let (decl, _) = &self.context.declarations[id];
+
+        // eprintln!("materialize_declaration {id}");
+        // dbg!(decl);
+
+        let materialized = match decl.clone() {
+            Declaration::Expression(inner) => self.fold_node(*inner)?,
+            Declaration::ExternRef { table, variable } => {
+                let name = if let Some(table) = table {
+                    let (_, var_name) = split_var_name(&variable);
+
+                    if self.remove_namespaces {
+                        var_name.to_string()
+                    } else {
+                        let (table, _) = &self.context.declarations[table];
+                        let table = table.as_table().unwrap();
+                        format!("{table}.{var_name}")
+                    }
+                } else {
+                    variable
+                };
+
+                Item::Ident(name).into()
+            }
+            Declaration::Function(func_call) => {
+                // function without arguments (a global variable)
+
+                let body = func_call.body;
+
+                self.fold_node(*body)?
+            }
+            Declaration::Table(table) => {
+                Item::Ident(format!("{table}.*")).into()
+            },
+        };
+        self.context.replace_declaration_expr(id, materialized.clone());
+
+        Ok(materialized)
     }
 
     fn materialize_func_call(&mut self, node: &Node) -> Result<Node> {
@@ -155,13 +204,14 @@ impl Materializer {
             let value = func_call
                 .named_args
                 .get(&param.name)
-                .map_or_else(|| (*param.expr).clone(), |expr| *(*expr).clone());
+                .map_or_else(|| param.expr.item.clone(), |expr| expr.item.clone());
 
-            self.context.replace_declaration(id, value);
+            self.context.replace_declaration_expr(id, value.into());
         }
         for (param, arg) in zip(func_dec.positional_params.iter(), func_call.args.iter()) {
-            self.context
-                .replace_declaration(param.declared_at.unwrap(), arg.clone());
+            let id = param.declared_at.unwrap();
+            let expr = arg.item.clone().into();
+            self.context.replace_declaration_expr(id, expr);
         }
 
         // Now fold body as normal node
@@ -211,16 +261,8 @@ impl AstFold for Materializer {
             }
 
             Item::Ident(_) => {
-                let node = if let Some(id) = node.declared_at {
-                    let (decl, _) = &self.context.declarations[id];
-
-                    let new_node = *decl.clone().into_expr_node()?;
-                    self.fold_node(new_node)?
-                } else {
-                    node
-                };
-                if self.remove_namespaces {
-                    remove_namespace(node)
+                if let Some(id) = node.declared_at {
+                    self.materialize_declaration(id)?
                 } else {
                     node
                 }
@@ -232,17 +274,6 @@ impl AstFold for Materializer {
             }
         })
     }
-}
-
-fn remove_namespace(mut node: Node) -> Node {
-    node.item = match node.item {
-        Item::Ident(ident) => {
-            let (_, variable) = split_var_name(&ident);
-            Item::Ident(variable.to_string())
-        }
-        i => i,
-    };
-    node
 }
 
 /// Counts all tables in scope
@@ -278,11 +309,11 @@ mod test {
 
     fn resolve_and_materialize(nodes: Vec<Node>) -> Result<Vec<Node>> {
         let (res, context) = resolve(nodes, None)?;
-        
+
         let pipeline = res.last().unwrap().item.as_pipeline().unwrap();
         let frame = pipeline.functions.last().unwrap().frame.clone().unwrap();
 
-        let (mat, _, _) = materialize(res.into(), frame, context)?;
+        let (mat, _, _) = materialize(res.into(), frame, context, Some("table_1"))?;
         Ok(mat.functions)
     }
 
@@ -307,7 +338,7 @@ mod test {
             &to_string(&mat)?
         ),
         @r###"
-        @@ -2,27 +2,30 @@
+        @@ -2,27 +2,24 @@
          - Pipeline:
              value: ~
              functions:
@@ -342,23 +373,17 @@ mod test {
         +      - Transform:
         +          Derive:
         +            assigns:
-        +              - NamedExpr:
-        +                  name: gross_salary
-        +                  expr:
-        +                    Expr:
+        +              - Expr:
+        +                  - Ident: salary
+        +                  - Raw: +
+        +                  - Ident: payroll_tax
+        +              - Expr:
+        +                  - Expr:
         +                      - Ident: salary
         +                      - Raw: +
         +                      - Ident: payroll_tax
-        +              - NamedExpr:
-        +                  name: gross_cost
-        +                  expr:
-        +                    Expr:
-        +                      - Expr:
-        +                          - Ident: salary
-        +                          - Raw: +
-        +                          - Ident: payroll_tax
-        +                      - Raw: +
-        +                      - Ident: benefits_cost
+        +                  - Raw: +
+        +                  - Ident: benefits_cost
         +            group: []
         +            window: ~
         +            sort: ~
@@ -596,7 +621,7 @@ take 20
         let mat = resolve_and_materialize(ast.clone()).unwrap();
 
         assert_snapshot!(diff(&to_string(&ast)?, &to_string(&mat)?), @r###"
-        @@ -1,48 +1,30 @@
+        @@ -1,48 +1,24 @@
          ---
         -- FuncDef:
         -    name: sum
@@ -627,20 +652,7 @@ take 20
         -                    expr:
         -                      Pipeline:
         -                        value:
-        +      - Transform:
-        +          From:
-        +            name: a
-        +            alias: ~
-        +      - Transform:
-        +          Aggregate:
-        +            assigns:
-        +              - NamedExpr:
-        +                  name: one
-        +                  expr:
-        +                    SString:
-        +                      - String: SUM(
-        +                      - Expr:
-                                   Ident: foo
+        -                          Ident: foo
         -                        functions:
         -                          - FuncCall:
         -                              name: sum
@@ -651,21 +663,30 @@ take 20
         -                    expr:
         -                      Pipeline:
         -                        value:
-        +                      - String: )
-        +              - NamedExpr:
-        +                  name: two
-        +                  expr:
-        +                    SString:
-        +                      - String: SUM(
-        +                      - Expr:
-                                   Ident: foo
+        -                          Ident: foo
         -                        functions:
         -                          - FuncCall:
         -                              name: sum
         -                              args: []
         -                              named_args: {}
         -          named_args: {}
-        +                      - String: )
+        +      - Transform:
+        +          From:
+        +            name: a
+        +            alias: ~
+        +      - Transform:
+        +          Aggregate:
+        +            assigns:
+        +              - SString:
+        +                  - String: SUM(
+        +                  - Expr:
+        +                      Ident: foo
+        +                  - String: )
+        +              - SString:
+        +                  - String: SUM(
+        +                  - Expr:
+        +                      Ident: foo
+        +                  - String: )
         +            group: []
         +            window: ~
         +            sort: ~
@@ -697,17 +718,14 @@ take 20
               - Transform:
                   Aggregate:
                     assigns:
-                      - NamedExpr:
-                          name: a
-                          expr:
-                            Expr:
-                              - SString:
-                                  - String: SUM(
-                                  - Expr:
-                                      Ident: foo
-                                  - String: )
-                              - Raw: +
-                              - Raw: "1"
+                      - Expr:
+                          - SString:
+                              - String: SUM(
+                              - Expr:
+                                  Ident: foo
+                              - String: )
+                          - Raw: +
+                          - Raw: "1"
                     group: []
                     window: ~
                     sort: ~
@@ -744,20 +762,14 @@ take 20
               - Transform:
                   Derive:
                     assigns:
-                      - NamedExpr:
-                          name: added
-                          expr:
-                            Expr:
-                              - Ident: bar
-                              - Raw: +
-                              - Raw: "3"
-                      - NamedExpr:
-                          name: added_default
-                          expr:
-                            Expr:
-                              - Ident: bar
-                              - Raw: +
-                              - Raw: "1"
+                      - Expr:
+                          - Ident: bar
+                          - Raw: +
+                          - Raw: "3"
+                      - Expr:
+                          - Ident: bar
+                          - Raw: +
+                          - Raw: "1"
                     group: []
                     window: ~
                     sort: ~
@@ -871,7 +883,8 @@ take 20
       return_usd_excess,
     ]
     "#,
-        )?.nodes;
+        )?
+        .nodes;
         let mat = resolve_and_materialize(ast.clone()).unwrap();
         assert_yaml_snapshot!(mat);
 
@@ -892,7 +905,8 @@ group [title] (
     aggregate [avg_salary: average emp_salary]
 )
 "#,
-        )?.nodes;
+        )?
+        .nodes;
 
         let mat = resolve_and_materialize(ast.clone()).unwrap();
         assert_yaml_snapshot!(mat, @r###"
@@ -916,14 +930,11 @@ group [title] (
                           - Transform:
                               Aggregate:
                                 assigns:
-                                  - NamedExpr:
-                                      name: emp_salary
-                                      expr:
-                                        SString:
-                                          - String: AVG(
-                                          - Expr:
-                                              Ident: salary
-                                          - String: )
+                                  - SString:
+                                      - String: AVG(
+                                      - Expr:
+                                          Ident: salary
+                                      - String: )
                                 group:
                                   - Ident: title
                                   - Ident: emp_no
@@ -940,18 +951,15 @@ group [title] (
                           - Transform:
                               Aggregate:
                                 assigns:
-                                  - NamedExpr:
-                                      name: avg_salary
-                                      expr:
-                                        SString:
-                                          - String: AVG(
-                                          - Expr:
-                                              SString:
-                                                - String: AVG(
-                                                - Expr:
-                                                    Ident: salary
-                                                - String: )
-                                          - String: )
+                                  - SString:
+                                      - String: AVG(
+                                      - Expr:
+                                          SString:
+                                            - String: AVG(
+                                            - Expr:
+                                                Ident: salary
+                                            - String: )
+                                      - String: )
                                 group:
                                   - Ident: title
                                 window: ~

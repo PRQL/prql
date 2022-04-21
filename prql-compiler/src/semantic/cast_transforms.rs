@@ -286,13 +286,9 @@ mod tests {
                           - Transform:
                               Aggregate:
                                 assigns:
-                                  - FuncCall:
-                                      name: average
-                                      args:
-                                        - Ident: amount
-                                      named_args: {}
+                                  - Ident: "<unnamed>"
                                 group:
-                                  - Ident: c_invoice.date
+                                  - Ident: "<un-materialized>"
                                 window: ~
                                 sort: ~
         "###);

@@ -12,98 +12,86 @@ expression: mat
       - Transform:
           Derive:
             assigns:
-              - NamedExpr:
-                  name: return_total
-                  expr:
-                    SString:
-                      - String: "IF(is_valid_price, "
-                      - Expr:
-                          Expr:
-                            - Expr:
-                                - Ident: prices_adj
-                                - Raw: /
-                                - SString:
-                                    - String: lag_day_todo(
-                                    - Expr:
-                                        Ident: prices_adj
-                                    - String: )
-                            - Raw: "-"
-                            - Raw: "1"
-                            - Raw: +
-                            - Ident: div_ret
-                      - String: ", NULL)"
-              - NamedExpr:
-                  name: return_usd
-                  expr:
-                    SString:
-                      - String: "IF(is_valid_price, "
-                      - Expr:
-                          Expr:
-                            - Expr:
-                                - Ident: prices_usd
-                                - Raw: /
-                                - SString:
-                                    - String: lag_day_todo(
-                                    - Expr:
-                                        Ident: prices_usd
-                                    - String: )
-                            - Raw: "-"
-                            - Raw: "1"
-                            - Raw: +
-                            - Ident: div_ret
-                      - String: ", NULL)"
-              - NamedExpr:
-                  name: return_excess
-                  expr:
-                    Expr:
-                      - Expr:
-                          - SString:
-                              - String: "IF(is_valid_price, "
-                              - Expr:
-                                  Expr:
-                                    - Expr:
-                                        - Ident: prices_adj
-                                        - Raw: /
-                                        - SString:
-                                            - String: lag_day_todo(
-                                            - Expr:
-                                                Ident: prices_adj
-                                            - String: )
-                                    - Raw: "-"
-                                    - Raw: "1"
-                                    - Raw: +
-                                    - Ident: div_ret
-                              - String: ", NULL)"
-                          - Raw: "-"
-                          - Raw: "0.2"
-                      - Raw: /
-                      - Raw: "252"
-              - NamedExpr:
-                  name: return_usd_excess
-                  expr:
-                    Expr:
-                      - Expr:
-                          - SString:
-                              - String: "IF(is_valid_price, "
-                              - Expr:
-                                  Expr:
-                                    - Expr:
-                                        - Ident: prices_usd
-                                        - Raw: /
-                                        - SString:
-                                            - String: lag_day_todo(
-                                            - Expr:
-                                                Ident: prices_usd
-                                            - String: )
-                                    - Raw: "-"
-                                    - Raw: "1"
-                                    - Raw: +
-                                    - Ident: div_ret
-                              - String: ", NULL)"
-                          - Raw: "-"
-                          - Raw: "0.2"
-                      - Raw: /
-                      - Raw: "252"
+              - SString:
+                  - String: "IF(is_valid_price, "
+                  - Expr:
+                      Expr:
+                        - Expr:
+                            - Ident: prices_adj
+                            - Raw: /
+                            - SString:
+                                - String: lag_day_todo(
+                                - Expr:
+                                    Ident: prices_adj
+                                - String: )
+                        - Raw: "-"
+                        - Raw: "1"
+                        - Raw: +
+                        - Ident: div_ret
+                  - String: ", NULL)"
+              - SString:
+                  - String: "IF(is_valid_price, "
+                  - Expr:
+                      Expr:
+                        - Expr:
+                            - Ident: prices_usd
+                            - Raw: /
+                            - SString:
+                                - String: lag_day_todo(
+                                - Expr:
+                                    Ident: prices_usd
+                                - String: )
+                        - Raw: "-"
+                        - Raw: "1"
+                        - Raw: +
+                        - Ident: div_ret
+                  - String: ", NULL)"
+              - Expr:
+                  - Expr:
+                      - SString:
+                          - String: "IF(is_valid_price, "
+                          - Expr:
+                              Expr:
+                                - Expr:
+                                    - Ident: prices_adj
+                                    - Raw: /
+                                    - SString:
+                                        - String: lag_day_todo(
+                                        - Expr:
+                                            Ident: prices_adj
+                                        - String: )
+                                - Raw: "-"
+                                - Raw: "1"
+                                - Raw: +
+                                - Ident: div_ret
+                          - String: ", NULL)"
+                      - Raw: "-"
+                      - Raw: "0.2"
+                  - Raw: /
+                  - Raw: "252"
+              - Expr:
+                  - Expr:
+                      - SString:
+                          - String: "IF(is_valid_price, "
+                          - Expr:
+                              Expr:
+                                - Expr:
+                                    - Ident: prices_usd
+                                    - Raw: /
+                                    - SString:
+                                        - String: lag_day_todo(
+                                        - Expr:
+                                            Ident: prices_usd
+                                        - String: )
+                                - Raw: "-"
+                                - Raw: "1"
+                                - Raw: +
+                                - Ident: div_ret
+                          - String: ", NULL)"
+                      - Raw: "-"
+                      - Raw: "0.2"
+                  - Raw: /
+                  - Raw: "252"
             group: []
             window: ~
             sort: ~

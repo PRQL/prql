@@ -53,10 +53,14 @@ pub fn translate_query(query: Query, mut context: Context) -> Result<sql_ast::Qu
         let last_node = t.pipeline.functions.last().unwrap();
         let frame = last_node.frame.clone().unwrap();
 
-        let (pipeline, frame, c) = super::materialize(t.pipeline, frame, context)?;
-        context = c;
+        let rename_to = if t.name.is_empty() {
+            None
+        } else {
+            Some(t.name.as_str())
+        };
 
-        context.finish_table(&t.name);
+        let (pipeline, frame, c) = super::materialize(t.pipeline, frame, context, rename_to)?;
+        context = c;
 
         materialized.push(AtomicTable {
             name: t.name,
@@ -242,18 +246,24 @@ fn sql_query_of_atomic_table(table: AtomicTable, dialect: &Dialect) -> Result<sq
         .min()
         .map(expr_of_i64);
 
-    // Find the final sort (none of the others affect the result, and can be discarded).
-    let order_by = (frame.sort.iter())
-        .map(|sort| OrderByExpr {
-            expr: Item::Ident(sort.column.clone()).try_into().unwrap(),
-            asc: if matches!(sort.direction, SortDirection::Asc) {
-                None // default order is ASC, so there is no need to emit it
-            } else {
-                Some(false)
-            },
-            nulls_first: None,
-        })
-        .collect();
+    // If there is sort transform in the pipeline
+    let sort = transforms.iter().any(|t| matches!(t, Transform::Sort(_)));
+    let order_by = if sort {
+        // Use sorting from the frame
+        (frame.sort.iter())
+            .map(|sort| OrderByExpr {
+                expr: Item::Ident(sort.column.clone()).try_into().unwrap(),
+                asc: if matches!(sort.direction, SortDirection::Asc) {
+                    None // default order is ASC, so there is no need to emit it
+                } else {
+                    Some(false)
+                },
+                nulls_first: None,
+            })
+            .collect()
+    } else {
+        vec![]
+    };
 
     let aggregate = transforms.get(aggregate_position);
 
@@ -317,18 +327,18 @@ fn atomic_pipelines_of_pipeline(pipeline: Pipeline) -> Result<Vec<AtomicTable>> 
             (function.item.as_transform()).ok_or_else(|| anyhow!("expected Transform"))?;
 
         let split = match transform.as_ref() {
-            "join" => {
-                counts.get("filter").is_some()
-                    || counts.get("aggregate").is_some()
-                    || counts.get("sort").is_some()
-                    || counts.get("take").is_some()
+            "Join" => {
+                counts.get("Filter").is_some()
+                    || counts.get("Aggregate").is_some()
+                    || counts.get("Sort").is_some()
+                    || counts.get("Take").is_some()
             }
-            "aggregate" => {
-                counts.get("aggregate").is_some()
-                    || counts.get("sort").is_some()
-                    || counts.get("take").is_some()
+            "Aggregate" => {
+                counts.get("Aggregate").is_some()
+                    || counts.get("Sort").is_some()
+                    || counts.get("Take").is_some()
             }
-            "filter" | "sort" | "take" => counts.get("take").is_some(),
+            "Filter" | "Sort" | "Take" => counts.get("Take").is_some(),
             _ => false,
         };
 
@@ -879,7 +889,7 @@ take 20
           FROM
             employees
           ORDER BY
-            employees.tenure
+            tenure
           LIMIT
             50
         ), average_salaries AS (
@@ -894,7 +904,7 @@ take 20
         SELECT
           name,
           salary,
-          average_country_salary
+          average_salaries.average_country_salary
         FROM
           newest_employees
           JOIN average_salaries USING(country)
@@ -1147,9 +1157,9 @@ take 20
         FROM
           Employees
         ORDER BY
-          Employees.age,
-          Employees.last_name DESC,
-          Employees.first_name
+          age,
+          last_name DESC,
+          first_name
         "###);
 
         Ok(())

@@ -4,8 +4,8 @@ use anyhow::{anyhow, Result};
 use itertools::Itertools;
 
 use crate::ast::ast_fold::*;
-use crate::ast::*;
 use crate::error::{Error, Reason, WithErrorInfo};
+use crate::{ast::*, Declaration, TableColumn};
 
 use super::cast_transforms;
 use super::context::{Context, Frame};
@@ -73,8 +73,7 @@ impl AstFold for Resolver {
                         func_def.body = Box::new(self.fold_node(*func_def.body)?);
 
                         // clear declared variables
-                        self.context.variables.remove("_");
-                        self.context.refresh_inverse_index();
+                        self.context.clear_scope();
 
                         self.context.declare_func(func_def);
                         None
@@ -115,8 +114,10 @@ impl AstFold for Resolver {
             }
 
             Item::Ident(ident) => {
-                node.declared_at = (self.context.lookup_variable(&ident))
-                    .map_err(|e| Error::new(Reason::Simple(e)).with_span(node.span))?;
+                node.declared_at = Some(
+                    (self.context.lookup_variable(&ident, node.span))
+                        .map_err(|e| Error::new(Reason::Simple(e)).with_span(node.span))?,
+                );
 
                 Item::Ident(ident)
             }
@@ -131,7 +132,7 @@ impl AstFold for Resolver {
     fn fold_transform(&mut self, t: Transform) -> Result<Transform> {
         Ok(match t {
             Transform::From(t) => {
-                self.context.flatten_scope();
+                self.context.clear_scope();
 
                 self.context.frame = Frame::default();
 
@@ -144,22 +145,22 @@ impl AstFold for Resolver {
             Transform::Select(mut select) => {
                 self.context.frame.columns.clear();
 
-                select.assigns = self.fold_and_declare(select.assigns, true)?;
+                select.assigns = self.fold_assigns(select.assigns)?;
                 self.apply_context(&mut select)?;
 
-                self.context.flatten_scope();
+                self.context.clear_scope();
 
                 Transform::Select(select)
             }
             Transform::Derive(mut select) => {
-                select.assigns = self.fold_and_declare(select.assigns, true)?;
+                select.assigns = self.fold_assigns(select.assigns)?;
                 self.apply_context(&mut select)?;
 
                 Transform::Derive(select)
             }
             Transform::Group { by, pipeline } => {
                 let by = self.fold_nodes(by)?;
-                self.context.frame.group = self.ensure_declared(&by);
+                self.context.frame.group = extract_group_by(&by);
 
                 let pipeline = Box::new(self.fold_node(*pipeline)?);
 
@@ -170,10 +171,10 @@ impl AstFold for Resolver {
                 self.context.frame.columns.clear();
                 self.context.frame.groups_to_columns();
 
-                select.assigns = self.fold_and_declare(select.assigns, true)?;
+                select.assigns = self.fold_assigns(select.assigns)?;
                 self.apply_context(&mut select)?;
 
-                self.context.flatten_scope();
+                self.context.clear_scope();
 
                 Transform::Aggregate(select)
             }
@@ -183,74 +184,132 @@ impl AstFold for Resolver {
                 Transform::Join {
                     side,
                     with: self.fold_table_ref(with)?,
-                    filter: match filter {
-                        JoinFilter::On(nodes) => JoinFilter::On(self.fold_nodes(nodes)?),
-                        JoinFilter::Using(nodes) => {
-                            for node in &nodes {
-                                self.ensure_in_two_namespaces(node).map_err(|e| {
-                                    Error::new(Reason::Simple(e)).with_span(node.span)
-                                })?;
-                                self.context.declare_table_column(node, true);
-                            }
-                            JoinFilter::Using(nodes)
-                        }
-                    },
+                    filter: self.fold_join_filter(filter)?,
                 }
             }
             Transform::Sort(sort) => {
                 let sort = self.fold_column_sorts(sort)?;
 
-                self.context.frame.sort = sort_to_declaration_ids(sort.clone())?;
+                self.context.frame.sort = extract_sorts(sort.clone())?;
 
                 Transform::Sort(sort)
             }
             t => fold_transform(self, t)?,
         })
     }
+
+    fn fold_join_filter(&mut self, filter: JoinFilter) -> Result<JoinFilter> {
+        Ok(match filter {
+            JoinFilter::On(nodes) => JoinFilter::On(self.fold_nodes(nodes)?),
+            JoinFilter::Using(mut nodes) => {
+                for node in &mut nodes {
+                    let ident = node.item.as_ident().unwrap();
+
+                    // ensure two namespaces
+                    let namespaces = self.context.lookup_namespaces_of(ident);
+                    match namespaces.len() {
+                        0 => Err(format!("Unknown variable `{ident}`")),
+                        1 => Err("join using a column name must belong to both tables".to_string()),
+                        _ => Ok(()),
+                    }
+                    .map_err(|e| Error::new(Reason::Simple(e)).with_span(node.span))?;
+
+                    let decl = Declaration::ExternRef {
+                        table: None,
+                        variable: ident.to_string(),
+                    };
+
+                    let id = self.context.declare(decl, node.span);
+                    self.context.add_to_scope(ident, id);
+                    
+                    let column = TableColumn::Named(ident.clone(), id);
+                    self.context.frame.columns.push(column);
+
+                    node.declared_at = Some(id);
+                }
+                JoinFilter::Using(nodes)
+            }
+        })
+    }
 }
 
 impl Resolver {
-    fn fold_and_declare(&mut self, nodes: Vec<Node>, in_frame: bool) -> Result<Vec<Node>> {
+    fn fold_assigns(&mut self, nodes: Vec<Node>) -> Result<Vec<Node>> {
         nodes
             .into_iter()
-            .map(|node| {
-                let node = self.fold_node(node)?;
+            .map(|mut node| {
+                match node.item {
+                    Item::NamedExpr(NamedExpr { name, expr }) => {
+                        // introduce a new expression alias
 
-                self.context.declare_table_column(&node, in_frame);
-                Ok(node)
+                        let (expr, _) = self.fold_assign_expr(*expr)?;
+                        let id = expr.declared_at.unwrap();
+
+                        let value = TableColumn::Named(name.clone(), id);
+                        self.context.frame.columns.push(value);
+
+                        self.context.add_to_scope(&name, id);
+
+                        node.item = Item::Ident(name);
+                        node.declared_at = Some(id);
+                        Ok(node)
+                    }
+                    _ => {
+                        // try to guess a name, otherwise use unnamed column
+
+                        let (expr, name) = self.fold_assign_expr(node)?;
+                        let id = expr.declared_at.unwrap();
+
+                        let column = if let Some(name) = name {
+                            TableColumn::Named(name, id)
+                        } else {
+                            TableColumn::Unnamed(id)
+                        };
+
+                        self.context.frame.columns.push(column);
+                        Ok(expr)
+                    }
+                }
             })
             .try_collect()
     }
 
-    fn ensure_declared(&mut self, nodes: &[Node]) -> Vec<usize> {
-        nodes
-            .iter()
-            .map(|s| {
-                if let Some(id) = s.declared_at {
-                    id
-                } else {
-                    self.context.declare_table_column(s, false)
-                }
-            })
-            .collect()
-    }
+    fn fold_assign_expr(&mut self, node: Node) -> Result<(Node, Option<String>)> {
+        let span = node.span;
 
-    fn ensure_in_two_namespaces(&mut self, node: &Node) -> Result<(), String> {
-        let ident = node.item.as_ident().unwrap();
-        let namespaces = self.context.lookup_namespaces_of(ident);
-        match namespaces.len() {
-            0 => Err(format!("Unknown variable `{ident}`")),
-            1 => Err("join using a column name must belong to both tables".to_string()),
-            _ => Ok(()),
+        match node.item {
+            Item::Ident(ref ident) => {
+                // keep existing ident
+
+                let name = ident.clone();
+                let node = self.fold_node(node)?;
+
+                Ok((node, Some(name)))
+            }
+            _ => {
+                // declare new expression
+
+                let expr = self.fold_node(node)?;
+                let decl = Declaration::Expression(Box::from(expr));
+
+                let id = self.context.declare(decl, span);
+
+                let mut placeholder: Node = Item::Ident("<unnamed>".to_string()).into();
+                placeholder.declared_at = Some(id);
+                Ok((placeholder, None))
+            }
         }
     }
 
     fn apply_context(&self, select: &mut Select) -> Result<()> {
         select.group = (self.context.frame.group)
             .iter()
-            .map(|id| self.context.declarations[*id].0.clone())
-            .map(|d| d.into_variable().map(|x| *x))
-            .try_collect()?;
+            .map(|id| {
+                let mut node: Node = Item::Ident("<un-materialized>".to_string()).into();
+                node.declared_at = Some(*id);
+                node
+            })
+            .collect();
 
         Ok(())
     }
@@ -316,7 +375,11 @@ impl Resolver {
     }
 }
 
-fn sort_to_declaration_ids(sort: Vec<ColumnSort>) -> Result<Vec<ColumnSort<usize>>> {
+fn extract_group_by(nodes: &[Node]) -> Vec<usize> {
+    nodes.into_iter().map(|n| n.declared_at.unwrap()).collect()
+}
+
+fn extract_sorts(sort: Vec<ColumnSort>) -> Result<Vec<ColumnSort<usize>>> {
     sort.into_iter()
         .map(|s| {
             Ok(ColumnSort {
@@ -340,7 +403,7 @@ pub fn init_context() -> Context {
 
 #[cfg(test)]
 mod tests {
-    use insta::{assert_debug_snapshot, assert_snapshot, assert_yaml_snapshot};
+    use insta::{assert_snapshot, assert_yaml_snapshot};
     use serde_yaml::from_str;
 
     use crate::{parse, resolve_and_translate};
@@ -371,11 +434,13 @@ mod tests {
         assert_yaml_snapshot!(resolver.context.frame, @r###"
         ---
         columns:
-          - All: employees
+          - All: 30
         sort: []
         group: []
+        tables:
+          - 30
         "###);
-        assert!(resolver.context.variables["employees"].len() == 1);
+        assert!(resolver.context.variables["employees.*"].len() == 1);
     }
 
     #[test]
@@ -417,24 +482,10 @@ mod tests {
         resolver.fold_node(pipeline).unwrap();
 
         assert_eq!(resolver.context.frame.columns.len(), 3);
-        assert_debug_snapshot!(resolver.context.variables["$"].iter().sorted(), @r###"
-        IntoIter(
-            [
-                (
-                    "age",
-                    34,
-                ),
-                (
-                    "salary_1",
-                    31,
-                ),
-                (
-                    "salary_2",
-                    32,
-                ),
-            ],
-        )
-        "###);
+
+        assert!(resolver.context.variables.contains_key("salary_1"));
+        assert!(resolver.context.variables.contains_key("salary_2"));
+        assert!(resolver.context.variables.contains_key("age"));
     }
 
     #[test]

@@ -19,8 +19,8 @@ table_1 AS (
   SELECT
     dm.emp_no,
     gender,
-    AVG(emp_salary) AS salary_avg,
-    STDDEV(emp_salary) AS salary_sd,
+    AVG(table_0.emp_salary) AS salary_avg,
+    STDDEV(table_0.emp_salary) AS salary_sd,
     dm.emp_no AS mng_no
   FROM
     table_0
@@ -34,8 +34,8 @@ table_1 AS (
 SELECT
   managers.first_name || ' ' || managers.last_name AS mng_name,
   managers.gender,
-  salary_avg,
-  salary_sd
+  table_1.salary_avg,
+  table_1.salary_sd
 FROM
   table_1
   JOIN employees AS managers USING(emp_no)

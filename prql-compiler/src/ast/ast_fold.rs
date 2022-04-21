@@ -72,7 +72,14 @@ pub trait AstFold {
             .map(|c| self.fold_column_sort(c))
             .try_collect()
     }
+    fn fold_select(&mut self, select: Select) -> Result<Select> {
+        fold_select(self, select)
+    }
+    fn fold_join_filter(&mut self, f: JoinFilter) -> Result<JoinFilter> {
+        fold_join_filter(self, f)
+    }
 }
+
 pub fn fold_item<T: ?Sized + AstFold>(fold: &mut T, item: Item) -> Result<Item> {
     Ok(match item {
         Item::Ident(ident) => Item::Ident(fold.fold_ident(ident)?),
@@ -159,16 +166,16 @@ pub fn fold_transform<T: ?Sized + AstFold>(
     match transformation {
         Transform::From(table) => Ok(Transform::From(fold.fold_table_ref(table)?)),
 
-        Transform::Derive(select) => Ok(Transform::Derive(fold_select(fold, select)?)),
-        Transform::Select(select) => Ok(Transform::Select(fold_select(fold, select)?)),
-        Transform::Aggregate(select) => Ok(Transform::Aggregate(fold_select(fold, select)?)),
+        Transform::Derive(select) => Ok(Transform::Derive(fold.fold_select(select)?)),
+        Transform::Select(select) => Ok(Transform::Select(fold.fold_select(select)?)),
+        Transform::Aggregate(select) => Ok(Transform::Aggregate(fold.fold_select(select)?)),
 
         Transform::Filter(items) => Ok(Transform::Filter(fold.fold_nodes(items)?)),
         Transform::Sort(items) => Ok(Transform::Sort(fold.fold_column_sorts(items)?)),
         Transform::Join { side, with, filter } => Ok(Transform::Join {
             side,
             with: fold.fold_table_ref(with)?,
-            filter: fold_join_filter(fold, filter)?,
+            filter: fold.fold_join_filter(filter)?,
         }),
         Transform::Group { by, pipeline } => Ok(Transform::Group {
             by: fold.fold_nodes(by)?,

@@ -68,8 +68,9 @@ impl<'a> AstFold for Labeler<'a> {
                 declaration.to_string()
             };
             let color = match declaration {
-                Declaration::Variable(_) => Color::Blue,
-                Declaration::Table(_) => Color::Magenta,
+                Declaration::Expression(_) => Color::Blue,
+                Declaration::ExternRef { .. } => Color::Cyan,
+                Declaration::Table { .. } => Color::Magenta,
                 Declaration::Function(_) => Color::Yellow,
             };
 

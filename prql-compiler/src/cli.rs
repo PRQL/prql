@@ -159,7 +159,7 @@ fn combine_prql_and_frames(source: &str, frames: Vec<(Span, Frame)>, context: Co
         printed_lines += 1;
 
         let cols = frame
-            .get_columns(&context)
+            .get_column_names(&context)
             .into_iter()
             .map(|c| c.unwrap_or_else(|| "?".to_string()))
             .join(", ");
