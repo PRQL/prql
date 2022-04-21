@@ -68,7 +68,8 @@ func_call = { ident ~ (named_term_simple | term_simple)+ }
 func_curry = { ident ~ (named_term_simple | term_simple)* }
 
 term = _{ ( s_string | f_string | func_call | term_simple ) }
-term_simple = _{ ( s_string | f_string | ident | parenthesized_expr | list | range | interval | number | string_literal | inline_pipeline ) }
+term_simple = _{ ( s_string | f_string | ident | parenthesized_expr | list | range | literal | inline_pipeline ) }
+literal = _{ interval | number | string_literal }
 list = { "[" ~ NEWLINE* ~ named_expr ~ ("," ~ NEWLINE* ~ named_expr )* ~ ","? ~ NEWLINE* ~ "]" }
 parenthesized_expr = _{ "(" ~ expr ~ ")" }
 
@@ -94,8 +95,11 @@ string_literal = ${ PUSH(quote) ~ string_inner ~ POP }
 
 number = ${ ( ASCII_DIGIT )+ ~ ("." ~ ( ASCII_DIGIT )+)? }
 
-// this could be generalized to use term_simple
-range = ${ number? ~ ".." ~ number? }
+range = ${ range_edge ~ ".." ~ range_edge }
+// We need `literal` separate from `term_simple` for things like range edges,
+// which would infinitely recurse otherwise, since it'll keep trying to parse
+// the whole span, not just the part before `..`.
+range_edge = ${ literal? }
 
 // These separate idents from each other — i.e. `foo bar and baz` will parse into
 // [`foo bar`, `and`, `baz`], where `foo bar` is presumably a function call.
