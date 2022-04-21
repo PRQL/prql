@@ -1,6 +1,6 @@
 mod materializer;
-mod un_group;
 mod translator;
+mod un_group;
 
 pub use materializer::{materialize, MaterializedFrame};
 pub use translator::translate;

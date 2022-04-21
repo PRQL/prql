@@ -193,7 +193,7 @@ expression: "parse_tree_of_str(r#\"\n    from employees\n    filter country = \"
                                                                 },
                                                                 inner: [
                                                                     Pair {
-                                                                        rule: string,
+                                                                        rule: string_inner,
                                                                         span: Span {
                                                                             str: "USA",
                                                                             start: 37,

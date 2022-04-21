@@ -3,6 +3,6 @@ mod context;
 mod reporting;
 mod resolver;
 
-pub use self::context::{Context, Declaration, TableColumn, Frame, split_var_name};
-pub use reporting::{label_references, collect_frames};
+pub use self::context::{split_var_name, Context, Declaration, Frame, TableColumn};
+pub use reporting::{collect_frames, label_references};
 pub use resolver::resolve;

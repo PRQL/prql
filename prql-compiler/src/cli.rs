@@ -8,8 +8,8 @@ use std::{
     ops::Range,
 };
 
-use crate::{parse, ast::Item};
 use crate::sql::load_std_lib;
+use crate::{ast::Item, parse};
 use crate::{
     error::{self, Span},
     semantic::{Context, Frame},

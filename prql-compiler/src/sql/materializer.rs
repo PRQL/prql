@@ -73,8 +73,8 @@ impl Materializer {
                     TableColumn::Named(name, id) => {
                         let expr_node = self.lookup_declaration(id)?;
 
-                        let name = split_var_name(&name).1.to_string(); 
-                        
+                        let name = split_var_name(&name).1.to_string();
+
                         let decl = Declaration::ExternRef {
                             variable: name.clone(),
                             table: as_table,
@@ -104,7 +104,7 @@ impl Materializer {
                         let (decl, _) = &self.context.declarations[namespace];
                         let table = decl.as_table().unwrap();
                         Item::Ident(format!("{table}.*")).into()
-                    },
+                    }
                 })
             })
             .try_collect()
@@ -177,11 +177,10 @@ impl Materializer {
 
                 self.fold_node(*body)?
             }
-            Declaration::Table(table) => {
-                Item::Ident(format!("{table}.*")).into()
-            },
+            Declaration::Table(table) => Item::Ident(format!("{table}.*")).into(),
         };
-        self.context.replace_declaration_expr(id, materialized.clone());
+        self.context
+            .replace_declaration_expr(id, materialized.clone());
 
         Ok(materialized)
     }

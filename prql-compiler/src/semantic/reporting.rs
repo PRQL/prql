@@ -4,8 +4,8 @@ use anyhow::{Ok, Result};
 use ariadne::{Color, Label, Report, ReportBuilder, ReportKind, Source};
 
 use super::{Context, Declaration, Frame};
-use crate::ast::*;
 use crate::ast::ast_fold::*;
+use crate::ast::*;
 use crate::error::Span;
 
 pub fn label_references(nodes: &[Node], context: &Context, source_id: String, source: String) {

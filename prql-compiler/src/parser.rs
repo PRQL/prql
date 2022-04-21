@@ -174,12 +174,11 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
                     })
                 }
                 Rule::ident => Item::Ident(pair.as_str().to_string()),
-                Rule::string_literal => {
-                    ast_of_parse_tree(pair.clone().into_inner())?
-                        .into_only()?
-                        .item
-                }
-                Rule::string => Item::String(pair.as_str().to_string()),
+                Rule::string_literal => Item::String(
+                    // Put the string_inner (which doesn't have quotes) into the
+                    // String item.
+                    pair.into_inner().into_only()?.as_str().to_string(),
+                ),
                 Rule::s_string => Item::SString(ast_of_interpolate_items(pair)?),
                 Rule::f_string => Item::FString(ast_of_interpolate_items(pair)?),
                 Rule::pipeline => Item::Pipeline(Pipeline {
@@ -228,25 +227,26 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
                     Item::Range(Range { start, end })
                 }
                 Rule::interval => {
-                    let parsed = ast_of_parse_tree(pair.into_inner())?;
-                    // unimplemented!();
-                    let [n, unit]: [Node; 2] = parsed
+                    let parsed: Vec<_> = pair.into_inner().into_iter().collect();
+                    let [n, unit]: [Pair<Rule>; 2] = parsed
                         .try_into()
                         .map_err(|e| anyhow!("Expected two items; {e:?}"))?;
 
                     Item::Interval(Interval {
-                        n: n.item.as_raw().unwrap().parse()?,
-                        unit: unit.item.as_raw().unwrap().clone(),
+                        n: n.as_str().parse()?,
+                        unit: unit.as_str().to_owned(),
                     })
                 }
+
                 Rule::operator_unary
                 | Rule::operator_mul
                 | Rule::operator_add
                 | Rule::operator_compare
                 | Rule::operator_logical
-                | Rule::number
                 | Rule::interval_kind
-                | Rule::func_def_flags => Item::Raw(pair.as_str().to_owned()),
+                | Rule::func_def_flags
+                | Rule::number => Item::Raw(pair.as_str().to_owned()),
+
                 _ => unreachable!(),
             };
 
@@ -295,7 +295,7 @@ mod test {
                 },
                 inner: [
                     Pair {
-                        rule: string,
+                        rule: string_inner,
                         span: Span {
                             str: " U S A ",
                             start: 1,

@@ -221,7 +221,7 @@ impl AstFold for Resolver {
 
                     let id = self.context.declare(decl, node.span);
                     self.context.add_to_scope(ident, id);
-                    
+
                     let column = TableColumn::Named(ident.clone(), id);
                     self.context.frame.columns.push(column);
 
