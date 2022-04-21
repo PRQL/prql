@@ -2,7 +2,7 @@
 # assuming they have `cargo` and `Taskfile`.
 
 # Generally we shouldn't be requiring running this to have a good dev loop —
-# rust tools are indpendently good, and adding an intermediate layer means we're
+# rust tools are independently good, and adding an intermediate layer means we're
 # reimplementing things or getting in the way. Instead, this can be used to
 # aggregate commands that's aren't yet integrated.
 

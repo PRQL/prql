@@ -61,7 +61,6 @@ ident = @{ !operator ~ (ASCII_ALPHA | "$") ~ (ASCII_ALPHANUMERIC | "." | "_" | "
 // - 1
 // - 2
 
-// Adding the WHITESPACE is like making it a compound-atomic operator.
 expr = !{ term ~ (operator ~ term)* }
 expr_simple = !{ term_simple ~ (operator ~ term_simple)* }
 
@@ -80,7 +79,7 @@ parenthesized_expr = _{ "(" ~ expr ~ ")" }
 // We need to have a non-silent rule which contains the quotes
 // — `string_literal` in this case — because of
 // https://github.com/pest-parser/pest/issues/583. Then when converting to AST,
-// we only keep the `string` and discard the `string_literal` given it contains
+// we only keep the `string_inner` and discard the `string_literal` given it contains
 // the quotes.
 //
 // TODO: I'm still a bit unclear how preceeding and trailing spaces are working
@@ -90,8 +89,8 @@ parenthesized_expr = _{ "(" ~ expr ~ ")" }
 
 quote = _{ "\"" | "'" }
 // PEEK refers to the opening quote; either `"` or `'`.
-string = { ( !( PEEK ) ~ ANY )+ }
-string_literal = ${ PUSH(quote) ~ string ~ POP }
+string_inner = { ( !( PEEK ) ~ ANY )+ }
+string_literal = ${ PUSH(quote) ~ string_inner ~ POP }
 
 number = ${ ( ASCII_DIGIT )+ ~ ("." ~ ( ASCII_DIGIT )+)? }
 
