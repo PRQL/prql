@@ -32,7 +32,7 @@ jobs:
       github.ref_name == 'main'
       || contains(github.event.pull_request.labels.*.name, 'run-full-tests')
   test-windows:
-    uses: ./.github/workflows/test.yaml
+    uses: ./.github/workflows/test-cargo.yaml
     with:
       os: windows-latest
     if: |
