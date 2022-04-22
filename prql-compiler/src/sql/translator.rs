@@ -402,7 +402,7 @@ fn prepend_with_from(pipeline: &mut Pipeline, last_name: &Option<String>) {
     }
 }
 
-/// Combines filters by putting them in parentheses and then joining them with `and`.   
+/// Combines filters by putting them in parentheses and then joining them with `and`.
 #[allow(unstable_name_collisions)] // Same behavior as the std lib; we can remove this + itertools when that's released.
 fn combine_filters(filters: Vec<Vec<Node>>) -> Vec<Node> {
     filters

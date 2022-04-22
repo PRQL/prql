@@ -1,7 +1,7 @@
 Task:
 
 > The company active pursues gender equality.
-> 
+>
 > Prepare an analysis based on salaries and gender distribution by departments.
 
 ```prql

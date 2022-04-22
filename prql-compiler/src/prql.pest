@@ -62,7 +62,7 @@ named_expr = { (ident ~ ":")? ~ expr }
 named_term = { (ident ~ ":")? ~ term }
 
 // Expression that can contain a function call
-expr_call = _{ (func_call | expr) } 
+expr_call = _{ (func_call | expr) }
 
 expr = !{ expr_compare ~ (operator_logical ~ expr_compare)* }
 expr_compare = !{ expr_add ~ (operator_compare ~ expr_add)? }

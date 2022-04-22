@@ -1,4 +1,4 @@
-Task: 
+Task:
 
 > Find distributions of titles, salaries and genders over different departments.
 
