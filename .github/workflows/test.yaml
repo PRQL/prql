@@ -20,11 +20,11 @@ jobs:
   # Only run ubuntu on pull-requests, since it's fastest. Run Mac & Windows only
   # on `main` or a `run-full-tests` label.
   test-linux:
-    uses: ./.github/workflows/test.yaml
+    uses: ./.github/workflows/test-cargo.yaml
     with:
       os: ubuntu-latest
   test-mac:
-    uses: ./.github/workflows/test.yaml
+    uses: ./.github/workflows/test-cargo.yaml
     with:
       os: macos-latest
     if: |
