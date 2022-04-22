@@ -203,32 +203,25 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
                     })
                 }
                 Rule::range => {
-                    // a bit hacky, but eh
-                    let no_start = &pair.as_span().as_str()[0..2] == "..";
-
-                    let mut parsed = ast_of_parse_tree(pair.into_inner())?;
-
-                    let (start, end) = match parsed.len() {
-                        0 => (None, None),
-                        1 => {
-                            let item = Box::from(parsed.remove(0));
-                            if no_start {
-                                (None, Some(item))
-                            } else {
-                                (Some(item), None)
-                            }
-                        }
-                        2 => (
-                            Some(Box::from(parsed.remove(0))),
-                            Some(Box::from(parsed.remove(0))),
-                        ),
-                        _ => unreachable!(),
-                    };
+                    let [start, end]: [Option<Box<Node>>; 2] = pair
+                        .into_inner()
+                        // Iterate over `start` & `end` (seperator is not a term).
+                        .into_iter()
+                        .map(|x| {
+                            // Parse & Box each one.
+                            ast_of_parse_tree(x.into_inner())
+                                .and_then(|x| x.into_only())
+                                .map(Box::new)
+                                .ok()
+                        })
+                        .collect::<Vec<_>>()
+                        .try_into()
+                        .map_err(|e| anyhow!("Expected start, separator, end; {e:?}"))?;
                     Item::Range(Range { start, end })
                 }
                 Rule::interval => {
-                    let parsed: Vec<_> = pair.into_inner().into_iter().collect();
-                    let [n, unit]: [Pair<Rule>; 2] = parsed
+                    let pairs: Vec<_> = pair.into_inner().into_iter().collect();
+                    let [n, unit]: [Pair<Rule>; 2] = pairs
                         .try_into()
                         .map_err(|e| anyhow!("Expected two items; {e:?}"))?;
 

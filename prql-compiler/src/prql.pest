@@ -69,7 +69,8 @@ expr_compare = !{ expr_add ~ (operator_compare ~ expr_add)? }
 expr_add = !{ expr_mul ~ (operator_add ~ expr_mul)* }
 expr_mul = !{ term ~ (operator_mul ~ term)* }
 
-term = _{ ( s_string | f_string | ident | parenthesized_expr | list | range | interval | number | string_literal | parenthesized_pipeline) }
+term = _{ ( s_string | f_string | ident | parenthesized_expr | list | range | literal | inline_pipeline ) }
+literal = _{ interval | number | string_literal }
 list = { "[" ~ (NEWLINE* ~ named_expr_call ~ ("," ~ NEWLINE* ~ named_expr_call )* ~ ","?)? ~ NEWLINE* ~ "]" }
 parenthesized_expr = _{ "(" ~ expr_call ~ ")" }
 parenthesized_pipeline = { "(" ~ expr_call? ~ pipe ~ pipeline ~ NEWLINE* ~ ")" }
@@ -96,8 +97,11 @@ string_literal = ${ PUSH(quote) ~ string_inner ~ POP }
 
 number = ${ ( ASCII_DIGIT )+ ~ ("." ~ ( ASCII_DIGIT )+)? }
 
-// this could be generalized to use term
-range = ${ number? ~ ".." ~ number? }
+range = ${ range_edge ~ ".." ~ range_edge }
+// We need `literal` separate from `term_simple` for things like range edges,
+// which would infinitely recurse otherwise, since it'll keep trying to parse
+// the whole span, not just the part before `..`.
+range_edge = ${ literal? }
 
 operator = _{ operator_unary | operator_mul | operator_add | operator_compare | operator_logical }
 operator_unary = ${ "-" }
