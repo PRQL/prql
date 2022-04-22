@@ -1,7 +1,6 @@
 [workspace]
 
 members = [
-  # https://github.com/prql/prql/issues/395
   "prql-python",
   "prql-compiler",
   "prql-js",
