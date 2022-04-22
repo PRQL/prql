@@ -1,3 +1,5 @@
+# Runs cargo test & cargo lint for a given platform.
+
 on:
   workflow_call:
     inputs:
@@ -41,7 +43,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: clippy
-          args: --all-targets -p prql-web -p prql-compiler -p prql-js --target=wasm32-unknown-unknown -- -D warnings
+          args: --all-targets --target=wasm32-unknown-unknown -- -D warnings
       - name: ⌨️ Fmt
         uses: actions-rs/cargo@v1
         with:
