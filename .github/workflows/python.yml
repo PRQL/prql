@@ -6,6 +6,8 @@
 name: prql-python
 
 on:
+  workflow_call
+
   # Excluding due to https://github.com/prql/prql/issues/395
   # push:
   #   branches:
