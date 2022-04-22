@@ -1,7 +1,6 @@
 # All tests — both those that run on every PR and those that run on merges only.
 
 # See https://github.com/prql/prql/issues/37 for some TODOs
-name: x
 
 on:
   push:
