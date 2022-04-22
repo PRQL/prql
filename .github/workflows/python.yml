@@ -1,4 +1,6 @@
-name: publish-prql-python
+# Currently this is separate from the `pull-request.yaml`, but could be
+# integrated eventually.
+name: prql-python
 
 on:
   push:
@@ -9,7 +11,13 @@ on:
     branches:
       - main
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
+  # TODO: would there be a way of integrating these into a single matrix job?
+  # Note that the commands are slightly different atm.
   linux:
     runs-on: ubuntu-latest
     steps:
