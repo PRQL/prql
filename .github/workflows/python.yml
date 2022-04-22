@@ -1,5 +1,8 @@
 # Currently this is separate from the `pull-request.yaml`, but could be
 # integrated eventually.
+#
+# TODO: Cache doesn't seem to work. So we only run on PRs when files in the
+# `prql-python` path change.
 name: prql-python
 
 on:
@@ -10,6 +13,8 @@ on:
     types: [opened, reopened, synchronize, labeled]
     branches:
       - main
+    paths:
+      - "prql-python/**"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
