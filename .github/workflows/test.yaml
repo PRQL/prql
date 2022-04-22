@@ -1,49 +1,106 @@
+# All tests — both those that run on every PR and those that run on merges only.
+
+# See https://github.com/prql/prql/issues/37 for some TODOs
+
+name: test
+
 on:
-  workflow_call:
-    inputs:
-      os:
-        required: true
-        type: string
-        default: ubuntu-latest
+  push:
+    branches:
+      - main
+  pull_request:
+    # Add `labeled`, so we can trigger a full run by adding a `run-full-tests` label.
+    types: [opened, reopened, synchronize, labeled]
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  test:
-    runs-on: ${{ inputs.os }}
+  # Only run ubuntu on pull-requests, since it's fastest. Run Mac & Windows only
+  # on `main` or a `run-full-tests` label.
+  test-linux:
+    uses: ./.github/workflows/test-cargo.yaml
+    with:
+      os: ubuntu-latest
+  test-mac:
+    uses: ./.github/workflows/test-cargo.yaml
+    with:
+      os: macos-latest
+    if: |
+      github.ref_name == 'main'
+      || contains(github.event.pull_request.labels.*.name, 'run-full-tests')
+  test-windows:
+    uses: ./.github/workflows/test-cargo.yaml
+    with:
+      os: windows-latest
+    if: |
+      github.ref_name == 'main'
+      || contains(github.event.pull_request.labels.*.name, 'run-full-tests')
+  test-book:
+    runs-on: ubuntu-latest
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v2
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v1
-      - name: 📋 Test
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-  lint:
-    runs-on: ${{ inputs.os }}
-    steps:
-      - name: 📂 Checkout code
-        uses: actions/checkout@v2
-      - name: 💰 Cache
-        uses: Swatinem/rust-cache@v1
-      - name: 📎 Clippy (standard)
-        uses: actions-rs/cargo@v1
-        with:
-          command: clippy
-          args: --all-targets --workspace -- -D warnings
-      # Note that `--all-targets` doesn't refer to targets like `wasm32-unknown-unknown`. So we need another step here.
-      - name: 🔗 Setup rust wasm toolchain
+      - uses: jetli/trunk-action@v0.1.0
+      - uses: peaceiris/actions-mdbook@v1
+      - name: 🔗 Setup rust toolchain
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
           target: wasm32-unknown-unknown
+          # https://github.com/actions-rs/toolchain/issues/126
           toolchain: stable
-      - name: 📎 Clippy (wasm)
-        uses: actions-rs/cargo@v1
+      - name: 🔨 Build
+        run: mdbook build
+        working-directory: reference/
+  # Currently duplicative with `test-book`, since that needs to build this
+  # target too. But `test-book` can't raise an error, unfortunately. And if we
+  # add tests to the `wasm` target, then this job will cover them.
+  test-wasm:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v2
+      - name: 💰 Cache
+        uses: Swatinem/rust-cache@v1
+      - name: 🔗 Setup rust toolchain
+        uses: actions-rs/toolchain@v1
         with:
-          command: clippy
-          args: --all-targets -p prql-web -p prql-compiler -p prql-js --target=wasm32-unknown-unknown -- -D warnings
-      - name: ⌨️ Fmt
-        uses: actions-rs/cargo@v1
+          profile: minimal
+          target: wasm32-unknown-unknown
+          # https://github.com/actions-rs/toolchain/issues/126
+          toolchain: stable
+      - uses: jetli/trunk-action@v0.1.0
+      - name: 🔨 Build
+        run: trunk build
+        working-directory: prql-web/
+  code-cov:
+    runs-on: ubuntu-latest
+    # Currently this runs `cargo clean` which makes the run taking 4 min. TODO:
+    # see whether `skip_clean` is reliable and then add this job to every
+    # commit.
+    if: |
+      github.ref_name == 'main'
+      || contains(github.event.pull_request.labels.*.name, 'run-full-tests')
+    steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v2
+      - name: 💰 Cache
+        uses: Swatinem/rust-cache@v1
+      - name: Run cargo-tarpaulin
+        uses: actions-rs/tarpaulin@v0.1
         with:
-          command: fmt
-          args: --all --check
+          # TODO: move this exclude to a config file.
+          args: "--workspace --exclude prql-python -- --test-threads 1"
+      - name: Upload to codecov.io
+        uses: codecov/codecov-action@v2
+      - name: Archive code coverage results
+        uses: actions/upload-artifact@v1
+        with:
+          name: code-coverage-report
+          path: cobertura.xml
