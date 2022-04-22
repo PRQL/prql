@@ -6,15 +6,18 @@
 name: prql-python
 
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    types: [opened, reopened, synchronize, labeled]
-    branches:
-      - main
-    paths:
-      - "prql-python/**"
+  workflow_call
+
+  # Excluding due to https://github.com/prql/prql/issues/395
+  # push:
+  #   branches:
+  #     - main
+  # pull_request:
+  #   types: [opened, reopened, synchronize, labeled]
+  #   branches:
+  #     - main
+  #   paths:
+  #     - "prql-python/**"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

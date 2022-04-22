@@ -1,10 +1,11 @@
 [workspace]
 
 members = [
+  # https://github.com/prql/prql/issues/395
+  # "prql-python",
   "prql-compiler",
-  "prql-web",
   "prql-js",
-  "prql-python",
+  "prql-web",
   "reference",
   "reference/mdbook-prql", # Should this be here or should we exclude?
 ]
