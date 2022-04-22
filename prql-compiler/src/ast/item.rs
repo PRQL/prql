@@ -65,7 +65,7 @@ pub struct NamedExpr {
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub enum InterpolateItem {
     String(String),
-    Expr(Node),
+    Expr(Box<Node>),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -139,7 +139,7 @@ impl Display for Item {
                     match &node.item {
                         Item::Pipeline(p) => {
                             for node in &p.functions {
-                                write!(f, "{}\n", node.item)?;
+                                writeln!(f, "{}", node.item)?;
                             }
                         }
                         _ => write!(f, "{}", node.item)?,
@@ -156,7 +156,7 @@ impl Display for Item {
                 } else {
                     f.write_str("(\n")?;
                     for node in &pipeline.functions {
-                        write!(f, "  {}\n", node.item)?;
+                        writeln!(f, "  {}", node.item)?;
                     }
                     f.write_str(")")?;
                 }
@@ -185,7 +185,7 @@ impl Display for Item {
                 } else {
                     f.write_str("[\n")?;
                     for li in nodes.iter() {
-                        write!(f, "  {},\n", li.0.item)?;
+                        writeln!(f, "  {},", li.0.item)?;
                     }
                     f.write_str("]")?;
                 }
@@ -234,7 +234,7 @@ impl Display for Item {
 fn display_interpolation(
     f: &mut std::fmt::Formatter,
     prefix: &str,
-    parts: &Vec<InterpolateItem>,
+    parts: &[InterpolateItem],
 ) -> Result<(), std::fmt::Error> {
     f.write_str(prefix)?;
     f.write_char('"')?;

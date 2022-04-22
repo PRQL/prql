@@ -376,7 +376,7 @@ impl Resolver {
 }
 
 fn extract_group_by(nodes: &[Node]) -> Vec<usize> {
-    nodes.into_iter().map(|n| n.declared_at.unwrap()).collect()
+    nodes.iter().map(|n| n.declared_at.unwrap()).collect()
 }
 
 fn extract_sorts(sort: Vec<ColumnSort>) -> Result<Vec<ColumnSort<usize>>> {

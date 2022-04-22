@@ -838,7 +838,7 @@ expression: "parse_tree_of_str(r#\"\nfrom employees\nfilter country = \"USA\"   
                                                         },
                                                         inner: [
                                                             Pair {
-                                                                rule: parenthesized_pipeline,
+                                                                rule: nested_pipeline,
                                                                 span: Span {
                                                                     str: "(\n    aggregate [                                  # `by` are the columns to group by.\n        average salary,                          # These are aggregation calcs run on each group.\n        sum     salary,\n        average gross_salary,\n        sum     gross_salary,\n        average gross_cost,\n        sum_gross_cost: sum gross_cost,\n        count: count,\n    ]\n)",
                                                                     start: 360,

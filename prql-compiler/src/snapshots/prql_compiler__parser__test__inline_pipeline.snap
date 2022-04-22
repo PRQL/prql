@@ -1,10 +1,10 @@
 ---
 source: prql-compiler/src/parser.rs
-expression: "parse_tree_of_str(\"(salary | percentile 50)\",\n                  Rule::parenthesized_pipeline).unwrap()"
+expression: "parse_tree_of_str(\"(salary | percentile 50)\", Rule::nested_pipeline).unwrap()"
 ---
 [
     Pair {
-        rule: parenthesized_pipeline,
+        rule: nested_pipeline,
         span: Span {
             str: "(salary | percentile 50)",
             start: 0,

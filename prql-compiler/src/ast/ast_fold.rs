@@ -145,7 +145,7 @@ pub fn fold_interpolate_item<T: ?Sized + AstFold>(
 ) -> Result<InterpolateItem> {
     Ok(match interpolate_item {
         InterpolateItem::String(string) => InterpolateItem::String(string),
-        InterpolateItem::Expr(expr) => InterpolateItem::Expr(fold.fold_node(expr)?),
+        InterpolateItem::Expr(expr) => InterpolateItem::Expr(Box::new(fold.fold_node(*expr)?)),
     })
 }
 

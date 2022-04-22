@@ -247,7 +247,7 @@ expression: "parse_tree_of_str(\"group [title, country] (\n                aggre
                                                         },
                                                         inner: [
                                                             Pair {
-                                                                rule: parenthesized_pipeline,
+                                                                rule: nested_pipeline,
                                                                 span: Span {
                                                                     str: "(\n                aggregate [sum salary]\n            )",
                                                                     start: 23,

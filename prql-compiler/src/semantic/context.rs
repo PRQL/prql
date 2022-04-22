@@ -160,7 +160,7 @@ impl Context {
                 }
             }
         }
-        print!("]\n");
+        println!("]");
     }
 
     pub fn declare(&mut self, dec: Declaration, span: Option<Span>) -> usize {
@@ -186,7 +186,7 @@ impl Context {
     }
 
     pub fn declare_table(&mut self, t: &TableRef) {
-        let name = t.alias.clone().unwrap_or(t.name.clone());
+        let name = t.alias.clone().unwrap_or_else(|| t.name.clone());
         let decl = Declaration::Table(name.clone());
 
         let table_id = self.declare(decl, None);

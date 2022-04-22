@@ -185,7 +185,7 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
                     value: None,
                     functions: ast_of_parse_tree(pair.into_inner())?,
                 }),
-                Rule::parenthesized_pipeline => {
+                Rule::nested_pipeline => {
                     let mut parsed = ast_of_parse_tree(pair.into_inner())?;
                     // this is either [expr, pipeline] or [pipeline]
 
@@ -258,7 +258,9 @@ fn ast_of_interpolate_items(pair: Pair<Rule>) -> Result<Vec<InterpolateItem>> {
         .map(|x| {
             Ok(match x.as_rule() {
                 Rule::interpolate_string => InterpolateItem::String(x.as_str().to_string()),
-                _ => InterpolateItem::Expr(ast_of_parse_tree(x.into_inner())?.into_expr().into()),
+                _ => InterpolateItem::Expr(Box::new(
+                    ast_of_parse_tree(x.into_inner())?.into_expr().into(),
+                )),
             })
         })
         .collect::<Result<_>>()
@@ -1027,10 +1029,10 @@ take 20
     fn test_inline_pipeline() {
         assert_debug_snapshot!(parse_tree_of_str(
             "(salary | percentile 50)",
-            Rule::parenthesized_pipeline
+            Rule::nested_pipeline
         )
         .unwrap());
-        assert_yaml_snapshot!(ast_of_string("(salary | percentile 50)", Rule::parenthesized_pipeline).unwrap(), @r###"
+        assert_yaml_snapshot!(ast_of_string("(salary | percentile 50)", Rule::nested_pipeline).unwrap(), @r###"
         ---
         Pipeline:
           value:

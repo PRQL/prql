@@ -23,7 +23,7 @@ pub use sql::{resolve_and_translate, translate};
 /// - [resolve] — Finds variable references, validates functions calls, determines frames.
 /// - [translate] — Write a SQL string from a PRQL AST.
 pub fn compile(prql: &str) -> Result<String> {
-    parse(prql).and_then(|x| resolve_and_translate(x))
+    parse(prql).and_then(resolve_and_translate)
 }
 
 /// Format an PRQL query
