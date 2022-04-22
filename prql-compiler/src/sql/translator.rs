@@ -1025,7 +1025,7 @@ take 20
         join s:salaries [emp_no]
         select [employees.emp_no, d.name, s.salary]
         "###;
-        let result = parse(prql).and_then(|x| resolve_and_translate(x)).unwrap();
+        let result = parse(prql).and_then(resolve_and_translate).unwrap();
         assert_display_snapshot!(result, @r###"
         WITH table_0 AS (
           SELECT
@@ -1053,7 +1053,7 @@ take 20
         join salaries [emp_no]
         select [e.*, salary]
         "###;
-        let result = parse(prql).and_then(|x| resolve_and_translate(x)).unwrap();
+        let result = parse(prql).and_then(resolve_and_translate).unwrap();
         assert_display_snapshot!(result, @r###"
         WITH table_0 AS (
           SELECT

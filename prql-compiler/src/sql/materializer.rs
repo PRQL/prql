@@ -423,7 +423,7 @@ take 20
 "#,
         )?.nodes;
 
-        let mat = resolve_and_materialize(ast.clone()).unwrap();
+        let mat = resolve_and_materialize(ast).unwrap();
         assert_yaml_snapshot!(&mat);
 
         Ok(())
@@ -571,7 +571,7 @@ take 20
                 named_args: {}
         "###);
 
-        let mat = resolve_and_materialize(ast.clone()).unwrap();
+        let mat = resolve_and_materialize(ast).unwrap();
         assert_yaml_snapshot!(mat, @r###"
         ---
         - Pipeline:
@@ -703,7 +703,7 @@ take 20
         )?
         .nodes;
 
-        let mat = resolve_and_materialize(ast.clone()).unwrap();
+        let mat = resolve_and_materialize(ast).unwrap();
 
         assert_yaml_snapshot!(mat, @r###"
         ---
@@ -747,7 +747,7 @@ take 20
         "#,
         )?
         .nodes;
-        let mat = resolve_and_materialize(ast.clone()).unwrap();
+        let mat = resolve_and_materialize(ast).unwrap();
 
         assert_yaml_snapshot!(mat, @r###"
         ---
@@ -791,7 +791,7 @@ take 20
         )?
         .nodes;
 
-        let mat = resolve_and_materialize(ast.clone()).unwrap();
+        let mat = resolve_and_materialize(ast).unwrap();
         assert_yaml_snapshot!(mat,
             @r###"
         ---
@@ -850,7 +850,7 @@ take 20
 "#,
         )?.nodes;
 
-        let mat = resolve_and_materialize(ast.clone()).unwrap();
+        let mat = resolve_and_materialize(ast).unwrap();
         assert_yaml_snapshot!(mat);
         Ok(())
     }
@@ -884,7 +884,7 @@ take 20
     "#,
         )?
         .nodes;
-        let mat = resolve_and_materialize(ast.clone()).unwrap();
+        let mat = resolve_and_materialize(ast).unwrap();
         assert_yaml_snapshot!(mat);
 
         Ok(())
@@ -907,7 +907,7 @@ group [title] (
         )?
         .nodes;
 
-        let mat = resolve_and_materialize(ast.clone()).unwrap();
+        let mat = resolve_and_materialize(ast).unwrap();
         assert_yaml_snapshot!(mat, @r###"
         ---
         - Pipeline:

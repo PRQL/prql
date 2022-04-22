@@ -265,7 +265,7 @@ mod tests {
         ",
         )
         .unwrap();
-        let (result, _) = resolve(query.nodes, context.clone()).unwrap();
+        let (result, _) = resolve(query.nodes, context).unwrap();
         assert_yaml_snapshot!(result, @r###"
         ---
         - Pipeline:
