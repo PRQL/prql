@@ -2,6 +2,8 @@
 
 # See https://github.com/prql/prql/issues/37 for some TODOs
 
+name: test
+
 on:
   push:
     branches:
