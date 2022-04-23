@@ -1,23 +1,19 @@
-# Currently this is separate from the `pull-request.yaml`, but could be
-# integrated eventually.
+# Currently this is separate from the `pull-request.yaml`, but potentially could
+# be integrated eventually.
 #
 # TODO: Cache doesn't seem to work. So we only run on PRs when files in the
-# `prql-python` path change.
-name: prql-python
+# `prql-python` path change so we avoid slowing down most builds.
 
 on:
-  workflow_call
-
-  # Excluding due to https://github.com/prql/prql/issues/395
-  # push:
-  #   branches:
-  #     - main
-  # pull_request:
-  #   types: [opened, reopened, synchronize, labeled]
-  #   branches:
-  #     - main
-  #   paths:
-  #     - "prql-python/**"
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [opened, reopened, synchronize, labeled]
+    branches:
+      - main
+    paths:
+      - "prql-python/**"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -81,7 +77,9 @@ jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
-    if: "startsWith(github.ref, 'refs/tags/')"
+    # TODO: Upload PYPI_API_TOKEN, confirm how we release all crates together.
+    # if: "startsWith(github.ref, 'refs/tags/')"
+    if: false
     needs: [macos, windows, linux]
     steps:
       - uses: actions/download-artifact@v2
