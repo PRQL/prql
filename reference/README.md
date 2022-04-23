@@ -9,7 +9,7 @@ should not contain rust code!
 Install all required PRQL dev tools with:
 
 ```sh
-task install-dev-tools
+task setup-dev
 ```
 
 ...or if an individual install is preferred:
