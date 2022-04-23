@@ -241,7 +241,7 @@ See above for fuller examples of PRQL.
 ### Python implementation
 
 There is a python implementation at
-[qorrect/PyPrql](https://github.com/qorrect/PyPrql), which can be installed with
+[prql/PyPrql](https://github.com/prql/PyPrql), which can be installed with
 `pip install pyprql`. It has some great features, including a native interactive
 console with auto-complete for column names.
 
@@ -410,7 +410,7 @@ decisions on the direction of the language, and project administration:
 
 - [**@aljazerzen**](https://github.com/aljazerzen) — Aljaž Mur Eržen
 - [**@max-sixty**](https://github.com/max-sixty) — Maximilian Roos
-- [**@qorrect**](https://github.com/qorrect) — Charlie Sando
+- [**@charlie-sanders**](https://github.com/charlie-sanders) — Charlie Sanders
 
 We welcome others to join who have a track record of contributions.
 

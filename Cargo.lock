@@ -1136,6 +1136,7 @@ dependencies = [
  "pulldown-cmark",
  "pulldown-cmark-to-cmark",
  "serde",
+ "serde_json",
  "serde_yaml",
  "similar",
  "sqlformat",
