@@ -1,0 +1,147 @@
+---
+source: prql-compiler/src/sql/materializer.rs
+expression: "&mat"
+---
+- Pipeline:
+    value: ~
+    functions:
+      - Transform:
+          From:
+            name: employees
+            alias: ~
+      - Transform:
+          Filter:
+            - Expr:
+                - Ident: country
+                - Raw: "="
+                - String: USA
+      - Transform:
+          Derive:
+            assigns:
+              - Expr:
+                  - Ident: salary
+                  - Raw: +
+                  - Ident: payroll_tax
+              - Expr:
+                  - Expr:
+                      - Ident: salary
+                      - Raw: +
+                      - Ident: payroll_tax
+                  - Raw: +
+                  - Ident: benefits_cost
+            group: []
+            window: ~
+            sort: ~
+      - Transform:
+          Filter:
+            - Expr:
+                - Expr:
+                    - Expr:
+                        - Ident: salary
+                        - Raw: +
+                        - Ident: payroll_tax
+                    - Raw: +
+                    - Ident: benefits_cost
+                - Raw: ">"
+                - Raw: "0"
+      - Transform:
+          Group:
+            by:
+              - Ident: title
+              - Ident: country
+            pipeline:
+              Pipeline:
+                value: ~
+                functions:
+                  - Transform:
+                      Aggregate:
+                        assigns:
+                          - SString:
+                              - String: AVG(
+                              - Expr:
+                                  Ident: salary
+                              - String: )
+                          - SString:
+                              - String: SUM(
+                              - Expr:
+                                  Ident: salary
+                              - String: )
+                          - SString:
+                              - String: AVG(
+                              - Expr:
+                                  Expr:
+                                    - Ident: salary
+                                    - Raw: +
+                                    - Ident: payroll_tax
+                              - String: )
+                          - SString:
+                              - String: SUM(
+                              - Expr:
+                                  Expr:
+                                    - Ident: salary
+                                    - Raw: +
+                                    - Ident: payroll_tax
+                              - String: )
+                          - SString:
+                              - String: AVG(
+                              - Expr:
+                                  Expr:
+                                    - Expr:
+                                        - Ident: salary
+                                        - Raw: +
+                                        - Ident: payroll_tax
+                                    - Raw: +
+                                    - Ident: benefits_cost
+                              - String: )
+                          - SString:
+                              - String: SUM(
+                              - Expr:
+                                  Expr:
+                                    - Expr:
+                                        - Ident: salary
+                                        - Raw: +
+                                        - Ident: payroll_tax
+                                    - Raw: +
+                                    - Ident: benefits_cost
+                              - String: )
+                          - SString:
+                              - String: COUNT(*)
+                        group:
+                          - Ident: title
+                          - Ident: country
+                        window: ~
+                        sort: ~
+      - Transform:
+          Sort:
+            - direction: Asc
+              column:
+                SString:
+                  - String: SUM(
+                  - Expr:
+                      Expr:
+                        - Expr:
+                            - Ident: salary
+                            - Raw: +
+                            - Ident: payroll_tax
+                        - Raw: +
+                        - Ident: benefits_cost
+                  - String: )
+      - Transform:
+          Filter:
+            - Expr:
+                - SString:
+                    - String: SUM(
+                    - Expr:
+                        Expr:
+                          - Expr:
+                              - Ident: salary
+                              - Raw: +
+                              - Ident: payroll_tax
+                          - Raw: +
+                          - Ident: benefits_cost
+                    - String: )
+                - Raw: ">"
+                - Raw: "200"
+      - Transform:
+          Take: 20
+

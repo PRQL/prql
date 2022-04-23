@@ -1,4 +1,4 @@
-use anyhow::{bail, Error, Result};
+use anyhow::{Error, Result};
 use ariadne::Source;
 use clap::{ArgEnum, Args, Parser};
 use clio::{Input, Output};
@@ -8,16 +8,21 @@ use std::{
     ops::Range,
 };
 
-use crate::ast::{Item, Node};
-use crate::error::{self, Span};
-use crate::semantic::{self, process_pipeline, resolve, resolve_and_materialize};
-use crate::translator::load_std_lib;
-use crate::{parse, translate};
+use crate::sql::load_std_lib;
+use crate::{ast::Item, parse};
+use crate::{
+    error::{self, Span},
+    semantic::{Context, Frame},
+};
+use crate::{semantic, sql::resolve_and_translate};
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ArgEnum)]
 enum Format {
     /// Abstract syntax tree (parse)
     Ast,
+
+    /// Formatted PRQL
+    Fmt,
 
     /// PRQL with annotated references to variables and functions
     #[clap(name = "prql-refs")]
@@ -95,81 +100,54 @@ fn compile_to(format: Format, source: &str) -> Result<Vec<u8>, Error> {
 
             serde_yaml::to_vec(&ast)?
         }
-        Format::PrqlReferences => {
+        Format::Fmt => {
             let query = parse(source)?;
-            let (nodes, context) = resolve(query.nodes, None)?;
+            let query = Item::Query(query);
 
-            semantic::print(&nodes, &context, "".to_string(), source.to_string());
+            format!("{query}").as_bytes().to_vec()
+        }
+        Format::PrqlReferences => {
+            let std_lib = load_std_lib()?;
+            let (_, context) = semantic::resolve(std_lib, None)?;
+
+            let query = parse(source)?;
+            let (nodes, context) = semantic::resolve(query.nodes, Some(context))?;
+
+            semantic::label_references(&nodes, &context, "".to_string(), source.to_string());
             vec![]
         }
         Format::PrqlFrames => {
             let query = parse(source)?;
 
-            // load functions
-            let (functions, other) = query
-                .nodes
-                .into_iter()
-                .partition(|n| matches!(n.item, Item::FuncDef(_)));
-            let std_lib = load_std_lib()?;
-            let functions = [std_lib, functions].concat();
-
             // resolve
-            let (_, context) = resolve(functions, None)?;
-            let frames = resolve_with_frames(other, context)?;
+            let std_lib = load_std_lib()?;
+            let (_, context) = semantic::resolve(std_lib, None)?;
+            let (nodes, context) = semantic::resolve(query.nodes, Some(context))?;
+
+            let frames = semantic::collect_frames(nodes);
 
             // combine with source
-            combine_prql_and_frames(source, frames).as_bytes().to_vec()
+            combine_prql_and_frames(source, frames, context)
+                .as_bytes()
+                .to_vec()
         }
         Format::Sql => {
-            let materialized = parse(source)?;
-            let sql = translate(&materialized)?;
+            let query = parse(source)?;
+            let sql = resolve_and_translate(query)?;
 
             sql.as_bytes().to_vec()
         }
     })
 }
 
-fn resolve_with_frames(
-    other: Vec<Node>,
-    mut context: semantic::Context,
-) -> Result<Vec<(Span, Vec<Option<String>>)>> {
-    let mut frames = Vec::new();
-    for node in other {
-        match node.item {
-            Item::Table(_) => {
-                let span = node.span;
-                let (_, c, _) = resolve_and_materialize(vec![node], Some(context))?;
-                context = c;
-
-                if let Some(span) = span {
-                    frames.push((span, context.get_frame()));
-                };
-            }
-            Item::Pipeline(pipeline) => {
-                for t in pipeline {
-                    let span = t.first_node().and_then(|n| n.span);
-                    let (_, c, _) = process_pipeline(vec![t], Some(context))?;
-                    context = c;
-
-                    if let Some(span) = span {
-                        frames.push((span, context.get_frame()));
-                    }
-                }
-            }
-            item => bail!("Unexpected item {item:?}"),
-        }
-    }
-    Ok(frames)
-}
-
-fn combine_prql_and_frames(source: &str, layouts: Vec<(Span, Vec<Option<String>>)>) -> String {
+fn combine_prql_and_frames(source: &str, frames: Vec<(Span, Frame)>, context: Context) -> String {
     let source = Source::from(source);
     let lines = source.lines().collect_vec();
     let width = lines.iter().map(|l| l.len()).max().unwrap_or(0);
 
     let mut printed_lines = 0;
     let mut result = Vec::new();
-    for (span, cols) in layouts {
+    for (span, frame) in frames {
         let line = source.get_line_range(&Range::from(span)).start;
 
         while printed_lines < line {
@@ -180,7 +158,8 @@ fn combine_prql_and_frames(source: &str, layouts: Vec<(Span, Vec<Option<String>>
         let chars: String = lines[printed_lines].chars().collect();
         printed_lines += 1;
 
-        let cols = cols
+        let cols = frame
+            .get_column_names(&context)
             .into_iter()
             .map(|c| c.unwrap_or_else(|| "?".to_string()))
             .join(", ");
@@ -212,11 +191,10 @@ sort full
         .unwrap();
         assert_snapshot!(String::from_utf8(output).unwrap().trim(),
         @r###"
-
-        from initial_table
+        from initial_table                                    # [initial_table.*]
         select [first: name, last: last_name, gender]         # [first, last, gender]
         derive full_name: first + " " + last                  # [first, last, gender, full_name]
-        take 23
+        take 23                                               # [first, last, gender, full_name]
         select [last + " " + first, full: full_name, gender]  # [?, full, gender]
         sort full                                             # [?, full, gender]
         "###);

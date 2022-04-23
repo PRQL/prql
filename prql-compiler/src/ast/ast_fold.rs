@@ -24,15 +24,8 @@ pub trait AstFold {
     fn fold_item(&mut self, item: Item) -> Result<Item> {
         fold_item(self, item)
     }
-    fn fold_nodes(&mut self, items: Vec<Node>) -> Result<Vec<Node>> {
-        items.into_iter().map(|item| self.fold_node(item)).collect()
-    }
-
-    fn fold_pipeline(&mut self, pipeline: Vec<Transform>) -> Result<Vec<Transform>> {
-        pipeline
-            .into_iter()
-            .map(|t| self.fold_transform(t))
-            .collect()
+    fn fold_nodes(&mut self, nodes: Vec<Node>) -> Result<Vec<Node>> {
+        nodes.into_iter().map(|node| self.fold_node(node)).collect()
     }
     fn fold_ident(&mut self, ident: Ident) -> Result<Ident> {
         Ok(ident)
@@ -40,17 +33,8 @@ pub trait AstFold {
     fn fold_table(&mut self, table: Table) -> Result<Table> {
         Ok(Table {
             name: self.fold_ident(table.name)?,
-            pipeline: self.fold_pipeline(table.pipeline)?,
+            pipeline: Box::new(self.fold_node(*table.pipeline)?),
         })
-    }
-    fn fold_filter(&mut self, filter: Filter) -> Result<Filter> {
-        Ok(Filter(
-            filter
-                .0
-                .into_iter()
-                .map(|i| self.fold_node(i))
-                .try_collect()?,
-        ))
     }
     // For some functions, we want to call a default impl, because copying &
     // pasting everything apart from a specific match is lots of repetition. So
@@ -60,6 +44,9 @@ pub trait AstFold {
     // necessary. Ref https://stackoverflow.com/a/66077767/3064736
     fn fold_transform(&mut self, transform: Transform) -> Result<Transform> {
         fold_transform(self, transform)
+    }
+    fn fold_pipeline(&mut self, pipeline: Pipeline) -> Result<Pipeline> {
+        fold_pipeline(self, pipeline)
     }
     fn fold_func_def(&mut self, function: FuncDef) -> Result<FuncDef> {
         fold_func_def(self, function)
@@ -85,7 +72,14 @@ pub trait AstFold {
             .map(|c| self.fold_column_sort(c))
             .try_collect()
     }
+    fn fold_select(&mut self, select: Select) -> Result<Select> {
+        fold_select(self, select)
+    }
+    fn fold_join_filter(&mut self, f: JoinFilter) -> Result<JoinFilter> {
+        fold_join_filter(self, f)
+    }
 }
+
 pub fn fold_item<T: ?Sized + AstFold>(fold: &mut T, item: Item) -> Result<Item> {
     Ok(match item {
         Item::Ident(ident) => Item::Ident(fold.fold_ident(ident)?),
@@ -96,24 +90,15 @@ pub fn fold_item<T: ?Sized + AstFold>(fold: &mut T, item: Item) -> Result<Item> 
                 .map(|x| fold.fold_node(x.into_inner()).map(ListItem))
                 .try_collect()?,
         ),
-        Item::Range(range) => Item::Range(Range {
-            // This aren't strictly in the hierarchy, so we don't need to
-            // have an assoc. function for `fold_optional_box` — we just
-            // call out to the function in this module
-            start: fold_optional_box(fold, range.start)?,
-            end: fold_optional_box(fold, range.end)?,
+        Item::Range(Range { start, end }) => Item::Range(Range {
+            start: fold_optional_box(fold, start)?,
+            end: fold_optional_box(fold, end)?,
         }),
         Item::Query(query) => Item::Query(Query {
             nodes: fold.fold_nodes(query.nodes)?,
             ..query
         }),
-        Item::InlinePipeline(InlinePipeline { value, functions }) => {
-            Item::InlinePipeline(InlinePipeline {
-                value: Box::from(fold.fold_node(*value)?),
-                functions: fold.fold_nodes(functions)?,
-            })
-        }
-        Item::Pipeline(transformations) => Item::Pipeline(fold.fold_pipeline(transformations)?),
+        Item::Pipeline(p) => Item::Pipeline(fold.fold_pipeline(p)?),
         Item::NamedExpr(named_expr) => Item::NamedExpr(fold.fold_named_expr(named_expr)?),
         Item::Transform(transformation) => Item::Transform(fold.fold_transform(transformation)?),
         Item::SString(items) => Item::SString(
@@ -130,16 +115,23 @@ pub fn fold_item<T: ?Sized + AstFold>(fold: &mut T, item: Item) -> Result<Item> 
         ),
         Item::FuncDef(func) => Item::FuncDef(fold.fold_func_def(func)?),
         Item::FuncCall(func_call) => Item::FuncCall(fold.fold_func_call(func_call)?),
-        Item::Table(table) => Item::Table(Table {
-            name: table.name,
-            pipeline: fold.fold_pipeline(table.pipeline)?,
-        }),
+        Item::Table(table) => Item::Table(fold.fold_table(table)?),
         // None of these capture variables, so we don't need to replace
         // them.
         Item::String(_) | Item::Raw(_) | Item::Interval(_) => item,
     })
 }
 
+pub fn fold_pipeline<T: ?Sized + AstFold>(fold: &mut T, pipeline: Pipeline) -> Result<Pipeline> {
+    Ok(Pipeline {
+        value: fold_optional_box(fold, pipeline.value)?,
+        functions: fold.fold_nodes(pipeline.functions)?,
+    })
+}
+
+// This aren't strictly in the hierarchy, so we don't need to
+// have an assoc. function for `fold_optional_box` — we just
+// call out to the function in this module
 pub fn fold_optional_box<T: ?Sized + AstFold>(
     fold: &mut T,
     opt: Option<Box<Node>>,
@@ -153,7 +145,7 @@ pub fn fold_interpolate_item<T: ?Sized + AstFold>(
 ) -> Result<InterpolateItem> {
     Ok(match interpolate_item {
         InterpolateItem::String(string) => InterpolateItem::String(string),
-        InterpolateItem::Expr(expr) => InterpolateItem::Expr(fold.fold_node(expr)?),
+        InterpolateItem::Expr(expr) => InterpolateItem::Expr(Box::new(fold.fold_node(*expr)?)),
     })
 }
 
@@ -172,23 +164,35 @@ pub fn fold_transform<T: ?Sized + AstFold>(
     transformation: Transform,
 ) -> Result<Transform> {
     match transformation {
-        Transform::Derive(assigns) => Ok(Transform::Derive(fold.fold_nodes(assigns)?)),
         Transform::From(table) => Ok(Transform::From(fold.fold_table_ref(table)?)),
-        Transform::Filter(Filter(items)) => Ok(Transform::Filter(Filter(fold.fold_nodes(items)?))),
+
+        Transform::Derive(select) => Ok(Transform::Derive(fold.fold_select(select)?)),
+        Transform::Select(select) => Ok(Transform::Select(fold.fold_select(select)?)),
+        Transform::Aggregate(select) => Ok(Transform::Aggregate(fold.fold_select(select)?)),
+
+        Transform::Filter(items) => Ok(Transform::Filter(fold.fold_nodes(items)?)),
         Transform::Sort(items) => Ok(Transform::Sort(fold.fold_column_sorts(items)?)),
         Transform::Join { side, with, filter } => Ok(Transform::Join {
             side,
             with: fold.fold_table_ref(with)?,
-            filter: fold_join_filter(fold, filter)?,
+            filter: fold.fold_join_filter(filter)?,
         }),
-        Transform::Select(items) => Ok(Transform::Select(fold.fold_nodes(items)?)),
-        Transform::Aggregate { by, select } => Ok(Transform::Aggregate {
+        Transform::Group { by, pipeline } => Ok(Transform::Group {
             by: fold.fold_nodes(by)?,
-            select: fold.fold_nodes(select)?,
+            pipeline: Box::new(fold.fold_node(*pipeline)?),
         }),
         // TODO: generalize? Or this never changes?
         Transform::Take(_) => Ok(transformation),
     }
+}
+
+pub fn fold_select<T: ?Sized + AstFold>(fold: &mut T, select: Select) -> Result<Select> {
+    Ok(Select {
+        assigns: fold.fold_nodes(select.assigns)?,
+        group: fold.fold_nodes(select.group)?,
+        window: select.window.map(|x| fold.fold_nodes(x)).transpose()?,
+        sort: select.sort.map(|x| fold.fold_nodes(x)).transpose()?,
+    })
 }
 
 pub fn fold_join_filter<T: ?Sized + AstFold>(fold: &mut T, f: JoinFilter) -> Result<JoinFilter> {
@@ -199,6 +203,16 @@ pub fn fold_join_filter<T: ?Sized + AstFold>(fold: &mut T, f: JoinFilter) -> Res
 }
 
 pub fn fold_func_call<T: ?Sized + AstFold>(fold: &mut T, func_call: FuncCall) -> Result<FuncCall> {
+    // alternative way, looks nicer but requires cloning
+    // for item in &mut call.args {
+    //     *item = fold.fold_node(item.clone())?;
+    // }
+
+    // for item in &mut call.named_args.values_mut() {
+    //     let item = item.as_mut();
+    //     *item = fold.fold_node(item.clone())?;
+    // }
+
     Ok(FuncCall {
         // TODO: generalize? Or this never changes?
         name: func_call.name.to_owned(),
@@ -210,7 +224,7 @@ pub fn fold_func_call<T: ?Sized + AstFold>(fold: &mut T, func_call: FuncCall) ->
         named_args: func_call
             .named_args
             .into_iter()
-            .map(|arg| fold.fold_named_expr(arg))
+            .map(|(name, expr)| fold.fold_node(*expr).map(|e| (name, Box::from(e))))
             .try_collect()?,
     })
 }
@@ -225,6 +239,7 @@ pub fn fold_table_ref<T: ?Sized + AstFold>(fold: &mut T, table: TableRef) -> Res
 pub fn fold_func_def<T: ?Sized + AstFold>(fold: &mut T, func_def: FuncDef) -> Result<FuncDef> {
     Ok(FuncDef {
         name: fold.fold_ident(func_def.name)?,
+        kind: func_def.kind,
         positional_params: fold.fold_nodes(func_def.positional_params)?,
         named_params: fold.fold_nodes(func_def.named_params)?,
         body: Box::new(fold.fold_node(*func_def.body)?),

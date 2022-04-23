@@ -3,11 +3,12 @@ use std::ops::Range;
 use anyhow::{Ok, Result};
 use ariadne::{Color, Label, Report, ReportBuilder, ReportKind, Source};
 
-use super::{Context, Declaration};
-use crate::ast::FuncDef;
-use crate::internals::{AstFold, Node};
+use super::{Context, Declaration, Frame};
+use crate::ast::ast_fold::*;
+use crate::ast::*;
+use crate::error::Span;
 
-pub fn print(nodes: &[Node], context: &Context, source_id: String, source: String) {
+pub fn label_references(nodes: &[Node], context: &Context, source_id: String, source: String) {
     let mut report = Report::build(ReportKind::Custom("Info", Color::Blue), &source_id, 0);
 
     let source = Source::from(source);
@@ -22,17 +23,17 @@ pub fn print(nodes: &[Node], context: &Context, source_id: String, source: Strin
     // traverse ast
     labeler.fold_nodes(nodes.to_owned()).unwrap();
     // traverse declarations
-    for (d, _) in &context.declarations {
-        match d {
-            Declaration::Variable(n) | Declaration::Function(FuncDef { body: n, .. }) => {
-                labeler.fold_node(*(*n).clone()).unwrap();
-            }
-            Declaration::Table(_) => todo!(),
-        }
-    }
+    // for (d, _) in &context.declarations {
+    //     match d {
+    //         Declaration::Variable(n) | Declaration::Function(FuncDef { body: n, .. }) => {
+    //             labeler.fold_node(*(*n).clone()).unwrap();
+    //         }
+    //         Declaration::Table(_) => todo!(),
+    //     }
+    // }
 
     // label all declarations
-    // for (dec, span) in &analyzer.declarations {
+    // for (dec, span) in &context.declarations {
     //     if let Some(span) = span {
     //         report.add_label(
     //             Label::new((source_id.clone(), Range::from(*span)))
@@ -67,8 +68,9 @@ impl<'a> AstFold for Labeler<'a> {
                 declaration.to_string()
             };
             let color = match declaration {
-                Declaration::Variable(_) => Color::Blue,
-                Declaration::Table(_) => Color::Magenta,
+                Declaration::Expression(_) => Color::Blue,
+                Declaration::ExternRef { .. } => Color::Cyan,
+                Declaration::Table { .. } => Color::Magenta,
                 Declaration::Function(_) => Color::Yellow,
             };
 
@@ -78,6 +80,30 @@ impl<'a> AstFold for Labeler<'a> {
                         .with_message(message)
                         .with_color(color),
                 );
+            }
+        }
+        Ok(self.fold_item(node.item)?.into())
+    }
+}
+
+pub fn collect_frames(nodes: Vec<Node>) -> Vec<(Span, Frame)> {
+    let mut collector = FrameCollector { frames: vec![] };
+
+    collector.fold_nodes(nodes).unwrap();
+
+    collector.frames
+}
+
+/// Traverses AST and collects all node.frame
+struct FrameCollector {
+    frames: Vec<(Span, Frame)>,
+}
+
+impl AstFold for FrameCollector {
+    fn fold_node(&mut self, node: Node) -> Result<Node> {
+        if let Some(frame) = node.frame {
+            if let Some(span) = node.span {
+                self.frames.push((span, frame));
             }
         }
         Ok(self.fold_item(node.item)?.into())

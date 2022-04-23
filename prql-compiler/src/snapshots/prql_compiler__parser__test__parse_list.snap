@@ -1,6 +1,6 @@
 ---
 source: prql-compiler/src/parser.rs
-expression: "parse_tree_of_str(r#\"[1 + 1, 2]\"#, Rule::list)?"
+expression: "parse_tree_of_str(r#\"[1 + 1, 2]\"#, Rule::list).unwrap()"
 ---
 [
     Pair {
@@ -12,7 +12,7 @@ expression: "parse_tree_of_str(r#\"[1 + 1, 2]\"#, Rule::list)?"
         },
         inner: [
             Pair {
-                rule: named_expr,
+                rule: named_expr_call,
                 span: Span {
                     str: "1 + 1",
                     start: 1,
@@ -28,38 +28,78 @@ expression: "parse_tree_of_str(r#\"[1 + 1, 2]\"#, Rule::list)?"
                         },
                         inner: [
                             Pair {
-                                rule: number,
+                                rule: expr_compare,
                                 span: Span {
-                                    str: "1",
+                                    str: "1 + 1",
                                     start: 1,
-                                    end: 2,
-                                },
-                                inner: [],
-                            },
-                            Pair {
-                                rule: operator,
-                                span: Span {
-                                    str: "+",
-                                    start: 3,
-                                    end: 4,
-                                },
-                                inner: [],
-                            },
-                            Pair {
-                                rule: number,
-                                span: Span {
-                                    str: "1",
-                                    start: 5,
                                     end: 6,
                                 },
-                                inner: [],
+                                inner: [
+                                    Pair {
+                                        rule: expr_add,
+                                        span: Span {
+                                            str: "1 + 1",
+                                            start: 1,
+                                            end: 6,
+                                        },
+                                        inner: [
+                                            Pair {
+                                                rule: expr_mul,
+                                                span: Span {
+                                                    str: "1 ",
+                                                    start: 1,
+                                                    end: 3,
+                                                },
+                                                inner: [
+                                                    Pair {
+                                                        rule: number,
+                                                        span: Span {
+                                                            str: "1",
+                                                            start: 1,
+                                                            end: 2,
+                                                        },
+                                                        inner: [],
+                                                    },
+                                                ],
+                                            },
+                                            Pair {
+                                                rule: operator_add,
+                                                span: Span {
+                                                    str: "+",
+                                                    start: 3,
+                                                    end: 4,
+                                                },
+                                                inner: [],
+                                            },
+                                            Pair {
+                                                rule: expr_mul,
+                                                span: Span {
+                                                    str: "1",
+                                                    start: 5,
+                                                    end: 6,
+                                                },
+                                                inner: [
+                                                    Pair {
+                                                        rule: number,
+                                                        span: Span {
+                                                            str: "1",
+                                                            start: 5,
+                                                            end: 6,
+                                                        },
+                                                        inner: [],
+                                                    },
+                                                ],
+                                            },
+                                        ],
+                                    },
+                                ],
                             },
                         ],
                     },
                 ],
             },
             Pair {
-                rule: named_expr,
+                rule: named_expr_call,
                 span: Span {
                     str: "2",
                     start: 8,
@@ -75,13 +115,43 @@ expression: "parse_tree_of_str(r#\"[1 + 1, 2]\"#, Rule::list)?"
                         },
                         inner: [
                             Pair {
-                                rule: number,
+                                rule: expr_compare,
                                 span: Span {
                                     str: "2",
                                     start: 8,
                                     end: 9,
                                 },
-                                inner: [],
+                                inner: [
+                                    Pair {
+                                        rule: expr_add,
+                                        span: Span {
+                                            str: "2",
+                                            start: 8,
+                                            end: 9,
+                                        },
+                                        inner: [
+                                            Pair {
+                                                rule: expr_mul,
+                                                span: Span {
+                                                    str: "2",
+                                                    start: 8,
+                                                    end: 9,
+                                                },
+                                                inner: [
+                                                    Pair {
+                                                        rule: number,
+                                                        span: Span {
+                                                            str: "2",
+                                                            start: 8,
+                                                            end: 9,
+                                                        },
+                                                        inner: [],
+                                                    },
+                                                ],
+                                            },
+                                        ],
+                                    },
+                                ],
                             },
                         ],
                     },

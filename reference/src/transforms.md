@@ -144,8 +144,10 @@ aggregate by:[{column identifier}] [{expression or assign operation}]
 
 ```prql
 from employees
-aggregate by:[title, country] [
-  average salary,
-  ct: count
-]
+group [title, country] (
+  aggregate [
+    average salary,
+    ct: count
+  ]
+)
 ```
