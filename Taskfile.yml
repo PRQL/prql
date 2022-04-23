@@ -78,7 +78,7 @@ tasks:
         {{ range ( .targets | trim | splitLines ) -}}
         cargo build --workspace --all-targets --target={{.}}
         {{ end -}}
-      # Build HTML assets
+      # Build HTML assets.
       - trunk build prql-web/index.html
-      # Build mdbook (which will also build the HTML assets)
+      # Build mdbook (which will also build the HTML assets).
       - mdbook build reference/
