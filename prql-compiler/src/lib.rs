@@ -60,7 +60,7 @@ mod test {
     fn test_to_json() -> Result<()> {
         let json = to_json("from employees | take 10")?;
         // Since the AST is so in flux right now just test that the brackets are present
-        assert_eq!(json.chars().nth(0).unwrap(), '{');
+        assert_eq!(json.chars().next().unwrap(), '{');
         assert_eq!(json.chars().nth(json.len() - 1).unwrap(), '}');
 
         Ok(())
