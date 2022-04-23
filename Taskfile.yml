@@ -18,6 +18,11 @@ vars:
 
 tasks:
   install-dev-tools:
+    cmds:
+      - echo "\`install-dev-tools\` is renamed to \`setup-dev\` and will be removed soon."
+      - task: setup-dev
+
+  setup-dev:
     desc: Install tools for PRQL development.
     cmds:
       # `--locked` installs from the underlying lock files (which is not the default?!)
