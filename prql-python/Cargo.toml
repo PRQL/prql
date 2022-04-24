@@ -1,0 +1,14 @@
+[package]
+name = "prql-python"
+version = "0.0.2"
+edition = "2021"
+
+[lib]
+name = "prql_python"
+crate-type = ["cdylib"]
+
+[target.'cfg(not(target_family="wasm"))'.dependencies]
+pyo3 = { version = "0.16.3", features = ["extension-module","abi3-py37"] }
+
+[dependencies]
+prql-compiler = { path = "../prql-compiler" }

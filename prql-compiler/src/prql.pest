@@ -61,7 +61,6 @@ ident = @{ !operator ~ (ASCII_ALPHA | "$") ~ (ASCII_ALPHANUMERIC | "." | "_" | "
 // - 1
 // - 2
 
-// Adding the WHITESPACE is like making it a compound-atomic operator.
 expr = !{ term ~ (operator ~ term)* }
 expr_simple = !{ term_simple ~ (operator ~ term_simple)* }
 
@@ -69,17 +68,20 @@ func_call = { ident ~ (named_term_simple | term_simple)+ }
 func_curry = { ident ~ (named_term_simple | term_simple)* }
 
 term = _{ ( s_string | f_string | func_call | term_simple ) }
-term_simple = _{ ( s_string | f_string | date | datetime | time | timestamp | ident | parenthesized_expr | list | range | interval | number | string_literal | inline_pipeline ) }
+term_simple = _{ ( s_string | f_string | ident | parenthesized_expr | list | range | literal | inline_pipeline ) }
+literal = _{ interval | number | string_literal | date | datetime | time | timestamp }
 list = { "[" ~ NEWLINE* ~ named_expr ~ ("," ~ NEWLINE* ~ named_expr )* ~ ","? ~ NEWLINE* ~ "]" }
 parenthesized_expr = _{ "(" ~ expr ~ ")" }
 
-// TODO: escapes
+// We haven't implemented escapes — I think we can mostly pass those through to
+// SQL, but there may be things we're missing.
 // https://pest.rs/book/examples/rust/literals.html
 
-// We need to have a non-silent rule which contains the quotes, because of
-// https://github.com/pest-parser/pest/issues/583, and then when converting to
-// AST, we only keep the `string` and discard the `string_literal` given it
-// contains the quotes.
+// We need to have a non-silent rule which contains the quotes
+// — `string_literal` in this case — because of
+// https://github.com/pest-parser/pest/issues/583. Then when converting to AST,
+// we only keep the `string_inner` and discard the `string_literal` given it contains
+// the quotes.
 //
 // TODO: I'm still a bit unclear how preceeding and trailing spaces are working
 // -- it seems that inner spaces are included without an atomic operator (or
@@ -88,13 +90,16 @@ parenthesized_expr = _{ "(" ~ expr ~ ")" }
 
 quote = _{ "\"" | "'" }
 // PEEK refers to the opening quote; either `"` or `'`.
-string = { ( !( "\\" | PEEK ) ~ ANY )+ }
-string_literal = ${ PUSH(quote) ~ string ~ POP }
+string_inner = { ( !( PEEK ) ~ ANY )+ }
+string_literal = ${ PUSH(quote) ~ string_inner ~ POP }
 
 number = ${ ( ASCII_DIGIT )+ ~ ("." ~ ( ASCII_DIGIT )+)? }
 
-// this could be generalized to use term_simple
-range = ${ number? ~ ".." ~ number? }
+range = ${ range_edge ~ ".." ~ range_edge }
+// We need `literal` separate from `term_simple` for things like range edges,
+// which would infinitely recurse otherwise, since it'll keep trying to parse
+// the whole span, not just the part before `..`.
+range_edge = ${ literal? }
 
 // These separate idents from each other — i.e. `foo bar and baz` will parse into
 // [`foo bar`, `and`, `baz`], where `foo bar` is presumably a function call.
@@ -103,7 +108,7 @@ operator = ${ "and" | "or" | "not" | "==" | "!=" | "=" | ">" | "<" | ">=" | "<="
 
 s_string = ${ "s" ~ PUSH(quote) ~ ( interpolate_string | ( "{" ~ expr ~ "}" ))* ~ POP }
 f_string = ${ "f" ~ PUSH(quote) ~ ( interpolate_string | ( "{" ~ expr ~ "}" ))* ~ POP }
-interpolate_string = { ( !( "\\" | PEEK | "{" ) ~ ANY )+ }
+interpolate_string = { ( !( PEEK | "{" ) ~ ANY )+ }
 
 // For assigns, table aliases and named arguments
 named_expr = { (ident ~ ":")? ~ expr }

@@ -206,12 +206,11 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
                     })
                 }
                 Rule::ident => Item::Ident(pair.as_str().to_string()),
-                Rule::string_literal => {
-                    ast_of_parse_tree(pair.clone().into_inner())?
-                        .into_only()?
-                        .item
-                }
-                Rule::string => Item::String(pair.as_str().to_string()),
+                Rule::string_literal => Item::String(
+                    // Put the string_inner (which doesn't have quotes) into the
+                    // String item.
+                    pair.into_inner().into_only()?.as_str().to_string(),
+                ),
                 Rule::s_string => Item::SString(ast_of_interpolate_items(pair)?),
                 Rule::f_string => Item::FString(ast_of_interpolate_items(pair)?),
                 Rule::pipeline => Item::Pipeline({
@@ -240,39 +239,31 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
                     })
                 }
                 Rule::range => {
-                    // a bit hacky, but eh
-                    let no_start = &pair.as_span().as_str()[0..2] == "..";
-
-                    let mut parsed = ast_of_parse_tree(pair.into_inner())?;
-
-                    let (start, end) = match parsed.len() {
-                        0 => (None, None),
-                        1 => {
-                            let item = Box::from(parsed.remove(0));
-                            if no_start {
-                                (None, Some(item))
-                            } else {
-                                (Some(item), None)
-                            }
-                        }
-                        2 => (
-                            Some(Box::from(parsed.remove(0))),
-                            Some(Box::from(parsed.remove(0))),
-                        ),
-                        _ => unreachable!(),
-                    };
+                    let [start, end]: [Option<Box<Node>>; 2] = pair
+                        .into_inner()
+                        // Iterate over `start` & `end` (seperator is not a term).
+                        .into_iter()
+                        .map(|x| {
+                            // Parse & Box each one.
+                            ast_of_parse_tree(x.into_inner())
+                                .and_then(|x| x.into_only())
+                                .map(Box::new)
+                                .ok()
+                        })
+                        .collect::<Vec<_>>()
+                        .try_into()
+                        .map_err(|e| anyhow!("Expected start, separator, end; {e:?}"))?;
                     Item::Range(Range { start, end })
                 }
                 Rule::interval => {
-                    let parsed = ast_of_parse_tree(pair.into_inner())?;
-                    // unimplemented!();
-                    let [n, unit]: [Node; 2] = parsed
+                    let pairs: Vec<_> = pair.into_inner().into_iter().collect();
+                    let [n, unit]: [Pair<Rule>; 2] = pairs
                         .try_into()
                         .map_err(|e| anyhow!("Expected two items; {e:?}"))?;
 
                     Item::Interval(Interval {
-                        n: n.item.as_raw().unwrap().parse()?,
-                        unit: unit.item.as_raw().unwrap().clone(),
+                        n: n.as_str().parse()?,
+                        unit: unit.as_str().to_owned(),
                     })
                 }
                 Rule::date => {
@@ -534,7 +525,7 @@ mod test {
                 },
                 inner: [
                     Pair {
-                        rule: string,
+                        rule: string_inner,
                         span: Span {
                             str: " U S A ",
                             start: 1,
@@ -557,17 +548,38 @@ mod test {
 
         // Single quotes within double quotes should produce a string containing
         // the single quotes (and vice versa).
-        assert_yaml_snapshot!( ast_of_string(r#""' U S A '""#, Rule::string_literal)? , @r###"
+        assert_yaml_snapshot!(ast_of_string(r#""' U S A '""#, Rule::string_literal)? , @r###"
         ---
         String: "' U S A '"
         "###);
-        assert_yaml_snapshot!( ast_of_string(r#"'" U S A "'"#, Rule::string_literal)? , @r###"
+        assert_yaml_snapshot!(ast_of_string(r#"'" U S A "'"#, Rule::string_literal)? , @r###"
         ---
         String: "\" U S A \""
         "###);
 
         assert!(ast_of_string(r#"" U S A"#, Rule::string_literal).is_err());
         assert!(ast_of_string(r#"" U S A '"#, Rule::string_literal).is_err());
+
+        // Escapes get passed through (the insta snapshot has them escaped I
+        // think, which isn't that clear, so repeated below).
+        let escaped_string = ast_of_string(r#"" \U S A ""#, Rule::string_literal)?;
+        assert_yaml_snapshot!(escaped_string, @r###"
+        ---
+        String: " \\U S A "
+        "###);
+        assert_eq!(escaped_string.item.as_string().unwrap(), r#" \U S A "#);
+
+        // Currently we don't allow escaping closing quotes — because it's not
+        // trivial to do in pest, and I'm not sure it's a great idea either — we
+        // should arguably encourage r-strings. (Though no objection if someone
+        // wants to implement it, this test is recording current behavior rather
+        // than maintaining a contract).
+        let escaped_quotes = ast_of_string(r#"" Canada \""#, Rule::string_literal)?;
+        assert_yaml_snapshot!(escaped_quotes, @r###"
+        ---
+        String: " Canada \\"
+        "###);
+        assert_eq!(escaped_quotes.item.as_string().unwrap(), r#" Canada \"#);
 
         Ok(())
     }
