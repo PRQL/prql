@@ -27,4 +27,6 @@ jobs:
         uses: Swatinem/rust-cache@v1
       - name: Install Task
         uses: arduino/setup-task@v1
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
       - run: task setup-dev
