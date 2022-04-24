@@ -10,3 +10,9 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
 ]
+
+[tool.pytest.ini_options]
+addopts = """
+-vv
+-n auto
+"""
