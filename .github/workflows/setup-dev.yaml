@@ -1,4 +1,5 @@
 # Workflow to check that the `task setup-dev` workflow is still working.
+name: setup-dev
 
 on:
   push:
