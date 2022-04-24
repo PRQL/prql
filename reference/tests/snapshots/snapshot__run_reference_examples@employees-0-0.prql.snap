@@ -16,7 +16,7 @@ table_1 AS (
   SELECT
     dept_emp.dept_no,
     t.title,
-    AVG(emp_salary) AS avg_salary
+    AVG(table_0.emp_salary) AS avg_salary
   FROM
     table_0
     JOIN titles AS t USING(emp_no)
@@ -26,9 +26,9 @@ table_1 AS (
     t.title
 )
 SELECT
-  dept_name,
-  title,
-  avg_salary
+  departments.dept_name,
+  t.title,
+  table_1.avg_salary
 FROM
   table_1
   JOIN departments USING(dept_no)

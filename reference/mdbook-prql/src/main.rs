@@ -129,7 +129,8 @@ fn replace_examples(text: &str) -> Result<String> {
 fn table_of_comparison(prql: &str, sql: &str) -> String {
     format!(
         r#"
-<table class="comparison">
+<div class="comparison">
+<table>
 <tr>
 <th>PRQL</th><th>SQL</th>
 </tr>
@@ -151,6 +152,7 @@ fn table_of_comparison(prql: &str, sql: &str) -> String {
 </td>
 </tr>
 </table>
+</div>
 "#,
         prql = prql.trim(),
         sql = sql,

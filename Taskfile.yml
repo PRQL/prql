@@ -18,11 +18,18 @@ vars:
 
 tasks:
   install-dev-tools:
+    cmds:
+      - echo "\`install-dev-tools\` is renamed to \`setup-dev\` and will be removed soon."
+      - task: setup-dev
+
+  setup-dev:
+    # TODO: write a small workflow that confirms this works.
     desc: Install tools for PRQL development.
     cmds:
       # `--locked` installs from the underlying lock files (which is not the default?!)
       - cargo install --locked cargo-insta default-target trunk mdbook mdbook-toc
       - rustup target add wasm32-unknown-unknown
+      - pip install -U maturin pre-commit
       # We only suggest, rather than install; we don't want to intrude.
       - task: suggest-vscode-extensions
 

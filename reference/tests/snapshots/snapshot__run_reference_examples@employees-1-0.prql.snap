@@ -18,21 +18,21 @@ WITH table_0 AS (
 table_1 AS (
   SELECT
     de.dept_no,
-    gender,
-    AVG(emp_salary) AS salary_avg,
-    STDDEV(emp_salary) AS salary_sd
+    de.gender,
+    AVG(table_0.emp_salary) AS salary_avg,
+    STDDEV(table_0.emp_salary) AS salary_sd
   FROM
     table_0
     LEFT JOIN dept_emp AS de USING(emp_no)
   GROUP BY
     de.dept_no,
-    gender
+    de.gender
 )
 SELECT
-  dept_name,
-  gender,
-  salary_avg,
-  salary_sd
+  departments.dept_name,
+  de.gender,
+  table_1.salary_avg,
+  table_1.salary_sd
 FROM
   table_1
   JOIN departments USING(dept_no)

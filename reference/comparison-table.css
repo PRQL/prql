@@ -8,10 +8,14 @@ Would be good to fix this, or to make the page wider.
 
 */
 .comparison {
-    table-layout: fixed;
+    display: flex;
+    justify-content: center;
     width: 100%;
 }
-
+.comparison table {
+    width: 100%;
+    table-layout: fixed;
+}
 .comparison tr {
     text-align: left;
     vertical-align: top;
