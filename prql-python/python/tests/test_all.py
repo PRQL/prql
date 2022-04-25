@@ -8,11 +8,12 @@ def test_all():
     """
 
     # Since the AST is so in flux lets just take these dont throw exceptions
+    print(dir(prql))
     prql_query = "from employee"
     res = json.loads(prql.to_json(prql_query))
     assert res is not None
 
-    res = prql.compile(prql_query)
+    res = prql.to_sql(prql_query)
     assert res is not None
 
 
