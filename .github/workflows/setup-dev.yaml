@@ -1,0 +1,33 @@
+# Workflow to check that the `task setup-dev` workflow is still working.
+name: setup-dev
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [opened, reopened, synchronize, labeled]
+    branches:
+      - main
+    paths:
+      - Taskfile.yml
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Only run ubuntu on pull-requests, since it's fastest. Run Mac & Windows only
+  # on `main` or a `run-full-tests` label.
+  test-setup-dev:
+    runs-on: macos-latest
+    steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v2
+      - name: 💰 Cache
+        uses: Swatinem/rust-cache@v1
+      - name: Install Task
+        uses: arduino/setup-task@v1
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - run: task setup-dev
