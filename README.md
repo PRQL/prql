@@ -81,7 +81,7 @@ derive [                                      # `derive` adds columns / variable
 filter gross_cost > 0
 group [title, country] (                      # `group` runs a pipeline over each group
   aggregate [                                 # `aggregate` reduces a column to a row
-    average salary,                           
+    average salary,
     sum     salary,
     average gross_salary,
     sum     gross_salary,
@@ -180,13 +180,13 @@ select [                                              # `select` only includes u
   return_excess:      return_total | excess
   return_usd_excess:  return_usd   | excess
   return_index: (                                     # No need for a CTE
-    return_total + 1 
-    excess 
-    greatest 0.01 
+    return_total + 1
+    excess
+    greatest 0.01
     ln
     group sec_id (                                    # Complicated logic remains clear(er)
       sort date
-      window (                              
+      window (
         sum
       )
     )
