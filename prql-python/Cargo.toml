@@ -8,7 +8,7 @@ name = "prql_python"
 crate-type = ["cdylib"]
 
 [target.'cfg(not(target_family="wasm"))'.dependencies]
-pyo3 = { version = "0.16.3", features = ["extension-module","abi3-py37"] }
+pyo3 = { version = "0.16.3", features = ["extension-module"] }
 
 [dependencies]
 prql-compiler = { path = "../prql-compiler" }
