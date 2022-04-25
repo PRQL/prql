@@ -39,6 +39,8 @@ jobs:
         uses: ./.github/actions/setup_nox
         with:
           cache_number: 0
+      - name: Run maturin to install depdenency
+        run: maturin develop
       - name: Run tests
         run: nox -s tests -f prql-python/noxfile.py
   release:
