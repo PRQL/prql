@@ -12,9 +12,6 @@ runs:
   steps:
     - uses: actions/setup-python@v3
       with:
-        python-version: "3.6"
-    - uses: actions/setup-python@v3
-      with:
         python-version: "3.7"
     - uses: actions/setup-python@v3
       with:
