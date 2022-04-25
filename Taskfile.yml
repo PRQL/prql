@@ -23,14 +23,13 @@ tasks:
       - task: setup-dev
 
   setup-dev:
-    # TODO: write a small workflow that confirms this works.
     desc: Install tools for PRQL development.
     cmds:
       # `--locked` installs from the underlying lock files (which is not the default?!)
       - cargo install --locked cargo-insta default-target trunk mdbook mdbook-toc
       - rustup target add wasm32-unknown-unknown
-      - pip install -U maturin pre-commit
-      # We only suggest, rather than install; we don't want to intrude.
+      - python3 -m pip install -U maturin pre-commit
+      # We only suggest, rather than install; we don't want to intrude (maybe we're being too conservative?).
       - task: suggest-vscode-extensions
 
   suggest-vscode-extensions:
@@ -41,7 +40,7 @@ tasks:
         sh: which code && code --list-extensions || true
       missing_extensions: |
         {{ range ( .vscode_extensions | trim | splitLines ) -}}
-          {{ if and $.extensions (not (contains . $.extensions)) }}❌ {{.}} {{else}}✅ {{.}} {{ end }}
+          {{ if not (contains . $.extensions) }}❌ {{.}} {{else}}✅ {{.}} {{ end }}
         {{ end -}}
     status:
       # If vscode isn't installed, or there are no missing extensions, return 0 and exit early.
@@ -78,7 +77,7 @@ tasks:
         {{ range ( .targets | trim | splitLines ) -}}
         cargo build --workspace --all-targets --target={{.}}
         {{ end -}}
-      # Build HTML assets
+      # Build HTML assets.
       - trunk build prql-web/index.html
-      # Build mdbook (which will also build the HTML assets)
+      # Build mdbook (which will also build the HTML assets).
       - mdbook build reference/
