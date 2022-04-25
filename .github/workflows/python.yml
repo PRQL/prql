@@ -4,6 +4,8 @@
 # TODO: Cache doesn't seem to work. So we only run on PRs when files in the
 # `prql-python` path change so we avoid slowing down most builds.
 
+name: python
+
 on:
   push:
     branches:
