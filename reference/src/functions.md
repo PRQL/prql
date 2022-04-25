@@ -1,6 +1,6 @@
 # Functions
 
-<!-- 
+<!--
 TODOs:
 - Examples are a bit artificial — the interp is just "divide by 100" in one case!  -->
 
