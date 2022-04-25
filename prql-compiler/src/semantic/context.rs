@@ -1,48 +1,25 @@
 use anyhow::Result;
 use enum_as_inner::EnumAsInner;
-use serde::Deserialize;
-use serde::Serialize;
-use std::collections::HashMap;
+use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
+use std::fmt::Debug;
 
+use super::scope::NS_PARAM;
+use super::{split_var_name, Frame, FrameColumn, Scope};
 use crate::ast::*;
 use crate::error::Span;
 
-const NS_PARAM: &str = "_param";
-const NS_GLOB: &str = "_glob";
-
-/// Scope within which we can reference variables, functions and tables
-/// Provides fast lookups for different names.
-#[derive(Debug, Default, Serialize, Deserialize, Clone)]
+/// Context of the pipeline.
+#[derive(Default, Serialize, Deserialize, Clone)]
 pub struct Context {
-    /// current table columns (result of last pipeline)
-    pub frame: Frame,
+    /// Current table columns (result of last pipeline)
+    pub(crate) frame: Frame,
 
-    /// Mapping from idents to their declarations. For each namespace (table), a map from column names to their definitions
-    /// "_param" is namespace of current function parameters
-    /// "_glob" is namespace of functions without parameters (global variables)
-    pub(crate) variables: HashMap<String, HashSet<usize>>,
-
-    pub(crate) functions: HashMap<String, usize>,
+    /// Map of all accessible names (for each namespace)
+    pub(crate) scope: Scope,
 
     /// All declarations, even those out of scope
     pub(crate) declarations: Vec<(Declaration, Option<Span>)>,
-}
-
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-pub struct Frame {
-    pub columns: Vec<TableColumn>,
-    pub sort: Vec<ColumnSort<usize>>,
-    pub group: Vec<usize>,
-
-    pub tables: Vec<usize>,
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub enum TableColumn {
-    All(usize),
-    Unnamed(usize),
-    Named(String, usize),
 }
 
 #[derive(Debug, EnumAsInner, Clone, Serialize, Deserialize, strum::Display)]
@@ -59,45 +36,6 @@ pub enum Declaration {
     Function(FuncDef),
 }
 
-impl Frame {
-    pub fn groups_to_columns(&mut self) {
-        for col in &self.group {
-            self.columns.push(TableColumn::Unnamed(*col))
-        }
-    }
-
-    pub fn decls_in_use(&self) -> HashSet<usize> {
-        let mut r = HashSet::new();
-        for col in &self.columns {
-            match col {
-                TableColumn::Unnamed(id) | TableColumn::Named(_, id) => {
-                    r.insert(*id);
-                }
-                _ => {}
-            }
-        }
-        for col in &self.group {
-            r.insert(*col);
-        }
-        r
-    }
-
-    pub fn get_column_names(&self, context: &Context) -> Vec<Option<String>> {
-        self.columns
-            .iter()
-            .map(|col| match col {
-                TableColumn::All(namespace) => {
-                    let (table, _) = &context.declarations[*namespace];
-                    let table = table.as_table().map(|x| x.as_str()).unwrap_or("");
-                    Some(format!("{table}.*"))
-                }
-                TableColumn::Unnamed(_) => None,
-                TableColumn::Named(name, _) => Some(name.clone()),
-            })
-            .collect()
-    }
-}
-
 impl Context {
     pub(crate) fn replace_declaration(&mut self, id: usize, new_decl: Declaration) {
         let (decl, _) = self.declarations.get_mut(id).unwrap();
@@ -108,59 +46,10 @@ impl Context {
         self.replace_declaration(id, Declaration::Expression(Box::new(expr)));
     }
 
-    /// Removes all names from scopes, except functions and columns in frame.
+    /// Removes all names from scope, except functions and columns in frame.
     pub(super) fn clear_scope(&mut self) {
         let in_use = self.frame.decls_in_use();
-
-        self.variables.retain(|name, decls| {
-            if let Some(id) = decls.iter().find(|id| in_use.contains(id)).cloned() {
-                decls.clear();
-                decls.insert(id);
-                true
-            } else {
-                name.starts_with(NS_GLOB)
-            }
-        });
-
-        let to_cascade: Vec<_> = self.variables.keys().cloned().collect();
-
-        for name in to_cascade {
-            self.cascade_variable(name.as_str());
-        }
-    }
-
-    pub fn print(&self) {
-        for (i, (d, _)) in self.declarations.iter().enumerate() {
-            match d {
-                Declaration::Expression(v) => {
-                    println!("[{i:3}]: expr  `{}`", v.item);
-                }
-                Declaration::ExternRef { table, variable } => {
-                    println!("[{i:3}]: col   `{variable}` from table {table:?}");
-                }
-                Declaration::Table(name) => {
-                    println!("[{i:3}]: table `{name}`");
-                }
-                Declaration::Function(f) => {
-                    println!("[{i:3}]: func  `{}`", f.name);
-                }
-            }
-        }
-        print!("[");
-        for t_col in &self.frame.columns {
-            match t_col {
-                TableColumn::All(ns) => {
-                    print!(" {ns}.* ")
-                }
-                TableColumn::Named(name, id) => {
-                    print!(" {name}:{id} ")
-                }
-                TableColumn::Unnamed(id) => {
-                    print!(" {id} ")
-                }
-            }
-        }
-        println!("]");
+        self.scope.clear_except(in_use);
     }
 
     pub fn declare(&mut self, dec: Declaration, span: Option<Span>) -> usize {
@@ -170,17 +59,13 @@ impl Context {
 
     pub fn declare_func(&mut self, func_def: FuncDef) -> usize {
         let name = func_def.name.clone();
-        let no_params = func_def.named_params.is_empty() && func_def.positional_params.is_empty();
+        let has_params =
+            !func_def.named_params.is_empty() || !func_def.positional_params.is_empty();
 
         let span = func_def.body.span;
         let id = self.declare(Declaration::Function(func_def), span);
 
-        if no_params {
-            let name = format!("{NS_GLOB}.{name}");
-            self.add_to_scope(&name, id);
-        } else {
-            self.functions.insert(name, id);
-        }
+        self.scope.add_function(name, id, has_params);
 
         id
     }
@@ -193,9 +78,9 @@ impl Context {
         self.frame.tables.push(table_id);
 
         let var_name = format!("{name}.*");
-        self.add_to_scope(var_name.as_str(), table_id);
+        self.scope.add(var_name, table_id);
 
-        let column = TableColumn::All(table_id);
+        let column = FrameColumn::All(table_id);
         self.frame.columns.push(column);
     }
 
@@ -209,42 +94,17 @@ impl Context {
         // doesn't matter, will get overridden anyway
         let decl = Box::new(Item::Ident("".to_string()).into());
 
-        let name = format!("{NS_PARAM}.{name}");
         let id = self.declare(Declaration::Expression(decl), None);
 
-        self.add_to_scope(&name, id);
+        self.scope.add(format!("{NS_PARAM}.{name}"), id);
 
         id
-    }
-
-    pub fn add_to_scope(&mut self, ident: &str, id: usize) {
-        // insert into own namespace, override other declarations
-        let decls = self.variables.entry(ident.to_string()).or_default();
-        let overridden = decls.drain().next();
-        decls.insert(id);
-
-        // remove overridden columns from frame
-        if let Some(overridden) = overridden {
-            self.frame.columns.retain(|col| col != &overridden);
-        }
-
-        self.cascade_variable(ident);
-    }
-
-    // insert into lower namespaces, possibly creating ambiguities
-    fn cascade_variable(&mut self, ident: &str) {
-        let id = *self.variables[ident].iter().next().unwrap();
-
-        let (_, var_name) = split_var_name(ident);
-
-        let decls = self.variables.entry(var_name.to_string()).or_default();
-        decls.insert(id);
     }
 
     pub fn lookup_variable(&mut self, ident: &str, span: Option<Span>) -> Result<usize, String> {
         let (namespace, variable) = split_var_name(ident);
 
-        if let Some(decls) = self.variables.get(ident) {
+        if let Some(decls) = self.scope.variables.get(ident) {
             // lookup the inverse index
 
             match decls.len() {
@@ -266,7 +126,7 @@ impl Context {
                 format!("{namespace}.*")
             };
 
-            if let Some(decls) = self.variables.get(&all) {
+            if let Some(decls) = self.scope.variables.get(&all) {
                 // this variable can be from a namespace that we don't know all columns of
 
                 match decls.len() {
@@ -281,7 +141,7 @@ impl Context {
                             variable: variable.to_string(),
                         };
                         let id = self.declare(decl, span);
-                        self.add_to_scope(ident, id);
+                        self.scope.add(ident.to_string(), id);
 
                         Ok(id)
                     }
@@ -305,19 +165,14 @@ impl Context {
 
     pub fn lookup_namespaces_of(&mut self, variable: &str) -> HashSet<usize> {
         let mut r = HashSet::new();
-        if let Some(ns) = self.variables.get(variable) {
+        if let Some(ns) = self.scope.variables.get(variable) {
             r.extend(ns.clone());
         }
-        if let Some(ns) = self.variables.get("*") {
+        if let Some(ns) = self.scope.variables.get("*") {
             r.extend(ns.clone());
         }
         r
     }
-}
-
-/// Splits ident into namespaces and variable name
-pub fn split_var_name(ident: &str) -> (&str, &str) {
-    ident.rsplit_once('.').unwrap_or(("", ident))
 }
 
 impl From<Declaration> for anyhow::Error {
@@ -327,11 +182,33 @@ impl From<Declaration> for anyhow::Error {
     }
 }
 
-impl PartialEq<usize> for TableColumn {
+impl PartialEq<usize> for FrameColumn {
     fn eq(&self, other: &usize) -> bool {
         match self {
-            TableColumn::All(_) => false,
-            TableColumn::Unnamed(id) | TableColumn::Named(_, id) => id == other,
+            FrameColumn::All(_) => false,
+            FrameColumn::Unnamed(id) | FrameColumn::Named(_, id) => id == other,
         }
+    }
+}
+
+impl Debug for Context {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for (i, (d, _)) in self.declarations.iter().enumerate() {
+            match d {
+                Declaration::Expression(v) => {
+                    writeln!(f, "[{i:3}]: expr  `{}`", v.item)?;
+                }
+                Declaration::ExternRef { table, variable } => {
+                    writeln!(f, "[{i:3}]: col   `{variable}` from table {table:?}")?;
+                }
+                Declaration::Table(name) => {
+                    writeln!(f, "[{i:3}]: table `{name}`")?;
+                }
+                Declaration::Function(func) => {
+                    writeln!(f, "[{i:3}]: func  `{}`", func.name)?;
+                }
+            }
+        }
+        write!(f, "{:?}", self.frame)
     }
 }

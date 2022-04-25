@@ -30,7 +30,8 @@ WITH table_0 AS (
     20
 )
 SELECT
-  title,
+  table_0.title,
+  table_0.country_code,
   AVG(salary),
   AVG(salary + payroll_tax),
   SUM(salary),

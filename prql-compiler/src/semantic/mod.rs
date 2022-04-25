@@ -1,8 +1,12 @@
-mod cast_transforms;
 mod context;
+mod frame;
 mod reporting;
 mod resolver;
+mod scope;
+mod transforms;
 
-pub use self::context::{split_var_name, Context, Declaration, Frame, TableColumn};
+pub use self::context::{Context, Declaration};
+pub use self::frame::{Frame, FrameColumn};
+pub use self::scope::{Scope, split_var_name};
 pub use reporting::{collect_frames, label_references};
 pub use resolver::resolve;

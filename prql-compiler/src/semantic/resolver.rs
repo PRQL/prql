@@ -5,10 +5,10 @@ use itertools::Itertools;
 
 use crate::ast::ast_fold::*;
 use crate::error::{Error, Reason, WithErrorInfo};
-use crate::{ast::*, Declaration, TableColumn};
+use crate::{ast::*, Declaration, FrameColumn};
 
-use super::cast_transforms;
-use super::context::{Context, Frame};
+use super::transforms;
+use super::{Context, Frame};
 
 /// Runs semantic analysis on the query, using current state.
 /// Appends query to current query.
@@ -92,7 +92,7 @@ impl AstFold for Resolver {
         node.item = match node.item {
             Item::FuncCall(func_call) => {
                 // find declaration
-                node.declared_at = self.context.functions.get(&func_call.name).cloned();
+                node.declared_at = self.context.scope.functions.get(&func_call.name).cloned();
 
                 // validate function call
                 let (func_call, func_def) = self
@@ -101,7 +101,7 @@ impl AstFold for Resolver {
 
                 // fold (and cast if this is a transform)
                 if let Some(FuncKind::Transform) = func_def.kind {
-                    let transform = cast_transforms::cast_transform(func_call, node.span)?;
+                    let transform = transforms::cast_transform(func_call, node.span)?;
 
                     let transform = self.fold_transform(transform)?;
 
@@ -160,7 +160,7 @@ impl AstFold for Resolver {
             }
             Transform::Group { by, pipeline } => {
                 let by = self.fold_nodes(by)?;
-                self.context.frame.group = extract_group_by(&by);
+                self.context.frame.group = extract_group_by(&by)?;
 
                 let pipeline = Box::new(self.fold_node(*pipeline)?);
 
@@ -220,9 +220,9 @@ impl AstFold for Resolver {
                     };
 
                     let id = self.context.declare(decl, node.span);
-                    self.context.add_to_scope(ident, id);
+                    self.context.scope.add(ident.clone(), id);
 
-                    let column = TableColumn::Named(ident.clone(), id);
+                    let column = FrameColumn::Named(ident.clone(), id);
                     self.context.frame.columns.push(column);
 
                     node.declared_at = Some(id);
@@ -245,10 +245,8 @@ impl Resolver {
                         let (expr, _) = self.fold_assign_expr(*expr)?;
                         let id = expr.declared_at.unwrap();
 
-                        let value = TableColumn::Named(name.clone(), id);
-                        self.context.frame.columns.push(value);
-
-                        self.context.add_to_scope(&name, id);
+                        self.context.frame.add_column(Some(name.clone()), id);
+                        self.context.scope.add(name.clone(), id);
 
                         node.item = Item::Ident(name);
                         node.declared_at = Some(id);
@@ -260,13 +258,7 @@ impl Resolver {
                         let (expr, name) = self.fold_assign_expr(node)?;
                         let id = expr.declared_at.unwrap();
 
-                        let column = if let Some(name) = name {
-                            TableColumn::Named(name, id)
-                        } else {
-                            TableColumn::Unnamed(id)
-                        };
-
-                        self.context.frame.columns.push(column);
+                        self.context.frame.add_column(name, id);
                         Ok(expr)
                     }
                 }
@@ -304,7 +296,7 @@ impl Resolver {
     fn apply_context(&self, select: &mut Select) -> Result<()> {
         select.group = (self.context.frame.group)
             .iter()
-            .map(|id| {
+            .map(|(_, id)| {
                 let mut node: Node = Item::Ident("<un-materialized>".to_string()).into();
                 node.declared_at = Some(*id);
                 node
@@ -375,8 +367,11 @@ impl Resolver {
     }
 }
 
-fn extract_group_by(nodes: &[Node]) -> Vec<usize> {
-    nodes.iter().map(|n| n.declared_at.unwrap()).collect()
+fn extract_group_by(nodes: &[Node]) -> Result<Vec<(String, usize)>> {
+    nodes
+        .iter()
+        .map(|n| Ok((n.item.clone().into_ident()?, n.declared_at.unwrap())))
+        .try_collect()
 }
 
 fn extract_sorts(sort: Vec<ColumnSort>) -> Result<Vec<ColumnSort<usize>>> {
@@ -440,7 +435,7 @@ mod tests {
         tables:
           - 30
         "###);
-        assert!(resolver.context.variables["employees.*"].len() == 1);
+        assert!(resolver.context.scope.variables["employees.*"].len() == 1);
     }
 
     #[test]
@@ -483,9 +478,9 @@ mod tests {
 
         assert_eq!(resolver.context.frame.columns.len(), 3);
 
-        assert!(resolver.context.variables.contains_key("salary_1"));
-        assert!(resolver.context.variables.contains_key("salary_2"));
-        assert!(resolver.context.variables.contains_key("age"));
+        assert!(resolver.context.scope.variables.contains_key("salary_1"));
+        assert!(resolver.context.scope.variables.contains_key("salary_2"));
+        assert!(resolver.context.scope.variables.contains_key("age"));
     }
 
     #[test]

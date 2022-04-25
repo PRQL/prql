@@ -21,7 +21,7 @@ table_1 AS (
     gender,
     AVG(table_0.emp_salary) AS salary_avg,
     STDDEV(table_0.emp_salary) AS salary_sd,
-    dm.emp_no AS mng_no
+    table_1.emp_no AS mng_no
   FROM
     table_0
     JOIN dept_emp AS de USING(emp_no)

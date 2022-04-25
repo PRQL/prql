@@ -9,7 +9,7 @@ use anyhow::{anyhow, Result};
 use itertools::zip;
 use itertools::Itertools;
 
-use crate::semantic::{split_var_name, Context, Frame, TableColumn};
+use crate::semantic::{split_var_name, Context, Frame, FrameColumn};
 
 pub struct MaterializedFrame {
     pub columns: Vec<Node>,
@@ -58,7 +58,7 @@ impl Materializer {
     /// Looks up column declarations and replaces them with an identifiers.
     fn anchor_columns(
         &mut self,
-        columns: Vec<TableColumn>,
+        columns: Vec<FrameColumn>,
         as_table: Option<&str>,
     ) -> Result<Vec<Node>> {
         let as_table = as_table.map(|table| {
@@ -70,7 +70,7 @@ impl Materializer {
             .into_iter()
             .map(|column| {
                 Ok(match column {
-                    TableColumn::Named(name, id) => {
+                    FrameColumn::Named(name, id) => {
                         let expr_node = self.lookup_declaration(id)?;
 
                         let name = split_var_name(&name).1.to_string();
@@ -81,26 +81,13 @@ impl Materializer {
                         };
                         self.context.replace_declaration(id, decl);
 
-                        // is expr_node just an ident with same name?
-                        let expr_ident = expr_node.item.as_ident().map(|n| split_var_name(n).1);
-
-                        if expr_ident.map(|n| n == name).unwrap_or(false) {
-                            // return just the ident
-                            expr_node
-                        } else {
-                            // return expr with new name
-                            Item::NamedExpr(NamedExpr {
-                                expr: Box::new(expr_node),
-                                name,
-                            })
-                            .into()
-                        }
+                        emit_column_with_name(expr_node, name)
                     }
-                    TableColumn::Unnamed(id) => {
+                    FrameColumn::Unnamed(id) => {
                         // no need to replace declaration, since it cannot be referenced again
                         self.lookup_declaration(id)?
                     }
-                    TableColumn::All(namespace) => {
+                    FrameColumn::All(namespace) => {
                         let (decl, _) = &self.context.declarations[namespace];
                         let table = decl.as_table().unwrap();
                         Item::Ident(format!("{table}.*")).into()
@@ -112,10 +99,8 @@ impl Materializer {
 
     fn rename_tables(&mut self, tables: Vec<usize>, new_table: &str) {
         for id in tables {
-            let (decl, _) = self.context.declarations.get_mut(id).unwrap();
-
-            let table = decl.as_table_mut().unwrap();
-            *table = new_table.to_string();
+            let new_decl = Declaration::Table(new_table.to_string());
+            self.context.replace_declaration(id, new_decl);
         }
     }
 
@@ -147,9 +132,6 @@ impl Materializer {
 
     fn materialize_declaration(&mut self, id: usize) -> Result<Node> {
         let (decl, _) = &self.context.declarations[id];
-
-        // eprintln!("materialize_declaration {id}");
-        // dbg!(decl);
 
         let materialized = match decl.clone() {
             Declaration::Expression(inner) => self.fold_node(*inner)?,
@@ -215,6 +197,23 @@ impl Materializer {
 
         // Now fold body as normal node
         self.fold_node(*func_dec.body)
+    }
+}
+
+fn emit_column_with_name(expr_node: Node, name: String) -> Node {
+    // is expr_node just an ident with same name?
+    let expr_ident = expr_node.item.as_ident().map(|n| split_var_name(n).1);
+
+    if expr_ident.map(|n| n == name).unwrap_or(false) {
+        // return just the ident
+        expr_node
+    } else {
+        // return expr with new name
+        Item::NamedExpr(NamedExpr {
+            expr: Box::new(expr_node),
+            name,
+        })
+        .into()
     }
 }
 

@@ -30,7 +30,7 @@ table_1 AS (
 )
 SELECT
   departments.dept_name,
-  de.gender,
+  table_1.gender,
   table_1.salary_avg,
   table_1.salary_sd
 FROM
