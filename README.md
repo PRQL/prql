@@ -392,7 +392,7 @@ Setting up a local dev environment is simple, thanks to the rust ecosystem:
 - For more advanced development; e.g. adjusting `insta` outputs or compiling for
   web, run the commands in [Taskfile.yml](Taskfile.yml), either by copying &
   pasting or by installing [Task](https://taskfile.dev/#/installation) and
-  running `task install-dev-tools`.
+  running `task setup-dev`.
 - For quick contributions, hit `.` in GitHub to launch a [github.dev
   instance](https://github.dev/prql/prql).
 - Any problems: post an issue and we'll help.
