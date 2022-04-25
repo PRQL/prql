@@ -36,11 +36,10 @@ jobs:
           OS: ${{ matrix.os }}
       - name: Setup Nox
         uses: ./.github/actions/setup_nox
-        with: 
+        with:
           cache_number: 0
       - name: Run tests
         run: nox -s tests -f prql-python/noxfile.py
-
   release:
     name: Release
     runs-on: ubuntu-latest
