@@ -31,20 +31,27 @@ Here's a fairly simple SQL query:
 
 ```sql
 SELECT TOP 20
-    title,
-    country,
-    AVG(salary) AS average_salary,
-    SUM(salary) AS sum_salary,
-    AVG(salary + payroll_tax) AS average_gross_salary,
-    SUM(salary + payroll_tax) AS sum_gross_salary,
-    AVG(salary + payroll_tax + benefits_cost) AS average_gross_cost,
-    SUM(salary + payroll_tax + benefits_cost) AS sum_gross_cost,
-    COUNT(*) as count
-FROM employees
-WHERE salary + payroll_tax + benefits_cost > 0 AND country = 'USA'
-GROUP BY title, country
-ORDER BY sum_gross_cost
-HAVING count > 200
+  title,
+  country,
+  AVG(salary) AS average_salary,
+  SUM(salary) AS sum_salary,
+  AVG(salary + payroll_tax) AS average_gross_salary,
+  SUM(salary + payroll_tax) AS sum_gross_salary,
+  AVG(salary + payroll_tax + benefits_cost) AS average_gross_cost,
+  SUM(salary + payroll_tax + benefits_cost) AS sum_gross_cost,
+  COUNT(*) AS ct
+FROM
+  employees
+WHERE
+  country = 'USA'
+  AND salary + payroll_tax + benefits_cost > 0
+GROUP BY
+  title,
+  country
+HAVING
+  COUNT(*) > 200
+ORDER BY
+  sum_gross_cost
 ```
 
 Even this simple query demonstrates some of the problems with SQL's lack of
@@ -66,21 +73,23 @@ Here's the same query with PRQL:
 
 ```elm
 from employees
-filter country = "USA"                           # Each line transforms the previous result.
-derive [                                         # This adds columns / variables.
+filter country = "USA"                        # Each line transforms the previous result.
+derive [                                      # `derive` adds columns / variables.
   gross_salary: salary + payroll_tax,
-  gross_cost:   gross_salary + benefits_cost     # Variables can use other variables.
+  gross_cost:   gross_salary + benefits_cost  # Variables can use other variables.
 ]
 filter gross_cost > 0
-aggregate by:[title, country] [                  # `by` are the columns to group by.
-    average salary,                              # These are aggregation calcs run on each group.
+group [title, country] (                      # `group` runs a pipeline over each group
+  aggregate [                                 # `aggregate` reduces a column to a row
+    average salary,                           
     sum     salary,
     average gross_salary,
     sum     gross_salary,
     average gross_cost,
     sum_gross_cost: sum gross_cost,
     ct: count,
-]
+  ]
+)
 sort sum_gross_cost
 filter ct > 200
 take 20
@@ -112,6 +121,8 @@ SQL on every keystroke.
 
 Here's another SQL query, which calculates returns from prices on days with
 valid prices.
+
+> The implemented version of PRQL supports some but not all these features.
 
 ```sql
 WITH total_returns AS (
@@ -147,39 +158,40 @@ JOIN interest_rates USING (date)
 Here's the same query with PRQL:
 
 ```elm
-prql version:0.1 db:snowflake                         # PRQL version & database name.
+prql version:0.3 db:snowflake                         # PRQL version & database name.
 
 func excess x = (x - interest_rate) / 252             # Functions are clean and simple.
 func if_valid x = is_valid_price ? x : null
 func lag_day x = (
-  window                                              # Windows are pipelines too.
-  by sec_id
-  sort date
-  lag 1
-  x
+  group sec_id (                                      # `group` is used for window partitions too
+    sort date
+    window (                                          # `window` runs a pipeline over each window
+      lag 1 x                                         # `lag 1 x` lags the `x` col by 1
+    )
+  )
 )
 func ret x = x / (x | lag_day) - 1 + dividend_return
 
 from prices
 join interest_rates [date]
-derive [
-  return_total:      prices_adj   | ret | if_valid    # `|` can be used rather than newlines.
-  return_usd:        prices_usd   | ret | if_valid
-  return_excess:     return_total | excess
-  return_usd_excess: return_usd   | excess
-  return_excess_index:  (                             # No need for a CTE.
-    return_total + 1 | excess | greatest 0.01         # Complicated logic remains clear.
-      | ln | (window | sort date | sum) | exp
+select [                                              # `select` only includes unnamed columns, unlike `derive`
+  return_total:       prices_adj   | ret | if_valid   # `|` can be used rather than newlines
+  return_usd:         prices_usd   | ret | if_valid
+  return_excess:      return_total | excess
+  return_usd_excess:  return_usd   | excess
+  return_index: (                                     # No need for a CTE
+    return_total + 1 
+    excess 
+    greatest 0.01 
+    ln
+    group sec_id (                                    # Complicated logic remains clear(er)
+      sort date
+      window (                              
+        sum
+      )
+    )
+    exp
   )
-]
-select [
-  date,
-  sec_id,
-  return_total,
-  return_usd,
-  return_excess,
-  return_usd_excess,
-  return_excess_index,
 ]
 ```
 
