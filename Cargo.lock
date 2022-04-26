@@ -1134,6 +1134,7 @@ dependencies = [
  "pulldown-cmark",
  "pulldown-cmark-to-cmark",
  "serde",
+ "serde_json",
  "serde_yaml",
  "similar",
  "sqlformat",
@@ -1156,7 +1157,7 @@ dependencies = [
 
 [[package]]
 name = "prql-python"
-version = "0.0.2"
+version = "0.0.3"
 dependencies = [
  "prql-compiler",
  "pyo3",

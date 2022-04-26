@@ -1,0 +1,35 @@
+name: build
+description: "Use maturin to build python dists of prql-python. Conditional if checks ensure only the correct OX build is called."
+
+inputs:
+  OS:
+    description: "The operating system of the build"
+    required: True
+    default: 'ubuntu-latest'
+
+runs:
+  using: composite
+  steps:
+      - uses: actions/checkout@v2
+      - uses: Swatinem/rust-cache@v1
+      - uses: messense/maturin-action@v1
+        if: inputs.OS == 'ubuntu-latest'
+        with:
+          manylinux: auto
+          command: build
+          args: --release -o dist -m prql-python/Cargo.toml
+      - uses: messense/maturin-action@v1
+        if: inputs.OS == 'windows-latest'
+        with:
+          command: build
+          args: --release --no-sdist -o dist -m prql-python/Cargo.toml
+      - uses: messense/maturin-action@v1
+        if: inputs.OS == 'macos-latest'
+        with:
+          command: build
+          args: --release --no-sdist -o dist --universal2 -m prql-python/Cargo.toml
+      - name: Upload wheels
+        uses: actions/upload-artifact@v2
+        with:
+          name: wheels
+          path: dist

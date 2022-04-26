@@ -1,0 +1,3 @@
+pytest==7.0.0
+pytest-xdist==2.5.0
+pytest-clarity==1.0.1
