@@ -36,9 +36,7 @@ pub fn format(prql: &str) -> Result<String> {
 }
 
 /// Compile a PRQL string into a JSON version of the Query.
-pub fn to_json(prql: &str) -> Result<String> {
-    Ok(serde_json::to_string(&parse(prql)?)?)
-}
+pub fn to_json(prql: &str) -> Result<String> { Ok(serde_json::to_string(&parse(prql)?)?) }
 
 /// Exposes some library internals.
 ///
