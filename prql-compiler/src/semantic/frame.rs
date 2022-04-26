@@ -25,7 +25,7 @@ pub enum FrameColumn {
 }
 
 impl Frame {
-    pub fn add_column(&mut self, name: Option<String>, id: usize) {
+    pub fn push_column(&mut self, name: Option<String>, id: usize) {
         // remove columns with the same name
         if let Some(name) = &name {
             self.columns.retain(|c| match c {
@@ -42,7 +42,7 @@ impl Frame {
         self.columns.push(column);
     }
 
-    pub fn groups_to_columns(&mut self) {
+    pub fn push_groups_to_columns(&mut self) {
         for (name, id) in &self.group {
             self.columns.push(FrameColumn::Named(name.clone(), *id))
         }

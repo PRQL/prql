@@ -169,7 +169,7 @@ impl AstFold for Resolver {
             }
             Transform::Aggregate(mut select) => {
                 self.context.frame.columns.clear();
-                self.context.frame.groups_to_columns();
+                self.context.frame.push_groups_to_columns();
 
                 select.assigns = self.fold_assigns(select.assigns)?;
                 self.apply_context(&mut select)?;
@@ -245,7 +245,7 @@ impl Resolver {
                         let (expr, _) = self.fold_assign_expr(*expr)?;
                         let id = expr.declared_at.unwrap();
 
-                        self.context.frame.add_column(Some(name.clone()), id);
+                        self.context.frame.push_column(Some(name.clone()), id);
                         self.context.scope.add(name.clone(), id);
 
                         node.item = Item::Ident(name);
@@ -258,7 +258,7 @@ impl Resolver {
                         let (expr, name) = self.fold_assign_expr(node)?;
                         let id = expr.declared_at.unwrap();
 
-                        self.context.frame.add_column(name, id);
+                        self.context.frame.push_column(name, id);
                         Ok(expr)
                     }
                 }
