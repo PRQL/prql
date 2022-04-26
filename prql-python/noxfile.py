@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Nox session configuration."""
 import os
-from typing import Any, List
+from typing import List
 from pathlib import Path
 import os
 import nox
@@ -22,6 +22,6 @@ nox.options.reuse_existing_virtualenvs = False
 def tests(session: Session) -> None:
     """Run the test suite with pytest."""
     print('CWD', os.getcwd())
-    session.install("-v", "--no-index", f"--find-links=./dist", "prql_python")
+    session.install("-v", "--no-index", f"--find-links={Path('..', 'dist')}", "prql_python")
     session.install("-v", "-r", "requirements.txt")
     session.run("pytest", str(Path("python", "tests")))
