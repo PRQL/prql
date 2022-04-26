@@ -21,6 +21,6 @@ nox.options.reuse_existing_virtualenvs = False
 @nox.session(python=VERSIONS)
 def tests(session: Session) -> None:
     """Run the test suite with pytest."""
-    session.install("-v", f"--find-links={Path('..', 'dist')}", "prql_python")
+    session.install("-v", "--no-index", f"--find-links=dist", "prql_python")
     session.install("-v", "-r", "requirements.txt")
     session.run("pytest", str(Path("python", "tests")))
