@@ -272,7 +272,7 @@ fn sql_query_of_atomic_table(table: AtomicTable, dialect: &Dialect) -> Result<sq
         None => vec![],
         _ => unreachable!("Expected an aggregate transformation"),
     };
-    let group_by = Node::into_list_of_nodes(group_bys).item.try_into()?;
+    let group_by = Item::List(group_bys).try_into()?;
 
     let dialect = dialect.handler();
 
@@ -423,7 +423,7 @@ impl TryFrom<Item> for SelectItem {
                 alias: sql_ast::Ident::new(named.name),
                 expr: named.expr.item.try_into()?,
             },
-            _ => bail!("Can't convert to SelectItem at the moment; {:?}", item),
+            _ => bail!("Can't convert to SelectItem; {:?}", item),
         })
     }
 }
@@ -533,7 +533,7 @@ impl TryFrom<Item> for Expr {
                     fractional_seconds_precision: None,
                 })
             }
-            _ => bail!("Can't convert to Expr at the moment; {item:?}"),
+            _ => bail!("Can't convert to Expr; {item:?}"),
         })
     }
 }
@@ -541,15 +541,8 @@ impl TryFrom<Item> for Vec<Expr> {
     type Error = anyhow::Error;
     fn try_from(item: Item) -> Result<Self> {
         match item {
-            Item::List(_) => Ok(Into::<Node>::into(item)
-                // TODO: implement for non-single item ListItems
-                .into_inner_list_nodes()?
-                .into_iter()
-                .map(|x| x.item.try_into())
-                .try_collect()?),
-            _ => Err(anyhow!(
-                "Can't convert to Vec<Expr> at the moment; {item:?}"
-            )),
+            Item::List(nodes) => Ok(nodes.into_iter().map(|x| x.item.try_into()).try_collect()?),
+            _ => Err(anyhow!("Can't convert to Vec<Expr>; {item:?}")),
         }
     }
 }
@@ -559,7 +552,7 @@ impl TryFrom<Item> for sql_ast::Ident {
         match item {
             Item::Ident(ident) => Ok(sql_ast::Ident::new(ident)),
             Item::Raw(ident) => Ok(sql_ast::Ident::new(ident)),
-            _ => Err(anyhow!("Can't convert to Ident at the moment; {item:?}")),
+            _ => Err(anyhow!("Can't convert to Ident; {item:?}")),
         }
     }
 }
@@ -649,8 +642,8 @@ SString:
     #[test]
     fn test_try_from_list_to_vec_expr() -> Result<()> {
         let item = Item::List(vec![
-            ListItem(Item::Ident("a".to_owned()).into()),
-            ListItem(Item::Ident("b".to_owned()).into()),
+            Item::Ident("a".to_owned()).into(),
+            Item::Ident("b".to_owned()).into(),
         ]);
         let expr: Vec<Expr> = item.try_into()?;
         assert_debug_snapshot!(expr, @r###"
