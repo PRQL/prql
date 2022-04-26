@@ -3,7 +3,7 @@
 import os
 from typing import Any, List
 from pathlib import Path
-
+import os
 import nox
 from nox.sessions import Session
 
@@ -21,6 +21,7 @@ nox.options.reuse_existing_virtualenvs = False
 @nox.session(python=VERSIONS)
 def tests(session: Session) -> None:
     """Run the test suite with pytest."""
-    session.install("-v", "--no-index", f"--find-links=dist", "prql_python")
+    print('CWD', os.getcwd())
+    session.install("-v", "--no-index", f"--find-links=./dist", "prql_python")
     session.install("-v", "-r", "requirements.txt")
     session.run("pytest", str(Path("python", "tests")))
