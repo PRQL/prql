@@ -14,7 +14,7 @@ formatting = function (hljs) {
     return {
         case_insensitive: false,
         keywords: {
-            keyword: 'from select derive filter take sort join aggregate func',
+            keyword: 'from select derive filter take sort join aggregate func group window',
             literal: 'false true null',
         },
         contains: [
