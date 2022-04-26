@@ -29,8 +29,6 @@ jobs:
       matrix:
         os: [ ubuntu-latest, macos-latest, windows-latest ]
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
       - name: Build Wheels
         uses: ./.github/actions/build
         with:
@@ -40,7 +38,7 @@ jobs:
         with:
           cache_number: 0
       - name: Run tests
-        run: nox -s install tests -f prql-python/noxfile.py
+        run: nox -s tests -f prql-python/noxfile.py
   release:
     name: Release
     runs-on: ubuntu-latest
