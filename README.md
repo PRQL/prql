@@ -215,7 +215,7 @@ than SQL, and each of them does something specific and composable; for example:
 - `filter` filters out rows which don't meet a condition. That can be before an
   aggregate — `WHERE` in SQL — after an aggregate — `HAVING` in SQL — or within
   a `window` — `QUALIFY` in SQL.
-  
+
 ## Current status
 
 PRQL just hit 0.1! This means:
