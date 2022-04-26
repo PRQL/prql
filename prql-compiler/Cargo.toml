@@ -16,38 +16,37 @@ cli = ["clio", "atty", "clap", "color-eyre"]
 default = ["anyhow/backtrace", "cli"]
 
 [dependencies]
-anyhow = "^1.0"
-ariadne = "^0.1"
-atty = {version = "^0.2", optional = true}
-clio = {version = "^0.2", optional = true}
-color-eyre = {version = "^0.6", optional = true}
-enum-as-inner = "^0.4.0"
-itertools = "^0.10"
-pest = "^2.1"
-pest_derive = "^2.1"
-serde_yaml = "^0.8"
-serde_json = "^1.0.79"
-sqlformat = "^0.1.8"
-strum = {version = "^0.24", features = ["std", "derive"]}# for converting enum variants to string
-strum_macros = "^0.24" # for converting enum variants to string
+anyhow = "1.0.57"
+ariadne = "0.1.5"
+atty = { version = "0.2.14", optional = true }
+clio = { version = "0.2.2", optional = true }
+color-eyre = { version = "0.6.1", optional = true }
+enum-as-inner = "0.4.0"
+itertools = "0.10.3"
+pest = "2.1.3"
+pest_derive = "2.1.0"
+serde_yaml = "0.8.23"
+sqlformat = "0.1.8"
+strum = { version = "0.24.0", features = ["std", "derive"] }# for converting enum variants to string
+strum_macros = "0.24.0"
 
 [dependencies.clap]
 features = ["derive"]
 optional = true
-version = "^3.1"
+version = "3.1.12"
 
 [dependencies.sqlparser]
 features = ["serde"]
-version = "^0.14"
+version = "0.16.0"
 
 [dependencies.serde]
 features = ["derive"]
-version = "^1.0"
+version = "1.0.136"
 
 [dev-dependencies]
 globset = "0.4.8"
-insta = {version = "^1.13", features = ["colors", "glob"]}
+insta = { version = "1.14.0", features = ["colors", "glob"] }
 pulldown-cmark = "0.9.1"
-pulldown-cmark-to-cmark = "10"
-similar = "^2.1"
+pulldown-cmark-to-cmark = "10.0.1"
+similar = "2.1.0"
 walkdir = "2.3.2"
