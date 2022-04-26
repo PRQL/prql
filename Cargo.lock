@@ -1160,6 +1160,7 @@ version = "0.0.2"
 dependencies = [
  "prql-compiler",
  "pyo3",
+ "pyo3-build-config",
 ]
 
 [[package]]
