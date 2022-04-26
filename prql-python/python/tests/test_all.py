@@ -7,8 +7,9 @@ def test_all():
     Test the basic python functions
     """
 
-    # Since the AST is so in flux lets just take these dont throw exceptions
     prql_query = "from employee"
+
+    # Since the AST is so in flux lets just take these dont throw exceptions
     res = json.loads(prql.to_json(prql_query))
     assert res is not None
 
