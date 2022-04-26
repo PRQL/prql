@@ -21,13 +21,11 @@ runs:
       - uses: messense/maturin-action@v1
         if: inputs.OS == 'windows-latest'
         with:
-          manylinux: auto
           command: build
           args: --release --no-sdist -o dist -m prql-python/Cargo.toml
       - uses: messense/maturin-action@v1
         if: inputs.OS == 'macos-latest'
         with:
-          manylinux: auto
           command: build
           args: --release --no-sdist -o dist --universal2 -m prql-python/Cargo.toml
       - name: Upload wheels
