@@ -21,4 +21,3 @@ sort sum_gross_cost
 filter ct > 200
 take 20
 ```
-
