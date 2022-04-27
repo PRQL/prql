@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   # Only run ubuntu on pull-requests, since it's fastest.
-  test:
+  cargo-test:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -71,6 +71,7 @@ jobs:
       - name: 🔨 Build
         run: trunk build
         working-directory: prql-web/
+
   # Run Mac & Windows & other tests on `main` or a `ci-run-all-tests` label.
   test-all:
     runs-on: ubuntu-latest
