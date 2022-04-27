@@ -17,9 +17,11 @@ concurrency:
 
 jobs:
   # FIXME
-  # test-all:
-  #   uses: ./.github/workflows/test-all.yaml
-  #   if: contains(github.event.pull_request.labels.*.name, 'ci-run-all-tests')
+  test-all:
+    steps:
+      - name: test-all
+        uses: ./.github/workflows/test-all.yaml
+        if: contains(github.event.pull_request.labels.*.name, 'ci-run-all-tests')
 
   # Only run ubuntu on pull-requests, since it's fastest. Run Mac & Windows only
   # on `main` or a `run-full-tests` label.
@@ -28,7 +30,9 @@ jobs:
       matrix:
         target: ["", "wasm32-unknown-unknown"]
         os: [ubuntu-latest]
-    uses: ./.github/actions/cargo_test
-    with:
-      os: ${{ matrix.os }}
-      target: ${{ matrix.target }}
+    steps:
+      - name: test-fast
+        uses: ./.github/actions/cargo_test
+        with:
+          os: ${{ matrix.os }}
+          target: ${{ matrix.target }}
