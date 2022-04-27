@@ -26,6 +26,7 @@ jobs:
   # Only run ubuntu on pull-requests, since it's fastest. Run Mac & Windows only
   # on `main` or a `run-full-tests` label.
   test:
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         target: ["", "wasm32-unknown-unknown"]
