@@ -70,7 +70,7 @@ jobs:
         run: trunk build
         working-directory: prql-web/
 
-  # Run Mac & Windows & other tests on `main` or a `ci-run-all-tests` label.
-  test_all:
-    - uses: ./.github/workflows/test-all.yaml
-      if: contains(github.event.pull_request.labels.*.name, 'ci-run-all-tests')
+  # # Run Mac & Windows & other tests on `main` or a `ci-run-all-tests` label.
+  # test-all:
+  #   - uses: ./.github/workflows/test-all.yaml
+  #     # if: contains(github.event.pull_request.labels.*.name, 'ci-run-all-tests')
