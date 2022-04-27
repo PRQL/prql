@@ -70,8 +70,13 @@ jobs:
           args: "--workspace --exclude prql-python -- --test-threads 1"
       - name: Upload to codecov.io
         uses: codecov/codecov-action@v2
-      - name: Archive code coverage results
+      - name: Upload code coverage results
         uses: actions/upload-artifact@v1
         with:
           name: code-coverage-report
           path: cobertura.xml
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Python
+        uses: ./.github/workflows/python.yaml

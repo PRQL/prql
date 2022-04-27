@@ -13,7 +13,6 @@ on:
     paths:
       - "prql-python/**"
       - ".github/workflows/python.yaml"
-  # Called by pull-request when specifically requested
   workflow_call:
 
 concurrency:
