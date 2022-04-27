@@ -25,10 +25,6 @@ runs:
         override: true
     - name: 💰 Cache
       uses: Swatinem/rust-cache@v1
-    # - name: 🛠️ Build
-    #   uses: actions-rs/cargo@v1
-    #   with:
-    #     command: build
     - name: 📎 Clippy
       uses: actions-rs/cargo@v1
       with:
