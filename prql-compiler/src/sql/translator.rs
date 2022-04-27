@@ -65,8 +65,6 @@ pub fn translate_query(query: Query, context: Context) -> Result<sql_ast::Query>
         });
     }
 
-    eprintln!("{context:?}");
-
     // take last table
     if materialized.is_empty() {
         bail!("No tables?");

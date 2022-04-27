@@ -141,11 +141,6 @@ impl Materializer {
     fn replace_tables(&mut self, tables: Vec<usize>, new_table: usize) {
         let new_table = self.context.declarations[new_table].clone();
         for id in tables {
-            eprintln!(
-                "renaming {:?} to {:?}",
-                self.context.declarations[id], new_table
-            );
-
             self.context.replace_declaration(id, new_table.clone());
         }
     }
@@ -197,8 +192,6 @@ impl Materializer {
             }
             Declaration::Table(table) => Item::Ident(format!("{table}.*")).into(),
         };
-
-        // dbg!(&materialized);
 
         Ok(materialized)
     }
