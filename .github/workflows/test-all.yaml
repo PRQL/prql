@@ -21,7 +21,7 @@ jobs:
   # - We can't seem to specify the OS of an action.
   # If we can compress this into something parameterized, that would be great.
   test:
-    runs-on: ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         target: ["", "wasm32-unknown-unknown"]
