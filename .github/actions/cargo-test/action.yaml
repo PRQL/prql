@@ -1,0 +1,56 @@
+# Runs cargo test & cargo lint for a given platform.
+
+# on:
+#   workflow_call:
+#     inputs:
+#       os:
+#         required: true
+#         type: string
+#         default: ubuntu-latest
+#       target:
+#         type: string
+#         # default:
+
+inputs:
+  os:
+    required: true
+    type: string
+    default: ubuntu-latest
+  target:
+    type: string
+    # default:
+
+runs:
+  using: composite
+  steps:
+    - name: 📂 Checkout code
+      uses: actions/checkout@v2
+    - name: 🔗 Setup rust wasm toolchain
+      if: ${{ inputs.target }}
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        target: wasm32-unknown-unknown
+        toolchain: stable
+        override: true
+    - name: 💰 Cache
+      uses: Swatinem/rust-cache@v1
+    # - name: 🛠️ Build
+    #   uses: actions-rs/cargo@v1
+    #   with:
+    #     command: build
+    - name: 📎 Clippy
+      uses: actions-rs/cargo@v1
+      with:
+        command: clippy
+        # Note that `--all-targets` doesn't refer to targets like `wasm32-unknown-unknown`.
+        args: --all-targets --workspace -- -D warnings
+    - name: ⌨️ Fmt
+      uses: actions-rs/cargo@v1
+      with:
+        command: fmt
+        args: --all --check
+    - name: 📋 Test
+      uses: actions-rs/cargo@v1
+      with:
+        command: test

@@ -21,9 +21,10 @@ jobs:
       matrix:
         target: ["", "wasm32-unknown-unknown"]
         os: [ubuntu-latest, windows-latest, macos-latest]
-    uses: ./.github/workflows/test-cargo.yaml
+    uses: ./.github/actions/cargo-test
     with:
       os: ${{ matrix.os }}
+
       target: ${{ matrix.target }}
   test-book:
     runs-on: ubuntu-latest
