@@ -75,6 +75,6 @@ jobs:
         with:
           name: code-coverage-report
           path: cobertura.xml
-  python:
-    - name: Python
-      uses: ./.github/workflows/python.yaml
+  # python:
+  #   - name: Python
+  #     uses: ./.github/workflows/python.yaml
