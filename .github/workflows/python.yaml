@@ -34,9 +34,9 @@ jobs:
       - name: Build Wheels
         uses: ./.github/actions/build
         with:
-          OS: ${{ matrix.os }}
+          os: ${{ matrix.os }}
       - name: Setup Nox
-        uses: ./.github/actions/setup_nox
+        uses: ./.github/actions/setup-nox
         with:
           cache_number: 0
       - name: Run tests
