@@ -22,8 +22,6 @@ jobs:
       matrix:
         target: ["", "wasm32-unknown-unknown"]
     steps:
-      - run: echo ${{ github.workflow }} and ${{ github.ref }}
-        shell: sh
       - name: 📂 Checkout code
         uses: actions/checkout@v2
       - name: 📋 Test workspace
