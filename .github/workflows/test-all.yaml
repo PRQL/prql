@@ -14,8 +14,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Only run ubuntu on pull-requests, since it's fastest. Run Mac & Windows only
-  # on `main` or a `run-full-tests` label.
   test:
     runs-on: ubuntu-latest
     strategy:
@@ -29,46 +27,6 @@ jobs:
         with:
           os: ${{ matrix.os }}
           target: ${{ matrix.target }}
-  test-book:
-    runs-on: ubuntu-latest
-    steps:
-      - name: 📂 Checkout code
-        uses: actions/checkout@v2
-      - name: 🔗 Setup rust toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          target: wasm32-unknown-unknown
-          # https://github.com/actions-rs/toolchain/issues/126
-          toolchain: stable
-      - name: 💰 Cache
-        uses: Swatinem/rust-cache@v1
-      - uses: jetli/trunk-action@v0.1.0
-      - uses: peaceiris/actions-mdbook@v1
-      - name: 🔨 Build
-        run: mdbook build
-        working-directory: reference/
-  # Currently duplicative with `test-book`, since that needs to build this
-  # target too. But `test-book` can't raise an error when building `prql-web`,
-  # unfortunately, because of how mdbook preprocessors work.
-  test-web:
-    runs-on: ubuntu-latest
-    steps:
-      - name: 📂 Checkout code
-        uses: actions/checkout@v2
-      - name: 🔗 Setup rust toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          target: wasm32-unknown-unknown
-          # https://github.com/actions-rs/toolchain/issues/126
-          toolchain: stable
-      - name: 💰 Cache
-        uses: Swatinem/rust-cache@v1
-      - uses: jetli/trunk-action@v0.1.0
-      - name: 🔨 Build
-        run: trunk build
-        working-directory: prql-web/
   code-cov:
     runs-on: ubuntu-latest
     # Currently this runs `cargo clean` which makes the run taking 4 min. TODO:
