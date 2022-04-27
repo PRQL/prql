@@ -130,28 +130,25 @@ fn table_of_comparison(prql: &str, sql: &str) -> String {
     format!(
         r#"
 <div class="comparison">
-<table>
-<tr>
-<th>PRQL</th><th>SQL</th>
-</tr>
 
-<tr>
-<td>
+<div>
+<h4>PRQL</h4>
 
 ```prql
 {prql}
 ```
 
-</td>
-<td>
+</div>
+
+<div>
+<h4>SQL</h4>
 
 ```sql
 {sql}
 ```
 
-</td>
-</tr>
-</table>
+</div>
+
 </div>
 "#,
         prql = prql.trim(),
