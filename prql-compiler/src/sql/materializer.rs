@@ -356,7 +356,7 @@ mod test {
     "#,
         )?;
 
-        let (res, context) = resolve(query.nodes.clone(), None)?;
+        let (res, context) = resolve(query.nodes, None)?;
 
         let pipeline = find_pipeline(res);
 
@@ -479,7 +479,7 @@ take 20
                   named_args: {}
         "###);
 
-        let (res, context) = resolve(query.nodes.clone(), None)?;
+        let (res, context) = resolve(query.nodes, None)?;
 
         let pipeline = find_pipeline(res);
 
@@ -588,7 +588,7 @@ take 20
         "#,
         )?;
 
-        let (res, context) = resolve(query.nodes.clone(), None)?;
+        let (res, context) = resolve(query.nodes, None)?;
 
         let pipeline = find_pipeline(res);
 
@@ -936,7 +936,7 @@ take 20
             - Ident: tax
         "###);
 
-        let (mat, frame, _) = materialize(find_pipeline(res2), context.into(), None)?;
+        let (mat, frame, _) = materialize(find_pipeline(res2), context, None)?;
 
         assert_yaml_snapshot!(mat.functions, @r###"
         ---
