@@ -10,9 +10,9 @@ on:
     # label, which we then use to trigger a `test-all` run.
     types: [opened, reopened, synchronize, labeled]
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+# concurrency:
+#   group: ${{ github.workflow }}-${{ github.ref }}
+#   cancel-in-progress: true
 
 jobs:
   # Only run ubuntu on pull-requests, since it's fastest.
