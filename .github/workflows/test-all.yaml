@@ -25,7 +25,7 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v2
-      - uses: ./.github/actions/cargo_test
+      - uses: ./.github/actions/cargo-test
         with:
           os: ${{ matrix.os }}
           target: ${{ matrix.target }}

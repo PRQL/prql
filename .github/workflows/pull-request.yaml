@@ -35,7 +35,7 @@ jobs:
       - name: 📂 Checkout code
         uses: actions/checkout@v2
       - name: test-fast
-        uses: ./.github/actions/cargo_test
+        uses: ./.github/actions/cargo-test
         with:
           os: ${{ matrix.os }}
           target: ${{ matrix.target }}
