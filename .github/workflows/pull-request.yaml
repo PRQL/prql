@@ -6,7 +6,8 @@ name: pull-request
 
 on:
   pull_request:
-    # Add `labeled`, so we can trigger a full run by adding a `ci-run-all-tests` label.
+    # Add `labeled`, so we can trigger a new run by adding a `ci-run-all-tests`
+    # label, which we then use to trigger a `test-all` run.
     types: [opened, reopened, synchronize, labeled]
 
 concurrency:
@@ -20,14 +21,12 @@ jobs:
     strategy:
       matrix:
         target: ["", "wasm32-unknown-unknown"]
-        os: [ubuntu-latest]
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v2
       - name: 📋 Test workspace
         uses: ./.github/actions/cargo-test
         with:
-          os: ${{ matrix.os }}
           target: ${{ matrix.target }}
 
   test-book:
@@ -73,9 +72,7 @@ jobs:
         working-directory: prql-web/
 
   # Run Mac & Windows & other tests on `main` or a `ci-run-all-tests` label.
+  # TODO this seems to be acting up; confirm.
   test-all:
-    runs-on: ubuntu-latest
-    steps:
-      - name: test-all
-        uses: ./.github/workflows/test-all.yaml
-        if: contains(github.event.pull_request.labels.*.name, 'ci-run-all-tests')
+    uses: ./.github/workflows/test-all.yaml
+    if: contains(github.event.pull_request.labels.*.name, 'ci-run-all-tests')
