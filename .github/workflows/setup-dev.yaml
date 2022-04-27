@@ -7,8 +7,6 @@ on:
       - main
   pull_request:
     types: [opened, reopened, synchronize, labeled]
-    branches:
-      - main
     paths:
       - Taskfile.yml
 
