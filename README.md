@@ -31,20 +31,27 @@ Here's a fairly simple SQL query:
 
 ```sql
 SELECT TOP 20
-    title,
-    country,
-    AVG(salary) AS average_salary,
-    SUM(salary) AS sum_salary,
-    AVG(salary + payroll_tax) AS average_gross_salary,
-    SUM(salary + payroll_tax) AS sum_gross_salary,
-    AVG(salary + payroll_tax + benefits_cost) AS average_gross_cost,
-    SUM(salary + payroll_tax + benefits_cost) AS sum_gross_cost,
-    COUNT(*) as count
-FROM employees
-WHERE salary + payroll_tax + benefits_cost > 0 AND country = 'USA'
-GROUP BY title, country
-ORDER BY sum_gross_cost
-HAVING count > 200
+  title,
+  country,
+  AVG(salary) AS average_salary,
+  SUM(salary) AS sum_salary,
+  AVG(salary + payroll_tax) AS average_gross_salary,
+  SUM(salary + payroll_tax) AS sum_gross_salary,
+  AVG(salary + payroll_tax + benefits_cost) AS average_gross_cost,
+  SUM(salary + payroll_tax + benefits_cost) AS sum_gross_cost,
+  COUNT(*) AS ct
+FROM
+  employees
+WHERE
+  country = 'USA'
+  AND salary + payroll_tax + benefits_cost > 0
+GROUP BY
+  title,
+  country
+HAVING
+  COUNT(*) > 200
+ORDER BY
+  sum_gross_cost
 ```
 
 Even this simple query demonstrates some of the problems with SQL's lack of
@@ -54,7 +61,7 @@ abstractions:
   despite deriving from a previous measure. The repetition in the `WHERE`
   clause obfuscates the meaning of the expression.
 - Functions have multiple operators — `HAVING` & `WHERE` are fundamentally
-  similar operations applied at different stages of the pipeline but SQL's lack
+  similar operations applied at different stages of the pipeline, but SQL's lack
   of pipeline-based precedence requires it to have two different operators.
 - Operators have multiple functions — the `SELECT` operator both
   creates new aggregations, and selects which columns to include.
@@ -66,21 +73,23 @@ Here's the same query with PRQL:
 
 ```elm
 from employees
-filter country = "USA"                           # Each line transforms the previous result.
-derive [                                         # This adds columns / variables.
+filter country = "USA"                        # Each line transforms the previous result.
+derive [                                      # `derive` adds columns / variables.
   gross_salary: salary + payroll_tax,
-  gross_cost:   gross_salary + benefits_cost     # Variables can use other variables.
+  gross_cost:   gross_salary + benefits_cost  # Variables can use other variables.
 ]
 filter gross_cost > 0
-aggregate by:[title, country] [                  # `by` are the columns to group by.
-    average salary,                              # These are aggregation calcs run on each group.
+group [title, country] (                      # `group` runs a pipeline over each group
+  aggregate [                                 # `aggregate` reduces a column to a row
+    average salary,
     sum     salary,
     average gross_salary,
     sum     gross_salary,
     average gross_cost,
     sum_gross_cost: sum gross_cost,
     ct: count,
-]
+  ]
+)
 sort sum_gross_cost
 filter ct > 200
 take 20
@@ -90,8 +99,8 @@ As well as using variables to reduce unnecessary repetition, the query is also
 more readable — it flows from top to bottom, each line representing a
 transformation of the previous line's result. For example, `TOP 20` / `take 20`
 modify the final result in both queries — but only PRQL represents it as the
-final transformation. And context is localized — the `aggregate` function
-contains both the calculations and the columns to group by.
+final transformation. And context is localized — the `aggregate` transform is
+immediately wrapped in a `group` transform containing the columns to group by.
 
 While PRQL is designed for reading & writing by people, it's also much simpler
 for code to construct or edit PRQL queries. In SQL, adding a filter to a query
@@ -106,12 +115,14 @@ SQL on every keystroke.
 
 > The link will not open in a new tab by default.
 
-[![Editor Link](https://github.com/prql/prql/blob/main/.github/live-editor-screenshot.png?raw=true)](https://lang.prql.builders/editor)
+[![Editor Link](https://github.com/prql/prql/blob/main/.github/live-editor.gif?raw=true)](https://lang.prql.builders/editor)
 
 ### A more complex example
 
 Here's another SQL query, which calculates returns from prices on days with
 valid prices.
+
+> The implemented version of PRQL supports some but not all these features.
 
 ```sql
 WITH total_returns AS (
@@ -147,39 +158,39 @@ JOIN interest_rates USING (date)
 Here's the same query with PRQL:
 
 ```elm
-prql version:0.1 db:snowflake                         # PRQL version & database name.
+prql version:0.3 db:snowflake                         # PRQL version & database name.
 
 func excess x = (x - interest_rate) / 252             # Functions are clean and simple.
 func if_valid x = is_valid_price ? x : null
-func lag_day x = (
-  window                                              # Windows are pipelines too.
-  by sec_id
-  sort date
-  lag 1
-  x
-)
+func lag_day x = group sec_id (                       # `group` is used for window partitions too
+    sort date
+    window (                                          # `window` runs a pipeline over each window
+      lag 1 x                                         # `lag 1 x` lags the `x` col by 1
+    )
+  )
+
 func ret x = x / (x | lag_day) - 1 + dividend_return
 
 from prices
 join interest_rates [date]
-derive [
-  return_total:      prices_adj   | ret | if_valid    # `|` can be used rather than newlines.
-  return_usd:        prices_usd   | ret | if_valid
-  return_excess:     return_total | excess
-  return_usd_excess: return_usd   | excess
-  return_excess_index:  (                             # No need for a CTE.
-    return_total + 1 | excess | greatest 0.01         # Complicated logic remains clear.
-      | ln | (window | sort date | sum) | exp
+select [                                              # `select` only includes unnamed columns, unlike `derive`
+  return_total:       prices_adj   | ret | if_valid   # `|` can be used rather than newlines
+  return_usd:         prices_usd   | ret | if_valid
+  return_excess:      return_total | excess
+  return_usd_excess:  return_usd   | excess
+  return_index: (                                     # No need for a CTE
+    return_total + 1
+    excess
+    greatest 0.01
+    ln
+    group sec_id (                                    # Complicated logic remains clear(er)
+      sort date
+      window (
+        sum
+      )
+    )
+    exp
   )
-]
-select [
-  date,
-  sec_id,
-  return_total,
-  return_usd,
-  return_excess,
-  return_usd_excess,
-  return_excess_index,
 ]
 ```
 
@@ -191,6 +202,19 @@ and between colleagues.
 We needed a CTE in the SQL query, because the lack of variables would have
 required a nested window clause, which isn't allowed. With PRQL, our logic isn't
 constrained by these arbitrary constraints — and is more compressed as a result.
+
+The larger query demonstrates PRQL orthogonality. PRQL has fewer keywords
+than SQL, and each of them does something specific and composable; for example:
+
+- `group` maps a pipeline over groups; whether in a table context — `GROUP BY`
+  in SQL — or within a `window` — `PARTITION BY` in SQL.
+- A transform in context of a `group` does the same transformation to the group
+  as it would to the table — for example finding the rolling sum of a column.
+  For more on this equivalence, check out [`group`'s
+  documentation](https://lang.prql.builders/transforms.html#group)
+- `filter` filters out rows which don't meet a condition. That can be before an
+  aggregate — `WHERE` in SQL — after an aggregate — `HAVING` in SQL — or within
+  a `window` — `QUALIFY` in SQL.
 
 ## Current status
 
@@ -241,7 +265,7 @@ See above for fuller examples of PRQL.
 ### Python implementation
 
 There is a python implementation at
-[qorrect/PyPrql](https://github.com/qorrect/PyPrql), which can be installed with
+[prql/PyPrql](https://github.com/prql/PyPrql), which can be installed with
 `pip install pyprql`. It has some great features, including a native interactive
 console with auto-complete for column names.
 
@@ -410,7 +434,7 @@ decisions on the direction of the language, and project administration:
 
 - [**@aljazerzen**](https://github.com/aljazerzen) — Aljaž Mur Eržen
 - [**@max-sixty**](https://github.com/max-sixty) — Maximilian Roos
-- [**@qorrect**](https://github.com/qorrect) — Charlie Sando
+- [**@charlie-sanders**](https://github.com/charlie-sanders) — Charlie Sanders
 
 We welcome others to join who have a track record of contributions.
 

@@ -285,6 +285,7 @@ fn sql_query_of_atomic_table(table: AtomicTable, dialect: &Dialect) -> Result<sq
             projection: (frame.columns.into_iter())
                 .map(|n| n.item.try_into())
                 .try_collect()?,
+            into: None,
             from,
             lateral_views: vec![],
             selection: where_,
@@ -299,6 +300,7 @@ fn sql_query_of_atomic_table(table: AtomicTable, dialect: &Dialect) -> Result<sq
         limit: if dialect.use_top() { None } else { take },
         offset: None,
         fetch: None,
+        lock: None,
     })
 }
 

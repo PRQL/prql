@@ -1,0 +1,13 @@
+---
+source: reference/tests/snapshot.rs
+expression: sql
+input_file: reference/tests/examples/transforms-9.prql
+---
+SELECT
+  employees.*
+FROM
+  employees
+ORDER BY
+  join_date
+LIMIT
+  1

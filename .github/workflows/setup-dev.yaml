@@ -7,8 +7,6 @@ on:
       - main
   pull_request:
     types: [opened, reopened, synchronize, labeled]
-    branches:
-      - main
     paths:
       - Taskfile.yml
 
@@ -18,7 +16,7 @@ concurrency:
 
 jobs:
   # Only run ubuntu on pull-requests, since it's fastest. Run Mac & Windows only
-  # on `main` or a `run-full-tests` label.
+  # on `main` or a `ci-run-all-tests` label.
   test-setup-dev:
     runs-on: macos-latest
     steps:
