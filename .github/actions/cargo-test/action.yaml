@@ -15,12 +15,13 @@ runs:
   steps:
     - name: 📂 Checkout code
       uses: actions/checkout@v2
-    - name: 🔗 Setup rust wasm toolchain
+    - name: 🔗 Setup toolchain
+      # If we don't get a value, then skip; we're using the default value.
       if: ${{ inputs.target }}
       uses: actions-rs/toolchain@v1
       with:
         profile: minimal
-        target: wasm32-unknown-unknown
+        target: ${{ inputs.target }}
         toolchain: stable
         override: true
     - name: 💰 Cache
