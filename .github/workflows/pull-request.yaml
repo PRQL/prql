@@ -16,9 +16,10 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test-all:
-    uses: ./.github/workflows/test-all.yaml
-    if: contains(github.event.pull_request.labels.*.name, 'ci-run-all-tests')
+  # FIXME
+  # test-all:
+  #   uses: ./.github/workflows/test-all.yaml
+  #   if: contains(github.event.pull_request.labels.*.name, 'ci-run-all-tests')
 
   # Only run ubuntu on pull-requests, since it's fastest. Run Mac & Windows only
   # on `main` or a `run-full-tests` label.

@@ -16,8 +16,7 @@ on:
       - main
     paths:
       - "prql-python/**"
-      # FIXME
-      # - ".github/workflows/python.yaml"
+      - ".github/workflows/python.yaml"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
