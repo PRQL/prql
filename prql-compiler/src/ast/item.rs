@@ -19,7 +19,7 @@ pub enum Item {
     Query(Query),
     Pipeline(Pipeline),
     Transform(Transform),
-    List(Vec<ListItem>),
+    List(Vec<Node>),
     Range(Range),
     Expr(Vec<Node>),
     FuncDef(FuncDef),
@@ -32,12 +32,6 @@ pub enum Item {
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct ListItem(pub Node);
-
-impl ListItem {
-    pub fn into_inner(self) -> Node {
-        self.0
-    }
-}
 
 /// Function call.
 ///
@@ -181,11 +175,11 @@ impl Display for Item {
                 if nodes.is_empty() {
                     f.write_str("[]")?;
                 } else if nodes.len() == 1 {
-                    write!(f, "[{}]", nodes[0].0.item)?;
+                    write!(f, "[{}]", nodes[0].item)?;
                 } else {
                     f.write_str("[\n")?;
                     for li in nodes.iter() {
-                        writeln!(f, "  {},", li.0.item)?;
+                        writeln!(f, "  {},", li.item)?;
                     }
                     f.write_str("]")?;
                 }

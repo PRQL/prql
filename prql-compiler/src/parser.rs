@@ -94,12 +94,7 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
                         dialect,
                     })
                 }
-                Rule::list => Item::List(
-                    ast_of_parse_tree(pair.into_inner())?
-                        .into_iter()
-                        .map(ListItem)
-                        .collect(),
-                ),
+                Rule::list => Item::List(ast_of_parse_tree(pair.into_inner())?),
                 Rule::expr_mul
                 | Rule::expr_add
                 | Rule::expr_compare
@@ -169,6 +164,7 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
                         .try_into()
                         .map_err(|e| anyhow!("Expected two items; {e:?}"))?;
                     Item::Table(Table {
+                        id: None,
                         name: name.item.into_ident()?,
                         pipeline: Box::new(pipeline),
                     })
@@ -923,6 +919,7 @@ take 20
                     args:
                       - Ident: employees
                     named_args: {}
+          id: ~
         "###);
 
         assert_yaml_snapshot!(ast_of_string(
@@ -981,6 +978,7 @@ take 20
                     args:
                       - Raw: "50"
                     named_args: {}
+          id: ~
         "###);
         Ok(())
     }

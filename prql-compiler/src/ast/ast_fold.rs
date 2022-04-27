@@ -32,6 +32,7 @@ pub trait AstFold {
     }
     fn fold_table(&mut self, table: Table) -> Result<Table> {
         Ok(Table {
+            id: table.id,
             name: self.fold_ident(table.name)?,
             pipeline: Box::new(self.fold_node(*table.pipeline)?),
         })
@@ -84,12 +85,7 @@ pub fn fold_item<T: ?Sized + AstFold>(fold: &mut T, item: Item) -> Result<Item> 
     Ok(match item {
         Item::Ident(ident) => Item::Ident(fold.fold_ident(ident)?),
         Item::Expr(items) => Item::Expr(fold.fold_nodes(items)?),
-        Item::List(items) => Item::List(
-            items
-                .into_iter()
-                .map(|x| fold.fold_node(x.into_inner()).map(ListItem))
-                .try_collect()?,
-        ),
+        Item::List(items) => Item::List(fold.fold_nodes(items)?),
         Item::Range(Range { start, end }) => Item::Range(Range {
             start: fold_optional_box(fold, start)?,
             end: fold_optional_box(fold, end)?,
@@ -233,6 +229,7 @@ pub fn fold_table_ref<T: ?Sized + AstFold>(fold: &mut T, table: TableRef) -> Res
     Ok(TableRef {
         name: fold.fold_ident(table.name)?,
         alias: table.alias.map(|a| fold.fold_ident(a)).transpose()?,
+        ..table
     })
 }
 

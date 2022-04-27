@@ -16,6 +16,7 @@ pub fn cast_transform(func_call: FuncCall, span: Option<Span>) -> Result<Transfo
                     "`from` does not support inline expressions. You can only pass a table name.",
                 )?,
                 alias: name,
+                declared_at: None,
             };
 
             Transform::From(table_ref)
@@ -23,28 +24,28 @@ pub fn cast_transform(func_call: FuncCall, span: Option<Span>) -> Result<Transfo
         "select" => {
             let ([assigns], []) = unpack(func_call, [])?;
 
-            Transform::Select(Select::new(assigns.coerce_to_items()))
+            Transform::Select(Select::new(assigns.coerce_to_vec()))
         }
         "filter" => {
             let ([filter], []) = unpack(func_call, [])?;
 
-            Transform::Filter(filter.coerce_to_items())
+            Transform::Filter(filter.coerce_to_vec())
         }
         "derive" => {
             let ([assigns], []) = unpack(func_call, [])?;
 
-            Transform::Derive(Select::new(assigns.coerce_to_items()))
+            Transform::Derive(Select::new(assigns.coerce_to_vec()))
         }
         "aggregate" => {
             let ([assigns], []) = unpack(func_call, [])?;
 
-            Transform::Aggregate(Select::new(assigns.coerce_to_items()))
+            Transform::Aggregate(Select::new(assigns.coerce_to_vec()))
         }
         "sort" => {
             let ([by], []) = unpack(func_call, [])?;
 
             let by = by
-                .coerce_to_items()
+                .coerce_to_vec()
                 .into_iter()
                 .map(|node| {
                     let (column, direction) = match node.item {
@@ -114,9 +115,10 @@ pub fn cast_transform(func_call: FuncCall, span: Option<Span>) -> Result<Transfo
                     "`join` does not support inline expressions. You can only pass a table name.",
                 )?,
                 alias: with_alias,
+                declared_at: None,
             };
 
-            let filter = filter.discard_name()?.coerce_to_items();
+            let filter = filter.discard_name()?.coerce_to_vec();
             let use_using = (filter.iter().map(|x| &x.item)).all(|x| matches!(x, Item::Ident(_)));
 
             let filter = if use_using {
@@ -131,7 +133,7 @@ pub fn cast_transform(func_call: FuncCall, span: Option<Span>) -> Result<Transfo
             let ([by, pipeline], []) = unpack(func_call, [])?;
 
             let by = by
-                .coerce_to_items()
+                .coerce_to_vec()
                 .into_iter()
                 // check that they are only idents
                 .map(|n| match n.item {
@@ -221,6 +223,7 @@ mod tests {
                   From:
                     name: c_invoice
                     alias: ~
+                    declared_at: 58
               - Transform:
                   Group:
                     by:
@@ -275,6 +278,7 @@ mod tests {
                   From:
                     name: c_invoice
                     alias: ~
+                    declared_at: 58
               - Transform:
                   Group:
                     by:

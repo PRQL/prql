@@ -24,6 +24,7 @@ use crate::ast::*;
 use crate::error::{Error, Reason};
 use crate::semantic::Context;
 
+use super::materializer::MaterializationContext;
 use super::{un_group, MaterializedFrame};
 
 /// Translate a PRQL AST into a SQL string.
@@ -40,26 +41,21 @@ pub fn translate(query: Query, context: Context) -> Result<String> {
     Ok(formatted)
 }
 
-pub fn translate_query(query: Query, mut context: Context) -> Result<sql_ast::Query> {
+pub fn translate_query(query: Query, context: Context) -> Result<sql_ast::Query> {
     // extract tables and the pipeline
     let tables = into_tables(query.nodes)?;
 
+    let mut context = MaterializationContext::from(context);
+
     // split to atomics
-    let atomics = atomic_tables_of_tables(tables)?;
+    let atomics = atomic_tables_of_tables(tables, &mut context)?;
 
     // materialize each atomic in two stages
     let mut materialized = Vec::new();
     for t in atomics {
-        let last_node = t.pipeline.functions.last().unwrap();
-        let frame = last_node.frame.clone().unwrap();
+        let table_id = t.name.clone().and_then(|x| x.declared_at);
 
-        let rename_to = if t.name.is_empty() {
-            None
-        } else {
-            Some(t.name.as_str())
-        };
-
-        let (pipeline, frame, c) = super::materialize(t.pipeline, frame, context, rename_to)?;
+        let (pipeline, frame, c) = super::materialize(t.pipeline, context, table_id)?;
         context = c;
 
         materialized.push(AtomicTable {
@@ -97,7 +93,7 @@ pub fn translate_query(query: Query, mut context: Context) -> Result<sql_ast::Qu
 }
 
 pub struct AtomicTable {
-    name: String,
+    name: Option<TableRef>,
     pipeline: Pipeline,
     frame: Option<MaterializedFrame>,
 }
@@ -118,7 +114,7 @@ fn into_tables(nodes: Vec<Node>) -> Result<Vec<Table>> {
 
 fn table_to_sql_cte(table: AtomicTable, dialect: &Dialect) -> Result<sql_ast::Cte> {
     let alias = sql_ast::TableAlias {
-        name: Item::Ident(table.name.clone()).try_into()?,
+        name: Item::Ident(table.name.clone().unwrap().name).try_into()?,
         columns: vec![],
     };
     Ok(sql_ast::Cte {
@@ -272,7 +268,7 @@ fn sql_query_of_atomic_table(table: AtomicTable, dialect: &Dialect) -> Result<sq
         None => vec![],
         _ => unreachable!("Expected an aggregate transformation"),
     };
-    let group_by = Node::into_list_of_nodes(group_bys).item.try_into()?;
+    let group_by = Item::List(group_bys).try_into()?;
 
     let dialect = dialect.handler();
 
@@ -363,12 +359,15 @@ fn atomic_pipelines_of_pipeline(pipeline: Pipeline) -> Result<Vec<AtomicTable>> 
 
 /// Converts a series of tables into a series of atomic tables, by putting the
 /// next pipeline's `from` as the current pipelines's table name.
-fn atomic_tables_of_tables(tables: Vec<Table>) -> Result<Vec<AtomicTable>> {
+fn atomic_tables_of_tables(
+    tables: Vec<Table>,
+    context: &mut MaterializationContext,
+) -> Result<Vec<AtomicTable>> {
     let mut atomics = Vec::new();
     let mut index = 0;
-    for t in tables {
+    for table in tables {
         // split table into atomics
-        let pipeline = t.pipeline.item.into_pipeline()?;
+        let pipeline = table.pipeline.item.into_pipeline()?;
         let mut t_atomics: Vec<_> = atomic_pipelines_of_pipeline(pipeline)?;
 
         let (last, ctes) = t_atomics
@@ -378,28 +377,37 @@ fn atomic_tables_of_tables(tables: Vec<Table>) -> Result<Vec<AtomicTable>> {
         // generate table names for all but last table
         let mut last_name = None;
         for cte in ctes {
-            prepend_with_from(&mut cte.pipeline, &last_name);
+            prepend_with_from(&mut cte.pipeline, last_name);
 
-            cte.name = format!("table_{index}");
+            let name = format!("table_{index}");
+            let id = context.declare_table(&name);
+
+            cte.name = Some(TableRef {
+                name,
+                alias: None,
+                declared_at: Some(id),
+            });
             index += 1;
-            last_name = Some(cte.name.clone());
+
+            last_name = cte.name.clone();
         }
 
         // use original table name
-        prepend_with_from(&mut last.pipeline, &last_name);
-        last.name = t.name;
+        prepend_with_from(&mut last.pipeline, last_name);
+        last.name = Some(TableRef {
+            name: table.name,
+            alias: None,
+            declared_at: table.id,
+        });
 
         atomics.extend(t_atomics);
     }
     Ok(atomics)
 }
 
-fn prepend_with_from(pipeline: &mut Pipeline, last_name: &Option<String>) {
-    if let Some(last_name) = last_name {
-        let from = Transform::From(TableRef {
-            name: last_name.clone(),
-            alias: None,
-        });
+fn prepend_with_from(pipeline: &mut Pipeline, table: Option<TableRef>) {
+    if let Some(table) = table {
+        let from = Transform::From(table);
         pipeline.functions.insert(0, Item::Transform(from).into());
     }
 }
@@ -425,7 +433,7 @@ impl TryFrom<Item> for SelectItem {
                 alias: sql_ast::Ident::new(named.name),
                 expr: named.expr.item.try_into()?,
             },
-            _ => bail!("Can't convert to SelectItem at the moment; {:?}", item),
+            _ => bail!("Can't convert to SelectItem; {:?}", item),
         })
     }
 }
@@ -535,7 +543,7 @@ impl TryFrom<Item> for Expr {
                     fractional_seconds_precision: None,
                 })
             }
-            _ => bail!("Can't convert to Expr at the moment; {item:?}"),
+            _ => bail!("Can't convert to Expr; {item:?}"),
         })
     }
 }
@@ -543,15 +551,8 @@ impl TryFrom<Item> for Vec<Expr> {
     type Error = anyhow::Error;
     fn try_from(item: Item) -> Result<Self> {
         match item {
-            Item::List(_) => Ok(Into::<Node>::into(item)
-                // TODO: implement for non-single item ListItems
-                .into_inner_list_nodes()?
-                .into_iter()
-                .map(|x| x.item.try_into())
-                .try_collect()?),
-            _ => Err(anyhow!(
-                "Can't convert to Vec<Expr> at the moment; {item:?}"
-            )),
+            Item::List(nodes) => Ok(nodes.into_iter().map(|x| x.item.try_into()).try_collect()?),
+            _ => Err(anyhow!("Can't convert to Vec<Expr>; {item:?}")),
         }
     }
 }
@@ -561,13 +562,14 @@ impl TryFrom<Item> for sql_ast::Ident {
         match item {
             Item::Ident(ident) => Ok(sql_ast::Ident::new(ident)),
             Item::Raw(ident) => Ok(sql_ast::Ident::new(ident)),
-            _ => Err(anyhow!("Can't convert to Ident at the moment; {item:?}")),
+            _ => Err(anyhow!("Can't convert to Ident; {item:?}")),
         }
     }
 }
 impl From<Vec<Node>> for Table {
     fn from(functions: Vec<Node>) -> Self {
         Table {
+            id: None,
             name: String::default(),
             pipeline: Box::new(Item::Pipeline(functions.into()).into()),
         }
@@ -576,7 +578,7 @@ impl From<Vec<Node>> for Table {
 impl From<Vec<Node>> for AtomicTable {
     fn from(functions: Vec<Node>) -> Self {
         AtomicTable {
-            name: String::default(),
+            name: None,
             pipeline: functions.into(),
             frame: None,
         }
@@ -651,8 +653,8 @@ SString:
     #[test]
     fn test_try_from_list_to_vec_expr() -> Result<()> {
         let item = Item::List(vec![
-            ListItem(Item::Ident("a".to_owned()).into()),
-            ListItem(Item::Ident("b".to_owned()).into()),
+            Item::Ident("a".to_owned()).into(),
+            Item::Ident("b".to_owned()).into(),
         ]);
         let expr: Vec<Expr> = item.try_into()?;
         assert_debug_snapshot!(expr, @r###"
@@ -880,7 +882,7 @@ take 20
         from newest_employees
         join average_salaries [country]
         select [name, salary, average_country_salary]
-    "#,
+        "#,
         )?;
         let sql = resolve_and_translate(query)?;
         assert_display_snapshot!(sql,
@@ -905,7 +907,7 @@ take 20
         )
         SELECT
           name,
-          salary,
+          average_salaries.salary,
           average_salaries.average_country_salary
         FROM
           newest_employees
