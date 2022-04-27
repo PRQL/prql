@@ -1,17 +1,6 @@
 name: cargo-test
 description: Runs cargo test & cargo lint for a given platform & target.
 
-# on:
-#   workflow_call:
-#     inputs:
-#       os:
-#         required: true
-#         type: string
-#         default: ubuntu-latest
-#       target:
-#         type: string
-#         # default:
-
 inputs:
   os:
     required: true
