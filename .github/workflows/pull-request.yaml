@@ -32,6 +32,8 @@ jobs:
         target: ["", "wasm32-unknown-unknown"]
         os: [ubuntu-latest]
     steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v2
       - name: test-fast
         uses: ./.github/actions/cargo_test
         with:
