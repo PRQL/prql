@@ -3,38 +3,15 @@ Task:
 > Find distributions of titles, salaries and genders over different departments.
 
 ```prql
-from dept_emp
-join salaries side:left [
-  (salaries.emp_no = dept_emp.emp_no) and s"(salaries.from_date, salaries.to_date) OVERLAPS (dept_emp.from_date, dept_emp.to_date)"]
-group [dept_emp.emp_no, dept_emp.dept_no] (
-  aggregate salary: (average salaries.salary)
+from de:dept_emp
+join s:salaries side:left [
+  (s.emp_no = de.emp_no),
+  s"({s.from_date}, {s.to_date}) OVERLAPS ({de.from_date}, {de.to_date})"
+]
+group [de.emp_no, de.dept_no] (
+  aggregate salary: (average s.salary)
 )
 join employees [emp_no]
 join titles [emp_no]
 select [dept_no, salary, employees.gender, titles.title]
-```
-
-```sql
-WITH table_0 AS (
-  SELECT
-    dept_emp.emp_no,
-    dept_emp.dept_no,
-    AVG(salaries.salary) AS salary
-  FROM
-    dept_emp
-    LEFT JOIN salaries ON salaries.emp_no = dept_emp.emp_no
-    AND (salaries.from_date, salaries.to_date) OVERLAPS (dept_emp.from_date, dept_emp.to_date)
-  GROUP BY
-    dept_emp.emp_no,
-    dept_emp.dept_no
-)
-SELECT
-  dept_no,
-  salary,
-  employees.gender,
-  titles.title
-FROM
-  table_0
-  JOIN employees USING(emp_no)
-  JOIN titles USING(emp_no)
 ```
