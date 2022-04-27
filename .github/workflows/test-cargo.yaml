@@ -9,7 +9,7 @@ on:
         default: ubuntu-latest
 
 jobs:
-  test:
+  test_and_lint:
     runs-on: ${{ inputs.os }}
     steps:
       - name: 📂 Checkout code
