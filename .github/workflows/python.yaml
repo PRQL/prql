@@ -24,7 +24,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build_python:
+  test:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -32,7 +32,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Build Wheels
+      - name: Build Wheel
         uses: ./.github/actions/build-wheel
         with:
           os: ${{ matrix.os }}
