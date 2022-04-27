@@ -29,13 +29,16 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: reference/book/
+
+  build-python-wheels:
+    uses: ./.github/workflows/python.yaml
   publish-to-pypi:
     name: Release
     runs-on: ubuntu-latest
     # Currently excluded since we need to use the PYPI_API_TOKEN
     # if: "startsWith(github.ref, 'refs/tags/')"
     if: false
-    needs: [build-python]
+    needs: [build-python-wheels]
     steps:
       - uses: actions/download-artifact@v2
         with:
