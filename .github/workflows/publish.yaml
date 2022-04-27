@@ -6,7 +6,7 @@ on:
       - "*"
 
 jobs:
-  publish:
+  publish-gh-pages:
     runs-on: ubuntu-latest
     steps:
       - name: 📂 Checkout code
@@ -29,3 +29,22 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: reference/book/
+  publish-to-pypi:
+    name: Release
+    runs-on: ubuntu-latest
+    # Currently excluded since we need to use the PYPI_API_TOKEN
+    # if: "startsWith(github.ref, 'refs/tags/')"
+    if: false
+    needs: [build_python]
+    steps:
+      - uses: actions/download-artifact@v2
+        with:
+          name: wheels
+      - name: Publish to PyPI
+        uses: messense/maturin-action@v1
+        env:
+          # TODO: Upload PYPI_API_TOKEN, confirm how we release all crates together.
+          MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+        with:
+          command: upload
+          args: --skip-existing *

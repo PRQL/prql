@@ -42,20 +42,3 @@ jobs:
           cache_number: 0
       - name: Run tests
         run: nox -s tests -f prql-python/noxfile.py
-  release:
-    name: Release
-    runs-on: ubuntu-latest
-    if: "startsWith(github.ref, 'refs/tags/')"
-    needs: [build_python]
-    steps:
-      - uses: actions/download-artifact@v2
-        with:
-          name: wheels
-      - name: Publish to PyPI
-        uses: messense/maturin-action@v1
-        env:
-          # TODO: Upload PYPI_API_TOKEN, confirm how we release all crates together.
-          MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
-        with:
-          command: upload
-          args: --skip-existing *
