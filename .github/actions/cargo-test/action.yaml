@@ -10,6 +10,7 @@ runs:
   steps:
     - name: 📂 Checkout code
       uses: actions/checkout@v2
+    - run: echo ${{ github.workflow }}-${{ github.ref }}
     - name: 🔗 Setup toolchain
       # If we don't get a value, then skip; we're using the default value.
       if: ${{ inputs.target }}
