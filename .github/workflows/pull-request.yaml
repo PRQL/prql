@@ -1,8 +1,8 @@
-# All tests — both those that run on every PR and those that run on merges only.
+# Fast tests only. We should try and keep this under one minute.
 
 # See https://github.com/prql/prql/issues/37 for some TODOs
 
-name: test
+name: pull-request
 
 on:
   pull_request:

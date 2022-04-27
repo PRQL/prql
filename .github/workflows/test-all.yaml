@@ -24,7 +24,6 @@ jobs:
     uses: ./.github/actions/cargo-test
     with:
       os: ${{ matrix.os }}
-
       target: ${{ matrix.target }}
   test-book:
     runs-on: ubuntu-latest
