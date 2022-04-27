@@ -8,7 +8,6 @@ inputs:
     default: ubuntu-latest
   target:
     type: string
-    # default:
 
 runs:
   using: composite

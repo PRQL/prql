@@ -6,10 +6,8 @@ name: pull-request
 
 on:
   pull_request:
-    # Add `labeled`, so we can trigger a full run by adding a `run-full-tests` label.
+    # Add `labeled`, so we can trigger a full run by adding a `ci-run-all-tests` label.
     types: [opened, reopened, synchronize, labeled]
-    branches:
-      - main
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -26,7 +24,7 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v2
-      - name: test-fast
+      - name: 📋 Test workspace
         uses: ./.github/actions/cargo-test
         with:
           os: ${{ matrix.os }}
@@ -52,7 +50,7 @@ jobs:
         run: mdbook build
         working-directory: reference/
 
-  # Currently duplicative with `test-book`, since that needs to build this
+  # Somewhat duplicative with `test-book`, since that needs to build this
   # target too. But `test-book` can't raise an error when building `prql-web`,
   # unfortunately, because of how mdbook preprocessors work.
   test-web:
