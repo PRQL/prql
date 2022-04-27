@@ -6,6 +6,7 @@ expression: mat
     From:
       name: prices
       alias: ~
+      declared_at: 40
 - Transform:
     Derive:
       assigns:

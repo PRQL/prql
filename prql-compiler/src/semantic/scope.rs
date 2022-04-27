@@ -23,7 +23,7 @@ impl Scope {
         decls.clear();
         decls.insert(id);
 
-        self.cascade_variable(ident.as_str());        
+        self.cascade_variable(ident.as_str());
     }
 
     pub(super) fn add_function(&mut self, name: String, id: usize, has_params: bool) {
@@ -44,22 +44,20 @@ impl Scope {
         decls.insert(id);
     }
 
-    pub(super) fn clear_except(&mut self, except: HashSet<usize>) {
+    /// Removes all names from scope, except functions and columns in frame.
+    pub(super) fn clear(&mut self) {
+        let mut to_remove = HashSet::<usize>::new();
         self.variables.retain(|name, decls| {
-            if let Some(id) = decls.iter().find(|id| except.contains(id)).cloned() {
-                decls.clear();
-                decls.insert(id);
-                true
-            } else {
-                name.starts_with(NS_GLOB)
+            let remove = name.starts_with(NS_PARAM) || name.ends_with(".*") || name == "*";
+            if remove {
+                to_remove.extend(decls.iter());
             }
+            !remove
         });
-
-        let to_cascade: Vec<_> = self.variables.keys().cloned().collect();
-
-        for name in to_cascade {
-            self.cascade_variable(name.as_str());
-        }
+        self.variables.retain(|_, decls| {
+            decls.retain(|d| !to_remove.contains(d));
+            !decls.is_empty()
+        });
     }
 }
 

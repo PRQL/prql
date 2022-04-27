@@ -6,6 +6,7 @@ expression: mat
     From:
       name: employees
       alias: ~
+      declared_at: 35
 - Transform:
     Filter:
       - Expr:

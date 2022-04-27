@@ -5,16 +5,13 @@ use std::collections::HashSet;
 use std::fmt::Debug;
 
 use super::scope::NS_PARAM;
-use super::{split_var_name, Frame, FrameColumn, Scope};
+use super::{split_var_name, Scope};
 use crate::ast::*;
 use crate::error::Span;
 
 /// Context of the pipeline.
 #[derive(Default, Serialize, Deserialize, Clone)]
 pub struct Context {
-    /// Current table columns (result of last pipeline)
-    pub(crate) frame: Frame,
-
     /// Map of all accessible names (for each namespace)
     pub(crate) scope: Scope,
 
@@ -37,21 +34,6 @@ pub enum Declaration {
 }
 
 impl Context {
-    pub(crate) fn replace_declaration(&mut self, id: usize, new_decl: Declaration) {
-        let (decl, _) = self.declarations.get_mut(id).unwrap();
-        *decl = new_decl;
-    }
-
-    pub(crate) fn replace_declaration_expr(&mut self, id: usize, expr: Node) {
-        self.replace_declaration(id, Declaration::Expression(Box::new(expr)));
-    }
-
-    /// Removes all names from scope, except functions and columns in frame.
-    pub(super) fn clear_scope(&mut self) {
-        let in_use = self.frame.decls_in_use();
-        self.scope.clear_except(in_use);
-    }
-
     pub fn declare(&mut self, dec: Declaration, span: Option<Span>) -> usize {
         self.declarations.push((dec, span));
         self.declarations.len() - 1
@@ -70,18 +52,15 @@ impl Context {
         id
     }
 
-    pub fn declare_table(&mut self, t: &TableRef) {
+    pub fn declare_table(&mut self, t: &mut TableRef) {
         let name = t.alias.clone().unwrap_or_else(|| t.name.clone());
         let decl = Declaration::Table(name.clone());
 
         let table_id = self.declare(decl, None);
-        self.frame.tables.push(table_id);
+        t.declared_at = Some(table_id);
 
         let var_name = format!("{name}.*");
         self.scope.add(var_name, table_id);
-
-        let column = FrameColumn::All(table_id);
-        self.frame.columns.push(column);
     }
 
     pub fn declare_func_param(&mut self, node: &Node) -> usize {
@@ -182,15 +161,6 @@ impl From<Declaration> for anyhow::Error {
     }
 }
 
-impl PartialEq<usize> for FrameColumn {
-    fn eq(&self, other: &usize) -> bool {
-        match self {
-            FrameColumn::All(_) => false,
-            FrameColumn::Unnamed(id) | FrameColumn::Named(_, id) => id == other,
-        }
-    }
-}
-
 impl Debug for Context {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         for (i, (d, _)) in self.declarations.iter().enumerate() {
@@ -209,6 +179,6 @@ impl Debug for Context {
                 }
             }
         }
-        write!(f, "{:?}", self.frame)
+        Ok(())
     }
 }

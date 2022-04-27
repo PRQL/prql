@@ -8,7 +8,6 @@ pub use self::dialect::*;
 pub use self::item::*;
 pub use self::query::*;
 use crate::error::{Error, Reason, Span};
-use crate::semantic::Frame;
 use crate::utils::*;
 
 pub mod ast_fold;
@@ -31,8 +30,6 @@ pub struct Node {
     pub span: Option<Span>,
     #[serde(skip)]
     pub declared_at: Option<usize>,
-    #[serde(skip)]
-    pub frame: Option<Frame>,
 }
 
 impl Node {
@@ -103,7 +100,6 @@ impl From<Item> for Node {
             item,
             span: None,
             declared_at: None,
-            frame: None,
         }
     }
 }

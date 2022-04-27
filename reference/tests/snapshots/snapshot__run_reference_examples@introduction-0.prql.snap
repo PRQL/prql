@@ -30,15 +30,7 @@ WITH table_0 AS (
     20
 )
 SELECT
-  table_0.title,
-  table_0.country_code,
-  AVG(salary),
-  AVG(salary + payroll_tax),
-  SUM(salary),
-  SUM(salary + payroll_tax),
-  AVG(salary + payroll_tax + benefits_cost),
-  sum_gross_cost,
-  table_0.ct,
+  table_0.*,
   countries.*,
   country_code,
   countries.true AS always_true,

@@ -16,6 +16,7 @@ pub fn cast_transform(func_call: FuncCall, span: Option<Span>) -> Result<Transfo
                     "`from` does not support inline expressions. You can only pass a table name.",
                 )?,
                 alias: name,
+                declared_at: None,
             };
 
             Transform::From(table_ref)
@@ -114,6 +115,7 @@ pub fn cast_transform(func_call: FuncCall, span: Option<Span>) -> Result<Transfo
                     "`join` does not support inline expressions. You can only pass a table name.",
                 )?,
                 alias: with_alias,
+                declared_at: None,
             };
 
             let filter = filter.discard_name()?.coerce_to_vec();
@@ -221,6 +223,7 @@ mod tests {
                   From:
                     name: c_invoice
                     alias: ~
+                    declared_at: 58
               - Transform:
                   Group:
                     by:
@@ -275,6 +278,7 @@ mod tests {
                   From:
                     name: c_invoice
                     alias: ~
+                    declared_at: 58
               - Transform:
                   Group:
                     by:

@@ -32,6 +32,7 @@ pub trait AstFold {
     }
     fn fold_table(&mut self, table: Table) -> Result<Table> {
         Ok(Table {
+            id: table.id,
             name: self.fold_ident(table.name)?,
             pipeline: Box::new(self.fold_node(*table.pipeline)?),
         })
@@ -228,6 +229,7 @@ pub fn fold_table_ref<T: ?Sized + AstFold>(fold: &mut T, table: TableRef) -> Res
     Ok(TableRef {
         name: fold.fold_ident(table.name)?,
         alias: table.alias.map(|a| fold.fold_ident(a)).transpose()?,
+        ..table
     })
 }
 

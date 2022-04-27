@@ -6,6 +6,6 @@ input_file: reference/tests/examples/examples/list-equivalence-3.prql
 SELECT
   employees.*,
   salary + payroll_tax AS gross_salary,
-  salary + payroll_tax + benefits_cost AS gross_cost
+  gross_salary + benefits_cost AS gross_cost
 FROM
   employees

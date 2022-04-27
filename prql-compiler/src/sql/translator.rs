@@ -24,6 +24,7 @@ use crate::ast::*;
 use crate::error::{Error, Reason};
 use crate::semantic::Context;
 
+use super::materializer::MaterializationContext;
 use super::{un_group, MaterializedFrame};
 
 /// Translate a PRQL AST into a SQL string.
@@ -40,26 +41,21 @@ pub fn translate(query: Query, context: Context) -> Result<String> {
     Ok(formatted)
 }
 
-pub fn translate_query(query: Query, mut context: Context) -> Result<sql_ast::Query> {
+pub fn translate_query(query: Query, context: Context) -> Result<sql_ast::Query> {
     // extract tables and the pipeline
     let tables = into_tables(query.nodes)?;
 
+    let mut context = MaterializationContext::from(context);
+
     // split to atomics
-    let atomics = atomic_tables_of_tables(tables)?;
+    let atomics = atomic_tables_of_tables(tables, &mut context)?;
 
     // materialize each atomic in two stages
     let mut materialized = Vec::new();
     for t in atomics {
-        let last_node = t.pipeline.functions.last().unwrap();
-        let frame = last_node.frame.clone().unwrap();
+        let table_id = t.name.clone().and_then(|x| x.declared_at);
 
-        let rename_to = if t.name.is_empty() {
-            None
-        } else {
-            Some(t.name.as_str())
-        };
-
-        let (pipeline, frame, c) = super::materialize(t.pipeline, frame, context, rename_to)?;
+        let (pipeline, frame, c) = super::materialize(t.pipeline, context, table_id)?;
         context = c;
 
         materialized.push(AtomicTable {
@@ -68,6 +64,8 @@ pub fn translate_query(query: Query, mut context: Context) -> Result<sql_ast::Qu
             pipeline,
         });
     }
+
+    eprintln!("{context:?}");
 
     // take last table
     if materialized.is_empty() {
@@ -97,7 +95,7 @@ pub fn translate_query(query: Query, mut context: Context) -> Result<sql_ast::Qu
 }
 
 pub struct AtomicTable {
-    name: String,
+    name: Option<TableRef>,
     pipeline: Pipeline,
     frame: Option<MaterializedFrame>,
 }
@@ -118,7 +116,7 @@ fn into_tables(nodes: Vec<Node>) -> Result<Vec<Table>> {
 
 fn table_to_sql_cte(table: AtomicTable, dialect: &Dialect) -> Result<sql_ast::Cte> {
     let alias = sql_ast::TableAlias {
-        name: Item::Ident(table.name.clone()).try_into()?,
+        name: Item::Ident(table.name.clone().unwrap().name).try_into()?,
         columns: vec![],
     };
     Ok(sql_ast::Cte {
@@ -361,12 +359,15 @@ fn atomic_pipelines_of_pipeline(pipeline: Pipeline) -> Result<Vec<AtomicTable>> 
 
 /// Converts a series of tables into a series of atomic tables, by putting the
 /// next pipeline's `from` as the current pipelines's table name.
-fn atomic_tables_of_tables(tables: Vec<Table>) -> Result<Vec<AtomicTable>> {
+fn atomic_tables_of_tables(
+    tables: Vec<Table>,
+    context: &mut MaterializationContext,
+) -> Result<Vec<AtomicTable>> {
     let mut atomics = Vec::new();
     let mut index = 0;
-    for t in tables {
+    for table in tables {
         // split table into atomics
-        let pipeline = t.pipeline.item.into_pipeline()?;
+        let pipeline = table.pipeline.item.into_pipeline()?;
         let mut t_atomics: Vec<_> = atomic_pipelines_of_pipeline(pipeline)?;
 
         let (last, ctes) = t_atomics
@@ -376,28 +377,37 @@ fn atomic_tables_of_tables(tables: Vec<Table>) -> Result<Vec<AtomicTable>> {
         // generate table names for all but last table
         let mut last_name = None;
         for cte in ctes {
-            prepend_with_from(&mut cte.pipeline, &last_name);
+            prepend_with_from(&mut cte.pipeline, last_name);
 
-            cte.name = format!("table_{index}");
+            let name = format!("table_{index}");
+            let id = context.declare_table(&name);
+
+            cte.name = Some(TableRef {
+                name,
+                alias: None,
+                declared_at: Some(id),
+            });
             index += 1;
-            last_name = Some(cte.name.clone());
+
+            last_name = cte.name.clone();
         }
 
         // use original table name
-        prepend_with_from(&mut last.pipeline, &last_name);
-        last.name = t.name;
+        prepend_with_from(&mut last.pipeline, last_name);
+        last.name = Some(TableRef {
+            name: table.name,
+            alias: None,
+            declared_at: table.id,
+        });
 
         atomics.extend(t_atomics);
     }
     Ok(atomics)
 }
 
-fn prepend_with_from(pipeline: &mut Pipeline, last_name: &Option<String>) {
-    if let Some(last_name) = last_name {
-        let from = Transform::From(TableRef {
-            name: last_name.clone(),
-            alias: None,
-        });
+fn prepend_with_from(pipeline: &mut Pipeline, table: Option<TableRef>) {
+    if let Some(table) = table {
+        let from = Transform::From(table);
         pipeline.functions.insert(0, Item::Transform(from).into());
     }
 }
@@ -559,6 +569,7 @@ impl TryFrom<Item> for sql_ast::Ident {
 impl From<Vec<Node>> for Table {
     fn from(functions: Vec<Node>) -> Self {
         Table {
+            id: None,
             name: String::default(),
             pipeline: Box::new(Item::Pipeline(functions.into()).into()),
         }
@@ -567,7 +578,7 @@ impl From<Vec<Node>> for Table {
 impl From<Vec<Node>> for AtomicTable {
     fn from(functions: Vec<Node>) -> Self {
         AtomicTable {
-            name: String::default(),
+            name: None,
             pipeline: functions.into(),
             frame: None,
         }
@@ -871,7 +882,7 @@ take 20
         from newest_employees
         join average_salaries [country]
         select [name, salary, average_country_salary]
-    "#,
+        "#,
         )?;
         let sql = resolve_and_translate(query)?;
         assert_display_snapshot!(sql,
@@ -896,7 +907,7 @@ take 20
         )
         SELECT
           name,
-          salary,
+          average_salaries.salary,
           average_salaries.average_country_salary
         FROM
           newest_employees
