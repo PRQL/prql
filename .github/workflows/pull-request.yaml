@@ -16,8 +16,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # FIXME
   test-all:
+    runs-on: ubuntu-latest
     steps:
       - name: test-all
         uses: ./.github/workflows/test-all.yaml
