@@ -74,10 +74,6 @@ jobs:
 
   # Run Mac & Windows & other tests on `main` or a `ci-run-all-tests` label.
   test-all:
-    runs-on: ubuntu-latest
-    steps:
-      - name: 📂 Checkout code
-        uses: actions/checkout@v2
-      - name: test-all
-        uses: ./.github/workflows/test-all.yaml
-        if: contains(github.event.pull_request.labels.*.name, 'ci-run-all-tests')
+    - name: test-all
+      uses: ./.github/workflows/test-all.yaml
+      if: contains(github.event.pull_request.labels.*.name, 'ci-run-all-tests')
