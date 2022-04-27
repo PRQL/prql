@@ -78,5 +78,7 @@ jobs:
   python:
     runs-on: ubuntu-latest
     steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v2
       - name: Python
         uses: ./.github/workflows/python.yaml
