@@ -7,9 +7,12 @@ on:
         required: true
         type: string
         default: ubuntu-latest
+      target:
+        type: string
+        # default:
 
 jobs:
-  test_and_lint:
+  test_and_lint_2:
     runs-on: ${{ inputs.os }}
     steps:
       - name: 📂 Checkout code
@@ -20,23 +23,20 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: build
-      - name: 📎 Clippy (standard)
+      - name: 📎 Clippy
         uses: actions-rs/cargo@v1
         with:
           command: clippy
           args: --all-targets --workspace -- -D warnings
       # Note that `--all-targets` doesn't refer to targets like `wasm32-unknown-unknown`. So we need another step here.
       - name: 🔗 Setup rust wasm toolchain
+        if: ${{ inputs.target }}
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
           target: wasm32-unknown-unknown
           toolchain: stable
-      - name: 📎 Clippy (wasm)
-        uses: actions-rs/cargo@v1
-        with:
-          command: clippy
-          args: --all-targets --target=wasm32-unknown-unknown -- -D warnings
+          override: true
       - name: ⌨️ Fmt
         uses: actions-rs/cargo@v1
         with:

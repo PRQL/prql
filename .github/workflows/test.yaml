@@ -25,6 +25,12 @@ jobs:
     uses: ./.github/workflows/test-cargo.yaml
     with:
       os: ubuntu-latest
+      # Testing
+  test-linux-wasm:
+    uses: ./.github/workflows/test-cargo.yaml
+    with:
+      os: ubuntu-latest
+      target: wasm32-unknown-unknown
   test-mac:
     uses: ./.github/workflows/test-cargo.yaml
     with:
