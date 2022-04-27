@@ -1,0 +1,33 @@
+# All tests — both those that run on every PR and those that run on merges only.
+
+# See https://github.com/prql/prql/issues/37 for some TODOs
+
+name: test
+
+on:
+  pull_request:
+    # Add `labeled`, so we can trigger a full run by adding a `run-full-tests` label.
+    types: [opened, reopened, synchronize, labeled]
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-all:
+    uses: ./.github/workflows/test-all.yaml
+    if: contains(github.event.pull_request.labels.*.name, 'ci-run-all-tests')
+
+  # Only run ubuntu on pull-requests, since it's fastest. Run Mac & Windows only
+  # on `main` or a `run-full-tests` label.
+  test:
+    strategy:
+      matrix:
+        target: ["", "wasm32-unknown-unknown"]
+        os: [ubuntu-latest]
+    uses: ./.github/workflows/test-cargo.yaml
+    with:
+      os: ${{ matrix.os }}
+      target: ${{ matrix.target }}
