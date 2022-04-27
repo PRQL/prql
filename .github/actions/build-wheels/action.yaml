@@ -1,4 +1,4 @@
-name: build
+name: build-wheel
 description: "Use maturin to build python dists of prql-python. Conditional if checks ensure only the correct OX build is called."
 
 inputs:
