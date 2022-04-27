@@ -17,7 +17,7 @@ jobs:
   # Three identical jobs apart from the OS. Ideally we'd be able to parameterize
   # these, but:
   # - We want to call to be able to call this workflow from `pull-request`, so
-  #   we can't call another workflow from here, given there's a max depth of 1.
+  #   we can't call another workflow from here, given there's a max depth of 2.
   # - We can't seem to specify the OS of an action.
   # If we can compress this into something parameterized, that would be great.
   test-linux:
@@ -75,7 +75,9 @@ jobs:
         with:
           name: code-coverage-report
           path: cobertura.xml
-  # TODO: re-enable
+  # TODO: if the workflow depth was > two, then this would let us run the python
+  # workflow with a label.
+  #
   # python:
-  #   - name: Python
-  #     uses: ./.github/workflows/python.yaml
+  #   name: Python
+  #   uses: ./.github/workflows/python.yaml
