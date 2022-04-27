@@ -20,14 +20,12 @@ jobs:
     strategy:
       matrix:
         target: ["", "wasm32-unknown-unknown"]
-        os: [ubuntu-latest]
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v2
       - name: 📋 Test workspace
         uses: ./.github/actions/cargo-test
         with:
-          os: ${{ matrix.os }}
           target: ${{ matrix.target }}
 
   test-book:

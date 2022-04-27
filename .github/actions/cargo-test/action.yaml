@@ -2,10 +2,6 @@ name: cargo-test
 description: Runs cargo test & cargo lint for a given platform & target.
 
 inputs:
-  os:
-    required: true
-    type: string
-    default: ubuntu-latest
   target:
     type: string
 

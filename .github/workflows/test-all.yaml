@@ -17,7 +17,7 @@ jobs:
   # Three identical jobs apart from the OS. Ideally we'd be able to parameterize
   # these, but:
   # - We want to call to be able to call this workflow from `pull-request`, so
-  #   we can't call another workflow from here.
+  #   we can't call another workflow from here, given there's a max depth of 1.
   # - We can't seem to specify the OS of an action.
   # If we can compress this into something parameterized, that would be great.
   test-linux:
