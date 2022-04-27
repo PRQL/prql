@@ -1,4 +1,5 @@
-# Runs cargo test & cargo lint for a given platform.
+name: cargo-test
+description: Runs cargo test & cargo lint for a given platform & target.
 
 # on:
 #   workflow_call:
