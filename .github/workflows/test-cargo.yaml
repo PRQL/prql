@@ -20,17 +20,6 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: build
-      - name: 📋 Test
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-  lint:
-    runs-on: ${{ inputs.os }}
-    steps:
-      - name: 📂 Checkout code
-        uses: actions/checkout@v2
-      - name: 💰 Cache
-        uses: Swatinem/rust-cache@v1
       - name: 📎 Clippy (standard)
         uses: actions-rs/cargo@v1
         with:
@@ -53,3 +42,7 @@ jobs:
         with:
           command: fmt
           args: --all --check
+      - name: 📋 Test
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
