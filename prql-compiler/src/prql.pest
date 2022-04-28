@@ -19,7 +19,7 @@ func_def = { "func" ~ func_def_flags ~ ident ~ func_def_params ~ "=" ~ expr }
 
 // TODO: consider some syntax for these func "type" args; currently they're only
 // differentiated from params by their position
-func_def_flags = @{ ("transform" | "aggregation" | "window" | "")? }
+func_def_flags = @{ ("transform" | "aggregation" | "window" | "native" | "")? }
 func_def_params = { ( named_term | ident )* }
 table = { "table" ~ ident ~ "=" ~ nested_pipeline }
 

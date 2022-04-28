@@ -44,10 +44,13 @@ pub struct Table {
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize, strum::AsRefStr)]
 pub enum Transform {
     From(TableRef),
-    Select(Select),
+    Select(Vec<Node>),
     Filter(Vec<Node>),
-    Derive(Select),
-    Aggregate(Select),
+    Derive(Vec<Node>),
+    Aggregate {
+        assigns: Vec<Node>,
+        by: Vec<Node>,
+    },
     Sort(Vec<ColumnSort<Node>>),
     Take(i64),
     Join {

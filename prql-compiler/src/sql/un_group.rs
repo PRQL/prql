@@ -21,7 +21,13 @@ impl AstFold for UnGrouper {
 
                     let pipeline = self.fold_nodes(pipeline.functions)?;
 
-                    res.extend(pipeline);
+                    res.extend(pipeline.into_iter().filter(|x| {
+                        // remove all sorts
+                        x.item
+                            .as_transform()
+                            .map(|t| !matches!(t, Transform::Sort(_)))
+                            .unwrap_or(true)
+                    }));
                 }
                 _ => {
                     res.push(self.fold_node(node)?);

@@ -14,7 +14,7 @@ use sqlformat::{format, FormatOptions, QueryParams};
 use sqlparser::ast::{
     self as sql_ast, Expr, Function, FunctionArg, FunctionArgExpr, Join, JoinConstraint,
     JoinOperator, ObjectName, OrderByExpr, Select, SelectItem, SetExpr, TableAlias, TableFactor,
-    TableWithJoins, Top,
+    TableWithJoins, Top, WindowSpec,
 };
 use sqlparser::ast::{DateTimeField, Value};
 use std::collections::HashMap;
@@ -242,34 +242,19 @@ fn sql_query_of_atomic_table(table: AtomicTable, dialect: &Dialect) -> Result<sq
         .min()
         .map(expr_of_i64);
 
-    // If there is sort transform in the pipeline
-    let sort = transforms.iter().any(|t| matches!(t, Transform::Sort(_)));
-    let order_by = if sort {
-        // Use sorting from the frame
-        (frame.sort.iter())
-            .map(|sort| OrderByExpr {
-                expr: Item::Ident(sort.column.clone()).try_into().unwrap(),
-                asc: if matches!(sort.direction, SortDirection::Asc) {
-                    None // default order is ASC, so there is no need to emit it
-                } else {
-                    Some(false)
-                },
-                nulls_first: None,
-            })
-            .collect()
-    } else {
-        vec![]
-    };
+    // Use sorting from the frame
+    let order_by = (frame.sort)
+        .into_iter()
+        .map(OrderByExpr::try_from)
+        .try_collect()?;
 
     let aggregate = transforms.get(aggregate_position);
 
     let group_bys: Vec<Node> = match aggregate {
-        Some(Transform::Aggregate(select)) => select.group.clone(),
+        Some(Transform::Aggregate { by, .. }) => by.clone(),
         None => vec![],
         _ => unreachable!("Expected an aggregate transformation"),
     };
-    let group_by = Item::List(group_bys).try_into()?;
-
     let dialect = dialect.handler();
 
     Ok(sql_ast::Query {
@@ -287,7 +272,7 @@ fn sql_query_of_atomic_table(table: AtomicTable, dialect: &Dialect) -> Result<sq
             from,
             lateral_views: vec![],
             selection: where_,
-            group_by,
+            group_by: try_into_exprs(group_bys)?,
             cluster_by: vec![],
             distribute_by: vec![],
             sort_by: vec![],
@@ -422,22 +407,6 @@ fn combine_filters(filters: Vec<Vec<Node>>) -> Vec<Node> {
         .collect()
 }
 
-impl TryFrom<Item> for SelectItem {
-    type Error = anyhow::Error;
-    fn try_from(item: Item) -> Result<Self> {
-        Ok(match item {
-            Item::Expr(_) | Item::SString(_) | Item::FString(_) | Item::Ident(_) | Item::Raw(_) => {
-                SelectItem::UnnamedExpr(Expr::try_from(item)?)
-            }
-            Item::NamedExpr(named) => SelectItem::ExprWithAlias {
-                alias: sql_ast::Ident::new(named.name),
-                expr: named.expr.item.try_into()?,
-            },
-            _ => bail!("Can't convert to SelectItem; {:?}", item),
-        })
-    }
-}
-
 fn expr_of_i64(number: i64) -> Expr {
     Expr::Value(Value::Number(
         number.to_string(),
@@ -452,7 +421,32 @@ fn top_of_expr(take: Expr) -> Top {
         percent: false,
     }
 }
+fn try_into_exprs(nodes: Vec<Node>) -> Result<Vec<Expr>> {
+    nodes
+        .into_iter()
+        .map(|x| x.item)
+        .map(Expr::try_from)
+        .try_collect()
+}
 
+impl TryFrom<Item> for SelectItem {
+    type Error = anyhow::Error;
+    fn try_from(item: Item) -> Result<Self> {
+        Ok(match item {
+            Item::Expr(_)
+            | Item::SString(_)
+            | Item::FString(_)
+            | Item::Ident(_)
+            | Item::Raw(_)
+            | Item::Windowed(_) => SelectItem::UnnamedExpr(Expr::try_from(item)?),
+            Item::NamedExpr(named) => SelectItem::ExprWithAlias {
+                alias: sql_ast::Ident::new(named.name),
+                expr: named.expr.item.try_into()?,
+            },
+            _ => bail!("Can't convert to SelectItem; {:?}", item),
+        })
+    }
+}
 impl TryFrom<Item> for Expr {
     type Error = anyhow::Error;
     fn try_from(item: Item) -> Result<Self> {
@@ -468,7 +462,7 @@ impl TryFrom<Item> for Expr {
                 Expr::Identifier(sql_ast::Ident::new(
                     items
                         .into_iter()
-                        .map(|node| TryInto::<Expr>::try_into(node.item))
+                        .map(|node| Expr::try_from(node.item))
                         .collect::<Result<Vec<Expr>>>()?
                         .iter()
                         .map(|x| x.to_string())
@@ -499,7 +493,7 @@ impl TryFrom<Item> for Expr {
                     .map(|s_string_item| match s_string_item {
                         InterpolateItem::String(string) => Ok(string),
                         InterpolateItem::Expr(node) => {
-                            TryInto::<Expr>::try_into(node.item).map(|expr| expr.to_string())
+                            Expr::try_from(node.item).map(|expr| expr.to_string())
                         }
                     })
                     .collect::<Result<Vec<String>>>()?
@@ -513,7 +507,7 @@ impl TryFrom<Item> for Expr {
                         InterpolateItem::String(string) => {
                             Ok(Expr::Value(sql_ast::Value::SingleQuotedString(string)))
                         }
-                        InterpolateItem::Expr(node) => TryInto::<Expr>::try_into(node.item),
+                        InterpolateItem::Expr(node) => Expr::try_from(node.item),
                     })
                     .map(|r| r.map(|e| FunctionArg::Unnamed(FunctionArgExpr::Expr(e))))
                     .collect::<Result<Vec<_>>>()?;
@@ -543,17 +537,55 @@ impl TryFrom<Item> for Expr {
                     fractional_seconds_precision: None,
                 })
             }
+            Item::Windowed(window) => {
+                let expr = Expr::try_from(window.expr.item)?;
+                let window = WindowSpec {
+                    partition_by: try_into_exprs(window.group)?,
+                    order_by: (window.sort)
+                        .into_iter()
+                        .map(OrderByExpr::try_from)
+                        .try_collect()?,
+                    window_frame: None,
+                };
+
+                Item::Ident(format!("{expr} OVER ({window})")).try_into()?
+            }
             _ => bail!("Can't convert to Expr; {item:?}"),
         })
     }
 }
-impl TryFrom<Item> for Vec<Expr> {
+impl TryFrom<FuncCall> for Function {
+    // I had an idea to for stdlib functions to have "native" keyword, which would prevent them from being
+    // resolved and materialized and would be passed to here. But that has little advantage over current approach.
+    // After some time when we know that current approach is good, this impl can be removed.
     type Error = anyhow::Error;
-    fn try_from(item: Item) -> Result<Self> {
-        match item {
-            Item::List(nodes) => Ok(nodes.into_iter().map(|x| x.item.try_into()).try_collect()?),
-            _ => Err(anyhow!("Can't convert to Vec<Expr>; {item:?}")),
-        }
+    fn try_from(func_call: FuncCall) -> Result<Self> {
+        let FuncCall { name, args, .. } = func_call;
+
+        Ok(Function {
+            name: ObjectName(vec![sql_ast::Ident::new(name)]),
+            args: args
+                .into_iter()
+                .map(|a| Expr::try_from(a.item))
+                .map(|e| e.map(|a| FunctionArg::Unnamed(FunctionArgExpr::Expr(a))))
+                .collect::<Result<Vec<_>>>()?,
+            over: None,
+            distinct: false,
+        })
+    }
+}
+impl TryFrom<ColumnSort> for OrderByExpr {
+    type Error = anyhow::Error;
+    fn try_from(sort: ColumnSort) -> Result<Self> {
+        Ok(OrderByExpr {
+            expr: sort.column.item.try_into()?,
+            asc: if matches!(sort.direction, SortDirection::Asc) {
+                None // default order is ASC, so there is no need to emit it
+            } else {
+                Some(false)
+            },
+            nulls_first: None,
+        })
     }
 }
 impl TryFrom<Item> for sql_ast::Ident {
@@ -652,11 +684,11 @@ SString:
 
     #[test]
     fn test_try_from_list_to_vec_expr() -> Result<()> {
-        let item = Item::List(vec![
+        let items = vec![
             Item::Ident("a".to_owned()).into(),
             Item::Ident("b".to_owned()).into(),
-        ]);
-        let expr: Vec<Expr> = item.try_into()?;
+        ];
+        let expr: Vec<Expr> = try_into_exprs(items)?;
         assert_debug_snapshot!(expr, @r###"
         [
             Identifier(
@@ -1215,6 +1247,150 @@ take 20
           start + INTERVAL '10' DAY AS first_check_in
         FROM
           projects
+        "###);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_window_functions() -> Result<()> {
+        let query: Query = parse(
+            r###"
+        from employees
+        group last_name (
+            derive count
+        )
+        "###,
+        )?;
+
+        assert_display_snapshot!((resolve_and_translate(query)?), @r###"
+        SELECT
+          employees.*,
+          COUNT(*) OVER (PARTITION BY last_name) AS count
+        FROM
+          employees
+        "###);
+
+        let query: Query = parse(
+            r###"
+        from co:cust_order
+        join ol:order_line [order_id]
+        derive [
+          order_month: s"TO_CHAR({co.order_date}, '%Y-%m')",
+          order_day: s"TO_CHAR({co.order_date}, '%Y-%m-%d')",
+        ]
+        group [order_month, order_day] (
+          aggregate [
+            num_orders: s"COUNT(DISTINCT {co.order_id})",
+            num_books: count ol.book_id,
+            total_price: sum ol.price,
+          ]
+        )
+        sort order_day # order:asc
+        group [order_month] (
+          derive [running_total_num_books: sum num_books]
+        )
+        derive [num_books_last_week: lag 7 num_books]
+        "###,
+        )?;
+
+        assert_display_snapshot!((resolve_and_translate(query)?), @r###"
+        SELECT
+          TO_CHAR(co.order_date, '%Y-%m') AS order_month,
+          TO_CHAR(co.order_date, '%Y-%m-%d') AS order_day,
+          COUNT(DISTINCT co.order_id) AS num_orders,
+          COUNT(ol.book_id) AS num_books,
+          SUM(ol.price) AS total_price,
+          SUM(COUNT(ol.book_id)) OVER (
+            PARTITION BY TO_CHAR(co.order_date, '%Y-%m')
+            ORDER BY
+              TO_CHAR(co.order_date, '%Y-%m-%d')
+          ) AS running_total_num_books,
+          LAG(COUNT(ol.book_id), 7) OVER (
+            ORDER BY
+              TO_CHAR(co.order_date, '%Y-%m-%d')
+          ) AS num_books_last_week
+        FROM
+          cust_order AS co
+          JOIN order_line AS ol USING(order_id)
+        GROUP BY
+          TO_CHAR(co.order_date, '%Y-%m'),
+          TO_CHAR(co.order_date, '%Y-%m-%d')
+        ORDER BY
+          order_day
+        "###);
+
+        // lag must be recognized as window function, even outside of group context
+        // rank must not have two OVER clauses
+        let query: Query = parse(
+            r###"
+        from daily_orders
+        derive [last_week: lag 7 num_orders]
+        group month ( | derive [total_month: sum num_orders])
+        "###,
+        )?;
+
+        assert_display_snapshot!((resolve_and_translate(query)?), @r###"
+        SELECT
+          daily_orders.*,
+          LAG(num_orders, 7) OVER () AS last_week,
+          SUM(num_orders) OVER (PARTITION BY month) AS total_month
+        FROM
+          daily_orders
+        "###);
+
+        // sort affects into groups
+        let query: Query = parse(
+            r###"
+        from daily_orders
+        sort day
+        group month ( | derive [total_month: rank])
+        derive [last_week: lag 7 num_orders]
+        "###,
+        )?;
+        assert_display_snapshot!((resolve_and_translate(query)?), @r###"
+        SELECT
+          daily_orders.*,
+          RANK() OVER (
+            PARTITION BY month
+            ORDER BY
+              day
+          ) AS total_month,
+          LAG(num_orders, 7) OVER (
+            ORDER BY
+              day
+          ) AS last_week
+        FROM
+          daily_orders
+        ORDER BY
+          day
+        "###);
+
+        // sort does not leak out of groups
+        let query: Query = parse(
+            r###"
+        from daily_orders
+        sort day
+        group month ( | sort num_orders |  derive [rank])
+        derive [num_orders_last_week: lag 7 num_orders]
+        "###,
+        )?;
+        assert_display_snapshot!((resolve_and_translate(query)?), @r###"
+        SELECT
+          daily_orders.*,
+          RANK() OVER (
+            PARTITION BY month
+            ORDER BY
+              num_orders
+          ) AS rank,
+          LAG(num_orders, 7) OVER (
+            ORDER BY
+              day
+          ) AS num_orders_last_week
+        FROM
+          daily_orders
+        ORDER BY
+          day
         "###);
 
         Ok(())
