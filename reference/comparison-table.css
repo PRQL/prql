@@ -2,12 +2,14 @@
 
 .comparison {
     display: flex;
+    flex-wrap: wrap;
     gap: 2rem;
     width: 100%;
-    padding-bottom: 4rem;
+    padding-bottom: 3rem;
 }
 @media (min-width: 1400px)  {
     .comparison {
+        flex-wrap: nowrap;
         justify-content: center;
     }
 }
@@ -15,6 +17,7 @@
     flex: 1 0 0;
     display: flex;
     flex-direction: column;
+    padding-bottom: 1rem;
 }
 .comparison h4 {
     margin: 0;
@@ -26,10 +29,4 @@
 .comparison code {
     padding: 2rem;
     min-height: calc(100% - 4rem);
-}
-
-
-/* Required to give enough space for the tables, up from 750px */
-.content main {
-    max-width: 900px;
 }

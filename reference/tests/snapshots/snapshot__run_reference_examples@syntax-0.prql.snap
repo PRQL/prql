@@ -4,6 +4,9 @@ expression: sql
 input_file: reference/tests/examples/syntax-0.prql
 ---
 SELECT
-  tbl.*
+  col1,
+  col2
 FROM
   tbl
+WHERE
+  col1 = col2
