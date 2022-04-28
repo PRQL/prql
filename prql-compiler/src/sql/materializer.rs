@@ -31,8 +31,6 @@ pub fn materialize(
     // materialize each of the columns
     let columns = m.anchor_columns(frame.columns, as_table)?;
 
-    dbg!(&m.context);
-
     let sort = m.materialize_sort(frame.sort)?;
 
     // rename tables for future pipelines
@@ -155,7 +153,6 @@ impl Materializer {
             .collect::<Result<Vec<_>>>()?;
 
         for (id, decl) in to_replace {
-            eprintln!("replacing {id} with {decl}");
             self.context.replace_declaration(id, decl);
         }
 
@@ -172,7 +169,6 @@ impl Materializer {
     /// Folds the column and returns expression that can be used in select.
     /// Also returns column id and name if declaration should be replaced.
     fn materialize_sort(&mut self, sort: Vec<ColumnSort<usize>>) -> Result<Vec<ColumnSort>> {
-        eprintln!("sort: {sort:?}");
         sort.into_iter()
             .map(|s| {
                 Ok(ColumnSort {
@@ -218,11 +214,9 @@ impl Materializer {
         Ok(materialized)
     }
 
-    fn materialize_func_call(&mut self, node: &Node) -> Result<Node> {
-        let func_call = node.item.as_func_call().unwrap();
-
+    fn materialize_func_call(&mut self, func_call: &FuncCall, decl: Option<usize>) -> Result<Node> {
         // locate declaration
-        let func_dec = node.declared_at.ok_or_else(|| anyhow!("unresolved"))?;
+        let func_dec = decl.ok_or_else(|| anyhow!("unresolved"))?;
         let func_dec = &self.context.declarations[func_dec];
         let func_dec = func_dec.as_function().unwrap().clone();
 
@@ -275,13 +269,9 @@ impl AstFold for Materializer {
 
         Ok(match node.item {
             Item::FuncCall(func_call) => {
-                let func_call = Item::FuncCall(self.fold_func_call(func_call)?);
-                let func_call = Node {
-                    item: func_call,
-                    ..node
-                };
+                let func_call = self.fold_func_call(func_call)?;
 
-                self.materialize_func_call(&func_call)?
+                self.materialize_func_call(&func_call, node.declared_at)?
             }
 
             Item::Pipeline(p) => {
@@ -290,13 +280,23 @@ impl AstFold for Materializer {
 
                     let mut value = self.fold_node(*value)?;
 
-                    for mut func_call in p.functions {
-                        // The value from the previous pipeline becomes the final arg.
-                        if let Some(call) = func_call.item.as_func_call_mut() {
-                            call.args.push(value);
-                        }
+                    for function in p.functions {
+                        let (function, window) = if let Item::Windowed(w) = function.item {
+                            (*w.expr.clone(), Some(w))
+                        } else {
+                            (function, None)
+                        };
 
-                        value = self.materialize_func_call(&func_call)?;
+                        let mut func_call = (function.item.into_func_call())
+                            .map_err(|f| anyhow!("expected FuncCall, got {f:?}"))?;
+
+                        func_call.args.push(value);
+                        value = self.materialize_func_call(&func_call, function.declared_at)?;
+
+                        if let Some(mut w) = window {
+                            w.expr = Box::new(value);
+                            value = Item::Windowed(w).into();
+                        }
                     }
                     value
                 } else {
