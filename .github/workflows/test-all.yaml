@@ -14,45 +14,19 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Three identical jobs apart from the OS. Ideally we'd be able to parameterize
-  # these, but:
-  # - We want to call to be able to call this workflow from `pull-request`, so
-  #   we can't call another workflow from here, given there's a max depth of 2.
-  # - We can't seem to specify the OS of an action.
-  # If we can compress this into something parameterized, that would be great.
-  test-linux:
-    runs-on: ubuntu-latest
+  test:
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         target: ["", "wasm32-unknown-unknown"]
+        os: [windows-latest, macos-latest, ubuntu-latest]
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v2
       - uses: ./.github/actions/cargo-test
         with:
           target: ${{ matrix.target }}
-  test-windows:
-    runs-on: windows-latest
-    strategy:
-      matrix:
-        target: ["", "wasm32-unknown-unknown"]
-    steps:
-      - name: 📂 Checkout code
-        uses: actions/checkout@v2
-      - uses: ./.github/actions/cargo-test
-        with:
-          target: ${{ matrix.target }}
-  test-mac:
-    runs-on: macos-latest
-    strategy:
-      matrix:
-        target: ["", "wasm32-unknown-unknown"]
-    steps:
-      - name: 📂 Checkout code
-        uses: actions/checkout@v2
-      - uses: ./.github/actions/cargo-test
-        with:
-          target: ${{ matrix.target }}
+
   code-cov:
     runs-on: ubuntu-latest
     # Currently this runs `cargo clean` which makes the run taking 4 min. TODO:
