@@ -115,6 +115,11 @@ pub fn fold_item<T: ?Sized + AstFold>(fold: &mut T, item: Item) -> Result<Item> 
         // None of these capture variables, so we don't need to replace
         // them.
         Item::String(_) | Item::Raw(_) | Item::Interval(_) => item,
+        Item::Windowed(window) => Item::Windowed(Windowed {
+            expr: Box::new(fold.fold_node(*window.expr)?),
+            group: fold.fold_nodes(window.group)?,
+            sort: fold.fold_column_sorts(window.sort)?,
+        }),
     })
 }
 
@@ -162,9 +167,12 @@ pub fn fold_transform<T: ?Sized + AstFold>(
     match transformation {
         Transform::From(table) => Ok(Transform::From(fold.fold_table_ref(table)?)),
 
-        Transform::Derive(select) => Ok(Transform::Derive(fold.fold_select(select)?)),
-        Transform::Select(select) => Ok(Transform::Select(fold.fold_select(select)?)),
-        Transform::Aggregate(select) => Ok(Transform::Aggregate(fold.fold_select(select)?)),
+        Transform::Derive(assigns) => Ok(Transform::Derive(fold.fold_nodes(assigns)?)),
+        Transform::Select(assigns) => Ok(Transform::Select(fold.fold_nodes(assigns)?)),
+        Transform::Aggregate { assigns, by } => Ok(Transform::Aggregate {
+            assigns: fold.fold_nodes(assigns)?,
+            by: fold.fold_nodes(by)?,
+        }),
 
         Transform::Filter(items) => Ok(Transform::Filter(fold.fold_nodes(items)?)),
         Transform::Sort(items) => Ok(Transform::Sort(fold.fold_column_sorts(items)?)),

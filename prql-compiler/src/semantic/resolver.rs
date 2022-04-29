@@ -1,12 +1,13 @@
 use std::collections::HashSet;
 
-use anyhow::Result;
+use anyhow::{bail, Result};
 use itertools::Itertools;
 
 use crate::ast::ast_fold::*;
 use crate::error::{Error, Reason, WithErrorInfo};
 use crate::{ast::*, Declaration};
 
+use super::frame::extract_sorts;
 use super::transforms;
 use super::Context;
 
@@ -33,6 +34,8 @@ pub struct Resolver {
     within_curry: bool,
 
     within_group: Vec<usize>,
+
+    sorted: Vec<ColumnSort<usize>>,
 }
 impl Resolver {
     fn new(context: Context) -> Self {
@@ -40,6 +43,7 @@ impl Resolver {
             context,
             within_curry: false,
             within_group: vec![],
+            sorted: vec![],
         }
     }
 }
@@ -103,12 +107,21 @@ impl AstFold for Resolver {
                     .with_span(node.span)?;
 
                 // fold (and cast if this is a transform)
-                if let Some(FuncKind::Transform) = func_def.kind {
-                    let transform = transforms::cast_transform(func_call, node.span)?;
+                match func_def.kind {
+                    Some(FuncKind::Transform) => {
+                        let transform = transforms::cast_transform(func_call, node.span)?;
 
-                    Item::Transform(self.fold_transform(transform)?)
-                } else {
-                    Item::FuncCall(self.fold_func_call(func_call)?)
+                        Item::Transform(self.fold_transform(transform)?)
+                    }
+                    Some(FuncKind::Window) => {
+                        // wrap into Windowed
+                        let mut expr: Node = Item::FuncCall(self.fold_func_call(func_call)?).into();
+                        expr.declared_at = node.declared_at;
+                        node.declared_at = None;
+
+                        Item::Windowed(Windowed::new(expr))
+                    }
+                    _ => Item::FuncCall(self.fold_func_call(func_call)?),
                 }
             }
 
@@ -129,8 +142,10 @@ impl AstFold for Resolver {
     }
 
     fn fold_transform(&mut self, t: Transform) -> Result<Transform> {
-        let t = match t {
+        let mut t = match t {
             Transform::From(mut t) => {
+                self.sorted.clear();
+
                 self.context.scope.clear();
 
                 self.context.declare_table(&mut t);
@@ -138,34 +153,35 @@ impl AstFold for Resolver {
                 Transform::From(t)
             }
 
-            Transform::Select(mut select) => {
-                select.assigns = self.fold_assigns(select.assigns)?;
+            Transform::Select(assigns) => {
+                let assigns = self.fold_assigns(assigns)?;
                 self.context.scope.clear();
 
-                self.apply_context(&mut select)?;
-                Transform::Select(select)
+                Transform::Select(assigns)
             }
-            Transform::Derive(mut select) => {
-                select.assigns = self.fold_assigns(select.assigns)?;
+            Transform::Derive(assigns) => {
+                let assigns = self.fold_assigns(assigns)?;
 
-                self.apply_context(&mut select)?;
-                Transform::Derive(select)
+                Transform::Derive(assigns)
             }
             Transform::Group { by, pipeline } => {
                 let by = self.fold_nodes(by)?;
 
                 self.within_group = by.iter().filter_map(|n| n.declared_at).collect();
+                let sorted = self.sorted.clone();
+
                 let pipeline = Box::new(self.fold_node(*pipeline)?);
+
                 self.within_group = vec![];
+                self.sorted = sorted;
 
                 Transform::Group { by, pipeline }
             }
-            Transform::Aggregate(mut select) => {
-                select.assigns = self.fold_assigns(select.assigns)?;
+            Transform::Aggregate { assigns, by } => {
+                let assigns = self.fold_assigns(assigns)?;
                 self.context.scope.clear();
 
-                self.apply_context(&mut select)?;
-                Transform::Aggregate(select)
+                Transform::Aggregate { assigns, by }
             }
             Transform::Join {
                 side,
@@ -180,12 +196,22 @@ impl AstFold for Resolver {
                     filter: self.fold_join_filter(filter)?,
                 }
             }
+            Transform::Sort(sorts) => {
+                let sorts = self.fold_column_sorts(sorts)?;
+
+                self.sorted = extract_sorts(&sorts)?;
+
+                Transform::Sort(sorts)
+            }
             t => fold_transform(self, t)?,
         };
 
-        // if !self.within_group {
-        //     self.context.frame.apply_transform(&t)?;
-        // }
+        if !self.within_group.is_empty() {
+            self.apply_group(&mut t)?;
+        }
+        if !self.sorted.is_empty() {
+            self.apply_sort(&mut t)?;
+        }
 
         Ok(t)
     }
@@ -282,15 +308,78 @@ impl Resolver {
         })
     }
 
-    fn apply_context(&self, select: &mut Select) -> Result<()> {
-        select.group = (self.within_group)
+    fn apply_group(&mut self, t: &mut Transform) -> Result<()> {
+        const REF: &str = "<ref>";
+
+        let group_by: Vec<_> = (self.within_group)
             .iter()
-            .map(|id| {
-                let mut node: Node = Item::Ident("<un-materialized>".to_string()).into();
-                node.declared_at = Some(*id);
-                node
-            })
+            .map(|id| Node::new_ident(REF, *id))
             .collect();
+
+        match t {
+            Transform::Select(assigns) | Transform::Derive(assigns) => {
+                for assign in assigns {
+                    let id = assign.declared_at.unwrap();
+
+                    // try to update existing Windowed
+                    let decl = self.context.declarations.get_mut(id);
+                    if let Some((Declaration::Expression(node), _)) = decl {
+                        if let Item::Windowed(window) = &mut node.item {
+                            window.group = group_by.clone();
+                            continue;
+                        }
+                    }
+
+                    // wrap with new Windowed declaration
+                    let windowed = Windowed {
+                        expr: Box::new(Node::new_ident(REF, id)),
+                        group: group_by.clone(),
+                        sort: vec![],
+                    };
+                    let decl = Declaration::Expression(Box::new(Item::Windowed(windowed).into()));
+                    let window_id = self.context.declare(decl, None);
+                    assign.declared_at = Some(window_id);
+                }
+            }
+            Transform::Aggregate { by, .. } => {
+                *by = group_by;
+            }
+            Transform::Sort(_) => {}
+            _ => {
+                // TODO: attach span to this error
+                bail!(Error::new(Reason::Simple(format!(
+                    "transform `{}` is not allowed within group context",
+                    t.as_ref()
+                ))))
+            }
+        }
+        Ok(())
+    }
+
+    fn apply_sort(&mut self, t: &mut Transform) -> Result<()> {
+        match t {
+            Transform::Select(assigns) | Transform::Derive(assigns) => {
+                let sort: Vec<_> = (self.sorted)
+                    .iter()
+                    .map(|s| ColumnSort {
+                        column: Node::new_ident("<ref>", s.column),
+                        direction: s.direction.clone(),
+                    })
+                    .collect();
+
+                for assign in assigns {
+                    let id = assign.declared_at.unwrap();
+
+                    let decl = self.context.declarations.get_mut(id);
+                    if let Some((Declaration::Expression(node), _)) = decl {
+                        if let Item::Windowed(window) = &mut node.item {
+                            window.sort = sort.clone();
+                        }
+                    }
+                }
+            }
+            _ => {}
+        }
         Ok(())
     }
 
@@ -459,7 +548,7 @@ mod tests {
         assert_snapshot!(result, @r###"
         SELECT
           salary AS salary1,
-          salary1 + 1 AS salary2,
+          salary + 1 AS salary2,
           age
         FROM
           employees
@@ -530,6 +619,50 @@ mod tests {
         FROM
           employees
           JOIN salaries USING(emp_no)
+        "###);
+    }
+
+    #[test]
+    fn test_applying_group_context() {
+        let prql = r#"
+        from employees
+        group last_name (
+            sort first_name
+            take 1
+        )
+        "#;
+        let result = parse(prql).and_then(resolve_and_translate);
+        assert!(result.is_err());
+
+        let prql = r#"
+        from employees
+        group last_name (
+            select first_name
+        )
+        "#;
+        let result = parse(prql).and_then(resolve_and_translate).unwrap();
+        assert_snapshot!(result, @r###"
+        SELECT
+          first_name OVER (PARTITION BY last_name) AS first_name
+        FROM
+          employees
+        "###);
+
+        let prql = r#"
+        from employees
+        group last_name (
+            aggregate count
+        )
+        "#;
+        let result = parse(prql).and_then(resolve_and_translate).unwrap();
+        assert_snapshot!(result, @r###"
+        SELECT
+          last_name,
+          COUNT(*) AS count
+        FROM
+          employees
+        GROUP BY
+          last_name
         "###);
     }
 }

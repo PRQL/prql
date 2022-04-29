@@ -15,24 +15,14 @@ use crate::semantic::{split_var_name, FrameColumn};
 
 /// Replaces all resolved functions and variables with their declarations.
 pub fn materialize(
-    pipeline: Pipeline,
+    mut pipeline: Pipeline,
     mut context: MaterializationContext,
     as_table: Option<usize>,
 ) -> Result<(Pipeline, MaterializedFrame, MaterializationContext)> {
-    // find frame
-    for transform in &pipeline.functions {
-        let transform = (transform.item)
-            .as_transform()
-            .ok_or_else(|| anyhow!("plain function in pipeline"))?;
-        context.frame.apply_transform(transform)?;
-    }
+    context.frame.sort.clear();
+    extract_frame(&mut pipeline, &mut context)?;
 
-    // init
-    let remove_namespaces = context.frame.tables.len() == 1;
-    let mut m = Materializer {
-        context,
-        remove_namespaces,
-    };
+    let mut m = Materializer::new(context);
 
     // materialize the query
     let pipeline = m.fold_pipeline(pipeline)?;
@@ -41,8 +31,7 @@ pub fn materialize(
     // materialize each of the columns
     let columns = m.anchor_columns(frame.columns, as_table)?;
 
-    // materialize each of the columns
-    let sort = m.lookup_sort(frame.sort)?;
+    let sort = m.materialize_sort(frame.sort)?;
 
     // rename tables for future pipelines
     if let Some(as_table) = as_table {
@@ -51,9 +40,26 @@ pub fn materialize(
 
     Ok((pipeline, MaterializedFrame { columns, sort }, m.context))
 }
+
+fn extract_frame(pipeline: &mut Pipeline, context: &mut MaterializationContext) -> Result<()> {
+    for f in &pipeline.functions {
+        let transform = (f.item)
+            .as_transform()
+            .ok_or_else(|| anyhow!("plain function in pipeline"))?;
+        context.frame.apply_transform(transform)?;
+    }
+
+    pipeline.functions.retain(|f| {
+        !matches!(
+            f.item.as_transform().unwrap(),
+            Transform::Select(_) | Transform::Derive(_) | Transform::Sort(_)
+        )
+    });
+    Ok(())
+}
 pub struct MaterializedFrame {
     pub columns: Vec<Node>,
-    pub sort: Vec<ColumnSort<Ident>>,
+    pub sort: Vec<ColumnSort>,
 }
 
 pub struct MaterializationContext {
@@ -101,13 +107,22 @@ pub struct Materializer {
 }
 
 impl Materializer {
+    fn new(context: MaterializationContext) -> Self {
+        Materializer {
+            remove_namespaces: context.frame.tables.len() == 1,
+            context,
+        }
+    }
+
     /// Looks up column declarations and replaces them with an identifiers.
     fn anchor_columns(
         &mut self,
         columns: Vec<FrameColumn>,
         as_table: Option<usize>,
     ) -> Result<Vec<Node>> {
-        columns
+        let mut to_replace = Vec::new();
+
+        let res = columns
             .into_iter()
             .map(|column| {
                 Ok(match column {
@@ -120,7 +135,7 @@ impl Materializer {
                             variable: name.clone(),
                             table: as_table,
                         };
-                        self.context.replace_declaration(id, decl);
+                        to_replace.push((id, decl));
 
                         emit_column_with_name(expr_node, name)
                     }
@@ -135,7 +150,13 @@ impl Materializer {
                     }
                 })
             })
-            .try_collect()
+            .collect::<Result<Vec<_>>>()?;
+
+        for (id, decl) in to_replace {
+            self.context.replace_declaration(id, decl);
+        }
+
+        Ok(res)
     }
 
     fn replace_tables(&mut self, tables: Vec<usize>, new_table: usize) {
@@ -147,14 +168,11 @@ impl Materializer {
 
     /// Folds the column and returns expression that can be used in select.
     /// Also returns column id and name if declaration should be replaced.
-    fn lookup_sort(&mut self, sort: Vec<ColumnSort<usize>>) -> Result<Vec<ColumnSort<Ident>>> {
+    fn materialize_sort(&mut self, sort: Vec<ColumnSort<usize>>) -> Result<Vec<ColumnSort>> {
         sort.into_iter()
             .map(|s| {
-                let ident = self.materialize_declaration(s.column)?;
-                let column = ident.item.into_ident()?;
-
                 Ok(ColumnSort {
-                    column,
+                    column: self.materialize_declaration(s.column)?,
                     direction: s.direction,
                 })
             })
@@ -196,11 +214,9 @@ impl Materializer {
         Ok(materialized)
     }
 
-    fn materialize_func_call(&mut self, node: &Node) -> Result<Node> {
-        let func_call = node.item.as_func_call().unwrap();
-
+    fn materialize_func_call(&mut self, func_call: &FuncCall, decl: Option<usize>) -> Result<Node> {
         // locate declaration
-        let func_dec = node.declared_at.ok_or_else(|| anyhow!("unresolved"))?;
+        let func_dec = decl.ok_or_else(|| anyhow!("unresolved"))?;
         let func_dec = &self.context.declarations[func_dec];
         let func_dec = func_dec.as_function().unwrap().clone();
 
@@ -253,13 +269,9 @@ impl AstFold for Materializer {
 
         Ok(match node.item {
             Item::FuncCall(func_call) => {
-                let func_call = Item::FuncCall(self.fold_func_call(func_call)?);
-                let func_call = Node {
-                    item: func_call,
-                    ..node
-                };
+                let func_call = self.fold_func_call(func_call)?;
 
-                self.materialize_func_call(&func_call)?
+                self.materialize_func_call(&func_call, node.declared_at)?
             }
 
             Item::Pipeline(p) => {
@@ -268,13 +280,23 @@ impl AstFold for Materializer {
 
                     let mut value = self.fold_node(*value)?;
 
-                    for mut func_call in p.functions {
-                        // The value from the previous pipeline becomes the final arg.
-                        if let Some(call) = func_call.item.as_func_call_mut() {
-                            call.args.push(value);
-                        }
+                    for function in p.functions {
+                        let (function, window) = if let Item::Windowed(w) = function.item {
+                            (*w.expr.clone(), Some(w))
+                        } else {
+                            (function, None)
+                        };
 
-                        value = self.materialize_func_call(&func_call)?;
+                        let mut func_call = (function.item.into_func_call())
+                            .map_err(|f| anyhow!("expected FuncCall, got {f:?}"))?;
+
+                        func_call.args.push(value);
+                        value = self.materialize_func_call(&func_call, function.declared_at)?;
+
+                        if let Some(mut w) = window {
+                            w.expr = Box::new(value);
+                            value = Item::Windowed(w).into();
+                        }
                     }
                     value
                 } else {
@@ -369,26 +391,14 @@ mod test {
             &to_string(&mat)?
         ),
         @r###"
-        @@ -9,8 +9,17 @@
-           - Transform:
-               Derive:
-                 assigns:
-        -          - Ident: gross_salary
-        -          - Ident: gross_cost
-        +          - Expr:
-        +              - Ident: salary
-        +              - Raw: +
-        +              - Ident: payroll_tax
-        +          - Expr:
-        +              - Expr:
-        +                  - Ident: salary
-        +                  - Raw: +
-        +                  - Ident: payroll_tax
-        +              - Raw: +
-        +              - Ident: benefits_cost
-                 group: []
-                 window: ~
-                 sort: ~
+        @@ -6,7 +6,3 @@
+                 name: employees
+                 alias: ~
+                 declared_at: 30
+        -  - Transform:
+        -      Derive:
+        -        - Ident: gross_salary
+        -        - Ident: gross_cost
         "###);
 
         Ok(())
@@ -493,7 +503,7 @@ take 20
         );
         assert!(!diff.is_empty());
         assert_display_snapshot!(diff, @r###"
-        @@ -7,7 +7,11 @@
+        @@ -7,5 +7,9 @@
          - Transform:
              Aggregate:
                assigns:
@@ -503,9 +513,7 @@ take 20
         +            - Expr:
         +                Ident: salary
         +            - String: )
-               group: []
-               window: ~
-               sort: ~
+               by: []
         "###);
 
         Ok(())
@@ -553,25 +561,6 @@ take 20
               name: a
               alias: ~
               declared_at: 35
-        - Transform:
-            Select:
-              assigns:
-                - Expr:
-                    - Expr:
-                        - Ident: b
-                        - Raw: /
-                        - SString:
-                            - String: lag_day_todo(
-                            - Expr:
-                                Ident: b
-                            - String: )
-                    - Raw: "-"
-                    - Raw: "1"
-                    - Raw: +
-                    - Ident: c
-              group: []
-              window: ~
-              sort: ~
         "###);
 
         Ok(())
@@ -595,7 +584,7 @@ take 20
         let (mat, _, _) = materialize(pipeline.clone(), context.into(), None)?;
 
         assert_snapshot!(diff(&to_string(&pipeline.functions)?, &to_string(&mat.functions)?), @r###"
-        @@ -7,8 +7,16 @@
+        @@ -7,6 +7,14 @@
          - Transform:
              Aggregate:
                assigns:
@@ -611,9 +600,7 @@ take 20
         +            - Expr:
         +                Ident: foo
         +            - String: )
-               group: []
-               window: ~
-               sort: ~
+               by: []
         "###);
 
         // Test it'll run the `sum foo` function first.
@@ -647,9 +634,7 @@ take 20
                         - String: )
                     - Raw: +
                     - Raw: "1"
-              group: []
-              window: ~
-              sort: ~
+              by: []
         "###);
 
         Ok(())
@@ -677,20 +662,6 @@ take 20
               name: foo_table
               alias: ~
               declared_at: 33
-        - Transform:
-            Derive:
-              assigns:
-                - Expr:
-                    - Ident: bar
-                    - Raw: +
-                    - Raw: "3"
-                - Expr:
-                    - Ident: bar
-                    - Raw: +
-                    - Raw: "1"
-              group: []
-              window: ~
-              sort: ~
         "###);
 
         Ok(())
@@ -726,9 +697,7 @@ take 20
                     - Expr:
                         Ident: salary
                     - String: )
-              group: []
-              window: ~
-              sort: ~
+              by: []
         "###
         );
         Ok(())
@@ -846,11 +815,9 @@ take 20
                                 - Expr:
                                     Ident: salary
                                 - String: )
-                          group:
+                          by:
                             - Ident: title
                             - Ident: emp_no
-                          window: ~
-                          sort: ~
         - Transform:
             Group:
               by:
@@ -871,10 +838,8 @@ take 20
                                           Ident: salary
                                       - String: )
                                 - String: )
-                          group:
+                          by:
                             - Ident: title
-                          window: ~
-                          sort: ~
         "###);
 
         Ok(())
@@ -909,19 +874,6 @@ take 20
               name: orders
               alias: ~
               declared_at: 30
-        - Transform:
-            Select:
-              assigns:
-                - Ident: customer_no
-                - Ident: gross
-                - Ident: tax
-                - Expr:
-                    - Ident: gross
-                    - Raw: "-"
-                    - Ident: tax
-              group: []
-              window: ~
-              sort: ~
         - Transform:
             Take: 20
         "###);
