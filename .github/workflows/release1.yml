@@ -1,0 +1,19 @@
+name: release-brew
+on: release
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/github-script@v6
+      with:
+        github-token: ${{ secrets.PAT_TOKEN}}
+        script: |
+          await github.rest.actions.createWorkflowDispatch({
+            owner: 'prql',
+            repo: 'homebrew-prql',
+            workflow_id: 'release-update.yml',
+            ref: 'actions'
+            inputs: {
+              version: '0.1.2'
+            }
+          })
