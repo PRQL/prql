@@ -1,12 +1,14 @@
-use anyhow::anyhow;
+use std::collections::HashSet;
+
 use anyhow::Result;
 use itertools::Itertools;
 
 use crate::ast::ast_fold::*;
-use crate::ast::*;
-use crate::error::{Error, Reason};
+use crate::error::{Error, Reason, WithErrorInfo};
+use crate::{ast::*, Declaration};
 
-use super::context::{Context, Frame};
+use super::transforms;
+use super::Context;
 
 /// Runs semantic analysis on the query, using current state.
 /// Appends query to current query.
@@ -14,9 +16,9 @@ use super::context::{Context, Frame};
 /// Note that analyzer removes function declarations, derive and select
 /// transformations from AST and saves them as current context.
 pub fn resolve(nodes: Vec<Node>, context: Option<Context>) -> Result<(Vec<Node>, Context)> {
-    let context = context.unwrap_or_default();
+    let context = context.unwrap_or_else(init_context);
 
-    let mut resolver = Resolver { context };
+    let mut resolver = Resolver::new(context);
 
     let nodes = resolver.fold_nodes(nodes)?;
 
@@ -26,21 +28,42 @@ pub fn resolve(nodes: Vec<Node>, context: Option<Context>) -> Result<(Vec<Node>,
 /// Can fold (walk) over AST and for each function calls or variable find what they are referencing.
 pub struct Resolver {
     pub context: Context,
+
+    /// True iff resolving a function curry (in a pipeline)
+    within_curry: bool,
+
+    within_group: Vec<usize>,
+}
+impl Resolver {
+    fn new(context: Context) -> Self {
+        Resolver {
+            context,
+            within_curry: false,
+            within_group: vec![],
+        }
+    }
 }
 
 impl AstFold for Resolver {
+    fn fold_pipeline(&mut self, pipeline: Pipeline) -> Result<Pipeline> {
+        let value = fold_optional_box(self, pipeline.value)?;
+
+        self.within_curry = true;
+        let functions = self.fold_nodes(pipeline.functions)?;
+        self.within_curry = false;
+
+        Ok(Pipeline { value, functions })
+    }
+
     // save functions declarations
     fn fold_nodes(&mut self, items: Vec<Node>) -> Result<Vec<Node>> {
         // We cut out function def, so we need to run it
         // here rather than in `fold_func_def`.
         items
             .into_iter()
-            .map(|item| {
-                Ok(match item {
-                    Node {
-                        item: Item::FuncDef(mut func_def),
-                        ..
-                    } => {
+            .map(|node| {
+                Ok(match node.item {
+                    Item::FuncDef(mut func_def) => {
                         // declare variables
                         for param in &mut func_def.named_params {
                             param.declared_at = Some(self.context.declare_func_param(param));
@@ -53,13 +76,12 @@ impl AstFold for Resolver {
                         func_def.body = Box::new(self.fold_node(*func_def.body)?);
 
                         // clear declared variables
-                        self.context.variables.remove("_");
-                        self.context.refresh_inverse_index();
+                        self.context.scope.clear();
 
                         self.context.declare_func(func_def);
                         None
                     }
-                    _ => Some(self.fold_node(item)?),
+                    _ => Some(self.fold_node(node)?),
                 })
             })
             .filter_map(|x| x.transpose())
@@ -67,218 +89,356 @@ impl AstFold for Resolver {
     }
 
     fn fold_node(&mut self, mut node: Node) -> Result<Node> {
+        let within_curry = self.within_curry;
+        self.within_curry = false;
+
         node.item = match node.item {
             Item::FuncCall(func_call) => {
-                node.declared_at = self.context.functions.get(&func_call.name).cloned();
+                // find declaration
+                node.declared_at = self.context.scope.functions.get(&func_call.name).cloned();
 
-                Item::FuncCall(self.fold_func_call(func_call)?)
+                // validate function call
+                let (func_call, func_def) = self
+                    .validate_function_call(node.declared_at, func_call, within_curry)
+                    .with_span(node.span)?;
+
+                // fold (and cast if this is a transform)
+                if let Some(FuncKind::Transform) = func_def.kind {
+                    let transform = transforms::cast_transform(func_call, node.span)?;
+
+                    Item::Transform(self.fold_transform(transform)?)
+                } else {
+                    Item::FuncCall(self.fold_func_call(func_call)?)
+                }
             }
 
             Item::Ident(ident) => {
-                node.declared_at = (self.context.lookup_variable(&ident))
-                    .map_err(|e| Error::new(Reason::Simple(e)).with_span(node.span))?;
+                node.declared_at = Some(
+                    (self.context.lookup_variable(&ident, node.span))
+                        .map_err(|e| Error::new(Reason::Simple(e)).with_span(node.span))?,
+                );
 
                 Item::Ident(ident)
             }
 
             item => fold_item(self, item)?,
         };
+
+        self.within_curry = within_curry;
         Ok(node)
     }
 
-    fn fold_pipeline(&mut self, pipeline: Vec<Transform>) -> Result<Vec<Transform>> {
-        pipeline
-            .into_iter()
-            .map(|t| {
-                Ok(match t {
-                    Transform::From(t) => {
-                        self.context.clear_scopes();
+    fn fold_transform(&mut self, t: Transform) -> Result<Transform> {
+        let t = match t {
+            Transform::From(mut t) => {
+                self.context.scope.clear();
 
-                        self.context.frame = Frame::default();
+                self.context.declare_table(&mut t);
 
-                        self.context.declare_table(&t);
+                Transform::From(t)
+            }
 
-                        let t = Transform::From(t);
-                        Some(fold_transform(self, t)?)
+            Transform::Select(mut select) => {
+                select.assigns = self.fold_assigns(select.assigns)?;
+                self.context.scope.clear();
+
+                self.apply_context(&mut select)?;
+                Transform::Select(select)
+            }
+            Transform::Derive(mut select) => {
+                select.assigns = self.fold_assigns(select.assigns)?;
+
+                self.apply_context(&mut select)?;
+                Transform::Derive(select)
+            }
+            Transform::Group { by, pipeline } => {
+                let by = self.fold_nodes(by)?;
+
+                self.within_group = by.iter().filter_map(|n| n.declared_at).collect();
+                let pipeline = Box::new(self.fold_node(*pipeline)?);
+                self.within_group = vec![];
+
+                Transform::Group { by, pipeline }
+            }
+            Transform::Aggregate(mut select) => {
+                select.assigns = self.fold_assigns(select.assigns)?;
+                self.context.scope.clear();
+
+                self.apply_context(&mut select)?;
+                Transform::Aggregate(select)
+            }
+            Transform::Join {
+                side,
+                mut with,
+                filter,
+            } => {
+                self.context.declare_table(&mut with);
+
+                Transform::Join {
+                    side,
+                    with,
+                    filter: self.fold_join_filter(filter)?,
+                }
+            }
+            t => fold_transform(self, t)?,
+        };
+
+        // if !self.within_group {
+        //     self.context.frame.apply_transform(&t)?;
+        // }
+
+        Ok(t)
+    }
+
+    fn fold_join_filter(&mut self, filter: JoinFilter) -> Result<JoinFilter> {
+        Ok(match filter {
+            JoinFilter::On(nodes) => JoinFilter::On(self.fold_nodes(nodes)?),
+            JoinFilter::Using(mut nodes) => {
+                for node in &mut nodes {
+                    let ident = node.item.as_ident().unwrap();
+
+                    // ensure two namespaces
+                    let namespaces = self.context.lookup_namespaces_of(ident);
+                    match namespaces.len() {
+                        0 => Err(format!("Unknown variable `{ident}`")),
+                        1 => Err("join using a column name must belong to both tables".to_string()),
+                        _ => Ok(()),
                     }
+                    .map_err(|e| Error::new(Reason::Simple(e)).with_span(node.span))?;
 
-                    Transform::Select(nodes) => {
-                        self.context.frame.columns.clear();
+                    let decl = Declaration::ExternRef {
+                        table: None,
+                        variable: ident.to_string(),
+                    };
 
-                        self.fold_and_declare(nodes)?;
+                    let id = self.context.declare(decl, node.span);
+                    self.context.scope.add(ident.clone(), id);
 
-                        self.context.clear_scopes();
-                        None
-                    }
-                    Transform::Derive(nodes) => {
-                        self.fold_and_declare(nodes)?;
-                        None
-                    }
-                    Transform::Aggregate { by, select } => {
-                        self.context.frame.columns.clear();
+                    node.declared_at = Some(id);
+                }
+                JoinFilter::Using(nodes)
+            }
+        })
+    }
 
-                        let by = self.fold_and_declare(by)?;
+    fn fold_table(&mut self, mut table: Table) -> Result<Table> {
+        // fold pipeline
+        table.pipeline = Box::new(self.fold_node(*table.pipeline)?);
 
-                        self.fold_and_declare(select)?;
+        // declare table
+        let decl = Declaration::Table(table.name.clone());
+        table.id = Some(self.context.declare(decl, None));
 
-                        self.context.clear_scopes();
-
-                        Some(Transform::Aggregate { by, select: vec![] })
-                    }
-                    Transform::Join { side, with, filter } => {
-                        self.context.declare_table(&with);
-
-                        Some(Transform::Join {
-                            side,
-                            with: self.fold_table_ref(with)?,
-                            filter: match filter {
-                                JoinFilter::On(nodes) => JoinFilter::On(self.fold_nodes(nodes)?),
-                                JoinFilter::Using(nodes) => {
-                                    for node in &nodes {
-                                        self.ensure_in_two_namespaces(node).map_err(|e| {
-                                            Error::new(Reason::Simple(e)).with_span(node.span)
-                                        })?;
-                                        self.context.declare_table_column(node, true);
-                                    }
-                                    JoinFilter::Using(nodes)
-                                }
-                            },
-                        })
-                    }
-                    Transform::Sort(sort) => {
-                        let sort = self.fold_column_sorts(sort)?;
-
-                        // map each column into its declated_at
-                        // I have a feeling that there sould be more compact way of doing this...
-                        self.context.frame.sort = sort
-                            .into_iter()
-                            .map(|s| {
-                                Ok::<_, anyhow::Error>(ColumnSort {
-                                    column: (s.column.declared_at)
-                                        .ok_or_else(|| anyhow!("Unresolved ident in sort?"))?,
-                                    direction: s.direction,
-                                })
-                            })
-                            .try_collect()?;
-
-                        None
-                    }
-                    t => Some(fold_transform(self, t)?),
-                })
-            })
-            .filter_map(|x| x.transpose())
-            .try_collect()
+        Ok(table)
     }
 }
 
 impl Resolver {
-    fn fold_and_declare(&mut self, nodes: Vec<Node>) -> Result<Vec<Node>> {
+    fn fold_assigns(&mut self, nodes: Vec<Node>) -> Result<Vec<Node>> {
         nodes
             .into_iter()
-            .map(|node| {
-                let node = self.fold_node(node)?;
+            .map(|mut node| {
+                Ok(match node.item {
+                    Item::NamedExpr(NamedExpr { name, expr }) => {
+                        // introduce a new expression alias
 
-                self.context.declare_table_column(&node, true);
-                Ok(node)
+                        let expr = self.fold_assign_expr(*expr)?;
+                        let id = expr.declared_at.unwrap();
+
+                        self.context.scope.add(name.clone(), id);
+
+                        node.item = Item::Ident(name);
+                        node.declared_at = Some(id);
+                        node
+                    }
+                    _ => {
+                        // no new names, only fold the expr
+                        self.fold_assign_expr(node)?
+                    }
+                })
             })
             .try_collect()
     }
 
-    fn ensure_in_two_namespaces(&mut self, node: &Node) -> Result<(), String> {
-        let ident = node.item.as_ident().unwrap();
-        let namespaces = self.context.lookup_namespaces_of(ident);
-        match namespaces.len() {
-            0 => Err(format!("Unknown variable `{ident}`")),
-            1 => Err("join using a column name must belong to both tables".to_string()),
-            _ => Ok(()),
-        }
+    fn fold_assign_expr(&mut self, node: Node) -> Result<Node> {
+        let span = node.span;
+
+        Ok(match node.item {
+            Item::Ident(_) => {
+                // keep existing ident
+                self.fold_node(node)?
+            }
+            _ => {
+                // declare new expression so it can be references from FrameColumn
+                let expr = self.fold_node(node)?;
+                let decl = Declaration::Expression(Box::from(expr));
+
+                let id = self.context.declare(decl, span);
+
+                let mut placeholder: Node = Item::Ident("<unnamed>".to_string()).into();
+                placeholder.declared_at = Some(id);
+                placeholder
+            }
+        })
     }
+
+    fn apply_context(&self, select: &mut Select) -> Result<()> {
+        select.group = (self.within_group)
+            .iter()
+            .map(|id| {
+                let mut node: Node = Item::Ident("<un-materialized>".to_string()).into();
+                node.declared_at = Some(*id);
+                node
+            })
+            .collect();
+        Ok(())
+    }
+
+    fn validate_function_call(
+        &self,
+        declared_at: Option<usize>,
+        mut func_call: FuncCall,
+        is_curry: bool,
+    ) -> Result<(FuncCall, FuncDef), Error> {
+        if declared_at.is_none() {
+            return Err(Error::new(Reason::NotFound {
+                name: func_call.name,
+                namespace: "function".to_string(),
+            }));
+        }
+
+        let func_dec = declared_at.unwrap();
+        let func_dec = &self.context.declarations[func_dec].0;
+        let func_def = func_dec.as_function().unwrap().clone();
+
+        // extract needed named args from positionals
+        let named_params: HashSet<_> = (func_def.named_params)
+            .iter()
+            .map(|param| &param.item.as_named_expr().unwrap().name)
+            .collect();
+        let (named, positional) = func_call.args.into_iter().partition(|arg| {
+            // TODO: replace with drain_filter when it hits stable
+            if let Item::NamedExpr(ne) = &arg.item {
+                named_params.contains(&ne.name)
+            } else {
+                false
+            }
+        });
+        func_call.args = positional;
+        func_call.named_args = named
+            .into_iter()
+            .map(|arg| arg.item.into_named_expr().unwrap())
+            .map(|ne| (ne.name, ne.expr))
+            .collect();
+
+        // validate number of parameters
+        let expected_len = func_def.positional_params.len() - is_curry as usize;
+        let passed_len = func_call.args.len();
+        if expected_len != passed_len {
+            let mut err = Error::new(Reason::Expected {
+                who: Some(func_call.name.clone()),
+                expected: format!("{} arguments", expected_len),
+                found: format!("{}", passed_len),
+            });
+
+            if passed_len > expected_len && passed_len >= 2 {
+                err = err.with_help(format!(
+                    "If you are calling a function, you may want to add braces: `{} [{:?} {:?}]`",
+                    func_call.name, func_call.args[0], func_call.args[1]
+                ));
+            }
+
+            return Err(err);
+        }
+
+        Ok((func_call, func_def))
+    }
+}
+
+/// Loads `internal.prql` which contains type definitions of transforms
+pub fn init_context() -> Context {
+    use crate::parse;
+    let transforms = include_str!("./transforms.prql");
+    let transforms = parse(transforms).unwrap().nodes;
+
+    let (_, context) = resolve(transforms, Some(Context::default())).unwrap();
+    context
 }
 
 #[cfg(test)]
 mod tests {
-    use insta::{assert_debug_snapshot, assert_snapshot, assert_yaml_snapshot};
+    use insta::assert_snapshot;
     use serde_yaml::from_str;
 
-    use crate::{parse, translate};
+    use crate::{parse, resolve_and_translate};
 
     use super::*;
 
     #[test]
     fn test_scopes_during_from() {
-        let context = Context::default();
+        let context = init_context();
 
-        let mut resolver = Resolver { context };
+        let mut resolver = Resolver::new(context);
 
         let pipeline: Node = from_str(
             r##"
             Pipeline:
-                - From:
-                    name: employees
-                    alias: ~
+              value: ~
+              functions:
+                - FuncCall:
+                    name: from
+                    args:
+                    - Ident: employees
+                    named_args: {}
         "##,
         )
         .unwrap();
         resolver.fold_node(pipeline).unwrap();
 
-        assert_yaml_snapshot!(resolver.context.frame, @r###"
-        ---
-        columns:
-          - All: employees
-        sort: []
-        "###);
-        assert!(resolver.context.variables["employees"].len() == 1);
+        assert!(resolver.context.scope.variables["employees.*"].len() == 1);
     }
 
     #[test]
     fn test_scopes_during_select() {
-        let context = Context::default();
+        let context = init_context();
 
-        let mut resolver = Resolver { context };
+        let mut resolver = Resolver::new(context);
 
         let pipeline: Node = from_str(
             r##"
             Pipeline:
-                - From:
-                    name: employees
-                    alias: ~
-                - Select:
-                    - NamedExpr:
-                        name: salary_1
-                        expr:
-                            Ident: salary
-                    - NamedExpr:
-                        name: salary_2
-                        expr:
-                            Expr:
-                              - Ident: salary_1
-                              - Raw: +
-                              - Raw: '1'
-                    - Ident: age
+              value: ~
+              functions:
+                - FuncCall:
+                    name: from
+                    args:
+                    - Ident: employees
+                    named_args: {}
+                - FuncCall:
+                    name: select
+                    args:
+                    - List:
+                        - NamedExpr:
+                            name: salary_1
+                            expr:
+                                Ident: salary
+                        - NamedExpr:
+                            name: salary_2
+                            expr:
+                                Expr:
+                                - Ident: salary_1
+                                - Raw: +
+                                - Raw: "1"
+                        - Ident: age
+                    named_args: {}
         "##,
         )
         .unwrap();
         resolver.fold_node(pipeline).unwrap();
 
-        assert_eq!(resolver.context.frame.columns.len(), 3);
-        assert_debug_snapshot!(resolver.context.variables["$"].iter().sorted(), @r###"
-        IntoIter(
-            [
-                (
-                    "age",
-                    4,
-                ),
-                (
-                    "salary_1",
-                    1,
-                ),
-                (
-                    "salary_2",
-                    2,
-                ),
-            ],
-        )
-        "###);
+        assert!(resolver.context.scope.variables.contains_key("salary_1"));
+        assert!(resolver.context.scope.variables.contains_key("salary_2"));
+        assert!(resolver.context.scope.variables.contains_key("age"));
     }
 
     #[test]
@@ -295,11 +455,11 @@ mod tests {
         from employees
         select [salary1: salary, salary2: salary1 + 1, age]
         "#;
-        let result: String = parse(prql).and_then(|x| translate(&x)).unwrap();
+        let result: String = parse(prql).and_then(resolve_and_translate).unwrap();
         assert_snapshot!(result, @r###"
         SELECT
           salary AS salary1,
-          salary + 1 AS salary2,
+          salary1 + 1 AS salary2,
           age
         FROM
           employees
@@ -334,7 +494,7 @@ mod tests {
         join salaries [emp_no]
         select first_name      # this could belong to either table!
         "#;
-        let result = parse(prql).and_then(|x| translate(&x)).unwrap();
+        let result = parse(prql).and_then(resolve_and_translate).unwrap();
         assert_snapshot!(result, @r###"
         SELECT
           first_name
@@ -347,7 +507,7 @@ mod tests {
         from employees
         select first_name      # this can only be from employees
         "#;
-        let result = parse(prql).and_then(|x| translate(&x)).unwrap();
+        let result = parse(prql).and_then(resolve_and_translate).unwrap();
         assert_snapshot!(result, @r###"
         SELECT
           first_name
@@ -361,7 +521,7 @@ mod tests {
         join salaries [emp_no]
         select [first_name, emp_no, salary]
         "#;
-        let result = parse(prql).and_then(|x| translate(&x)).unwrap();
+        let result = parse(prql).and_then(resolve_and_translate).unwrap();
         assert_snapshot!(result, @r###"
         SELECT
           employees.first_name,

@@ -1,20 +1,22 @@
 ```prql
 from employees
-filter country = "USA"                           # Each line transforms the previous result.
-derive [                                         # This adds columns / variables.
+filter country = "USA"                       # Each line transforms the previous result.
+derive [                                     # This adds columns / variables.
   gross_salary: salary + payroll_tax,
-  gross_cost:   gross_salary + benefits_cost     # Variables can use other variables.
+  gross_cost:  gross_salary + benefits_cost  # Variables can use other variables.
 ]
 filter gross_cost > 0
-aggregate by:[title, country] [                  # `by` are the columns to group by.
-    average salary,                              # These are aggregation calcs run on each group.
-    sum     salary,
+group [title, country] (                     # For each group use a nested pipeline
+  aggregate [                                # Aggregate each group to a single row
+    average salary,
     average gross_salary,
-    sum     gross_salary,
+    sum salary,
+    sum gross_salary,
     average gross_cost,
     sum_gross_cost: sum gross_cost,
     ct: count,
-]
+  ]
+)
 sort sum_gross_cost
 filter ct > 200
 take 20
@@ -49,13 +51,17 @@ LIMIT
 
 ```prql
 from employees
-aggregate by:[emp_no] [
-  emp_salary: average salary          # avg_salary should resolve to "AVG(salary)" (from stdlib)
-]
+group [emp_no] (
+  aggregate [
+    emp_salary: average salary        # avg_salary should resolve to "AVG(salary)" (from stdlib)
+  ]
+)
 join titles [emp_no]
-aggregate by:[title] [
-  avg_salary: average emp_salary
-]
+group [title] (
+  aggregate [
+    avg_salary: average emp_salary
+  ]
+)
 select salary_k: avg_salary / 1000    # avg_salary should resolve to "AVG(emp_salary)"
 take 10                               # induces new SELECT
 derive salary: salary_k * 1000        # salary_k should not resolve to "avg_salary / 1000"

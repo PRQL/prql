@@ -1,0 +1,10 @@
+---
+source: reference/tests/snapshot.rs
+expression: sql
+input_file: reference/tests/examples/functions-0.prql
+---
+SELECT
+  cities.*,
+  temp_f - 32 * 3 AS temp_c
+FROM
+  cities

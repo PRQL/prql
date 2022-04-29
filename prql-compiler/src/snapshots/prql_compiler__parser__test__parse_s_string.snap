@@ -1,10 +1,10 @@
 ---
 source: prql-compiler/src/parser.rs
-expression: "parse_tree_of_str(r#\"s\"SUM({col})\"\"#, Rule::s_string)?"
+expression: "parse_tree_of_str(r#\"s\"SUM({col})\"\"#, Rule::expr_call)?"
 ---
 [
     Pair {
-        rule: s_string,
+        rule: expr,
         span: Span {
             str: "s\"SUM({col})\"",
             start: 0,
@@ -12,41 +12,111 @@ expression: "parse_tree_of_str(r#\"s\"SUM({col})\"\"#, Rule::s_string)?"
         },
         inner: [
             Pair {
-                rule: interpolate_string,
+                rule: expr_compare,
                 span: Span {
-                    str: "SUM(",
-                    start: 2,
-                    end: 6,
-                },
-                inner: [],
-            },
-            Pair {
-                rule: expr,
-                span: Span {
-                    str: "col",
-                    start: 7,
-                    end: 10,
+                    str: "s\"SUM({col})\"",
+                    start: 0,
+                    end: 13,
                 },
                 inner: [
                     Pair {
-                        rule: ident,
+                        rule: expr_add,
                         span: Span {
-                            str: "col",
-                            start: 7,
-                            end: 10,
+                            str: "s\"SUM({col})\"",
+                            start: 0,
+                            end: 13,
                         },
-                        inner: [],
+                        inner: [
+                            Pair {
+                                rule: expr_mul,
+                                span: Span {
+                                    str: "s\"SUM({col})\"",
+                                    start: 0,
+                                    end: 13,
+                                },
+                                inner: [
+                                    Pair {
+                                        rule: s_string,
+                                        span: Span {
+                                            str: "s\"SUM({col})\"",
+                                            start: 0,
+                                            end: 13,
+                                        },
+                                        inner: [
+                                            Pair {
+                                                rule: interpolate_string,
+                                                span: Span {
+                                                    str: "SUM(",
+                                                    start: 2,
+                                                    end: 6,
+                                                },
+                                                inner: [],
+                                            },
+                                            Pair {
+                                                rule: expr,
+                                                span: Span {
+                                                    str: "col",
+                                                    start: 7,
+                                                    end: 10,
+                                                },
+                                                inner: [
+                                                    Pair {
+                                                        rule: expr_compare,
+                                                        span: Span {
+                                                            str: "col",
+                                                            start: 7,
+                                                            end: 10,
+                                                        },
+                                                        inner: [
+                                                            Pair {
+                                                                rule: expr_add,
+                                                                span: Span {
+                                                                    str: "col",
+                                                                    start: 7,
+                                                                    end: 10,
+                                                                },
+                                                                inner: [
+                                                                    Pair {
+                                                                        rule: expr_mul,
+                                                                        span: Span {
+                                                                            str: "col",
+                                                                            start: 7,
+                                                                            end: 10,
+                                                                        },
+                                                                        inner: [
+                                                                            Pair {
+                                                                                rule: ident,
+                                                                                span: Span {
+                                                                                    str: "col",
+                                                                                    start: 7,
+                                                                                    end: 10,
+                                                                                },
+                                                                                inner: [],
+                                                                            },
+                                                                        ],
+                                                                    },
+                                                                ],
+                                                            },
+                                                        ],
+                                                    },
+                                                ],
+                                            },
+                                            Pair {
+                                                rule: interpolate_string,
+                                                span: Span {
+                                                    str: ")",
+                                                    start: 11,
+                                                    end: 12,
+                                                },
+                                                inner: [],
+                                            },
+                                        ],
+                                    },
+                                ],
+                            },
+                        ],
                     },
                 ],
-            },
-            Pair {
-                rule: interpolate_string,
-                span: Span {
-                    str: ")",
-                    start: 11,
-                    end: 12,
-                },
-                inner: [],
             },
         ],
     },

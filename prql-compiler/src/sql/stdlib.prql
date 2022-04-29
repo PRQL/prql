@@ -26,3 +26,7 @@ func in range value = s"{value} BETWEEN {range}"
 # Casting functions
 
 func as column type = s"CAST({column} AS {type})"
+
+# Window functions
+func lag offset column = s"LAG({column}, {offset})"
+func rank column = s"RANK({column})"

@@ -11,30 +11,23 @@ WHITESPACE = _{ " " | "\t" }
 // Need to exclude # in strings (and maybe confirm whether this the syntax we want)
 COMMENT = _{ "#" ~ (!NEWLINE ~ ANY) * }
 
-query = { SOI ~ NEWLINE* ~ (query_def ~ NEWLINE+)? ~ (( func_def | table | pipeline ) ~ ( NEWLINE+ | &EOI ))* ~ EOI }
+query = { SOI ~ NEWLINE* ~ query_def ~ NEWLINE* ~ (( func_def | table | pipeline ) ~ ( NEWLINE+ | &EOI ))* ~ EOI }
 
-query_def = { WHITESPACE* ~ "prql" ~ named_expr_simple*  }
+query_def = { WHITESPACE* ~ ("prql" ~ named_expr* ~ NEWLINE)? }
 
-func_def = { "func" ~ ident ~ func_def_params ~ "=" ~ expr }
-// TODO: we could force the named parameters to follow the positional ones here.
-// But pest requires some special handling because if `ident` is before
-// `named_arg`, then `x:y` will be parsed as `x` and then error on `:y`.
-// Possibly we can mandate whitespace to follow, but pest has annoying magic
-// which removes whitespace in non-atomic rules, so we'd need to explore that.
-func_def_params = { ( named_term_simple | ident )* }
-table = { "table" ~ ident ~ "=" ~ "(" ~ NEWLINE* ~ pipeline ~ NEWLINE* ~ ")" }
+func_def = { "func" ~ func_def_flags ~ ident ~ func_def_params ~ "=" ~ expr }
 
-pipe = _{ NEWLINE+ | "|" }
-pipeline = { transformation ~ (pipe ~ transformation)* }
+// TODO: consider some syntax for these func "type" args; currently they're only
+// differentiated from params by their position
+func_def_flags = @{ ("transform" | "aggregation" | "window" | "")? }
+func_def_params = { ( named_term | ident )* }
+table = { "table" ~ ident ~ "=" ~ nested_pipeline }
 
-// `ident` is the transformation name.
-transformation = { WHITESPACE* ~ ident ~ named_expr_simple* }
+pipe = _{ NEWLINE | "|" }
+pipeline = { WHITESPACE* ~ func_curry ~ (pipe ~ func_curry)* }
 
-// We don't model this in the same way as a pipeline, since the first term isn't
-// a transformation. We could unify them at some point.
-inline_pipeline = { "(" ~ expr ~ (pipe ~ func_curry)+ ~ ")" }
-
-ident = @{ !operator ~ (ASCII_ALPHA | "$") ~ (ASCII_ALPHANUMERIC | "." | "_" | "*" )* }
+ident = @{ !operator ~ !(keyword ~ WHITESPACE) ~ (ASCII_ALPHA | "$") ~ (ASCII_ALPHANUMERIC | "." | "_" | "*" )* }
+keyword = _{ "prql" | "table" | "func" }
 
 // A central issue around the terms vs expr is that we want to be able to parse:
 //   [foo bar + 1, 2]
@@ -61,25 +54,38 @@ ident = @{ !operator ~ (ASCII_ALPHA | "$") ~ (ASCII_ALPHANUMERIC | "." | "_" | "
 // - 1
 // - 2
 
-// Adding the WHITESPACE is like making it a compound-atomic operator.
-expr = !{ term ~ (operator ~ term)* }
-expr_simple = !{ term_simple ~ (operator ~ term_simple)* }
+// white space is required to prevent matching s"string"
+func_call = ${ ident ~ WHITESPACE+ ~ named_expr+ }
+func_curry = { ident ~ named_expr* }
 
-func_call = { ident ~ (named_term_simple | term_simple)+ }
-func_curry = { ident ~ (named_term_simple | term_simple)* }
+// For assigns, table aliases and named arguments
+named_expr_call = { (ident ~ ":")? ~ expr_call }
+named_expr = { (ident ~ ":")? ~ expr }
+named_term = { (ident ~ ":")? ~ term }
 
-term = _{ ( s_string | f_string | func_call | term_simple ) }
-term_simple = _{ ( s_string | f_string | ident | parenthesized_expr | list | range | interval | number | string_literal | inline_pipeline ) }
-list = { "[" ~ NEWLINE* ~ named_expr ~ ("," ~ NEWLINE* ~ named_expr )* ~ ","? ~ NEWLINE* ~ "]" }
-parenthesized_expr = _{ "(" ~ expr ~ ")" }
+// Expression that can contain a function call
+expr_call = _{ (func_call | expr) }
 
-// TODO: escapes
+expr = !{ expr_compare ~ (operator_logical ~ expr_compare)* }
+expr_compare = !{ expr_add ~ (operator_compare ~ expr_add)? }
+expr_add = !{ expr_mul ~ (operator_add ~ expr_mul)* }
+expr_mul = !{ term ~ (operator_mul ~ term)* }
+
+term = _{ ( s_string | f_string | ident | nested_expr | nested_pipeline | list | range | literal ) }
+literal = _{ interval | number | string_literal }
+list = { "[" ~ (NEWLINE* ~ named_expr_call ~ ("," ~ NEWLINE* ~ named_expr_call )* ~ ","?)? ~ NEWLINE* ~ "]" }
+nested_expr = _{ "(" ~ expr_call ~ ")" }
+nested_pipeline = { "(" ~ expr_call? ~ pipe ~ pipeline ~ NEWLINE* ~ ")" }
+
+// We haven't implemented escapes — I think we can mostly pass those through to
+// SQL, but there may be things we're missing.
 // https://pest.rs/book/examples/rust/literals.html
 
-// We need to have a non-silent rule which contains the quotes, because of
-// https://github.com/pest-parser/pest/issues/583, and then when converting to
-// AST, we only keep the `string` and discard the `string_literal` given it
-// contains the quotes.
+// We need to have a non-silent rule which contains the quotes
+// — `string_literal` in this case — because of
+// https://github.com/pest-parser/pest/issues/583. Then when converting to AST,
+// we only keep the `string_inner` and discard the `string_literal` given it contains
+// the quotes.
 //
 // TODO: I'm still a bit unclear how preceeding and trailing spaces are working
 // -- it seems that inner spaces are included without an atomic operator (or
@@ -88,23 +94,28 @@ parenthesized_expr = _{ "(" ~ expr ~ ")" }
 
 quote = _{ "\"" | "'" }
 // PEEK refers to the opening quote; either `"` or `'`.
-string = { ( !( "\\" | PEEK ) ~ ANY )+ }
-string_literal = ${ PUSH(quote) ~ string ~ POP }
+string_inner = { ( !( PEEK ) ~ ANY )+ }
+string_literal = ${ PUSH(quote) ~ string_inner ~ POP }
 
 number = ${ ( ASCII_DIGIT )+ ~ ("." ~ ( ASCII_DIGIT )+)? }
 
-// this could be generalized to use term_simple
-range = ${ number? ~ ".." ~ number? }
+range = ${ range_edge ~ ".." ~ range_edge }
+// We need `literal` separate from `term_simple` for things like range edges,
+// which would infinitely recurse otherwise, since it'll keep trying to parse
+// the whole span, not just the part before `..`.
+range_edge = ${ literal? }
 
-// These separate idents from each other — i.e. `foo bar and baz` will parse into
-// [`foo bar`, `and`, `baz`], where `foo bar` is presumably a function call.
-// TODO: review operators
-operator = ${ "and" | "or" | "not" | "==" | "!=" | "=" | ">" | "<" | ">=" | "<=" | "+" | "-" | "*" | "/" | "%" }
+operator = _{ operator_unary | operator_mul | operator_add | operator_compare | operator_logical }
+operator_unary = ${ "-" }
+operator_mul = ${ "*" | "/" | "%" }
+operator_add = ${ "+" | "-" }
+operator_compare = ${ "==" | "!=" | "=" | ">" | "<" | ">=" | "<=" }
+operator_logical = ${ ("and" | "or" | "not") ~ &WHITESPACE }
 
 // TODO: allow a raw s-string / f-string (but not an s-f string...)
-s_string = ${ "s" ~ PUSH(quote) ~ ( interpolate_string | ( "{" ~ expr ~ "}" ))* ~ POP }
-f_string = ${ "f" ~ PUSH(quote) ~ ( interpolate_string | ( "{" ~ expr ~ "}" ))* ~ POP }
-interpolate_string = { ( !( "\\" | PEEK | "{" ) ~ ANY )+ }
+s_string = ${ "s" ~ PUSH(quote) ~ ( interpolate_string | ( "{" ~ expr_call ~ "}" ))* ~ POP }
+f_string = ${ "f" ~ PUSH(quote) ~ ( interpolate_string | ( "{" ~ expr_call ~ "}" ))* ~ POP }
+interpolate_string = { ( !( PEEK | "{" ) ~ ANY )+ }
 
 // From https://pest.rs/book/grammars/syntax.html#the-stack-wip
 r_string = {
@@ -120,11 +131,6 @@ r_string_literal = {
         ~ ANY             
     )*
 }
-
-// For assigns, table aliases and named arguments
-named_expr = { (ident ~ ":")? ~ expr }
-named_expr_simple = { (ident ~ ":")? ~ expr_simple }
-named_term_simple = { (ident ~ ":")? ~ term_simple }
 
 interval_kind = { "microseconds" | "milliseconds" | "seconds" | "minutes" | "hours" | "days" | "weeks" | "months" | "years" }
 interval = ${ number ~ interval_kind }

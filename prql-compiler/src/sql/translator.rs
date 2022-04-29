@@ -19,15 +19,17 @@ use sqlparser::ast::{
 use sqlparser::ast::{DateTimeField, Value};
 use std::collections::HashMap;
 
-use super::ast::*;
-use super::utils::*;
 use crate::ast::JoinFilter;
+use crate::ast::*;
 use crate::error::{Error, Reason};
-use crate::semantic::{self, MaterializedFrame};
+use crate::semantic::Context;
+
+use super::materializer::MaterializationContext;
+use super::{un_group, MaterializedFrame};
 
 /// Translate a PRQL AST into a SQL string.
-pub fn translate(query: &Query) -> Result<String> {
-    let sql_query = translate_query(query)?;
+pub fn translate(query: Query, context: Context) -> Result<String> {
+    let sql_query = translate_query(query, context)?;
 
     let sql_query_string = sql_query.to_string();
 
@@ -39,35 +41,26 @@ pub fn translate(query: &Query) -> Result<String> {
     Ok(formatted)
 }
 
-pub fn translate_query(query: &Query) -> Result<sql_ast::Query> {
+pub fn translate_query(query: Query, context: Context) -> Result<sql_ast::Query> {
     // extract tables and the pipeline
-    let (tables, functions, pipelines) = separate_pipeline(query)?;
+    let tables = into_tables(query.nodes)?;
 
-    // load std lib
-    let std_lib = load_std_lib()?;
-    let functions = [std_lib, functions].concat();
-
-    // combine tables and main pipeline
-    let pipeline = pipelines.into_only()?.into();
-    let tables = [tables, vec![pipeline]].concat();
+    let mut context = MaterializationContext::from(context);
 
     // split to atomics
-    let atomics = atomic_tables_of_tables(tables)?;
-
-    // init query context
-    let (_, mut context, _) = semantic::resolve_and_materialize(functions, None)?;
+    let atomics = atomic_tables_of_tables(tables, &mut context)?;
 
     // materialize each atomic in two stages
     let mut materialized = Vec::new();
     for t in atomics {
-        let (pipeline, c, frame) = semantic::process_pipeline(t.pipeline, Some(context))?;
-        context = c;
+        let table_id = t.name.clone().and_then(|x| x.declared_at);
 
-        context.finish_table(&t.name);
+        let (pipeline, frame, c) = super::materialize(t.pipeline, context, table_id)?;
+        context = c;
 
         materialized.push(AtomicTable {
             name: t.name,
-            frame,
+            frame: Some(frame),
             pipeline,
         });
     }
@@ -99,45 +92,29 @@ pub fn translate_query(query: &Query) -> Result<sql_ast::Query> {
     Ok(main_query)
 }
 
-struct AtomicTable {
-    name: String,
-    frame: MaterializedFrame,
-    pipeline: Vec<Transform>,
+pub struct AtomicTable {
+    name: Option<TableRef>,
+    pipeline: Pipeline,
+    frame: Option<MaterializedFrame>,
 }
 
-pub fn load_std_lib() -> Result<Vec<Node>> {
-    use crate::parse;
-    let std_lib = include_str!("./stdlib.prql");
-    Ok(parse(std_lib)?.nodes)
-}
-
-fn separate_pipeline(query: &Query) -> Result<(Vec<Table>, Vec<Node>, Vec<Pipeline>)> {
+fn into_tables(nodes: Vec<Node>) -> Result<Vec<Table>> {
     let mut tables: Vec<Table> = Vec::new();
-    let mut functions: Vec<Node> = Vec::new();
-    let mut pipelines: Vec<Pipeline> = Vec::new();
-    for node in &query.nodes {
-        match node {
-            Node {
-                item: Item::Table(t),
-                ..
-            } => tables.push(t.clone()),
-            Node {
-                item: Item::FuncDef(_),
-                ..
-            } => functions.push(node.clone()),
-            Node {
-                item: Item::Pipeline(p),
-                ..
-            } => pipelines.push(p.clone()),
+    let mut pipeline: Vec<Node> = Vec::new();
+    for node in nodes {
+        match node.item {
+            Item::Table(t) => tables.push(t),
+            Item::Pipeline(p) => pipeline.extend(p.functions),
             i => bail!("Unexpected item on top level: {i:?}"),
         }
     }
-    Ok((tables, functions, pipelines))
+
+    Ok([tables, vec![pipeline.into()]].concat())
 }
 
 fn table_to_sql_cte(table: AtomicTable, dialect: &Dialect) -> Result<sql_ast::Cte> {
     let alias = sql_ast::TableAlias {
-        name: Item::Ident(table.name.clone()).try_into()?,
+        name: Item::Ident(table.name.clone().unwrap().name).try_into()?,
         columns: vec![],
     };
     Ok(sql_ast::Cte {
@@ -169,12 +146,17 @@ fn table_factor_of_table_ref(table_ref: &TableRef) -> TableFactor {
     }
 }
 
+// impl Translator for
+// fn sql_query_of_atomic_table(table: AtomicTable, dialect: &Dialect) -> Result<sql_ast::Query> {
 fn sql_query_of_atomic_table(table: AtomicTable, dialect: &Dialect) -> Result<sql_ast::Query> {
     // TODO: possibly do validation here? e.g. check there isn't more than one
     // `from`? Or do we rely on the caller for that?
 
-    let mut from = table
-        .pipeline
+    let frame = table.frame.ok_or_else(|| anyhow!("frame not provided?"))?;
+
+    let transforms = table.pipeline.into_transforms()?;
+
+    let mut from = transforms
         .iter()
         .filter_map(|t| match t {
             Transform::From(table_ref) => Some(TableWithJoins {
@@ -185,8 +167,7 @@ fn sql_query_of_atomic_table(table: AtomicTable, dialect: &Dialect) -> Result<sq
         })
         .collect::<Vec<_>>();
 
-    let joins = table
-        .pipeline
+    let joins = transforms
         .iter()
         .filter(|t| matches!(t, Transform::Join { .. }))
         .map(|t| match t {
@@ -225,16 +206,15 @@ fn sql_query_of_atomic_table(table: AtomicTable, dialect: &Dialect) -> Result<sq
     }
 
     // Split the pipeline into before & after the aggregate
-    let (before, after) = table.pipeline.split_at(
-        table
-            .pipeline
-            .iter()
-            .position(|t| matches!(t, Transform::Aggregate { .. }))
-            .unwrap_or(table.pipeline.len()),
-    );
+    let aggregate_position = transforms
+        .iter()
+        .position(|t| matches!(t, Transform::Aggregate { .. }))
+        .unwrap_or(transforms.len());
+    let (before, after) = transforms.split_at(aggregate_position);
+
     // Convert the filters in a pipeline into an Expr
     fn filter_of_pipeline(pipeline: &[Transform]) -> Result<Option<Expr>> {
-        let filters: Vec<Filter> = pipeline
+        let filters: Vec<Vec<Node>> = pipeline
             .iter()
             .filter_map(|t| match t {
                 Transform::Filter(filter) => Some(filter),
@@ -244,7 +224,7 @@ fn sql_query_of_atomic_table(table: AtomicTable, dialect: &Dialect) -> Result<sq
             .collect();
 
         Ok(if !filters.is_empty() {
-            Some((Item::Expr(Filter::combine_filters(filters).0)).try_into()?)
+            Some((Item::Expr(combine_filters(filters))).try_into()?)
         } else {
             None
         })
@@ -253,8 +233,7 @@ fn sql_query_of_atomic_table(table: AtomicTable, dialect: &Dialect) -> Result<sq
     let where_ = filter_of_pipeline(before)?;
     let having = filter_of_pipeline(after)?;
 
-    let take = table
-        .pipeline
+    let take = transforms
         .iter()
         .filter_map(|t| match t {
             Transform::Take(take) => Some(*take),
@@ -263,29 +242,35 @@ fn sql_query_of_atomic_table(table: AtomicTable, dialect: &Dialect) -> Result<sq
         .min()
         .map(expr_of_i64);
 
-    // Find the final sort (none of the others affect the result, and can be discarded).
-    let order_by = (table.frame.sort.iter())
-        .map(|sort| OrderByExpr {
-            expr: Item::Ident(sort.column.clone()).try_into().unwrap(),
-            asc: if matches!(sort.direction, SortDirection::Asc) {
-                None // default order is ASC, so there is no need to emit it
-            } else {
-                Some(false)
-            },
-            nulls_first: None,
-        })
-        .collect();
+    // If there is sort transform in the pipeline
+    let sort = transforms.iter().any(|t| matches!(t, Transform::Sort(_)));
+    let order_by = if sort {
+        // Use sorting from the frame
+        (frame.sort.iter())
+            .map(|sort| OrderByExpr {
+                expr: Item::Ident(sort.column.clone()).try_into().unwrap(),
+                asc: if matches!(sort.direction, SortDirection::Asc) {
+                    None // default order is ASC, so there is no need to emit it
+                } else {
+                    Some(false)
+                },
+                nulls_first: None,
+            })
+            .collect()
+    } else {
+        vec![]
+    };
 
-    let aggregate = table
-        .pipeline
-        .iter()
-        .find(|t| matches!(t, Transform::Aggregate { .. }));
+    let aggregate = transforms.get(aggregate_position);
+
     let group_bys: Vec<Node> = match aggregate {
-        Some(Transform::Aggregate { by, .. }) => by.clone(),
+        Some(Transform::Aggregate(select)) => select.group.clone(),
         None => vec![],
         _ => unreachable!("Expected an aggregate transformation"),
     };
-    let group_by = Node::into_list_of_nodes(group_bys).item.try_into()?;
+    let group_by = Item::List(group_bys).try_into()?;
+
+    let dialect = dialect.handler();
 
     Ok(sql_ast::Query {
         body: SetExpr::Select(Box::new(Select {
@@ -295,28 +280,30 @@ fn sql_query_of_atomic_table(table: AtomicTable, dialect: &Dialect) -> Result<sq
             } else {
                 None
             },
-            projection: (table.frame.columns.into_iter())
+            projection: (frame.columns.into_iter())
                 .map(|n| n.item.try_into())
                 .try_collect()?,
+            into: None,
             from,
-            group_by,
-            having,
-            selection: where_,
-            sort_by: vec![],
             lateral_views: vec![],
-            distribute_by: vec![],
+            selection: where_,
+            group_by,
             cluster_by: vec![],
+            distribute_by: vec![],
+            sort_by: vec![],
+            having,
         })),
         order_by,
         with: None,
         limit: if dialect.use_top() { None } else { take },
         offset: None,
         fetch: None,
+        lock: None,
     })
 }
 
 /// Convert a pipeline into a number of pipelines which can each "fit" into a SELECT.
-fn atomic_pipelines_of_pipeline(pipeline: &Pipeline) -> Result<Vec<Pipeline>> {
+fn atomic_pipelines_of_pipeline(pipeline: Pipeline) -> Result<Vec<AtomicTable>> {
     // Insert a cut, when we find transformation that out of order:
     // - joins,
     // - filters (for WHERE)
@@ -329,23 +316,27 @@ fn atomic_pipelines_of_pipeline(pipeline: &Pipeline) -> Result<Vec<Pipeline>> {
     //
     // So we loop through the Pipeline, and cut it into cte-sized pipelines,
     // which we'll then compose together.
+    let pipeline = un_group::un_group(pipeline.functions)?;
 
     let mut counts: HashMap<&str, u32> = HashMap::new();
     let mut splits = vec![0];
-    for (i, transform) in pipeline.iter().enumerate() {
-        let split = match transform.name() {
-            "join" => {
-                counts.get("filter").is_some()
-                    || counts.get("aggregate").is_some()
-                    || counts.get("sort").is_some()
-                    || counts.get("take").is_some()
+    for (i, function) in pipeline.iter().enumerate() {
+        let transform =
+            (function.item.as_transform()).ok_or_else(|| anyhow!("expected Transform"))?;
+
+        let split = match transform.as_ref() {
+            "Join" => {
+                counts.get("Filter").is_some()
+                    || counts.get("Aggregate").is_some()
+                    || counts.get("Sort").is_some()
+                    || counts.get("Take").is_some()
             }
-            "aggregate" => {
-                counts.get("aggregate").is_some()
-                    || counts.get("sort").is_some()
-                    || counts.get("take").is_some()
+            "Aggregate" => {
+                counts.get("Aggregate").is_some()
+                    || counts.get("Sort").is_some()
+                    || counts.get("Take").is_some()
             }
-            "filter" | "sort" | "take" => counts.get("take").is_some(),
+            "Filter" | "Sort" | "Take" => counts.get("Take").is_some(),
             _ => false,
         };
 
@@ -354,28 +345,30 @@ fn atomic_pipelines_of_pipeline(pipeline: &Pipeline) -> Result<Vec<Pipeline>> {
             counts.clear();
         }
 
-        *counts.entry(transform.name()).or_insert(0) += 1;
+        *counts.entry(transform.as_ref()).or_insert(0) += 1;
     }
 
     splits.push(pipeline.len());
     let ctes = (0..splits.len() - 1)
         .map(|i| pipeline[splits[i]..splits[i + 1]].to_vec())
         .filter(|x| !x.is_empty())
+        .map(|p| p.into())
         .collect();
     Ok(ctes)
 }
 
 /// Converts a series of tables into a series of atomic tables, by putting the
 /// next pipeline's `from` as the current pipelines's table name.
-fn atomic_tables_of_tables(tables: Vec<Table>) -> Result<Vec<Table>> {
+fn atomic_tables_of_tables(
+    tables: Vec<Table>,
+    context: &mut MaterializationContext,
+) -> Result<Vec<AtomicTable>> {
     let mut atomics = Vec::new();
     let mut index = 0;
-    for t in tables {
+    for table in tables {
         // split table into atomics
-        let mut t_atomics: Vec<_> = atomic_pipelines_of_pipeline(&t.pipeline)?
-            .into_iter()
-            .map(Table::from)
-            .collect();
+        let pipeline = table.pipeline.item.into_pipeline()?;
+        let mut t_atomics: Vec<_> = atomic_pipelines_of_pipeline(pipeline)?;
 
         let (last, ctes) = t_atomics
             .split_last_mut()
@@ -384,45 +377,49 @@ fn atomic_tables_of_tables(tables: Vec<Table>) -> Result<Vec<Table>> {
         // generate table names for all but last table
         let mut last_name = None;
         for cte in ctes {
-            prepend_with_from(&mut cte.pipeline, &last_name);
+            prepend_with_from(&mut cte.pipeline, last_name);
 
-            cte.name = format!("table_{index}");
+            let name = format!("table_{index}");
+            let id = context.declare_table(&name);
+
+            cte.name = Some(TableRef {
+                name,
+                alias: None,
+                declared_at: Some(id),
+            });
             index += 1;
-            last_name = Some(cte.name.clone());
+
+            last_name = cte.name.clone();
         }
 
         // use original table name
-        prepend_with_from(&mut last.pipeline, &last_name);
-        last.name = t.name;
+        prepend_with_from(&mut last.pipeline, last_name);
+        last.name = Some(TableRef {
+            name: table.name,
+            alias: None,
+            declared_at: table.id,
+        });
 
         atomics.extend(t_atomics);
     }
     Ok(atomics)
 }
 
-fn prepend_with_from(pipeline: &mut Pipeline, last_name: &Option<String>) {
-    if let Some(last_name) = last_name {
-        let from = Transform::From(TableRef {
-            name: last_name.clone(),
-            alias: None,
-        });
-        pipeline.insert(0, from);
+fn prepend_with_from(pipeline: &mut Pipeline, table: Option<TableRef>) {
+    if let Some(table) = table {
+        let from = Transform::From(table);
+        pipeline.functions.insert(0, Item::Transform(from).into());
     }
 }
 
 /// Combines filters by putting them in parentheses and then joining them with `and`.
-// Feels hacky — maybe this should be operation on a different level.
-impl Filter {
-    #[allow(unstable_name_collisions)] // Same behavior as the std lib; we can remove this + itertools when that's released.
-    fn combine_filters(filters: Vec<Filter>) -> Filter {
-        Filter(
-            filters
-                .into_iter()
-                .map(|f| Item::Expr(f.0).into())
-                .intersperse(Item::Raw("and".to_owned()).into())
-                .collect(),
-        )
-    }
+#[allow(unstable_name_collisions)] // Same behavior as the std lib; we can remove this + itertools when that's released.
+fn combine_filters(filters: Vec<Vec<Node>>) -> Vec<Node> {
+    filters
+        .into_iter()
+        .map(|f| Item::Expr(f).into())
+        .intersperse(Item::Raw("and".to_owned()).into())
+        .collect()
 }
 
 impl TryFrom<Item> for SelectItem {
@@ -430,13 +427,13 @@ impl TryFrom<Item> for SelectItem {
     fn try_from(item: Item) -> Result<Self> {
         Ok(match item {
             Item::Expr(_) | Item::SString(_) | Item::FString(_) | Item::Ident(_) | Item::Raw(_) => {
-                SelectItem::UnnamedExpr(TryInto::<Expr>::try_into(item)?)
+                SelectItem::UnnamedExpr(Expr::try_from(item)?)
             }
             Item::NamedExpr(named) => SelectItem::ExprWithAlias {
                 alias: sql_ast::Ident::new(named.name),
                 expr: named.expr.item.try_into()?,
             },
-            _ => bail!("Can't convert to SelectItem at the moment; {:?}", item),
+            _ => bail!("Can't convert to SelectItem; {:?}", item),
         })
     }
 }
@@ -546,7 +543,7 @@ impl TryFrom<Item> for Expr {
                     fractional_seconds_precision: None,
                 })
             }
-            _ => bail!("Can't convert to Expr at the moment; {item:?}"),
+            _ => bail!("Can't convert to Expr; {item:?}"),
         })
     }
 }
@@ -554,15 +551,8 @@ impl TryFrom<Item> for Vec<Expr> {
     type Error = anyhow::Error;
     fn try_from(item: Item) -> Result<Self> {
         match item {
-            Item::List(_) => Ok(Into::<Node>::into(item)
-                // TODO: implement for non-single item ListItems
-                .into_inner_list_nodes()?
-                .into_iter()
-                .map(|x| x.item.try_into())
-                .try_collect()?),
-            _ => Err(anyhow!(
-                "Can't convert to Vec<Expr> at the moment; {item:?}"
-            )),
+            Item::List(nodes) => Ok(nodes.into_iter().map(|x| x.item.try_into()).try_collect()?),
+            _ => Err(anyhow!("Can't convert to Vec<Expr>; {item:?}")),
         }
     }
 }
@@ -572,15 +562,25 @@ impl TryFrom<Item> for sql_ast::Ident {
         match item {
             Item::Ident(ident) => Ok(sql_ast::Ident::new(ident)),
             Item::Raw(ident) => Ok(sql_ast::Ident::new(ident)),
-            _ => Err(anyhow!("Can't convert to Ident at the moment; {item:?}")),
+            _ => Err(anyhow!("Can't convert to Ident; {item:?}")),
         }
     }
 }
-impl From<Pipeline> for Table {
-    fn from(pipeline: Pipeline) -> Self {
+impl From<Vec<Node>> for Table {
+    fn from(functions: Vec<Node>) -> Self {
         Table {
+            id: None,
             name: String::default(),
-            pipeline,
+            pipeline: Box::new(Item::Pipeline(functions.into()).into()),
+        }
+    }
+}
+impl From<Vec<Node>> for AtomicTable {
+    fn from(functions: Vec<Node>) -> Self {
+        AtomicTable {
+            name: None,
+            pipeline: functions.into(),
+            frame: None,
         }
     }
 }
@@ -588,7 +588,7 @@ impl From<Pipeline> for Table {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::parser::parse;
+    use crate::{parser::parse, resolve, resolve_and_translate, sql::load_std_lib};
     use insta::{
         assert_debug_snapshot, assert_display_snapshot, assert_snapshot, assert_yaml_snapshot,
     };
@@ -632,7 +632,7 @@ SString:
         )
         .unwrap();
 
-        let sql = translate(&query).unwrap();
+        let sql = resolve_and_translate(query).unwrap();
         assert_display_snapshot!(sql,
             @r###"
         SELECT
@@ -653,8 +653,8 @@ SString:
     #[test]
     fn test_try_from_list_to_vec_expr() -> Result<()> {
         let item = Item::List(vec![
-            ListItem(Item::Ident("a".to_owned()).into()),
-            ListItem(Item::Ident("b".to_owned()).into()),
+            Item::Ident("a".to_owned()).into(),
+            Item::Ident("b".to_owned()).into(),
         ]);
         let expr: Vec<Expr> = item.try_into()?;
         assert_debug_snapshot!(expr, @r###"
@@ -676,125 +676,67 @@ SString:
         Ok(())
     }
 
+    fn parse_and_resolve(prql: &str) -> Result<Pipeline> {
+        let std_lib = load_std_lib()?;
+        let (_, context) = resolve(std_lib, None)?;
+
+        let (mut nodes, _) = resolve(parse(prql)?.nodes, Some(context))?;
+        let pipeline = nodes.remove(nodes.len() - 1);
+        let pipeline = pipeline.item.into_pipeline()?;
+        Ok(pipeline)
+    }
+
     #[test]
-    fn test_ctes_of_pipeline_1() -> Result<()> {
+    fn test_ctes_of_pipeline() -> Result<()> {
         // One aggregate, take at the end
-        let yaml: &str = r###"
-- From:
-    name: employees
-    alias: ~
-- Filter:
-    - Ident: country
-    - Raw: "="
-    - String: USA
-- Aggregate:
-    by:
-    - Ident: title
-    - Ident: country
-    select:
-    - Ident: average
-    - Ident: salary
-    assigns: []
-- Sort:
-    - column:
-        Ident: title
-      direction: Asc
-- Take: 20
+        let prql: &str = r###"
+        from employees
+        filter country = "USA"
+        aggregate [sal: average salary]
+        sort sal
+        take 20
         "###;
 
-        let pipeline: Pipeline = from_str(yaml)?;
-        let queries = atomic_pipelines_of_pipeline(&pipeline)?;
+        let pipeline = parse_and_resolve(prql)?;
+        let queries = atomic_pipelines_of_pipeline(pipeline)?;
         assert_eq!(queries.len(), 1);
-        Ok(())
-    }
 
-    #[test]
-    fn test_ctes_of_pipeline_2() -> Result<()> {
         // One aggregate, but take at the top
-        let yaml: &str = r###"
-    - From:
-        name: employees
-        alias: ~
-    - Take: 20
-    - Filter:
-        - Ident: country
-        - Raw: "="
-        - String: USA
-    - Aggregate:
-        by:
-        - Ident: title
-        - Ident: country
-        select:
-          - Ident: average
-          - Ident: salary
-        assigns: []
-    - Sort:
-        - column:
-            Ident: title
-          direction: Asc
+        let prql: &str = r###"
+        from employees
+        take 20
+        filter country = "USA"
+        aggregate [sal: average salary]
+        sort sal
         "###;
 
-        let pipeline: Pipeline = from_str(yaml)?;
-        let queries = atomic_pipelines_of_pipeline(&pipeline)?;
+        let pipeline = parse_and_resolve(prql)?;
+        let queries = atomic_pipelines_of_pipeline(pipeline)?;
         assert_eq!(queries.len(), 2);
-        Ok(())
-    }
 
-    #[test]
-    fn test_ctes_of_pipeline_3() -> Result<()> {
         // A take, then two aggregates
-        let yaml: &str = r###"
-    - From:
-        name: employees
-        alias: ~
-    - Take: 20
-    - Filter:
-        - Ident: country
-        - Raw: "="
-        - String: USA
-    - Aggregate:
-        by:
-        - Ident: title
-        - Ident: country
-        select:
-        - Ident: average
-        - Ident: salary
-        assigns: []
-    - Aggregate:
-        by:
-        - Ident: title
-        - Ident: country
-        select:
-        - Ident: average
-        - Ident: salary
-        assigns: []
-    - Sort:
-        - column:
-            Ident: sum_gross_cost
-          direction: Asc
-
+        let prql: &str = r###"
+        from employees
+        take 20
+        filter country = "USA"
+        aggregate [sal: average salary]
+        aggregate [sal: average sal]
+        sort sal
         "###;
 
-        let pipeline: Pipeline = from_str(yaml)?;
-        let queries = atomic_pipelines_of_pipeline(&pipeline)?;
+        let pipeline = parse_and_resolve(prql)?;
+        let queries = atomic_pipelines_of_pipeline(pipeline)?;
         assert_eq!(queries.len(), 3);
-        Ok(())
-    }
 
-    #[test]
-    fn test_ctes_of_pipeline_4() -> Result<()> {
         // A take, then a select
-        let yaml: &str = r###"
-    - From:
-        name: employees
-        alias: ~
-    - Take: 20
-    - Select:
-        - Ident: first_name
+        let prql: &str = r###"
+        from employees
+        take 20
+        select first_name
         "###;
 
-        let pipeline: Pipeline = from_str(yaml)?;
-        let queries = atomic_pipelines_of_pipeline(&pipeline)?;
+        let pipeline = parse_and_resolve(prql)?;
+        let queries = atomic_pipelines_of_pipeline(pipeline)?;
         assert_eq!(queries.len(), 1);
         Ok(())
     }
@@ -805,15 +747,15 @@ SString:
             r###"
         from employees
         filter country = "USA"
-        aggregate by:[title, country] [
-            average salary
-        ]
+        group [title, country] (
+            aggregate [average salary]
+        )
         sort title
         take 20
         "###,
         )?;
 
-        let sql = translate(&query)?;
+        let sql = resolve_and_translate(query)?;
         assert_display_snapshot!(sql,
             @r###"
         SELECT
@@ -838,31 +780,14 @@ SString:
 
     #[test]
     fn test_sql_of_ast_2() -> Result<()> {
-        let query: Query = from_str(
+        let query: Query = parse(
             r###"
-            nodes:
-            - Pipeline:
-                - From:
-                    name: employees
-                    alias: ~
-                - Aggregate:
-                    by: []
-                    select:
-                    - NamedExpr:
-                        name: sum_salary
-                        expr:
-                            SString:
-                            - String: count(
-                            - Expr:
-                                Ident: salary
-                            - String: )
-                - Filter:
-                    - Ident: sum_salary
-                    - Raw: ">"
-                    - Raw: "100"
+        from employees
+        aggregate sum_salary: s"count({salary})"
+        filter sum_salary > 100
         "###,
         )?;
-        let sql = translate(&query)?;
+        let sql = resolve_and_translate(query)?;
         assert_snapshot!(sql, @r###"
         SELECT
           count(salary) AS sum_salary
@@ -890,7 +815,7 @@ SString:
     ]
     "#,
         )?;
-        let sql = translate(&query)?;
+        let sql = resolve_and_translate(query)?;
         assert_display_snapshot!(sql,
             @r###"
         SELECT
@@ -911,25 +836,27 @@ from employees
 filter country = "USA"                           # Each line transforms the previous result.
 derive [                                         # This adds columns / variables.
   gross_salary: salary + payroll_tax,
-  gross_cost:   gross_salary + benefits_cost    # Variables can use other variables.
+  gross_cost:   gross_salary + benefits_cost     # Variables can use other variables.
 ]
 filter gross_cost > 0
-aggregate by:[title, country] [                  # `by` are the columns to group by.
-    average salary,                              # These are aggregation calcs run on each group.
-    sum     salary,
-    average gross_salary,
-    sum     gross_salary,
-    average gross_cost,
-    sum_gross_cost: sum gross_cost,
-    ct: count,
-]
+group [title, country] (
+    aggregate  [                                 # `by` are the columns to group by.
+        average salary,                          # These are aggregation calcs run on each group.
+        sum     salary,
+        average gross_salary,
+        sum     gross_salary,
+        average gross_cost,
+        sum_gross_cost: sum gross_cost,
+        ct: count,
+    ]
+)
 sort sum_gross_cost
 filter ct > 200
 take 20
 "#,
         )?;
 
-        let sql = translate(&query)?;
+        let sql = resolve_and_translate(query)?;
         assert_display_snapshot!(sql);
         Ok(())
     }
@@ -946,16 +873,18 @@ take 20
         )
         table average_salaries = (
             from salaries
-            aggregate by:country [
-                average_country_salary: average salary
-            ]
+            group country (
+                aggregate [
+                    average_country_salary: average salary
+                ]
+            )
         )
         from newest_employees
         join average_salaries [country]
         select [name, salary, average_country_salary]
-    "#,
+        "#,
         )?;
-        let sql = translate(&query)?;
+        let sql = resolve_and_translate(query)?;
         assert_display_snapshot!(sql,
             @r###"
         WITH newest_employees AS (
@@ -964,7 +893,7 @@ take 20
           FROM
             employees
           ORDER BY
-            employees.tenure
+            tenure
           LIMIT
             50
         ), average_salaries AS (
@@ -978,8 +907,8 @@ take 20
         )
         SELECT
           name,
-          salary,
-          average_country_salary
+          average_salaries.salary,
+          average_salaries.average_country_salary
         FROM
           newest_employees
           JOIN average_salaries USING(country)
@@ -997,17 +926,21 @@ take 20
             from employees
             take 20
             filter country = "USA"
-            aggregate by:[title, country] [
-                average salary
-            ]
-            aggregate by:[title, country] [
-                sum_gross_cost: average salary
-            ]
+            group [title, country] (
+                aggregate [
+                    salary: average salary
+                ]
+            )
+            group [title, country] (
+                aggregate [
+                    sum_gross_cost: average salary
+                ]
+            )
             sort sum_gross_cost
         "###,
         )?;
 
-        assert_display_snapshot!((translate(&query)?), @r###"
+        assert_display_snapshot!((resolve_and_translate(query)?), @r###"
         WITH table_0 AS (
           SELECT
             employees.*
@@ -1019,7 +952,7 @@ take 20
           SELECT
             title,
             country,
-            AVG(salary)
+            AVG(salary) AS salary
           FROM
             table_0
           WHERE
@@ -1061,7 +994,7 @@ take 20
 "###,
         )?;
 
-        assert_display_snapshot!((translate(&query)?), @r###"
+        assert_display_snapshot!((resolve_and_translate(query)?), @r###"
         WITH table_0 AS (
           SELECT
             employees.*
@@ -1096,7 +1029,7 @@ take 20
         join s:salaries [emp_no]
         select [employees.emp_no, d.name, s.salary]
         "###;
-        let result = parse(prql).and_then(|x| translate(&x)).unwrap();
+        let result = parse(prql).and_then(resolve_and_translate).unwrap();
         assert_display_snapshot!(result, @r###"
         WITH table_0 AS (
           SELECT
@@ -1124,7 +1057,7 @@ take 20
         join salaries [emp_no]
         select [e.*, salary]
         "###;
-        let result = parse(prql).and_then(|x| translate(&x)).unwrap();
+        let result = parse(prql).and_then(resolve_and_translate).unwrap();
         assert_display_snapshot!(result, @r###"
         WITH table_0 AS (
           SELECT
@@ -1150,14 +1083,16 @@ take 20
             r###"
             from e: employees
             join salaries side:left [salaries.emp_no = e.emp_no]
-            aggregate by:[e.emp_no] [
-              emp_salary: average salary
-            ]
+            group [e.emp_no] (
+                aggregate [
+                    emp_salary: average salary
+                ]
+            )
             select [e.emp_no, emp_salary]
         "###,
         )?;
 
-        assert_display_snapshot!((translate(&query)?), @r###"
+        assert_display_snapshot!((resolve_and_translate(query)?), @r###"
         SELECT
           e.emp_no,
           AVG(salary) AS emp_salary
@@ -1182,7 +1117,7 @@ take 20
         "###,
         )?;
 
-        assert_display_snapshot!((translate(&query)?), @r###"
+        assert_display_snapshot!((resolve_and_translate(query)?), @r###"
         SELECT
           FirstName
         FROM
@@ -1201,7 +1136,7 @@ take 20
         "###,
         )?;
 
-        assert_display_snapshot!((translate(&query)?), @r###"
+        assert_display_snapshot!((resolve_and_translate(query)?), @r###"
         SELECT
           TOP (3) FirstName
         FROM
@@ -1220,15 +1155,15 @@ take 20
         "###,
         )?;
 
-        assert_display_snapshot!((translate(&query)?), @r###"
+        assert_display_snapshot!((resolve_and_translate(query)?), @r###"
         SELECT
           Employees.*
         FROM
           Employees
         ORDER BY
-          Employees.age,
-          Employees.last_name DESC,
-          Employees.first_name
+          age,
+          last_name DESC,
+          first_name
         "###);
 
         Ok(())
@@ -1243,7 +1178,7 @@ take 20
         "###,
         )?;
 
-        assert_display_snapshot!((translate(&query)?), @r###"
+        assert_display_snapshot!((resolve_and_translate(query)?), @r###"
         SELECT
           employees.*
         FROM
@@ -1260,7 +1195,7 @@ take 20
         "###,
         )?;
 
-        assert!(translate(&query).is_err());
+        assert!(resolve_and_translate(query).is_err());
 
         Ok(())
     }
@@ -1274,7 +1209,7 @@ take 20
         "###,
         )?;
 
-        assert_display_snapshot!((translate(&query)?), @r###"
+        assert_display_snapshot!((resolve_and_translate(query)?), @r###"
         SELECT
           projects.*,
           start + INTERVAL '10' DAY AS first_check_in

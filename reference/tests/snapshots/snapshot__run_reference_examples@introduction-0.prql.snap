@@ -8,8 +8,8 @@ WITH table_0 AS (
     title,
     country_code,
     AVG(salary),
-    SUM(salary),
     AVG(salary + payroll_tax),
+    SUM(salary),
     SUM(salary + payroll_tax),
     AVG(salary + payroll_tax + benefits_cost),
     SUM(salary + payroll_tax + benefits_cost) AS sum_gross_cost,
@@ -33,7 +33,7 @@ SELECT
   table_0.*,
   countries.*,
   country_code,
-  true AS always_true,
+  countries.true AS always_true,
   version() AS db_version
 FROM
   table_0

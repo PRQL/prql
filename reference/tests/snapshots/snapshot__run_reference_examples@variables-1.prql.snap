@@ -13,12 +13,12 @@ WITH table_0 AS (
     emp_no
 )
 SELECT
-  AVG(emp_salary) / 1000 AS salary_k,
-  AVG(emp_salary) / 1000 * 1000 AS salary
+  AVG(table_0.emp_salary) / 1000 AS salary_k,
+  salary_k * 1000 AS salary
 FROM
   table_0
   JOIN titles USING(emp_no)
 GROUP BY
-  title
+  titles.title
 LIMIT
   10

@@ -17,8 +17,8 @@ WITH table_0 AS (
     dept_emp.dept_no
 )
 SELECT
-  dept_no,
-  salary,
+  table_0.dept_no,
+  table_0.salary,
   employees.gender,
   titles.title
 FROM
