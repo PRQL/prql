@@ -1,5 +1,5 @@
 name: release-brew
-on: push
+on: release
 jobs:
   dispatch:
     runs-on: ubuntu-latest
