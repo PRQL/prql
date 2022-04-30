@@ -353,7 +353,7 @@ Canada
         )?;
         assert_yaml_snapshot!(multi_double, @r###"
         ---
-        String: " \n''\nCanada\n\" \n\n"
+        String: "\n''\nCanada\n\" \n\n"
         "###);
 
         let multi_single = ast_of_string(
