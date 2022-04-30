@@ -10,8 +10,9 @@ on:
     # label, which we then use to trigger a `test-all` run.
     types: [opened, reopened, synchronize, labeled]
   # While most of these tests are covered by `test-all`, we need to build the cache.
-  branches:
-    - main
+  push:
+    branches:
+      - main
 
 concurrency:
   # This adds `job` to the key so when running full tests, we don't cancel the
