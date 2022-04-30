@@ -54,13 +54,13 @@ impl Frame {
                 self.columns.push(FrameColumn::All(table_id));
             }
 
-            Transform::Select(select) => {
+            Transform::Select(assigns) => {
                 self.columns.clear();
 
-                self.apply_assigns(&select.assigns);
+                self.apply_assigns(assigns);
             }
-            Transform::Derive(select) => {
-                self.apply_assigns(&select.assigns);
+            Transform::Derive(assigns) => {
+                self.apply_assigns(assigns);
             }
             Transform::Group { pipeline, .. } => {
                 let pipeline = pipeline.item.as_pipeline().unwrap();
@@ -68,14 +68,23 @@ impl Frame {
                     self.apply_transform(transform)?;
                 }
             }
-            Transform::Aggregate(select) => {
+            Transform::Aggregate { assigns, by } => {
+                let old_columns = self.columns.clone();
+
                 self.columns.clear();
 
-                for by in &select.group {
-                    self.push_column(None, by.declared_at.unwrap());
+                for b in by {
+                    let id = b.declared_at.unwrap();
+                    let col = old_columns.iter().find(|c| c == &&id);
+                    let name = col.and_then(|c| match c {
+                        FrameColumn::Named(n, _) => Some(n.clone()),
+                        _ => None,
+                    });
+
+                    self.push_column(name, id);
                 }
 
-                self.apply_assigns(&select.assigns);
+                self.apply_assigns(assigns);
             }
             Transform::Join { with, filter, .. } => {
                 let table_id = with
@@ -136,7 +145,7 @@ impl Frame {
     }
 }
 
-fn extract_sorts(sort: &[ColumnSort]) -> Result<Vec<ColumnSort<usize>>> {
+pub(super) fn extract_sorts(sort: &[ColumnSort]) -> Result<Vec<ColumnSort<usize>>> {
     sort.iter()
         .map(|s| {
             Ok(ColumnSort {

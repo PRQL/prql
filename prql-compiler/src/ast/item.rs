@@ -28,6 +28,7 @@ pub enum Item {
     SString(Vec<InterpolateItem>),
     FString(Vec<InterpolateItem>),
     Interval(Interval),
+    Windowed(Windowed),
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
@@ -44,6 +45,23 @@ pub struct FuncCall {
     pub named_args: HashMap<Ident, Box<Node>>,
 }
 
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+pub struct Windowed {
+    pub expr: Box<Node>,
+    pub group: Vec<Node>,
+    pub sort: Vec<ColumnSort<Node>>,
+    // pub frame: Vec<Node>,
+}
+
+impl Windowed {
+    pub fn new(node: Node) -> Self {
+        Windowed {
+            expr: Box::new(node),
+            group: vec![],
+            sort: vec![],
+        }
+    }
+}
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Pipeline {
     pub value: Option<Box<Node>>,
@@ -219,6 +237,9 @@ impl Display for Item {
             }
             Item::Interval(i) => {
                 write!(f, "{}{}", i.n, i.unit)?;
+            }
+            Item::Windowed(w) => {
+                write!(f, "{:?}", w.expr)?;
             }
         }
         Ok(())

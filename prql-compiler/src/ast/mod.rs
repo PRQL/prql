@@ -33,6 +33,12 @@ pub struct Node {
 }
 
 impl Node {
+    pub fn new_ident<S: ToString>(name: S, declared_at: usize) -> Node {
+        let mut node: Node = Item::Ident(name.to_string()).into();
+        node.declared_at = Some(declared_at);
+        node
+    }
+
     /// Return an error if this is named expression.
     pub fn discard_name(self) -> Result<Node, Error> {
         // TODO: replace this function with a prior type checking
