@@ -343,10 +343,10 @@ mod test {
         assert_eq!(escaped_quotes.item.as_string().unwrap(), r#" Canada \"#);
 
         let multi_double = ast_of_string(
-            r#"""" 
+            r#""""
 ''
 Canada
-" 
+"
 
 """"#,
             Rule::string,
@@ -359,7 +359,7 @@ Canada
         let multi_single = ast_of_string(
             r#"'''
 Canada
-" 
+"
 """
 
 '''"#,
