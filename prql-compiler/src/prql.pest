@@ -72,7 +72,7 @@ expr_add = !{ expr_mul ~ (operator_add ~ expr_mul)* }
 expr_mul = !{ term ~ (operator_mul ~ term)* }
 
 term = _{ ( s_string | f_string | ident | nested_expr | nested_pipeline | list | range | literal ) }
-literal = _{ interval | number | string_literal }
+literal = _{ interval | number | string}
 list = { "[" ~ (NEWLINE* ~ named_expr_call ~ ("," ~ NEWLINE* ~ named_expr_call )* ~ ","?)? ~ NEWLINE* ~ "]" }
 nested_expr = _{ "(" ~ expr_call ~ ")" }
 nested_pipeline = { "(" ~ expr_call? ~ pipe ~ pipeline ~ NEWLINE* ~ ")" }
@@ -82,9 +82,9 @@ nested_pipeline = { "(" ~ expr_call? ~ pipe ~ pipeline ~ NEWLINE* ~ ")" }
 // https://pest.rs/book/examples/rust/literals.html
 
 // We need to have a non-silent rule which contains the quotes
-// — `string_literal` in this case — because of
+// — `string` in this case — because of
 // https://github.com/pest-parser/pest/issues/583. Then when converting to AST,
-// we only keep the `string_inner` and discard the `string_literal` given it contains
+// we only keep the `string_inner` and discard the `string` given it contains
 // the quotes.
 //
 // TODO: I'm still a bit unclear how preceeding and trailing spaces are working
@@ -93,9 +93,11 @@ nested_pipeline = { "(" ~ expr_call? ~ pipe ~ pipeline ~ NEWLINE* ~ ")" }
 // atomic operator. We have some rudimentary tests for these.
 
 quote = _{ "\"" | "'" }
+multi_quote = _{ "\""{3,} | "'"{3,} }
 // PEEK refers to the opening quote; either `"` or `'`.
 string_inner = { ( !( PEEK ) ~ ANY )+ }
-string_literal = ${ PUSH(quote) ~ string_inner ~ POP }
+// Either > 3 quotes, or just one. Currently both of those can be multiline.
+string= ${ ( PUSH(multi_quote) | PUSH(quote) ) ~ string_inner ~ POP }
 
 number = ${ ( ASCII_DIGIT )+ ~ ("." ~ ( ASCII_DIGIT )+)? }
 
@@ -112,9 +114,10 @@ operator_add = ${ "+" | "-" }
 operator_compare = ${ "==" | "!=" | "=" | ">" | "<" | ">=" | "<=" }
 operator_logical = ${ ("and" | "or" | "not") ~ &WHITESPACE }
 
-s_string = ${ "s" ~ PUSH(quote) ~ ( interpolate_string | ( "{" ~ expr_call ~ "}" ))* ~ POP }
-f_string = ${ "f" ~ PUSH(quote) ~ ( interpolate_string | ( "{" ~ expr_call ~ "}" ))* ~ POP }
-interpolate_string = { ( !( PEEK | "{" ) ~ ANY )+ }
+// TODO: allow a raw s-string / f-string (but not an s-f string...)
+s_string = ${ "s" ~ PUSH(quote) ~ ( interpolate_string_inner | ( "{" ~ expr_call ~ "}" ))* ~ POP }
+f_string = ${ "f" ~ PUSH(quote) ~ ( interpolate_string_inner | ( "{" ~ expr_call ~ "}" ))* ~ POP }
+interpolate_string_inner = { ( !( PEEK | "{" ) ~ ANY )+ }
 
 interval_kind = { "microseconds" | "milliseconds" | "seconds" | "minutes" | "hours" | "days" | "weeks" | "months" | "years" }
 interval = ${ number ~ interval_kind }

@@ -1,6 +1,6 @@
 ---
 source: prql-compiler/src/parser.rs
-expression: "parse_tree_of_str(r#\"\n    from employees\n    filter country = \"USA\"\n    \"#.trim(),\n                  Rule::pipeline)?"
+expression: "parse_tree_of_str(r#\"\n    from employees\n    filter country = \"USA\"\n    \"#.trim(),\n        Rule::pipeline)?"
 ---
 [
     Pair {
@@ -185,7 +185,7 @@ expression: "parse_tree_of_str(r#\"\n    from employees\n    filter country = \"
                                                         },
                                                         inner: [
                                                             Pair {
-                                                                rule: string_literal,
+                                                                rule: string,
                                                                 span: Span {
                                                                     str: "\"USA\"",
                                                                     start: 36,

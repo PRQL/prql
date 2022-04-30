@@ -1,0 +1,7 @@
+---
+source: reference/tests/snapshot.rs
+expression: sql
+input_file: reference/tests/examples/language-features/strings-3.prql
+---
+SELECT
+  'I said "hello world"!' AS x

@@ -170,7 +170,7 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
                     })
                 }
                 Rule::ident => Item::Ident(pair.as_str().to_string()),
-                Rule::string_literal => Item::String(
+                Rule::string => Item::String(
                     // Put the string_inner (which doesn't have quotes) into the
                     // String item.
                     pair.into_inner().into_only()?.as_str().to_string(),
@@ -253,7 +253,7 @@ fn ast_of_interpolate_items(pair: Pair<Rule>) -> Result<Vec<InterpolateItem>> {
     pair.into_inner()
         .map(|x| {
             Ok(match x.as_rule() {
-                Rule::interpolate_string => InterpolateItem::String(x.as_str().to_string()),
+                Rule::interpolate_string_inner => InterpolateItem::String(x.as_str().to_string()),
                 _ => InterpolateItem::Expr(Box::new(
                     ast_of_parse_tree(x.into_inner())?.into_expr().into(),
                 )),
@@ -275,10 +275,10 @@ mod test {
 
     #[test]
     fn test_parse_string() -> Result<()> {
-        assert_debug_snapshot!(parse_tree_of_str(r#"" U S A ""#, Rule::string_literal)?, @r###"
+        assert_debug_snapshot!(parse_tree_of_str(r#"" U S A ""#, Rule::string)?, @r###"
         [
             Pair {
-                rule: string_literal,
+                rule: string,
                 span: Span {
                     str: "\" U S A \"",
                     start: 0,
@@ -298,32 +298,32 @@ mod test {
             },
         ]
         "###);
-        let double_quoted_ast = ast_of_string(r#"" U S A ""#, Rule::string_literal)?;
+        let double_quoted_ast = ast_of_string(r#"" U S A ""#, Rule::string)?;
         assert_yaml_snapshot!(double_quoted_ast, @r###"
         ---
         String: " U S A "
         "###);
 
-        let single_quoted_ast = ast_of_string(r#"' U S A '"#, Rule::string_literal)?;
+        let single_quoted_ast = ast_of_string(r#"' U S A '"#, Rule::string)?;
         assert_eq!(single_quoted_ast, double_quoted_ast);
 
         // Single quotes within double quotes should produce a string containing
         // the single quotes (and vice versa).
-        assert_yaml_snapshot!(ast_of_string(r#""' U S A '""#, Rule::string_literal)? , @r###"
+        assert_yaml_snapshot!(ast_of_string(r#""' U S A '""#, Rule::string)? , @r###"
         ---
         String: "' U S A '"
         "###);
-        assert_yaml_snapshot!(ast_of_string(r#"'" U S A "'"#, Rule::string_literal)? , @r###"
+        assert_yaml_snapshot!(ast_of_string(r#"'" U S A "'"#, Rule::string)? , @r###"
         ---
         String: "\" U S A \""
         "###);
 
-        assert!(ast_of_string(r#"" U S A"#, Rule::string_literal).is_err());
-        assert!(ast_of_string(r#"" U S A '"#, Rule::string_literal).is_err());
+        assert!(ast_of_string(r#"" U S A"#, Rule::string).is_err());
+        assert!(ast_of_string(r#"" U S A '"#, Rule::string).is_err());
 
         // Escapes get passed through (the insta snapshot has them escaped I
         // think, which isn't that clear, so repeated below).
-        let escaped_string = ast_of_string(r#"" \U S A ""#, Rule::string_literal)?;
+        let escaped_string = ast_of_string(r#"" \U S A ""#, Rule::string)?;
         assert_yaml_snapshot!(escaped_string, @r###"
         ---
         String: " \\U S A "
@@ -332,15 +332,43 @@ mod test {
 
         // Currently we don't allow escaping closing quotes — because it's not
         // trivial to do in pest, and I'm not sure it's a great idea either — we
-        // should arguably encourage r-strings. (Though no objection if someone
-        // wants to implement it, this test is recording current behavior rather
-        // than maintaining a contract).
-        let escaped_quotes = ast_of_string(r#"" Canada \""#, Rule::string_literal)?;
+        // should arguably encourage multiline-strings. (Though no objection if
+        // someone wants to implement it, this test is recording current
+        // behavior rather than maintaining a contract).
+        let escaped_quotes = ast_of_string(r#"" Canada \""#, Rule::string)?;
         assert_yaml_snapshot!(escaped_quotes, @r###"
         ---
         String: " Canada \\"
         "###);
         assert_eq!(escaped_quotes.item.as_string().unwrap(), r#" Canada \"#);
+
+        let multi_double = ast_of_string(
+            r#""""
+''
+Canada
+"
+
+""""#,
+            Rule::string,
+        )?;
+        assert_yaml_snapshot!(multi_double, @r###"
+        ---
+        String: "\n''\nCanada\n\"\n\n"
+        "###);
+
+        let multi_single = ast_of_string(
+            r#"'''
+Canada
+"
+"""
+
+'''"#,
+            Rule::string,
+        )?;
+        assert_yaml_snapshot!(multi_single, @r###"
+        ---
+        String: "\nCanada\n\"\n\"\"\"\n\n"
+        "###);
 
         Ok(())
     }
@@ -1377,5 +1405,28 @@ select [
                                       unit: years
                     named_args: {}
         "###);
+    }
+
+    #[test]
+    fn test_multiline_string() {
+        assert_yaml_snapshot!(parse(r###"
+        derive x: r#"r-string test"#
+        "###).unwrap(), @r###"
+        ---
+        version: ~
+        dialect: Generic
+        nodes:
+          - Pipeline:
+              value: ~
+              functions:
+                - FuncCall:
+                    name: derive
+                    args:
+                      - NamedExpr:
+                          name: x
+                          expr:
+                            Ident: r
+                    named_args: {}
+        "### )
     }
 }

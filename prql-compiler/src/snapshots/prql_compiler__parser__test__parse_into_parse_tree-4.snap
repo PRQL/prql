@@ -107,7 +107,7 @@ expression: "parse_tree_of_str(r#\"    filter country = \"USA\"\"#, Rule::pipeli
                                                         },
                                                         inner: [
                                                             Pair {
-                                                                rule: string_literal,
+                                                                rule: string,
                                                                 span: Span {
                                                                     str: "\"USA\"",
                                                                     start: 21,
