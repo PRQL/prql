@@ -74,7 +74,7 @@ expression: "parse_tree_of_str(r#\"country = \"USA\"\"#, Rule::expr)?"
                                 },
                                 inner: [
                                     Pair {
-                                        rule: string_literal,
+                                        rule: string,
                                         span: Span {
                                             str: "\"USA\"",
                                             start: 10,

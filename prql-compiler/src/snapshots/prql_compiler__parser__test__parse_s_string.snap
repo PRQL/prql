@@ -44,7 +44,7 @@ expression: "parse_tree_of_str(r#\"s\"SUM({col})\"\"#, Rule::expr_call)?"
                                         },
                                         inner: [
                                             Pair {
-                                                rule: interpolate_string,
+                                                rule: interpolate_string_inner,
                                                 span: Span {
                                                     str: "SUM(",
                                                     start: 2,
@@ -102,7 +102,7 @@ expression: "parse_tree_of_str(r#\"s\"SUM({col})\"\"#, Rule::expr_call)?"
                                                 ],
                                             },
                                             Pair {
-                                                rule: interpolate_string,
+                                                rule: interpolate_string_inner,
                                                 span: Span {
                                                     str: ")",
                                                     start: 11,
