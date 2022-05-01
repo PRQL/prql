@@ -1150,7 +1150,7 @@ take 20
         assert_yaml_snapshot!(parse(r#"
         from mytable
         filter [
-          first_name == $1,  
+          first_name == $1,
           last_name == $2.name
         ]
         "#)?, @r###"
