@@ -15,14 +15,14 @@ Let's get started with an example:
 
 ```prql
 from employees
-filter country_code = "USA"                  # Each line transforms the previous result.
-derive [                                     # This adds columns / variables.
+filter country_code = "USA"    # Each line transforms the previous result.
+derive [                       # This adds columns / variables.
   gross_salary: salary + payroll_tax,
-  gross_cost:  gross_salary + benefits_cost  # Variables can use other variables.
+  gross_cost: gross_salary + benefits_cost  # Variables can use other variables.
 ]
 filter gross_cost > 0
-group [title, country_code] (                # For each group use a nested pipeline
-  aggregate [                                # Aggregate each group to a single row
+group [title, country_code] (  # For each group use a nested pipeline
+  aggregate [                  # Aggregate each group to a single row
     average salary,
     average gross_salary,
     sum salary,
@@ -38,7 +38,7 @@ take 20
 join countries side:left [country_code]
 derive [
   always_true: true,
-  db_version: s"version()",                  # An S-string, which transpiles directly into SQL
+  db_version: s"version()",    # An S-string, which transpiles directly into SQL
 ]
 ```
 
