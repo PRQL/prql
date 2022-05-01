@@ -477,7 +477,7 @@ Canada
     #[test]
     fn test_parse_filter() {
         assert_yaml_snapshot!(
-            ast_of_string(r#"filter country = "USA""#, Rule::query).unwrap(), @r###"
+            ast_of_string(r#"filter country == "USA""#, Rule::query).unwrap(), @r###"
         ---
         Query:
           version: ~
@@ -491,13 +491,13 @@ Canada
                       args:
                         - Expr:
                             - Ident: country
-                            - Raw: "="
+                            - Raw: "=="
                             - String: USA
                       named_args: {}
         "###);
 
         assert_yaml_snapshot!(
-            ast_of_string(r#"filter (upper country) = "USA""#, Rule::query).unwrap(), @r###"
+            ast_of_string(r#"filter (upper country) == "USA""#, Rule::query).unwrap(), @r###"
         ---
         Query:
           version: ~
@@ -515,7 +515,7 @@ Canada
                                 args:
                                   - Ident: country
                                 named_args: {}
-                            - Raw: "="
+                            - Raw: "=="
                             - String: USA
                       named_args: {}
         "###
@@ -625,18 +625,18 @@ Canada
     #[test]
     fn test_parse_expr() -> Result<()> {
         assert_yaml_snapshot!(
-            ast_of_string(r#"country = "USA""#, Rule::expr)?
+            ast_of_string(r#"country == "USA""#, Rule::expr)?
         , @r###"
         ---
         Expr:
           - Ident: country
-          - Raw: "="
+          - Raw: "=="
           - String: USA
         "###);
         assert_yaml_snapshot!(ast_of_string(
                 r#"[
-  gross_salary: salary + payroll_tax,
-  gross_cost  : gross_salary + benefits_cost,
+  gross_salary = salary + payroll_tax,
+  gross_cost   = gross_salary + benefits_cost,
 ]"#,
         Rule::list)?, @r###"
         ---
@@ -658,7 +658,7 @@ Canada
         "###);
         assert_yaml_snapshot!(
             ast_of_string(
-                "gross_salary: (salary + payroll_tax) * (1 + tax_rate)",
+                "gross_salary = (salary + payroll_tax) * (1 + tax_rate)",
                 Rule::named_expr,
             )?,
             @r###"
@@ -685,10 +685,10 @@ Canada
         assert_yaml_snapshot!(ast_of_string(
             r#"
 from employees
-filter country = "USA"                        # Each line transforms the previous result.
+filter country == "USA"                        # Each line transforms the previous result.
 derive [                                      # This adds columns / variables.
-  gross_salary: salary + payroll_tax,
-  gross_cost:   gross_salary + benefits_cost # Variables can use other variables.
+  gross_salary = salary + payroll_tax,
+  gross_cost =   gross_salary + benefits_cost # Variables can use other variables.
 ]
 filter gross_cost > 0
 group [title, country] (
@@ -698,8 +698,8 @@ aggregate [               # `by` are the columns to group by.
                    average gross_salary,
                    sum gross_salary,
                    average gross_cost,
-  sum_gross_cost: sum gross_cost,
-  ct            : count,
+  sum_gross_cost = sum gross_cost,
+  ct             = count,
 ] )
 sort sum_gross_cost
 filter ct > 200
@@ -714,11 +714,11 @@ take 20
     #[test]
     fn test_parse_function() -> Result<()> {
         assert_debug_snapshot!(parse_tree_of_str(
-            "func plus_one x = x + 1",
+            "func plus_one x ~ x + 1",
             Rule::func_def
         )?);
         assert_yaml_snapshot!(ast_of_string(
-            "func identity x = x", Rule::func_def
+            "func identity x ~ x", Rule::func_def
         )?
         , @r###"
         ---
@@ -732,7 +732,7 @@ take 20
             Ident: x
         "###);
         assert_yaml_snapshot!(ast_of_string(
-            "func plus_one x = (x + 1)", Rule::func_def
+            "func plus_one x ~ (x + 1)", Rule::func_def
         )?
         , @r###"
         ---
@@ -749,7 +749,7 @@ take 20
               - Raw: "1"
         "###);
         assert_yaml_snapshot!(ast_of_string(
-            "func plus_one x = x + 1", Rule::func_def
+            "func plus_one x ~ x + 1", Rule::func_def
         )?
         , @r###"
         ---
@@ -768,7 +768,7 @@ take 20
         // An example to show that we can't delayer the tree, despite there
         // being lots of layers.
         assert_yaml_snapshot!(ast_of_string(
-            "func foo x = (foo bar + 1) (plax) - baz", Rule::func_def
+            "func foo x ~ (foo bar + 1) (plax) - baz", Rule::func_def
         )?
         , @r###"
         ---
@@ -789,7 +789,7 @@ take 20
               named_args: {}
         "###);
 
-        assert_yaml_snapshot!(ast_of_string("func return_constant = 42", Rule::func_def)?, @r###"
+        assert_yaml_snapshot!(ast_of_string("func return_constant ~ 42", Rule::func_def)?, @r###"
         ---
         FuncDef:
           name: return_constant
@@ -799,7 +799,7 @@ take 20
           body:
             Raw: "42"
         "###);
-        assert_yaml_snapshot!(ast_of_string(r#"func count X = s"SUM({X})""#, Rule::func_def)?, @r###"
+        assert_yaml_snapshot!(ast_of_string(r#"func count X ~ s"SUM({X})""#, Rule::func_def)?, @r###"
         ---
         FuncDef:
           name: count
@@ -819,7 +819,7 @@ take 20
             assert_debug_snapshot!(ast_of_parse_tree(
                 parse_tree_of_str(
                     r#"
-        func lag_day x = (
+        func lag_day x ~ (
           window x
           by sec_id
           sort date
@@ -832,7 +832,7 @@ take 20
             ));
             */
 
-        assert_yaml_snapshot!(ast_of_string(r#"func add x to:a = x + to"#, Rule::func_def)?, @r###"
+        assert_yaml_snapshot!(ast_of_string(r#"func add x to=a ~ x + to"#, Rule::func_def)?, @r###"
         ---
         FuncDef:
           name: add
@@ -913,7 +913,7 @@ take 20
                     named_args: {}
         "###);
 
-        let ast = ast_of_string(r#"add bar to:3"#, Rule::expr_call).unwrap();
+        let ast = ast_of_string(r#"add bar to=3"#, Rule::expr_call).unwrap();
         assert_yaml_snapshot!(
             ast, @r###"
         ---
@@ -956,7 +956,7 @@ take 20
           from employees
           group country (
             aggregate [
-                average_country_salary: average salary
+                average_country_salary = average salary
             ]
           )
           sort tenure
@@ -1013,7 +1013,7 @@ take 20
 
     #[test]
     fn test_parse_into_parse_tree() -> Result<()> {
-        assert_debug_snapshot!(parse_tree_of_str(r#"country = "USA""#, Rule::expr)?);
+        assert_debug_snapshot!(parse_tree_of_str(r#"country == "USA""#, Rule::expr)?);
         assert_debug_snapshot!(parse_tree_of_str("select [a, b, c]", Rule::func_curry)?);
         assert_debug_snapshot!(parse_tree_of_str(
             "group [title, country] (
@@ -1022,14 +1022,14 @@ take 20
             Rule::pipeline
         )?);
         assert_debug_snapshot!(parse_tree_of_str(
-            r#"    filter country = "USA""#,
+            r#"    filter country == "USA""#,
             Rule::pipeline
         )?);
         assert_debug_snapshot!(parse_tree_of_str("[a, b, c,]", Rule::list)?);
         assert_debug_snapshot!(parse_tree_of_str(
             r#"[
-  gross_salary: salary + payroll_tax,
-  gross_cost  : gross_salary + benefits_cost
+  gross_salary = salary + payroll_tax,
+  gross_cost   = gross_salary + benefits_cost
 ]"#,
             Rule::list
         )?);
@@ -1040,11 +1040,11 @@ take 20
             Rule::COMMENT
         )?);
         assert_debug_snapshot!(parse_tree_of_str(
-            "join country [id=employee_id]",
+            "join country [id==employee_id]",
             Rule::func_curry
         )?);
         assert_debug_snapshot!(parse_tree_of_str(
-            "join side:left country [id=employee_id]",
+            "join side=left country [id==employee_id]",
             Rule::func_curry
         )?);
         assert_debug_snapshot!(parse_tree_of_str("1  + 2", Rule::expr)?);
@@ -1070,7 +1070,7 @@ take 20
                   - Raw: "50"
                 named_args: {}
         "###);
-        assert_yaml_snapshot!(ast_of_string("func median x = (x | percentile 50)", Rule::query).unwrap(), @r###"
+        assert_yaml_snapshot!(ast_of_string("func median x ~ (x | percentile 50)", Rule::query).unwrap(), @r###"
         ---
         Query:
           version: ~
@@ -1108,7 +1108,7 @@ take 20
         assert_debug_snapshot!(parse_tree_of_str(
             r#"
     from employees
-    filter country = "USA"
+    filter country == "USA"
     "#
             .trim(),
             Rule::pipeline
@@ -1116,10 +1116,10 @@ take 20
         assert_debug_snapshot!(parse_tree_of_str(
             r#"
 from employees
-filter country = "USA"                           # Each line transforms the previous result.
+filter country == "USA"                           # Each line transforms the previous result.
 derive [                                         # This adds columns / variables.
-  gross_salary: salary + payroll_tax,
-  gross_cost  : gross_salary + benefits_cost    # Variables can use other variables.
+  gross_salary = salary + payroll_tax,
+  gross_cost   = gross_salary + benefits_cost    # Variables can use other variables.
 ]
 filter gross_cost > 0
 group [title, country] (
@@ -1129,8 +1129,8 @@ group [title, country] (
         average gross_salary,
         sum     gross_salary,
         average gross_cost,
-        sum_gross_cost: sum gross_cost,
-        count: count,
+        sum_gross_cost = sum gross_cost,
+        count = count,
     ]
 )
 sort sum_gross_cost
@@ -1148,8 +1148,8 @@ take 20
         assert_yaml_snapshot!(parse(r#"
         from mytable
         filter [
-            first_name = $1,
-            last_name = $2.name
+          first_name == $1,  
+          last_name == $2.name
         ]
         "#)?, @r###"
         ---
@@ -1170,11 +1170,11 @@ take 20
                       - List:
                           - Expr:
                               - Ident: first_name
-                              - Raw: "="
+                              - Raw: "=="
                               - Ident: $1
                           - Expr:
                               - Ident: last_name
-                              - Raw: "="
+                              - Raw: "=="
                               - Ident: $2.name
                     named_args: {}
         "###);
@@ -1186,7 +1186,7 @@ take 20
         // #284
 
         let prql = "from c_invoice
-join doc:c_doctype [c_invoice_id]
+join doc=c_doctype [c_invoice_id]
 select [
 \tinvoice_no,
 \tdocstatus
@@ -1223,7 +1223,7 @@ select [
 
         assert_yaml_snapshot!(parse("
         from invoices
-        sort [desc:issued_at]
+        sort [desc=issued_at]
         ").unwrap(), @r###"
         ---
         version: ~
@@ -1250,7 +1250,7 @@ select [
 
         assert_yaml_snapshot!(parse("
         from invoices
-        sort [asc:issued_at]
+        sort [asc=issued_at]
         ").unwrap(), @r###"
         ---
         version: ~
@@ -1277,7 +1277,7 @@ select [
 
         assert_yaml_snapshot!(parse("
         from invoices
-        sort [asc:issued_at, desc:amount, num_of_articles]
+        sort [asc=issued_at, desc=amount, num_of_articles]
         ").unwrap(), @r###"
         ---
         version: ~
@@ -1313,8 +1313,8 @@ select [
         assert_yaml_snapshot!(parse("
         from employees
         filter (age | between 18..40)
-        derive [greater_than_ten: 11..]
-        derive [less_than_ten: ..9]
+        derive [greater_than_ten = 11..]
+        derive [less_than_ten = ..9]
         ").unwrap(), @r###"
         ---
         version: ~
@@ -1376,7 +1376,7 @@ select [
     fn test_interval() {
         assert_yaml_snapshot!(parse("
         from employees
-        derive [age_plus_two_years: (age + 2years)]
+        derive [age_plus_two_years = (age + 2years)]
         ").unwrap(), @r###"
         ---
         version: ~

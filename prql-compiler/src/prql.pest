@@ -15,7 +15,7 @@ query = { SOI ~ NEWLINE* ~ query_def ~ NEWLINE* ~ (( func_def | table | pipeline
 
 query_def = { WHITESPACE* ~ ("prql" ~ named_expr* ~ NEWLINE)? }
 
-func_def = { "func" ~ func_def_flags ~ ident ~ func_def_params ~ "=" ~ expr }
+func_def = { "func" ~ func_def_flags ~ ident ~ func_def_params ~ "~" ~ expr }
 
 // TODO: consider some syntax for these func "type" args; currently they're only
 // differentiated from params by their position
@@ -59,9 +59,9 @@ func_call = ${ ident ~ WHITESPACE+ ~ named_expr+ }
 func_curry = { ident ~ named_expr* }
 
 // For assigns, table aliases and named arguments
-named_expr_call = { (ident ~ ":")? ~ expr_call }
-named_expr = { (ident ~ ":")? ~ expr }
-named_term = { (ident ~ ":")? ~ term }
+named_expr_call = { (ident ~ "=" ~ !"=")? ~ expr_call }
+named_expr = { (ident ~ "=" ~ !"=")? ~ expr }
+named_term = { (ident ~ "=" ~ !"=")? ~ term }
 
 // Expression that can contain a function call
 expr_call = _{ (func_call | expr) }
@@ -111,7 +111,7 @@ operator = _{ operator_unary | operator_mul | operator_add | operator_compare | 
 operator_unary = ${ "-" }
 operator_mul = ${ "*" | "/" | "%" }
 operator_add = ${ "+" | "-" }
-operator_compare = ${ "==" | "!=" | "=" | ">" | "<" | ">=" | "<=" }
+operator_compare = ${ "==" | "!=" | ">" | "<" | ">=" | "<=" }
 operator_logical = ${ ("and" | "or" | "not") ~ &WHITESPACE }
 
 // TODO: allow a raw s-string / f-string (but not an s-f string...)

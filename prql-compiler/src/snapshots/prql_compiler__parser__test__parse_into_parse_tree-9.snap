@@ -1,14 +1,14 @@
 ---
 source: prql-compiler/src/parser.rs
-expression: "parse_tree_of_str(\"join side:left country [id=employee_id]\",\n                  Rule::func_curry)?"
+expression: "parse_tree_of_str(\"join side=left country [id==employee_id]\",\n                  Rule::func_curry)?"
 ---
 [
     Pair {
         rule: func_curry,
         span: Span {
-            str: "join side:left country [id=employee_id]",
+            str: "join side=left country [id==employee_id]",
             start: 0,
-            end: 39,
+            end: 40,
         },
         inner: [
             Pair {
@@ -23,7 +23,7 @@ expression: "parse_tree_of_str(\"join side:left country [id=employee_id]\",\n   
             Pair {
                 rule: named_expr,
                 span: Span {
-                    str: "side:left ",
+                    str: "side=left ",
                     start: 5,
                     end: 15,
                 },
@@ -150,73 +150,73 @@ expression: "parse_tree_of_str(\"join side:left country [id=employee_id]\",\n   
             Pair {
                 rule: named_expr,
                 span: Span {
-                    str: "[id=employee_id]",
+                    str: "[id==employee_id]",
                     start: 23,
-                    end: 39,
+                    end: 40,
                 },
                 inner: [
                     Pair {
                         rule: expr,
                         span: Span {
-                            str: "[id=employee_id]",
+                            str: "[id==employee_id]",
                             start: 23,
-                            end: 39,
+                            end: 40,
                         },
                         inner: [
                             Pair {
                                 rule: expr_compare,
                                 span: Span {
-                                    str: "[id=employee_id]",
+                                    str: "[id==employee_id]",
                                     start: 23,
-                                    end: 39,
+                                    end: 40,
                                 },
                                 inner: [
                                     Pair {
                                         rule: expr_add,
                                         span: Span {
-                                            str: "[id=employee_id]",
+                                            str: "[id==employee_id]",
                                             start: 23,
-                                            end: 39,
+                                            end: 40,
                                         },
                                         inner: [
                                             Pair {
                                                 rule: expr_mul,
                                                 span: Span {
-                                                    str: "[id=employee_id]",
+                                                    str: "[id==employee_id]",
                                                     start: 23,
-                                                    end: 39,
+                                                    end: 40,
                                                 },
                                                 inner: [
                                                     Pair {
                                                         rule: list,
                                                         span: Span {
-                                                            str: "[id=employee_id]",
+                                                            str: "[id==employee_id]",
                                                             start: 23,
-                                                            end: 39,
+                                                            end: 40,
                                                         },
                                                         inner: [
                                                             Pair {
                                                                 rule: named_expr_call,
                                                                 span: Span {
-                                                                    str: "id=employee_id",
+                                                                    str: "id==employee_id",
                                                                     start: 24,
-                                                                    end: 38,
+                                                                    end: 39,
                                                                 },
                                                                 inner: [
                                                                     Pair {
                                                                         rule: expr,
                                                                         span: Span {
-                                                                            str: "id=employee_id",
+                                                                            str: "id==employee_id",
                                                                             start: 24,
-                                                                            end: 38,
+                                                                            end: 39,
                                                                         },
                                                                         inner: [
                                                                             Pair {
                                                                                 rule: expr_compare,
                                                                                 span: Span {
-                                                                                    str: "id=employee_id",
+                                                                                    str: "id==employee_id",
                                                                                     start: 24,
-                                                                                    end: 38,
+                                                                                    end: 39,
                                                                                 },
                                                                                 inner: [
                                                                                     Pair {
@@ -251,9 +251,9 @@ expression: "parse_tree_of_str(\"join side:left country [id=employee_id]\",\n   
                                                                                     Pair {
                                                                                         rule: operator_compare,
                                                                                         span: Span {
-                                                                                            str: "=",
+                                                                                            str: "==",
                                                                                             start: 26,
-                                                                                            end: 27,
+                                                                                            end: 28,
                                                                                         },
                                                                                         inner: [],
                                                                                     },
@@ -261,24 +261,24 @@ expression: "parse_tree_of_str(\"join side:left country [id=employee_id]\",\n   
                                                                                         rule: expr_add,
                                                                                         span: Span {
                                                                                             str: "employee_id",
-                                                                                            start: 27,
-                                                                                            end: 38,
+                                                                                            start: 28,
+                                                                                            end: 39,
                                                                                         },
                                                                                         inner: [
                                                                                             Pair {
                                                                                                 rule: expr_mul,
                                                                                                 span: Span {
                                                                                                     str: "employee_id",
-                                                                                                    start: 27,
-                                                                                                    end: 38,
+                                                                                                    start: 28,
+                                                                                                    end: 39,
                                                                                                 },
                                                                                                 inner: [
                                                                                                     Pair {
                                                                                                         rule: ident,
                                                                                                         span: Span {
                                                                                                             str: "employee_id",
-                                                                                                            start: 27,
-                                                                                                            end: 38,
+                                                                                                            start: 28,
+                                                                                                            end: 39,
                                                                                                         },
                                                                                                         inner: [],
                                                                                                     },

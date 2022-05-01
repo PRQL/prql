@@ -1,12 +1,12 @@
 ---
 source: prql-compiler/src/parser.rs
-expression: "parse_tree_of_str(\"func plus_one x = x + 1\", Rule::func_def)?"
+expression: "parse_tree_of_str(\"func plus_one x ~ x + 1\", Rule::func_def)?"
 ---
 [
     Pair {
         rule: func_def,
         span: Span {
-            str: "func plus_one x = x + 1",
+            str: "func plus_one x ~ x + 1",
             start: 0,
             end: 23,
         },
