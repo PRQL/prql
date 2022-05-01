@@ -1,6 +1,6 @@
 ---
 source: prql-compiler/src/parser.rs
-expression: "parse_tree_of_str(r#\"\n            from employees\n            select [a, b]\n            \"#.trim(),\n        Rule::pipeline).unwrap()"
+expression: "parse_tree_of_str(r#\"\n            from employees\n            select [a, b]\n            \"#.trim(),\n                  Rule::pipeline).unwrap()"
 ---
 [
     Pair {
