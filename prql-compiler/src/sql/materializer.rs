@@ -372,8 +372,8 @@ mod test {
         let query = parse(
             r#"from employees
     derive [                                         # This adds columns / variables.
-      gross_salary: salary + payroll_tax,
-      gross_cost:   gross_salary + benefits_cost     # Variables can use other variables.
+      gross_salary = salary + payroll_tax,
+      gross_cost =   gross_salary + benefits_cost     # Variables can use other variables.
     ]
     "#,
         )?;
@@ -408,15 +408,15 @@ mod test {
     fn test_replace_variables_2() -> Result<()> {
         let query = parse(
             r#"
-func count = s"COUNT(*)"
-func average column = s"AVG({column})"
-func sum column = s"SUM({column})"
+func (count) = s"COUNT(*)"
+func (average column) = s"AVG({column})"
+func (sum column) = s"SUM({column})"
 
 from employees
-filter country = "USA"                           # Each line transforms the previous result.
+filter country == "USA"                           # Each line transforms the previous result.
 derive [                                         # This adds columns / variables.
-  gross_salary: salary + payroll_tax,
-  gross_cost  : gross_salary + benefits_cost    # Variables can use other variables.
+  gross_salary = salary + payroll_tax,
+  gross_cost   = gross_salary + benefits_cost    # Variables can use other variables.
 ]
 filter gross_cost > 0
 group [title, country] (
@@ -426,8 +426,8 @@ group [title, country] (
         average gross_salary,
         sum     gross_salary,
         average gross_cost,
-        sum_gross_cost: sum gross_cost,
-        ct: count,
+        sum_gross_cost = sum gross_cost,
+        ct = count,
     ]
 )
 sort sum_gross_cost
@@ -446,7 +446,7 @@ take 20
     fn test_run_functions_args() -> Result<()> {
         let query = parse(
             r#"
-        func count x = s"count({x})"
+        func (count x) = s"count({x})"
 
         from employees
         aggregate [
@@ -523,8 +523,8 @@ take 20
     fn test_run_functions_nested() -> Result<()> {
         let query = parse(
             r#"
-        func lag_day x = s"lag_day_todo({x})"
-        func ret x dividend_return = x / (lag_day x) - 1 + dividend_return
+        func (lag_day x) = s"lag_day_todo({x})"
+        func (ret x dividend_return) = x / (lag_day x) - 1 + dividend_return
 
         from a
         select (ret b c)
@@ -570,10 +570,10 @@ take 20
     fn test_run_inline_pipelines() -> Result<()> {
         let query = parse(
             r#"
-        func sum x = s"SUM({x})"
+        func (sum x) = s"SUM({x})"
 
         from a
-        aggregate [one: (foo | sum), two: (foo | sum)]
+        aggregate [one = (foo | sum), two = (foo | sum)]
         "#,
         )?;
 
@@ -606,11 +606,11 @@ take 20
         // Test it'll run the `sum foo` function first.
         let query = parse(
             r#"
-        func sum x = s"SUM({x})"
-        func plus_one x = x + 1
+        func (sum x) = s"SUM({x})"
+        func (plus_one x) = x + 1
 
         from a
-        aggregate [a: (sum foo | plus_one)]
+        aggregate [a = (sum foo | plus_one)]
         "#,
         )?;
 
@@ -644,12 +644,12 @@ take 20
     fn test_named_args() -> Result<()> {
         let query = parse(
             r#"
-        func add x to:1  = x + to
+        func (add x to=1) = x + to
 
         from foo_table
         derive [
-        added:         add bar to:3,
-        added_default: add bar
+            added = add bar to=3,
+            added_default = add bar
         ]
         "#,
         )?;
@@ -671,11 +671,11 @@ take 20
     fn test_materialize_1() -> Result<()> {
         let query = parse(
             r#"
-        func count x = s"count({x})"
+        func (count x) = s"count({x})"
 
         from employees
         aggregate [
-        count salary
+            count salary
         ]
         "#,
         )?;
@@ -707,15 +707,15 @@ take 20
     fn test_materialize_2() -> Result<()> {
         let query = parse(
             r#"
-func count = s"COUNT(*)"
-func average column = s"AVG({column})"
-func sum column = s"SUM({column})"
+func (count) = s"COUNT(*)"
+func (average column) = s"AVG({column})"
+func (sum column) = s"SUM({column})"
 
 from employees
-filter country = "USA"                           # Each line transforms the previous result.
+filter country == "USA"                           # Each line transforms the previous result.
 derive [                                         # This adds columns / variables.
-  gross_salary: salary + payroll_tax,
-  gross_cost  : gross_salary + benefits_cost    # Variables can use other variables.
+  gross_salary = salary + payroll_tax,
+  gross_cost =   gross_salary + benefits_cost    # Variables can use other variables.
 ]
 filter gross_cost > 0
 group [title, country] (
@@ -725,8 +725,8 @@ group [title, country] (
         average gross_salary,
         sum     gross_salary,
         average gross_cost,
-        sum_gross_cost: sum gross_cost,
-        ct: count,
+        sum_gross_cost = sum gross_cost,
+        ct = count,
     ]
 )
 sort sum_gross_cost
@@ -744,27 +744,27 @@ take 20
     fn test_materialize_3() -> Result<()> {
         let query = parse(
             r#"
-        func interest_rate = 0.2
+        func (interest_rate) = 0.2
 
-        func lag_day x = s"lag_day_todo({x})"
-        func ret x dividend_return = x / (lag_day x) - 1 + dividend_return
-        func excess x = (x - interest_rate) / 252
-        func if_valid x = s"IF(is_valid_price, {x}, NULL)"
+        func (lag_day x) = s"lag_day_todo({x})"
+        func (ret x dividend_return) = x / (lag_day x) - 1 + dividend_return
+        func (excess x) = (x - interest_rate) / 252
+        func (if_valid x) = s"IF(is_valid_price, {x}, NULL)"
 
         from prices
         derive [
-        return_total     : if_valid (ret prices_adj div_ret),
-        return_usd       : if_valid (ret prices_usd div_ret),
-        return_excess    : excess return_total,
-        return_usd_excess: excess return_usd,
+            return_total      = if_valid (ret prices_adj div_ret),
+            return_usd        = if_valid (ret prices_usd div_ret),
+            return_excess     = excess return_total,
+            return_usd_excess = excess return_usd,
         ]
         select [
-        date,
-        sec_id,
-        return_total,
-        return_usd,
-        return_excess,
-        return_usd_excess,
+            date,
+            sec_id,
+            return_total,
+            return_usd,
+            return_excess,
+            return_usd_excess,
         ]
         "#,
         )?;
@@ -778,14 +778,14 @@ take 20
     fn test_variable_after_aggregate() -> Result<()> {
         let query = parse(
             r#"
-        func average column = s"AVG({column})"
+        func (average column) = s"AVG({column})"
 
         from employees
         group [title, emp_no] (
-            aggregate [emp_salary: average salary]
+            aggregate [emp_salary = average salary]
         )
         group [title] (
-            aggregate [avg_salary: average emp_salary]
+            aggregate [avg_salary = average emp_salary]
         )
         "#,
         )?;

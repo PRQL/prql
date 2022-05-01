@@ -15,7 +15,7 @@ query = { SOI ~ NEWLINE* ~ query_def ~ NEWLINE* ~ (( func_def | table | pipeline
 
 query_def = { WHITESPACE* ~ ("prql" ~ named_expr* ~ NEWLINE)? }
 
-func_def = { "func" ~ func_def_flags ~ ident ~ func_def_params ~ "~" ~ expr }
+func_def = { "func" ~ func_def_flags ~ "(" ~ ident ~ func_def_params ~ ")" ~ "=" ~ expr }
 
 // TODO: consider some syntax for these func "type" args; currently they're only
 // differentiated from params by their position

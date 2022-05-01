@@ -784,7 +784,7 @@ SString:
         let query: Query = parse(
             r###"
         from employees
-        filter country = "USA"
+        filter country == "USA"
         group [title, country] (
             aggregate [average salary]
         )
@@ -843,8 +843,8 @@ SString:
     fn test_prql_to_sql_1() -> Result<()> {
         let query = parse(
             r#"
-    func count x = s"count({x})"
-    func sum x = s"sum({x})"
+    func (count x) = s"count({x})"
+    func (sum x) = s"sum({x})"
 
     from employees
     aggregate [
@@ -913,7 +913,7 @@ take 20
             from salaries
             group country (
                 aggregate [
-                    average_country_salary: average salary
+                    average_country_salary = average salary
                 ]
             )
         )
@@ -1120,7 +1120,7 @@ take 20
         let query: Query = parse(
             r###"
             from e = employees
-            join salaries side=left [salaries.emp_no = e.emp_no]
+            join salaries side=left [salaries.emp_no == e.emp_no]
             group [e.emp_no] (
                 aggregate [
                     emp_salary = average salary
@@ -1167,7 +1167,7 @@ take 20
         // SQL server
         let query: Query = parse(
             r###"
-        prql dialect:ms_sql_server
+        prql dialect=ms_sql_server
         from Employees
         select [FirstName]
         take 3

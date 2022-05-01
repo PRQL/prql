@@ -714,11 +714,11 @@ take 20
     #[test]
     fn test_parse_function() -> Result<()> {
         assert_debug_snapshot!(parse_tree_of_str(
-            "func plus_one x ~ x + 1",
+            "func (plus_one x) = x + 1",
             Rule::func_def
         )?);
         assert_yaml_snapshot!(ast_of_string(
-            "func identity x ~ x", Rule::func_def
+            "func (identity x) = x", Rule::func_def
         )?
         , @r###"
         ---
@@ -732,7 +732,7 @@ take 20
             Ident: x
         "###);
         assert_yaml_snapshot!(ast_of_string(
-            "func plus_one x ~ (x + 1)", Rule::func_def
+            "func (plus_one x) = (x + 1)", Rule::func_def
         )?
         , @r###"
         ---
@@ -749,7 +749,7 @@ take 20
               - Raw: "1"
         "###);
         assert_yaml_snapshot!(ast_of_string(
-            "func plus_one x ~ x + 1", Rule::func_def
+            "func (plus_one x) = x + 1", Rule::func_def
         )?
         , @r###"
         ---
@@ -768,7 +768,7 @@ take 20
         // An example to show that we can't delayer the tree, despite there
         // being lots of layers.
         assert_yaml_snapshot!(ast_of_string(
-            "func foo x ~ (foo bar + 1) (plax) - baz", Rule::func_def
+            "func (foo x) = (foo bar + 1) (plax) - baz", Rule::func_def
         )?
         , @r###"
         ---
@@ -789,7 +789,7 @@ take 20
               named_args: {}
         "###);
 
-        assert_yaml_snapshot!(ast_of_string("func return_constant ~ 42", Rule::func_def)?, @r###"
+        assert_yaml_snapshot!(ast_of_string("func (return_constant) = 42", Rule::func_def)?, @r###"
         ---
         FuncDef:
           name: return_constant
@@ -799,7 +799,7 @@ take 20
           body:
             Raw: "42"
         "###);
-        assert_yaml_snapshot!(ast_of_string(r#"func count X ~ s"SUM({X})""#, Rule::func_def)?, @r###"
+        assert_yaml_snapshot!(ast_of_string(r#"func (count X) = s"SUM({X})""#, Rule::func_def)?, @r###"
         ---
         FuncDef:
           name: count
@@ -819,7 +819,7 @@ take 20
             assert_debug_snapshot!(ast_of_parse_tree(
                 parse_tree_of_str(
                     r#"
-        func lag_day x ~ (
+        func (lag_day x) = (
           window x
           by sec_id
           sort date
@@ -832,7 +832,7 @@ take 20
             ));
             */
 
-        assert_yaml_snapshot!(ast_of_string(r#"func add x to=a ~ x + to"#, Rule::func_def)?, @r###"
+        assert_yaml_snapshot!(ast_of_string(r#"func (add x to=a) = x + to"#, Rule::func_def)?, @r###"
         ---
         FuncDef:
           name: add
@@ -1070,7 +1070,7 @@ take 20
                   - Raw: "50"
                 named_args: {}
         "###);
-        assert_yaml_snapshot!(ast_of_string("func median x ~ (x | percentile 50)", Rule::query).unwrap(), @r###"
+        assert_yaml_snapshot!(ast_of_string("func (median x) = (x | percentile 50)", Rule::query).unwrap(), @r###"
         ---
         Query:
           version: ~
@@ -1096,23 +1096,25 @@ take 20
     }
 
     #[test]
-    fn test_parse_pipeline_parse_tree() -> Result<()> {
+    fn test_parse_pipeline_parse_tree() {
         assert_debug_snapshot!(parse_tree_of_str(
             r#"
-    from employees
-    select [a, b]
-    "#
+            from employees
+            select [a, b]
+            "#
             .trim(),
             Rule::pipeline
-        )?);
+        )
+        .unwrap());
         assert_debug_snapshot!(parse_tree_of_str(
             r#"
-    from employees
-    filter country == "USA"
-    "#
+            from employees
+            filter country == "USA"
+            "#
             .trim(),
             Rule::pipeline
-        )?);
+        )
+        .unwrap());
         assert_debug_snapshot!(parse_tree_of_str(
             r#"
 from employees
@@ -1139,8 +1141,8 @@ take 20
     "#
             .trim(),
             Rule::pipeline
-        )?);
-        Ok(())
+        )
+        .unwrap());
     }
 
     #[test]
@@ -1410,7 +1412,7 @@ select [
     #[test]
     fn test_multiline_string() {
         assert_yaml_snapshot!(parse(r###"
-        derive x: r#"r-string test"#
+        derive x = r#"r-string test"#
         "###).unwrap(), @r###"
         ---
         version: ~

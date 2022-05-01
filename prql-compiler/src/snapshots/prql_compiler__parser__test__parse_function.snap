@@ -1,14 +1,14 @@
 ---
 source: prql-compiler/src/parser.rs
-expression: "parse_tree_of_str(\"func plus_one x ~ x + 1\", Rule::func_def)?"
+expression: "parse_tree_of_str(\"func (plus_one x) = x + 1\", Rule::func_def)?"
 ---
 [
     Pair {
         rule: func_def,
         span: Span {
-            str: "func plus_one x ~ x + 1",
+            str: "func (plus_one x) = x + 1",
             start: 0,
-            end: 23,
+            end: 25,
         },
         inner: [
             Pair {
@@ -24,8 +24,8 @@ expression: "parse_tree_of_str(\"func plus_one x ~ x + 1\", Rule::func_def)?"
                 rule: ident,
                 span: Span {
                     str: "plus_one",
-                    start: 5,
-                    end: 13,
+                    start: 6,
+                    end: 14,
                 },
                 inner: [],
             },
@@ -33,24 +33,24 @@ expression: "parse_tree_of_str(\"func plus_one x ~ x + 1\", Rule::func_def)?"
                 rule: func_def_params,
                 span: Span {
                     str: "x",
-                    start: 14,
-                    end: 15,
+                    start: 15,
+                    end: 16,
                 },
                 inner: [
                     Pair {
                         rule: named_term,
                         span: Span {
                             str: "x",
-                            start: 14,
-                            end: 15,
+                            start: 15,
+                            end: 16,
                         },
                         inner: [
                             Pair {
                                 rule: ident,
                                 span: Span {
                                     str: "x",
-                                    start: 14,
-                                    end: 15,
+                                    start: 15,
+                                    end: 16,
                                 },
                                 inner: [],
                             },
@@ -62,40 +62,40 @@ expression: "parse_tree_of_str(\"func plus_one x ~ x + 1\", Rule::func_def)?"
                 rule: expr,
                 span: Span {
                     str: "x + 1",
-                    start: 18,
-                    end: 23,
+                    start: 20,
+                    end: 25,
                 },
                 inner: [
                     Pair {
                         rule: expr_compare,
                         span: Span {
                             str: "x + 1",
-                            start: 18,
-                            end: 23,
+                            start: 20,
+                            end: 25,
                         },
                         inner: [
                             Pair {
                                 rule: expr_add,
                                 span: Span {
                                     str: "x + 1",
-                                    start: 18,
-                                    end: 23,
+                                    start: 20,
+                                    end: 25,
                                 },
                                 inner: [
                                     Pair {
                                         rule: expr_mul,
                                         span: Span {
                                             str: "x ",
-                                            start: 18,
-                                            end: 20,
+                                            start: 20,
+                                            end: 22,
                                         },
                                         inner: [
                                             Pair {
                                                 rule: ident,
                                                 span: Span {
                                                     str: "x",
-                                                    start: 18,
-                                                    end: 19,
+                                                    start: 20,
+                                                    end: 21,
                                                 },
                                                 inner: [],
                                             },
@@ -105,8 +105,8 @@ expression: "parse_tree_of_str(\"func plus_one x ~ x + 1\", Rule::func_def)?"
                                         rule: operator_add,
                                         span: Span {
                                             str: "+",
-                                            start: 20,
-                                            end: 21,
+                                            start: 22,
+                                            end: 23,
                                         },
                                         inner: [],
                                     },
@@ -114,16 +114,16 @@ expression: "parse_tree_of_str(\"func plus_one x ~ x + 1\", Rule::func_def)?"
                                         rule: expr_mul,
                                         span: Span {
                                             str: "1",
-                                            start: 22,
-                                            end: 23,
+                                            start: 24,
+                                            end: 25,
                                         },
                                         inner: [
                                             Pair {
                                                 rule: number,
                                                 span: Span {
                                                     str: "1",
-                                                    start: 22,
-                                                    end: 23,
+                                                    start: 24,
+                                                    end: 25,
                                                 },
                                                 inner: [],
                                             },

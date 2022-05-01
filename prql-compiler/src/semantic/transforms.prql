@@ -1,11 +1,11 @@
 # Transform type definitions
 
-func transform from with frame = 0
-func transform select assigns frame = 0
-func transform filter conditions frame = 0
-func transform derive assigns frame = 0
-func transform aggregate assigns frame = 0
-func transform sort by frame = 0
-func transform take expr frame = 0
-func transform join with filter side:inner frame = 0
-func transform group by pipeline frame = 0
+func transform (from with frame) = 0
+func transform (select assigns frame) = 0
+func transform (filter conditions frame) = 0
+func transform (derive assigns frame) = 0
+func transform (aggregate assigns frame) = 0
+func transform (sort by frame) = 0
+func transform (take expr frame) = 0
+func transform (join with filter side=inner frame) = 0
+func transform (group by pipeline frame) = 0
