@@ -26,7 +26,7 @@ take 20
 from employees
 group [emp_no] (
   aggregate [
-    emp_salary = average salary     # avg_salary should resolve to "AVG(salary)" (from stdlib)
+    emp_salary = average salary     # average salary resolves to "AVG(salary)" (from stdlib)
   ]
 )
 join titles [emp_no]
