@@ -14,7 +14,7 @@ jobs:
             workflow_id: 'update.yml',
             ref: 'actions',
             inputs: {
-            version: ${{ github.ref }},
+            version: '${{ github.ref }}',
             URL: 'https://google.com'
             }
           })
