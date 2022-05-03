@@ -15,6 +15,6 @@ jobs:
             ref: 'actions',
             inputs: {
             version: '${{ github.ref }}',
-            URL: 'https://google.com'
+            URL: 'https://github.com/prql/prql/archive/${{ github.ref }}.tar.gz'
             }
           })
