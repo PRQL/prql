@@ -13,4 +13,7 @@ jobs:
             repo: 'homebrew-prql',
             workflow_id: 'update.yml',
             ref: 'actions'
+            inputs:{
+            version: '0.1.4',
+            URL: https://google.com}
           })
