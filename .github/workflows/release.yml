@@ -4,14 +4,6 @@ on:
     type: [published]
 
 jobs:
-  tag:
-    name: edit tag variable
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - run: |
-          echo "TAG=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
-
   dispatcher:
     name: create the dispatch event
     runs-on: ubuntu-latest
@@ -26,7 +18,7 @@ jobs:
               workflow_id: 'update.yml',
               ref: 'actions',
               inputs: {
-              version: '${{ env.TAG }}',
+              version: '${{ github.ref }}',
               URL: 'https://github.com/prql/prql/archive/${{ github.ref }}.tar.gz'
               }
             })
