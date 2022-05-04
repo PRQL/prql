@@ -50,7 +50,7 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
         .map(|pair| {
             let span = pair.as_span();
 
-            let item = match pair.as_rule() {
+            let item = match &pair.as_rule() {
                 Rule::query => {
                     let mut parsed = ast_of_parse_tree(pair.into_inner())?;
                     // this is [query, ...]
@@ -66,7 +66,7 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
 
                     let mut params: HashMap<_, _> = parsed
                         .into_iter()
-                        .map(|x| x.item.into_named_expr().map(|n| (n.name, n.expr)))
+                        .map(|x| x.item.into_named_arg().map(|n| (n.name, n.expr)))
                         .try_collect()?;
 
                     let version = params
@@ -101,20 +101,13 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
                 | Rule::expr
                 | Rule::expr_call => ast_of_parse_tree(pair.into_inner())?.into_expr(),
 
-                Rule::named_expr_call | Rule::named_expr | Rule::named_term => {
-                    let items = ast_of_parse_tree(pair.into_inner())?;
-                    // this borrow could be removed, but it becomes much less readable without match
-                    match &items[..] {
-                        [Node {
-                            item: Item::Ident(name),
-                            ..
-                        }, node] => Item::NamedExpr(NamedExpr {
-                            name: name.clone(),
-                            expr: Box::new(node.clone()),
-                        }),
-                        [node] => node.item.clone(),
-                        _ => unreachable!(),
-                    }
+                Rule::assign_call | Rule::assign => {
+                    let mut items = ast_of_parse_tree(pair.into_inner())?;
+                    Item::Assign(named_expr_of_nodes(&mut items)?)
+                }
+                Rule::named_arg => {
+                    let mut items = ast_of_parse_tree(pair.into_inner())?;
+                    Item::NamedArg(named_expr_of_nodes(&mut items)?)
                 }
                 Rule::func_def => {
                     let parsed = ast_of_parse_tree(pair.into_inner())?;
@@ -134,7 +127,7 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
                         .collect();
                     let named_params = params
                         .iter()
-                        .filter(|x| matches!(x.item, Item::NamedExpr(_)))
+                        .filter(|x| matches!(x.item, Item::NamedArg(_)))
                         .cloned()
                         .collect();
 
@@ -247,6 +240,15 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
             Ok(node)
         })
         .collect()
+}
+
+fn named_expr_of_nodes(items: &mut Vec<Node>) -> Result<NamedExpr, anyhow::Error> {
+    let (ident, expr) = items.drain(..).collect_tuple().unwrap();
+    let ne = NamedExpr {
+        name: ident.item.into_ident()?,
+        expr: Box::new(expr),
+    };
+    Ok(ne)
 }
 
 fn ast_of_interpolate_items(pair: Pair<Rule>) -> Result<Vec<InterpolateItem>> {
@@ -641,14 +643,14 @@ Canada
         Rule::list)?, @r###"
         ---
         List:
-          - NamedExpr:
+          - Assign:
               name: gross_salary
               expr:
                 Expr:
                   - Ident: salary
                   - Raw: +
                   - Ident: payroll_tax
-          - NamedExpr:
+          - Assign:
               name: gross_cost
               expr:
                 Expr:
@@ -659,11 +661,11 @@ Canada
         assert_yaml_snapshot!(
             ast_of_string(
                 "gross_salary = (salary + payroll_tax) * (1 + tax_rate)",
-                Rule::named_expr,
+                Rule::assign,
             )?,
             @r###"
         ---
-        NamedExpr:
+        Assign:
           name: gross_salary
           expr:
             Expr:
@@ -714,11 +716,11 @@ take 20
     #[test]
     fn test_parse_function() -> Result<()> {
         assert_debug_snapshot!(parse_tree_of_str(
-            "func (plus_one x) = x + 1",
+            "func plus_one x ->  x + 1",
             Rule::func_def
         )?);
         assert_yaml_snapshot!(ast_of_string(
-            "func (identity x) = x", Rule::func_def
+            "func identity x ->  x", Rule::func_def
         )?
         , @r###"
         ---
@@ -732,7 +734,7 @@ take 20
             Ident: x
         "###);
         assert_yaml_snapshot!(ast_of_string(
-            "func (plus_one x) = (x + 1)", Rule::func_def
+            "func plus_one x ->  (x + 1)", Rule::func_def
         )?
         , @r###"
         ---
@@ -749,7 +751,7 @@ take 20
               - Raw: "1"
         "###);
         assert_yaml_snapshot!(ast_of_string(
-            "func (plus_one x) = x + 1", Rule::func_def
+            "func plus_one x ->  x + 1", Rule::func_def
         )?
         , @r###"
         ---
@@ -768,7 +770,7 @@ take 20
         // An example to show that we can't delayer the tree, despite there
         // being lots of layers.
         assert_yaml_snapshot!(ast_of_string(
-            "func (foo x) = (foo bar + 1) (plax) - baz", Rule::func_def
+            "func foo x ->  (foo bar + 1) (plax) - baz", Rule::func_def
         )?
         , @r###"
         ---
@@ -789,7 +791,7 @@ take 20
               named_args: {}
         "###);
 
-        assert_yaml_snapshot!(ast_of_string("func (return_constant) = 42", Rule::func_def)?, @r###"
+        assert_yaml_snapshot!(ast_of_string("func return_constant ->  42", Rule::func_def)?, @r###"
         ---
         FuncDef:
           name: return_constant
@@ -799,7 +801,7 @@ take 20
           body:
             Raw: "42"
         "###);
-        assert_yaml_snapshot!(ast_of_string(r#"func (count X) = s"SUM({X})""#, Rule::func_def)?, @r###"
+        assert_yaml_snapshot!(ast_of_string(r#"func count X ->  s"SUM({X})""#, Rule::func_def)?, @r###"
         ---
         FuncDef:
           name: count
@@ -819,7 +821,7 @@ take 20
             assert_debug_snapshot!(ast_of_parse_tree(
                 parse_tree_of_str(
                     r#"
-        func (lag_day x) = (
+        func lag_day x ->  (
           window x
           by sec_id
           sort date
@@ -832,7 +834,7 @@ take 20
             ));
             */
 
-        assert_yaml_snapshot!(ast_of_string(r#"func (add x to=a) = x + to"#, Rule::func_def)?, @r###"
+        assert_yaml_snapshot!(ast_of_string(r#"func add x to:a ->  x + to"#, Rule::func_def)?, @r###"
         ---
         FuncDef:
           name: add
@@ -840,7 +842,7 @@ take 20
           positional_params:
             - Ident: x
           named_params:
-            - NamedExpr:
+            - NamedArg:
                 name: to
                 expr:
                   Ident: a
@@ -921,7 +923,7 @@ take 20
           name: add
           args:
             - Ident: bar
-            - NamedExpr:
+            - Assign:
                 name: to
                 expr:
                   Raw: "3"
@@ -986,7 +988,7 @@ take 20
                                 name: aggregate
                                 args:
                                   - List:
-                                      - NamedExpr:
+                                      - Assign:
                                           name: average_country_salary
                                           expr:
                                             FuncCall:
@@ -1044,7 +1046,7 @@ take 20
             Rule::func_curry
         )?);
         assert_debug_snapshot!(parse_tree_of_str(
-            "join side=left country [id==employee_id]",
+            "join side:left country [id==employee_id]",
             Rule::func_curry
         )?);
         assert_debug_snapshot!(parse_tree_of_str("1  + 2", Rule::expr)?);
@@ -1070,7 +1072,7 @@ take 20
                   - Raw: "50"
                 named_args: {}
         "###);
-        assert_yaml_snapshot!(ast_of_string("func (median x) = (x | percentile 50)", Rule::query).unwrap(), @r###"
+        assert_yaml_snapshot!(ast_of_string("func median x -> (x | percentile 50)", Rule::query).unwrap(), @r###"
         ---
         Query:
           version: ~
@@ -1188,7 +1190,7 @@ take 20
         // #284
 
         let prql = "from c_invoice
-join doc=c_doctype [c_invoice_id]
+join doc:c_doctype [c_invoice_id]
 select [
 \tinvoice_no,
 \tdocstatus
@@ -1243,35 +1245,8 @@ select [
                     name: sort
                     args:
                       - List:
-                          - NamedExpr:
+                          - Assign:
                               name: desc
-                              expr:
-                                Ident: issued_at
-                    named_args: {}
-        "###);
-
-        assert_yaml_snapshot!(parse("
-        from invoices
-        sort [asc=issued_at]
-        ").unwrap(), @r###"
-        ---
-        version: ~
-        dialect: Generic
-        nodes:
-          - Pipeline:
-              value: ~
-              functions:
-                - FuncCall:
-                    name: from
-                    args:
-                      - Ident: invoices
-                    named_args: {}
-                - FuncCall:
-                    name: sort
-                    args:
-                      - List:
-                          - NamedExpr:
-                              name: asc
                               expr:
                                 Ident: issued_at
                     named_args: {}
@@ -1297,11 +1272,11 @@ select [
                     name: sort
                     args:
                       - List:
-                          - NamedExpr:
+                          - Assign:
                               name: asc
                               expr:
                                 Ident: issued_at
-                          - NamedExpr:
+                          - Assign:
                               name: desc
                               expr:
                                 Ident: amount
@@ -1351,7 +1326,7 @@ select [
                     name: derive
                     args:
                       - List:
-                          - NamedExpr:
+                          - Assign:
                               name: greater_than_ten
                               expr:
                                 Range:
@@ -1363,7 +1338,7 @@ select [
                     name: derive
                     args:
                       - List:
-                          - NamedExpr:
+                          - Assign:
                               name: less_than_ten
                               expr:
                                 Range:
@@ -1396,7 +1371,7 @@ select [
                     name: derive
                     args:
                       - List:
-                          - NamedExpr:
+                          - Assign:
                               name: age_plus_two_years
                               expr:
                                 Expr:
@@ -1424,7 +1399,7 @@ select [
                 - FuncCall:
                     name: derive
                     args:
-                      - NamedExpr:
+                      - Assign:
                           name: x
                           expr:
                             Ident: r

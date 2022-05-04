@@ -1,12 +1,12 @@
 ---
 source: prql-compiler/src/parser.rs
-expression: "parse_tree_of_str(\"func (plus_one x) = x + 1\", Rule::func_def)?"
+expression: "parse_tree_of_str(\"func plus_one x ->  x + 1\", Rule::func_def)?"
 ---
 [
     Pair {
         rule: func_def,
         span: Span {
-            str: "func (plus_one x) = x + 1",
+            str: "func plus_one x ->  x + 1",
             start: 0,
             end: 25,
         },
@@ -24,8 +24,8 @@ expression: "parse_tree_of_str(\"func (plus_one x) = x + 1\", Rule::func_def)?"
                 rule: ident,
                 span: Span {
                     str: "plus_one",
-                    start: 6,
-                    end: 14,
+                    start: 5,
+                    end: 13,
                 },
                 inner: [],
             },
@@ -33,28 +33,18 @@ expression: "parse_tree_of_str(\"func (plus_one x) = x + 1\", Rule::func_def)?"
                 rule: func_def_params,
                 span: Span {
                     str: "x",
-                    start: 15,
-                    end: 16,
+                    start: 14,
+                    end: 15,
                 },
                 inner: [
                     Pair {
-                        rule: named_term,
+                        rule: ident,
                         span: Span {
                             str: "x",
-                            start: 15,
-                            end: 16,
+                            start: 14,
+                            end: 15,
                         },
-                        inner: [
-                            Pair {
-                                rule: ident,
-                                span: Span {
-                                    str: "x",
-                                    start: 15,
-                                    end: 16,
-                                },
-                                inner: [],
-                            },
-                        ],
+                        inner: [],
                     },
                 ],
             },

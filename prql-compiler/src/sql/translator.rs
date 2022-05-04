@@ -439,7 +439,7 @@ impl TryFrom<Item> for SelectItem {
             | Item::Ident(_)
             | Item::Raw(_)
             | Item::Windowed(_) => SelectItem::UnnamedExpr(Expr::try_from(item)?),
-            Item::NamedExpr(named) => SelectItem::ExprWithAlias {
+            Item::Assign(named) => SelectItem::ExprWithAlias {
                 alias: sql_ast::Ident::new(named.name),
                 expr: named.expr.item.try_into()?,
             },
@@ -843,8 +843,8 @@ SString:
     fn test_prql_to_sql_1() -> Result<()> {
         let query = parse(
             r#"
-    func (count x) = s"count({x})"
-    func (sum x) = s"sum({x})"
+    func count x ->  s"count({x})"
+    func sum x ->  s"sum({x})"
 
     from employees
     aggregate [
@@ -1120,7 +1120,7 @@ take 20
         let query: Query = parse(
             r###"
             from e = employees
-            join salaries side=left [salaries.emp_no == e.emp_no]
+            join salaries side:left [salaries.emp_no == e.emp_no]
             group [e.emp_no] (
                 aggregate [
                     emp_salary = average salary
@@ -1148,7 +1148,7 @@ take 20
         // Generic
         let query: Query = parse(
             r###"
-        prql dialect=generic
+        prql dialect:generic
         from Employees
         select [FirstName]
         take 3
@@ -1167,7 +1167,7 @@ take 20
         // SQL server
         let query: Query = parse(
             r###"
-        prql dialect=ms_sql_server
+        prql dialect:ms_sql_server
         from Employees
         select [FirstName]
         take 3

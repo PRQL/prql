@@ -26,14 +26,14 @@ Query:
               name: derive
               args:
                 - List:
-                    - NamedExpr:
+                    - Assign:
                         name: gross_salary
                         expr:
                           Expr:
                             - Ident: salary
                             - Raw: +
                             - Ident: payroll_tax
-                    - NamedExpr:
+                    - Assign:
                         name: gross_cost
                         expr:
                           Expr:
@@ -87,7 +87,7 @@ Query:
                                     args:
                                       - Ident: gross_cost
                                     named_args: {}
-                                - NamedExpr:
+                                - Assign:
                                     name: sum_gross_cost
                                     expr:
                                       FuncCall:
@@ -95,7 +95,7 @@ Query:
                                         args:
                                           - Ident: gross_cost
                                         named_args: {}
-                                - NamedExpr:
+                                - Assign:
                                     name: ct
                                     expr:
                                       Ident: count

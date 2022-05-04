@@ -52,7 +52,7 @@ pub fn cast_transform(func_call: FuncCall, span: Option<Span>) -> Result<Transfo
                 .into_iter()
                 .map(|node| {
                     let (column, direction) = match node.item {
-                        Item::NamedExpr(named_expr) => {
+                        Item::Assign(named_expr) => {
                             let direction = match named_expr.name.as_str() {
                                 "asc" => SortDirection::Asc,
                                 "desc" => SortDirection::Desc,
@@ -73,9 +73,11 @@ pub fn cast_transform(func_call: FuncCall, span: Option<Span>) -> Result<Transfo
                     if matches!(column.item, Item::Ident(_)) {
                         Ok(ColumnSort { direction, column })
                     } else {
-                        Err(Error::new(Reason::Simple(
-                            "`sort` expects column name, not expression".to_string(),
-                        ))
+                        Err(Error::new(Reason::Expected {
+                            who: Some("sort".to_string()),
+                            expected: "column name".to_string(),
+                            found: format!("`{}`", column.item),
+                        })
                         .with_help("you can introduce a new column with `derive`")
                         .with_span(column.span))
                     }

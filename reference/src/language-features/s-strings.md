@@ -12,7 +12,7 @@ We can embed columns in an s-string using braces. For example, PRQL's standard
 library defines the `average` function as:
 
 ```prql_no_test
-func average column = s"AVG({column})"
+func average column -> s"AVG({column})"
 ```
 
 So this compiles using the function:

@@ -1,2 +1,2 @@
 from employees
-join side=left positions [id==employee_id]
+join side:left positions [id==employee_id]

@@ -58,9 +58,6 @@ pub trait AstFold {
     fn fold_table_ref(&mut self, table_ref: TableRef) -> Result<TableRef> {
         fold_table_ref(self, table_ref)
     }
-    fn fold_named_expr(&mut self, named_expr: NamedExpr) -> Result<NamedExpr> {
-        fold_named_expr(self, named_expr)
-    }
     fn fold_interpolate_item(&mut self, sstring_item: InterpolateItem) -> Result<InterpolateItem> {
         fold_interpolate_item(self, sstring_item)
     }
@@ -95,7 +92,8 @@ pub fn fold_item<T: ?Sized + AstFold>(fold: &mut T, item: Item) -> Result<Item> 
             ..query
         }),
         Item::Pipeline(p) => Item::Pipeline(fold.fold_pipeline(p)?),
-        Item::NamedExpr(named_expr) => Item::NamedExpr(fold.fold_named_expr(named_expr)?),
+        Item::Assign(named_expr) => Item::Assign(fold_named_expr(fold, named_expr)?),
+        Item::NamedArg(named_expr) => Item::Assign(fold_named_expr(fold, named_expr)?),
         Item::Transform(transformation) => Item::Transform(fold.fold_transform(transformation)?),
         Item::SString(items) => Item::SString(
             items

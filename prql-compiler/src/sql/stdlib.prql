@@ -6,27 +6,27 @@
 
 # Aggregate Functions
 
-func (min column) = s"MIN({column})"
-func (max column) = s"MAX({column})"
-func (sum column) = s"SUM({column})"
-func (avg column) = s"AVG({column})"
-func (stddev column) = s"STDDEV({column})"
-func (average column) = s"AVG({column})"
-func (count) = s"COUNT(*)"
-func (count column) = s"COUNT({column})"
+func min column ->  s"MIN({column})"
+func max column ->  s"MAX({column})"
+func sum column ->  s"SUM({column})"
+func avg column ->  s"AVG({column})"
+func stddev column ->  s"STDDEV({column})"
+func average column ->  s"AVG({column})"
+func count ->  s"COUNT(*)"
+func count column ->  s"COUNT({column})"
 # TODO: Possibly make this into `count distinct:true` (or like `distinct:` as an
 # abbreviation of that?)
-func (count_distinct column) = s"COUNT(DISTINCT `{column}`)"
+func count_distinct column ->  s"COUNT(DISTINCT `{column}`)"
 
 # TODO: Introduce a notation for getting start and end out of a ranges
 # could be range.0? or range.start? But to make this happen, we need to make
 # changes to how variables are resolved.
-func (in range value) = s"{value} BETWEEN {range}"
+func in range value ->  s"{value} BETWEEN {range}"
 
 # Casting functions
 
-func (as column type) = s"CAST({column} AS {type})"
+func as column type ->  s"CAST({column} AS {type})"
 
 # Window functions
-func window (lag offset column) = s"LAG({column}, {offset})"
-func window (rank) = s"RANK()"
+func window lag offset column ->  s"LAG({column}, {offset})"
+func window rank ->  s"RANK()"

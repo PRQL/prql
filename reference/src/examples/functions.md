@@ -4,15 +4,15 @@ first line.
 ```prql_no_test
 prql version:0.1 db:snowflake                         # Version number & database name.
 
-func (lag_day x) = (
+func lag_day x ->  (
   window x
   by sec_id
   sort date
   lag 1
 )
-func (ret x) = x / (x | lag_day) - 1 + dividend_return
-func (excess x) = (x - interest_rate) / 252
-func (if_valid x) = is_valid_price ? x : null
+func ret x ->  x / (x | lag_day) - 1 + dividend_return
+func excess x ->  (x - interest_rate) / 252
+func if_valid x ->  is_valid_price ? x : null
 
 from prices
 derive [

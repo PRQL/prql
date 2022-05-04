@@ -108,7 +108,7 @@ sort age
 > adds columns from another table, matching rows based on a condition
 
 ```prql_no_test
-join side={inner|left|right|full} {table} {[conditions]}
+join side:{inner|left|right|full} {table} {[conditions]}
 ```
 
 *Arguments:*
@@ -122,14 +122,14 @@ join side={inner|left|right|full} {table} {[conditions]}
 
 ```prql
 from employees
-join side=left positions [id==employee_id]
+join side:left positions [id==employee_id]
 ```
 
 *Example:*
 
 ```prql
 from employees
-join side=full positions [emp_no]
+join side:full positions [emp_no]
 ```
 
 ## Group

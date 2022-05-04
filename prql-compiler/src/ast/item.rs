@@ -15,7 +15,8 @@ pub enum Item {
     Ident(Ident),
     String(String),
     Raw(String),
-    NamedExpr(NamedExpr),
+    Assign(NamedExpr),
+    NamedArg(NamedExpr),
     Query(Query),
     Pipeline(Pipeline),
     Transform(Transform),
@@ -125,7 +126,7 @@ impl From<Item> for anyhow::Error {
     #[allow(unreachable_code)]
     fn from(item: Item) -> Self {
         // panic!("Failed to convert {item}")
-        anyhow!("Failed to convert {item}")
+        anyhow!("Failed to convert `{item}`")
     }
 }
 
@@ -141,8 +142,11 @@ impl Display for Item {
             Item::Raw(r) => {
                 f.write_str(r)?;
             }
-            Item::NamedExpr(ne) => {
-                write!(f, "{}: {}", ne.name, ne.expr.item)?;
+            Item::Assign(ne) => {
+                write!(f, "{} = {}", ne.name, ne.expr.item)?;
+            }
+            Item::NamedArg(ne) => {
+                write!(f, "{}:{}", ne.name, ne.expr.item)?;
             }
             Item::Query(query) => {
                 write!(f, "prql dialect: {}\n\n", query.dialect)?;

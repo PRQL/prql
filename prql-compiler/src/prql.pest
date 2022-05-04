@@ -13,14 +13,14 @@ COMMENT = _{ "#" ~ (!NEWLINE ~ ANY) * }
 
 query = { SOI ~ NEWLINE* ~ query_def ~ NEWLINE* ~ (( func_def | table | pipeline ) ~ ( NEWLINE+ | &EOI ))* ~ EOI }
 
-query_def = { WHITESPACE* ~ ("prql" ~ named_expr* ~ NEWLINE)? }
+query_def = { WHITESPACE* ~ ("prql" ~ named_arg* ~ NEWLINE)? }
 
-func_def = { "func" ~ func_def_flags ~ "(" ~ ident ~ func_def_params ~ ")" ~ "=" ~ expr }
+func_def = { "func" ~ func_def_flags ~ ident ~ func_def_params ~ "->" ~ expr }
 
 // TODO: consider some syntax for these func "type" args; currently they're only
 // differentiated from params by their position
 func_def_flags = @{ ("transform" | "aggregation" | "window" | "native" | "")? }
-func_def_params = { ( named_term | ident )* }
+func_def_params = { ( named_arg | ident )* }
 table = { "table" ~ ident ~ "=" ~ nested_pipeline }
 
 pipe = _{ NEWLINE | "|" }
@@ -55,13 +55,12 @@ keyword = _{ "prql" | "table" | "func" }
 // - 2
 
 // white space is required to prevent matching s"string"
-func_call = ${ ident ~ WHITESPACE+ ~ named_expr+ }
-func_curry = { ident ~ named_expr* }
+func_call = ${ ident ~ WHITESPACE+ ~ (named_arg | assign | expr)+ }
+func_curry = { ident ~ (named_arg | assign | expr)* }
 
-// For assigns, table aliases and named arguments
-named_expr_call = { (ident ~ "=" ~ !"=")? ~ expr_call }
-named_expr = { (ident ~ "=" ~ !"=")? ~ expr }
-named_term = { (ident ~ "=" ~ !"=")? ~ term }
+named_arg   = { ident ~ ":" ~ !":" ~ (assign | expr) }
+assign      = { ident ~ "=" ~ !"=" ~ expr }
+assign_call = { ident ~ "=" ~ !"=" ~ expr_call }
 
 // Expression that can contain a function call
 expr_call = _{ (func_call | expr) }
@@ -73,7 +72,7 @@ expr_mul = !{ term ~ (operator_mul ~ term)* }
 
 term = _{ ( s_string | f_string | ident | nested_expr | nested_pipeline | list | range | literal ) }
 literal = _{ interval | number | string}
-list = { "[" ~ (NEWLINE* ~ named_expr_call ~ ("," ~ NEWLINE* ~ named_expr_call )* ~ ","?)? ~ NEWLINE* ~ "]" }
+list = { "[" ~ (NEWLINE* ~ (assign_call | expr_call) ~ ("," ~ NEWLINE* ~ (assign_call | expr_call) )* ~ ","?)? ~ NEWLINE* ~ "]" }
 nested_expr = _{ "(" ~ expr_call ~ ")" }
 nested_pipeline = { "(" ~ expr_call? ~ pipe ~ pipeline ~ NEWLINE* ~ ")" }
 

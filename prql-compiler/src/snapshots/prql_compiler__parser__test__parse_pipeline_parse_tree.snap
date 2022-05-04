@@ -29,7 +29,7 @@ expression: "parse_tree_of_str(r#\"\n            from employees\n            sel
                         inner: [],
                     },
                     Pair {
-                        rule: named_expr,
+                        rule: expr,
                         span: Span {
                             str: "employees",
                             start: 5,
@@ -37,7 +37,7 @@ expression: "parse_tree_of_str(r#\"\n            from employees\n            sel
                         },
                         inner: [
                             Pair {
-                                rule: expr,
+                                rule: expr_compare,
                                 span: Span {
                                     str: "employees",
                                     start: 5,
@@ -45,7 +45,7 @@ expression: "parse_tree_of_str(r#\"\n            from employees\n            sel
                                 },
                                 inner: [
                                     Pair {
-                                        rule: expr_compare,
+                                        rule: expr_add,
                                         span: Span {
                                             str: "employees",
                                             start: 5,
@@ -53,7 +53,7 @@ expression: "parse_tree_of_str(r#\"\n            from employees\n            sel
                                         },
                                         inner: [
                                             Pair {
-                                                rule: expr_add,
+                                                rule: expr_mul,
                                                 span: Span {
                                                     str: "employees",
                                                     start: 5,
@@ -61,23 +61,13 @@ expression: "parse_tree_of_str(r#\"\n            from employees\n            sel
                                                 },
                                                 inner: [
                                                     Pair {
-                                                        rule: expr_mul,
+                                                        rule: ident,
                                                         span: Span {
                                                             str: "employees",
                                                             start: 5,
                                                             end: 14,
                                                         },
-                                                        inner: [
-                                                            Pair {
-                                                                rule: ident,
-                                                                span: Span {
-                                                                    str: "employees",
-                                                                    start: 5,
-                                                                    end: 14,
-                                                                },
-                                                                inner: [],
-                                                            },
-                                                        ],
+                                                        inner: [],
                                                     },
                                                 ],
                                             },
@@ -107,7 +97,7 @@ expression: "parse_tree_of_str(r#\"\n            from employees\n            sel
                         inner: [],
                     },
                     Pair {
-                        rule: named_expr,
+                        rule: expr,
                         span: Span {
                             str: "[a, b]",
                             start: 34,
@@ -115,7 +105,7 @@ expression: "parse_tree_of_str(r#\"\n            from employees\n            sel
                         },
                         inner: [
                             Pair {
-                                rule: expr,
+                                rule: expr_compare,
                                 span: Span {
                                     str: "[a, b]",
                                     start: 34,
@@ -123,7 +113,7 @@ expression: "parse_tree_of_str(r#\"\n            from employees\n            sel
                                 },
                                 inner: [
                                     Pair {
-                                        rule: expr_compare,
+                                        rule: expr_add,
                                         span: Span {
                                             str: "[a, b]",
                                             start: 34,
@@ -131,7 +121,7 @@ expression: "parse_tree_of_str(r#\"\n            from employees\n            sel
                                         },
                                         inner: [
                                             Pair {
-                                                rule: expr_add,
+                                                rule: expr_mul,
                                                 span: Span {
                                                     str: "[a, b]",
                                                     start: 34,
@@ -139,7 +129,7 @@ expression: "parse_tree_of_str(r#\"\n            from employees\n            sel
                                                 },
                                                 inner: [
                                                     Pair {
-                                                        rule: expr_mul,
+                                                        rule: list,
                                                         span: Span {
                                                             str: "[a, b]",
                                                             start: 34,
@@ -147,15 +137,15 @@ expression: "parse_tree_of_str(r#\"\n            from employees\n            sel
                                                         },
                                                         inner: [
                                                             Pair {
-                                                                rule: list,
+                                                                rule: expr,
                                                                 span: Span {
-                                                                    str: "[a, b]",
-                                                                    start: 34,
-                                                                    end: 40,
+                                                                    str: "a",
+                                                                    start: 35,
+                                                                    end: 36,
                                                                 },
                                                                 inner: [
                                                                     Pair {
-                                                                        rule: named_expr_call,
+                                                                        rule: expr_compare,
                                                                         span: Span {
                                                                             str: "a",
                                                                             start: 35,
@@ -163,7 +153,7 @@ expression: "parse_tree_of_str(r#\"\n            from employees\n            sel
                                                                         },
                                                                         inner: [
                                                                             Pair {
-                                                                                rule: expr,
+                                                                                rule: expr_add,
                                                                                 span: Span {
                                                                                     str: "a",
                                                                                     start: 35,
@@ -171,7 +161,7 @@ expression: "parse_tree_of_str(r#\"\n            from employees\n            sel
                                                                                 },
                                                                                 inner: [
                                                                                     Pair {
-                                                                                        rule: expr_compare,
+                                                                                        rule: expr_mul,
                                                                                         span: Span {
                                                                                             str: "a",
                                                                                             start: 35,
@@ -179,33 +169,13 @@ expression: "parse_tree_of_str(r#\"\n            from employees\n            sel
                                                                                         },
                                                                                         inner: [
                                                                                             Pair {
-                                                                                                rule: expr_add,
+                                                                                                rule: ident,
                                                                                                 span: Span {
                                                                                                     str: "a",
                                                                                                     start: 35,
                                                                                                     end: 36,
                                                                                                 },
-                                                                                                inner: [
-                                                                                                    Pair {
-                                                                                                        rule: expr_mul,
-                                                                                                        span: Span {
-                                                                                                            str: "a",
-                                                                                                            start: 35,
-                                                                                                            end: 36,
-                                                                                                        },
-                                                                                                        inner: [
-                                                                                                            Pair {
-                                                                                                                rule: ident,
-                                                                                                                span: Span {
-                                                                                                                    str: "a",
-                                                                                                                    start: 35,
-                                                                                                                    end: 36,
-                                                                                                                },
-                                                                                                                inner: [],
-                                                                                                            },
-                                                                                                        ],
-                                                                                                    },
-                                                                                                ],
+                                                                                                inner: [],
                                                                                             },
                                                                                         ],
                                                                                     },
@@ -213,8 +183,18 @@ expression: "parse_tree_of_str(r#\"\n            from employees\n            sel
                                                                             },
                                                                         ],
                                                                     },
+                                                                ],
+                                                            },
+                                                            Pair {
+                                                                rule: expr,
+                                                                span: Span {
+                                                                    str: "b",
+                                                                    start: 38,
+                                                                    end: 39,
+                                                                },
+                                                                inner: [
                                                                     Pair {
-                                                                        rule: named_expr_call,
+                                                                        rule: expr_compare,
                                                                         span: Span {
                                                                             str: "b",
                                                                             start: 38,
@@ -222,7 +202,7 @@ expression: "parse_tree_of_str(r#\"\n            from employees\n            sel
                                                                         },
                                                                         inner: [
                                                                             Pair {
-                                                                                rule: expr,
+                                                                                rule: expr_add,
                                                                                 span: Span {
                                                                                     str: "b",
                                                                                     start: 38,
@@ -230,7 +210,7 @@ expression: "parse_tree_of_str(r#\"\n            from employees\n            sel
                                                                                 },
                                                                                 inner: [
                                                                                     Pair {
-                                                                                        rule: expr_compare,
+                                                                                        rule: expr_mul,
                                                                                         span: Span {
                                                                                             str: "b",
                                                                                             start: 38,
@@ -238,33 +218,13 @@ expression: "parse_tree_of_str(r#\"\n            from employees\n            sel
                                                                                         },
                                                                                         inner: [
                                                                                             Pair {
-                                                                                                rule: expr_add,
+                                                                                                rule: ident,
                                                                                                 span: Span {
                                                                                                     str: "b",
                                                                                                     start: 38,
                                                                                                     end: 39,
                                                                                                 },
-                                                                                                inner: [
-                                                                                                    Pair {
-                                                                                                        rule: expr_mul,
-                                                                                                        span: Span {
-                                                                                                            str: "b",
-                                                                                                            start: 38,
-                                                                                                            end: 39,
-                                                                                                        },
-                                                                                                        inner: [
-                                                                                                            Pair {
-                                                                                                                rule: ident,
-                                                                                                                span: Span {
-                                                                                                                    str: "b",
-                                                                                                                    start: 38,
-                                                                                                                    end: 39,
-                                                                                                                },
-                                                                                                                inner: [],
-                                                                                                            },
-                                                                                                        ],
-                                                                                                    },
-                                                                                                ],
+                                                                                                inner: [],
                                                                                             },
                                                                                         ],
                                                                                     },

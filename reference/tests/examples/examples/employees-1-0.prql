@@ -5,7 +5,7 @@ group [emp_no, gender] (
     emp_salary = average salary
   ]
 )
-join de=dept_emp [emp_no] side=left
+join de=dept_emp [emp_no] side:left
 group [de.dept_no, gender] (
   aggregate [
     salary_avg = average emp_salary,

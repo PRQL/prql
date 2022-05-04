@@ -14,7 +14,7 @@ group [emp_no] (
   aggregate [emp_salary = average salary]
 )
 join t=titles [emp_no]
-join dept_emp side=left [emp_no]
+join dept_emp side:left [emp_no]
 group [dept_emp.dept_no, t.title] (
   aggregate [avg_salary = average emp_salary]
 )

@@ -43,7 +43,7 @@ impl Node {
     pub fn discard_name(self) -> Result<Node, Error> {
         // TODO: replace this function with a prior type checking
 
-        if let Item::NamedExpr(_) = self.item {
+        if let Item::Assign(_) = self.item {
             Err(Error::new(Reason::Unexpected {
                 found: "alias".to_string(),
             })
@@ -54,7 +54,7 @@ impl Node {
     }
 
     pub fn into_name_and_expr(self) -> (Option<Ident>, Node) {
-        if let Item::NamedExpr(expr) = self.item {
+        if let Item::Assign(expr) = self.item {
             (Some(expr.name), *expr.expr)
         } else {
             (None, self)

@@ -35,7 +35,7 @@ group [title, country_code] (  # For each group use a nested pipeline
 sort sum_gross_cost
 filter ct > 200
 take 20
-join countries side=left [country_code]
+join countries side:left [country_code]
 derive [
   always_true = true,
   db_version = s"version()",    # An S-string, which transpiles directly into SQL

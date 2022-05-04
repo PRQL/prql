@@ -265,7 +265,7 @@ impl Resolver {
             .into_iter()
             .map(|mut node| {
                 Ok(match node.item {
-                    Item::NamedExpr(NamedExpr { name, expr }) => {
+                    Item::Assign(NamedExpr { name, expr }) => {
                         // introduce a new expression alias
 
                         let expr = self.fold_assign_expr(*expr)?;
@@ -403,22 +403,24 @@ impl Resolver {
         // extract needed named args from positionals
         let named_params: HashSet<_> = (func_def.named_params)
             .iter()
-            .map(|param| &param.item.as_named_expr().unwrap().name)
+            .map(|param| &param.item.as_named_arg().unwrap().name)
             .collect();
-        let (named, positional) = func_call.args.into_iter().partition(|arg| {
-            // TODO: replace with drain_filter when it hits stable
-            if let Item::NamedExpr(ne) = &arg.item {
-                named_params.contains(&ne.name)
-            } else {
-                false
-            }
-        });
-        func_call.args = positional;
-        func_call.named_args = named
+        let (named, positional) = func_call
+            .args
             .into_iter()
-            .map(|arg| arg.item.into_named_expr().unwrap())
-            .map(|ne| (ne.name, ne.expr))
-            .collect();
+            .partition(|arg| matches!(&arg.item, Item::NamedArg(_)));
+        func_call.args = positional;
+
+        for node in named {
+            let arg = node.item.into_named_arg().unwrap();
+            if !named_params.contains(&arg.name) {
+                return Err(Error::new(Reason::Unexpected {
+                    found: format!("argument named `{}`", arg.name),
+                })
+                .with_span(node.span));
+            }
+            func_call.named_args.insert(arg.name, arg.expr);
+        }
 
         // validate number of parameters
         let expected_len = func_def.positional_params.len() - is_curry as usize;
@@ -507,11 +509,11 @@ mod tests {
                     name: select
                     args:
                     - List:
-                        - NamedExpr:
+                        - Assign:
                             name: salary_1
                             expr:
                                 Ident: salary
-                        - NamedExpr:
+                        - Assign:
                             name: salary_2
                             expr:
                                 Expr:

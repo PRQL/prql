@@ -29,7 +29,7 @@ expression: "parse_tree_of_str(r#\"\n            from employees\n            fil
                         inner: [],
                     },
                     Pair {
-                        rule: named_expr,
+                        rule: expr,
                         span: Span {
                             str: "employees",
                             start: 5,
@@ -37,7 +37,7 @@ expression: "parse_tree_of_str(r#\"\n            from employees\n            fil
                         },
                         inner: [
                             Pair {
-                                rule: expr,
+                                rule: expr_compare,
                                 span: Span {
                                     str: "employees",
                                     start: 5,
@@ -45,7 +45,7 @@ expression: "parse_tree_of_str(r#\"\n            from employees\n            fil
                                 },
                                 inner: [
                                     Pair {
-                                        rule: expr_compare,
+                                        rule: expr_add,
                                         span: Span {
                                             str: "employees",
                                             start: 5,
@@ -53,7 +53,7 @@ expression: "parse_tree_of_str(r#\"\n            from employees\n            fil
                                         },
                                         inner: [
                                             Pair {
-                                                rule: expr_add,
+                                                rule: expr_mul,
                                                 span: Span {
                                                     str: "employees",
                                                     start: 5,
@@ -61,23 +61,13 @@ expression: "parse_tree_of_str(r#\"\n            from employees\n            fil
                                                 },
                                                 inner: [
                                                     Pair {
-                                                        rule: expr_mul,
+                                                        rule: ident,
                                                         span: Span {
                                                             str: "employees",
                                                             start: 5,
                                                             end: 14,
                                                         },
-                                                        inner: [
-                                                            Pair {
-                                                                rule: ident,
-                                                                span: Span {
-                                                                    str: "employees",
-                                                                    start: 5,
-                                                                    end: 14,
-                                                                },
-                                                                inner: [],
-                                                            },
-                                                        ],
+                                                        inner: [],
                                                     },
                                                 ],
                                             },
@@ -107,7 +97,7 @@ expression: "parse_tree_of_str(r#\"\n            from employees\n            fil
                         inner: [],
                     },
                     Pair {
-                        rule: named_expr,
+                        rule: expr,
                         span: Span {
                             str: "country == \"USA\"",
                             start: 34,
@@ -115,7 +105,7 @@ expression: "parse_tree_of_str(r#\"\n            from employees\n            fil
                         },
                         inner: [
                             Pair {
-                                rule: expr,
+                                rule: expr_compare,
                                 span: Span {
                                     str: "country == \"USA\"",
                                     start: 34,
@@ -123,15 +113,15 @@ expression: "parse_tree_of_str(r#\"\n            from employees\n            fil
                                 },
                                 inner: [
                                     Pair {
-                                        rule: expr_compare,
+                                        rule: expr_add,
                                         span: Span {
-                                            str: "country == \"USA\"",
+                                            str: "country ",
                                             start: 34,
-                                            end: 50,
+                                            end: 42,
                                         },
                                         inner: [
                                             Pair {
-                                                rule: expr_add,
+                                                rule: expr_mul,
                                                 span: Span {
                                                     str: "country ",
                                                     start: 34,
@@ -139,37 +129,37 @@ expression: "parse_tree_of_str(r#\"\n            from employees\n            fil
                                                 },
                                                 inner: [
                                                     Pair {
-                                                        rule: expr_mul,
+                                                        rule: ident,
                                                         span: Span {
-                                                            str: "country ",
+                                                            str: "country",
                                                             start: 34,
-                                                            end: 42,
+                                                            end: 41,
                                                         },
-                                                        inner: [
-                                                            Pair {
-                                                                rule: ident,
-                                                                span: Span {
-                                                                    str: "country",
-                                                                    start: 34,
-                                                                    end: 41,
-                                                                },
-                                                                inner: [],
-                                                            },
-                                                        ],
+                                                        inner: [],
                                                     },
                                                 ],
                                             },
+                                        ],
+                                    },
+                                    Pair {
+                                        rule: operator_compare,
+                                        span: Span {
+                                            str: "==",
+                                            start: 42,
+                                            end: 44,
+                                        },
+                                        inner: [],
+                                    },
+                                    Pair {
+                                        rule: expr_add,
+                                        span: Span {
+                                            str: "\"USA\"",
+                                            start: 45,
+                                            end: 50,
+                                        },
+                                        inner: [
                                             Pair {
-                                                rule: operator_compare,
-                                                span: Span {
-                                                    str: "==",
-                                                    start: 42,
-                                                    end: 44,
-                                                },
-                                                inner: [],
-                                            },
-                                            Pair {
-                                                rule: expr_add,
+                                                rule: expr_mul,
                                                 span: Span {
                                                     str: "\"USA\"",
                                                     start: 45,
@@ -177,7 +167,7 @@ expression: "parse_tree_of_str(r#\"\n            from employees\n            fil
                                                 },
                                                 inner: [
                                                     Pair {
-                                                        rule: expr_mul,
+                                                        rule: string,
                                                         span: Span {
                                                             str: "\"USA\"",
                                                             start: 45,
@@ -185,23 +175,13 @@ expression: "parse_tree_of_str(r#\"\n            from employees\n            fil
                                                         },
                                                         inner: [
                                                             Pair {
-                                                                rule: string,
+                                                                rule: string_inner,
                                                                 span: Span {
-                                                                    str: "\"USA\"",
-                                                                    start: 45,
-                                                                    end: 50,
+                                                                    str: "USA",
+                                                                    start: 46,
+                                                                    end: 49,
                                                                 },
-                                                                inner: [
-                                                                    Pair {
-                                                                        rule: string_inner,
-                                                                        span: Span {
-                                                                            str: "USA",
-                                                                            start: 46,
-                                                                            end: 49,
-                                                                        },
-                                                                        inner: [],
-                                                                    },
-                                                                ],
+                                                                inner: [],
                                                             },
                                                         ],
                                                     },
