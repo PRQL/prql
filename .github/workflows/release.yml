@@ -1,7 +1,7 @@
 name: release-brew
 on: release
 jobs:
-  dispatch:
+  tag:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -9,6 +9,9 @@ jobs:
         run: |
           echo "TAG=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
 
+  dispatcher:
+      runs-on: ubuntu-latest
+      steps:
       - uses: actions/github-script@v6
       - name: create dispatch
         with:
