@@ -1,19 +1,22 @@
 name: release-brew
-on: 
+on:
   release:
     type: [published]
-    
+
 jobs:
-  dispatch:
+  tag:
+    name: edit tag variable
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - name: edit tag variable
+      - uses: actions/checkout@v3
       - run: |
           echo "TAG=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
 
+  dispatcher:
+    name: create the dispatch event
+    runs-on: ubuntu-latest
+    steps:
       - uses: actions/github-script@v6
-      - name: create dispatch
         with:
           github-token: ${{ secrets.PAT_TOKEN }}
           script: |
