@@ -4,17 +4,16 @@ on:
     type: [published]
 
 jobs:
-  tag:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v2
-      run: |
-        echo "TAG=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
-
   dispatcher:
     runs-on: ubuntu-latest
     steps:
+    - uses: actions/checkout@v2
+    - name: edit tag variable
+      run: |
+        echo "TAG=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+
     - uses: actions/github-script@v6
+    - name: create the dispatch
       with:
         github-token: ${{ secrets.PAT_TOKEN }}
         script: |
