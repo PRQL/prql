@@ -8,9 +8,10 @@ jobs:
     name: edit tag variable
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v2
       - run: |
           echo "TAG=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+          echo ${{ env.TAG }}
 
   dispatcher:
     name: create the dispatch event
