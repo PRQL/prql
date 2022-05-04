@@ -4,17 +4,23 @@ jobs:
   dispatch:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/github-script@v6
-      with:
-        github-token: ${{ secrets.PAT_TOKEN }}
-        script: |
-          await github.rest.actions.createWorkflowDispatch({
-            owner: 'prql',
-            repo: 'homebrew-prql',
-            workflow_id: 'update.yml',
-            ref: 'actions',
-            inputs: {
-            version: '${{ github.ref }}',
-            URL: 'https://github.com/prql/prql/archive/${{ github.ref }}.tar.gz'
-            }
-          })
+      - uses: actions/checkout@v2
+      - name: edit tag variable
+        run: |
+          echo "TAG=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+
+      - uses: actions/github-script@v6
+      - name: create dispatch
+        with:
+          github-token: ${{ secrets.PAT_TOKEN }}
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: 'prql',
+              repo: 'homebrew-prql',
+              workflow_id: 'update.yml',
+              ref: 'actions',
+              inputs: {
+              version: '${{ env.TAG }}',
+              URL: 'https://github.com/prql/prql/archive/${{ github.ref }}.tar.gz'
+              }
+            })
