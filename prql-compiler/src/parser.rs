@@ -112,34 +112,40 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
                 Rule::func_def => {
                     let parsed = ast_of_parse_tree(pair.into_inner())?;
 
-                    let [flags, name, params, body]: [Node; 4] = parsed
+                    let [name, params, body]: [Node; 3] = parsed
                         .try_into()
                         .map_err(|_| anyhow!("bad func_def parsing"))?;
 
-                    let kind = FuncKind::from_str(&flags.item.into_raw()?).ok();
+                    let (name, return_type) = unpack_typed(name)?;
                     let name = name.item.into_ident()?;
-                    let params = params.item.into_expr()?;
+
+                    let params: Vec<_> = (params.item.into_expr()?)
+                        .into_iter()
+                        .map(unpack_typed)
+                        .try_collect()?;
 
                     let positional_params = params
                         .iter()
-                        .filter(|x| matches!(x.item, Item::Ident(_)))
+                        .filter(|x| matches!(x.0.item, Item::Ident(_)))
                         .cloned()
                         .collect();
                     let named_params = params
                         .iter()
-                        .filter(|x| matches!(x.item, Item::NamedArg(_)))
+                        .filter(|x| matches!(x.0.item, Item::NamedArg(_)))
                         .cloned()
                         .collect();
 
                     Item::FuncDef(FuncDef {
                         name,
-                        kind,
                         positional_params,
                         named_params,
                         body: Box::from(body),
+                        return_type,
                     })
                 }
-                Rule::func_def_params => Item::Expr(ast_of_parse_tree(pair.into_inner())?),
+                Rule::func_def_name | Rule::func_def_params | Rule::func_def_param => {
+                    Item::Expr(ast_of_parse_tree(pair.into_inner())?)
+                }
                 Rule::func_call | Rule::func_curry => {
                     let mut items = ast_of_parse_tree(pair.into_inner())?;
 
@@ -219,6 +225,19 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
                         unit: unit.as_str().to_owned(),
                     })
                 }
+                Rule::type_def => {
+                    let mut parts: Vec<_> = pair.into_inner().into_iter().collect();
+                    let name = parts.remove(0).as_str().to_string();
+                    let param = parts
+                        .pop()
+                        .map(|p| ast_of_parse_tree(p.into_inner()))
+                        .transpose()?
+                        .map(|p| p.into_only())
+                        .transpose()?
+                        .map(Box::new);
+
+                    Item::Type(Type { name, param })
+                }
 
                 Rule::operator_unary
                 | Rule::operator_mul
@@ -226,7 +245,6 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
                 | Rule::operator_compare
                 | Rule::operator_logical
                 | Rule::interval_kind
-                | Rule::func_def_flags
                 | Rule::number => Item::Raw(pair.as_str().to_owned()),
 
                 _ => unreachable!(),
@@ -240,6 +258,13 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
             Ok(node)
         })
         .collect()
+}
+
+fn unpack_typed(node: Node) -> Result<(Node, Option<Type>)> {
+    let mut exprs = node.item.into_expr()?;
+    let node = exprs.remove(0);
+    let typ = exprs.pop().map(|n| n.item.into_type()).transpose()?;
+    Ok((node, typ))
 }
 
 fn named_expr_of_nodes(items: &mut Vec<Node>) -> Result<NamedExpr, anyhow::Error> {
@@ -726,12 +751,13 @@ take 20
         ---
         FuncDef:
           name: identity
-          kind: ~
           positional_params:
-            - Ident: x
+            - - Ident: x
+              - ~
           named_params: []
           body:
             Ident: x
+          return_type: ~
         "###);
         assert_yaml_snapshot!(ast_of_string(
             "func plus_one x ->  (x + 1)", Rule::func_def
@@ -740,15 +766,16 @@ take 20
         ---
         FuncDef:
           name: plus_one
-          kind: ~
           positional_params:
-            - Ident: x
+            - - Ident: x
+              - ~
           named_params: []
           body:
             Expr:
               - Ident: x
               - Raw: +
               - Raw: "1"
+          return_type: ~
         "###);
         assert_yaml_snapshot!(ast_of_string(
             "func plus_one x ->  x + 1", Rule::func_def
@@ -757,15 +784,16 @@ take 20
         ---
         FuncDef:
           name: plus_one
-          kind: ~
           positional_params:
-            - Ident: x
+            - - Ident: x
+              - ~
           named_params: []
           body:
             Expr:
               - Ident: x
               - Raw: +
               - Raw: "1"
+          return_type: ~
         "###);
         // An example to show that we can't delayer the tree, despite there
         // being lots of layers.
@@ -776,9 +804,9 @@ take 20
         ---
         FuncDef:
           name: foo
-          kind: ~
           positional_params:
-            - Ident: x
+            - - Ident: x
+              - ~
           named_params: []
           body:
             FuncCall:
@@ -789,25 +817,26 @@ take 20
                     - Raw: +
                     - Raw: "1"
               named_args: {}
+          return_type: ~
         "###);
 
         assert_yaml_snapshot!(ast_of_string("func return_constant ->  42", Rule::func_def)?, @r###"
         ---
         FuncDef:
           name: return_constant
-          kind: ~
           positional_params: []
           named_params: []
           body:
             Raw: "42"
+          return_type: ~
         "###);
         assert_yaml_snapshot!(ast_of_string(r#"func count X ->  s"SUM({X})""#, Rule::func_def)?, @r###"
         ---
         FuncDef:
           name: count
-          kind: ~
           positional_params:
-            - Ident: X
+            - - Ident: X
+              - ~
           named_params: []
           body:
             SString:
@@ -815,6 +844,7 @@ take 20
               - Expr:
                   Ident: X
               - String: )
+          return_type: ~
         "###);
 
         /* TODO: Does not yet parse because `window` not yet implemented.
@@ -838,19 +868,21 @@ take 20
         ---
         FuncDef:
           name: add
-          kind: ~
           positional_params:
-            - Ident: x
+            - - Ident: x
+              - ~
           named_params:
-            - NamedArg:
-                name: to
-                expr:
-                  Ident: a
+            - - NamedArg:
+                  name: to
+                  expr:
+                    Ident: a
+              - ~
           body:
             Expr:
               - Ident: x
               - Raw: +
               - Ident: to
+          return_type: ~
         "###);
 
         Ok(())
@@ -1080,9 +1112,9 @@ take 20
           nodes:
             - FuncDef:
                 name: median
-                kind: ~
                 positional_params:
-                  - Ident: x
+                  - - Ident: x
+                    - ~
                 named_params: []
                 body:
                   Pipeline:
@@ -1094,6 +1126,7 @@ take 20
                           args:
                             - Raw: "50"
                           named_args: {}
+                return_type: ~
         "###);
     }
 

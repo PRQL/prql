@@ -12,39 +12,50 @@ expression: "parse_tree_of_str(\"func plus_one x ->  x + 1\", Rule::func_def)?"
         },
         inner: [
             Pair {
-                rule: func_def_flags,
+                rule: func_def_name,
                 span: Span {
-                    str: "",
+                    str: "plus_one ",
                     start: 5,
-                    end: 5,
-                },
-                inner: [],
-            },
-            Pair {
-                rule: ident,
-                span: Span {
-                    str: "plus_one",
-                    start: 5,
-                    end: 13,
-                },
-                inner: [],
-            },
-            Pair {
-                rule: func_def_params,
-                span: Span {
-                    str: "x",
-                    start: 14,
-                    end: 15,
+                    end: 14,
                 },
                 inner: [
                     Pair {
                         rule: ident,
                         span: Span {
-                            str: "x",
-                            start: 14,
-                            end: 15,
+                            str: "plus_one",
+                            start: 5,
+                            end: 13,
                         },
                         inner: [],
+                    },
+                ],
+            },
+            Pair {
+                rule: func_def_params,
+                span: Span {
+                    str: "x ",
+                    start: 14,
+                    end: 16,
+                },
+                inner: [
+                    Pair {
+                        rule: func_def_param,
+                        span: Span {
+                            str: "x ",
+                            start: 14,
+                            end: 16,
+                        },
+                        inner: [
+                            Pair {
+                                rule: ident,
+                                span: Span {
+                                    str: "x",
+                                    start: 14,
+                                    end: 15,
+                                },
+                                inner: [],
+                            },
+                        ],
                     },
                 ],
             },

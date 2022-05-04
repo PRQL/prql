@@ -1,0 +1,14 @@
+---
+source: reference/tests/snapshot.rs
+assertion_line: 113
+expression: sql
+input_file: reference/tests/examples/transforms-5.prql
+---
+Failed to compile `from employees
+sort age
+`;   --> 31:9
+   |
+31 | func lag<column> offset column ->  s"LAG({column}, {offset})"␊
+   |         ^---
+   |
+   = expected func_def_param

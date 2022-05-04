@@ -223,7 +223,7 @@ impl Materializer {
         // TODO: check if the function is called recursively.
 
         // for each of the params, replace its declared value
-        for param in func_dec.named_params {
+        for (param, _) in func_dec.named_params {
             let id = param.declared_at.unwrap();
             let param = param.item.into_named_arg()?;
 
@@ -234,7 +234,7 @@ impl Materializer {
 
             self.context.replace_declaration_expr(id, value.into());
         }
-        for (param, arg) in zip(func_dec.positional_params.iter(), func_call.args.iter()) {
+        for ((param, _), arg) in zip(func_dec.positional_params.iter(), func_call.args.iter()) {
             let id = param.declared_at.unwrap();
             let expr = arg.item.clone().into();
             self.context.replace_declaration_expr(id, expr);
@@ -459,9 +459,9 @@ take 20
         ---
         - FuncDef:
             name: count
-            kind: ~
             positional_params:
-              - Ident: x
+              - - Ident: x
+                - ~
             named_params: []
             body:
               SString:
@@ -469,6 +469,7 @@ take 20
                 - Expr:
                     Ident: x
                 - String: )
+            return_type: ~
         - Pipeline:
             value: ~
             functions:

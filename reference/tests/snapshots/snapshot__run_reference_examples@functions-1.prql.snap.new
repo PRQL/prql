@@ -1,0 +1,14 @@
+---
+source: reference/tests/snapshot.rs
+assertion_line: 113
+expression: sql
+input_file: reference/tests/examples/functions-1.prql
+---
+Failed to compile `func interp lower:0 higher x ->  (x - lower) / (higher - lower)
+
+from students
+derive [
+  sat_proportion_1 = (interp 1600 sat_score),
+  sat_proportion_2 = (interp lower:0 1600 sat_score),
+]
+`; Failed to convert `interp`

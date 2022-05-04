@@ -25,6 +25,7 @@ pub enum Item {
     Expr(Vec<Node>),
     FuncDef(FuncDef),
     FuncCall(FuncCall),
+    Type(Type),
     Table(Table),
     SString(Vec<InterpolateItem>),
     FString(Vec<InterpolateItem>),
@@ -97,6 +98,12 @@ pub struct Range {
 pub struct Interval {
     pub n: i64,       // Do any DBs use floats or decimals for this?
     pub unit: String, // Could be an enum IntervalType,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct Type {
+    pub name: String,
+    pub param: Option<Box<Node>>,
 }
 
 impl Pipeline {
@@ -183,10 +190,10 @@ impl Display for Item {
             Item::FuncDef(func_def) => {
                 write!(f, "func {}", func_def.name)?;
                 for arg in &func_def.positional_params {
-                    write!(f, " {}", arg.item)?;
+                    write!(f, " {}", arg.0.item)?;
                 }
                 for arg in &func_def.named_params {
-                    write!(f, " {}", arg.item)?;
+                    write!(f, " {}", arg.0.item)?;
                 }
                 write!(f, " = {}\n\n", func_def.body.item)?;
             }
@@ -244,6 +251,13 @@ impl Display for Item {
             }
             Item::Windowed(w) => {
                 write!(f, "{:?}", w.expr)?;
+            }
+            Item::Type(t) => {
+                if let Some(param) = &t.param {
+                    write!(f, "<{:?}{:?}>", t.name, param.item)?;
+                } else {
+                    write!(f, "<{:?}>", t.name)?;
+                }
             }
         }
         Ok(())

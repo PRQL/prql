@@ -174,11 +174,11 @@ func ret x -> x / (x | lag_day) - 1 + dividend_return
 from prices
 join interest_rates [date]
 select [                                              # `select` only includes unnamed columns, unlike `derive`
-  return_total:       prices_adj   | ret | if_valid   # `|` can be used rather than newlines
-  return_usd:         prices_usd   | ret | if_valid
-  return_excess:      return_total | excess
-  return_usd_excess:  return_usd   | excess
-  return_index: (                                     # No need for a CTE
+  return_total =      prices_adj   | ret | if_valid   # `|` can be used rather than newlines
+  return_usd =        prices_usd   | ret | if_valid
+  return_excess =     return_total | excess
+  return_usd_excess = return_usd   | excess
+  return_index = (                                    # No need for a CTE
     return_total + 1
     excess
     greatest 0.01

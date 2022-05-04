@@ -1,0 +1,11 @@
+---
+source: reference/tests/snapshot.rs
+assertion_line: 113
+expression: sql
+input_file: reference/tests/examples/functions-3.prql
+---
+Failed to compile `func celsius_of_fahrenheit temp ->  (temp - 32) * 3
+
+from cities
+derive temp_c = (temp_f | celsius_of_fahrenheit)
+`; Failed to convert `celsius_of_fahrenheit`

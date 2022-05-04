@@ -69,10 +69,10 @@ impl AstFold for Resolver {
                 Ok(match node.item {
                     Item::FuncDef(mut func_def) => {
                         // declare variables
-                        for param in &mut func_def.named_params {
+                        for (param, _) in &mut func_def.named_params {
                             param.declared_at = Some(self.context.declare_func_param(param));
                         }
-                        for param in &mut func_def.positional_params {
+                        for (param, _) in &mut func_def.positional_params {
                             param.declared_at = Some(self.context.declare_func_param(param));
                         }
 
@@ -107,13 +107,18 @@ impl AstFold for Resolver {
                     .with_span(node.span)?;
 
                 // fold (and cast if this is a transform)
-                match func_def.kind {
-                    Some(FuncKind::Transform) => {
+                let return_type: &str = func_def
+                    .return_type
+                    .as_ref()
+                    .map(|x| x.name.as_str())
+                    .unwrap_or("");
+                match return_type {
+                    "frame" => {
                         let transform = transforms::cast_transform(func_call, node.span)?;
 
                         Item::Transform(self.fold_transform(transform)?)
                     }
-                    Some(FuncKind::Window) => {
+                    "column" => {
                         // wrap into Windowed
                         let mut expr: Node = Item::FuncCall(self.fold_func_call(func_call)?).into();
                         expr.declared_at = node.declared_at;
@@ -403,7 +408,7 @@ impl Resolver {
         // extract needed named args from positionals
         let named_params: HashSet<_> = (func_def.named_params)
             .iter()
-            .map(|param| &param.item.as_named_arg().unwrap().name)
+            .map(|param| &param.0.item.as_named_arg().unwrap().name)
             .collect();
         let (named, positional) = func_call
             .args

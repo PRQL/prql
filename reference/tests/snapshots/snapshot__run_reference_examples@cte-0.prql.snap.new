@@ -1,0 +1,28 @@
+---
+source: reference/tests/snapshot.rs
+assertion_line: 113
+expression: sql
+input_file: reference/tests/examples/examples/cte-0.prql
+---
+Failed to compile `table newest_employees = (
+  from employees
+  sort tenure
+  take 50
+)
+
+table average_salaries = (
+  from salaries
+  group country (
+    aggregate average_country_salary = (average salary)
+  )
+)
+
+from newest_employees
+join average_salaries [country]
+select [name, salary, average_country_salary]
+`;   --> 31:9
+   |
+31 | func lag<column> offset column ->  s"LAG({column}, {offset})"␊
+   |         ^---
+   |
+   = expected func_def_param
