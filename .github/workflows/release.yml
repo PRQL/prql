@@ -1,5 +1,8 @@
 name: release-brew
-on: release
+on:
+  release:
+    type: [published]
+    
 jobs:
   tag:
     runs-on: ubuntu-latest
@@ -12,18 +15,18 @@ jobs:
   dispatcher:
       runs-on: ubuntu-latest
       steps:
-      - uses: actions/github-script@v6
-      - name: create dispatch
-        with:
-          github-token: ${{ secrets.PAT_TOKEN }}
-          script: |
-            await github.rest.actions.createWorkflowDispatch({
-              owner: 'prql',
-              repo: 'homebrew-prql',
-              workflow_id: 'update.yml',
-              ref: 'actions',
-              inputs: {
-              version: '${{ env.TAG }}',
-              URL: 'https://github.com/prql/prql/archive/${{ github.ref }}.tar.gz'
-              }
-            })
+        - uses: actions/github-script@v6
+        - name: create dispatch
+          with:
+            github-token: ${{ secrets.PAT_TOKEN }}
+            script: |
+              await github.rest.actions.createWorkflowDispatch({
+                owner: 'prql',
+                repo: 'homebrew-prql',
+                workflow_id: 'update.yml',
+                ref: 'actions',
+                inputs: {
+                version: '${{ env.TAG }}',
+                URL: 'https://github.com/prql/prql/archive/${{ github.ref }}.tar.gz'
+                }
+              })
