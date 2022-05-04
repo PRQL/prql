@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-        run: |
+      - run: |
           echo "TAG=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
 
   dispatcher:
