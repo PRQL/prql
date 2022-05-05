@@ -3,4 +3,4 @@ select [
   col1,
   col2,
 ]
-filter col1 = col2
+filter col1 == col2

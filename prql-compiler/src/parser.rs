@@ -50,7 +50,7 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
         .map(|pair| {
             let span = pair.as_span();
 
-            let item = match pair.as_rule() {
+            let item = match &pair.as_rule() {
                 Rule::query => {
                     let mut parsed = ast_of_parse_tree(pair.into_inner())?;
                     // this is [query, ...]
@@ -66,7 +66,7 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
 
                     let mut params: HashMap<_, _> = parsed
                         .into_iter()
-                        .map(|x| x.item.into_named_expr().map(|n| (n.name, n.expr)))
+                        .map(|x| x.item.into_named_arg().map(|n| (n.name, n.expr)))
                         .try_collect()?;
 
                     let version = params
@@ -101,52 +101,51 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
                 | Rule::expr
                 | Rule::expr_call => ast_of_parse_tree(pair.into_inner())?.into_expr(),
 
-                Rule::named_expr_call | Rule::named_expr | Rule::named_term => {
-                    let items = ast_of_parse_tree(pair.into_inner())?;
-                    // this borrow could be removed, but it becomes much less readable without match
-                    match &items[..] {
-                        [Node {
-                            item: Item::Ident(name),
-                            ..
-                        }, node] => Item::NamedExpr(NamedExpr {
-                            name: name.clone(),
-                            expr: Box::new(node.clone()),
-                        }),
-                        [node] => node.item.clone(),
-                        _ => unreachable!(),
-                    }
+                Rule::assign_call | Rule::assign => {
+                    let mut items = ast_of_parse_tree(pair.into_inner())?;
+                    Item::Assign(named_expr_of_nodes(&mut items)?)
+                }
+                Rule::named_arg => {
+                    let mut items = ast_of_parse_tree(pair.into_inner())?;
+                    Item::NamedArg(named_expr_of_nodes(&mut items)?)
                 }
                 Rule::func_def => {
                     let parsed = ast_of_parse_tree(pair.into_inner())?;
 
-                    let [flags, name, params, body]: [Node; 4] = parsed
+                    let [name, params, body]: [Node; 3] = parsed
                         .try_into()
                         .map_err(|_| anyhow!("bad func_def parsing"))?;
 
-                    let kind = FuncKind::from_str(&flags.item.into_raw()?).ok();
+                    let (name, return_type) = unpack_typed(name)?;
                     let name = name.item.into_ident()?;
-                    let params = params.item.into_expr()?;
+
+                    let params: Vec<_> = (params.item.into_expr()?)
+                        .into_iter()
+                        .map(unpack_typed)
+                        .try_collect()?;
 
                     let positional_params = params
                         .iter()
-                        .filter(|x| matches!(x.item, Item::Ident(_)))
+                        .filter(|x| matches!(x.0.item, Item::Ident(_)))
                         .cloned()
                         .collect();
                     let named_params = params
                         .iter()
-                        .filter(|x| matches!(x.item, Item::NamedExpr(_)))
+                        .filter(|x| matches!(x.0.item, Item::NamedArg(_)))
                         .cloned()
                         .collect();
 
                     Item::FuncDef(FuncDef {
                         name,
-                        kind,
                         positional_params,
                         named_params,
                         body: Box::from(body),
+                        return_type,
                     })
                 }
-                Rule::func_def_params => Item::Expr(ast_of_parse_tree(pair.into_inner())?),
+                Rule::func_def_name | Rule::func_def_params | Rule::func_def_param => {
+                    Item::Expr(ast_of_parse_tree(pair.into_inner())?)
+                }
                 Rule::func_call | Rule::func_curry => {
                     let mut items = ast_of_parse_tree(pair.into_inner())?;
 
@@ -226,6 +225,19 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
                         unit: unit.as_str().to_owned(),
                     })
                 }
+                Rule::type_def => {
+                    let mut parts: Vec<_> = pair.into_inner().into_iter().collect();
+                    let name = parts.remove(0).as_str().to_string();
+                    let param = parts
+                        .pop()
+                        .map(|p| ast_of_parse_tree(p.into_inner()))
+                        .transpose()?
+                        .map(|p| p.into_only())
+                        .transpose()?
+                        .map(Box::new);
+
+                    Item::Type(Type { name, param })
+                }
 
                 Rule::operator_unary
                 | Rule::operator_mul
@@ -233,7 +245,6 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
                 | Rule::operator_compare
                 | Rule::operator_logical
                 | Rule::interval_kind
-                | Rule::func_def_flags
                 | Rule::number => Item::Raw(pair.as_str().to_owned()),
 
                 _ => unreachable!(),
@@ -247,6 +258,22 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
             Ok(node)
         })
         .collect()
+}
+
+fn unpack_typed(node: Node) -> Result<(Node, Option<Type>)> {
+    let mut exprs = node.item.into_expr()?;
+    let node = exprs.remove(0);
+    let typ = exprs.pop().map(|n| n.item.into_type()).transpose()?;
+    Ok((node, typ))
+}
+
+fn named_expr_of_nodes(items: &mut Vec<Node>) -> Result<NamedExpr, anyhow::Error> {
+    let (ident, expr) = items.drain(..).collect_tuple().unwrap();
+    let ne = NamedExpr {
+        name: ident.item.into_ident()?,
+        expr: Box::new(expr),
+    };
+    Ok(ne)
 }
 
 fn ast_of_interpolate_items(pair: Pair<Rule>) -> Result<Vec<InterpolateItem>> {
@@ -477,7 +504,7 @@ Canada
     #[test]
     fn test_parse_filter() {
         assert_yaml_snapshot!(
-            ast_of_string(r#"filter country = "USA""#, Rule::query).unwrap(), @r###"
+            ast_of_string(r#"filter country == "USA""#, Rule::query).unwrap(), @r###"
         ---
         Query:
           version: ~
@@ -491,13 +518,13 @@ Canada
                       args:
                         - Expr:
                             - Ident: country
-                            - Raw: "="
+                            - Raw: "=="
                             - String: USA
                       named_args: {}
         "###);
 
         assert_yaml_snapshot!(
-            ast_of_string(r#"filter (upper country) = "USA""#, Rule::query).unwrap(), @r###"
+            ast_of_string(r#"filter (upper country) == "USA""#, Rule::query).unwrap(), @r###"
         ---
         Query:
           version: ~
@@ -515,7 +542,7 @@ Canada
                                 args:
                                   - Ident: country
                                 named_args: {}
-                            - Raw: "="
+                            - Raw: "=="
                             - String: USA
                       named_args: {}
         "###
@@ -625,30 +652,30 @@ Canada
     #[test]
     fn test_parse_expr() -> Result<()> {
         assert_yaml_snapshot!(
-            ast_of_string(r#"country = "USA""#, Rule::expr)?
+            ast_of_string(r#"country == "USA""#, Rule::expr)?
         , @r###"
         ---
         Expr:
           - Ident: country
-          - Raw: "="
+          - Raw: "=="
           - String: USA
         "###);
         assert_yaml_snapshot!(ast_of_string(
                 r#"[
-  gross_salary: salary + payroll_tax,
-  gross_cost  : gross_salary + benefits_cost,
+  gross_salary = salary + payroll_tax,
+  gross_cost   = gross_salary + benefits_cost,
 ]"#,
         Rule::list)?, @r###"
         ---
         List:
-          - NamedExpr:
+          - Assign:
               name: gross_salary
               expr:
                 Expr:
                   - Ident: salary
                   - Raw: +
                   - Ident: payroll_tax
-          - NamedExpr:
+          - Assign:
               name: gross_cost
               expr:
                 Expr:
@@ -658,12 +685,12 @@ Canada
         "###);
         assert_yaml_snapshot!(
             ast_of_string(
-                "gross_salary: (salary + payroll_tax) * (1 + tax_rate)",
-                Rule::named_expr,
+                "gross_salary = (salary + payroll_tax) * (1 + tax_rate)",
+                Rule::assign,
             )?,
             @r###"
         ---
-        NamedExpr:
+        Assign:
           name: gross_salary
           expr:
             Expr:
@@ -685,10 +712,10 @@ Canada
         assert_yaml_snapshot!(ast_of_string(
             r#"
 from employees
-filter country = "USA"                        # Each line transforms the previous result.
+filter country == "USA"                        # Each line transforms the previous result.
 derive [                                      # This adds columns / variables.
-  gross_salary: salary + payroll_tax,
-  gross_cost:   gross_salary + benefits_cost # Variables can use other variables.
+  gross_salary = salary + payroll_tax,
+  gross_cost =   gross_salary + benefits_cost # Variables can use other variables.
 ]
 filter gross_cost > 0
 group [title, country] (
@@ -698,8 +725,8 @@ aggregate [               # `by` are the columns to group by.
                    average gross_salary,
                    sum gross_salary,
                    average gross_cost,
-  sum_gross_cost: sum gross_cost,
-  ct            : count,
+  sum_gross_cost = sum gross_cost,
+  ct             = count,
 ] )
 sort sum_gross_cost
 filter ct > 200
@@ -714,69 +741,72 @@ take 20
     #[test]
     fn test_parse_function() -> Result<()> {
         assert_debug_snapshot!(parse_tree_of_str(
-            "func plus_one x = x + 1",
+            "func plus_one x ->  x + 1",
             Rule::func_def
         )?);
         assert_yaml_snapshot!(ast_of_string(
-            "func identity x = x", Rule::func_def
+            "func identity x ->  x", Rule::func_def
         )?
         , @r###"
         ---
         FuncDef:
           name: identity
-          kind: ~
           positional_params:
-            - Ident: x
+            - - Ident: x
+              - ~
           named_params: []
           body:
             Ident: x
+          return_type: ~
         "###);
         assert_yaml_snapshot!(ast_of_string(
-            "func plus_one x = (x + 1)", Rule::func_def
+            "func plus_one x ->  (x + 1)", Rule::func_def
         )?
         , @r###"
         ---
         FuncDef:
           name: plus_one
-          kind: ~
           positional_params:
-            - Ident: x
+            - - Ident: x
+              - ~
           named_params: []
           body:
             Expr:
               - Ident: x
               - Raw: +
               - Raw: "1"
+          return_type: ~
         "###);
         assert_yaml_snapshot!(ast_of_string(
-            "func plus_one x = x + 1", Rule::func_def
+            "func plus_one x ->  x + 1", Rule::func_def
         )?
         , @r###"
         ---
         FuncDef:
           name: plus_one
-          kind: ~
           positional_params:
-            - Ident: x
+            - - Ident: x
+              - ~
           named_params: []
           body:
             Expr:
               - Ident: x
               - Raw: +
               - Raw: "1"
+          return_type: ~
         "###);
         // An example to show that we can't delayer the tree, despite there
         // being lots of layers.
         assert_yaml_snapshot!(ast_of_string(
-            "func foo x = (foo bar + 1) (plax) - baz", Rule::func_def
+            "func foo x ->  (foo bar + 1) (plax) - baz", Rule::func_def
         )?
         , @r###"
         ---
         FuncDef:
           name: foo
-          kind: ~
           positional_params:
-            - Ident: x
+            - - Ident: x
+              - ~
           named_params: []
           body:
             FuncCall:
@@ -787,25 +817,26 @@ take 20
                     - Raw: +
                     - Raw: "1"
               named_args: {}
+          return_type: ~
         "###);
 
-        assert_yaml_snapshot!(ast_of_string("func return_constant = 42", Rule::func_def)?, @r###"
+        assert_yaml_snapshot!(ast_of_string("func return_constant ->  42", Rule::func_def)?, @r###"
         ---
         FuncDef:
           name: return_constant
-          kind: ~
           positional_params: []
           named_params: []
           body:
             Raw: "42"
+          return_type: ~
         "###);
-        assert_yaml_snapshot!(ast_of_string(r#"func count X = s"SUM({X})""#, Rule::func_def)?, @r###"
+        assert_yaml_snapshot!(ast_of_string(r#"func count X ->  s"SUM({X})""#, Rule::func_def)?, @r###"
         ---
         FuncDef:
           name: count
-          kind: ~
           positional_params:
-            - Ident: X
+            - - Ident: X
+              - ~
           named_params: []
           body:
             SString:
@@ -813,13 +844,14 @@ take 20
               - Expr:
                   Ident: X
               - String: )
+          return_type: ~
         "###);
 
         /* TODO: Does not yet parse because `window` not yet implemented.
             assert_debug_snapshot!(ast_of_parse_tree(
                 parse_tree_of_str(
                     r#"
-        func lag_day x = (
+        func lag_day x ->  (
           window x
           by sec_id
           sort date
@@ -832,23 +864,25 @@ take 20
             ));
             */
 
-        assert_yaml_snapshot!(ast_of_string(r#"func add x to:a = x + to"#, Rule::func_def)?, @r###"
+        assert_yaml_snapshot!(ast_of_string(r#"func add x to:a ->  x + to"#, Rule::func_def)?, @r###"
         ---
         FuncDef:
           name: add
-          kind: ~
           positional_params:
-            - Ident: x
+            - - Ident: x
+              - ~
           named_params:
-            - NamedExpr:
-                name: to
-                expr:
-                  Ident: a
+            - - NamedArg:
+                  name: to
+                  expr:
+                    Ident: a
+              - ~
           body:
             Expr:
               - Ident: x
               - Raw: +
               - Ident: to
+          return_type: ~
         "###);
 
         Ok(())
@@ -913,7 +947,7 @@ take 20
                     named_args: {}
         "###);
 
-        let ast = ast_of_string(r#"add bar to:3"#, Rule::expr_call).unwrap();
+        let ast = ast_of_string(r#"add bar to=3"#, Rule::expr_call).unwrap();
         assert_yaml_snapshot!(
             ast, @r###"
         ---
@@ -921,7 +955,7 @@ take 20
           name: add
           args:
             - Ident: bar
-            - NamedExpr:
+            - Assign:
                 name: to
                 expr:
                   Raw: "3"
@@ -956,7 +990,7 @@ take 20
           from employees
           group country (
             aggregate [
-                average_country_salary: average salary
+                average_country_salary = average salary
             ]
           )
           sort tenure
@@ -986,7 +1020,7 @@ take 20
                                 name: aggregate
                                 args:
                                   - List:
-                                      - NamedExpr:
+                                      - Assign:
                                           name: average_country_salary
                                           expr:
                                             FuncCall:
@@ -1013,7 +1047,7 @@ take 20
 
     #[test]
     fn test_parse_into_parse_tree() -> Result<()> {
-        assert_debug_snapshot!(parse_tree_of_str(r#"country = "USA""#, Rule::expr)?);
+        assert_debug_snapshot!(parse_tree_of_str(r#"country == "USA""#, Rule::expr)?);
         assert_debug_snapshot!(parse_tree_of_str("select [a, b, c]", Rule::func_curry)?);
         assert_debug_snapshot!(parse_tree_of_str(
             "group [title, country] (
@@ -1022,14 +1056,14 @@ take 20
             Rule::pipeline
         )?);
         assert_debug_snapshot!(parse_tree_of_str(
-            r#"    filter country = "USA""#,
+            r#"    filter country == "USA""#,
             Rule::pipeline
         )?);
         assert_debug_snapshot!(parse_tree_of_str("[a, b, c,]", Rule::list)?);
         assert_debug_snapshot!(parse_tree_of_str(
             r#"[
-  gross_salary: salary + payroll_tax,
-  gross_cost  : gross_salary + benefits_cost
+  gross_salary = salary + payroll_tax,
+  gross_cost   = gross_salary + benefits_cost
 ]"#,
             Rule::list
         )?);
@@ -1040,11 +1074,11 @@ take 20
             Rule::COMMENT
         )?);
         assert_debug_snapshot!(parse_tree_of_str(
-            "join country [id=employee_id]",
+            "join country [id==employee_id]",
             Rule::func_curry
         )?);
         assert_debug_snapshot!(parse_tree_of_str(
-            "join side:left country [id=employee_id]",
+            "join side:left country [id==employee_id]",
             Rule::func_curry
         )?);
         assert_debug_snapshot!(parse_tree_of_str("1  + 2", Rule::expr)?);
@@ -1070,7 +1104,7 @@ take 20
                   - Raw: "50"
                 named_args: {}
         "###);
-        assert_yaml_snapshot!(ast_of_string("func median x = (x | percentile 50)", Rule::query).unwrap(), @r###"
+        assert_yaml_snapshot!(ast_of_string("func median x -> (x | percentile 50)", Rule::query).unwrap(), @r###"
         ---
         Query:
           version: ~
@@ -1078,9 +1112,9 @@ take 20
           nodes:
             - FuncDef:
                 name: median
-                kind: ~
                 positional_params:
-                  - Ident: x
+                  - - Ident: x
+                    - ~
                 named_params: []
                 body:
                   Pipeline:
@@ -1092,34 +1126,37 @@ take 20
                           args:
                             - Raw: "50"
                           named_args: {}
+                return_type: ~
         "###);
     }
 
     #[test]
-    fn test_parse_pipeline_parse_tree() -> Result<()> {
+    fn test_parse_pipeline_parse_tree() {
         assert_debug_snapshot!(parse_tree_of_str(
             r#"
-    from employees
-    select [a, b]
-    "#
+            from employees
+            select [a, b]
+            "#
             .trim(),
             Rule::pipeline
-        )?);
+        )
+        .unwrap());
         assert_debug_snapshot!(parse_tree_of_str(
             r#"
-    from employees
-    filter country = "USA"
-    "#
+            from employees
+            filter country == "USA"
+            "#
             .trim(),
             Rule::pipeline
-        )?);
+        )
+        .unwrap());
         assert_debug_snapshot!(parse_tree_of_str(
             r#"
 from employees
-filter country = "USA"                           # Each line transforms the previous result.
+filter country == "USA"                           # Each line transforms the previous result.
 derive [                                         # This adds columns / variables.
-  gross_salary: salary + payroll_tax,
-  gross_cost  : gross_salary + benefits_cost    # Variables can use other variables.
+  gross_salary = salary + payroll_tax,
+  gross_cost   = gross_salary + benefits_cost    # Variables can use other variables.
 ]
 filter gross_cost > 0
 group [title, country] (
@@ -1129,8 +1166,8 @@ group [title, country] (
         average gross_salary,
         sum     gross_salary,
         average gross_cost,
-        sum_gross_cost: sum gross_cost,
-        count: count,
+        sum_gross_cost = sum gross_cost,
+        count = count,
     ]
 )
 sort sum_gross_cost
@@ -1139,8 +1176,8 @@ take 20
     "#
             .trim(),
             Rule::pipeline
-        )?);
-        Ok(())
+        )
+        .unwrap());
     }
 
     #[test]
@@ -1148,8 +1185,8 @@ take 20
         assert_yaml_snapshot!(parse(r#"
         from mytable
         filter [
-            first_name = $1,
-            last_name = $2.name
+          first_name == $1,
+          last_name == $2.name
         ]
         "#)?, @r###"
         ---
@@ -1170,11 +1207,11 @@ take 20
                       - List:
                           - Expr:
                               - Ident: first_name
-                              - Raw: "="
+                              - Raw: "=="
                               - Ident: $1
                           - Expr:
                               - Ident: last_name
-                              - Raw: "="
+                              - Raw: "=="
                               - Ident: $2.name
                     named_args: {}
         "###);
@@ -1223,7 +1260,7 @@ select [
 
         assert_yaml_snapshot!(parse("
         from invoices
-        sort [desc:issued_at]
+        sort [desc=issued_at]
         ").unwrap(), @r###"
         ---
         version: ~
@@ -1241,7 +1278,7 @@ select [
                     name: sort
                     args:
                       - List:
-                          - NamedExpr:
+                          - Assign:
                               name: desc
                               expr:
                                 Ident: issued_at
@@ -1250,7 +1287,7 @@ select [
 
         assert_yaml_snapshot!(parse("
         from invoices
-        sort [asc:issued_at]
+        sort [asc=issued_at, desc=amount, num_of_articles]
         ").unwrap(), @r###"
         ---
         version: ~
@@ -1268,38 +1305,11 @@ select [
                     name: sort
                     args:
                       - List:
-                          - NamedExpr:
+                          - Assign:
                               name: asc
                               expr:
                                 Ident: issued_at
-                    named_args: {}
-        "###);
-
-        assert_yaml_snapshot!(parse("
-        from invoices
-        sort [asc:issued_at, desc:amount, num_of_articles]
-        ").unwrap(), @r###"
-        ---
-        version: ~
-        dialect: Generic
-        nodes:
-          - Pipeline:
-              value: ~
-              functions:
-                - FuncCall:
-                    name: from
-                    args:
-                      - Ident: invoices
-                    named_args: {}
-                - FuncCall:
-                    name: sort
-                    args:
-                      - List:
-                          - NamedExpr:
-                              name: asc
-                              expr:
-                                Ident: issued_at
-                          - NamedExpr:
+                          - Assign:
                               name: desc
                               expr:
                                 Ident: amount
@@ -1313,8 +1323,8 @@ select [
         assert_yaml_snapshot!(parse("
         from employees
         filter (age | between 18..40)
-        derive [greater_than_ten: 11..]
-        derive [less_than_ten: ..9]
+        derive [greater_than_ten = 11..]
+        derive [less_than_ten = ..9]
         ").unwrap(), @r###"
         ---
         version: ~
@@ -1349,7 +1359,7 @@ select [
                     name: derive
                     args:
                       - List:
-                          - NamedExpr:
+                          - Assign:
                               name: greater_than_ten
                               expr:
                                 Range:
@@ -1361,7 +1371,7 @@ select [
                     name: derive
                     args:
                       - List:
-                          - NamedExpr:
+                          - Assign:
                               name: less_than_ten
                               expr:
                                 Range:
@@ -1376,7 +1386,7 @@ select [
     fn test_interval() {
         assert_yaml_snapshot!(parse("
         from employees
-        derive [age_plus_two_years: (age + 2years)]
+        derive [age_plus_two_years = (age + 2years)]
         ").unwrap(), @r###"
         ---
         version: ~
@@ -1394,7 +1404,7 @@ select [
                     name: derive
                     args:
                       - List:
-                          - NamedExpr:
+                          - Assign:
                               name: age_plus_two_years
                               expr:
                                 Expr:
@@ -1410,7 +1420,7 @@ select [
     #[test]
     fn test_multiline_string() {
         assert_yaml_snapshot!(parse(r###"
-        derive x: r#"r-string test"#
+        derive x = r#"r-string test"#
         "###).unwrap(), @r###"
         ---
         version: ~
@@ -1422,7 +1432,7 @@ select [
                 - FuncCall:
                     name: derive
                     args:
-                      - NamedExpr:
+                      - Assign:
                           name: x
                           expr:
                             Ident: r

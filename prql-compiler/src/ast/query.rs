@@ -1,8 +1,7 @@
 /// Types for outer-scope AST nodes (query, table, func def, transform)
 use serde::{Deserialize, Serialize};
-use strum::EnumString;
 
-use super::{Dialect, Ident, Node};
+use super::{Dialect, Ident, Node, Type};
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize, Default)]
 pub struct Query {
@@ -16,21 +15,10 @@ pub struct Query {
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct FuncDef {
     pub name: Ident,
-    #[serde(default)]
-    pub kind: Option<FuncKind>,
-    pub positional_params: Vec<Node>, // ident
-    pub named_params: Vec<Node>,      // named expr
+    pub positional_params: Vec<(Node, Option<Type>)>, // ident
+    pub named_params: Vec<(Node, Option<Type>)>,      // named expr
     pub body: Box<Node>,
-}
-
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, EnumString)]
-pub enum FuncKind {
-    #[strum(serialize = "transform")]
-    Transform,
-    #[strum(serialize = "aggregation")]
-    Aggregation,
-    #[strum(serialize = "window")]
-    Window,
+    pub return_type: Option<Type>,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]

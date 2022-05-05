@@ -1,4 +1,4 @@
 ```prql
 from mytable
-filter id = $1
+filter id == $1
 ```

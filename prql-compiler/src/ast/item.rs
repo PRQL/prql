@@ -15,7 +15,8 @@ pub enum Item {
     Ident(Ident),
     String(String),
     Raw(String),
-    NamedExpr(NamedExpr),
+    Assign(NamedExpr),
+    NamedArg(NamedExpr),
     Query(Query),
     Pipeline(Pipeline),
     Transform(Transform),
@@ -24,6 +25,7 @@ pub enum Item {
     Expr(Vec<Node>),
     FuncDef(FuncDef),
     FuncCall(FuncCall),
+    Type(Type),
     Table(Table),
     SString(Vec<InterpolateItem>),
     FString(Vec<InterpolateItem>),
@@ -98,6 +100,12 @@ pub struct Interval {
     pub unit: String, // Could be an enum IntervalType,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct Type {
+    pub name: String,
+    pub param: Option<Box<Node>>,
+}
+
 impl Pipeline {
     pub fn into_transforms(self) -> Result<Vec<Transform>, Item> {
         self.functions
@@ -125,7 +133,7 @@ impl From<Item> for anyhow::Error {
     #[allow(unreachable_code)]
     fn from(item: Item) -> Self {
         // panic!("Failed to convert {item}")
-        anyhow!("Failed to convert {item}")
+        anyhow!("Failed to convert `{item}`")
     }
 }
 
@@ -141,8 +149,11 @@ impl Display for Item {
             Item::Raw(r) => {
                 f.write_str(r)?;
             }
-            Item::NamedExpr(ne) => {
-                write!(f, "{}: {}", ne.name, ne.expr.item)?;
+            Item::Assign(ne) => {
+                write!(f, "{} = {}", ne.name, ne.expr.item)?;
+            }
+            Item::NamedArg(ne) => {
+                write!(f, "{}:{}", ne.name, ne.expr.item)?;
             }
             Item::Query(query) => {
                 write!(f, "prql dialect: {}\n\n", query.dialect)?;
@@ -179,10 +190,10 @@ impl Display for Item {
             Item::FuncDef(func_def) => {
                 write!(f, "func {}", func_def.name)?;
                 for arg in &func_def.positional_params {
-                    write!(f, " {}", arg.item)?;
+                    write!(f, " {}", arg.0.item)?;
                 }
                 for arg in &func_def.named_params {
-                    write!(f, " {}", arg.item)?;
+                    write!(f, " {}", arg.0.item)?;
                 }
                 write!(f, " = {}\n\n", func_def.body.item)?;
             }
@@ -240,6 +251,13 @@ impl Display for Item {
             }
             Item::Windowed(w) => {
                 write!(f, "{:?}", w.expr)?;
+            }
+            Item::Type(t) => {
+                if let Some(param) = &t.param {
+                    write!(f, "<{:?}{:?}>", t.name, param.item)?;
+                } else {
+                    write!(f, "<{:?}>", t.name)?;
+                }
             }
         }
         Ok(())

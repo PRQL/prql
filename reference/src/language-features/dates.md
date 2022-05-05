@@ -13,5 +13,5 @@ without a space.
 
 ```prql
 from projects
-derive first_check_in: start + 10days
+derive first_check_in = start + 10days
 ```

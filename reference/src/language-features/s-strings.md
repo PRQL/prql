@@ -5,14 +5,14 @@ doesn't yet implement. For example, there's no `version()` function in SQL that
 returns the Postgres version, so if we want to use that, we use an s-string:
 
 ```prql
-derive db_version: s"version()"
+derive db_version = s"version()"
 ```
 
 We can embed columns in an s-string using braces. For example, PRQL's standard
 library defines the `average` function as:
 
 ```prql_no_test
-func average column = s"AVG({column})"
+func average column -> s"AVG({column})"
 ```
 
 So this compiles using the function:
