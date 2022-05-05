@@ -24,13 +24,13 @@ select [
   col1,
   col2,
 ]
-filter col1 = col2
+filter col1 == col2
 ```
 
   ...is equivalent to:
 
 ```prql
-from tbl | select [col1, col2] | filter col1 = col2
+from tbl | select [col1, col2] | filter col1 == col2
 ```
 
 - A line-break doesn't created a pipeline in a few cases:

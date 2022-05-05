@@ -66,7 +66,7 @@ impl Context {
     pub fn declare_func_param(&mut self, node: &Node) -> usize {
         let name = match &node.item {
             Item::Ident(ident) => ident.clone(),
-            Item::NamedExpr(NamedExpr { name, .. }) => name.clone(),
+            Item::NamedArg(NamedExpr { name, .. }) => name.clone(),
             _ => unreachable!(),
         };
 

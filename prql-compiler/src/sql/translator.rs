@@ -439,7 +439,7 @@ impl TryFrom<Item> for SelectItem {
             | Item::Ident(_)
             | Item::Raw(_)
             | Item::Windowed(_) => SelectItem::UnnamedExpr(Expr::try_from(item)?),
-            Item::NamedExpr(named) => SelectItem::ExprWithAlias {
+            Item::Assign(named) => SelectItem::ExprWithAlias {
                 alias: sql_ast::Ident::new(named.name),
                 expr: named.expr.item.try_into()?,
             },
@@ -451,8 +451,7 @@ impl TryFrom<Item> for Expr {
     type Error = anyhow::Error;
     fn try_from(item: Item) -> Result<Self> {
         Ok(match item {
-            Item::Ident(ident) => Expr::Identifier(sql_ast::Ident::new(ident)),
-            Item::Raw(raw) => Expr::Identifier(sql_ast::Ident::new(raw.to_uppercase())),
+            Item::Ident(_) | Item::Raw(_) => Expr::Identifier(item.try_into()?),
             // For expressions like `country = "USA"`, we take each one, convert
             // it, and put spaces between them. It's a bit hacky — we could
             // convert each term to a SQL AST item, but it works for the moment.
@@ -591,11 +590,18 @@ impl TryFrom<ColumnSort> for OrderByExpr {
 impl TryFrom<Item> for sql_ast::Ident {
     type Error = anyhow::Error;
     fn try_from(item: Item) -> Result<Self> {
-        match item {
-            Item::Ident(ident) => Ok(sql_ast::Ident::new(ident)),
-            Item::Raw(ident) => Ok(sql_ast::Ident::new(ident)),
-            _ => Err(anyhow!("Can't convert to Ident; {item:?}")),
-        }
+        Ok(match item {
+            Item::Ident(ident) => sql_ast::Ident::new(ident),
+            Item::Raw(raw) => {
+                let raw = match raw.as_str() {
+                    "==" => "=".to_string(),
+                    _ => raw,
+                };
+
+                sql_ast::Ident::new(raw.to_uppercase())
+            }
+            _ => bail!("Can't convert to Ident; {item:?}"),
+        })
     }
 }
 impl From<Vec<Node>> for Table {
@@ -655,7 +661,7 @@ SString:
         let query: Query = parse(
             r###"
         from employees
-        derive age: year_born - s'now()'
+        derive age = year_born - s'now()'
         select [
             f"Hello my name is {prefix}{first_name} {last_name}",
             f"and I am {age} years old."
@@ -723,8 +729,8 @@ SString:
         // One aggregate, take at the end
         let prql: &str = r###"
         from employees
-        filter country = "USA"
-        aggregate [sal: average salary]
+        filter country == "USA"
+        aggregate [sal = average salary]
         sort sal
         take 20
         "###;
@@ -737,8 +743,8 @@ SString:
         let prql: &str = r###"
         from employees
         take 20
-        filter country = "USA"
-        aggregate [sal: average salary]
+        filter country == "USA"
+        aggregate [sal = average salary]
         sort sal
         "###;
 
@@ -750,9 +756,9 @@ SString:
         let prql: &str = r###"
         from employees
         take 20
-        filter country = "USA"
-        aggregate [sal: average salary]
-        aggregate [sal: average sal]
+        filter country == "USA"
+        aggregate [sal = average salary]
+        aggregate [sal = average sal]
         sort sal
         "###;
 
@@ -778,7 +784,7 @@ SString:
         let query: Query = parse(
             r###"
         from employees
-        filter country = "USA"
+        filter country == "USA"
         group [title, country] (
             aggregate [average salary]
         )
@@ -815,7 +821,7 @@ SString:
         let query: Query = parse(
             r###"
         from employees
-        aggregate sum_salary: s"count({salary})"
+        aggregate sum_salary = s"count({salary})"
         filter sum_salary > 100
         "###,
         )?;
@@ -837,8 +843,8 @@ SString:
     fn test_prql_to_sql_1() -> Result<()> {
         let query = parse(
             r#"
-    func count x = s"count({x})"
-    func sum x = s"sum({x})"
+    func count x ->  s"count({x})"
+    func sum x ->  s"sum({x})"
 
     from employees
     aggregate [
@@ -865,10 +871,10 @@ SString:
         let query = parse(
             r#"
 from employees
-filter country = "USA"                           # Each line transforms the previous result.
+filter country == "USA"                           # Each line transforms the previous result.
 derive [                                         # This adds columns / variables.
-  gross_salary: salary + payroll_tax,
-  gross_cost:   gross_salary + benefits_cost     # Variables can use other variables.
+  gross_salary = salary + payroll_tax,
+  gross_cost = gross_salary + benefits_cost      # Variables can use other variables.
 ]
 filter gross_cost > 0
 group [title, country] (
@@ -878,8 +884,8 @@ group [title, country] (
         average gross_salary,
         sum     gross_salary,
         average gross_cost,
-        sum_gross_cost: sum gross_cost,
-        ct: count,
+        sum_gross_cost = sum gross_cost,
+        ct = count,
     ]
 )
 sort sum_gross_cost
@@ -907,7 +913,7 @@ take 20
             from salaries
             group country (
                 aggregate [
-                    average_country_salary: average salary
+                    average_country_salary = average salary
                 ]
             )
         )
@@ -957,15 +963,15 @@ take 20
             r###"
             from employees
             take 20
-            filter country = "USA"
+            filter country == "USA"
             group [title, country] (
                 aggregate [
-                    salary: average salary
+                    salary = average salary
                 ]
             )
             group [title, country] (
                 aggregate [
-                    sum_gross_cost: average salary
+                    sum_gross_cost = average salary
                 ]
             )
             sort sum_gross_cost
@@ -1056,9 +1062,9 @@ take 20
     fn test_table_names_between_splits() {
         let prql = r###"
         from employees
-        join d:department [dept_no]
+        join d=department [dept_no]
         take 10
-        join s:salaries [emp_no]
+        join s=salaries [emp_no]
         select [employees.emp_no, d.name, s.salary]
         "###;
         let result = parse(prql).and_then(resolve_and_translate).unwrap();
@@ -1084,7 +1090,7 @@ take 20
         "###);
 
         let prql = r###"
-        from e:employees
+        from e=employees
         take 10
         join salaries [emp_no]
         select [e.*, salary]
@@ -1113,11 +1119,11 @@ take 20
         // Alias on from
         let query: Query = parse(
             r###"
-            from e: employees
-            join salaries side:left [salaries.emp_no = e.emp_no]
+            from e = employees
+            join salaries side:left [salaries.emp_no == e.emp_no]
             group [e.emp_no] (
                 aggregate [
-                    emp_salary: average salary
+                    emp_salary = average salary
                 ]
             )
             select [e.emp_no, emp_salary]
@@ -1183,7 +1189,7 @@ take 20
             r###"
         from Employees
         sort [id]
-        sort [age, desc:last_name, asc:first_name]
+        sort [age, desc=last_name, asc=first_name]
         "###,
         )?;
 
@@ -1237,7 +1243,7 @@ take 20
         let query: Query = parse(
             r###"
         from projects
-        derive first_check_in: start + 10days
+        derive first_check_in = start + 10days
         "###,
         )?;
 
@@ -1273,24 +1279,24 @@ take 20
 
         let query: Query = parse(
             r###"
-        from co:cust_order
-        join ol:order_line [order_id]
+        from co=cust_order
+        join ol=order_line [order_id]
         derive [
-          order_month: s"TO_CHAR({co.order_date}, '%Y-%m')",
-          order_day: s"TO_CHAR({co.order_date}, '%Y-%m-%d')",
+          order_month = s"TO_CHAR({co.order_date}, '%Y-%m')",
+          order_day = s"TO_CHAR({co.order_date}, '%Y-%m-%d')",
         ]
         group [order_month, order_day] (
           aggregate [
-            num_orders: s"COUNT(DISTINCT {co.order_id})",
-            num_books: count ol.book_id,
-            total_price: sum ol.price,
+            num_orders = s"COUNT(DISTINCT {co.order_id})",
+            num_books = count ol.book_id,
+            total_price = sum ol.price,
           ]
         )
         sort order_day # order:asc
         group [order_month] (
-          derive [running_total_num_books: sum num_books]
+          derive [running_total_num_books = sum num_books]
         )
-        derive [num_books_last_week: lag 7 num_books]
+        derive [num_books_last_week = lag 7 num_books]
         "###,
         )?;
 
@@ -1325,8 +1331,8 @@ take 20
         let query: Query = parse(
             r###"
         from daily_orders
-        derive [last_week: lag 7 num_orders]
-        group month ( | derive [total_month: sum num_orders])
+        derive [last_week = lag 7 num_orders]
+        group month ( | derive [total_month = sum num_orders])
         "###,
         )?;
 
@@ -1344,8 +1350,8 @@ take 20
             r###"
         from daily_orders
         sort day
-        group month ( | derive [total_month: rank])
-        derive [last_week: lag 7 num_orders]
+        group month ( | derive [total_month = rank])
+        derive [last_week = lag 7 num_orders]
         "###,
         )?;
         assert_display_snapshot!((resolve_and_translate(query)?), @r###"
@@ -1372,7 +1378,7 @@ take 20
         from daily_orders
         sort day
         group month ( | sort num_orders |  derive [rank])
-        derive [num_orders_last_week: lag 7 num_orders]
+        derive [num_orders_last_week = lag 7 num_orders]
         "###,
         )?;
         assert_display_snapshot!((resolve_and_translate(query)?), @r###"

@@ -11,12 +11,12 @@ My solution:
 ```prql
 from salaries
 group [emp_no] (
-  aggregate [emp_salary: average salary]
+  aggregate [emp_salary = average salary]
 )
-join t:titles [emp_no]
+join t=titles [emp_no]
 join dept_emp side:left [emp_no]
 group [dept_emp.dept_no, t.title] (
-  aggregate [avg_salary: average emp_salary]
+  aggregate [avg_salary = average emp_salary]
 )
 join departments [dept_no]
 select [dept_name, title, avg_salary]

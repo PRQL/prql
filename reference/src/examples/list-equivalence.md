@@ -15,14 +15,14 @@ select [salary]
 ```prql
 from employees
 derive [
-  gross_salary: salary + payroll_tax,
-  gross_cost:   gross_salary + benefits_cost
+  gross_salary = salary + payroll_tax,
+  gross_cost = gross_salary + benefits_cost
 ]
 ```
 
 Same as above but split into two lines:
 ```prql
 from employees
-derive gross_salary: salary + payroll_tax
-derive gross_cost: gross_salary + benefits_cost
+derive gross_salary = salary + payroll_tax
+derive gross_cost = gross_salary + benefits_cost
 ```

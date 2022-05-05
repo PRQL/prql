@@ -182,22 +182,22 @@ mod tests {
             Format::PrqlFrames,
             r#"
 from initial_table
-select [first: name, last: last_name, gender]
-derive full_name: first + " " + last
+select [first = name, last = last_name, gender]
+derive full_name = first + " " + last
 take 23
-select [last + " " + first, full: full_name, gender]
+select [last + " " + first, full = full_name, gender]
 sort full
         "#,
         )
         .unwrap();
         assert_snapshot!(String::from_utf8(output).unwrap().trim(),
         @r###"
-        from initial_table                                    # [initial_table.*]
-        select [first: name, last: last_name, gender]         # [first, last, gender]
-        derive full_name: first + " " + last                  # [first, last, gender, full_name]
-        take 23                                               # [first, last, gender, full_name]
-        select [last + " " + first, full: full_name, gender]  # [?, full, gender]
-        sort full                                             # [?, full, gender]
+        from initial_table                                     # [initial_table.*]
+        select [first = name, last = last_name, gender]        # [first, last, gender]
+        derive full_name = first + " " + last                  # [first, last, gender, full_name]
+        take 23                                                # [first, last, gender, full_name]
+        select [last + " " + first, full = full_name, gender]  # [?, full, gender]
+        sort full                                              # [?, full, gender]
         "###);
     }
 }

@@ -58,9 +58,6 @@ pub trait AstFold {
     fn fold_table_ref(&mut self, table_ref: TableRef) -> Result<TableRef> {
         fold_table_ref(self, table_ref)
     }
-    fn fold_named_expr(&mut self, named_expr: NamedExpr) -> Result<NamedExpr> {
-        fold_named_expr(self, named_expr)
-    }
     fn fold_interpolate_item(&mut self, sstring_item: InterpolateItem) -> Result<InterpolateItem> {
         fold_interpolate_item(self, sstring_item)
     }
@@ -79,6 +76,9 @@ pub trait AstFold {
     fn fold_join_filter(&mut self, f: JoinFilter) -> Result<JoinFilter> {
         fold_join_filter(self, f)
     }
+    fn fold_type(&mut self, t: Type) -> Result<Type> {
+        fold_type(self, t)
+    }
 }
 
 pub fn fold_item<T: ?Sized + AstFold>(fold: &mut T, item: Item) -> Result<Item> {
@@ -95,7 +95,8 @@ pub fn fold_item<T: ?Sized + AstFold>(fold: &mut T, item: Item) -> Result<Item> 
             ..query
         }),
         Item::Pipeline(p) => Item::Pipeline(fold.fold_pipeline(p)?),
-        Item::NamedExpr(named_expr) => Item::NamedExpr(fold.fold_named_expr(named_expr)?),
+        Item::Assign(named_expr) => Item::Assign(fold_named_expr(fold, named_expr)?),
+        Item::NamedArg(named_expr) => Item::Assign(fold_named_expr(fold, named_expr)?),
         Item::Transform(transformation) => Item::Transform(fold.fold_transform(transformation)?),
         Item::SString(items) => Item::SString(
             items
@@ -120,6 +121,7 @@ pub fn fold_item<T: ?Sized + AstFold>(fold: &mut T, item: Item) -> Result<Item> 
             group: fold.fold_nodes(window.group)?,
             sort: fold.fold_column_sorts(window.sort)?,
         }),
+        Item::Type(t) => Item::Type(fold.fold_type(t)?),
     })
 }
 
@@ -244,11 +246,21 @@ pub fn fold_table_ref<T: ?Sized + AstFold>(fold: &mut T, table: TableRef) -> Res
 pub fn fold_func_def<T: ?Sized + AstFold>(fold: &mut T, func_def: FuncDef) -> Result<FuncDef> {
     Ok(FuncDef {
         name: fold.fold_ident(func_def.name)?,
-        kind: func_def.kind,
-        positional_params: fold.fold_nodes(func_def.positional_params)?,
-        named_params: fold.fold_nodes(func_def.named_params)?,
+        positional_params: fold_typed_nodes(fold, func_def.positional_params)?,
+        named_params: fold_typed_nodes(fold, func_def.named_params)?,
         body: Box::new(fold.fold_node(*func_def.body)?),
+        return_type: func_def.return_type,
     })
+}
+
+pub fn fold_typed_nodes<T: ?Sized + AstFold>(
+    fold: &mut T,
+    nodes: Vec<(Node, Option<Type>)>,
+) -> Result<Vec<(Node, Option<Type>)>> {
+    nodes
+        .into_iter()
+        .map(|(n, t)| Ok((fold.fold_node(n)?, t)))
+        .try_collect()
 }
 
 pub fn fold_named_expr<T: ?Sized + AstFold>(
@@ -258,5 +270,12 @@ pub fn fold_named_expr<T: ?Sized + AstFold>(
     Ok(NamedExpr {
         name: fold.fold_ident(named_expr.name)?,
         expr: Box::new(fold.fold_node(*named_expr.expr)?),
+    })
+}
+
+pub fn fold_type<T: ?Sized + AstFold>(fold: &mut T, t: Type) -> Result<Type> {
+    Ok(Type {
+        name: t.name,
+        param: fold_optional_box(fold, t.param)?,
     })
 }

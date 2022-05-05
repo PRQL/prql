@@ -86,7 +86,7 @@ expression: "parse_tree_of_str(\"(salary | percentile 50)\", Rule::nested_pipeli
                                 inner: [],
                             },
                             Pair {
-                                rule: named_expr,
+                                rule: expr,
                                 span: Span {
                                     str: "50",
                                     start: 21,
@@ -94,7 +94,7 @@ expression: "parse_tree_of_str(\"(salary | percentile 50)\", Rule::nested_pipeli
                                 },
                                 inner: [
                                     Pair {
-                                        rule: expr,
+                                        rule: expr_compare,
                                         span: Span {
                                             str: "50",
                                             start: 21,
@@ -102,7 +102,7 @@ expression: "parse_tree_of_str(\"(salary | percentile 50)\", Rule::nested_pipeli
                                         },
                                         inner: [
                                             Pair {
-                                                rule: expr_compare,
+                                                rule: expr_add,
                                                 span: Span {
                                                     str: "50",
                                                     start: 21,
@@ -110,7 +110,7 @@ expression: "parse_tree_of_str(\"(salary | percentile 50)\", Rule::nested_pipeli
                                                 },
                                                 inner: [
                                                     Pair {
-                                                        rule: expr_add,
+                                                        rule: expr_mul,
                                                         span: Span {
                                                             str: "50",
                                                             start: 21,
@@ -118,23 +118,13 @@ expression: "parse_tree_of_str(\"(salary | percentile 50)\", Rule::nested_pipeli
                                                         },
                                                         inner: [
                                                             Pair {
-                                                                rule: expr_mul,
+                                                                rule: number,
                                                                 span: Span {
                                                                     str: "50",
                                                                     start: 21,
                                                                     end: 23,
                                                                 },
-                                                                inner: [
-                                                                    Pair {
-                                                                        rule: number,
-                                                                        span: Span {
-                                                                            str: "50",
-                                                                            start: 21,
-                                                                            end: 23,
-                                                                        },
-                                                                        inner: [],
-                                                                    },
-                                                                ],
+                                                                inner: [],
                                                             },
                                                         ],
                                                     },

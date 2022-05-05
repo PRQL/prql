@@ -3,22 +3,22 @@
 Strings in PRQL can use either single or double quotes:
 
 ```prql
-derive x: "hello world"
+derive x = "hello world"
 ```
 
 ```prql
-derive x: 'hello world'
+derive x = 'hello world'
 ```
 
 To quote a string containing quotes, either use the "other" type of quote, or
 use three-or-more quotes, and close with the same number.
 
 ```prql
-derive x: '"hello world"'
+derive x = '"hello world"'
 ```
 
 ```prql
-derive x: """I said "hello world"!"""
+derive x = """I said "hello world"!"""
 ```
 
 Currently PRQL does not adjust escape characters during the compilation process.

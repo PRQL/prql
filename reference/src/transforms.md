@@ -36,21 +36,21 @@ select [first_name, last_name]
 > adds new columns that are computed from existing columns
 
 ```prql_no_test
-derive [{new_name}: {expression}]
+derive [{new_name} = {expression}]
 ```
 
 *Example:*
 
 ```prql
 from employees
-derive gross_salary: salary + payroll_tax
+derive gross_salary = salary + payroll_tax
 ```
 
 ```prql
 from employees
 derive [
-  gross_salary: salary + payroll_tax,
-  gross_cost: gross_salary + benefits_cost
+  gross_salary = salary + payroll_tax,
+  gross_cost = gross_salary + benefits_cost
 ]
 ```
 
@@ -122,7 +122,7 @@ join side:{inner|left|right|full} {table} {[conditions]}
 
 ```prql
 from employees
-join side:left positions [id=employee_id]
+join side:left positions [id==employee_id]
 ```
 
 *Example:*
@@ -144,7 +144,7 @@ from employees
 group [title, country] (
   aggregate [
     average salary,
-    ct: count
+    ct = count
   ]
 )
 ```
@@ -185,6 +185,6 @@ aggregate [{expression or assign operations}]
 from employees
 aggregate [
   average salary,
-  ct: count
+  ct = count
 ]
 ```
