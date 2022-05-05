@@ -126,7 +126,8 @@ pub fn fold_item<T: ?Sized + AstFold>(fold: &mut T, item: Item) -> Result<Item> 
         | Item::Interval(_)
         | Item::Date(_)
         | Item::Time(_)
-        | Item::Timestamp(_) => item,
+        | Item::Timestamp(_)
+        | Item::Boolean(_) => item,
     })
 }
 

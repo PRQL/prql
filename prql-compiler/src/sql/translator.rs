@@ -124,14 +124,6 @@ fn table_to_sql_cte(table: AtomicTable, dialect: &Dialect) -> Result<sql_ast::Ct
     })
 }
 
-// TODO: currently we can't implement a TryFrom for Pipeline because it's a type
-// alias. Possibly at some point we should turn it into a wrapper type. (We can
-// still implement Iter & IntoIterator, though.)
-//
-// impl TryFrom<Pipeline> for sqlparser::sql_ast::Query {
-//     type Error = anyhow::Error;
-//     fn try_from(&pipeline: Pipeline) -> Result<sqlparser::sql_ast::Query> {
-
 fn table_factor_of_table_ref(table_ref: &TableRef) -> TableFactor {
     TableFactor::Table {
         name: ObjectName(vec![Item::Ident(table_ref.name.clone())
@@ -561,6 +553,7 @@ impl TryFrom<Item> for Expr {
                 data_type: sql_ast::DataType::Timestamp,
                 value: literal,
             },
+            Item::Boolean(b) => Expr::Value(Value::Boolean(b)),
 
             _ => bail!("Can't convert to Expr; {item:?}"),
         })
