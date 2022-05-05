@@ -1,1 +1,2 @@
-derive pi_day: dt2017-03-14T15:09:26.535898
+from projects
+derive first_check_in: start + 10days

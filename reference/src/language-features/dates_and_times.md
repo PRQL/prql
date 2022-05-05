@@ -12,47 +12,35 @@ in compatibility across databases. We'll always support the
 
 ## Dates
 
-Dates are represented by `D{yyyy-mm-dd}` — a `D` followed by the
+Dates are represented by `@{yyyy-mm-dd}` — a `D` followed by the
 date format.
 
 ```prql
 from employees
-derive age_at_year_end: (D2022-12-31 - dob)
+derive age_at_year_end: (@2022-12-31 - dob)
 ```
 
 ## Times
 
-Times are represented by `T{HH:mm:ss.SSS±Z}` with any parts not supplied being
+Times are represented by `@{HH:mm:ss.SSS±Z}` with any parts not supplied being
 rounded to zero, including the timezone, which is represented by `+HH:mm`,
 `-HH:mm` or `Z`. This is consistent with the ISO8601 time format.
 
 ```prql
 from orders
-derive should_have_shipped_today: (order_time < T08:30)
+derive should_have_shipped_today: (order_time < @08:30)
 ```
 
 ## Timestamps
 
-Timestamps are represented by `TS{yyyy-mm-ddTHH:mm:ss.SSS±Z}` /
-`TS{date}T{time}`, with any time parts not supplied being rounded to zero,
+Timestamps are represented by `@{yyyy-mm-ddTHH:mm:ss.SSS±Z}` /
+`@{date}T{time}`, with any time parts not supplied being rounded to zero,
 including the timezone, which is represented by `+HH:mm`, `-HH:mm` or `Z`. This
-is `TS` followed by the ISO8601 time format, which uses `T` to separate date &
+is `@` followed by the ISO8601 time format, which uses `T` to separate date &
 time.
 
 ```prql
 derive first_prql_commit: TS2020-01-01T13:19:55-0800
-```
-
-## Datetimes
-
-Datetimes are supported by some databases (e.g. MySql, BigQuery) in addition to
-timestamps.
-
-Datetimes are represented in the same way as Timestamps, but with a `DT` prefix
-rather than a `TS` prefix.
-
-```prql
-derive pi_day: DT2017-03-14T15:09:26.535898
 ```
 
 ## Intervals
@@ -69,4 +57,16 @@ without a space.
 ```prql
 from projects
 derive first_check_in: start + 10days
+```
+
+## TODOs
+
+### Datetimes
+
+Datetimes are supported by some databases (e.g. MySql, BigQuery) in addition to
+timestamps. When we have type annotations, these will be represented by a
+timestamp annotated as a datetime:
+
+```prql_no_test
+derive pi_day: @2017-03-14T15:09:26.535898<datetime>
 ```
