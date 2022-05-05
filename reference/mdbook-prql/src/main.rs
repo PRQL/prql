@@ -1,4 +1,3 @@
-#![cfg(target_family = "wasm")]
 // All copied from `mdbook_preprocessor_boilerplate` apart from the function
 // which does the replacement.
 // This file is licensed under GPL-3.0 then. We don't link against it from PRQL.
