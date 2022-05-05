@@ -22,6 +22,9 @@ runs:
         default: true
     - name: 💰 Cache
       uses: Swatinem/rust-cache@v1
+      with:
+        # Without this, it seems to select linux in the wasm32 tests
+        key: ${{ inputs.target }}
     - run: rustup toolchain list
       shell: sh
     - name: 📎 Clippy
