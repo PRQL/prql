@@ -17,7 +17,7 @@ date format.
 
 ```prql
 from employees
-derive age_at_year_end: (@2022-12-31 - dob)
+derive age_at_year_end = (@2022-12-31 - dob)
 ```
 
 ## Times
@@ -28,7 +28,7 @@ rounded to zero, including the timezone, which is represented by `+HH:mm`,
 
 ```prql
 from orders
-derive should_have_shipped_today: (order_time < @08:30)
+derive should_have_shipped_today = (order_time < @08:30)
 ```
 
 ## Timestamps
@@ -40,7 +40,7 @@ is `@` followed by the ISO8601 time format, which uses `T` to separate date &
 time.
 
 ```prql
-derive first_prql_commit: @2020-01-01T13:19:55-0800
+derive first_prql_commit = @2020-01-01T13:19:55-0800
 ```
 
 ## Intervals
@@ -56,7 +56,7 @@ without a space.
 
 ```prql
 from projects
-derive first_check_in: start + 10days
+derive first_check_in = start + 10days
 ```
 
 ## Examples
@@ -84,7 +84,7 @@ timestamps. When we have type annotations, these will be represented by a
 timestamp annotated as a datetime:
 
 ```prql_no_test
-derive pi_day: @2017-03-14T15:09:26.535898<datetime>
+derive pi_day = @2017-03-14T15:09:26.535898<datetime>
 ```
 
 These are some examples we can then add:

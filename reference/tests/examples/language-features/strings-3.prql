@@ -1,1 +1,1 @@
-derive x: """I said "hello world"!"""
+derive x = """I said "hello world"!"""

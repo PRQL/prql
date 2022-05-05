@@ -8,7 +8,7 @@ table newest_employees = (
 table average_salaries = (
   from salaries
   group country (
-    aggregate average_country_salary: (average salary)
+    aggregate average_country_salary = (average salary)
   )
 )
 

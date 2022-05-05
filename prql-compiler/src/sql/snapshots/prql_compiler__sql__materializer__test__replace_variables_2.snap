@@ -11,7 +11,7 @@ expression: "&mat"
     Filter:
       - Expr:
           - Ident: country
-          - Raw: "="
+          - Raw: "=="
           - String: USA
 - Transform:
     Filter:
