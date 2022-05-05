@@ -40,7 +40,7 @@ is `@` followed by the ISO8601 time format, which uses `T` to separate date &
 time.
 
 ```prql
-derive first_prql_commit: TS2020-01-01T13:19:55-0800
+derive first_prql_commit: @2020-01-01T13:19:55-0800
 ```
 
 ## Intervals
