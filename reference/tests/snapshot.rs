@@ -18,6 +18,7 @@
 use anyhow::{bail, Result};
 use globset::Glob;
 use insta::{assert_snapshot, glob};
+use log::warn;
 use prql_compiler::*;
 use pulldown_cmark::{CodeBlockKind, Event, Parser, Tag};
 use std::fs;
@@ -58,7 +59,9 @@ fn write_reference_examples() -> Result<()> {
 
     let examples_path = Path::new("tests/examples");
     if examples_path.exists() {
-        trash::delete(Path::new("tests/examples"))?;
+        trash::delete(Path::new("tests/examples")).unwrap_or_else(|e| {
+            warn!("Failed to delete old examples: {}", e);
+        });
     }
 
     let glob = Glob::new("**/*.md")?.compile_matcher();

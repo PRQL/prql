@@ -14,6 +14,7 @@ prql-compiler = {path = "../prql-compiler"}
 [dev-dependencies]
 globset = "0.4.8"
 insta = {version = "^1.13", features = ["colors", "glob"]}
+log = "0.4.17"
 pulldown-cmark = "0.9.1"
 pulldown-cmark-to-cmark = "10"
 similar = "^2.1"
