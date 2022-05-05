@@ -42,4 +42,5 @@ runs:
     - name: 📋 Test
       uses: actions-rs/cargo@v1
       with:
-        command: test ${{ inputs.target_option }}
+        command: test
+        args: ${{ inputs.target_option }}
