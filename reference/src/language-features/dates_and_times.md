@@ -59,6 +59,22 @@ from projects
 derive first_check_in: start + 10days
 ```
 
+## Examples
+
+Here's a fuller list of examples:
+
+- `@20221231` is forbidden — it must contain full punctuation (`-` and `:`),
+- `@2022-12-31` is a date
+- `@2022-12` or `@2022` are forbidden — SQL can't express a month, only a date
+- `@16:54:32.123456` is a time
+- `@16:54:32`, `@16:54`, `@16` are all allowed, expressing `@16:54:32.000000`, `@16:54:00.000000`, `@16:00:00.000000` respectively
+- `@2022-12-31T16:54:32.123456` is a timestamp without timezone
+- `@2022-12-31T16:54:32.123456Z` is a timestamp in UTC
+- `@2022-12-31T16:54+02` is timestamp in UTC+2
+- `@2022-12-31T16:54+02:00` and `@2022-12-31T16:54+02` are datetimes in UTC+2
+- `@16:54+02` is forbidden — time is always local, so it cannot have a timezone
+- `@2022-12-31+02` is forbidden — date is always local, so it cannot have a timezone
+
 ## TODOs
 
 ### Datetimes
@@ -70,3 +86,9 @@ timestamp annotated as a datetime:
 ```prql_no_test
 derive pi_day: @2017-03-14T15:09:26.535898<datetime>
 ```
+
+These are some examples we can then add:
+
+- `@2022-12-31T16:54<datetime>` is datetime without timezone
+- `@2022-12-31<datetime>` is forbidden — datetime must specify time
+- `@16:54<datetime>` is forbidden — datetime must specify date
