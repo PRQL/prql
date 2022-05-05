@@ -235,9 +235,9 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
                     Item::Time(parsed?.into_only()?.item.into_raw()?)
                 }
                 // TODO: repeat for timestamp
-                Rule::datetime => {
+                Rule::timestamp => {
                     let parsed = ast_of_parse_tree(pair.into_inner());
-                    Item::DateTime(
+                    Item::Timestamp(
                         parsed?
                             .iter()
                             .cloned()
