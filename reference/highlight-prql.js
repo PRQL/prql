@@ -23,7 +23,14 @@ formatting = function (hljs) {
             { // named arg
                 className: 'params',
                 begin: '\\w+:(?!\\s)',
+                // begin: String.raw('\w+:(?!\s)'),
                 end: '',
+                relevance: 10
+            },
+            { // date
+                className: 'string',
+                begin: '@',
+                end: ' ',
                 relevance: 10
             },
             { // s-string
