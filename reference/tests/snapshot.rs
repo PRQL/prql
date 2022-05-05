@@ -56,11 +56,7 @@ fn write_reference_examples() -> Result<()> {
     // We use `trash`, since we don't want to be removing files with test code
     // in case there's a bug.
 
-    WalkDir::new("tests/examples")
-        .into_iter()
-        .flatten()
-        .filter(|x| x.file_type().is_file())
-        .for_each(|entry| trash::delete(entry.path()).unwrap());
+    trash::delete(Path::new("tests/examples"))?;
 
     let glob = Glob::new("**/*.md")?.compile_matcher();
 
