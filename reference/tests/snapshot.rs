@@ -1,3 +1,4 @@
+#![cfg(not(target_family = "wasm"))]
 /// This test:
 /// - Extracts PRQL code blocks into the `examples` path.
 /// - Converts them to SQL using insta, raising an error if there's a diff.
