@@ -19,6 +19,7 @@ runs:
         target: ${{ inputs.target }}
         toolchain: stable
         override: true
+        default: true
     - name: 💰 Cache
       uses: Swatinem/rust-cache@v1
     - name: 📎 Clippy
