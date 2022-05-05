@@ -484,3 +484,35 @@ We welcome others to join who have a track record of contributions.
   which is very different to this proposal.
 
 > If any of these descriptions can be improved, please feel free to PR changes.
+
+### How is PRQL different from these?
+
+Many languages have attempted to replace SQL, and yet SQL has massively *grown*
+in usage and importance in the past decade. There are lots
+[of](https://twitter.com/seldo/status/1513599841355526145)
+[reasonable](https://benn.substack.com/p/has-sql-gone-too-far?s=r#footnote-anchor-2)
+[critiques](https://erikbern.com/2018/08/30/i-dont-want-to-learn-your-garbage-query-language.html)
+on these attempts. So a logical question is "Why are y'all trying to do
+many others have failed?". Some thoughts:
+
+- PRQL is open. It's not designed for a specific database. PRQL will always be
+  fully open-source. There will never be a commercial product. We'll never have
+  to balance profitability against compatibility, or try and expand up the stack
+  to justify a valuation. Whether someone is building a new tool or writing a
+  simple query — PRQL can be *more* compatible across DBs than SQL.
+- PRQL is analytical. The biggest growth in SQL usage has been from querying large
+  amounts of data, often from analytical DBs that are specifically designed for
+  this — with columnar storage and wide denormalized tables. SQL carries a lot
+  of baggage unrelated to this, and focusing on the analytical use case lets us
+  make a better product.
+- PRQL is simple. There's often a tradeoff between power and accessibility
+  — rust is powerful vs. Excel is accessible — but there are also instances
+  where we can expand the frontier, and have something both powerful and
+  accessible. PRQL's orthogonality is an example of pushing this frontier — have
+  a single `filter` rather than `WHERE` & `HAVING` & `QUALIFY` brings both more
+  power and more accessibility.
+
+In the same way that "SQL was invented in the 1970s and therefore must be bad"
+is questionable logic, "n languages have tried and failed so therefore SQL
+cannot be improved." suffers a similar fallacy. SQL isn't bad because it's old.
+It's bad because — for some cases — it's bad.
