@@ -30,7 +30,6 @@ pub enum Item {
     Interval(Interval),
     Date(String),
     Time(String),
-    DateTime(String),
     Timestamp(String),
     Windowed(Windowed),
 }
@@ -242,8 +241,8 @@ impl Display for Item {
             Item::Interval(i) => {
                 write!(f, "{}{}", i.n, i.unit)?;
             }
-            Item::Date(_) | Item::DateTime(_) | Item::Time(_) | Item::Timestamp(_) => {
-                f.write_str("TODO")?;
+            Item::Date(inner) | Item::Time(inner) | Item::Timestamp(inner) => {
+                write!(f, "@{inner}")?;
             }
             Item::Windowed(w) => {
                 write!(f, "{:?}", w.expr)?;
