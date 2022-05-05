@@ -21,6 +21,7 @@ use prql_compiler::*;
 use pulldown_cmark::{CodeBlockKind, Event, Parser, Tag};
 use std::fs;
 use std::path::Path;
+#[cfg(not(target_family = "windows"))]
 use trash;
 use walkdir::WalkDir;
 
