@@ -113,15 +113,20 @@ pub fn fold_item<T: ?Sized + AstFold>(fold: &mut T, item: Item) -> Result<Item> 
         Item::FuncDef(func) => Item::FuncDef(fold.fold_func_def(func)?),
         Item::FuncCall(func_call) => Item::FuncCall(fold.fold_func_call(func_call)?),
         Item::Table(table) => Item::Table(fold.fold_table(table)?),
-        // None of these capture variables, so we don't need to replace
-        // them.
-        Item::String(_) | Item::Raw(_) | Item::Interval(_) => item,
         Item::Windowed(window) => Item::Windowed(Windowed {
             expr: Box::new(fold.fold_node(*window.expr)?),
             group: fold.fold_nodes(window.group)?,
             sort: fold.fold_column_sorts(window.sort)?,
         }),
         Item::Type(t) => Item::Type(fold.fold_type(t)?),
+        // None of these capture variables, so we don't need to replace
+        // them.
+        Item::String(_)
+        | Item::Raw(_)
+        | Item::Interval(_)
+        | Item::Date(_)
+        | Item::Time(_)
+        | Item::Timestamp(_) => item,
     })
 }
 

@@ -225,6 +225,18 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
                         unit: unit.as_str().to_owned(),
                     })
                 }
+                Rule::date => {
+                    let parsed = ast_of_parse_tree(pair.into_inner());
+                    Item::Date(parsed?.into_only()?.item.into_raw()?)
+                }
+                Rule::time => {
+                    let parsed = ast_of_parse_tree(pair.into_inner());
+                    Item::Time(parsed?.into_only()?.item.into_raw()?)
+                }
+                Rule::timestamp => {
+                    let parsed = ast_of_parse_tree(pair.into_inner());
+                    Item::Timestamp(parsed?.into_only()?.item.into_raw()?)
+                }
                 Rule::type_def => {
                     let mut parts: Vec<_> = pair.into_inner().into_iter().collect();
                     let name = parts.remove(0).as_str().to_string();
@@ -238,16 +250,18 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
 
                     Item::Type(Type { name, param })
                 }
-
-                Rule::operator_unary
+                Rule::number
+                | Rule::interval_kind
+                | Rule::date_inner
+                | Rule::time_inner
+                | Rule::timestamp_inner
+                | Rule::operator_unary
                 | Rule::operator_mul
                 | Rule::operator_add
                 | Rule::operator_compare
-                | Rule::operator_logical
-                | Rule::interval_kind
-                | Rule::number => Item::Raw(pair.as_str().to_owned()),
+                | Rule::operator_logical => Item::Raw(pair.as_str().to_owned()),
 
-                _ => unreachable!(),
+                _ => unreachable!("{pair}"),
             };
 
             let mut node = Node::from(item);
@@ -1383,7 +1397,7 @@ select [
     }
 
     #[test]
-    fn test_interval() {
+    fn test_dates() -> Result<()> {
         assert_yaml_snapshot!(parse("
         from employees
         derive [age_plus_two_years = (age + 2years)]
@@ -1415,6 +1429,42 @@ select [
                                       unit: years
                     named_args: {}
         "###);
+
+        assert_yaml_snapshot!(parse("
+        derive [
+            date = @2011-02-01,
+            timestamp = @2011-02-01T10:00,
+            time = @14:00,
+            # datetime = @2011-02-01T10:00<datetime>,
+        ]
+        ").unwrap(), @r###"
+        ---
+        version: ~
+        dialect: Generic
+        nodes:
+          - Pipeline:
+              value: ~
+              functions:
+                - FuncCall:
+                    name: derive
+                    args:
+                      - List:
+                          - Assign:
+                              name: date
+                              expr:
+                                Date: 2011-02-01
+                          - Assign:
+                              name: timestamp
+                              expr:
+                                Timestamp: "2011-02-01T10:00"
+                          - Assign:
+                              name: time
+                              expr:
+                                Time: "14:00"
+                    named_args: {}
+        "###);
+
+        Ok(())
     }
 
     #[test]

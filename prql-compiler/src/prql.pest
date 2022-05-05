@@ -72,7 +72,7 @@ expr_add = !{ expr_mul ~ (operator_add ~ expr_mul)* }
 expr_mul = !{ term ~ (operator_mul ~ term)* }
 
 term = _{ ( s_string | f_string | ident | nested_expr | nested_pipeline | list | range | literal ) }
-literal = _{ interval | number | string}
+literal = _{ interval | number | string | timestamp | date | time }
 list = { "[" ~ (NEWLINE* ~ (assign_call | expr_call) ~ ("," ~ NEWLINE* ~ (assign_call | expr_call) )* ~ ","?)? ~ NEWLINE* ~ "]" }
 nested_expr = _{ "(" ~ expr_call ~ ")" }
 nested_pipeline = { "(" ~ expr_call? ~ pipe ~ pipeline ~ NEWLINE* ~ ")" }
@@ -97,7 +97,7 @@ multi_quote = _{ "\""{3,} | "'"{3,} }
 // PEEK refers to the opening quote; either `"` or `'`.
 string_inner = { ( !( PEEK ) ~ ANY )+ }
 // Either > 3 quotes, or just one. Currently both of those can be multiline.
-string= ${ ( PUSH(multi_quote) | PUSH(quote) ) ~ string_inner ~ POP }
+string = ${ ( PUSH(multi_quote) | PUSH(quote) ) ~ string_inner ~ POP }
 
 number = ${ ( ASCII_DIGIT )+ ~ ("." ~ ( ASCII_DIGIT )+)? }
 
@@ -121,3 +121,12 @@ interpolate_string_inner = { ( !( PEEK | "{" ) ~ ANY )+ }
 
 interval_kind = { "microseconds" | "milliseconds" | "seconds" | "minutes" | "hours" | "days" | "weeks" | "months" | "years" }
 interval = ${ number ~ interval_kind }
+
+date = ${ "@" ~ date_inner }
+time = ${ "@" ~ time_inner }
+timestamp = ${ "@" ~ timestamp_inner }
+// We use the `inner` types as containing the data that we want to retain in the AST.
+date_inner = ${ ASCII_DIGIT{4} ~ "-" ~ ASCII_DIGIT{2} ~ "-" ~ ASCII_DIGIT{2} }
+// Times are liberally defined atm, we could make this more robust.
+time_inner = ${ ASCII_DIGIT{2} ~ ( ASCII_DIGIT | ":" | "." | "+" | "-" | "Z" )* }
+timestamp_inner = ${ date_inner ~ "T" ~ time_inner }

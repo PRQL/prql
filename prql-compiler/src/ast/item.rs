@@ -30,6 +30,9 @@ pub enum Item {
     SString(Vec<InterpolateItem>),
     FString(Vec<InterpolateItem>),
     Interval(Interval),
+    Date(String),
+    Time(String),
+    Timestamp(String),
     Windowed(Windowed),
 }
 
@@ -248,6 +251,9 @@ impl Display for Item {
             }
             Item::Interval(i) => {
                 write!(f, "{}{}", i.n, i.unit)?;
+            }
+            Item::Date(inner) | Item::Time(inner) | Item::Timestamp(inner) => {
+                write!(f, "@{inner}")?;
             }
             Item::Windowed(w) => {
                 write!(f, "{:?}", w.expr)?;
