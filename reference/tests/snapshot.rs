@@ -21,8 +21,6 @@ use prql_compiler::*;
 use pulldown_cmark::{CodeBlockKind, Event, Parser, Tag};
 use std::fs;
 use std::path::Path;
-#[cfg(not(target_family = "windows"))]
-use trash;
 use walkdir::WalkDir;
 
 #[test]
@@ -56,7 +54,6 @@ fn write_reference_examples() -> Result<()> {
     // old files which wouldn't be rewritten from hanging around.
     // We use `trash`, since we don't want to be removing files with test code
     // in case there's a bug.
-
     trash::delete(Path::new("tests/examples"))?;
 
     let glob = Glob::new("**/*.md")?.compile_matcher();
