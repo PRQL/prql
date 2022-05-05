@@ -19,7 +19,7 @@ pub enum Item {
     Query(Query),
     Pipeline(Pipeline),
     Transform(Transform),
-    List(Vec<ListItem>),
+    List(Vec<Node>),
     Range(Range),
     Expr(Vec<Node>),
     FuncDef(FuncDef),
@@ -32,16 +32,11 @@ pub enum Item {
     Time(String),
     DateTime(String),
     Timestamp(String),
+    Windowed(Windowed),
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct ListItem(pub Node);
-
-impl ListItem {
-    pub fn into_inner(self) -> Node {
-        self.0
-    }
-}
 
 /// Function call.
 ///
@@ -54,6 +49,23 @@ pub struct FuncCall {
     pub named_args: HashMap<Ident, Box<Node>>,
 }
 
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+pub struct Windowed {
+    pub expr: Box<Node>,
+    pub group: Vec<Node>,
+    pub sort: Vec<ColumnSort<Node>>,
+    // pub frame: Vec<Node>,
+}
+
+impl Windowed {
+    pub fn new(node: Node) -> Self {
+        Windowed {
+            expr: Box::new(node),
+            group: vec![],
+            sort: vec![],
+        }
+    }
+}
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Pipeline {
     pub value: Option<Box<Node>>,
@@ -185,11 +197,11 @@ impl Display for Item {
                 if nodes.is_empty() {
                     f.write_str("[]")?;
                 } else if nodes.len() == 1 {
-                    write!(f, "[{}]", nodes[0].0.item)?;
+                    write!(f, "[{}]", nodes[0].item)?;
                 } else {
                     f.write_str("[\n")?;
                     for li in nodes.iter() {
-                        writeln!(f, "  {},", li.0.item)?;
+                        writeln!(f, "  {},", li.item)?;
                     }
                     f.write_str("]")?;
                 }
@@ -232,6 +244,9 @@ impl Display for Item {
             }
             Item::Date(_) | Item::DateTime(_) | Item::Time(_) | Item::Timestamp(_) => {
                 f.write_str("TODO")?;
+            }
+            Item::Windowed(w) => {
+                write!(f, "{:?}", w.expr)?;
             }
         }
         Ok(())

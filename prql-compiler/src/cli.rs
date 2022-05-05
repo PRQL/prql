@@ -114,7 +114,8 @@ fn compile_to(format: Format, source: &str) -> Result<Vec<u8>, Error> {
             let (nodes, context) = semantic::resolve(query.nodes, Some(context))?;
 
             semantic::label_references(&nodes, &context, "".to_string(), source.to_string());
-            vec![]
+
+            format!("{context:?}").as_bytes().to_vec()
         }
         Format::PrqlFrames => {
             let query = parse(source)?;

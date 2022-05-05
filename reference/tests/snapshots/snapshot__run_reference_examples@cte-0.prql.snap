@@ -23,7 +23,7 @@ WITH newest_employees AS (
 )
 SELECT
   name,
-  salary,
+  average_salaries.salary,
   average_salaries.average_country_salary
 FROM
   newest_employees

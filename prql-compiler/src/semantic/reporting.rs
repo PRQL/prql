@@ -1,6 +1,6 @@
 use std::ops::Range;
 
-use anyhow::{Ok, Result};
+use anyhow::{anyhow, Ok, Result};
 use ariadne::{Color, Label, Report, ReportBuilder, ReportKind, Source};
 
 use super::{Context, Declaration, Frame};
@@ -60,9 +60,13 @@ impl<'a> AstFold for Labeler<'a> {
             let message = if let Some(span) = span {
                 let span = self.source.get_line_range(&Range::from(*span));
                 if span.len() <= 1 {
-                    format!("{declaration} at line {}", span.start + 1)
+                    format!("[{declared_at}] {declaration} at line {}", span.start + 1)
                 } else {
-                    format!("{declaration} at lines {}-{}", span.start + 1, span.end)
+                    format!(
+                        "[{declared_at}] {declaration} at lines {}-{}",
+                        span.start + 1,
+                        span.end
+                    )
                 }
             } else {
                 declaration.to_string()
@@ -100,12 +104,26 @@ struct FrameCollector {
 }
 
 impl AstFold for FrameCollector {
-    fn fold_node(&mut self, node: Node) -> Result<Node> {
-        if let Some(frame) = node.frame {
-            if let Some(span) = node.span {
-                self.frames.push((span, frame));
-            }
+    fn fold_table(&mut self, table: Table) -> Result<Table> {
+        Ok(table)
+    }
+
+    fn fold_pipeline(&mut self, pipeline: Pipeline) -> Result<Pipeline> {
+        let mut frame = Frame::default();
+        for function in &pipeline.functions {
+            let transform = (function.item)
+                .as_transform()
+                .ok_or_else(|| anyhow!("plain function in pipeline"))?;
+
+            frame.apply_transform(transform)?;
+
+            self.frames.push((function.span.unwrap(), frame.clone()));
         }
-        Ok(self.fold_item(node.item)?.into())
+
+        Ok(pipeline)
+    }
+
+    fn fold_func_def(&mut self, function: FuncDef) -> Result<FuncDef> {
+        fold_func_def(self, function)
     }
 }

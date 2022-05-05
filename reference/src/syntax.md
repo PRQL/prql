@@ -18,20 +18,20 @@
 
 - A line-break generally creates a pipelined transformation. For example:
 
-  ```prql
-  from tbl
-  select [
-    col1,
-    col2,
-  ]
-  filter col1 = col2
-  ```
+```prql
+from tbl
+select [
+  col1,
+  col2,
+]
+filter col1 = col2
+```
 
   ...is equivalent to:
 
-  ```prql
-  from tbl | select [col1, col2] | filter col1 = col2
-  ```
+```prql
+from tbl | select [col1, col2] | filter col1 = col2
+```
 
 - A line-break doesn't created a pipeline in a few cases:
   - Within a list (e.g. the `select` example above).
@@ -40,7 +40,7 @@
 
 ### CTEs
 
-- See [CTE Example](examples/cte-1.md).
+- See [CTE Example](examples/cte.md).
 - This is no longer point-free, but that's a feature rather than a requirement.
   The alternative is subqueries, which are fine at small scale, but become
   difficult to digest as complexity increases.

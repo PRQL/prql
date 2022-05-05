@@ -27,7 +27,7 @@ table_1 AS (
 )
 SELECT
   departments.dept_name,
-  t.title,
+  table_1.title,
   table_1.avg_salary
 FROM
   table_1

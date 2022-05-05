@@ -37,16 +37,20 @@ pub enum FuncKind {
 pub struct Table {
     pub name: String,
     pub pipeline: Box<Node>,
+    pub id: Option<usize>,
 }
 
 /// Transform is a stage of a pipeline. It is created from a FuncCall during parsing.
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize, strum::AsRefStr)]
 pub enum Transform {
     From(TableRef),
-    Select(Select),
+    Select(Vec<Node>),
     Filter(Vec<Node>),
-    Derive(Select),
-    Aggregate(Select),
+    Derive(Vec<Node>),
+    Aggregate {
+        assigns: Vec<Node>,
+        by: Vec<Node>,
+    },
     Sort(Vec<ColumnSort<Node>>),
     Take(i64),
     Join {
@@ -82,6 +86,7 @@ impl Select {
 pub struct TableRef {
     pub name: String,
     pub alias: Option<String>,
+    pub declared_at: Option<usize>,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]

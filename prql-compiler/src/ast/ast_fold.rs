@@ -32,6 +32,7 @@ pub trait AstFold {
     }
     fn fold_table(&mut self, table: Table) -> Result<Table> {
         Ok(Table {
+            id: table.id,
             name: self.fold_ident(table.name)?,
             pipeline: Box::new(self.fold_node(*table.pipeline)?),
         })
@@ -84,12 +85,7 @@ pub fn fold_item<T: ?Sized + AstFold>(fold: &mut T, item: Item) -> Result<Item> 
     Ok(match item {
         Item::Ident(ident) => Item::Ident(fold.fold_ident(ident)?),
         Item::Expr(items) => Item::Expr(fold.fold_nodes(items)?),
-        Item::List(items) => Item::List(
-            items
-                .into_iter()
-                .map(|x| fold.fold_node(x.into_inner()).map(ListItem))
-                .try_collect()?,
-        ),
+        Item::List(items) => Item::List(fold.fold_nodes(items)?),
         Item::Range(Range { start, end }) => Item::Range(Range {
             start: fold_optional_box(fold, start)?,
             end: fold_optional_box(fold, end)?,
@@ -116,6 +112,11 @@ pub fn fold_item<T: ?Sized + AstFold>(fold: &mut T, item: Item) -> Result<Item> 
         Item::FuncDef(func) => Item::FuncDef(fold.fold_func_def(func)?),
         Item::FuncCall(func_call) => Item::FuncCall(fold.fold_func_call(func_call)?),
         Item::Table(table) => Item::Table(fold.fold_table(table)?),
+        Item::Windowed(window) => Item::Windowed(Windowed {
+            expr: Box::new(fold.fold_node(*window.expr)?),
+            group: fold.fold_nodes(window.group)?,
+            sort: fold.fold_column_sorts(window.sort)?,
+        }),
         // None of these capture variables, so we don't need to replace
         // them.
         Item::String(_)
@@ -172,9 +173,12 @@ pub fn fold_transform<T: ?Sized + AstFold>(
     match transformation {
         Transform::From(table) => Ok(Transform::From(fold.fold_table_ref(table)?)),
 
-        Transform::Derive(select) => Ok(Transform::Derive(fold.fold_select(select)?)),
-        Transform::Select(select) => Ok(Transform::Select(fold.fold_select(select)?)),
-        Transform::Aggregate(select) => Ok(Transform::Aggregate(fold.fold_select(select)?)),
+        Transform::Derive(assigns) => Ok(Transform::Derive(fold.fold_nodes(assigns)?)),
+        Transform::Select(assigns) => Ok(Transform::Select(fold.fold_nodes(assigns)?)),
+        Transform::Aggregate { assigns, by } => Ok(Transform::Aggregate {
+            assigns: fold.fold_nodes(assigns)?,
+            by: fold.fold_nodes(by)?,
+        }),
 
         Transform::Filter(items) => Ok(Transform::Filter(fold.fold_nodes(items)?)),
         Transform::Sort(items) => Ok(Transform::Sort(fold.fold_column_sorts(items)?)),
@@ -239,6 +243,7 @@ pub fn fold_table_ref<T: ?Sized + AstFold>(fold: &mut T, table: TableRef) -> Res
     Ok(TableRef {
         name: fold.fold_ident(table.name)?,
         alias: table.alias.map(|a| fold.fold_ident(a)).transpose()?,
+        ..table
     })
 }
 

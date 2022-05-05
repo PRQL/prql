@@ -15,9 +15,21 @@ pub fn to_sql(query: &str) -> PyResult<String> {
     }
 }
 
+#[pyfunction]
+pub fn to_json(query: &str) -> PyResult<String> {
+    match prql_compiler::to_json(query) {
+        Ok(sql) => Ok(sql),
+        Err(err) => Err(PyErr::new::<exceptions::PySyntaxError, _>(format!(
+            "{}",
+            err
+        ))),
+    }
+}
 #[pymodule]
 fn prql_python(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(to_sql, m)?)?;
+    m.add_function(wrap_pyfunction!(to_json, m)?)?;
+
     Ok(())
 }
 // This test below is causing a linking error here https://github.com/qorrect/prql/runs/6099160429?check_suite_focus=true
