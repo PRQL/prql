@@ -72,7 +72,7 @@ expr_add = !{ expr_mul ~ (operator_add ~ expr_mul)* }
 expr_mul = !{ term ~ (operator_mul ~ term)* }
 
 term = _{ ( s_string | f_string | ident | nested_expr | nested_pipeline | list | range | literal ) }
-literal = _{ interval | number | string | date | time | timestamp }
+literal = _{ interval | number | string | timestamp | date | time  }
 list = { "[" ~ (NEWLINE* ~ named_expr_call ~ ("," ~ NEWLINE* ~ named_expr_call )* ~ ","?)? ~ NEWLINE* ~ "]" }
 nested_expr = _{ "(" ~ expr_call ~ ")" }
 nested_pipeline = { "(" ~ expr_call? ~ pipe ~ pipeline ~ NEWLINE* ~ ")" }
