@@ -21,6 +21,7 @@ use prql_compiler::*;
 use pulldown_cmark::{CodeBlockKind, Event, Parser, Tag};
 use std::fs;
 use std::path::Path;
+use trash;
 use walkdir::WalkDir;
 
 #[test]
@@ -50,6 +51,17 @@ fn run_examples() -> Result<()> {
 // it only for windows?)
 #[allow(dead_code)]
 fn write_reference_examples() -> Result<()> {
+    // Remove old examples, since we're going to rewrite them, and we don't want
+    // old files which wouldn't be rewritten from hanging around.
+    // We use `trash`, since we don't want to be removing files with test code
+    // in case there's a bug.
+
+    WalkDir::new("tests/examples")
+        .into_iter()
+        .flatten()
+        .filter(|x| x.file_type().is_file())
+        .for_each(|entry| trash::delete(entry.path()).unwrap());
+
     let glob = Glob::new("**/*.md")?.compile_matcher();
 
     WalkDir::new(Path::new("./src/"))
