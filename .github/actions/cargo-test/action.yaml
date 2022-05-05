@@ -33,7 +33,7 @@ runs:
       with:
         command: clippy
         # Note that `--all-targets` doesn't refer to targets like `wasm32-unknown-unknown`.
-        args: --all-targets --workspace ${{ inputs.target_option }} -- -D warnings
+        args: --all-targets --workspace -- -D warnings
     - name: ⌨️ Fmt
       uses: actions-rs/cargo@v1
       with:
