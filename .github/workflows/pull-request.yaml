@@ -84,7 +84,6 @@ jobs:
         working-directory: prql-web/
 
   # Run Mac & Windows & other tests on `main` or a `ci-run-all-tests` label.
-  # TODO this seems to be acting up; confirm.
   test-all:
     uses: ./.github/workflows/test-all.yaml
     if: contains(github.event.pull_request.labels.*.name, 'ci-run-all-tests')
