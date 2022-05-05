@@ -27,7 +27,11 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        target: ["", "wasm32-unknown-unknown"]
+        include:
+          # TODO: I'm sure there's a better way of doing this, where `target_option` derives from `target`?
+          - target:
+          - target: "wasm32-unknown-unknown"
+            target_option: "--target=wasm32-unknown-unknown"
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v2
@@ -35,6 +39,7 @@ jobs:
         uses: ./.github/actions/cargo-test
         with:
           target: ${{ matrix.target }}
+          target_option: ${{ matrix.target_option }}
 
   test-book:
     runs-on: ubuntu-latest
@@ -79,7 +84,6 @@ jobs:
         working-directory: prql-web/
 
   # Run Mac & Windows & other tests on `main` or a `ci-run-all-tests` label.
-  # TODO this seems to be acting up; confirm.
   test-all:
     uses: ./.github/workflows/test-all.yaml
     if: contains(github.event.pull_request.labels.*.name, 'ci-run-all-tests')
