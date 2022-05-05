@@ -14,7 +14,11 @@ prql-compiler = {path = "../prql-compiler"}
 [dev-dependencies]
 globset = "0.4.8"
 insta = {version = "^1.13", features = ["colors", "glob"]}
+log = "0.4.17"
 pulldown-cmark = "0.9.1"
 pulldown-cmark-to-cmark = "10"
 similar = "^2.1"
 walkdir = "2.3.2"
+
+[target.'cfg(not(target_family="wasm"))'.dev-dependencies]
+trash = "2.0.4"

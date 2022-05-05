@@ -1,3 +1,4 @@
+#![cfg(not(target_family = "wasm"))]
 /// This test:
 /// - Extracts PRQL code blocks into the `examples` path.
 /// - Converts them to SQL using insta, raising an error if there's a diff.
@@ -17,6 +18,7 @@
 use anyhow::{bail, Result};
 use globset::Glob;
 use insta::{assert_snapshot, glob};
+use log::warn;
 use prql_compiler::*;
 use pulldown_cmark::{CodeBlockKind, Event, Parser, Tag};
 use std::fs;
@@ -50,6 +52,18 @@ fn run_examples() -> Result<()> {
 // it only for windows?)
 #[allow(dead_code)]
 fn write_reference_examples() -> Result<()> {
+    // Remove old examples, since we're going to rewrite them, and we don't want
+    // old files which wouldn't be rewritten from hanging around.
+    // We use `trash`, since we don't want to be removing files with test code
+    // in case there's a bug.
+
+    let examples_path = Path::new("tests/examples");
+    if examples_path.exists() {
+        trash::delete(Path::new("tests/examples")).unwrap_or_else(|e| {
+            warn!("Failed to delete old examples: {}", e);
+        });
+    }
+
     let glob = Glob::new("**/*.md")?.compile_matcher();
 
     WalkDir::new(Path::new("./src/"))
