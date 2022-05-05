@@ -12,11 +12,10 @@ use anyhow::{anyhow, bail, Result};
 use itertools::Itertools;
 use sqlformat::{format, FormatOptions, QueryParams};
 use sqlparser::ast::{
-    self as sql_ast, Expr, Function, FunctionArg, FunctionArgExpr, Join, JoinConstraint,
-    JoinOperator, ObjectName, OrderByExpr, Select, SelectItem, SetExpr, TableAlias, TableFactor,
-    TableWithJoins, Top, WindowSpec,
+    self as sql_ast, DateTimeField, Expr, Function, FunctionArg, FunctionArgExpr, Join,
+    JoinConstraint, JoinOperator, ObjectName, OrderByExpr, Select, SelectItem, SetExpr, TableAlias,
+    TableFactor, TableWithJoins, Top, Value, WindowSpec,
 };
-use sqlparser::ast::{DateTimeField, Value};
 use std::collections::HashMap;
 
 use crate::ast::JoinFilter;
@@ -474,7 +473,7 @@ impl TryFrom<Item> for Expr {
                 let end: Expr = assert_bound(r.end)?.item.try_into()?;
                 Expr::Identifier(sql_ast::Ident::new(format!("{} AND {}", start, end)))
             }
-            Item::String(s) => Expr::Value(sql_ast::Value::SingleQuotedString(s)),
+            Item::String(s) => Expr::Value(Value::SingleQuotedString(s)),
             // Fairly hacky — convert everything to a string, then concat it,
             // then convert to Expr. We can't use the `Item::Expr` code above
             // since we don't want to intersperse with spaces.
@@ -496,7 +495,7 @@ impl TryFrom<Item> for Expr {
                     .into_iter()
                     .map(|item| match item {
                         InterpolateItem::String(string) => {
-                            Ok(Expr::Value(sql_ast::Value::SingleQuotedString(string)))
+                            Ok(Expr::Value(Value::SingleQuotedString(string)))
                         }
                         InterpolateItem::Expr(node) => Expr::try_from(node.item),
                     })
@@ -1427,6 +1426,42 @@ take 20
           daily_orders
         ORDER BY
           day
+        "###);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_strings() -> Result<()> {
+        let query: Query = parse(
+            r###"
+        derive [
+            x = "two households'",
+            y = 'two households"',
+            z = f"a {x} b' {y} c",
+            v = f'a {x} b" {y} c',
+        ]
+        "###,
+        )?;
+
+        assert_display_snapshot!((resolve_and_translate(query)?), @r###"
+        SELECT
+          'two households''' AS x,
+          'two households"' AS y,
+          CONCAT(
+            'a ',
+            'two households''',
+            ' b'' ',
+            'two households"',
+            ' c'
+          ) AS z,
+          CONCAT(
+            'a ',
+            'two households''',
+            ' b" ',
+            'two households"',
+            ' c'
+          ) AS v
         "###);
 
         Ok(())

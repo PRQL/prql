@@ -169,11 +169,12 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
                     })
                 }
                 Rule::ident => Item::Ident(pair.as_str().to_string()),
-                Rule::string => Item::String(
-                    // Put the string_inner (which doesn't have quotes) into the
-                    // String item.
-                    pair.into_inner().into_only()?.as_str().to_string(),
-                ),
+                Rule::string => {
+                    let inner = pair.into_inner().into_only()?.as_str().to_string();
+
+                    // Put string_inner (which doesn't have quotes) into Item::String.
+                    Item::String(inner)
+                }
                 Rule::s_string => Item::SString(ast_of_interpolate_items(pair)?),
                 Rule::f_string => Item::FString(ast_of_interpolate_items(pair)?),
                 Rule::pipeline => Item::Pipeline(Pipeline {
