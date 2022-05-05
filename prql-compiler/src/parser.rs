@@ -1420,7 +1420,6 @@ select [
         "###);
 
         assert_yaml_snapshot!(parse("
-        from employees
         derive [
             date: @2011-02-01,
             timestamp: @2011-02-01T10:00,
@@ -1435,11 +1434,6 @@ select [
           - Pipeline:
               value: ~
               functions:
-                - FuncCall:
-                    name: from
-                    args:
-                      - Ident: employees
-                    named_args: {}
                 - FuncCall:
                     name: derive
                     args:

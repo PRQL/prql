@@ -550,6 +550,19 @@ impl TryFrom<Item> for Expr {
 
                 Item::Ident(format!("{expr} OVER ({window})")).try_into()?
             }
+            Item::Date(literal) => Expr::TypedString {
+                data_type: sql_ast::DataType::Date,
+                value: literal,
+            },
+            Item::Time(literal) => Expr::TypedString {
+                data_type: sql_ast::DataType::Time,
+                value: literal,
+            },
+            Item::Timestamp(literal) => Expr::TypedString {
+                data_type: sql_ast::DataType::Timestamp,
+                value: literal,
+            },
+
             _ => bail!("Can't convert to Expr; {item:?}"),
         })
     }
@@ -1247,6 +1260,30 @@ take 20
           start + INTERVAL '10' DAY AS first_check_in
         FROM
           projects
+        "###);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_dates() -> Result<()> {
+        let query: Query = parse(
+            r###"
+        derive [
+            date: @2011-02-01,
+            timestamp: @2011-02-01T10:00,
+            time: @14:00,
+            # datetime: @2011-02-01T10:00<datetime>,
+        ]
+
+        "###,
+        )?;
+
+        assert_display_snapshot!((resolve_and_translate(query)?), @r###"
+        SELECT
+          DATE '2011-02-01' AS date,
+          TIMESTAMP '2011-02-01T10:00' AS timestamp,
+          TIME '14:00' AS time
         "###);
 
         Ok(())
