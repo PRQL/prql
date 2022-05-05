@@ -1801,9 +1801,9 @@ checksum = "f2dd574626839106c320a323308629dcb1acfc96e32a8cba364ddc61ac23ee83"
 
 [[package]]
 name = "sqlformat"
-version = "0.1.8"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b4b7922be017ee70900be125523f38bdd644f4f06a1b16e8fa5a8ee8c34bffd4"
+checksum = "f87e292b4291f154971a43c3774364e2cbcaec599d3f5bf6fa9d122885dbc38a"
 dependencies = [
  "itertools",
  "nom",
