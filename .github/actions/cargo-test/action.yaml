@@ -23,6 +23,7 @@ runs:
     - name: 💰 Cache
       uses: Swatinem/rust-cache@v1
     - run: rustup toolchain list
+      shell: sh
     - name: 📎 Clippy
       uses: actions-rs/cargo@v1
       with:
