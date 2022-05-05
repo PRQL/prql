@@ -33,6 +33,7 @@ pub enum Item {
     Date(String),
     Time(String),
     Timestamp(String),
+    Boolean(bool),
     Windowed(Windowed),
 }
 
@@ -254,6 +255,9 @@ impl Display for Item {
             }
             Item::Date(inner) | Item::Time(inner) | Item::Timestamp(inner) => {
                 write!(f, "@{inner}")?;
+            }
+            Item::Boolean(b) => {
+                f.write_str(if *b { "true" } else { "false" })?;
             }
             Item::Windowed(w) => {
                 write!(f, "{:?}", w.expr)?;

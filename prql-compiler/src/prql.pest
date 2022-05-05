@@ -71,8 +71,8 @@ expr_compare = !{ expr_add ~ (operator_compare ~ expr_add)? }
 expr_add = !{ expr_mul ~ (operator_add ~ expr_mul)* }
 expr_mul = !{ term ~ (operator_mul ~ term)* }
 
-term = _{ ( s_string | f_string | ident | nested_expr | nested_pipeline | list | range | literal ) }
-literal = _{ interval | number | string | timestamp | date | time }
+term = _{ ( s_string | f_string | range | literal | ident | nested_expr | nested_pipeline | list ) }
+literal = _{ interval | number | boolean | string | timestamp | date | time }
 list = { "[" ~ (NEWLINE* ~ (assign_call | expr_call) ~ ("," ~ NEWLINE* ~ (assign_call | expr_call) )* ~ ","?)? ~ NEWLINE* ~ "]" }
 nested_expr = _{ "(" ~ expr_call ~ ")" }
 nested_pipeline = { "(" ~ expr_call? ~ pipe ~ pipeline ~ NEWLINE* ~ ")" }
@@ -100,6 +100,8 @@ string_inner = { ( !( PEEK ) ~ ANY )+ }
 string = ${ ( PUSH(multi_quote) | PUSH(quote) ) ~ string_inner ~ POP }
 
 number = ${ ( ASCII_DIGIT )+ ~ ("." ~ ( ASCII_DIGIT )+)? }
+
+boolean = ${ "true" | "false" }
 
 range = ${ range_edge ~ ".." ~ range_edge }
 // We need `literal` separate from `term_simple` for things like range edges,

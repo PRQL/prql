@@ -33,7 +33,7 @@ SELECT
   table_0.*,
   countries.*,
   country_code,
-  countries.true AS always_true,
+  true AS always_true,
   version() AS db_version
 FROM
   table_0

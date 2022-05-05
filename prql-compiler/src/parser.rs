@@ -250,6 +250,7 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
 
                     Item::Type(Type { name, param })
                 }
+                Rule::boolean => Item::Boolean(pair.as_str() == "true"),
                 Rule::number
                 | Rule::interval_kind
                 | Rule::date_inner
