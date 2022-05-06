@@ -439,7 +439,7 @@ impl Resolver {
 
             if passed_len > expected_len && passed_len >= 2 {
                 err = err.with_help(format!(
-                    "If you are calling a function, you may want to add braces: `{} [{:?} {:?}]`",
+                    "If you are calling a function, you may want to add parentheses `{} [{:?} {:?}]`",
                     func_call.name, func_call.args[0], func_call.args[1]
                 ));
             }
