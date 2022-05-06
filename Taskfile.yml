@@ -28,9 +28,11 @@ tasks:
       # `--locked` installs from the underlying lock files (which is not the default?!)
       - cargo install --locked cargo-insta default-target trunk mdbook mdbook-toc
       - rustup target add wasm32-unknown-unknown
-      - python3 -m pip install -U maturin pre-commit
+      - python3 -m pip install -U maturin
+      - task: install-pre-commit
       # We only suggest, rather than install; we don't want to intrude (maybe we're being too conservative?).
       - task: suggest-vscode-extensions
+      - echo "All set up! ✅🚀"
 
   suggest-vscode-extensions:
     desc: Check and suggest VSCode extensions.
@@ -63,6 +65,13 @@ tasks:
         {{ range ( .vscode_extensions | trim | splitLines ) -}}
           code --install-extension {{.}}
         {{ end -}}
+
+  install-pre-commit:
+    # Someone might have this installed with `brew`, so only install if it can't be found.
+    status:
+      - which pre-commit
+    cmds:
+      - pip install -U pre-commit
 
   build-all:
     desc: Build everything. Running this isn't required when developing; it's for caching or as a reference.
