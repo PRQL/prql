@@ -1,6 +1,6 @@
 ---
 source: prql-compiler/src/parser.rs
-expression: "ast_of_string(r#\"\nfrom employees\nfilter country == \"USA\"                        # Each line transforms the previous result.\nderive [                                      # This adds columns / variables.\n  gross_salary = salary + payroll_tax,\n  gross_cost =   gross_salary + benefits_cost # Variables can use other variables.\n]\nfilter gross_cost > 0\ngroup [title, country] (\naggregate [               # `by` are the columns to group by.\n                   average salary,            # These are aggregation calcs run on each group.\n                   sum salary,\n                   average gross_salary,\n                   sum gross_salary,\n                   average gross_cost,\n  sum_gross_cost = sum gross_cost,\n  ct             = count,\n] )\nsort sum_gross_cost\nfilter ct > 200\ntake 20\n    \"#.trim(),\n              Rule::query)?"
+expression: "ast_of_string(r#\"\nfrom employees\nfilter country == \"USA\"                        # Each line transforms the previous result.\nderive [                                      # This adds columns / variables.\n  gross_salary = salary + payroll_tax,\n  gross_cost =   gross_salary + benefits_cost # Variables can use other variables.\n]\nfilter gross_cost > 0\ngroup [title, country] (\naggregate [               # `by` are the columns to group by.\n                   average salary,            # These are aggregation calcs run on each group.\n                   sum salary,\n                   average gross_salary,\n                   sum gross_salary,\n                   average gross_cost,\n  sum_gross_cost = sum gross_cost,\n  ct             = count,\n] )\nsort sum_gross_cost\nfilter ct > 200\ntake 20\n    \"#.trim(),\n        Rule::query)?"
 ---
 Query:
   version: ~
@@ -19,7 +19,7 @@ Query:
               args:
                 - Expr:
                     - Ident: country
-                    - Raw: "=="
+                    - Operator: "=="
                     - String: USA
               named_args: {}
           - FuncCall:
@@ -31,14 +31,14 @@ Query:
                         expr:
                           Expr:
                             - Ident: salary
-                            - Raw: +
+                            - Operator: +
                             - Ident: payroll_tax
                     - Assign:
                         name: gross_cost
                         expr:
                           Expr:
                             - Ident: gross_salary
-                            - Raw: +
+                            - Operator: +
                             - Ident: benefits_cost
               named_args: {}
           - FuncCall:
@@ -46,7 +46,7 @@ Query:
               args:
                 - Expr:
                     - Ident: gross_cost
-                    - Raw: ">"
+                    - Operator: ">"
                     - Raw: "0"
               named_args: {}
           - FuncCall:
@@ -111,7 +111,7 @@ Query:
               args:
                 - Expr:
                     - Ident: ct
-                    - Raw: ">"
+                    - Operator: ">"
                     - Raw: "200"
               named_args: {}
           - FuncCall:

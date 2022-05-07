@@ -633,7 +633,7 @@ take 20
                         - Expr:
                             Ident: foo
                         - String: )
-                    - Raw: +
+                    - Operator: +
                     - Raw: "1"
               by: []
         "###);
@@ -885,7 +885,7 @@ take 20
         - Ident: tax
         - Expr:
             - Ident: gross
-            - Raw: "-"
+            - Operator: "-"
             - Ident: tax
         "###);
 
