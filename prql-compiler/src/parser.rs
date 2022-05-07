@@ -1250,11 +1250,13 @@ select [
     }
 
     #[test]
-    fn test_sort() {
+    fn test_parse_sort() -> Result<()> {
         assert_yaml_snapshot!(parse("
         from invoices
         sort issued_at
-        ").unwrap(), @r###"
+        sort [desc=issued_at]
+        sort [asc=issued_at, desc=amount, num_of_articles]
+         ")?, @r###"
         ---
         version: ~
         dialect: Generic
@@ -1272,24 +1274,6 @@ select [
                     args:
                       - Ident: issued_at
                     named_args: {}
-        "###);
-
-        assert_yaml_snapshot!(parse("
-        from invoices
-        sort [desc=issued_at]
-        ").unwrap(), @r###"
-        ---
-        version: ~
-        dialect: Generic
-        nodes:
-          - Pipeline:
-              value: ~
-              functions:
-                - FuncCall:
-                    name: from
-                    args:
-                      - Ident: invoices
-                    named_args: {}
                 - FuncCall:
                     name: sort
                     args:
@@ -1298,24 +1282,6 @@ select [
                               name: desc
                               expr:
                                 Ident: issued_at
-                    named_args: {}
-        "###);
-
-        assert_yaml_snapshot!(parse("
-        from invoices
-        sort [asc=issued_at, desc=amount, num_of_articles]
-        ").unwrap(), @r###"
-        ---
-        version: ~
-        dialect: Generic
-        nodes:
-          - Pipeline:
-              value: ~
-              functions:
-                - FuncCall:
-                    name: from
-                    args:
-                      - Ident: invoices
                     named_args: {}
                 - FuncCall:
                     name: sort
@@ -1332,6 +1298,8 @@ select [
                           - Ident: num_of_articles
                     named_args: {}
         "###);
+
+        Ok(())
     }
 
     #[test]
