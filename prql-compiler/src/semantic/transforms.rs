@@ -51,7 +51,6 @@ pub fn cast_transform(func_call: FuncCall, span: Option<Span>) -> Result<Transfo
                 .coerce_to_vec()
                 .into_iter()
                 .map(|node| {
-                    dbg!(&node);
                     let (column, direction) = match node.item {
                         Item::Assign(named_expr) => {
                             let direction = match named_expr.name.as_str() {
