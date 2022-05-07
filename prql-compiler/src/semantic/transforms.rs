@@ -304,4 +304,40 @@ mod tests {
                                   - Ident: "<ref>"
         "###);
     }
+
+    #[test]
+    fn test_transform_sort() {
+        let stdlib = load_std_lib().unwrap();
+        let (_, context) = resolve(stdlib, None).unwrap();
+        let context = Some(context);
+
+        let query = parse(
+            "
+        from invoices
+        sort [amount]
+        # sort [-issued_at, desc=amount, num_of_articles]
+        # sort [-amount]
+        ",
+        )
+        .unwrap();
+
+        dbg!(&query);
+        let (result, _) = resolve(query.nodes, context).unwrap();
+        assert_yaml_snapshot!(result, @r###"
+        ---
+        - Pipeline:
+            value: ~
+            functions:
+              - Transform:
+                  From:
+                    name: invoices
+                    alias: ~
+                    declared_at: 57
+              - Transform:
+                  Sort:
+                    - direction: Asc
+                      column:
+                        Ident: amount
+        "###);
+    }
 }
