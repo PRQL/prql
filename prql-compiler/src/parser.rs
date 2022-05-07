@@ -639,12 +639,23 @@ Canada
     #[test]
     fn test_parse_derive() -> Result<()> {
         assert_yaml_snapshot!(
-            ast_of_string(r#"derive [x = 5, y = -x]"#, Rule::func_curry)?
+            ast_of_string(r#"derive [x = 5, y = (-x)]"#, Rule::func_curry)?
         , @r###"
         ---
         FuncCall:
           name: derive
-          args: []
+          args:
+            - List:
+                - Assign:
+                    name: x
+                    expr:
+                      Raw: "5"
+                - Assign:
+                    name: y
+                    expr:
+                      Expr:
+                        - Operator: "-"
+                        - Ident: x
           named_args: {}
         "###);
 
@@ -1268,10 +1279,13 @@ select [
     fn test_parse_sort() -> Result<()> {
         assert_yaml_snapshot!(parse("
         from invoices
+        derive x = (-y)
         sort issued_at
-        sort [desc=issued_at]
-        sort [asc=issued_at, desc=amount, num_of_articles]
-         ")?, @r###"
+        sort (-issued_at)
+        sort [issued_at]
+        sort [(-issued_at)]
+        sort [issued_at, (-amount), +num_of_articles]
+        ").unwrap(), @r###"
         ---
         version: ~
         dialect: Generic
@@ -1285,6 +1299,16 @@ select [
                       - Ident: invoices
                     named_args: {}
                 - FuncCall:
+                    name: derive
+                    args:
+                      - Assign:
+                          name: x
+                          expr:
+                            Expr:
+                              - Operator: "-"
+                              - Ident: y
+                    named_args: {}
+                - FuncCall:
                     name: sort
                     args:
                       - Ident: issued_at
@@ -1292,24 +1316,33 @@ select [
                 - FuncCall:
                     name: sort
                     args:
-                      - List:
-                          - Assign:
-                              name: desc
-                              expr:
-                                Ident: issued_at
+                      - Expr:
+                          - Operator: "-"
+                          - Ident: issued_at
                     named_args: {}
                 - FuncCall:
                     name: sort
                     args:
                       - List:
-                          - Assign:
-                              name: asc
-                              expr:
-                                Ident: issued_at
-                          - Assign:
-                              name: desc
-                              expr:
-                                Ident: amount
+                          - Ident: issued_at
+                    named_args: {}
+                - FuncCall:
+                    name: sort
+                    args:
+                      - List:
+                          - Expr:
+                              - Operator: "-"
+                              - Ident: issued_at
+                    named_args: {}
+                - FuncCall:
+                    name: sort
+                    args:
+                      - List:
+                          - Ident: issued_at
+                          - Expr:
+                              - Operator: "-"
+                              - Ident: amount
+                          - Operator: +
                           - Ident: num_of_articles
                     named_args: {}
         "###);

@@ -51,6 +51,7 @@ pub fn cast_transform(func_call: FuncCall, span: Option<Span>) -> Result<Transfo
                 .coerce_to_vec()
                 .into_iter()
                 .map(|node| {
+                    dbg!(&node);
                     let (column, direction) = match node.item {
                         Item::Assign(named_expr) => {
                             let direction = match named_expr.name.as_str() {
@@ -302,6 +303,42 @@ mod tests {
                                   - Ident: "<unnamed>"
                                 by:
                                   - Ident: "<ref>"
+        "###);
+    }
+
+    #[test]
+    fn test_transform_sort() {
+        let stdlib = load_std_lib().unwrap();
+        let (_, context) = resolve(stdlib, None).unwrap();
+        let context = Some(context);
+
+        let query = parse(
+            "
+        from invoices
+        sort [amount]
+        # sort [-issued_at, desc=amount, num_of_articles]
+        # sort [-amount]
+        ",
+        )
+        .unwrap();
+
+        dbg!(&query);
+        let (result, _) = resolve(query.nodes, context).unwrap();
+        assert_yaml_snapshot!(result, @r###"
+        ---
+        - Pipeline:
+            value: ~
+            functions:
+              - Transform:
+                  From:
+                    name: invoices
+                    alias: ~
+                    declared_at: 57
+              - Transform:
+                  Sort:
+                    - direction: Asc
+                      column:
+                        Ident: amount
         "###);
     }
 }
