@@ -252,16 +252,16 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
                     Item::Type(Type { name, param })
                 }
                 Rule::boolean => Item::Boolean(pair.as_str() == "true"),
+                Rule::operator_unary
+                | Rule::operator_mul
+                | Rule::operator_add
+                | Rule::operator_compare
+                | Rule::operator_logical => Item::Operator(pair.as_str().to_owned()),
                 Rule::number
                 | Rule::interval_kind
                 | Rule::date_inner
                 | Rule::time_inner
-                | Rule::timestamp_inner
-                | Rule::operator_unary
-                | Rule::operator_mul
-                | Rule::operator_add
-                | Rule::operator_compare
-                | Rule::operator_logical => Item::Raw(pair.as_str().to_owned()),
+                | Rule::timestamp_inner => Item::Raw(pair.as_str().to_owned()),
 
                 _ => unreachable!("{pair}"),
             };
@@ -434,7 +434,7 @@ Canada
           - Expr:
               Expr:
                 - Raw: "2"
-                - Raw: +
+                - Operator: +
                 - Raw: "2"
           - String: )
         "###);
@@ -449,7 +449,7 @@ Canada
         List:
           - Expr:
               - Raw: "1"
-              - Raw: +
+              - Operator: +
               - Raw: "1"
           - Raw: "2"
         "###);
@@ -458,7 +458,7 @@ Canada
         List:
           - Expr:
               - Raw: "1"
-              - Raw: +
+              - Operator: +
               - FuncCall:
                   name: f
                   args:
@@ -534,7 +534,7 @@ Canada
                       args:
                         - Expr:
                             - Ident: country
-                            - Raw: "=="
+                            - Operator: "=="
                             - String: USA
                       named_args: {}
         "###);
@@ -558,7 +558,7 @@ Canada
                                 args:
                                   - Ident: country
                                 named_args: {}
-                            - Raw: "=="
+                            - Operator: "=="
                             - String: USA
                       named_args: {}
         "###
@@ -637,6 +637,21 @@ Canada
     }
 
     #[test]
+    fn test_parse_derive() -> Result<()> {
+        assert_yaml_snapshot!(
+            ast_of_string(r#"derive [x = 5, y = -x]"#, Rule::func_curry)?
+        , @r###"
+        ---
+        FuncCall:
+          name: derive
+          args: []
+          named_args: {}
+        "###);
+
+        Ok(())
+    }
+
+    #[test]
     fn test_parse_select() -> Result<()> {
         assert_yaml_snapshot!(
             ast_of_string(r#"select x"#, Rule::func_curry)?
@@ -673,7 +688,7 @@ Canada
         ---
         Expr:
           - Ident: country
-          - Raw: "=="
+          - Operator: "=="
           - String: USA
         "###);
         assert_yaml_snapshot!(ast_of_string(
@@ -689,14 +704,14 @@ Canada
               expr:
                 Expr:
                   - Ident: salary
-                  - Raw: +
+                  - Operator: +
                   - Ident: payroll_tax
           - Assign:
               name: gross_cost
               expr:
                 Expr:
                   - Ident: gross_salary
-                  - Raw: +
+                  - Operator: +
                   - Ident: benefits_cost
         "###);
         assert_yaml_snapshot!(
@@ -712,12 +727,12 @@ Canada
             Expr:
               - Expr:
                   - Ident: salary
-                  - Raw: +
+                  - Operator: +
                   - Ident: payroll_tax
-              - Raw: "*"
+              - Operator: "*"
               - Expr:
                   - Raw: "1"
-                  - Raw: +
+                  - Operator: +
                   - Ident: tax_rate
         "###);
         Ok(())
@@ -789,7 +804,7 @@ take 20
           body:
             Expr:
               - Ident: x
-              - Raw: +
+              - Operator: +
               - Raw: "1"
           return_type: ~
         "###);
@@ -807,7 +822,7 @@ take 20
           body:
             Expr:
               - Ident: x
-              - Raw: +
+              - Operator: +
               - Raw: "1"
           return_type: ~
         "###);
@@ -830,7 +845,7 @@ take 20
               args:
                 - Expr:
                     - Ident: bar
-                    - Raw: +
+                    - Operator: +
                     - Raw: "1"
               named_args: {}
           return_type: ~
@@ -896,7 +911,7 @@ take 20
           body:
             Expr:
               - Ident: x
-              - Raw: +
+              - Operator: +
               - Ident: to
           return_type: ~
         "###);
@@ -947,18 +962,18 @@ take 20
                       - List:
                           - Expr:
                               - Ident: a
-                              - Raw: and
+                              - Operator: and
                               - Expr:
                                   - Ident: b
-                                  - Raw: +
+                                  - Operator: +
                                   - Ident: c
-                              - Raw: or
+                              - Operator: or
                               - FuncCall:
                                   name: d
                                   args:
                                     - Ident: e
                                   named_args: {}
-                              - Raw: and
+                              - Operator: and
                               - Ident: f
                     named_args: {}
         "###);
@@ -1223,11 +1238,11 @@ take 20
                       - List:
                           - Expr:
                               - Ident: first_name
-                              - Raw: "=="
+                              - Operator: "=="
                               - Ident: $1
                           - Expr:
                               - Ident: last_name
-                              - Raw: "=="
+                              - Operator: "=="
                               - Ident: $2.name
                     named_args: {}
         "###);
@@ -1393,7 +1408,7 @@ select [
                               expr:
                                 Expr:
                                   - Ident: age
-                                  - Raw: +
+                                  - Operator: +
                                   - Interval:
                                       n: 2
                                       unit: years
