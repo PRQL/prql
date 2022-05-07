@@ -1279,12 +1279,11 @@ select [
     fn test_parse_sort() -> Result<()> {
         assert_yaml_snapshot!(parse("
         from invoices
-        derive x = (-y)
         sort issued_at
         sort (-issued_at)
         sort [issued_at]
-        sort [(-issued_at)]
-        sort [issued_at, (-amount), +num_of_articles]
+        sort [-issued_at]
+        sort [issued_at, -amount, +num_of_articles]
         ").unwrap(), @r###"
         ---
         version: ~
@@ -1297,16 +1296,6 @@ select [
                     name: from
                     args:
                       - Ident: invoices
-                    named_args: {}
-                - FuncCall:
-                    name: derive
-                    args:
-                      - Assign:
-                          name: x
-                          expr:
-                            Expr:
-                              - Operator: "-"
-                              - Ident: y
                     named_args: {}
                 - FuncCall:
                     name: sort
@@ -1330,18 +1319,16 @@ select [
                     name: sort
                     args:
                       - List:
-                          - Expr:
-                              - Operator: "-"
-                              - Ident: issued_at
+                          - Operator: "-"
+                          - Ident: issued_at
                     named_args: {}
                 - FuncCall:
                     name: sort
                     args:
                       - List:
                           - Ident: issued_at
-                          - Expr:
-                              - Operator: "-"
-                              - Ident: amount
+                          - Operator: "-"
+                          - Ident: amount
                           - Operator: +
                           - Ident: num_of_articles
                     named_args: {}
