@@ -601,7 +601,7 @@ impl TryFrom<Item> for sql_ast::Ident {
             // But it does OK for the moment.
             Item::Operator(op) => sql_ast::Ident::new(match op.as_str() {
                 "==" => "=".to_string(),
-                _ => op,
+                _ => op.to_uppercase(),
             }),
             _ => bail!("Can't convert to Ident; {item:?}"),
         })
