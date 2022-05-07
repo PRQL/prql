@@ -20,10 +20,10 @@ So this function is named `celsius_of_fahrenheit` and has one parameter `temp`:
 func celsius_of_fahrenheit temp ->  (temp - 32) * 3
 
 from cities
-derive temp_c = (celsius_of_fahrenheit temp_f)
+derive temp_c = celsius_of_fahrenheit temp_f
 ```
 
-This function named `interp`, and has two positional parameters named
+This function is named `interp`, and has two positional parameters named
 `higher` and `x`, and one named parameter named `lower` which takes a default
 argument of `0`. It calculates the proportion of the distance that `x` is
 between `lower` and `higher`.
@@ -41,18 +41,18 @@ derive [
 ## Piping
 
 Consistent with the principles of PRQL, it's possible to pipe values into
-functions, which makes composing functions more readable. When piping a value
-into a function, the value is passed as an argument to the final positional
-parameter of the function. Here's the same result as the examples above with an
-alternative construction:
+functions, which makes composing many functions more readable. When piping a
+value into a function, the value is passed as an argument to the final
+positional parameter of the function. Here's the same result as the examples
+above with an alternative construction:
 
 ```prql
 func interp lower:0 higher x ->  (x - lower) / (higher - lower)
 
 from students
 derive [
-  sat_proportion_1= (sat_score | interp 1600),
-  sat_proportion_2= (sat_score | interp lower:0 1600),
+  sat_proportion_1 = (sat_score | interp 1600),
+  sat_proportion_2 = (sat_score | interp lower:0 1600),
 ]
 ```
 
