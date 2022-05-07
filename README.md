@@ -160,14 +160,14 @@ Here's the same query with PRQL:
 ```elm
 prql version:0.3 db:snowflake                         # PRQL version & database name.
 
-func excess x -> (x - interest_rate) / 252             # Functions are clean and simple.
+func excess x -> (x - interest_rate) / 252            # Functions are clean and simple.
 func if_valid x -> is_valid_price ? x : null
-func lag_day x -> group sec_id (                       # `group` is used for window partitions too
-    sort date
-    window (                                          # `window` runs a pipeline over each window
-      lag 1 x                                         # `lag 1 x` lags the `x` col by 1
-    )
+func lag_day x -> group sec_id (                      # `group` is used for window partitions too
+  sort date
+  window (                                            # `window` runs a pipeline over each window
+    lag 1 x                                           # `lag 1 x` lags the `x` col by 1
   )
+)
 
 func ret x -> x / (x | lag_day) - 1 + dividend_return
 
@@ -185,7 +185,7 @@ select [                                              # `select` only includes u
     ln
     group sec_id (                                    # Complicated logic remains clear(er)
       sort date
-      window (
+      window ..current (                              # Rolling sum
         sum
       )
     )
