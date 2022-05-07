@@ -1250,13 +1250,13 @@ select [
     }
 
     #[test]
-    fn test_parse_sort() {
+    fn test_parse_sort() -> Result<()> {
         assert_yaml_snapshot!(parse("
         from invoices
         sort issued_at
         sort [desc=issued_at]
         sort [asc=issued_at, desc=amount, num_of_articles]
-         ").unwrap(), @r###"
+         ")?, @r###"
         ---
         version: ~
         dialect: Generic
@@ -1298,6 +1298,8 @@ select [
                           - Ident: num_of_articles
                     named_args: {}
         "###);
+
+        Ok(())
     }
 
     #[test]
