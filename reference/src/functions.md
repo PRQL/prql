@@ -20,7 +20,7 @@ So this function is named `celsius_of_fahrenheit` and has one parameter `temp`:
 func celsius_of_fahrenheit temp ->  (temp - 32) * 3
 
 from cities
-derive temp_c = celsius_of_fahrenheit temp_f
+derive temp_c = (celsius_of_fahrenheit temp_f)
 ```
 
 This function is named `interp`, and has two positional parameters named
