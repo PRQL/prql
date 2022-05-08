@@ -1190,21 +1190,20 @@ take 20
     fn test_sorts() -> Result<()> {
         let query: Query = parse(
             r###"
-        from Employees
-        sort [id]
-        sort [age, desc=last_name, asc=first_name]
+        from invoices
+        sort [issued_at, -amount, +num_of_articles]
         "###,
         )?;
 
         assert_display_snapshot!((resolve_and_translate(query)?), @r###"
         SELECT
-          Employees.*
+          invoices.*
         FROM
-          Employees
+          invoices
         ORDER BY
-          age,
-          last_name DESC,
-          first_name
+          issued_at,
+          amount DESC,
+          num_of_articles
         "###);
 
         Ok(())

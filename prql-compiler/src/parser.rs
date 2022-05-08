@@ -496,6 +496,22 @@ Canada
           - Ident: b
         "###);
         assert_ne!(ab, a_comma_b);
+
+        assert_debug_snapshot!(
+            parse_tree_of_str(r#"[amount, +amount, -amount]"#, Rule::list).unwrap()
+        );
+        // Operators in list items
+        assert_yaml_snapshot!(ast_of_string(r#"[amount, +amount, -amount]"#, Rule::list).unwrap(), @r###"
+        ---
+        List:
+          - Ident: amount
+          - Expr:
+              - Operator: +
+              - Ident: amount
+          - Expr:
+              - Operator: "-"
+              - Ident: amount
+        "###);
     }
 
     #[test]
@@ -1319,18 +1335,21 @@ select [
                     name: sort
                     args:
                       - List:
-                          - Operator: "-"
-                          - Ident: issued_at
+                          - Expr:
+                              - Operator: "-"
+                              - Ident: issued_at
                     named_args: {}
                 - FuncCall:
                     name: sort
                     args:
                       - List:
                           - Ident: issued_at
-                          - Operator: "-"
-                          - Ident: amount
-                          - Operator: +
-                          - Ident: num_of_articles
+                          - Expr:
+                              - Operator: "-"
+                              - Ident: amount
+                          - Expr:
+                              - Operator: +
+                              - Ident: num_of_articles
                     named_args: {}
         "###);
 

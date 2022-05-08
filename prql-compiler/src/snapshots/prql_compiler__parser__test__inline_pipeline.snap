@@ -12,7 +12,7 @@ expression: "parse_tree_of_str(\"(salary | percentile 50)\", Rule::nested_pipeli
         },
         inner: [
             Pair {
-                rule: expr,
+                rule: expr_call,
                 span: Span {
                     str: "salary ",
                     start: 1,
@@ -20,7 +20,7 @@ expression: "parse_tree_of_str(\"(salary | percentile 50)\", Rule::nested_pipeli
                 },
                 inner: [
                     Pair {
-                        rule: expr_compare,
+                        rule: expr,
                         span: Span {
                             str: "salary ",
                             start: 1,
@@ -28,7 +28,7 @@ expression: "parse_tree_of_str(\"(salary | percentile 50)\", Rule::nested_pipeli
                         },
                         inner: [
                             Pair {
-                                rule: expr_add,
+                                rule: expr_compare,
                                 span: Span {
                                     str: "salary ",
                                     start: 1,
@@ -36,7 +36,7 @@ expression: "parse_tree_of_str(\"(salary | percentile 50)\", Rule::nested_pipeli
                                 },
                                 inner: [
                                     Pair {
-                                        rule: expr_mul,
+                                        rule: expr_add,
                                         span: Span {
                                             str: "salary ",
                                             start: 1,
@@ -44,13 +44,23 @@ expression: "parse_tree_of_str(\"(salary | percentile 50)\", Rule::nested_pipeli
                                         },
                                         inner: [
                                             Pair {
-                                                rule: ident,
+                                                rule: expr_mul,
                                                 span: Span {
-                                                    str: "salary",
+                                                    str: "salary ",
                                                     start: 1,
-                                                    end: 7,
+                                                    end: 8,
                                                 },
-                                                inner: [],
+                                                inner: [
+                                                    Pair {
+                                                        rule: ident,
+                                                        span: Span {
+                                                            str: "salary",
+                                                            start: 1,
+                                                            end: 7,
+                                                        },
+                                                        inner: [],
+                                                    },
+                                                ],
                                             },
                                         ],
                                     },
