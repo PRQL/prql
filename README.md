@@ -51,7 +51,8 @@ GROUP BY
 HAVING
   COUNT(*) > 200
 ORDER BY
-  sum_gross_cost
+  sum_gross_cost,
+  country DESC
 ```
 
 Even this simple query demonstrates some of the problems with SQL's lack of
@@ -90,7 +91,7 @@ group [title, country] (                      # `group` runs a pipeline over eac
     ct: count,
   ]
 )
-sort sum_gross_cost
+sort [sum_gross_cost, -country]
 filter ct > 200
 take 20
 ```
