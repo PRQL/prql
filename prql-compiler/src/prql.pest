@@ -71,9 +71,9 @@ assign_call = { ident ~ "=" ~ !"=" ~ expr_call }
 expr_call = { operator_add? ~ (func_call | expr) }
 
 expr = !{ expr_compare ~ (operator_logical ~ expr_compare)* }
-expr_compare = !{ expr_add ~ (operator_compare ~ expr_add)? }
-expr_add = !{ expr_mul ~ (operator_add ~ expr_mul)* }
-expr_mul = !{ term ~ (operator_mul ~ term)* }
+expr_compare = _{ expr_add ~ (operator_compare ~ expr_add)? }
+expr_add = _{ expr_mul ~ (operator_add ~ expr_mul)* }
+expr_mul = _{ term ~ (operator_mul ~ term)* }
 
 term = _{ ( s_string | f_string | range | literal | ident | nested_expr | nested_pipeline | list ) }
 literal = _{ interval | number | boolean | string | timestamp | date | time }
