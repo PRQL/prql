@@ -4,8 +4,8 @@ expression: sql
 input_file: reference/tests/examples/transforms-6.prql
 ---
 SELECT
-  employees.*,
-  positions.*
+  employees.*
 FROM
   employees
-  LEFT JOIN positions ON id = employee_id
+ORDER BY
+  age DESC

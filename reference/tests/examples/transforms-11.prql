@@ -1,0 +1,3 @@
+from employees
+sort join_date
+take 1

@@ -4,10 +4,9 @@ expression: sql
 input_file: reference/tests/examples/transforms-9.prql
 ---
 SELECT
-  employees.*
+  employees.*,
+  positions.*,
+  emp_no
 FROM
-  employees
-ORDER BY
-  join_date
-LIMIT
-  1
+  employees FULL
+  JOIN positions USING(emp_no)

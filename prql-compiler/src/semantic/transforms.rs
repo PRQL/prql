@@ -45,7 +45,7 @@ pub fn cast_transform(func_call: FuncCall, span: Option<Span>) -> Result<Transfo
             }
         }
         "sort" => {
-            let ([by], []) = unpack(dbg!(func_call), [])?;
+            let ([by], []) = unpack(func_call, [])?;
 
             let by = by
                 .coerce_to_vec()
@@ -352,7 +352,6 @@ mod tests {
         )
         .unwrap();
 
-        dbg!(&query);
         let (result, _) = resolve(query.nodes, context).unwrap();
         assert_yaml_snapshot!(result, @r###"
         ---
