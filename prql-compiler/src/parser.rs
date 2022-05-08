@@ -974,10 +974,9 @@ take 20
                           - Expr:
                               - Ident: a
                               - Operator: and
-                              - Expr:
-                                  - Ident: b
-                                  - Operator: +
-                                  - Ident: c
+                              - Ident: b
+                              - Operator: +
+                              - Ident: c
                               - Operator: or
                               - FuncCall:
                                   name: d
