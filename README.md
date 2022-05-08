@@ -43,7 +43,7 @@ SELECT TOP 20
 FROM
   employees
 WHERE
-  country = 'USA'
+  start_date > DATE('2021-01-01')
   AND salary + payroll_tax + benefits_cost > 0
 GROUP BY
   title,
@@ -51,7 +51,8 @@ GROUP BY
 HAVING
   COUNT(*) > 200
 ORDER BY
-  sum_gross_cost
+  sum_gross_cost,
+  country DESC
 ```
 
 Even this simple query demonstrates some of the problems with SQL's lack of
@@ -72,25 +73,25 @@ abstractions:
 Here's the same query with PRQL:
 
 ```elm
-from employees
-filter country = "USA"                        # Each line transforms the previous result.
+from employees                                # Each line transforms the previous result.
+filter start_date > @2021-01-01               # Clear date syntax.
 derive [                                      # `derive` adds columns / variables.
-  gross_salary: salary + payroll_tax,
-  gross_cost:   gross_salary + benefits_cost  # Variables can use other variables.
+  gross_salary = salary + payroll_tax,
+  gross_cost = gross_salary + benefits_cost   # Variables can use other variables.
 ]
 filter gross_cost > 0
-group [title, country] (                      # `group` runs a pipeline over each group
-  aggregate [                                 # `aggregate` reduces a column to a row
+group [title, country] (                      # `group` runs a pipeline over each group.
+  aggregate [                                 # `aggregate` reduces a column to a row.
     average salary,
     sum     salary,
     average gross_salary,
     sum     gross_salary,
     average gross_cost,
-    sum_gross_cost: sum gross_cost,
-    ct: count,
+    sum_gross_cost = sum gross_cost,          # `=` sets a column name.
+    ct = count,
   ]
 )
-sort sum_gross_cost
+sort [sum_gross_cost, -country]               # `-foo` means descending order.
 filter ct > 200
 take 20
 ```
