@@ -63,10 +63,6 @@ named_arg   = { ident ~ ":" ~ !":" ~ (assign | expr) }
 assign      = { ident ~ "=" ~ !"=" ~ expr }
 assign_call = { ident ~ "=" ~ !"=" ~ expr_call }
 
-// That these `expr*` rules aren't silent causes a lot of extra items in the
-// parse tree, but we remove them in the AST. We might be able to have them
-// silent, though they also need to be non-atomic.
-
 // Expression that can contain a function call and a leading `+` or `-`
 expr_call = { operator_add? ~ (func_call | expr) }
 
