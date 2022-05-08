@@ -1,7 +1,2 @@
 from employees
-group [title, country] (
-  aggregate [
-    average salary,
-    ct = count
-  ]
-)
+join side:left positions [id==employee_id]

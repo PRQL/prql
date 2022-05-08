@@ -10,7 +10,7 @@ Core principle of the language is a pipeline, which is a series of sequential tr
 from {table reference}
 ```
 
-*Example:*
+#### Examples
 
 ```prql
 from employees
@@ -24,7 +24,7 @@ from employees
 select [{expression}]
 ```
 
-*Example:*
+#### Examples
 
 ```prql
 from employees
@@ -39,7 +39,7 @@ select [first_name, last_name]
 derive [{new_name} = {expression}]
 ```
 
-*Example:*
+#### Examples
 
 ```prql
 from employees
@@ -62,11 +62,45 @@ derive [
 filter {boolean expression}
 ```
 
-*Example:*
+#### Examples
 
 ```prql_no_test
 from employees
 filter (length last_name < 3)
+```
+
+## Sort
+
+`sort` orders rows based on the values of one or more columns.
+
+```prql_no_test
+sort [{direction}{column}]
+```
+
+#### Arguments
+
+- One or multiple columns
+- Each column can be prefixed with:
+  - `+`, for ascending order, the default
+  - `-`, for descending order
+
+#### Examples
+
+```prql
+from employees
+sort age
+```
+
+```prql
+from employees
+sort (-age)
+```
+
+> Note that `sort -age` is not valid; `-age` needs to be surrounded by parentheses.
+
+```prql
+from employees
+sort [age, -tenure, +salary]
 ```
 
 ## Take
@@ -77,30 +111,11 @@ filter (length last_name < 3)
 take {n}
 ```
 
-*Example:*
+#### Examples
 
 ```prql
 from employees
 take 10
-```
-
-## Sort
-
-> orders the rows by the values of selected columns
-
-```prql_no_test
-sort {column}
-```
-
-*Arguments:*
-
-- a column identifier of the key to sort by
-
-*Example:*
-
-```prql
-from employees
-sort age
 ```
 
 ## Join
@@ -111,21 +126,21 @@ sort age
 join side:{inner|left|right|full} {table} {[conditions]}
 ```
 
-*Arguments:*
+#### Arguments
 
 - `side` decides which rows to include. Defaults to `inner`
 - table reference
 - list of conditions
   - If all terms are column identifiers, this will compile to `USING(...)`. In this case, both of the tables must have specified column. The result will only contain one column instead one for each table.
 
-*Example:*
+#### Examples
 
 ```prql
 from employees
 join side:left positions [id==employee_id]
 ```
 
-*Example:*
+#### Examples
 
 ```prql
 from employees
@@ -179,7 +194,7 @@ group role (
 aggregate [{expression or assign operations}]
 ```
 
-*Example:*
+#### Examples
 
 ```prql
 from employees

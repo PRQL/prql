@@ -64,9 +64,8 @@ assign      = { ident ~ "=" ~ !"=" ~ expr }
 assign_call = { ident ~ "=" ~ !"=" ~ expr_call }
 
 // Expression that can contain a function call and a leading `+` or `-`
-expr_call = _{ operator_add? ~ (func_call | expr) }
+expr_call = { operator_add? ~ (func_call | expr) }
 
-// We add an `operator_add?` to the `expr` rule to allow for a leading `+` or `-`.
 expr = !{ expr_compare ~ (operator_logical ~ expr_compare)* }
 expr_compare = _{ expr_add ~ (operator_compare ~ expr_add)? }
 expr_add = _{ expr_mul ~ (operator_add ~ expr_mul)* }

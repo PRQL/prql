@@ -56,7 +56,7 @@ expression: "parse_tree_of_str(\"join country [id==employee_id]\", Rule::func_cu
                         },
                         inner: [
                             Pair {
-                                rule: expr,
+                                rule: expr_call,
                                 span: Span {
                                     str: "id==employee_id",
                                     start: 14,
@@ -64,31 +64,41 @@ expression: "parse_tree_of_str(\"join country [id==employee_id]\", Rule::func_cu
                                 },
                                 inner: [
                                     Pair {
-                                        rule: ident,
+                                        rule: expr,
                                         span: Span {
-                                            str: "id",
+                                            str: "id==employee_id",
                                             start: 14,
-                                            end: 16,
-                                        },
-                                        inner: [],
-                                    },
-                                    Pair {
-                                        rule: operator_compare,
-                                        span: Span {
-                                            str: "==",
-                                            start: 16,
-                                            end: 18,
-                                        },
-                                        inner: [],
-                                    },
-                                    Pair {
-                                        rule: ident,
-                                        span: Span {
-                                            str: "employee_id",
-                                            start: 18,
                                             end: 29,
                                         },
-                                        inner: [],
+                                        inner: [
+                                            Pair {
+                                                rule: ident,
+                                                span: Span {
+                                                    str: "id",
+                                                    start: 14,
+                                                    end: 16,
+                                                },
+                                                inner: [],
+                                            },
+                                            Pair {
+                                                rule: operator_compare,
+                                                span: Span {
+                                                    str: "==",
+                                                    start: 16,
+                                                    end: 18,
+                                                },
+                                                inner: [],
+                                            },
+                                            Pair {
+                                                rule: ident,
+                                                span: Span {
+                                                    str: "employee_id",
+                                                    start: 18,
+                                                    end: 29,
+                                                },
+                                                inner: [],
+                                            },
+                                        ],
                                     },
                                 ],
                             },

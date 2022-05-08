@@ -7,5 +7,5 @@ SELECT
   employees.*
 FROM
   employees
-LIMIT
-  10
+ORDER BY
+  age

@@ -4,7 +4,7 @@ expression: "parse_tree_of_str(r#\"s\"SUM({col})\"\"#, Rule::expr_call)?"
 ---
 [
     Pair {
-        rule: expr,
+        rule: expr_call,
         span: Span {
             str: "s\"SUM({col})\"",
             start: 0,
@@ -12,7 +12,7 @@ expression: "parse_tree_of_str(r#\"s\"SUM({col})\"\"#, Rule::expr_call)?"
         },
         inner: [
             Pair {
-                rule: s_string,
+                rule: expr,
                 span: Span {
                     str: "s\"SUM({col})\"",
                     start: 0,
@@ -20,41 +20,61 @@ expression: "parse_tree_of_str(r#\"s\"SUM({col})\"\"#, Rule::expr_call)?"
                 },
                 inner: [
                     Pair {
-                        rule: interpolate_string_inner,
+                        rule: s_string,
                         span: Span {
-                            str: "SUM(",
-                            start: 2,
-                            end: 6,
-                        },
-                        inner: [],
-                    },
-                    Pair {
-                        rule: expr,
-                        span: Span {
-                            str: "col",
-                            start: 7,
-                            end: 10,
+                            str: "s\"SUM({col})\"",
+                            start: 0,
+                            end: 13,
                         },
                         inner: [
                             Pair {
-                                rule: ident,
+                                rule: interpolate_string_inner,
+                                span: Span {
+                                    str: "SUM(",
+                                    start: 2,
+                                    end: 6,
+                                },
+                                inner: [],
+                            },
+                            Pair {
+                                rule: expr_call,
                                 span: Span {
                                     str: "col",
                                     start: 7,
                                     end: 10,
                                 },
+                                inner: [
+                                    Pair {
+                                        rule: expr,
+                                        span: Span {
+                                            str: "col",
+                                            start: 7,
+                                            end: 10,
+                                        },
+                                        inner: [
+                                            Pair {
+                                                rule: ident,
+                                                span: Span {
+                                                    str: "col",
+                                                    start: 7,
+                                                    end: 10,
+                                                },
+                                                inner: [],
+                                            },
+                                        ],
+                                    },
+                                ],
+                            },
+                            Pair {
+                                rule: interpolate_string_inner,
+                                span: Span {
+                                    str: ")",
+                                    start: 11,
+                                    end: 12,
+                                },
                                 inner: [],
                             },
                         ],
-                    },
-                    Pair {
-                        rule: interpolate_string_inner,
-                        span: Span {
-                            str: ")",
-                            start: 11,
-                            end: 12,
-                        },
-                        inner: [],
                     },
                 ],
             },
