@@ -100,7 +100,7 @@ sort (-age)
 
 ```prql
 from employees
-sort [age, -tenure]
+sort [age, -tenure, +salary]
 ```
 
 ## Take
