@@ -1,2 +1,2 @@
 from employees
-sort (-age)
+sort [age, -tenure, +salary]

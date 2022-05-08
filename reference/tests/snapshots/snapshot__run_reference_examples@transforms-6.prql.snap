@@ -8,4 +8,6 @@ SELECT
 FROM
   employees
 ORDER BY
-  age DESC
+  age,
+  tenure DESC,
+  salary

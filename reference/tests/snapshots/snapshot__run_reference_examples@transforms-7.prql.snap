@@ -7,6 +7,5 @@ SELECT
   employees.*
 FROM
   employees
-ORDER BY
-  age,
-  tenure DESC
+LIMIT
+  10

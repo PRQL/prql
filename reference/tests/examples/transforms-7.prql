@@ -1,2 +1,2 @@
 from employees
-sort [age, -tenure]
+take 10
