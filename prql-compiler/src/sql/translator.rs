@@ -224,14 +224,14 @@ fn sql_query_of_atomic_table(table: AtomicTable, dialect: &Dialect) -> Result<sq
     let where_ = filter_of_pipeline(before)?;
     let having = filter_of_pipeline(after)?;
 
-    let take = transforms
+    let takes = transforms
         .iter()
         .filter_map(|t| match t {
             Transform::Take(take) => Some(*take),
             _ => None,
         })
-        .min()
-        .map(expr_of_i64);
+        .collect();
+    let take = range_of_ranges(takes)?;
 
     // Use sorting from the frame
     let order_by = (frame.sort)
@@ -396,6 +396,42 @@ fn combine_filters(filters: Vec<Vec<Node>>) -> Vec<Node> {
         .map(|f| Item::Expr(f).into())
         .intersperse(Item::Raw("and".to_owned()).into())
         .collect()
+}
+
+/// Aggregate several ordered ranges into one, computing the intersection.
+///
+/// Returns a tuple of `(start, end)`, where `end` is optional.
+fn range_of_ranges(ranges: Vec<Range>) -> Result<(i64, Option<i64>)> {
+    let mut start = 1;
+    let mut length: Option<i64> = None;
+
+    for range in ranges {
+        let current_start = if let Some(start_box) = range.start {
+            let cs = (*start_box).item.into_raw()?.parse()?;
+            if cs > length.unwrap_or(i64::max_value()) {
+                return Err(anyhow!("Range start is before previous range"));
+            }
+            cs
+        } else {
+            1
+        };
+        // Add on the start to the running total, minus 1, since we're 1-indexed.
+        start = start + current_start - 1;
+
+        let current_length = if let Some(end_box) = range.end {
+            let current_end: i64 = dbg!(*end_box).item.into_raw()?.parse()?;
+            Some(current_end - current_start + 1)
+        } else {
+            None
+        };
+
+        // There has to be a more elegant approach than this? It's basically
+        // doing `np.nanmax(a, b)`.
+        length = length.map_or(current_length, |rl| {
+            current_length.map_or(length, |cl| Some(cl.min(rl)))
+        });
+    }
+    Ok((start, length.map(|x| x + start - 1)))
 }
 
 fn expr_of_i64(number: i64) -> Expr {
@@ -634,6 +670,66 @@ mod test {
         assert_debug_snapshot, assert_display_snapshot, assert_snapshot, assert_yaml_snapshot,
     };
     use serde_yaml::from_str;
+
+    #[test]
+    fn test_range_of_ranges() -> Result<()> {
+        // let range: Node = Item::Range(Range {
+        //     start: Some(Box::new(Item::Raw("1".to_string()).into())),
+        //     end: Some(Box::new(Item::Raw("10".to_string()).into())),
+        // })
+        // .into();
+        let range1 = Range {
+            start: Some(Box::new(Item::Raw("1".to_string()).into())),
+            end: Some(Box::new(Item::Raw("10".to_string()).into())),
+        };
+        let range2 = Range {
+            start: Some(Box::new(Item::Raw("5".to_string()).into())),
+            end: Some(Box::new(Item::Raw("6".to_string()).into())),
+        };
+
+        assert!(range_of_ranges(vec![range1.clone()])?.1.is_some());
+
+        assert_debug_snapshot!(range_of_ranges(vec![range1.clone()])?, @r###"
+        (
+            1,
+            Some(
+                10,
+            ),
+        )
+        "###);
+
+        assert_debug_snapshot!(range_of_ranges(vec![range1.clone(), range1.clone()])?, @r###"
+        (
+            1,
+            Some(
+                10,
+            ),
+        )
+        "###);
+
+        assert_debug_snapshot!(range_of_ranges(vec![range1.clone(), range2.clone()])?, @r###"
+        (
+            5,
+            Some(
+                6,
+            ),
+        )
+        "###);
+
+        assert_debug_snapshot!(range_of_ranges(vec![range2.clone(), range1])?, @r###"
+        (
+            5,
+            Some(
+                6,
+            ),
+        )
+        "###);
+
+        // We can't get 5..6 from 5..6.
+        assert!(range_of_ranges(vec![range2.clone(), range2]).is_err());
+
+        Ok(())
+    }
 
     #[test]
     fn test_try_from_s_string_to_expr() -> Result<()> {

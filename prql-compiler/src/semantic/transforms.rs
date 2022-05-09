@@ -118,7 +118,7 @@ pub fn cast_transform(func_call: FuncCall, span: Option<Span>) -> Result<Transfo
         "take" => {
             let ([expr], []) = unpack(func_call, [])?;
 
-            Transform::Take(expr.discard_name()?.item.into_raw()?.parse()?)
+            Transform::Take(expr.discard_name()?.item.into_range()?)
         }
         "join" => {
             let ([with, filter], [side]) = unpack(func_call, ["side"])?;
