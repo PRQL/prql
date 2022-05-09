@@ -51,23 +51,52 @@ pub fn cast_transform(func_call: FuncCall, span: Option<Span>) -> Result<Transfo
                 .coerce_to_vec()
                 .into_iter()
                 .map(|node| {
-                    let (column, direction) = match node.item {
-                        Item::Assign(named_expr) => {
-                            let direction = match named_expr.name.as_str() {
-                                "asc" => SortDirection::Asc,
-                                "desc" => SortDirection::Desc,
-                                _ => {
-                                    return Err(Error::new(Reason::Expected {
-                                        who: Some("sort".to_string()),
-                                        expected: "asc or desc".to_string(),
-                                        found: named_expr.name,
-                                    })
-                                    .with_span(node.span))
-                                }
-                            };
-                            (*named_expr.expr, direction)
+                    let (column, direction) = match &node.item {
+                        // If it's `+foo`, then it's two items; if `foo` then one.
+                        Item::Ident(_) => (node, SortDirection::default()),
+                        Item::Expr(nodes) => match &nodes[..] {
+                            [Node {
+                                item: Item::Operator(op),
+                                ..
+                            }, column]
+                            // We could use a guard, but we instead fall through
+                            // for a better error message.
+                            // if op == "+" || op == "-" =>
+                            => {
+                                let direction = match op.as_str() {
+                                    "+" => SortDirection::Asc,
+                                    "-" => SortDirection::Desc,
+                                    _ => {
+                                        return Err(Error::new(Reason::Expected {
+                                            who: Some("sort".to_string()),
+                                            expected: "+ or -".to_string(),
+                                            found: op.to_string(),
+                                        })
+                                        .with_span(node.span))
+                                    }
+                                };
+                                (column.clone(), direction)
+                            }
+                            _ => {
+                                return Err(Error::new(Reason::Expected {
+                                    who: Some("sort".to_string()),
+                                    expected: "column name, optionally prefixed with + or -"
+                                        .to_string(),
+                                    found: node.item.to_string(),
+                                })
+                                .with_span(node.span))
+                            }
+                        },
+                        _ => {
+                            // Copy-pasted from above; can we consolidate?
+                            return Err(Error::new(Reason::Expected {
+                                who: Some("sort".to_string()),
+                                expected: "column name, optionally prefixed with + or -"
+                                    .to_string(),
+                                found: node.item.to_string(),
+                            })
+                            .with_span(node.span));
                         }
-                        _ => (node, SortDirection::default()),
                     };
 
                     if matches!(column.item, Item::Ident(_)) {
@@ -302,6 +331,69 @@ mod tests {
                                   - Ident: "<unnamed>"
                                 by:
                                   - Ident: "<ref>"
+        "###);
+    }
+
+    #[test]
+    fn test_transform_sort() {
+        let stdlib = load_std_lib().unwrap();
+        let (_, context) = resolve(stdlib, None).unwrap();
+        let context = Some(context);
+
+        let query = parse(
+            "
+        from invoices
+        sort [issued_at, -amount, +num_of_articles]
+        sort issued_at
+        sort (-issued_at)
+        sort [issued_at]
+        sort [-issued_at]
+        ",
+        )
+        .unwrap();
+
+        let (result, _) = resolve(query.nodes, context).unwrap();
+        assert_yaml_snapshot!(result, @r###"
+        ---
+        - Pipeline:
+            value: ~
+            functions:
+              - Transform:
+                  From:
+                    name: invoices
+                    alias: ~
+                    declared_at: 57
+              - Transform:
+                  Sort:
+                    - direction: Asc
+                      column:
+                        Ident: issued_at
+                    - direction: Desc
+                      column:
+                        Ident: amount
+                    - direction: Asc
+                      column:
+                        Ident: num_of_articles
+              - Transform:
+                  Sort:
+                    - direction: Asc
+                      column:
+                        Ident: issued_at
+              - Transform:
+                  Sort:
+                    - direction: Desc
+                      column:
+                        Ident: issued_at
+              - Transform:
+                  Sort:
+                    - direction: Asc
+                      column:
+                        Ident: issued_at
+              - Transform:
+                  Sort:
+                    - direction: Desc
+                      column:
+                        Ident: issued_at
         "###);
     }
 }

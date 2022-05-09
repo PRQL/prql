@@ -442,7 +442,7 @@ impl TryFrom<Item> for Expr {
     type Error = anyhow::Error;
     fn try_from(item: Item) -> Result<Self> {
         Ok(match item {
-            Item::Ident(_) | Item::Raw(_) => Expr::Identifier(item.try_into()?),
+            Item::Ident(_) | Item::Raw(_) | Item::Operator(_) => Expr::Identifier(item.try_into()?),
             // For expressions like `country = "USA"`, we take each one, convert
             // it, and put spaces between them. It's a bit hacky — we could
             // convert each term to a SQL AST item, but it works for the moment.
@@ -553,7 +553,6 @@ impl TryFrom<Item> for Expr {
                 value: literal,
             },
             Item::Boolean(b) => Expr::Value(Value::Boolean(b)),
-
             _ => bail!("Can't convert to Expr; {item:?}"),
         })
     }
@@ -597,14 +596,13 @@ impl TryFrom<Item> for sql_ast::Ident {
     fn try_from(item: Item) -> Result<Self> {
         Ok(match item {
             Item::Ident(ident) => sql_ast::Ident::new(ident),
-            Item::Raw(raw) => {
-                let raw = match raw.as_str() {
-                    "==" => "=".to_string(),
-                    _ => raw,
-                };
-
-                sql_ast::Ident::new(raw.to_uppercase())
-            }
+            Item::Raw(raw) => sql_ast::Ident::new(raw.to_uppercase()),
+            // This isn't ideal; we could instead parse to the sqlparser AST.
+            // But it does OK for the moment.
+            Item::Operator(op) => sql_ast::Ident::new(match op.as_str() {
+                "==" => "=".to_string(),
+                _ => op.to_uppercase(),
+            }),
             _ => bail!("Can't convert to Ident; {item:?}"),
         })
     }
@@ -1192,21 +1190,20 @@ take 20
     fn test_sorts() -> Result<()> {
         let query: Query = parse(
             r###"
-        from Employees
-        sort [id]
-        sort [age, desc=last_name, asc=first_name]
+        from invoices
+        sort [issued_at, -amount, +num_of_articles]
         "###,
         )?;
 
         assert_display_snapshot!((resolve_and_translate(query)?), @r###"
         SELECT
-          Employees.*
+          invoices.*
         FROM
-          Employees
+          invoices
         ORDER BY
-          age,
-          last_name DESC,
-          first_name
+          issued_at,
+          amount DESC,
+          num_of_articles
         "###);
 
         Ok(())

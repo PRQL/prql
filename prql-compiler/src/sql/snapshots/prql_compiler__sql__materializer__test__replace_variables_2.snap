@@ -11,7 +11,7 @@ expression: "&mat"
     Filter:
       - Expr:
           - Ident: country
-          - Raw: "=="
+          - Operator: "=="
           - String: USA
 - Transform:
     Filter:
@@ -19,11 +19,11 @@ expression: "&mat"
           - Expr:
               - Expr:
                   - Ident: salary
-                  - Raw: +
+                  - Operator: +
                   - Ident: payroll_tax
-              - Raw: +
+              - Operator: +
               - Ident: benefits_cost
-          - Raw: ">"
+          - Operator: ">"
           - Raw: "0"
 - Transform:
     Group:
@@ -52,7 +52,7 @@ expression: "&mat"
                         - Expr:
                             Expr:
                               - Ident: salary
-                              - Raw: +
+                              - Operator: +
                               - Ident: payroll_tax
                         - String: )
                     - SString:
@@ -60,7 +60,7 @@ expression: "&mat"
                         - Expr:
                             Expr:
                               - Ident: salary
-                              - Raw: +
+                              - Operator: +
                               - Ident: payroll_tax
                         - String: )
                     - SString:
@@ -69,9 +69,9 @@ expression: "&mat"
                             Expr:
                               - Expr:
                                   - Ident: salary
-                                  - Raw: +
+                                  - Operator: +
                                   - Ident: payroll_tax
-                              - Raw: +
+                              - Operator: +
                               - Ident: benefits_cost
                         - String: )
                     - SString:
@@ -80,9 +80,9 @@ expression: "&mat"
                             Expr:
                               - Expr:
                                   - Ident: salary
-                                  - Raw: +
+                                  - Operator: +
                                   - Ident: payroll_tax
-                              - Raw: +
+                              - Operator: +
                               - Ident: benefits_cost
                         - String: )
                     - SString:
@@ -99,12 +99,12 @@ expression: "&mat"
                   Expr:
                     - Expr:
                         - Ident: salary
-                        - Raw: +
+                        - Operator: +
                         - Ident: payroll_tax
-                    - Raw: +
+                    - Operator: +
                     - Ident: benefits_cost
               - String: )
-          - Raw: ">"
+          - Operator: ">"
           - Raw: "200"
 - Transform:
     Take: 20

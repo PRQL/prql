@@ -15,6 +15,7 @@ pub enum Item {
     Ident(Ident),
     String(String),
     Raw(String),
+    Operator(String),
     Assign(NamedExpr),
     NamedArg(NamedExpr),
     Query(Query),
@@ -149,6 +150,9 @@ impl Display for Item {
             }
             Item::String(s) => {
                 write!(f, "\"{s}\"")?;
+            }
+            Item::Operator(o) => {
+                f.write_str(o)?;
             }
             Item::Raw(r) => {
                 f.write_str(r)?;

@@ -1,2 +1,2 @@
 from employees
-take 10
+sort age

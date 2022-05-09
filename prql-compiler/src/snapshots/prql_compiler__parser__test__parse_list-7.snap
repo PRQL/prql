@@ -1,38 +1,38 @@
 ---
 source: prql-compiler/src/parser.rs
-expression: "parse_tree_of_str(\"[a, b, c,]\", Rule::list)?"
+expression: "parse_tree_of_str(r#\"[amount, +amount, -amount]\"#, Rule::list).unwrap()"
 ---
 [
     Pair {
         rule: list,
         span: Span {
-            str: "[a, b, c,]",
+            str: "[amount, +amount, -amount]",
             start: 0,
-            end: 10,
+            end: 26,
         },
         inner: [
             Pair {
                 rule: expr_call,
                 span: Span {
-                    str: "a",
+                    str: "amount",
                     start: 1,
-                    end: 2,
+                    end: 7,
                 },
                 inner: [
                     Pair {
                         rule: expr,
                         span: Span {
-                            str: "a",
+                            str: "amount",
                             start: 1,
-                            end: 2,
+                            end: 7,
                         },
                         inner: [
                             Pair {
                                 rule: ident,
                                 span: Span {
-                                    str: "a",
+                                    str: "amount",
                                     start: 1,
-                                    end: 2,
+                                    end: 7,
                                 },
                                 inner: [],
                             },
@@ -43,25 +43,34 @@ expression: "parse_tree_of_str(\"[a, b, c,]\", Rule::list)?"
             Pair {
                 rule: expr_call,
                 span: Span {
-                    str: "b",
-                    start: 4,
-                    end: 5,
+                    str: "+amount",
+                    start: 9,
+                    end: 16,
                 },
                 inner: [
                     Pair {
+                        rule: operator_add,
+                        span: Span {
+                            str: "+",
+                            start: 9,
+                            end: 10,
+                        },
+                        inner: [],
+                    },
+                    Pair {
                         rule: expr,
                         span: Span {
-                            str: "b",
-                            start: 4,
-                            end: 5,
+                            str: "amount",
+                            start: 10,
+                            end: 16,
                         },
                         inner: [
                             Pair {
                                 rule: ident,
                                 span: Span {
-                                    str: "b",
-                                    start: 4,
-                                    end: 5,
+                                    str: "amount",
+                                    start: 10,
+                                    end: 16,
                                 },
                                 inner: [],
                             },
@@ -72,25 +81,34 @@ expression: "parse_tree_of_str(\"[a, b, c,]\", Rule::list)?"
             Pair {
                 rule: expr_call,
                 span: Span {
-                    str: "c",
-                    start: 7,
-                    end: 8,
+                    str: "-amount",
+                    start: 18,
+                    end: 25,
                 },
                 inner: [
                     Pair {
+                        rule: operator_add,
+                        span: Span {
+                            str: "-",
+                            start: 18,
+                            end: 19,
+                        },
+                        inner: [],
+                    },
+                    Pair {
                         rule: expr,
                         span: Span {
-                            str: "c",
-                            start: 7,
-                            end: 8,
+                            str: "amount",
+                            start: 19,
+                            end: 25,
                         },
                         inner: [
                             Pair {
                                 rule: ident,
                                 span: Span {
-                                    str: "c",
-                                    start: 7,
-                                    end: 8,
+                                    str: "amount",
+                                    start: 19,
+                                    end: 25,
                                 },
                                 inner: [],
                             },

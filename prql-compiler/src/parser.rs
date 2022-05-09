@@ -252,16 +252,16 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
                     Item::Type(Type { name, param })
                 }
                 Rule::boolean => Item::Boolean(pair.as_str() == "true"),
+                Rule::operator_unary
+                | Rule::operator_mul
+                | Rule::operator_add
+                | Rule::operator_compare
+                | Rule::operator_logical => Item::Operator(pair.as_str().to_owned()),
                 Rule::number
                 | Rule::interval_kind
                 | Rule::date_inner
                 | Rule::time_inner
-                | Rule::timestamp_inner
-                | Rule::operator_unary
-                | Rule::operator_mul
-                | Rule::operator_add
-                | Rule::operator_compare
-                | Rule::operator_logical => Item::Raw(pair.as_str().to_owned()),
+                | Rule::timestamp_inner => Item::Raw(pair.as_str().to_owned()),
 
                 _ => unreachable!("{pair}"),
             };
@@ -434,7 +434,7 @@ Canada
           - Expr:
               Expr:
                 - Raw: "2"
-                - Raw: +
+                - Operator: +
                 - Raw: "2"
           - String: )
         "###);
@@ -449,7 +449,7 @@ Canada
         List:
           - Expr:
               - Raw: "1"
-              - Raw: +
+              - Operator: +
               - Raw: "1"
           - Raw: "2"
         "###);
@@ -458,7 +458,7 @@ Canada
         List:
           - Expr:
               - Raw: "1"
-              - Raw: +
+              - Operator: +
               - FuncCall:
                   name: f
                   args:
@@ -496,6 +496,22 @@ Canada
           - Ident: b
         "###);
         assert_ne!(ab, a_comma_b);
+
+        assert_debug_snapshot!(
+            parse_tree_of_str(r#"[amount, +amount, -amount]"#, Rule::list).unwrap()
+        );
+        // Operators in list items
+        assert_yaml_snapshot!(ast_of_string(r#"[amount, +amount, -amount]"#, Rule::list).unwrap(), @r###"
+        ---
+        List:
+          - Ident: amount
+          - Expr:
+              - Operator: +
+              - Ident: amount
+          - Expr:
+              - Operator: "-"
+              - Ident: amount
+        "###);
     }
 
     #[test]
@@ -534,7 +550,7 @@ Canada
                       args:
                         - Expr:
                             - Ident: country
-                            - Raw: "=="
+                            - Operator: "=="
                             - String: USA
                       named_args: {}
         "###);
@@ -558,7 +574,7 @@ Canada
                                 args:
                                   - Ident: country
                                 named_args: {}
-                            - Raw: "=="
+                            - Operator: "=="
                             - String: USA
                       named_args: {}
         "###
@@ -637,6 +653,32 @@ Canada
     }
 
     #[test]
+    fn test_parse_derive() -> Result<()> {
+        assert_yaml_snapshot!(
+            ast_of_string(r#"derive [x = 5, y = (-x)]"#, Rule::func_curry)?
+        , @r###"
+        ---
+        FuncCall:
+          name: derive
+          args:
+            - List:
+                - Assign:
+                    name: x
+                    expr:
+                      Raw: "5"
+                - Assign:
+                    name: y
+                    expr:
+                      Expr:
+                        - Operator: "-"
+                        - Ident: x
+          named_args: {}
+        "###);
+
+        Ok(())
+    }
+
+    #[test]
     fn test_parse_select() -> Result<()> {
         assert_yaml_snapshot!(
             ast_of_string(r#"select x"#, Rule::func_curry)?
@@ -673,7 +715,7 @@ Canada
         ---
         Expr:
           - Ident: country
-          - Raw: "=="
+          - Operator: "=="
           - String: USA
         "###);
         assert_yaml_snapshot!(ast_of_string(
@@ -689,14 +731,14 @@ Canada
               expr:
                 Expr:
                   - Ident: salary
-                  - Raw: +
+                  - Operator: +
                   - Ident: payroll_tax
           - Assign:
               name: gross_cost
               expr:
                 Expr:
                   - Ident: gross_salary
-                  - Raw: +
+                  - Operator: +
                   - Ident: benefits_cost
         "###);
         assert_yaml_snapshot!(
@@ -712,12 +754,12 @@ Canada
             Expr:
               - Expr:
                   - Ident: salary
-                  - Raw: +
+                  - Operator: +
                   - Ident: payroll_tax
-              - Raw: "*"
+              - Operator: "*"
               - Expr:
                   - Raw: "1"
-                  - Raw: +
+                  - Operator: +
                   - Ident: tax_rate
         "###);
         Ok(())
@@ -789,7 +831,7 @@ take 20
           body:
             Expr:
               - Ident: x
-              - Raw: +
+              - Operator: +
               - Raw: "1"
           return_type: ~
         "###);
@@ -807,7 +849,7 @@ take 20
           body:
             Expr:
               - Ident: x
-              - Raw: +
+              - Operator: +
               - Raw: "1"
           return_type: ~
         "###);
@@ -830,7 +872,7 @@ take 20
               args:
                 - Expr:
                     - Ident: bar
-                    - Raw: +
+                    - Operator: +
                     - Raw: "1"
               named_args: {}
           return_type: ~
@@ -896,7 +938,7 @@ take 20
           body:
             Expr:
               - Ident: x
-              - Raw: +
+              - Operator: +
               - Ident: to
           return_type: ~
         "###);
@@ -947,18 +989,17 @@ take 20
                       - List:
                           - Expr:
                               - Ident: a
-                              - Raw: and
-                              - Expr:
-                                  - Ident: b
-                                  - Raw: +
-                                  - Ident: c
-                              - Raw: or
+                              - Operator: and
+                              - Ident: b
+                              - Operator: +
+                              - Ident: c
+                              - Operator: or
                               - FuncCall:
                                   name: d
                                   args:
                                     - Ident: e
                                   named_args: {}
-                              - Raw: and
+                              - Operator: and
                               - Ident: f
                     named_args: {}
         "###);
@@ -1223,11 +1264,11 @@ take 20
                       - List:
                           - Expr:
                               - Ident: first_name
-                              - Raw: "=="
+                              - Operator: "=="
                               - Ident: $1
                           - Expr:
                               - Ident: last_name
-                              - Raw: "=="
+                              - Operator: "=="
                               - Ident: $2.name
                     named_args: {}
         "###);
@@ -1250,10 +1291,14 @@ select [
     }
 
     #[test]
-    fn test_sort() {
+    fn test_parse_sort() -> Result<()> {
         assert_yaml_snapshot!(parse("
         from invoices
         sort issued_at
+        sort (-issued_at)
+        sort [issued_at]
+        sort [-issued_at]
+        sort [issued_at, -amount, +num_of_articles]
         ").unwrap(), @r###"
         ---
         version: ~
@@ -1272,66 +1317,42 @@ select [
                     args:
                       - Ident: issued_at
                     named_args: {}
-        "###);
-
-        assert_yaml_snapshot!(parse("
-        from invoices
-        sort [desc=issued_at]
-        ").unwrap(), @r###"
-        ---
-        version: ~
-        dialect: Generic
-        nodes:
-          - Pipeline:
-              value: ~
-              functions:
                 - FuncCall:
-                    name: from
+                    name: sort
                     args:
-                      - Ident: invoices
+                      - Expr:
+                          - Operator: "-"
+                          - Ident: issued_at
                     named_args: {}
                 - FuncCall:
                     name: sort
                     args:
                       - List:
-                          - Assign:
-                              name: desc
-                              expr:
-                                Ident: issued_at
-                    named_args: {}
-        "###);
-
-        assert_yaml_snapshot!(parse("
-        from invoices
-        sort [asc=issued_at, desc=amount, num_of_articles]
-        ").unwrap(), @r###"
-        ---
-        version: ~
-        dialect: Generic
-        nodes:
-          - Pipeline:
-              value: ~
-              functions:
-                - FuncCall:
-                    name: from
-                    args:
-                      - Ident: invoices
+                          - Ident: issued_at
                     named_args: {}
                 - FuncCall:
                     name: sort
                     args:
                       - List:
-                          - Assign:
-                              name: asc
-                              expr:
-                                Ident: issued_at
-                          - Assign:
-                              name: desc
-                              expr:
-                                Ident: amount
-                          - Ident: num_of_articles
+                          - Expr:
+                              - Operator: "-"
+                              - Ident: issued_at
+                    named_args: {}
+                - FuncCall:
+                    name: sort
+                    args:
+                      - List:
+                          - Ident: issued_at
+                          - Expr:
+                              - Operator: "-"
+                              - Ident: amount
+                          - Expr:
+                              - Operator: +
+                              - Ident: num_of_articles
                     named_args: {}
         "###);
+
+        Ok(())
     }
 
     #[test]
@@ -1425,7 +1446,7 @@ select [
                               expr:
                                 Expr:
                                   - Ident: age
-                                  - Raw: +
+                                  - Operator: +
                                   - Interval:
                                       n: 2
                                       unit: years

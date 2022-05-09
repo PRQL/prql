@@ -43,7 +43,7 @@ SELECT TOP 20
 FROM
   employees
 WHERE
-  country = 'USA'
+  start_date > DATE('2021-01-01')
   AND salary + payroll_tax + benefits_cost > 0
 GROUP BY
   title,
@@ -51,7 +51,8 @@ GROUP BY
 HAVING
   COUNT(*) > 200
 ORDER BY
-  sum_gross_cost
+  sum_gross_cost,
+  country DESC
 ```
 
 Even this simple query demonstrates some of the problems with SQL's lack of
@@ -72,25 +73,25 @@ abstractions:
 Here's the same query with PRQL:
 
 ```elm
-from employees
-filter country = "USA"                        # Each line transforms the previous result.
+from employees                                # Each line transforms the previous result.
+filter start_date > @2021-01-01               # Clear date syntax.
 derive [                                      # `derive` adds columns / variables.
-  gross_salary: salary + payroll_tax,
-  gross_cost:   gross_salary + benefits_cost  # Variables can use other variables.
+  gross_salary = salary + payroll_tax,
+  gross_cost = gross_salary + benefits_cost   # Variables can use other variables.
 ]
 filter gross_cost > 0
-group [title, country] (                      # `group` runs a pipeline over each group
-  aggregate [                                 # `aggregate` reduces a column to a row
+group [title, country] (                      # `group` runs a pipeline over each group.
+  aggregate [                                 # `aggregate` reduces a column to a row.
     average salary,
     sum     salary,
     average gross_salary,
     sum     gross_salary,
     average gross_cost,
-    sum_gross_cost: sum gross_cost,
-    ct: count,
+    sum_gross_cost = sum gross_cost,          # `=` sets a column name.
+    ct = count,
   ]
 )
-sort sum_gross_cost
+sort [sum_gross_cost, -country]               # `-foo` means descending order.
 filter ct > 200
 take 20
 ```
@@ -160,14 +161,14 @@ Here's the same query with PRQL:
 ```elm
 prql version:0.3 db:snowflake                         # PRQL version & database name.
 
-func excess x -> (x - interest_rate) / 252             # Functions are clean and simple.
+func excess x -> (x - interest_rate) / 252            # Functions are clean and simple.
 func if_valid x -> is_valid_price ? x : null
-func lag_day x -> group sec_id (                       # `group` is used for window partitions too
-    sort date
-    window (                                          # `window` runs a pipeline over each window
-      lag 1 x                                         # `lag 1 x` lags the `x` col by 1
-    )
+func lag_day x -> group sec_id (                      # `group` is used for window partitions too
+  sort date
+  window (                                            # `window` runs a pipeline over each window
+    lag 1 x                                           # `lag 1 x` lags the `x` col by 1
   )
+)
 
 func ret x -> x / (x | lag_day) - 1 + dividend_return
 
@@ -185,7 +186,7 @@ select [                                              # `select` only includes u
     ln
     group sec_id (                                    # Complicated logic remains clear(er)
       sort date
-      window (
+      window ..current (                              # Rolling sum
         sum
       )
     )
@@ -218,7 +219,7 @@ than SQL, and each of them does something specific and composable; for example:
 
 ## Current status
 
-PRQL just hit 0.1! This means:
+PRQL recently hit 0.1! This means:
 
 - It works™, for basic transformations such as `filter`, `select`, `aggregate`, `take`,
   `sort`, & `join`. Variables (`derive`), functions (`func`) and CTEs (`table`) work.
@@ -274,7 +275,7 @@ console with auto-complete for column names.
 PRQL is intended to be a modern, simple, declarative language for transforming
 data, with abstractions such as variables & functions. It's intended to replace
 SQL, but doesn't have ambitions as a general-purpose programming language. While
-it's at a pre-alpha stage, it has some immutable principles:
+it's at an alpha stage, it has some immutable principles:
 
 - *Pipelined* — PRQL is a linear pipeline of transformations — each line of the
   query is a transformation of the previous line's result. This makes it easy to
@@ -317,9 +318,7 @@ Issues](https://github.com/prql/prql/issues?q=is%3Aissue+is%3Aopen+label%3Alangu
 
 ### Documentation
 
-Currently the documentation exists in [tests](tests/test_transpile.rs),
-[examples](https://github.com/prql/prql/tree/main/examples), [docs.rs](https://docs.rs/prql/latest/prql/) and some
-[Notes](#notes) below.
+Currently the language documentation is at <https://lang.prql.builders>.
 
 If you're up for contributing and don't have a preference for writing code or
 not, this is the area that would most benefit from your contribution. Issues are
@@ -328,9 +327,9 @@ tagged with
 
 ### Friendliness
 
-Currently the language is not friendly, as described in [Current
-status](#current-status). We'd like to make error messages better, sand off
-sharp corners, etc.
+Currently the language implementation is not sufficiently friendly, despite
+significant recent improvements. We'd like to make error messages better, sand
+off sharp corners, etc.
 
 Both bug reports of unfriendliness, and code contributions to improve them are
 welcome; there's a
@@ -343,20 +342,30 @@ As well as a command-line tool that transpiles queries, we'd like to make
 developing in PRQL a wonderful experience, where it feels like it's on your
 side:
 
-- Syntax highlighting in editors.
-- A live transpiler in a browser, including compiling to wasm
-  [#175](https://github.com/prql/prql/pull/175).
+- Syntax highlighting in more editors; currently we have a basic [VSCode
+  extension](https://github.com/prql/prql-code).
 - Initial type-inference, where it's possible without connecting to the DB, e.g.
   [#55](https://github.com/prql/prql/pull/55).
+- Improvements or integrations to the [live in-browser
+  compiler](https://lang.prql.builders/editor.html), including querying actual
+  tables.
 - (I'm sure there's more, ideas welcome)
+
+### Integrations
+
+PRQL is focused at the language layer, which means we can easily integrate with
+existing tools & apps. This will be the primary way that people can start using
+PRQL day-to-day. Probably the most impactful initial integrations will be tools that
+engineers use to build data pipelines, like
+[`dbt-prql`](https://github.com/prql/prql/issues/375).
 
 ### Database cohesion
 
 One benefit of PRQL over SQL is that auto-complete, type-inference, and
 error checking can be much more powerful.
 
-This is harder to build, since it requires a connection to the database in order
-to understand the schema of the table.
+We'd like to build this out. It's more difficult to build, since it requires a
+connection to the database in order to understand the schema of the table.
 
 ### Not in focus
 
@@ -368,10 +377,6 @@ means putting some things out of scope:
   that! ([#13](https://github.com/prql/prql/issues/13)).
 - Writing DDL / index / schema manipulation / inserting data
   ([#16](https://github.com/prql/prql/issues/16)).
-- Add typing into the syntax
-  ([#15](https://github.com/prql/prql/issues/15)) (though type
-  *inference* is a goal above, and this could be a useful extension at some
-  point).
 
 ## Contributing
 

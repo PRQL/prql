@@ -4,9 +4,8 @@ expression: sql
 input_file: reference/tests/examples/transforms-7.prql
 ---
 SELECT
-  employees.*,
-  positions.*,
-  emp_no
+  employees.*
 FROM
-  employees FULL
-  JOIN positions USING(emp_no)
+  employees
+LIMIT
+  10
