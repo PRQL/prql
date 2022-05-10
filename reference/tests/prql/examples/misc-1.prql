@@ -1,0 +1,8 @@
+from club_ratings
+# TODO: this should produce `rating IS NOT NULL`
+filter rating != null
+# TODO: this is real ugly. `average rating` should not require parenthesis
+# TODO: why cannot we put comments in group's pipeline?
+group year (
+    derive [rating_norm = rating - (average rating) / (stddev rating)]
+)
