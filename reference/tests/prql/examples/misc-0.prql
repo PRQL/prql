@@ -1,5 +1,5 @@
 # TODO: this table should have a column `part` with values 1..5,
-# but such data declaration is not yet supported, see #286    
+# but such data declaration is not yet supported, see #286
 table parts = (
     from seq_1_to_5
 )

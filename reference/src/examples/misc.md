@@ -1,13 +1,13 @@
 # Misc
 
-This file contains many different queries I rewrote from various languages with 
+This file contains many different queries I rewrote from various languages with
 intention of finding examples of where PRQL could be improved.
 
-A SQL query to find all stubs in email addresses of accounts associated with some 
+A SQL query to find all stubs in email addresses of accounts associated with some
 prospect list in a MariaDB of a CRM system.
 ```prql
 # TODO: this table should have a column `part` with values 1..5,
-# but such data declaration is not yet supported, see #286    
+# but such data declaration is not yet supported, see #286
 table parts = (
     from seq_1_to_5
 )
