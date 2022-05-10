@@ -1,7 +1,12 @@
-## Group
+# Group
 
-A `group` transform maps a pipeline over a number of groups. The groups are determined by the
-columns passed to `group`'s first argument.
+Partitions the rows into groups and applies a pipeline to each of the groups.
+
+```prql_no_test
+group [{key column}] {pipeline}
+```
+
+The partitioning of groups are determined by the `key column`s (first argument).
 
 The most conventional use of `group` is with `aggregate`:
 

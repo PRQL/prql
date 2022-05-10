@@ -1,6 +1,6 @@
 # Take
 
-Picks first n rows.
+Picks rows based on their position.
 
 ```prql_no_test
 take {n}

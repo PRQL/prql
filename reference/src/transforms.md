@@ -16,6 +16,6 @@ These are the currently available transforms:
 | [Filter](./filter.md)       | Picks rows based on their values                                    |
 | [Sort](./sort.md)           | Orders rows based on the values of columns                          |
 | [Join](./join.md)           | Adds columns from another table, matching rows based on a condition |
-| [Take](./take.md)           | Picks first rows                                                    |
-| [Group](./group.md)         | #TODO                                                               |
-| [Aggregate](./aggregate.md) | #TODO                                                               |
+| [Take](./take.md)           | Picks rows based on their position                                  |
+| [Group](./group.md)         | Partitions rows into groups and applies a pipeline to each of them  |
+| [Aggregate](./aggregate.md) | Summarizes many rows into one row                                   |

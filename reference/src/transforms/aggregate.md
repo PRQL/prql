@@ -1,6 +1,10 @@
 ## Aggregate
 
-> group rows by one or more columns
+Summarizes many rows into one row.
+
+When applied:
+- without `group`, it produces one row from the whole table,
+- within a `group` pipeline, it produces one row from each group.
 
 ```prql_no_test
 aggregate [{expression or assign operations}]

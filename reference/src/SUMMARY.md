@@ -4,7 +4,7 @@
 - [Queries](./queries/README.md)
   - [Pipelines](./queries/pipelines.md)
 - [Transforms](./transforms.md)
-  - [From](./transforms/pipelines.md)
+  - [From](./transforms/from.md)
   - [Select](./transforms/select.md)
   - [Derive](./transforms/derive.md)
   - [Filter](./transforms/filter.md)

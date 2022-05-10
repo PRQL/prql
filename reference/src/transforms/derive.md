@@ -1,6 +1,6 @@
 # Derive
 
-`derive` computes one or more new columns.
+Computes one or more new columns.
 
 ```prql_no_test
 derive [{new_name} = {expression}]

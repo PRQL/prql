@@ -1,6 +1,6 @@
 # Select
 
-`select` picks and computes columns
+Picks and compute columns.
 
 ```prql_no_test
 select [{assign_expression}]

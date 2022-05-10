@@ -1,6 +1,6 @@
 # Filter
 
-`filter` picks rows based on their values
+Picks rows based on their values.
 
 ```prql_no_test
 filter {boolean_expression}

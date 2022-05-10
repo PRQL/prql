@@ -1,6 +1,6 @@
 # Sort
 
-`sort` orders rows based on the values of one or more columns.
+Orders rows based on the values of one or more columns.
 
 ```prql_no_test
 sort [{direction}{column}]
