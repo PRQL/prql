@@ -1,0 +1,11 @@
+---
+source: reference/tests/snapshot.rs
+expression: sql
+input_file: reference/tests/prql/functions-2.prql
+---
+SELECT
+  students.*,
+  sat_score - 0 / 1600 - 0 AS sat_proportion_1,
+  sat_score - 0 / 1600 - 0 AS sat_proportion_2
+FROM
+  students
