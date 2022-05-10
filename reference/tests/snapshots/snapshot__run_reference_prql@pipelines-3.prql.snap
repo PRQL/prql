@@ -1,0 +1,23 @@
+---
+source: reference/tests/snapshot.rs
+expression: sql
+input_file: reference/tests/prql/queries/pipelines-3.prql
+---
+WITH table_0 AS (
+  SELECT
+    e.*,
+    salary + payroll_tax AS gross_salary
+  FROM
+    employees AS e
+  ORDER BY
+    gross_salary
+  LIMIT
+    10
+)
+SELECT
+  table_0.name,
+  table_0.gross_salary,
+  d.name
+FROM
+  table_0
+  JOIN department AS d USING(dept_no)
