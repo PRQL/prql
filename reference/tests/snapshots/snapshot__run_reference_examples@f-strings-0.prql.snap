@@ -1,9 +1,0 @@
----
-source: reference/tests/snapshot.rs
-expression: sql
-input_file: reference/tests/examples/language-features/f-strings-0.prql
----
-SELECT
-  CONCAT(first, ' ', last) AS full_name
-FROM
-  x

@@ -8,7 +8,7 @@
 use criterion::{criterion_group, criterion_main, Criterion};
 use prql_compiler::*;
 
-const CONTENT: &str = include_str!("../../reference/tests/examples/examples/variables-0.prql");
+const CONTENT: &str = include_str!("../../reference/tests/prql/examples/variables-0.prql");
 fn compile_query() -> Result<String> {
     compile(CONTENT)
 }
