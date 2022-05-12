@@ -1,11 +1,12 @@
 ---
 source: reference/tests/snapshot.rs
 expression: sql
-input_file: reference/tests/prql/transforms-4.prql
+input_file: reference/tests/prql/transforms/filter-1.prql
 ---
 SELECT
   employees.*
 FROM
   employees
-ORDER BY
-  age
+WHERE
+  age BETWEEN 25
+  AND 40
