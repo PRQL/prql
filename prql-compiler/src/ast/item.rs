@@ -105,12 +105,6 @@ pub struct Interval {
     pub unit: String, // Could be an enum IntervalType,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct Type {
-    pub name: String,
-    pub param: Option<Box<Node>>,
-}
-
 impl Pipeline {
     pub fn into_transforms(self) -> Result<Vec<Transform>, Item> {
         self.functions
@@ -266,12 +260,10 @@ impl Display for Item {
             Item::Windowed(w) => {
                 write!(f, "{:?}", w.expr)?;
             }
-            Item::Type(t) => {
-                if let Some(param) = &t.param {
-                    write!(f, "<{:?}{:?}>", t.name, param.item)?;
-                } else {
-                    write!(f, "<{:?}>", t.name)?;
-                }
+            Item::Type(typ) => {
+                f.write_char('<')?;
+                display_type(f, typ)?;
+                f.write_char('>')?;
             }
         }
         Ok(())
@@ -292,5 +284,24 @@ fn display_interpolation(
         }
     }
     f.write_char('"')?;
+    Ok(())
+}
+
+fn display_type(f: &mut std::fmt::Formatter, typ: &Type) -> Result<(), std::fmt::Error> {
+    match typ {
+        Type::Native(kind) => write!(f, "{:}", kind)?,
+        Type::Parameterized(t, param) => {
+            display_type(f, t)?;
+            write!(f, "<{:?}>", param.item)?
+        }
+        Type::AnyOf(ts) => {
+            for (i, t) in ts.iter().enumerate() {
+                display_type(f, t)?;
+                if i < ts.len() - 1 {
+                    f.write_char('|')?;
+                }
+            }
+        }
+    }
     Ok(())
 }

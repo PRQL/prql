@@ -281,8 +281,12 @@ pub fn fold_named_expr<T: ?Sized + AstFold>(
 }
 
 pub fn fold_type<T: ?Sized + AstFold>(fold: &mut T, t: Type) -> Result<Type> {
-    Ok(Type {
-        name: t.name,
-        param: fold_optional_box(fold, t.param)?,
+    Ok(match t {
+        Type::Native(_) => t,
+        Type::Parameterized(t, p) => Type::Parameterized(
+            Box::new(fold_type(fold, *t)?),
+            Box::new(fold.fold_node(*p)?),
+        ),
+        Type::AnyOf(ts) => Type::AnyOf(ts.into_iter().map(|t| fold_type(fold, t)).try_collect()?),
     })
 }

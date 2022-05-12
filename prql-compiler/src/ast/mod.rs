@@ -1,19 +1,22 @@
 /// Abstract syntax tree for PRQL language
 ///
 /// The central struct here is [Node], that can be of different kinds, described with [item::Item].
-use anyhow::Result;
-use serde::{Deserialize, Serialize};
-
-pub use self::dialect::*;
-pub use self::item::*;
-pub use self::query::*;
-use crate::error::{Error, Reason, Span};
-use crate::utils::*;
-
 pub mod ast_fold;
 pub mod dialect;
 pub mod item;
 pub mod query;
+pub mod types;
+
+pub use self::dialect::*;
+pub use self::item::*;
+pub use self::query::*;
+pub use self::types::*;
+
+use anyhow::Result;
+use serde::{Deserialize, Serialize};
+
+use crate::error::{Error, Reason, Span};
+use crate::utils::*;
 
 pub fn display(query: Query) -> String {
     format!("{}", Item::Query(query))

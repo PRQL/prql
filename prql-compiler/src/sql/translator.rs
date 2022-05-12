@@ -1298,7 +1298,7 @@ take 20
         assert_display_snapshot!((resolve_and_translate(query)?), @r###"
         SELECT
           employees.*,
-          COUNT(*) OVER (PARTITION BY last_name) AS count
+          COUNT(*) OVER (PARTITION BY last_name)
         FROM
           employees
         "###);
@@ -1414,7 +1414,7 @@ take 20
             PARTITION BY month
             ORDER BY
               num_orders
-          ) AS rank,
+          ),
           LAG(num_orders, 7) OVER (
             ORDER BY
               day
@@ -1426,6 +1426,28 @@ take 20
         "###);
 
         Ok(())
+    }
+
+    #[test]
+    fn test_window_functions_2() {
+        let query: Query = parse(
+            r###"
+        from foo
+        derive [a = sum b]
+        group c (
+            derive [d = sum b]
+        )
+        "###,
+        ).unwrap();
+
+        assert_display_snapshot!((resolve_and_translate(query).unwrap()), @r###"
+        SELECT
+          foo.*,
+          SUM(b) OVER () AS a,
+          SUM(b) OVER (PARTITION BY c) AS d
+        FROM
+          foo
+        "###);
     }
 
     #[test]

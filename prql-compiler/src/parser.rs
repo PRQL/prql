@@ -239,17 +239,36 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
                     Item::Timestamp(parsed?.into_only()?.item.into_raw()?)
                 }
                 Rule::type_def => {
-                    let mut parts: Vec<_> = pair.into_inner().into_iter().collect();
-                    let name = parts.remove(0).as_str().to_string();
-                    let param = parts
-                        .pop()
-                        .map(|p| ast_of_parse_tree(p.into_inner()))
-                        .transpose()?
-                        .map(|p| p.into_only())
-                        .transpose()?
-                        .map(Box::new);
+                    let mut types: Vec<_> = pair
+                        .into_inner()
+                        .into_iter()
+                        .map(|pair| -> Result<Type> {
+                            let mut parts: Vec<_> = pair.into_inner().into_iter().collect();
+                            let native = NativeType::from_str(parts.remove(0).as_str())?;
+                            let typ = Type::Native(native);
 
-                    Item::Type(Type { name, param })
+                            let param = parts
+                                .pop()
+                                .map(|p| ast_of_parse_tree(p.into_inner()))
+                                .transpose()?
+                                .map(|p| p.into_only())
+                                .transpose()?;
+
+                            Ok(if let Some(param) = param {
+                                Type::Parameterized(Box::new(typ), Box::new(param))
+                            } else {
+                                typ
+                            })
+                        })
+                        .try_collect()?;
+
+                    let typ = if types.len() > 1 {
+                        Type::AnyOf(types)
+                    } else {
+                        types.remove(0)
+                    };
+
+                    Item::Type(typ)
                 }
                 Rule::boolean => Item::Boolean(pair.as_str() == "true"),
                 Rule::operator_unary
