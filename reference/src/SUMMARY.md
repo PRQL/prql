@@ -34,7 +34,4 @@
   - [Functions](./examples/functions.md)
   - [CTE (intermediate tables)](./examples/cte.md)
   - [Sql parameters](./examples/sql-parameters.md)
-  - [Employees 0](./examples/employees-0.md)
-  - [Employees 1](./examples/employees-1.md)
-  - [Employees 2](./examples/employees-2.md)
-  - [Employees 3](./examples/employees-3.md)
+  - [Employees](./examples/employees.md)
