@@ -558,7 +558,7 @@ mod tests {
                                 Expr:
                                 - Ident: salary_1
                                 - Operator: +
-                                - Literal: 
+                                - Literal:
                                     Integer: 1
                         - Ident: age
                     named_args: {}

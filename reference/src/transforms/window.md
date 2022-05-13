@@ -11,7 +11,7 @@ For each row in result, its input segment is determined either by:
 - `rows`, which takes a range of rows relative to current row,
 - `range`, which takes a range of values relative to current row value.
 
-Start of the range is inclusive, end of range is exclusive. Index 0 references 
+Start of the range is inclusive, end of range is exclusive. Index 0 references
 current row. If a bound is omitted, segment will extend until the end of the table (or group).
 
 For example:
