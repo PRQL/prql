@@ -14,7 +14,7 @@ use sqlformat::{format, FormatOptions, QueryParams};
 use sqlparser::ast::{
     self as sql_ast, DateTimeField, Expr, Function, FunctionArg, FunctionArgExpr, Join,
     JoinConstraint, JoinOperator, ObjectName, OrderByExpr, Select, SelectItem, SetExpr, TableAlias,
-    TableFactor, TableWithJoins, Top, Value, WindowSpec,
+    TableFactor, TableWithJoins, Top, Value, WindowFrameBound, WindowSpec,
 };
 use std::collections::HashMap;
 
@@ -528,13 +528,24 @@ impl TryFrom<Item> for Expr {
             }
             Item::Windowed(window) => {
                 let expr = Expr::try_from(window.expr.item)?;
+
+                let default_frame = if window.sort.is_empty() {
+                    (WindowKind::Rows, Range::unbounded())
+                } else {
+                    (WindowKind::Range, Range::new(None, Some(1)))
+                };
+
                 let window = WindowSpec {
                     partition_by: try_into_exprs(window.group)?,
                     order_by: (window.sort)
                         .into_iter()
                         .map(OrderByExpr::try_from)
                         .try_collect()?,
-                    window_frame: None,
+                    window_frame: if window.window == default_frame {
+                        None
+                    } else {
+                        Some(try_into_window_frame(window.window)?)
+                    },
                 };
 
                 Item::Ident(format!("{expr} OVER ({window})")).try_into()?
@@ -561,6 +572,35 @@ impl TryFrom<Item> for Expr {
         })
     }
 }
+fn try_into_window_frame((kind, range): (WindowKind, Range)) -> Result<sql_ast::WindowFrame> {
+    fn parse_bound(bound: Node, offset: i64) -> Result<WindowFrameBound> {
+        let as_int = bound.item.into_literal()?.into_integer()?;
+        let pos = as_int + offset;
+        Ok(match pos {
+            0 => WindowFrameBound::CurrentRow,
+            1.. => WindowFrameBound::Following(Some(pos as u64)),
+            _ => WindowFrameBound::Preceding(Some((-pos) as u64)),
+        })
+    }
+
+    Ok(sql_ast::WindowFrame {
+        units: match kind {
+            WindowKind::Rows => sql_ast::WindowFrameUnits::Rows,
+            WindowKind::Range => sql_ast::WindowFrameUnits::Range,
+        },
+        start_bound: if let Some(start) = range.start {
+            parse_bound(*start, 0)?
+        } else {
+            WindowFrameBound::Preceding(None)
+        },
+        end_bound: Some(if let Some(end) = range.end {
+            parse_bound(*end, -1)?
+        } else {
+            WindowFrameBound::Following(None)
+        }),
+    })
+}
+
 impl TryFrom<FuncCall> for Function {
     // I had an idea to for stdlib functions to have "native" keyword, which would prevent them from being
     // resolved and materialized and would be passed to here. But that has little advantage over current approach.
@@ -1321,7 +1361,9 @@ take 20
         )
         sort order_day # order:asc
         group [order_month] (
-          derive [running_total_num_books = sum num_books]
+          window expanding:true (
+            derive [running_total_num_books = sum num_books]
+          )
         )
         derive [num_books_last_week = lag 7 num_books]
         "###,
@@ -1335,22 +1377,16 @@ take 20
           COUNT(ol.book_id) AS num_books,
           SUM(ol.price) AS total_price,
           SUM(COUNT(ol.book_id)) OVER (
-            PARTITION BY TO_CHAR(co.order_date, '%Y-%m')
-            ORDER BY
-              TO_CHAR(co.order_date, '%Y-%m-%d')
+            PARTITION BY TO_CHAR(co.order_date, '%Y-%m') RANGE BETWEEN UNBOUNDED PRECEDING
+            AND CURRENT ROW
           ) AS running_total_num_books,
-          LAG(COUNT(ol.book_id), 7) OVER (
-            ORDER BY
-              TO_CHAR(co.order_date, '%Y-%m-%d')
-          ) AS num_books_last_week
+          LAG(COUNT(ol.book_id), 7) OVER () AS num_books_last_week
         FROM
           cust_order AS co
           JOIN order_line AS ol USING(order_id)
         GROUP BY
           TO_CHAR(co.order_date, '%Y-%m'),
           TO_CHAR(co.order_date, '%Y-%m-%d')
-        ORDER BY
-          order_day
         "###);
 
         // lag must be recognized as window function, even outside of group context
@@ -1372,7 +1408,7 @@ take 20
           daily_orders
         "###);
 
-        // sort affects into groups
+        // sort does not affects into groups, group undoes sorting
         let query: Query = parse(
             r###"
         from daily_orders
@@ -1384,15 +1420,8 @@ take 20
         assert_display_snapshot!((resolve_and_translate(query)?), @r###"
         SELECT
           daily_orders.*,
-          RANK() OVER (
-            PARTITION BY month
-            ORDER BY
-              day
-          ) AS total_month,
-          LAG(num_orders, 7) OVER (
-            ORDER BY
-              day
-          ) AS last_week
+          RANK() OVER (PARTITION BY month) AS total_month,
+          LAG(num_orders, 7) OVER () AS last_week
         FROM
           daily_orders
         ORDER BY
@@ -1404,7 +1433,7 @@ take 20
             r###"
         from daily_orders
         sort day
-        group month ( | sort num_orders |  derive [rank])
+        group month ( | sort num_orders | window expanding:true ( | derive rank))
         derive [num_orders_last_week = lag 7 num_orders]
         "###,
         )?;
@@ -1416,14 +1445,9 @@ take 20
             ORDER BY
               num_orders
           ),
-          LAG(num_orders, 7) OVER (
-            ORDER BY
-              day
-          ) AS num_orders_last_week
+          LAG(num_orders, 7) OVER () AS num_orders_last_week
         FROM
           daily_orders
-        ORDER BY
-          day
         "###);
 
         Ok(())
@@ -1431,18 +1455,15 @@ take 20
 
     #[test]
     fn test_window_functions_2() {
-        let query: Query = parse(
-            r###"
+        // detect sum as a window function, even without group or window
+        assert_display_snapshot!((resolve_and_translate(parse(r###"
         from foo
         derive [a = sum b]
         group c (
             derive [d = sum b]
         )
         "###,
-        )
-        .unwrap();
-
-        assert_display_snapshot!((resolve_and_translate(query).unwrap()), @r###"
+        ).unwrap()).unwrap()), @r###"
         SELECT
           foo.*,
           SUM(b) OVER () AS a,
@@ -1450,6 +1471,78 @@ take 20
         FROM
           foo
         "###);
+
+        assert_display_snapshot!((resolve_and_translate(parse(r###"
+        from foo
+        window expanding:true (
+            derive [running_total = sum b]
+        )
+        "###,
+        ).unwrap()).unwrap()), @r###"
+        SELECT
+          foo.*,
+          SUM(b) OVER (
+            RANGE BETWEEN UNBOUNDED PRECEDING
+            AND CURRENT ROW
+          ) AS running_total
+        FROM
+          foo
+        "###);
+
+        assert_display_snapshot!((resolve_and_translate(parse(r###"
+        from foo
+        window rolling:3 (
+            derive [last_three = sum b]
+        )
+        "###,
+        ).unwrap()).unwrap()), @r###"
+        SELECT
+          foo.*,
+          SUM(b) OVER (
+            ROWS BETWEEN 2 PRECEDING
+            AND CURRENT ROW
+          ) AS last_three
+        FROM
+          foo
+        "###);
+
+        assert_display_snapshot!((resolve_and_translate(parse(r###"
+        from foo
+        window rows:0..4 (
+            derive [next_four_rows = sum b]
+        )
+        "###,
+        ).unwrap()).unwrap()), @r###"
+        SELECT
+          foo.*,
+          SUM(b) OVER (
+            ROWS BETWEEN CURRENT ROW
+            AND 3 FOLLOWING
+          ) AS next_four_rows
+        FROM
+          foo
+        "###);
+
+        assert_display_snapshot!((resolve_and_translate(parse(r###"
+        from foo
+        sort day
+        window range:0..4 (
+            derive [next_four_days = sum b]
+        )
+        "###,
+        ).unwrap()).unwrap()), @r###"
+        SELECT
+          foo.*,
+          SUM(b) OVER (
+            ORDER BY
+              day RANGE BETWEEN CURRENT ROW
+              AND 3 FOLLOWING
+          ) AS next_four_days
+        FROM
+          foo
+        "###);
+
+        // TODO: add test for preceding
     }
 
     #[test]

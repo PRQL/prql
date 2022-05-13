@@ -52,15 +52,16 @@ pub struct Windowed {
     pub expr: Box<Node>,
     pub group: Vec<Node>,
     pub sort: Vec<ColumnSort<Node>>,
-    // pub frame: Vec<Node>,
+    pub window: (WindowKind, Range),
 }
 
 impl Windowed {
-    pub fn new(node: Node) -> Self {
+    pub fn new(node: Node, window: (WindowKind, Range)) -> Self {
         Windowed {
             expr: Box::new(node),
             group: vec![],
             sort: vec![],
+            window,
         }
     }
 }
@@ -89,9 +90,16 @@ pub struct Range {
 }
 
 impl Range {
+    pub const fn unbounded() -> Self {
+        Range {
+            start: None,
+            end: None,
+        }
+    }
+
     pub fn new(start: Option<i64>, end: Option<i64>) -> Self {
-        let start = start.map(|i| Box::new(Node::from(Item::Literal(Literal::Integer(i)))));
-        let end = end.map(|i| Box::new(Node::from(Item::Literal(Literal::Integer(i)))));
+        let start = start.map(|x| Box::new(Node::from(Item::Literal(Literal::Integer(x)))));
+        let end = end.map(|x| Box::new(Node::from(Item::Literal(Literal::Integer(x)))));
         Range { start, end }
     }
 }

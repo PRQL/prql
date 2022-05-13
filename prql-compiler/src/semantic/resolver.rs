@@ -112,7 +112,7 @@ impl AstFold for Resolver {
 
             Item::Ident(ref ident) => {
                 node.declared_at = Some(
-                    (self.context.lookup_variable(&ident, node.span))
+                    (self.context.lookup_variable(ident, node.span))
                         .map_err(|e| Error::new(Reason::Simple(e)).with_span(node.span))?,
                 );
 
@@ -167,12 +167,12 @@ impl AstFold for Resolver {
                 let by = self.fold_nodes(by)?;
 
                 self.within_group = by.iter().filter_map(|n| n.declared_at).collect();
-                let sorted = self.sorted.clone();
+                self.sorted.clear();
 
                 let pipeline = Box::new(self.fold_node(*pipeline)?);
 
-                self.within_group = vec![];
-                self.sorted = sorted;
+                self.within_group.clear();
+                self.sorted.clear();
 
                 Transform::Group { by, pipeline }
             }
@@ -359,7 +359,13 @@ impl Resolver {
 
         let mut expr: Node = func_call.into();
         expr.declared_at = declared_at;
-        let mut window = Windowed::new(expr);
+
+        let frame = self
+            .within_window
+            .clone()
+            .unwrap_or((WindowKind::Rows, Range::unbounded()));
+
+        let mut window = Windowed::new(expr, frame);
 
         if !self.within_group.is_empty() {
             window.group = (self.within_group)

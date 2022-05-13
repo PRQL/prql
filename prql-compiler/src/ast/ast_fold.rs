@@ -114,6 +114,10 @@ pub fn fold_item<T: ?Sized + AstFold>(fold: &mut T, item: Item) -> Result<Item> 
             expr: Box::new(fold.fold_node(*window.expr)?),
             group: fold.fold_nodes(window.group)?,
             sort: fold.fold_column_sorts(window.sort)?,
+            window: {
+                let (kind, range) = window.window;
+                (kind, fold_range(fold, range)?)
+            },
         }),
         Item::Type(t) => Item::Type(fold.fold_type(t)?),
         // None of these capture variables, so we don't need to replace
@@ -191,10 +195,14 @@ pub fn fold_transform<T: ?Sized + AstFold>(
             by: fold.fold_nodes(by)?,
             pipeline: Box::new(fold.fold_node(*pipeline)?),
         }),
-        Transform::Window { kind, range, pipeline } => Ok(Transform::Window {
+        Transform::Window {
+            kind,
+            range,
+            pipeline,
+        } => Ok(Transform::Window {
             range: fold_range(fold, range)?,
             kind,
-            pipeline: Box::new(fold.fold_node(*pipeline)?)
+            pipeline: Box::new(fold.fold_node(*pipeline)?),
         }),
         // TODO: generalize? Or this never changes?
         Transform::Take(_) => Ok(transformation),

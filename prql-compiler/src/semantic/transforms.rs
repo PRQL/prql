@@ -244,23 +244,21 @@ pub fn cast_transform(func_call: FuncCall, span: Option<Span>) -> Result<Transfo
             };
 
             let (kind, range) = if expanding {
-                (WindowKind::Rows, Range::new(None, Some(0)))
+                (WindowKind::Range, Range::new(None, Some(1)))
+            } else if rolling > 0 {
+                (WindowKind::Rows, Range::new(Some(-rolling + 1), Some(1)))
+            } else if let Some(range) = rows {
+                (WindowKind::Rows, range)
+            } else if let Some(range) = range {
+                (WindowKind::Range, range)
             } else {
-                if rolling > 0 {
-                    (WindowKind::Rows, Range::new(Some(-rolling), Some(0)))
-                } else {
-                    if let Some(range) = rows {
-                        (WindowKind::Rows, range)
-                    } else {
-                        if let Some(range) = range {
-                            (WindowKind::Range, range)
-                        } else {
-                            (WindowKind::Rows, Range::new(None, None))
-                        }
-                    }
-                }
+                (WindowKind::Rows, Range::unbounded())
             };
-            Transform::Window { range, kind, pipeline: Box::new(pipeline) }
+            Transform::Window {
+                range,
+                kind,
+                pipeline: Box::new(pipeline),
+            }
         }
         unknown => bail!(Error::new(Reason::Expected {
             who: None,
@@ -395,7 +393,7 @@ mod tests {
                   From:
                     name: c_invoice
                     alias: ~
-                    declared_at: 64
+                    declared_at: 77
               - Transform:
                   Group:
                     by:
@@ -441,7 +439,7 @@ mod tests {
                   From:
                     name: invoices
                     alias: ~
-                    declared_at: 64
+                    declared_at: 77
               - Transform:
                   Sort:
                     - direction: Asc

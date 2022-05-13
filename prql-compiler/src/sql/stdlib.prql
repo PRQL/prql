@@ -29,4 +29,9 @@ func as<scalar> column type ->  s"CAST({column} AS {type})"
 
 # Window functions
 func lag<column> offset column ->  s"LAG({column}, {offset})"
+func lead<column> offset column ->  s"LEAD({column}, {offset})"
+func first<column> offset column ->  s"FIRST_VALUE({column}, {offset})"
+func last<column> offset column ->  s"LAST_VALUE({column}, {offset})"
 func rank<column> ->  s"RANK()"
+func rank_dense<column> ->  s"DENSE_RANK()"
+func row_number<column> offset column ->  s"ROW_NUMBER({column}, {offset})"

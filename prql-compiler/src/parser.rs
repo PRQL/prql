@@ -171,21 +171,19 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
                     })
                 }
                 Rule::ident => Item::Ident(pair.as_str().to_string()),
-                
+
                 Rule::number => {
                     let str = pair.as_str();
-                    
+
                     let lit = if let Ok(i) = str.parse::<i64>() {
                         Literal::Integer(i)
+                    } else if let Ok(f) = str.parse::<f64>() {
+                        Literal::Float(f)
                     } else {
-                        if let Ok(f) = str.parse::<f64>() {
-                            Literal::Float(f)
-                        } else {
-                            bail!("cannot parse {str} as number")
-                        }
+                        bail!("cannot parse {str} as number")
                     };
                     Item::Literal(lit)
-                },
+                }
                 Rule::boolean => Item::Literal(Literal::Boolean(pair.as_str() == "true")),
                 Rule::string => {
                     let inner = pair.into_inner().into_only()?.as_str().to_string();
@@ -405,7 +403,15 @@ mod test {
         Literal:
           String: " \\U S A "
         "###);
-        assert_eq!(escaped_string.item.as_literal().unwrap().as_string().unwrap(), r#" \U S A "#);
+        assert_eq!(
+            escaped_string
+                .item
+                .as_literal()
+                .unwrap()
+                .as_string()
+                .unwrap(),
+            r#" \U S A "#
+        );
 
         // Currently we don't allow escaping closing quotes — because it's not
         // trivial to do in pest, and I'm not sure it's a great idea either — we
@@ -418,7 +424,15 @@ mod test {
         Literal:
           String: " Canada \\"
         "###);
-        assert_eq!(escaped_quotes.item.as_literal().unwrap().as_string().unwrap(), r#" Canada \"#);
+        assert_eq!(
+            escaped_quotes
+                .item
+                .as_literal()
+                .unwrap()
+                .as_string()
+                .unwrap(),
+            r#" Canada \"#
+        );
 
         let multi_double = ast_of_string(
             r#""""

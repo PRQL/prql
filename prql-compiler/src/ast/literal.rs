@@ -1,5 +1,5 @@
-use std::fmt::Display;
 use anyhow::anyhow;
+use std::fmt::Display;
 
 use enum_as_inner::EnumAsInner;
 use serde::{Deserialize, Serialize};
@@ -23,7 +23,6 @@ impl From<Literal> for anyhow::Error {
         anyhow!("Failed to convert `{item}`")
     }
 }
-
 
 impl Display for Literal {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
