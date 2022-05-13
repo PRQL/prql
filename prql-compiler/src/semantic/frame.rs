@@ -70,6 +70,14 @@ impl Frame {
                     self.apply_transform(transform)?;
                 }
             }
+            Transform::Window { pipeline, .. } => {
+                self.sort.clear();
+                
+                let pipeline = pipeline.item.as_pipeline().unwrap();
+                for transform in pipeline.as_transforms().unwrap() {
+                    self.apply_transform(transform)?;
+                }
+            }
             Transform::Aggregate { assigns, by } => {
                 let old_columns = self.columns.clone();
 

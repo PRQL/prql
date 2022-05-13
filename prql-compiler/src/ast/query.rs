@@ -1,7 +1,7 @@
 /// Types for outer-scope AST nodes (query, table, func def, transform)
 use serde::{Deserialize, Serialize};
 
-use super::{Dialect, Ident, Node, Type};
+use super::{Dialect, Ident, Node, Type, Range};
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize, Default)]
 pub struct Query {
@@ -50,6 +50,17 @@ pub enum Transform {
         by: Vec<Node>,
         pipeline: Box<Node>,
     },
+    Window {
+        range: Range,
+        kind: WindowKind,
+        pipeline: Box<Node>,
+    },
+}
+
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+pub enum WindowKind {
+    Rows,
+    Range,
 }
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Select {

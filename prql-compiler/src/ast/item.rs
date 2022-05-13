@@ -13,9 +13,8 @@ pub use super::*;
 #[derive(Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize)]
 pub enum Item {
     Ident(Ident),
-    String(String),
-    Raw(String),
     Operator(String),
+    Literal(Literal),
     Assign(NamedExpr),
     NamedArg(NamedExpr),
     Query(Query),
@@ -31,10 +30,6 @@ pub enum Item {
     SString(Vec<InterpolateItem>),
     FString(Vec<InterpolateItem>),
     Interval(Interval),
-    Date(String),
-    Time(String),
-    Timestamp(String),
-    Boolean(bool),
     Windowed(Windowed),
 }
 
@@ -93,6 +88,14 @@ pub struct Range {
     pub end: Option<Box<Node>>,
 }
 
+impl Range {
+    pub fn new(start: Option<i64>, end: Option<i64>) -> Self {
+        let start = start.map(|i| Box::new(Node::from(Item::Literal(Literal::Integer(i)))));
+        let end = end.map(|i| Box::new(Node::from(Item::Literal(Literal::Integer(i)))));
+        Range { start, end }
+    }
+}
+
 // I could imagine there being a wrapper of this to represent "2 days 3 hours".
 // Or should that be written as `2days + 3hours`?
 //
@@ -142,14 +145,8 @@ impl Display for Item {
             Item::Ident(s) => {
                 f.write_str(s)?;
             }
-            Item::String(s) => {
-                write!(f, "\"{s}\"")?;
-            }
             Item::Operator(o) => {
                 f.write_str(o)?;
-            }
-            Item::Raw(r) => {
-                f.write_str(r)?;
             }
             Item::Assign(ne) => {
                 write!(f, "{} = {}", ne.name, ne.expr.item)?;
@@ -251,12 +248,6 @@ impl Display for Item {
             Item::Interval(i) => {
                 write!(f, "{}{}", i.n, i.unit)?;
             }
-            Item::Date(inner) | Item::Time(inner) | Item::Timestamp(inner) => {
-                write!(f, "@{inner}")?;
-            }
-            Item::Boolean(b) => {
-                f.write_str(if *b { "true" } else { "false" })?;
-            }
             Item::Windowed(w) => {
                 write!(f, "{:?}", w.expr)?;
             }
@@ -264,6 +255,9 @@ impl Display for Item {
                 f.write_char('<')?;
                 display_type(f, typ)?;
                 f.write_char('>')?;
+            }
+            Item::Literal(literal) => {
+                write!(f, "{:?}", literal)?;
             }
         }
         Ok(())

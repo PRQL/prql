@@ -118,7 +118,7 @@ pub fn cast_transform(func_call: FuncCall, span: Option<Span>) -> Result<Transfo
         "take" => {
             let ([expr], []) = unpack(func_call, [])?;
 
-            Transform::Take(expr.discard_name()?.item.into_raw()?.parse()?)
+            Transform::Take(expr.discard_name()?.item.into_literal()?.into_integer()?)
         }
         "join" => {
             let ([with, filter], [side]) = unpack(func_call, ["side"])?;
@@ -182,6 +182,85 @@ pub fn cast_transform(func_call: FuncCall, span: Option<Span>) -> Result<Transfo
             let pipeline = Box::new(pipeline);
 
             Transform::Group { by, pipeline }
+        }
+        "window" => {
+            let ([pipeline], [rows, range, expanding, rolling]) =
+                unpack(func_call, ["rows", "range", "expanding", "rolling"])?;
+
+            let expanding = if let Some(expanding) = expanding {
+                let as_bool = expanding.item.as_literal().and_then(|l| l.as_boolean());
+
+                *as_bool.ok_or_else(|| {
+                    Error::new(Reason::Expected {
+                        who: Some("parameter `expanding`".to_string()),
+                        expected: "a boolean".to_string(),
+                        found: format!("{}", expanding.item),
+                    })
+                    .with_span(expanding.span)
+                })?
+            } else {
+                false
+            };
+
+            let rolling = if let Some(rolling) = rolling {
+                let as_int = rolling.item.as_literal().and_then(|x| x.as_integer());
+
+                *as_int.ok_or_else(|| {
+                    Error::new(Reason::Expected {
+                        who: Some("parameter `rolling`".to_string()),
+                        expected: "a number".to_string(),
+                        found: format!("{}", rolling.item),
+                    })
+                    .with_span(rolling.span)
+                })?
+            } else {
+                0
+            };
+
+            let rows = if let Some(rows) = rows {
+                Some(rows.item.into_range().map_err(|x| {
+                    Error::new(Reason::Expected {
+                        who: Some("parameter `rows`".to_string()),
+                        expected: "a range".to_string(),
+                        found: format!("{}", x),
+                    })
+                    .with_span(rows.span)
+                })?)
+            } else {
+                None
+            };
+
+            let range = if let Some(range) = range {
+                Some(range.item.into_range().map_err(|x| {
+                    Error::new(Reason::Expected {
+                        who: Some("parameter `range`".to_string()),
+                        expected: "a range".to_string(),
+                        found: format!("{}", x),
+                    })
+                    .with_span(range.span)
+                })?)
+            } else {
+                None
+            };
+
+            let (kind, range) = if expanding {
+                (WindowKind::Rows, Range::new(None, Some(0)))
+            } else {
+                if rolling > 0 {
+                    (WindowKind::Rows, Range::new(Some(-rolling), Some(0)))
+                } else {
+                    if let Some(range) = rows {
+                        (WindowKind::Rows, range)
+                    } else {
+                        if let Some(range) = range {
+                            (WindowKind::Range, range)
+                        } else {
+                            (WindowKind::Rows, Range::new(None, None))
+                        }
+                    }
+                }
+            };
+            Transform::Window { range, kind, pipeline: Box::new(pipeline) }
         }
         unknown => bail!(Error::new(Reason::Expected {
             who: None,
@@ -316,7 +395,7 @@ mod tests {
                   From:
                     name: c_invoice
                     alias: ~
-                    declared_at: 57
+                    declared_at: 64
               - Transform:
                   Group:
                     by:
@@ -362,7 +441,7 @@ mod tests {
                   From:
                     name: invoices
                     alias: ~
-                    declared_at: 57
+                    declared_at: 64
               - Transform:
                   Sort:
                     - direction: Asc

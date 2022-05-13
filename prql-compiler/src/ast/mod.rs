@@ -4,11 +4,13 @@
 pub mod ast_fold;
 pub mod dialect;
 pub mod item;
+pub mod literal;
 pub mod query;
 pub mod types;
 
 pub use self::dialect::*;
 pub use self::item::*;
+pub use self::literal::*;
 pub use self::query::*;
 pub use self::types::*;
 

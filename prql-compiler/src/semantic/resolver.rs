@@ -35,6 +35,8 @@ pub struct Resolver {
 
     within_group: Vec<usize>,
 
+    within_window: Option<(WindowKind, Range)>,
+
     within_aggregate: bool,
 
     sorted: Vec<ColumnSort<usize>>,
@@ -45,6 +47,7 @@ impl Resolver {
             context,
             within_curry: false,
             within_group: vec![],
+            within_window: None,
             within_aggregate: false,
             sorted: vec![],
         }
@@ -201,11 +204,30 @@ impl AstFold for Resolver {
 
                 Transform::Sort(sorts)
             }
+            Transform::Window {
+                range,
+                kind,
+                pipeline,
+            } => {
+                self.within_window = Some((kind.clone(), range.clone()));
+                let pipeline = Box::new(self.fold_node(*pipeline)?);
+                self.within_window = None;
+
+                Transform::Window {
+                    range,
+                    kind,
+                    pipeline,
+                }
+            }
+
             t => fold_transform(self, t)?,
         };
 
         if !self.within_group.is_empty() {
             self.apply_group(&mut t)?;
+        }
+        if self.within_window.is_some() {
+            self.apply_window(&mut t)?;
         }
 
         Ok(t)
@@ -286,7 +308,7 @@ impl Resolver {
         Ok(match node.item {
             Item::Ident(_) => {
                 // keep existing ident
-                node        
+                node
             }
             _ => {
                 // declare new expression so it can be references from FrameColumn
@@ -360,7 +382,10 @@ impl Resolver {
 
     fn apply_group(&mut self, t: &mut Transform) -> Result<()> {
         match t {
-            Transform::Select(_) | Transform::Derive(_) => {
+            Transform::Select(_)
+            | Transform::Derive(_)
+            | Transform::Sort(_)
+            | Transform::Window { .. } => {
                 // ok
             }
             Transform::Aggregate { by, .. } => {
@@ -369,7 +394,6 @@ impl Resolver {
                     .map(|id| Node::new_ident("<ref>", *id))
                     .collect();
             }
-            Transform::Sort(_) => {}
             _ => {
                 // TODO: attach span to this error
                 bail!(Error::new(Reason::Simple(format!(
@@ -377,6 +401,17 @@ impl Resolver {
                     t.as_ref()
                 ))))
             }
+        }
+        Ok(())
+    }
+
+    fn apply_window(&mut self, t: &mut Transform) -> Result<()> {
+        if !matches!(t, Transform::Select(_) | Transform::Derive(_)) {
+            // TODO: attach span to this error
+            bail!(Error::new(Reason::Simple(format!(
+                "transform `{}` is not allowed within window context",
+                t.as_ref()
+            ))))
         }
         Ok(())
     }
@@ -516,8 +551,9 @@ mod tests {
                             expr:
                                 Expr:
                                 - Ident: salary_1
-                                - Raw: +
-                                - Raw: "1"
+                                - Operator: +
+                                - Literal: 
+                                    Integer: 1
                         - Ident: age
                     named_args: {}
         "##,

@@ -394,7 +394,7 @@ fn combine_filters(filters: Vec<Vec<Node>>) -> Vec<Node> {
     filters
         .into_iter()
         .map(|f| Item::Expr(f).into())
-        .intersperse(Item::Raw("and".to_owned()).into())
+        .intersperse(Item::Operator("and".to_owned()).into())
         .collect()
 }
 
@@ -428,7 +428,7 @@ impl TryFrom<Item> for SelectItem {
             | Item::SString(_)
             | Item::FString(_)
             | Item::Ident(_)
-            | Item::Raw(_)
+            | Item::Literal(_)
             | Item::Windowed(_) => SelectItem::UnnamedExpr(Expr::try_from(item)?),
             Item::Assign(named) => SelectItem::ExprWithAlias {
                 alias: sql_ast::Ident::new(named.name),
@@ -442,7 +442,7 @@ impl TryFrom<Item> for Expr {
     type Error = anyhow::Error;
     fn try_from(item: Item) -> Result<Self> {
         Ok(match item {
-            Item::Ident(_) | Item::Raw(_) | Item::Operator(_) => Expr::Identifier(item.try_into()?),
+            Item::Ident(_) | Item::Operator(_) => Expr::Identifier(item.try_into()?),
             // For expressions like `country = "USA"`, we take each one, convert
             // it, and put spaces between them. It's a bit hacky — we could
             // convert each term to a SQL AST item, but it works for the moment.
@@ -473,7 +473,6 @@ impl TryFrom<Item> for Expr {
                 let end: Expr = assert_bound(r.end)?.item.try_into()?;
                 Expr::Identifier(sql_ast::Ident::new(format!("{} AND {}", start, end)))
             }
-            Item::String(s) => Expr::Value(Value::SingleQuotedString(s)),
             // Fairly hacky — convert everything to a string, then concat it,
             // then convert to Expr. We can't use the `Item::Expr` code above
             // since we don't want to intersperse with spaces.
@@ -540,19 +539,24 @@ impl TryFrom<Item> for Expr {
 
                 Item::Ident(format!("{expr} OVER ({window})")).try_into()?
             }
-            Item::Date(literal) => Expr::TypedString {
-                data_type: sql_ast::DataType::Date,
-                value: literal,
+            Item::Literal(l) => match l {
+                Literal::String(s) => Expr::Value(Value::SingleQuotedString(s)),
+                Literal::Boolean(b) => Expr::Value(Value::Boolean(b)),
+                Literal::Float(f) => Expr::Value(Value::Number(format!("{f}"), false)),
+                Literal::Integer(i) => Expr::Value(Value::Number(format!("{i}"), false)),
+                Literal::Date(value) => Expr::TypedString {
+                    data_type: sql_ast::DataType::Date,
+                    value,
+                },
+                Literal::Time(value) => Expr::TypedString {
+                    data_type: sql_ast::DataType::Time,
+                    value,
+                },
+                Literal::Timestamp(value) => Expr::TypedString {
+                    data_type: sql_ast::DataType::Timestamp,
+                    value,
+                },
             },
-            Item::Time(literal) => Expr::TypedString {
-                data_type: sql_ast::DataType::Time,
-                value: literal,
-            },
-            Item::Timestamp(literal) => Expr::TypedString {
-                data_type: sql_ast::DataType::Timestamp,
-                value: literal,
-            },
-            Item::Boolean(b) => Expr::Value(Value::Boolean(b)),
             _ => bail!("Can't convert to Expr; {item:?}"),
         })
     }
@@ -596,9 +600,6 @@ impl TryFrom<Item> for sql_ast::Ident {
     fn try_from(item: Item) -> Result<Self> {
         Ok(match item {
             Item::Ident(ident) => sql_ast::Ident::new(ident),
-            Item::Raw(raw) => sql_ast::Ident::new(raw.to_uppercase()),
-            // This isn't ideal; we could instead parse to the sqlparser AST.
-            // But it does OK for the moment.
             Item::Operator(op) => sql_ast::Ident::new(match op.as_str() {
                 "==" => "=".to_string(),
                 _ => op.to_uppercase(),
@@ -1438,7 +1439,8 @@ take 20
             derive [d = sum b]
         )
         "###,
-        ).unwrap();
+        )
+        .unwrap();
 
         assert_display_snapshot!((resolve_and_translate(query).unwrap()), @r###"
         SELECT
