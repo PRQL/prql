@@ -184,7 +184,7 @@ pub fn fold_transform<T: ?Sized + AstFold>(
             by: fold.fold_nodes(by)?,
         }),
 
-        Transform::Filter(items) => Ok(Transform::Filter(fold.fold_nodes(items)?)),
+        Transform::Filter(f) => Ok(Transform::Filter(Box::new(fold.fold_node(*f)?))),
         Transform::Sort(items) => Ok(Transform::Sort(fold.fold_column_sorts(items)?)),
         Transform::Join { side, with, filter } => Ok(Transform::Join {
             side,

@@ -204,18 +204,19 @@ fn sql_query_of_atomic_table(table: AtomicTable, dialect: &Dialect) -> Result<sq
     let (before, after) = transforms.split_at(aggregate_position);
 
     // Convert the filters in a pipeline into an Expr
+    #[allow(unstable_name_collisions)] // Same behavior as the std lib; we can remove this + itertools when that's released.
     fn filter_of_pipeline(pipeline: &[Transform]) -> Result<Option<Expr>> {
-        let filters: Vec<Vec<Node>> = pipeline
+        let filters: Vec<Node> = pipeline
             .iter()
             .filter_map(|t| match t {
-                Transform::Filter(filter) => Some(filter),
+                Transform::Filter(filter) => Some(*filter.clone()),
                 _ => None,
             })
-            .cloned()
+            .intersperse(Node::from(Item::Operator("and".to_owned())))
             .collect();
 
         Ok(if !filters.is_empty() {
-            Some((Item::Expr(combine_filters(filters))).try_into()?)
+            Some((Item::Expr(filters)).try_into()?)
         } else {
             None
         })
@@ -386,16 +387,6 @@ fn prepend_with_from(pipeline: &mut Pipeline, table: Option<TableRef>) {
         let from = Transform::From(table);
         pipeline.functions.insert(0, Item::Transform(from).into());
     }
-}
-
-/// Combines filters by putting them in parentheses and then joining them with `and`.
-#[allow(unstable_name_collisions)] // Same behavior as the std lib; we can remove this + itertools when that's released.
-fn combine_filters(filters: Vec<Vec<Node>>) -> Vec<Node> {
-    filters
-        .into_iter()
-        .map(|f| Item::Expr(f).into())
-        .intersperse(Item::Operator("and".to_owned()).into())
-        .collect()
 }
 
 fn expr_of_i64(number: i64) -> Expr {
@@ -1579,5 +1570,48 @@ take 20
         "###);
 
         Ok(())
+    }
+
+    #[test]
+    fn test_filter() {
+        // https://github.com/prql/prql/issues/469
+        let query: Query = parse(
+            r###"
+        from employees
+        filter [age > 25, age < 40]
+        "###,
+        )
+        .unwrap();
+
+        assert!(resolve_and_translate(query).is_err());
+
+        assert_display_snapshot!((resolve_and_translate(parse(r###"
+        from employees
+        filter age > 25 and age < 40
+        "###,
+        ).unwrap()).unwrap()), @r###"
+        SELECT
+          employees.*
+        FROM
+          employees
+        WHERE
+          age > 25
+          AND age < 40
+        "###);
+
+        assert_display_snapshot!((resolve_and_translate(parse(r###"
+        from employees
+        filter age > 25
+        filter age < 40
+        "###,
+        ).unwrap()).unwrap()), @r###"
+        SELECT
+          employees.*
+        FROM
+          employees
+        WHERE
+          age > 25
+          AND age < 40
+        "###);
     }
 }

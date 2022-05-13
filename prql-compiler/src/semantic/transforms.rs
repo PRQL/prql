@@ -29,7 +29,7 @@ pub fn cast_transform(func_call: FuncCall, span: Option<Span>) -> Result<Transfo
         "filter" => {
             let ([filter], []) = unpack(func_call, [])?;
 
-            Transform::Filter(filter.coerce_to_vec())
+            Transform::Filter(Box::new(filter))
         }
         "derive" => {
             let ([assigns], []) = unpack(func_call, [])?;
