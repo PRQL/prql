@@ -13,6 +13,7 @@
   - [Take](./transforms/take.md)
   - [Group](./transforms/group.md)
   - [Aggregate](./transforms/aggregate.md)
+  - [Window](./transforms/window.md)
 - [Language features](./language-features/README.md)
   - [Strings](./language-features/strings.md)
   - [F-Strings](./language-features/f-strings.md)
