@@ -28,13 +28,33 @@ expression: "parse_tree_of_str(r#\"[amount, +amount, -amount]\"#, Rule::list).un
                         },
                         inner: [
                             Pair {
-                                rule: ident,
+                                rule: expr_coalesce,
                                 span: Span {
                                     str: "amount",
                                     start: 1,
                                     end: 7,
                                 },
-                                inner: [],
+                                inner: [
+                                    Pair {
+                                        rule: expr_compare,
+                                        span: Span {
+                                            str: "amount",
+                                            start: 1,
+                                            end: 7,
+                                        },
+                                        inner: [
+                                            Pair {
+                                                rule: ident,
+                                                span: Span {
+                                                    str: "amount",
+                                                    start: 1,
+                                                    end: 7,
+                                                },
+                                                inner: [],
+                                            },
+                                        ],
+                                    },
+                                ],
                             },
                         ],
                     },
@@ -66,13 +86,33 @@ expression: "parse_tree_of_str(r#\"[amount, +amount, -amount]\"#, Rule::list).un
                         },
                         inner: [
                             Pair {
-                                rule: ident,
+                                rule: expr_coalesce,
                                 span: Span {
                                     str: "amount",
                                     start: 10,
                                     end: 16,
                                 },
-                                inner: [],
+                                inner: [
+                                    Pair {
+                                        rule: expr_compare,
+                                        span: Span {
+                                            str: "amount",
+                                            start: 10,
+                                            end: 16,
+                                        },
+                                        inner: [
+                                            Pair {
+                                                rule: ident,
+                                                span: Span {
+                                                    str: "amount",
+                                                    start: 10,
+                                                    end: 16,
+                                                },
+                                                inner: [],
+                                            },
+                                        ],
+                                    },
+                                ],
                             },
                         ],
                     },
@@ -104,13 +144,33 @@ expression: "parse_tree_of_str(r#\"[amount, +amount, -amount]\"#, Rule::list).un
                         },
                         inner: [
                             Pair {
-                                rule: ident,
+                                rule: expr_coalesce,
                                 span: Span {
                                     str: "amount",
                                     start: 19,
                                     end: 25,
                                 },
-                                inner: [],
+                                inner: [
+                                    Pair {
+                                        rule: expr_compare,
+                                        span: Span {
+                                            str: "amount",
+                                            start: 19,
+                                            end: 25,
+                                        },
+                                        inner: [
+                                            Pair {
+                                                rule: ident,
+                                                span: Span {
+                                                    str: "amount",
+                                                    start: 19,
+                                                    end: 25,
+                                                },
+                                                inner: [],
+                                            },
+                                        ],
+                                    },
+                                ],
                             },
                         ],
                     },

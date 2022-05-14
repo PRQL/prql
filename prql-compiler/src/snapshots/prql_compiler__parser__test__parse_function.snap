@@ -68,31 +68,51 @@ expression: "parse_tree_of_str(\"func plus_one x ->  x + 1\", Rule::func_def)?"
                 },
                 inner: [
                     Pair {
-                        rule: ident,
+                        rule: expr_coalesce,
                         span: Span {
-                            str: "x",
+                            str: "x + 1",
                             start: 20,
-                            end: 21,
-                        },
-                        inner: [],
-                    },
-                    Pair {
-                        rule: operator_add,
-                        span: Span {
-                            str: "+",
-                            start: 22,
-                            end: 23,
-                        },
-                        inner: [],
-                    },
-                    Pair {
-                        rule: number,
-                        span: Span {
-                            str: "1",
-                            start: 24,
                             end: 25,
                         },
-                        inner: [],
+                        inner: [
+                            Pair {
+                                rule: expr_compare,
+                                span: Span {
+                                    str: "x + 1",
+                                    start: 20,
+                                    end: 25,
+                                },
+                                inner: [
+                                    Pair {
+                                        rule: ident,
+                                        span: Span {
+                                            str: "x",
+                                            start: 20,
+                                            end: 21,
+                                        },
+                                        inner: [],
+                                    },
+                                    Pair {
+                                        rule: operator_add,
+                                        span: Span {
+                                            str: "+",
+                                            start: 22,
+                                            end: 23,
+                                        },
+                                        inner: [],
+                                    },
+                                    Pair {
+                                        rule: number,
+                                        span: Span {
+                                            str: "1",
+                                            start: 24,
+                                            end: 25,
+                                        },
+                                        inner: [],
+                                    },
+                                ],
+                            },
+                        ],
                     },
                 ],
             },

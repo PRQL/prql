@@ -102,6 +102,28 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
                 | Rule::expr_compare
                 | Rule::expr
                 | Rule::expr_call => ast_of_parse_tree(pair.into_inner())?.into_expr(),
+                // With coalesce, we need to grab the left and the right,
+                // because we're transforming it into a function call rather
+                // than passing along the operator. So this is unlike the rest
+                // of the parsing (and maybe isn't optimal).
+                Rule::expr_coalesce => {
+                    let pairs = pair.into_inner();
+                    // If there's no coalescing, just return the single expression.
+                    if pairs.clone().count() == 1 {
+                        ast_of_parse_tree(pairs)?.into_only()?.item
+                    } else {
+                        let parsed = ast_of_parse_tree(pairs)?;
+                        Item::FuncCall(FuncCall {
+                            name: "coalesce".to_string(),
+                            args: vec![parsed[0].clone(), parsed[2].clone()],
+                            named_args: HashMap::new(),
+                        })
+                    }
+                }
+                // This makes the previous parsing a bit easier, but is hacky;
+                // ideally find a better way (but it doesn't seem that easy to
+                // parse parts of a Pairs).
+                Rule::operator_coalesce => Item::Ident("-".to_string()),
 
                 Rule::assign_call | Rule::assign => {
                     let mut items = ast_of_parse_tree(pair.into_inner())?;
@@ -1073,9 +1095,10 @@ take 20
                           - Expr:
                               - Ident: a
                               - Operator: and
-                              - Ident: b
-                              - Operator: +
-                              - Ident: c
+                              - Expr:
+                                  - Ident: b
+                                  - Operator: +
+                                  - Ident: c
                               - Operator: or
                               - FuncCall:
                                   name: d
@@ -1603,6 +1626,41 @@ select [
                           name: x
                           expr:
                             Ident: r
+                    named_args: {}
+        "### )
+    }
+
+    #[test]
+    fn test_parse_coalesce() {
+        assert_yaml_snapshot!(parse(r###"
+        from employees
+        derive amount = amount ?? 0
+        "###).unwrap(), @r###"
+        ---
+        version: ~
+        dialect: Generic
+        nodes:
+          - Pipeline:
+              value: ~
+              functions:
+                - FuncCall:
+                    name: from
+                    args:
+                      - Ident: employees
+                    named_args: {}
+                - FuncCall:
+                    name: derive
+                    args:
+                      - Assign:
+                          name: amount
+                          expr:
+                            FuncCall:
+                              name: coalesce
+                              args:
+                                - Ident: amount
+                                - Literal:
+                                    Integer: 0
+                              named_args: {}
                     named_args: {}
         "### )
     }
