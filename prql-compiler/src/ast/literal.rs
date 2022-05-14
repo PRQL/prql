@@ -19,7 +19,6 @@ impl From<Literal> for anyhow::Error {
     // https://github.com/bluejekyll/enum-as-inner/issues/84
     #[allow(unreachable_code)]
     fn from(item: Literal) -> Self {
-        // panic!("Failed to convert {item}")
         anyhow!("Failed to convert `{item}`")
     }
 }
