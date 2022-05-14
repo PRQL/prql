@@ -86,10 +86,7 @@ pub fn fold_item<T: ?Sized + AstFold>(fold: &mut T, item: Item) -> Result<Item> 
         Item::Ident(ident) => Item::Ident(fold.fold_ident(ident)?),
         Item::Expr(items) => Item::Expr(fold.fold_nodes(items)?),
         Item::List(items) => Item::List(fold.fold_nodes(items)?),
-        Item::Range(Range { start, end }) => Item::Range(Range {
-            start: fold_optional_box(fold, start)?,
-            end: fold_optional_box(fold, end)?,
-        }),
+        Item::Range(range) => Item::Range(fold_range(fold, range)?),
         Item::Query(query) => Item::Query(Query {
             nodes: fold.fold_nodes(query.nodes)?,
             ..query
@@ -117,18 +114,22 @@ pub fn fold_item<T: ?Sized + AstFold>(fold: &mut T, item: Item) -> Result<Item> 
             expr: Box::new(fold.fold_node(*window.expr)?),
             group: fold.fold_nodes(window.group)?,
             sort: fold.fold_column_sorts(window.sort)?,
+            window: {
+                let (kind, range) = window.window;
+                (kind, fold_range(fold, range)?)
+            },
         }),
         Item::Type(t) => Item::Type(fold.fold_type(t)?),
         // None of these capture variables, so we don't need to replace
         // them.
-        Item::String(_)
-        | Item::Raw(_)
-        | Item::Operator(_)
-        | Item::Interval(_)
-        | Item::Date(_)
-        | Item::Time(_)
-        | Item::Timestamp(_)
-        | Item::Boolean(_) => item,
+        Item::Literal(_) | Item::Operator(_) | Item::Interval(_) => item,
+    })
+}
+
+fn fold_range<F: ?Sized + AstFold>(fold: &mut F, Range { start, end }: Range) -> Result<Range> {
+    Ok(Range {
+        start: fold_optional_box(fold, start)?,
+        end: fold_optional_box(fold, end)?,
     })
 }
 
@@ -192,6 +193,15 @@ pub fn fold_transform<T: ?Sized + AstFold>(
         }),
         Transform::Group { by, pipeline } => Ok(Transform::Group {
             by: fold.fold_nodes(by)?,
+            pipeline: Box::new(fold.fold_node(*pipeline)?),
+        }),
+        Transform::Window {
+            kind,
+            range,
+            pipeline,
+        } => Ok(Transform::Window {
+            range: fold_range(fold, range)?,
+            kind,
             pipeline: Box::new(fold.fold_node(*pipeline)?),
         }),
         // TODO: generalize? Or this never changes?
@@ -281,8 +291,12 @@ pub fn fold_named_expr<T: ?Sized + AstFold>(
 }
 
 pub fn fold_type<T: ?Sized + AstFold>(fold: &mut T, t: Type) -> Result<Type> {
-    Ok(Type {
-        name: t.name,
-        param: fold_optional_box(fold, t.param)?,
+    Ok(match t {
+        Type::Native(_) => t,
+        Type::Parameterized(t, p) => Type::Parameterized(
+            Box::new(fold_type(fold, *t)?),
+            Box::new(fold.fold_node(*p)?),
+        ),
+        Type::AnyOf(ts) => Type::AnyOf(ts.into_iter().map(|t| fold_type(fold, t)).try_collect()?),
     })
 }

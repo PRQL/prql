@@ -13,9 +13,8 @@ pub use super::*;
 #[derive(Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize)]
 pub enum Item {
     Ident(Ident),
-    String(String),
-    Raw(String),
     Operator(String),
+    Literal(Literal),
     Assign(NamedExpr),
     NamedArg(NamedExpr),
     Query(Query),
@@ -31,10 +30,6 @@ pub enum Item {
     SString(Vec<InterpolateItem>),
     FString(Vec<InterpolateItem>),
     Interval(Interval),
-    Date(String),
-    Time(String),
-    Timestamp(String),
-    Boolean(bool),
     Windowed(Windowed),
 }
 
@@ -57,15 +52,16 @@ pub struct Windowed {
     pub expr: Box<Node>,
     pub group: Vec<Node>,
     pub sort: Vec<ColumnSort<Node>>,
-    // pub frame: Vec<Node>,
+    pub window: (WindowKind, Range),
 }
 
 impl Windowed {
-    pub fn new(node: Node) -> Self {
+    pub fn new(node: Node, window: (WindowKind, Range)) -> Self {
         Windowed {
             expr: Box::new(node),
             group: vec![],
             sort: vec![],
+            window,
         }
     }
 }
@@ -93,6 +89,21 @@ pub struct Range {
     pub end: Option<Box<Node>>,
 }
 
+impl Range {
+    pub const fn unbounded() -> Self {
+        Range {
+            start: None,
+            end: None,
+        }
+    }
+
+    pub fn new_int(start: Option<i64>, end: Option<i64>) -> Self {
+        let start = start.map(|x| Box::new(Node::from(Item::Literal(Literal::Integer(x)))));
+        let end = end.map(|x| Box::new(Node::from(Item::Literal(Literal::Integer(x)))));
+        Range { start, end }
+    }
+}
+
 // I could imagine there being a wrapper of this to represent "2 days 3 hours".
 // Or should that be written as `2days + 3hours`?
 //
@@ -103,12 +114,6 @@ pub struct Range {
 pub struct Interval {
     pub n: i64,       // Do any DBs use floats or decimals for this?
     pub unit: String, // Could be an enum IntervalType,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct Type {
-    pub name: String,
-    pub param: Option<Box<Node>>,
 }
 
 impl Pipeline {
@@ -148,14 +153,8 @@ impl Display for Item {
             Item::Ident(s) => {
                 f.write_str(s)?;
             }
-            Item::String(s) => {
-                write!(f, "\"{s}\"")?;
-            }
             Item::Operator(o) => {
                 f.write_str(o)?;
-            }
-            Item::Raw(r) => {
-                f.write_str(r)?;
             }
             Item::Assign(ne) => {
                 write!(f, "{} = {}", ne.name, ne.expr.item)?;
@@ -257,21 +256,16 @@ impl Display for Item {
             Item::Interval(i) => {
                 write!(f, "{}{}", i.n, i.unit)?;
             }
-            Item::Date(inner) | Item::Time(inner) | Item::Timestamp(inner) => {
-                write!(f, "@{inner}")?;
-            }
-            Item::Boolean(b) => {
-                f.write_str(if *b { "true" } else { "false" })?;
-            }
             Item::Windowed(w) => {
                 write!(f, "{:?}", w.expr)?;
             }
-            Item::Type(t) => {
-                if let Some(param) = &t.param {
-                    write!(f, "<{:?}{:?}>", t.name, param.item)?;
-                } else {
-                    write!(f, "<{:?}>", t.name)?;
-                }
+            Item::Type(typ) => {
+                f.write_char('<')?;
+                display_type(f, typ)?;
+                f.write_char('>')?;
+            }
+            Item::Literal(literal) => {
+                write!(f, "{:?}", literal)?;
             }
         }
         Ok(())
@@ -292,5 +286,24 @@ fn display_interpolation(
         }
     }
     f.write_char('"')?;
+    Ok(())
+}
+
+fn display_type(f: &mut std::fmt::Formatter, typ: &Type) -> Result<(), std::fmt::Error> {
+    match typ {
+        Type::Native(kind) => write!(f, "{:}", kind)?,
+        Type::Parameterized(t, param) => {
+            display_type(f, t)?;
+            write!(f, "<{:?}>", param.item)?
+        }
+        Type::AnyOf(ts) => {
+            for (i, t) in ts.iter().enumerate() {
+                display_type(f, t)?;
+                if i < ts.len() - 1 {
+                    f.write_char('|')?;
+                }
+            }
+        }
+    }
     Ok(())
 }

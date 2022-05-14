@@ -5,6 +5,7 @@
 use std::collections::HashMap;
 use std::str::FromStr;
 
+use anyhow::bail;
 use anyhow::{anyhow, Result};
 use itertools::Itertools;
 use pest::iterators::Pair;
@@ -49,8 +50,9 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
         .filter(|pair| pair.as_rule() != Rule::EOI)
         .map(|pair| {
             let span = pair.as_span();
+            let rule = pair.as_rule();
 
-            let item = match &pair.as_rule() {
+            let item = match rule {
                 Rule::query => {
                     let mut parsed = ast_of_parse_tree(pair.into_inner())?;
                     // this is [query, ...]
@@ -169,11 +171,23 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
                     })
                 }
                 Rule::ident => Item::Ident(pair.as_str().to_string()),
+
+                Rule::number => {
+                    let str = pair.as_str();
+
+                    let lit = if let Ok(i) = str.parse::<i64>() {
+                        Literal::Integer(i)
+                    } else if let Ok(f) = str.parse::<f64>() {
+                        Literal::Float(f)
+                    } else {
+                        bail!("cannot parse {str} as number")
+                    };
+                    Item::Literal(lit)
+                }
+                Rule::boolean => Item::Literal(Literal::Boolean(pair.as_str() == "true")),
                 Rule::string => {
                     let inner = pair.into_inner().into_only()?.as_str().to_string();
-
-                    // Put string_inner (which doesn't have quotes) into Item::String.
-                    Item::String(inner)
+                    Item::Literal(Literal::String(inner))
                 }
                 Rule::s_string => Item::SString(ast_of_interpolate_items(pair)?),
                 Rule::f_string => Item::FString(ast_of_interpolate_items(pair)?),
@@ -215,6 +229,7 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
                         .map_err(|e| anyhow!("Expected start, separator, end; {e:?}"))?;
                     Item::Range(Range { start, end })
                 }
+
                 Rule::interval => {
                     let pairs: Vec<_> = pair.into_inner().into_iter().collect();
                     let [n, unit]: [Pair<Rule>; 2] = pairs
@@ -226,42 +241,55 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
                         unit: unit.as_str().to_owned(),
                     })
                 }
-                Rule::date => {
-                    let parsed = ast_of_parse_tree(pair.into_inner());
-                    Item::Date(parsed?.into_only()?.item.into_raw()?)
-                }
-                Rule::time => {
-                    let parsed = ast_of_parse_tree(pair.into_inner());
-                    Item::Time(parsed?.into_only()?.item.into_raw()?)
-                }
-                Rule::timestamp => {
-                    let parsed = ast_of_parse_tree(pair.into_inner());
-                    Item::Timestamp(parsed?.into_only()?.item.into_raw()?)
-                }
-                Rule::type_def => {
-                    let mut parts: Vec<_> = pair.into_inner().into_iter().collect();
-                    let name = parts.remove(0).as_str().to_string();
-                    let param = parts
-                        .pop()
-                        .map(|p| ast_of_parse_tree(p.into_inner()))
-                        .transpose()?
-                        .map(|p| p.into_only())
-                        .transpose()?
-                        .map(Box::new);
 
-                    Item::Type(Type { name, param })
+                Rule::date | Rule::time | Rule::timestamp => {
+                    let inner = pair.into_inner().into_only()?.as_str().to_string();
+
+                    Item::Literal(match rule {
+                        Rule::date => Literal::Date(inner),
+                        Rule::time => Literal::Time(inner),
+                        Rule::timestamp => Literal::Timestamp(inner),
+                        _ => unreachable!(),
+                    })
                 }
-                Rule::boolean => Item::Boolean(pair.as_str() == "true"),
+
+                Rule::type_def => {
+                    let mut types: Vec<_> = pair
+                        .into_inner()
+                        .into_iter()
+                        .map(|pair| -> Result<Type> {
+                            let mut parts: Vec<_> = pair.into_inner().into_iter().collect();
+                            let native = NativeType::from_str(parts.remove(0).as_str())?;
+                            let typ = Type::Native(native);
+
+                            let param = parts
+                                .pop()
+                                .map(|p| ast_of_parse_tree(p.into_inner()))
+                                .transpose()?
+                                .map(|p| p.into_only())
+                                .transpose()?;
+
+                            Ok(if let Some(param) = param {
+                                Type::Parameterized(Box::new(typ), Box::new(param))
+                            } else {
+                                typ
+                            })
+                        })
+                        .try_collect()?;
+
+                    let typ = if types.len() > 1 {
+                        Type::AnyOf(types)
+                    } else {
+                        types.remove(0)
+                    };
+
+                    Item::Type(typ)
+                }
                 Rule::operator_unary
                 | Rule::operator_mul
                 | Rule::operator_add
                 | Rule::operator_compare
                 | Rule::operator_logical => Item::Operator(pair.as_str().to_owned()),
-                Rule::number
-                | Rule::interval_kind
-                | Rule::date_inner
-                | Rule::time_inner
-                | Rule::timestamp_inner => Item::Raw(pair.as_str().to_owned()),
 
                 _ => unreachable!("{pair}"),
             };
@@ -344,7 +372,8 @@ mod test {
         let double_quoted_ast = ast_of_string(r#"" U S A ""#, Rule::string)?;
         assert_yaml_snapshot!(double_quoted_ast, @r###"
         ---
-        String: " U S A "
+        Literal:
+          String: " U S A "
         "###);
 
         let single_quoted_ast = ast_of_string(r#"' U S A '"#, Rule::string)?;
@@ -354,11 +383,13 @@ mod test {
         // the single quotes (and vice versa).
         assert_yaml_snapshot!(ast_of_string(r#""' U S A '""#, Rule::string)? , @r###"
         ---
-        String: "' U S A '"
+        Literal:
+          String: "' U S A '"
         "###);
         assert_yaml_snapshot!(ast_of_string(r#"'" U S A "'"#, Rule::string)? , @r###"
         ---
-        String: "\" U S A \""
+        Literal:
+          String: "\" U S A \""
         "###);
 
         assert!(ast_of_string(r#"" U S A"#, Rule::string).is_err());
@@ -369,9 +400,18 @@ mod test {
         let escaped_string = ast_of_string(r#"" \U S A ""#, Rule::string)?;
         assert_yaml_snapshot!(escaped_string, @r###"
         ---
-        String: " \\U S A "
+        Literal:
+          String: " \\U S A "
         "###);
-        assert_eq!(escaped_string.item.as_string().unwrap(), r#" \U S A "#);
+        assert_eq!(
+            escaped_string
+                .item
+                .as_literal()
+                .unwrap()
+                .as_string()
+                .unwrap(),
+            r#" \U S A "#
+        );
 
         // Currently we don't allow escaping closing quotes — because it's not
         // trivial to do in pest, and I'm not sure it's a great idea either — we
@@ -381,9 +421,18 @@ mod test {
         let escaped_quotes = ast_of_string(r#"" Canada \""#, Rule::string)?;
         assert_yaml_snapshot!(escaped_quotes, @r###"
         ---
-        String: " Canada \\"
+        Literal:
+          String: " Canada \\"
         "###);
-        assert_eq!(escaped_quotes.item.as_string().unwrap(), r#" Canada \"#);
+        assert_eq!(
+            escaped_quotes
+                .item
+                .as_literal()
+                .unwrap()
+                .as_string()
+                .unwrap(),
+            r#" Canada \"#
+        );
 
         let multi_double = ast_of_string(
             r#""""
@@ -396,7 +445,8 @@ Canada
         )?;
         assert_yaml_snapshot!(multi_double, @r###"
         ---
-        String: "\n''\nCanada\n\"\n\n"
+        Literal:
+          String: "\n''\nCanada\n\"\n\n"
         "###);
 
         let multi_single = ast_of_string(
@@ -410,7 +460,8 @@ Canada
         )?;
         assert_yaml_snapshot!(multi_single, @r###"
         ---
-        String: "\nCanada\n\"\n\"\"\"\n\n"
+        Literal:
+          String: "\nCanada\n\"\n\"\"\"\n\n"
         "###);
 
         Ok(())
@@ -433,9 +484,11 @@ Canada
           - String: SUM(
           - Expr:
               Expr:
-                - Raw: "2"
+                - Literal:
+                    Integer: 2
                 - Operator: +
-                - Raw: "2"
+                - Literal:
+                    Integer: 2
           - String: )
         "###);
         Ok(())
@@ -448,23 +501,29 @@ Canada
         ---
         List:
           - Expr:
-              - Raw: "1"
+              - Literal:
+                  Integer: 1
               - Operator: +
-              - Raw: "1"
-          - Raw: "2"
+              - Literal:
+                  Integer: 1
+          - Literal:
+              Integer: 2
         "###);
         assert_yaml_snapshot!(ast_of_string(r#"[1 + (f 1), 2]"#, Rule::list).unwrap(), @r###"
         ---
         List:
           - Expr:
-              - Raw: "1"
+              - Literal:
+                  Integer: 1
               - Operator: +
               - FuncCall:
                   name: f
                   args:
-                    - Raw: "1"
+                    - Literal:
+                        Integer: 1
                   named_args: {}
-          - Raw: "2"
+          - Literal:
+              Integer: 2
         "###);
         // Line breaks
         assert_yaml_snapshot!(ast_of_string(
@@ -474,8 +533,10 @@ Canada
          Rule::list).unwrap(), @r###"
         ---
         List:
-          - Raw: "1"
-          - Raw: "2"
+          - Literal:
+              Integer: 1
+          - Literal:
+              Integer: 2
         "###);
         // Function call in a list
         let ab = ast_of_string(r#"[a b]"#, Rule::list).unwrap();
@@ -529,6 +590,19 @@ Canada
             },
         ]
         "###);
+        assert_debug_snapshot!(parse_tree_of_str(r#"23.6"#, Rule::number)?, @r###"
+        [
+            Pair {
+                rule: number,
+                span: Span {
+                    str: "23.6",
+                    start: 0,
+                    end: 4,
+                },
+                inner: [],
+            },
+        ]
+        "###);
         assert_debug_snapshot!(parse_tree_of_str(r#"2 + 2"#, Rule::expr)?);
         Ok(())
     }
@@ -551,7 +625,8 @@ Canada
                         - Expr:
                             - Ident: country
                             - Operator: "=="
-                            - String: USA
+                            - Literal:
+                                String: USA
                       named_args: {}
         "###);
 
@@ -575,7 +650,8 @@ Canada
                                   - Ident: country
                                 named_args: {}
                             - Operator: "=="
-                            - String: USA
+                            - Literal:
+                                String: USA
                       named_args: {}
         "###
         );
@@ -665,7 +741,8 @@ Canada
                 - Assign:
                     name: x
                     expr:
-                      Raw: "5"
+                      Literal:
+                        Integer: 5
                 - Assign:
                     name: y
                     expr:
@@ -716,7 +793,8 @@ Canada
         Expr:
           - Ident: country
           - Operator: "=="
-          - String: USA
+          - Literal:
+              String: USA
         "###);
         assert_yaml_snapshot!(ast_of_string(
                 r#"[
@@ -758,7 +836,8 @@ Canada
                   - Ident: payroll_tax
               - Operator: "*"
               - Expr:
-                  - Raw: "1"
+                  - Literal:
+                      Integer: 1
                   - Operator: +
                   - Ident: tax_rate
         "###);
@@ -832,7 +911,8 @@ take 20
             Expr:
               - Ident: x
               - Operator: +
-              - Raw: "1"
+              - Literal:
+                  Integer: 1
           return_type: ~
         "###);
         assert_yaml_snapshot!(ast_of_string(
@@ -850,7 +930,8 @@ take 20
             Expr:
               - Ident: x
               - Operator: +
-              - Raw: "1"
+              - Literal:
+                  Integer: 1
           return_type: ~
         "###);
         // An example to show that we can't delayer the tree, despite there
@@ -873,7 +954,8 @@ take 20
                 - Expr:
                     - Ident: bar
                     - Operator: +
-                    - Raw: "1"
+                    - Literal:
+                        Integer: 1
               named_args: {}
           return_type: ~
         "###);
@@ -885,7 +967,8 @@ take 20
           positional_params: []
           named_params: []
           body:
-            Raw: "42"
+            Literal:
+              Integer: 42
           return_type: ~
         "###);
         assert_yaml_snapshot!(ast_of_string(r#"func count X ->  s"SUM({X})""#, Rule::func_def)?, @r###"
@@ -1015,7 +1098,8 @@ take 20
             - Assign:
                 name: to
                 expr:
-                  Raw: "3"
+                  Literal:
+                    Integer: 3
           named_args: {}
         "###);
     }
@@ -1095,7 +1179,8 @@ take 20
                 - FuncCall:
                     name: take
                     args:
-                      - Raw: "50"
+                      - Literal:
+                          Integer: 50
                     named_args: {}
           id: ~
         "###);
@@ -1158,7 +1243,8 @@ take 20
             - FuncCall:
                 name: percentile
                 args:
-                  - Raw: "50"
+                  - Literal:
+                      Integer: 50
                 named_args: {}
         "###);
         assert_yaml_snapshot!(ast_of_string("func median x -> (x | percentile 50)", Rule::query).unwrap(), @r###"
@@ -1181,7 +1267,8 @@ take 20
                       - FuncCall:
                           name: percentile
                           args:
-                            - Raw: "50"
+                            - Literal:
+                                Integer: 50
                           named_args: {}
                 return_type: ~
         "###);
@@ -1387,9 +1474,11 @@ select [
                                 args:
                                   - Range:
                                       start:
-                                        Raw: "18"
+                                        Literal:
+                                          Integer: 18
                                       end:
-                                        Raw: "40"
+                                        Literal:
+                                          Integer: 40
                                 named_args: {}
                     named_args: {}
                 - FuncCall:
@@ -1401,7 +1490,8 @@ select [
                               expr:
                                 Range:
                                   start:
-                                    Raw: "11"
+                                    Literal:
+                                      Integer: 11
                                   end: ~
                     named_args: {}
                 - FuncCall:
@@ -1414,7 +1504,8 @@ select [
                                 Range:
                                   start: ~
                                   end:
-                                    Raw: "9"
+                                    Literal:
+                                      Integer: 9
                     named_args: {}
         "###);
     }
@@ -1475,15 +1566,18 @@ select [
                           - Assign:
                               name: date
                               expr:
-                                Date: 2011-02-01
+                                Literal:
+                                  Date: 2011-02-01
                           - Assign:
                               name: timestamp
                               expr:
-                                Timestamp: "2011-02-01T10:00"
+                                Literal:
+                                  Timestamp: "2011-02-01T10:00"
                           - Assign:
                               name: time
                               expr:
-                                Time: "14:00"
+                                Literal:
+                                  Time: "14:00"
                     named_args: {}
         "###);
 
