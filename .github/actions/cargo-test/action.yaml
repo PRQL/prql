@@ -3,9 +3,11 @@ description: Runs cargo test & cargo lint for a given platform & target.
 
 inputs:
   target:
-    type: string
+    description: "Target triple, like `wasm32-unknown-unknown"
+    required: true
   target_option:
-    type: string
+    description: "--target={target}"
+    required: true
 
 runs:
   using: composite
