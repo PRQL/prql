@@ -16,8 +16,8 @@ current row. If a bound is omitted, segment will extend until the end of the tab
 
 For example:
 - `rows:0..3`   means current row plus two following,
-- `rows:-3..0`  means two preceding rows plus current row,
-- `rows:-3..5`  means two preceding rows plus current row plus four following rows,
+- `rows:-2..1`  means two preceding rows plus current row,
+- `rows:-2..5`  means two preceding rows plus current row plus four following rows,
 - `rows:..1`    means all rows from the start of the table to and including current row,
 - `rows:0..`    means current row and all following rows until the end of the table,
 - `rows:..`     means all rows, which same as not having window at all.

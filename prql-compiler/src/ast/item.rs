@@ -97,7 +97,7 @@ impl Range {
         }
     }
 
-    pub fn new(start: Option<i64>, end: Option<i64>) -> Self {
+    pub fn new_int(start: Option<i64>, end: Option<i64>) -> Self {
         let start = start.map(|x| Box::new(Node::from(Item::Literal(Literal::Integer(x)))));
         let end = end.map(|x| Box::new(Node::from(Item::Literal(Literal::Integer(x)))));
         Range { start, end }

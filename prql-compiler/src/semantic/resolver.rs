@@ -334,7 +334,7 @@ impl Resolver {
 
         node.item = {
             let return_type = func_def.return_type.as_ref();
-            if return_type == Some(&Type::frame()) {
+            if Some(&Type::frame()) <= return_type {
                 // cast if this is a transform
                 let transform = transforms::cast_transform(func_call, node.span)?;
 
@@ -343,7 +343,7 @@ impl Resolver {
                 let mut item = Item::FuncCall(self.fold_func_call(func_call)?);
 
                 // wrap into windowed
-                if !self.within_aggregate && return_type == Some(&Type::column()) {
+                if !self.within_aggregate && Some(&Type::column()) <= return_type {
                     item = self.wrap_into_windowed(item, node.declared_at);
                     node.declared_at = None;
                 }

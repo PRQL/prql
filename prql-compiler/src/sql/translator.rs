@@ -523,7 +523,7 @@ impl TryFrom<Item> for Expr {
                 let default_frame = if window.sort.is_empty() {
                     (WindowKind::Rows, Range::unbounded())
                 } else {
-                    (WindowKind::Range, Range::new(None, Some(1)))
+                    (WindowKind::Range, Range::new_int(None, Some(1)))
                 };
 
                 let window = WindowSpec {
@@ -1350,12 +1350,13 @@ take 20
             total_price = sum ol.price,
           ]
         )
-        sort order_day
         group [order_month] (
+          sort order_day
           window expanding:true (
             derive [running_total_num_books = sum num_books]
           )
         )
+        sort order_day
         derive [num_books_last_week = lag 7 num_books]
         "###,
         )?;
@@ -1368,16 +1369,23 @@ take 20
           COUNT(ol.book_id) AS num_books,
           SUM(ol.price) AS total_price,
           SUM(COUNT(ol.book_id)) OVER (
-            PARTITION BY TO_CHAR(co.order_date, '%Y-%m') RANGE BETWEEN UNBOUNDED PRECEDING
-            AND CURRENT ROW
+            PARTITION BY TO_CHAR(co.order_date, '%Y-%m')
+            ORDER BY
+              TO_CHAR(co.order_date, '%Y-%m-%d')
           ) AS running_total_num_books,
-          LAG(COUNT(ol.book_id), 7) OVER () AS num_books_last_week
+          LAG(COUNT(ol.book_id), 7) OVER (
+            ORDER BY
+              TO_CHAR(co.order_date, '%Y-%m-%d') ROWS BETWEEN UNBOUNDED PRECEDING
+              AND UNBOUNDED FOLLOWING
+          ) AS num_books_last_week
         FROM
           cust_order AS co
           JOIN order_line AS ol USING(order_id)
         GROUP BY
           TO_CHAR(co.order_date, '%Y-%m'),
           TO_CHAR(co.order_date, '%Y-%m-%d')
+        ORDER BY
+          order_day
         "###);
 
         // lag must be recognized as window function, even outside of group context
