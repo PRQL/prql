@@ -6,13 +6,14 @@ expression: mat
     From:
       name: employees
       alias: ~
-      declared_at: 35
+      declared_at: 42
 - Transform:
     Filter:
       Expr:
         - Ident: country
         - Operator: "=="
-        - String: USA
+        - Literal:
+            String: USA
 - Transform:
     Filter:
       Expr:
@@ -24,7 +25,8 @@ expression: mat
             - Operator: +
             - Ident: benefits_cost
         - Operator: ">"
-        - Raw: "0"
+        - Literal:
+            Integer: 0
 - Transform:
     Group:
       by:
@@ -105,7 +107,8 @@ expression: mat
                   - Ident: benefits_cost
             - String: )
         - Operator: ">"
-        - Raw: "200"
+        - Literal:
+            Integer: 200
 - Transform:
     Take: 20
 

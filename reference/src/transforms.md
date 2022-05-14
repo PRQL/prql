@@ -19,3 +19,4 @@ These are the currently available transforms:
 | [Take](./take.md)           | Picks rows based on their position                                  |
 | [Group](./group.md)         | Partitions rows into groups and applies a pipeline to each of them  |
 | [Aggregate](./aggregate.md) | Summarizes many rows into one row                                   |
+| [Window](./window.md)       | Applies a pipeline to overlapping segments of rows                  |

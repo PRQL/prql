@@ -394,7 +394,7 @@ mod test {
         @@ -6,7 +6,3 @@
                  name: employees
                  alias: ~
-                 declared_at: 30
+                 declared_at: 37
         -  - Transform:
         -      Derive:
         -        - Ident: gross_salary
@@ -561,7 +561,7 @@ take 20
             From:
               name: a
               alias: ~
-              declared_at: 35
+              declared_at: 42
         "###);
 
         Ok(())
@@ -623,7 +623,7 @@ take 20
             From:
               name: a
               alias: ~
-              declared_at: 34
+              declared_at: 41
         - Transform:
             Aggregate:
               assigns:
@@ -634,7 +634,8 @@ take 20
                             Ident: foo
                         - String: )
                     - Operator: +
-                    - Raw: "1"
+                    - Literal:
+                        Integer: 1
               by: []
         "###);
 
@@ -662,7 +663,7 @@ take 20
             From:
               name: foo_table
               alias: ~
-              declared_at: 33
+              declared_at: 40
         "###);
 
         Ok(())
@@ -689,7 +690,7 @@ take 20
             From:
               name: employees
               alias: ~
-              declared_at: 32
+              declared_at: 39
         - Transform:
             Aggregate:
               assigns:
@@ -798,7 +799,7 @@ take 20
             From:
               name: employees
               alias: ~
-              declared_at: 32
+              declared_at: 39
         - Transform:
             Group:
               by:
@@ -874,7 +875,7 @@ take 20
             From:
               name: orders
               alias: ~
-              declared_at: 30
+              declared_at: 37
         - Transform:
             Take: 20
         "###);
@@ -897,14 +898,14 @@ take 20
             From:
               name: table_1
               alias: ~
-              declared_at: 35
+              declared_at: 42
         - Transform:
             Join:
               side: Inner
               with:
                 name: customers
                 alias: ~
-                declared_at: 36
+                declared_at: 43
               filter:
                 Using:
                   - Ident: customer_no

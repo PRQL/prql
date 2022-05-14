@@ -6,30 +6,35 @@
 
 # Aggregate Functions
 
-func min column ->  s"MIN({column})"
-func max column ->  s"MAX({column})"
-func sum column ->  s"SUM({column})"
-func avg column ->  s"AVG({column})"
-func stddev column ->  s"STDDEV({column})"
-func average column ->  s"AVG({column})"
-func count ->  s"COUNT(*)"
-func count column ->  s"COUNT({column})"
+func min <scalar|column> column ->  s"MIN({column})"
+func max <scalar|column> column ->  s"MAX({column})"
+func sum <scalar|column> column ->  s"SUM({column})"
+func avg <scalar|column> column ->  s"AVG({column})"
+func stddev <scalar|column> column ->  s"STDDEV({column})"
+func average <scalar|column> column ->  s"AVG({column})"
+func count <scalar|column> ->  s"COUNT(*)"
+func count <scalar|column> column ->  s"COUNT({column})"
 # TODO: Possibly make this into `count distinct:true` (or like `distinct:` as an
 # abbreviation of that?)
-func count_distinct column ->  s"COUNT(DISTINCT `{column}`)"
+func count_distinct <scalar|column> column ->  s"COUNT(DISTINCT `{column}`)"
 
 # TODO: Introduce a notation for getting start and end out of a ranges
 # could be range.0? or range.start? But to make this happen, we need to make
 # changes to how variables are resolved.
-func in range value ->  s"{value} BETWEEN {range}"
+func in<scalar> range value ->  s"{value} BETWEEN {range}"
 
 # Casting functions
 
-func as column type ->  s"CAST({column} AS {type})"
+func as<scalar> column type ->  s"CAST({column} AS {type})"
 
 # Window functions
 func lag<column> offset column ->  s"LAG({column}, {offset})"
+func lead<column> offset column ->  s"LEAD({column}, {offset})"
+func first<column> offset column ->  s"FIRST_VALUE({column}, {offset})"
+func last<column> offset column ->  s"LAST_VALUE({column}, {offset})"
 func rank<column> ->  s"RANK()"
+func rank_dense<column> ->  s"DENSE_RANK()"
+func row_number<column> offset column ->  s"ROW_NUMBER({column}, {offset})"
 
 # Logical functions
 func coalesce value default -> s"COALESCE({value}, {default})"

@@ -5,7 +5,7 @@ input_file: reference/tests/prql/examples/misc-1.prql
 ---
 SELECT
   club_ratings.*,
-  rating - AVG(rating) / STDDEV(rating) OVER (PARTITION BY year) AS rating_norm
+  rating - AVG(rating) OVER (PARTITION BY year) / STDDEV(rating) OVER (PARTITION BY year) AS rating_norm
 FROM
   club_ratings
 WHERE

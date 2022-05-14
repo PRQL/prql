@@ -35,6 +35,10 @@ pub struct Resolver {
 
     within_group: Vec<usize>,
 
+    within_window: Option<(WindowKind, Range)>,
+
+    within_aggregate: bool,
+
     sorted: Vec<ColumnSort<usize>>,
 }
 impl Resolver {
@@ -43,6 +47,8 @@ impl Resolver {
             context,
             within_curry: false,
             within_group: vec![],
+            within_window: None,
+            within_aggregate: false,
             sorted: vec![],
         }
     }
@@ -96,54 +102,42 @@ impl AstFold for Resolver {
         let within_curry = self.within_curry;
         self.within_curry = false;
 
-        node.item = match node.item {
-            Item::FuncCall(func_call) => {
+        let r = match node.item {
+            Item::FuncCall(ref func_call) => {
                 // find declaration
                 node.declared_at = self.context.scope.functions.get(&func_call.name).cloned();
 
-                // validate function call
-                let (func_call, func_def) = self
-                    .validate_function_call(node.declared_at, func_call, within_curry)
-                    .with_span(node.span)?;
-
-                // fold (and cast if this is a transform)
-                let return_type: &str = func_def
-                    .return_type
-                    .as_ref()
-                    .map(|x| x.name.as_str())
-                    .unwrap_or("");
-                match return_type {
-                    "frame" => {
-                        let transform = transforms::cast_transform(func_call, node.span)?;
-
-                        Item::Transform(self.fold_transform(transform)?)
-                    }
-                    "column" => {
-                        // wrap into Windowed
-                        let mut expr: Node = Item::FuncCall(self.fold_func_call(func_call)?).into();
-                        expr.declared_at = node.declared_at;
-                        node.declared_at = None;
-
-                        Item::Windowed(Windowed::new(expr))
-                    }
-                    _ => Item::FuncCall(self.fold_func_call(func_call)?),
-                }
+                self.fold_function_call(node, within_curry)?
             }
 
-            Item::Ident(ident) => {
+            Item::Ident(ref ident) => {
                 node.declared_at = Some(
-                    (self.context.lookup_variable(&ident, node.span))
+                    (self.context.lookup_variable(ident, node.span))
                         .map_err(|e| Error::new(Reason::Simple(e)).with_span(node.span))?,
                 );
 
-                Item::Ident(ident)
+                // convert ident to function without args
+                let decl = &self.context.declarations[node.declared_at.unwrap()].0;
+                if matches!(decl, Declaration::Function(_)) {
+                    node.item = Item::FuncCall(FuncCall {
+                        name: ident.clone(),
+                        args: vec![],
+                        named_args: Default::default(),
+                    });
+                    self.fold_function_call(node, within_curry)?
+                } else {
+                    node
+                }
             }
 
-            item => fold_item(self, item)?,
+            item => {
+                node.item = fold_item(self, item)?;
+                node
+            }
         };
 
         self.within_curry = within_curry;
-        Ok(node)
+        Ok(r)
     }
 
     fn fold_transform(&mut self, t: Transform) -> Result<Transform> {
@@ -173,17 +167,19 @@ impl AstFold for Resolver {
                 let by = self.fold_nodes(by)?;
 
                 self.within_group = by.iter().filter_map(|n| n.declared_at).collect();
-                let sorted = self.sorted.clone();
+                self.sorted.clear();
 
                 let pipeline = Box::new(self.fold_node(*pipeline)?);
 
-                self.within_group = vec![];
-                self.sorted = sorted;
+                self.within_group.clear();
+                self.sorted.clear();
 
                 Transform::Group { by, pipeline }
             }
             Transform::Aggregate { assigns, by } => {
+                self.within_aggregate = true;
                 let assigns = self.fold_assigns(assigns)?;
+                self.within_aggregate = false;
                 self.context.scope.clear();
 
                 Transform::Aggregate { assigns, by }
@@ -208,14 +204,30 @@ impl AstFold for Resolver {
 
                 Transform::Sort(sorts)
             }
+            Transform::Window {
+                range,
+                kind,
+                pipeline,
+            } => {
+                self.within_window = Some((kind.clone(), range.clone()));
+                let pipeline = Box::new(self.fold_node(*pipeline)?);
+                self.within_window = None;
+
+                Transform::Window {
+                    range,
+                    kind,
+                    pipeline,
+                }
+            }
+
             t => fold_transform(self, t)?,
         };
 
         if !self.within_group.is_empty() {
             self.apply_group(&mut t)?;
         }
-        if !self.sorted.is_empty() {
-            self.apply_sort(&mut t)?;
+        if self.within_window.is_some() {
+            self.apply_window(&mut t)?;
         }
 
         Ok(t)
@@ -292,17 +304,16 @@ impl Resolver {
     }
 
     fn fold_assign_expr(&mut self, node: Node) -> Result<Node> {
-        let span = node.span;
-
+        let node = self.fold_node(node)?;
         Ok(match node.item {
             Item::Ident(_) => {
                 // keep existing ident
-                self.fold_node(node)?
+                node
             }
             _ => {
                 // declare new expression so it can be references from FrameColumn
-                let expr = self.fold_node(node)?;
-                let decl = Declaration::Expression(Box::from(expr));
+                let span = node.span;
+                let decl = Declaration::Expression(Box::from(node));
 
                 let id = self.context.declare(decl, span);
 
@@ -313,43 +324,82 @@ impl Resolver {
         })
     }
 
-    fn apply_group(&mut self, t: &mut Transform) -> Result<()> {
+    fn fold_function_call(&mut self, mut node: Node, within_curry: bool) -> Result<Node> {
+        let func_call = node.item.into_func_call().unwrap();
+
+        // validate
+        let (func_call, func_def) = self
+            .validate_function_call(node.declared_at, func_call, within_curry)
+            .with_span(node.span)?;
+
+        node.item = {
+            let return_type = func_def.return_type.as_ref();
+            if Some(&Type::frame()) <= return_type {
+                // cast if this is a transform
+                let transform = transforms::cast_transform(func_call, node.span)?;
+
+                Item::Transform(self.fold_transform(transform)?)
+            } else {
+                let mut item = Item::FuncCall(self.fold_func_call(func_call)?);
+
+                // wrap into windowed
+                if !self.within_aggregate && Some(&Type::column()) <= return_type {
+                    item = self.wrap_into_windowed(item, node.declared_at);
+                    node.declared_at = None;
+                }
+                item
+            }
+        };
+
+        Ok(node)
+    }
+
+    fn wrap_into_windowed(&self, func_call: Item, declared_at: Option<usize>) -> Item {
         const REF: &str = "<ref>";
 
-        let group_by: Vec<_> = (self.within_group)
-            .iter()
-            .map(|id| Node::new_ident(REF, *id))
-            .collect();
+        let mut expr: Node = func_call.into();
+        expr.declared_at = declared_at;
 
+        let frame = self
+            .within_window
+            .clone()
+            .unwrap_or((WindowKind::Rows, Range::unbounded()));
+
+        let mut window = Windowed::new(expr, frame);
+
+        if !self.within_group.is_empty() {
+            window.group = (self.within_group)
+                .iter()
+                .map(|id| Node::new_ident(REF, *id))
+                .collect();
+        }
+        if !self.sorted.is_empty() {
+            window.sort = (self.sorted)
+                .iter()
+                .map(|s| ColumnSort {
+                    column: Node::new_ident(REF, s.column),
+                    direction: s.direction.clone(),
+                })
+                .collect();
+        }
+
+        Item::Windowed(window)
+    }
+
+    fn apply_group(&mut self, t: &mut Transform) -> Result<()> {
         match t {
-            Transform::Select(assigns) | Transform::Derive(assigns) => {
-                for assign in assigns {
-                    let id = assign.declared_at.unwrap();
-
-                    // try to update existing Windowed
-                    let decl = self.context.declarations.get_mut(id);
-                    if let Some((Declaration::Expression(node), _)) = decl {
-                        if let Item::Windowed(window) = &mut node.item {
-                            window.group = group_by.clone();
-                            continue;
-                        }
-                    }
-
-                    // wrap with new Windowed declaration
-                    let windowed = Windowed {
-                        expr: Box::new(Node::new_ident(REF, id)),
-                        group: group_by.clone(),
-                        sort: vec![],
-                    };
-                    let decl = Declaration::Expression(Box::new(Item::Windowed(windowed).into()));
-                    let window_id = self.context.declare(decl, None);
-                    assign.declared_at = Some(window_id);
-                }
+            Transform::Select(_)
+            | Transform::Derive(_)
+            | Transform::Sort(_)
+            | Transform::Window { .. } => {
+                // ok
             }
             Transform::Aggregate { by, .. } => {
-                *by = group_by;
+                *by = (self.within_group)
+                    .iter()
+                    .map(|id| Node::new_ident("<ref>", *id))
+                    .collect();
             }
-            Transform::Sort(_) => {}
             _ => {
                 // TODO: attach span to this error
                 bail!(Error::new(Reason::Simple(format!(
@@ -361,29 +411,13 @@ impl Resolver {
         Ok(())
     }
 
-    fn apply_sort(&mut self, t: &mut Transform) -> Result<()> {
-        match t {
-            Transform::Select(assigns) | Transform::Derive(assigns) => {
-                let sort: Vec<_> = (self.sorted)
-                    .iter()
-                    .map(|s| ColumnSort {
-                        column: Node::new_ident("<ref>", s.column),
-                        direction: s.direction.clone(),
-                    })
-                    .collect();
-
-                for assign in assigns {
-                    let id = assign.declared_at.unwrap();
-
-                    let decl = self.context.declarations.get_mut(id);
-                    if let Some((Declaration::Expression(node), _)) = decl {
-                        if let Item::Windowed(window) = &mut node.item {
-                            window.sort = sort.clone();
-                        }
-                    }
-                }
-            }
-            _ => {}
+    fn apply_window(&mut self, t: &mut Transform) -> Result<()> {
+        if !matches!(t, Transform::Select(_) | Transform::Derive(_)) {
+            // TODO: attach span to this error
+            bail!(Error::new(Reason::Simple(format!(
+                "transform `{}` is not allowed within window context",
+                t.as_ref()
+            ))))
         }
         Ok(())
     }
@@ -523,8 +557,9 @@ mod tests {
                             expr:
                                 Expr:
                                 - Ident: salary_1
-                                - Raw: +
-                                - Raw: "1"
+                                - Operator: +
+                                - Literal:
+                                    Integer: 1
                         - Ident: age
                     named_args: {}
         "##,
@@ -650,7 +685,7 @@ mod tests {
         let result = parse(prql).and_then(resolve_and_translate).unwrap();
         assert_snapshot!(result, @r###"
         SELECT
-          first_name OVER (PARTITION BY last_name) AS first_name
+          first_name
         FROM
           employees
         "###);
@@ -665,7 +700,7 @@ mod tests {
         assert_snapshot!(result, @r###"
         SELECT
           last_name,
-          COUNT(*) AS count
+          COUNT(*)
         FROM
           employees
         GROUP BY
