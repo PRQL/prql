@@ -364,7 +364,10 @@ mod test {
     #[test]
     fn test_parse_pipeline_parse_tree() {
         assert_debug_snapshot!(parse_tree_of_str(
-            include_str!("../../reference/tests/prql/examples/variables-0.prql").trim(),
+            &include_str!("../../reference/tests/prql/examples/variables-0.prql")
+                .trim()
+                // Required for Windows
+                .replace("\r\n", "\n"),
             Rule::pipeline
         )
         .unwrap());
