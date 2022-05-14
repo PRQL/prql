@@ -28,13 +28,33 @@ expression: "parse_tree_of_str(\"(salary | percentile 50)\", Rule::nested_pipeli
                         },
                         inner: [
                             Pair {
-                                rule: ident,
+                                rule: expr_coalesce,
                                 span: Span {
-                                    str: "salary",
+                                    str: "salary ",
                                     start: 1,
-                                    end: 7,
+                                    end: 8,
                                 },
-                                inner: [],
+                                inner: [
+                                    Pair {
+                                        rule: expr_compare,
+                                        span: Span {
+                                            str: "salary ",
+                                            start: 1,
+                                            end: 8,
+                                        },
+                                        inner: [
+                                            Pair {
+                                                rule: ident,
+                                                span: Span {
+                                                    str: "salary",
+                                                    start: 1,
+                                                    end: 7,
+                                                },
+                                                inner: [],
+                                            },
+                                        ],
+                                    },
+                                ],
                             },
                         ],
                     },
@@ -74,13 +94,33 @@ expression: "parse_tree_of_str(\"(salary | percentile 50)\", Rule::nested_pipeli
                                 },
                                 inner: [
                                     Pair {
-                                        rule: number,
+                                        rule: expr_coalesce,
                                         span: Span {
                                             str: "50",
                                             start: 21,
                                             end: 23,
                                         },
-                                        inner: [],
+                                        inner: [
+                                            Pair {
+                                                rule: expr_compare,
+                                                span: Span {
+                                                    str: "50",
+                                                    start: 21,
+                                                    end: 23,
+                                                },
+                                                inner: [
+                                                    Pair {
+                                                        rule: number,
+                                                        span: Span {
+                                                            str: "50",
+                                                            start: 21,
+                                                            end: 23,
+                                                        },
+                                                        inner: [],
+                                                    },
+                                                ],
+                                            },
+                                        ],
                                     },
                                 ],
                             },

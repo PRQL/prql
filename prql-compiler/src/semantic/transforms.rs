@@ -316,7 +316,7 @@ mod tests {
                   From:
                     name: c_invoice
                     alias: ~
-                    declared_at: 57
+                    declared_at: 60
               - Transform:
                   Group:
                     by:
@@ -362,7 +362,7 @@ mod tests {
                   From:
                     name: invoices
                     alias: ~
-                    declared_at: 57
+                    declared_at: 60
               - Transform:
                   Sort:
                     - direction: Asc

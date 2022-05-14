@@ -30,3 +30,6 @@ func as column type ->  s"CAST({column} AS {type})"
 # Window functions
 func lag<column> offset column ->  s"LAG({column}, {offset})"
 func rank<column> ->  s"RANK()"
+
+# Logical functions
+func coalesce value default -> s"COALESCE({value}, {default})"

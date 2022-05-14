@@ -1497,4 +1497,21 @@ take 20
           AND age < 40
         "###);
     }
+
+    #[test]
+    fn test_coalesce() -> Result<()> {
+        assert_display_snapshot!((resolve_and_translate(parse(r###"
+        from employees
+        derive amount = amount + 2 ?? 3 * 5
+        "###,
+        )?)?), @r###"
+        SELECT
+          employees.*,
+          COALESCE(amount + 2, 3 * 5) AS amount
+        FROM
+          employees
+        "###);
+
+        Ok(())
+    }
 }

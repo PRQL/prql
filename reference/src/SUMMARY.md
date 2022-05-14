@@ -22,6 +22,7 @@
   - [Dates & Times](./language-features/dates_and_times.md)
     <!--   - Regex — `REGEX_MATCH(foo, "\\w{3}")` -> `foo ~ r"\w{3}"`? Or -> `regex foo r"\w{3}"`? -->
   - [Regex]()
+  - [Coalesce](./language-features/coalesce.md)
 
 - [Syntax](./syntax.md)
 - [Functions](./functions.md)
