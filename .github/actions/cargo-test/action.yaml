@@ -4,10 +4,10 @@ description: Runs cargo test & cargo lint for a given platform & target.
 inputs:
   target:
     description: "Target triple, like `wasm32-unknown-unknown"
-    required: true
+    required: false
   target_option:
     description: "--target={target}"
-    required: true
+    required: false
 
 runs:
   using: composite
@@ -27,8 +27,8 @@ runs:
     - name: 💰 Cache
       uses: Swatinem/rust-cache@v1
       with:
-        # Without this, it seems to select linux in the wasm32 tests, though in
-        # the docs it says it uses the target as the key?
+        # Without this, it seems to select linux x64 in the wasm32 tests, though
+        # in the docs it says it uses the target as the key?
         key: ${{ inputs.target }}
     - uses: jetli/wasm-bindgen-action@v0.1.0
       if: ${{ inputs.target == 'wasm32-unknown-unknown' }}
