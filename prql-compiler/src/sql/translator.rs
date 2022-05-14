@@ -1350,7 +1350,7 @@ take 20
             total_price = sum ol.price,
           ]
         )
-        sort order_day # order:asc
+        sort order_day
         group [order_month] (
           window expanding:true (
             derive [running_total_num_books = sum num_books]
