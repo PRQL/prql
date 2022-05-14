@@ -362,35 +362,51 @@ mod test {
     use insta::{assert_debug_snapshot, assert_yaml_snapshot};
 
     #[test]
-    fn test_parse_take() {
-        parse_tree_of_str("take 10", Rule::query).unwrap();
+    fn test_parse_pipeline_parse_tree() {
+        assert_debug_snapshot!(parse_tree_of_str(
+            include_str!("../../reference/tests/prql/examples/variables-0.prql").trim(),
+            Rule::pipeline
+        )
+        .unwrap());
+    }
+    #[test]
+    fn test_parse_into_parse_tree() -> Result<()> {
+        assert_debug_snapshot!(parse_tree_of_str(r#"country == "USA""#, Rule::expr)?);
+        assert_debug_snapshot!(parse_tree_of_str("select [a, b, c]", Rule::func_curry)?);
+        assert_debug_snapshot!(parse_tree_of_str(
+            "group [title, country] (
+                aggregate [sum salary]
+            )",
+            Rule::pipeline
+        )?);
+        assert_debug_snapshot!(parse_tree_of_str(
+            r#"    filter country == "USA""#,
+            Rule::pipeline
+        )?);
+        assert_debug_snapshot!(parse_tree_of_str("[a, b, c,]", Rule::list)?);
+        assert_debug_snapshot!(parse_tree_of_str(
+            r#"[
+  gross_salary = salary + payroll_tax,
+  gross_cost   = gross_salary + benefits_cost
+]"#,
+            Rule::list
+        )?);
+        // Currently not putting comments in our parse tree, so this is blank.
+        assert_debug_snapshot!(parse_tree_of_str(
+            r#"# this is a comment
+        select a"#,
+            Rule::COMMENT
+        )?, @"[]");
+        assert_debug_snapshot!(parse_tree_of_str(
+            "join side:left country [id==employee_id]",
+            Rule::func_curry
+        )?);
+        assert_debug_snapshot!(parse_tree_of_str("1  + 2", Rule::expr)?);
+        Ok(())
     }
 
     #[test]
     fn test_parse_string() -> Result<()> {
-        assert_debug_snapshot!(parse_tree_of_str(r#"" U S A ""#, Rule::string)?, @r###"
-        [
-            Pair {
-                rule: string,
-                span: Span {
-                    str: "\" U S A \"",
-                    start: 0,
-                    end: 9,
-                },
-                inner: [
-                    Pair {
-                        rule: string_inner,
-                        span: Span {
-                            str: " U S A ",
-                            start: 1,
-                            end: 8,
-                        },
-                        inner: [],
-                    },
-                ],
-            },
-        ]
-        "###);
         let double_quoted_ast = ast_of_string(r#"" U S A ""#, Rule::string)?;
         assert_yaml_snapshot!(double_quoted_ast, @r###"
         ---
@@ -491,7 +507,6 @@ Canada
 
     #[test]
     fn test_parse_s_string() -> Result<()> {
-        assert_debug_snapshot!(parse_tree_of_str(r#"s"SUM({col})""#, Rule::expr_call)?);
         assert_yaml_snapshot!(ast_of_string(r#"s"SUM({col})""#, Rule::expr_call)?, @r###"
         ---
         SString:
@@ -518,7 +533,6 @@ Canada
 
     #[test]
     fn test_parse_list() {
-        assert_debug_snapshot!(parse_tree_of_str(r#"[1 + 1, 2]"#, Rule::list).unwrap());
         assert_yaml_snapshot!(ast_of_string(r#"[1 + 1, 2]"#, Rule::list).unwrap(), @r###"
         ---
         List:
@@ -580,9 +594,17 @@ Canada
         "###);
         assert_ne!(ab, a_comma_b);
 
-        assert_debug_snapshot!(
-            parse_tree_of_str(r#"[amount, +amount, -amount]"#, Rule::list).unwrap()
-        );
+        assert_yaml_snapshot!(ast_of_string(r#"[amount, +amount, -amount]"#, Rule::list).unwrap(), @r###"
+        ---
+        List:
+          - Ident: amount
+          - Expr:
+              - Operator: +
+              - Ident: amount
+          - Expr:
+              - Operator: "-"
+              - Ident: amount
+        "###);
         // Operators in list items
         assert_yaml_snapshot!(ast_of_string(r#"[amount, +amount, -amount]"#, Rule::list).unwrap(), @r###"
         ---
@@ -599,33 +621,17 @@ Canada
 
     #[test]
     fn test_parse_number() -> Result<()> {
-        assert_debug_snapshot!(parse_tree_of_str(r#"23"#, Rule::number)?, @r###"
-        [
-            Pair {
-                rule: number,
-                span: Span {
-                    str: "23",
-                    start: 0,
-                    end: 2,
-                },
-                inner: [],
-            },
-        ]
+        assert_yaml_snapshot!(ast_of_string(r#"23"#, Rule::number)?, @r###"
+        ---
+        Literal:
+          Integer: 23
         "###);
-        assert_debug_snapshot!(parse_tree_of_str(r#"23.6"#, Rule::number)?, @r###"
-        [
-            Pair {
-                rule: number,
-                span: Span {
-                    str: "23.6",
-                    start: 0,
-                    end: 4,
-                },
-                inner: [],
-            },
-        ]
+        assert_yaml_snapshot!(ast_of_string(r#"23.6"#, Rule::number)?, @r###"
+        ---
+        Literal:
+          Float: 23.6
         "###);
-        assert_debug_snapshot!(parse_tree_of_str(r#"2 + 2"#, Rule::expr)?);
+        assert_yaml_snapshot!(ast_of_string(r#"2 + 2"#, Rule::expr)?);
         Ok(())
     }
 
@@ -899,10 +905,22 @@ take 20
 
     #[test]
     fn test_parse_function() -> Result<()> {
-        assert_debug_snapshot!(parse_tree_of_str(
-            "func plus_one x ->  x + 1",
-            Rule::func_def
-        )?);
+        assert_yaml_snapshot!(ast_of_string("func plus_one x ->  x + 1", Rule::func_def)?, @r###"
+        ---
+        FuncDef:
+          name: plus_one
+          positional_params:
+            - - Ident: x
+              - ~
+          named_params: []
+          body:
+            Expr:
+              - Ident: x
+              - Operator: +
+              - Literal:
+                  Integer: 1
+          return_type: ~
+        "###);
         assert_yaml_snapshot!(ast_of_string(
             "func identity x ->  x", Rule::func_def
         )?
@@ -1211,52 +1229,7 @@ take 20
     }
 
     #[test]
-    fn test_parse_into_parse_tree() -> Result<()> {
-        assert_debug_snapshot!(parse_tree_of_str(r#"country == "USA""#, Rule::expr)?);
-        assert_debug_snapshot!(parse_tree_of_str("select [a, b, c]", Rule::func_curry)?);
-        assert_debug_snapshot!(parse_tree_of_str(
-            "group [title, country] (
-                aggregate [sum salary]
-            )",
-            Rule::pipeline
-        )?);
-        assert_debug_snapshot!(parse_tree_of_str(
-            r#"    filter country == "USA""#,
-            Rule::pipeline
-        )?);
-        assert_debug_snapshot!(parse_tree_of_str("[a, b, c,]", Rule::list)?);
-        assert_debug_snapshot!(parse_tree_of_str(
-            r#"[
-  gross_salary = salary + payroll_tax,
-  gross_cost   = gross_salary + benefits_cost
-]"#,
-            Rule::list
-        )?);
-        // Currently not putting comments in our parse tree, so this is blank.
-        assert_debug_snapshot!(parse_tree_of_str(
-            r#"# this is a comment
-        select a"#,
-            Rule::COMMENT
-        )?);
-        assert_debug_snapshot!(parse_tree_of_str(
-            "join country [id==employee_id]",
-            Rule::func_curry
-        )?);
-        assert_debug_snapshot!(parse_tree_of_str(
-            "join side:left country [id==employee_id]",
-            Rule::func_curry
-        )?);
-        assert_debug_snapshot!(parse_tree_of_str("1  + 2", Rule::expr)?);
-        Ok(())
-    }
-
-    #[test]
     fn test_inline_pipeline() {
-        assert_debug_snapshot!(parse_tree_of_str(
-            "(salary | percentile 50)",
-            Rule::nested_pipeline
-        )
-        .unwrap());
         assert_yaml_snapshot!(ast_of_string("(salary | percentile 50)", Rule::nested_pipeline).unwrap(), @r###"
         ---
         Pipeline:
@@ -1295,56 +1268,6 @@ take 20
                           named_args: {}
                 return_type: ~
         "###);
-    }
-
-    #[test]
-    fn test_parse_pipeline_parse_tree() {
-        assert_debug_snapshot!(parse_tree_of_str(
-            r#"
-            from employees
-            select [a, b]
-            "#
-            .trim(),
-            Rule::pipeline
-        )
-        .unwrap());
-        assert_debug_snapshot!(parse_tree_of_str(
-            r#"
-            from employees
-            filter country == "USA"
-            "#
-            .trim(),
-            Rule::pipeline
-        )
-        .unwrap());
-        assert_debug_snapshot!(parse_tree_of_str(
-            r#"
-from employees
-filter country == "USA"                           # Each line transforms the previous result.
-derive [                                         # This adds columns / variables.
-  gross_salary = salary + payroll_tax,
-  gross_cost   = gross_salary + benefits_cost    # Variables can use other variables.
-]
-filter gross_cost > 0
-group [title, country] (
-    aggregate [                                  # `by` are the columns to group by.
-        average salary,                          # These are aggregation calcs run on each group.
-        sum     salary,
-        average gross_salary,
-        sum     gross_salary,
-        average gross_cost,
-        sum_gross_cost = sum gross_cost,
-        count = count,
-    ]
-)
-sort sum_gross_cost
-filter count > 200
-take 20
-    "#
-            .trim(),
-            Rule::pipeline
-        )
-        .unwrap());
     }
 
     #[test]
