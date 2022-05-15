@@ -31,6 +31,7 @@ jobs:
       - uses: ./.github/actions/cargo-test
         with:
           target: ${{ matrix.target }}
+          target_option: ${{ matrix.target_option }}
 
   code-cov:
     runs-on: ubuntu-latest
