@@ -249,6 +249,17 @@ fn sql_query_of_atomic_table(table: AtomicTable, dialect: &Dialect) -> Result<sq
     };
     let dialect = dialect.handler();
 
+    let offset = {
+        if take.0 == 1 {
+            None
+        } else {
+            Some(sqlparser::ast::Offset {
+                value: Item::Literal(Literal::Integer(take.0 - 1)).try_into()?,
+                rows: sqlparser::ast::OffsetRows::None,
+            })
+        }
+    };
+
     Ok(sql_ast::Query {
         body: SetExpr::Select(Box::new(Select {
             distinct: false,
@@ -275,10 +286,9 @@ fn sql_query_of_atomic_table(table: AtomicTable, dialect: &Dialect) -> Result<sq
         limit: if dialect.use_top() {
             None
         } else {
-            take.1
-                .map(|x| Item::Literal(Literal::Integer(x)).try_into().unwrap())
+            take.1.map(expr_of_i64)
         },
-        offset: None,
+        offset,
         fetch: None,
         lock: None,
     })
@@ -604,6 +614,7 @@ impl TryFrom<Item> for Expr {
         })
     }
 }
+
 fn try_into_window_frame((kind, range): (WindowKind, Range)) -> Result<sql_ast::WindowFrame> {
     fn parse_bound(bound: Node, offset: i64) -> Result<WindowFrameBound> {
         let as_int = bound.item.into_literal()?.into_integer()?;
@@ -717,6 +728,8 @@ mod test {
         // .into();
         let range1 = Range::from_ints(Some(1), Some(10));
         let range2 = Range::from_ints(Some(5), Some(6));
+        let range3 = Range::from_ints(Some(5), None);
+        let range4 = Range::from_ints(None, Some(8));
 
         assert!(range_of_ranges(vec![range1.clone()])?.1.is_some());
 
@@ -747,7 +760,7 @@ mod test {
         )
         "###);
 
-        assert_debug_snapshot!(range_of_ranges(vec![range2.clone(), range1])?, @r###"
+        assert_debug_snapshot!(range_of_ranges(vec![range2.clone(), range1.clone()])?, @r###"
         (
             5,
             Some(
@@ -757,7 +770,41 @@ mod test {
         "###);
 
         // We can't get 5..6 from 5..6.
-        assert!(range_of_ranges(vec![range2.clone(), range2]).is_err());
+        assert!(range_of_ranges(vec![range2.clone(), range2.clone()]).is_err());
+
+        assert_debug_snapshot!(range_of_ranges(vec![range3.clone(), range3.clone()])?, @r###"
+        (
+            9,
+            None,
+        )
+        "###);
+
+        assert_debug_snapshot!(range_of_ranges(vec![range1, range3])?, @r###"
+        (
+            5,
+            Some(
+                14,
+            ),
+        )
+        "###);
+
+        assert_debug_snapshot!(range_of_ranges(vec![range2, range4.clone()])?, @r###"
+        (
+            5,
+            Some(
+                6,
+            ),
+        )
+        "###);
+
+        assert_debug_snapshot!(range_of_ranges(vec![range4.clone(), range4])?, @r###"
+        (
+            1,
+            Some(
+                8,
+            ),
+        )
+        "###);
 
         Ok(())
     }
@@ -1730,6 +1777,48 @@ take 20
           COALESCE(amount + 2, 3 * 5) AS amount
         FROM
           employees
+        "###);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_range() -> Result<()> {
+        assert_display_snapshot!((resolve_and_translate(parse(r###"
+        from employees
+        take ..10
+        "###,
+        )?)?), @r###"
+        SELECT
+          employees.*
+        FROM
+          employees
+        LIMIT
+          10
+        "###);
+
+        assert_display_snapshot!((resolve_and_translate(parse(r###"
+        from employees
+        take 5..10
+        "###,
+        )?)?), @r###"
+        SELECT
+          employees.*
+        FROM
+          employees
+        LIMIT
+          10 OFFSET 4
+        "###);
+
+        assert_display_snapshot!((resolve_and_translate(parse(r###"
+        from employees
+        take 5..
+        "###,
+        )?)?), @r###"
+        SELECT
+          employees.*
+        FROM
+          employees OFFSET 4
         "###);
 
         Ok(())
