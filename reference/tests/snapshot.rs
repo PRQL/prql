@@ -36,14 +36,14 @@ fn run_examples() -> Result<()> {
     // Note that on windows, we only get the next _line_, and so we exclude the
     // writing on Windows. ref https://github.com/prql/prql/issues/356
     #[cfg(not(target_family = "windows"))]
-    write_reference_examples()?;
-    run_reference_examples()?;
+    write_reference_prql()?;
+    run_reference_prql()?;
 
     Ok(())
 }
 
 /// Extract reference examples from the PRQL docs and write them to the
-/// `tests/examples` path, one in each file.
+/// `tests/prql` path, one in each file.
 // We could alternatively have used something like
 // https://github.com/earldouglas/codedown, but it's not much code, and it
 // requires no dependencies.
@@ -51,15 +51,15 @@ fn run_examples() -> Result<()> {
 // We allow dead_code because of the window issue described above. (Can we allow
 // it only for windows?)
 #[allow(dead_code)]
-fn write_reference_examples() -> Result<()> {
-    // Remove old examples, since we're going to rewrite them, and we don't want
+fn write_reference_prql() -> Result<()> {
+    // Remove old .prql files, since we're going to rewrite them, and we don't want
     // old files which wouldn't be rewritten from hanging around.
     // We use `trash`, since we don't want to be removing files with test code
     // in case there's a bug.
 
-    let examples_path = Path::new("tests/examples");
+    let examples_path = Path::new("tests/prql");
     if examples_path.exists() {
-        trash::delete(Path::new("tests/examples")).unwrap_or_else(|e| {
+        trash::delete(Path::new("tests/prql")).unwrap_or_else(|e| {
             warn!("Failed to delete old examples: {}", e);
         });
     }
@@ -73,7 +73,7 @@ fn write_reference_examples() -> Result<()> {
         .try_for_each(|dir_entry| {
             let text = fs::read_to_string(dir_entry.path())?;
             let mut parser = Parser::new(&text);
-            let mut examples = vec![];
+            let mut prql_blocks = vec![];
             while let Some(event) = parser.next() {
                 match event.clone() {
                     // At the start of a PRQL code block, push the _next_ item.
@@ -84,7 +84,7 @@ fn write_reference_examples() -> Result<()> {
                         if lang == "prql".into() =>
                     {
                         if let Some(Event::Text(text)) = parser.next() {
-                            examples.push(text);
+                            prql_blocks.push(text);
                         } else {
                             bail!("Expected text after PRQL code block");
                         }
@@ -94,20 +94,23 @@ fn write_reference_examples() -> Result<()> {
             }
 
             // Write each one to a new file.
-            examples.iter().enumerate().try_for_each(|(i, example)| {
-                let file_relative = &dir_entry
-                    .path()
-                    .strip_prefix("./src/")?
-                    .to_str()
-                    .unwrap()
-                    .trim_end_matches(".md");
-                let prql_path = format!("tests/examples/{file_relative}-{i}.prql");
+            prql_blocks
+                .iter()
+                .enumerate()
+                .try_for_each(|(i, example)| {
+                    let file_relative = &dir_entry
+                        .path()
+                        .strip_prefix("./src/")?
+                        .to_str()
+                        .unwrap()
+                        .trim_end_matches(".md");
+                    let prql_path = format!("tests/prql/{file_relative}-{i}.prql");
 
-                fs::create_dir_all(Path::new(&prql_path).parent().unwrap())?;
-                fs::write(prql_path, example.to_string())?;
+                    fs::create_dir_all(Path::new(&prql_path).parent().unwrap())?;
+                    fs::write(prql_path, example.to_string())?;
 
-                Ok::<(), anyhow::Error>(())
-            })?;
+                    Ok::<(), anyhow::Error>(())
+                })?;
             Ok(())
         })?;
 
@@ -115,8 +118,8 @@ fn write_reference_examples() -> Result<()> {
 }
 
 /// Snapshot the output of each example.
-fn run_reference_examples() -> Result<()> {
-    glob!("examples/**/*.prql", |path| {
+fn run_reference_prql() -> Result<()> {
+    glob!("prql/**/*.prql", |path| {
         let prql = fs::read_to_string(path).unwrap();
 
         if prql.contains("skip_test") {

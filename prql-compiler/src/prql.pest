@@ -20,7 +20,8 @@ func_def = { "func" ~ func_def_name ~ func_def_params ~ "->" ~ expr }
 func_def_name = { ident ~ type_def? }
 func_def_params = { func_def_param* }
 func_def_param = { (named_arg | ident) ~ type_def? }
-type_def = { "<" ~ ident ~ type_def? ~ ">" }
+type_def = { "<" ~ type_term ~ ( "|" ~ type_term)* ~ ">" }
+type_term = { ident ~ type_def? }
 
 table = { "table" ~ ident ~ "=" ~ nested_pipeline }
 
@@ -66,8 +67,9 @@ assign_call = { ident ~ "=" ~ !"=" ~ expr_call }
 // Expression that can contain a function call and a leading `+` or `-`
 expr_call = { operator_add? ~ (func_call | expr) }
 
-expr = !{ expr_compare ~ (operator_logical ~ expr_compare)* }
-expr_compare = _{ expr_add ~ (operator_compare ~ expr_add)? }
+expr = !{ expr_coalesce ~ (operator_logical ~ expr_coalesce)* }
+expr_coalesce = { expr_compare ~ (operator_coalesce ~ expr_compare)* }
+expr_compare = { expr_add ~ (operator_compare ~ expr_add)? }
 expr_add = _{ expr_mul ~ (operator_add ~ expr_mul)* }
 expr_mul = _{ term ~ (operator_mul ~ term)* }
 
@@ -109,12 +111,13 @@ range = ${ range_edge ~ ".." ~ range_edge }
 // the whole span, not just the part before `..`.
 range_edge = ${ literal? }
 
-operator = _{ operator_unary | operator_mul | operator_add | operator_compare | operator_logical }
+operator = _{ operator_unary | operator_mul | operator_add | operator_compare | operator_logical | operator_coalesce }
 operator_unary = ${ "-" }
 operator_mul = ${ "*" | "/" | "%" }
 operator_add = ${ "+" | "-" }
 operator_compare = ${ "==" | "!=" | ">" | "<" | ">=" | "<=" }
 operator_logical = ${ ("and" | "or" | "not") ~ &WHITESPACE }
+operator_coalesce = ${ "??" }
 
 // TODO: allow a raw s-string / f-string (but not an s-f string...)
 s_string = ${ "s" ~ PUSH(quote) ~ ( interpolate_string_inner | ( "{" ~ expr_call ~ "}" ))* ~ POP }

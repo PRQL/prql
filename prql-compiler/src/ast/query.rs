@@ -33,7 +33,7 @@ pub struct Table {
 pub enum Transform {
     From(TableRef),
     Select(Vec<Node>),
-    Filter(Vec<Node>),
+    Filter(Box<Node>),
     Derive(Vec<Node>),
     Aggregate {
         assigns: Vec<Node>,
@@ -50,6 +50,17 @@ pub enum Transform {
         by: Vec<Node>,
         pipeline: Box<Node>,
     },
+    Window {
+        kind: WindowKind,
+        range: Range,
+        pipeline: Box<Node>,
+    },
+}
+
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+pub enum WindowKind {
+    Rows,
+    Range,
 }
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Select {

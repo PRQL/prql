@@ -1,15 +1,7 @@
-Examples prefixed with employees are using [employees database](https://github.com/vrajmohan/pgsql-sample-data.git).
+# Examples
 
-Clone and init the database (requires a local PostgreSQL instance):
+These examples are rewritten from other languages such as SQL. They try to express real-world problems in PRQL, covering most of the language features. We are looking for different use-cases of data transformation, be it database queries, semnatic bussiness modeling or data cleaning.
 
-    $ psql -U postgres -c 'CREATE DATABASE employees;'
-    $ git clone https://github.com/vrajmohan/pgsql-sample-data.git
-    $ psql -U postgres -d employees -f pgsql-sample-data/employee/employees.dump
+If you want to help, translate some of your queries to PRQL and [open a PR](https://github.com/prql/prql/pulls) to add them here!
 
-Execute a PRQL query:
-
-    $ cargo run compile examples/employees/average-title-salary.prql | psql -U postgres -d employees
-
-Also print the query:
-
-    $ cargo run compile my_file.prql | { tee /dev/stderr; echo -e "\nResult:" >&2 } | psql -U postgres -d employees
+<!-- TODO: toc -->

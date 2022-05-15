@@ -5,6 +5,7 @@
 use std::collections::HashMap;
 use std::str::FromStr;
 
+use anyhow::bail;
 use anyhow::{anyhow, Result};
 use itertools::Itertools;
 use pest::iterators::Pair;
@@ -49,8 +50,9 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
         .filter(|pair| pair.as_rule() != Rule::EOI)
         .map(|pair| {
             let span = pair.as_span();
+            let rule = pair.as_rule();
 
-            let item = match &pair.as_rule() {
+            let item = match rule {
                 Rule::query => {
                     let mut parsed = ast_of_parse_tree(pair.into_inner())?;
                     // this is [query, ...]
@@ -100,6 +102,28 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
                 | Rule::expr_compare
                 | Rule::expr
                 | Rule::expr_call => ast_of_parse_tree(pair.into_inner())?.into_expr(),
+                // With coalesce, we need to grab the left and the right,
+                // because we're transforming it into a function call rather
+                // than passing along the operator. So this is unlike the rest
+                // of the parsing (and maybe isn't optimal).
+                Rule::expr_coalesce => {
+                    let pairs = pair.into_inner();
+                    // If there's no coalescing, just return the single expression.
+                    if pairs.clone().count() == 1 {
+                        ast_of_parse_tree(pairs)?.into_only()?.item
+                    } else {
+                        let parsed = ast_of_parse_tree(pairs)?;
+                        Item::FuncCall(FuncCall {
+                            name: "coalesce".to_string(),
+                            args: vec![parsed[0].clone(), parsed[2].clone()],
+                            named_args: HashMap::new(),
+                        })
+                    }
+                }
+                // This makes the previous parsing a bit easier, but is hacky;
+                // ideally find a better way (but it doesn't seem that easy to
+                // parse parts of a Pairs).
+                Rule::operator_coalesce => Item::Ident("-".to_string()),
 
                 Rule::assign_call | Rule::assign => {
                     let mut items = ast_of_parse_tree(pair.into_inner())?;
@@ -169,11 +193,23 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
                     })
                 }
                 Rule::ident => Item::Ident(pair.as_str().to_string()),
+
+                Rule::number => {
+                    let str = pair.as_str();
+
+                    let lit = if let Ok(i) = str.parse::<i64>() {
+                        Literal::Integer(i)
+                    } else if let Ok(f) = str.parse::<f64>() {
+                        Literal::Float(f)
+                    } else {
+                        bail!("cannot parse {str} as number")
+                    };
+                    Item::Literal(lit)
+                }
+                Rule::boolean => Item::Literal(Literal::Boolean(pair.as_str() == "true")),
                 Rule::string => {
                     let inner = pair.into_inner().into_only()?.as_str().to_string();
-
-                    // Put string_inner (which doesn't have quotes) into Item::String.
-                    Item::String(inner)
+                    Item::Literal(Literal::String(inner))
                 }
                 Rule::s_string => Item::SString(ast_of_interpolate_items(pair)?),
                 Rule::f_string => Item::FString(ast_of_interpolate_items(pair)?),
@@ -215,6 +251,7 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
                         .map_err(|e| anyhow!("Expected start, separator, end; {e:?}"))?;
                     Item::Range(Range { start, end })
                 }
+
                 Rule::interval => {
                     let pairs: Vec<_> = pair.into_inner().into_iter().collect();
                     let [n, unit]: [Pair<Rule>; 2] = pairs
@@ -226,42 +263,55 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
                         unit: unit.as_str().to_owned(),
                     })
                 }
-                Rule::date => {
-                    let parsed = ast_of_parse_tree(pair.into_inner());
-                    Item::Date(parsed?.into_only()?.item.into_raw()?)
-                }
-                Rule::time => {
-                    let parsed = ast_of_parse_tree(pair.into_inner());
-                    Item::Time(parsed?.into_only()?.item.into_raw()?)
-                }
-                Rule::timestamp => {
-                    let parsed = ast_of_parse_tree(pair.into_inner());
-                    Item::Timestamp(parsed?.into_only()?.item.into_raw()?)
-                }
-                Rule::type_def => {
-                    let mut parts: Vec<_> = pair.into_inner().into_iter().collect();
-                    let name = parts.remove(0).as_str().to_string();
-                    let param = parts
-                        .pop()
-                        .map(|p| ast_of_parse_tree(p.into_inner()))
-                        .transpose()?
-                        .map(|p| p.into_only())
-                        .transpose()?
-                        .map(Box::new);
 
-                    Item::Type(Type { name, param })
+                Rule::date | Rule::time | Rule::timestamp => {
+                    let inner = pair.into_inner().into_only()?.as_str().to_string();
+
+                    Item::Literal(match rule {
+                        Rule::date => Literal::Date(inner),
+                        Rule::time => Literal::Time(inner),
+                        Rule::timestamp => Literal::Timestamp(inner),
+                        _ => unreachable!(),
+                    })
                 }
-                Rule::boolean => Item::Boolean(pair.as_str() == "true"),
+
+                Rule::type_def => {
+                    let mut types: Vec<_> = pair
+                        .into_inner()
+                        .into_iter()
+                        .map(|pair| -> Result<Type> {
+                            let mut parts: Vec<_> = pair.into_inner().into_iter().collect();
+                            let native = NativeType::from_str(parts.remove(0).as_str())?;
+                            let typ = Type::Native(native);
+
+                            let param = parts
+                                .pop()
+                                .map(|p| ast_of_parse_tree(p.into_inner()))
+                                .transpose()?
+                                .map(|p| p.into_only())
+                                .transpose()?;
+
+                            Ok(if let Some(param) = param {
+                                Type::Parameterized(Box::new(typ), Box::new(param))
+                            } else {
+                                typ
+                            })
+                        })
+                        .try_collect()?;
+
+                    let typ = if types.len() > 1 {
+                        Type::AnyOf(types)
+                    } else {
+                        types.remove(0)
+                    };
+
+                    Item::Type(typ)
+                }
                 Rule::operator_unary
                 | Rule::operator_mul
                 | Rule::operator_add
                 | Rule::operator_compare
                 | Rule::operator_logical => Item::Operator(pair.as_str().to_owned()),
-                Rule::number
-                | Rule::interval_kind
-                | Rule::date_inner
-                | Rule::time_inner
-                | Rule::timestamp_inner => Item::Raw(pair.as_str().to_owned()),
 
                 _ => unreachable!("{pair}"),
             };
@@ -320,7 +370,8 @@ mod test {
         FuncCall:
           name: take
           args:
-            - Raw: "10"
+            - Literal:
+                Integer: 10
           named_args: {}
         "###);
 
@@ -332,9 +383,11 @@ mod test {
           args:
             - Range:
                 start:
-                  Raw: "1"
+                  Literal:
+                    Integer: 1
                 end:
-                  Raw: "10"
+                  Literal:
+                    Integer: 10
           named_args: {}
         "###);
 
@@ -342,34 +395,59 @@ mod test {
     }
 
     #[test]
+    fn test_parse_pipeline_parse_tree() {
+        assert_debug_snapshot!(parse_tree_of_str(
+            &include_str!("../../reference/tests/prql/examples/variables-0.prql")
+                .trim()
+                // Required for Windows
+                .replace("\r\n", "\n"),
+            Rule::pipeline
+        )
+        .unwrap());
+    }
+    #[test]
+    fn test_parse_into_parse_tree() -> Result<()> {
+        assert_debug_snapshot!(parse_tree_of_str(r#"country == "USA""#, Rule::expr)?);
+        assert_debug_snapshot!(parse_tree_of_str("select [a, b, c]", Rule::func_curry)?);
+        assert_debug_snapshot!(parse_tree_of_str(
+            "group [title, country] (
+                aggregate [sum salary]
+            )",
+            Rule::pipeline
+        )?);
+        assert_debug_snapshot!(parse_tree_of_str(
+            r#"    filter country == "USA""#,
+            Rule::pipeline
+        )?);
+        assert_debug_snapshot!(parse_tree_of_str("[a, b, c,]", Rule::list)?);
+        assert_debug_snapshot!(parse_tree_of_str(
+            r#"[
+  gross_salary = salary + payroll_tax,
+  gross_cost   = gross_salary + benefits_cost
+]"#,
+            Rule::list
+        )?);
+        // Currently not putting comments in our parse tree, so this is blank.
+        assert_debug_snapshot!(parse_tree_of_str(
+            r#"# this is a comment
+        select a"#,
+            Rule::COMMENT
+        )?, @"[]");
+        assert_debug_snapshot!(parse_tree_of_str(
+            "join side:left country [id==employee_id]",
+            Rule::func_curry
+        )?);
+        assert_debug_snapshot!(parse_tree_of_str("1  + 2", Rule::expr)?);
+        Ok(())
+    }
+
+    #[test]
     fn test_parse_string() -> Result<()> {
-        assert_debug_snapshot!(parse_tree_of_str(r#"" U S A ""#, Rule::string)?, @r###"
-        [
-            Pair {
-                rule: string,
-                span: Span {
-                    str: "\" U S A \"",
-                    start: 0,
-                    end: 9,
-                },
-                inner: [
-                    Pair {
-                        rule: string_inner,
-                        span: Span {
-                            str: " U S A ",
-                            start: 1,
-                            end: 8,
-                        },
-                        inner: [],
-                    },
-                ],
-            },
-        ]
-        "###);
         let double_quoted_ast = ast_of_string(r#"" U S A ""#, Rule::string)?;
         assert_yaml_snapshot!(double_quoted_ast, @r###"
         ---
-        String: " U S A "
+        Literal:
+          String: " U S A "
         "###);
 
         let single_quoted_ast = ast_of_string(r#"' U S A '"#, Rule::string)?;
@@ -379,11 +457,13 @@ mod test {
         // the single quotes (and vice versa).
         assert_yaml_snapshot!(ast_of_string(r#""' U S A '""#, Rule::string)? , @r###"
         ---
-        String: "' U S A '"
+        Literal:
+          String: "' U S A '"
         "###);
         assert_yaml_snapshot!(ast_of_string(r#"'" U S A "'"#, Rule::string)? , @r###"
         ---
-        String: "\" U S A \""
+        Literal:
+          String: "\" U S A \""
         "###);
 
         assert!(ast_of_string(r#"" U S A"#, Rule::string).is_err());
@@ -394,9 +474,18 @@ mod test {
         let escaped_string = ast_of_string(r#"" \U S A ""#, Rule::string)?;
         assert_yaml_snapshot!(escaped_string, @r###"
         ---
-        String: " \\U S A "
+        Literal:
+          String: " \\U S A "
         "###);
-        assert_eq!(escaped_string.item.as_string().unwrap(), r#" \U S A "#);
+        assert_eq!(
+            escaped_string
+                .item
+                .as_literal()
+                .unwrap()
+                .as_string()
+                .unwrap(),
+            r#" \U S A "#
+        );
 
         // Currently we don't allow escaping closing quotes — because it's not
         // trivial to do in pest, and I'm not sure it's a great idea either — we
@@ -406,9 +495,18 @@ mod test {
         let escaped_quotes = ast_of_string(r#"" Canada \""#, Rule::string)?;
         assert_yaml_snapshot!(escaped_quotes, @r###"
         ---
-        String: " Canada \\"
+        Literal:
+          String: " Canada \\"
         "###);
-        assert_eq!(escaped_quotes.item.as_string().unwrap(), r#" Canada \"#);
+        assert_eq!(
+            escaped_quotes
+                .item
+                .as_literal()
+                .unwrap()
+                .as_string()
+                .unwrap(),
+            r#" Canada \"#
+        );
 
         let multi_double = ast_of_string(
             r#""""
@@ -421,7 +519,8 @@ Canada
         )?;
         assert_yaml_snapshot!(multi_double, @r###"
         ---
-        String: "\n''\nCanada\n\"\n\n"
+        Literal:
+          String: "\n''\nCanada\n\"\n\n"
         "###);
 
         let multi_single = ast_of_string(
@@ -435,7 +534,8 @@ Canada
         )?;
         assert_yaml_snapshot!(multi_single, @r###"
         ---
-        String: "\nCanada\n\"\n\"\"\"\n\n"
+        Literal:
+          String: "\nCanada\n\"\n\"\"\"\n\n"
         "###);
 
         Ok(())
@@ -443,7 +543,6 @@ Canada
 
     #[test]
     fn test_parse_s_string() -> Result<()> {
-        assert_debug_snapshot!(parse_tree_of_str(r#"s"SUM({col})""#, Rule::expr_call)?);
         assert_yaml_snapshot!(ast_of_string(r#"s"SUM({col})""#, Rule::expr_call)?, @r###"
         ---
         SString:
@@ -458,9 +557,11 @@ Canada
           - String: SUM(
           - Expr:
               Expr:
-                - Raw: "2"
+                - Literal:
+                    Integer: 2
                 - Operator: +
-                - Raw: "2"
+                - Literal:
+                    Integer: 2
           - String: )
         "###);
         Ok(())
@@ -468,28 +569,33 @@ Canada
 
     #[test]
     fn test_parse_list() {
-        assert_debug_snapshot!(parse_tree_of_str(r#"[1 + 1, 2]"#, Rule::list).unwrap());
         assert_yaml_snapshot!(ast_of_string(r#"[1 + 1, 2]"#, Rule::list).unwrap(), @r###"
         ---
         List:
           - Expr:
-              - Raw: "1"
+              - Literal:
+                  Integer: 1
               - Operator: +
-              - Raw: "1"
-          - Raw: "2"
+              - Literal:
+                  Integer: 1
+          - Literal:
+              Integer: 2
         "###);
         assert_yaml_snapshot!(ast_of_string(r#"[1 + (f 1), 2]"#, Rule::list).unwrap(), @r###"
         ---
         List:
           - Expr:
-              - Raw: "1"
+              - Literal:
+                  Integer: 1
               - Operator: +
               - FuncCall:
                   name: f
                   args:
-                    - Raw: "1"
+                    - Literal:
+                        Integer: 1
                   named_args: {}
-          - Raw: "2"
+          - Literal:
+              Integer: 2
         "###);
         // Line breaks
         assert_yaml_snapshot!(ast_of_string(
@@ -499,8 +605,10 @@ Canada
          Rule::list).unwrap(), @r###"
         ---
         List:
-          - Raw: "1"
-          - Raw: "2"
+          - Literal:
+              Integer: 1
+          - Literal:
+              Integer: 2
         "###);
         // Function call in a list
         let ab = ast_of_string(r#"[a b]"#, Rule::list).unwrap();
@@ -522,9 +630,17 @@ Canada
         "###);
         assert_ne!(ab, a_comma_b);
 
-        assert_debug_snapshot!(
-            parse_tree_of_str(r#"[amount, +amount, -amount]"#, Rule::list).unwrap()
-        );
+        assert_yaml_snapshot!(ast_of_string(r#"[amount, +amount, -amount]"#, Rule::list).unwrap(), @r###"
+        ---
+        List:
+          - Ident: amount
+          - Expr:
+              - Operator: +
+              - Ident: amount
+          - Expr:
+              - Operator: "-"
+              - Ident: amount
+        "###);
         // Operators in list items
         assert_yaml_snapshot!(ast_of_string(r#"[amount, +amount, -amount]"#, Rule::list).unwrap(), @r###"
         ---
@@ -541,20 +657,25 @@ Canada
 
     #[test]
     fn test_parse_number() -> Result<()> {
-        assert_debug_snapshot!(parse_tree_of_str(r#"23"#, Rule::number)?, @r###"
-        [
-            Pair {
-                rule: number,
-                span: Span {
-                    str: "23",
-                    start: 0,
-                    end: 2,
-                },
-                inner: [],
-            },
-        ]
+        assert_yaml_snapshot!(ast_of_string(r#"23"#, Rule::number)?, @r###"
+        ---
+        Literal:
+          Integer: 23
         "###);
-        assert_debug_snapshot!(parse_tree_of_str(r#"2 + 2"#, Rule::expr)?);
+        assert_yaml_snapshot!(ast_of_string(r#"23.6"#, Rule::number)?, @r###"
+        ---
+        Literal:
+          Float: 23.6
+        "###);
+        assert_yaml_snapshot!(ast_of_string(r#"2 + 2"#, Rule::expr)?, @r###"
+        ---
+        Expr:
+          - Literal:
+              Integer: 2
+          - Operator: +
+          - Literal:
+              Integer: 2
+        "###);
         Ok(())
     }
 
@@ -576,7 +697,8 @@ Canada
                         - Expr:
                             - Ident: country
                             - Operator: "=="
-                            - String: USA
+                            - Literal:
+                                String: USA
                       named_args: {}
         "###);
 
@@ -600,7 +722,8 @@ Canada
                                   - Ident: country
                                 named_args: {}
                             - Operator: "=="
-                            - String: USA
+                            - Literal:
+                                String: USA
                       named_args: {}
         "###
         );
@@ -690,7 +813,8 @@ Canada
                 - Assign:
                     name: x
                     expr:
-                      Raw: "5"
+                      Literal:
+                        Integer: 5
                 - Assign:
                     name: y
                     expr:
@@ -741,7 +865,8 @@ Canada
         Expr:
           - Ident: country
           - Operator: "=="
-          - String: USA
+          - Literal:
+              String: USA
         "###);
         assert_yaml_snapshot!(ast_of_string(
                 r#"[
@@ -783,7 +908,8 @@ Canada
                   - Ident: payroll_tax
               - Operator: "*"
               - Expr:
-                  - Raw: "1"
+                  - Literal:
+                      Integer: 1
                   - Operator: +
                   - Ident: tax_rate
         "###);
@@ -823,10 +949,22 @@ take 20
 
     #[test]
     fn test_parse_function() -> Result<()> {
-        assert_debug_snapshot!(parse_tree_of_str(
-            "func plus_one x ->  x + 1",
-            Rule::func_def
-        )?);
+        assert_yaml_snapshot!(ast_of_string("func plus_one x ->  x + 1", Rule::func_def)?, @r###"
+        ---
+        FuncDef:
+          name: plus_one
+          positional_params:
+            - - Ident: x
+              - ~
+          named_params: []
+          body:
+            Expr:
+              - Ident: x
+              - Operator: +
+              - Literal:
+                  Integer: 1
+          return_type: ~
+        "###);
         assert_yaml_snapshot!(ast_of_string(
             "func identity x ->  x", Rule::func_def
         )?
@@ -857,7 +995,8 @@ take 20
             Expr:
               - Ident: x
               - Operator: +
-              - Raw: "1"
+              - Literal:
+                  Integer: 1
           return_type: ~
         "###);
         assert_yaml_snapshot!(ast_of_string(
@@ -875,7 +1014,8 @@ take 20
             Expr:
               - Ident: x
               - Operator: +
-              - Raw: "1"
+              - Literal:
+                  Integer: 1
           return_type: ~
         "###);
         // An example to show that we can't delayer the tree, despite there
@@ -898,7 +1038,8 @@ take 20
                 - Expr:
                     - Ident: bar
                     - Operator: +
-                    - Raw: "1"
+                    - Literal:
+                        Integer: 1
               named_args: {}
           return_type: ~
         "###);
@@ -910,7 +1051,8 @@ take 20
           positional_params: []
           named_params: []
           body:
-            Raw: "42"
+            Literal:
+              Integer: 42
           return_type: ~
         "###);
         assert_yaml_snapshot!(ast_of_string(r#"func count X ->  s"SUM({X})""#, Rule::func_def)?, @r###"
@@ -1015,9 +1157,10 @@ take 20
                           - Expr:
                               - Ident: a
                               - Operator: and
-                              - Ident: b
-                              - Operator: +
-                              - Ident: c
+                              - Expr:
+                                  - Ident: b
+                                  - Operator: +
+                                  - Ident: c
                               - Operator: or
                               - FuncCall:
                                   name: d
@@ -1040,7 +1183,8 @@ take 20
             - Assign:
                 name: to
                 expr:
-                  Raw: "3"
+                  Literal:
+                    Integer: 3
           named_args: {}
         "###);
     }
@@ -1120,7 +1264,8 @@ take 20
                 - FuncCall:
                     name: take
                     args:
-                      - Raw: "50"
+                      - Literal:
+                          Integer: 50
                     named_args: {}
           id: ~
         "###);
@@ -1128,52 +1273,7 @@ take 20
     }
 
     #[test]
-    fn test_parse_into_parse_tree() -> Result<()> {
-        assert_debug_snapshot!(parse_tree_of_str(r#"country == "USA""#, Rule::expr)?);
-        assert_debug_snapshot!(parse_tree_of_str("select [a, b, c]", Rule::func_curry)?);
-        assert_debug_snapshot!(parse_tree_of_str(
-            "group [title, country] (
-                aggregate [sum salary]
-            )",
-            Rule::pipeline
-        )?);
-        assert_debug_snapshot!(parse_tree_of_str(
-            r#"    filter country == "USA""#,
-            Rule::pipeline
-        )?);
-        assert_debug_snapshot!(parse_tree_of_str("[a, b, c,]", Rule::list)?);
-        assert_debug_snapshot!(parse_tree_of_str(
-            r#"[
-  gross_salary = salary + payroll_tax,
-  gross_cost   = gross_salary + benefits_cost
-]"#,
-            Rule::list
-        )?);
-        // Currently not putting comments in our parse tree, so this is blank.
-        assert_debug_snapshot!(parse_tree_of_str(
-            r#"# this is a comment
-        select a"#,
-            Rule::COMMENT
-        )?);
-        assert_debug_snapshot!(parse_tree_of_str(
-            "join country [id==employee_id]",
-            Rule::func_curry
-        )?);
-        assert_debug_snapshot!(parse_tree_of_str(
-            "join side:left country [id==employee_id]",
-            Rule::func_curry
-        )?);
-        assert_debug_snapshot!(parse_tree_of_str("1  + 2", Rule::expr)?);
-        Ok(())
-    }
-
-    #[test]
     fn test_inline_pipeline() {
-        assert_debug_snapshot!(parse_tree_of_str(
-            "(salary | percentile 50)",
-            Rule::nested_pipeline
-        )
-        .unwrap());
         assert_yaml_snapshot!(ast_of_string("(salary | percentile 50)", Rule::nested_pipeline).unwrap(), @r###"
         ---
         Pipeline:
@@ -1183,7 +1283,8 @@ take 20
             - FuncCall:
                 name: percentile
                 args:
-                  - Raw: "50"
+                  - Literal:
+                      Integer: 50
                 named_args: {}
         "###);
         assert_yaml_snapshot!(ast_of_string("func median x -> (x | percentile 50)", Rule::query).unwrap(), @r###"
@@ -1206,60 +1307,11 @@ take 20
                       - FuncCall:
                           name: percentile
                           args:
-                            - Raw: "50"
+                            - Literal:
+                                Integer: 50
                           named_args: {}
                 return_type: ~
         "###);
-    }
-
-    #[test]
-    fn test_parse_pipeline_parse_tree() {
-        assert_debug_snapshot!(parse_tree_of_str(
-            r#"
-            from employees
-            select [a, b]
-            "#
-            .trim(),
-            Rule::pipeline
-        )
-        .unwrap());
-        assert_debug_snapshot!(parse_tree_of_str(
-            r#"
-            from employees
-            filter country == "USA"
-            "#
-            .trim(),
-            Rule::pipeline
-        )
-        .unwrap());
-        assert_debug_snapshot!(parse_tree_of_str(
-            r#"
-from employees
-filter country == "USA"                           # Each line transforms the previous result.
-derive [                                         # This adds columns / variables.
-  gross_salary = salary + payroll_tax,
-  gross_cost   = gross_salary + benefits_cost    # Variables can use other variables.
-]
-filter gross_cost > 0
-group [title, country] (
-    aggregate [                                  # `by` are the columns to group by.
-        average salary,                          # These are aggregation calcs run on each group.
-        sum     salary,
-        average gross_salary,
-        sum     gross_salary,
-        average gross_cost,
-        sum_gross_cost = sum gross_cost,
-        count = count,
-    ]
-)
-sort sum_gross_cost
-filter count > 200
-take 20
-    "#
-            .trim(),
-            Rule::pipeline
-        )
-        .unwrap());
     }
 
     #[test]
@@ -1412,9 +1464,11 @@ select [
                                 args:
                                   - Range:
                                       start:
-                                        Raw: "18"
+                                        Literal:
+                                          Integer: 18
                                       end:
-                                        Raw: "40"
+                                        Literal:
+                                          Integer: 40
                                 named_args: {}
                     named_args: {}
                 - FuncCall:
@@ -1426,7 +1480,8 @@ select [
                               expr:
                                 Range:
                                   start:
-                                    Raw: "11"
+                                    Literal:
+                                      Integer: 11
                                   end: ~
                     named_args: {}
                 - FuncCall:
@@ -1439,7 +1494,8 @@ select [
                                 Range:
                                   start: ~
                                   end:
-                                    Raw: "9"
+                                    Literal:
+                                      Integer: 9
                     named_args: {}
         "###);
     }
@@ -1500,15 +1556,18 @@ select [
                           - Assign:
                               name: date
                               expr:
-                                Date: 2011-02-01
+                                Literal:
+                                  Date: 2011-02-01
                           - Assign:
                               name: timestamp
                               expr:
-                                Timestamp: "2011-02-01T10:00"
+                                Literal:
+                                  Timestamp: "2011-02-01T10:00"
                           - Assign:
                               name: time
                               expr:
-                                Time: "14:00"
+                                Literal:
+                                  Time: "14:00"
                     named_args: {}
         "###);
 
@@ -1534,6 +1593,41 @@ select [
                           name: x
                           expr:
                             Ident: r
+                    named_args: {}
+        "### )
+    }
+
+    #[test]
+    fn test_parse_coalesce() {
+        assert_yaml_snapshot!(parse(r###"
+        from employees
+        derive amount = amount ?? 0
+        "###).unwrap(), @r###"
+        ---
+        version: ~
+        dialect: Generic
+        nodes:
+          - Pipeline:
+              value: ~
+              functions:
+                - FuncCall:
+                    name: from
+                    args:
+                      - Ident: employees
+                    named_args: {}
+                - FuncCall:
+                    name: derive
+                    args:
+                      - Assign:
+                          name: amount
+                          expr:
+                            FuncCall:
+                              name: coalesce
+                              args:
+                                - Ident: amount
+                                - Literal:
+                                    Integer: 0
+                              named_args: {}
                     named_args: {}
         "### )
     }

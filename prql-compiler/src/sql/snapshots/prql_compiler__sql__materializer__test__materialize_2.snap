@@ -6,25 +6,27 @@ expression: mat
     From:
       name: employees
       alias: ~
-      declared_at: 35
+      declared_at: 42
 - Transform:
     Filter:
-      - Expr:
-          - Ident: country
-          - Operator: "=="
-          - String: USA
+      Expr:
+        - Ident: country
+        - Operator: "=="
+        - Literal:
+            String: USA
 - Transform:
     Filter:
-      - Expr:
-          - Expr:
-              - Expr:
-                  - Ident: salary
-                  - Operator: +
-                  - Ident: payroll_tax
-              - Operator: +
-              - Ident: benefits_cost
-          - Operator: ">"
-          - Raw: "0"
+      Expr:
+        - Expr:
+            - Expr:
+                - Ident: salary
+                - Operator: +
+                - Ident: payroll_tax
+            - Operator: +
+            - Ident: benefits_cost
+        - Operator: ">"
+        - Literal:
+            Integer: 0
 - Transform:
     Group:
       by:
@@ -92,20 +94,25 @@ expression: mat
                     - Ident: country
 - Transform:
     Filter:
-      - Expr:
-          - SString:
-              - String: SUM(
-              - Expr:
-                  Expr:
-                    - Expr:
-                        - Ident: salary
-                        - Operator: +
-                        - Ident: payroll_tax
-                    - Operator: +
-                    - Ident: benefits_cost
-              - String: )
-          - Operator: ">"
-          - Raw: "200"
+      Expr:
+        - SString:
+            - String: SUM(
+            - Expr:
+                Expr:
+                  - Expr:
+                      - Ident: salary
+                      - Operator: +
+                      - Ident: payroll_tax
+                  - Operator: +
+                  - Ident: benefits_cost
+            - String: )
+        - Operator: ">"
+        - Literal:
+            Integer: 200
 - Transform:
-    Take: 20
+    Take:
+      start: ~
+      end:
+        Literal:
+          Integer: 20
 

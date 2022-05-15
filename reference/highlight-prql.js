@@ -22,8 +22,13 @@ formatting = function (hljs) {
 
             { // named arg
                 className: 'params',
-                begin: '\\w+:(?!\\s)',
-                // begin: String.raw('\w+:(?!\s)'),
+                begin: '\\w+\\s*:',
+                end: '',
+                relevance: 10
+            },
+            { // assign
+                className: 'variable',
+                begin: '\\w+\\s*=(?!=)',
                 end: '',
                 relevance: 10
             },
@@ -33,9 +38,9 @@ formatting = function (hljs) {
                 end: ' ',
                 relevance: 10
             },
-            { // s-string
+            { // interpolation string
                 className: 'attribute',
-                begin: 's"', end: '"',
+                begin: '(s|f)"', end: '"',
                 relevance: 10
             },
             { // normal string
@@ -43,7 +48,6 @@ formatting = function (hljs) {
                 begin: '"', end: '"',
                 relevance: 10
             },
-
         ]
     };
 }

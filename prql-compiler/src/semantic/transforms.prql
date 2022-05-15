@@ -9,3 +9,4 @@ func sort<frame> by frame -> 0
 func take<frame> expr frame -> 0
 func join<frame> with filter side:inner frame -> 0
 func group<frame> by pipeline frame -> 0
+func window<frame> rows:0..0 range:0..0 expanding:false rolling:0 pipeline frame -> 0
