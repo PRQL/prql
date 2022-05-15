@@ -328,6 +328,8 @@ fn atomic_pipelines_of_pipeline(pipeline: Pipeline) -> Result<Vec<AtomicTable>> 
                     || counts.get("Sort").is_some()
                     || counts.get("Take").is_some()
             }
+            // TODO: We'd be OK with two _consecutive_ takes (range_of_ranges),
+            // but they need to be consecutive.
             "Filter" | "Sort" | "Take" => counts.get("Take").is_some(),
             _ => false,
         };
@@ -407,6 +409,11 @@ fn prepend_with_from(pipeline: &mut Pipeline, table: Option<TableRef>) {
 /// Aggregate several ordered ranges into one, computing the intersection.
 ///
 /// Returns a tuple of `(start, end)`, where `end` is optional.
+// TODO: We ended up not actually using this, because it wasn't trivial to allow
+// multiple consecutive `take`s in a single atomic query, which this can
+// combine. But possibly we can do that in the future / use it for something
+// else (some poor planning on my part to write something complicated and not
+// even use it!).
 fn range_of_ranges(ranges: Vec<Range>) -> Result<(i64, Option<i64>)> {
     let mut start = 1;
     let mut length: Option<i64> = None;
@@ -1819,6 +1826,29 @@ take 20
           employees.*
         FROM
           employees OFFSET 4
+        "###);
+
+        // This could be in a single query, but we don't yet combine `take`s.
+        assert_display_snapshot!((resolve_and_translate(parse(r###"
+        from employees
+        take 11..20
+        take 1..5
+        "###,
+        )?)?), @r###"
+        WITH table_0 AS (
+          SELECT
+            employees.*
+          FROM
+            employees
+          LIMIT
+            20 OFFSET 10
+        )
+        SELECT
+          table_0.*
+        FROM
+          table_0
+        LIMIT
+          5
         "###);
 
         Ok(())
