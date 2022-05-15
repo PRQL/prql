@@ -425,7 +425,7 @@ fn range_of_ranges(ranges: Vec<Range>) -> Result<(i64, Option<i64>)> {
         start = start + current_start - 1;
 
         let current_length = if let Some(end_box) = range.end {
-            let current_end: i64 = dbg!(*end_box).item.into_literal()?.into_integer()?;
+            let current_end: i64 = (*end_box).item.into_literal()?.into_integer()?;
             Some(current_end - current_start + 1)
         } else {
             None
