@@ -1538,6 +1538,8 @@ select [
                     named_args: {}
         "###);
 
+        assert!(parse("derive x = @2020-01-0").is_err());
+
         Ok(())
     }
 
