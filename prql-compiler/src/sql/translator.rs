@@ -415,7 +415,7 @@ fn range_of_ranges(ranges: Vec<Range>) -> Result<(i64, Option<i64>)> {
         let current_start = if let Some(start_box) = range.start {
             let cs = (*start_box).item.into_literal()?.into_integer()?;
             if cs > length.unwrap_or(i64::max_value()) {
-                return Err(anyhow!("Range start is before previous range"));
+                bail!("Range start is before previous range");
             }
             cs
         } else {
