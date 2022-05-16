@@ -22,6 +22,7 @@ use crate::ast::JoinFilter;
 use crate::ast::*;
 use crate::error::{Error, Reason};
 use crate::semantic::Context;
+use crate::utils::OrMap;
 
 use super::materializer::MaterializationContext;
 use super::{un_group, MaterializedFrame};
@@ -233,6 +234,17 @@ fn sql_query_of_atomic_table(table: AtomicTable, dialect: &Dialect) -> Result<sq
         })
         .collect();
     let take = range_of_ranges(takes)?;
+    let offset = take.start.map(|s| s - 1).unwrap_or(0);
+    let limit = take.end.map(|e| e - offset);
+
+    let offset = if offset == 0 {
+        None
+    } else {
+        Some(sqlparser::ast::Offset {
+            value: Item::Literal(Literal::Integer(offset)).try_into()?,
+            rows: sqlparser::ast::OffsetRows::None,
+        })
+    };
 
     // Use sorting from the frame
     let order_by = (frame.sort)
@@ -249,22 +261,11 @@ fn sql_query_of_atomic_table(table: AtomicTable, dialect: &Dialect) -> Result<sq
     };
     let dialect = dialect.handler();
 
-    let offset = {
-        if take.0 == 1 {
-            None
-        } else {
-            Some(sqlparser::ast::Offset {
-                value: Item::Literal(Literal::Integer(take.0 - 1)).try_into()?,
-                rows: sqlparser::ast::OffsetRows::None,
-            })
-        }
-    };
-
     Ok(sql_ast::Query {
         body: SetExpr::Select(Box::new(Select {
             distinct: false,
             top: if dialect.use_top() {
-                take.1.map(top_of_int)
+                limit.map(top_of_i64)
             } else {
                 None
             },
@@ -287,7 +288,7 @@ fn sql_query_of_atomic_table(table: AtomicTable, dialect: &Dialect) -> Result<sq
         limit: if dialect.use_top() {
             None
         } else {
-            take.1.map(expr_of_i64)
+            limit.map(expr_of_i64)
         },
         offset,
         fetch: None,
@@ -298,12 +299,12 @@ fn sql_query_of_atomic_table(table: AtomicTable, dialect: &Dialect) -> Result<sq
 /// Convert a pipeline into a number of pipelines which can each "fit" into a SELECT.
 fn atomic_pipelines_of_pipeline(pipeline: Pipeline) -> Result<Vec<AtomicTable>> {
     // Insert a cut, when we find transformation that out of order:
-    // - joins,
+    // - joins (no limit),
     // - filters (for WHERE)
     // - aggregate (max 1x)
     // - sort (max 1x)
     // - filters (for HAVING)
-    // - take (max 1x)
+    // - take (no limit)
     //
     // Select and derive should already be extracted during resolving phase.
     //
@@ -329,9 +330,13 @@ fn atomic_pipelines_of_pipeline(pipeline: Pipeline) -> Result<Vec<AtomicTable>> 
                     || counts.get("Sort").is_some()
                     || counts.get("Take").is_some()
             }
-            // TODO: We'd be OK with two _consecutive_ takes (range_of_ranges),
-            // but they need to be consecutive.
-            "Filter" | "Sort" | "Take" => counts.get("Take").is_some(),
+            "Filter" | "Sort" => counts.get("Take").is_some(),
+
+            // There can be many takes, but they have to be consecutive
+            // For example `take 100 | sort a | take 10` can't be one CTE.
+            // But this is enforced by transform order anyway.
+            "Take" => false,
+
             _ => false,
         };
 
@@ -407,45 +412,42 @@ fn prepend_with_from(pipeline: &mut Pipeline, table: Option<TableRef>) {
     }
 }
 
+type RangeI64 = core::ops::Range<Option<i64>>;
+
 /// Aggregate several ordered ranges into one, computing the intersection.
 ///
 /// Returns a tuple of `(start, end)`, where `end` is optional.
-// TODO: We ended up not actually using this, because it wasn't trivial to allow
-// multiple consecutive `take`s in a single atomic query, which this can
-// combine. But possibly we can do that in the future / use it for something
-// else (some poor planning on my part to write something complicated and not
-// even use it!).
-fn range_of_ranges(ranges: Vec<Range>) -> Result<(i64, Option<i64>)> {
-    let mut start = 1;
-    let mut length: Option<i64> = None;
-
-    for range in ranges {
-        let current_start = if let Some(start_box) = range.start {
-            let cs = (*start_box).item.into_literal()?.into_integer()?;
-            if cs > length.unwrap_or(i64::max_value()) {
-                bail!("Range start is before previous range");
-            }
-            cs
-        } else {
-            1
-        };
-        // Add on the start to the running total, minus 1, since we're 1-indexed.
-        start = start + current_start - 1;
-
-        let current_length = if let Some(end_box) = range.end {
-            let current_end: i64 = (*end_box).item.into_literal()?.into_integer()?;
-            Some(current_end - current_start + 1)
-        } else {
-            None
-        };
-
-        // There has to be a more elegant approach than this? It's basically
-        // doing `np.nanmax(a, b)`.
-        length = length.map_or(current_length, |rl| {
-            current_length.map_or(length, |cl| Some(cl.min(rl)))
-        });
+fn range_of_ranges(ranges: Vec<Range>) -> Result<RangeI64> {
+  #[allow(clippy::boxed_local)]  
+  fn cast_bound(bound: Box<Node>) -> Result<i64> {
+        Ok(bound.item.into_literal()?.into_integer()?)
     }
-    Ok((start, length.map(|x| x + start - 1)))
+
+    let mut current = RangeI64::default();
+    for range in ranges {
+        let mut range = RangeI64 {
+            start: range.start.map(cast_bound).transpose()?,
+            end: range.end.map(cast_bound).transpose()?,
+        };
+
+        // b = b + a.start -1 (take care of 1-based index!)
+        range.start = range.start.or_map(current.start, |a, b| a + b - 1);
+        range.end = range.end.map(|b| current.start.unwrap_or(1) + b - 1);
+
+        // b.end = min(a.end, b.end)
+        range.end = current.end.or_map(range.end, i64::min);
+        current = range;
+    }
+
+    if current
+        .start
+        .zip(current.end)
+        .map(|(s, e)| e <= s)
+        .unwrap_or(false)
+    {
+        bail!("Range end is before its start.");
+    }
+    Ok(current)
 }
 
 fn expr_of_i64(number: i64) -> Expr {
@@ -455,7 +457,7 @@ fn expr_of_i64(number: i64) -> Expr {
     ))
 }
 
-fn top_of_int(take: i64) -> Top {
+fn top_of_i64(take: i64) -> Top {
     Top {
         quantity: Some(Item::Literal(Literal::Integer(take)).try_into().unwrap()),
         with_ties: false,
@@ -765,79 +767,57 @@ mod test {
         let range3 = Range::from_ints(Some(5), None);
         let range4 = Range::from_ints(None, Some(8));
 
-        assert!(range_of_ranges(vec![range1.clone()])?.1.is_some());
+        assert!(range_of_ranges(vec![range1.clone()])?.end.is_some());
 
-        assert_debug_snapshot!(range_of_ranges(vec![range1.clone()])?, @r###"
-        (
-            1,
-            Some(
-                10,
-            ),
-        )
+        assert_yaml_snapshot!(range_of_ranges(vec![range1.clone()])?, @r###"
+        ---
+        start: 1
+        end: 10
         "###);
 
-        assert_debug_snapshot!(range_of_ranges(vec![range1.clone(), range1.clone()])?, @r###"
-        (
-            1,
-            Some(
-                10,
-            ),
-        )
+        assert_yaml_snapshot!(range_of_ranges(vec![range1.clone(), range1.clone()])?, @r###"
+        ---
+        start: 1
+        end: 10
         "###);
 
-        assert_debug_snapshot!(range_of_ranges(vec![range1.clone(), range2.clone()])?, @r###"
-        (
-            5,
-            Some(
-                6,
-            ),
-        )
+        assert_yaml_snapshot!(range_of_ranges(vec![range1.clone(), range2.clone()])?, @r###"
+        ---
+        start: 5
+        end: 6
         "###);
 
-        assert_debug_snapshot!(range_of_ranges(vec![range2.clone(), range1.clone()])?, @r###"
-        (
-            5,
-            Some(
-                6,
-            ),
-        )
+        assert_yaml_snapshot!(range_of_ranges(vec![range2.clone(), range1.clone()])?, @r###"
+        ---
+        start: 5
+        end: 6
         "###);
 
         // We can't get 5..6 from 5..6.
         assert!(range_of_ranges(vec![range2.clone(), range2.clone()]).is_err());
 
-        assert_debug_snapshot!(range_of_ranges(vec![range3.clone(), range3.clone()])?, @r###"
-        (
-            9,
-            None,
-        )
+        assert_yaml_snapshot!(range_of_ranges(vec![range3.clone(), range3.clone()])?, @r###"
+        ---
+        start: 9
+        end: ~
         "###);
 
-        assert_debug_snapshot!(range_of_ranges(vec![range1, range3])?, @r###"
-        (
-            5,
-            Some(
-                14,
-            ),
-        )
+        assert_yaml_snapshot!(range_of_ranges(vec![range1, range3])?, @r###"
+        ---
+        start: 5
+        end: 10
         "###);
 
-        assert_debug_snapshot!(range_of_ranges(vec![range2, range4.clone()])?, @r###"
-        (
-            5,
-            Some(
-                6,
-            ),
-        )
+        assert_yaml_snapshot!(range_of_ranges(vec![range2, range4.clone()])?, @r###"
+        ---
+        start: 5
+        end: 6
         "###);
 
-        assert_debug_snapshot!(range_of_ranges(vec![range4.clone(), range4])?, @r###"
-        (
-            1,
-            Some(
-                8,
-            ),
-        )
+        assert_yaml_snapshot!(range_of_ranges(vec![range4.clone(), range4])?, @r###"
+        ---
+        start: ~
+        end: 8
         "###);
 
         Ok(())
@@ -1885,7 +1865,7 @@ take 20
         FROM
           employees
         LIMIT
-          10 OFFSET 4
+          6 OFFSET 4
         "###);
 
         assert_display_snapshot!((resolve_and_translate(parse(r###"
@@ -1906,20 +1886,12 @@ take 20
         take 1..5
         "###,
         )?)?), @r###"
-        WITH table_0 AS (
-          SELECT
-            employees.*
-          FROM
-            employees
-          LIMIT
-            20 OFFSET 10
-        )
         SELECT
-          table_0.*
+          employees.*
         FROM
-          table_0
+          employees
         LIMIT
-          5
+          5 OFFSET 10
         "###);
 
         Ok(())

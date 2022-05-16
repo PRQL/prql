@@ -11,4 +11,4 @@ ORDER BY
   value DESC,
   date
 LIMIT
-  110 OFFSET 100
+  10 OFFSET 100

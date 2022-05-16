@@ -88,3 +88,24 @@ pub fn diff(a: &str, b: &str) -> String {
     use similar::TextDiff;
     TextDiff::from_lines(a, b).unified_diff().to_string()
 }
+
+pub trait OrMap<T> {
+    /// Merges two options into one using `f`.
+    /// If one of the options is None, results defaults to the other one.
+    fn or_map<F>(self, b: Self, f: F) -> Self
+    where
+        F: FnOnce(T, T) -> T;
+}
+
+impl<T> OrMap<T> for Option<T> {
+    fn or_map<F>(self, b: Self, f: F) -> Self
+    where
+        F: FnOnce(T, T) -> T,
+    {
+        match (self, b) {
+            (Some(a), Some(b)) => Some(f(a, b)),
+            (a, None) => a,
+            (None, b) => b,
+        }
+    }
+}
