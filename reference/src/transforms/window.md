@@ -11,15 +11,15 @@ For each row in result, its input segment is determined either by:
 - `rows`, which takes a range of rows relative to current row,
 - `range`, which takes a range of values relative to current row value.
 
-Start of the range is inclusive, end of range is exclusive. Index 0 references
-current row. If a bound is omitted, segment will extend until the end of the table (or group).
+Bounds of the range are inclusive. Index 0 references current row. If a
+bound is omitted, segment will extend until the edge of the table (or group).
 
 For example:
 
-- `rows:0..3`   means current row plus two following,
-- `rows:-2..1`  means two preceding rows plus current row,
-- `rows:-2..5`  means two preceding rows plus current row plus four following rows,
-- `rows:..1`    means all rows from the start of the table to and including current row,
+- `rows:0..2`   means current row plus two following,
+- `rows:-2..0`  means two preceding rows plus current row,
+- `rows:-2..4`  means two preceding rows plus current row plus four following rows,
+- `rows:..0`    means all rows from the start of the table to and including current row,
 - `rows:0..`    means current row and all following rows until the end of the table,
 - `rows:..`     means all rows, which same as not having window at all.
 
@@ -29,18 +29,8 @@ For example:
 
 For ease of use, there are two flags that override `rows` or `range`:
 
-- `expanding:true` is an alias for `rows:..1`. Sum using this window is also known as "cumulative sum".
-- `rolling:x` is an alias for `row:(-x+1)..1`, where `x` is an integer. This will include `x` last values, including current row.
-
-> Note: this row and range notation makes it easy to determine total number of rows included: `end - start`. In contrast, SQL does not make this easy with
->
-> ```sql
-> BETWEEN 2 PRECEDING -- will include 3 rows
-> ```
->
-> ```sql
-> BETWEEN 2 PRECEDING AND 1 FOLLOWING -- will include 4 rows
-> ```
+- `expanding:true` is an alias for `rows:..0`. Sum using this window is also known as "cumulative sum".
+- `rolling:n` is an alias for `row:(-n+1)..0`, where `n` is an integer. This will include `n` last values, including current row.
 
 ## Example
 

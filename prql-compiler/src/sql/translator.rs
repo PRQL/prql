@@ -656,13 +656,12 @@ fn try_into_is_null(nodes: &[Node]) -> Result<Option<Expr>> {
     Ok(None)
 }
 fn try_into_window_frame((kind, range): (WindowKind, Range)) -> Result<sql_ast::WindowFrame> {
-    fn parse_bound(bound: Node, offset: i64) -> Result<WindowFrameBound> {
+    fn parse_bound(bound: Node) -> Result<WindowFrameBound> {
         let as_int = bound.item.into_literal()?.into_integer()?;
-        let pos = as_int + offset;
-        Ok(match pos {
+        Ok(match as_int {
             0 => WindowFrameBound::CurrentRow,
-            1.. => WindowFrameBound::Following(Some(pos as u64)),
-            _ => WindowFrameBound::Preceding(Some((-pos) as u64)),
+            1.. => WindowFrameBound::Following(Some(as_int as u64)),
+            _ => WindowFrameBound::Preceding(Some((-as_int) as u64)),
         })
     }
 
@@ -672,12 +671,12 @@ fn try_into_window_frame((kind, range): (WindowKind, Range)) -> Result<sql_ast::
             WindowKind::Range => sql_ast::WindowFrameUnits::Range,
         },
         start_bound: if let Some(start) = range.start {
-            parse_bound(*start, 0)?
+            parse_bound(*start)?
         } else {
             WindowFrameBound::Preceding(None)
         },
         end_bound: Some(if let Some(end) = range.end {
-            parse_bound(*end, -1)?
+            parse_bound(*end)?
         } else {
             WindowFrameBound::Following(None)
         }),
@@ -1674,7 +1673,7 @@ take 20
           foo.*,
           SUM(b) OVER (
             ROWS BETWEEN CURRENT ROW
-            AND 3 FOLLOWING
+            AND 4 FOLLOWING
           ) AS next_four_rows
         FROM
           foo
@@ -1693,7 +1692,7 @@ take 20
           SUM(b) OVER (
             ORDER BY
               day RANGE BETWEEN CURRENT ROW
-              AND 3 FOLLOWING
+              AND 4 FOLLOWING
           ) AS next_four_days
         FROM
           foo
