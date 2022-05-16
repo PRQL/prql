@@ -26,6 +26,7 @@
   - [Coalesce](./language-features/coalesce.md)
 
 - [Syntax](./syntax.md)
+- [Null handling](./null.md)
 - [Functions](./functions.md)
 - [Stdlib](./stdlib.md)
 - [Live Editor](./editor.md)

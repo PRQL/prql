@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize)]
 pub enum Literal {
+    Null,
     Integer(i64),
     Float(f64),
     Boolean(bool),
@@ -26,6 +27,7 @@ impl From<Literal> for anyhow::Error {
 impl Display for Literal {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            Literal::Null => {}
             Literal::Integer(i) => write!(f, "{i}")?,
             Literal::Float(i) => write!(f, "{i}")?,
 

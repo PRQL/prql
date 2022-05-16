@@ -206,6 +206,7 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
                     };
                     Item::Literal(lit)
                 }
+                Rule::null => Item::Literal(Literal::Null),
                 Rule::boolean => Item::Literal(Literal::Boolean(pair.as_str() == "true")),
                 Rule::string => {
                     let inner = pair.into_inner().into_only()?.as_str().to_string();
@@ -1570,6 +1571,8 @@ select [
                                   Time: "14:00"
                     named_args: {}
         "###);
+
+        assert!(parse("derive x = @2020-01-0").is_err());
 
         Ok(())
     }

@@ -74,7 +74,7 @@ expr_add = _{ expr_mul ~ (operator_add ~ expr_mul)* }
 expr_mul = _{ term ~ (operator_mul ~ term)* }
 
 term = _{ ( s_string | f_string | range | literal | ident | nested_expr | nested_pipeline | list ) }
-literal = _{ interval | number | boolean | string | timestamp | date | time }
+literal = _{ interval | number | boolean | null | string | timestamp | date | time }
 list = { "[" ~ (NEWLINE* ~ (assign_call | expr_call) ~ ("," ~ NEWLINE* ~ (assign_call | expr_call) )* ~ ","?)? ~ NEWLINE* ~ "]" }
 nested_expr = _{ "(" ~ expr_call ~ ")" }
 nested_pipeline = { "(" ~ expr_call? ~ pipe ~ pipeline ~ NEWLINE* ~ ")" }
@@ -105,6 +105,8 @@ number = ${ ( ASCII_DIGIT )+ ~ ("." ~ ( ASCII_DIGIT )+)? }
 
 boolean = ${ "true" | "false" }
 
+null = ${ "null" }
+
 range = ${ range_edge ~ ".." ~ range_edge }
 // We need `literal` separate from `term_simple` for things like range edges,
 // which would infinitely recurse otherwise, since it'll keep trying to parse
@@ -127,11 +129,15 @@ interpolate_string_inner = { ( !( PEEK | "{" ) ~ ANY )+ }
 interval_kind = { "microseconds" | "milliseconds" | "seconds" | "minutes" | "hours" | "days" | "weeks" | "months" | "years" }
 interval = ${ number ~ interval_kind }
 
-date = ${ "@" ~ date_inner }
-time = ${ "@" ~ time_inner }
-timestamp = ${ "@" ~ timestamp_inner }
+date = ${ "@" ~ date_inner ~ &end_expr }
+time = ${ "@" ~ time_inner ~ &end_expr }
+timestamp = ${ "@" ~ timestamp_inner ~ &end_expr }
 // We use the `inner` types as containing the data that we want to retain in the AST.
 date_inner = ${ ASCII_DIGIT{4} ~ "-" ~ ASCII_DIGIT{2} ~ "-" ~ ASCII_DIGIT{2} }
 // Times are liberally defined atm, we could make this more robust.
-time_inner = ${ ASCII_DIGIT{2} ~ ( ASCII_DIGIT | ":" | "." | "+" | "-" | "Z" )* }
+time_inner = ${ ASCII_DIGIT{2} ~ (( ":" | "." ) ~ ASCII_DIGIT* )* ~ ((( "+" | "-" ) ~ (ASCII_DIGIT | ":" )*) | "Z")? }
 timestamp_inner = ${ date_inner ~ "T" ~ time_inner }
+
+// We can use this when want to ensure something is ending, like a date, so `@20-01-0`
+// isn't treated like a time `@20-01` `-` (minus) `0`.
+end_expr = _{ WHITESPACE | "," | ")" | "]" | EOI | NEWLINE }

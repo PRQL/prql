@@ -9,4 +9,4 @@ SELECT
 FROM
   club_ratings
 WHERE
-  rating != null
+  rating IS NOT NULL
