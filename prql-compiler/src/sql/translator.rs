@@ -1879,7 +1879,7 @@ take 20
           employees OFFSET 4
         "###);
 
-        // This could be in a single query, but we don't yet combine `take`s.
+        // should be one SELECT
         assert_display_snapshot!((resolve_and_translate(parse(r###"
         from employees
         take 11..20
@@ -1892,6 +1892,32 @@ take 20
           employees
         LIMIT
           5 OFFSET 10
+        "###);
+
+        // should be two SELECTs
+        assert_display_snapshot!((resolve_and_translate(parse(r###"
+        from employees
+        take 11..20
+        sort name
+        take 1..5
+        "###,
+        )?)?), @r###"
+        WITH table_0 AS (
+          SELECT
+            employees.*
+          FROM
+            employees
+          LIMIT
+            10 OFFSET 10
+        )
+        SELECT
+          table_0.*
+        FROM
+          table_0
+        ORDER BY
+          name
+        LIMIT
+          5
         "###);
 
         Ok(())
