@@ -126,7 +126,7 @@ pub fn fold_item<T: ?Sized + AstFold>(fold: &mut T, item: Item) -> Result<Item> 
     })
 }
 
-fn fold_range<F: ?Sized + AstFold>(fold: &mut F, Range { start, end }: Range) -> Result<Range> {
+pub fn fold_range<F: ?Sized + AstFold>(fold: &mut F, Range { start, end }: Range) -> Result<Range> {
     Ok(Range {
         start: fold_optional_box(fold, start)?,
         end: fold_optional_box(fold, end)?,

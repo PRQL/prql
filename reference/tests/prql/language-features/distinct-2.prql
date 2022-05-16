@@ -1,0 +1,6 @@
+# youngest employees from each department
+from employees
+group department (
+  sort age
+  take 1
+)

@@ -1,10 +1,31 @@
 # Distinct
 
-PRQL doesn't have a specific `distinct` keyword. Instead, use `aggregate`:
+PRQL doesn't have a specific `distinct` keyword. Instead, use `group` and `take 1`:
 
 ```prql
 from employees
-aggregate first_name by:first_name
+select department
+group department (
+  take 1
+)
 ```
 
-...produces...
+or with inline pipeline:
+```prql
+from employees
+select department
+group department ( | take 1)
+```
+
+> The `|` is here temporarily, until we finish work on function currying and how pipelines are treated.
+
+Note that `group` can contain `sort`:
+
+```prql
+# youngest employees from each department
+from employees
+group department (
+  sort age
+  take 1
+)
+```
