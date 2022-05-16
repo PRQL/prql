@@ -42,7 +42,7 @@ version = "0.16.0"
 
 [dependencies.serde]
 features = ["derive"]
-version = "1.0.136"
+version = "1.0.137"
 
 [dev-dependencies]
 criterion = "0.3"
