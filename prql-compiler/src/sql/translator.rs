@@ -162,32 +162,7 @@ fn sql_query_of_atomic_table(table: AtomicTable, dialect: &Dialect) -> Result<sq
     let joins = transforms
         .iter()
         .filter(|t| matches!(t, Transform::Join { .. }))
-        .map(|t| match t {
-            Transform::Join { side, with, filter } => {
-                let constraint = match filter {
-                    JoinFilter::On(nodes) => Item::Expr(nodes.to_vec())
-                        .try_into()
-                        .map(JoinConstraint::On)?,
-                    JoinFilter::Using(nodes) => JoinConstraint::Using(
-                        nodes
-                            .iter()
-                            .map(|x| x.item.clone().try_into())
-                            .collect::<Result<Vec<_>>>()?,
-                    ),
-                };
-
-                Ok(Join {
-                    relation: table_factor_of_table_ref(with),
-                    join_operator: match *side {
-                        JoinSide::Inner => JoinOperator::Inner(constraint),
-                        JoinSide::Left => JoinOperator::LeftOuter(constraint),
-                        JoinSide::Right => JoinOperator::RightOuter(constraint),
-                        JoinSide::Full => JoinOperator::FullOuter(constraint),
-                    },
-                })
-            }
-            _ => unreachable!(),
-        })
+        .map(Join::try_from)
         .collect::<Result<Vec<_>>>()?;
     if !joins.is_empty() {
         if let Some(from) = from.last_mut() {
@@ -204,24 +179,6 @@ fn sql_query_of_atomic_table(table: AtomicTable, dialect: &Dialect) -> Result<sq
         .unwrap_or(transforms.len());
     let (before, after) = transforms.split_at(aggregate_position);
 
-    // Convert the filters in a pipeline into an Expr
-    #[allow(unstable_name_collisions)] // Same behavior as the std lib; we can remove this + itertools when that's released.
-    fn filter_of_pipeline(pipeline: &[Transform]) -> Result<Option<Expr>> {
-        let filters: Vec<Node> = pipeline
-            .iter()
-            .filter_map(|t| match t {
-                Transform::Filter(filter) => Some(*filter.clone()),
-                _ => None,
-            })
-            .intersperse(Node::from(Item::Operator("and".to_owned())))
-            .collect();
-
-        Ok(if !filters.is_empty() {
-            Some((Item::Expr(filters)).try_into()?)
-        } else {
-            None
-        })
-    }
     // Find the filters that come before the aggregation.
     let where_ = filter_of_pipeline(before)?;
     let having = filter_of_pipeline(after)?;
@@ -448,6 +405,24 @@ fn range_of_ranges(ranges: Vec<Range>) -> Result<RangeI64> {
         bail!("Range end is before its start.");
     }
     Ok(current)
+}
+
+#[allow(unstable_name_collisions)] // Same behavior as the std lib; we can remove this + itertools when that's released.
+fn filter_of_pipeline(pipeline: &[Transform]) -> Result<Option<Expr>> {
+    let filters: Vec<Node> = pipeline
+        .iter()
+        .filter_map(|t| match t {
+            Transform::Filter(filter) => Some(*filter.clone()),
+            _ => None,
+        })
+        .intersperse(Node::from(Item::Operator("and".to_owned())))
+        .collect();
+
+    Ok(if !filters.is_empty() {
+        Some((Item::Expr(filters)).try_into()?)
+    } else {
+        None
+    })
 }
 
 fn expr_of_i64(number: i64) -> Expr {
@@ -715,6 +690,37 @@ impl TryFrom<ColumnSort> for OrderByExpr {
             },
             nulls_first: None,
         })
+    }
+}
+impl TryFrom<&Transform> for Join {
+    type Error = anyhow::Error;
+    fn try_from(t: &Transform) -> Result<Join> {
+        match t {
+            Transform::Join { side, with, filter } => {
+                let constraint = match filter {
+                    JoinFilter::On(nodes) => Item::Expr(nodes.to_vec())
+                        .try_into()
+                        .map(JoinConstraint::On)?,
+                    JoinFilter::Using(nodes) => JoinConstraint::Using(
+                        nodes
+                            .iter()
+                            .map(|x| x.item.clone().try_into())
+                            .collect::<Result<Vec<_>>>()?,
+                    ),
+                };
+
+                Ok(Join {
+                    relation: table_factor_of_table_ref(with),
+                    join_operator: match *side {
+                        JoinSide::Inner => JoinOperator::Inner(constraint),
+                        JoinSide::Left => JoinOperator::LeftOuter(constraint),
+                        JoinSide::Right => JoinOperator::RightOuter(constraint),
+                        JoinSide::Full => JoinOperator::FullOuter(constraint),
+                    },
+                })
+            }
+            _ => unreachable!(),
+        }
     }
 }
 impl TryFrom<Item> for sql_ast::Ident {
