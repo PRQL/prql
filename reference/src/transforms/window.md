@@ -15,6 +15,7 @@ Start of the range is inclusive, end of range is exclusive. Index 0 references
 current row. If a bound is omitted, segment will extend until the end of the table (or group).
 
 For example:
+
 - `rows:0..3`   means current row plus two following,
 - `rows:-2..1`  means two preceding rows plus current row,
 - `rows:-2..5`  means two preceding rows plus current row plus four following rows,
@@ -28,13 +29,15 @@ For example:
 
 For ease of use, there are two flags that override `rows` or `range`:
 
-- `expanding:true` is an alias for `range:..1`. Sum using this window is also known as "cumulative sum".
+- `expanding:true` is an alias for `rows:..1`. Sum using this window is also known as "cumulative sum".
 - `rolling:x` is an alias for `row:(-x+1)..1`, where `x` is an integer. This will include `x` last values, including current row.
 
 > Note: this row and range notation makes it easy to determine total number of rows included: `end - start`. In contrast, SQL does not make this easy with
+>
 > ```sql
 > BETWEEN 2 PRECEDING -- will include 3 rows
 > ```
+>
 > ```sql
 > BETWEEN 2 PRECEDING AND 1 FOLLOWING -- will include 4 rows
 > ```

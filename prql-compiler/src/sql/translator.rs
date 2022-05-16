@@ -1372,7 +1372,8 @@ take 20
           SUM(COUNT(ol.book_id)) OVER (
             PARTITION BY TO_CHAR(co.order_date, '%Y-%m')
             ORDER BY
-              TO_CHAR(co.order_date, '%Y-%m-%d')
+              TO_CHAR(co.order_date, '%Y-%m-%d') ROWS BETWEEN UNBOUNDED PRECEDING
+              AND CURRENT ROW
           ) AS running_total_num_books,
           LAG(COUNT(ol.book_id), 7) OVER (
             ORDER BY
@@ -1443,7 +1444,8 @@ take 20
           RANK() OVER (
             PARTITION BY month
             ORDER BY
-              num_orders
+              num_orders ROWS BETWEEN UNBOUNDED PRECEDING
+              AND CURRENT ROW
           ),
           LAG(num_orders, 7) OVER () AS num_orders_last_week
         FROM
@@ -1482,7 +1484,7 @@ take 20
         SELECT
           foo.*,
           SUM(b) OVER (
-            RANGE BETWEEN UNBOUNDED PRECEDING
+            ROWS BETWEEN UNBOUNDED PRECEDING
             AND CURRENT ROW
           ) AS running_total
         FROM

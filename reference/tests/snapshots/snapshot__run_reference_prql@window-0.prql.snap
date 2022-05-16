@@ -13,7 +13,8 @@ SELECT
   SUM(price) OVER (
     PARTITION BY order_month
     ORDER BY
-      day
+      day ROWS BETWEEN UNBOUNDED PRECEDING
+      AND CURRENT ROW
   ) AS monthly_running_total
 FROM
   orders
