@@ -418,7 +418,7 @@ type RangeI64 = core::ops::Range<Option<i64>>;
 ///
 /// Returns a tuple of `(start, end)`, where `end` is optional.
 fn range_of_ranges(ranges: Vec<Range>) -> Result<RangeI64> {
-  #[allow(clippy::boxed_local)]  
+  #[allow(clippy::boxed_local)]
   fn cast_bound(bound: Box<Node>) -> Result<i64> {
         Ok(bound.item.into_literal()?.into_integer()?)
     }
