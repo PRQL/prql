@@ -2036,9 +2036,9 @@ dependencies = [
 
 [[package]]
 name = "trash"
-version = "2.0.4"
+version = "2.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9a2ed4369f59214865022230fb397ad71353101fe87bfef0f0cf887c43eaa094"
+checksum = "b309394ab0f17874c395ad94a52d0e74235c8e2b00f12898e94453ab47f34f7a"
 dependencies = [
  "chrono",
  "libc",
