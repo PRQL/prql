@@ -363,6 +363,39 @@ mod test {
     use insta::{assert_debug_snapshot, assert_yaml_snapshot};
 
     #[test]
+    fn test_parse_take() -> Result<()> {
+        parse_tree_of_str("take 10", Rule::query)?;
+
+        assert_yaml_snapshot!(ast_of_string(r#"take 10"#, Rule::expr_call)?, @r###"
+        ---
+        FuncCall:
+          name: take
+          args:
+            - Literal:
+                Integer: 10
+          named_args: {}
+        "###);
+
+        // Currently this parses but doesn't translate.
+        assert_yaml_snapshot!(ast_of_string(r#"take 1..10"#, Rule::expr_call)?, @r###"
+        ---
+        FuncCall:
+          name: take
+          args:
+            - Range:
+                start:
+                  Literal:
+                    Integer: 1
+                end:
+                  Literal:
+                    Integer: 10
+          named_args: {}
+        "###);
+
+        Ok(())
+    }
+
+    #[test]
     fn test_parse_pipeline_parse_tree() {
         assert_debug_snapshot!(parse_tree_of_str(
             &include_str!("../../reference/tests/prql/examples/variables-0.prql")

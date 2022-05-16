@@ -44,7 +44,7 @@ impl Node {
         node
     }
 
-    /// Return an error if this is named expression.
+    /// Return an error if this is a named expression.
     pub fn discard_name(self) -> Result<Node, Error> {
         // TODO: replace this function with a prior type checking
 

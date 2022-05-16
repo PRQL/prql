@@ -118,7 +118,13 @@ pub fn cast_transform(func_call: FuncCall, span: Option<Span>) -> Result<Transfo
         "take" => {
             let ([expr], []) = unpack(func_call, [])?;
 
-            Transform::Take(expr.discard_name()?.item.into_literal()?.into_integer()?)
+            match expr.discard_name()?.item {
+                Item::Literal(Literal::Integer(n)) => {
+                    Transform::Take(Range::from_ints(None, Some(n)))
+                }
+                Item::Range(range) => Transform::Take(range),
+                _ => unimplemented!(),
+            }
         }
         "join" => {
             let ([with, filter], [side]) = unpack(func_call, ["side"])?;
@@ -244,11 +250,11 @@ pub fn cast_transform(func_call: FuncCall, span: Option<Span>) -> Result<Transfo
             };
 
             let (kind, range) = if expanding {
-                (WindowKind::Rows, Range::new_int(None, Some(1)))
+                (WindowKind::Rows, Range::from_ints(None, Some(1)))
             } else if rolling > 0 {
                 (
                     WindowKind::Rows,
-                    Range::new_int(Some(-rolling + 1), Some(1)),
+                    Range::from_ints(Some(-rolling + 1), Some(1)),
                 )
             } else if let Some(range) = rows {
                 (WindowKind::Rows, range)

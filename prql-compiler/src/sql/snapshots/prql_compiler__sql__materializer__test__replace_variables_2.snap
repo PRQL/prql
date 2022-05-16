@@ -110,5 +110,9 @@ expression: "&mat"
         - Literal:
             Integer: 200
 - Transform:
-    Take: 20
+    Take:
+      start: ~
+      end:
+        Literal:
+          Integer: 20
 

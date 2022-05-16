@@ -22,6 +22,7 @@ use crate::ast::JoinFilter;
 use crate::ast::*;
 use crate::error::{Error, Reason};
 use crate::semantic::Context;
+use crate::utils::OrMap;
 
 use super::materializer::MaterializationContext;
 use super::{un_group, MaterializedFrame};
@@ -225,14 +226,25 @@ fn sql_query_of_atomic_table(table: AtomicTable, dialect: &Dialect) -> Result<sq
     let where_ = filter_of_pipeline(before)?;
     let having = filter_of_pipeline(after)?;
 
-    let take = transforms
+    let takes = transforms
         .iter()
         .filter_map(|t| match t {
-            Transform::Take(take) => Some(*take),
+            Transform::Take(take) => Some(take.clone()),
             _ => None,
         })
-        .min()
-        .map(expr_of_i64);
+        .collect();
+    let take = range_of_ranges(takes)?;
+    let offset = take.start.map(|s| s - 1).unwrap_or(0);
+    let limit = take.end.map(|e| e - offset);
+
+    let offset = if offset == 0 {
+        None
+    } else {
+        Some(sqlparser::ast::Offset {
+            value: Item::Literal(Literal::Integer(offset)).try_into()?,
+            rows: sqlparser::ast::OffsetRows::None,
+        })
+    };
 
     // Use sorting from the frame
     let order_by = (frame.sort)
@@ -253,7 +265,7 @@ fn sql_query_of_atomic_table(table: AtomicTable, dialect: &Dialect) -> Result<sq
         body: SetExpr::Select(Box::new(Select {
             distinct: false,
             top: if dialect.use_top() {
-                take.clone().map(top_of_expr)
+                limit.map(top_of_i64)
             } else {
                 None
             },
@@ -273,8 +285,12 @@ fn sql_query_of_atomic_table(table: AtomicTable, dialect: &Dialect) -> Result<sq
         })),
         order_by,
         with: None,
-        limit: if dialect.use_top() { None } else { take },
-        offset: None,
+        limit: if dialect.use_top() {
+            None
+        } else {
+            limit.map(expr_of_i64)
+        },
+        offset,
         fetch: None,
         lock: None,
     })
@@ -283,12 +299,12 @@ fn sql_query_of_atomic_table(table: AtomicTable, dialect: &Dialect) -> Result<sq
 /// Convert a pipeline into a number of pipelines which can each "fit" into a SELECT.
 fn atomic_pipelines_of_pipeline(pipeline: Pipeline) -> Result<Vec<AtomicTable>> {
     // Insert a cut, when we find transformation that out of order:
-    // - joins,
+    // - joins (no limit),
     // - filters (for WHERE)
     // - aggregate (max 1x)
     // - sort (max 1x)
     // - filters (for HAVING)
-    // - take (max 1x)
+    // - take (no limit)
     //
     // Select and derive should already be extracted during resolving phase.
     //
@@ -314,7 +330,13 @@ fn atomic_pipelines_of_pipeline(pipeline: Pipeline) -> Result<Vec<AtomicTable>> 
                     || counts.get("Sort").is_some()
                     || counts.get("Take").is_some()
             }
-            "Filter" | "Sort" | "Take" => counts.get("Take").is_some(),
+            "Filter" | "Sort" => counts.get("Take").is_some(),
+
+            // There can be many takes, but they have to be consecutive
+            // For example `take 100 | sort a | take 10` can't be one CTE.
+            // But this is enforced by transform order anyway.
+            "Take" => false,
+
             _ => false,
         };
 
@@ -390,6 +412,44 @@ fn prepend_with_from(pipeline: &mut Pipeline, table: Option<TableRef>) {
     }
 }
 
+type RangeI64 = core::ops::Range<Option<i64>>;
+
+/// Aggregate several ordered ranges into one, computing the intersection.
+///
+/// Returns a tuple of `(start, end)`, where `end` is optional.
+fn range_of_ranges(ranges: Vec<Range>) -> Result<RangeI64> {
+    #[allow(clippy::boxed_local)]
+    fn cast_bound(bound: Box<Node>) -> Result<i64> {
+        Ok(bound.item.into_literal()?.into_integer()?)
+    }
+
+    let mut current = RangeI64::default();
+    for range in ranges {
+        let mut range = RangeI64 {
+            start: range.start.map(cast_bound).transpose()?,
+            end: range.end.map(cast_bound).transpose()?,
+        };
+
+        // b = b + a.start -1 (take care of 1-based index!)
+        range.start = range.start.or_map(current.start, |a, b| a + b - 1);
+        range.end = range.end.map(|b| current.start.unwrap_or(1) + b - 1);
+
+        // b.end = min(a.end, b.end)
+        range.end = current.end.or_map(range.end, i64::min);
+        current = range;
+    }
+
+    if current
+        .start
+        .zip(current.end)
+        .map(|(s, e)| e <= s)
+        .unwrap_or(false)
+    {
+        bail!("Range end is before its start.");
+    }
+    Ok(current)
+}
+
 fn expr_of_i64(number: i64) -> Expr {
     Expr::Value(Value::Number(
         number.to_string(),
@@ -397,9 +457,9 @@ fn expr_of_i64(number: i64) -> Expr {
     ))
 }
 
-fn top_of_expr(take: Expr) -> Top {
+fn top_of_i64(take: i64) -> Top {
     Top {
-        quantity: Some(take),
+        quantity: Some(Item::Literal(Literal::Integer(take)).try_into().unwrap()),
         with_ties: false,
         percent: false,
     }
@@ -531,7 +591,7 @@ impl TryFrom<Item> for Expr {
                 let default_frame = if window.sort.is_empty() {
                     (WindowKind::Rows, Range::unbounded())
                 } else {
-                    (WindowKind::Range, Range::new_int(None, Some(1)))
+                    (WindowKind::Range, Range::from_ints(None, Some(1)))
                 };
 
                 let window = WindowSpec {
@@ -572,7 +632,6 @@ impl TryFrom<Item> for Expr {
         })
     }
 }
-
 fn try_into_is_null(nodes: &[Node]) -> Result<Option<Expr>> {
     if nodes.len() == 3 {
         if let Item::Operator(op) = &nodes[1].item {
@@ -695,6 +754,74 @@ mod test {
         assert_debug_snapshot, assert_display_snapshot, assert_snapshot, assert_yaml_snapshot,
     };
     use serde_yaml::from_str;
+
+    #[test]
+    fn test_range_of_ranges() -> Result<()> {
+        // let range: Node = Item::Range(Range {
+        //     start: Some(Box::new(Item::Raw("1".to_string()).into())),
+        //     end: Some(Box::new(Item::Raw("10".to_string()).into())),
+        // })
+        // .into();
+        let range1 = Range::from_ints(Some(1), Some(10));
+        let range2 = Range::from_ints(Some(5), Some(6));
+        let range3 = Range::from_ints(Some(5), None);
+        let range4 = Range::from_ints(None, Some(8));
+
+        assert!(range_of_ranges(vec![range1.clone()])?.end.is_some());
+
+        assert_yaml_snapshot!(range_of_ranges(vec![range1.clone()])?, @r###"
+        ---
+        start: 1
+        end: 10
+        "###);
+
+        assert_yaml_snapshot!(range_of_ranges(vec![range1.clone(), range1.clone()])?, @r###"
+        ---
+        start: 1
+        end: 10
+        "###);
+
+        assert_yaml_snapshot!(range_of_ranges(vec![range1.clone(), range2.clone()])?, @r###"
+        ---
+        start: 5
+        end: 6
+        "###);
+
+        assert_yaml_snapshot!(range_of_ranges(vec![range2.clone(), range1.clone()])?, @r###"
+        ---
+        start: 5
+        end: 6
+        "###);
+
+        // We can't get 5..6 from 5..6.
+        assert!(range_of_ranges(vec![range2.clone(), range2.clone()]).is_err());
+
+        assert_yaml_snapshot!(range_of_ranges(vec![range3.clone(), range3.clone()])?, @r###"
+        ---
+        start: 9
+        end: ~
+        "###);
+
+        assert_yaml_snapshot!(range_of_ranges(vec![range1, range3])?, @r###"
+        ---
+        start: 5
+        end: 10
+        "###);
+
+        assert_yaml_snapshot!(range_of_ranges(vec![range2, range4.clone()])?, @r###"
+        ---
+        start: 5
+        end: 6
+        "###);
+
+        assert_yaml_snapshot!(range_of_ranges(vec![range4.clone(), range4])?, @r###"
+        ---
+        start: ~
+        end: 8
+        "###);
+
+        Ok(())
+    }
 
     #[test]
     fn test_try_from_s_string_to_expr() -> Result<()> {
@@ -1708,6 +1835,89 @@ take 20
         WHERE
           first_name IS NOT NULL
           AND last_name IS NOT NULL
+        "###);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_range() -> Result<()> {
+        assert_display_snapshot!((resolve_and_translate(parse(r###"
+        from employees
+        take ..10
+        "###,
+        )?)?), @r###"
+        SELECT
+          employees.*
+        FROM
+          employees
+        LIMIT
+          10
+        "###);
+
+        assert_display_snapshot!((resolve_and_translate(parse(r###"
+        from employees
+        take 5..10
+        "###,
+        )?)?), @r###"
+        SELECT
+          employees.*
+        FROM
+          employees
+        LIMIT
+          6 OFFSET 4
+        "###);
+
+        assert_display_snapshot!((resolve_and_translate(parse(r###"
+        from employees
+        take 5..
+        "###,
+        )?)?), @r###"
+        SELECT
+          employees.*
+        FROM
+          employees OFFSET 4
+        "###);
+
+        // should be one SELECT
+        assert_display_snapshot!((resolve_and_translate(parse(r###"
+        from employees
+        take 11..20
+        take 1..5
+        "###,
+        )?)?), @r###"
+        SELECT
+          employees.*
+        FROM
+          employees
+        LIMIT
+          5 OFFSET 10
+        "###);
+
+        // should be two SELECTs
+        assert_display_snapshot!((resolve_and_translate(parse(r###"
+        from employees
+        take 11..20
+        sort name
+        take 1..5
+        "###,
+        )?)?), @r###"
+        WITH table_0 AS (
+          SELECT
+            employees.*
+          FROM
+            employees
+          LIMIT
+            10 OFFSET 10
+        )
+        SELECT
+          table_0.*
+        FROM
+          table_0
+        ORDER BY
+          name
+        LIMIT
+          5
         "###);
 
         Ok(())

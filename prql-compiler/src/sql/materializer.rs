@@ -877,7 +877,11 @@ take 20
               alias: ~
               declared_at: 37
         - Transform:
-            Take: 20
+            Take:
+              start: ~
+              end:
+                Literal:
+                  Integer: 20
         "###);
         assert_yaml_snapshot!(frame.columns, @r###"
         ---
