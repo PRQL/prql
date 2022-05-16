@@ -206,6 +206,7 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
                     };
                     Item::Literal(lit)
                 }
+                Rule::null => Item::Literal(Literal::Null),
                 Rule::boolean => Item::Literal(Literal::Boolean(pair.as_str() == "true")),
                 Rule::string => {
                     let inner = pair.into_inner().into_only()?.as_str().to_string();

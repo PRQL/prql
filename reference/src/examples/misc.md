@@ -26,7 +26,6 @@ select [email_address, stub]
 European football clubs with ratings for each year. We want to normalize each year separately.
 ```prql
 from club_ratings
-# TODO: this should produce `rating IS NOT NULL`
 filter rating != null
 # TODO: this is real ugly. `average rating` should not require parenthesis
 # TODO: why cannot we put comments in group's pipeline?
