@@ -434,24 +434,31 @@ impl TryFrom<Item> for Expr {
     type Error = anyhow::Error;
     fn try_from(item: Item) -> Result<Self> {
         Ok(match item {
-            Item::Ident(_) | Item::Operator(_) => Expr::Identifier(item.try_into()?),
-            // For expressions like `country = "USA"`, we take each one, convert
-            // it, and put spaces between them. It's a bit hacky — we could
-            // convert each term to a SQL AST item, but it works for the moment.
-            //
+            Item::Ident(_) => Expr::Identifier(item.try_into()?),
+
+            Item::Operator(op) => Expr::Identifier(sql_ast::Ident::new(match op.as_str() {
+                "==" => sql_ast::BinaryOperator::Eq.to_string(),
+                "!=" => sql_ast::BinaryOperator::NotEq.to_string(),
+                _ => op.to_uppercase(),
+            })),
+
             // (one question is whether we need to surround `Expr` with parentheses?)
             Item::Expr(items) => {
-                Expr::Identifier(sql_ast::Ident::new(
-                    items
-                        .into_iter()
-                        .map(|node| Expr::try_from(node.item))
-                        .collect::<Result<Vec<Expr>>>()?
-                        .iter()
-                        .map(|x| x.to_string())
-                        // Currently a hack, but maybe OK, since we don't
-                        // need to parse every single expression into sqlparser ast.
-                        .join(" "),
-                ))
+                if let Some(e) = try_into_is_null(&items)? {
+                    e
+                } else {
+                    Expr::Identifier(sql_ast::Ident::new(
+                        items
+                            .into_iter()
+                            .map(|node| Expr::try_from(node.item))
+                            .collect::<Result<Vec<Expr>>>()?
+                            .iter()
+                            .map(|x| x.to_string())
+                            // Currently a hack, but maybe OK, since we don't
+                            // need to parse every single expression into sqlparser ast.
+                            .join(" "),
+                    ))
+                }
             }
             Item::Range(r) => {
                 fn assert_bound(bound: Option<Box<Node>>) -> Result<Node, Error> {
@@ -543,6 +550,7 @@ impl TryFrom<Item> for Expr {
                 Item::Ident(format!("{expr} OVER ({window})")).try_into()?
             }
             Item::Literal(l) => match l {
+                Literal::Null => Expr::Value(Value::Null),
                 Literal::String(s) => Expr::Value(Value::SingleQuotedString(s)),
                 Literal::Boolean(b) => Expr::Value(Value::Boolean(b)),
                 Literal::Float(f) => Expr::Value(Value::Number(format!("{f}"), false)),
@@ -563,6 +571,30 @@ impl TryFrom<Item> for Expr {
             _ => bail!("Can't convert to Expr; {item:?}"),
         })
     }
+}
+
+fn try_into_is_null(nodes: &[Node]) -> Result<Option<Expr>> {
+    if nodes.len() == 3 {
+        if let Item::Operator(op) = &nodes[1].item {
+            if op == "==" || op == "!=" {
+                let expr = if matches!(nodes[0].item, Item::Literal(Literal::Null)) {
+                    Expr::try_from(nodes[2].item.clone())?
+                } else if matches!(nodes[2].item, Item::Literal(Literal::Null)) {
+                    Expr::try_from(nodes[0].item.clone())?
+                } else {
+                    return Ok(None);
+                };
+
+                return Ok(Some(if op == "==" {
+                    Expr::IsNull(Box::new(expr))
+                } else {
+                    Expr::IsNotNull(Box::new(expr))
+                }));
+            }
+        }
+    }
+
+    Ok(None)
 }
 fn try_into_window_frame((kind, range): (WindowKind, Range)) -> Result<sql_ast::WindowFrame> {
     fn parse_bound(bound: Node, offset: i64) -> Result<WindowFrameBound> {
@@ -632,10 +664,6 @@ impl TryFrom<Item> for sql_ast::Ident {
     fn try_from(item: Item) -> Result<Self> {
         Ok(match item {
             Item::Ident(ident) => sql_ast::Ident::new(ident),
-            Item::Operator(op) => sql_ast::Ident::new(match op.as_str() {
-                "==" => "=".to_string(),
-                _ => op.to_uppercase(),
-            }),
             _ => bail!("Can't convert to Ident; {item:?}"),
         })
     }
@@ -1627,7 +1655,19 @@ take 20
     }
 
     #[test]
-    fn test_coalesce() -> Result<()> {
+    fn test_nulls() -> Result<()> {
+        assert_display_snapshot!((resolve_and_translate(parse(r###"
+        from employees
+        select amount = null
+        "###,
+        )?)?), @r###"
+        SELECT
+          NULL AS amount
+        FROM
+          employees
+        "###);
+
+        // coalesce
         assert_display_snapshot!((resolve_and_translate(parse(r###"
         from employees
         derive amount = amount + 2 ?? 3 * 5
@@ -1638,6 +1678,36 @@ take 20
           COALESCE(amount + 2, 3 * 5) AS amount
         FROM
           employees
+        "###);
+
+        // IS NULL
+        assert_display_snapshot!((resolve_and_translate(parse(r###"
+        from employees
+        filter first_name == null and null == last_name
+        "###,
+        )?)?), @r###"
+        SELECT
+          employees.*
+        FROM
+          employees
+        WHERE
+          first_name IS NULL
+          AND last_name IS NULL
+        "###);
+
+        // IS NOT NULL
+        assert_display_snapshot!((resolve_and_translate(parse(r###"
+        from employees
+        filter first_name != null and null != last_name
+        "###,
+        )?)?), @r###"
+        SELECT
+          employees.*
+        FROM
+          employees
+        WHERE
+          first_name IS NOT NULL
+          AND last_name IS NOT NULL
         "###);
 
         Ok(())
