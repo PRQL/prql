@@ -186,7 +186,7 @@ fn sql_query_of_atomic_table(table: AtomicTable, dialect: &Dialect) -> Result<sq
     let takes = transforms
         .iter()
         .filter_map(|t| match t {
-            Transform::Take(take) => Some(take.clone()),
+            Transform::Take { range, .. } => Some(range.clone()),
             _ => None,
         })
         .collect();

@@ -174,39 +174,41 @@ pub fn fold_transform<T: ?Sized + AstFold>(
     fold: &mut T,
     transformation: Transform,
 ) -> Result<Transform> {
-    match transformation {
-        Transform::From(table) => Ok(Transform::From(fold.fold_table_ref(table)?)),
+    Ok(match transformation {
+        Transform::From(table) => Transform::From(fold.fold_table_ref(table)?),
 
-        Transform::Derive(assigns) => Ok(Transform::Derive(fold.fold_nodes(assigns)?)),
-        Transform::Select(assigns) => Ok(Transform::Select(fold.fold_nodes(assigns)?)),
-        Transform::Aggregate { assigns, by } => Ok(Transform::Aggregate {
+        Transform::Derive(assigns) => Transform::Derive(fold.fold_nodes(assigns)?),
+        Transform::Select(assigns) => Transform::Select(fold.fold_nodes(assigns)?),
+        Transform::Aggregate { assigns, by } => Transform::Aggregate {
             assigns: fold.fold_nodes(assigns)?,
             by: fold.fold_nodes(by)?,
-        }),
+        },
 
-        Transform::Filter(f) => Ok(Transform::Filter(Box::new(fold.fold_node(*f)?))),
-        Transform::Sort(items) => Ok(Transform::Sort(fold.fold_column_sorts(items)?)),
-        Transform::Join { side, with, filter } => Ok(Transform::Join {
+        Transform::Filter(f) => Transform::Filter(Box::new(fold.fold_node(*f)?)),
+        Transform::Sort(items) => Transform::Sort(fold.fold_column_sorts(items)?),
+        Transform::Join { side, with, filter } => Transform::Join {
             side,
             with: fold.fold_table_ref(with)?,
             filter: fold.fold_join_filter(filter)?,
-        }),
-        Transform::Group { by, pipeline } => Ok(Transform::Group {
+        },
+        Transform::Group { by, pipeline } => Transform::Group {
             by: fold.fold_nodes(by)?,
             pipeline: Box::new(fold.fold_node(*pipeline)?),
-        }),
+        },
         Transform::Window {
             kind,
             range,
             pipeline,
-        } => Ok(Transform::Window {
+        } => Transform::Window {
             range: fold_range(fold, range)?,
             kind,
             pipeline: Box::new(fold.fold_node(*pipeline)?),
-        }),
-        // TODO: generalize? Or this never changes?
-        Transform::Take(_) => Ok(transformation),
-    }
+        },
+        Transform::Take { by, range } => Transform::Take {
+            range: fold_range(fold, range)?,
+            by: fold.fold_nodes(by)?,
+        },
+    })
 }
 
 pub fn fold_select<T: ?Sized + AstFold>(fold: &mut T, select: Select) -> Result<Select> {

@@ -394,7 +394,7 @@ impl Resolver {
             | Transform::Window { .. } => {
                 // ok
             }
-            Transform::Aggregate { by, .. } => {
+            Transform::Aggregate { by, .. } | Transform::Take { by, .. } => {
                 *by = (self.within_group)
                     .iter()
                     .map(|id| Node::new_ident("<ref>", *id))

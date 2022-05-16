@@ -40,7 +40,10 @@ pub enum Transform {
         by: Vec<Node>,
     },
     Sort(Vec<ColumnSort<Node>>),
-    Take(Range),
+    Take {
+        range: Range,
+        by: Vec<Node>
+    },
     Join {
         side: JoinSide,
         with: TableRef,

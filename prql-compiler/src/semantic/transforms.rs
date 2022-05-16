@@ -118,13 +118,12 @@ pub fn cast_transform(func_call: FuncCall, span: Option<Span>) -> Result<Transfo
         "take" => {
             let ([expr], []) = unpack(func_call, [])?;
 
-            match expr.discard_name()?.item {
-                Item::Literal(Literal::Integer(n)) => {
-                    Transform::Take(Range::from_ints(None, Some(n)))
-                }
-                Item::Range(range) => Transform::Take(range),
+            let range = match expr.discard_name()?.item {
+                Item::Literal(Literal::Integer(n)) => Range::from_ints(None, Some(n)),
+                Item::Range(range) => range,
                 _ => unimplemented!(),
-            }
+            };
+            Transform::Take { range, by: vec![] }
         }
         "join" => {
             let ([with, filter], [side]) = unpack(func_call, ["side"])?;
