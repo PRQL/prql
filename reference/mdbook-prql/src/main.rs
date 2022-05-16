@@ -2,7 +2,7 @@
 // which does the replacement.
 // This file is licensed under GPL-3.0 then. We don't link against it from PRQL.
 use anyhow::{bail, Result};
-use clap::{App, Arg, ArgMatches, SubCommand};
+use clap::{Arg, ArgMatches, Command};
 use mdbook::preprocess::PreprocessorContext;
 use mdbook::preprocess::{CmdPreprocessor, Preprocessor};
 use mdbook::{book::Book, BookItem};
@@ -15,11 +15,11 @@ use std::{io, process};
 
 /// Checks renderer support and runs the preprocessor.
 pub fn run(preprocessor: impl Preprocessor, description: &str) {
-    let matches = App::new(preprocessor.name())
+    let matches = Command::new(preprocessor.name())
         .about(description)
         .subcommand(
-            SubCommand::with_name("supports")
-                .arg(Arg::with_name("renderer").required(true))
+            Command::new("supports")
+                .arg(Arg::new("renderer").required(true))
                 .about("Check whether a renderer is supported by this preprocessor"),
         )
         .get_matches();

@@ -21,7 +21,7 @@ console_error_panic_hook = "0.1.7"
 css-style = "0.14.0"
 gloo-console = "0.2.1"
 gloo-events = "0.1.2"
-log = "0.4.16"
+log = "0.4.17"
 # On git because of https://github.com/siku2/rust-monaco/pull/21
 monaco = {git = "https://github.com/siku2/rust-monaco", branch = "master", features = ["yew-components"]}
 wasm-bindgen = "0.2.80"

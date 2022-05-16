@@ -269,6 +269,7 @@ fn sql_query_of_atomic_table(table: AtomicTable, dialect: &Dialect) -> Result<sq
             distribute_by: vec![],
             sort_by: vec![],
             having,
+            qualify: None,
         })),
         order_by,
         with: None,
