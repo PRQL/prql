@@ -250,11 +250,11 @@ pub fn cast_transform(func_call: FuncCall, span: Option<Span>) -> Result<Transfo
             };
 
             let (kind, range) = if expanding {
-                (WindowKind::Rows, Range::from_ints(None, Some(1)))
+                (WindowKind::Rows, Range::from_ints(None, Some(0)))
             } else if rolling > 0 {
                 (
                     WindowKind::Rows,
-                    Range::from_ints(Some(-rolling + 1), Some(1)),
+                    Range::from_ints(Some(-rolling + 1), Some(0)),
                 )
             } else if let Some(range) = rows {
                 (WindowKind::Rows, range)
