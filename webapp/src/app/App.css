@@ -1,0 +1,10 @@
+.main {
+  height: 100%;
+  display: flex;
+}
+.main>* {
+  flex-grow: 1;
+}
+.sidebar {
+  flex: 0 0 200px;
+}

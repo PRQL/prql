@@ -1,0 +1,37 @@
+.sidebar {
+  padding-top: 2rem;
+}
+section:not(:last-child) {
+  border-bottom: 1px solid #666;  
+  padding-bottom: 1rem;
+}
+section h2 {
+  text-transform: uppercase;
+  font-weight: bold;
+  font-size: 12px;
+  margin: 0;
+  padding: 2px 1rem 2px 1rem;
+}
+
+.fileRow {
+  display: block;
+  padding: 2px 1rem 2px 1rem;
+}
+.fileRow:hover {
+  cursor: pointer;
+  background-color: #ffffff1f;
+}
+
+section h1, section p {
+  padding: 2px 1rem 2px 1rem;
+}
+
+section ul {
+  padding-left: 2px;
+}
+section a {
+  color: lightblue;
+}
+section a:visited {
+  color: plum;
+}

@@ -1,0 +1,74 @@
+.column {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  flex-grow: 1;
+  overflow-y: hidden;
+}
+.tab {
+  flex-grow: 1;
+  flex-basis: 0;
+  min-width: 30rem;
+  height: 100%;
+
+  display: flex;
+  flex-direction: column;
+}
+.tab:not(:first-child) {
+  border-left: 1px solid #666;
+}
+.tab>* {
+  flex-grow: 1;
+}
+.tab-top {
+  flex-grow: 0;
+  display: flex;
+  align-items: center;
+}
+.tab-top button {
+  border: 0;
+  background: transparent;
+  text-decoration: underline;
+  padding: 2px 1em;
+  color: lightblue;
+  cursor: pointer;
+}
+.spacer {
+  flex-grow: 1;
+}
+.tab-title {
+  flex-grow: 0;
+  align-self: start;
+  padding: 3px 0.75em;
+  display: inline;
+  background: #222;
+}
+.error-pane {
+  padding: 1rem;
+  margin: 0;
+  width: 100%;
+
+  font-family: monospace;
+  white-space: pre-wrap;
+
+  border-top: 1px solid;
+  border-color: red;
+  background-color: #552222;
+}
+
+pre.hljs {
+  margin: 0;
+  background: #222; 
+  height: 100%;
+  overflow-y: scroll;
+  padding-left: 2em;
+}
+pre.hljs code {
+  font-size: 14px;
+}

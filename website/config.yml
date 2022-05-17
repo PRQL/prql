@@ -1,0 +1,26 @@
+baseURL: 'https://prql.builders/'
+languageCode: 'en-us'
+title: 'PRQL'
+theme: 'prql-theme'
+
+params:
+  main_menu:
+ 
+    - text: Reference
+      link: https://lang.prql.builders/
+
+    - text: Web compiler
+      link: https://compiler.prql.builders/
+
+    - text: Tools
+      link: /#tools
+      
+    - text: News
+      link: /news
+      
+    - text: Github
+      link: https://github.com/max-sixty/prql
+    
+
+  footer:
+    text: '© 2022, PRQL core developers. Apache 2.0 Licensed'
