@@ -16,12 +16,15 @@ PRQL, on the other hand, treats `null` as a value, which means that:
 - `null != null` evaluates to `false`,
 - distinct column cannot contain multiple `null` values.
 
-This approach was discussed in [issue #99](https://github.com/prql/prql/issues/99).
-
-> Note, currently `DISTINCT` is not yet implemented, see [#292](https://github.com/prql/prql/issues/292)
-
 ```prql
 from employees
 filter first_name == null
 filter null != last_name
 ```
+
+Note that PRQL doesn't change how `NULL` is compared between columns, for
+example in joins. (PRQL compiles to SQL and so can't change the behavior of the
+database).
+
+For more context or to provide feedback check out the discussion on
+[issue #99](https://github.com/prql/prql/issues/99).
