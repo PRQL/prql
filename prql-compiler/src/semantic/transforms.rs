@@ -326,15 +326,13 @@ mod tests {
         let query = parse(
             "
         from c_invoice
+        select invoice_no
         group invoice_no (
             take 1
         )
         ",
         )
         .unwrap();
-        // TODO: this test
-        assert!(resolve(query.nodes, context.clone()).is_err());
-        /*
         let (result, _) = resolve(query.nodes, context.clone()).unwrap();
         assert_yaml_snapshot!(result, @r###"
         ---
@@ -345,7 +343,10 @@ mod tests {
                   From:
                     name: c_invoice
                     alias: ~
-                    declared_at: 58
+                    declared_at: 78
+              - Transform:
+                  Select:
+                    - Ident: invoice_no
               - Transform:
                   Group:
                     by:
@@ -355,9 +356,15 @@ mod tests {
                         value: ~
                         functions:
                           - Transform:
-                              Take: 1
+                              Take:
+                                range:
+                                  start: ~
+                                  end:
+                                    Literal:
+                                      Integer: 1
+                                by:
+                                  - Ident: "<ref>"
         "###);
-        */
 
         // oops, two arguments #339
         let query = parse(
@@ -401,7 +408,7 @@ mod tests {
                   From:
                     name: c_invoice
                     alias: ~
-                    declared_at: 80
+                    declared_at: 78
               - Transform:
                   Group:
                     by:
@@ -447,7 +454,7 @@ mod tests {
                   From:
                     name: invoices
                     alias: ~
-                    declared_at: 80
+                    declared_at: 78
               - Transform:
                   Sort:
                     - direction: Asc

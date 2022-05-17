@@ -141,9 +141,6 @@ fn table_factor_of_table_ref(table_ref: &TableRef) -> TableFactor {
 // impl Translator for
 // fn sql_query_of_atomic_table(table: AtomicTable, dialect: &Dialect) -> Result<sql_ast::Query> {
 fn sql_query_of_atomic_table(table: AtomicTable, dialect: &Dialect) -> Result<sql_ast::Query> {
-    // TODO: possibly do validation here? e.g. check there isn't more than one
-    // `from`? Or do we rely on the caller for that?
-
     let frame = table.frame.ok_or_else(|| anyhow!("frame not provided?"))?;
 
     let transforms = table.pipeline.into_transforms()?;
@@ -259,7 +256,7 @@ fn atomic_pipelines_of_pipeline(pipeline: Pipeline) -> Result<Vec<AtomicTable>> 
     // - joins (no limit),
     // - filters (for WHERE)
     // - aggregate (max 1x)
-    // - sort (max 1x)
+    // - sort (no limit)
     // - filters (for HAVING)
     // - take (no limit)
     //
@@ -287,7 +284,8 @@ fn atomic_pipelines_of_pipeline(pipeline: Pipeline) -> Result<Vec<AtomicTable>> 
                     || counts.get("Sort").is_some()
                     || counts.get("Take").is_some()
             }
-            "Filter" | "Sort" => counts.get("Take").is_some(),
+            "Sort" => counts.get("Take").is_some(),
+            "Filter" => counts.get("Take").is_some() || function.is_complex,
 
             // There can be many takes, but they have to be consecutive
             // For example `take 100 | sort a | take 10` can't be one CTE.
@@ -1926,5 +1924,30 @@ take 20
         "###);
 
         Ok(())
+    }
+
+    #[test]
+    fn test_distinct() {
+        // window functions cannot materialize into where statement: CTE is needed
+        assert_display_snapshot!((resolve_and_translate(parse(r###"
+        from employees
+        derive rn = row_number
+        filter rn > 2
+        "###,
+        ).unwrap()).unwrap()), @r###"
+        WITH table_0 AS (
+          SELECT
+            employees.*,
+            ROW_NUMBER() OVER () AS rn
+          FROM
+            employees
+        )
+        SELECT
+          table_0.*
+        FROM
+          table_0
+        WHERE
+          rn > 2
+        "###);
     }
 }

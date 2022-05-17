@@ -111,8 +111,10 @@ expression: mat
             Integer: 200
 - Transform:
     Take:
-      start: ~
-      end:
-        Literal:
-          Integer: 20
+      range:
+        start: ~
+        end:
+          Literal:
+            Integer: 20
+      by: []
 

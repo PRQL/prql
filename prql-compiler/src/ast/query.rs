@@ -66,25 +66,6 @@ pub enum WindowKind {
     Range,
 }
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub struct Select {
-    pub assigns: Vec<Node>,
-    pub group: Vec<Node>,
-    pub window: Option<Vec<Node>>,
-    pub sort: Option<Vec<Node>>,
-}
-
-impl Select {
-    pub fn new(assigns: Vec<Node>) -> Self {
-        Select {
-            assigns,
-            group: Vec::new(),
-            window: None,
-            sort: None,
-        }
-    }
-}
-
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct TableRef {
     pub name: String,
     pub alias: Option<String>,

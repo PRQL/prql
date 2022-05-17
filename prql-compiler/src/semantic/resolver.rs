@@ -7,6 +7,7 @@ use crate::ast::ast_fold::*;
 use crate::error::{Error, Reason, WithErrorInfo};
 use crate::{ast::*, Declaration};
 
+use super::complexity::determine_complexity;
 use super::frame::extract_sorts;
 use super::transforms;
 use super::Context;
@@ -22,6 +23,8 @@ pub fn resolve(nodes: Vec<Node>, context: Option<Context>) -> Result<(Vec<Node>,
     let mut resolver = Resolver::new(context);
 
     let nodes = resolver.fold_nodes(nodes)?;
+
+    let nodes = determine_complexity(nodes, &resolver.context);
 
     Ok((nodes, resolver.context))
 }
@@ -332,24 +335,23 @@ impl Resolver {
             .validate_function_call(node.declared_at, func_call, within_curry)
             .with_span(node.span)?;
 
-        node.item = {
-            let return_type = func_def.return_type.as_ref();
-            if Some(&Type::frame()) <= return_type {
-                // cast if this is a transform
-                let transform = transforms::cast_transform(func_call, node.span)?;
+        let return_type = func_def.return_type.as_ref();
+        if Some(&Type::frame()) <= return_type {
+            // cast if this is a transform
+            let transform = transforms::cast_transform(func_call, node.span)?;
 
-                Item::Transform(self.fold_transform(transform)?)
+            node.item = Item::Transform(self.fold_transform(transform)?)
+        } else {
+            let func_call = Item::FuncCall(self.fold_func_call(func_call)?);
+
+            // wrap into windowed
+            if !self.within_aggregate && Some(&Type::column()) <= return_type {
+                node.item = self.wrap_into_windowed(func_call, node.declared_at);
+                node.declared_at = None;
             } else {
-                let mut item = Item::FuncCall(self.fold_func_call(func_call)?);
-
-                // wrap into windowed
-                if !self.within_aggregate && Some(&Type::column()) <= return_type {
-                    item = self.wrap_into_windowed(item, node.declared_at);
-                    node.declared_at = None;
-                }
-                item
+                node.item = func_call;
             }
-        };
+        }
 
         Ok(node)
     }
@@ -666,38 +668,50 @@ mod tests {
 
     #[test]
     fn test_applying_group_context() {
-        let prql = r#"
+        assert_snapshot!(parse(r#"
         from employees
         group last_name (
             sort first_name
             take 1
         )
-        "#;
-        let result = parse(prql).and_then(resolve_and_translate);
-        assert!(result.is_err());
+        "#).and_then(resolve_and_translate).unwrap(), @r###"
+        SELECT
+          employees.*
+        FROM
+          employees
+        LIMIT
+          1
+        "###);
 
-        let prql = r#"
+        let res = parse(
+            r#"
+        from employees
+        group last_name (
+            group last_name ( | aaa )
+        )
+        "#,
+        )
+        .and_then(resolve_and_translate);
+        assert!(res.is_err());
+
+        assert_snapshot!(parse(r#"
         from employees
         group last_name (
             select first_name
         )
-        "#;
-        let result = parse(prql).and_then(resolve_and_translate).unwrap();
-        assert_snapshot!(result, @r###"
+        "#).and_then(resolve_and_translate).unwrap(), @r###"
         SELECT
           first_name
         FROM
           employees
         "###);
 
-        let prql = r#"
+        assert_snapshot!(parse(r#"
         from employees
         group last_name (
             aggregate count
         )
-        "#;
-        let result = parse(prql).and_then(resolve_and_translate).unwrap();
-        assert_snapshot!(result, @r###"
+        "#).and_then(resolve_and_translate).unwrap(), @r###"
         SELECT
           last_name,
           COUNT(*)

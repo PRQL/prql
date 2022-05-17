@@ -70,14 +70,14 @@ pub trait AstFold {
             .map(|c| self.fold_column_sort(c))
             .try_collect()
     }
-    fn fold_select(&mut self, select: Select) -> Result<Select> {
-        fold_select(self, select)
-    }
     fn fold_join_filter(&mut self, f: JoinFilter) -> Result<JoinFilter> {
         fold_join_filter(self, f)
     }
     fn fold_type(&mut self, t: Type) -> Result<Type> {
         fold_type(self, t)
+    }
+    fn fold_windowed(&mut self, windowed: Windowed) -> Result<Windowed> {
+        fold_windowed(self, windowed)
     }
 }
 
@@ -110,19 +110,23 @@ pub fn fold_item<T: ?Sized + AstFold>(fold: &mut T, item: Item) -> Result<Item> 
         Item::FuncDef(func) => Item::FuncDef(fold.fold_func_def(func)?),
         Item::FuncCall(func_call) => Item::FuncCall(fold.fold_func_call(func_call)?),
         Item::Table(table) => Item::Table(fold.fold_table(table)?),
-        Item::Windowed(window) => Item::Windowed(Windowed {
-            expr: Box::new(fold.fold_node(*window.expr)?),
-            group: fold.fold_nodes(window.group)?,
-            sort: fold.fold_column_sorts(window.sort)?,
-            window: {
-                let (kind, range) = window.window;
-                (kind, fold_range(fold, range)?)
-            },
-        }),
+        Item::Windowed(window) => Item::Windowed(fold.fold_windowed(window)?),
         Item::Type(t) => Item::Type(fold.fold_type(t)?),
         // None of these capture variables, so we don't need to replace
         // them.
         Item::Literal(_) | Item::Operator(_) | Item::Interval(_) => item,
+    })
+}
+
+pub fn fold_windowed<F: ?Sized + AstFold>(fold: &mut F, window: Windowed) -> Result<Windowed> {
+    Ok(Windowed {
+        expr: Box::new(fold.fold_node(*window.expr)?),
+        group: fold.fold_nodes(window.group)?,
+        sort: fold.fold_column_sorts(window.sort)?,
+        window: {
+            let (kind, range) = window.window;
+            (kind, fold_range(fold, range)?)
+        },
     })
 }
 
@@ -208,15 +212,6 @@ pub fn fold_transform<T: ?Sized + AstFold>(
             range: fold_range(fold, range)?,
             by: fold.fold_nodes(by)?,
         },
-    })
-}
-
-pub fn fold_select<T: ?Sized + AstFold>(fold: &mut T, select: Select) -> Result<Select> {
-    Ok(Select {
-        assigns: fold.fold_nodes(select.assigns)?,
-        group: fold.fold_nodes(select.group)?,
-        window: select.window.map(|x| fold.fold_nodes(x)).transpose()?,
-        sort: select.sort.map(|x| fold.fold_nodes(x)).transpose()?,
     })
 }
 

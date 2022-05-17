@@ -35,6 +35,10 @@ pub struct Node {
     pub span: Option<Span>,
     #[serde(skip)]
     pub declared_at: Option<usize>,
+    
+    /// Is true when containing window functions 
+    #[serde(skip)]
+    pub is_complex: bool,
 }
 
 impl Node {
@@ -111,6 +115,7 @@ impl From<Item> for Node {
             item,
             span: None,
             declared_at: None,
+            is_complex: false,
         }
     }
 }
