@@ -10,7 +10,7 @@ group department (
 )
 ```
 
-or with inline pipeline:
+or without a linebreak:
 ```prql
 from employees
 select department
