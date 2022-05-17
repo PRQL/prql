@@ -22,7 +22,7 @@ group department ( | take 1)
 Note that `group` can contain `sort`:
 
 ```prql
-# youngest employees from each department
+# youngest employee from each department
 from employees
 group department (
   sort age
