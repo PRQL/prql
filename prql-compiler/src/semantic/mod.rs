@@ -1,10 +1,10 @@
+mod complexity;
 mod context;
 mod frame;
 mod reporting;
 mod resolver;
 mod scope;
 mod transforms;
-mod complexity;
 
 pub use self::context::{Context, Declaration};
 pub use self::frame::{Frame, FrameColumn};

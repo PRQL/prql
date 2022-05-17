@@ -42,7 +42,7 @@ pub enum Transform {
     Sort(Vec<ColumnSort<Node>>),
     Take {
         range: Range,
-        by: Vec<Node>
+        by: Vec<Node>,
     },
     Join {
         side: JoinSide,
@@ -58,6 +58,7 @@ pub enum Transform {
         range: Range,
         pipeline: Box<Node>,
     },
+    Unique, // internal only, can be expressed with group & take
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]

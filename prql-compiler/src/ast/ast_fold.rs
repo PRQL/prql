@@ -212,6 +212,7 @@ pub fn fold_transform<T: ?Sized + AstFold>(
             range: fold_range(fold, range)?,
             by: fold.fold_nodes(by)?,
         },
+        Transform::Unique => Transform::Unique,
     })
 }
 

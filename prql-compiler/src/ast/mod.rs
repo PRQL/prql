@@ -35,8 +35,8 @@ pub struct Node {
     pub span: Option<Span>,
     #[serde(skip)]
     pub declared_at: Option<usize>,
-    
-    /// Is true when containing window functions 
+
+    /// Is true when containing window functions
     #[serde(skip)]
     pub is_complex: bool,
 }

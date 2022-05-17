@@ -1,6 +1,6 @@
-# youngest employee from each department
 from employees
 group department (
   sort age
-  take 1
+  derive rank = row_number
 )
+filter rank == 1

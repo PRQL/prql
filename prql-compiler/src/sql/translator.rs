@@ -25,7 +25,7 @@ use crate::semantic::Context;
 use crate::utils::OrMap;
 
 use super::materializer::MaterializationContext;
-use super::{un_group, MaterializedFrame};
+use super::{distinct, un_group, MaterializedFrame};
 
 /// Translate a PRQL AST into a SQL string.
 pub fn translate(query: Query, context: Context) -> Result<String> {
@@ -215,9 +215,11 @@ fn sql_query_of_atomic_table(table: AtomicTable, dialect: &Dialect) -> Result<sq
     };
     let dialect = dialect.handler();
 
+    let distinct = transforms.iter().any(|t| matches!(t, Transform::Unique));
+
     Ok(sql_ast::Query {
         body: SetExpr::Select(Box::new(Select {
-            distinct: false,
+            distinct,
             top: if dialect.use_top() {
                 limit.map(top_of_i64)
             } else {
@@ -264,7 +266,9 @@ fn atomic_pipelines_of_pipeline(pipeline: Pipeline) -> Result<Vec<AtomicTable>> 
     //
     // So we loop through the Pipeline, and cut it into cte-sized pipelines,
     // which we'll then compose together.
-    let pipeline = un_group::un_group(pipeline.functions)?;
+    let pipeline = Ok(pipeline.functions)
+        .and_then(un_group::un_group)
+        .and_then(distinct::take_to_distinct)?;
 
     let mut counts: HashMap<&str, u32> = HashMap::new();
     let mut splits = vec![0];
@@ -367,23 +371,13 @@ fn prepend_with_from(pipeline: &mut Pipeline, table: Option<TableRef>) {
     }
 }
 
-type RangeI64 = core::ops::Range<Option<i64>>;
-
 /// Aggregate several ordered ranges into one, computing the intersection.
 ///
 /// Returns a tuple of `(start, end)`, where `end` is optional.
-fn range_of_ranges(ranges: Vec<Range>) -> Result<RangeI64> {
-    #[allow(clippy::boxed_local)]
-    fn cast_bound(bound: Box<Node>) -> Result<i64> {
-        Ok(bound.item.into_literal()?.into_integer()?)
-    }
-
-    let mut current = RangeI64::default();
+fn range_of_ranges(ranges: Vec<Range>) -> Result<Range<i64>> {
+    let mut current = Range::default();
     for range in ranges {
-        let mut range = RangeI64 {
-            start: range.start.map(cast_bound).transpose()?,
-            end: range.end.map(cast_bound).transpose()?,
-        };
+        let mut range = range.into_int()?;
 
         // b = b + a.start -1 (take care of 1-based index!)
         range.start = range.start.or_map(current.start, |a, b| a + b - 1);
@@ -1948,6 +1942,46 @@ take 20
           table_0
         WHERE
           rn > 2
+        "###);
+
+        // basic distinct
+        assert_display_snapshot!((resolve_and_translate(parse(r###"
+        from employees
+        select first_name
+        group first_name ( | take 1)
+        "###,
+        ).unwrap()).unwrap()), @r###"
+        SELECT
+          DISTINCT first_name
+        FROM
+          employees
+        "###);
+
+        // distinct on two columns
+        assert_display_snapshot!((resolve_and_translate(parse(r###"
+        from employees
+        select [first_name, last_name]
+        group [first_name, last_name] ( | take 1)
+        "###,
+        ).unwrap()).unwrap()), @r###"
+        SELECT
+          DISTINCT first_name,
+          last_name
+        FROM
+          employees
+        "###);
+
+        // TODO: this should not use DISTINCT but ROW_NUMBER and WHERE, because we want
+        // row  distinct only over first_name and last_name.
+        assert_display_snapshot!((resolve_and_translate(parse(r###"
+        from employees
+        group [first_name, last_name] ( | take 1)
+        "###,
+        ).unwrap()).unwrap()), @r###"
+        SELECT
+          DISTINCT employees.*
+        FROM
+          employees
         "###);
     }
 }

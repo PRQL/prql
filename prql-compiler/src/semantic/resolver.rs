@@ -676,11 +676,9 @@ mod tests {
         )
         "#).and_then(resolve_and_translate).unwrap(), @r###"
         SELECT
-          employees.*
+          DISTINCT employees.*
         FROM
           employees
-        LIMIT
-          1
         "###);
 
         let res = parse(
