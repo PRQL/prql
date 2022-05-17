@@ -1,3 +1,4 @@
+mod distinct;
 mod materializer;
 mod translator;
 mod un_group;

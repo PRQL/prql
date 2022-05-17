@@ -40,7 +40,10 @@ pub enum Transform {
         by: Vec<Node>,
     },
     Sort(Vec<ColumnSort<Node>>),
-    Take(Range),
+    Take {
+        range: Range,
+        by: Vec<Node>,
+    },
     Join {
         side: JoinSide,
         with: TableRef,
@@ -55,6 +58,7 @@ pub enum Transform {
         range: Range,
         pipeline: Box<Node>,
     },
+    Unique, // internal only, can be expressed with group & take
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
@@ -62,25 +66,6 @@ pub enum WindowKind {
     Rows,
     Range,
 }
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub struct Select {
-    pub assigns: Vec<Node>,
-    pub group: Vec<Node>,
-    pub window: Option<Vec<Node>>,
-    pub sort: Option<Vec<Node>>,
-}
-
-impl Select {
-    pub fn new(assigns: Vec<Node>) -> Self {
-        Select {
-            assigns,
-            group: Vec::new(),
-            window: None,
-            sort: None,
-        }
-    }
-}
-
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct TableRef {
     pub name: String,

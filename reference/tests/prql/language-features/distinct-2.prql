@@ -1,0 +1,6 @@
+from employees
+group department (
+  sort age
+  derive rank = row_number
+)
+filter rank == 1

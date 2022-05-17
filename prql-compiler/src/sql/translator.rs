@@ -25,7 +25,7 @@ use crate::semantic::Context;
 use crate::utils::OrMap;
 
 use super::materializer::MaterializationContext;
-use super::{un_group, MaterializedFrame};
+use super::{distinct, un_group, MaterializedFrame};
 
 /// Translate a PRQL AST into a SQL string.
 pub fn translate(query: Query, context: Context) -> Result<String> {
@@ -141,9 +141,6 @@ fn table_factor_of_table_ref(table_ref: &TableRef) -> TableFactor {
 // impl Translator for
 // fn sql_query_of_atomic_table(table: AtomicTable, dialect: &Dialect) -> Result<sql_ast::Query> {
 fn sql_query_of_atomic_table(table: AtomicTable, dialect: &Dialect) -> Result<sql_ast::Query> {
-    // TODO: possibly do validation here? e.g. check there isn't more than one
-    // `from`? Or do we rely on the caller for that?
-
     let frame = table.frame.ok_or_else(|| anyhow!("frame not provided?"))?;
 
     let transforms = table.pipeline.into_transforms()?;
@@ -162,32 +159,7 @@ fn sql_query_of_atomic_table(table: AtomicTable, dialect: &Dialect) -> Result<sq
     let joins = transforms
         .iter()
         .filter(|t| matches!(t, Transform::Join { .. }))
-        .map(|t| match t {
-            Transform::Join { side, with, filter } => {
-                let constraint = match filter {
-                    JoinFilter::On(nodes) => Item::Expr(nodes.to_vec())
-                        .try_into()
-                        .map(JoinConstraint::On)?,
-                    JoinFilter::Using(nodes) => JoinConstraint::Using(
-                        nodes
-                            .iter()
-                            .map(|x| x.item.clone().try_into())
-                            .collect::<Result<Vec<_>>>()?,
-                    ),
-                };
-
-                Ok(Join {
-                    relation: table_factor_of_table_ref(with),
-                    join_operator: match *side {
-                        JoinSide::Inner => JoinOperator::Inner(constraint),
-                        JoinSide::Left => JoinOperator::LeftOuter(constraint),
-                        JoinSide::Right => JoinOperator::RightOuter(constraint),
-                        JoinSide::Full => JoinOperator::FullOuter(constraint),
-                    },
-                })
-            }
-            _ => unreachable!(),
-        })
+        .map(Join::try_from)
         .collect::<Result<Vec<_>>>()?;
     if !joins.is_empty() {
         if let Some(from) = from.last_mut() {
@@ -204,24 +176,6 @@ fn sql_query_of_atomic_table(table: AtomicTable, dialect: &Dialect) -> Result<sq
         .unwrap_or(transforms.len());
     let (before, after) = transforms.split_at(aggregate_position);
 
-    // Convert the filters in a pipeline into an Expr
-    #[allow(unstable_name_collisions)] // Same behavior as the std lib; we can remove this + itertools when that's released.
-    fn filter_of_pipeline(pipeline: &[Transform]) -> Result<Option<Expr>> {
-        let filters: Vec<Node> = pipeline
-            .iter()
-            .filter_map(|t| match t {
-                Transform::Filter(filter) => Some(*filter.clone()),
-                _ => None,
-            })
-            .intersperse(Node::from(Item::Operator("and".to_owned())))
-            .collect();
-
-        Ok(if !filters.is_empty() {
-            Some((Item::Expr(filters)).try_into()?)
-        } else {
-            None
-        })
-    }
     // Find the filters that come before the aggregation.
     let where_ = filter_of_pipeline(before)?;
     let having = filter_of_pipeline(after)?;
@@ -229,7 +183,7 @@ fn sql_query_of_atomic_table(table: AtomicTable, dialect: &Dialect) -> Result<sq
     let takes = transforms
         .iter()
         .filter_map(|t| match t {
-            Transform::Take(take) => Some(take.clone()),
+            Transform::Take { range, .. } => Some(range.clone()),
             _ => None,
         })
         .collect();
@@ -261,9 +215,11 @@ fn sql_query_of_atomic_table(table: AtomicTable, dialect: &Dialect) -> Result<sq
     };
     let dialect = dialect.handler();
 
+    let distinct = transforms.iter().any(|t| matches!(t, Transform::Unique));
+
     Ok(sql_ast::Query {
         body: SetExpr::Select(Box::new(Select {
-            distinct: false,
+            distinct,
             top: if dialect.use_top() {
                 limit.map(top_of_i64)
             } else {
@@ -302,7 +258,7 @@ fn atomic_pipelines_of_pipeline(pipeline: Pipeline) -> Result<Vec<AtomicTable>> 
     // - joins (no limit),
     // - filters (for WHERE)
     // - aggregate (max 1x)
-    // - sort (max 1x)
+    // - sort (no limit)
     // - filters (for HAVING)
     // - take (no limit)
     //
@@ -310,7 +266,9 @@ fn atomic_pipelines_of_pipeline(pipeline: Pipeline) -> Result<Vec<AtomicTable>> 
     //
     // So we loop through the Pipeline, and cut it into cte-sized pipelines,
     // which we'll then compose together.
-    let pipeline = un_group::un_group(pipeline.functions)?;
+    let pipeline = Ok(pipeline.functions)
+        .and_then(un_group::un_group)
+        .and_then(distinct::take_to_distinct)?;
 
     let mut counts: HashMap<&str, u32> = HashMap::new();
     let mut splits = vec![0];
@@ -330,7 +288,8 @@ fn atomic_pipelines_of_pipeline(pipeline: Pipeline) -> Result<Vec<AtomicTable>> 
                     || counts.get("Sort").is_some()
                     || counts.get("Take").is_some()
             }
-            "Filter" | "Sort" => counts.get("Take").is_some(),
+            "Sort" => counts.get("Take").is_some(),
+            "Filter" => counts.get("Take").is_some() || function.is_complex,
 
             // There can be many takes, but they have to be consecutive
             // For example `take 100 | sort a | take 10` can't be one CTE.
@@ -412,23 +371,13 @@ fn prepend_with_from(pipeline: &mut Pipeline, table: Option<TableRef>) {
     }
 }
 
-type RangeI64 = core::ops::Range<Option<i64>>;
-
 /// Aggregate several ordered ranges into one, computing the intersection.
 ///
 /// Returns a tuple of `(start, end)`, where `end` is optional.
-fn range_of_ranges(ranges: Vec<Range>) -> Result<RangeI64> {
-    #[allow(clippy::boxed_local)]
-    fn cast_bound(bound: Box<Node>) -> Result<i64> {
-        Ok(bound.item.into_literal()?.into_integer()?)
-    }
-
-    let mut current = RangeI64::default();
+fn range_of_ranges(ranges: Vec<Range>) -> Result<Range<i64>> {
+    let mut current = Range::default();
     for range in ranges {
-        let mut range = RangeI64 {
-            start: range.start.map(cast_bound).transpose()?,
-            end: range.end.map(cast_bound).transpose()?,
-        };
+        let mut range = range.into_int()?;
 
         // b = b + a.start -1 (take care of 1-based index!)
         range.start = range.start.or_map(current.start, |a, b| a + b - 1);
@@ -448,6 +397,24 @@ fn range_of_ranges(ranges: Vec<Range>) -> Result<RangeI64> {
         bail!("Range end is before its start.");
     }
     Ok(current)
+}
+
+#[allow(unstable_name_collisions)] // Same behavior as the std lib; we can remove this + itertools when that's released.
+fn filter_of_pipeline(pipeline: &[Transform]) -> Result<Option<Expr>> {
+    let filters: Vec<Node> = pipeline
+        .iter()
+        .filter_map(|t| match t {
+            Transform::Filter(filter) => Some(*filter.clone()),
+            _ => None,
+        })
+        .intersperse(Node::from(Item::Operator("and".to_owned())))
+        .collect();
+
+    Ok(if !filters.is_empty() {
+        Some((Item::Expr(filters)).try_into()?)
+    } else {
+        None
+    })
 }
 
 fn expr_of_i64(number: i64) -> Expr {
@@ -715,6 +682,37 @@ impl TryFrom<ColumnSort> for OrderByExpr {
             },
             nulls_first: None,
         })
+    }
+}
+impl TryFrom<&Transform> for Join {
+    type Error = anyhow::Error;
+    fn try_from(t: &Transform) -> Result<Join> {
+        match t {
+            Transform::Join { side, with, filter } => {
+                let constraint = match filter {
+                    JoinFilter::On(nodes) => Item::Expr(nodes.to_vec())
+                        .try_into()
+                        .map(JoinConstraint::On)?,
+                    JoinFilter::Using(nodes) => JoinConstraint::Using(
+                        nodes
+                            .iter()
+                            .map(|x| x.item.clone().try_into())
+                            .collect::<Result<Vec<_>>>()?,
+                    ),
+                };
+
+                Ok(Join {
+                    relation: table_factor_of_table_ref(with),
+                    join_operator: match *side {
+                        JoinSide::Inner => JoinOperator::Inner(constraint),
+                        JoinSide::Left => JoinOperator::LeftOuter(constraint),
+                        JoinSide::Right => JoinOperator::RightOuter(constraint),
+                        JoinSide::Full => JoinOperator::FullOuter(constraint),
+                    },
+                })
+            }
+            _ => unreachable!(),
+        }
     }
 }
 impl TryFrom<Item> for sql_ast::Ident {
@@ -1920,5 +1918,70 @@ take 20
         "###);
 
         Ok(())
+    }
+
+    #[test]
+    fn test_distinct() {
+        // window functions cannot materialize into where statement: CTE is needed
+        assert_display_snapshot!((resolve_and_translate(parse(r###"
+        from employees
+        derive rn = row_number
+        filter rn > 2
+        "###,
+        ).unwrap()).unwrap()), @r###"
+        WITH table_0 AS (
+          SELECT
+            employees.*,
+            ROW_NUMBER() OVER () AS rn
+          FROM
+            employees
+        )
+        SELECT
+          table_0.*
+        FROM
+          table_0
+        WHERE
+          rn > 2
+        "###);
+
+        // basic distinct
+        assert_display_snapshot!((resolve_and_translate(parse(r###"
+        from employees
+        select first_name
+        group first_name ( | take 1)
+        "###,
+        ).unwrap()).unwrap()), @r###"
+        SELECT
+          DISTINCT first_name
+        FROM
+          employees
+        "###);
+
+        // distinct on two columns
+        assert_display_snapshot!((resolve_and_translate(parse(r###"
+        from employees
+        select [first_name, last_name]
+        group [first_name, last_name] ( | take 1)
+        "###,
+        ).unwrap()).unwrap()), @r###"
+        SELECT
+          DISTINCT first_name,
+          last_name
+        FROM
+          employees
+        "###);
+
+        // TODO: this should not use DISTINCT but ROW_NUMBER and WHERE, because we want
+        // row  distinct only over first_name and last_name.
+        assert_display_snapshot!((resolve_and_translate(parse(r###"
+        from employees
+        group [first_name, last_name] ( | take 1)
+        "###,
+        ).unwrap()).unwrap()), @r###"
+        SELECT
+          DISTINCT employees.*
+        FROM
+          employees
+        "###);
     }
 }

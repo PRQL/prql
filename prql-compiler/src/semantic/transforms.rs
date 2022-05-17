@@ -118,13 +118,12 @@ pub fn cast_transform(func_call: FuncCall, span: Option<Span>) -> Result<Transfo
         "take" => {
             let ([expr], []) = unpack(func_call, [])?;
 
-            match expr.discard_name()?.item {
-                Item::Literal(Literal::Integer(n)) => {
-                    Transform::Take(Range::from_ints(None, Some(n)))
-                }
-                Item::Range(range) => Transform::Take(range),
+            let range = match expr.discard_name()?.item {
+                Item::Literal(Literal::Integer(n)) => Range::from_ints(None, Some(n)),
+                Item::Range(range) => range,
                 _ => unimplemented!(),
-            }
+            };
+            Transform::Take { range, by: vec![] }
         }
         "join" => {
             let ([with, filter], [side]) = unpack(func_call, ["side"])?;
@@ -327,15 +326,13 @@ mod tests {
         let query = parse(
             "
         from c_invoice
+        select invoice_no
         group invoice_no (
             take 1
         )
         ",
         )
         .unwrap();
-        // TODO: this test
-        assert!(resolve(query.nodes, context.clone()).is_err());
-        /*
         let (result, _) = resolve(query.nodes, context.clone()).unwrap();
         assert_yaml_snapshot!(result, @r###"
         ---
@@ -346,7 +343,10 @@ mod tests {
                   From:
                     name: c_invoice
                     alias: ~
-                    declared_at: 58
+                    declared_at: 78
+              - Transform:
+                  Select:
+                    - Ident: invoice_no
               - Transform:
                   Group:
                     by:
@@ -356,9 +356,15 @@ mod tests {
                         value: ~
                         functions:
                           - Transform:
-                              Take: 1
+                              Take:
+                                range:
+                                  start: ~
+                                  end:
+                                    Literal:
+                                      Integer: 1
+                                by:
+                                  - Ident: "<ref>"
         "###);
-        */
 
         // oops, two arguments #339
         let query = parse(
@@ -402,7 +408,7 @@ mod tests {
                   From:
                     name: c_invoice
                     alias: ~
-                    declared_at: 80
+                    declared_at: 78
               - Transform:
                   Group:
                     by:
@@ -448,7 +454,7 @@ mod tests {
                   From:
                     name: invoices
                     alias: ~
-                    declared_at: 80
+                    declared_at: 78
               - Transform:
                   Sort:
                     - direction: Asc

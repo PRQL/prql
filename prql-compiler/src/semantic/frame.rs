@@ -117,7 +117,7 @@ impl Frame {
             Transform::Sort(sort) => {
                 self.sort = extract_sorts(sort)?;
             }
-            Transform::Filter(_) | Transform::Take(_) => {}
+            Transform::Filter(_) | Transform::Take { .. } | Transform::Unique => {}
         }
         Ok(())
     }

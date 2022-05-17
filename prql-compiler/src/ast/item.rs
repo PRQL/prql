@@ -1,7 +1,5 @@
-use std::{
-    collections::HashMap,
-    fmt::{Display, Write},
-};
+use std::collections::HashMap;
+use std::fmt::{Display, Write};
 
 use anyhow::anyhow;
 use enum_as_inner::EnumAsInner;
@@ -83,10 +81,12 @@ pub enum InterpolateItem {
     Expr(Box<Node>),
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct Range {
-    pub start: Option<Box<Node>>,
-    pub end: Option<Box<Node>>,
+/// Inclusive-inclusive range.
+/// Missing bound means unbounded range.
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
+pub struct Range<T = Box<Node>> {
+    pub start: Option<T>,
+    pub end: Option<T>,
 }
 
 impl Range {
@@ -101,6 +101,17 @@ impl Range {
         let start = start.map(|x| Box::new(Node::from(Item::Literal(Literal::Integer(x)))));
         let end = end.map(|x| Box::new(Node::from(Item::Literal(Literal::Integer(x)))));
         Range { start, end }
+    }
+
+    pub fn into_int(self) -> Result<Range<i64>> {
+        fn cast_bound(bound: Node) -> Result<i64> {
+            Ok(bound.item.into_literal()?.into_integer()?)
+        }
+
+        Ok(Range {
+            start: self.start.map(|b| cast_bound(*b)).transpose()?,
+            end: self.end.map(|b| cast_bound(*b)).transpose()?,
+        })
     }
 }
 

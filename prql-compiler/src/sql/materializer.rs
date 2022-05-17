@@ -878,10 +878,12 @@ take 20
               declared_at: 37
         - Transform:
             Take:
-              start: ~
-              end:
-                Literal:
-                  Integer: 20
+              range:
+                start: ~
+                end:
+                  Literal:
+                    Integer: 20
+              by: []
         "###);
         assert_yaml_snapshot!(frame.columns, @r###"
         ---
