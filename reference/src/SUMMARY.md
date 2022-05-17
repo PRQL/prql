@@ -30,7 +30,6 @@
 - [Null handling](./null.md)
 - [Functions](./functions.md)
 - [Stdlib](./stdlib.md)
-- [Live Editor](./editor.md)
 
 - [Examples](./examples/README.md)
   - [Variables](./examples/variables.md)
