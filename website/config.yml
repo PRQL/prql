@@ -12,8 +12,8 @@ params:
     - text: Web compiler
       link: https://compiler.prql.builders/
 
-    - text: Tools
-      link: /#tools
+    - text: Roadmap
+      link: /roadmap
       
     - text: News
       link: /news

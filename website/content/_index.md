@@ -61,14 +61,22 @@ PRQL's principles:
 - *Analytical* — PRQL's focus is analytical queries; we de-emphasize other SQL
   features such as inserting data or transactions.
 
-## Try PRQL
+## Motivation
 
-<!-- We'd have the wasm compiler here -->
+Even though wildly adopted and readable as a sentence, SQL is inconsistent and becomes 
+unmanageable as soon as query complexity goes beyond the most simple queries.
 
+<!-- expand this?  -->
+
+[Here are examples](./motivation/) on how PRQL can simplifies analytical SQL queries.
+
+<!-- something about unifying pandas/dplyr/data.table? -->
 ## Tools
 
 - [prql-compiler](https://github.com/prql/prql) reference compiler implementation,
-- [PyPrql](https://github.com/prql/PyPrql) python TUI, able to connect to databases,
+- [PyPrql](https://github.com/prql/PyPrql) python TUI for connecting to databases. 
+  Has some great features, including a native interactive console with auto-complete 
+  for column names,
 - [prql-py](https://pypi.org/project/pyprql/) Python compiler library,
 - [prql-js](https://www.npmjs.com/package/prql-js) JavaScript compiler library.
 
@@ -90,6 +98,6 @@ PRQL's principles:
 - Subscribe to [GitHub issue #1](https://github.com/prql/prql/issues/1) for
   a GitHub notification on updates.
 - Join the [Discord](https://discord.gg/eQcfaCmsNc).
-<!-- TODO: Replace with a link to a CONTRIBUTING.md  -->
+  <!-- TODO: Replace with a link to a CONTRIBUTING.md  -->
 - [Contribute to PRQL](https://github.com/prql/prql)
-<!-- Do we start a Twitter?? Maybe better to have nothing than one that's hardly used? Would be great to have a way for people to say "Yes I'd like to know more about this", without having to commit to joining the discord. Very open to other options; we could even do something like a Substack with updates for each release? -->
+  <!-- Do we start a Twitter?? Maybe better to have nothing than one that's hardly used? Would be great to have a way for people to say "Yes I'd like to know more about this", without having to commit to joining the discord. Very open to other options; we could even do something like a Substack with updates for each release? -->

@@ -12,7 +12,7 @@ transpiles to SQL.
 
 Example:
 
-```elm
+```prql
 from employees
 filter country = "USA"                       # Each line transforms the previous result.
 derive [                                     # This adds columns / variables.
