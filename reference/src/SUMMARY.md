@@ -28,6 +28,9 @@
 - [Syntax](./syntax.md)
 - [Functions](./functions.md)
 - [Stdlib](./stdlib.md)
+- [Query Header]()
+  - [Dialect](./language-features/dialect.md)
+  - [Version]()
 - [Live Editor](./editor.md)
 
 - [Examples](./examples/README.md)
