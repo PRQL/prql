@@ -54,7 +54,7 @@ class Workbench extends React.Component {
     this.setState({ prql: value });
 
     const result = prql.compile(value);
-    
+
     if (result.sql) {
       this.setState({ sql: result.sql, errorMessage: null });
     }
@@ -100,9 +100,9 @@ class Workbench extends React.Component {
           <div className="tab">
             <div className="tab-top">
               <div className="tab-title">{this.state.filename}</div>
-              
+
               <div className="spacer"></div>
-              
+
               <button onClick={() => this.rename()}>Rename</button>
               <button onClick={() => this.save()}>Save</button>
             </div>

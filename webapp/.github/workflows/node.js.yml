@@ -16,7 +16,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    
+
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v3
       with:
@@ -24,7 +24,7 @@ jobs:
         cache: 'npm'
     - run: npm ci
     - run: npm run build
-    
+
     - name: Deploy
       uses: peaceiris/actions-gh-pages@v3
       with:

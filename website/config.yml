@@ -5,7 +5,7 @@ theme: 'prql-theme'
 
 params:
   main_menu:
- 
+
     - text: Reference
       link: /reference
 
@@ -14,13 +14,13 @@ params:
 
     - text: Roadmap
       link: /roadmap
-      
+
     - text: News
       link: /news
-      
+
     - text: Github
       link: https://github.com/max-sixty/prql
-    
+
 
   footer:
     text: '© 2022, PRQL core developers. Apache 2.0 Licensed'

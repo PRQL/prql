@@ -63,7 +63,7 @@ PRQL's principles:
 
 ## Motivation
 
-Even though wildly adopted and readable as a sentence, SQL is inconsistent and becomes 
+Even though wildly adopted and readable as a sentence, SQL is inconsistent and becomes
 unmanageable as soon as query complexity goes beyond the most simple queries.
 
 <!-- expand this?  -->
@@ -74,8 +74,8 @@ unmanageable as soon as query complexity goes beyond the most simple queries.
 ## Tools
 
 - [prql-compiler](https://github.com/prql/prql) reference compiler implementation,
-- [PyPrql](https://github.com/prql/PyPrql) python TUI for connecting to databases. 
-  Has some great features, including a native interactive console with auto-complete 
+- [PyPrql](https://github.com/prql/PyPrql) python TUI for connecting to databases.
+  Has some great features, including a native interactive console with auto-complete
   for column names,
 - [prql-py](https://pypi.org/project/pyprql/) Python compiler library,
 - [prql-js](https://www.npmjs.com/package/prql-js) JavaScript compiler library.

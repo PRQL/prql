@@ -2,7 +2,7 @@ const def = {
   // Set defaultToken to invalid to see what you do not tokenize yet
   // defaultToken: 'invalid',
 
-  keywords: ['from', 'select', 'derive', 'filter', 'take', 'sort', 'join', 'aggregate', 
+  keywords: ['from', 'select', 'derive', 'filter', 'take', 'sort', 'join', 'aggregate',
     'group', 'func', 'table', 'and', 'or', 'not', 'null', 'true', 'false'
   ],
 

@@ -32,7 +32,7 @@ function Sidebar({ library, onLoadFile }) {
 
       <section className="padded">
         <h1>PRQL web</h1>
-        <p>Try out PRQL in your browser, using wasm-compiled library 
+        <p>Try out PRQL in your browser, using wasm-compiled library
           <a target="_blank" rel="noopener noreferrer" href="https://npmjs.org/package/prql-js">prql-js</a>.
         </p>
 
