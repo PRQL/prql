@@ -24,8 +24,8 @@ take 10
 ## Supported dialects
 
 > Note that dialect support is _very_ early — most differences are not
-> implemented, and most dialects have no implementation at all. Contributions
-> are very welcome.
+> implemented, and most dialects have no difference in implementation from
+> `generic` at all all. Contributions are very welcome.
 
 - `ansi`
 - `bigquery`

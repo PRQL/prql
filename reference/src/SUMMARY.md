@@ -29,7 +29,7 @@
 - [Functions](./functions.md)
 - [Stdlib](./stdlib.md)
 - [Query Header]()
-  - [Dialect](./language-features/dialect.md)
+  - [Dialect](./query-header/dialect.md)
   - [Version]()
 - [Live Editor](./editor.md)
 
