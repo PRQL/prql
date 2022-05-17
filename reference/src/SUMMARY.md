@@ -30,6 +30,9 @@
 - [Null handling](./null.md)
 - [Functions](./functions.md)
 - [Stdlib](./stdlib.md)
+- [Query Header]()
+  - [Dialect](./query-header/dialect.md)
+  - [Version]()
 - [Live Editor](./editor.md)
 
 - [Examples](./examples/README.md)

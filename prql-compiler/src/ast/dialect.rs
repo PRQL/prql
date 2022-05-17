@@ -6,17 +6,19 @@ use strum;
 pub enum Dialect {
     #[strum(serialize = "ansi")]
     Ansi,
-    #[strum(serialize = "click_house")]
+    #[strum(serialize = "bigquery")]
+    BigQuery,
+    #[strum(serialize = "clickhouse")]
     ClickHouse,
     #[strum(serialize = "generic")]
     Generic,
     #[strum(serialize = "hive")]
     Hive,
-    #[strum(serialize = "ms", serialize = "microsoft", serialize = "ms_sql_server")]
+    #[strum(serialize = "mssql")]
     MsSql,
     #[strum(serialize = "mysql")]
     MySql,
-    #[strum(serialize = "postgresql", serialize = "pg")]
+    #[strum(serialize = "postgres")]
     PostgreSql,
     #[strum(serialize = "sqlite")]
     SQLite,

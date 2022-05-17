@@ -1355,7 +1355,7 @@ take 20
         // SQL server
         let query: Query = parse(
             r###"
-        prql dialect:ms_sql_server
+        prql dialect:mssql
         from Employees
         select [FirstName]
         take 3
