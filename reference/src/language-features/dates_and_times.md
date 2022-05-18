@@ -5,10 +5,10 @@ This is less verbose than SQL's approach of `TIMESTAMP '2004-10-19 10:23:54'`
 and more explicit than SQL's implicit option of just using a string `'2004-10-19
 10:23:54'`.
 
-> Currently PRQL passes strings straight through to the database, and so any
-compatible format string will work, but we may refine this in the future to aid
-in compatibility across databases. We'll always support the
-[ISO8601](https://en.wikipedia.org/wiki/ISO_8601) format.
+> Currently PRQL passes strings which can be compiled straight through to the
+database, and so any compatible format string may work, but we may refine this
+in the future to aid in compatibility across databases. We'll always support the
+canonical [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) format.
 
 ## Dates
 
