@@ -182,7 +182,7 @@ than SQL, and each of them does something specific and composable; for example:
 - A transform in context of a `group` does the same transformation to the group
   as it would to the table — for example finding the rolling sum of a column.
   For more on this equivalence, check out [`group`'s
-  documentation](https://lang.prql.builders/transforms.html#group)
+  documentation](https://prql-lang.org/reference/transforms/group.html)
 - `filter` filters out rows which don't meet a condition. That can be before an
   aggregate — `WHERE` in SQL — after an aggregate — `HAVING` in SQL — or within
   a `window` — `QUALIFY` in SQL.

@@ -36,8 +36,8 @@ function Sidebar({ library, onLoadFile }) {
           <a target="_blank" rel="noopener noreferrer" href="https://npmjs.org/package/prql-js">prql-js</a>.
         </p>
 
-        <a className="fileRow" target="_blank" rel="noopener noreferrer" href="https://prql.builders">PRQL website</a>
-        <a className="fileRow" target="_blank" rel="noopener noreferrer" href="https://lang.prql.builders">Language reference</a>
+        <a className="fileRow" target="_blank" rel="noopener noreferrer" href="https://prql-lang.org">PRQL website</a>
+        <a className="fileRow" target="_blank" rel="noopener noreferrer" href="https://prql-lang.org/reference">Language reference</a>
       </section>
 
       {sections}

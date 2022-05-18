@@ -1,7 +1,7 @@
 # PRQL
 
 <!-- User badges on first line (language docs & chat) -->
-[![Language Docs](https://img.shields.io/badge/DOCS-LANGUAGE-blue?style=for-the-badge)](https://lang.prql.builders)
+[![Language Docs](https://img.shields.io/badge/DOCS-LANGUAGE-blue?style=for-the-badge)](https://prql-lang.org)
 [![Discord](https://img.shields.io/discord/936728116712316989?label=discord%20chat&style=for-the-badge)](https://discord.gg/eQcfaCmsNc)
 [![VSCode](https://img.shields.io/visual-studio-marketplace/v/prql.prql?label=vscode&style=for-the-badge)](https://marketplace.visualstudio.com/items?itemName=prql.prql)
 <!-- Dev badges on first line (language docs & chat) -->
@@ -22,6 +22,32 @@ PRQL was discussed on [Hacker
 News](https://news.ycombinator.com/item?id=30060784#30062329) and
 [Lobsters](https://lobste.rs/s/oavgcx/prql_simpler_more_powerful_sql) earlier
 this year when it was just a proposal.
+
+```elm
+from employees
+filter country = "USA"                        # Each line transforms the previous result.
+derive [                                      # `derive` adds columns / variables.
+  gross_salary: salary + payroll_tax,
+  gross_cost:   gross_salary + benefits_cost  # Variables can use other variables.
+]
+filter gross_cost > 0
+group [title, country] (                      # `group` runs a pipeline over each group
+  aggregate [                                 # `aggregate` reduces a column to a row
+    average salary,
+    sum     salary,
+    average gross_salary,
+    sum     gross_salary,
+    average gross_cost,
+    sum_gross_cost: sum gross_cost,
+    ct: count,
+  ]
+)
+sort sum_gross_cost
+filter ct > 200
+take 20
+```
+
+For more examples and motivation, visit [prql-lang.org](prql-lang.org).
 
 <!-- this document is intended for developers and contributors of the language -->
 ## Contributing
@@ -48,7 +74,7 @@ lots of ways of contributing; big and small:
 - Contribute towards the language.
   - Find instances where the compiler produces incorrect results, and post a bug
     report — feel free to use the [online
-    compiler](https://lang.prql.builders/editor).
+    compiler](https://prql-lang.org/compiler/).
   - Open an issue / append to an existing issue with examples of queries that
     are difficult to express in PRQL — especially if more difficult than SQL.
   - With sufficient examples, suggest a change to the language! (Though

@@ -58,7 +58,7 @@ FROM
   employees
 ```
 
-For more information about the language, see [reference book](https://lang.prql.builders/) or [examples on GitHub](https://github.com/prql/prql/tree/main/examples).
+For more information about the language, see [reference book](https://prql-lang.org/reference) or [examples on GitHub](https://github.com/prql/prql/tree/main/examples).
 
 ## Development
 

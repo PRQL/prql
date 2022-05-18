@@ -24,7 +24,7 @@ Issues](https://github.com/prql/prql/issues?q=is%3Aissue+is%3Aopen+label%3Alangu
 
 ### Documentation
 
-Currently the language documentation is at <https://lang.prql.builders>.
+Currently the language documentation is at <https://prql-lang.org/reference>.
 
 If you're up for contributing and don't have a preference for writing code or
 not, this is the area that would most benefit from your contribution. Issues are
@@ -53,7 +53,7 @@ side:
 - Initial type-inference, where it's possible without connecting to the DB, e.g.
   [#55](https://github.com/prql/prql/pull/55).
 - Improvements or integrations to the [live in-browser
-  compiler](https://lang.prql.builders/editor.html), including querying actual
+  compiler](https://prql-lang.org/compiler/), including querying actual
   tables.
 - (I'm sure there's more, ideas welcome)
 

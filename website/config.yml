@@ -1,4 +1,4 @@
-baseURL: 'https://prql.builders/'
+baseURL: 'https://prql-lang.org/'
 languageCode: 'en-us'
 title: 'PRQL'
 theme: 'prql-theme'
@@ -7,10 +7,10 @@ params:
   main_menu:
  
     - text: Reference
-      link: https://lang.prql.builders/
+      link: /reference
 
     - text: Web compiler
-      link: https://compiler.prql.builders/
+      link: /compiler
 
     - text: Roadmap
       link: /roadmap
