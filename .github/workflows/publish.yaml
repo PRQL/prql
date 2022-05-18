@@ -16,19 +16,40 @@ jobs:
           profile: minimal
           target: wasm32-unknown-unknown
           toolchain: stable
+      
+      # website
+      - name: Setup hugo
+        uses: peaceiris/actions-hugo@v2.4.13
+      - name: Build website
+        run: hugo --minify
+        working-directory: website/
+      
+      # reference
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v1
-      - uses: peaceiris/actions-mdbook@v1
-      # We need `trunk` & a wasm target to build the Editors, which go into the book.
-      - uses: jetli/trunk-action@v0.1.0
-      - name: 🔨 Build
+      - uses: peaceiris/actions-mdbook@v1    
+      - name: 🔨 Build reference
         run: mdbook build
         working-directory: reference/
+      
+      # webapp
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16.x
+          cache: 'npm'
+      - run: npm ci
+        working-directory: webapp/
+      - run: npm run build
+        working-directory: webapp/
+      
+      - name: Move reference and webapp into website
+        run: mv reference/book/ webapp/build/ website/public/
       - name: 🚢 Deploy
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: reference/book/
+          publish_dir: website/public/
 
   build-python-wheels:
     uses: ./.github/workflows/python.yaml
