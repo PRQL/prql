@@ -6,4 +6,4 @@ input_file: reference/tests/prql/language-features/f-strings-0.prql
 SELECT
   CONCAT(first, ' ', last) AS full_name
 FROM
-  x
+  employees

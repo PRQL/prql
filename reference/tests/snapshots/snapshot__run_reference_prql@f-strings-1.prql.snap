@@ -15,4 +15,4 @@ SELECT
     page
   ) AS url
 FROM
-  x
+  web

@@ -11,15 +11,20 @@ group department (
 ```
 
 or without a linebreak:
+
 ```prql
 from employees
 select department
-group department ( | take 1)
+group department ( | take 1) # Note below
 ```
 
-> Note: `|` is here temporarily, until we finish work on function currying and how pipelines are treated.
+> Note: `|` is here temporarily, until we finish work on function & pipeline currying.
 
-Note that `group` can contain `sort` to [select range of rows in each group](https://stackoverflow.com/questions/3800551/select-first-row-in-each-group-by-group):
+## Forthcoming features
+
+Soon we'll be able to [select range of rows in each
+group](https://stackoverflow.com/questions/3800551/select-first-row-in-each-group-by-group)
+by combining `group` and `sort`:
 
 ```prql_no_test
 # youngest employee from each department
@@ -29,7 +34,9 @@ group department (
   take 1
 )
 ```
-... which should produce ...
+
+... which will produces ...
+
 ```sql
 WITH table_0 = (
   SELECT ROW_NUMBER() OVER(PARTITION BY department ORDER_BY age) as _row_number
@@ -39,14 +46,16 @@ SELECT *
 FROM table_0
 WHERE _row_number = 1
 ```
+
 ... or in Postgres dialect ...
+
 ```sql
 SELECT DISTINCT ON (department) *
 FROM employees
 ORDER BY department, age
 ```
 
-> Note: this transpilation is not yet implemented. For now you can use:
+Until this is implemented, we you can use `row_number`:
 
 ```prql
 from employees

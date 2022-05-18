@@ -1,9 +1,11 @@
-# Dialect
+# Query header: Dialect & Version
+
+## Dialect
 
 PRQL allows specifying a dialect at the top of the query, which allows PRQL to
 compile to a database-specific SQL flavor.
 
-## Examples
+### Examples
 
 ```prql
 prql dialect:postgres
@@ -21,7 +23,7 @@ sort age
 take 10
 ```
 
-## Supported dialects
+### Supported dialects
 
 > Note that dialect support is _very_ early — most differences are not
 > implemented, and most dialects' implementations are identical to `generic`'s.
@@ -37,3 +39,16 @@ take 10
 - `postgres`
 - `sqlite`
 - `snowflake`
+
+## Version
+
+While not yet implemented, PRQL will allow specifying a version of the language
+in the PRQL header, like:
+
+```prql_no_test
+prql version:1
+
+from employees
+```
+
+This will allow the language to evolve without breaking existing queries.
