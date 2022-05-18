@@ -21,7 +21,11 @@ derive x = '"hello world"'
 derive x = """I said "hello world"!"""
 ```
 
-Currently PRQL does not adjust escape characters during the compilation process.
+```prql
+derive x = """""I said """hello world"""!"""""
+```
+
+Currently PRQL does not adjust escape characters.
 
 Currently PRQL allows multiline strings with either a single character or
 multiple character quotes. This may change for strings using a single character

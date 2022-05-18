@@ -21,4 +21,4 @@ similar = "2.1.0"
 walkdir = "2.3.2"
 
 [target.'cfg(not(target_family="wasm"))'.dev-dependencies]
-trash = "2.1.2"
+trash = "2.1.3"

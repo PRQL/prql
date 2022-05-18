@@ -2,7 +2,7 @@
 
 <!-- Here we could explain how function parameters work, what is a list, S-strings, how to do aliases and so on. -->
 
-### Lists
+## Lists
 
 - Most keywords that take a single argument can also take a list, so these are equivalent:
 
@@ -14,7 +14,7 @@
 
 - More examples in [**list-equivalence.md**](examples/list-equivalence.md).
 
-### Pipelines
+## Pipelines
 
 - A line-break generally creates a pipelined transformation. For example:
 
@@ -38,14 +38,14 @@ from tbl | select [col1, col2] | filter col1 == col2
   - When the following line is a new statement, by starting with a keyword such
     as `func`.
 
-### CTEs
+## CTEs
 
 - See [CTE Example](examples/cte.md).
 - This is no longer point-free, but that's a feature rather than a requirement.
   The alternative is subqueries, which are fine at small scale, but become
   difficult to digest as complexity increases.
 
-### Punctuation summary
+## Punctuation summary
 
 A summary of how PRQL uses punctuation
 
@@ -57,3 +57,4 @@ A summary of how PRQL uses punctuation
 | `->`     | Function definitions    | `func add a b -> a + b`                                                      |
 | `<type>` | Annotations             | `@2021-01-01<datetime>`                                                      |
 | `+`/`-`  | Sort order              | `sort [-amount, +date]`                                                      |
+| `??`     | Coalesce                | `amount ?? 0`                                                      |

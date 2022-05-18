@@ -1,2 +1,2 @@
-from x
+from employees
 select full_name = f"{first} {last}"
