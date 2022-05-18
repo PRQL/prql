@@ -45,7 +45,7 @@ take 10
 While not yet implemented, PRQL will allow specifying a version of the language
 in the PRQL header, like:
 
-```prql
+```prql_no_test
 prql version:1
 
 from employees
