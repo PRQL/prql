@@ -46,7 +46,9 @@ jobs:
         working-directory: webapp/
 
       - name: Move reference and webapp into website
-        run: mv reference/book/ webapp/build/ website/public/
+        run: |
+          mv reference/book website/public/reference
+          mv webapp/build website/public/compiler
       - name: 🚢 Deploy
         uses: peaceiris/actions-gh-pages@v3
         with:
