@@ -165,6 +165,8 @@ fn table_of_comparison(prql: &str, sql: &str) -> String {
 #[test]
 fn test_table() -> Result<()> {
     use insta::assert_display_snapshot;
+    // TODO: Also there is a bug such that it loses one of the escape
+    // characters, related to https://github.com/prql/prql/issues/514.
     let table = r###"
 # Syntax
 
@@ -173,9 +175,9 @@ fn test_table() -> Result<()> {
 | c |
 
 
-| a | b |
-|---|---|
-| c | d |
+| a  |
+|----|
+| \\| |
 
 "###;
 
@@ -186,9 +188,9 @@ fn test_table() -> Result<()> {
     |---|
     | c |
 
-    | a | b |
-    |---|---|
-    | c | d |
+    | a  |
+    |----|
+    | \| |
     "###);
 
     Ok(())
