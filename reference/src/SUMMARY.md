@@ -38,7 +38,6 @@
   - [Prefect]()
   - [dbt]()
   - [Rill]()
-- [Live Editor](./editor.md)
 
 - [Examples](./examples/README.md)
   - [Variables](./examples/variables.md)
