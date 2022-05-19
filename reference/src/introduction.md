@@ -1,8 +1,5 @@
 # Introduction
 
-> [Note that this is a very early version and actively being worked on; thanks for
-your patience]
-
 PRQL is a modern language for transforming data — a simpler and more powerful
 SQL. Like SQL, it's readable, explicit and declarative. Unlike SQL, it forms a
 logical pipeline of transformations, and supports abstractions such as variables
@@ -11,7 +8,7 @@ transpiles to SQL.
 
 Let's get started with an example:
 
-<!-- TODO: resolve formatting — way too wide for the current preprocessor -->
+<!-- TODO: make this onramp friendlier: https://github.com/prql/prql/issues/522 -->
 
 ```prql
 from employees
