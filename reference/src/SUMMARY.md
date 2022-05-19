@@ -4,6 +4,7 @@
 - [Queries](./queries/queries.md)
   - [Pipelines](./queries/pipelines.md)
   - [Functions](./queries/functions.md)
+  - [Tables](./queries/tables.md)
   - [Syntax](./queries/syntax.md)
   - [Dialect & Version](./queries/dialect_and_version.md)
 - [Transforms](./transforms.md)
