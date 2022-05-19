@@ -1,1 +1,1 @@
-from tbl | select [col1, col2] | filter col1 == col2
+from employees | filter department == "Product" | select [first_name, last_name]
