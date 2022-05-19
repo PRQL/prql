@@ -6,14 +6,14 @@ Adds columns from another table, matching rows based on a condition.
 join side:{inner|left|right|full} {table} {[conditions]}
 ```
 
-## Arguments
+## Parameters
 
 - `side` decides which rows to include. Defaults to `inner`
 - Table reference
 - List of conditions
   - If all terms are column identifiers, this will compile to `USING(...)`. In
-    this case, both of the tables must have specified column. The result will
-    only contain one column for both tables.
+    this case, both of the tables must have specified columns. The result will
+    only contain one column for each specified column.
 
 ## Examples
 
