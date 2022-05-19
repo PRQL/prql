@@ -1,3 +1,4 @@
+name: publish
 on:
   push:
     branches:
@@ -38,6 +39,7 @@ jobs:
         with:
           node-version: 16.x
           cache: 'npm'
+          cache-dependency-path: webapp/package-lock.json
       - run: npm ci
         working-directory: webapp/
       - run: npm run build
