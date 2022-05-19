@@ -1,60 +1,58 @@
 # Syntax
 
-<!-- Here we could explain how function parameters work, what is a list, S-strings, how to do aliases and so on. -->
+## Line-breaks & `|` character
+
+A line-break generally pipes the result of that line into the transformation on
+the following line. For example, the `filter` and `select` transform operates on
+the result of the previous line:
+
+```prql
+from employees
+filter department == "Product"
+select [first_name, last_name]
+```
+
+In the place of a line-break, it's also possible to use the `|` character to
+pipe results:
+
+```prql
+from employees | filter department == "Product" | select [first_name, last_name]
+```
+
+A line-break doesn't created a pipeline in a couple of cases:
+
+- Within a list (e.g. the `derive` examples below).
+- When the following line is a new statement, by starting with a keyword such as
+  `func`.
 
 ## Lists
 
-- Most keywords that take a single argument can also take a list, so these are equivalent:
-
-  ```diff
-   from employees
-  -select salary
-  +select [salary]
-  ```
-
-- More examples in [**list-equivalence.md**](examples/list-equivalence.md).
-
-## Pipelines
-
-- A line-break generally creates a pipelined transformation. For example:
+Lists are represented with `[]`, and can span multiple lines. A final trailing
+comma is optional.
 
 ```prql
-from tbl
-select [
-  col1,
-  col2,
+derive [x = 1, y = 2]
+derive [
+  a = x,
+  b = y
 ]
-filter col1 == col2
+derive [
+  c = a,
+  d = b,
+]
 ```
 
-  ...is equivalent to:
+## Syntax summary
 
-```prql
-from tbl | select [col1, col2] | filter col1 == col2
-```
-
-- A line-break doesn't created a pipeline in a few cases:
-  - Within a list (e.g. the `select` example above).
-  - When the following line is a new statement, by starting with a keyword such
-    as `func`.
-
-## CTEs
-
-- See [CTE Example](examples/cte.md).
-- This is no longer point-free, but that's a feature rather than a requirement.
-  The alternative is subqueries, which are fine at small scale, but become
-  difficult to digest as complexity increases.
-
-## Punctuation summary
-
-A summary of how PRQL uses punctuation
-
-| Syntax   | Usage                   | Example                                                                      |
-| -------- | ----------------------- | ---------------------------------------------------------------------------- |
-| `:`      | Named args & Parameters | `interp lower:0 1600 sat_score`                                              |
-| `=`      | Assigns & Aliases       | `derive temp_c = (temp_f | celsius_of_fahrenheit)` <br> `from e = employees` |
-| `==`     | Equality comparison     | `join s=salaries [s.employee_id == employees.id]`                            |
-| `->`     | Function definitions    | `func add a b -> a + b`                                                      |
-| `<type>` | Annotations             | `@2021-01-01<datetime>`                                                      |
-| `+`/`-`  | Sort order              | `sort [-amount, +date]`                                                      |
-| `??`     | Coalesce                | `amount ?? 0`                                                      |
+A summary of PRQL syntax
+<!-- We need to double escape the `|` characters because one of them is removed by cmark; ref https://github.com/prql/prql/issues/514. -->
+| Syntax           | Usage                   | Example                                                     |
+| ---------------- | ----------------------- | ----------------------------------------------------------- |
+| <code>\\|</code> | Pipe                    | <code>from employees \\| select first_name</code>           |
+| `=`              | Assigns & Aliases       | `derive temp_c = (c_of_f temp_f)` <br> `from e = employees` |
+| `:`              | Named args & Parameters | `interp lower:0 1600 sat_score`                             |
+| `==`             | Equality comparison     | `join s=salaries [s.employee_id == employees.id]`           |
+| `->`             | Function definitions    | `func add a b -> a + b`                                     |
+| `+`/`-`          | Sort order              | `sort [-amount, +date]`                                     |
+| `??`             | Coalesce                | `amount ?? 0`                                               |
+| `<type>`         | Annotations             | `@2021-01-01<datetime>`                                     |

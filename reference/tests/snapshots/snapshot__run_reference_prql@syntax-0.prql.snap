@@ -1,12 +1,12 @@
 ---
 source: reference/tests/snapshot.rs
 expression: sql
-input_file: reference/tests/prql/syntax-0.prql
+input_file: reference/tests/prql/queries/syntax-0.prql
 ---
 SELECT
-  col1,
-  col2
+  first_name,
+  last_name
 FROM
-  tbl
+  employees
 WHERE
-  col1 = col2
+  department = 'Product'

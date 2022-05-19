@@ -1,6 +1,6 @@
 # Pipelines
 
-### The simplest pipeline
+## The simplest pipeline
 
 The simplest pipeline is just:
 
@@ -8,7 +8,7 @@ The simplest pipeline is just:
 from employees
 ```
 
-### Adding transformations
+## Adding transformations
 
 We can add additional lines, each one transforms the result:
 
@@ -25,7 +25,11 @@ derive gross_salary = (salary + payroll_tax)
 sort gross_salary
 ```
 
-PRQL compiler will try to represent as many transforms as possible with a single `SELECT` statement, and uses CTE (common table expression) for complex pipelines:
+## Compiling to SQL
+
+When compiling to SQL, the PRQL compiler will try to represent as many
+transforms as possible with a single `SELECT` statement. When necessary it will
+"overflow" using CTEs (common table expressions):
 
 ```prql
 from e = employees
@@ -35,3 +39,7 @@ take 10
 join d = department [dept_no]
 select [e.name, gross_salary, d.name]
 ```
+
+## See also
+
+[Syntax](./syntax.md)
