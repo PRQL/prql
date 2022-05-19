@@ -3,12 +3,11 @@
 // This file is licensed under GPL-3.0 then. We don't link against it from PRQL.
 use anyhow::{bail, Result};
 use clap::{Arg, ArgMatches, Command};
-use itertools::Itertools;
 use mdbook::preprocess::PreprocessorContext;
 use mdbook::preprocess::{CmdPreprocessor, Preprocessor};
 use mdbook::{book::Book, BookItem};
 use prql_compiler::compile;
-use pulldown_cmark::{CodeBlockKind, Event, Parser, Tag};
+use pulldown_cmark::{CodeBlockKind, Event, Options, Parser, Tag};
 use pulldown_cmark_to_cmark::cmark;
 use semver::{Version, VersionReq};
 use similar::DiffableStr;
@@ -101,7 +100,7 @@ impl Preprocessor for ComparisonPreprocessor {
 }
 
 fn replace_examples(text: &str) -> Result<String> {
-    let mut parser = Parser::new(text);
+    let mut parser = Parser::new_ext(text, Options::all());
     let mut cmark_acc = vec![];
 
     while let Some(event) = parser.next() {
@@ -123,9 +122,6 @@ fn replace_examples(text: &str) -> Result<String> {
     }
     let mut buf = String::new();
     cmark(cmark_acc.into_iter(), &mut buf)?;
-
-    // Very hacky fix for https://github.com/prql/prql/issues/514
-    buf = buf.lines().map(|l| l.replace("\\|", "|")).join("\n");
 
     Ok(buf)
 }
@@ -165,8 +161,6 @@ fn table_of_comparison(prql: &str, sql: &str) -> String {
 #[test]
 fn test_table() -> Result<()> {
     use insta::assert_display_snapshot;
-    // TODO: Also there is a bug such that it loses one of the escape
-    // characters, related to https://github.com/prql/prql/issues/514.
     let table = r###"
 # Syntax
 
@@ -175,22 +169,22 @@ fn test_table() -> Result<()> {
 | c |
 
 
-| a  |
-|----|
-| \\| |
+| a   |
+|-----|
+| \|  |
 
 "###;
 
     assert_display_snapshot!(replace_examples(table)?, @r###"
     # Syntax
 
-    | a |
-    |---|
-    | c |
+    |a|
+    |-|
+    |c|
 
-    | a  |
-    |----|
-    | \| |
+    |a|
+    |-|
+    |\||
     "###);
 
     Ok(())
