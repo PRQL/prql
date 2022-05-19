@@ -4,7 +4,7 @@ description = "Modern language for transforming data — a simpler and more powe
 language = "en"
 multilingual = false
 src = "src"
-title = "PRQL Language Reference (draft)"
+title = "PRQL Language Reference"
 
 [output.html]
 additional-css = ["comparison-table.css"]
