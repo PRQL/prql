@@ -1,6 +1,9 @@
-use anyhow::Result;
+use anyhow::{bail, Result};
 
-use crate::ast::{ast_fold::AstFold, *};
+use crate::{
+    ast::{ast_fold::AstFold, *},
+    error::{Error, Reason},
+};
 
 pub fn take_to_distinct(nodes: Vec<Node>) -> Result<Vec<Node>> {
     let mut d = DistinctMaker {};
@@ -27,6 +30,12 @@ impl AstFold for DistinctMaker {
                     if take_only_first {
                         // TODO: use distinct only if `by == all columns in frame`
                         res.push(Item::Transform(Transform::Unique).into());
+                    } else {
+                        bail!(Error::new(Reason::Simple(
+                            "`take` within `group` currently only supports argument `1`".to_string(),
+                        ))
+                        .with_span(node.span)
+                        .with_help("For now, you can derive a row number within a group and do a filter on that."));
                     }
 
                     // TODO: else
