@@ -3,6 +3,8 @@
 // This file is licensed under GPL-3.0 then. We don't link against it from PRQL.
 use anyhow::{bail, Result};
 use clap::{Arg, ArgMatches, Command};
+use insta::assert_display_snapshot;
+use itertools::Itertools;
 use mdbook::preprocess::PreprocessorContext;
 use mdbook::preprocess::{CmdPreprocessor, Preprocessor};
 use mdbook::{book::Book, BookItem};
@@ -121,7 +123,10 @@ fn replace_examples(text: &str) -> Result<String> {
         }
     }
     let mut buf = String::new();
-    cmark(cmark_acc.iter(), &mut buf)?;
+    cmark(cmark_acc.into_iter(), &mut buf)?;
+
+    // Very hacky fix for https://github.com/prql/prql/issues/514
+    buf = buf.lines().map(|l| l.replace("\\|", "|")).join("\n");
 
     Ok(buf)
 }
@@ -156,4 +161,35 @@ fn table_of_comparison(prql: &str, sql: &str) -> String {
     )
     .trim_start()
     .to_string()
+}
+
+#[test]
+fn test_table() -> Result<()> {
+    let table = r###"
+# Syntax
+
+| a |
+|---|
+| c |
+
+
+| a | b |
+|---|---|
+| c | d |
+
+"###;
+
+    assert_display_snapshot!(replace_examples(table)?, @r###"
+    # Syntax
+
+    | a |
+    |---|
+    | c |
+
+    | a | b |
+    |---|---|
+    | c | d |
+    "###);
+
+    Ok(())
 }
