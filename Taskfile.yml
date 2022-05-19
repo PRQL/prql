@@ -88,7 +88,7 @@ tasks:
         msg: |
 
 
-          🔴 Can't find `brew`, which we use to install Hugo & npm. Either install brew and re-run this, or install them directly based on: 
+          🔴 Can't find `brew`, which we use to install Hugo & npm. Either install brew and re-run this, or install them directly based on:
           - https://gohugo.io/getting-started/installing/
           - https://docs.npmjs.com/downloading-and-installing-node-js-and-npm
     cmds:
