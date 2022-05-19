@@ -94,12 +94,13 @@ nested_pipeline = { "(" ~ expr_call? ~ pipe ~ pipeline ~ NEWLINE* ~ ")" }
 // with `ANY`), but prceeding & trailing spaces require both `ANY` _and_ an
 // atomic operator. We have some rudimentary tests for these.
 
-quote = _{ "\"" | "'" }
+single_quote = _{ "\"" | "'" }
 multi_quote = _{ "\""{3,} | "'"{3,} }
+opening_quote = _{ PUSH(multi_quote) | PUSH(single_quote) }
 // PEEK refers to the opening quote; either `"` or `'`.
 string_inner = { ( !( PEEK ) ~ ANY )+ }
 // Either > 3 quotes, or just one. Currently both of those can be multiline.
-string = ${ ( PUSH(multi_quote) | PUSH(quote) ) ~ string_inner ~ POP }
+string = ${ ( opening_quote ) ~ string_inner ~ POP }
 
 number = ${ ( ASCII_DIGIT )+ ~ ("." ~ ( ASCII_DIGIT )+)? }
 
@@ -122,8 +123,8 @@ operator_logical = ${ ("and" | "or" | "not") ~ &WHITESPACE }
 operator_coalesce = ${ "??" }
 
 // TODO: allow a raw s-string / f-string (but not an s-f string...)
-s_string = ${ "s" ~ PUSH(quote) ~ ( interpolate_string_inner | ( "{" ~ expr_call ~ "}" ))* ~ POP }
-f_string = ${ "f" ~ PUSH(quote) ~ ( interpolate_string_inner | ( "{" ~ expr_call ~ "}" ))* ~ POP }
+s_string = ${ "s" ~ opening_quote ~ ( interpolate_string_inner | ( "{" ~ expr_call ~ "}" ))* ~ POP }
+f_string = ${ "f" ~ opening_quote ~ ( interpolate_string_inner | ( "{" ~ expr_call ~ "}" ))* ~ POP }
 interpolate_string_inner = { ( !( PEEK | "{" ) ~ ANY )+ }
 
 interval_kind = { "microseconds" | "milliseconds" | "seconds" | "minutes" | "hours" | "days" | "weeks" | "months" | "years" }

@@ -20,7 +20,7 @@ group department ( | take 1) # Note below
 
 > Note: `|` is here temporarily, until we finish work on function & pipeline currying.
 
-## Forthcoming features
+## Roadmap
 
 Soon we'll be able to [select range of rows in each
 group](https://stackoverflow.com/questions/3800551/select-first-row-in-each-group-by-group)
@@ -55,7 +55,7 @@ FROM employees
 ORDER BY department, age
 ```
 
-Until this is implemented, we you can use `row_number`:
+Until this is implemented, we can use `row_number`:
 
 ```prql
 from employees

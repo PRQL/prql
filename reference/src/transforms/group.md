@@ -3,10 +3,10 @@
 Partitions the rows into groups and applies a pipeline to each of the groups.
 
 ```prql_no_test
-group [{key column}] {pipeline}
+group [{key_columns}] {pipeline}
 ```
 
-The partitioning of groups are determined by the `key column`s (first argument).
+The partitioning of groups are determined by the `key_column`s (first argument).
 
 The most conventional use of `group` is with `aggregate`:
 
@@ -21,7 +21,8 @@ group [title, country] (
 ```
 
 In concept, a transform in context of a `group` does the same transformation to the group as
-it would to the table — for example finding the employee who joined first:
+it would to the table — for example finding the employee who joined first across
+the whole table:
 
 ```prql
 from employees

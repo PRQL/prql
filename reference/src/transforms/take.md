@@ -6,6 +6,9 @@ Picks rows based on their position.
 take {n|range}
 ```
 
+See [Ranges](../language-features/ranges.md) for more details on how ranges
+work.
+
 ## Examples
 
 ```prql

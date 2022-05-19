@@ -1,18 +1,18 @@
 # Dates & Times
 
-PRQL uses a pattern of prefacing strings with their type to represent dates.
-This is less verbose than SQL's approach of `TIMESTAMP '2004-10-19 10:23:54'`
-and more explicit than SQL's implicit option of just using a string `'2004-10-19
+PRQL uses `@` followed by a string to represent dates & times. This is less
+verbose than SQL's approach of `TIMESTAMP '2004-10-19 10:23:54'` and more
+explicit than SQL's implicit option of just using a string `'2004-10-19
 10:23:54'`.
 
 > Currently PRQL passes strings which can be compiled straight through to the
-database, and so any compatible format string may work, but we may refine this
+database, and so many compatible formats string may work, but we may refine this
 in the future to aid in compatibility across databases. We'll always support the
-canonical [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) format.
+canonical [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) format described below.
 
 ## Dates
 
-Dates are represented by `@{yyyy-mm-dd}` — a `D` followed by the
+Dates are represented by `@{yyyy-mm-dd}` — a `@` followed by the
 date format.
 
 ```prql
@@ -36,7 +36,7 @@ derive should_have_shipped_today = (order_time < @08:30)
 Timestamps are represented by `@{yyyy-mm-ddTHH:mm:ss.SSS±Z}` /
 `@{date}T{time}`, with any time parts not supplied being rounded to zero,
 including the timezone, which is represented by `+HH:mm`, `-HH:mm` or `Z`. This
-is `@` followed by the ISO8601 time format, which uses `T` to separate date &
+is `@` followed by the ISO8601 datetime format, which uses `T` to separate date &
 time.
 
 ```prql
@@ -75,7 +75,7 @@ Here's a fuller list of examples:
 - `@16:54+02` is forbidden — time is always local, so it cannot have a timezone
 - `@2022-12-31+02` is forbidden — date is always local, so it cannot have a timezone
 
-## TODOs
+## Roadmap
 
 ### Datetimes
 
