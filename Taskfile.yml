@@ -13,7 +13,7 @@ version: "3"
 vars:
   vscode_extensions: |
     prql.prql
-    matklad.rust-analyzer
+    rust-lang.rust-analyzer
     mitsuhiko.insta
 
 tasks:
@@ -30,9 +30,13 @@ tasks:
       - rustup target add wasm32-unknown-unknown
       - python3 -m pip install -U maturin
       - task: install-pre-commit
+      - task: install-brew-dependencies
       # We only suggest, rather than install; we don't want to intrude (maybe we're being too conservative?).
       - task: suggest-vscode-extensions
-      - echo "All set up! ✅🚀"
+      - cmd: |
+          echo "
+          🟢 Set up complete! ✅🚀"
+        silent: true
 
   suggest-vscode-extensions:
     desc: Check and suggest VSCode extensions.
@@ -50,7 +54,9 @@ tasks:
     silent: true
     cmds:
       - |
-        echo "It looks like VSCode is installed but doesn't have all recommended extensions installed:
+        echo "
+
+        🟡 It looks like VSCode is installed but doesn't have all recommended extensions installed:
         {{ .missing_extensions }}
 
         Install them with:
@@ -73,6 +79,21 @@ tasks:
     cmds:
       - pip install -U pre-commit
 
+  install-brew-dependencies:
+    status:
+      - which hugo
+      - which npm
+    preconditions:
+      - sh: which brew
+        msg: |
+
+
+          🔴 Can't find `brew`, which we use to install Hugo & npm. Either install brew and re-run this, or install them directly based on: 
+          - https://gohugo.io/getting-started/installing/
+          - https://docs.npmjs.com/downloading-and-installing-node-js-and-npm
+    cmds:
+      - brew install hugo npm
+
   build-all:
     desc: Build everything. Running this isn't required when developing; it's for caching or as a reference.
     vars:
@@ -88,3 +109,4 @@ tasks:
         {{ end -}}
       # Build mdbook (which will also build the HTML assets).
       - mdbook build reference/
+      - cd webapp && npm install && npm run build
