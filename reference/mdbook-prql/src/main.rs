@@ -164,6 +164,7 @@ fn table_of_comparison(prql: &str, sql: &str) -> String {
 
 #[test]
 fn test_table() -> Result<()> {
+    use insta::assert_display_snapshot;
     let table = r###"
 # Syntax
 
