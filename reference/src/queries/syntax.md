@@ -2,7 +2,7 @@
 
 ## Line-breaks & `|` character
 
-A line-break generally pipes the result of that line into the transformation on
+A line-break generally pipes the result of that line into the transform on
 the following line. For example, the `filter` and `select` transform operates on
 the result of the previous line:
 
