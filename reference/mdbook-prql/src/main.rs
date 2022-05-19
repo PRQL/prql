@@ -3,7 +3,6 @@
 // This file is licensed under GPL-3.0 then. We don't link against it from PRQL.
 use anyhow::{bail, Result};
 use clap::{Arg, ArgMatches, Command};
-use insta::assert_display_snapshot;
 use itertools::Itertools;
 use mdbook::preprocess::PreprocessorContext;
 use mdbook::preprocess::{CmdPreprocessor, Preprocessor};
