@@ -1,0 +1,7 @@
+table top_50 = (
+  from employees
+  take 50
+  aggregate (sum salary)
+)
+
+from a            # Starts a new pipeline
