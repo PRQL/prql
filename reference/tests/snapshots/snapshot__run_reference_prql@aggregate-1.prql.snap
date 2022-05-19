@@ -1,0 +1,15 @@
+---
+source: reference/tests/snapshot.rs
+expression: sql
+input_file: reference/tests/prql/transforms/aggregate-1.prql
+---
+SELECT
+  title,
+  country,
+  AVG(salary),
+  COUNT(*) AS ct
+FROM
+  employees
+GROUP BY
+  title,
+  country

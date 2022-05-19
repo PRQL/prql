@@ -3,6 +3,7 @@
 - [Introduction](./introduction.md)
 - [Queries](./queries/queries.md)
   - [Pipelines](./queries/pipelines.md)
+  - [Functions](./queries/functions.md)
   - [Syntax](./queries/syntax.md)
   - [Dialect & Version](./queries/dialect_and_version.md)
 - [Transforms](./transforms.md)
@@ -22,7 +23,6 @@
   - [Dates & Times](./language-features/dates_and_times.md)
   - [Distinct](./language-features/distinct.md)
   - [F-Strings](./language-features/f-strings.md)
-  - [Functions](./language-features/functions.md)
   - [Null handling](./language-features/null.md)
   - [Ranges](./language-features/ranges.md)
     <!--   - Regex — `REGEX_MATCH(foo, "\\w{3}")` -> `foo ~ r"\w{3}"`? Or -> `regex foo r"\w{3}"`? -->
@@ -30,7 +30,7 @@
   - [S-Strings](./language-features/s-strings.md)
   - [Strings](./language-features/strings.md)
 
-- [Stdlib](./stdlib.md)
+- [Stdlib]()
 - [Integrations]()
   - [VSCode]()
   - [Jupyter]()
@@ -43,5 +43,5 @@
   - [List equivalence](./examples/list-equivalence.md)
   - [Functions](./examples/functions.md)
   - [CTE (intermediate tables)](./examples/cte.md)
-  - [Sql parameters](./examples/sql-parameters.md)
+  - [SQL parameters](./examples/sql-parameters.md)
   - [Employees](./examples/employees.md)

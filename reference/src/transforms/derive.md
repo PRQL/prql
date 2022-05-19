@@ -22,7 +22,7 @@ derive [
 ```
 
 `derive` generally computes a column from existing columns, but can also take a
-literal, and doesn't require a `from`:
+literal in which case it can begin a pipeline `from`:
 
 ```prql
 derive x = 5

@@ -22,10 +22,23 @@ from employees
 aggregate [average salary]
 ```
 
+Here's an example of a more involved use of an s-string:
+
+```prql
+from de=dept_emp
+join s=salaries side:left [
+  (s.emp_no == de.emp_no),
+  s"""({s.from_date}, {s.to_date})
+  OVERLAPS
+  ({de.from_date}, {de.to_date})"""
+]
+```
+
 For those who have used python, s-strings are similar to python f-strings, but
-the result is SQL, rather than a string literal — a python f-string would
-produce `"average(salary)"`, with the quotes.
+the result is SQL, rather than a string literal — a python f-string of
+`f"average{col}"` where `col="salary"` would produce `"average(salary)"`, with
+the quotes.
 
 S-strings in user code are intended as an escape-hatch for an unimplemented
 feature. If we often need s-strings to express something, that's a sign we
-should implement it in PRQL / PRQL's stdlib.
+should implement it in PRQL or PRQL's stdlib.
