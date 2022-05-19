@@ -42,10 +42,10 @@ pipe results, such that this is equivalent:
 from employees | filter department == "Product" | select [first_name, last_name]
 ```
 
-A line-break doesn't created a pipeline in a couple of cases:
+A line-break doesn't create a pipeline in a couple of cases:
 
-- Within a list (e.g. the `derive` examples below).
-- When the following line is a new statement, which starts with a keyword of
+- within a list (e.g. the `derive` examples below),
+- when the following line is a new statement, which starts with a keyword of
   `func`, `table` or `from`.
 
 ## Lists

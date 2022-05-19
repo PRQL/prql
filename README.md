@@ -3,9 +3,7 @@
 <!-- User badges on first line (language docs & chat) -->
 [![Language Docs](https://img.shields.io/badge/DOCS-LANGUAGE-blue?style=for-the-badge)](https://prql-lang.org)
 [![Discord](https://img.shields.io/discord/936728116712316989?label=discord%20chat&style=for-the-badge)](https://discord.gg/eQcfaCmsNc)
-[![VSCode](https://img.shields.io/visual-studio-marketplace/v/prql.prql?label=vscode&style=for-the-badge)](https://marketplace.visualstudio.com/items?itemName=prql.prql)
 <!-- Dev badges on first line (language docs & chat) -->
-[![Rust API Docs](https://img.shields.io/badge/DOCS-RUST-brightgreen?style=for-the-badge&logo=rust)](https://docs.rs/prql/)
 [![GitHub CI Status](https://img.shields.io/github/workflow/status/prql/prql/tests?logo=github&style=for-the-badge)](https://github.com/prql/prql/actions?query=workflow:tests)
 [![GitHub contributors](https://img.shields.io/github/contributors/prql/prql?style=for-the-badge)](https://github.com/prql/prql/graphs/contributors)
 [![Stars](https://img.shields.io/github/stars/prql/prql?style=for-the-badge)](https://github.com/prql/prql/stargazers)
@@ -24,25 +22,25 @@ News](https://news.ycombinator.com/item?id=30060784#30062329) and
 this year when it was just a proposal.
 
 ```elm
-from employees
-filter country = "USA"                        # Each line transforms the previous result.
+from employees                                # Each line transforms the previous result.
+filter start_date > @2021-01-01               # Clear date syntax.
 derive [                                      # `derive` adds columns / variables.
-  gross_salary: salary + payroll_tax,
-  gross_cost:   gross_salary + benefits_cost  # Variables can use other variables.
+  gross_salary = salary + payroll_tax,
+  gross_cost = gross_salary + benefits_cost   # Variables can use other variables.
 ]
 filter gross_cost > 0
-group [title, country] (                      # `group` runs a pipeline over each group
-  aggregate [                                 # `aggregate` reduces a column to a row
+group [title, country] (                      # `group` runs a pipeline over each group.
+  aggregate [                                 # `aggregate` reduces each group to a row.
     average salary,
     sum     salary,
     average gross_salary,
     sum     gross_salary,
     average gross_cost,
-    sum_gross_cost: sum gross_cost,
-    ct: count,
+    sum_gross_cost = sum gross_cost,          # `=` sets a column name.
+    ct = count,
   ]
 )
-sort sum_gross_cost
+sort [sum_gross_cost, -country]               # `-country` means descending order.
 filter ct > 200
 take 20
 ```

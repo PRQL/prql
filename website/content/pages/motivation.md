@@ -69,7 +69,7 @@ group [title, country] (                      # `group` runs a pipeline over eac
     ct = count,
   ]
 )
-sort [sum_gross_cost, -country]               # `-foo` means descending order.
+sort [sum_gross_cost, -country]               # `-country` means descending order.
 filter ct > 200
 take 20
 ```
