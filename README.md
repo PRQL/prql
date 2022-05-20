@@ -47,7 +47,7 @@ filter ct > 200
 take 20
 ```
 
-For more examples and motivation, visit [prql-lang.org](prql-lang.org).
+For more examples and motivation, visit [prql-lang.org](https://prql-lang.org).
 
 <!-- this document is intended for developers and contributors of the language -->
 ## Contributing

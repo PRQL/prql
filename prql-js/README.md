@@ -36,7 +36,7 @@ take 20
 
 ## Installation
 
-```
+```sh
 npm install prql-js
 ```
 
@@ -50,15 +50,17 @@ import compile from 'prql-js';
 const sql = compile(`from employees | select first_name`);
 console.log(sql);
 ```
+
 Prints:
-```
+
+```sql
 SELECT
   first_name
 FROM
   employees
 ```
 
-For more information about the language, see [reference book](https://prql-lang.org/reference) or [examples on GitHub](https://github.com/prql/prql/tree/main/examples).
+For more information about the language, see [reference book](https://prql-lang.org/reference).
 
 ## Development
 
@@ -66,8 +68,12 @@ Generated with [wasm-pack](https://rustwasm.github.io/docs/wasm-pack/tutorials/n
 
 Build:
 
-    wasm-pack build
+```sh
+wasm-pack build
+```
 
 Test:
 
-    wasm-pack test --firefox
+```sh
+wasm-pack test --firefox
+```
