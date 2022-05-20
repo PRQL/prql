@@ -1,7 +1,8 @@
 table top_50 = (
   from employees
+  sort salary
   take 50
   aggregate (sum salary)
 )
 
-from a            # Starts a new pipeline
+from another_table      # Starts a new pipeline

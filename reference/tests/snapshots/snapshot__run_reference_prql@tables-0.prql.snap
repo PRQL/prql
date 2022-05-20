@@ -8,6 +8,8 @@ WITH table_0 AS (
     employees.*
   FROM
     employees
+  ORDER BY
+    salary
   LIMIT
     50
 ), top_50 AS (
@@ -17,6 +19,6 @@ WITH table_0 AS (
     table_0
 )
 SELECT
-  a.*
+  another_table.*
 FROM
-  a
+  another_table
