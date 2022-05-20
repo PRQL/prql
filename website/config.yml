@@ -8,7 +8,7 @@ params:
     - text: Reference
       link: /reference
 
-    - text: Web compiler
+    - text: Playground
       link: /playground
 
     - text: Roadmap
@@ -18,7 +18,7 @@ params:
       link: /news
 
     - text: Github
-      link: https://github.com/max-sixty/prql
+      link: https://github.com/prql/prql
 
   footer:
-    text: "© 2022, PRQL core developers. Apache 2.0 Licensed"
+    text: "© 2022, PRQL developers. Apache 2.0 Licensed"
