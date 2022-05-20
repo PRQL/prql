@@ -1,10 +1,33 @@
 # Syntax
 
-## Line-breaks & `|` character
+## Summary
 
-A line-break generally pipes the result of that line into the transform on
-the following line. For example, the `filter` and `select` transform operates on
-the result of the previous line:
+A summary of PRQL syntax
+<!-- The `|` characters need to be escaped, and surrounded with tags rather than backticks -->
+| Syntax          | Usage                   | Example                                                 |
+| --------------- | ----------------------- | ------------------------------------------------------- |
+| <code>\|</code> | Pipe                    | <code>from employees \| select first_name</code>        |
+| `=`             | Assigns & Aliases       | `from e = employees` <br> `derive total = (sum salary)` |
+| `:`             | Named args & Parameters | `interp lower:0 1600 sat_score`                         |
+| `[]`            | List                    | `select [id, amount]`                                   |
+| `()`            | Precedence              | `derive fahrenheit = (celsius - 32) * 1.8`              |
+| `#`             | Comment                 | `# A comment`                                           |
+| `@`             | Date & times            | `@2021-01-01`                                           |
+| `==`            | Equality comparison     | `join s=salaries [s.emp_id == e.id]`                    |
+| `->`            | Function definitions    | `func add a b -> a + b`                                 |
+| `+`/`-`         | Sort order              | `sort [-amount, +date]`                                 |
+| `??`            | Coalesce                | `amount ?? 0`                                           |
+| `<type>`        | Annotations             | `@2021-01-01<datetime>`                                 |
+
+## Pipes
+
+Pipes — the connection between [transforms](../transforms.md) that make up a
+pipeline — can be either line breaks or a pipe character (`|`).
+
+In almost all situations, line-breaks pipe the result of a line's transform into the transform on
+the following line. For example, the `filter` transform operates on the result
+of `from employees` (which is just the `employees` table), and the `select` transform operates on
+the result of the `filter` transform.
 
 ```prql
 from employees
@@ -13,7 +36,7 @@ select [first_name, last_name]
 ```
 
 In the place of a line-break, it's also possible to use the `|` character to
-pipe results:
+pipe results, such that this is equivalent:
 
 ```prql
 from employees | filter department == "Product" | select [first_name, last_name]
@@ -22,8 +45,8 @@ from employees | filter department == "Product" | select [first_name, last_name]
 A line-break doesn't created a pipeline in a couple of cases:
 
 - Within a list (e.g. the `derive` examples below).
-- When the following line is a new statement, by starting with a keyword such as
-  `func`.
+- When the following line is a new statement, which starts with a keyword of
+  `func`, `table` or `from`.
 
 ## Lists
 
@@ -42,17 +65,59 @@ derive [
 ]
 ```
 
-## Syntax summary
+Most transforms can take either a list or a single item, so these are
+equivalent:
 
-A summary of PRQL syntax
-<!-- We need to double escape the `|` characters because one of them is removed by cmark; ref https://github.com/prql/prql/issues/514. -->
-| Syntax           | Usage                   | Example                                                     |
-| ---------------- | ----------------------- | ----------------------------------------------------------- |
-| <code>\\|</code> | Pipe                    | <code>from employees \\| select first_name</code>           |
-| `=`              | Assigns & Aliases       | `derive temp_c = (c_of_f temp_f)` <br> `from e = employees` |
-| `:`              | Named args & Parameters | `interp lower:0 1600 sat_score`                             |
-| `==`             | Equality comparison     | `join s=salaries [s.employee_id == employees.id]`           |
-| `->`             | Function definitions    | `func add a b -> a + b`                                     |
-| `+`/`-`          | Sort order              | `sort [-amount, +date]`                                     |
-| `??`             | Coalesce                | `amount ?? 0`                                               |
-| `<type>`         | Annotations             | `@2021-01-01<datetime>`                                     |
+```prql
+from employees
+select [first_name]
+```
+
+```prql
+from employees
+select first_name
+```
+
+## Parentheses
+
+Parentheses — `()` — are used to give precedence to inner expressions, as is the
+case in almost all languages / math.
+
+In particular, parentheses are used to nest pipelines for transforms such as
+`group` and `window`, which take a pipeline. Here, the `aggregate` pipeline is
+applied to each group of unique `title` and `country` values.
+
+```prql
+from employees
+group [title, country] (
+  aggregate [
+    average salary,
+    ct = count
+  ]
+)
+```
+
+## Comments
+
+Comments are represented by `#`. Currently only single line comments exist.
+
+```prql
+from employees  # Comment 1
+# Comment 2
+aggregate [average salary]
+```
+
+## Roadmap
+
+Currently we don't yet "curry" a pipeline. As a result, an inline pipeline which
+doesn't begin with a line-break — generally a very short pipeline —
+to start with a line-break or a `|` character:
+
+```prql
+from employees
+select department
+group department ( | take 1)
+```
+
+We'll be able to replace `( | take 1)` with `(take 1)` in the future; see
+[#414](https://github.com/prql/prql/issues/414) for more details.
