@@ -1,5 +1,5 @@
 {
-  "name": "prql-webapp",
+  "name": "prql-playground",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
@@ -39,5 +39,5 @@
       "last 1 safari version"
     ]
   },
-  "homepage": "https://prql-lang.org/compiler/"
+  "homepage": "https://prql-lang.org/playground/"
 }
