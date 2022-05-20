@@ -5,7 +5,7 @@ use super::{Dialect, Ident, Node, Range, Type};
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize, Default)]
 pub struct Query {
-    pub version: Option<String>,
+    pub version: Option<i64>,
     #[serde(default)]
     pub dialect: Dialect,
     pub nodes: Vec<Node>,

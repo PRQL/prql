@@ -73,7 +73,9 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
 
                     let version = params
                         .remove("version")
-                        .map(|v| v.unwrap(|i| i.into_ident(), "string"))
+                        .map(|v| v.unwrap(|i| i.into_literal(), "literal"))
+                        .transpose()?
+                        .map(|x| x.into_integer())
                         .transpose()?;
 
                     let dialect = if let Some(node) = params.remove("dialect") {
@@ -1598,6 +1600,63 @@ select [
                             Ident: r
                     named_args: {}
         "### )
+    }
+
+    #[test]
+    fn test_header() {
+        assert_yaml_snapshot!(parse(r###"
+        prql dialect:mssql version:1
+
+        from employees
+        "###).unwrap(), @r###"
+        ---
+        version: 1
+        dialect: MsSql
+        nodes:
+          - Pipeline:
+              value: ~
+              functions:
+                - FuncCall:
+                    name: from
+                    args:
+                      - Ident: employees
+                    named_args: {}
+        "### );
+
+        assert_yaml_snapshot!(parse(r###"
+        prql dialect:bigquery version:2
+
+        from employees
+        "###).unwrap(), @r###"
+        ---
+        version: 2
+        dialect: BigQuery
+        nodes:
+          - Pipeline:
+              value: ~
+              functions:
+                - FuncCall:
+                    name: from
+                    args:
+                      - Ident: employees
+                    named_args: {}
+        "### );
+
+        assert!(parse(
+            r###"
+        prql dialect:bigquery version:foo
+        from employees
+        "###,
+        )
+        .is_err());
+
+        assert!(parse(
+            r###"
+        prql dialect:yah version:foo
+        from employees
+        "###,
+        )
+        .is_err());
     }
 
     #[test]
