@@ -1,0 +1,3 @@
+from employees  # Comment 1
+# Comment 2
+aggregate [average salary]
