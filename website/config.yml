@@ -1,16 +1,15 @@
-baseURL: 'https://prql-lang.org/'
-languageCode: 'en-us'
-title: 'PRQL'
-theme: 'prql-theme'
+baseURL: "https://prql-lang.org/"
+languageCode: "en-us"
+title: "PRQL"
+theme: "prql-theme"
 
 params:
   main_menu:
-
     - text: Reference
       link: /reference
 
     - text: Web compiler
-      link: /compiler
+      link: /playground
 
     - text: Roadmap
       link: /roadmap
@@ -21,6 +20,5 @@ params:
     - text: Github
       link: https://github.com/max-sixty/prql
 
-
   footer:
-    text: '© 2022, PRQL core developers. Apache 2.0 Licensed'
+    text: "© 2022, PRQL core developers. Apache 2.0 Licensed"

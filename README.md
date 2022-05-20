@@ -74,7 +74,7 @@ lots of ways of contributing; big and small:
 - Contribute towards the language.
   - Find instances where the compiler produces incorrect results, and post a bug
     report — feel free to use the [online
-    compiler](https://prql-lang.org/compiler/).
+    compiler](https://prql-lang.org/playground/).
   - Open an issue / append to an existing issue with examples of queries that
     are difficult to express in PRQL — especially if more difficult than SQL.
   - With sufficient examples, suggest a change to the language! (Though

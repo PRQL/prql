@@ -1,0 +1,20 @@
+{
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "icons": [
+    {
+      "sizes": "64x64 32x32 24x24 16x16",
+      "src": "favicon.ico",
+      "type": "image/x-icon"
+    },
+    {
+      "sizes": "192x192",
+      "src": "icon192.png",
+      "type": "image/png"
+    }
+  ],
+  "name": "PRQL Playground",
+  "short_name": "PRQL Playground",
+  "start_url": ".",
+  "theme_color": "#222222"
+}

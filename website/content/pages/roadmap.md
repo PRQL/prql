@@ -53,7 +53,7 @@ side:
 - Initial type-inference, where it's possible without connecting to the DB, e.g.
   [#55](https://github.com/prql/prql/pull/55).
 - Improvements or integrations to the [live in-browser
-  compiler](https://prql-lang.org/compiler/), including querying actual
+  compiler](https://prql-lang.org/playground/), including querying actual
   tables.
 - (I'm sure there's more, ideas welcome)
 

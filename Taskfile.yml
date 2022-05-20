@@ -109,4 +109,4 @@ tasks:
         {{ end -}}
       # Build mdbook (which will also build the HTML assets).
       - mdbook build reference/
-      - cd webapp && npm install && npm run build
+      - cd playground && npm install && npm run build
