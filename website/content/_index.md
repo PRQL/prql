@@ -68,6 +68,7 @@ unmanageable as soon as query complexity goes beyond the most simple queries.
 
 <!-- expand this?  -->
 
+<!-- markdown-link-check-disable-next-line -->
 [Here are examples](./motivation/) on how PRQL can simplifies analytical SQL queries.
 
 <!-- something about unifying pandas/dplyr/data.table? -->

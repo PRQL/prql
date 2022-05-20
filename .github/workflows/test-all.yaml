@@ -27,7 +27,7 @@ jobs:
             target_option: "--target=wasm32-unknown-unknown"
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - uses: ./.github/actions/cargo-test
         with:
           target: ${{ matrix.target }}
@@ -40,7 +40,7 @@ jobs:
     # commit.
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v1
       - name: Run cargo-tarpaulin
