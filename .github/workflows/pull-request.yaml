@@ -64,3 +64,11 @@ jobs:
   test-all:
     uses: ./.github/workflows/test-all.yaml
     if: contains(github.event.pull_request.labels.*.name, 'ci-run-all-tests')
+
+  check-links:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: lycheeverse/lychee-action@v1.4.1
+        with:
+          fail: true
