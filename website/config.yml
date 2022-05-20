@@ -14,9 +14,6 @@ params:
     - text: Roadmap
       link: /roadmap
 
-    - text: News
-      link: /news
-
     - text: Github
       link: https://github.com/max-sixty/prql
 
