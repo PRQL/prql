@@ -42,13 +42,13 @@ take 10
 
 ## Version
 
-While not yet implemented, PRQL will allow specifying a version of the language
-in the PRQL header, like:
+PRQL allows specifying a version of the language in the PRQL header, like:
 
-```prql_no_test
+```prql
 prql version:1
 
 from employees
 ```
 
-This will allow the language to evolve without breaking existing queries.
+When the functionality is implemented, it will allow the language to evolve
+without breaking existing queries.
