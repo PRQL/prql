@@ -70,12 +70,12 @@ equivalent:
 
 ```prql
 from employees
-select [first_name] 
+select [first_name]
 ```
 
 ```prql
 from employees
-select first_name 
+select first_name
 ```
 
 ## Parentheses

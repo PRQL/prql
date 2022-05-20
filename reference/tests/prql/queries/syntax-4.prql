@@ -1,2 +1,2 @@
 from employees
-select first_name 
+select first_name
