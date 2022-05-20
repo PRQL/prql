@@ -34,7 +34,7 @@ jobs:
             target_option: "--target=wasm32-unknown-unknown"
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: 📋 Test workspace
         uses: ./.github/actions/cargo-test
         with:
@@ -45,7 +45,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 📂 Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: 🔗 Setup rust toolchain
         uses: actions-rs/toolchain@v1
         with:
