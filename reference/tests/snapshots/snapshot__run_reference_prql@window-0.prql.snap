@@ -4,17 +4,12 @@ expression: sql
 input_file: reference/tests/prql/transforms/window-0.prql
 ---
 SELECT
-  orders.*,
-  SUM(price) OVER (
+  employees.*,
+  SUM(paycheck) OVER (
+    PARTITION BY employee_id
     ORDER BY
-      day ROWS BETWEEN 2 PRECEDING
-      AND CURRENT ROW
-  ) AS total_last_3_days,
-  SUM(price) OVER (
-    PARTITION BY order_month
-    ORDER BY
-      day ROWS BETWEEN UNBOUNDED PRECEDING
-      AND CURRENT ROW
-  ) AS monthly_running_total
+      month ROWS BETWEEN 5 PRECEDING
+      AND UNBOUNDED FOLLOWING
+  ) AS semi_annual_comp
 FROM
-  orders
+  employees

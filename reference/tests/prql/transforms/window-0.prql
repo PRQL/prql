@@ -1,11 +1,7 @@
-from orders
-sort day
-window rolling:3 (
-  derive [total_last_3_days = sum price]
-)
-group [order_month] (
-  sort day
-  window expanding:true (
-    derive [monthly_running_total = sum price]
+from employees
+group employee_id (
+  sort month
+  window rows:-5.. (
+    derive [semi_annual_comp = sum paycheck]
   )
 )

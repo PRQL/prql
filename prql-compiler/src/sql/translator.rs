@@ -1680,7 +1680,7 @@ take 20
         assert_display_snapshot!((resolve_and_translate(parse(r###"
         from foo
         sort day
-        window range:0..4 (
+        window range:-4..4 (
             derive [next_four_days = sum b]
         )
         "###,
@@ -1689,7 +1689,7 @@ take 20
           foo.*,
           SUM(b) OVER (
             ORDER BY
-              day RANGE BETWEEN CURRENT ROW
+              day RANGE BETWEEN 4 PRECEDING
               AND 4 FOLLOWING
           ) AS next_four_days
         FROM

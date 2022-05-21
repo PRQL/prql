@@ -1440,8 +1440,12 @@ select [
         assert_yaml_snapshot!(parse("
         from employees
         filter (age | between 18..40)
-        derive [greater_than_ten = 11..]
-        derive [less_than_ten = ..9]
+        derive [
+          greater_than_ten = 11..,
+          less_than_ten = ..9,
+          negative = (-5..),
+          more_negative = -10..,
+        ]
         ").unwrap(), @r###"
         ---
         version: ~
@@ -1486,11 +1490,6 @@ select [
                                     Literal:
                                       Integer: 11
                                   end: ~
-                    named_args: {}
-                - FuncCall:
-                    name: derive
-                    args:
-                      - List:
                           - Assign:
                               name: less_than_ten
                               expr:
@@ -1499,6 +1498,22 @@ select [
                                   end:
                                     Literal:
                                       Integer: 9
+                          - Assign:
+                              name: negative
+                              expr:
+                                Range:
+                                  start:
+                                    Literal:
+                                      Integer: -5
+                                  end: ~
+                          - Assign:
+                              name: more_negative
+                              expr:
+                                Range:
+                                  start:
+                                    Literal:
+                                      Integer: -10
+                                  end: ~
                     named_args: {}
         "###);
     }
