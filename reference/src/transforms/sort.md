@@ -22,11 +22,8 @@ sort age
 
 ```prql
 from employees
-sort (-age)
+sort -age
 ```
-
-> Note that `sort -age` is not valid; `-age` needs to be surrounded by
-> parentheses like `(-age).
 
 ```prql
 from employees
