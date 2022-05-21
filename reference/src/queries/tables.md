@@ -5,15 +5,16 @@ We can create a table — similar to a CTE in SQL — with `table`:
 ```prql
 table top_50 = (
   from employees
+  sort salary
   take 50
   aggregate (sum salary)
 )
 
-from a            # Starts a new pipeline
+from another_table      # Starts a new pipeline
 ```
 
-In PRQL `table`s are far less common that CTEs are in SQL, since a single
-pipeline of logic can always be represented without simple pipelines alone.
+In PRQL `table`s are far less common than CTEs are in SQL, since a linear
+series of CTEs can be represented with a single pipeline.
 
 ## Roadmap
 
