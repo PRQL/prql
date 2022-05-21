@@ -4,6 +4,8 @@ A [hugo](https://gohugo.io/) website with PRQL theme, which uses minimal [water.
 
 Serve:
 
-    hugo server
+```sh
+hugo server
+```
 
 To add pages, just add files in `content/` directory.

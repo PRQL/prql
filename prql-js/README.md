@@ -1,46 +1,23 @@
-# PRQL-js
+# prql-js
 
-> JavaScript wrapper library around prql Rust crate
+JavaScript bindings for [`prql-compiler`](../prql-compiler/README.md). This uses
+[`wasm-pack`](https://rustwasm.github.io/docs/wasm-pack/tutorials/npm-browser-packages/index.html)
+to generate bindings[^1].
 
-**P**ipelined **R**elational **Q**uery **L**anguage, pronounced "Prequel".
-
-PRQL is a modern language for transforming data — a simpler and more powerful
-SQL. Like SQL, it's readable, explicit and declarative. Unlike SQL, it forms a
-logical pipeline of transformations, and supports abstractions such as variables
-and functions. It can be used with any database that uses SQL, since it
-transpiles to SQL.
-
-Example:
-
-```prql
-from employees
-filter country = "USA"                       # Each line transforms the previous result.
-derive [                                     # This adds columns / variables.
-  gross_salary: salary + payroll_tax,
-  gross_cost:   gross_salary + benefits_cost # Variables can use other variables.
-]
-filter gross_cost > 0
-aggregate by:[title, country] [              # `by` are the columns to group by.
-  average salary,                            # These are aggregation calcs run on each group.
-  sum     salary,
-  average gross_salary,
-  sum     gross_salary,
-  average gross_cost,
-  sum_gross_cost: sum gross_cost,
-  ct: count,
-]
-sort sum_gross_cost
-filter ct > 200
-take 20
-```
+[^1]: though we would be very open to other approaches, and used `trunk`
+successfully in a rust-driven approach to this, RIP `prql-web`.
 
 ## Installation
+
+To install the currently published version:
 
 ```sh
 npm install prql-js
 ```
 
-This package is built to target a bundler (i.e. webpack). If you want to use it with Node.js or import it directly in a browser as an ES module, you will have to [build it yourself using a suitable `--target`](https://rustwasm.github.io/docs/wasm-pack/commands/build.html).
+This package is built to target a bundler (i.e. webpack). To use it with Node.js
+or import it directly in a browser as an ES module, [build it using a suitable
+`--target`](https://rustwasm.github.io/docs/wasm-pack/commands/build.html).
 
 ## Usage
 
@@ -64,13 +41,14 @@ For more information about the language, see [reference book](https://prql-lang.
 
 ## Development
 
-Generated with [wasm-pack](https://rustwasm.github.io/docs/wasm-pack/tutorials/npm-browser-packages/index.html).
-
 Build:
 
 ```sh
 wasm-pack build
 ```
+
+This builds a node package in the `pkg` path. An example of including that as a
+dependency is in [`playground`](../playground/package.json).
 
 Test:
 

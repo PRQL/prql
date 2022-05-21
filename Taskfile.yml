@@ -107,6 +107,6 @@ tasks:
         {{ range ( .targets | trim | splitLines ) -}}
         cargo build --workspace --all-targets --target={{.}}
         {{ end -}}
-      # Build mdbook (which will also build the HTML assets).
       - mdbook build reference/
       - cd playground && npm install && npm run build
+      - cd website && hugo

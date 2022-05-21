@@ -132,8 +132,8 @@ class Workbench extends React.Component {
         </div>
 
         {this.state.errorMessage &&
-            <div className="error-pane">{this.state.errorMessage}</div>
-          }
+          <div className="error-pane">{this.state.errorMessage}</div>
+        }
       </div>
     );
   }
