@@ -1,6 +1,9 @@
 # prql-js
 
-JavaScript bindings for [`prql-compiler`](../prql-compiler/README.md). This uses
+JavaScript bindings for [`prql-compiler`](https://github.com/prql/prql/). Check
+out <https://prql-lang.org> for more context.
+
+This uses
 [`wasm-pack`](https://rustwasm.github.io/docs/wasm-pack/tutorials/npm-browser-packages/index.html)
 to generate bindings[^1].
 
