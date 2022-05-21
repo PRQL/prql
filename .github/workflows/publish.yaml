@@ -34,11 +34,7 @@ jobs:
         working-directory: reference/
 
       # playground
-<<<<<<< main
-      - uses: jetli/wasm-bindgen-action@v0.1.0
-=======
       - uses: jetli/wasm-pack-action@v0.3.0
->>>>>>> local
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
