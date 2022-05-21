@@ -30,7 +30,6 @@ runs:
         # Without this, it seems to select linux x64 in the wasm32 tests, though
         # in the docs it says it uses the target as the key?
         key: ${{ inputs.target }}
-      if: ${{ inputs.target == 'wasm32-unknown-unknown' }}
     - name: 📎 Clippy
       uses: actions-rs/cargo@v1
       with:
