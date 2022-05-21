@@ -35,16 +35,14 @@ Some examples:
 | `rows:0..`      | current row and all following rows until the end of the table      |
 | `rows:..`       | all rows, which same as not having window at all                   |
 
-> Note: currently, negative integer literals (`-3`) are not implemented.
-
 ## Example
 
-```prql_no_test
+```prql
 from employees
 group employee_id (
   sort month
   window rows:-5.. (
-    derive semi_annual_comp = sum paycheck
+    derive [semi_annual_comp = sum paycheck]
   )
 )
 ```
