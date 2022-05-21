@@ -756,8 +756,8 @@ mod test {
     fn test_literal() {
         let query: Query = parse(
             r###"
-from employees
-derive [always_true = true]
+        from employees
+        derive [always_true = true]
         "###,
         )
         .unwrap();
