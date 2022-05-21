@@ -1708,4 +1708,28 @@ select [
                     named_args: {}
         "### )
     }
+
+    #[test]
+    fn test_parse_literal() {
+        assert_yaml_snapshot!(parse(r###"
+        derive x = true
+        "###).unwrap(), @r###"
+        ---
+        version: ~
+        dialect: Generic
+        nodes:
+          - Pipeline:
+              value: ~
+              functions:
+                - FuncCall:
+                    name: derive
+                    args:
+                      - Assign:
+                          name: x
+                          expr:
+                            Literal:
+                              Boolean: true
+                    named_args: {}
+        "###)
+    }
 }

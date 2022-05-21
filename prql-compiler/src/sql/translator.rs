@@ -753,12 +753,29 @@ mod test {
     use serde_yaml::from_str;
 
     #[test]
+    fn test_literal() {
+        let query: Query = parse(
+            r###"
+from employees
+derive [always_true = true]
+        "###,
+        )
+        .unwrap();
+
+        let sql = resolve_and_translate(query).unwrap();
+        assert_display_snapshot!(sql,
+            @r###"
+        SELECT
+          employees.*,
+          true AS always_true
+        FROM
+          employees
+        "###
+        );
+    }
+
+    #[test]
     fn test_range_of_ranges() -> Result<()> {
-        // let range: Node = Item::Range(Range {
-        //     start: Some(Box::new(Item::Raw("1".to_string()).into())),
-        //     end: Some(Box::new(Item::Raw("10".to_string()).into())),
-        // })
-        // .into();
         let range1 = Range::from_ints(Some(1), Some(10));
         let range2 = Range::from_ints(Some(5), Some(6));
         let range3 = Range::from_ints(Some(5), None);
