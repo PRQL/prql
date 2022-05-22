@@ -32,10 +32,17 @@ fn prql_python(_py: Python, m: &PyModule) -> PyResult<()> {
 
     Ok(())
 }
-// This test below is causing a linking error here https://github.com/qorrect/prql/runs/6099160429?check_suite_focus=true
-// #[test]
-// fn parse_for_python() -> Result<()> {
-//     let sql = to_sql("from employees").unwrap();
-//     println!("{}", sql);
-//     Ok(())
-// }
+
+#[cfg(not(feature = "extension-module"))]
+#[cfg(test)]
+mod test {
+    use super::*;
+    use prql_compiler::Result;
+
+    #[test]
+    fn parse_for_python() -> Result<()> {
+        let sql = to_sql("from employees").unwrap();
+        println!("{}", sql);
+        Ok(())
+    }
+}
