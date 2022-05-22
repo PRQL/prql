@@ -17,18 +17,17 @@ runs:
       with:
         manylinux: auto
         command: build
-        # We need `extenstion-module` because of issues listed in prql-python's Cargo.toml.
-        args: --release --features=extenstion-module -o dist -m prql-python/Cargo.toml
+        args: --release -o dist -m prql-python/Cargo.toml
     - uses: messense/maturin-action@v1
       if: inputs.os == 'windows-latest'
       with:
         command: build
-        args: --release --features=extenstion-module --no-sdist -o dist -m prql-python/Cargo.toml
+        args: --release --no-sdist -o dist -m prql-python/Cargo.toml
     - uses: messense/maturin-action@v1
       if: inputs.os == 'macos-latest'
       with:
         command: build
-        args: --release --features=extenstion-module --no-sdist -o dist --universal2 -m prql-python/Cargo.toml
+        args: --release --no-sdist -o dist --universal2 -m prql-python/Cargo.toml
     - name: Upload wheels
       uses: actions/upload-artifact@v2
       with:
