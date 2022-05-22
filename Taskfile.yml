@@ -26,7 +26,7 @@ tasks:
     desc: Install tools for PRQL development.
     cmds:
       # `--locked` installs from the underlying lock files (which is not the default?!)
-      - cargo install --locked cargo-insta default-target mdbook mdbook-toc wasm-bindgen-cli
+      - cargo install --locked cargo-insta default-target mdbook mdbook-toc wasm-bindgen-cli wasm-pack
       - rustup target add wasm32-unknown-unknown
       - python3 -m pip install -U maturin
       - task: install-pre-commit
