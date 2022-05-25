@@ -110,7 +110,7 @@ impl<'a> DistinctMaker<'a> {
                 ])
                 .into(),
                 (Some(_), Some(_)) => Item::SString(vec![
-                    InterpolateItem::Expr(Box::new(ident.into())),
+                    InterpolateItem::Expr(Box::new(ident)),
                     InterpolateItem::String(" BETWEEN ".to_string()),
                     InterpolateItem::Expr(Box::new(Item::Range(range).into())),
                 ])
