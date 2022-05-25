@@ -6,12 +6,11 @@ input_file: reference/tests/prql/language-features/distinct-2.prql
 WITH table_0 AS (
   SELECT
     employees.*,
-    ROW_NUMBER() OVER (
+    ROW NUMBER() OVER (
       PARTITION BY department
       ORDER BY
-        age ROWS BETWEEN UNBOUNDED PRECEDING
-        AND UNBOUNDED FOLLOWING
-    ) AS rank
+        age
+    ) AS _rn
   FROM
     employees
 )
@@ -20,4 +19,4 @@ SELECT
 FROM
   table_0
 WHERE
-  rank = 1
+  _rn <= 1

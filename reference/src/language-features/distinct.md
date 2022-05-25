@@ -20,11 +20,24 @@ group department ( | take 1) # Note below
 
 > Note: `|` is here temporarily, until we finish work on function & pipeline currying.
 
-## Roadmap
 
-Soon we'll be able to [select range of rows in each
+-----
+
+We are be able to [select range of rows in each
 group](https://stackoverflow.com/questions/3800551/select-first-row-in-each-group-by-group)
 by combining `group` and `sort`:
+
+```prql
+# youngest employee from each department
+from employees
+group department (
+  sort age
+  take 1
+)
+```
+## Roadmap
+
+When using Postgres dialect, we are planning to compile:
 
 ```prql_no_test
 # youngest employee from each department
@@ -35,33 +48,10 @@ group department (
 )
 ```
 
-... which will produces ...
-
-```sql
-WITH table_0 = (
-  SELECT ROW_NUMBER() OVER(PARTITION BY department ORDER_BY age) as _row_number
-  FROM employees
-)
-SELECT *
-FROM table_0
-WHERE _row_number = 1
-```
-
-... or in Postgres dialect ...
+... to ...
 
 ```sql
 SELECT DISTINCT ON (department) *
 FROM employees
 ORDER BY department, age
-```
-
-Until this is implemented, we can use `row_number`:
-
-```prql
-from employees
-group department (
-  sort age
-  derive rank = row_number
-)
-filter rank == 1
 ```

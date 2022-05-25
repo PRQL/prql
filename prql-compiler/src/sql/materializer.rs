@@ -62,6 +62,7 @@ pub struct MaterializedFrame {
     pub sort: Vec<ColumnSort>,
 }
 
+#[derive(Default)]
 pub struct MaterializationContext {
     /// Map of all accessible names (for each namespace)
     pub(super) frame: Frame,
@@ -71,11 +72,13 @@ pub struct MaterializationContext {
 }
 
 impl MaterializationContext {
-    pub fn declare_table(&mut self, table: &str) -> usize {
-        let decl = Declaration::Table(table.to_string());
-        self.declarations.push(decl);
+    pub fn declare(&mut self, dec: Declaration) -> usize {
+        self.declarations.push(dec);
+        self.declarations.len() - 1
+    }
 
-        let id = self.declarations.len() - 1;
+    pub fn declare_table(&mut self, table: &str) -> usize {
+        let id = self.declare(Declaration::Table(table.to_string()));
 
         self.frame.tables.push(id);
         id
@@ -884,6 +887,7 @@ take 20
                   Literal:
                     Integer: 20
               by: []
+              sort: []
         "###);
         assert_yaml_snapshot!(frame.columns, @r###"
         ---
