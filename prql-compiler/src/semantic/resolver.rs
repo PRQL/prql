@@ -396,10 +396,24 @@ impl Resolver {
             | Transform::Window { .. } => {
                 // ok
             }
-            Transform::Aggregate { by, .. } | Transform::Take { by, .. } => {
+            Transform::Aggregate { by, .. } => {
                 *by = (self.within_group)
                     .iter()
                     .map(|id| Node::new_ident("<ref>", *id))
+                    .collect();
+            }
+            Transform::Take { by, sort, .. } => {
+                *by = (self.within_group)
+                    .iter()
+                    .map(|id| Node::new_ident("<ref>", *id))
+                    .collect();
+
+                *sort = (self.sorted)
+                    .iter()
+                    .map(|s| ColumnSort {
+                        column: Node::new_ident("<ref>", s.column),
+                        direction: s.direction.clone(),
+                    })
                     .collect();
             }
             _ => {
@@ -675,10 +689,23 @@ mod tests {
             take 1
         )
         "#).and_then(resolve_and_translate).unwrap(), @r###"
+        WITH table_0 AS (
+          SELECT
+            employees.*,
+            ROW NUMBER() OVER (
+              PARTITION BY last_name
+              ORDER BY
+                first_name
+            ) AS _rn
+          FROM
+            employees
+        )
         SELECT
-          DISTINCT employees.*
+          table_0.*
         FROM
-          employees
+          table_0
+        WHERE
+          _rn <= 1
         "###);
 
         let res = parse(

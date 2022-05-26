@@ -1,18 +1,23 @@
-use anyhow::{bail, Result};
+use anyhow::Result;
 
-use crate::{
-    ast::{ast_fold::AstFold, *},
-    error::{Error, Reason},
-};
+use crate::ast::{ast_fold::AstFold, *};
+use crate::Declaration;
 
-pub fn take_to_distinct(nodes: Vec<Node>) -> Result<Vec<Node>> {
-    let mut d = DistinctMaker {};
+use super::materializer::MaterializationContext;
+
+pub fn take_to_distinct(
+    nodes: Vec<Node>,
+    context: &mut MaterializationContext,
+) -> Result<Vec<Node>> {
+    let mut d = DistinctMaker { context };
     d.fold_nodes(nodes)
 }
 /// Creates [Transform::Unique] from [Transform::Take]
-struct DistinctMaker {}
+struct DistinctMaker<'a> {
+    context: &'a mut MaterializationContext,
+}
 
-impl AstFold for DistinctMaker {
+impl<'a> AstFold for DistinctMaker<'a> {
     fn fold_nodes(&mut self, nodes: Vec<Node>) -> Result<Vec<Node>> {
         let mut res = Vec::new();
 
@@ -22,27 +27,21 @@ impl AstFold for DistinctMaker {
                     res.push(node);
                 }
 
-                Item::Transform(Transform::Take { range, .. }) => {
-                    let range = range.into_int()?;
-                    let take_only_first =
-                        range.start.unwrap_or(1) == 1 && matches!(range.end, Some(1));
+                Item::Transform(Transform::Take { range, by, sort }) => {
+                    let range_int = range.clone().into_int()?;
 
-                    if take_only_first {
+                    let take_only_first =
+                        range_int.start.unwrap_or(1) == 1 && matches!(range_int.end, Some(1));
+                    if take_only_first && sort.is_empty() {
                         // TODO: use distinct only if `by == all columns in frame`
                         res.push(Item::Transform(Transform::Unique).into());
-                    } else {
-                        bail!(Error::new(Reason::Simple(
-                            "`take` within `group` currently only supports argument `1`".to_string(),
-                        ))
-                        .with_span(node.span)
-                        .with_help("For now, you can derive a row number within a group and do a filter on that."));
+                        continue;
                     }
 
-                    // TODO: else
-                    //  return `
-                    //    derive _rn = row number over (order by)
-                    //    filter (_rn | in range)
-                    //  `
+                    // convert `take range` into:
+                    //   derive _rn = s"ROW NUMBER"
+                    //   filter (_rn | in range)
+                    res.extend(self.filter_row_number(range, sort, by));
                 }
                 _ => {
                     res.push(node);
@@ -54,5 +53,77 @@ impl AstFold for DistinctMaker {
 
     fn fold_func_def(&mut self, function: FuncDef) -> Result<FuncDef> {
         Ok(function)
+    }
+}
+
+impl<'a> DistinctMaker<'a> {
+    fn filter_row_number(
+        &mut self,
+        range: Range,
+        sort: Vec<ColumnSort>,
+        by: Vec<Node>,
+    ) -> Vec<Node> {
+        let range_int = range.clone().into_int().unwrap();
+
+        // declare new column
+        let decl = Node::from(Item::SString(vec![InterpolateItem::String(
+            "ROW NUMBER()".to_string(),
+        )]));
+        let is_unsorted = sort.is_empty();
+        let windowed = Windowed {
+            expr: Box::new(decl),
+            group: by,
+            sort,
+            window: if is_unsorted {
+                (WindowKind::Rows, Range::unbounded())
+            } else {
+                (WindowKind::Range, Range::from_ints(None, Some(0)))
+            },
+        };
+        let decl = Declaration::Expression(Box::new(Item::Windowed(windowed).into()));
+        let row_number_id = self.context.declare(decl);
+
+        // name it _rn
+        let mut ident = Node::from(Item::Ident("_rn".to_string()));
+        ident.declared_at = Some(row_number_id);
+
+        // add the two transforms
+        let transforms = vec![
+            Transform::Derive(vec![ident.clone()]),
+            Transform::Filter(Box::new(match (range_int.start, range_int.end) {
+                (Some(s), Some(e)) if s == e => Item::Expr(vec![
+                    ident,
+                    Item::Operator("==".to_string()).into(),
+                    Item::Literal(Literal::Integer(s)).into(),
+                ])
+                .into(),
+                (Some(s), None) => Item::Expr(vec![
+                    ident,
+                    Item::Operator(">=".to_string()).into(),
+                    Item::Literal(Literal::Integer(s)).into(),
+                ])
+                .into(),
+                (None, Some(e)) => Item::Expr(vec![
+                    ident,
+                    Item::Operator("<=".to_string()).into(),
+                    Item::Literal(Literal::Integer(e)).into(),
+                ])
+                .into(),
+                (Some(_), Some(_)) => Item::SString(vec![
+                    InterpolateItem::Expr(Box::new(ident)),
+                    InterpolateItem::String(" BETWEEN ".to_string()),
+                    InterpolateItem::Expr(Box::new(Item::Range(range).into())),
+                ])
+                .into(),
+                (None, None) => Item::Literal(Literal::Boolean(true)).into(),
+            })),
+        ];
+        transforms
+            .into_iter()
+            .map(|t| Node {
+                is_complex: true, // this transform DOES contain windowed functions
+                ..Node::from(Item::Transform(t))
+            })
+            .collect()
     }
 }

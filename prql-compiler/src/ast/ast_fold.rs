@@ -208,9 +208,10 @@ pub fn fold_transform<T: ?Sized + AstFold>(
             kind,
             pipeline: Box::new(fold.fold_node(*pipeline)?),
         },
-        Transform::Take { by, range } => Transform::Take {
+        Transform::Take { by, range, sort } => Transform::Take {
             range: fold_range(fold, range)?,
             by: fold.fold_nodes(by)?,
+            sort: fold.fold_column_sorts(sort)?,
         },
         Transform::Unique => Transform::Unique,
     })

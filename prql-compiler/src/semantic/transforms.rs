@@ -123,7 +123,11 @@ pub fn cast_transform(func_call: FuncCall, span: Option<Span>) -> Result<Transfo
                 Item::Range(range) => range,
                 _ => unimplemented!(),
             };
-            Transform::Take { range, by: vec![] }
+            Transform::Take {
+                range,
+                by: vec![],
+                sort: vec![],
+            }
         }
         "join" => {
             let ([with, filter], [side]) = unpack(func_call, ["side"])?;
@@ -364,6 +368,7 @@ mod tests {
                                       Integer: 1
                                 by:
                                   - Ident: "<ref>"
+                                sort: []
         "###);
 
         // oops, two arguments #339

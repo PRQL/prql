@@ -253,7 +253,10 @@ fn sql_query_of_atomic_table(table: AtomicTable, dialect: &Dialect) -> Result<sq
 }
 
 /// Convert a pipeline into a number of pipelines which can each "fit" into a SELECT.
-fn atomic_pipelines_of_pipeline(pipeline: Pipeline) -> Result<Vec<AtomicTable>> {
+fn atomic_pipelines_of_pipeline(
+    pipeline: Pipeline,
+    context: &mut MaterializationContext,
+) -> Result<Vec<AtomicTable>> {
     // Insert a cut, when we find transformation that out of order:
     // - joins (no limit),
     // - filters (for WHERE)
@@ -268,7 +271,7 @@ fn atomic_pipelines_of_pipeline(pipeline: Pipeline) -> Result<Vec<AtomicTable>> 
     // which we'll then compose together.
     let pipeline = Ok(pipeline.functions)
         .and_then(un_group::un_group)
-        .and_then(distinct::take_to_distinct)?;
+        .and_then(|x| distinct::take_to_distinct(x, context))?;
 
     let mut counts: HashMap<&str, u32> = HashMap::new();
     let mut splits = vec![0];
@@ -327,7 +330,7 @@ fn atomic_tables_of_tables(
     for table in tables {
         // split table into atomics
         let pipeline = table.pipeline.item.into_pipeline()?;
-        let mut t_atomics: Vec<_> = atomic_pipelines_of_pipeline(pipeline)?;
+        let mut t_atomics: Vec<_> = atomic_pipelines_of_pipeline(pipeline, context)?;
 
         let (last, ctes) = t_atomics
             .split_last_mut()
@@ -558,7 +561,7 @@ impl TryFrom<Item> for Expr {
                 let default_frame = if window.sort.is_empty() {
                     (WindowKind::Rows, Range::unbounded())
                 } else {
-                    (WindowKind::Range, Range::from_ints(None, Some(1)))
+                    (WindowKind::Range, Range::from_ints(None, Some(0)))
                 };
 
                 let window = WindowSpec {
@@ -931,6 +934,8 @@ SString:
 
     #[test]
     fn test_ctes_of_pipeline() -> Result<()> {
+        let mut context = MaterializationContext::default();
+
         // One aggregate, take at the end
         let prql: &str = r###"
         from employees
@@ -941,7 +946,7 @@ SString:
         "###;
 
         let pipeline = parse_and_resolve(prql)?;
-        let queries = atomic_pipelines_of_pipeline(pipeline)?;
+        let queries = atomic_pipelines_of_pipeline(pipeline, &mut context)?;
         assert_eq!(queries.len(), 1);
 
         // One aggregate, but take at the top
@@ -954,7 +959,7 @@ SString:
         "###;
 
         let pipeline = parse_and_resolve(prql)?;
-        let queries = atomic_pipelines_of_pipeline(pipeline)?;
+        let queries = atomic_pipelines_of_pipeline(pipeline, &mut context)?;
         assert_eq!(queries.len(), 2);
 
         // A take, then two aggregates
@@ -968,7 +973,7 @@ SString:
         "###;
 
         let pipeline = parse_and_resolve(prql)?;
-        let queries = atomic_pipelines_of_pipeline(pipeline)?;
+        let queries = atomic_pipelines_of_pipeline(pipeline, &mut context)?;
         assert_eq!(queries.len(), 3);
 
         // A take, then a select
@@ -979,7 +984,7 @@ SString:
         "###;
 
         let pipeline = parse_and_resolve(prql)?;
-        let queries = atomic_pipelines_of_pipeline(pipeline)?;
+        let queries = atomic_pipelines_of_pipeline(pipeline, &mut context)?;
         assert_eq!(queries.len(), 1);
         Ok(())
     }
@@ -1999,6 +2004,52 @@ take 20
           DISTINCT employees.*
         FROM
           employees
+        "###);
+
+        // head
+        assert_display_snapshot!((resolve_and_translate(parse(r###"
+        from employees
+        group department ( | take 3)
+        "###,
+        ).unwrap()).unwrap()), @r###"
+        WITH table_0 AS (
+          SELECT
+            employees.*,
+            ROW NUMBER() OVER (PARTITION BY department) AS _rn
+          FROM
+            employees
+        )
+        SELECT
+          table_0.*
+        FROM
+          table_0
+        WHERE
+          _rn <= 3
+        "###);
+
+        assert_display_snapshot!((resolve_and_translate(parse(r###"
+        from employees
+        group department ( | sort salary | take 2..3)
+        "###,
+        ).unwrap()).unwrap()), @r###"
+        WITH table_0 AS (
+          SELECT
+            employees.*,
+            ROW NUMBER() OVER (
+              PARTITION BY department
+              ORDER BY
+                salary
+            ) AS _rn
+          FROM
+            employees
+        )
+        SELECT
+          table_0.*
+        FROM
+          table_0
+        WHERE
+          _rn BETWEEN 2
+          AND 3
         "###);
     }
 }

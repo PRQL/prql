@@ -43,6 +43,7 @@ pub enum Transform {
     Take {
         range: Range,
         by: Vec<Node>,
+        sort: Vec<ColumnSort<Node>>,
     },
     Join {
         side: JoinSide,
