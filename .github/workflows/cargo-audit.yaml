@@ -1,10 +1,16 @@
 name: Cargo audit
 
 on:
+  pull_request:
+    paths:
+      - "**/Cargo.toml"
+      - "**/Cargo.lock"
   push:
     paths:
       - "**/Cargo.toml"
       - "**/Cargo.lock"
+    branches:
+      - main
   schedule:
     - cron: "33 6 * * 1"
 
