@@ -21,6 +21,10 @@ News](https://news.ycombinator.com/item?id=30060784#30062329) and
 [Lobsters](https://lobste.rs/s/oavgcx/prql_simpler_more_powerful_sql) earlier
 this year when it was just a proposal.
 
+Here's a short example of the language; for more examples, visit
+[prql-lang.org][PRQL Website]. To experiment with PRQL in the browser, check out
+[PRQL Playground][PRQL Playground].
+
 ```elm
 from employees                                # Each line transforms the previous result.
 filter start_date > @2021-01-01               # Clear date syntax.
@@ -45,7 +49,15 @@ filter ct > 200
 take 20
 ```
 
-For more examples and motivation, visit [prql-lang.org](https://prql-lang.org).
+## Resources
+
+- [PRQL Website][PRQL Website]
+- [PRQL Playground][PRQL Playground] — experiment with PRQL in the browser.
+- [PRQL Book][PRQL Book] — read documentation on the language.
+- [PyPRQL Docs](https://pyprql.readthedocs.io) — read documentation on PyPRQL, the
+  python bindings to PRQL, including Jupyter magic.
+- [PRQL VSCode](https://marketplace.visualstudio.com/items?itemName=prql.prql).
+- [PRQL-js](https://www.npmjs.com/package/prql-js) — JavaScript bindings for PRQL.
 
 <!-- this document is intended for developers and contributors of the language -->
 ## Contributing
@@ -190,3 +202,7 @@ In the same way that "SQL was invented in the 1970s and therefore must be bad"
 is questionable logic, "`n` languages have tried and failed so therefore SQL
 cannot be improved." suffers a similar fallacy. SQL isn't bad because it's old.
 It's bad because — in some cases — it's bad.
+
+[PRQL Book]: https://prql-lang.org/reference.
+[PRQL Website]: https://prql-lang.org
+[PRQL Playground]: https://prql-lang.org/playground

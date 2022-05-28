@@ -90,7 +90,7 @@ unmanageable as soon as query complexity goes beyond the most simple queries.
   - Install with `cargo`: `cargo install prql`
   - Install with `pip`: `pip install pyprql`
     <!-- Brew not yet working, tbc -->
-  - Install with `brew`: `brew install prql`
+  <!-- - Install with `brew`: `brew install prql` -->
 
 ## Keep in touch
 

@@ -1,4 +1,4 @@
-# PRQL website
+# PRQL Website
 
 A [hugo](https://gohugo.io/) website with PRQL theme, which uses minimal [water.css](https://watercss.kognise.dev/) styling.
 
