@@ -10,7 +10,7 @@ window rows:{range} range:{range} expanding:false rolling:0 {pipeline}
 For each row, the segment over which the pipeline is applied is determined by
 one of:
 
-- `rows`, which takes a range of rows relative to the current row.
+- `rows`, which takes a range of rows relative to the current row position.
   - `0` references the current row.
 - `range`, which takes a range of values relative to current row value.
 
@@ -36,7 +36,7 @@ Some examples:
 | `rolling:3`     | (same as previous)                                                 |
 | `rows:-2..4`    | two preceding rows plus current row plus four following rows       |
 | `rows:..0`      | all rows from the start of the table up to & including current row |
-| `expanding:..0` | (same as previous)                                                 |
+| `expanding:true`| (same as previous)                                                 |
 | `rows:0..`      | current row and all following rows until the end of the table      |
 | `rows:..`       | all rows, which same as not having window at all                   |
 
