@@ -56,7 +56,7 @@ take 20
 - [PRQL Book][PRQL Book] — read documentation on the language.
 - [PyPRQL Docs](https://pyprql.readthedocs.io) — read documentation on PyPRQL, the
   python bindings to PRQL, including Jupyter magic.
-- [PRQL VSCode](https://marketplace.visualstudio.com/items?itemName=prql.prql).
+- [PRQL VSCode Extension](https://marketplace.visualstudio.com/items?itemName=prql.prql)
 - [PRQL-js](https://www.npmjs.com/package/prql-js) — JavaScript bindings for PRQL.
 
 <!-- this document is intended for developers and contributors of the language -->
