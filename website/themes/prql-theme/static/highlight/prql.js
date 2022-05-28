@@ -10,7 +10,7 @@ hljs.registerLanguage('prql', function (hljs) {
         case_insensitive: true,
         keywords: {
             keyword: TRANSFORMS,
-            literal: 'false true null and  or not',
+            literal: 'false true null and or not',
         },
         contains: [
             hljs.COMMENT('#', '$'),
