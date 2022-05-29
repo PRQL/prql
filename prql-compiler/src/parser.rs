@@ -194,7 +194,7 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
                         pipeline: Box::new(pipeline),
                     })
                 }
-                Rule::ident => Item::Ident(pair.as_str().to_string()),
+                Rule::ident | Rule::jinja => Item::Ident(pair.as_str().to_string()),
 
                 Rule::number => {
                     let str = pair.as_str();
@@ -350,6 +350,9 @@ fn ast_of_interpolate_items(pair: Pair<Rule>) -> Result<Vec<InterpolateItem>> {
         .map(|x| {
             Ok(match x.as_rule() {
                 Rule::interpolate_string_inner => InterpolateItem::String(x.as_str().to_string()),
+                // Rule::interpolate_string_inner | Rule::jinja_string_inner => {
+                //     InterpolateItem::String(x.as_str().to_string())
+                // }
                 _ => InterpolateItem::Expr(Box::new(
                     ast_of_parse_tree(x.into_inner())?.into_expr().into(),
                 )),
@@ -566,6 +569,38 @@ Canada
                 - Literal:
                     Integer: 2
           - String: )
+        "###);
+        Ok(())
+    }
+
+    #[test]
+    fn test_parse_jinja() -> Result<()> {
+        assert_yaml_snapshot!(ast_of_string(r#"
+        from {{ ref('stg_orders') }}
+        aggregate (sum order_id)
+        "#, Rule::query)?, @r###"
+        ---
+        Query:
+          version: ~
+          dialect: Generic
+          nodes:
+            - Pipeline:
+                value: ~
+                functions:
+                  - FuncCall:
+                      name: from
+                      args:
+                        - Ident: "{{ ref('stg_orders') }}"
+                      named_args: {}
+                  - FuncCall:
+                      name: aggregate
+                      args:
+                        - FuncCall:
+                            name: sum
+                            args:
+                              - Ident: order_id
+                            named_args: {}
+                      named_args: {}
         "###);
         Ok(())
     }

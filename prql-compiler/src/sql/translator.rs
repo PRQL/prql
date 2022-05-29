@@ -38,6 +38,12 @@ pub fn translate(query: Query, context: Context) -> Result<String> {
         &QueryParams::default(),
         FormatOptions::default(),
     );
+
+    // The sql formatter turns `{{` into `{ {`, and while that's reasonable SQL,
+    // we want to all jina expressions through. So we (somewhat hackily) replace
+    // any `{ {` with `{{`.
+    let formatted = formatted.replace("{ {", "{{").replace("} }", "}}");
+
     Ok(formatted)
 }
 
@@ -2050,6 +2056,20 @@ take 20
         WHERE
           _rn BETWEEN 2
           AND 3
+        "###);
+    }
+
+    #[test]
+    fn test_dbt_query() {
+        assert_display_snapshot!((resolve_and_translate(parse(r###"
+        from {{ ref('stg_orders') }}
+        aggregate (min order_id)
+        "###,
+        ).unwrap()).unwrap()), @r###"
+        SELECT
+          MIN(order_id)
+        FROM
+          {{ ref('stg_orders') }}
         "###);
     }
 }

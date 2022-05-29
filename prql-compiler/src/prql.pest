@@ -75,7 +75,7 @@ expr_compare = { expr_add ~ (operator_compare ~ expr_add)? }
 expr_add = _{ expr_mul ~ (operator_add ~ expr_mul)* }
 expr_mul = _{ term ~ (operator_mul ~ term)* }
 
-term = _{ ( s_string | f_string | range | literal | ident | nested_expr | nested_pipeline | signed_term | list ) }
+term = _{ ( s_string | f_string | range | literal | ident | nested_expr | nested_pipeline | signed_term | list | jinja ) }
 // signed_term is for sorting.
 signed_term = _{ ( operator_add ~ ( nested_expr | ident )) }
 literal = _{ interval | number | boolean | null | string | timestamp | date | time }
@@ -126,7 +126,6 @@ operator_compare = ${ "==" | "!=" | ">" | "<" | ">=" | "<=" }
 operator_logical = ${ ("and" | "or" | "not") ~ &WHITESPACE }
 operator_coalesce = ${ "??" }
 
-// TODO: allow a raw s-string / f-string (but not an s-f string...)
 s_string = ${ "s" ~ opening_quote ~ ( interpolate_string_inner | ( "{" ~ expr_call ~ "}" ))* ~ POP }
 f_string = ${ "f" ~ opening_quote ~ ( interpolate_string_inner | ( "{" ~ expr_call ~ "}" ))* ~ POP }
 interpolate_string_inner = { ( !( PEEK | "{" ) ~ ANY )+ }
@@ -146,3 +145,7 @@ timestamp_inner = ${ date_inner ~ "T" ~ time_inner }
 // We can use this when want to ensure something is ending, like a date, so `@20-01-0`
 // isn't treated like a time `@20-01` `-` (minus) `0`.
 end_expr = _{ WHITESPACE | "," | ")" | "]" | EOI | NEWLINE }
+
+// We pass text between `{{` and `}}` through, so dbt can use Jinja.
+jinja = { ("{{" ~ (!"}}" ~ ANY)* ~ "}}") }
+// jinja_string_inner = {}
