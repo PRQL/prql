@@ -149,4 +149,3 @@ end_expr = _{ WHITESPACE | "," | ")" | "]" | EOI | NEWLINE }
 // We pass text between `{{` and `}}` through, so dbt can use Jinja.
 jinja = { ("{{" ~ (!"}}" ~ ANY)* ~ "}}") }
 // jinja_string_inner = {}
-
