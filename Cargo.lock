@@ -1095,7 +1095,7 @@ dependencies = [
 
 [[package]]
 name = "prql-python"
-version = "0.0.3"
+version = "0.1.0"
 dependencies = [
  "prql-compiler",
  "pyo3",
