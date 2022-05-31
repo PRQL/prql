@@ -40,7 +40,7 @@ pub fn translate(query: Query, context: Context) -> Result<String> {
     );
 
     // The sql formatter turns `{{` into `{ {`, and while that's reasonable SQL,
-    // we want to all jina expressions through. So we (somewhat hackily) replace
+    // we want to allow jinja expressions through. So we (somewhat hackily) replace
     // any `{ {` with `{{`.
     let formatted = formatted.replace("{ {", "{{").replace("} }", "}}");
 
