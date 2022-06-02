@@ -861,11 +861,11 @@ SString:
         let expr: Expr = ast.item.try_into()?;
         assert_yaml_snapshot!(
             expr, @r###"
-    ---
-    Identifier:
-      value: SUM(col)
-      quote_style: ~
-    "###
+        ---
+        Identifier:
+          value: SUM(col)
+          quote_style: ~
+        "###
         );
         Ok(())
     }
