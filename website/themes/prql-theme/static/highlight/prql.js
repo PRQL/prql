@@ -1,5 +1,5 @@
 // !!keep consistent with
-// https://github.com/prql/prql/blob/main/reference/highlight-prql.js
+// https://github.com/prql/prql/blob/main/book/highlight-prql.js
 //
 // TODO: can we import one from the other at build time?
 hljs.registerLanguage('prql', function (hljs) {
