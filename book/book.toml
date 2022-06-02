@@ -4,7 +4,7 @@ description = "Modern language for transforming data — a simpler and more powe
 language = "en"
 multilingual = false
 src = "src"
-title = "PRQL Language Reference"
+title = "PRQL Language Book"
 
 [output.html]
 additional-css = ["comparison-table.css"]
@@ -16,9 +16,9 @@ git-repository-url = "https://github.com/prql/prql"
 before = ["prql"]
 # We install with `--debug` because this is in the critical path of tests, and
 # runtime performance doesn't matter.
-# command = "sh -c 'cd $(git rev-parse --show-toplevel)/reference/mdbook-prql/ && cargo install --locked --path . && exit 1'"
+# command = "sh -c 'cd $(git rev-parse --show-toplevel)/book/mdbook-prql/ && cargo install --locked --path . && exit 1'"
 
-command = "sh -c 'echo \"Installing mdbook-prql from mdbook\" 1>&2; cd $(git rev-parse --show-toplevel)/reference/mdbook-prql/ && cargo install --locked --debug --path . && exit 1'"
+command = "sh -c 'echo \"Installing mdbook-prql from mdbook\" 1>&2; cd $(git rev-parse --show-toplevel)/book/mdbook-prql/ && cargo install --locked --debug --path . && exit 1'"
 
 [preprocessor.prql]
 

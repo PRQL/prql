@@ -58,7 +58,7 @@ jobs:
       - uses: peaceiris/actions-mdbook@v1
       - name: 🔨 Build
         run: mdbook build
-        working-directory: reference/
+        working-directory: book/
 
   # Run Mac & Windows & other tests on `main` or a `ci-run-all-tests` label.
   test-all:

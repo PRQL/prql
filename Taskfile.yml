@@ -107,6 +107,6 @@ tasks:
         {{ range ( .targets | trim | splitLines ) -}}
         cargo build --workspace --all-targets --target={{.}}
         {{ end -}}
-      - mdbook build reference/
+      - mdbook build book/
       - cd playground && npm install && npm run build
       - cd website && hugo

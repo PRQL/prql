@@ -1,6 +1,6 @@
-# PRQL Language Reference
+# PRQL Language Book
 
-These docs serve as a language reference, for users of the language. They should
+These docs serve as a language book, for users of the language. They should
 be friendly & accessible, at a minimum to those who understand basic SQL. They
 should not contain rust code!
 
@@ -21,7 +21,7 @@ cargo install --locked mdbook
 And then to build & serve locally:
 
 ```sh
-cd reference
+cd book
 mdbook serve
 ```
 

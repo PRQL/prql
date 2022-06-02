@@ -40,7 +40,7 @@ FROM
   employees
 ```
 
-For more information about the language, see [reference book](https://prql-lang.org/reference).
+For more information about the language, see [reference book](https://prql-lang.org/book).
 
 ## Development
 
