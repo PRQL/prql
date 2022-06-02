@@ -1,11 +1,11 @@
 from orders
 sort day
-window rolling:3 (
-  derive [total_last_3_days = sum price]
+window rows:-3..3 (
+  derive [centered_weekly_average = average value]
 )
 group [order_month] (
   sort day
   window expanding:true (
-    derive [monthly_running_total = sum price]
+    derive [monthly_running_total = sum value]
   )
 )

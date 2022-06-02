@@ -12,8 +12,8 @@ join side:{inner|left|right|full} {table} {[conditions]}
 - Table reference
 - List of conditions
   - If all terms are column identifiers, this will compile to `USING(...)`. In
-    this case, both of the tables must have specified columns. The result will
-    only contain one column for each specified column.
+    this case, both tables must contain specified columns. The result will only
+    contain one column for each specified column.
 
 ## Examples
 

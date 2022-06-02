@@ -1,7 +1,7 @@
 from employees
 group employee_id (
   sort month
-  window rows:-5.. (
-    derive [semi_annual_comp = sum paycheck]
+  window rolling:12 (
+    derive [trail_12_m_comp = sum paycheck]
   )
 )

@@ -33,7 +33,9 @@ take 1
 To find the employee who joined first in each department, it's exactly the
 same pipeline, but within a `group` expression:
 
-> Not yet implemented, ref <https://github.com/prql/prql/issues/421>
+```admonish todo
+This isn't yet implemented, ref <https://github.com/prql/prql/issues/421>
+```
 
 ```prql_no_test
 from employees
