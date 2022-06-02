@@ -1,26 +1,31 @@
 # Window
 
-Applies a pipeline to overlapping segments of rows.
+Applies a pipeline to segments of rows, producing one output value for every
+input value.
 
 ```prql_no_test
 window rows:{range} range:{range} expanding:false rolling:0 {pipeline}
 ```
 
-For each row in result, its input segment is determined by one of:
+For each row, the segment over which the pipeline is applied is determined by
+one of:
 
 - `rows`, which takes a range of rows relative to the current row.
+  - `0` references the current row.
 - `range`, which takes a range of values relative to current row value.
 
-Bounds of the range are inclusive. `0` references current row. If a bound is
-omitted, the segment will extend until the edge of the table or group.
+The bounds of the range are inclusive. If a bound is omitted, the segment will
+extend until the edge of the table or group.
 
 <!-- TODO: rows vs range example, with visualization -->
 
 For ease of use, there are two flags that override `rows` or `range`:
 
-- `expanding:true` is an alias for `rows:..0`. Sum using this window is also known as "cumulative sum".
+- `expanding:true` is an alias for `rows:..0`. A sum using this window is also
+  known as "cumulative sum".
 - `rolling:n` is an alias for `row:(-n+1)..0`, where `n` is an integer. This
-  will include `n` last values, including current row.
+  will include `n` last values, including current row. An average using this
+  window is also knows as a Simple Moving Average.
 
 Some examples:
 
@@ -41,8 +46,8 @@ Some examples:
 from employees
 group employee_id (
   sort month
-  window rows:-5.. (
-    derive [semi_annual_comp = sum paycheck]
+  window rolling:12 (
+    derive [trail_12_m_comp = sum paycheck]
   )
 )
 ```
@@ -50,13 +55,13 @@ group employee_id (
 ```prql
 from orders
 sort day
-window rolling:3 (
-  derive [total_last_3_days = sum price]
+window rows:-3..3 (
+  derive [centered_weekly_average = average value]
 )
 group [order_month] (
   sort day
   window expanding:true (
-    derive [monthly_running_total = sum price]
+    derive [monthly_running_total = sum value]
   )
 )
 ```

@@ -18,12 +18,13 @@ select department
 group department ( | take 1) # Note below
 ```
 
-> Note: `|` is here temporarily, until we finish work on function & pipeline currying.
+```admonish note
+Note: `|` is required in `( | take 1)` temporarily, until we finish implementing function & pipeline currying.
+```
 
+## Selecting from each group
 
------
-
-We are be able to [select range of rows in each
+We are be able to [select a rows from each
 group](https://stackoverflow.com/questions/3800551/select-first-row-in-each-group-by-group)
 by combining `group` and `sort`:
 
@@ -35,6 +36,7 @@ group department (
   take 1
 )
 ```
+
 ## Roadmap
 
 When using Postgres dialect, we are planning to compile:

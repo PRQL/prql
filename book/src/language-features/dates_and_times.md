@@ -5,10 +5,12 @@ verbose than SQL's approach of `TIMESTAMP '2004-10-19 10:23:54'` and more
 explicit than SQL's implicit option of just using a string `'2004-10-19
 10:23:54'`.
 
-> Currently PRQL passes strings which can be compiled straight through to the
+```admonish note
+Currently PRQL passes strings which can be compiled straight through to the
 database, and so many compatible formats string may work, but we may refine this
 in the future to aid in compatibility across databases. We'll always support the
 canonical [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) format described below.
+```
 
 ## Dates
 
@@ -48,11 +50,13 @@ derive first_prql_commit = @2020-01-01T13:19:55-0800
 Intervals are represented by `{N}{periods}`, such as `2years` or `10minutes`,
 without a space.
 
-> These aren't the same as ISO8601, because we evaluated `P3Y6M4DT12H30M5S` to
-  be difficult to understand, but we could support a simplified form if there's
-  demand for it. We don't currently support compound expressions, for example
-  `2years10months`, but most DBs will allow `2years + 10months`. Please raise an
-  issue if this is inconvenient.
+```admonish note
+These aren't the same as ISO8601, because we evaluated `P3Y6M4DT12H30M5S` to
+be difficult to understand, but we could support a simplified form if there's
+demand for it. We don't currently support compound expressions, for example
+`2years10months`, but most DBs will allow `2years + 10months`. Please raise an
+issue if this is inconvenient.
+```
 
 ```prql
 from projects

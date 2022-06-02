@@ -1,4 +1,4 @@
-# S-Strings
+# s-strings
 
 An s-string inserts SQL directly, as an escape hatch when there's something that PRQL
 doesn't yet implement. For example, there's no `version()` function in SQL that
@@ -34,11 +34,11 @@ join s=salaries side:left [
 ]
 ```
 
-For those who have used python, s-strings are similar to python f-strings, but
+For those who have used python, s-strings are similar to python's f-strings, but
 the result is SQL, rather than a string literal — a python f-string of
 `f"average{col}"` where `col="salary"` would produce `"average(salary)"`, with
-the quotes.
+the quotes. `s"average{col}"` produces `average(salary)`, without quotes.
 
-S-strings in user code are intended as an escape-hatch for an unimplemented
+s-strings in user code are intended as an escape-hatch for an unimplemented
 feature. If we often need s-strings to express something, that's a sign we
 should implement it in PRQL or PRQL's stdlib.
