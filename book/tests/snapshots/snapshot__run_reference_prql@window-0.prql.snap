@@ -8,8 +8,8 @@ SELECT
   SUM(paycheck) OVER (
     PARTITION BY employee_id
     ORDER BY
-      month ROWS BETWEEN 5 PRECEDING
-      AND UNBOUNDED FOLLOWING
-  ) AS semi_annual_comp
+      month ROWS BETWEEN 11 PRECEDING
+      AND CURRENT ROW
+  ) AS trail_12_m_comp
 FROM
   employees

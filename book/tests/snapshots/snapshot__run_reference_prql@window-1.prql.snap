@@ -5,12 +5,12 @@ input_file: book/tests/prql/transforms/window-1.prql
 ---
 SELECT
   orders.*,
-  SUM(price) OVER (
+  AVG(value) OVER (
     ORDER BY
-      day ROWS BETWEEN 2 PRECEDING
-      AND CURRENT ROW
-  ) AS total_last_3_days,
-  SUM(price) OVER (
+      day ROWS BETWEEN 3 PRECEDING
+      AND 3 FOLLOWING
+  ) AS centered_weekly_average,
+  SUM(value) OVER (
     PARTITION BY order_month
     ORDER BY
       day ROWS BETWEEN UNBOUNDED PRECEDING
