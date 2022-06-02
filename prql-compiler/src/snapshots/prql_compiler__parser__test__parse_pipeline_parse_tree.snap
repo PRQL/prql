@@ -1,6 +1,6 @@
 ---
 source: prql-compiler/src/parser.rs
-expression: "parse_tree_of_str(include_str!(\"../../reference/tests/prql/examples/variables-0.prql\").trim(),\n        Rule::pipeline).unwrap()"
+expression: "parse_tree_of_str(&include_str!(\"../../book/tests/prql/examples/variables-0.prql\").trim().replace(\"\\r\\n\",\n                \"\\n\"), Rule::pipeline).unwrap()"
 ---
 [
     Pair {

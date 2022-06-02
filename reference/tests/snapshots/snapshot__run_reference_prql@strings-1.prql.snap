@@ -1,7 +1,0 @@
----
-source: reference/tests/snapshot.rs
-expression: sql
-input_file: reference/tests/prql/language-features/strings-1.prql
----
-SELECT
-  'hello world' AS x

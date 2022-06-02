@@ -203,6 +203,6 @@ is questionable logic, "`n` languages have tried and failed so therefore SQL
 cannot be improved." suffers a similar fallacy. SQL isn't bad because it's old.
 It's bad because — in some cases — it's bad.
 
-[PRQL Book]: https://prql-lang.org/reference
+[PRQL Book]: https://prql-lang.org/book
 [PRQL Website]: https://prql-lang.org
 [PRQL Playground]: https://prql-lang.org/playground

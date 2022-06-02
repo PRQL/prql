@@ -5,8 +5,8 @@ theme: "prql-theme"
 
 params:
   main_menu:
-    - text: Reference
-      link: /reference
+    - text: Book
+      link: /book
 
     - text: Playground
       link: /playground

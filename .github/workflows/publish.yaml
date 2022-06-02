@@ -25,13 +25,13 @@ jobs:
         run: hugo --minify
         working-directory: website/
 
-      # reference
+      # book
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v1
       - uses: peaceiris/actions-mdbook@v1
-      - name: 🔨 Build reference
+      - name: 🔨 Build book
         run: mdbook build
-        working-directory: reference/
+        working-directory: book/
 
       # playground
       - uses: jetli/wasm-bindgen-action@v0.1.0
@@ -47,9 +47,9 @@ jobs:
       - run: npm run build
         working-directory: playground/
 
-      - name: Move reference and playground into website
+      - name: Move book and playground into website
         run: |
-          mv reference/book website/public/reference
+          mv book/book website/public/book
           mv playground/build website/public/playground
       - name: 🚢 Deploy
         uses: peaceiris/actions-gh-pages@v3

@@ -24,7 +24,7 @@ Issues](https://github.com/prql/prql/issues?q=is%3Aissue+is%3Aopen+label%3Alangu
 
 ### Documentation
 
-Currently the language documentation is at <https://prql-lang.org/reference>.
+Currently the language documentation is at <https://prql-lang.org/book>.
 
 If you're up for contributing and don't have a preference for writing code or
 not, this is the area that would most benefit from your contribution. Issues are

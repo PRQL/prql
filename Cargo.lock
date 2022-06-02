@@ -1053,6 +1053,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "prql-book"
+version = "0.1.1"
+dependencies = [
+ "anyhow",
+ "globset",
+ "insta",
+ "itertools",
+ "log",
+ "prql-compiler",
+ "pulldown-cmark",
+ "pulldown-cmark-to-cmark",
+ "similar",
+ "trash",
+ "walkdir",
+]
+
+[[package]]
 name = "prql-compiler"
 version = "0.1.1"
 dependencies = [
@@ -1100,23 +1117,6 @@ dependencies = [
  "prql-compiler",
  "pyo3",
  "pyo3-build-config",
-]
-
-[[package]]
-name = "prql-reference"
-version = "0.1.1"
-dependencies = [
- "anyhow",
- "globset",
- "insta",
- "itertools",
- "log",
- "prql-compiler",
- "pulldown-cmark",
- "pulldown-cmark-to-cmark",
- "similar",
- "trash",
- "walkdir",
 ]
 
 [[package]]

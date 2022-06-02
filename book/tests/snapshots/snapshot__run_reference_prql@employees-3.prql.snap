@@ -1,0 +1,26 @@
+---
+source: book/tests/snapshot.rs
+expression: sql
+input_file: book/tests/prql/examples/employees-3.prql
+---
+WITH table_0 AS (
+  SELECT
+    de.emp_no,
+    de.dept_no,
+    AVG(s.salary) AS salary
+  FROM
+    dept_emp AS de
+    LEFT JOIN salaries AS s ON s.emp_no = de.emp_no (s.from_date, s.to_date) OVERLAPS (de.from_date, de.to_date)
+  GROUP BY
+    de.emp_no,
+    de.dept_no
+)
+SELECT
+  table_0.dept_no,
+  table_0.salary,
+  employees.gender,
+  titles.title
+FROM
+  table_0
+  JOIN employees USING(emp_no)
+  JOIN titles USING(emp_no)
