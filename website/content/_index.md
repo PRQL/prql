@@ -41,10 +41,10 @@ take 20
   read, and simple to write.
 
 - ***Simple*** — PRQL serves both sophisticated engineers and analysts without
-  coding experience. 
+  coding experience.
   We believe that there should be only one way of expressing each operation,
-  so there is only a few patterns to memorize. This opposes query tweaking with 
-  intention to improve performance, because that should be handled by the compiler and 
+  so there is only a few patterns to memorize. This opposes query tweaking with
+  intention to improve performance, because that should be handled by the compiler and
   the database.
 
 - ***Open*** — PRQL will always be open-source, free-as-in-free, and doesn't
@@ -87,10 +87,10 @@ unmanageable as soon as complexity grows beyond the most simple queries.
 
 ## Integrations
 
-- [Visual Studio Code extension](https://marketplace.visualstudio.com/items?itemName=prql.prql), 
+- [Visual Studio Code extension](https://marketplace.visualstudio.com/items?itemName=prql.prql),
   provides syntax highlighting and an upcoming language server
-- [Jupyter/IPython](https://pyprql.readthedocs.io/en/latest/magic_readme.html): 
-  PyPrql has a magic extension, which executes a PRQL cell against a database. 
+- [Jupyter/IPython](https://pyprql.readthedocs.io/en/latest/magic_readme.html):
+  PyPrql has a magic extension, which executes a PRQL cell against a database.
   It can also set up an in-memory DuckDB instance, populated with a pandas
   dataframes.
 - `dbt-prql`: upcoming
@@ -105,9 +105,9 @@ unmanageable as soon as complexity grows beyond the most simple queries.
 - Subscribe to [GitHub issue #1](https://github.com/prql/prql/issues/1) for
   a GitHub notification on updates.
 
-- Rewrite any of your own queries to PRQL to see if it makes sense. You can use the 
+- Rewrite any of your own queries to PRQL to see if it makes sense. You can use the
   [playground](./playground/) and submit issues [here](https://github.com/prql/prql/issues).
-  We are looking for any use-cases that expose a poor design choice, a need of a feature, 
+  We are looking for any use-cases that expose a poor design choice, a need of a feature,
   a pain point or just a sharp edge of the language.
 
 - Join the [Discord](https://discord.gg/eQcfaCmsNc).
