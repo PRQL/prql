@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 
 use super::scope::NS_PARAM;
-use super::{Scope, Declaration, Declarations};
+use super::{Declaration, Declarations, Scope};
 use crate::ast::*;
 use crate::error::Span;
 
@@ -60,8 +60,6 @@ impl Context {
 
         id
     }
-
-    
 }
 
 impl From<Declaration> for anyhow::Error {

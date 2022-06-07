@@ -19,8 +19,15 @@ pub enum Item {
     Transform(Transform),
     List(Vec<Node>),
     Range(Range),
-    Binary { left: Box<Node>, op: BinOp, right: Box<Node> },
-    Unary { op: UnOp, expr: Box<Node> },
+    Binary {
+        left: Box<Node>,
+        op: BinOp,
+        right: Box<Node>,
+    },
+    Unary {
+        op: UnOp,
+        expr: Box<Node>,
+    },
     FuncDef(FuncDef),
     FuncCall(FuncCall),
     Type(Ty),
@@ -33,41 +40,41 @@ pub enum Item {
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize, strum::Display, strum::EnumString)]
 pub enum BinOp {
-    #[strum(to_string="*")]
+    #[strum(to_string = "*")]
     Mul,
-    #[strum(to_string="/")]
+    #[strum(to_string = "/")]
     Div,
-    #[strum(to_string="%")]
+    #[strum(to_string = "%")]
     Mod,
-    #[strum(to_string="+")]
+    #[strum(to_string = "+")]
     Add,
-    #[strum(to_string="-")]
+    #[strum(to_string = "-")]
     Sub,
-    #[strum(to_string="==")]
+    #[strum(to_string = "==")]
     Eq,
-    #[strum(to_string="!=")]
+    #[strum(to_string = "!=")]
     Ne,
-    #[strum(to_string=">")]
+    #[strum(to_string = ">")]
     Gt,
-    #[strum(to_string="<")]
+    #[strum(to_string = "<")]
     Lt,
-    #[strum(to_string=">=")]
+    #[strum(to_string = ">=")]
     Gte,
-    #[strum(to_string="<=")]
+    #[strum(to_string = "<=")]
     Lte,
-    #[strum(to_string="and")]
+    #[strum(to_string = "and")]
     And,
-    #[strum(to_string="or")]
+    #[strum(to_string = "or")]
     Or,
-    #[strum(to_string="??")]
+    #[strum(to_string = "??")]
     Coalesce,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize, strum::EnumString)]
 pub enum UnOp {
-    #[strum(to_string="-")]
+    #[strum(to_string = "-")]
     Neg,
-    #[strum(to_string="not")]
+    #[strum(to_string = "not")]
     Not,
 }
 
@@ -177,10 +184,7 @@ impl Pipeline {
     }
 
     pub fn as_transforms(&self) -> Option<Vec<&Transform>> {
-        self.nodes
-            .iter()
-            .map(|f| f.item.as_transform())
-            .collect()
+        self.nodes.iter().map(|f| f.item.as_transform()).collect()
     }
 }
 impl From<Vec<Node>> for Pipeline {
@@ -227,7 +231,7 @@ impl Display for Item {
             Item::Pipeline(pipeline) => {
                 f.write_char('(')?;
                 match pipeline.nodes.len() {
-                    0 => {},
+                    0 => {}
                     1 => {
                         write!(f, "{}", pipeline.nodes[0].item)?;
                         for node in &pipeline.nodes[1..] {
@@ -284,12 +288,10 @@ impl Display for Item {
             Item::Binary { op, left, right } => {
                 write!(f, "{} {op} {}", left.item, right.item)?;
             }
-            Item::Unary { op, expr } => {
-                match op {
-                    UnOp::Neg => write!(f, "!{}", expr.item)?,
-                    UnOp::Not => write!(f, "not {}", expr.item)?,
-                }
-            }
+            Item::Unary { op, expr } => match op {
+                UnOp::Neg => write!(f, "!{}", expr.item)?,
+                UnOp::Not => write!(f, "not {}", expr.item)?,
+            },
             Item::FuncCall(func_call) => {
                 f.write_str(func_call.name.as_str())?;
 

@@ -43,6 +43,7 @@ impl Declarations {
     }
 
     /// Takes a declaration with minimal memory copying. A dummy node is left in place.
+    #[allow(dead_code)]
     pub(super) fn take_expr(&mut self, id: usize) -> Result<Box<Node>> {
         let (decl, _) = self.0.get_mut(id).unwrap();
 
@@ -84,8 +85,8 @@ impl Display for Declaration {
             Declaration::Table(t) => write!(f, "table {t} = ?"),
             Declaration::Function(func) => {
                 let str = format!("{}", Item::FuncDef(func.clone()));
-                f.write_str(&str[..str.len()-2])
-            },
+                f.write_str(&str[..str.len() - 2])
+            }
         }
     }
 }

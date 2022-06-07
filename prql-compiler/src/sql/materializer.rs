@@ -43,7 +43,7 @@ pub fn materialize(
 }
 
 fn extract_frame(pipeline: &mut Pipeline, context: &mut MaterializationContext) -> Result<()> {
-    for transform in &pipeline.as_transforms().unwrap_or_else(Vec::new) {
+    for transform in &pipeline.as_transforms().unwrap_or_default() {
         context.frame.apply_transform(transform)?;
     }
 
@@ -264,9 +264,8 @@ impl AstFold for Materializer {
             }
 
             Item::Pipeline(p) => {
-                
                 let all_transforms = p.nodes.iter().all(|f| matches!(f.item, Item::Transform(_)));
-                
+
                 if all_transforms {
                     // this is a frame pipeline -> just fold and keep the pipeline
 
@@ -474,10 +473,7 @@ take 20
 
         // We could make a convenience function for this. It's useful for
         // showing the diffs of an operation.
-        let diff = diff(
-            &to_string(&pipeline.nodes)?,
-            &to_string(&mat.nodes)?,
-        );
+        let diff = diff(&to_string(&pipeline.nodes)?, &to_string(&mat.nodes)?);
         assert!(!diff.is_empty());
         assert_display_snapshot!(diff, @r###"
         @@ -7,5 +7,9 @@

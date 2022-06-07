@@ -10,8 +10,8 @@ pub enum Ty {
     Named(String),
     Parameterized(Box<Ty>, Box<Node>),
     AnyOf(Vec<Ty>),
-    
-    /// Means that we have no information about the type of the variable and 
+
+    /// Means that we have no information about the type of the variable and
     /// that it should be inferred from other usages.
     Infer,
 }

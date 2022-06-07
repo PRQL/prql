@@ -46,7 +46,7 @@ fn parse_tree_of_str(source: &str, rule: Rule) -> Result<Pairs<Rule>> {
 /// Parses a parse tree of pest Pairs into an AST.
 fn ast_of_parse_pairs(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
     pairs
-        .map(|pair| ast_of_parse_pair(pair))
+        .map(ast_of_parse_pair)
         .filter_map(|n| n.transpose())
         .collect()
 }
@@ -125,7 +125,10 @@ fn ast_of_parse_pair(pair: Pair<Rule>) -> Result<Option<Node>> {
 
             let a = ast_of_parse_pair(pairs.next().unwrap())?.unwrap();
             match UnOp::from_str(op.as_str()) {
-                Ok(op) => Item::Unary { op, expr: Box::new(a) },
+                Ok(op) => Item::Unary {
+                    op,
+                    expr: Box::new(a),
+                },
                 Err(_) => a.item, // `+column` is the same as `column`
             }
         }
@@ -345,7 +348,7 @@ fn parse_typed(pair: Pair<Rule>) -> Result<(Node, Option<Ty>)> {
     let node = ast_of_parse_pair(pairs.next().unwrap())?.unwrap();
 
     let ty = pairs.next();
-    let ty = ty.map(|p| ast_of_parse_pair(p)).transpose()?.flatten();
+    let ty = ty.map(ast_of_parse_pair).transpose()?.flatten();
     let ty = ty.map(|t| t.item.into_type()).transpose()?;
     Ok((node, ty))
 }

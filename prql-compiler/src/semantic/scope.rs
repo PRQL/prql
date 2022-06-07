@@ -24,7 +24,7 @@ impl Scope {
         self.cascade_variable(ident.as_str());
     }
 
-    pub(super) fn add_function(&mut self, name: String, id: usize) {       
+    pub(super) fn add_function(&mut self, name: String, id: usize) {
         self.add(format!("{NS_FUNC}.{name}"), id);
     }
 
