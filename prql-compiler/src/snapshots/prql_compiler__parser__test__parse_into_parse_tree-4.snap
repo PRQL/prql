@@ -12,7 +12,7 @@ expression: "parse_tree_of_str(r#\"    filter country == \"USA\"\"#, Rule::pipel
         },
         inner: [
             Pair {
-                rule: func_curry,
+                rule: func_call,
                 span: Span {
                     str: "filter country == \"USA\"",
                     start: 4,

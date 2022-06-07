@@ -368,10 +368,10 @@ mod test {
             &to_string(&mat)?
         ),
         @r###"
-        @@ -6,7 +6,3 @@
+        @@ -5,7 +5,3 @@
                  name: employees
                  alias: ~
-                 declared_at: 37
+                 declared_at: 36
         -  - Transform:
         -      Derive:
         -        - Ident: gross_salary
@@ -448,8 +448,7 @@ take 20
                 - String: )
             return_type: ~
         - Pipeline:
-            value: ~
-            functions:
+            nodes:
               - FuncCall:
                   name: from
                   args:
@@ -512,8 +511,7 @@ take 20
         assert_yaml_snapshot!(query.nodes[2], @r###"
         ---
         Pipeline:
-          value: ~
-          functions:
+          nodes:
             - FuncCall:
                 name: from
                 args:
@@ -522,12 +520,14 @@ take 20
             - FuncCall:
                 name: select
                 args:
-                  - FuncCall:
-                      name: ret
-                      args:
-                        - Ident: b
-                        - Ident: c
-                      named_args: {}
+                  - Pipeline:
+                      nodes:
+                        - FuncCall:
+                            name: ret
+                            args:
+                              - Ident: b
+                              - Ident: c
+                            named_args: {}
                 named_args: {}
         "###);
 
@@ -538,7 +538,7 @@ take 20
             From:
               name: a
               alias: ~
-              declared_at: 42
+              declared_at: 41
         "###);
 
         Ok(())
@@ -600,7 +600,7 @@ take 20
             From:
               name: a
               alias: ~
-              declared_at: 41
+              declared_at: 40
         - Transform:
             Aggregate:
               assigns:
@@ -640,7 +640,7 @@ take 20
             From:
               name: foo_table
               alias: ~
-              declared_at: 40
+              declared_at: 39
         "###);
 
         Ok(())
@@ -667,7 +667,7 @@ take 20
             From:
               name: employees
               alias: ~
-              declared_at: 39
+              declared_at: 38
         - Transform:
             Aggregate:
               assigns:
@@ -776,7 +776,7 @@ take 20
             From:
               name: employees
               alias: ~
-              declared_at: 39
+              declared_at: 38
         - Transform:
             Group:
               by:
@@ -784,8 +784,7 @@ take 20
                 - Ident: emp_no
               pipeline:
                 Pipeline:
-                  value: ~
-                  functions:
+                  nodes:
                     - Transform:
                         Aggregate:
                           assigns:
@@ -803,8 +802,7 @@ take 20
                 - Ident: title
               pipeline:
                 Pipeline:
-                  value: ~
-                  functions:
+                  nodes:
                     - Transform:
                         Aggregate:
                           assigns:
@@ -852,7 +850,7 @@ take 20
             From:
               name: orders
               alias: ~
-              declared_at: 37
+              declared_at: 36
         - Transform:
             Take:
               range:
@@ -882,14 +880,14 @@ take 20
             From:
               name: table_1
               alias: ~
-              declared_at: 42
+              declared_at: 41
         - Transform:
             Join:
               side: Inner
               with:
                 name: customers
                 alias: ~
-                declared_at: 43
+                declared_at: 42
               filter:
                 Using:
                   - Ident: customer_no

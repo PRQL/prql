@@ -329,13 +329,12 @@ mod tests {
         assert_yaml_snapshot!(result, @r###"
         ---
         - Pipeline:
-            value: ~
-            functions:
+            nodes:
               - Transform:
                   From:
                     name: c_invoice
                     alias: ~
-                    declared_at: 78
+                    declared_at: 76
               - Transform:
                   Select:
                     - Ident: invoice_no
@@ -345,8 +344,7 @@ mod tests {
                       - Ident: invoice_no
                     pipeline:
                       Pipeline:
-                        value: ~
-                        functions:
+                        nodes:
                           - Transform:
                               Take:
                                 range:
@@ -395,21 +393,19 @@ mod tests {
         assert_yaml_snapshot!(result, @r###"
         ---
         - Pipeline:
-            value: ~
-            functions:
+            nodes:
               - Transform:
                   From:
                     name: c_invoice
                     alias: ~
-                    declared_at: 78
+                    declared_at: 76
               - Transform:
                   Group:
                     by:
                       - Ident: date
                     pipeline:
                       Pipeline:
-                        value: ~
-                        functions:
+                        nodes:
                           - Transform:
                               Aggregate:
                                 assigns:
@@ -441,13 +437,12 @@ mod tests {
         assert_yaml_snapshot!(result, @r###"
         ---
         - Pipeline:
-            value: ~
-            functions:
+            nodes:
               - Transform:
                   From:
                     name: invoices
                     alias: ~
-                    declared_at: 78
+                    declared_at: 76
               - Transform:
                   Sort:
                     - direction: Asc
@@ -464,11 +459,8 @@ mod tests {
                     - direction: Asc
                       column:
                         Ident: issued_at
-              - Transform:
-                  Sort:
-                    - direction: Desc
-                      column:
-                        Ident: issued_at
+        - Pipeline:
+            nodes:
               - Transform:
                   Sort:
                     - direction: Asc

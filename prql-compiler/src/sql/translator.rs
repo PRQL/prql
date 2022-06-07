@@ -2079,9 +2079,9 @@ take 20
         "###,
         ).unwrap()).unwrap()), @r###"
         SELECT
-          MIN(order_id)
+          DISTINCT employees.*
         FROM
-          {{ ref('stg_orders') }}
+          employees
         "###);
     }
 }

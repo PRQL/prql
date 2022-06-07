@@ -1,10 +1,10 @@
 ---
 source: prql-compiler/src/parser.rs
-expression: "parse_tree_of_str(\"select [a, b, c]\", Rule::func_curry)?"
+expression: "parse_tree_of_str(\"select [a, b, c]\", Rule::func_call)?"
 ---
 [
     Pair {
-        rule: func_curry,
+        rule: func_call,
         span: Span {
             str: "select [a, b, c]",
             start: 0,
@@ -53,7 +53,7 @@ expression: "parse_tree_of_str(\"select [a, b, c]\", Rule::func_curry)?"
                                         },
                                         inner: [
                                             Pair {
-                                                rule: expr_call,
+                                                rule: expr,
                                                 span: Span {
                                                     str: "a",
                                                     start: 8,
@@ -61,7 +61,7 @@ expression: "parse_tree_of_str(\"select [a, b, c]\", Rule::func_curry)?"
                                                 },
                                                 inner: [
                                                     Pair {
-                                                        rule: expr,
+                                                        rule: expr_coalesce,
                                                         span: Span {
                                                             str: "a",
                                                             start: 8,
@@ -69,7 +69,7 @@ expression: "parse_tree_of_str(\"select [a, b, c]\", Rule::func_curry)?"
                                                         },
                                                         inner: [
                                                             Pair {
-                                                                rule: expr_coalesce,
+                                                                rule: expr_compare,
                                                                 span: Span {
                                                                     str: "a",
                                                                     start: 8,
@@ -77,23 +77,13 @@ expression: "parse_tree_of_str(\"select [a, b, c]\", Rule::func_curry)?"
                                                                 },
                                                                 inner: [
                                                                     Pair {
-                                                                        rule: expr_compare,
+                                                                        rule: ident,
                                                                         span: Span {
                                                                             str: "a",
                                                                             start: 8,
                                                                             end: 9,
                                                                         },
-                                                                        inner: [
-                                                                            Pair {
-                                                                                rule: ident,
-                                                                                span: Span {
-                                                                                    str: "a",
-                                                                                    start: 8,
-                                                                                    end: 9,
-                                                                                },
-                                                                                inner: [],
-                                                                            },
-                                                                        ],
+                                                                        inner: [],
                                                                     },
                                                                 ],
                                                             },
@@ -102,7 +92,7 @@ expression: "parse_tree_of_str(\"select [a, b, c]\", Rule::func_curry)?"
                                                 ],
                                             },
                                             Pair {
-                                                rule: expr_call,
+                                                rule: expr,
                                                 span: Span {
                                                     str: "b",
                                                     start: 11,
@@ -110,7 +100,7 @@ expression: "parse_tree_of_str(\"select [a, b, c]\", Rule::func_curry)?"
                                                 },
                                                 inner: [
                                                     Pair {
-                                                        rule: expr,
+                                                        rule: expr_coalesce,
                                                         span: Span {
                                                             str: "b",
                                                             start: 11,
@@ -118,7 +108,7 @@ expression: "parse_tree_of_str(\"select [a, b, c]\", Rule::func_curry)?"
                                                         },
                                                         inner: [
                                                             Pair {
-                                                                rule: expr_coalesce,
+                                                                rule: expr_compare,
                                                                 span: Span {
                                                                     str: "b",
                                                                     start: 11,
@@ -126,23 +116,13 @@ expression: "parse_tree_of_str(\"select [a, b, c]\", Rule::func_curry)?"
                                                                 },
                                                                 inner: [
                                                                     Pair {
-                                                                        rule: expr_compare,
+                                                                        rule: ident,
                                                                         span: Span {
                                                                             str: "b",
                                                                             start: 11,
                                                                             end: 12,
                                                                         },
-                                                                        inner: [
-                                                                            Pair {
-                                                                                rule: ident,
-                                                                                span: Span {
-                                                                                    str: "b",
-                                                                                    start: 11,
-                                                                                    end: 12,
-                                                                                },
-                                                                                inner: [],
-                                                                            },
-                                                                        ],
+                                                                        inner: [],
                                                                     },
                                                                 ],
                                                             },
@@ -151,7 +131,7 @@ expression: "parse_tree_of_str(\"select [a, b, c]\", Rule::func_curry)?"
                                                 ],
                                             },
                                             Pair {
-                                                rule: expr_call,
+                                                rule: expr,
                                                 span: Span {
                                                     str: "c",
                                                     start: 14,
@@ -159,7 +139,7 @@ expression: "parse_tree_of_str(\"select [a, b, c]\", Rule::func_curry)?"
                                                 },
                                                 inner: [
                                                     Pair {
-                                                        rule: expr,
+                                                        rule: expr_coalesce,
                                                         span: Span {
                                                             str: "c",
                                                             start: 14,
@@ -167,7 +147,7 @@ expression: "parse_tree_of_str(\"select [a, b, c]\", Rule::func_curry)?"
                                                         },
                                                         inner: [
                                                             Pair {
-                                                                rule: expr_coalesce,
+                                                                rule: expr_compare,
                                                                 span: Span {
                                                                     str: "c",
                                                                     start: 14,
@@ -175,23 +155,13 @@ expression: "parse_tree_of_str(\"select [a, b, c]\", Rule::func_curry)?"
                                                                 },
                                                                 inner: [
                                                                     Pair {
-                                                                        rule: expr_compare,
+                                                                        rule: ident,
                                                                         span: Span {
                                                                             str: "c",
                                                                             start: 14,
                                                                             end: 15,
                                                                         },
-                                                                        inner: [
-                                                                            Pair {
-                                                                                rule: ident,
-                                                                                span: Span {
-                                                                                    str: "c",
-                                                                                    start: 14,
-                                                                                    end: 15,
-                                                                                },
-                                                                                inner: [],
-                                                                            },
-                                                                        ],
+                                                                        inner: [],
                                                                     },
                                                                 ],
                                                             },

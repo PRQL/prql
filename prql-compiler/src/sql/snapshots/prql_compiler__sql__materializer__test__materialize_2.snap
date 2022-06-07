@@ -6,7 +6,7 @@ expression: mat
     From:
       name: employees
       alias: ~
-      declared_at: 42
+      declared_at: 41
 - Transform:
     Filter:
       Expr:
@@ -34,8 +34,7 @@ expression: mat
         - Ident: country
       pipeline:
         Pipeline:
-          value: ~
-          functions:
+          nodes:
             - Transform:
                 Aggregate:
                   assigns:
