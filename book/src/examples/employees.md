@@ -39,9 +39,7 @@ select [dept_name, title, avg_salary]
 
 ## Task 2
 
-> The company active pursues gender equality.
->
-> Prepare an analysis based on salaries and gender distribution by departments.
+> Estimate distribution of salaries and gender for each department departments.
 
 ```prql
 from employees
@@ -64,9 +62,8 @@ select [dept_name, gender, salary_avg, salary_sd]
 
 ## Task 3
 
-> The company active pursues gender equality.
->
-> Prepare an analysis based on salaries and gender distribution by managers.
+> Estimate distribution of salaries and gender for each manager.
+
 
 ```prql
 from employees
@@ -95,7 +92,7 @@ select [mng_name, managers.gender, salary_avg, salary_sd]
 
 ## Task 4
 
-> Find distributions of titles, salaries and genders over different departments.
+> Find distributions of titles, salaries and genders for each department.
 
 ```prql
 from de=dept_emp

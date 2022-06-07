@@ -1,3 +1,6 @@
+.highlight>pre {
+    background: none !important;
+}
 pre code.hljs {
     background: #37424d;
 }
