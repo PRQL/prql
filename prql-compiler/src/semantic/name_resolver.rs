@@ -9,7 +9,6 @@ use crate::{ast::*, split_var_name, Declaration};
 
 use super::complexity::determine_complexity;
 use super::frame::extract_sorts;
-use super::scope::NS_FUNC;
 use super::transforms;
 use super::Context;
 
@@ -92,7 +91,7 @@ impl AstFold for NameResolver {
             Item::FuncCall(ref func_call) => {
                 // find declaration
                 node.declared_at = Some(
-                    self.lookup_variable(&format!("{NS_FUNC}.{}", func_call.name), node.span)
+                    self.lookup_variable(&func_call.name, node.span)
                         .map_err(|e| Error::new(Reason::Simple(e)).with_span(node.span))?,
                 );
 
@@ -498,12 +497,13 @@ impl NameResolver {
 
                 // ambiguous
                 _ => {
-                    let decls: Vec<_> = decls
+                    let decls = decls
                         .iter()
                         .map(|d| self.context.declarations.get(*d))
-                        .collect();
+                        .map(|d| format!("`{d}`"))
+                        .join(", ");
                     Err(format!(
-                        "Ambiguous reference. Could be from either of {decls:?}"
+                        "Ambiguous reference. Could be from either of {decls}"
                     ))
                 }
             }

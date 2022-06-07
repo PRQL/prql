@@ -176,7 +176,7 @@ pub fn cast_transform(func_call: FuncCall, span: Option<Span>) -> Result<Transfo
                 })
                 .try_collect()?;
 
-            let pipeline = Box::new(pipeline);
+            let pipeline = Box::new(Item::Pipeline(pipeline.coerce_to_pipeline()).into());
 
             Transform::Group { by, pipeline }
         }
@@ -257,7 +257,7 @@ pub fn cast_transform(func_call: FuncCall, span: Option<Span>) -> Result<Transfo
             Transform::Window {
                 range,
                 kind,
-                pipeline: Box::new(pipeline),
+                pipeline: Box::new(Item::Pipeline(pipeline.coerce_to_pipeline()).into()),
             }
         }
         unknown => bail!(Error::new(Reason::Expected {

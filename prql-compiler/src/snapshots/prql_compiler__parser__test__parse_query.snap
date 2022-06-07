@@ -56,50 +56,48 @@ Query:
                 - List:
                     - Ident: title
                     - Ident: country
-                - Pipeline:
-                    nodes:
-                      - FuncCall:
-                          name: aggregate
-                          args:
-                            - List:
-                                - FuncCall:
-                                    name: average
-                                    args:
-                                      - Ident: salary
-                                    named_args: {}
-                                - FuncCall:
-                                    name: sum
-                                    args:
-                                      - Ident: salary
-                                    named_args: {}
-                                - FuncCall:
-                                    name: average
-                                    args:
-                                      - Ident: gross_salary
-                                    named_args: {}
-                                - FuncCall:
-                                    name: sum
-                                    args:
-                                      - Ident: gross_salary
-                                    named_args: {}
-                                - FuncCall:
-                                    name: average
-                                    args:
-                                      - Ident: gross_cost
-                                    named_args: {}
-                                - Assign:
-                                    name: sum_gross_cost
-                                    expr:
-                                      FuncCall:
-                                        name: sum
-                                        args:
-                                          - Ident: gross_cost
-                                        named_args: {}
-                                - Assign:
-                                    name: ct
-                                    expr:
-                                      Ident: count
-                          named_args: {}
+                - FuncCall:
+                    name: aggregate
+                    args:
+                      - List:
+                          - FuncCall:
+                              name: average
+                              args:
+                                - Ident: salary
+                              named_args: {}
+                          - FuncCall:
+                              name: sum
+                              args:
+                                - Ident: salary
+                              named_args: {}
+                          - FuncCall:
+                              name: average
+                              args:
+                                - Ident: gross_salary
+                              named_args: {}
+                          - FuncCall:
+                              name: sum
+                              args:
+                                - Ident: gross_salary
+                              named_args: {}
+                          - FuncCall:
+                              name: average
+                              args:
+                                - Ident: gross_cost
+                              named_args: {}
+                          - Assign:
+                              name: sum_gross_cost
+                              expr:
+                                FuncCall:
+                                  name: sum
+                                  args:
+                                    - Ident: gross_cost
+                                  named_args: {}
+                          - Assign:
+                              name: ct
+                              expr:
+                                Ident: count
+                    named_args: {}
               named_args: {}
           - FuncCall:
               name: sort

@@ -46,8 +46,6 @@ fn parse_tree_of_str(source: &str, rule: Rule) -> Result<Pairs<Rule>> {
 /// Parses a parse tree of pest Pairs into an AST.
 fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
     pairs
-        // Exclude end-of-input at the moment.
-        .filter(|pair| pair.as_rule() != Rule::EOI)
         .map(|pair| {
             let span = pair.as_span();
             let rule = pair.as_rule();
@@ -216,7 +214,14 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
                 }
                 Rule::s_string => Item::SString(ast_of_interpolate_items(pair)?),
                 Rule::f_string => Item::FString(ast_of_interpolate_items(pair)?),
-                Rule::pipeline => Item::Pipeline(ast_of_parse_tree(pair.into_inner())?.into()),
+                Rule::pipeline => {
+                    let mut nodes = ast_of_parse_tree(pair.into_inner())?;
+                    match nodes.len() {
+                        0 => return Ok(None),
+                        1 => nodes.remove(0).item,
+                        _ => Item::Pipeline(Pipeline { nodes }),
+                    }
+                }
                 Rule::range => {
                     let [start, end]: [Option<Box<Node>>; 2] = pair
                         .into_inner()
@@ -302,6 +307,8 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
                 | Rule::operator_compare
                 | Rule::operator_logical => Item::Operator(pair.as_str().to_owned()),
 
+                Rule::EOI => return Ok(None),
+
                 _ => unreachable!("{pair}"),
             };
 
@@ -310,8 +317,9 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
                 start: span.start(),
                 end: span.end(),
             });
-            Ok(node)
+            Ok(Some(node))
         })
+        .filter_map(|n| n.transpose())
         .collect()
 }
 
@@ -580,13 +588,11 @@ Canada
                   - FuncCall:
                       name: aggregate
                       args:
-                        - Pipeline:
-                            nodes:
-                              - FuncCall:
-                                  name: sum
-                                  args:
-                                    - Ident: order_id
-                                  named_args: {}
+                        - FuncCall:
+                            name: sum
+                            args:
+                              - Ident: order_id
+                            named_args: {}
                       named_args: {}
         "###);
         Ok(())
@@ -613,14 +619,12 @@ Canada
               - Literal:
                   Integer: 1
               - Operator: +
-              - Pipeline:
-                  nodes:
-                    - FuncCall:
-                        name: f
-                        args:
-                          - Literal:
-                              Integer: 1
-                        named_args: {}
+              - FuncCall:
+                  name: f
+                  args:
+                    - Literal:
+                        Integer: 1
+                  named_args: {}
           - Literal:
               Integer: 2
         "###);
@@ -715,17 +719,15 @@ Canada
           version: ~
           dialect: Generic
           nodes:
-            - Pipeline:
-                nodes:
-                  - FuncCall:
-                      name: filter
-                      args:
-                        - Expr:
-                            - Ident: country
-                            - Operator: "=="
-                            - Literal:
-                                String: USA
-                      named_args: {}
+            - FuncCall:
+                name: filter
+                args:
+                  - Expr:
+                      - Ident: country
+                      - Operator: "=="
+                      - Literal:
+                          String: USA
+                named_args: {}
         "###);
 
         assert_yaml_snapshot!(
@@ -735,23 +737,19 @@ Canada
           version: ~
           dialect: Generic
           nodes:
-            - Pipeline:
-                nodes:
-                  - FuncCall:
-                      name: filter
-                      args:
-                        - Expr:
-                            - Pipeline:
-                                nodes:
-                                  - FuncCall:
-                                      name: upper
-                                      args:
-                                        - Ident: country
-                                      named_args: {}
-                            - Operator: "=="
-                            - Literal:
-                                String: USA
-                      named_args: {}
+            - FuncCall:
+                name: filter
+                args:
+                  - Expr:
+                      - FuncCall:
+                          name: upper
+                          args:
+                            - Ident: country
+                          named_args: {}
+                      - Operator: "=="
+                      - Literal:
+                          String: USA
+                named_args: {}
         "###
         );
     }
@@ -768,27 +766,23 @@ Canada
         assert_yaml_snapshot!(
             aggregate, @r###"
         ---
-        Pipeline:
-          nodes:
+        FuncCall:
+          name: group
+          args:
+            - List:
+                - Ident: title
             - FuncCall:
-                name: group
+                name: aggregate
                 args:
                   - List:
-                      - Ident: title
-                  - Pipeline:
-                      nodes:
-                        - FuncCall:
-                            name: aggregate
-                            args:
-                              - List:
-                                  - FuncCall:
-                                      name: sum
-                                      args:
-                                        - Ident: salary
-                                      named_args: {}
-                                  - Ident: count
-                            named_args: {}
+                      - FuncCall:
+                          name: sum
+                          args:
+                            - Ident: salary
+                          named_args: {}
+                      - Ident: count
                 named_args: {}
+          named_args: {}
         "###);
         let aggregate = ast_of_string(
             r"group [title] (
@@ -800,26 +794,22 @@ Canada
         assert_yaml_snapshot!(
             aggregate, @r###"
         ---
-        Pipeline:
-          nodes:
+        FuncCall:
+          name: group
+          args:
+            - List:
+                - Ident: title
             - FuncCall:
-                name: group
+                name: aggregate
                 args:
                   - List:
-                      - Ident: title
-                  - Pipeline:
-                      nodes:
-                        - FuncCall:
-                            name: aggregate
-                            args:
-                              - List:
-                                  - FuncCall:
-                                      name: sum
-                                      args:
-                                        - Ident: salary
-                                      named_args: {}
-                            named_args: {}
+                      - FuncCall:
+                          name: sum
+                          args:
+                            - Ident: salary
+                          named_args: {}
                 named_args: {}
+          named_args: {}
         "###);
     }
 
@@ -841,11 +831,9 @@ Canada
                 - Assign:
                     name: y
                     expr:
-                      Pipeline:
-                        nodes:
-                          - Expr:
-                              - Operator: "-"
-                              - Ident: x
+                      Expr:
+                        - Operator: "-"
+                        - Ident: x
           named_args: {}
         "###);
 
@@ -927,20 +915,16 @@ Canada
           name: gross_salary
           expr:
             Expr:
-              - Pipeline:
-                  nodes:
-                    - Expr:
-                        - Ident: salary
-                        - Operator: +
-                        - Ident: payroll_tax
+              - Expr:
+                  - Ident: salary
+                  - Operator: +
+                  - Ident: payroll_tax
               - Operator: "*"
-              - Pipeline:
-                  nodes:
-                    - Expr:
-                        - Literal:
-                            Integer: 1
-                        - Operator: +
-                        - Ident: tax_rate
+              - Expr:
+                  - Literal:
+                      Integer: 1
+                  - Operator: +
+                  - Ident: tax_rate
         "###);
         Ok(())
     }
@@ -1021,13 +1005,11 @@ take 20
               - ~
           named_params: []
           body:
-            Pipeline:
-              nodes:
-                - Expr:
-                    - Ident: x
-                    - Operator: +
-                    - Literal:
-                        Integer: 1
+            Expr:
+              - Ident: x
+              - Operator: +
+              - Literal:
+                  Integer: 1
           return_type: ~
         "###);
         assert_yaml_snapshot!(ast_of_string(
@@ -1063,17 +1045,15 @@ take 20
               - ~
           named_params: []
           body:
-            Pipeline:
-              nodes:
-                - FuncCall:
-                    name: foo
-                    args:
-                      - Expr:
-                          - Ident: bar
-                          - Operator: +
-                          - Literal:
-                              Integer: 1
-                    named_args: {}
+            FuncCall:
+              name: foo
+              args:
+                - Expr:
+                    - Ident: bar
+                    - Operator: +
+                    - Literal:
+                        Integer: 1
+              named_args: {}
           return_type: ~
         "###);
 
@@ -1194,13 +1174,11 @@ take 20
                                   - Operator: +
                                   - Ident: c
                               - Operator: or
-                              - Pipeline:
-                                  nodes:
-                                    - FuncCall:
-                                        name: d
-                                        args:
-                                          - Ident: e
-                                        named_args: {}
+                              - FuncCall:
+                                  name: d
+                                  args:
+                                    - Ident: e
+                                  named_args: {}
                               - Operator: and
                               - Ident: f
                     named_args: {}
@@ -1233,13 +1211,11 @@ take 20
         Table:
           name: newest_employees
           pipeline:
-            Pipeline:
-              nodes:
-                - FuncCall:
-                    name: from
-                    args:
-                      - Ident: employees
-                    named_args: {}
+            FuncCall:
+              name: from
+              args:
+                - Ident: employees
+              named_args: {}
           id: ~
         "###);
 
@@ -1271,21 +1247,19 @@ take 20
                     name: group
                     args:
                       - Ident: country
-                      - Pipeline:
-                          nodes:
-                            - FuncCall:
-                                name: aggregate
-                                args:
-                                  - List:
-                                      - Assign:
-                                          name: average_country_salary
-                                          expr:
-                                            FuncCall:
-                                              name: average
-                                              args:
-                                                - Ident: salary
-                                              named_args: {}
-                                named_args: {}
+                      - FuncCall:
+                          name: aggregate
+                          args:
+                            - List:
+                                - Assign:
+                                    name: average_country_salary
+                                    expr:
+                                      FuncCall:
+                                        name: average
+                                        args:
+                                          - Ident: salary
+                                        named_args: {}
+                          named_args: {}
                     named_args: {}
                 - FuncCall:
                     name: sort
@@ -1424,11 +1398,9 @@ select [
                 - FuncCall:
                     name: sort
                     args:
-                      - Pipeline:
-                          nodes:
-                            - Expr:
-                                - Operator: "-"
-                                - Ident: issued_at
+                      - Expr:
+                          - Operator: "-"
+                          - Ident: issued_at
                     named_args: {}
                 - FuncCall:
                     name: sort
@@ -1525,13 +1497,11 @@ select [
                           - Assign:
                               name: negative
                               expr:
-                                Pipeline:
-                                  nodes:
-                                    - Range:
-                                        start:
-                                          Literal:
-                                            Integer: -5
-                                        end: ~
+                                Range:
+                                  start:
+                                    Literal:
+                                      Integer: -5
+                                  end: ~
                           - Assign:
                               name: more_negative
                               expr:
@@ -1568,14 +1538,12 @@ select [
                           - Assign:
                               name: age_plus_two_years
                               expr:
-                                Pipeline:
-                                  nodes:
-                                    - Expr:
-                                        - Ident: age
-                                        - Operator: +
-                                        - Interval:
-                                            n: 2
-                                            unit: years
+                                Expr:
+                                  - Ident: age
+                                  - Operator: +
+                                  - Interval:
+                                      n: 2
+                                      unit: years
                     named_args: {}
         "###);
 
@@ -1591,28 +1559,26 @@ select [
         version: ~
         dialect: Generic
         nodes:
-          - Pipeline:
-              nodes:
-                - FuncCall:
-                    name: derive
-                    args:
-                      - List:
-                          - Assign:
-                              name: date
-                              expr:
-                                Literal:
-                                  Date: 2011-02-01
-                          - Assign:
-                              name: timestamp
-                              expr:
-                                Literal:
-                                  Timestamp: "2011-02-01T10:00"
-                          - Assign:
-                              name: time
-                              expr:
-                                Literal:
-                                  Time: "14:00"
-                    named_args: {}
+          - FuncCall:
+              name: derive
+              args:
+                - List:
+                    - Assign:
+                        name: date
+                        expr:
+                          Literal:
+                            Date: 2011-02-01
+                    - Assign:
+                        name: timestamp
+                        expr:
+                          Literal:
+                            Timestamp: "2011-02-01T10:00"
+                    - Assign:
+                        name: time
+                        expr:
+                          Literal:
+                            Time: "14:00"
+              named_args: {}
         "###);
 
         assert!(parse("derive x = @2020-01-0").is_err());
@@ -1629,16 +1595,14 @@ select [
         version: ~
         dialect: Generic
         nodes:
-          - Pipeline:
-              nodes:
-                - FuncCall:
-                    name: derive
-                    args:
-                      - Assign:
-                          name: x
-                          expr:
-                            Ident: r
-                    named_args: {}
+          - FuncCall:
+              name: derive
+              args:
+                - Assign:
+                    name: x
+                    expr:
+                      Ident: r
+              named_args: {}
         "### )
     }
 
@@ -1653,13 +1617,11 @@ select [
         version: 1
         dialect: MsSql
         nodes:
-          - Pipeline:
-              nodes:
-                - FuncCall:
-                    name: from
-                    args:
-                      - Ident: employees
-                    named_args: {}
+          - FuncCall:
+              name: from
+              args:
+                - Ident: employees
+              named_args: {}
         "### );
 
         assert_yaml_snapshot!(parse(r###"
@@ -1671,13 +1633,11 @@ select [
         version: 2
         dialect: BigQuery
         nodes:
-          - Pipeline:
-              nodes:
-                - FuncCall:
-                    name: from
-                    args:
-                      - Ident: employees
-                    named_args: {}
+          - FuncCall:
+              name: from
+              args:
+                - Ident: employees
+              named_args: {}
         "### );
 
         assert!(parse(
@@ -1740,17 +1700,15 @@ select [
         version: ~
         dialect: Generic
         nodes:
-          - Pipeline:
-              nodes:
-                - FuncCall:
-                    name: derive
-                    args:
-                      - Assign:
-                          name: x
-                          expr:
-                            Literal:
-                              Boolean: true
-                    named_args: {}
+          - FuncCall:
+              name: derive
+              args:
+                - Assign:
+                    name: x
+                    expr:
+                      Literal:
+                        Boolean: true
+              named_args: {}
         "###)
     }
 }

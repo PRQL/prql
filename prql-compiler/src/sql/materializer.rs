@@ -332,7 +332,7 @@ mod test {
     use serde_yaml::to_string;
 
     fn find_pipeline(mut res: Vec<Node>) -> Pipeline {
-        res.remove(res.len() - 1).item.into_pipeline().unwrap()
+        res.remove(res.len() - 1).coerce_to_pipeline()
     }
 
     fn resolve_and_materialize(query: Query) -> Result<Vec<Node>> {
@@ -520,14 +520,12 @@ take 20
             - FuncCall:
                 name: select
                 args:
-                  - Pipeline:
-                      nodes:
-                        - FuncCall:
-                            name: ret
-                            args:
-                              - Ident: b
-                              - Ident: c
-                            named_args: {}
+                  - FuncCall:
+                      name: ret
+                      args:
+                        - Ident: b
+                        - Ident: c
+                      named_args: {}
                 named_args: {}
         "###);
 

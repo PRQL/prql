@@ -82,6 +82,13 @@ impl Node {
         }
     }
 
+    pub fn coerce_to_pipeline(self) -> Pipeline {
+        match self.item {
+            Item::Pipeline(p) => p,
+            _ => Pipeline { nodes: vec![self] },
+        }
+    }
+
     pub fn unwrap<T, F>(self, f: F, expected: &str) -> Result<T, Error>
     where
         F: FnOnce(Item) -> Result<T, Item>,

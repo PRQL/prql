@@ -1,12 +1,12 @@
 use anyhow::{anyhow, Result};
 use enum_as_inner::EnumAsInner;
 use serde::{Deserialize, Serialize};
-use std::fmt::Debug;
+use std::fmt::{Debug, Display};
 
 use crate::ast::*;
 use crate::error::Span;
 
-#[derive(Debug, EnumAsInner, Clone, Serialize, Deserialize, strum::Display)]
+#[derive(Debug, EnumAsInner, Clone, Serialize, Deserialize)]
 pub enum Declaration {
     Expression(Box<Node>),
     ExternRef {
@@ -73,5 +73,19 @@ impl Debug for Declarations {
             }
         }
         Ok(())
+    }
+}
+
+impl Display for Declaration {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Declaration::Expression(node) => write!(f, "{}", node.item),
+            Declaration::ExternRef { table: _, variable } => write!(f, "<extern> {variable}"),
+            Declaration::Table(t) => write!(f, "table {t} = ?"),
+            Declaration::Function(func) => {
+                let str = format!("{}", Item::FuncDef(func.clone()));
+                f.write_str(&str[..str.len()-2])
+            },
+        }
     }
 }

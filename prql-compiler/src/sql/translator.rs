@@ -106,16 +106,17 @@ pub struct AtomicTable {
 
 fn into_tables(nodes: Vec<Node>) -> Result<Vec<Table>> {
     let mut tables: Vec<Table> = Vec::new();
-    let mut pipeline: Vec<Node> = Vec::new();
+    let mut transforms: Vec<Node> = Vec::new();
     for node in nodes {
         match node.item {
             Item::Table(t) => tables.push(t),
-            Item::Pipeline(p) => pipeline.extend(p.nodes),
+            Item::Pipeline(p) => transforms.extend(p.nodes),
+            Item::Transform(_) => transforms.push(node),
             i => bail!("Unexpected item on top level: {i:?}"),
         }
     }
 
-    Ok([tables, vec![pipeline.into()]].concat())
+    Ok([tables, vec![transforms.into()]].concat())
 }
 
 fn table_to_sql_cte(table: AtomicTable, dialect: &Dialect) -> Result<sql_ast::Cte> {
@@ -335,7 +336,7 @@ fn atomic_tables_of_tables(
     let mut index = 0;
     for table in tables {
         // split table into atomics
-        let pipeline = table.pipeline.item.into_pipeline()?;
+        let pipeline = table.pipeline.coerce_to_pipeline();
         let mut t_atomics: Vec<_> = atomic_pipelines_of_pipeline(pipeline, context)?;
 
         let (last, ctes) = t_atomics
@@ -933,8 +934,7 @@ SString:
         let (_, context) = resolve_names(std_lib, None)?;
 
         let (mut nodes, _) = resolve_names(parse(prql)?.nodes, Some(context))?;
-        let pipeline = nodes.remove(nodes.len() - 1);
-        let pipeline = pipeline.item.into_pipeline()?;
+        let pipeline = nodes.remove(nodes.len() - 1).coerce_to_pipeline();
         Ok(pipeline)
     }
 
@@ -1059,12 +1059,9 @@ SString:
     fn test_prql_to_sql_1() -> Result<()> {
         let query = parse(
             r#"
-    func count x ->  s"count({x})"
-    func sum x ->  s"sum({x})"
-
     from employees
     aggregate [
-      count salary,
+      count non_null:salary,
       sum salary,
     ]
     "#,
@@ -1073,8 +1070,8 @@ SString:
         assert_display_snapshot!(sql,
             @r###"
         SELECT
-          count(salary),
-          sum(salary)
+          COUNT(salary),
+          SUM(salary)
         FROM
           employees
         "###
