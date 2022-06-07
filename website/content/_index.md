@@ -83,7 +83,7 @@ unmanageable as soon as complexity grows beyond the most simple queries.
   - Install with `pip`: `pip install pyprql`
 - [prql-python](https://pypi.org/project/prql-python/) - Python compiler library.
 - [prql-js](https://www.npmjs.com/package/prql-js) - JavaScript compiler library.
-- [PRQL Playground](/playground/) - in-browser playground.
+- [PRQL Playground](https://prql-lang.org/playground) - in-browser playground.
 
 ## Integrations
 
@@ -106,7 +106,7 @@ unmanageable as soon as complexity grows beyond the most simple queries.
   a GitHub notification on updates.
 
 - Rewrite any of your own queries to PRQL to see if it makes sense. You can use the
-  [playground](./playground/) and submit issues [here](https://github.com/prql/prql/issues).
+  [playground](https://prql-lang.org/playground) and submit issues [here](https://github.com/prql/prql/issues).
   We are looking for any use-cases that expose a poor design choice, a need of a feature,
   a pain point or just a sharp edge of the language.
 
