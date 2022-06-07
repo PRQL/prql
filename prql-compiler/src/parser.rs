@@ -172,7 +172,7 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
                 Rule::func_def_name | Rule::func_def_params | Rule::func_def_param => {
                     Item::Expr(ast_of_parse_tree(pair.into_inner())?)
                 }
-                Rule::func_call | Rule::func_curry => {
+                Rule::func_call => {
                     let mut items = ast_of_parse_tree(pair.into_inner())?;
 
                     let name = items.remove(0).item.into_ident()?;
@@ -216,27 +216,7 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
                 }
                 Rule::s_string => Item::SString(ast_of_interpolate_items(pair)?),
                 Rule::f_string => Item::FString(ast_of_interpolate_items(pair)?),
-                Rule::pipeline => Item::Pipeline(Pipeline {
-                    value: None,
-                    functions: ast_of_parse_tree(pair.into_inner())?,
-                }),
-                Rule::nested_pipeline => {
-                    let mut parsed = ast_of_parse_tree(pair.into_inner())?;
-                    // this is either [expr, pipeline] or [pipeline]
-
-                    let first = parsed.remove(0);
-
-                    Item::Pipeline(if let Item::Pipeline(pipeline) = first.item {
-                        // no value
-                        pipeline
-                    } else {
-                        // prepend value
-                        let mut pipeline = parsed.remove(0).item.into_pipeline()?;
-
-                        pipeline.value = Some(Box::new(first));
-                        pipeline
-                    })
-                }
+                Rule::pipeline => Item::Pipeline(ast_of_parse_tree(pair.into_inner())?.into()),
                 Rule::range => {
                     let [start, end]: [Option<Box<Node>>; 2] = pair
                         .into_inner()
@@ -282,10 +262,16 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
                     let mut types: Vec<_> = pair
                         .into_inner()
                         .into_iter()
-                        .map(|pair| -> Result<Type> {
+                        .map(|pair| -> Result<Ty> {
                             let mut parts: Vec<_> = pair.into_inner().into_iter().collect();
-                            let native = NativeType::from_str(parts.remove(0).as_str())?;
-                            let typ = Type::Native(native);
+                            let name = &parts.remove(0).as_str();
+                            let typ = match TyLit::from_str(name) {
+                                Ok(t) => Ty::from(t),
+                                Err(_) => {
+                                    eprintln!("named type: {}", name);
+                                    Ty::Named(name.to_string())
+                                }
+                            };
 
                             let param = parts
                                 .pop()
@@ -295,7 +281,7 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
                                 .transpose()?;
 
                             Ok(if let Some(param) = param {
-                                Type::Parameterized(Box::new(typ), Box::new(param))
+                                Ty::Parameterized(Box::new(typ), Box::new(param))
                             } else {
                                 typ
                             })
@@ -303,7 +289,7 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
                         .try_collect()?;
 
                     let typ = if types.len() > 1 {
-                        Type::AnyOf(types)
+                        Ty::AnyOf(types)
                     } else {
                         types.remove(0)
                     };
@@ -329,7 +315,7 @@ fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
         .collect()
 }
 
-fn unpack_typed(node: Node) -> Result<(Node, Option<Type>)> {
+fn unpack_typed(node: Node) -> Result<(Node, Option<Ty>)> {
     let mut exprs = node.item.into_expr()?;
     let node = exprs.remove(0);
     let typ = exprs.pop().map(|n| n.item.into_type()).transpose()?;
@@ -414,7 +400,7 @@ mod test {
     #[test]
     fn test_parse_into_parse_tree() -> Result<()> {
         assert_debug_snapshot!(parse_tree_of_str(r#"country == "USA""#, Rule::expr)?);
-        assert_debug_snapshot!(parse_tree_of_str("select [a, b, c]", Rule::func_curry)?);
+        assert_debug_snapshot!(parse_tree_of_str("select [a, b, c]", Rule::func_call)?);
         assert_debug_snapshot!(parse_tree_of_str(
             "group [title, country] (
                 aggregate [sum salary]
@@ -441,7 +427,7 @@ mod test {
         )?, @"[]");
         assert_debug_snapshot!(parse_tree_of_str(
             "join side:left country [id==employee_id]",
-            Rule::func_curry
+            Rule::func_call
         )?);
         assert_debug_snapshot!(parse_tree_of_str("1  + 2", Rule::expr)?);
         Ok(())
@@ -841,7 +827,7 @@ Canada
     #[test]
     fn test_parse_derive() -> Result<()> {
         assert_yaml_snapshot!(
-            ast_of_string(r#"derive [x = 5, y = (-x)]"#, Rule::func_curry)?
+            ast_of_string(r#"derive [x = 5, y = (-x)]"#, Rule::func_call)?
         , @r###"
         ---
         FuncCall:
@@ -868,7 +854,7 @@ Canada
     #[test]
     fn test_parse_select() -> Result<()> {
         assert_yaml_snapshot!(
-            ast_of_string(r#"select x"#, Rule::func_curry)?
+            ast_of_string(r#"select x"#, Rule::func_call)?
         , @r###"
         ---
         FuncCall:
@@ -879,7 +865,7 @@ Canada
         "###);
 
         assert_yaml_snapshot!(
-            ast_of_string(r#"select [x, y]"#, Rule::func_curry)?
+            ast_of_string(r#"select [x, y]"#, Rule::func_call)?
         , @r###"
         ---
         FuncCall:
@@ -1230,7 +1216,7 @@ take 20
     #[test]
     fn test_parse_table() -> Result<()> {
         assert_yaml_snapshot!(ast_of_string(
-            "table newest_employees = (| from employees )",
+            "table newest_employees = (from employees)",
             Rule::table
         )?, @r###"
         ---

@@ -1,11 +1,8 @@
-use anyhow::Result;
-use enum_as_inner::EnumAsInner;
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
 use std::fmt::Debug;
 
 use super::scope::NS_PARAM;
-use super::{split_var_name, Scope};
+use super::{Scope, Declaration, Declarations};
 use crate::ast::*;
 use crate::error::Span;
 
@@ -16,38 +13,22 @@ pub struct Context {
     pub(crate) scope: Scope,
 
     /// All declarations, even those out of scope
-    pub(crate) declarations: Vec<(Declaration, Option<Span>)>,
-}
-
-#[derive(Debug, EnumAsInner, Clone, Serialize, Deserialize, strum::Display)]
-pub enum Declaration {
-    Expression(Box<Node>),
-    ExternRef {
-        /// Table can be None if we are unable to determine from which table this column
-        /// is from.
-        table: Option<usize>,
-        /// Full identifier when table is None, only variable name when table is known.
-        variable: String,
-    },
-    Table(String),
-    Function(FuncDef),
+    pub(crate) declarations: Declarations,
 }
 
 impl Context {
     pub fn declare(&mut self, dec: Declaration, span: Option<Span>) -> usize {
-        self.declarations.push((dec, span));
-        self.declarations.len() - 1
+        self.declarations.0.push((dec, span));
+        self.declarations.0.len() - 1
     }
 
     pub fn declare_func(&mut self, func_def: FuncDef) -> usize {
         let name = func_def.name.clone();
-        let has_params =
-            !func_def.named_params.is_empty() || !func_def.positional_params.is_empty();
 
         let span = func_def.body.span;
         let id = self.declare(Declaration::Function(func_def), span);
 
-        self.scope.add_function(name, id, has_params);
+        self.scope.add_function(name, id);
 
         id
     }
@@ -80,78 +61,7 @@ impl Context {
         id
     }
 
-    pub fn lookup_variable(&mut self, ident: &str, span: Option<Span>) -> Result<usize, String> {
-        let (namespace, variable) = split_var_name(ident);
-
-        if let Some(decls) = self.scope.variables.get(ident) {
-            // lookup the inverse index
-
-            match decls.len() {
-                0 => unreachable!("inverse index contains empty lists?"),
-
-                // single match, great!
-                1 => Ok(decls.iter().next().cloned().unwrap()),
-
-                // ambiguous
-                _ => Err(format!(
-                    "Ambiguous variable. Could be from either of {:?}",
-                    decls
-                )),
-            }
-        } else {
-            let all = if namespace.is_empty() {
-                "*".to_string()
-            } else {
-                format!("{namespace}.*")
-            };
-
-            if let Some(decls) = self.scope.variables.get(&all) {
-                // this variable can be from a namespace that we don't know all columns of
-
-                match decls.len() {
-                    0 => unreachable!("inverse index contains empty lists?"),
-
-                    // single match, great!
-                    1 => {
-                        let table_id = decls.iter().next().unwrap();
-
-                        let decl = Declaration::ExternRef {
-                            table: Some(*table_id),
-                            variable: variable.to_string(),
-                        };
-                        let id = self.declare(decl, span);
-                        self.scope.add(ident.to_string(), id);
-
-                        Ok(id)
-                    }
-
-                    // don't report ambiguous variable, database may be able to resolve them
-                    _ => {
-                        let decl = Declaration::ExternRef {
-                            table: None,
-                            variable: ident.to_string(),
-                        };
-                        let id = self.declare(decl, span);
-
-                        Ok(id)
-                    }
-                }
-            } else {
-                Err(format!("Unknown variable `{ident}`"))
-            }
-        }
-    }
-
-    pub fn lookup_namespaces_of(&mut self, variable: &str) -> HashSet<usize> {
-        let mut r = HashSet::new();
-        if let Some(ns) = self.scope.variables.get(variable) {
-            r.extend(ns.clone());
-        }
-        if let Some(ns) = self.scope.variables.get("*") {
-            r.extend(ns.clone());
-        }
-        r
-    }
+    
 }
 
 impl From<Declaration> for anyhow::Error {
@@ -163,22 +73,6 @@ impl From<Declaration> for anyhow::Error {
 
 impl Debug for Context {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for (i, (d, _)) in self.declarations.iter().enumerate() {
-            match d {
-                Declaration::Expression(v) => {
-                    writeln!(f, "[{i:3}]: expr  `{}`", v.item)?;
-                }
-                Declaration::ExternRef { table, variable } => {
-                    writeln!(f, "[{i:3}]: col   `{variable}` from table {table:?}")?;
-                }
-                Declaration::Table(name) => {
-                    writeln!(f, "[{i:3}]: table `{name}`")?;
-                }
-                Declaration::Function(func) => {
-                    writeln!(f, "[{i:3}]: func  `{}`", func.name)?;
-                }
-            }
-        }
-        Ok(())
+        writeln!(f, "{:?}", self.declarations)
     }
 }

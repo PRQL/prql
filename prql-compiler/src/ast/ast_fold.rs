@@ -73,7 +73,7 @@ pub trait AstFold {
     fn fold_join_filter(&mut self, f: JoinFilter) -> Result<JoinFilter> {
         fold_join_filter(self, f)
     }
-    fn fold_type(&mut self, t: Type) -> Result<Type> {
+    fn fold_type(&mut self, t: Ty) -> Result<Ty> {
         fold_type(self, t)
     }
     fn fold_windowed(&mut self, windowed: Windowed) -> Result<Windowed> {
@@ -139,8 +139,7 @@ pub fn fold_range<F: ?Sized + AstFold>(fold: &mut F, Range { start, end }: Range
 
 pub fn fold_pipeline<T: ?Sized + AstFold>(fold: &mut T, pipeline: Pipeline) -> Result<Pipeline> {
     Ok(Pipeline {
-        value: fold_optional_box(fold, pipeline.value)?,
-        functions: fold.fold_nodes(pipeline.functions)?,
+        nodes: fold.fold_nodes(pipeline.nodes)?,
     })
 }
 
@@ -271,8 +270,8 @@ pub fn fold_func_def<T: ?Sized + AstFold>(fold: &mut T, func_def: FuncDef) -> Re
 
 pub fn fold_typed_nodes<T: ?Sized + AstFold>(
     fold: &mut T,
-    nodes: Vec<(Node, Option<Type>)>,
-) -> Result<Vec<(Node, Option<Type>)>> {
+    nodes: Vec<(Node, Option<Ty>)>,
+) -> Result<Vec<(Node, Option<Ty>)>> {
     nodes
         .into_iter()
         .map(|(n, t)| Ok((fold.fold_node(n)?, t)))
@@ -289,13 +288,14 @@ pub fn fold_named_expr<T: ?Sized + AstFold>(
     })
 }
 
-pub fn fold_type<T: ?Sized + AstFold>(fold: &mut T, t: Type) -> Result<Type> {
+pub fn fold_type<T: ?Sized + AstFold>(fold: &mut T, t: Ty) -> Result<Ty> {
     Ok(match t {
-        Type::Native(_) => t,
-        Type::Parameterized(t, p) => Type::Parameterized(
+        Ty::Literal(_) => t,
+        Ty::Parameterized(t, p) => Ty::Parameterized(
             Box::new(fold_type(fold, *t)?),
             Box::new(fold.fold_node(*p)?),
         ),
-        Type::AnyOf(ts) => Type::AnyOf(ts.into_iter().map(|t| fold_type(fold, t)).try_collect()?),
+        Ty::AnyOf(ts) => Ty::AnyOf(ts.into_iter().map(|t| fold_type(fold, t)).try_collect()?),
+        _ => t,
     })
 }

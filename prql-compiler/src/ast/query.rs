@@ -1,7 +1,7 @@
 /// Types for outer-scope AST nodes (query, table, func def, transform)
 use serde::{Deserialize, Serialize};
 
-use super::{Dialect, Ident, Node, Range, Type};
+use super::{Dialect, Ident, Node, Range, Ty};
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize, Default)]
 pub struct Query {
@@ -15,10 +15,10 @@ pub struct Query {
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct FuncDef {
     pub name: Ident,
-    pub positional_params: Vec<(Node, Option<Type>)>, // ident
-    pub named_params: Vec<(Node, Option<Type>)>,      // named expr
+    pub positional_params: Vec<(Node, Option<Ty>)>, // ident
+    pub named_params: Vec<(Node, Option<Ty>)>,      // named expr
     pub body: Box<Node>,
-    pub return_type: Option<Type>,
+    pub return_type: Option<Ty>,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]

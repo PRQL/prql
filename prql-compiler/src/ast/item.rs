@@ -23,7 +23,7 @@ pub enum Item {
     Expr(Vec<Node>),
     FuncDef(FuncDef),
     FuncCall(FuncCall),
-    Type(Type),
+    Type(Ty),
     Table(Table),
     SString(Vec<InterpolateItem>),
     FString(Vec<InterpolateItem>),
@@ -63,10 +63,11 @@ impl Windowed {
         }
     }
 }
+
+/// Represents a value and a series of function curries
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Pipeline {
-    pub value: Option<Box<Node>>,
-    pub functions: Vec<Node>,
+    pub nodes: Vec<Node>,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
@@ -129,23 +130,22 @@ pub struct Interval {
 
 impl Pipeline {
     pub fn into_transforms(self) -> Result<Vec<Transform>, Item> {
-        self.functions
+        self.nodes
             .into_iter()
             .map(|f| f.item.into_transform())
             .try_collect()
     }
 
     pub fn as_transforms(&self) -> Option<Vec<&Transform>> {
-        self.functions
+        self.nodes
             .iter()
             .map(|f| f.item.as_transform())
             .collect()
     }
 }
 impl From<Vec<Node>> for Pipeline {
-    fn from(functions: Vec<Node>) -> Self {
-        let value = None;
-        Pipeline { functions, value }
+    fn from(nodes: Vec<Node>) -> Self {
+        Pipeline { nodes }
     }
 }
 
@@ -179,7 +179,7 @@ impl Display for Item {
                 for node in &query.nodes {
                     match &node.item {
                         Item::Pipeline(p) => {
-                            for node in &p.functions {
+                            for node in &p.nodes {
                                 writeln!(f, "{}", node.item)?;
                             }
                         }
@@ -188,19 +188,23 @@ impl Display for Item {
                 }
             }
             Item::Pipeline(pipeline) => {
-                if let Some(value) = &pipeline.value {
-                    write!(f, "({}", value.item)?;
-                    for node in &pipeline.functions {
-                        write!(f, " | {}", node.item)?;
+                f.write_char('(')?;
+                match pipeline.nodes.len() {
+                    0 => {},
+                    1 => {
+                        write!(f, "{}", pipeline.nodes[0].item)?;
+                        for node in &pipeline.nodes[1..] {
+                            write!(f, " | {}", node.item)?;
+                        }
                     }
-                    f.write_char(')')?;
-                } else {
-                    f.write_str("(\n")?;
-                    for node in &pipeline.functions {
-                        writeln!(f, "  {}", node.item)?;
+                    _ => {
+                        writeln!(f, "\n  {}", pipeline.nodes[0].item)?;
+                        for node in &pipeline.nodes[1..] {
+                            writeln!(f, "  {}", node.item)?;
+                        }
                     }
-                    f.write_str(")")?;
                 }
+                f.write_char(')')?;
             }
             Item::Transform(transform) => {
                 write!(f, "{} <unimplemented>", transform.as_ref())?;
@@ -300,14 +304,15 @@ fn display_interpolation(
     Ok(())
 }
 
-fn display_type(f: &mut std::fmt::Formatter, typ: &Type) -> Result<(), std::fmt::Error> {
+fn display_type(f: &mut std::fmt::Formatter, typ: &Ty) -> Result<(), std::fmt::Error> {
     match typ {
-        Type::Native(kind) => write!(f, "{:}", kind)?,
-        Type::Parameterized(t, param) => {
+        Ty::Literal(lit) => write!(f, "{:}", lit)?,
+        Ty::Named(name) => write!(f, "{:}", name)?,
+        Ty::Parameterized(t, param) => {
             display_type(f, t)?;
             write!(f, "<{:?}>", param.item)?
         }
-        Type::AnyOf(ts) => {
+        Ty::AnyOf(ts) => {
             for (i, t) in ts.iter().enumerate() {
                 display_type(f, t)?;
                 if i < ts.len() - 1 {
@@ -315,6 +320,7 @@ fn display_type(f: &mut std::fmt::Formatter, typ: &Type) -> Result<(), std::fmt:
                 }
             }
         }
+        Ty::Infer => {}
     }
     Ok(())
 }

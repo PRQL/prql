@@ -35,6 +35,8 @@ pub struct Node {
     pub span: Option<Span>,
     #[serde(skip)]
     pub declared_at: Option<usize>,
+    #[serde(skip)]
+    pub ty: Ty,
 
     /// Is true when containing window functions
     #[serde(skip)]
@@ -115,6 +117,7 @@ impl From<Item> for Node {
             item,
             span: None,
             declared_at: None,
+            ty: Ty::Infer,
             is_complex: false,
         }
     }

@@ -19,7 +19,7 @@ impl AstFold for UnGrouper {
                 Item::Transform(Transform::Group { pipeline, .. }) => {
                     let pipeline = pipeline.item.into_pipeline()?;
 
-                    let pipeline = self.fold_nodes(pipeline.functions)?;
+                    let pipeline = self.fold_nodes(pipeline.nodes)?;
 
                     res.extend(pipeline.into_iter().filter(|x| {
                         // remove all sorts

@@ -144,7 +144,7 @@ impl Frame {
             .iter()
             .map(|col| match col {
                 FrameColumn::All(namespace) => {
-                    let (table, _) = &context.declarations[*namespace];
+                    let (table, _) = &context.declarations.0[*namespace];
                     let table = table.as_table().map(|x| x.as_str()).unwrap_or("");
                     Some(format!("{table}.*"))
                 }

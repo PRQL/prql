@@ -110,7 +110,7 @@ fn into_tables(nodes: Vec<Node>) -> Result<Vec<Table>> {
     for node in nodes {
         match node.item {
             Item::Table(t) => tables.push(t),
-            Item::Pipeline(p) => pipeline.extend(p.functions),
+            Item::Pipeline(p) => pipeline.extend(p.nodes),
             i => bail!("Unexpected item on top level: {i:?}"),
         }
     }
@@ -275,7 +275,7 @@ fn atomic_pipelines_of_pipeline(
     //
     // So we loop through the Pipeline, and cut it into cte-sized pipelines,
     // which we'll then compose together.
-    let pipeline = Ok(pipeline.functions)
+    let pipeline = Ok(pipeline.nodes)
         .and_then(un_group::un_group)
         .and_then(|x| distinct::take_to_distinct(x, context))?;
 
@@ -376,7 +376,7 @@ fn atomic_tables_of_tables(
 fn prepend_with_from(pipeline: &mut Pipeline, table: Option<TableRef>) {
     if let Some(table) = table {
         let from = Transform::From(table);
-        pipeline.functions.insert(0, Item::Transform(from).into());
+        pipeline.nodes.insert(0, Item::Transform(from).into());
     }
 }
 
@@ -755,7 +755,7 @@ impl From<Vec<Node>> for AtomicTable {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::{parser::parse, resolve, resolve_and_translate, sql::load_std_lib};
+    use crate::{parser::parse, resolve_names, resolve_and_translate, sql::load_std_lib};
     use insta::{
         assert_debug_snapshot, assert_display_snapshot, assert_snapshot, assert_yaml_snapshot,
     };
@@ -930,9 +930,9 @@ SString:
 
     fn parse_and_resolve(prql: &str) -> Result<Pipeline> {
         let std_lib = load_std_lib()?;
-        let (_, context) = resolve(std_lib, None)?;
+        let (_, context) = resolve_names(std_lib, None)?;
 
-        let (mut nodes, _) = resolve(parse(prql)?.nodes, Some(context))?;
+        let (mut nodes, _) = resolve_names(parse(prql)?.nodes, Some(context))?;
         let pipeline = nodes.remove(nodes.len() - 1);
         let pipeline = pipeline.item.into_pipeline()?;
         Ok(pipeline)
@@ -1498,7 +1498,7 @@ take 20
     }
 
     #[test]
-    fn test_window_functions() -> Result<()> {
+    fn test_window_functions() {
         let query: Query = parse(
             r###"
         from employees
@@ -1506,9 +1506,9 @@ take 20
             derive count
         )
         "###,
-        )?;
+        ).unwrap();
 
-        assert_display_snapshot!((resolve_and_translate(query)?), @r###"
+        assert_display_snapshot!((resolve_and_translate(query).unwrap()), @r###"
         SELECT
           employees.*,
           COUNT(*) OVER (PARTITION BY last_name)
@@ -1527,7 +1527,7 @@ take 20
         group [order_month, order_day] (
           aggregate [
             num_orders = s"COUNT(DISTINCT {co.order_id})",
-            num_books = count ol.book_id,
+            num_books = count non_null:ol.book_id,
             total_price = sum ol.price,
           ]
         )
@@ -1540,9 +1540,9 @@ take 20
         sort order_day
         derive [num_books_last_week = lag 7 num_books]
         "###,
-        )?;
+        ).unwrap();
 
-        assert_display_snapshot!((resolve_and_translate(query)?), @r###"
+        assert_display_snapshot!((resolve_and_translate(query).unwrap()), @r###"
         SELECT
           TO_CHAR(co.order_date, '%Y-%m') AS order_month,
           TO_CHAR(co.order_date, '%Y-%m-%d') AS order_day,
@@ -1576,11 +1576,11 @@ take 20
             r###"
         from daily_orders
         derive [last_week = lag 7 num_orders]
-        group month ( | derive [total_month = sum num_orders])
+        group month ( derive [total_month = sum num_orders])
         "###,
-        )?;
+        ).unwrap();
 
-        assert_display_snapshot!((resolve_and_translate(query)?), @r###"
+        assert_display_snapshot!((resolve_and_translate(query).unwrap()), @r###"
         SELECT
           daily_orders.*,
           LAG(num_orders, 7) OVER () AS last_week,
@@ -1594,11 +1594,11 @@ take 20
             r###"
         from daily_orders
         sort day
-        group month ( | derive [total_month = rank])
+        group month (derive [total_month = rank])
         derive [last_week = lag 7 num_orders]
         "###,
-        )?;
-        assert_display_snapshot!((resolve_and_translate(query)?), @r###"
+        ).unwrap();
+        assert_display_snapshot!((resolve_and_translate(query).unwrap()), @r###"
         SELECT
           daily_orders.*,
           RANK() OVER (PARTITION BY month) AS total_month,
@@ -1614,11 +1614,11 @@ take 20
             r###"
         from daily_orders
         sort day
-        group month ( | sort num_orders | window expanding:true ( | derive rank))
+        group month (sort num_orders | window expanding:true (derive rank))
         derive [num_orders_last_week = lag 7 num_orders]
         "###,
-        )?;
-        assert_display_snapshot!((resolve_and_translate(query)?), @r###"
+        ).unwrap();
+        assert_display_snapshot!((resolve_and_translate(query).unwrap()), @r###"
         SELECT
           daily_orders.*,
           RANK() OVER (
@@ -1631,8 +1631,6 @@ take 20
         FROM
           daily_orders
         "###);
-
-        Ok(())
     }
 
     #[test]
@@ -1976,7 +1974,7 @@ take 20
         assert_display_snapshot!((resolve_and_translate(parse(r###"
         from employees
         select first_name
-        group first_name ( | take 1)
+        group first_name (take 1)
         "###,
         ).unwrap()).unwrap()), @r###"
         SELECT
@@ -1989,7 +1987,7 @@ take 20
         assert_display_snapshot!((resolve_and_translate(parse(r###"
         from employees
         select [first_name, last_name]
-        group [first_name, last_name] ( | take 1)
+        group [first_name, last_name] (take 1)
         "###,
         ).unwrap()).unwrap()), @r###"
         SELECT
@@ -2003,7 +2001,7 @@ take 20
         // row  distinct only over first_name and last_name.
         assert_display_snapshot!((resolve_and_translate(parse(r###"
         from employees
-        group [first_name, last_name] ( | take 1)
+        group [first_name, last_name] (take 1)
         "###,
         ).unwrap()).unwrap()), @r###"
         SELECT
@@ -2015,7 +2013,7 @@ take 20
         // head
         assert_display_snapshot!((resolve_and_translate(parse(r###"
         from employees
-        group department ( | take 3)
+        group department (take 3)
         "###,
         ).unwrap()).unwrap()), @r###"
         WITH table_0 AS (
@@ -2035,7 +2033,7 @@ take 20
 
         assert_display_snapshot!((resolve_and_translate(parse(r###"
         from employees
-        group department ( | sort salary | take 2..3)
+        group department (sort salary | take 2..3)
         "###,
         ).unwrap()).unwrap()), @r###"
         WITH table_0 AS (
@@ -2064,6 +2062,20 @@ take 20
         assert_display_snapshot!((resolve_and_translate(parse(r###"
         from {{ ref('stg_orders') }}
         aggregate (min order_id)
+        "###,
+        ).unwrap()).unwrap()), @r###"
+        SELECT
+          MIN(order_id)
+        FROM
+          {{ ref('stg_orders') }}
+        "###);
+    }
+
+    #[test]
+    fn test_pipelines() {
+        assert_display_snapshot!((resolve_and_translate(parse(r###"
+        from employees
+        group dept (take 1)
         "###,
         ).unwrap()).unwrap()), @r###"
         SELECT

@@ -4,23 +4,22 @@ use anyhow::{bail, Result};
 use itertools::Itertools;
 
 use crate::ast::ast_fold::*;
-use crate::error::{Error, Reason, WithErrorInfo};
-use crate::{ast::*, Declaration};
+use crate::error::{Error, Reason, Span, WithErrorInfo};
+use crate::{ast::*, split_var_name, Declaration};
 
 use super::complexity::determine_complexity;
 use super::frame::extract_sorts;
+use super::scope::NS_FUNC;
 use super::transforms;
 use super::Context;
 
 /// Runs semantic analysis on the query, using current state.
-/// Appends query to current query.
 ///
-/// Note that analyzer removes function declarations, derive and select
-/// transformations from AST and saves them as current context.
-pub fn resolve(nodes: Vec<Node>, context: Option<Context>) -> Result<(Vec<Node>, Context)> {
+/// Note that this removes function declarations from AST and saves them as current context.
+pub fn resolve_names(nodes: Vec<Node>, context: Option<Context>) -> Result<(Vec<Node>, Context)> {
     let context = context.unwrap_or_else(init_context);
 
-    let mut resolver = Resolver::new(context);
+    let mut resolver = NameResolver::new(context);
 
     let nodes = resolver.fold_nodes(nodes)?;
 
@@ -29,12 +28,9 @@ pub fn resolve(nodes: Vec<Node>, context: Option<Context>) -> Result<(Vec<Node>,
     Ok((nodes, resolver.context))
 }
 
-/// Can fold (walk) over AST and for each function calls or variable find what they are referencing.
-pub struct Resolver {
+/// Can fold (walk) over AST and for each function call or variable find what they are referencing.
+pub struct NameResolver {
     pub context: Context,
-
-    /// True iff resolving a function curry (in a pipeline)
-    within_curry: bool,
 
     within_group: Vec<usize>,
 
@@ -44,11 +40,11 @@ pub struct Resolver {
 
     sorted: Vec<ColumnSort<usize>>,
 }
-impl Resolver {
+
+impl NameResolver {
     fn new(context: Context) -> Self {
-        Resolver {
+        NameResolver {
             context,
-            within_curry: false,
             within_group: vec![],
             within_window: None,
             within_aggregate: false,
@@ -57,17 +53,7 @@ impl Resolver {
     }
 }
 
-impl AstFold for Resolver {
-    fn fold_pipeline(&mut self, pipeline: Pipeline) -> Result<Pipeline> {
-        let value = fold_optional_box(self, pipeline.value)?;
-
-        self.within_curry = true;
-        let functions = self.fold_nodes(pipeline.functions)?;
-        self.within_curry = false;
-
-        Ok(Pipeline { value, functions })
-    }
-
+impl AstFold for NameResolver {
     // save functions declarations
     fn fold_nodes(&mut self, items: Vec<Node>) -> Result<Vec<Node>> {
         // We cut out function def, so we need to run it
@@ -102,32 +88,32 @@ impl AstFold for Resolver {
     }
 
     fn fold_node(&mut self, mut node: Node) -> Result<Node> {
-        let within_curry = self.within_curry;
-        self.within_curry = false;
-
         let r = match node.item {
             Item::FuncCall(ref func_call) => {
                 // find declaration
-                node.declared_at = self.context.scope.functions.get(&func_call.name).cloned();
+                node.declared_at = Some(
+                    self.lookup_variable(&format!("{NS_FUNC}.{}", func_call.name), node.span)
+                        .map_err(|e| Error::new(Reason::Simple(e)).with_span(node.span))?,
+                );
 
-                self.fold_function_call(node, within_curry)?
+                self.fold_function_call(node)?
             }
 
             Item::Ident(ref ident) => {
                 node.declared_at = Some(
-                    (self.context.lookup_variable(ident, node.span))
+                    (self.lookup_variable(ident, node.span))
                         .map_err(|e| Error::new(Reason::Simple(e)).with_span(node.span))?,
                 );
 
                 // convert ident to function without args
-                let decl = &self.context.declarations[node.declared_at.unwrap()].0;
+                let decl = &self.context.declarations.0[node.declared_at.unwrap()].0;
                 if matches!(decl, Declaration::Function(_)) {
                     node.item = Item::FuncCall(FuncCall {
                         name: ident.clone(),
                         args: vec![],
                         named_args: Default::default(),
                     });
-                    self.fold_function_call(node, within_curry)?
+                    self.fold_function_call(node)?
                 } else {
                     node
                 }
@@ -139,7 +125,6 @@ impl AstFold for Resolver {
             }
         };
 
-        self.within_curry = within_curry;
         Ok(r)
     }
 
@@ -244,7 +229,7 @@ impl AstFold for Resolver {
                     let ident = node.item.as_ident().unwrap();
 
                     // ensure two namespaces
-                    let namespaces = self.context.lookup_namespaces_of(ident);
+                    let namespaces = self.lookup_namespaces_of(ident);
                     match namespaces.len() {
                         0 => Err(format!("Unknown variable `{ident}`")),
                         1 => Err("join using a column name must belong to both tables".to_string()),
@@ -279,7 +264,7 @@ impl AstFold for Resolver {
     }
 }
 
-impl Resolver {
+impl NameResolver {
     fn fold_assigns(&mut self, nodes: Vec<Node>) -> Result<Vec<Node>> {
         nodes
             .into_iter()
@@ -327,16 +312,16 @@ impl Resolver {
         })
     }
 
-    fn fold_function_call(&mut self, mut node: Node, within_curry: bool) -> Result<Node> {
+    fn fold_function_call(&mut self, mut node: Node) -> Result<Node> {
         let func_call = node.item.into_func_call().unwrap();
 
         // validate
         let (func_call, func_def) = self
-            .validate_function_call(node.declared_at, func_call, within_curry)
+            .validate_function_call(node.declared_at, func_call)
             .with_span(node.span)?;
 
         let return_type = func_def.return_type.as_ref();
-        if Some(&Type::frame()) <= return_type {
+        if Some(&Ty::frame()) <= return_type {
             // cast if this is a transform
             let transform = transforms::cast_transform(func_call, node.span)?;
 
@@ -345,7 +330,7 @@ impl Resolver {
             let func_call = Item::FuncCall(self.fold_func_call(func_call)?);
 
             // wrap into windowed
-            if !self.within_aggregate && Some(&Type::column()) <= return_type {
+            if !self.within_aggregate && Some(&Ty::column()) <= return_type {
                 node.item = self.wrap_into_windowed(func_call, node.declared_at);
                 node.declared_at = None;
             } else {
@@ -442,7 +427,6 @@ impl Resolver {
         &self,
         declared_at: Option<usize>,
         mut func_call: FuncCall,
-        is_curry: bool,
     ) -> Result<(FuncCall, FuncDef), Error> {
         if declared_at.is_none() {
             return Err(Error::new(Reason::NotFound {
@@ -452,7 +436,7 @@ impl Resolver {
         }
 
         let func_dec = declared_at.unwrap();
-        let func_dec = &self.context.declarations[func_dec].0;
+        let func_dec = &self.context.declarations.0[func_dec].0;
         let func_def = func_dec.as_function().unwrap().clone();
 
         // extract needed named args from positionals
@@ -478,9 +462,9 @@ impl Resolver {
         }
 
         // validate number of parameters
-        let expected_len = func_def.positional_params.len() - is_curry as usize;
+        let expected_len = func_def.positional_params.len();
         let passed_len = func_call.args.len();
-        if expected_len != passed_len {
+        if expected_len < passed_len {
             let mut err = Error::new(Reason::Expected {
                 who: Some(func_call.name.clone()),
                 expected: format!("{} arguments", expected_len),
@@ -499,6 +483,84 @@ impl Resolver {
 
         Ok((func_call, func_def))
     }
+
+    pub fn lookup_variable(&mut self, ident: &str, span: Option<Span>) -> Result<usize, String> {
+        let (namespace, variable) = split_var_name(ident);
+
+        if let Some(decls) = self.context.scope.variables.get(ident) {
+            // lookup the inverse index
+
+            match decls.len() {
+                0 => unreachable!("inverse index contains empty lists?"),
+
+                // single match, great!
+                1 => Ok(decls.iter().next().cloned().unwrap()),
+
+                // ambiguous
+                _ => {
+                    let decls: Vec<_> = decls
+                        .iter()
+                        .map(|d| self.context.declarations.get(*d))
+                        .collect();
+                    Err(format!(
+                        "Ambiguous reference. Could be from either of {decls:?}"
+                    ))
+                }
+            }
+        } else {
+            let all = if namespace.is_empty() {
+                "*".to_string()
+            } else {
+                format!("{namespace}.*")
+            };
+
+            if let Some(decls) = self.context.scope.variables.get(&all) {
+                // this variable can be from a namespace that we don't know all columns of
+
+                match decls.len() {
+                    0 => unreachable!("inverse index contains empty lists?"),
+
+                    // single match, great!
+                    1 => {
+                        let table_id = decls.iter().next().unwrap();
+
+                        let decl = Declaration::ExternRef {
+                            table: Some(*table_id),
+                            variable: variable.to_string(),
+                        };
+                        let id = self.context.declare(decl, span);
+                        self.context.scope.add(ident.to_string(), id);
+
+                        Ok(id)
+                    }
+
+                    // don't report ambiguous variable, database may be able to resolve them
+                    _ => {
+                        let decl = Declaration::ExternRef {
+                            table: None,
+                            variable: ident.to_string(),
+                        };
+                        let id = self.context.declare(decl, span);
+
+                        Ok(id)
+                    }
+                }
+            } else {
+                Err(format!("Unknown variable `{ident}`"))
+            }
+        }
+    }
+
+    pub fn lookup_namespaces_of(&mut self, variable: &str) -> HashSet<usize> {
+        let mut r = HashSet::new();
+        if let Some(ns) = self.context.scope.variables.get(variable) {
+            r.extend(ns.clone());
+        }
+        if let Some(ns) = self.context.scope.variables.get("*") {
+            r.extend(ns.clone());
+        }
+        r
+    }
 }
 
 /// Loads `internal.prql` which contains type definitions of transforms
@@ -507,7 +569,7 @@ pub fn init_context() -> Context {
     let transforms = include_str!("./transforms.prql");
     let transforms = parse(transforms).unwrap().nodes;
 
-    let (_, context) = resolve(transforms, Some(Context::default())).unwrap();
+    let (_, context) = resolve_names(transforms, Some(Context::default())).unwrap();
     context
 }
 
@@ -524,13 +586,12 @@ mod tests {
     fn test_scopes_during_from() {
         let context = init_context();
 
-        let mut resolver = Resolver::new(context);
+        let mut resolver = NameResolver::new(context);
 
         let pipeline: Node = from_str(
             r##"
             Pipeline:
-              value: ~
-              functions:
+              nodes:
                 - FuncCall:
                     name: from
                     args:
@@ -548,13 +609,12 @@ mod tests {
     fn test_scopes_during_select() {
         let context = init_context();
 
-        let mut resolver = Resolver::new(context);
+        let mut resolver = NameResolver::new(context);
 
         let pipeline: Node = from_str(
             r##"
             Pipeline:
-              value: ~
-              functions:
+              nodes:
                 - FuncCall:
                     name: from
                     args:
@@ -595,7 +655,7 @@ mod tests {
         select first_name
         select last_name
         "#;
-        let result = parse(prql).and_then(|x| resolve(x.nodes, None));
+        let result = parse(prql).and_then(|x| resolve_names(x.nodes, None));
         assert!(result.is_err());
 
         let prql = r#"
@@ -621,7 +681,7 @@ mod tests {
         join salaries [emp_no]
         select [first_name, salaries.salary]
         "#;
-        let result = parse(prql).and_then(|x| resolve(x.nodes, None));
+        let result = parse(prql).and_then(|x| resolve_names(x.nodes, None));
         result.unwrap();
 
         let prql = r#"
@@ -630,7 +690,7 @@ mod tests {
         join salaries [emp_no]
         select [first_name, salaries.salary]
         "#;
-        let result = parse(prql).and_then(|x| resolve(x.nodes, None));
+        let result = parse(prql).and_then(|x| resolve_names(x.nodes, None));
         assert!(result.is_err());
     }
 
@@ -712,7 +772,7 @@ mod tests {
             r#"
         from employees
         group last_name (
-            group last_name ( | aaa )
+            group last_name ( aaa )
         )
         "#,
         )

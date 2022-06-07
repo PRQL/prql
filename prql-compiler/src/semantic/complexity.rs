@@ -26,7 +26,7 @@ impl<'a> AstFold for DetermineComplex<'a> {
 
         if !node.is_complex {
             if let Some(declared_at) = node.declared_at {
-                let decl = self.context.declarations[declared_at].0.clone();
+                let decl = self.context.declarations.0[declared_at].0.clone();
                 if let Declaration::Expression(expr) = decl {
                     let expr = self.fold_node(*expr).unwrap();
                     node.is_complex = expr.is_complex;
@@ -58,7 +58,7 @@ impl<'a> AstFold for DetermineComplex<'a> {
         }
     }
 
-    fn fold_type(&mut self, t: Type) -> Result<Type> {
+    fn fold_type(&mut self, t: Ty) -> Result<Ty> {
         Ok(t)
     }
 

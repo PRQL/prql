@@ -26,7 +26,7 @@ type_term = { ident ~ type_def? }
 table = { "table" ~ ident ~ "=" ~ nested_pipeline }
 
 pipe = _{ NEWLINE | "|" }
-pipeline = { WHITESPACE* ~ func_curry ~ (pipe ~ func_curry)* }
+pipeline = { WHITESPACE* ~ expr_call ~ (pipe ~ expr_call)* }
 
 ident = @{ !operator ~ !(keyword ~ WHITESPACE) ~ (ASCII_ALPHA | "$") ~ (ASCII_ALPHANUMERIC | "." | "_" | "*" )* }
 // For sorting
@@ -60,14 +60,13 @@ keyword = _{ "prql" | "table" | "func" }
 
 // whitespace is required to prevent matching s"string".
 // Forbid `operator` so `a - b` can't parse as `a` & `-b`.
-func_call = ${ ident ~ WHITESPACE+ ~ (!operator ~ (named_arg | assign | expr))+ }
-func_curry = { ident ~ (named_arg | assign | expr)* }
+func_call = ${ ident ~ WHITESPACE+ ~ (!operator ~ (named_arg | assign | expr) ~ WHITESPACE*)+ }
 
-named_arg   = { ident ~ ":" ~ !":" ~ (assign | expr) }
-assign      = { ident ~ "=" ~ !"=" ~ expr }
-assign_call = { ident ~ "=" ~ !"=" ~ expr_call }
+named_arg   = !{ ident ~ ":" ~ !":" ~ (assign | expr) }
+assign      = !{ ident ~ "=" ~ !"=" ~ expr }
+assign_call = !{ ident ~ "=" ~ !"=" ~ expr_call }
 
-expr_call = { (func_call | expr) }
+expr_call = _{ (func_call | expr) }
 
 expr = !{ expr_coalesce ~ (operator_logical ~ expr_coalesce)* }
 expr_coalesce = { expr_compare ~ (operator_coalesce ~ expr_compare)* }
@@ -75,13 +74,12 @@ expr_compare = { expr_add ~ (operator_compare ~ expr_add)? }
 expr_add = _{ expr_mul ~ (operator_add ~ expr_mul)* }
 expr_mul = _{ term ~ (operator_mul ~ term)* }
 
-term = _{ ( s_string | f_string | range | literal | ident | nested_expr | nested_pipeline | signed_term | list | jinja ) }
+term = _{ ( s_string | f_string | range | literal | ident | nested_pipeline | signed_term | list | jinja ) }
 // signed_term is for sorting.
-signed_term = _{ ( operator_add ~ ( nested_expr | ident )) }
+signed_term = _{ ( operator_add ~ ( nested_pipeline | ident )) }
 literal = _{ interval | number | boolean | null | string | timestamp | date | time }
 list = { "[" ~ (NEWLINE* ~ (assign_call | expr_call) ~ ("," ~ NEWLINE* ~ (assign_call | expr_call) )* ~ ","?)? ~ NEWLINE* ~ "]" }
-nested_expr = _{ "(" ~ expr_call ~ ")" }
-nested_pipeline = { "(" ~ expr_call? ~ pipe ~ pipeline ~ NEWLINE* ~ ")" }
+nested_pipeline = _{ "(" ~ (WHITESPACE | NEWLINE)* ~ pipeline ~ (WHITESPACE | NEWLINE)* ~ ")" }
 
 // We haven't implemented escapes — I think we can mostly pass those through to
 // SQL, but there may be things we're missing.
