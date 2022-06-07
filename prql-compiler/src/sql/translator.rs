@@ -12,9 +12,10 @@ use anyhow::{anyhow, bail, Result};
 use itertools::Itertools;
 use sqlformat::{format, FormatOptions, QueryParams};
 use sqlparser::ast::{
-    self as sql_ast, DateTimeField, Expr, Function, FunctionArg, FunctionArgExpr, Join,
-    JoinConstraint, JoinOperator, ObjectName, OrderByExpr, Select, SelectItem, SetExpr, TableAlias,
-    TableFactor, TableWithJoins, Top, Value, WindowFrameBound, WindowSpec,
+    self as sql_ast, BinaryOperator, DateTimeField, Expr, Function, FunctionArg, FunctionArgExpr,
+    Join, JoinConstraint, JoinOperator, ObjectName, OrderByExpr, Select, SelectItem, SetExpr,
+    TableAlias, TableFactor, TableWithJoins, Top, UnaryOperator, Value, WindowFrameBound,
+    WindowSpec,
 };
 use std::collections::HashMap;
 
@@ -409,7 +410,6 @@ fn range_of_ranges(ranges: Vec<Range>) -> Result<Range<i64>> {
     Ok(current)
 }
 
-#[allow(unstable_name_collisions)] // Same behavior as the std lib; we can remove this + itertools when that's released.
 fn filter_of_pipeline(pipeline: &[Transform]) -> Result<Option<Expr>> {
     let filters: Vec<Node> = pipeline
         .iter()
@@ -417,14 +417,25 @@ fn filter_of_pipeline(pipeline: &[Transform]) -> Result<Option<Expr>> {
             Transform::Filter(filter) => Some(*filter.clone()),
             _ => None,
         })
-        .intersperse(Node::from(Item::Operator("and".to_owned())))
         .collect();
+    filter_of_filters(filters)
+}
 
-    Ok(if !filters.is_empty() {
-        Some((Item::Expr(filters)).try_into()?)
-    } else {
-        None
-    })
+fn filter_of_filters(conditions: Vec<Node>) -> Result<Option<Expr>> {
+    let mut condition = None;
+    for filter in conditions {
+        if let Some(left) = condition {
+            condition = Some(Node::from(Item::Binary {
+                op: BinOp::And,
+                left: Box::new(left),
+                right: Box::new(filter),
+            }))
+        } else {
+            condition = Some(filter)
+        }
+    }
+
+    condition.map(|n| n.item.try_into()).transpose()
 }
 
 fn expr_of_i64(number: i64) -> Expr {
@@ -453,7 +464,8 @@ impl TryFrom<Item> for SelectItem {
     type Error = anyhow::Error;
     fn try_from(item: Item) -> Result<Self> {
         Ok(match item {
-            Item::Expr(_)
+            Item::Binary { .. }
+            | Item::Unary { .. }
             | Item::SString(_)
             | Item::FString(_)
             | Item::Ident(_)
@@ -473,30 +485,42 @@ impl TryFrom<Item> for Expr {
         Ok(match item {
             Item::Ident(_) => Expr::Identifier(item.try_into()?),
 
-            Item::Operator(op) => Expr::Identifier(sql_ast::Ident::new(match op.as_str() {
-                "==" => sql_ast::BinaryOperator::Eq.to_string(),
-                "!=" => sql_ast::BinaryOperator::NotEq.to_string(),
-                _ => op.to_uppercase(),
-            })),
-
-            // (one question is whether we need to surround `Expr` with parentheses?)
-            Item::Expr(items) => {
-                if let Some(e) = try_into_is_null(&items)? {
-                    e
+            // do we need to surround operations with parentheses?
+            Item::Binary { op, left, right } => {
+                if let Some(is_null) = try_into_is_null(&op, &left, &right)? {
+                    is_null
                 } else {
-                    Expr::Identifier(sql_ast::Ident::new(
-                        items
-                            .into_iter()
-                            .map(|node| Expr::try_from(node.item))
-                            .collect::<Result<Vec<Expr>>>()?
-                            .iter()
-                            .map(|x| x.to_string())
-                            // Currently a hack, but maybe OK, since we don't
-                            // need to parse every single expression into sqlparser ast.
-                            .join(" "),
-                    ))
+                    Expr::BinaryOp {
+                        left: Box::new(left.item.try_into()?),
+                        op: match op {
+                            BinOp::Mul => BinaryOperator::Multiply,
+                            BinOp::Div => BinaryOperator::Divide,
+                            BinOp::Mod => BinaryOperator::Modulo,
+                            BinOp::Add => BinaryOperator::Plus,
+                            BinOp::Sub => BinaryOperator::Minus,
+                            BinOp::Eq => BinaryOperator::Eq,
+                            BinOp::Ne => BinaryOperator::NotEq,
+                            BinOp::Gt => BinaryOperator::Gt,
+                            BinOp::Lt => BinaryOperator::Lt,
+                            BinOp::Gte => BinaryOperator::GtEq,
+                            BinOp::Lte => BinaryOperator::LtEq,
+                            BinOp::And => BinaryOperator::And,
+                            BinOp::Or => BinaryOperator::Or,
+                            BinOp::Coalesce => unreachable!(),
+                        },
+                        right: Box::new(right.item.try_into()?),
+                    }
                 }
             }
+
+            Item::Unary { op, expr: a } => Expr::UnaryOp {
+                op: match op {
+                    UnOp::Neg => UnaryOperator::Minus,
+                    UnOp::Not => UnaryOperator::Not,
+                },
+                expr: Box::new(a.item.try_into()?),
+            },
+
             Item::Range(r) => {
                 fn assert_bound(bound: Option<Box<Node>>) -> Result<Node, Error> {
                     bound.map(|b| *b).ok_or_else(|| {
@@ -609,25 +633,21 @@ impl TryFrom<Item> for Expr {
         })
     }
 }
-fn try_into_is_null(nodes: &[Node]) -> Result<Option<Expr>> {
-    if nodes.len() == 3 {
-        if let Item::Operator(op) = &nodes[1].item {
-            if op == "==" || op == "!=" {
-                let expr = if matches!(nodes[0].item, Item::Literal(Literal::Null)) {
-                    Expr::try_from(nodes[2].item.clone())?
-                } else if matches!(nodes[2].item, Item::Literal(Literal::Null)) {
-                    Expr::try_from(nodes[0].item.clone())?
-                } else {
-                    return Ok(None);
-                };
+fn try_into_is_null(op: &BinOp, a: &Node, b: &Node) -> Result<Option<Expr>> {
+    if matches!(op, BinOp::Eq) || matches!(op, BinOp::Ne) {
+        let expr = if matches!(a.item, Item::Literal(Literal::Null)) {
+            Expr::try_from(b.item.clone())?
+        } else if matches!(b.item, Item::Literal(Literal::Null)) {
+            Expr::try_from(a.item.clone())?
+        } else {
+            return Ok(None);
+        };
 
-                return Ok(Some(if op == "==" {
-                    Expr::IsNull(Box::new(expr))
-                } else {
-                    Expr::IsNotNull(Box::new(expr))
-                }));
-            }
-        }
+        return Ok(Some(if matches!(op, BinOp::Eq) {
+            Expr::IsNull(Box::new(expr))
+        } else {
+            Expr::IsNotNull(Box::new(expr))
+        }));
     }
 
     Ok(None)
@@ -700,9 +720,10 @@ impl TryFrom<&Transform> for Join {
         match t {
             Transform::Join { side, with, filter } => {
                 let constraint = match filter {
-                    JoinFilter::On(nodes) => Item::Expr(nodes.to_vec())
-                        .try_into()
-                        .map(JoinConstraint::On)?,
+                    JoinFilter::On(nodes) => JoinConstraint::On(
+                        filter_of_filters(nodes.clone())?
+                            .unwrap_or(Expr::Value(Value::Boolean(true))),
+                    ),
                     JoinFilter::Using(nodes) => JoinConstraint::Using(
                         nodes
                             .iter()
@@ -756,7 +777,7 @@ impl From<Vec<Node>> for AtomicTable {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::{parser::parse, resolve_names, resolve_and_translate, sql::load_std_lib};
+    use crate::{parser::parse, resolve_and_translate, resolve_names, sql::load_std_lib};
     use insta::{
         assert_debug_snapshot, assert_display_snapshot, assert_snapshot, assert_yaml_snapshot,
     };
@@ -851,13 +872,12 @@ mod test {
     fn test_try_from_s_string_to_expr() -> Result<()> {
         let ast: Node = from_str(
             r"
-SString:
- - String: SUM(
- - Expr:
-     Expr:
-       - Ident: col
- - String: )
-",
+        SString:
+        - String: SUM(
+        - Expr:
+            Ident: col
+        - String: )
+        ",
         )?;
         let expr: Expr = ast.item.try_into()?;
         assert_yaml_snapshot!(
@@ -1503,7 +1523,8 @@ take 20
             derive count
         )
         "###,
-        ).unwrap();
+        )
+        .unwrap();
 
         assert_display_snapshot!((resolve_and_translate(query).unwrap()), @r###"
         SELECT
@@ -1537,7 +1558,8 @@ take 20
         sort order_day
         derive [num_books_last_week = lag 7 num_books]
         "###,
-        ).unwrap();
+        )
+        .unwrap();
 
         assert_display_snapshot!((resolve_and_translate(query).unwrap()), @r###"
         SELECT
@@ -1575,7 +1597,8 @@ take 20
         derive [last_week = lag 7 num_orders]
         group month ( derive [total_month = sum num_orders])
         "###,
-        ).unwrap();
+        )
+        .unwrap();
 
         assert_display_snapshot!((resolve_and_translate(query).unwrap()), @r###"
         SELECT
@@ -1594,7 +1617,8 @@ take 20
         group month (derive [total_month = rank])
         derive [last_week = lag 7 num_orders]
         "###,
-        ).unwrap();
+        )
+        .unwrap();
         assert_display_snapshot!((resolve_and_translate(query).unwrap()), @r###"
         SELECT
           daily_orders.*,
@@ -1614,7 +1638,8 @@ take 20
         group month (sort num_orders | window expanding:true (derive rank))
         derive [num_orders_last_week = lag 7 num_orders]
         "###,
-        ).unwrap();
+        )
+        .unwrap();
         assert_display_snapshot!((resolve_and_translate(query).unwrap()), @r###"
         SELECT
           daily_orders.*,

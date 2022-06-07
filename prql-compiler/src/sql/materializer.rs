@@ -602,14 +602,16 @@ take 20
         - Transform:
             Aggregate:
               assigns:
-                - Expr:
-                    - SString:
+                - Binary:
+                    left:
+                      SString:
                         - String: SUM(
                         - Expr:
                             Ident: foo
                         - String: )
-                    - Operator: +
-                    - Literal:
+                    op: Add
+                    right:
+                      Literal:
                         Integer: 1
               by: []
         "###);
@@ -864,10 +866,12 @@ take 20
         - Ident: customer_no
         - Ident: gross
         - Ident: tax
-        - Expr:
-            - Ident: gross
-            - Operator: "-"
-            - Ident: tax
+        - Binary:
+            left:
+              Ident: gross
+            op: Sub
+            right:
+              Ident: tax
         "###);
 
         let (mat, frame, _) = materialize(find_pipeline(res2), context, None)?;

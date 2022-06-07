@@ -51,40 +51,22 @@ pub fn cast_transform(func_call: FuncCall, span: Option<Span>) -> Result<Transfo
                 .coerce_to_vec()
                 .into_iter()
                 .map(|node| {
-                    let res = match &node.item {
-                        // If it's `+foo`, then it's two items; if `foo` then one.
-                        Item::Ident(_) => Some((node.clone(), SortDirection::default())),
-                        Item::Expr(nodes) if nodes.len() == 2 => {
-                            if let Item::Operator(op) = &nodes[0].item {
-                                let direction = match op.as_str() {
-                                    "+" => SortDirection::Asc,
-                                    "-" => SortDirection::Desc,
-                                    _ => {
-                                        return Err(Error::new(Reason::Expected {
-                                            who: Some("sort".to_string()),
-                                            expected: "+ or -".to_string(),
-                                            found: op.to_string(),
-                                        })
-                                        .with_span(node.span))
-                                    }
-                                };
-                                Some((nodes[1].clone(), direction))
-                            } else {
-                                None
-                            }
+                    let (column, direction) = match &node.item {
+                        Item::Ident(_) => (node.clone(), SortDirection::default()),
+                        Item::Unary { op, expr: a }
+                            if matches!((op, &a.item), (UnOp::Neg, Item::Ident(_))) =>
+                        {
+                            (*a.clone(), SortDirection::Desc)
                         }
-                        _ => None,
-                    };
-
-                    let (column, direction) = if let Some(res) = res {
-                        res
-                    } else {
-                        return Err(Error::new(Reason::Expected {
-                            who: Some("sort".to_string()),
-                            expected: "column name, optionally prefixed with + or -".to_string(),
-                            found: node.item.to_string(),
-                        })
-                        .with_span(node.span));
+                        _ => {
+                            return Err(Error::new(Reason::Expected {
+                                who: Some("sort".to_string()),
+                                expected: "column name, optionally prefixed with + or -"
+                                    .to_string(),
+                                found: node.item.to_string(),
+                            })
+                            .with_span(node.span));
+                        }
                     };
 
                     if matches!(column.item, Item::Ident(_)) {

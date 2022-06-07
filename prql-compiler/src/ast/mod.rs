@@ -18,7 +18,6 @@ use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Reason, Span};
-use crate::utils::*;
 
 pub fn display(query: Query) -> String {
     format!("{}", Item::Query(query))
@@ -101,20 +100,6 @@ impl Node {
             })
             .with_span(self.span)
         })
-    }
-}
-
-/// Wrap into [Item::Expr] if there is more than one term.
-pub trait IntoExpr {
-    fn into_expr(self) -> Item;
-}
-impl IntoExpr for Vec<Node> {
-    fn into_expr(self) -> Item {
-        if self.len() == 1 {
-            self.into_only().unwrap().item
-        } else {
-            Item::Expr(self)
-        }
     }
 }
 

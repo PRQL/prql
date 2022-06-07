@@ -46,7 +46,7 @@ impl Declarations {
     pub(super) fn take_expr(&mut self, id: usize) -> Result<Box<Node>> {
         let (decl, _) = self.0.get_mut(id).unwrap();
 
-        let dummy: Node = Item::Expr(vec![]).into();
+        let dummy = Node::from(Item::Literal(Literal::Null));
         let dummy = Declaration::Expression(Box::new(dummy));
         let node = std::mem::replace(decl, dummy);
 

@@ -631,11 +631,13 @@ mod tests {
                         - Assign:
                             name: salary_2
                             expr:
-                                Expr:
-                                - Ident: salary_1
-                                - Operator: +
-                                - Literal:
-                                    Integer: 1
+                                Binary:
+                                  left:
+                                    Ident: salary_1
+                                  op: Add
+                                  right:
+                                    Literal:
+                                        Integer: 1
                         - Ident: age
                     named_args: {}
         "##,

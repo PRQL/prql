@@ -36,13 +36,33 @@ expression: "parse_tree_of_str(\"[a, b, c,]\", Rule::list)?"
                                 },
                                 inner: [
                                     Pair {
-                                        rule: ident,
+                                        rule: expr_add,
                                         span: Span {
                                             str: "a",
                                             start: 1,
                                             end: 2,
                                         },
-                                        inner: [],
+                                        inner: [
+                                            Pair {
+                                                rule: expr_mul,
+                                                span: Span {
+                                                    str: "a",
+                                                    start: 1,
+                                                    end: 2,
+                                                },
+                                                inner: [
+                                                    Pair {
+                                                        rule: ident,
+                                                        span: Span {
+                                                            str: "a",
+                                                            start: 1,
+                                                            end: 2,
+                                                        },
+                                                        inner: [],
+                                                    },
+                                                ],
+                                            },
+                                        ],
                                     },
                                 ],
                             },
@@ -75,13 +95,33 @@ expression: "parse_tree_of_str(\"[a, b, c,]\", Rule::list)?"
                                 },
                                 inner: [
                                     Pair {
-                                        rule: ident,
+                                        rule: expr_add,
                                         span: Span {
                                             str: "b",
                                             start: 4,
                                             end: 5,
                                         },
-                                        inner: [],
+                                        inner: [
+                                            Pair {
+                                                rule: expr_mul,
+                                                span: Span {
+                                                    str: "b",
+                                                    start: 4,
+                                                    end: 5,
+                                                },
+                                                inner: [
+                                                    Pair {
+                                                        rule: ident,
+                                                        span: Span {
+                                                            str: "b",
+                                                            start: 4,
+                                                            end: 5,
+                                                        },
+                                                        inner: [],
+                                                    },
+                                                ],
+                                            },
+                                        ],
                                     },
                                 ],
                             },
@@ -114,13 +154,33 @@ expression: "parse_tree_of_str(\"[a, b, c,]\", Rule::list)?"
                                 },
                                 inner: [
                                     Pair {
-                                        rule: ident,
+                                        rule: expr_add,
                                         span: Span {
                                             str: "c",
                                             start: 7,
                                             end: 8,
                                         },
-                                        inner: [],
+                                        inner: [
+                                            Pair {
+                                                rule: expr_mul,
+                                                span: Span {
+                                                    str: "c",
+                                                    start: 7,
+                                                    end: 8,
+                                                },
+                                                inner: [
+                                                    Pair {
+                                                        rule: ident,
+                                                        span: Span {
+                                                            str: "c",
+                                                            start: 7,
+                                                            end: 8,
+                                                        },
+                                                        inner: [],
+                                                    },
+                                                ],
+                                            },
+                                        ],
                                     },
                                 ],
                             },

@@ -61,7 +61,6 @@ impl AstFold for TypeResolver {
             }
             Item::Assign(ne) | Item::NamedArg(ne) => ne.expr.ty.clone(),
             Item::Pipeline(_) => todo!(),
-            Item::Expr(_) => todo!(),
             Item::FuncCall(_) => todo!(),
 
             Item::SString(_) => Ty::Infer,

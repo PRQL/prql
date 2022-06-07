@@ -16,10 +16,12 @@ Query:
           - FuncCall:
               name: filter
               args:
-                - Expr:
-                    - Ident: country
-                    - Operator: "=="
-                    - Literal:
+                - Binary:
+                    left:
+                      Ident: country
+                    op: Eq
+                    right:
+                      Literal:
                         String: USA
               named_args: {}
           - FuncCall:
@@ -29,25 +31,31 @@ Query:
                     - Assign:
                         name: gross_salary
                         expr:
-                          Expr:
-                            - Ident: salary
-                            - Operator: +
-                            - Ident: payroll_tax
+                          Binary:
+                            left:
+                              Ident: salary
+                            op: Add
+                            right:
+                              Ident: payroll_tax
                     - Assign:
                         name: gross_cost
                         expr:
-                          Expr:
-                            - Ident: gross_salary
-                            - Operator: +
-                            - Ident: benefits_cost
+                          Binary:
+                            left:
+                              Ident: gross_salary
+                            op: Add
+                            right:
+                              Ident: benefits_cost
               named_args: {}
           - FuncCall:
               name: filter
               args:
-                - Expr:
-                    - Ident: gross_cost
-                    - Operator: ">"
-                    - Literal:
+                - Binary:
+                    left:
+                      Ident: gross_cost
+                    op: Gt
+                    right:
+                      Literal:
                         Integer: 0
               named_args: {}
           - FuncCall:
@@ -107,10 +115,12 @@ Query:
           - FuncCall:
               name: filter
               args:
-                - Expr:
-                    - Ident: ct
-                    - Operator: ">"
-                    - Literal:
+                - Binary:
+                    left:
+                      Ident: ct
+                    op: Gt
+                    right:
+                      Literal:
                         Integer: 200
               named_args: {}
           - FuncCall:

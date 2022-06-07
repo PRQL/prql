@@ -35,7 +35,7 @@ pub fn parse(string: &str) -> Result<Query> {
 fn ast_of_string(string: &str, rule: Rule) -> Result<Node> {
     let pairs = parse_tree_of_str(string, rule)?;
 
-    ast_of_parse_tree(pairs)?.into_only()
+    ast_of_parse_pairs(pairs)?.into_only()
 }
 
 /// Parse a string into a parse tree / concrete syntax tree, made up of pest Pairs.
@@ -44,290 +44,310 @@ fn parse_tree_of_str(source: &str, rule: Rule) -> Result<Pairs<Rule>> {
 }
 
 /// Parses a parse tree of pest Pairs into an AST.
-fn ast_of_parse_tree(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
+fn ast_of_parse_pairs(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
     pairs
-        .map(|pair| {
-            let span = pair.as_span();
-            let rule = pair.as_rule();
-
-            let item = match rule {
-                Rule::query => {
-                    let mut parsed = ast_of_parse_tree(pair.into_inner())?;
-                    // this is [query, ...]
-
-                    let mut query = parsed.remove(0).item.into_query()?;
-
-                    query.nodes = parsed;
-
-                    Item::Query(query)
-                }
-                Rule::query_def => {
-                    let parsed = ast_of_parse_tree(pair.into_inner())?;
-
-                    let mut params: HashMap<_, _> = parsed
-                        .into_iter()
-                        .map(|x| x.item.into_named_arg().map(|n| (n.name, n.expr)))
-                        .try_collect()?;
-
-                    let version = params
-                        .remove("version")
-                        .map(|v| v.unwrap(|i| i.into_literal(), "literal"))
-                        .transpose()?
-                        .map(|x| x.into_integer())
-                        .transpose()?;
-
-                    let dialect = if let Some(node) = params.remove("dialect") {
-                        let span = node.span;
-                        let dialect = node.unwrap(|i| i.into_ident(), "string")?;
-                        Dialect::from_str(&dialect).map_err(|_| {
-                            Error::new(Reason::NotFound {
-                                name: dialect,
-                                namespace: "dialect".to_string(),
-                            })
-                            .with_span(span)
-                        })?
-                    } else {
-                        Dialect::default()
-                    };
-
-                    Item::Query(Query {
-                        nodes: vec![],
-                        version,
-                        dialect,
-                    })
-                }
-                Rule::list => Item::List(ast_of_parse_tree(pair.into_inner())?),
-                Rule::expr_mul
-                | Rule::expr_add
-                | Rule::expr_compare
-                | Rule::expr
-                | Rule::expr_call => ast_of_parse_tree(pair.into_inner())?.into_expr(),
-                // With coalesce, we need to grab the left and the right,
-                // because we're transforming it into a function call rather
-                // than passing along the operator. So this is unlike the rest
-                // of the parsing (and maybe isn't optimal).
-                Rule::expr_coalesce => {
-                    let pairs = pair.into_inner();
-                    // If there's no coalescing, just return the single expression.
-                    if pairs.clone().count() == 1 {
-                        ast_of_parse_tree(pairs)?.into_only()?.item
-                    } else {
-                        let parsed = ast_of_parse_tree(pairs)?;
-                        Item::FuncCall(FuncCall {
-                            name: "coalesce".to_string(),
-                            args: vec![parsed[0].clone(), parsed[2].clone()],
-                            named_args: HashMap::new(),
-                        })
-                    }
-                }
-                // This makes the previous parsing a bit easier, but is hacky;
-                // ideally find a better way (but it doesn't seem that easy to
-                // parse parts of a Pairs).
-                Rule::operator_coalesce => Item::Ident("-".to_string()),
-
-                Rule::assign_call | Rule::assign => {
-                    let mut items = ast_of_parse_tree(pair.into_inner())?;
-                    Item::Assign(named_expr_of_nodes(&mut items)?)
-                }
-                Rule::named_arg => {
-                    let mut items = ast_of_parse_tree(pair.into_inner())?;
-                    Item::NamedArg(named_expr_of_nodes(&mut items)?)
-                }
-                Rule::func_def => {
-                    let parsed = ast_of_parse_tree(pair.into_inner())?;
-
-                    let [name, params, body]: [Node; 3] = parsed
-                        .try_into()
-                        .map_err(|_| anyhow!("bad func_def parsing"))?;
-
-                    let (name, return_type) = unpack_typed(name)?;
-                    let name = name.item.into_ident()?;
-
-                    let params: Vec<_> = (params.item.into_expr()?)
-                        .into_iter()
-                        .map(unpack_typed)
-                        .try_collect()?;
-
-                    let positional_params = params
-                        .iter()
-                        .filter(|x| matches!(x.0.item, Item::Ident(_)))
-                        .cloned()
-                        .collect();
-                    let named_params = params
-                        .iter()
-                        .filter(|x| matches!(x.0.item, Item::NamedArg(_)))
-                        .cloned()
-                        .collect();
-
-                    Item::FuncDef(FuncDef {
-                        name,
-                        positional_params,
-                        named_params,
-                        body: Box::from(body),
-                        return_type,
-                    })
-                }
-                Rule::func_def_name | Rule::func_def_params | Rule::func_def_param => {
-                    Item::Expr(ast_of_parse_tree(pair.into_inner())?)
-                }
-                Rule::func_call => {
-                    let mut items = ast_of_parse_tree(pair.into_inner())?;
-
-                    let name = items.remove(0).item.into_ident()?;
-
-                    Item::FuncCall(FuncCall {
-                        name,
-                        args: items,
-                        named_args: HashMap::new(),
-                    })
-                }
-                Rule::table => {
-                    let parsed = ast_of_parse_tree(pair.into_inner())?;
-                    let [name, pipeline]: [Node; 2] = parsed
-                        .try_into()
-                        .map_err(|e| anyhow!("Expected two items; {e:?}"))?;
-                    Item::Table(Table {
-                        id: None,
-                        name: name.item.into_ident()?,
-                        pipeline: Box::new(pipeline),
-                    })
-                }
-                Rule::ident | Rule::jinja => Item::Ident(pair.as_str().to_string()),
-
-                Rule::number => {
-                    let str = pair.as_str();
-
-                    let lit = if let Ok(i) = str.parse::<i64>() {
-                        Literal::Integer(i)
-                    } else if let Ok(f) = str.parse::<f64>() {
-                        Literal::Float(f)
-                    } else {
-                        bail!("cannot parse {str} as number")
-                    };
-                    Item::Literal(lit)
-                }
-                Rule::null => Item::Literal(Literal::Null),
-                Rule::boolean => Item::Literal(Literal::Boolean(pair.as_str() == "true")),
-                Rule::string => {
-                    let inner = pair.into_inner().into_only()?.as_str().to_string();
-                    Item::Literal(Literal::String(inner))
-                }
-                Rule::s_string => Item::SString(ast_of_interpolate_items(pair)?),
-                Rule::f_string => Item::FString(ast_of_interpolate_items(pair)?),
-                Rule::pipeline => {
-                    let mut nodes = ast_of_parse_tree(pair.into_inner())?;
-                    match nodes.len() {
-                        0 => return Ok(None),
-                        1 => nodes.remove(0).item,
-                        _ => Item::Pipeline(Pipeline { nodes }),
-                    }
-                }
-                Rule::range => {
-                    let [start, end]: [Option<Box<Node>>; 2] = pair
-                        .into_inner()
-                        // Iterate over `start` & `end` (seperator is not a term).
-                        .into_iter()
-                        .map(|x| {
-                            // Parse & Box each one.
-                            ast_of_parse_tree(x.into_inner())
-                                .and_then(|x| x.into_only())
-                                .map(Box::new)
-                                .ok()
-                        })
-                        .collect::<Vec<_>>()
-                        .try_into()
-                        .map_err(|e| anyhow!("Expected start, separator, end; {e:?}"))?;
-                    Item::Range(Range { start, end })
-                }
-
-                Rule::interval => {
-                    let pairs: Vec<_> = pair.into_inner().into_iter().collect();
-                    let [n, unit]: [Pair<Rule>; 2] = pairs
-                        .try_into()
-                        .map_err(|e| anyhow!("Expected two items; {e:?}"))?;
-
-                    Item::Interval(Interval {
-                        n: n.as_str().parse()?,
-                        unit: unit.as_str().to_owned(),
-                    })
-                }
-
-                Rule::date | Rule::time | Rule::timestamp => {
-                    let inner = pair.into_inner().into_only()?.as_str().to_string();
-
-                    Item::Literal(match rule {
-                        Rule::date => Literal::Date(inner),
-                        Rule::time => Literal::Time(inner),
-                        Rule::timestamp => Literal::Timestamp(inner),
-                        _ => unreachable!(),
-                    })
-                }
-
-                Rule::type_def => {
-                    let mut types: Vec<_> = pair
-                        .into_inner()
-                        .into_iter()
-                        .map(|pair| -> Result<Ty> {
-                            let mut parts: Vec<_> = pair.into_inner().into_iter().collect();
-                            let name = &parts.remove(0).as_str();
-                            let typ = match TyLit::from_str(name) {
-                                Ok(t) => Ty::from(t),
-                                Err(_) => {
-                                    eprintln!("named type: {}", name);
-                                    Ty::Named(name.to_string())
-                                }
-                            };
-
-                            let param = parts
-                                .pop()
-                                .map(|p| ast_of_parse_tree(p.into_inner()))
-                                .transpose()?
-                                .map(|p| p.into_only())
-                                .transpose()?;
-
-                            Ok(if let Some(param) = param {
-                                Ty::Parameterized(Box::new(typ), Box::new(param))
-                            } else {
-                                typ
-                            })
-                        })
-                        .try_collect()?;
-
-                    let typ = if types.len() > 1 {
-                        Ty::AnyOf(types)
-                    } else {
-                        types.remove(0)
-                    };
-
-                    Item::Type(typ)
-                }
-                Rule::operator_unary
-                | Rule::operator_mul
-                | Rule::operator_add
-                | Rule::operator_compare
-                | Rule::operator_logical => Item::Operator(pair.as_str().to_owned()),
-
-                Rule::EOI => return Ok(None),
-
-                _ => unreachable!("{pair}"),
-            };
-
-            let mut node = Node::from(item);
-            node.span = Some(Span {
-                start: span.start(),
-                end: span.end(),
-            });
-            Ok(Some(node))
-        })
+        .map(|pair| ast_of_parse_pair(pair))
         .filter_map(|n| n.transpose())
         .collect()
 }
 
-fn unpack_typed(node: Node) -> Result<(Node, Option<Ty>)> {
-    let mut exprs = node.item.into_expr()?;
-    let node = exprs.remove(0);
-    let typ = exprs.pop().map(|n| n.item.into_type()).transpose()?;
-    Ok((node, typ))
+fn ast_of_parse_pair(pair: Pair<Rule>) -> Result<Option<Node>> {
+    let span = pair.as_span();
+    let rule = pair.as_rule();
+
+    let item = match rule {
+        Rule::query => {
+            let mut parsed = ast_of_parse_pairs(pair.into_inner())?;
+            // this is [query, ...]
+
+            let mut query = parsed.remove(0).item.into_query()?;
+
+            query.nodes = parsed;
+
+            Item::Query(query)
+        }
+        Rule::query_def => {
+            let parsed = ast_of_parse_pairs(pair.into_inner())?;
+
+            let mut params: HashMap<_, _> = parsed
+                .into_iter()
+                .map(|x| x.item.into_named_arg().map(|n| (n.name, n.expr)))
+                .try_collect()?;
+
+            let version = params
+                .remove("version")
+                .map(|v| v.unwrap(|i| i.into_literal(), "literal"))
+                .transpose()?
+                .map(|x| x.into_integer())
+                .transpose()?;
+
+            let dialect = if let Some(node) = params.remove("dialect") {
+                let span = node.span;
+                let dialect = node.unwrap(|i| i.into_ident(), "string")?;
+                Dialect::from_str(&dialect).map_err(|_| {
+                    Error::new(Reason::NotFound {
+                        name: dialect,
+                        namespace: "dialect".to_string(),
+                    })
+                    .with_span(span)
+                })?
+            } else {
+                Dialect::default()
+            };
+
+            Item::Query(Query {
+                nodes: vec![],
+                version,
+                dialect,
+            })
+        }
+        Rule::list => Item::List(ast_of_parse_pairs(pair.into_inner())?),
+        Rule::expr_mul | Rule::expr_add | Rule::expr_compare | Rule::expr => {
+            let mut pairs = pair.into_inner();
+
+            let mut expr = ast_of_parse_pair(pairs.next().unwrap())?.unwrap();
+            if let Some(op) = pairs.next() {
+                let op = BinOp::from_str(op.as_str())?;
+
+                expr = Node::from(Item::Binary {
+                    op,
+                    left: Box::new(expr),
+                    right: Box::new(ast_of_parse_pair(pairs.next().unwrap())?.unwrap()),
+                });
+            }
+
+            expr.item
+        }
+        Rule::expr_unary => {
+            let mut pairs = pair.into_inner();
+
+            let op = pairs.next().unwrap();
+
+            let a = ast_of_parse_pair(pairs.next().unwrap())?.unwrap();
+            match UnOp::from_str(op.as_str()) {
+                Ok(op) => Item::Unary { op, expr: Box::new(a) },
+                Err(_) => a.item, // `+column` is the same as `column`
+            }
+        }
+
+        // With coalesce, we need to grab the left and the right,
+        // because we're transforming it into a function call rather
+        // than passing along the operator. So this is unlike the rest
+        // of the parsing (and maybe isn't optimal).
+        Rule::expr_coalesce => {
+            let pairs = pair.into_inner();
+            // If there's no coalescing, just return the single expression.
+            if pairs.clone().count() == 1 {
+                ast_of_parse_pairs(pairs)?.into_only()?.item
+            } else {
+                let parsed = ast_of_parse_pairs(pairs)?;
+                Item::FuncCall(FuncCall {
+                    name: "coalesce".to_string(),
+                    args: vec![parsed[0].clone(), parsed[2].clone()],
+                    named_args: HashMap::new(),
+                })
+            }
+        }
+        // This makes the previous parsing a bit easier, but is hacky;
+        // ideally find a better way (but it doesn't seem that easy to
+        // parse parts of a Pairs).
+        Rule::operator_coalesce => Item::Ident("-".to_string()),
+
+        Rule::assign_call | Rule::assign => {
+            let mut items = ast_of_parse_pairs(pair.into_inner())?;
+            Item::Assign(named_expr_of_nodes(&mut items)?)
+        }
+        Rule::named_arg => {
+            let mut items = ast_of_parse_pairs(pair.into_inner())?;
+            Item::NamedArg(named_expr_of_nodes(&mut items)?)
+        }
+        Rule::func_def => {
+            let mut pairs = pair.into_inner();
+            let name = pairs.next().unwrap();
+            let params = pairs.next().unwrap();
+            let body = pairs.next().unwrap();
+
+            let (name, return_type) = parse_typed(name)?;
+            let name = name.item.into_ident()?;
+
+            let params: Vec<_> = params
+                .into_inner()
+                .into_iter()
+                .map(parse_typed)
+                .try_collect()?;
+
+            let positional_params = params
+                .iter()
+                .filter(|x| matches!(x.0.item, Item::Ident(_)))
+                .cloned()
+                .collect();
+            let named_params = params
+                .iter()
+                .filter(|x| matches!(x.0.item, Item::NamedArg(_)))
+                .cloned()
+                .collect();
+
+            Item::FuncDef(FuncDef {
+                name,
+                positional_params,
+                named_params,
+                body: Box::from(ast_of_parse_pair(body)?.unwrap()),
+                return_type,
+            })
+        }
+        Rule::func_call => {
+            let mut items = ast_of_parse_pairs(pair.into_inner())?;
+
+            let name = items.remove(0).item.into_ident()?;
+
+            Item::FuncCall(FuncCall {
+                name,
+                args: items,
+                named_args: HashMap::new(),
+            })
+        }
+        Rule::table => {
+            let parsed = ast_of_parse_pairs(pair.into_inner())?;
+            let [name, pipeline]: [Node; 2] = parsed
+                .try_into()
+                .map_err(|e| anyhow!("Expected two items; {e:?}"))?;
+            Item::Table(Table {
+                id: None,
+                name: name.item.into_ident()?,
+                pipeline: Box::new(pipeline),
+            })
+        }
+        Rule::ident | Rule::jinja => Item::Ident(pair.as_str().to_string()),
+
+        Rule::number => {
+            let str = pair.as_str();
+
+            let lit = if let Ok(i) = str.parse::<i64>() {
+                Literal::Integer(i)
+            } else if let Ok(f) = str.parse::<f64>() {
+                Literal::Float(f)
+            } else {
+                bail!("cannot parse {str} as number")
+            };
+            Item::Literal(lit)
+        }
+        Rule::null => Item::Literal(Literal::Null),
+        Rule::boolean => Item::Literal(Literal::Boolean(pair.as_str() == "true")),
+        Rule::string => {
+            let inner = pair.into_inner().into_only()?.as_str().to_string();
+            Item::Literal(Literal::String(inner))
+        }
+        Rule::s_string => Item::SString(ast_of_interpolate_items(pair)?),
+        Rule::f_string => Item::FString(ast_of_interpolate_items(pair)?),
+        Rule::pipeline => {
+            let mut nodes = ast_of_parse_pairs(pair.into_inner())?;
+            match nodes.len() {
+                0 => return Ok(None),
+                1 => nodes.remove(0).item,
+                _ => Item::Pipeline(Pipeline { nodes }),
+            }
+        }
+        Rule::range => {
+            let [start, end]: [Option<Box<Node>>; 2] = pair
+                .into_inner()
+                // Iterate over `start` & `end` (seperator is not a term).
+                .into_iter()
+                .map(|x| {
+                    // Parse & Box each one.
+                    ast_of_parse_pairs(x.into_inner())
+                        .and_then(|x| x.into_only())
+                        .map(Box::new)
+                        .ok()
+                })
+                .collect::<Vec<_>>()
+                .try_into()
+                .map_err(|e| anyhow!("Expected start, separator, end; {e:?}"))?;
+            Item::Range(Range { start, end })
+        }
+
+        Rule::interval => {
+            let pairs: Vec<_> = pair.into_inner().into_iter().collect();
+            let [n, unit]: [Pair<Rule>; 2] = pairs
+                .try_into()
+                .map_err(|e| anyhow!("Expected two items; {e:?}"))?;
+
+            Item::Interval(Interval {
+                n: n.as_str().parse()?,
+                unit: unit.as_str().to_owned(),
+            })
+        }
+
+        Rule::date | Rule::time | Rule::timestamp => {
+            let inner = pair.into_inner().into_only()?.as_str().to_string();
+
+            Item::Literal(match rule {
+                Rule::date => Literal::Date(inner),
+                Rule::time => Literal::Time(inner),
+                Rule::timestamp => Literal::Timestamp(inner),
+                _ => unreachable!(),
+            })
+        }
+
+        Rule::type_def => {
+            let mut types: Vec<_> = pair
+                .into_inner()
+                .into_iter()
+                .map(|pair| -> Result<Ty> {
+                    let mut parts: Vec<_> = pair.into_inner().into_iter().collect();
+                    let name = &parts.remove(0).as_str();
+                    let typ = match TyLit::from_str(name) {
+                        Ok(t) => Ty::from(t),
+                        Err(_) => {
+                            eprintln!("named type: {}", name);
+                            Ty::Named(name.to_string())
+                        }
+                    };
+
+                    let param = parts
+                        .pop()
+                        .map(|p| ast_of_parse_pairs(p.into_inner()))
+                        .transpose()?
+                        .map(|p| p.into_only())
+                        .transpose()?;
+
+                    Ok(if let Some(param) = param {
+                        Ty::Parameterized(Box::new(typ), Box::new(param))
+                    } else {
+                        typ
+                    })
+                })
+                .try_collect()?;
+
+            let typ = if types.len() > 1 {
+                Ty::AnyOf(types)
+            } else {
+                types.remove(0)
+            };
+
+            Item::Type(typ)
+        }
+
+        Rule::EOI => return Ok(None),
+
+        _ => unreachable!("{pair}"),
+    };
+    let mut node = Node::from(item);
+    node.span = Some(Span {
+        start: span.start(),
+        end: span.end(),
+    });
+    Ok(Some(node))
+}
+
+fn parse_typed(pair: Pair<Rule>) -> Result<(Node, Option<Ty>)> {
+    let mut pairs = pair.into_inner();
+
+    let node = ast_of_parse_pair(pairs.next().unwrap())?.unwrap();
+
+    let ty = pairs.next();
+    let ty = ty.map(|p| ast_of_parse_pair(p)).transpose()?.flatten();
+    let ty = ty.map(|t| t.item.into_type()).transpose()?;
+    Ok((node, ty))
 }
 
 fn named_expr_of_nodes(items: &mut Vec<Node>) -> Result<NamedExpr, anyhow::Error> {
@@ -347,9 +367,7 @@ fn ast_of_interpolate_items(pair: Pair<Rule>) -> Result<Vec<InterpolateItem>> {
                 // Rule::interpolate_string_inner | Rule::jinja_string_inner => {
                 //     InterpolateItem::String(x.as_str().to_string())
                 // }
-                _ => InterpolateItem::Expr(Box::new(
-                    ast_of_parse_tree(x.into_inner())?.into_expr().into(),
-                )),
+                _ => InterpolateItem::Expr(Box::new(ast_of_parse_pair(x)?.unwrap())),
             })
         })
         .collect::<Result<_>>()
@@ -556,11 +574,13 @@ Canada
         SString:
           - String: SUM(
           - Expr:
-              Expr:
-                - Literal:
+              Binary:
+                left:
+                  Literal:
                     Integer: 2
-                - Operator: +
-                - Literal:
+                op: Add
+                right:
+                  Literal:
                     Integer: 2
           - String: )
         "###);
@@ -603,11 +623,13 @@ Canada
         assert_yaml_snapshot!(ast_of_string(r#"[1 + 1, 2]"#, Rule::list).unwrap(), @r###"
         ---
         List:
-          - Expr:
-              - Literal:
+          - Binary:
+              left:
+                Literal:
                   Integer: 1
-              - Operator: +
-              - Literal:
+              op: Add
+              right:
+                Literal:
                   Integer: 1
           - Literal:
               Integer: 2
@@ -615,11 +637,13 @@ Canada
         assert_yaml_snapshot!(ast_of_string(r#"[1 + (f 1), 2]"#, Rule::list).unwrap(), @r###"
         ---
         List:
-          - Expr:
-              - Literal:
+          - Binary:
+              left:
+                Literal:
                   Integer: 1
-              - Operator: +
-              - FuncCall:
+              op: Add
+              right:
+                FuncCall:
                   name: f
                   args:
                     - Literal:
@@ -665,24 +689,22 @@ Canada
         ---
         List:
           - Ident: amount
-          - Expr:
-              - Operator: +
-              - Ident: amount
-          - Expr:
-              - Operator: "-"
-              - Ident: amount
+          - Ident: amount
+          - Unary:
+              op: Neg
+              expr:
+                Ident: amount
         "###);
         // Operators in list items
         assert_yaml_snapshot!(ast_of_string(r#"[amount, +amount, -amount]"#, Rule::list).unwrap(), @r###"
         ---
         List:
           - Ident: amount
-          - Expr:
-              - Operator: +
-              - Ident: amount
-          - Expr:
-              - Operator: "-"
-              - Ident: amount
+          - Ident: amount
+          - Unary:
+              op: Neg
+              expr:
+                Ident: amount
         "###);
     }
 
@@ -700,11 +722,13 @@ Canada
         "###);
         assert_yaml_snapshot!(ast_of_string(r#"2 + 2"#, Rule::expr)?, @r###"
         ---
-        Expr:
-          - Literal:
+        Binary:
+          left:
+            Literal:
               Integer: 2
-          - Operator: +
-          - Literal:
+          op: Add
+          right:
+            Literal:
               Integer: 2
         "###);
         Ok(())
@@ -722,10 +746,12 @@ Canada
             - FuncCall:
                 name: filter
                 args:
-                  - Expr:
-                      - Ident: country
-                      - Operator: "=="
-                      - Literal:
+                  - Binary:
+                      left:
+                        Ident: country
+                      op: Eq
+                      right:
+                        Literal:
                           String: USA
                 named_args: {}
         "###);
@@ -740,14 +766,16 @@ Canada
             - FuncCall:
                 name: filter
                 args:
-                  - Expr:
-                      - FuncCall:
+                  - Binary:
+                      left:
+                        FuncCall:
                           name: upper
                           args:
                             - Ident: country
                           named_args: {}
-                      - Operator: "=="
-                      - Literal:
+                      op: Eq
+                      right:
+                        Literal:
                           String: USA
                 named_args: {}
         "###
@@ -831,9 +859,10 @@ Canada
                 - Assign:
                     name: y
                     expr:
-                      Expr:
-                        - Operator: "-"
-                        - Ident: x
+                      Unary:
+                        op: Neg
+                        expr:
+                          Ident: x
           named_args: {}
         "###);
 
@@ -875,10 +904,12 @@ Canada
             ast_of_string(r#"country == "USA""#, Rule::expr)?
         , @r###"
         ---
-        Expr:
-          - Ident: country
-          - Operator: "=="
-          - Literal:
+        Binary:
+          left:
+            Ident: country
+          op: Eq
+          right:
+            Literal:
               String: USA
         "###);
         assert_yaml_snapshot!(ast_of_string(
@@ -892,17 +923,21 @@ Canada
           - Assign:
               name: gross_salary
               expr:
-                Expr:
-                  - Ident: salary
-                  - Operator: +
-                  - Ident: payroll_tax
+                Binary:
+                  left:
+                    Ident: salary
+                  op: Add
+                  right:
+                    Ident: payroll_tax
           - Assign:
               name: gross_cost
               expr:
-                Expr:
-                  - Ident: gross_salary
-                  - Operator: +
-                  - Ident: benefits_cost
+                Binary:
+                  left:
+                    Ident: gross_salary
+                  op: Add
+                  right:
+                    Ident: benefits_cost
         "###);
         assert_yaml_snapshot!(
             ast_of_string(
@@ -914,17 +949,23 @@ Canada
         Assign:
           name: gross_salary
           expr:
-            Expr:
-              - Expr:
-                  - Ident: salary
-                  - Operator: +
-                  - Ident: payroll_tax
-              - Operator: "*"
-              - Expr:
-                  - Literal:
+            Binary:
+              left:
+                Binary:
+                  left:
+                    Ident: salary
+                  op: Add
+                  right:
+                    Ident: payroll_tax
+              op: Mul
+              right:
+                Binary:
+                  left:
+                    Literal:
                       Integer: 1
-                  - Operator: +
-                  - Ident: tax_rate
+                  op: Add
+                  right:
+                    Ident: tax_rate
         "###);
         Ok(())
     }
@@ -971,10 +1012,12 @@ take 20
               - ~
           named_params: []
           body:
-            Expr:
-              - Ident: x
-              - Operator: +
-              - Literal:
+            Binary:
+              left:
+                Ident: x
+              op: Add
+              right:
+                Literal:
                   Integer: 1
           return_type: ~
         "###);
@@ -1005,10 +1048,12 @@ take 20
               - ~
           named_params: []
           body:
-            Expr:
-              - Ident: x
-              - Operator: +
-              - Literal:
+            Binary:
+              left:
+                Ident: x
+              op: Add
+              right:
+                Literal:
                   Integer: 1
           return_type: ~
         "###);
@@ -1024,10 +1069,12 @@ take 20
               - ~
           named_params: []
           body:
-            Expr:
-              - Ident: x
-              - Operator: +
-              - Literal:
+            Binary:
+              left:
+                Ident: x
+              op: Add
+              right:
+                Literal:
                   Integer: 1
           return_type: ~
         "###);
@@ -1048,10 +1095,12 @@ take 20
             FuncCall:
               name: foo
               args:
-                - Expr:
-                    - Ident: bar
-                    - Operator: +
-                    - Literal:
+                - Binary:
+                    left:
+                      Ident: bar
+                    op: Add
+                    right:
+                      Literal:
                         Integer: 1
               named_args: {}
           return_type: ~
@@ -1116,10 +1165,12 @@ take 20
                     Ident: a
               - ~
           body:
-            Expr:
-              - Ident: x
-              - Operator: +
-              - Ident: to
+            Binary:
+              left:
+                Ident: x
+              op: Add
+              right:
+                Ident: to
           return_type: ~
         "###);
 
@@ -1166,21 +1217,31 @@ take 20
                     name: select
                     args:
                       - List:
-                          - Expr:
-                              - Ident: a
-                              - Operator: and
-                              - Expr:
-                                  - Ident: b
-                                  - Operator: +
-                                  - Ident: c
-                              - Operator: or
-                              - FuncCall:
-                                  name: d
-                                  args:
-                                    - Ident: e
-                                  named_args: {}
-                              - Operator: and
-                              - Ident: f
+                          - Binary:
+                              left:
+                                Ident: a
+                              op: And
+                              right:
+                                Binary:
+                                  left:
+                                    Binary:
+                                      left:
+                                        Ident: b
+                                      op: Add
+                                      right:
+                                        Ident: c
+                                  op: Or
+                                  right:
+                                    Binary:
+                                      left:
+                                        FuncCall:
+                                          name: d
+                                          args:
+                                            - Ident: e
+                                          named_args: {}
+                                      op: And
+                                      right:
+                                        Ident: f
                     named_args: {}
         "###);
 
@@ -1341,14 +1402,18 @@ take 20
                     name: filter
                     args:
                       - List:
-                          - Expr:
-                              - Ident: first_name
-                              - Operator: "=="
-                              - Ident: $1
-                          - Expr:
-                              - Ident: last_name
-                              - Operator: "=="
-                              - Ident: $2.name
+                          - Binary:
+                              left:
+                                Ident: first_name
+                              op: Eq
+                              right:
+                                Ident: $1
+                          - Binary:
+                              left:
+                                Ident: last_name
+                              op: Eq
+                              right:
+                                Ident: $2.name
                     named_args: {}
         "###);
         Ok(())
@@ -1398,9 +1463,10 @@ select [
                 - FuncCall:
                     name: sort
                     args:
-                      - Expr:
-                          - Operator: "-"
-                          - Ident: issued_at
+                      - Unary:
+                          op: Neg
+                          expr:
+                            Ident: issued_at
                     named_args: {}
                 - FuncCall:
                     name: sort
@@ -1412,21 +1478,21 @@ select [
                     name: sort
                     args:
                       - List:
-                          - Expr:
-                              - Operator: "-"
-                              - Ident: issued_at
+                          - Unary:
+                              op: Neg
+                              expr:
+                                Ident: issued_at
                     named_args: {}
                 - FuncCall:
                     name: sort
                     args:
                       - List:
                           - Ident: issued_at
-                          - Expr:
-                              - Operator: "-"
-                              - Ident: amount
-                          - Expr:
-                              - Operator: +
-                              - Ident: num_of_articles
+                          - Unary:
+                              op: Neg
+                              expr:
+                                Ident: amount
+                          - Ident: num_of_articles
                     named_args: {}
         "###);
 
@@ -1538,10 +1604,12 @@ select [
                           - Assign:
                               name: age_plus_two_years
                               expr:
-                                Expr:
-                                  - Ident: age
-                                  - Operator: +
-                                  - Interval:
+                                Binary:
+                                  left:
+                                    Ident: age
+                                  op: Add
+                                  right:
+                                    Interval:
                                       n: 2
                                       unit: years
                     named_args: {}

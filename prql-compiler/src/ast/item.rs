@@ -11,7 +11,6 @@ use super::*;
 #[derive(Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize)]
 pub enum Item {
     Ident(Ident),
-    Operator(String),
     Literal(Literal),
     Assign(NamedExpr),
     NamedArg(NamedExpr),
@@ -20,7 +19,8 @@ pub enum Item {
     Transform(Transform),
     List(Vec<Node>),
     Range(Range),
-    Expr(Vec<Node>),
+    Binary { left: Box<Node>, op: BinOp, right: Box<Node> },
+    Unary { op: UnOp, expr: Box<Node> },
     FuncDef(FuncDef),
     FuncCall(FuncCall),
     Type(Ty),
@@ -29,6 +29,46 @@ pub enum Item {
     FString(Vec<InterpolateItem>),
     Interval(Interval),
     Windowed(Windowed),
+}
+
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, strum::Display, strum::EnumString)]
+pub enum BinOp {
+    #[strum(to_string="*")]
+    Mul,
+    #[strum(to_string="/")]
+    Div,
+    #[strum(to_string="%")]
+    Mod,
+    #[strum(to_string="+")]
+    Add,
+    #[strum(to_string="-")]
+    Sub,
+    #[strum(to_string="==")]
+    Eq,
+    #[strum(to_string="!=")]
+    Ne,
+    #[strum(to_string=">")]
+    Gt,
+    #[strum(to_string="<")]
+    Lt,
+    #[strum(to_string=">=")]
+    Gte,
+    #[strum(to_string="<=")]
+    Lte,
+    #[strum(to_string="and")]
+    And,
+    #[strum(to_string="or")]
+    Or,
+    #[strum(to_string="??")]
+    Coalesce,
+}
+
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, strum::EnumString)]
+pub enum UnOp {
+    #[strum(to_string="-")]
+    Neg,
+    #[strum(to_string="not")]
+    Not,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
@@ -164,9 +204,6 @@ impl Display for Item {
             Item::Ident(s) => {
                 f.write_str(s)?;
             }
-            Item::Operator(o) => {
-                f.write_str(o)?;
-            }
             Item::Assign(ne) => {
                 write!(f, "{} = {}", ne.name, ne.expr.item)?;
             }
@@ -244,12 +281,13 @@ impl Display for Item {
                     write!(f, "{}", end.item)?;
                 }
             }
-            Item::Expr(nodes) => {
-                for (i, node) in nodes.iter().enumerate() {
-                    write!(f, "{}", node.item)?;
-                    if i + 1 < nodes.len() {
-                        f.write_char(' ')?;
-                    }
+            Item::Binary { op, left, right } => {
+                write!(f, "{} {op} {}", left.item, right.item)?;
+            }
+            Item::Unary { op, expr } => {
+                match op {
+                    UnOp::Neg => write!(f, "!{}", expr.item)?,
+                    UnOp::Not => write!(f, "not {}", expr.item)?,
                 }
             }
             Item::FuncCall(func_call) => {

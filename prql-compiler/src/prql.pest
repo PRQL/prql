@@ -68,15 +68,15 @@ assign_call = !{ ident ~ "=" ~ !"=" ~ expr_call }
 
 expr_call = _{ (func_call | expr) }
 
-expr = !{ expr_coalesce ~ (operator_logical ~ expr_coalesce)* }
-expr_coalesce = { expr_compare ~ (operator_coalesce ~ expr_compare)* }
+expr = !{ expr_coalesce ~ (operator_logical ~ expr)? }
+expr_coalesce = { expr_compare ~ (operator_coalesce ~ expr_coalesce)? }
 expr_compare = { expr_add ~ (operator_compare ~ expr_add)? }
-expr_add = _{ expr_mul ~ (operator_add ~ expr_mul)* }
-expr_mul = _{ term ~ (operator_mul ~ term)* }
+expr_add = { expr_mul ~ (operator_add ~ expr_add)? }
+expr_mul = { term ~ (operator_mul ~ expr_mul)? }
 
-term = _{ ( s_string | f_string | range | literal | ident | nested_pipeline | signed_term | list | jinja ) }
-// signed_term is for sorting.
-signed_term = _{ ( operator_add ~ ( nested_pipeline | ident )) }
+term = _{ ( s_string | f_string | range | literal | ident | nested_pipeline | expr_unary | list | jinja ) }
+// expr_unary is for sorting.
+expr_unary = { ( operator_unary ~ ( nested_pipeline | ident )) }
 literal = _{ interval | number | boolean | null | string | timestamp | date | time }
 list = { "[" ~ (NEWLINE* ~ (assign_call | expr_call) ~ ("," ~ NEWLINE* ~ (assign_call | expr_call) )* ~ ","?)? ~ NEWLINE* ~ "]" }
 nested_pipeline = _{ "(" ~ (WHITESPACE | NEWLINE)* ~ pipeline ~ (WHITESPACE | NEWLINE)* ~ ")" }
@@ -117,11 +117,11 @@ range = ${ range_edge ~ ".." ~ range_edge }
 range_edge = ${ literal? }
 
 operator = _{ operator_unary | operator_mul | operator_add | operator_compare | operator_logical | operator_coalesce }
-operator_unary = ${ "-" }
+operator_unary = ${ "-" | "+" | "!" }
 operator_mul = ${ "*" | "/" | "%" }
 operator_add = ${ "+" | "-" }
 operator_compare = ${ "==" | "!=" | ">" | "<" | ">=" | "<=" }
-operator_logical = ${ ("and" | "or" | "not") ~ &WHITESPACE }
+operator_logical = ${ ("and" | "or") ~ &WHITESPACE }
 operator_coalesce = ${ "??" }
 
 s_string = ${ "s" ~ opening_quote ~ ( interpolate_string_inner | ( "{" ~ expr_call ~ "}" ))* ~ POP }

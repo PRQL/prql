@@ -84,7 +84,15 @@ pub trait AstFold {
 pub fn fold_item<T: ?Sized + AstFold>(fold: &mut T, item: Item) -> Result<Item> {
     Ok(match item {
         Item::Ident(ident) => Item::Ident(fold.fold_ident(ident)?),
-        Item::Expr(items) => Item::Expr(fold.fold_nodes(items)?),
+        Item::Binary { op, left, right } => Item::Binary {
+            op,
+            left: Box::new(fold.fold_node(*left)?),
+            right: Box::new(fold.fold_node(*right)?),
+        },
+        Item::Unary { op, expr } => Item::Unary {
+            op,
+            expr: Box::new(fold.fold_node(*expr)?),
+        },
         Item::List(items) => Item::List(fold.fold_nodes(items)?),
         Item::Range(range) => Item::Range(fold_range(fold, range)?),
         Item::Query(query) => Item::Query(Query {
@@ -114,7 +122,7 @@ pub fn fold_item<T: ?Sized + AstFold>(fold: &mut T, item: Item) -> Result<Item> 
         Item::Type(t) => Item::Type(fold.fold_type(t)?),
         // None of these capture variables, so we don't need to replace
         // them.
-        Item::Literal(_) | Item::Operator(_) | Item::Interval(_) => item,
+        Item::Literal(_) | Item::Interval(_) => item,
     })
 }
 
