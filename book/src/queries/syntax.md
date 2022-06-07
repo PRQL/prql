@@ -106,18 +106,3 @@ from employees  # Comment 1
 # Comment 2
 aggregate [average salary]
 ```
-
-## Roadmap
-
-Currently we don't yet "curry" a pipeline. As a result, an inline pipeline which
-doesn't begin with a line-break — generally a very short pipeline —
-to start with a line-break or a `|` character:
-
-```prql
-from employees
-select department
-group department ( | take 1)
-```
-
-We'll be able to replace `( | take 1)` with `(take 1)` in the future; see
-[#414](https://github.com/prql/prql/issues/414) for more details.

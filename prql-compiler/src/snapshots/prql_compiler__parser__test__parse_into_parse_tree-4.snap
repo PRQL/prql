@@ -12,7 +12,7 @@ expression: "parse_tree_of_str(r#\"    filter country == \"USA\"\"#, Rule::pipel
         },
         inner: [
             Pair {
-                rule: func_curry,
+                rule: func_call,
                 span: Span {
                     str: "filter country == \"USA\"",
                     start: 4,
@@ -53,13 +53,33 @@ expression: "parse_tree_of_str(r#\"    filter country == \"USA\"\"#, Rule::pipel
                                         },
                                         inner: [
                                             Pair {
-                                                rule: ident,
+                                                rule: expr_add,
                                                 span: Span {
-                                                    str: "country",
+                                                    str: "country ",
                                                     start: 11,
-                                                    end: 18,
+                                                    end: 19,
                                                 },
-                                                inner: [],
+                                                inner: [
+                                                    Pair {
+                                                        rule: expr_mul,
+                                                        span: Span {
+                                                            str: "country ",
+                                                            start: 11,
+                                                            end: 19,
+                                                        },
+                                                        inner: [
+                                                            Pair {
+                                                                rule: ident,
+                                                                span: Span {
+                                                                    str: "country",
+                                                                    start: 11,
+                                                                    end: 18,
+                                                                },
+                                                                inner: [],
+                                                            },
+                                                        ],
+                                                    },
+                                                ],
                                             },
                                             Pair {
                                                 rule: operator_compare,
@@ -71,7 +91,7 @@ expression: "parse_tree_of_str(r#\"    filter country == \"USA\"\"#, Rule::pipel
                                                 inner: [],
                                             },
                                             Pair {
-                                                rule: string,
+                                                rule: expr_add,
                                                 span: Span {
                                                     str: "\"USA\"",
                                                     start: 22,
@@ -79,13 +99,33 @@ expression: "parse_tree_of_str(r#\"    filter country == \"USA\"\"#, Rule::pipel
                                                 },
                                                 inner: [
                                                     Pair {
-                                                        rule: string_inner,
+                                                        rule: expr_mul,
                                                         span: Span {
-                                                            str: "USA",
-                                                            start: 23,
-                                                            end: 26,
+                                                            str: "\"USA\"",
+                                                            start: 22,
+                                                            end: 27,
                                                         },
-                                                        inner: [],
+                                                        inner: [
+                                                            Pair {
+                                                                rule: string,
+                                                                span: Span {
+                                                                    str: "\"USA\"",
+                                                                    start: 22,
+                                                                    end: 27,
+                                                                },
+                                                                inner: [
+                                                                    Pair {
+                                                                        rule: string_inner,
+                                                                        span: Span {
+                                                                            str: "USA",
+                                                                            start: 23,
+                                                                            end: 26,
+                                                                        },
+                                                                        inner: [],
+                                                                    },
+                                                                ],
+                                                            },
+                                                        ],
                                                     },
                                                 ],
                                             },

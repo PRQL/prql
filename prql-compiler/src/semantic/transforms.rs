@@ -52,43 +52,13 @@ pub fn cast_transform(func_call: FuncCall, span: Option<Span>) -> Result<Transfo
                 .into_iter()
                 .map(|node| {
                     let (column, direction) = match &node.item {
-                        // If it's `+foo`, then it's two items; if `foo` then one.
-                        Item::Ident(_) => (node, SortDirection::default()),
-                        Item::Expr(nodes) => match &nodes[..] {
-                            [Node {
-                                item: Item::Operator(op),
-                                ..
-                            }, column]
-                            // We could use a guard, but we instead fall through
-                            // for a better error message.
-                            // if op == "+" || op == "-" =>
-                            => {
-                                let direction = match op.as_str() {
-                                    "+" => SortDirection::Asc,
-                                    "-" => SortDirection::Desc,
-                                    _ => {
-                                        return Err(Error::new(Reason::Expected {
-                                            who: Some("sort".to_string()),
-                                            expected: "+ or -".to_string(),
-                                            found: op.to_string(),
-                                        })
-                                        .with_span(node.span))
-                                    }
-                                };
-                                (column.clone(), direction)
-                            }
-                            _ => {
-                                return Err(Error::new(Reason::Expected {
-                                    who: Some("sort".to_string()),
-                                    expected: "column name, optionally prefixed with + or -"
-                                        .to_string(),
-                                    found: node.item.to_string(),
-                                })
-                                .with_span(node.span))
-                            }
-                        },
+                        Item::Ident(_) => (node.clone(), SortDirection::default()),
+                        Item::Unary { op, expr: a }
+                            if matches!((op, &a.item), (UnOp::Neg, Item::Ident(_))) =>
+                        {
+                            (*a.clone(), SortDirection::Desc)
+                        }
                         _ => {
-                            // Copy-pasted from above; can we consolidate?
                             return Err(Error::new(Reason::Expected {
                                 who: Some("sort".to_string()),
                                 expected: "column name, optionally prefixed with + or -"
@@ -188,7 +158,7 @@ pub fn cast_transform(func_call: FuncCall, span: Option<Span>) -> Result<Transfo
                 })
                 .try_collect()?;
 
-            let pipeline = Box::new(pipeline);
+            let pipeline = Box::new(Item::Pipeline(pipeline.coerce_to_pipeline()).into());
 
             Transform::Group { by, pipeline }
         }
@@ -269,7 +239,7 @@ pub fn cast_transform(func_call: FuncCall, span: Option<Span>) -> Result<Transfo
             Transform::Window {
                 range,
                 kind,
-                pipeline: Box::new(pipeline),
+                pipeline: Box::new(Item::Pipeline(pipeline.coerce_to_pipeline()).into()),
             }
         }
         unknown => bail!(Error::new(Reason::Expected {
@@ -308,22 +278,22 @@ mod tests {
     use insta::assert_yaml_snapshot;
 
     use crate::parse;
-    use crate::semantic::resolve;
+    use crate::semantic::resolve_names;
     use crate::sql::load_std_lib;
 
     #[test]
     fn test_simple_casts() {
         let query = parse(r#"filter upper country = "USA""#).unwrap();
-        assert!(resolve(query.nodes, None).is_err());
+        assert!(resolve_names(query.nodes, None).is_err());
 
         let query = parse(r#"take"#).unwrap();
-        assert!(resolve(query.nodes, None).is_err());
+        assert!(resolve_names(query.nodes, None).is_err());
     }
 
     #[test]
     fn test_aggregate_positional_arg() {
         let stdlib = load_std_lib().unwrap();
-        let (_, context) = resolve(stdlib, None).unwrap();
+        let (_, context) = resolve_names(stdlib, None).unwrap();
         let context = Some(context);
 
         // distinct query #292
@@ -337,17 +307,16 @@ mod tests {
         ",
         )
         .unwrap();
-        let (result, _) = resolve(query.nodes, context.clone()).unwrap();
+        let (result, _) = resolve_names(query.nodes, context.clone()).unwrap();
         assert_yaml_snapshot!(result, @r###"
         ---
         - Pipeline:
-            value: ~
-            functions:
+            nodes:
               - Transform:
                   From:
                     name: c_invoice
                     alias: ~
-                    declared_at: 78
+                    declared_at: 76
               - Transform:
                   Select:
                     - Ident: invoice_no
@@ -357,8 +326,7 @@ mod tests {
                       - Ident: invoice_no
                     pipeline:
                       Pipeline:
-                        value: ~
-                        functions:
+                        nodes:
                           - Transform:
                               Take:
                                 range:
@@ -379,7 +347,7 @@ mod tests {
         ",
         )
         .unwrap();
-        let result = resolve(query.nodes, context.clone());
+        let result = resolve_names(query.nodes, context.clone());
         assert!(result.is_err());
 
         // oops, two arguments
@@ -390,7 +358,7 @@ mod tests {
         ",
         )
         .unwrap();
-        let result = resolve(query.nodes, context.clone());
+        let result = resolve_names(query.nodes, context.clone());
         assert!(result.is_err());
 
         // correct function call
@@ -403,25 +371,23 @@ mod tests {
         ",
         )
         .unwrap();
-        let (result, _) = resolve(query.nodes, context).unwrap();
+        let (result, _) = resolve_names(query.nodes, context).unwrap();
         assert_yaml_snapshot!(result, @r###"
         ---
         - Pipeline:
-            value: ~
-            functions:
+            nodes:
               - Transform:
                   From:
                     name: c_invoice
                     alias: ~
-                    declared_at: 78
+                    declared_at: 76
               - Transform:
                   Group:
                     by:
                       - Ident: date
                     pipeline:
                       Pipeline:
-                        value: ~
-                        functions:
+                        nodes:
                           - Transform:
                               Aggregate:
                                 assigns:
@@ -434,7 +400,7 @@ mod tests {
     #[test]
     fn test_transform_sort() {
         let stdlib = load_std_lib().unwrap();
-        let (_, context) = resolve(stdlib, None).unwrap();
+        let (_, context) = resolve_names(stdlib, None).unwrap();
         let context = Some(context);
 
         let query = parse(
@@ -449,17 +415,16 @@ mod tests {
         )
         .unwrap();
 
-        let (result, _) = resolve(query.nodes, context).unwrap();
+        let (result, _) = resolve_names(query.nodes, context).unwrap();
         assert_yaml_snapshot!(result, @r###"
         ---
         - Pipeline:
-            value: ~
-            functions:
+            nodes:
               - Transform:
                   From:
                     name: invoices
                     alias: ~
-                    declared_at: 78
+                    declared_at: 76
               - Transform:
                   Sort:
                     - direction: Asc

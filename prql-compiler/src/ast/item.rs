@@ -11,7 +11,6 @@ use super::*;
 #[derive(Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize)]
 pub enum Item {
     Ident(Ident),
-    Operator(String),
     Literal(Literal),
     Assign(NamedExpr),
     NamedArg(NamedExpr),
@@ -20,15 +19,63 @@ pub enum Item {
     Transform(Transform),
     List(Vec<Node>),
     Range(Range),
-    Expr(Vec<Node>),
+    Binary {
+        left: Box<Node>,
+        op: BinOp,
+        right: Box<Node>,
+    },
+    Unary {
+        op: UnOp,
+        expr: Box<Node>,
+    },
     FuncDef(FuncDef),
     FuncCall(FuncCall),
-    Type(Type),
+    Type(Ty),
     Table(Table),
     SString(Vec<InterpolateItem>),
     FString(Vec<InterpolateItem>),
     Interval(Interval),
     Windowed(Windowed),
+}
+
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, strum::Display, strum::EnumString)]
+pub enum BinOp {
+    #[strum(to_string = "*")]
+    Mul,
+    #[strum(to_string = "/")]
+    Div,
+    #[strum(to_string = "%")]
+    Mod,
+    #[strum(to_string = "+")]
+    Add,
+    #[strum(to_string = "-")]
+    Sub,
+    #[strum(to_string = "==")]
+    Eq,
+    #[strum(to_string = "!=")]
+    Ne,
+    #[strum(to_string = ">")]
+    Gt,
+    #[strum(to_string = "<")]
+    Lt,
+    #[strum(to_string = ">=")]
+    Gte,
+    #[strum(to_string = "<=")]
+    Lte,
+    #[strum(to_string = "and")]
+    And,
+    #[strum(to_string = "or")]
+    Or,
+    #[strum(to_string = "??")]
+    Coalesce,
+}
+
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, strum::EnumString)]
+pub enum UnOp {
+    #[strum(to_string = "-")]
+    Neg,
+    #[strum(to_string = "not")]
+    Not,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
@@ -63,10 +110,11 @@ impl Windowed {
         }
     }
 }
+
+/// Represents a value and a series of function curries
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Pipeline {
-    pub value: Option<Box<Node>>,
-    pub functions: Vec<Node>,
+    pub nodes: Vec<Node>,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
@@ -129,23 +177,19 @@ pub struct Interval {
 
 impl Pipeline {
     pub fn into_transforms(self) -> Result<Vec<Transform>, Item> {
-        self.functions
+        self.nodes
             .into_iter()
             .map(|f| f.item.into_transform())
             .try_collect()
     }
 
     pub fn as_transforms(&self) -> Option<Vec<&Transform>> {
-        self.functions
-            .iter()
-            .map(|f| f.item.as_transform())
-            .collect()
+        self.nodes.iter().map(|f| f.item.as_transform()).collect()
     }
 }
 impl From<Vec<Node>> for Pipeline {
-    fn from(functions: Vec<Node>) -> Self {
-        let value = None;
-        Pipeline { functions, value }
+    fn from(nodes: Vec<Node>) -> Self {
+        Pipeline { nodes }
     }
 }
 
@@ -164,9 +208,6 @@ impl Display for Item {
             Item::Ident(s) => {
                 f.write_str(s)?;
             }
-            Item::Operator(o) => {
-                f.write_str(o)?;
-            }
             Item::Assign(ne) => {
                 write!(f, "{} = {}", ne.name, ne.expr.item)?;
             }
@@ -179,7 +220,7 @@ impl Display for Item {
                 for node in &query.nodes {
                     match &node.item {
                         Item::Pipeline(p) => {
-                            for node in &p.functions {
+                            for node in &p.nodes {
                                 writeln!(f, "{}", node.item)?;
                             }
                         }
@@ -188,19 +229,23 @@ impl Display for Item {
                 }
             }
             Item::Pipeline(pipeline) => {
-                if let Some(value) = &pipeline.value {
-                    write!(f, "({}", value.item)?;
-                    for node in &pipeline.functions {
-                        write!(f, " | {}", node.item)?;
+                f.write_char('(')?;
+                match pipeline.nodes.len() {
+                    0 => {}
+                    1 => {
+                        write!(f, "{}", pipeline.nodes[0].item)?;
+                        for node in &pipeline.nodes[1..] {
+                            write!(f, " | {}", node.item)?;
+                        }
                     }
-                    f.write_char(')')?;
-                } else {
-                    f.write_str("(\n")?;
-                    for node in &pipeline.functions {
-                        writeln!(f, "  {}", node.item)?;
+                    _ => {
+                        writeln!(f, "\n  {}", pipeline.nodes[0].item)?;
+                        for node in &pipeline.nodes[1..] {
+                            writeln!(f, "  {}", node.item)?;
+                        }
                     }
-                    f.write_str(")")?;
                 }
+                f.write_char(')')?;
             }
             Item::Transform(transform) => {
                 write!(f, "{} <unimplemented>", transform.as_ref())?;
@@ -240,14 +285,13 @@ impl Display for Item {
                     write!(f, "{}", end.item)?;
                 }
             }
-            Item::Expr(nodes) => {
-                for (i, node) in nodes.iter().enumerate() {
-                    write!(f, "{}", node.item)?;
-                    if i + 1 < nodes.len() {
-                        f.write_char(' ')?;
-                    }
-                }
+            Item::Binary { op, left, right } => {
+                write!(f, "{} {op} {}", left.item, right.item)?;
             }
+            Item::Unary { op, expr } => match op {
+                UnOp::Neg => write!(f, "!{}", expr.item)?,
+                UnOp::Not => write!(f, "not {}", expr.item)?,
+            },
             Item::FuncCall(func_call) => {
                 f.write_str(func_call.name.as_str())?;
 
@@ -300,14 +344,15 @@ fn display_interpolation(
     Ok(())
 }
 
-fn display_type(f: &mut std::fmt::Formatter, typ: &Type) -> Result<(), std::fmt::Error> {
+fn display_type(f: &mut std::fmt::Formatter, typ: &Ty) -> Result<(), std::fmt::Error> {
     match typ {
-        Type::Native(kind) => write!(f, "{:}", kind)?,
-        Type::Parameterized(t, param) => {
+        Ty::Literal(lit) => write!(f, "{:}", lit)?,
+        Ty::Named(name) => write!(f, "{:}", name)?,
+        Ty::Parameterized(t, param) => {
             display_type(f, t)?;
             write!(f, "<{:?}>", param.item)?
         }
-        Type::AnyOf(ts) => {
+        Ty::AnyOf(ts) => {
             for (i, t) in ts.iter().enumerate() {
                 display_type(f, t)?;
                 if i < ts.len() - 1 {
@@ -315,6 +360,7 @@ fn display_type(f: &mut std::fmt::Formatter, typ: &Type) -> Result<(), std::fmt:
                 }
             }
         }
+        Ty::Infer => {}
     }
     Ok(())
 }

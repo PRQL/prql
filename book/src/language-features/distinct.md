@@ -15,11 +15,7 @@ or without a linebreak:
 ```prql
 from employees
 select department
-group department ( | take 1) # Note below
-```
-
-```admonish note
-Note: `|` is required in `( | take 1)` temporarily, until we finish implementing function & pipeline currying.
+group department (take 1) # Note below
 ```
 
 ## Selecting from each group

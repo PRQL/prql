@@ -12,9 +12,10 @@ use anyhow::{anyhow, bail, Result};
 use itertools::Itertools;
 use sqlformat::{format, FormatOptions, QueryParams};
 use sqlparser::ast::{
-    self as sql_ast, DateTimeField, Expr, Function, FunctionArg, FunctionArgExpr, Join,
-    JoinConstraint, JoinOperator, ObjectName, OrderByExpr, Select, SelectItem, SetExpr, TableAlias,
-    TableFactor, TableWithJoins, Top, Value, WindowFrameBound, WindowSpec,
+    self as sql_ast, BinaryOperator, DateTimeField, Expr, Function, FunctionArg, FunctionArgExpr,
+    Join, JoinConstraint, JoinOperator, ObjectName, OrderByExpr, Select, SelectItem, SetExpr,
+    TableAlias, TableFactor, TableWithJoins, Top, UnaryOperator, Value, WindowFrameBound,
+    WindowSpec,
 };
 use std::collections::HashMap;
 
@@ -106,16 +107,17 @@ pub struct AtomicTable {
 
 fn into_tables(nodes: Vec<Node>) -> Result<Vec<Table>> {
     let mut tables: Vec<Table> = Vec::new();
-    let mut pipeline: Vec<Node> = Vec::new();
+    let mut transforms: Vec<Node> = Vec::new();
     for node in nodes {
         match node.item {
             Item::Table(t) => tables.push(t),
-            Item::Pipeline(p) => pipeline.extend(p.functions),
+            Item::Pipeline(p) => transforms.extend(p.nodes),
+            Item::Transform(_) => transforms.push(node),
             i => bail!("Unexpected item on top level: {i:?}"),
         }
     }
 
-    Ok([tables, vec![pipeline.into()]].concat())
+    Ok([tables, vec![transforms.into()]].concat())
 }
 
 fn table_to_sql_cte(table: AtomicTable, dialect: &Dialect) -> Result<sql_ast::Cte> {
@@ -275,7 +277,7 @@ fn atomic_pipelines_of_pipeline(
     //
     // So we loop through the Pipeline, and cut it into cte-sized pipelines,
     // which we'll then compose together.
-    let pipeline = Ok(pipeline.functions)
+    let pipeline = Ok(pipeline.nodes)
         .and_then(un_group::un_group)
         .and_then(|x| distinct::take_to_distinct(x, context))?;
 
@@ -335,7 +337,7 @@ fn atomic_tables_of_tables(
     let mut index = 0;
     for table in tables {
         // split table into atomics
-        let pipeline = table.pipeline.item.into_pipeline()?;
+        let pipeline = table.pipeline.coerce_to_pipeline();
         let mut t_atomics: Vec<_> = atomic_pipelines_of_pipeline(pipeline, context)?;
 
         let (last, ctes) = t_atomics
@@ -376,7 +378,7 @@ fn atomic_tables_of_tables(
 fn prepend_with_from(pipeline: &mut Pipeline, table: Option<TableRef>) {
     if let Some(table) = table {
         let from = Transform::From(table);
-        pipeline.functions.insert(0, Item::Transform(from).into());
+        pipeline.nodes.insert(0, Item::Transform(from).into());
     }
 }
 
@@ -408,7 +410,6 @@ fn range_of_ranges(ranges: Vec<Range>) -> Result<Range<i64>> {
     Ok(current)
 }
 
-#[allow(unstable_name_collisions)] // Same behavior as the std lib; we can remove this + itertools when that's released.
 fn filter_of_pipeline(pipeline: &[Transform]) -> Result<Option<Expr>> {
     let filters: Vec<Node> = pipeline
         .iter()
@@ -416,14 +417,25 @@ fn filter_of_pipeline(pipeline: &[Transform]) -> Result<Option<Expr>> {
             Transform::Filter(filter) => Some(*filter.clone()),
             _ => None,
         })
-        .intersperse(Node::from(Item::Operator("and".to_owned())))
         .collect();
+    filter_of_filters(filters)
+}
 
-    Ok(if !filters.is_empty() {
-        Some((Item::Expr(filters)).try_into()?)
-    } else {
-        None
-    })
+fn filter_of_filters(conditions: Vec<Node>) -> Result<Option<Expr>> {
+    let mut condition = None;
+    for filter in conditions {
+        if let Some(left) = condition {
+            condition = Some(Node::from(Item::Binary {
+                op: BinOp::And,
+                left: Box::new(left),
+                right: Box::new(filter),
+            }))
+        } else {
+            condition = Some(filter)
+        }
+    }
+
+    condition.map(|n| n.item.try_into()).transpose()
 }
 
 fn expr_of_i64(number: i64) -> Expr {
@@ -452,7 +464,8 @@ impl TryFrom<Item> for SelectItem {
     type Error = anyhow::Error;
     fn try_from(item: Item) -> Result<Self> {
         Ok(match item {
-            Item::Expr(_)
+            Item::Binary { .. }
+            | Item::Unary { .. }
             | Item::SString(_)
             | Item::FString(_)
             | Item::Ident(_)
@@ -472,30 +485,42 @@ impl TryFrom<Item> for Expr {
         Ok(match item {
             Item::Ident(_) => Expr::Identifier(item.try_into()?),
 
-            Item::Operator(op) => Expr::Identifier(sql_ast::Ident::new(match op.as_str() {
-                "==" => sql_ast::BinaryOperator::Eq.to_string(),
-                "!=" => sql_ast::BinaryOperator::NotEq.to_string(),
-                _ => op.to_uppercase(),
-            })),
-
-            // (one question is whether we need to surround `Expr` with parentheses?)
-            Item::Expr(items) => {
-                if let Some(e) = try_into_is_null(&items)? {
-                    e
+            // do we need to surround operations with parentheses?
+            Item::Binary { op, left, right } => {
+                if let Some(is_null) = try_into_is_null(&op, &left, &right)? {
+                    is_null
                 } else {
-                    Expr::Identifier(sql_ast::Ident::new(
-                        items
-                            .into_iter()
-                            .map(|node| Expr::try_from(node.item))
-                            .collect::<Result<Vec<Expr>>>()?
-                            .iter()
-                            .map(|x| x.to_string())
-                            // Currently a hack, but maybe OK, since we don't
-                            // need to parse every single expression into sqlparser ast.
-                            .join(" "),
-                    ))
+                    Expr::BinaryOp {
+                        left: Box::new(left.item.try_into()?),
+                        op: match op {
+                            BinOp::Mul => BinaryOperator::Multiply,
+                            BinOp::Div => BinaryOperator::Divide,
+                            BinOp::Mod => BinaryOperator::Modulo,
+                            BinOp::Add => BinaryOperator::Plus,
+                            BinOp::Sub => BinaryOperator::Minus,
+                            BinOp::Eq => BinaryOperator::Eq,
+                            BinOp::Ne => BinaryOperator::NotEq,
+                            BinOp::Gt => BinaryOperator::Gt,
+                            BinOp::Lt => BinaryOperator::Lt,
+                            BinOp::Gte => BinaryOperator::GtEq,
+                            BinOp::Lte => BinaryOperator::LtEq,
+                            BinOp::And => BinaryOperator::And,
+                            BinOp::Or => BinaryOperator::Or,
+                            BinOp::Coalesce => unreachable!(),
+                        },
+                        right: Box::new(right.item.try_into()?),
+                    }
                 }
             }
+
+            Item::Unary { op, expr: a } => Expr::UnaryOp {
+                op: match op {
+                    UnOp::Neg => UnaryOperator::Minus,
+                    UnOp::Not => UnaryOperator::Not,
+                },
+                expr: Box::new(a.item.try_into()?),
+            },
+
             Item::Range(r) => {
                 fn assert_bound(bound: Option<Box<Node>>) -> Result<Node, Error> {
                     bound.map(|b| *b).ok_or_else(|| {
@@ -608,25 +633,21 @@ impl TryFrom<Item> for Expr {
         })
     }
 }
-fn try_into_is_null(nodes: &[Node]) -> Result<Option<Expr>> {
-    if nodes.len() == 3 {
-        if let Item::Operator(op) = &nodes[1].item {
-            if op == "==" || op == "!=" {
-                let expr = if matches!(nodes[0].item, Item::Literal(Literal::Null)) {
-                    Expr::try_from(nodes[2].item.clone())?
-                } else if matches!(nodes[2].item, Item::Literal(Literal::Null)) {
-                    Expr::try_from(nodes[0].item.clone())?
-                } else {
-                    return Ok(None);
-                };
+fn try_into_is_null(op: &BinOp, a: &Node, b: &Node) -> Result<Option<Expr>> {
+    if matches!(op, BinOp::Eq) || matches!(op, BinOp::Ne) {
+        let expr = if matches!(a.item, Item::Literal(Literal::Null)) {
+            Expr::try_from(b.item.clone())?
+        } else if matches!(b.item, Item::Literal(Literal::Null)) {
+            Expr::try_from(a.item.clone())?
+        } else {
+            return Ok(None);
+        };
 
-                return Ok(Some(if op == "==" {
-                    Expr::IsNull(Box::new(expr))
-                } else {
-                    Expr::IsNotNull(Box::new(expr))
-                }));
-            }
-        }
+        return Ok(Some(if matches!(op, BinOp::Eq) {
+            Expr::IsNull(Box::new(expr))
+        } else {
+            Expr::IsNotNull(Box::new(expr))
+        }));
     }
 
     Ok(None)
@@ -699,9 +720,10 @@ impl TryFrom<&Transform> for Join {
         match t {
             Transform::Join { side, with, filter } => {
                 let constraint = match filter {
-                    JoinFilter::On(nodes) => Item::Expr(nodes.to_vec())
-                        .try_into()
-                        .map(JoinConstraint::On)?,
+                    JoinFilter::On(nodes) => JoinConstraint::On(
+                        filter_of_filters(nodes.clone())?
+                            .unwrap_or(Expr::Value(Value::Boolean(true))),
+                    ),
                     JoinFilter::Using(nodes) => JoinConstraint::Using(
                         nodes
                             .iter()
@@ -755,7 +777,7 @@ impl From<Vec<Node>> for AtomicTable {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::{parser::parse, resolve, resolve_and_translate, sql::load_std_lib};
+    use crate::{parser::parse, resolve_and_translate, resolve_names, sql::load_std_lib};
     use insta::{
         assert_debug_snapshot, assert_display_snapshot, assert_snapshot, assert_yaml_snapshot,
     };
@@ -850,13 +872,12 @@ mod test {
     fn test_try_from_s_string_to_expr() -> Result<()> {
         let ast: Node = from_str(
             r"
-SString:
- - String: SUM(
- - Expr:
-     Expr:
-       - Ident: col
- - String: )
-",
+        SString:
+        - String: SUM(
+        - Expr:
+            Ident: col
+        - String: )
+        ",
         )?;
         let expr: Expr = ast.item.try_into()?;
         assert_yaml_snapshot!(
@@ -930,11 +951,10 @@ SString:
 
     fn parse_and_resolve(prql: &str) -> Result<Pipeline> {
         let std_lib = load_std_lib()?;
-        let (_, context) = resolve(std_lib, None)?;
+        let (_, context) = resolve_names(std_lib, None)?;
 
-        let (mut nodes, _) = resolve(parse(prql)?.nodes, Some(context))?;
-        let pipeline = nodes.remove(nodes.len() - 1);
-        let pipeline = pipeline.item.into_pipeline()?;
+        let (mut nodes, _) = resolve_names(parse(prql)?.nodes, Some(context))?;
+        let pipeline = nodes.remove(nodes.len() - 1).coerce_to_pipeline();
         Ok(pipeline)
     }
 
@@ -1059,12 +1079,9 @@ SString:
     fn test_prql_to_sql_1() -> Result<()> {
         let query = parse(
             r#"
-    func count x ->  s"count({x})"
-    func sum x ->  s"sum({x})"
-
     from employees
     aggregate [
-      count salary,
+      count non_null:salary,
       sum salary,
     ]
     "#,
@@ -1073,8 +1090,8 @@ SString:
         assert_display_snapshot!(sql,
             @r###"
         SELECT
-          count(salary),
-          sum(salary)
+          COUNT(salary),
+          SUM(salary)
         FROM
           employees
         "###
@@ -1498,7 +1515,7 @@ take 20
     }
 
     #[test]
-    fn test_window_functions() -> Result<()> {
+    fn test_window_functions() {
         let query: Query = parse(
             r###"
         from employees
@@ -1506,9 +1523,10 @@ take 20
             derive count
         )
         "###,
-        )?;
+        )
+        .unwrap();
 
-        assert_display_snapshot!((resolve_and_translate(query)?), @r###"
+        assert_display_snapshot!((resolve_and_translate(query).unwrap()), @r###"
         SELECT
           employees.*,
           COUNT(*) OVER (PARTITION BY last_name)
@@ -1527,7 +1545,7 @@ take 20
         group [order_month, order_day] (
           aggregate [
             num_orders = s"COUNT(DISTINCT {co.order_id})",
-            num_books = count ol.book_id,
+            num_books = count non_null:ol.book_id,
             total_price = sum ol.price,
           ]
         )
@@ -1540,9 +1558,10 @@ take 20
         sort order_day
         derive [num_books_last_week = lag 7 num_books]
         "###,
-        )?;
+        )
+        .unwrap();
 
-        assert_display_snapshot!((resolve_and_translate(query)?), @r###"
+        assert_display_snapshot!((resolve_and_translate(query).unwrap()), @r###"
         SELECT
           TO_CHAR(co.order_date, '%Y-%m') AS order_month,
           TO_CHAR(co.order_date, '%Y-%m-%d') AS order_day,
@@ -1576,11 +1595,12 @@ take 20
             r###"
         from daily_orders
         derive [last_week = lag 7 num_orders]
-        group month ( | derive [total_month = sum num_orders])
+        group month ( derive [total_month = sum num_orders])
         "###,
-        )?;
+        )
+        .unwrap();
 
-        assert_display_snapshot!((resolve_and_translate(query)?), @r###"
+        assert_display_snapshot!((resolve_and_translate(query).unwrap()), @r###"
         SELECT
           daily_orders.*,
           LAG(num_orders, 7) OVER () AS last_week,
@@ -1594,11 +1614,12 @@ take 20
             r###"
         from daily_orders
         sort day
-        group month ( | derive [total_month = rank])
+        group month (derive [total_month = rank])
         derive [last_week = lag 7 num_orders]
         "###,
-        )?;
-        assert_display_snapshot!((resolve_and_translate(query)?), @r###"
+        )
+        .unwrap();
+        assert_display_snapshot!((resolve_and_translate(query).unwrap()), @r###"
         SELECT
           daily_orders.*,
           RANK() OVER (PARTITION BY month) AS total_month,
@@ -1614,11 +1635,12 @@ take 20
             r###"
         from daily_orders
         sort day
-        group month ( | sort num_orders | window expanding:true ( | derive rank))
+        group month (sort num_orders | window expanding:true (derive rank))
         derive [num_orders_last_week = lag 7 num_orders]
         "###,
-        )?;
-        assert_display_snapshot!((resolve_and_translate(query)?), @r###"
+        )
+        .unwrap();
+        assert_display_snapshot!((resolve_and_translate(query).unwrap()), @r###"
         SELECT
           daily_orders.*,
           RANK() OVER (
@@ -1631,8 +1653,6 @@ take 20
         FROM
           daily_orders
         "###);
-
-        Ok(())
     }
 
     #[test]
@@ -1976,7 +1996,7 @@ take 20
         assert_display_snapshot!((resolve_and_translate(parse(r###"
         from employees
         select first_name
-        group first_name ( | take 1)
+        group first_name (take 1)
         "###,
         ).unwrap()).unwrap()), @r###"
         SELECT
@@ -1989,7 +2009,7 @@ take 20
         assert_display_snapshot!((resolve_and_translate(parse(r###"
         from employees
         select [first_name, last_name]
-        group [first_name, last_name] ( | take 1)
+        group [first_name, last_name] (take 1)
         "###,
         ).unwrap()).unwrap()), @r###"
         SELECT
@@ -2003,7 +2023,7 @@ take 20
         // row  distinct only over first_name and last_name.
         assert_display_snapshot!((resolve_and_translate(parse(r###"
         from employees
-        group [first_name, last_name] ( | take 1)
+        group [first_name, last_name] (take 1)
         "###,
         ).unwrap()).unwrap()), @r###"
         SELECT
@@ -2015,7 +2035,7 @@ take 20
         // head
         assert_display_snapshot!((resolve_and_translate(parse(r###"
         from employees
-        group department ( | take 3)
+        group department (take 3)
         "###,
         ).unwrap()).unwrap()), @r###"
         WITH table_0 AS (
@@ -2035,7 +2055,7 @@ take 20
 
         assert_display_snapshot!((resolve_and_translate(parse(r###"
         from employees
-        group department ( | sort salary | take 2..3)
+        group department (sort salary | take 2..3)
         "###,
         ).unwrap()).unwrap()), @r###"
         WITH table_0 AS (
@@ -2070,6 +2090,20 @@ take 20
           MIN(order_id)
         FROM
           {{ ref('stg_orders') }}
+        "###);
+    }
+
+    #[test]
+    fn test_pipelines() {
+        assert_display_snapshot!((resolve_and_translate(parse(r###"
+        from employees
+        group dept (take 1)
+        "###,
+        ).unwrap()).unwrap()), @r###"
+        SELECT
+          DISTINCT employees.*
+        FROM
+          employees
         "###);
     }
 }

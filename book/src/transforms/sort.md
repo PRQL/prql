@@ -12,6 +12,7 @@ sort [{direction}{column}]
 - Each column can be prefixed with:
   - `+`, for ascending order, the default
   - `-`, for descending order
+- When using prefixes, make sure to wrap columns in a list. Otherwise, `sort -column` is interpreted as subtraction between `sort` and `column`.
 
 ## Examples
 
@@ -22,7 +23,7 @@ sort age
 
 ```prql
 from employees
-sort -age
+sort [-age]
 ```
 
 ```prql

@@ -81,7 +81,7 @@ impl<'a> DistinctMaker<'a> {
             },
         };
         let decl = Declaration::Expression(Box::new(Item::Windowed(windowed).into()));
-        let row_number_id = self.context.declare(decl);
+        let row_number_id = self.context.declarations.push(decl, None);
 
         // name it _rn
         let mut ident = Node::from(Item::Ident("_rn".to_string()));
@@ -91,24 +91,21 @@ impl<'a> DistinctMaker<'a> {
         let transforms = vec![
             Transform::Derive(vec![ident.clone()]),
             Transform::Filter(Box::new(match (range_int.start, range_int.end) {
-                (Some(s), Some(e)) if s == e => Item::Expr(vec![
-                    ident,
-                    Item::Operator("==".to_string()).into(),
-                    Item::Literal(Literal::Integer(s)).into(),
-                ])
-                .into(),
-                (Some(s), None) => Item::Expr(vec![
-                    ident,
-                    Item::Operator(">=".to_string()).into(),
-                    Item::Literal(Literal::Integer(s)).into(),
-                ])
-                .into(),
-                (None, Some(e)) => Item::Expr(vec![
-                    ident,
-                    Item::Operator("<=".to_string()).into(),
-                    Item::Literal(Literal::Integer(e)).into(),
-                ])
-                .into(),
+                (Some(s), Some(e)) if s == e => Node::from(Item::Binary {
+                    left: Box::new(ident),
+                    op: BinOp::Eq,
+                    right: Box::new(Item::Literal(Literal::Integer(s)).into()),
+                }),
+                (Some(s), None) => Node::from(Item::Binary {
+                    left: Box::new(ident),
+                    op: BinOp::Gte,
+                    right: Box::new(Item::Literal(Literal::Integer(s)).into()),
+                }),
+                (None, Some(e)) => Node::from(Item::Binary {
+                    left: Box::new(ident),
+                    op: BinOp::Lte,
+                    right: Box::new(Item::Literal(Literal::Integer(e)).into()),
+                }),
                 (Some(_), Some(_)) => Item::SString(vec![
                     InterpolateItem::Expr(Box::new(ident)),
                     InterpolateItem::String(" BETWEEN ".to_string()),

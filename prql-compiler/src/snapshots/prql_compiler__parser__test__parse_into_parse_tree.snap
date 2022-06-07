@@ -28,13 +28,33 @@ expression: "parse_tree_of_str(r#\"country == \"USA\"\"#, Rule::expr)?"
                         },
                         inner: [
                             Pair {
-                                rule: ident,
+                                rule: expr_add,
                                 span: Span {
-                                    str: "country",
+                                    str: "country ",
                                     start: 0,
-                                    end: 7,
+                                    end: 8,
                                 },
-                                inner: [],
+                                inner: [
+                                    Pair {
+                                        rule: expr_mul,
+                                        span: Span {
+                                            str: "country ",
+                                            start: 0,
+                                            end: 8,
+                                        },
+                                        inner: [
+                                            Pair {
+                                                rule: ident,
+                                                span: Span {
+                                                    str: "country",
+                                                    start: 0,
+                                                    end: 7,
+                                                },
+                                                inner: [],
+                                            },
+                                        ],
+                                    },
+                                ],
                             },
                             Pair {
                                 rule: operator_compare,
@@ -46,7 +66,7 @@ expression: "parse_tree_of_str(r#\"country == \"USA\"\"#, Rule::expr)?"
                                 inner: [],
                             },
                             Pair {
-                                rule: string,
+                                rule: expr_add,
                                 span: Span {
                                     str: "\"USA\"",
                                     start: 11,
@@ -54,13 +74,33 @@ expression: "parse_tree_of_str(r#\"country == \"USA\"\"#, Rule::expr)?"
                                 },
                                 inner: [
                                     Pair {
-                                        rule: string_inner,
+                                        rule: expr_mul,
                                         span: Span {
-                                            str: "USA",
-                                            start: 12,
-                                            end: 15,
+                                            str: "\"USA\"",
+                                            start: 11,
+                                            end: 16,
                                         },
-                                        inner: [],
+                                        inner: [
+                                            Pair {
+                                                rule: string,
+                                                span: Span {
+                                                    str: "\"USA\"",
+                                                    start: 11,
+                                                    end: 16,
+                                                },
+                                                inner: [
+                                                    Pair {
+                                                        rule: string_inner,
+                                                        span: Span {
+                                                            str: "USA",
+                                                            start: 12,
+                                                            end: 15,
+                                                        },
+                                                        inner: [],
+                                                    },
+                                                ],
+                                            },
+                                        ],
                                     },
                                 ],
                             },

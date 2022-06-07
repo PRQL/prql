@@ -5,6 +5,7 @@ use crate::ast::ast_fold::*;
 use crate::ast::*;
 use crate::semantic;
 use crate::Declaration;
+use crate::Declarations;
 use crate::Frame;
 
 use anyhow::{anyhow, Result};
@@ -42,14 +43,11 @@ pub fn materialize(
 }
 
 fn extract_frame(pipeline: &mut Pipeline, context: &mut MaterializationContext) -> Result<()> {
-    for f in &pipeline.functions {
-        let transform = (f.item)
-            .as_transform()
-            .ok_or_else(|| anyhow!("plain function in pipeline"))?;
+    for transform in &pipeline.as_transforms().unwrap_or_default() {
         context.frame.apply_transform(transform)?;
     }
 
-    pipeline.functions.retain(|f| {
+    pipeline.nodes.retain(|f| {
         !matches!(
             f.item.as_transform().unwrap(),
             Transform::Select(_) | Transform::Derive(_) | Transform::Sort(_)
@@ -68,29 +66,17 @@ pub struct MaterializationContext {
     pub(super) frame: Frame,
 
     /// All declarations, mostly from [semantic::Context]
-    pub(super) declarations: Vec<Declaration>,
+    pub(super) declarations: Declarations,
 }
 
 impl MaterializationContext {
-    pub fn declare(&mut self, dec: Declaration) -> usize {
-        self.declarations.push(dec);
-        self.declarations.len() - 1
-    }
-
     pub fn declare_table(&mut self, table: &str) -> usize {
-        let id = self.declare(Declaration::Table(table.to_string()));
+        let id = self
+            .declarations
+            .push(Declaration::Table(table.to_string()), None);
 
         self.frame.tables.push(id);
         id
-    }
-
-    pub(crate) fn replace_declaration(&mut self, id: usize, new_decl: Declaration) {
-        let decl = self.declarations.get_mut(id).unwrap();
-        *decl = new_decl;
-    }
-
-    pub(crate) fn replace_declaration_expr(&mut self, id: usize, expr: Node) {
-        self.replace_declaration(id, Declaration::Expression(Box::new(expr)));
     }
 }
 
@@ -98,7 +84,7 @@ impl From<semantic::Context> for MaterializationContext {
     fn from(context: semantic::Context) -> Self {
         MaterializationContext {
             frame: Frame::default(),
-            declarations: context.declarations.into_iter().map(|x| x.0).collect(),
+            declarations: context.declarations,
         }
     }
 }
@@ -147,7 +133,7 @@ impl Materializer {
                         self.materialize_declaration(id)?
                     }
                     FrameColumn::All(namespace) => {
-                        let decl = &self.context.declarations[namespace];
+                        let decl = &self.context.declarations.get(namespace);
                         let table = decl.as_table().unwrap();
                         Item::Ident(format!("{table}.*")).into()
                     }
@@ -156,16 +142,16 @@ impl Materializer {
             .collect::<Result<Vec<_>>>()?;
 
         for (id, decl) in to_replace {
-            self.context.replace_declaration(id, decl);
+            self.context.declarations.replace(id, decl);
         }
 
         Ok(res)
     }
 
     fn replace_tables(&mut self, tables: Vec<usize>, new_table: usize) {
-        let new_table = self.context.declarations[new_table].clone();
+        let new_table = self.context.declarations.get(new_table).clone();
         for id in tables {
-            self.context.replace_declaration(id, new_table.clone());
+            self.context.declarations.replace(id, new_table.clone());
         }
     }
 
@@ -183,7 +169,7 @@ impl Materializer {
     }
 
     fn materialize_declaration(&mut self, id: usize) -> Result<Node> {
-        let decl = &self.context.declarations[id];
+        let decl = self.context.declarations.get(id);
 
         let materialized = match decl.clone() {
             Declaration::Expression(inner) => self.fold_node(*inner)?,
@@ -194,7 +180,7 @@ impl Materializer {
                     if self.remove_namespaces {
                         var_name.to_string()
                     } else {
-                        let table = &self.context.declarations[table];
+                        let table = &self.context.declarations.get(table);
                         let table = table.as_table().unwrap();
                         format!("{table}.{var_name}")
                     }
@@ -220,7 +206,7 @@ impl Materializer {
     fn materialize_func_call(&mut self, func_call: &FuncCall, decl: Option<usize>) -> Result<Node> {
         // locate declaration
         let func_dec = decl.ok_or_else(|| anyhow!("unresolved"))?;
-        let func_dec = &self.context.declarations[func_dec];
+        let func_dec = &self.context.declarations.get(func_dec);
         let func_dec = func_dec.as_function().unwrap().clone();
 
         // TODO: check if the function is called recursively.
@@ -235,12 +221,12 @@ impl Materializer {
                 .get(&param.name)
                 .map_or_else(|| param.expr.item.clone(), |expr| expr.item.clone());
 
-            self.context.replace_declaration_expr(id, value.into());
+            self.context.declarations.replace_expr(id, value.into());
         }
         for ((param, _), arg) in zip(func_dec.positional_params.iter(), func_call.args.iter()) {
             let id = param.declared_at.unwrap();
             let expr = arg.item.clone().into();
-            self.context.replace_declaration_expr(id, expr);
+            self.context.declarations.replace_expr(id, expr);
         }
 
         // Now fold body as normal node
@@ -278,12 +264,22 @@ impl AstFold for Materializer {
             }
 
             Item::Pipeline(p) => {
-                if let Some(value) = p.value {
-                    // there is leading value -> this is an inline pipeline -> materialize
+                let all_transforms = p.nodes.iter().all(|f| matches!(f.item, Item::Transform(_)));
 
-                    let mut value = self.fold_node(*value)?;
+                if all_transforms {
+                    // this is a frame pipeline -> just fold and keep the pipeline
 
-                    for function in p.functions {
+                    let pipeline = fold_pipeline(self, p)?;
+
+                    node.item = Item::Pipeline(pipeline);
+                    node
+                } else {
+                    // this is an inline pipeline -> materialize function calls
+
+                    let mut p = p;
+                    let mut value = self.fold_node(p.nodes.remove(0))?;
+
+                    for function in p.nodes {
                         let (function, window) = if let Item::Windowed(w) = function.item {
                             (*w.expr.clone(), Some(w))
                         } else {
@@ -302,13 +298,6 @@ impl AstFold for Materializer {
                         }
                     }
                     value
-                } else {
-                    // there is no leading value -> this is a frame pipeline -> just fold
-
-                    let pipeline = fold_pipeline(self, p)?;
-
-                    node.item = Item::Pipeline(pipeline);
-                    node
                 }
             }
 
@@ -330,44 +319,28 @@ impl AstFold for Materializer {
 
 impl std::fmt::Debug for MaterializationContext {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for (i, d) in self.declarations.iter().enumerate() {
-            match d {
-                Declaration::Expression(v) => {
-                    writeln!(f, "[{i:3}]: expr  `{}`", v.item)?;
-                }
-                Declaration::ExternRef { table, variable } => {
-                    writeln!(f, "[{i:3}]: col   `{variable}` from table {table:?}")?;
-                }
-                Declaration::Table(name) => {
-                    writeln!(f, "[{i:3}]: table `{name}`")?;
-                }
-                Declaration::Function(func) => {
-                    writeln!(f, "[{i:3}]: func  `{}`", func.name)?;
-                }
-            }
-        }
-        Ok(())
+        writeln!(f, "{:?}", self.declarations)
     }
 }
 #[cfg(test)]
 mod test {
 
     use super::*;
-    use crate::{parse, semantic::resolve, utils::diff};
+    use crate::{parse, semantic::resolve_names, utils::diff};
     use insta::{assert_display_snapshot, assert_snapshot, assert_yaml_snapshot};
     use serde_yaml::to_string;
 
     fn find_pipeline(mut res: Vec<Node>) -> Pipeline {
-        res.remove(res.len() - 1).item.into_pipeline().unwrap()
+        res.remove(res.len() - 1).coerce_to_pipeline()
     }
 
     fn resolve_and_materialize(query: Query) -> Result<Vec<Node>> {
-        let (res, context) = resolve(query.nodes, None)?;
+        let (res, context) = resolve_names(query.nodes, None)?;
 
         let pipeline = find_pipeline(res);
 
         let (mat, _, _) = materialize(pipeline, context.into(), None)?;
-        Ok(mat.functions)
+        Ok(mat.nodes)
     }
 
     #[test]
@@ -381,7 +354,7 @@ mod test {
     "#,
         )?;
 
-        let (res, context) = resolve(query.nodes, None)?;
+        let (res, context) = resolve_names(query.nodes, None)?;
 
         let pipeline = find_pipeline(res);
 
@@ -394,10 +367,10 @@ mod test {
             &to_string(&mat)?
         ),
         @r###"
-        @@ -6,7 +6,3 @@
+        @@ -5,7 +5,3 @@
                  name: employees
                  alias: ~
-                 declared_at: 37
+                 declared_at: 36
         -  - Transform:
         -      Derive:
         -        - Ident: gross_salary
@@ -474,8 +447,7 @@ take 20
                 - String: )
             return_type: ~
         - Pipeline:
-            value: ~
-            functions:
+            nodes:
               - FuncCall:
                   name: from
                   args:
@@ -493,7 +465,7 @@ take 20
                   named_args: {}
         "###);
 
-        let (res, context) = resolve(query.nodes, None)?;
+        let (res, context) = resolve_names(query.nodes, None)?;
 
         let pipeline = find_pipeline(res);
 
@@ -501,10 +473,7 @@ take 20
 
         // We could make a convenience function for this. It's useful for
         // showing the diffs of an operation.
-        let diff = diff(
-            &to_string(&pipeline.functions)?,
-            &to_string(&mat.functions)?,
-        );
+        let diff = diff(&to_string(&pipeline.nodes)?, &to_string(&mat.nodes)?);
         assert!(!diff.is_empty());
         assert_display_snapshot!(diff, @r###"
         @@ -7,5 +7,9 @@
@@ -538,8 +507,7 @@ take 20
         assert_yaml_snapshot!(query.nodes[2], @r###"
         ---
         Pipeline:
-          value: ~
-          functions:
+          nodes:
             - FuncCall:
                 name: from
                 args:
@@ -564,7 +532,7 @@ take 20
             From:
               name: a
               alias: ~
-              declared_at: 42
+              declared_at: 41
         "###);
 
         Ok(())
@@ -581,13 +549,13 @@ take 20
         "#,
         )?;
 
-        let (res, context) = resolve(query.nodes, None)?;
+        let (res, context) = resolve_names(query.nodes, None)?;
 
         let pipeline = find_pipeline(res);
 
         let (mat, _, _) = materialize(pipeline.clone(), context.into(), None)?;
 
-        assert_snapshot!(diff(&to_string(&pipeline.functions)?, &to_string(&mat.functions)?), @r###"
+        assert_snapshot!(diff(&to_string(&pipeline.nodes)?, &to_string(&mat.nodes)?), @r###"
         @@ -7,6 +7,14 @@
          - Transform:
              Aggregate:
@@ -626,18 +594,20 @@ take 20
             From:
               name: a
               alias: ~
-              declared_at: 41
+              declared_at: 40
         - Transform:
             Aggregate:
               assigns:
-                - Expr:
-                    - SString:
+                - Binary:
+                    left:
+                      SString:
                         - String: SUM(
                         - Expr:
                             Ident: foo
                         - String: )
-                    - Operator: +
-                    - Literal:
+                    op: Add
+                    right:
+                      Literal:
                         Integer: 1
               by: []
         "###);
@@ -666,7 +636,7 @@ take 20
             From:
               name: foo_table
               alias: ~
-              declared_at: 40
+              declared_at: 39
         "###);
 
         Ok(())
@@ -693,7 +663,7 @@ take 20
             From:
               name: employees
               alias: ~
-              declared_at: 39
+              declared_at: 38
         - Transform:
             Aggregate:
               assigns:
@@ -802,7 +772,7 @@ take 20
             From:
               name: employees
               alias: ~
-              declared_at: 39
+              declared_at: 38
         - Transform:
             Group:
               by:
@@ -810,8 +780,7 @@ take 20
                 - Ident: emp_no
               pipeline:
                 Pipeline:
-                  value: ~
-                  functions:
+                  nodes:
                     - Transform:
                         Aggregate:
                           assigns:
@@ -829,8 +798,7 @@ take 20
                 - Ident: title
               pipeline:
                 Pipeline:
-                  value: ~
-                  functions:
+                  nodes:
                     - Transform:
                         Aggregate:
                           assigns:
@@ -867,18 +835,18 @@ take 20
         "#,
         )?;
 
-        let (res1, context) = resolve(query1.nodes, None)?;
-        let (res2, context) = resolve(query2.nodes, Some(context))?;
+        let (res1, context) = resolve_names(query1.nodes, None)?;
+        let (res2, context) = resolve_names(query2.nodes, Some(context))?;
 
         let (mat, frame, context) = materialize(find_pipeline(res1), context.into(), None)?;
 
-        assert_yaml_snapshot!(mat.functions, @r###"
+        assert_yaml_snapshot!(mat.nodes, @r###"
         ---
         - Transform:
             From:
               name: orders
               alias: ~
-              declared_at: 37
+              declared_at: 36
         - Transform:
             Take:
               range:
@@ -894,28 +862,30 @@ take 20
         - Ident: customer_no
         - Ident: gross
         - Ident: tax
-        - Expr:
-            - Ident: gross
-            - Operator: "-"
-            - Ident: tax
+        - Binary:
+            left:
+              Ident: gross
+            op: Sub
+            right:
+              Ident: tax
         "###);
 
         let (mat, frame, _) = materialize(find_pipeline(res2), context, None)?;
 
-        assert_yaml_snapshot!(mat.functions, @r###"
+        assert_yaml_snapshot!(mat.nodes, @r###"
         ---
         - Transform:
             From:
               name: table_1
               alias: ~
-              declared_at: 42
+              declared_at: 41
         - Transform:
             Join:
               side: Inner
               with:
                 name: customers
                 alias: ~
-                declared_at: 43
+                declared_at: 42
               filter:
                 Using:
                   - Ident: customer_no
