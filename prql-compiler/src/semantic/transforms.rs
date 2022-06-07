@@ -426,7 +426,7 @@ mod tests {
         from invoices
         sort [issued_at, -amount, +num_of_articles]
         sort issued_at
-        # sort (-issued_at) # temporarily not supported
+        sort (-issued_at)
         sort [issued_at]
         sort [-issued_at]
         ",
@@ -459,8 +459,11 @@ mod tests {
                     - direction: Asc
                       column:
                         Ident: issued_at
-        - Pipeline:
-            nodes:
+              - Transform:
+                  Sort:
+                    - direction: Desc
+                      column:
+                        Ident: issued_at
               - Transform:
                   Sort:
                     - direction: Asc

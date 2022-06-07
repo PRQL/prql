@@ -5,7 +5,7 @@ Currently PRQL supports this for concatenating strings:
 
 ```prql
 from employees
-select full_name = f"{first} {last}"
+select full_name = f"{first_name} {last_name}"
 ```
 
 This can be much easier to read for longer strings, relative to the SQL approach:
