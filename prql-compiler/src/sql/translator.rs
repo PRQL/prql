@@ -141,7 +141,7 @@ fn table_factor_of_table_ref(table_ref: &TableRef) -> TableFactor {
             name: Item::Ident(a).try_into().unwrap(),
             columns: vec![],
         }),
-        args: vec![],
+        args: None,
         with_hints: vec![],
     }
 }

@@ -18,9 +18,9 @@ default = ["anyhow/backtrace", "cli"]
 [dependencies]
 anyhow = "1.0.57"
 ariadne = "0.1.5"
-atty = { version = "0.2.14", optional = true }
-clio = { version = "0.2.2", optional = true }
-color-eyre = { version = "0.6.1", optional = true }
+atty = {version = "0.2.14", optional = true}
+clio = {version = "0.2.2", optional = true}
+color-eyre = {version = "0.6.1", optional = true}
 enum-as-inner = "0.5.0"
 itertools = "0.10.3"
 pest = "2.1.3"
@@ -28,7 +28,7 @@ pest_derive = "2.1.0"
 serde_json = "1.0.81"
 serde_yaml = "0.8.24"
 sqlformat = "0.2.0"
-strum = { version = "0.24.0", features = ["std", "derive"] }# for converting enum variants to string
+strum = {version = "0.24.0", features = ["std", "derive"]}# for converting enum variants to string
 strum_macros = "0.24.0"
 
 [dependencies.clap]
@@ -38,7 +38,7 @@ version = "3.1.18"
 
 [dependencies.sqlparser]
 features = ["serde"]
-version = "0.17.0"
+version = "0.18.0"
 
 [dependencies.serde]
 features = ["derive"]
@@ -47,7 +47,7 @@ version = "1.0.137"
 [dev-dependencies]
 criterion = "0.3.5"
 globset = "0.4.8"
-insta = { version = "1.14.0", features = ["colors", "glob"] }
+insta = {version = "1.14.0", features = ["colors", "glob"]}
 pulldown-cmark = "0.9.1"
 pulldown-cmark-to-cmark = "10.0.1"
 similar = "2.1.0"
