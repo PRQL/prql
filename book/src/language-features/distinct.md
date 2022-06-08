@@ -10,12 +10,12 @@ group department (
 )
 ```
 
-or without a linebreak:
+This also works without a linebreak:
 
 ```prql
 from employees
 select department
-group department (take 1) # Note below
+group department (take 1)
 ```
 
 ## Selecting from each group
