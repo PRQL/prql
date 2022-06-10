@@ -1,0 +1,21 @@
+name: Cargo audit
+
+on:
+  schedule:
+    - cron: "33 6 * * *"
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+      issues: write
+      checks: write
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rs/audit-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,64 @@
+# All tests — run this only on merges to main or where a specific label is set.
+
+name: test-all
+
+on:
+  push:
+    branches:
+      - main
+  # Called by pull-request when specifically requested
+  workflow_call:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+          - os: windows-latest
+          - os: macos-latest
+          - os: ubuntu-latest
+            target: "wasm32-unknown-unknown"
+            target_option: "--target=wasm32-unknown-unknown"
+    steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v3
+      - uses: ./.github/actions/cargo-test
+        with:
+          target: ${{ matrix.target }}
+          target_option: ${{ matrix.target_option }}
+
+  code-cov:
+    runs-on: ubuntu-latest
+    # Currently this runs `cargo clean` which makes the run taking 4 min. TODO:
+    # see whether `skip_clean` is reliable and then add this job to every
+    # commit.
+    steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v3
+      - name: 💰 Cache
+        uses: Swatinem/rust-cache@v1
+      - name: Run cargo-tarpaulin
+        uses: actions-rs/tarpaulin@v0.1
+        with:
+          # TODO: move this exclude to a config file.
+          args: "--workspace --exclude prql-python -- --test-threads 1"
+      - name: Upload to codecov.io
+        uses: codecov/codecov-action@v3
+      - name: Upload code coverage results
+        uses: actions/upload-artifact@v3
+        with:
+          name: code-coverage-report
+          path: cobertura.xml
+
+  # TODO: if the workflow depth was > two, then this would let us run the python
+  # workflow with a label.
+  #
+  # python:
+  #   name: Python
+  #   uses: ./.github/workflows/python.yaml
