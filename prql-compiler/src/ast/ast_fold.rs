@@ -58,9 +58,6 @@ pub trait AstFold {
     fn fold_table_ref(&mut self, table_ref: TableRef) -> Result<TableRef> {
         fold_table_ref(self, table_ref)
     }
-    fn fold_named_expr(&mut self, named_expr: NamedExpr) -> Result<NamedExpr> {
-        fold_named_expr(self, named_expr)
-    }
     fn fold_interpolate_item(&mut self, sstring_item: InterpolateItem) -> Result<InterpolateItem> {
         fold_interpolate_item(self, sstring_item)
     }
@@ -73,29 +70,38 @@ pub trait AstFold {
             .map(|c| self.fold_column_sort(c))
             .try_collect()
     }
-    fn fold_select(&mut self, select: Select) -> Result<Select> {
-        fold_select(self, select)
-    }
     fn fold_join_filter(&mut self, f: JoinFilter) -> Result<JoinFilter> {
         fold_join_filter(self, f)
+    }
+    fn fold_type(&mut self, t: Ty) -> Result<Ty> {
+        fold_type(self, t)
+    }
+    fn fold_windowed(&mut self, windowed: Windowed) -> Result<Windowed> {
+        fold_windowed(self, windowed)
     }
 }
 
 pub fn fold_item<T: ?Sized + AstFold>(fold: &mut T, item: Item) -> Result<Item> {
     Ok(match item {
         Item::Ident(ident) => Item::Ident(fold.fold_ident(ident)?),
-        Item::Expr(items) => Item::Expr(fold.fold_nodes(items)?),
+        Item::Binary { op, left, right } => Item::Binary {
+            op,
+            left: Box::new(fold.fold_node(*left)?),
+            right: Box::new(fold.fold_node(*right)?),
+        },
+        Item::Unary { op, expr } => Item::Unary {
+            op,
+            expr: Box::new(fold.fold_node(*expr)?),
+        },
         Item::List(items) => Item::List(fold.fold_nodes(items)?),
-        Item::Range(Range { start, end }) => Item::Range(Range {
-            start: fold_optional_box(fold, start)?,
-            end: fold_optional_box(fold, end)?,
-        }),
+        Item::Range(range) => Item::Range(fold_range(fold, range)?),
         Item::Query(query) => Item::Query(Query {
             nodes: fold.fold_nodes(query.nodes)?,
             ..query
         }),
         Item::Pipeline(p) => Item::Pipeline(fold.fold_pipeline(p)?),
-        Item::NamedExpr(named_expr) => Item::NamedExpr(fold.fold_named_expr(named_expr)?),
+        Item::Assign(named_expr) => Item::Assign(fold_named_expr(fold, named_expr)?),
+        Item::NamedArg(named_expr) => Item::Assign(fold_named_expr(fold, named_expr)?),
         Item::Transform(transformation) => Item::Transform(fold.fold_transform(transformation)?),
         Item::SString(items) => Item::SString(
             items
@@ -112,16 +118,36 @@ pub fn fold_item<T: ?Sized + AstFold>(fold: &mut T, item: Item) -> Result<Item> 
         Item::FuncDef(func) => Item::FuncDef(fold.fold_func_def(func)?),
         Item::FuncCall(func_call) => Item::FuncCall(fold.fold_func_call(func_call)?),
         Item::Table(table) => Item::Table(fold.fold_table(table)?),
+        Item::Windowed(window) => Item::Windowed(fold.fold_windowed(window)?),
+        Item::Type(t) => Item::Type(fold.fold_type(t)?),
         // None of these capture variables, so we don't need to replace
         // them.
-        Item::String(_) | Item::Raw(_) | Item::Interval(_) => item,
+        Item::Literal(_) | Item::Interval(_) => item,
+    })
+}
+
+pub fn fold_windowed<F: ?Sized + AstFold>(fold: &mut F, window: Windowed) -> Result<Windowed> {
+    Ok(Windowed {
+        expr: Box::new(fold.fold_node(*window.expr)?),
+        group: fold.fold_nodes(window.group)?,
+        sort: fold.fold_column_sorts(window.sort)?,
+        window: {
+            let (kind, range) = window.window;
+            (kind, fold_range(fold, range)?)
+        },
+    })
+}
+
+pub fn fold_range<F: ?Sized + AstFold>(fold: &mut F, Range { start, end }: Range) -> Result<Range> {
+    Ok(Range {
+        start: fold_optional_box(fold, start)?,
+        end: fold_optional_box(fold, end)?,
     })
 }
 
 pub fn fold_pipeline<T: ?Sized + AstFold>(fold: &mut T, pipeline: Pipeline) -> Result<Pipeline> {
     Ok(Pipeline {
-        value: fold_optional_box(fold, pipeline.value)?,
-        functions: fold.fold_nodes(pipeline.functions)?,
+        nodes: fold.fold_nodes(pipeline.nodes)?,
     })
 }
 
@@ -159,35 +185,42 @@ pub fn fold_transform<T: ?Sized + AstFold>(
     fold: &mut T,
     transformation: Transform,
 ) -> Result<Transform> {
-    match transformation {
-        Transform::From(table) => Ok(Transform::From(fold.fold_table_ref(table)?)),
+    Ok(match transformation {
+        Transform::From(table) => Transform::From(fold.fold_table_ref(table)?),
 
-        Transform::Derive(select) => Ok(Transform::Derive(fold.fold_select(select)?)),
-        Transform::Select(select) => Ok(Transform::Select(fold.fold_select(select)?)),
-        Transform::Aggregate(select) => Ok(Transform::Aggregate(fold.fold_select(select)?)),
+        Transform::Derive(assigns) => Transform::Derive(fold.fold_nodes(assigns)?),
+        Transform::Select(assigns) => Transform::Select(fold.fold_nodes(assigns)?),
+        Transform::Aggregate { assigns, by } => Transform::Aggregate {
+            assigns: fold.fold_nodes(assigns)?,
+            by: fold.fold_nodes(by)?,
+        },
 
-        Transform::Filter(items) => Ok(Transform::Filter(fold.fold_nodes(items)?)),
-        Transform::Sort(items) => Ok(Transform::Sort(fold.fold_column_sorts(items)?)),
-        Transform::Join { side, with, filter } => Ok(Transform::Join {
+        Transform::Filter(f) => Transform::Filter(Box::new(fold.fold_node(*f)?)),
+        Transform::Sort(items) => Transform::Sort(fold.fold_column_sorts(items)?),
+        Transform::Join { side, with, filter } => Transform::Join {
             side,
             with: fold.fold_table_ref(with)?,
             filter: fold.fold_join_filter(filter)?,
-        }),
-        Transform::Group { by, pipeline } => Ok(Transform::Group {
+        },
+        Transform::Group { by, pipeline } => Transform::Group {
             by: fold.fold_nodes(by)?,
             pipeline: Box::new(fold.fold_node(*pipeline)?),
-        }),
-        // TODO: generalize? Or this never changes?
-        Transform::Take(_) => Ok(transformation),
-    }
-}
-
-pub fn fold_select<T: ?Sized + AstFold>(fold: &mut T, select: Select) -> Result<Select> {
-    Ok(Select {
-        assigns: fold.fold_nodes(select.assigns)?,
-        group: fold.fold_nodes(select.group)?,
-        window: select.window.map(|x| fold.fold_nodes(x)).transpose()?,
-        sort: select.sort.map(|x| fold.fold_nodes(x)).transpose()?,
+        },
+        Transform::Window {
+            kind,
+            range,
+            pipeline,
+        } => Transform::Window {
+            range: fold_range(fold, range)?,
+            kind,
+            pipeline: Box::new(fold.fold_node(*pipeline)?),
+        },
+        Transform::Take { by, range, sort } => Transform::Take {
+            range: fold_range(fold, range)?,
+            by: fold.fold_nodes(by)?,
+            sort: fold.fold_column_sorts(sort)?,
+        },
+        Transform::Unique => Transform::Unique,
     })
 }
 
@@ -236,11 +269,21 @@ pub fn fold_table_ref<T: ?Sized + AstFold>(fold: &mut T, table: TableRef) -> Res
 pub fn fold_func_def<T: ?Sized + AstFold>(fold: &mut T, func_def: FuncDef) -> Result<FuncDef> {
     Ok(FuncDef {
         name: fold.fold_ident(func_def.name)?,
-        kind: func_def.kind,
-        positional_params: fold.fold_nodes(func_def.positional_params)?,
-        named_params: fold.fold_nodes(func_def.named_params)?,
+        positional_params: fold_typed_nodes(fold, func_def.positional_params)?,
+        named_params: fold_typed_nodes(fold, func_def.named_params)?,
         body: Box::new(fold.fold_node(*func_def.body)?),
+        return_type: func_def.return_type,
     })
+}
+
+pub fn fold_typed_nodes<T: ?Sized + AstFold>(
+    fold: &mut T,
+    nodes: Vec<(Node, Option<Ty>)>,
+) -> Result<Vec<(Node, Option<Ty>)>> {
+    nodes
+        .into_iter()
+        .map(|(n, t)| Ok((fold.fold_node(n)?, t)))
+        .try_collect()
 }
 
 pub fn fold_named_expr<T: ?Sized + AstFold>(
@@ -250,5 +293,17 @@ pub fn fold_named_expr<T: ?Sized + AstFold>(
     Ok(NamedExpr {
         name: fold.fold_ident(named_expr.name)?,
         expr: Box::new(fold.fold_node(*named_expr.expr)?),
+    })
+}
+
+pub fn fold_type<T: ?Sized + AstFold>(fold: &mut T, t: Ty) -> Result<Ty> {
+    Ok(match t {
+        Ty::Literal(_) => t,
+        Ty::Parameterized(t, p) => Ty::Parameterized(
+            Box::new(fold_type(fold, *t)?),
+            Box::new(fold.fold_node(*p)?),
+        ),
+        Ty::AnyOf(ts) => Ty::AnyOf(ts.into_iter().map(|t| fold_type(fold, t)).try_collect()?),
+        _ => t,
     })
 }

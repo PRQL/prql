@@ -1,19 +1,23 @@
 /// Abstract syntax tree for PRQL language
 ///
 /// The central struct here is [Node], that can be of different kinds, described with [item::Item].
-use anyhow::Result;
-use serde::{Deserialize, Serialize};
-
-pub use self::dialect::*;
-pub use self::item::*;
-pub use self::query::*;
-use crate::error::{Error, Reason, Span};
-use crate::utils::*;
-
 pub mod ast_fold;
 pub mod dialect;
 pub mod item;
+pub mod literal;
 pub mod query;
+pub mod types;
+
+pub use self::dialect::*;
+pub use self::item::*;
+pub use self::literal::*;
+pub use self::query::*;
+pub use self::types::*;
+
+use anyhow::Result;
+use serde::{Deserialize, Serialize};
+
+use crate::error::{Error, Reason, Span};
 
 pub fn display(query: Query) -> String {
     format!("{}", Item::Query(query))
@@ -30,14 +34,26 @@ pub struct Node {
     pub span: Option<Span>,
     #[serde(skip)]
     pub declared_at: Option<usize>,
+    #[serde(skip)]
+    pub ty: Ty,
+
+    /// Is true when containing window functions
+    #[serde(skip)]
+    pub is_complex: bool,
 }
 
 impl Node {
-    /// Return an error if this is named expression.
+    pub fn new_ident<S: ToString>(name: S, declared_at: usize) -> Node {
+        let mut node: Node = Item::Ident(name.to_string()).into();
+        node.declared_at = Some(declared_at);
+        node
+    }
+
+    /// Return an error if this is a named expression.
     pub fn discard_name(self) -> Result<Node, Error> {
         // TODO: replace this function with a prior type checking
 
-        if let Item::NamedExpr(_) = self.item {
+        if let Item::Assign(_) = self.item {
             Err(Error::new(Reason::Unexpected {
                 found: "alias".to_string(),
             })
@@ -48,7 +64,7 @@ impl Node {
     }
 
     pub fn into_name_and_expr(self) -> (Option<Ident>, Node) {
-        if let Item::NamedExpr(expr) = self.item {
+        if let Item::Assign(expr) = self.item {
             (Some(expr.name), *expr.expr)
         } else {
             (None, self)
@@ -62,6 +78,13 @@ impl Node {
         match self.item {
             Item::List(items) => items,
             _ => vec![self],
+        }
+    }
+
+    pub fn coerce_to_pipeline(self) -> Pipeline {
+        match self.item {
+            Item::Pipeline(p) => p,
+            _ => Pipeline { nodes: vec![self] },
         }
     }
 
@@ -80,26 +103,14 @@ impl Node {
     }
 }
 
-/// Wrap into [Item::Expr] if there is more than one term.
-pub trait IntoExpr {
-    fn into_expr(self) -> Item;
-}
-impl IntoExpr for Vec<Node> {
-    fn into_expr(self) -> Item {
-        if self.len() == 1 {
-            self.into_only().unwrap().item
-        } else {
-            Item::Expr(self)
-        }
-    }
-}
-
 impl From<Item> for Node {
     fn from(item: Item) -> Self {
         Node {
             item,
             span: None,
             declared_at: None,
+            ty: Ty::Infer,
+            is_complex: false,
         }
     }
 }

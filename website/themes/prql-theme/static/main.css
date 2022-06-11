@@ -1,0 +1,11 @@
+.highlight>pre {
+    background: none !important;
+}
+pre code.hljs {
+    background: #37424d;
+}
+@media (prefers-color-scheme: dark) {
+    pre code.hljs {
+        background: var(--background);
+    }
+}

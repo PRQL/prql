@@ -1,0 +1,3 @@
+from employees
+derive gross_salary = salary + payroll_tax
+derive gross_cost = gross_salary + benefits_cost

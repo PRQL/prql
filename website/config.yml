@@ -1,0 +1,21 @@
+baseURL: "https://prql-lang.org/"
+languageCode: "en-us"
+title: "PRQL"
+theme: "prql-theme"
+
+params:
+  main_menu:
+    - text: Book
+      link: /book
+
+    - text: Playground
+      link: /playground
+
+    - text: Roadmap
+      link: /roadmap
+
+    - text: Github
+      link: https://github.com/prql/prql
+
+  footer:
+    text: "© 2022, PRQL developers. Apache 2.0 Licensed"

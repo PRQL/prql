@@ -1,9 +1,9 @@
 name: build-wheel
-description: "Use maturin to build python dists of prql-python. Conditional if checks ensure only the correct OX build is called."
+description: "Use maturin to build python dists of prql-python. Conditional if checks ensure only the correct OS build is called."
 
 inputs:
   os:
-    description: "The operating system of the build"
+    description: "Operating system"
     required: True
     default: "ubuntu-latest"
 

@@ -13,7 +13,7 @@ version: "3"
 vars:
   vscode_extensions: |
     prql.prql
-    matklad.rust-analyzer
+    rust-lang.rust-analyzer
     mitsuhiko.insta
 
 tasks:
@@ -26,11 +26,17 @@ tasks:
     desc: Install tools for PRQL development.
     cmds:
       # `--locked` installs from the underlying lock files (which is not the default?!)
-      - cargo install --locked cargo-insta default-target trunk mdbook mdbook-toc
+      - cargo install --locked cargo-audit cargo-insta default-target mdbook mdbook-admonish mdbook-toc wasm-bindgen-cli wasm-pack
       - rustup target add wasm32-unknown-unknown
-      - python3 -m pip install -U maturin pre-commit
+      - python3 -m pip install -U maturin
+      - task: install-pre-commit
+      - task: install-brew-dependencies
       # We only suggest, rather than install; we don't want to intrude (maybe we're being too conservative?).
       - task: suggest-vscode-extensions
+      - cmd: |
+          echo "
+          🟢 Set up complete! ✅🚀"
+        silent: true
 
   suggest-vscode-extensions:
     desc: Check and suggest VSCode extensions.
@@ -48,7 +54,9 @@ tasks:
     silent: true
     cmds:
       - |
-        echo "It looks like VSCode is installed but doesn't have all recommended extensions installed:
+        echo "
+
+        🟡 It looks like VSCode is installed but doesn't have all recommended extensions installed:
         {{ .missing_extensions }}
 
         Install them with:
@@ -64,6 +72,28 @@ tasks:
           code --install-extension {{.}}
         {{ end -}}
 
+  install-pre-commit:
+    # Someone might have this installed with `brew`, so only install if it can't be found.
+    status:
+      - which pre-commit
+    cmds:
+      - pip install -U pre-commit
+
+  install-brew-dependencies:
+    status:
+      - which hugo
+      - which npm
+    preconditions:
+      - sh: which brew
+        msg: |
+
+
+          🔴 Can't find `brew`, which we use to install Hugo & npm. Either install brew and re-run this, or install them directly based on:
+          - https://gohugo.io/getting-started/installing/
+          - https://docs.npmjs.com/downloading-and-installing-node-js-and-npm
+    cmds:
+      - brew install hugo npm
+
   build-all:
     desc: Build everything. Running this isn't required when developing; it's for caching or as a reference.
     vars:
@@ -77,7 +107,6 @@ tasks:
         {{ range ( .targets | trim | splitLines ) -}}
         cargo build --workspace --all-targets --target={{.}}
         {{ end -}}
-      # Build HTML assets.
-      - trunk build prql-web/index.html
-      # Build mdbook (which will also build the HTML assets).
-      - mdbook build reference/
+      - mdbook build book/
+      - cd playground && npm install && npm run build
+      - cd website && hugo

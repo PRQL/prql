@@ -1,34 +1,34 @@
 ---
 source: prql-compiler/src/parser.rs
-expression: "parse_tree_of_str(r#\"country = \"USA\"\"#, Rule::expr)?"
+expression: "parse_tree_of_str(r#\"country == \"USA\"\"#, Rule::expr)?"
 ---
 [
     Pair {
         rule: expr,
         span: Span {
-            str: "country = \"USA\"",
+            str: "country == \"USA\"",
             start: 0,
-            end: 15,
+            end: 16,
         },
         inner: [
             Pair {
-                rule: expr_compare,
+                rule: expr_coalesce,
                 span: Span {
-                    str: "country = \"USA\"",
+                    str: "country == \"USA\"",
                     start: 0,
-                    end: 15,
+                    end: 16,
                 },
                 inner: [
                     Pair {
-                        rule: expr_add,
+                        rule: expr_compare,
                         span: Span {
-                            str: "country ",
+                            str: "country == \"USA\"",
                             start: 0,
-                            end: 8,
+                            end: 16,
                         },
                         inner: [
                             Pair {
-                                rule: expr_mul,
+                                rule: expr_add,
                                 span: Span {
                                     str: "country ",
                                     start: 0,
@@ -36,59 +36,69 @@ expression: "parse_tree_of_str(r#\"country = \"USA\"\"#, Rule::expr)?"
                                 },
                                 inner: [
                                     Pair {
-                                        rule: ident,
+                                        rule: expr_mul,
                                         span: Span {
-                                            str: "country",
+                                            str: "country ",
                                             start: 0,
-                                            end: 7,
-                                        },
-                                        inner: [],
-                                    },
-                                ],
-                            },
-                        ],
-                    },
-                    Pair {
-                        rule: operator_compare,
-                        span: Span {
-                            str: "=",
-                            start: 8,
-                            end: 9,
-                        },
-                        inner: [],
-                    },
-                    Pair {
-                        rule: expr_add,
-                        span: Span {
-                            str: "\"USA\"",
-                            start: 10,
-                            end: 15,
-                        },
-                        inner: [
-                            Pair {
-                                rule: expr_mul,
-                                span: Span {
-                                    str: "\"USA\"",
-                                    start: 10,
-                                    end: 15,
-                                },
-                                inner: [
-                                    Pair {
-                                        rule: string_literal,
-                                        span: Span {
-                                            str: "\"USA\"",
-                                            start: 10,
-                                            end: 15,
+                                            end: 8,
                                         },
                                         inner: [
                                             Pair {
-                                                rule: string_inner,
+                                                rule: ident,
                                                 span: Span {
-                                                    str: "USA",
-                                                    start: 11,
-                                                    end: 14,
+                                                    str: "country",
+                                                    start: 0,
+                                                    end: 7,
                                                 },
                                                 inner: [],
+                                            },
+                                        ],
+                                    },
+                                ],
+                            },
+                            Pair {
+                                rule: operator_compare,
+                                span: Span {
+                                    str: "==",
+                                    start: 8,
+                                    end: 10,
+                                },
+                                inner: [],
+                            },
+                            Pair {
+                                rule: expr_add,
+                                span: Span {
+                                    str: "\"USA\"",
+                                    start: 11,
+                                    end: 16,
+                                },
+                                inner: [
+                                    Pair {
+                                        rule: expr_mul,
+                                        span: Span {
+                                            str: "\"USA\"",
+                                            start: 11,
+                                            end: 16,
+                                        },
+                                        inner: [
+                                            Pair {
+                                                rule: string,
+                                                span: Span {
+                                                    str: "\"USA\"",
+                                                    start: 11,
+                                                    end: 16,
+                                                },
+                                                inner: [
+                                                    Pair {
+                                                        rule: string_inner,
+                                                        span: Span {
+                                                            str: "USA",
+                                                            start: 12,
+                                                            end: 15,
+                                                        },
+                                                        inner: [],
+                                                    },
+                                                ],
                                             },
                                         ],
                                     },

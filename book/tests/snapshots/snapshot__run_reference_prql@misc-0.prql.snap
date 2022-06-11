@@ -1,0 +1,40 @@
+---
+source: book/tests/snapshot.rs
+expression: sql
+input_file: book/tests/prql/examples/misc-0.prql
+---
+WITH parts AS (
+  SELECT
+    seq_1_to_5.*
+  FROM
+    seq_1_to_5
+),
+table_0 AS (
+  SELECT
+    pl.*
+  FROM
+    prospect_lists_prospects AS pl
+  WHERE
+    prospect_list_id = 'cc675eee-8bd1-237f-be5e-622ba511d65e'
+)
+SELECT
+  ea.email_address,
+  SUBSTRING_INDEX(
+    SUBSTRING_INDEX(
+      regexp_replace(
+        SUBSTRING_INDEX(ea.email_address, '@', 1),
+        '[.0-9-_:]+',
+        '.'
+      ),
+      '.',
+      part
+    ),
+    '.',
+    -1
+  ) AS stub
+FROM
+  table_0
+  JOIN accounts AS a ON a.id = table_0.related_id
+  JOIN email_addr_bean_rel AS er ON er.bean_id = a.id
+  AND er.primary_address = '1'
+  JOIN email_addresses AS ea ON ea.id = er.email_address_id

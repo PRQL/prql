@@ -6,42 +6,35 @@ expression: mat
     From:
       name: employees
       alias: ~
-      declared_at: 35
+      declared_at: 41
 - Transform:
     Filter:
-      - Expr:
-          - Ident: country
-          - Raw: "="
-          - String: USA
-- Transform:
-    Derive:
-      assigns:
-        - Expr:
-            - Ident: salary
-            - Raw: +
-            - Ident: payroll_tax
-        - Expr:
-            - Expr:
-                - Ident: salary
-                - Raw: +
-                - Ident: payroll_tax
-            - Raw: +
-            - Ident: benefits_cost
-      group: []
-      window: ~
-      sort: ~
+      Binary:
+        left:
+          Ident: country
+        op: Eq
+        right:
+          Literal:
+            String: USA
 - Transform:
     Filter:
-      - Expr:
-          - Expr:
-              - Expr:
-                  - Ident: salary
-                  - Raw: +
-                  - Ident: payroll_tax
-              - Raw: +
-              - Ident: benefits_cost
-          - Raw: ">"
-          - Raw: "0"
+      Binary:
+        left:
+          Binary:
+            left:
+              Binary:
+                left:
+                  Ident: salary
+                op: Add
+                right:
+                  Ident: payroll_tax
+            op: Add
+            right:
+              Ident: benefits_cost
+        op: Gt
+        right:
+          Literal:
+            Integer: 0
 - Transform:
     Group:
       by:
@@ -49,8 +42,7 @@ expression: mat
         - Ident: country
       pipeline:
         Pipeline:
-          value: ~
-          functions:
+          nodes:
             - Transform:
                 Aggregate:
                   assigns:
@@ -67,79 +59,88 @@ expression: mat
                     - SString:
                         - String: AVG(
                         - Expr:
-                            Expr:
-                              - Ident: salary
-                              - Raw: +
-                              - Ident: payroll_tax
+                            Binary:
+                              left:
+                                Ident: salary
+                              op: Add
+                              right:
+                                Ident: payroll_tax
                         - String: )
                     - SString:
                         - String: SUM(
                         - Expr:
-                            Expr:
-                              - Ident: salary
-                              - Raw: +
-                              - Ident: payroll_tax
+                            Binary:
+                              left:
+                                Ident: salary
+                              op: Add
+                              right:
+                                Ident: payroll_tax
                         - String: )
                     - SString:
                         - String: AVG(
                         - Expr:
-                            Expr:
-                              - Expr:
-                                  - Ident: salary
-                                  - Raw: +
-                                  - Ident: payroll_tax
-                              - Raw: +
-                              - Ident: benefits_cost
+                            Binary:
+                              left:
+                                Binary:
+                                  left:
+                                    Ident: salary
+                                  op: Add
+                                  right:
+                                    Ident: payroll_tax
+                              op: Add
+                              right:
+                                Ident: benefits_cost
                         - String: )
                     - SString:
                         - String: SUM(
                         - Expr:
-                            Expr:
-                              - Expr:
-                                  - Ident: salary
-                                  - Raw: +
-                                  - Ident: payroll_tax
-                              - Raw: +
-                              - Ident: benefits_cost
+                            Binary:
+                              left:
+                                Binary:
+                                  left:
+                                    Ident: salary
+                                  op: Add
+                                  right:
+                                    Ident: payroll_tax
+                              op: Add
+                              right:
+                                Ident: benefits_cost
                         - String: )
                     - SString:
                         - String: COUNT(*)
-                  group:
+                  by:
                     - Ident: title
                     - Ident: country
-                  window: ~
-                  sort: ~
 - Transform:
-    Sort:
-      - direction: Asc
-        column:
+    Filter:
+      Binary:
+        left:
           SString:
             - String: SUM(
             - Expr:
-                Expr:
-                  - Expr:
-                      - Ident: salary
-                      - Raw: +
-                      - Ident: payroll_tax
-                  - Raw: +
-                  - Ident: benefits_cost
+                Binary:
+                  left:
+                    Binary:
+                      left:
+                        Ident: salary
+                      op: Add
+                      right:
+                        Ident: payroll_tax
+                  op: Add
+                  right:
+                    Ident: benefits_cost
             - String: )
+        op: Gt
+        right:
+          Literal:
+            Integer: 200
 - Transform:
-    Filter:
-      - Expr:
-          - SString:
-              - String: SUM(
-              - Expr:
-                  Expr:
-                    - Expr:
-                        - Ident: salary
-                        - Raw: +
-                        - Ident: payroll_tax
-                    - Raw: +
-                    - Ident: benefits_cost
-              - String: )
-          - Raw: ">"
-          - Raw: "200"
-- Transform:
-    Take: 20
+    Take:
+      range:
+        start: ~
+        end:
+          Literal:
+            Integer: 20
+      by: []
+      sort: []
 

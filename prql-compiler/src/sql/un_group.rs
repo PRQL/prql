@@ -17,11 +17,15 @@ impl AstFold for UnGrouper {
         for node in nodes {
             match node.item {
                 Item::Transform(Transform::Group { pipeline, .. }) => {
-                    let pipeline = pipeline.item.into_pipeline()?;
+                    let pipeline = self.fold_nodes(pipeline.item.into_pipeline().unwrap().nodes)?;
 
-                    let pipeline = self.fold_nodes(pipeline.functions)?;
-
-                    res.extend(pipeline);
+                    res.extend(pipeline.into_iter().filter(|x| {
+                        // remove all sorts
+                        x.item
+                            .as_transform()
+                            .map(|t| !matches!(t, Transform::Sort(_)))
+                            .unwrap_or(true)
+                    }));
                 }
                 _ => {
                     res.push(self.fold_node(node)?);

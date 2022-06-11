@@ -108,10 +108,10 @@ fn compile_to(format: Format, source: &str) -> Result<Vec<u8>, Error> {
         }
         Format::PrqlReferences => {
             let std_lib = load_std_lib()?;
-            let (_, context) = semantic::resolve(std_lib, None)?;
+            let (_, context) = semantic::resolve_names(std_lib, None)?;
 
             let query = parse(source)?;
-            let (nodes, context) = semantic::resolve(query.nodes, Some(context))?;
+            let (nodes, context) = semantic::resolve_names(query.nodes, Some(context))?;
 
             semantic::label_references(&nodes, &context, "".to_string(), source.to_string());
 
@@ -122,8 +122,8 @@ fn compile_to(format: Format, source: &str) -> Result<Vec<u8>, Error> {
 
             // resolve
             let std_lib = load_std_lib()?;
-            let (_, context) = semantic::resolve(std_lib, None)?;
-            let (nodes, context) = semantic::resolve(query.nodes, Some(context))?;
+            let (_, context) = semantic::resolve_names(std_lib, None)?;
+            let (nodes, context) = semantic::resolve_names(query.nodes, Some(context))?;
 
             let frames = semantic::collect_frames(nodes);
 
@@ -182,22 +182,22 @@ mod tests {
             Format::PrqlFrames,
             r#"
 from initial_table
-select [first: name, last: last_name, gender]
-derive full_name: first + " " + last
+select [first = name, last = last_name, gender]
+derive full_name = first + " " + last
 take 23
-select [last + " " + first, full: full_name, gender]
+select [last + " " + first, full = full_name, gender]
 sort full
         "#,
         )
         .unwrap();
         assert_snapshot!(String::from_utf8(output).unwrap().trim(),
         @r###"
-        from initial_table                                    # [initial_table.*]
-        select [first: name, last: last_name, gender]         # [first, last, gender]
-        derive full_name: first + " " + last                  # [first, last, gender, full_name]
-        take 23                                               # [first, last, gender, full_name]
-        select [last + " " + first, full: full_name, gender]  # [?, full, gender]
-        sort full                                             # [?, full, gender]
+        from initial_table                                     # [initial_table.*]
+        select [first = name, last = last_name, gender]        # [first, last, gender]
+        derive full_name = first + " " + last                  # [first, last, gender, full_name]
+        take 23                                                # [first, last, gender, full_name]
+        select [last + " " + first, full = full_name, gender]  # [?, full, gender]
+        sort full                                              # [?, full, gender]
         "###);
     }
 }

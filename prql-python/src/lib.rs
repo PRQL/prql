@@ -6,24 +6,13 @@ use pyo3::prelude::*;
 
 #[pyfunction]
 pub fn to_sql(query: &str) -> PyResult<String> {
-    match compile(query) {
-        Ok(sql) => Ok(sql.replace('\n', " ").replace('\t', " ")),
-        Err(err) => Err(PyErr::new::<exceptions::PySyntaxError, _>(format!(
-            "{}",
-            err
-        ))),
-    }
+    compile(query).map_err(|err| PyErr::new::<exceptions::PySyntaxError, _>(err.to_string()))
 }
 
 #[pyfunction]
 pub fn to_json(query: &str) -> PyResult<String> {
-    match prql_compiler::to_json(query) {
-        Ok(sql) => Ok(sql),
-        Err(err) => Err(PyErr::new::<exceptions::PySyntaxError, _>(format!(
-            "{}",
-            err
-        ))),
-    }
+    prql_compiler::to_json(query)
+        .map_err(|err| (PyErr::new::<exceptions::PySyntaxError, _>(err.to_string())))
 }
 #[pymodule]
 fn prql_python(_py: Python, m: &PyModule) -> PyResult<()> {
@@ -32,10 +21,20 @@ fn prql_python(_py: Python, m: &PyModule) -> PyResult<()> {
 
     Ok(())
 }
-// This test below is causing a linking error here https://github.com/qorrect/prql/runs/6099160429?check_suite_focus=true
-// #[test]
-// fn parse_for_python() -> Result<()> {
-//     let sql = to_sql("from employees").unwrap();
-//     println!("{}", sql);
-//     Ok(())
-// }
+
+#[cfg(not(feature = "extension-module"))]
+#[cfg(test)]
+mod test {
+    use super::*;
+    use prql_compiler::Result;
+
+    #[test]
+    fn parse_for_python() -> Result<()> {
+        assert_eq!(
+            to_sql("from employees | filter (age | in 20..30)")?,
+            "SELECT\n  employees.*\nFROM\n  employees\nWHERE\n  age BETWEEN 20\n  AND 30"
+        );
+
+        Ok(())
+    }
+}

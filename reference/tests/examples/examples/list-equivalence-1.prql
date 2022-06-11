@@ -1,3 +1,0 @@
-# Same as above but with `salary` in a list
-from employees
-select [salary]

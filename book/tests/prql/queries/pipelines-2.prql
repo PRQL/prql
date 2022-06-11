@@ -1,0 +1,3 @@
+from employees
+derive gross_salary = (salary + payroll_tax)
+sort gross_salary

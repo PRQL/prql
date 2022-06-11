@@ -1,0 +1,21 @@
+
+<header>
+
+  <nav>
+
+    <nav style="display: flex; align-items: center; flex-wrap: wrap;">
+      <a href="{{ "/" | relURL }}" style="display: flex; align-items: center">
+        <img src="{{ "/icon.svg" | relURL }}" style="margin: 0 -20px;" height="94" width="94" />
+        <h1 style="margin: 0.5rem 0 0 1rem; font-size: 3rem;">PRQL</h1>
+      </a>
+
+      <div style="flex-grow: 1"></div>
+
+      {{- range .Site.Params.main_menu }}
+        <a style="padding: 1rem" href="{{ .link | relURL }}">{{ .text }}</a>
+      {{- end }}
+    </nav>
+
+  </nav>
+
+</header>

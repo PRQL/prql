@@ -1,11 +1,12 @@
 # Transform type definitions
 
-func transform from with frame = 0
-func transform select assigns frame = 0
-func transform filter conditions frame = 0
-func transform derive assigns frame = 0
-func transform aggregate assigns frame = 0
-func transform sort by frame = 0
-func transform take expr frame = 0
-func transform join with filter side:inner frame = 0
-func transform group by pipeline frame = 0
+func from<table> with -> 0
+func select<table> assigns frame -> 0
+func filter<table> conditions frame -> 0
+func derive<table> assigns frame -> 0
+func aggregate<table> assigns frame -> 0
+func sort<table> by frame -> 0
+func take<table> expr frame -> 0
+func join<table> with filter side:inner frame -> 0
+func group<table> by pipeline frame -> 0
+func window<table> rows:0..0 range:0..0 expanding:false rolling:0 pipeline frame -> 0

@@ -1,0 +1,5 @@
+prql dialect:postgres
+
+from employees
+sort age
+take 10

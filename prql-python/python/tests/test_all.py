@@ -1,5 +1,6 @@
-import prql_python as prql
 import json
+
+import prql_python as prql
 
 
 def test_all():
@@ -17,5 +18,5 @@ def test_all():
     assert res is not None
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     test_all()

@@ -56,7 +56,7 @@ struct Labeler<'a> {
 impl<'a> AstFold for Labeler<'a> {
     fn fold_node(&mut self, node: Node) -> Result<Node> {
         if let Some(declared_at) = node.declared_at {
-            let (declaration, span) = &self.context.declarations[declared_at];
+            let (declaration, span) = &self.context.declarations.0[declared_at];
             let message = if let Some(span) = span {
                 let span = self.source.get_line_range(&Range::from(*span));
                 if span.len() <= 1 {
@@ -110,14 +110,14 @@ impl AstFold for FrameCollector {
 
     fn fold_pipeline(&mut self, pipeline: Pipeline) -> Result<Pipeline> {
         let mut frame = Frame::default();
-        for function in &pipeline.functions {
-            let transform = (function.item)
+        for node in &pipeline.nodes {
+            let transform = (node.item)
                 .as_transform()
                 .ok_or_else(|| anyhow!("plain function in pipeline"))?;
 
             frame.apply_transform(transform)?;
 
-            self.frames.push((function.span.unwrap(), frame.clone()));
+            self.frames.push((node.span.unwrap(), frame.clone()));
         }
 
         Ok(pipeline)

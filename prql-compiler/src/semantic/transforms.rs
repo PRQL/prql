@@ -24,22 +24,25 @@ pub fn cast_transform(func_call: FuncCall, span: Option<Span>) -> Result<Transfo
         "select" => {
             let ([assigns], []) = unpack(func_call, [])?;
 
-            Transform::Select(Select::new(assigns.coerce_to_vec()))
+            Transform::Select(assigns.coerce_to_vec())
         }
         "filter" => {
             let ([filter], []) = unpack(func_call, [])?;
 
-            Transform::Filter(filter.coerce_to_vec())
+            Transform::Filter(Box::new(filter))
         }
         "derive" => {
             let ([assigns], []) = unpack(func_call, [])?;
 
-            Transform::Derive(Select::new(assigns.coerce_to_vec()))
+            Transform::Derive(assigns.coerce_to_vec())
         }
         "aggregate" => {
             let ([assigns], []) = unpack(func_call, [])?;
 
-            Transform::Aggregate(Select::new(assigns.coerce_to_vec()))
+            Transform::Aggregate {
+                assigns: assigns.coerce_to_vec(),
+                by: vec![],
+            }
         }
         "sort" => {
             let ([by], []) = unpack(func_call, [])?;
@@ -48,31 +51,32 @@ pub fn cast_transform(func_call: FuncCall, span: Option<Span>) -> Result<Transfo
                 .coerce_to_vec()
                 .into_iter()
                 .map(|node| {
-                    let (column, direction) = match node.item {
-                        Item::NamedExpr(named_expr) => {
-                            let direction = match named_expr.name.as_str() {
-                                "asc" => SortDirection::Asc,
-                                "desc" => SortDirection::Desc,
-                                _ => {
-                                    return Err(Error::new(Reason::Expected {
-                                        who: Some("sort".to_string()),
-                                        expected: "asc or desc".to_string(),
-                                        found: named_expr.name,
-                                    })
-                                    .with_span(node.span))
-                                }
-                            };
-                            (*named_expr.expr, direction)
+                    let (column, direction) = match &node.item {
+                        Item::Ident(_) => (node.clone(), SortDirection::default()),
+                        Item::Unary { op, expr: a }
+                            if matches!((op, &a.item), (UnOp::Neg, Item::Ident(_))) =>
+                        {
+                            (*a.clone(), SortDirection::Desc)
                         }
-                        _ => (node, SortDirection::default()),
+                        _ => {
+                            return Err(Error::new(Reason::Expected {
+                                who: Some("sort".to_string()),
+                                expected: "column name, optionally prefixed with + or -"
+                                    .to_string(),
+                                found: node.item.to_string(),
+                            })
+                            .with_span(node.span));
+                        }
                     };
 
                     if matches!(column.item, Item::Ident(_)) {
                         Ok(ColumnSort { direction, column })
                     } else {
-                        Err(Error::new(Reason::Simple(
-                            "`sort` expects column name, not expression".to_string(),
-                        ))
+                        Err(Error::new(Reason::Expected {
+                            who: Some("sort".to_string()),
+                            expected: "column name".to_string(),
+                            found: format!("`{}`", column.item),
+                        })
                         .with_help("you can introduce a new column with `derive`")
                         .with_span(column.span))
                     }
@@ -84,7 +88,16 @@ pub fn cast_transform(func_call: FuncCall, span: Option<Span>) -> Result<Transfo
         "take" => {
             let ([expr], []) = unpack(func_call, [])?;
 
-            Transform::Take(expr.discard_name()?.item.into_raw()?.parse()?)
+            let range = match expr.discard_name()?.item {
+                Item::Literal(Literal::Integer(n)) => Range::from_ints(None, Some(n)),
+                Item::Range(range) => range,
+                _ => unimplemented!(),
+            };
+            Transform::Take {
+                range,
+                by: vec![],
+                sort: vec![],
+            }
         }
         "join" => {
             let ([with, filter], [side]) = unpack(func_call, ["side"])?;
@@ -145,9 +158,89 @@ pub fn cast_transform(func_call: FuncCall, span: Option<Span>) -> Result<Transfo
                 })
                 .try_collect()?;
 
-            let pipeline = Box::new(pipeline);
+            let pipeline = Box::new(Item::Pipeline(pipeline.coerce_to_pipeline()).into());
 
             Transform::Group { by, pipeline }
+        }
+        "window" => {
+            let ([pipeline], [rows, range, expanding, rolling]) =
+                unpack(func_call, ["rows", "range", "expanding", "rolling"])?;
+
+            let expanding = if let Some(expanding) = expanding {
+                let as_bool = expanding.item.as_literal().and_then(|l| l.as_boolean());
+
+                *as_bool.ok_or_else(|| {
+                    Error::new(Reason::Expected {
+                        who: Some("parameter `expanding`".to_string()),
+                        expected: "a boolean".to_string(),
+                        found: format!("{}", expanding.item),
+                    })
+                    .with_span(expanding.span)
+                })?
+            } else {
+                false
+            };
+
+            let rolling = if let Some(rolling) = rolling {
+                let as_int = rolling.item.as_literal().and_then(|x| x.as_integer());
+
+                *as_int.ok_or_else(|| {
+                    Error::new(Reason::Expected {
+                        who: Some("parameter `rolling`".to_string()),
+                        expected: "a number".to_string(),
+                        found: format!("{}", rolling.item),
+                    })
+                    .with_span(rolling.span)
+                })?
+            } else {
+                0
+            };
+
+            let rows = if let Some(rows) = rows {
+                Some(rows.item.into_range().map_err(|x| {
+                    Error::new(Reason::Expected {
+                        who: Some("parameter `rows`".to_string()),
+                        expected: "a range".to_string(),
+                        found: format!("{}", x),
+                    })
+                    .with_span(rows.span)
+                })?)
+            } else {
+                None
+            };
+
+            let range = if let Some(range) = range {
+                Some(range.item.into_range().map_err(|x| {
+                    Error::new(Reason::Expected {
+                        who: Some("parameter `range`".to_string()),
+                        expected: "a range".to_string(),
+                        found: format!("{}", x),
+                    })
+                    .with_span(range.span)
+                })?)
+            } else {
+                None
+            };
+
+            let (kind, range) = if expanding {
+                (WindowKind::Rows, Range::from_ints(None, Some(0)))
+            } else if rolling > 0 {
+                (
+                    WindowKind::Rows,
+                    Range::from_ints(Some(-rolling + 1), Some(0)),
+                )
+            } else if let Some(range) = rows {
+                (WindowKind::Rows, range)
+            } else if let Some(range) = range {
+                (WindowKind::Range, range)
+            } else {
+                (WindowKind::Rows, Range::unbounded())
+            };
+            Transform::Window {
+                range,
+                kind,
+                pipeline: Box::new(Item::Pipeline(pipeline.coerce_to_pipeline()).into()),
+            }
         }
         unknown => bail!(Error::new(Reason::Expected {
             who: None,
@@ -185,55 +278,65 @@ mod tests {
     use insta::assert_yaml_snapshot;
 
     use crate::parse;
-    use crate::semantic::resolve;
+    use crate::semantic::resolve_names;
     use crate::sql::load_std_lib;
 
     #[test]
     fn test_simple_casts() {
         let query = parse(r#"filter upper country = "USA""#).unwrap();
-        assert!(resolve(query.nodes, None).is_err());
+        assert!(resolve_names(query.nodes, None).is_err());
 
         let query = parse(r#"take"#).unwrap();
-        assert!(resolve(query.nodes, None).is_err());
+        assert!(resolve_names(query.nodes, None).is_err());
     }
 
     #[test]
     fn test_aggregate_positional_arg() {
         let stdlib = load_std_lib().unwrap();
-        let (_, context) = resolve(stdlib, None).unwrap();
+        let (_, context) = resolve_names(stdlib, None).unwrap();
         let context = Some(context);
 
         // distinct query #292
         let query = parse(
             "
         from c_invoice
+        select invoice_no
         group invoice_no (
             take 1
         )
         ",
         )
         .unwrap();
-        let (result, _) = resolve(query.nodes, context.clone()).unwrap();
+        let (result, _) = resolve_names(query.nodes, context.clone()).unwrap();
         assert_yaml_snapshot!(result, @r###"
         ---
         - Pipeline:
-            value: ~
-            functions:
+            nodes:
               - Transform:
                   From:
                     name: c_invoice
                     alias: ~
-                    declared_at: 58
+                    declared_at: 76
+              - Transform:
+                  Select:
+                    - Ident: invoice_no
               - Transform:
                   Group:
                     by:
                       - Ident: invoice_no
                     pipeline:
                       Pipeline:
-                        value: ~
-                        functions:
+                        nodes:
                           - Transform:
-                              Take: 1
+                              Take:
+                                range:
+                                  start: ~
+                                  end:
+                                    Literal:
+                                      Integer: 1
+                                by:
+                                  - Ident: "<ref>"
+                                sort: []
         "###);
 
         // oops, two arguments #339
@@ -244,7 +347,7 @@ mod tests {
         ",
         )
         .unwrap();
-        let result = resolve(query.nodes, context.clone());
+        let result = resolve_names(query.nodes, context.clone());
         assert!(result.is_err());
 
         // oops, two arguments
@@ -255,7 +358,7 @@ mod tests {
         ",
         )
         .unwrap();
-        let result = resolve(query.nodes, context.clone());
+        let result = resolve_names(query.nodes, context.clone());
         assert!(result.is_err());
 
         // correct function call
@@ -268,33 +371,91 @@ mod tests {
         ",
         )
         .unwrap();
-        let (result, _) = resolve(query.nodes, context).unwrap();
+        let (result, _) = resolve_names(query.nodes, context).unwrap();
         assert_yaml_snapshot!(result, @r###"
         ---
         - Pipeline:
-            value: ~
-            functions:
+            nodes:
               - Transform:
                   From:
                     name: c_invoice
                     alias: ~
-                    declared_at: 58
+                    declared_at: 76
               - Transform:
                   Group:
                     by:
                       - Ident: date
                     pipeline:
                       Pipeline:
-                        value: ~
-                        functions:
+                        nodes:
                           - Transform:
                               Aggregate:
                                 assigns:
                                   - Ident: "<unnamed>"
-                                group:
-                                  - Ident: "<un-materialized>"
-                                window: ~
-                                sort: ~
+                                by:
+                                  - Ident: "<ref>"
+        "###);
+    }
+
+    #[test]
+    fn test_transform_sort() {
+        let stdlib = load_std_lib().unwrap();
+        let (_, context) = resolve_names(stdlib, None).unwrap();
+        let context = Some(context);
+
+        let query = parse(
+            "
+        from invoices
+        sort [issued_at, -amount, +num_of_articles]
+        sort issued_at
+        sort (-issued_at)
+        sort [issued_at]
+        sort [-issued_at]
+        ",
+        )
+        .unwrap();
+
+        let (result, _) = resolve_names(query.nodes, context).unwrap();
+        assert_yaml_snapshot!(result, @r###"
+        ---
+        - Pipeline:
+            nodes:
+              - Transform:
+                  From:
+                    name: invoices
+                    alias: ~
+                    declared_at: 76
+              - Transform:
+                  Sort:
+                    - direction: Asc
+                      column:
+                        Ident: issued_at
+                    - direction: Desc
+                      column:
+                        Ident: amount
+                    - direction: Asc
+                      column:
+                        Ident: num_of_articles
+              - Transform:
+                  Sort:
+                    - direction: Asc
+                      column:
+                        Ident: issued_at
+              - Transform:
+                  Sort:
+                    - direction: Desc
+                      column:
+                        Ident: issued_at
+              - Transform:
+                  Sort:
+                    - direction: Asc
+                      column:
+                        Ident: issued_at
+              - Transform:
+                  Sort:
+                    - direction: Desc
+                      column:
+                        Ident: issued_at
         "###);
     }
 }

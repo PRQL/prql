@@ -1,12 +1,11 @@
 /// Types for outer-scope AST nodes (query, table, func def, transform)
 use serde::{Deserialize, Serialize};
-use strum::EnumString;
 
-use super::{Dialect, Ident, Node};
+use super::{Dialect, Ident, Node, Range, Ty};
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize, Default)]
 pub struct Query {
-    pub version: Option<String>,
+    pub version: Option<i64>,
     #[serde(default)]
     pub dialect: Dialect,
     pub nodes: Vec<Node>,
@@ -16,21 +15,10 @@ pub struct Query {
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct FuncDef {
     pub name: Ident,
-    #[serde(default)]
-    pub kind: Option<FuncKind>,
-    pub positional_params: Vec<Node>, // ident
-    pub named_params: Vec<Node>,      // named expr
+    pub positional_params: Vec<(Node, Option<Ty>)>, // ident
+    pub named_params: Vec<(Node, Option<Ty>)>,      // named expr
     pub body: Box<Node>,
-}
-
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, EnumString)]
-pub enum FuncKind {
-    #[strum(serialize = "transform")]
-    Transform,
-    #[strum(serialize = "aggregation")]
-    Aggregation,
-    #[strum(serialize = "window")]
-    Window,
+    pub return_type: Option<Ty>,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
@@ -44,12 +32,19 @@ pub struct Table {
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize, strum::AsRefStr)]
 pub enum Transform {
     From(TableRef),
-    Select(Select),
-    Filter(Vec<Node>),
-    Derive(Select),
-    Aggregate(Select),
+    Select(Vec<Node>),
+    Filter(Box<Node>),
+    Derive(Vec<Node>),
+    Aggregate {
+        assigns: Vec<Node>,
+        by: Vec<Node>,
+    },
     Sort(Vec<ColumnSort<Node>>),
-    Take(i64),
+    Take {
+        range: Range,
+        by: Vec<Node>,
+        sort: Vec<ColumnSort<Node>>,
+    },
     Join {
         side: JoinSide,
         with: TableRef,
@@ -59,26 +54,19 @@ pub enum Transform {
         by: Vec<Node>,
         pipeline: Box<Node>,
     },
+    Window {
+        kind: WindowKind,
+        range: Range,
+        pipeline: Box<Node>,
+    },
+    Unique, // internal only, can be expressed with group & take
 }
+
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub struct Select {
-    pub assigns: Vec<Node>,
-    pub group: Vec<Node>,
-    pub window: Option<Vec<Node>>,
-    pub sort: Option<Vec<Node>>,
+pub enum WindowKind {
+    Rows,
+    Range,
 }
-
-impl Select {
-    pub fn new(assigns: Vec<Node>) -> Self {
-        Select {
-            assigns,
-            group: Vec::new(),
-            window: None,
-            sort: None,
-        }
-    }
-}
-
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct TableRef {
     pub name: String,

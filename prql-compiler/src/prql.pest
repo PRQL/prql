@@ -13,20 +13,24 @@ COMMENT = _{ "#" ~ (!NEWLINE ~ ANY) * }
 
 query = { SOI ~ NEWLINE* ~ query_def ~ NEWLINE* ~ (( func_def | table | pipeline ) ~ ( NEWLINE+ | &EOI ))* ~ EOI }
 
-query_def = { WHITESPACE* ~ ("prql" ~ named_expr* ~ NEWLINE)? }
+query_def = { WHITESPACE* ~ ("prql" ~ named_arg* ~ NEWLINE)? }
 
-func_def = { "func" ~ func_def_flags ~ ident ~ func_def_params ~ "=" ~ expr }
+func_def = { "func" ~ func_def_name ~ func_def_params ~ "->" ~ expr }
 
-// TODO: consider some syntax for these func "type" args; currently they're only
-// differentiated from params by their position
-func_def_flags = @{ ("transform" | "aggregation" | "window" | "")? }
-func_def_params = { ( named_term | ident )* }
+func_def_name = { ident ~ type_def? }
+func_def_params = { func_def_param* }
+func_def_param = { (named_arg | ident) ~ type_def? }
+type_def = { "<" ~ type_term ~ ( "|" ~ type_term)* ~ ">" }
+type_term = { ident ~ type_def? }
+
 table = { "table" ~ ident ~ "=" ~ nested_pipeline }
 
 pipe = _{ NEWLINE | "|" }
-pipeline = { WHITESPACE* ~ func_curry ~ (pipe ~ func_curry)* }
+pipeline = { WHITESPACE* ~ expr_call ~ (pipe ~ expr_call)* }
 
 ident = @{ !operator ~ !(keyword ~ WHITESPACE) ~ (ASCII_ALPHA | "$") ~ (ASCII_ALPHANUMERIC | "." | "_" | "*" )* }
+// For sorting
+signed_ident = { ( "+" | "-" ) ~ ident }
 keyword = _{ "prql" | "table" | "func" }
 
 // A central issue around the terms vs expr is that we want to be able to parse:
@@ -54,37 +58,37 @@ keyword = _{ "prql" | "table" | "func" }
 // - 1
 // - 2
 
-// white space is required to prevent matching s"string"
-func_call = ${ ident ~ WHITESPACE+ ~ named_expr+ }
-func_curry = { ident ~ named_expr* }
+// whitespace is required to prevent matching s"string".
+// Forbid `operator` so `a - b` can't parse as `a` & `-b`.
+func_call = ${ ident ~ WHITESPACE+ ~ (!operator ~ (named_arg | assign | expr) ~ WHITESPACE*)+ }
 
-// For assigns, table aliases and named arguments
-named_expr_call = { (ident ~ ":")? ~ expr_call }
-named_expr = { (ident ~ ":")? ~ expr }
-named_term = { (ident ~ ":")? ~ term }
+named_arg   = !{ ident ~ ":" ~ !":" ~ (assign | expr) }
+assign      = !{ ident ~ "=" ~ !"=" ~ expr }
+assign_call = !{ ident ~ "=" ~ !"=" ~ expr_call }
 
-// Expression that can contain a function call
 expr_call = _{ (func_call | expr) }
 
-expr = !{ expr_compare ~ (operator_logical ~ expr_compare)* }
-expr_compare = !{ expr_add ~ (operator_compare ~ expr_add)? }
-expr_add = !{ expr_mul ~ (operator_add ~ expr_mul)* }
-expr_mul = !{ term ~ (operator_mul ~ term)* }
+expr = !{ expr_coalesce ~ (operator_logical ~ expr)? }
+expr_coalesce = { expr_compare ~ (operator_coalesce ~ expr_coalesce)? }
+expr_compare = { expr_add ~ (operator_compare ~ expr_add)? }
+expr_add = { expr_mul ~ (operator_add ~ expr_add)? }
+expr_mul = { term ~ (operator_mul ~ expr_mul)? }
 
-term = _{ ( s_string | f_string | ident | nested_expr | nested_pipeline | list | range | literal ) }
-literal = _{ interval | number | string_literal }
-list = { "[" ~ (NEWLINE* ~ named_expr_call ~ ("," ~ NEWLINE* ~ named_expr_call )* ~ ","?)? ~ NEWLINE* ~ "]" }
-nested_expr = _{ "(" ~ expr_call ~ ")" }
-nested_pipeline = { "(" ~ expr_call? ~ pipe ~ pipeline ~ NEWLINE* ~ ")" }
+term = _{ ( s_string | f_string | range | literal | ident | nested_pipeline | expr_unary | list | jinja ) }
+// expr_unary is for sorting.
+expr_unary = { ( operator_unary ~ ( nested_pipeline | ident )) }
+literal = _{ interval | number | boolean | null | string | timestamp | date | time }
+list = { "[" ~ (NEWLINE* ~ (assign_call | expr_call) ~ ("," ~ NEWLINE* ~ (assign_call | expr_call) )* ~ ","?)? ~ NEWLINE* ~ "]" }
+nested_pipeline = _{ "(" ~ (WHITESPACE | NEWLINE)* ~ pipeline ~ (WHITESPACE | NEWLINE)* ~ ")" }
 
 // We haven't implemented escapes — I think we can mostly pass those through to
 // SQL, but there may be things we're missing.
 // https://pest.rs/book/examples/rust/literals.html
 
 // We need to have a non-silent rule which contains the quotes
-// — `string_literal` in this case — because of
+// — `string` in this case — because of
 // https://github.com/pest-parser/pest/issues/583. Then when converting to AST,
-// we only keep the `string_inner` and discard the `string_literal` given it contains
+// we only keep the `string_inner` and discard the `string` given it contains
 // the quotes.
 //
 // TODO: I'm still a bit unclear how preceeding and trailing spaces are working
@@ -92,12 +96,19 @@ nested_pipeline = { "(" ~ expr_call? ~ pipe ~ pipeline ~ NEWLINE* ~ ")" }
 // with `ANY`), but prceeding & trailing spaces require both `ANY` _and_ an
 // atomic operator. We have some rudimentary tests for these.
 
-quote = _{ "\"" | "'" }
+single_quote = _{ "\"" | "'" }
+multi_quote = _{ "\""{3,} | "'"{3,} }
+opening_quote = _{ PUSH(multi_quote) | PUSH(single_quote) }
 // PEEK refers to the opening quote; either `"` or `'`.
 string_inner = { ( !( PEEK ) ~ ANY )+ }
-string_literal = ${ PUSH(quote) ~ string_inner ~ POP }
+// Either > 3 quotes, or just one. Currently both of those can be multiline.
+string = ${ ( opening_quote ) ~ string_inner ~ POP }
 
-number = ${ ( ASCII_DIGIT )+ ~ ("." ~ ( ASCII_DIGIT )+)? }
+number = ${ operator_add? ~ ( ASCII_DIGIT )+ ~ ("." ~ ( ASCII_DIGIT )+)? }
+
+boolean = ${ "true" | "false" }
+
+null = ${ "null" }
 
 range = ${ range_edge ~ ".." ~ range_edge }
 // We need `literal` separate from `term_simple` for things like range edges,
@@ -105,16 +116,33 @@ range = ${ range_edge ~ ".." ~ range_edge }
 // the whole span, not just the part before `..`.
 range_edge = ${ literal? }
 
-operator = _{ operator_unary | operator_mul | operator_add | operator_compare | operator_logical }
-operator_unary = ${ "-" }
+operator = _{ operator_unary | operator_mul | operator_add | operator_compare | operator_logical | operator_coalesce }
+operator_unary = ${ "-" | "+" | "!" }
 operator_mul = ${ "*" | "/" | "%" }
 operator_add = ${ "+" | "-" }
-operator_compare = ${ "==" | "!=" | "=" | ">" | "<" | ">=" | "<=" }
-operator_logical = ${ ("and" | "or" | "not") ~ &WHITESPACE }
+operator_compare = ${ "==" | "!=" | ">" | "<" | ">=" | "<=" }
+operator_logical = ${ ("and" | "or") ~ &WHITESPACE }
+operator_coalesce = ${ "??" }
 
-s_string = ${ "s" ~ PUSH(quote) ~ ( interpolate_string | ( "{" ~ expr_call ~ "}" ))* ~ POP }
-f_string = ${ "f" ~ PUSH(quote) ~ ( interpolate_string | ( "{" ~ expr_call ~ "}" ))* ~ POP }
-interpolate_string = { ( !( PEEK | "{" ) ~ ANY )+ }
+s_string = ${ "s" ~ opening_quote ~ ( interpolate_string_inner | ( "{" ~ expr_call ~ "}" ))* ~ POP }
+f_string = ${ "f" ~ opening_quote ~ ( interpolate_string_inner | ( "{" ~ expr_call ~ "}" ))* ~ POP }
+interpolate_string_inner = { ( !( PEEK | "{" ) ~ ANY )+ }
 
 interval_kind = { "microseconds" | "milliseconds" | "seconds" | "minutes" | "hours" | "days" | "weeks" | "months" | "years" }
 interval = ${ number ~ interval_kind }
+
+date = ${ "@" ~ date_inner ~ &end_expr }
+time = ${ "@" ~ time_inner ~ &end_expr }
+timestamp = ${ "@" ~ timestamp_inner ~ &end_expr }
+// We use the `inner` types as containing the data that we want to retain in the AST.
+date_inner = ${ ASCII_DIGIT{4} ~ "-" ~ ASCII_DIGIT{2} ~ "-" ~ ASCII_DIGIT{2} }
+// Times are liberally defined atm, we could make this more robust.
+time_inner = ${ ASCII_DIGIT{2} ~ (( ":" | "." ) ~ ASCII_DIGIT* )* ~ ((( "+" | "-" ) ~ (ASCII_DIGIT | ":" )*) | "Z")? }
+timestamp_inner = ${ date_inner ~ "T" ~ time_inner }
+
+// We can use this when want to ensure something is ending, like a date, so `@20-01-0`
+// isn't treated like a time `@20-01` `-` (minus) `0`.
+end_expr = _{ WHITESPACE | "," | ")" | "]" | EOI | NEWLINE }
+
+// We pass text between `{{` and `}}` through, so dbt can use Jinja.
+jinja = { ("{{" ~ (!"}}" ~ ANY)* ~ "}}") }

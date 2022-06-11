@@ -1,22 +1,22 @@
 ---
 source: prql-compiler/src/parser.rs
-expression: "parse_tree_of_str(r#\"[\n  gross_salary: salary + payroll_tax,\n  gross_cost  : gross_salary + benefits_cost\n]\"#,\n                  Rule::list)?"
+expression: "parse_tree_of_str(r#\"[\n  gross_salary = salary + payroll_tax,\n  gross_cost   = gross_salary + benefits_cost\n]\"#,\n                  Rule::list)?"
 ---
 [
     Pair {
         rule: list,
         span: Span {
-            str: "[\n  gross_salary: salary + payroll_tax,\n  gross_cost  : gross_salary + benefits_cost\n]",
+            str: "[\n  gross_salary = salary + payroll_tax,\n  gross_cost   = gross_salary + benefits_cost\n]",
             start: 0,
-            end: 86,
+            end: 88,
         },
         inner: [
             Pair {
-                rule: named_expr_call,
+                rule: assign_call,
                 span: Span {
-                    str: "gross_salary: salary + payroll_tax",
+                    str: "gross_salary = salary + payroll_tax",
                     start: 4,
-                    end: 38,
+                    end: 39,
                 },
                 inner: [
                     Pair {
@@ -32,70 +32,90 @@ expression: "parse_tree_of_str(r#\"[\n  gross_salary: salary + payroll_tax,\n  g
                         rule: expr,
                         span: Span {
                             str: "salary + payroll_tax",
-                            start: 18,
-                            end: 38,
+                            start: 19,
+                            end: 39,
                         },
                         inner: [
                             Pair {
-                                rule: expr_compare,
+                                rule: expr_coalesce,
                                 span: Span {
                                     str: "salary + payroll_tax",
-                                    start: 18,
-                                    end: 38,
+                                    start: 19,
+                                    end: 39,
                                 },
                                 inner: [
                                     Pair {
-                                        rule: expr_add,
+                                        rule: expr_compare,
                                         span: Span {
                                             str: "salary + payroll_tax",
-                                            start: 18,
-                                            end: 38,
+                                            start: 19,
+                                            end: 39,
                                         },
                                         inner: [
                                             Pair {
-                                                rule: expr_mul,
+                                                rule: expr_add,
                                                 span: Span {
-                                                    str: "salary ",
-                                                    start: 18,
-                                                    end: 25,
+                                                    str: "salary + payroll_tax",
+                                                    start: 19,
+                                                    end: 39,
                                                 },
                                                 inner: [
                                                     Pair {
-                                                        rule: ident,
+                                                        rule: expr_mul,
                                                         span: Span {
-                                                            str: "salary",
-                                                            start: 18,
-                                                            end: 24,
+                                                            str: "salary ",
+                                                            start: 19,
+                                                            end: 26,
+                                                        },
+                                                        inner: [
+                                                            Pair {
+                                                                rule: ident,
+                                                                span: Span {
+                                                                    str: "salary",
+                                                                    start: 19,
+                                                                    end: 25,
+                                                                },
+                                                                inner: [],
+                                                            },
+                                                        ],
+                                                    },
+                                                    Pair {
+                                                        rule: operator_add,
+                                                        span: Span {
+                                                            str: "+",
+                                                            start: 26,
+                                                            end: 27,
                                                         },
                                                         inner: [],
                                                     },
-                                                ],
-                                            },
-                                            Pair {
-                                                rule: operator_add,
-                                                span: Span {
-                                                    str: "+",
-                                                    start: 25,
-                                                    end: 26,
-                                                },
-                                                inner: [],
-                                            },
-                                            Pair {
-                                                rule: expr_mul,
-                                                span: Span {
-                                                    str: "payroll_tax",
-                                                    start: 27,
-                                                    end: 38,
-                                                },
-                                                inner: [
                                                     Pair {
-                                                        rule: ident,
+                                                        rule: expr_add,
                                                         span: Span {
                                                             str: "payroll_tax",
-                                                            start: 27,
-                                                            end: 38,
+                                                            start: 28,
+                                                            end: 39,
                                                         },
-                                                        inner: [],
+                                                        inner: [
+                                                            Pair {
+                                                                rule: expr_mul,
+                                                                span: Span {
+                                                                    str: "payroll_tax",
+                                                                    start: 28,
+                                                                    end: 39,
+                                                                },
+                                                                inner: [
+                                                                    Pair {
+                                                                        rule: ident,
+                                                                        span: Span {
+                                                                            str: "payroll_tax",
+                                                                            start: 28,
+                                                                            end: 39,
+                                                                        },
+                                                                        inner: [],
+                                                                    },
+                                                                ],
+                                                            },
+                                                        ],
                                                     },
                                                 ],
                                             },
@@ -108,19 +128,19 @@ expression: "parse_tree_of_str(r#\"[\n  gross_salary: salary + payroll_tax,\n  g
                 ],
             },
             Pair {
-                rule: named_expr_call,
+                rule: assign_call,
                 span: Span {
-                    str: "gross_cost  : gross_salary + benefits_cost",
-                    start: 42,
-                    end: 84,
+                    str: "gross_cost   = gross_salary + benefits_cost",
+                    start: 43,
+                    end: 86,
                 },
                 inner: [
                     Pair {
                         rule: ident,
                         span: Span {
                             str: "gross_cost",
-                            start: 42,
-                            end: 52,
+                            start: 43,
+                            end: 53,
                         },
                         inner: [],
                     },
@@ -128,70 +148,90 @@ expression: "parse_tree_of_str(r#\"[\n  gross_salary: salary + payroll_tax,\n  g
                         rule: expr,
                         span: Span {
                             str: "gross_salary + benefits_cost",
-                            start: 56,
-                            end: 84,
+                            start: 58,
+                            end: 86,
                         },
                         inner: [
                             Pair {
-                                rule: expr_compare,
+                                rule: expr_coalesce,
                                 span: Span {
                                     str: "gross_salary + benefits_cost",
-                                    start: 56,
-                                    end: 84,
+                                    start: 58,
+                                    end: 86,
                                 },
                                 inner: [
                                     Pair {
-                                        rule: expr_add,
+                                        rule: expr_compare,
                                         span: Span {
                                             str: "gross_salary + benefits_cost",
-                                            start: 56,
-                                            end: 84,
+                                            start: 58,
+                                            end: 86,
                                         },
                                         inner: [
                                             Pair {
-                                                rule: expr_mul,
+                                                rule: expr_add,
                                                 span: Span {
-                                                    str: "gross_salary ",
-                                                    start: 56,
-                                                    end: 69,
+                                                    str: "gross_salary + benefits_cost",
+                                                    start: 58,
+                                                    end: 86,
                                                 },
                                                 inner: [
                                                     Pair {
-                                                        rule: ident,
+                                                        rule: expr_mul,
                                                         span: Span {
-                                                            str: "gross_salary",
-                                                            start: 56,
-                                                            end: 68,
+                                                            str: "gross_salary ",
+                                                            start: 58,
+                                                            end: 71,
+                                                        },
+                                                        inner: [
+                                                            Pair {
+                                                                rule: ident,
+                                                                span: Span {
+                                                                    str: "gross_salary",
+                                                                    start: 58,
+                                                                    end: 70,
+                                                                },
+                                                                inner: [],
+                                                            },
+                                                        ],
+                                                    },
+                                                    Pair {
+                                                        rule: operator_add,
+                                                        span: Span {
+                                                            str: "+",
+                                                            start: 71,
+                                                            end: 72,
                                                         },
                                                         inner: [],
                                                     },
-                                                ],
-                                            },
-                                            Pair {
-                                                rule: operator_add,
-                                                span: Span {
-                                                    str: "+",
-                                                    start: 69,
-                                                    end: 70,
-                                                },
-                                                inner: [],
-                                            },
-                                            Pair {
-                                                rule: expr_mul,
-                                                span: Span {
-                                                    str: "benefits_cost",
-                                                    start: 71,
-                                                    end: 84,
-                                                },
-                                                inner: [
                                                     Pair {
-                                                        rule: ident,
+                                                        rule: expr_add,
                                                         span: Span {
                                                             str: "benefits_cost",
-                                                            start: 71,
-                                                            end: 84,
+                                                            start: 73,
+                                                            end: 86,
                                                         },
-                                                        inner: [],
+                                                        inner: [
+                                                            Pair {
+                                                                rule: expr_mul,
+                                                                span: Span {
+                                                                    str: "benefits_cost",
+                                                                    start: 73,
+                                                                    end: 86,
+                                                                },
+                                                                inner: [
+                                                                    Pair {
+                                                                        rule: ident,
+                                                                        span: Span {
+                                                                            str: "benefits_cost",
+                                                                            start: 73,
+                                                                            end: 86,
+                                                                        },
+                                                                        inner: [],
+                                                                    },
+                                                                ],
+                                                            },
+                                                        ],
                                                     },
                                                 ],
                                             },
