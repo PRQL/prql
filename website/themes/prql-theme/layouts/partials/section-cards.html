@@ -1,0 +1,26 @@
+{{ if .enable }}
+<section class="content-section">
+  <div class="container">
+    <div class="row content">
+      <div class="section-title">
+        <h2 class="mb-3">{{ .title | markdownify }}</h2>
+      </div>
+
+      {{ range .sections}}
+      <div class="col-sm-6 col-md-3 d-flex align-items-stretch">
+        <div class="card mb-3">
+          {{ if .link }}
+          <a href="{{ .link | relURL }}" target="_blank">
+            <h4>{{ .label }} <sup><i class="bx bx-link-external"></i></sup></h4>
+          </a>
+          {{else}}
+          <h4 class="text-muted">{{ .label }}</h4>
+          {{end}}
+          {{.text | markdownify}}
+        </div>
+      </div>
+      {{end}}
+    </div>
+  </div>
+</section>
+{{ end }}

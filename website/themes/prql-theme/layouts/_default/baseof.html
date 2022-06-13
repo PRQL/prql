@@ -1,11 +1,19 @@
 <!DOCTYPE html>
-<html>
-    {{- partial "head.html" . -}}
-    <body>
-        {{- partial "header.html" . -}}
-        <main>
-        {{- block "main" . }}{{- end }}
-        </main>
-        {{- partial "footer.html" . -}}
-    </body>
+<html lang="en">
+  {{ partial "head.html" . }}
+
+  <body>
+    {{ partial "header.html" . }}
+
+    {{- block "main" . }}{{- end }}
+
+    {{ partial "footer.html" . }}
+
+    <a href="#" class="back-to-top d-flex align-items-center justify-content-center"
+      ><i class='bx bx-up-arrow-alt'></i
+    ></a>
+
+    <script src="{{ "/main.js" | relURL }}"></script>
+    <script src="{{ "/plugins/bootstrap/bootstrap.bundle.min.js" | relURL }}"></script>
+  </body>
 </html>

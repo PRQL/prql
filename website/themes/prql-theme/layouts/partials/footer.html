@@ -1,3 +1,39 @@
-<footer>
-  {{ .Site.Params.footer.text }}
+<footer id="footer">
+  <div class="container">
+    <div class="row">
+      <div class="col-md-6">
+        <h3>Help the project</h3>
+
+        {{ with site.Params.help_the_project }}
+        <ul>
+          {{ range .list }}
+          <li>{{ .text | markdownify }}</li>
+          {{ end }}
+        </ul>
+
+        {{ if .button  }}
+        <a class="btn" href="{{ .button.link }}" target="_blank">{{ .button.text }}<sup><i class="bx bx-link-external"></i></a>
+        {{ end }}
+
+        {{ end }}
+      </div>
+
+      <div class="col-md-6 text-end">
+
+        <p>Subscribe to <a href="https://github.com/prql/prql/issues/1">issue #1 for a GitHub notification on updates</a>.</p>
+
+        <p>Join our <a href="https://discord.com/invite/eQcfaCmsNc">Discord server.</a></p>
+
+        <p>
+          <a class="btn-icon" href="https://github.com/prql/prql" target="_blank" title="GitHub repository"
+            ><i class="bx bxl-github"></i></a>
+
+          <a class="btn-icon" href="https://discord.com/invite/eQcfaCmsNc" target="_blank" title="Join the Discord"
+            ><i class="bx bxl-discord"></i></a>
+        </p>
+
+        <p>{{ site.Params.license }}</p>
+      </div>
+    </div>
+  </div>
 </footer>

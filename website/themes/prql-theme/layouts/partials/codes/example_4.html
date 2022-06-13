@@ -1,0 +1,35 @@
+    prql version:0.3 db:snowflake                         # PRQL version & database name.
+
+    func excess x -> (x - interest_rate) / 252            # Functions are clean and simple.
+    func if_valid x -> is_valid_price ? x : null
+    func lag_day x -> group sec_id (                      # `group` is used for window partitions too
+      sort date
+      window (                                            # `window` runs a pipeline over each window
+        lag 1 x                                           # `lag 1 x` lags the `x` col by 1
+      )
+    )
+
+
+        func ret x -> x / (x | lag_day) - 1 + dividend_return
+
+        from prices
+        join interest_rates [date]
+        select [                                              # `select` only includes unnamed columns, unlike `derive`
+          return_total =      prices_adj   | ret | if_valid   # `|` can be used rather than newlines
+          return_usd =        prices_usd   | ret | if_valid
+          return_excess =     return_total | excess
+          return_usd_excess = return_usd   | excess
+          return_index = (                                    # No need for a CTE
+            return_total + 1
+            excess
+            greatest 0.01
+            ln
+            group sec_id (                                    # Complicated logic remains clear(er)
+              sort date
+              window ..current (                              # Rolling sum
+                sum
+              )
+            )
+            exp
+          )
+        ]
