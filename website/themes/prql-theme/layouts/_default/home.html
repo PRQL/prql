@@ -1,0 +1,129 @@
+{{ define "main" }}
+
+<!-- ======= Hero Section ======= -->
+{{ with .Params.hero_section }}
+<!---->
+{{ if .enable }}
+<section class="hero striped d-flex align-items-center">
+  <div class="container">
+    <div class="row content align-items-center">
+      <div class="col-lg-6">
+        <h4 class="mb-3">
+          <span>P</span>ipelined <span>R</span>elational <span>Q</span>uery
+          <span>L</span>anguage, pronounced <span>“Prequel”</span>
+        </h4>
+        <h2 class="mb-3">{{ .heading | markdownify }}</h2>
+        <p class="mb-3">{{ .bottom_text | markdownify }}</p>
+        {{ if .button.enable }}
+        <!---->
+        {{ with .button }}
+        <a class="btn" href="{{ .link | safeURL }}" title="{{ .label }}">
+          {{ .label }}</a>
+        {{ end }}
+        <!---->
+        {{ end }}
+      </div>
+      <div class="col-lg-6 pt-4 pt-lg-0">
+        <pre tabindex="0">
+          <code class="language-prql hljs" data-lang="prql">{{ .prql_example }}</code>
+        </pre>
+      </div>
+    </div>
+  </div>
+</section>
+{{ end }}
+<!---->
+{{ end }}
+<!-- End Hero -->
+
+<main id="main">
+  <!-- ======= principle Section ======= -->
+  {{ with .Params.principle_section }}
+  <!---->
+  {{ if .enable }}
+  <section class="principle_section">
+    <div class="container">
+      <div class="row justify-content-center">
+        <div class="section-title">
+          <h2 class="mb-3">{{ .title | markdownify }}</h2>
+          <p>{{.tagline | markdownify }}</p>
+        </div>
+
+        {{ range .items }}
+        <div class="col-lg-4 d-flex align-items-stretch mb-4">
+          <div class="card">
+            <h4>{{ .title | markdownify }}</h4>
+            <p class="blue-border">
+              <strong>{{ .main_text | markdownify }}</strong>
+            </p>
+            <p>{{ .content | markdownify }}</p>
+          </div>
+        </div>
+        {{ end }}
+      </div>
+    </div>
+  </section>
+  {{ end }}
+  <!---->
+  {{ end }}
+  <!-- End principle_section -->
+
+  <!-- ======= motivation Section ======= -->
+  {{ with .Params.showcase_section }}
+  <!---->
+  {{ if .enable }}
+  <section class="content-section showcase-section section-bg">
+    <div class="container">
+      <div class="row content">
+        <div class="col-lg-6 mb-4">
+          <div class="section-title">
+            <h3>{{ .subtitile | markdownify }}</h3>
+            <h2 class="mb-3">{{ .title | markdownify }}</h2>
+          </div>
+
+          {{ range .content }}
+          <p class="mb-3">{{.}}</p>
+          {{end}}
+
+          {{ range .buttons }}
+          <a class="btn" href="{{ .link | relURL }}">{{ .label }}</a>
+          {{end}}
+        </div>
+
+        <div class="col-lg-6 d-flex align-items-start">
+          <div class="nav flex-column nav-pills me-3" id="v-pills-tab" role="tablist" aria-orientation="vertical">
+            {{ range $index, $e := .examples }}
+            <button class="nav-link{{ if (eq 0 $index) }} active{{end}}" id="v-pills-{{ $e.id }}-tab"
+              data-bs-toggle="pill" data-bs-target="#v-pills-{{ $e.id }}" type="button" role="tab"
+              aria-controls="v-pills-{{ $e.id }}" aria-selected="false">{{ $e.label }}</button>
+            {{end}}
+          </div>
+          <div class="tab-content" id="v-pills-tabContent">
+            {{ range $index, $e := .examples }}
+            <div class="tab-pane fade{{ if (eq 0 $index) }}show active{{end}} row" id="v-pills-{{ $e.id }}"
+              role="tabpanel" aria-labelledby="v-pills-{{ $e.id }}-tab" tabindex="0">
+
+              <pre><code class="language-prql hljs" data-lang="prql">{{ $e.prql }}</code></pre>
+              <pre><code class="language-sql hljs" data-lang="sql">{{ $e.sql }}</code></pre>
+
+            </div>
+            {{ end }}
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+  {{ end }}
+  <!---->
+  {{ end }}
+
+  {{ partial "section-cards" .Params.tools_section }}
+
+  {{ partial "section-cards" .Params.libraries_section }}
+
+  {{ partial "section-cards" .Params.integrations_section }}
+
+</main>
+
+{{end}}

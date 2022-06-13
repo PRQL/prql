@@ -12,7 +12,9 @@ I'm hoping we can build a beautiful language, an app that's approachable &
 powerful, and a vibrant community. Many projects have reached the current stage
 and fallen, so this requires compounding on what we've done so far.
 
-### Language design
+{{< columns >}}
+
+## Language design
 
 Already since becoming public, the language has improved dramatically, thanks to
 the feedback of dozens of contributors. The current state of the basics is now
@@ -22,7 +24,7 @@ to the existing features — even as we continue adding features.
 Feel free to post questions or continue discussions on [Language Design
 Issues](https://github.com/prql/prql/issues?q=is%3Aissue+is%3Aopen+label%3Alanguage-design).
 
-### Documentation
+## Documentation
 
 Currently the language documentation is at <https://prql-lang.org/book>.
 
@@ -31,7 +33,7 @@ not, this is the area that would most benefit from your contribution. Issues are
 tagged with
 [documentation](https://github.com/prql/prql/labels/documentation).
 
-### Friendliness
+## Friendliness
 
 Currently the language implementation is not sufficiently friendly, despite
 significant recent improvements. We'd like to make error messages better, sand
@@ -42,7 +44,7 @@ welcome; there's a
 [friendliness](https://github.com/prql/prql/issues?q=is%3Aissue+label%3Afriendlienss+is%3Aopen)
 label.
 
-### Fast feedback
+## Fast feedback
 
 As well as a command-line tool that transpiles queries, we'd like to make
 developing in PRQL a wonderful experience, where it feels like it's on your
@@ -57,7 +59,9 @@ side:
   tables.
 - (I'm sure there's more, ideas welcome)
 
-### Integrations
+<--->
+
+## Integrations
 
 PRQL is focused at the language layer, which means we can easily integrate with
 existing tools & apps. This will be the primary way that people can start using
@@ -65,7 +69,7 @@ PRQL day-to-day. Probably the most impactful initial integrations will be tools 
 engineers use to build data pipelines, like
 [`dbt-prql`](https://github.com/prql/prql/issues/375).
 
-### Database cohesion
+## Database cohesion
 
 One benefit of PRQL over SQL is that auto-complete, type-inference, and
 error checking can be much more powerful.
@@ -73,7 +77,7 @@ error checking can be much more powerful.
 We'd like to build this out. It's more difficult to build, since it requires a
 connection to the database in order to understand the schema of the table.
 
-### Not in focus
+## Not in focus
 
 We should focus on solving a distinct problem really well. PRQL's goal is to
 make reading and writing analytical queries easier, and so for the moment that
@@ -83,3 +87,5 @@ means putting some things out of scope:
   that! ([#13](https://github.com/prql/prql/issues/13)).
 - Writing DDL / index / schema manipulation / inserting data
   ([#16](https://github.com/prql/prql/issues/16)).
+
+{{< /columns >}}

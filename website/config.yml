@@ -1,21 +1,43 @@
 baseURL: "https://prql-lang.org/"
-languageCode: "en-us"
-title: "PRQL"
-theme: "prql-theme"
+languageCode: en-us
+title: PRQL
+theme: prql-theme
+
+menu:
+  nav:
+    - identifier: Book
+      name: Book
+      title: Book
+      url: "https://prql-lang.org/book/"
+      pageref: "https://prql-lang.org/book/"
+      weight: 1
+    - identifier: Playground
+      name: Playground
+      title: Playground
+      url: "https://prql-lang.org/playground/"
+      pageref: "https://prql-lang.org/playground/"
+      weight: 2
+    - identifier: Roadmap
+      name: Roadmap
+      title: Roadmap
+      url: /roadmap/
+      pageref: /roadmap/
+      weight: 3
 
 params:
-  main_menu:
-    - text: Book
-      link: /book
-
-    - text: Playground
-      link: /playground
-
-    - text: Roadmap
-      link: /roadmap
-
-    - text: Github
+  help_the_project:
+    list:
+    - text: Send a link to PRQL to a couple of people whose opinion you respect.
+    - text: | 
+        Rewrite any of your own queries to PRQL to see if it makes sense. 
+        You can use the [playground](https://prql-lang.org/playground) and submit issues 
+        [here](https://github.com/prql/prql/issues). We are looking for any 
+        use-cases that expose a poor design choice, a need of a feature, a pain point
+        or are just a sharp edge of the language.
+    button:
+      text: Contribute
       link: https://github.com/prql/prql
 
-  footer:
-    text: "© 2022, PRQL developers. Apache 2.0 Licensed"
+
+  license: "© 2022, PRQL developers. Apache 2.0 Licensed"
+

@@ -1,6 +1,5 @@
 ---
-title: "Motivation"
-url: motivation
+title: "Examples"
 ---
 
 ## A simple example
