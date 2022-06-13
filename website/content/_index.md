@@ -13,10 +13,10 @@ hero_section:
     link: "https://prql-lang.org/reference/"
     label: "Reference"
   prql_example: |
-    from employees                                
-    derive [                                      
+    from employees
+    derive [
       gross_salary = salary + payroll_tax,
-      gross_cost = gross_salary + benefits_cost   
+      gross_cost = gross_salary + benefits_cost
     ]
     filter gross_cost > 0
     group [title, country] (
@@ -74,7 +74,7 @@ showcase_section:
   buttons:
   - link: "/examples/"
     label: "More examples"
-  
+
   - link: "/playground/"
     label: "Playground"
   examples:
@@ -90,12 +90,12 @@ showcase_section:
       FROM employees
       ORDER BY age
       LIMIT 10
-  
+
   - id: syntax
     label: Syntax
     prql: |
       from order  # this is a comment
-      filter created_at > @2022-06-13 
+      filter created_at > @2022-06-13
       filter status == "done"
       derive promo_amount = amount * (promo ?? 0)
       sort [-amount]
@@ -107,7 +107,7 @@ showcase_section:
       WHERE created_at > DATE '2022-06-13'
         AND status = 'done'
       ORDER BY amount DESC
-  
+
   - id: null-handling
     label: Null handling
     prql: |
@@ -126,7 +126,7 @@ showcase_section:
       from web
       select url = f"http://www.{domain}.{tld}/{page}"
     sql: |
-      SELECT CONCAT('http://www.', domain, '.', tld, 
+      SELECT CONCAT('http://www.', domain, '.', tld,
         '/', page) AS url
       FROM web
 
@@ -153,7 +153,7 @@ tools_section:
       label: "prql-compiler"
       text: |
         Reference compiler implementation. Has a CLI utility that can transpile, format and annotate PRQL queries.
-        
+
         `cargo install prql`
 
         `brew install prql`
@@ -161,9 +161,9 @@ tools_section:
     - link: https://github.com/prql/PyPrql
       label: "PyPrql"
       text: |
-        Python TUI for connecting to databases. 
+        Python TUI for connecting to databases.
         Provides a native interactive console with auto-complete for column names and Jupyter/IPython cell magic.
-        
+
         `pip install pyprql`
 
 libraries_section:
@@ -182,20 +182,20 @@ integrations_section:
   enable: true
   title: "INTEGRATIONS"
   sections:
-    - label: Visual Studio Code 
+    - label: Visual Studio Code
       link: 'https://marketplace.visualstudio.com/items?itemName=prql.prql'
       text: Extension with syntax highlighting and an upcoming language server.
 
     - label: 'Jupyter/IPython'
       link: 'https://pyprql.readthedocs.io/en/latest/magic_readme.html'
       text: |
-        PyPrql has a magic extension, which executes a PRQL cell against a database. 
+        PyPrql has a magic extension, which executes a PRQL cell against a database.
         It can also set up an in-memory DuckDB instance, populated with a pandas dataframes.
 
     - label: DBT
       link: 'https://github.com/prql/dbt-prql'
       text: |
-        Allows writing PRQL in dbt models. 
+        Allows writing PRQL in dbt models.
         This combines the benefits of PRQL's power & simplicity within queries, with dbt's version control, lineage & testing across queries.
 
     - label: 'prefect-prql'
