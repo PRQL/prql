@@ -10,7 +10,7 @@ hero_section:
   bottom_text: "-- a simpler and more powerful SQL"
   button:
     enable: true
-    link: "https://prql-lang.org/reference/"
+    link: https://prql-lang.org/book/
     label: "Reference"
   prql_example: |
     from employees
@@ -72,80 +72,81 @@ showcase_section:
     - "Even though wildly adopted and readable as a sentence, SQL is inconsistent and becomes unmanageable as soon as query complexity goes beyond the most simple queries."
     - "Because each transform in PRQL is orthogonal to all previous transforms, it is always easy to extend your query. On top of that, PRQL offers modern features, such syntax for dates, ranges and f-strings as well as functions, type checking and better null handling."
   buttons:
-  - link: "/examples/"
-    label: "More examples"
+    - link: "/examples/"
+      label: "More examples"
 
-  - link: "/playground/"
-    label: "Playground"
+    - link: "/playground/"
+      label: "Playground"
   examples:
-  - id: basics
-    label: Basic example
-    prql: |
-      from employees
-      select [id, first_name, age]
-      sort age
-      take 10
-    sql: |
-      SELECT id, first_name, age
-      FROM employees
-      ORDER BY age
-      LIMIT 10
+    - id: basics
+      label: Basic example
+      prql: |
+        from employees
+        select [id, first_name, age]
+        sort age
+        take 10
+      sql: |
+        SELECT id, first_name, age
+        FROM employees
+        ORDER BY age
+        LIMIT 10
 
-  - id: syntax
-    label: Syntax
-    prql: |
-      from order  # this is a comment
-      filter created_at > @2022-06-13
-      filter status == "done"
-      derive promo_amount = amount * (promo ?? 0)
-      sort [-amount]
-    sql: |
-      SELECT
-        order.*,
-        amount * COALESCE(promo, 0) AS promo_amount
-      FROM order
-      WHERE created_at > DATE '2022-06-13'
-        AND status = 'done'
-      ORDER BY amount DESC
+    - id: syntax
+      label: Syntax
+      prql: |
+        from order  # this is a comment
+        filter created_at > @2022-06-13
+        filter status == "done"
+        derive promo_amount = amount * (promo ?? 0)
+        sort [-amount]
+      sql: |
+        SELECT
+          order.*,
+          amount * COALESCE(promo, 0) AS promo_amount
+        FROM order
+        WHERE created_at > DATE '2022-06-13'
+          AND status = 'done'
+        ORDER BY amount DESC
 
-  - id: null-handling
-    label: Null handling
-    prql: |
-      from users
-      filter last_login != null
-      filter deleted_at == null
-    sql: |
-      SELECT users.*
-      FROM users
-      WHERE last_login IS NOT NULL
-        AND deleted_at IS NULL
+    - id: null-handling
+      label: Null handling
+      prql: |
+        from users
+        filter last_login != null
+        filter deleted_at == null
+      sql: |
+        SELECT users.*
+        FROM users
+        WHERE last_login IS NOT NULL
+          AND deleted_at IS NULL
+# markdown-link-check-disable
+    - id: f-strings
+      label: F-strings
+      prql: |
+        from web
+        select url = f"http://www.{domain}.{tld}/{page}"
+      sql: |
+        SELECT CONCAT('http://www.', domain, '.', tld,
+          '/', page) AS url
+        FROM web
+# markdown-link-check-enable
 
-  - id: f-strings
-    label: F-strings
-    prql: |
-      from web
-      select url = f"http://www.{domain}.{tld}/{page}"
-    sql: |
-      SELECT CONCAT('http://www.', domain, '.', tld,
-        '/', page) AS url
-      FROM web
+    - id: functions
+      label: Functions
+      prql: |
+        func celsius_of_fahrenheit temp -> (temp - 32) * 3
 
-  - id: functions
-    label: Functions
-    prql: |
-      func celsius_of_fahrenheit temp -> (temp - 32) * 3
-
-      from cities
-      select temp_c = (celsius_of_fahrenheit temp_f)
-    sql: |
-      SELECT temp_f - 32 * 3 AS temp_c
-      FROM cities
+        from cities
+        select temp_c = (celsius_of_fahrenheit temp_f)
+      sql: |
+        SELECT temp_f - 32 * 3 AS temp_c
+        FROM cities
 
 tools_section:
   enable: true
   title: "TOOLS"
   sections:
-    - link: "https://prql-lang.org/playground/"
+    - link: https://prql-lang.org/playground/
       label: "Playground"
       text: "Online in-browser playground that compiles PRQL to SQL as you type."
 
@@ -170,7 +171,7 @@ libraries_section:
   enable: true
   title: "LIBRARIES"
   sections:
-    - link: "https://pypi.org/project/pyprql/"
+    - link: https://pypi.org/project/pyprql/
       label: "prql-py"
       text: "Python compiler library. Wrapper for prql-compiler."
 
@@ -183,22 +184,21 @@ integrations_section:
   title: "INTEGRATIONS"
   sections:
     - label: Visual Studio Code
-      link: 'https://marketplace.visualstudio.com/items?itemName=prql.prql'
+      link: https://marketplace.visualstudio.com/items?itemName=prql.prql
       text: Extension with syntax highlighting and an upcoming language server.
 
-    - label: 'Jupyter/IPython'
-      link: 'https://pyprql.readthedocs.io/en/latest/magic_readme.html'
+    - label: "Jupyter/IPython"
+      link: "https://pyprql.readthedocs.io/en/latest/magic_readme.html"
       text: |
         PyPrql has a magic extension, which executes a PRQL cell against a database.
         It can also set up an in-memory DuckDB instance, populated with a pandas dataframes.
 
     - label: DBT
-      link: 'https://github.com/prql/dbt-prql'
+      link: "https://github.com/prql/dbt-prql"
       text: |
         Allows writing PRQL in dbt models.
         This combines the benefits of PRQL's power & simplicity within queries, with dbt's version control, lineage & testing across queries.
 
-    - label: 'prefect-prql'
+    - label: "prefect-prql"
       text: Upcoming.
-
 ---
