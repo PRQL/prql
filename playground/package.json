@@ -19,7 +19,7 @@
     "monaco-editor": "^0.33.0",
     "prql-js": "file:../prql-js/pkg",
     "react": "^18.1.0",
-    "react-dom": "^18.1.0",
+    "react-dom": "^18.2.0",
     "react-syntax-highlighter": "^15.5.0",
     "wasm-react-scripts": "5.0.2",
     "web-vitals": "^2.1.4"
