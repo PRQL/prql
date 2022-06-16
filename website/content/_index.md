@@ -157,7 +157,7 @@ tools_section:
 
         `cargo install prql`
 
-        `brew install prql`
+        `brew install prql/prq/prql`
 
     - link: https://github.com/prql/PyPrql
       label: "PyPrql"
