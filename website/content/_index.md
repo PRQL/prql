@@ -45,7 +45,7 @@ principle_section:
 
     - title: "Simple"
       main_text: "PRQL serves both sophisticated engineers and analysts without coding experience."
-      content: 
+      content:
         By providing a small number of powerful & orthogonal primitives, queries are simpler —
         there's only one way of expressing each operation.
 
@@ -55,9 +55,9 @@ principle_section:
 
     - title: "Extensible"
       main_text: "PRQL can be extended through functions"
-      content: 
-        PRQL has abstractions which make it a great platform to build on. 
-        Its explicit versioning allows changes without breaking backward-compatibility. 
+      content:
+        PRQL has abstractions which make it a great platform to build on.
+        Its explicit versioning allows changes without breaking backward-compatibility.
         Where there isn't yet an implementation, PRQL allows embedding SQL with S-Strings.
 
     - title: "Analytical"
