@@ -20,6 +20,7 @@
   --body-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
     Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
 }
+
 body {
   font-family: var(--body-font);
   color: var(--main-color);
@@ -45,6 +46,7 @@ a.btn {
   font-size: 20px;
   padding: 10px 20px;
 }
+
 a.btn:hover {
   color: #fff;
 }
@@ -60,9 +62,11 @@ a.btn-icon {
   transition: all 0.3s;
   text-decoration: none;
 }
+
 a.btn-icon:hover {
   background: var(--main-color);
 }
+
 a.btn-icon i {
   width: 1.5em;
   line-height: 1.5;
@@ -91,15 +95,18 @@ code {
   transition: all 0.4s;
   text-decoration: none;
 }
+
 .back-to-top i {
   font-size: 28px;
   color: #fff;
   line-height: 0;
 }
+
 .back-to-top:hover {
   background: var(--secondary-color);
   color: #fff;
 }
+
 .back-to-top.active {
   visibility: visible;
   opacity: 1;
@@ -118,6 +125,7 @@ code {
 #header .logo img {
   max-height: 50px;
 }
+
 #header .logo h1 {
   margin: 0;
   line-height: 1;
@@ -128,10 +136,11 @@ code {
   transition: 0.2s;
   text-decoration: none;
 }
+
 #header a:hover,
 #header .active,
 #header .active:focus,
-#header li:hover > a {
+#header li:hover>a {
   color: var(--secondary-color);
 }
 
@@ -144,6 +153,7 @@ code {
 .navbar {
   padding: 0;
 }
+
 .navbar ul {
   margin: 0;
   padding: 0;
@@ -151,9 +161,11 @@ code {
   list-style: none;
   align-items: center;
 }
+
 .navbar li {
   position: relative;
 }
+
 .navbar a,
 .navbar a:focus {
   display: flex;
@@ -176,6 +188,7 @@ code {
   line-height: 0;
   transition: 0.5s;
 }
+
 .mobile-nav-toggle.bi-x {
   color: #fff;
 }
@@ -189,6 +202,7 @@ code {
     display: none;
   }
 }
+
 .navbar-mobile {
   position: fixed;
   overflow: hidden;
@@ -200,11 +214,13 @@ code {
   transition: 0.3s;
   z-index: 999;
 }
+
 .navbar-mobile .mobile-nav-toggle {
   position: absolute;
   top: 15px;
   right: 15px;
 }
+
 .navbar-mobile ul {
   display: block;
   position: absolute;
@@ -217,17 +233,20 @@ code {
   overflow-y: auto;
   transition: 0.3s;
 }
+
 .navbar-mobile a,
 .navbar-mobile a:focus {
   padding: 10px 20px;
   font-size: 15px;
   color: #556270;
 }
+
 .navbar-mobile a:hover,
 .navbar-mobile .active,
-.navbar-mobile li:hover > a {
+.navbar-mobile li:hover>a {
   color: #d9232d;
 }
+
 /*--------------------------------------------------------------
 # Hero Section
 --------------------------------------------------------------*/
@@ -235,16 +254,15 @@ code {
   width: 100%;
   min-height: 100vh;
   background: #f2f9ff;
-  background: repeating-linear-gradient(
-      45deg,
+  background: repeating-linear-gradient(45deg,
       transparent,
       transparent 150px,
       #f2f9ff 150px,
-      #f2f9ff 300px
-    ),
+      #f2f9ff 300px),
     linear-gradient(#e8f2f2, #f2f9ff);
-    padding-top: 100px;
+  padding-top: 100px;
 }
+
 .no-hero {
   padding-top: 80px;
 }
@@ -284,6 +302,7 @@ pre ::-webkit-scrollbar-thumb:hover {
   font-size: 20px;
   color: var(--main-color);
 }
+
 .hero h4 span {
   color: #c92a2a;
 }
@@ -293,10 +312,12 @@ pre ::-webkit-scrollbar-thumb:hover {
   color: var(--main-color);
   font-weight: 700;
 }
+
 .hero p {
   font-size: 20px;
   color: #4b5157;
 }
+
 .hero a {
   color: #fff;
   background-color: var(--third-color);
@@ -315,21 +336,26 @@ pre ::-webkit-scrollbar-thumb:hover {
   #hero {
     height: 100vh;
   }
+
   #hero .carousel-container {
     top: 8px;
   }
 }
+
 @media (max-width: 768px) {
   #hero h2 {
     font-size: 28px;
   }
 }
+
 @media (min-width: 1024px) {
+
   #hero .carousel-control-prev,
   #hero .carousel-control-next {
     width: 5%;
   }
 }
+
 @media (max-height: 500px) {
   #hero {
     height: 120vh;
@@ -347,13 +373,11 @@ section {
 .section-bg,
 .services .icon-box {
   background: #f2f9ff;
-  background: repeating-linear-gradient(
-      45deg,
+  background: repeating-linear-gradient(45deg,
       transparent,
       transparent 150px,
       #f2f9ff 150px,
-      #f2f9ff 300px
-    ),
+      #f2f9ff 300px),
     linear-gradient(#e8f2f2, #f2f9ff);
 }
 
@@ -362,7 +386,7 @@ section {
   font-weight: 700;
   padding: 0;
   letter-spacing: 2px;
-  text-transform: uppercase;
+  font-variant: small-caps;
   color: var(--main-color);
 }
 
@@ -388,10 +412,12 @@ section {
   padding: 30px;
   border-radius: 0px;
 }
+
 .principle_section .card i {
   color: #202b38;
   font-size: 52px;
 }
+
 .principle_section .card h4 {
   font-weight: 600;
   font-size: 24px;
@@ -438,13 +464,16 @@ section {
   font-size: 250px;
   color: var(--main-color);
 }
+
 .content-section .card {
   padding: 15px;
   flex: 1 0 0;
 }
+
 .content-section .card a {
   color: var(--third-color);
 }
+
 .content-section .card a:hover {
   color: var(--secondary-color);
 }
@@ -491,6 +520,7 @@ article {
 article h1 {
   margin-bottom: 2rem;
 }
+
 article h2 {
   margin: 2rem 0 1rem 0;
 }
@@ -500,20 +530,20 @@ article h2 {
 --------------------------------------------------------------*/
 #footer {
   background: var(--main-color);
-  background: repeating-linear-gradient(
-      45deg,
+  background: repeating-linear-gradient(45deg,
       transparent,
       transparent 150px,
       var(--main-color) 150px,
-      var(--main-color) 300px
-    ),
+      var(--main-color) 300px),
     linear-gradient(#1d252e, var(--main-color));
   padding: 3rem 0 4rem 0;
   color: #fff;
 }
+
 #footer p {
   color: #bbb;
 }
+
 #footer a.btn {
   color: #fff;
   background-color: var(--secondary-color);
@@ -536,9 +566,11 @@ article h2 {
   color: rgba(219, 219, 219, 0.712);
   padding-left: 20px;
 }
+
 #footer .copyright i:hover {
   color: #fff;
 }
+
 #footer .copyright p {
   display: flex;
 }
