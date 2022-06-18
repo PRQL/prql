@@ -172,7 +172,7 @@ integrations_section:
   title: "Integrations"
   sections:
     - label: dbt
-      link: "https://github.com/prql/dbt-prql"
+      link: https://github.com/prql/dbt-prql
       text: |
         Allows writing PRQL in dbt models.
         This combines the benefits of PRQL's power & simplicity within queries, with dbt's version control, lineage & testing across queries.
