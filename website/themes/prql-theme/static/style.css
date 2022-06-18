@@ -171,10 +171,14 @@ code {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 0 10px 30px;
+  padding: 10px 0 3px 30px;
+  font-family: var(--title-font);
   font-size: 18px;
-  font-weight: bold;
   white-space: nowrap;
+}
+
+.navbar a.icon {
+  font-size: 30px;
 }
 
 /**
@@ -536,7 +540,7 @@ article h2 {
       var(--main-color) 150px,
       var(--main-color) 300px),
     linear-gradient(#1d252e, var(--main-color));
-  padding: 3rem 0 4rem 0;
+  padding: 1rem 0 2rem 0;
   color: #fff;
 }
 

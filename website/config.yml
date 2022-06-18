@@ -3,6 +3,10 @@ languageCode: en-us
 title: PRQL
 theme: prql-theme
 
+disableKinds:
+- taxonomy
+- term
+
 menu:
   nav:
     - identifier: Book

@@ -91,7 +91,7 @@
         </div>
 
         <div class="col-lg-6 d-flex align-items-start">
-          <div class="nav flex-column nav-pills me-3" id="v-pills-tab" role="tablist" aria-orientation="vertical">
+          <div class="nav flex-column nav-pills flex-shrink-0 me-3" id="v-pills-tab" role="tablist" aria-orientation="vertical">
             {{ range $index, $e := .examples }}
             <button class="nav-link{{ if (eq 0 $index) }} active{{end}}" id="v-pills-{{ $e.id }}-tab"
               data-bs-toggle="pill" data-bs-target="#v-pills-{{ $e.id }}" type="button" role="tab"
