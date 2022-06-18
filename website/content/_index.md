@@ -7,7 +7,7 @@ title: PRQL
 hero_section:
   enable: true
   heading: "PRQL is a modern language for transforming data"
-  bottom_text: "-- a simpler and more powerful SQL"
+  bottom_text: "— a simpler and more powerful SQL"
   button:
     enable: true
     link: https://prql-lang.org/book/
@@ -40,24 +40,25 @@ principle_section:
   title: "Principles"
   items:
     - title: "Pipelined"
-      main_text: "PRQL is a linear pipeline of transformations"
+      main_text: "A PRQL query is a linear pipeline of transformations"
       content: "Each line of the query is a transformation of the previous line’s result. This makes it easy to read, and simple to write."
 
     - title: "Simple"
-      main_text: "PRQL serves both sophisticated engineers and analyst's without coding experience."
-      content: |
-        We believe that there should be only one way of expressing each operation,
-        so there is only a few patterns to memorize. This opposes query tweaking with
-        intention to improve performance, because that should be handled by the compiler and
-        the database.
+      main_text: "PRQL serves both sophisticated engineers and analysts without coding experience."
+      content:
+        By providing a small number of powerful & orthogonal primitives, queries are simpler —
+        there's only one way of expressing each operation.
 
     - title: "Open"
       main_text: "PRQL will always be open-source"
       content: "Free-as-in-free, and doesn’t prioritize one database over others. By compiling to SQL, PRQL is instantly compatible with most databases, and existing tools or programming languages that manage SQL. Where possible, PRQL unifies syntax across databases."
 
     - title: "Extensible"
-      main_text: "PRQL can be extended through its abstractions"
-      content: "Its explicit versioning allows changes without breaking backward-compatibility. PRQL allows embedding SQL through S-Strings, where PRQL doesn’t yet have an implementation."
+      main_text: "PRQL can be extended through functions"
+      content:
+        PRQL has abstractions which make it a great platform to build on.
+        Its explicit versioning allows changes without breaking backward-compatibility.
+        Where there isn't yet an implementation, PRQL allows embedding SQL with S-Strings.
 
     - title: "Analytical"
       main_text: "PRQL’s focus is analytical queries"
@@ -67,7 +68,6 @@ principle_section:
 showcase_section:
   enable: true
   title: "Showcase"
-  subtitile: "Get familiar with your data"
   content:
     - "Even though wildly adopted and readable as a sentence, SQL is inconsistent and becomes unmanageable as soon as query complexity goes beyond the most simple queries."
     - "Because each transform in PRQL is orthogonal to all previous transforms, it is always easy to extend your query. On top of that, PRQL offers modern features, such syntax for dates, ranges and f-strings as well as functions, type checking and better null handling."
@@ -144,7 +144,7 @@ showcase_section:
 
 tools_section:
   enable: true
-  title: "TOOLS"
+  title: "Tools"
   sections:
     - link: https://prql-lang.org/playground/
       label: "Playground"
@@ -167,9 +167,32 @@ tools_section:
 
         `pip install pyprql`
 
-libraries_section:
+integrations_section:
   enable: true
-  title: "LIBRARIES"
+  title: "Integrations"
+  sections:
+    - label: dbt
+      link: https://github.com/prql/dbt-prql
+      text: |
+        Allows writing PRQL in dbt models.
+        This combines the benefits of PRQL's power & simplicity within queries, with dbt's version control, lineage & testing across queries.
+
+    - label: "Jupyter/IPython"
+      link: "https://pyprql.readthedocs.io/en/latest/magic_readme.html"
+      text: |
+        PyPrql has a magic extension, which executes a PRQL cell against a database.
+        It can also set up an in-memory DuckDB instance, populated with a pandas dataframes.
+
+    - label: Visual Studio Code
+      link: https://marketplace.visualstudio.com/items?itemName=prql.prql
+      text: Extension with syntax highlighting and an upcoming language server.
+
+    - label: "Prefect"
+      text: Upcoming.
+
+bindings_section:
+  enable: true
+  title: "Bindings"
   sections:
     - link: https://pypi.org/project/pyprql/
       label: "prql-py"
@@ -179,26 +202,4 @@ libraries_section:
       label: "prql-js"
       text: "JavaScript compiler library. Wrapper for prql-compiler."
 
-integrations_section:
-  enable: true
-  title: "INTEGRATIONS"
-  sections:
-    - label: Visual Studio Code
-      link: https://marketplace.visualstudio.com/items?itemName=prql.prql
-      text: Extension with syntax highlighting and an upcoming language server.
-
-    - label: "Jupyter/IPython"
-      link: "https://pyprql.readthedocs.io/en/latest/magic_readme.html"
-      text: |
-        PyPrql has a magic extension, which executes a PRQL cell against a database.
-        It can also set up an in-memory DuckDB instance, populated with a pandas dataframes.
-
-    - label: DBT
-      link: "https://github.com/prql/dbt-prql"
-      text: |
-        Allows writing PRQL in dbt models.
-        This combines the benefits of PRQL's power & simplicity within queries, with dbt's version control, lineage & testing across queries.
-
-    - label: "prefect-prql"
-      text: Upcoming.
 ---
