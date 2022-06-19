@@ -179,6 +179,7 @@ code {
 
 .navbar a.icon {
   font-size: 30px;
+  padding: 10px 0 10px 30px;
 }
 
 /**
@@ -510,6 +511,10 @@ section {
 .content-section code {
   background-color: var(--main-color);
   border-radius: 8px;
+}
+
+.highlight>pre {
+  background-color: transparent !important;
 }
 
 /*--------------------------------------------------------------
