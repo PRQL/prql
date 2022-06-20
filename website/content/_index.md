@@ -41,42 +41,48 @@ principle_section:
   items:
     - title: "Pipelined"
       main_text: "A PRQL query is a linear pipeline of transformations"
-      content: "Each line of the query is a transformation of the previous line’s result. This makes it easy to read, and simple to write."
+      content:
+        Each line of the query is a transformation of the previous line’s result.
+        This makes it easy to read, and simple to write.
 
     - title: "Simple"
       main_text: "PRQL serves both sophisticated engineers and analysts without coding experience."
       content:
         By providing a small number of powerful & orthogonal primitives, queries are simpler —
-        there's only one way of expressing each operation.
+        there's only one way of expressing each operation. We can eschew the debt that SQL has built up.
 
     - title: "Open"
       main_text: "PRQL will always be open-source"
-      content: "Free-as-in-free, and doesn’t prioritize one database over others. By compiling to SQL, PRQL is instantly compatible with most databases, and existing tools or programming languages that manage SQL. Where possible, PRQL unifies syntax across databases."
+      content:
+        PRQL is free-as-in-free, will never have a commercial product, and doesn’t prioritize one database over others.
+        By compiling to SQL, PRQL is instantly compatible with most databases, and existing tools or programming languages that manage SQL.
+        Where possible, PRQL unifies syntax across databases.
 
     - title: "Extensible"
       main_text: "PRQL can be extended through functions"
       content:
         PRQL has abstractions which make it a great platform to build on.
         Its explicit versioning allows changes without breaking backward-compatibility.
-        Where there isn't yet an implementation, PRQL allows embedding SQL with S-Strings.
+        And in the cases where PRQL doesn't yet have an implementation, it allows embedding SQL with S-Strings.
 
     - title: "Analytical"
       main_text: "PRQL’s focus is analytical queries"
-      content: "We de-emphasize other SQL features such as inserting data or transactions."
+      content:
+        We de-emphasize other SQL features such as inserting data or transactions.
 
-####################### SQL Section #########################
 showcase_section:
   enable: true
   title: "Showcase"
   content:
-    - "Even though wildly adopted and readable as a sentence, SQL is inconsistent and becomes unmanageable as soon as query complexity goes beyond the most simple queries."
-    - "Because each transform in PRQL is orthogonal to all previous transforms, it is always easy to extend your query. On top of that, PRQL offers modern features, such syntax for dates, ranges and f-strings as well as functions, type checking and better null handling."
+    - PRQL consists of a curated set of orthogonal transformations, which are combined together to form a pipeline.
+      That makes it easy to compose and extend queries. The language also benefits from modern features, such syntax for dates, ranges and f-strings as well as functions, type checking and better null handling.
   buttons:
     - link: "/examples/"
       label: "More examples"
-
     - link: "/playground/"
       label: "Playground"
+    - link: "/book/"
+      label: "Book"
   examples:
     - id: basics
       label: Basic example
@@ -91,14 +97,13 @@ showcase_section:
         ORDER BY age
         LIMIT 10
 
-    - id: syntax
-      label: Syntax
+    - id: friendly-syntax
+      label: Friendly syntax
       prql: |
         from order  # this is a comment
-        filter created_at > @2022-06-13
+        filter created_at > @2022-06-13  # dates
         filter status == "done"
-        derive promo_amount = amount * (promo ?? 0)
-        sort [-amount]
+        sort [-amount]  # sort order
       sql: |
         SELECT
           order.*,
@@ -114,10 +119,15 @@ showcase_section:
         from users
         filter last_login != null
         filter deleted_at == null
+        derive channel = channel ?? "unknown"
       sql: |
-        SELECT users.*
-        FROM users
-        WHERE last_login IS NOT NULL
+        SELECT
+          users.*,
+          COALESCE(channel, 'unknown') AS channel
+        FROM
+          users
+        WHERE
+          last_login IS NOT NULL
           AND deleted_at IS NULL
 # markdown-link-check-disable
     - id: f-strings
@@ -134,13 +144,15 @@ showcase_section:
     - id: functions
       label: Functions
       prql: |
-        func celsius_of_fahrenheit temp -> (temp - 32) * 3
+        func fahrenheit_of_celsius temp -> temp * 3 + 32
 
-        from cities
-        select temp_c = (celsius_of_fahrenheit temp_f)
+        from weather
+        select temp_f = (fahrenheit_of_celsius temp_c)
       sql: |
-        SELECT temp_f - 32 * 3 AS temp_c
-        FROM cities
+        SELECT
+          temp_c * 3 + 32 AS temp_f
+        FROM
+          weather
 
 tools_section:
   enable: true
