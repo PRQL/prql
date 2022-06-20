@@ -140,4 +140,4 @@ group department (
 )
 ```
 
-For more detail, check out the docs in the [PRQL Book](prql-lang.org/book).
+For more detail, check out the docs in the [PRQL Book](https://prql-lang.org/book).
