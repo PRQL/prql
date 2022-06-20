@@ -16,7 +16,7 @@ code.hljs {
  color:#E4A24B
 }
 .hljs-number {
- color:#ffcd22
+ color: #71b0eb
 }
 .hljs-params {
  color:#5b8fc5
@@ -45,7 +45,7 @@ code.hljs {
 }
 .hljs-string,
 .hljs-symbol {
- color:#ec7600
+ color:#d84444
 }
 .hljs-comment,
 .hljs-deletion,

@@ -42,6 +42,10 @@ hljs.registerLanguage('prql', function (hljs) {
                 begin: '"', end: '"',
                 relevance: 10
             },
+            { // number
+                scope: 'number',
+                match: /-?\d+(\.\d+)?/,
+            },
 
             // Unfortunately this just overrides any keywords. It's also not
             // complete — it only handles functions at the beginning of a line.
