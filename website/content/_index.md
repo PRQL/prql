@@ -187,13 +187,13 @@ integrations_section:
       link: https://github.com/prql/dbt-prql
       text: |
         Allows writing PRQL in dbt models.
-        This combines the benefits of PRQL's power & simplicity within queries, with dbt's version control, lineage & testing across queries.
+        This combines the benefits of PRQL's power & simplicity within queries; with dbt's version control, lineage & testing across queries.
 
     - label: "Jupyter/IPython"
       link: "https://pyprql.readthedocs.io/en/latest/magic_readme.html"
       text: |
         PyPrql has a magic extension, which executes a PRQL cell against a database.
-        It can also set up an in-memory DuckDB instance, populated with a pandas dataframes.
+        It can also set up an in-memory DuckDB instance, populated with pandas DataFrames.
 
     - label: Visual Studio Code
       link: https://marketplace.visualstudio.com/items?itemName=prql.prql
