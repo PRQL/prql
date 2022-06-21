@@ -12,7 +12,7 @@ url: roadmap
 > powerful, and a vibrant community. Many projects have reached the current stage
 > and fallen, so this requires compounding on what we've done so far.
 >
-> -- <cite>Maximilian Roos</cite> 
+> -- <cite>Maximilian Roos</cite>
 
 {{< columns >}}
 
@@ -23,15 +23,15 @@ the feedback of dozens of contributors. The current state of the basics is now
 stable and while we'll hit corner-cases, I expect we'll only make small changes
 to the existing features — even as we continue adding features.
 
-On this fundation we are planning to build advanced features like type checking, 
-function currying, pivot/melt/wide_to_long/long_to_wide operations, operator overloading and 
+On this fundation we are planning to build advanced features like type checking,
+function currying, pivot/melt/wide_to_long/long_to_wide operations, operator overloading and
 [a few more](https://github.com/prql/prql/issues?q=is%3Aissue+is%3Aopen+label%3Alanguage-design).
 This will take time, because we want to build a consistent language that feels like it is
 made to last.
 
 ## Friendliness
 
-Currently the compiler is not sufficiently friendly, despite significant recent improvements. 
+Currently the compiler is not sufficiently friendly, despite significant recent improvements.
 We'd like to make error messages better and sand off sharp corners.
 
 Both bug reports of unfriendliness, and code contributions to improve them are welcome; there's a
@@ -43,7 +43,7 @@ Currenty, standard library is [quite limited](https://github.com/prql/prql/blob/
 It contains only basic arithmetic functions (AVERAGE, SUM) and lacks functions for string manipulation,
 date handling and many math functions.
 Problem here is that PRQL is limited with functionality of target DBMS and its capabilities and the amount
-of different dialects. 
+of different dialects.
 
 Before that, we need to setup a testing framework that would run queries against actual databases,
 so we know that the dialect implementation is on-point.
@@ -52,11 +52,11 @@ so we know that the dialect implementation is on-point.
 
 ## Alternative backends
 
-Currently, PRQL only transpiles into SQL. It could be much more powerful (and in some cases performant) 
+Currently, PRQL only transpiles into SQL. It could be much more powerful (and in some cases performant)
 if we develop a data-frame-handling-library backend. To be more precise, we would want to apply PRQL's
 AST to a in-memory dataframe of a performance-optimized library (such as [Polars](https://www.pola.rs/)).
 
-This would allow data scientists, analists and general Python developers to transform dataframes with 
+This would allow data scientists, analists and general Python developers to transform dataframes with
 PRQL queries. One language for all data transformations.
 
 
