@@ -1,0 +1,20 @@
+{{ if .enable }}
+  {{/* TODO: can these be spaced better? I (@max-sixty) have been unsuccessfully
+  struggling with hugo & bootstrap & CSS for a while unsuccessfully attempting
+  to figure this out. */}}
+  <section class="content-section tweet-section">
+    <div class="container">
+    <div class="row content">
+      <div class="section-title">
+       <h2 class="mb-3">{{ .title | markdownify }}</h2>
+      </div>
+
+      {{ range .tweets }}
+      <div class="col-sm-6 col-md-3 d-flex align-items-stretch">
+        {{ . | markdownify}}
+      </div>
+      {{end}}
+    </div>
+    </div>
+  </section>
+  {{ end }}
