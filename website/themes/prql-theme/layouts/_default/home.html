@@ -90,7 +90,8 @@
         </div>
 
         <div class="col-lg-6 d-flex align-items-start">
-          <div class="nav flex-column nav-pills flex-shrink-0 me-3" id="v-pills-tab" role="tablist" aria-orientation="vertical">
+          <div class="nav flex-column nav-pills flex-shrink-0 me-3" id="v-pills-tab" role="tablist"
+            aria-orientation="vertical">
             {{ range $index, $e := .examples }}
             <button class="nav-link{{ if (eq 0 $index) }} active{{end}}" id="v-pills-{{ $e.id }}-tab"
               data-bs-toggle="pill" data-bs-target="#v-pills-{{ $e.id }}" type="button" role="tab"
@@ -122,6 +123,28 @@
   {{ partial "section-cards" .Params.tools_section }}
 
   {{ partial "section-cards" .Params.bindings_section }}
+
+  {{ with .Params.tweets_section }}
+  {{ if .enable }}
+  {{/* TODO: can these be spaced better? I (@max-sixty) have been unsuccessfully
+  struggling with hugo & bootstrap & CSS for a while unsuccessfully attempting
+  to figure this out. */}}
+  <section class="content-section tweet-section">
+    <div class="container">
+      <div class="section-title">
+        <h2 class="mb-3">{{ .title | markdownify }}</h2>
+      </div>
+
+      <div class="col-sm-3 col-md-3 d-flex align-items-stretch mb-3">
+        {{ range .tweets }}
+        {{ . | markdownify}}
+        {{end}}
+      </div>
+
+    </div>
+  </section>
+  {{ end }}
+  {{ end }}
 
 
 </main>
