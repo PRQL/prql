@@ -75,7 +75,7 @@ a.btn-icon i {
 
 code {
   padding: 2px 4px;
-  color: #f08c00;
+  color: #ffffff;
 }
 
 /*--------------------------------------------------------------
@@ -264,7 +264,7 @@ code {
       transparent 150px,
       #f2f9ff 150px,
       #f2f9ff 300px),
-    linear-gradient(#e8f2f2, #f2f9ff);
+    linear-gradient(#daeaff, #f2f9ff);
   padding-top: 100px;
 }
 
@@ -383,7 +383,7 @@ section {
       transparent 150px,
       #f2f9ff 150px,
       #f2f9ff 300px),
-    linear-gradient(#e8f2f2, #f2f9ff);
+    linear-gradient(#daeaff, #f2f9ff);
 }
 
 .section-title h2 {
@@ -413,6 +413,10 @@ section {
 /*--------------------------------------------------------------
 # Principles
 --------------------------------------------------------------*/
+.principle_section{
+  background:#f2f9ff;
+}
+
 .principle_section .card {
   padding: 30px;
   border-radius: 0px;
@@ -447,6 +451,9 @@ section {
 /*--------------------------------------------------------------
 # showcase-section
 --------------------------------------------------------------*/
+.showcase-section{
+  background: #f2f9ff;
+}
 
 .showcase-section #v-pills-tabContent {
   flex-grow: 1;
@@ -465,6 +472,18 @@ section {
 /*--------------------------------------------------------------
 # content-section
 --------------------------------------------------------------*/
+.cards-section{
+  background: #f2f9ff;
+}
+
+.tweet-section{
+  background: repeating-linear-gradient(45deg,
+  transparent,
+  transparent 150px,
+  #f2f9ff 150px,
+  #f2f9ff 300px), linear-gradient(#f2f9ff,#daeaff);
+}
+
 .content-section .icon {
   font-size: 250px;
   color: var(--main-color);
@@ -539,11 +558,7 @@ article h2 {
 --------------------------------------------------------------*/
 #footer {
   background: var(--main-color);
-  background: repeating-linear-gradient(45deg,
-      transparent,
-      transparent 150px,
-      var(--main-color) 150px,
-      var(--main-color) 300px),
+  background:
     linear-gradient(#1d252e, var(--main-color));
   padding: 1rem 0 2rem 0;
   color: #fff;
