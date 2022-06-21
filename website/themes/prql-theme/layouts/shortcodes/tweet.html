@@ -1,0 +1,10 @@
+{{/* http://raellwyn.org/tags/hugo/ */}}
+
+{{/* <div> */}}
+
+    {{ (getJSON
+    "https://api.twitter.com/1.1/statuses/oembed.json?dnt=1&hide_thread=1&hide_media=1&id="
+    (index .Params
+    0)).html | safeHTML }}
+
+    {{/* </div> */}}
