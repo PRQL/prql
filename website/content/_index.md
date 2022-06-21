@@ -66,7 +66,7 @@ principle_section:
         And in the cases where PRQL doesn't yet have an implementation, it allows embedding SQL with S-Strings.
 
     - title: "Analytical"
-      main_text: "PRQL’s focus is analytical queries"
+      main_text: "PRQL's focus is analytical queries"
       content:
         We de-emphasize other SQL features such as inserting data or transactions.
 
@@ -193,7 +193,7 @@ integrations_section:
       link: "https://pyprql.readthedocs.io/en/latest/magic_readme.html"
       text: |
         PyPrql has a magic extension, which executes a PRQL cell against a database.
-        It can also set up an in-memory DuckDB instance, populated with pandas DataFrames.
+        It can also set up an in-memory DuckDB instance, populated with a pandas DataFrame.
 
     - label: Visual Studio Code
       link: https://marketplace.visualstudio.com/items?itemName=prql.prql
@@ -214,4 +214,14 @@ bindings_section:
       label: "prql-js"
       text: "JavaScript compiler library. Wrapper for prql-compiler."
 
+tweets_section:
+  enable: true
+  title: "What people are saying"
+  tweets:
+    # NB: These uses a custom shortcode
+    - '{{< tweet 1485965394880131081 >}}'
+    - '{{< tweet 1514280454890872833 >}}'
+    - '{{< tweet 1485958835844100098 >}}'
+    - '{{< tweet 1485795181198983170 >}}'
+    - '{{< tweet 1522562664467107840 >}}'
 ---

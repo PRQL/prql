@@ -47,7 +47,7 @@ version = "1.0.137"
 [dev-dependencies]
 criterion = "0.3.5"
 globset = "0.4.8"
-insta = {version = "1.14.0", features = ["colors", "glob"]}
+insta = {version = "1.15.0", features = ["colors", "glob"]}
 pulldown-cmark = "0.9.1"
 pulldown-cmark-to-cmark = "10.0.1"
 similar = "2.1.0"
