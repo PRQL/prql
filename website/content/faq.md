@@ -46,7 +46,7 @@ And there are many projects similar to PRQL:
   SQL. It was one of the first languages to take this approach.
 - [Sift](https://github.com/RCHowell/Sift) is an experimental language which
   heavily uses pipes and relational algebra.
-- After writing this proposal (including the name!), I found
+- After writing the original proposal (including the name!), we found
   [Preql](https://github.com/erezsh/Preql). Despite the similar name and
   compiling to SQL, it seems to focus more on making the language python-like,
   which is very different to this proposal.
@@ -139,5 +139,7 @@ group department (
   aggregate (select total_salary = sum salary)
 )
 ```
+
+<!-- TODO: could add in comments from @hadley around "one of his biggest regrets" to dplyr -->
 
 For more detail, check out the docs in the [PRQL Book](https://prql-lang.org/book).
