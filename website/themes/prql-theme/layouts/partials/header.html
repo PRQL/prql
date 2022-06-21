@@ -8,19 +8,18 @@
 
     <nav id="navbar" class="navbar">
       <ul>
-        <li><a href="https://prql-lang.org/book/" class="nav-link scrollto" target="_blank">Book<sup><i
-                class="bx bx-link-external"></i></sup></a></li>
-        <li><a href="https://prql-lang.org/playground/" class="nav-link scrollto" target="_blank">Playground<sup><i
-                class="bx bx-link-external"></i></sup></a></li>
-        <li><a href="/roadmap/" class="nav-link">Roadmap<sup></a></li>
-        <li><a href="/examples/" class="nav-link">Examples<sup></a></li>
-        <li><a href="/faq/" class="nav-link">FAQ<sup></a></li>
-
+        {{ range .Site.Menus.nav }}
+        <li>
+          <a href='{{.URL}}' class="nav-link scrollto" target="{{.Params.target}}">
+            {{.Name}}
+            {{.Post}}
+          </a>
+        </li>
+        {{ end }}
         <li><a class="icon" href="https://github.com/prql/prql"><i class="bx bxl-github"></i></a></li>
       </ul>
 
       <i class='bx bx-list-ul mobile-nav-toggle'></i>
     </nav>
-    <!-- .navbar -->
   </div>
 </header>

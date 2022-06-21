@@ -4,29 +4,39 @@ title: PRQL
 theme: prql-theme
 
 disableKinds:
-- taxonomy
-- term
+  - taxonomy
+  - term
 
 menu:
   nav:
+    # TODO: Can we use the info from pages directly? https://gohugo.io/templates/menu-templates/#menu-entries-from-the-pages-front-matter
     - identifier: Book
       name: Book
-      title: Book
       url: "https://prql-lang.org/book/"
-      pageref: "https://prql-lang.org/book/"
+      # TODO: Could we automatically do these three lines for external links, across the whole site?
+      post: <sup><i class="bx bx-link-external"></i></sup>
+      params:
+        target: "_blank"
       weight: 1
     - identifier: Playground
       name: Playground
-      title: Playground
       url: "https://prql-lang.org/playground/"
-      pageref: "https://prql-lang.org/playground/"
       weight: 2
+      post: <sup><i class="bx bx-link-external"></i></sup>
+      params:
+        target: "_blank"
     - identifier: Roadmap
       name: Roadmap
-      title: Roadmap
       url: /roadmap/
-      pageref: /roadmap/
       weight: 3
+    - identifier: Examples
+      name: Examples
+      url: /examples/
+      weight: 4
+    - identifier: FAQ
+      name: FAQ
+      url: /faq/
+      weight: 5
 
 params:
   help_the_project:
