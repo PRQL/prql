@@ -214,4 +214,14 @@ bindings_section:
       label: "prql-js"
       text: "JavaScript compiler library. Wrapper for prql-compiler."
 
+tweets_section:
+  enable: true
+  title: "What people are saying"
+  tweets:
+    # NB: These uses a custom shortcode
+    - '{{< tweet 1485965394880131081 >}}'
+    - '{{< tweet 1514280454890872833 >}}'
+    - '{{< tweet 1485958835844100098 >}}'
+    - '{{< tweet 1485795181198983170 >}}'
+    - '{{< tweet 1522562664467107840 >}}'
 ---
