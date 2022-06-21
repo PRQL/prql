@@ -559,7 +559,7 @@ section {
   .quote::after{
     content: '';
   }
-  
+
   .quote span{
     display:block;
     color:#333333;
