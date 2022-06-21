@@ -31,10 +31,11 @@ derive [
   from employees
   sort tenure
   take 50
+  select [name, salary, country]
 )
 
 table average_salaries = (
-  from salaries
+  from employees
   group country (
     aggregate average_country_salary = (average salary)
   )
