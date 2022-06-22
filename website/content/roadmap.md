@@ -42,7 +42,9 @@ Both bug reports of unfriendliness, and code contributions to improve them are w
 Currenty, the standard library is [quite limited](https://github.com/prql/prql/blob/main/prql-compiler/src/sql/stdlib.prql).
 It contains only basic arithmetic functions (`AVERAGE`, `SUM`) and lacks functions for string manipulation,
 date handling and many math functions.
-Problem here is that PRQL is limited with functionality of target DBMS and its capabilities and the amount
+One challenge here is the variety of functionalities and syntax of target DBMSs; e.g. there's no standard
+regex function. Improving our testing framework to include integration tests will help give us confidence 
+here.
 of different dialects.
 
 Before that, we need to setup a testing framework that would run queries against actual databases,
