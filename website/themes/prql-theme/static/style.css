@@ -540,16 +540,17 @@ section {
 }
 
 .left-tweet{
-  margin:auto;
+
 }
 .quote{
-    font-size: 1.2em;
-    width:100%;
-    margin:50px auto;
+    font-size: 1em;
+    height:75%;
+    width: 95%;
+    margin:35px auto;
+    padding-top: 1.5em;
     font-family:Open Sans;
     font-style:italic;
     color: #555555;
-    padding:1.2em 30px 1.2em 75px;
     border-left:10px solid #daeaff ;
     line-height:1.6;
     position: relative;
@@ -565,7 +566,7 @@ section {
     color:#333333;
     font-style: normal;
     font-weight: bold;
-    margin-top:1em;
+    margin:10px auto;
   }
 
 /*--------------------------------------------------------------
