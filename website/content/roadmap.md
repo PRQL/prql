@@ -43,7 +43,7 @@ Currenty, the standard library is [quite limited](https://github.com/prql/prql/b
 It contains only basic arithmetic functions (`AVERAGE`, `SUM`) and lacks functions for string manipulation,
 date handling and many math functions.
 One challenge here is the variety of functionalities and syntax of target DBMSs; e.g. there's no standard
-regex function. Improving our testing framework to include integration tests will help give us confidence 
+regex function. Improving our testing framework to include integration tests will help give us confidence
 here.
 of different dialects.
 
