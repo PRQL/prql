@@ -1,5 +1,5 @@
 ---
-####################### Genaral #########################
+####################### General #########################
 layout: home
 title: PRQL
 
@@ -206,8 +206,8 @@ bindings_section:
   enable: true
   title: "Bindings"
   sections:
-    - link: https://pypi.org/project/pyprql/
-      label: "prql-py"
+    - link: https://pypi.org/project/prql-python/
+      label: "prql-python"
       text: "Python compiler library. Wrapper for prql-compiler."
 
     - link: "https://www.npmjs.com/package/prql-js"

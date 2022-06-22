@@ -476,14 +476,6 @@ section {
   background: #f2f9ff;
 }
 
-.tweet-section{
-  background: repeating-linear-gradient(45deg,
-  transparent,
-  transparent 150px,
-  #f2f9ff 150px,
-  #f2f9ff 300px), linear-gradient(#f2f9ff,#daeaff);
-}
-
 .content-section .icon {
   font-size: 250px;
   color: var(--main-color);
@@ -535,6 +527,44 @@ section {
 .highlight>pre {
   background-color: transparent !important;
 }
+
+/*--------------------------------------------------------------
+# tweet-section
+--------------------------------------------------------------*/
+.tweet-section{
+  background: repeating-linear-gradient(45deg,
+  transparent,
+  transparent 150px,
+  #f2f9ff 150px,
+  #f2f9ff 300px), linear-gradient(#f2f9ff,#daeaff);
+}
+
+.quote{
+    font-size: 1em;
+    height:75%;
+    width: 95%;
+    margin:35px auto;
+    padding-top: 1.5em;
+    font-family:Open Sans;
+    font-style:italic;
+    color: #555555;
+    border-left:10px solid #daeaff ;
+    line-height:1.6;
+    position: relative;
+    background:#ffffff;
+  }
+
+  .quote::after{
+    content: '';
+  }
+
+  .quote span{
+    display:block;
+    color:#333333;
+    font-style: normal;
+    font-weight: bold;
+    margin:10px auto;
+  }
 
 /*--------------------------------------------------------------
 # Article
