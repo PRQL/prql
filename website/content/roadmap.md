@@ -23,7 +23,7 @@ the feedback of dozens of contributors. The current state of the basics is now
 stable and while we'll hit corner-cases, I expect we'll only make small changes
 to the existing features — even as we continue adding features.
 
-On this fundation we are planning to build advanced features like type checking,
+On this foundation we are planning to build advanced features like type checking,
 function currying, pivot/melt/wide_to_long/long_to_wide operations, operator overloading and
 [a few more](https://github.com/prql/prql/issues?q=is%3Aissue+is%3Aopen+label%3Alanguage-design).
 This will take time, because we want to build a consistent language that feels like it is
