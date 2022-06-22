@@ -3,63 +3,71 @@ title: "Roadmap"
 url: roadmap
 ---
 
-I'm excited and inspired by the level of enthusiasm behind the project, both
-from individual contributors and the broader community of users who are
-unsatisfied with SQL. We currently have an initial working version for the
-intrepid early user.
-
-I'm hoping we can build a beautiful language, an app that's approachable &
-powerful, and a vibrant community. Many projects have reached the current stage
-and fallen, so this requires compounding on what we've done so far.
+> I'm excited and inspired by the level of enthusiasm behind the project, both
+> from individual contributors and the broader community of users who are
+> unsatisfied with SQL. We currently have an initial working version for the
+> intrepid early user.
+>
+> I'm hoping we can build a beautiful language, an app that's approachable &
+> powerful, and a vibrant community. Many projects have reached the current stage
+> and fallen, so this requires compounding on what we've done so far.
+>
+> -- <cite>Maximilian Roos</cite>
 
 {{< columns >}}
 
-## Language design
+## Language
 
 Already since becoming public, the language has improved dramatically, thanks to
 the feedback of dozens of contributors. The current state of the basics is now
 stable and while we'll hit corner-cases, I expect we'll only make small changes
 to the existing features — even as we continue adding features.
 
-Feel free to post questions or continue discussions on [Language Design
-Issues](https://github.com/prql/prql/issues?q=is%3Aissue+is%3Aopen+label%3Alanguage-design).
-
-## Documentation
-
-Currently the language documentation is at <https://prql-lang.org/book>.
-
-If you're up for contributing and don't have a preference for writing code or
-not, this is the area that would most benefit from your contribution. Issues are
-tagged with
-[documentation](https://github.com/prql/prql/labels/documentation).
+On this foundation we are planning to build advanced features like type checking,
+function currying, pivot/melt/wide_to_long/long_to_wide operations, operator overloading and
+[a few more](https://github.com/prql/prql/issues?q=is%3Aissue+is%3Aopen+label%3Alanguage-design).
+This will take time, because we want to build a consistent language that feels like it is
+made to last.
 
 ## Friendliness
 
-Currently the language implementation is not sufficiently friendly, despite
-significant recent improvements. We'd like to make error messages better, sand
-off sharp corners, etc.
+Currently the compiler is not sufficiently friendly, despite significant recent improvements.
+We'd like to make error messages better and sand off sharp corners.
 
-Both bug reports of unfriendliness, and code contributions to improve them are
-welcome; there's a
-[friendliness](https://github.com/prql/prql/issues?q=is%3Aissue+label%3Afriendlienss+is%3Aopen)
-label.
+Both bug reports of unfriendliness, and code contributions to improve them are welcome; there's a
+[friendliness label.](https://github.com/prql/prql/issues?q=is%3Aissue+label%3Afriendlienss+is%3Aopen)
 
-## Fast feedback
+## Standard library
 
-As well as a command-line tool that transpiles queries, we'd like to make
-developing in PRQL a wonderful experience, where it feels like it's on your
-side:
+Currenty, the standard library is [quite limited](https://github.com/prql/prql/blob/main/prql-compiler/src/sql/stdlib.prql).
+It contains only basic arithmetic functions (`AVERAGE`, `SUM`) and lacks functions for string manipulation,
+date handling and many math functions.
+One challenge here is the variety of functionalities and syntax of target DBMSs; e.g. there's no standard
+regex function. Improving our testing framework to include integration tests will help give us confidence
+here.
+of different dialects.
 
-- Syntax highlighting in more editors; currently we have a basic [VSCode
-  extension](https://github.com/prql/prql-code).
-- Initial type-inference, where it's possible without connecting to the DB, e.g.
-  [#55](https://github.com/prql/prql/pull/55).
-- Improvements or integrations to the [live in-browser
-  compiler](https://prql-lang.org/playground), including querying actual
-  tables.
-- (I'm sure there's more, ideas welcome)
 
 <--->
+
+## Alternative backends
+
+Currently, PRQL only transpiles into SQL. It could be much more powerful (and in some cases performant)
+if we develop a data-frame-handling-library backend. To be more precise, we would want to apply PRQL's
+AST to a in-memory dataframe of a performance-optimized library (such as [Polars](https://www.pola.rs/)).
+
+This would allow data scientists, analists and general Python developers to transform dataframes with
+PRQL queries. One language for all data transformations.
+
+
+## PRQL as a tool
+
+PyPrql is a step into direction of a general data handling program. But we want to build a tool that
+can read many data sources, offers syntax highlighting, auto-complete and type-inference using
+information from database's schema.
+
+If done right, it could replace many uses of classical spreadsheet software while producing reproducible
+data transformations and intuitivate, interactive experienece with fast feedback.
 
 ## Integrations
 
@@ -69,13 +77,6 @@ PRQL day-to-day. Probably the most impactful initial integrations will be tools 
 engineers use to build data pipelines, like
 [`dbt-prql`](https://github.com/prql/prql/issues/375).
 
-## Database cohesion
-
-One benefit of PRQL over SQL is that auto-complete, type-inference, and
-error checking can be much more powerful.
-
-We'd like to build this out. It's more difficult to build, since it requires a
-connection to the database in order to understand the schema of the table.
 
 ## Not in focus
 
