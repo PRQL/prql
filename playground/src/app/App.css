@@ -2,7 +2,7 @@
   height: 100%;
   display: flex;
 }
-.main>* {
+.main > * {
   flex-grow: 1;
 }
 .sidebar {

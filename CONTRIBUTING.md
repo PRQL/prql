@@ -25,7 +25,7 @@ lots of ways of contributing; big and small:
   - Open an issue / append to an existing issue with examples of queries that
     are difficult to express in PRQL — especially if more difficult than SQL.
   - With sufficient examples, suggest a change to the language! (Though
-    suggestions *without* examples are difficult to engage with, so please do
+    suggestions _without_ examples are difficult to engage with, so please do
     anchor suggestions in examples.)
 
 Any of these will inspire others to invest their time and energy into the

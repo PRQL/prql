@@ -23,6 +23,7 @@ Currently it's not yet possible to have an
 [#376](https://github.com/prql/prql/issues/376) for more details.
 
 <!-- TODO: find an example that we can't currently represent with PRQL -->
+
 ```prql_no_test
 table a = s"""
   SELECT *

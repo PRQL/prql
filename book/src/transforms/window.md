@@ -29,16 +29,16 @@ For ease of use, there are two flags that override `rows` or `range`:
 
 Some examples:
 
-| Expression      | Meaning                                                            |
-| --------------- | ------------------------------------------------------------------ |
-| `rows:0..2`     | current row plus two following                                     |
-| `rows:-2..0`    | two preceding rows plus current row                                |
-| `rolling:3`     | (same as previous)                                                 |
-| `rows:-2..4`    | two preceding rows plus current row plus four following rows       |
-| `rows:..0`      | all rows from the start of the table up to & including current row |
-| `expanding:true`| (same as previous)                                                 |
-| `rows:0..`      | current row and all following rows until the end of the table      |
-| `rows:..`       | all rows, which same as not having window at all                   |
+| Expression       | Meaning                                                            |
+| ---------------- | ------------------------------------------------------------------ |
+| `rows:0..2`      | current row plus two following                                     |
+| `rows:-2..0`     | two preceding rows plus current row                                |
+| `rolling:3`      | (same as previous)                                                 |
+| `rows:-2..4`     | two preceding rows plus current row plus four following rows       |
+| `rows:..0`       | all rows from the start of the table up to & including current row |
+| `expanding:true` | (same as previous)                                                 |
+| `rows:0..`       | current row and all following rows until the end of the table      |
+| `rows:..`        | all rows, which same as not having window at all                   |
 
 ## Example
 

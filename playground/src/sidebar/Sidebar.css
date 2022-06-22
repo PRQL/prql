@@ -22,7 +22,8 @@ section h2 {
   background-color: #ffffff1f;
 }
 
-section h1, section p {
+section h1,
+section p {
   padding: 2px 1rem 2px 1rem;
 }
 

@@ -23,7 +23,7 @@
 .tab:not(:first-child) {
   border-left: 1px solid #666;
 }
-.tab>* {
+.tab > * {
   flex-grow: 1;
 }
 .tab-top {

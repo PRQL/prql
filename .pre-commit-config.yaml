@@ -17,6 +17,13 @@ repos:
     hooks:
       - id: markdown-link-check
         files: \.md$
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v2.7.1
+    hooks:
+      - id: prettier
+        additional_dependencies:
+          - prettier
+          - prettier-plugin-go-template
 ci:
   # Currently network access isn't supported
   skip: [fmt, clippy, markdown-link-check]

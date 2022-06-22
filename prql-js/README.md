@@ -7,8 +7,9 @@ This uses
 [`wasm-pack`](https://rustwasm.github.io/docs/wasm-pack/tutorials/npm-browser-packages/index.html)
 to generate bindings[^1].
 
-[^1]: though we would be very open to other approaches, and used `trunk`
-successfully in a rust-driven approach to this, RIP `prql-web`.
+[^1]:
+    though we would be very open to other approaches, and used `trunk`
+    successfully in a rust-driven approach to this, RIP `prql-web`.
 
 ## Installation
 
@@ -25,7 +26,7 @@ or import it directly in a browser as an ES module, [build it using a suitable
 ## Usage
 
 ```js
-import compile from 'prql-js';
+import compile from "prql-js";
 
 const sql = compile(`from employees | select first_name`);
 console.log(sql);

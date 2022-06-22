@@ -6,10 +6,12 @@ select salary
 ```
 
 Same as above but with `salary` in a list:
+
 ```prql
 from employees
 select [salary]
 ```
+
 ## Multiple items
 
 ```prql
@@ -21,6 +23,7 @@ derive [
 ```
 
 Same as above but split into two lines:
+
 ```prql
 from employees
 derive gross_salary = salary + payroll_tax
