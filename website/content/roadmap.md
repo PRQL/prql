@@ -47,8 +47,6 @@ regex function. Improving our testing framework to include integration tests wil
 here.
 of different dialects.
 
-Before that, we need to setup a testing framework that would run queries against actual databases,
-so we know that the dialect implementation is on-point.
 
 <--->
 
