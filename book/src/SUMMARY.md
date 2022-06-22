@@ -19,6 +19,7 @@
   - [Take](./transforms/take.md)
   - [Window](./transforms/window.md)
 - [Language features](./language-features/README.md)
+
   - [Coalesce](./language-features/coalesce.md)
     <!-- `DATE_TRUNC(foo_date, YEAR)` -> `foo_date.year`? Or -> `foo_date | as year`? Or `foo_date | to year`? -->
   - [Dates & Times](./language-features/dates_and_times.md)
@@ -33,6 +34,7 @@
 
 - [Stdlib]()
 - [Integrations]()
+
   - [VSCode]()
   - [Jupyter]()
   - [Prefect]()

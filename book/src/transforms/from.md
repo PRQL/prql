@@ -12,7 +12,6 @@ from {table_reference}
 from employees
 ```
 
-
 To introduce an alias, use an assign expression:
 
 ```prql

@@ -1,9 +1,12 @@
 # PRQL
 
 <!-- User badges on first line (language docs & chat) -->
+
 [![Language Docs](https://img.shields.io/badge/DOCS-LANGUAGE-blue?style=for-the-badge)](https://prql-lang.org)
 [![Discord](https://img.shields.io/discord/936728116712316989?label=discord%20chat&style=for-the-badge)](https://discord.gg/eQcfaCmsNc)
+
 <!-- Dev badges on first line (language docs & chat) -->
+
 [![GitHub CI Status](https://img.shields.io/github/workflow/status/prql/prql/tests?logo=github&style=for-the-badge)](https://github.com/prql/prql/actions?query=workflow:tests)
 [![GitHub contributors](https://img.shields.io/github/contributors/prql/prql?style=for-the-badge)](https://github.com/prql/prql/graphs/contributors)
 [![Stars](https://img.shields.io/github/stars/prql/prql?style=for-the-badge)](https://github.com/prql/prql/stargazers)
@@ -22,8 +25,8 @@ News](https://news.ycombinator.com/item?id=30060784#30062329) and
 this year when it was just a proposal.
 
 Here's a short example of the language; for more examples, visit
-[prql-lang.org][PRQL Website]. To experiment with PRQL in the browser, check out
-[PRQL Playground][PRQL Playground].
+[prql-lang.org][prql website]. To experiment with PRQL in the browser, check out
+[PRQL Playground][prql playground].
 
 ```elm
 from employees                                # Each line transforms the previous result.
@@ -51,15 +54,15 @@ take 20
 
 ## Resources
 
-To learn more, check out the [PRQL Website][PRQL Website].
+To learn more, check out the [PRQL Website][prql website].
 
 <!-- should we have a call-to-action like following #1 or on Twitter? -->
 
 For specific resources, check out:
 
-- [PRQL Playground][PRQL Playground] — experiment with PRQL in the browser.
-- [PRQL Book][PRQL Book] — the language documentation.
-- [Contributing][Contributing] — join us in building PRQL, through writing code or
+- [PRQL Playground][prql playground] — experiment with PRQL in the browser.
+- [PRQL Book][prql book] — the language documentation.
+- [Contributing][contributing] — join us in building PRQL, through writing code or
   inspiring others to use it.
 - [PyPRQL Docs](https://pyprql.readthedocs.io) — the PyPRQL documentation, the
   python bindings to PRQL, including Jupyter magic.
@@ -84,8 +87,8 @@ decisions on the direction of the language, and project administration:
 
 We welcome others to join who have a track record of contributions.
 
-[PRQL Book]: https://prql-lang.org/book
-[PRQL Website]: https://prql-lang.org
-[PRQL Playground]: https://prql-lang.org/playground
-[Contributing]: ./CONTRIBUTING.md
+[prql book]: https://prql-lang.org/book
+[prql website]: https://prql-lang.org
+[prql playground]: https://prql-lang.org/playground
+[contributing]: ./CONTRIBUTING.md
 [dbt-prql]: https://github.com/prql/dbt-prql

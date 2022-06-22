@@ -1,36 +1,42 @@
 {{ if .enable }}
-<section class="content-section tweet-section">
-  <div class="container">
-    <div class="row content">
-      <div class="section-title">
-        <h2 class="mb-3">{{ .title | markdownify }}</h2>
-      </div>
-      {{/*
-      TODO:
-      - Move the content of the testimonial into `_index.md` so we can have a
-      few of these, and templated. (maybe renaming this page from tweets to
-      something more general?)
-      - Format the testimonial more like a "card" in the other sections, including a light
-      border. Currently it has an idiosyncratic blue border only on the left. Do
-      we need to unify some of `card` format in style.css across the sections?
-      - Currently the items overlap at some monitor sizes — can we prevent
-      that? Does the browser seem to think the items are smaller than they are?
-      */}}
-      <div class="col-sm-6 col-md-3 d-flex align-items-stretch left-tweet">
-        <div class="row content align-items-stretch">
-          <p class="quote">"It starts with FROM, it fixes trailing commas, and it's called PRQL?? If this is a dream,
-            don't wake me up." <span>— Jeremiah Lowin, Founder & CEO, Prefect.</span></p>
-
+  <section class="content-section tweet-section">
+    <div class="container">
+      <div class="row content">
+        <div class="section-title">
+          <h2 class="mb-3">{{ .title | markdownify }}</h2>
         </div>
-      </div>
+        {{/* TODO:
+          - Move the content of the testimonial into `_index.md` so we can have a
+          few of these, and templated. (maybe renaming this page from tweets to
+          something more general?)
+          - Format the testimonial more like a "card" in the other sections, including a light
+          border. Currently it has an idiosyncratic blue border only on the left. Do
+          we need to unify some of `card` format in style.css across the sections?
+          - Currently the items overlap at some monitor sizes — can we prevent
+          that? Does the browser seem to think the items are smaller than they are?
+        */}}
+        <div class="col-sm-6 col-md-3 d-flex align-items-stretch left-tweet">
+          <div class="row content align-items-stretch">
+            <p class="quote">
+              "It starts with FROM, it fixes trailing commas, and it's called
+              PRQL?? If this is a dream, don't wake me up."
+              <span>— Jeremiah Lowin, Founder & CEO, Prefect.</span>
+            </p>
+          </div>
+        </div>
 
-      {{ range .tweets }}
-      <div class="col-sm-6 col-md-3 d-flex align-items-stretch">
-        {{ . | markdownify}}
-      </div>
-      {{end}}
+        {{ range .tweets }}
+          <div class="col-sm-6 col-md-3 d-flex align-items-stretch">
+            {{ . | markdownify }}
+          </div>
+        {{ end }}
 
+      </div>
     </div>
+<<<<<<< main
 
 </section>
+=======
+  </section>
+>>>>>>> local
 {{ end }}

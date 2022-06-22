@@ -3,7 +3,9 @@
 ## Summary
 
 A summary of PRQL syntax
+
 <!-- The `|` characters need to be escaped, and surrounded with tags rather than backticks -->
+
 | Syntax          | Usage                   | Example                                                 |
 | --------------- | ----------------------- | ------------------------------------------------------- |
 | <code>\|</code> | Pipe                    | <code>from employees \| select first_name</code>        |

@@ -1,29 +1,28 @@
-import './Workbench.css';
+import "./Workbench.css";
 
 import React from "react";
-import * as prql from 'prql-js'
+import * as prql from "prql-js";
 
-import * as monacoTheme from './monaco-theme.json';
+import * as monacoTheme from "./monaco-theme.json";
 import * as monaco from "monaco-editor";
 import Editor, { loader } from "@monaco-editor/react";
-import prqlSyntax from './prql-syntax';
+import prqlSyntax from "./prql-syntax";
 
-import { Light as SyntaxHighlighter } from 'react-syntax-highlighter';
-import sql from 'react-syntax-highlighter/dist/esm/languages/hljs/sql';
+import { Light as SyntaxHighlighter } from "react-syntax-highlighter";
+import sql from "react-syntax-highlighter/dist/esm/languages/hljs/sql";
 
-SyntaxHighlighter.registerLanguage('sql', sql);
+SyntaxHighlighter.registerLanguage("sql", sql);
 
 loader.config({ monaco });
 
 class Workbench extends React.Component {
-
   monaco = null;
   editor = null;
 
   state = {
-    filename: 'input.prql',
-    sql: '',
-    prql: ''
+    filename: "input.prql",
+    sql: "",
+    prql: "",
   };
 
   loadFile(filename, content) {
@@ -38,10 +37,10 @@ class Workbench extends React.Component {
   }
 
   beforeEditorMount(monaco) {
-    this.monaco = monaco
-    monaco.editor.defineTheme('blackboard', monacoTheme);
-    monaco.languages.register({ id: 'prql', extensions: ['prql'] });
-    monaco.languages.setMonarchTokensProvider('prql', prqlSyntax);
+    this.monaco = monaco;
+    monaco.editor.defineTheme("blackboard", monacoTheme);
+    monaco.languages.register({ id: "prql", extensions: ["prql"] });
+    monaco.languages.setMonarchTokensProvider("prql", prqlSyntax);
   }
 
   onEditorMount(editor) {
@@ -62,15 +61,21 @@ class Workbench extends React.Component {
     if (result.error) {
       this.setState({ errorMessage: result.error.message });
 
-      const errors = [{
-        severity: 'error',
-        message: result.error.message,
-        startLineNumber: result.error.location?.start_line + 1,
-        startColumn: result.error.location?.start_column + 1,
-        endLineNumber: result.error.location?.end_line + 1,
-        endColumn: result.error.location?.end_column + 1,
-      }];
-      this.monaco.editor.setModelMarkers(this.editor.getModel(), "prql", errors);
+      const errors = [
+        {
+          severity: "error",
+          message: result.error.message,
+          startLineNumber: result.error.location?.start_line + 1,
+          startColumn: result.error.location?.start_column + 1,
+          endLineNumber: result.error.location?.end_line + 1,
+          endColumn: result.error.location?.end_column + 1,
+        },
+      ];
+      this.monaco.editor.setModelMarkers(
+        this.editor.getModel(),
+        "prql",
+        errors
+      );
     } else {
       this.monaco.editor.setModelMarkers(this.editor.getModel(), "prql", []);
     }
@@ -85,8 +90,8 @@ class Workbench extends React.Component {
   rename() {
     let filename = prompt(`New name for ${this.state.filename}`);
     if (filename) {
-      if (!filename.endsWith('.prql')) {
-        filename += '.prql';
+      if (!filename.endsWith(".prql")) {
+        filename += ".prql";
       }
       this.setState({ filename });
     }
@@ -96,7 +101,6 @@ class Workbench extends React.Component {
     return (
       <div className="column">
         <div className="tabs">
-
           <div className="tab">
             <div className="tab-top">
               <div className="tab-title">{this.state.filename}</div>
@@ -112,7 +116,7 @@ class Workbench extends React.Component {
               defaultValue={this.state.prql}
               onChange={(v) => this.compile(v)}
               onMount={(e, m) => this.onEditorMount(e, m)}
-              beforeMount={m => this.beforeEditorMount(m)}
+              beforeMount={(m) => this.beforeEditorMount(m)}
               theme="blackboard"
               options={{
                 minimap: { enabled: false },
@@ -128,12 +132,11 @@ class Workbench extends React.Component {
               {this.state.sql}
             </SyntaxHighlighter>
           </div>
-
         </div>
 
-        {this.state.errorMessage &&
+        {this.state.errorMessage && (
           <div className="error-pane">{this.state.errorMessage}</div>
-        }
+        )}
       </div>
     );
   }

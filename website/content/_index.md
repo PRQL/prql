@@ -60,15 +60,13 @@ principle_section:
 
     - title: "Extensible"
       main_text: "PRQL can be extended through functions"
-      content:
-        PRQL has abstractions which make it a great platform to build on.
+      content: PRQL has abstractions which make it a great platform to build on.
         Its explicit versioning allows changes without breaking backward-compatibility.
         And in the cases where PRQL doesn't yet have an implementation, it allows embedding SQL with S-Strings.
 
     - title: "Analytical"
       main_text: "PRQL's focus is analytical queries"
-      content:
-        We de-emphasize other SQL features such as inserting data or transactions.
+      content: We de-emphasize other SQL features such as inserting data or transactions.
 
 showcase_section:
   enable: true
@@ -129,7 +127,7 @@ showcase_section:
         WHERE
           last_login IS NOT NULL
           AND deleted_at IS NULL
-# markdown-link-check-disable
+    # markdown-link-check-disable
     - id: f-strings
       label: F-strings
       prql: |
@@ -139,8 +137,7 @@ showcase_section:
         SELECT CONCAT('http://www.', domain, '.', tld,
           '/', page) AS url
         FROM web
-# markdown-link-check-enable
-
+    # markdown-link-check-enable
     - id: functions
       label: Functions
       prql: |
@@ -219,9 +216,9 @@ tweets_section:
   title: "What people are saying"
   tweets:
     # NB: These uses a custom shortcode
-    - '{{< tweet 1485965394880131081 >}}'
-    - '{{< tweet 1514280454890872833 >}}'
-    - '{{< tweet 1485958835844100098 >}}'
-    - '{{< tweet 1485795181198983170 >}}'
-    - '{{< tweet 1522562664467107840 >}}'
+    - "{{< tweet 1485965394880131081 >}}"
+    - "{{< tweet 1514280454890872833 >}}"
+    - "{{< tweet 1485958835844100098 >}}"
+    - "{{< tweet 1485795181198983170 >}}"
+    - "{{< tweet 1522562664467107840 >}}"
 ---

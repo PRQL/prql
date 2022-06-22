@@ -1,25 +1,38 @@
 <header id="header" class="fixed-top d-flex align-items-center">
   <div class="container d-flex align-items-center">
-
     <a href="/" class="logo me-auto d-flex align-items-end">
-      <img src="/img/icon.svg" alt="" class="img-fluid" height="50" width="50">
+      <img
+        src="/img/icon.svg"
+        alt=""
+        class="img-fluid"
+        height="50"
+        width="50"
+      />
       <h1>PRQL</h1>
     </a>
 
     <nav id="navbar" class="navbar">
       <ul>
         {{ range .Site.Menus.nav }}
-        <li>
-          <a href='{{.URL}}' class="nav-link scrollto" target="{{.Params.target}}">
-            {{.Name}}
-            {{.Post}}
-          </a>
-        </li>
+          <li>
+            <a
+              href="{{ .URL }}"
+              class="nav-link scrollto"
+              target="{{ .Params.target }}"
+            >
+              {{ .Name }}
+              {{ .Post }}
+            </a>
+          </li>
         {{ end }}
-        <li><a class="icon" href="https://github.com/prql/prql"><i class="bx bxl-github"></i></a></li>
+        <li>
+          <a class="icon" href="https://github.com/prql/prql"
+            ><i class="bx bxl-github"></i
+          ></a>
+        </li>
       </ul>
 
-      <i class='bx bx-list-ul mobile-nav-toggle'></i>
+      <i class="bx bx-list-ul mobile-nav-toggle"></i>
     </nav>
   </div>
 </header>

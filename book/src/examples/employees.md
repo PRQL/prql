@@ -12,12 +12,12 @@ Execute a PRQL query:
 
     $ cargo run compile examples/employees/average-title-salary.prql | psql -U postgres -d employees
 
-
 ## Task 1
 
 > rank the employee titles according to the average salary for each department.
 
 My solution:
+
 - for each employee, find their average salary,
 - join employees with their departments and titles (duplicating employees for each of their titles and departments)
 - group by department and title, aggregating average salary
@@ -64,7 +64,6 @@ select [dept_name, gender, salary_avg, salary_sd]
 
 > Estimate distribution of salaries and gender for each manager.
 
-
 ```prql
 from employees
 join salaries [emp_no]
@@ -88,7 +87,6 @@ join managers=employees [emp_no]
 derive mng_name = s"managers.first_name || ' ' || managers.last_name"
 select [mng_name, managers.gender, salary_avg, salary_sd]
 ```
-
 
 ## Task 4
 

@@ -16,9 +16,9 @@ We're standing on the shoulders of giants:
   is also a beautiful pipelined language, very similar to PRQL. But it can only
   use Kusto-compatible DBs.
   - A Kusto-to-SQL transpiler would be a legitimate alternative to PRQL, though
-     there would be some impedance mismatch in some areas. My central criticism
-     of Kusto is that it gives up broad compatibility without getting that much
-     in return.
+    there would be some impedance mismatch in some areas. My central criticism
+    of Kusto is that it gives up broad compatibility without getting that much
+    in return.
 - [Against SQL](https://www.scattered-thoughts.net/writing/against-sql/) gives a
   fairly complete description of SQL's weaknesses, both for analytical and
   transactional queries. [**@jamii**](https://github.com/jamii) consistently
@@ -55,7 +55,7 @@ And there are many projects similar to PRQL:
 
 ## How is PRQL different from all the projects that SQL has (so far) defeated?
 
-Many languages have attempted to replace SQL, and yet SQL has massively *grown*
+Many languages have attempted to replace SQL, and yet SQL has massively _grown_
 in usage and importance in the past decade. There are lots
 [of](https://twitter.com/seldo/status/1513599841355526145)
 [reasonable](https://benn.substack.com/p/has-sql-gone-too-far?s=r#footnote-anchor-2)
@@ -67,7 +67,7 @@ many others have failed at?". Some thoughts:
   fully open-source. There will never be a commercial product. We'll never have
   to balance profitability against compatibility, or try and expand up the stack
   to justify a valuation. Whether someone is building a new tool or writing a
-  simple query — PRQL can be *more* compatible across DBs than SQL.
+  simple query — PRQL can be _more_ compatible across DBs than SQL.
 - PRQL is analytical. The biggest growth in SQL usage has been from querying large
   amounts of data, often from analytical DBs that are specifically designed for
   this — with columnar storage and wide denormalized tables. SQL carries a lot
@@ -77,7 +77,7 @@ many others have failed at?". Some thoughts:
   — rust is powerful vs. Excel is accessible — but there are also instances
   where we can expand the frontier. PRQL's orthogonality is an example of
   synthesizing this tradeoff — have a single `filter` rather than `WHERE` & `HAVING`
-  & `QUALIFY` brings both more power *and* more accessibility.
+  & `QUALIFY` brings both more power _and_ more accessibility.
 
 In the same way that "SQL was invented in the 1970s and therefore must be bad"
 is questionable logic, "`n` languages have tried and failed so therefore SQL
@@ -108,8 +108,7 @@ SQL uses `SELECT` for all of these:
 
 These are not orthogonal — `SELECT` does lots of different things depending on
 the context. It's difficult for both people and machines to evaluate the shape
-of the output. It's easy to mix meanings and raise an error (`SELECT x, MIN(y)
-FROM z`).
+of the output. It's easy to mix meanings and raise an error (`SELECT x, MIN(y) FROM z`).
 
 PRQL clearly delineates two operations with two transforms:
 

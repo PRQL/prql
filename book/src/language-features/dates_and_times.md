@@ -2,8 +2,7 @@
 
 PRQL uses `@` followed by a string to represent dates & times. This is less
 verbose than SQL's approach of `TIMESTAMP '2004-10-19 10:23:54'` and more
-explicit than SQL's implicit option of just using a string `'2004-10-19
-10:23:54'`.
+explicit than SQL's implicit option of just using a string `'2004-10-19 10:23:54'`.
 
 ```admonish note
 Currently PRQL passes strings which can be compiled straight through to the

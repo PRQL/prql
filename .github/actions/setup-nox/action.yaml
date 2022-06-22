@@ -1,5 +1,5 @@
 name: Setup Nox
-description: 'Prepare and cache nox, install poetry.'
+description: "Prepare and cache nox, install poetry."
 
 inputs:
   cache_number:
@@ -29,5 +29,4 @@ runs:
       uses: actions/cache@v2
       with:
         path: .nox
-        key:
-          nox-${{inputs.cache_number }}-${{ hashFiles('prql-python/noxfile.py') }}-${{ hashFiles('prql-python/requirements.txt') }}
+        key: nox-${{inputs.cache_number }}-${{ hashFiles('prql-python/noxfile.py') }}-${{ hashFiles('prql-python/requirements.txt') }}

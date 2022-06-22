@@ -47,7 +47,6 @@ regex function. Improving our testing framework to include integration tests wil
 here.
 of different dialects.
 
-
 <--->
 
 ## Alternative backends
@@ -56,9 +55,8 @@ Currently, PRQL only transpiles into SQL. It could be much more powerful (and in
 if we develop a data-frame-handling-library backend. To be more precise, we would want to apply PRQL's
 AST to a in-memory dataframe of a performance-optimized library (such as [Polars](https://www.pola.rs/)).
 
-This would allow data scientists, analists and general Python developers to transform dataframes with
+This would allow data scientists, analysts and general Python developers to transform dataframes with
 PRQL queries. One language for all data transformations.
-
 
 ## PRQL as a tool
 
@@ -76,7 +74,6 @@ existing tools & apps. This will be the primary way that people can start using
 PRQL day-to-day. Probably the most impactful initial integrations will be tools that
 engineers use to build data pipelines, like
 [`dbt-prql`](https://github.com/prql/prql/issues/375).
-
 
 ## Not in focus
 

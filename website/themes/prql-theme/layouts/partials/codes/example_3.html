@@ -1,23 +1,14 @@
-    WITH total_returns AS (
-      SELECT
-        date,
-        sec_id,
-        -- Can't use a `WHERE` clause, as it would affect the row that the `LAG` function referenced.
-        IF(is_valid_price, price_adjusted / LAG(price_adjusted, 1) OVER
-          (PARTITION BY sec_id ORDER BY date) - 1 + dividend_return, NULL) AS return_total,
-        IF(is_valid_price, price_adjusted_usd / LAG(price_adjusted_usd, 1) OVER
-          (PARTITION BY sec_id ORDER BY date) - 1 + dividend_return, NULL) AS return_usd,
-        IF(is_valid_price, price_adjusted / LAG(price_adjusted, 1) OVER
-          (PARTITION BY sec_id ORDER BY date) - 1 + dividend_return, NULL)
-          - interest_rate / 252 AS return_excess,
-        IF(is_valid_price, price_adjusted_usd / LAG(price_adjusted_usd, 1) OVER
-          (PARTITION BY sec_id ORDER BY date) - 1 + dividend_return, NULL)
-          - interest_rate / 252 AS return_usd_excess
-      FROM prices
-    )
-    SELECT
-      *,
-      return_total - (interest_rate / 252) AS return_excess,
-      EXP(SUM(LN(GREATEST(1 + return_total - (interest_rate / 252), 0.01))) OVER (ORDER BY date)) AS return_excess_index
-    FROM total_returns
-    JOIN interest_rates USING (date)
+WITH total_returns AS ( SELECT date, sec_id, -- Can't use a `WHERE` clause, as
+it would affect the row that the `LAG` function referenced. IF(is_valid_price,
+price_adjusted / LAG(price_adjusted, 1) OVER (PARTITION BY sec_id ORDER BY date)
+- 1 + dividend_return, NULL) AS return_total, IF(is_valid_price,
+price_adjusted_usd / LAG(price_adjusted_usd, 1) OVER (PARTITION BY sec_id ORDER
+BY date) - 1 + dividend_return, NULL) AS return_usd, IF(is_valid_price,
+price_adjusted / LAG(price_adjusted, 1) OVER (PARTITION BY sec_id ORDER BY date)
+- 1 + dividend_return, NULL) - interest_rate / 252 AS return_excess,
+IF(is_valid_price, price_adjusted_usd / LAG(price_adjusted_usd, 1) OVER
+(PARTITION BY sec_id ORDER BY date) - 1 + dividend_return, NULL) - interest_rate
+/ 252 AS return_usd_excess FROM prices ) SELECT *, return_total - (interest_rate
+/ 252) AS return_excess, EXP(SUM(LN(GREATEST(1 + return_total - (interest_rate /
+252), 0.01))) OVER (ORDER BY date)) AS return_excess_index FROM total_returns
+JOIN interest_rates USING (date)
