@@ -1,2 +1,7 @@
 *.min.*
-book/theme/highlight.js
+/book/theme/highlight.js
+# TODO: move these into content out of layouts
+/website/themes/prql-theme/layouts/partials/codes/
+
+# Can't add comments to `.prettierrc`, but that's from:
+# https://github.com/NiklasPor/prettier-plugin-go-template 
