@@ -39,7 +39,7 @@ Both bug reports of unfriendliness, and code contributions to improve them are w
 
 ## Standard library
 
-Currenty, standard library is [quite limited](https://github.com/prql/prql/blob/main/prql-compiler/src/sql/stdlib.prql).
+Currenty, the standard library is [quite limited](https://github.com/prql/prql/blob/main/prql-compiler/src/sql/stdlib.prql).
 It contains only basic arithmetic functions (AVERAGE, SUM) and lacks functions for string manipulation,
 date handling and many math functions.
 Problem here is that PRQL is limited with functionality of target DBMS and its capabilities and the amount
