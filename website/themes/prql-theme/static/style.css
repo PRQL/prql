@@ -545,8 +545,7 @@ section {
     width: 95%;
     margin:35px auto;
     padding-top: 1.5em;
-    font-family:Open Sans;
-    font-style:italic;
+    /* font-style:italic; */
     color: #555555;
     border-left:10px solid #daeaff ;
     line-height:1.6;
