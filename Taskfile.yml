@@ -31,6 +31,7 @@ tasks:
       - python3 -m pip install -U maturin
       - task: install-pre-commit
       - task: install-brew-dependencies
+      - task: install-npm-dependencies
       # We only suggest, rather than install; we don't want to intrude (maybe we're being too conservative?).
       - task: suggest-vscode-extensions
       - cmd: |
@@ -93,6 +94,11 @@ tasks:
           - https://docs.npmjs.com/downloading-and-installing-node-js-and-npm
     cmds:
       - brew install hugo npm
+
+  install-npm-dependencies:
+    cmds:
+      - npm install --location=global prettier prettier-plugin-go-template
+      - echo "In order to get nice auto-formatting of web code in VSCode, VSCode requires bing configured to use the system-wide install of prettier."
 
   build-all:
     desc: Build everything. Running this isn't required when developing; it's for caching or as a reference.
