@@ -531,9 +531,9 @@ section {
 }
 
 /*--------------------------------------------------------------
-# tweet-section
+# comments-section
 --------------------------------------------------------------*/
-.tweet-section {
+.comments-section {
   background: repeating-linear-gradient(
       45deg,
       transparent,
@@ -544,18 +544,20 @@ section {
     linear-gradient(#f2f9ff, #daeaff);
 }
 
+iframe {
+  max-width: 100% !important;
+}
+
 .quote {
-  font-size: 1em;
-  height: 75%;
-  width: 95%;
+  height: 70%;
   margin: 35px auto;
-  padding-top: 1.5em;
-  /* font-style:italic; */
-  color: #555555;
-  border-left: 10px solid #daeaff;
   line-height: 1.6;
   position: relative;
   background: #ffffff;
+}
+
+.quote-text {
+  margin: auto;
 }
 
 .quote::after {
@@ -567,7 +569,7 @@ section {
   color: #333333;
   font-style: normal;
   font-weight: bold;
-  margin: 10px auto;
+  margin: 10% auto;
 }
 
 /*--------------------------------------------------------------
