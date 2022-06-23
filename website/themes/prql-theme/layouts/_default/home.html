@@ -140,9 +140,7 @@
     {{ end }}
     {{ partial "section-cards" .Params.integrations_section }}
     {{ partial "section-cards" .Params.tools_section }}
-    {{ partial "section-cards"
-      .Params.bindings_section
-    }}
-    {{ partial "tweets" .Params.tweets_section }}
+    {{ partial "section-cards" .Params.bindings_section }}
+    {{ partial "section-comments" .Params.comments_section }}
   </main>
 {{ end }}

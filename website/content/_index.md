@@ -211,7 +211,7 @@ bindings_section:
       label: "prql-js"
       text: "JavaScript compiler library. Wrapper for prql-compiler."
 
-tweets_section:
+comments_section:
   enable: true
   title: "What people are saying"
   tweets:
@@ -221,4 +221,8 @@ tweets_section:
     - "{{< tweet 1485958835844100098 >}}"
     - "{{< tweet 1485795181198983170 >}}"
     - "{{< tweet 1522562664467107840 >}}"
----
+  quotes:
+    - quote: {text: "It starts with FROM, it fixes trailing commas, and it's called PRQL?? If this is a dream, don't wake me up.",
+              author: "Jeremiah Lowin, Founder & CEO, Prefect."}
+
+--- 

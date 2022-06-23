@@ -1,0 +1,30 @@
+{{ if .enable }}
+  <section class="content-section comments-section">
+    <div class="container">
+      <div class="row content">
+        <div class="section-title">
+          <h2 class="mb-3">{{ .title | markdownify }}</h2>
+        </div>
+
+        {{range .quotes }}
+        <div class="col-sm-6 col-md-3 d-flex align-items-stretch">
+            <div class ="card mb-3 quote">
+            <p class="quote-text">
+              {{ .quote.text | markdownify }}
+              <span> — {{ .quote.author | markdownify  }} </span>
+            </p>
+            </div>
+        </div>
+        {{ end }}
+
+        {{ range .tweets }}
+          <div class="col-sm-6 col-md-3 d-flex align-items-stretch">
+            {{ . | markdownify }}
+          </div>
+
+        {{ end }}
+
+      </div>
+    </div>
+  </section>
+{{ end }}
