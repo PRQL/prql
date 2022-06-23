@@ -19,8 +19,7 @@
 
         {{ range .tweets }}
           <div class="col-xs-7 col-sm-7 col-md-3 align-items-stretch">
-              {{ . | markdownify }}
-
+            {{ . | markdownify }}
           </div>
         {{ end }}
 
