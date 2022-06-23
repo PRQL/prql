@@ -3,16 +3,17 @@ title: "Roadmap"
 url: roadmap
 ---
 
-> I'm excited and inspired by the level of enthusiasm behind the project, both
+> We're excited and inspired by the level of enthusiasm behind the project, both
 > from individual contributors and the broader community of users who are
-> unsatisfied with SQL. We currently have an initial working version for the
-> intrepid early user.
+> unsatisfied with SQL. We currently have an working version for the intrepid
+> users.
 >
-> I'm hoping we can build a beautiful language, an app that's approachable &
-> powerful, and a vibrant community. Many projects have reached the current stage
-> and fallen, so this requires compounding on what we've done so far.
+> We're hoping we can build a beautiful language, integrations that are
+> approachable & powerful, and a vibrant community. Many projects have reached
+> the current stage and fallen, so this requires compounding on what we've done
+> so far.
 >
-> -- <cite>Maximilian Roos</cite>
+> -- <cite>PRQL Developers</cite>
 
 {{< columns >}}
 
@@ -39,7 +40,7 @@ Both bug reports of unfriendliness, and code contributions to improve them are w
 
 ## Standard library
 
-Currenty, the standard library is [quite limited](https://github.com/prql/prql/blob/main/prql-compiler/src/sql/stdlib.prql).
+Currently, the standard library is [quite limited](https://github.com/prql/prql/blob/main/prql-compiler/src/sql/stdlib.prql).
 It contains only basic arithmetic functions (`AVERAGE`, `SUM`) and lacks functions for string manipulation,
 date handling and many math functions.
 One challenge here is the variety of functionalities and syntax of target DBMSs; e.g. there's no standard
@@ -55,7 +56,7 @@ Currently, PRQL only transpiles into SQL. It could be much more powerful (and in
 if we develop a data-frame-handling-library backend. To be more precise, we would want to apply PRQL's
 AST to a in-memory dataframe of a performance-optimized library (such as [Polars](https://www.pola.rs/)).
 
-This would allow data scientists, analysts and general Python developers to transform dataframes with
+This would allow data scientists, analysts and general Python developers to transform DataFrames with
 PRQL queries. One language for all data transformations.
 
 ## PRQL as a tool
@@ -65,7 +66,7 @@ can read many data sources, offers syntax highlighting, auto-complete and type-i
 information from database's schema.
 
 If done right, it could replace many uses of classical spreadsheet software while producing reproducible
-data transformations and intuitivate, interactive experienece with fast feedback.
+data transformations and intuitive, interactive experience with fast feedback.
 
 ## Integrations
 
