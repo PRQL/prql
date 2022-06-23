@@ -6,22 +6,21 @@
           <h2 class="mb-3">{{ .title | markdownify }}</h2>
         </div>
 
-        {{range .quotes }}
-        <div class="col-sm-6 col-md-3 d-flex align-items-stretch">
-            <div class ="card mb-3 quote">
-            <p class="quote-text">
-              {{ .quote.text | markdownify }}
-              <span> — {{ .quote.author | markdownify  }} </span>
-            </p>
+        {{ range .quotes }}
+          <div class="col-sm-6 col-md-3 d-flex align-items-stretch">
+            <div class="card mb-3 quote">
+              <p class="quote-text">
+                {{ .quote.text | markdownify }}
+                <span> — {{ .quote.author | markdownify }} </span>
+              </p>
             </div>
-        </div>
+          </div>
         {{ end }}
 
         {{ range .tweets }}
           <div class="col-xs-7 col-sm-7 col-md-5 d-flex align-items-stretch">
             {{ . | markdownify }}
           </div>
-
         {{ end }}
 
       </div>

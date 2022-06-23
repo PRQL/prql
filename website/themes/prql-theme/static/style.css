@@ -544,7 +544,7 @@ section {
     linear-gradient(#f2f9ff, #daeaff);
 }
 
-  iframe {
+iframe {
   max-width: 100%;
 }
 
@@ -556,7 +556,7 @@ section {
   background: #ffffff;
 }
 
-.quote-text{
+.quote-text {
   margin: auto;
 }
 
