@@ -6,23 +6,30 @@
           <h2 class="mb-3">{{ .title | markdownify }}</h2>
         </div>
 
-        {{ range .quotes }}
-          <div class="col-sm-6 col-md-3 d-flex align-items-stretch">
-            <div class="card mb-3 quote">
-              <p class="quote-text">
-                {{ .quote.text | markdownify }}
-                <span> — {{ .quote.author | markdownify }} </span>
-              </p>
+        <div class="d-flex flex-wrap ">
+          {{ range .quotes }}
+            {{/* Margin-top & margin-bottom are set to match Tweets. Maybe there's
+              a better way of designing this? (and maybe we design from the stylesheet?)
+            */}}
+            <div class="card-container">
+              <div
+                class="card quote"
+                style=" margin-top: 10px; margin-bottom: 10px;"
+              >
+                <p class="quote-text">
+                  {{ .quote.text | markdownify }}
+                  <span> — {{ .quote.author | markdownify }} </span>
+                </p>
+              </div>
             </div>
-          </div>
-        {{ end }}
+          {{ end }}
 
-        {{ range .tweets }}
-          <div class="col-xs-7 col-sm-7 col-md-3 align-items-stretch">
-            {{ . | markdownify }}
-          </div>
-        {{ end }}
-
+          {{ range .tweets }}
+            <div class="card-container">
+              {{ . | markdownify }}
+            </div>
+          {{ end }}
+        </div>
       </div>
     </div>
   </section>
