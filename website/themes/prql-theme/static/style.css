@@ -486,8 +486,8 @@ section {
 
 .content-section .card {
   padding: 15px;
-  flex: 1 0 0;
   height: 100%;
+  flex: 100%;
 }
 
 .content-section .card a {
@@ -546,32 +546,24 @@ section {
     linear-gradient(#f2f9ff, #daeaff);
 }
 
-iframe {
-  max-width: 100% !important;
+.comments-section .card-container {
+  margin: 10px;
+  width: 400px;
 }
 
 .quote {
-  height: 70%;
-  margin: 35px auto;
   line-height: 1.6;
-  position: relative;
-  background: #ffffff;
 }
 
 .quote-text {
-  margin: auto;
-}
-
-.quote::after {
-  content: "";
+  margin: 30px;
+  font-size: 120%;
 }
 
 .quote span {
   display: block;
-  color: #333333;
-  font-style: normal;
   font-weight: bold;
-  margin: 10% auto;
+  margin: 20% auto;
 }
 
 /*--------------------------------------------------------------
