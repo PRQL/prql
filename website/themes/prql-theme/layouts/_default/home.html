@@ -53,18 +53,21 @@
                 <h2 class="mb-3">{{ .title | markdownify }}</h2>
                 <p>{{ .tagline | markdownify }}</p>
               </div>
-
-              {{ range .items }}
-                <div class="col-lg-4 d-flex align-items-stretch mb-4">
-                  <div class="card">
-                    <h4>{{ .title | markdownify }}</h4>
-                    <p class="blue-border">
-                      <strong>{{ .main_text | markdownify }}</strong>
-                    </p>
-                    <p>{{ .content | markdownify }}</p>
+              <div
+                class="row row-cols-1 row-cols-lg-3 justify-content-center g-3 mb-4"
+              >
+                {{ range .items }}
+                  <div class="col">
+                    <div class="card">
+                      <h4>{{ .title | markdownify }}</h4>
+                      <p class="blue-border">
+                        <strong>{{ .main_text | markdownify }}</strong>
+                      </p>
+                      <p>{{ .content | markdownify }}</p>
+                    </div>
                   </div>
-                </div>
-              {{ end }}
+                {{ end }}
+              </div>
             </div>
           </div>
         </section>
@@ -73,7 +76,7 @@
     {{ end }}
     <!-- End principle_section -->
 
-    <!-- ======= motivation Section ======= -->
+    <!-- ======= Showcase Section ======= -->
     {{ with .Params.showcase_section }}
       <!---->
       {{ if .enable }}

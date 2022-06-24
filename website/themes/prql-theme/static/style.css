@@ -422,6 +422,7 @@ section {
 
 .principle_section .card {
   padding: 30px;
+  height: 100%;
   border-radius: 0px;
 }
 
@@ -485,6 +486,7 @@ section {
 
 .content-section .card {
   padding: 15px;
+  height: 100%;
   flex: 100%;
 }
 
