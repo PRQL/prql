@@ -4,9 +4,7 @@ title: "FAQ"
 
 ## This reminds me of something else, did you take the idea from them?
 
-Yes, probably.
-
-We're standing on the shoulders of giants:
+Yes, probably. We're standing on the shoulders of giants:
 
 - [dplyr](https://dplyr.tidyverse.org/) is a beautiful language for manipulating
   data, in R. It's very similar to PRQL. It only works on in-memory R data.
@@ -53,7 +51,7 @@ And there are many projects similar to PRQL:
 
 > If any of these descriptions can be improved, please feel free to PR changes.
 
-## How is PRQL different from all the projects that SQL has (so far) defeated?
+## How is PRQL different from all the projects that SQL has defeated?
 
 Many languages have attempted to replace SQL, and yet SQL has massively _grown_
 in usage and importance in the past decade. There are lots
@@ -84,7 +82,7 @@ is questionable logic, "`n` languages have tried and failed so therefore SQL
 cannot be improved." suffers a similar fallacy. SQL isn't bad because it's old.
 It's bad because — in some cases — it's bad.
 
-## What's going on with this weird `aggregate` syntax? What's wrong with `select` & `group by`
+## What's going on with this weird `aggregate` syntax? What's wrong with `SELECT` & `GROUP BY`?
 
 SQL uses `SELECT` for all of these:
 
@@ -125,7 +123,7 @@ PRQL clearly delineates two operations with two transforms:
 
   ```prql
   from employees
-  aggregate (select total_salary = sum salary)
+  aggregate [total_salary = sum salary]
   ```
 
 `aggregate` can then be used in a `group` transform, where it has exactly the
@@ -135,7 +133,7 @@ PRQL's orthogonality.
 ```prql
 from employees
 group department (
-  aggregate (select total_salary = sum salary)
+  aggregate [total_salary = sum salary]
 )
 ```
 
