@@ -6,12 +6,12 @@
           <h2 class="mb-3">{{ .title | markdownify }}</h2>
         </div>
 
-        <div class="d-flex flex-wrap ">
+        <div class="row row-cols justify-content-center g-3">
           {{ range .quotes }}
-            {{/* Margin-top & margin-bottom are set to match Tweets. Maybe there's
-              a better way of designing this? (and maybe we design from the stylesheet?)
-            */}}
             <div class="card-container">
+              {{/* Margin-top & margin-bottom are set to match Tweets. Maybe there's
+                a better way of designing this? (and maybe we design from the stylesheet?)
+              */}}
               <div
                 class="card quote"
                 style=" margin-top: 10px; margin-bottom: 10px; height: unset;"
