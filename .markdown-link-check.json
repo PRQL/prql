@@ -6,10 +6,5 @@
       },
       "urls": ["https://crates.io"]
     }
-  ],
-  "ignorePatterns": [
-    {
-      "pattern": "^https://crates.io"
-    }
   ]
 }
