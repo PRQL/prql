@@ -208,7 +208,7 @@ bindings_section:
       label: "prql-compiler"
       text: "PRQL's compiler library, written in Rust."
 
-    - link: https://pypi.org/project/prql-python/
+    - link: https://pypi.org/project/prql-python
       label: "prql-python"
       text: "Python bindings for prql-compiler."
 
