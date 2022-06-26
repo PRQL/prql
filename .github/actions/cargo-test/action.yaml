@@ -27,8 +27,12 @@ runs:
     - name: 💰 Cache
       uses: Swatinem/rust-cache@v1
       with:
-        # Without this, it seems to select linux x64 in the wasm32 tests, though
-        # in the docs it says it uses the target as the key?
+        # Without inputs.target, it seems to select linux x64 in the wasm32
+        # tests, though in the docs it says it uses the target as the key?
+        #
+        # We add `-1` because the cache was getting bloated; probably it doesn't
+        # clear all old files away efficiently; ideally we could set this to
+        # clear every month or similar.
         key: ${{ inputs.target }}-1
     - uses: jetli/wasm-bindgen-action@v0.1.0
       if: ${{ inputs.target == 'wasm32-unknown-unknown' }}
