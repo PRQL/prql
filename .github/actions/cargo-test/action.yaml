@@ -29,7 +29,7 @@ runs:
       with:
         # Without this, it seems to select linux x64 in the wasm32 tests, though
         # in the docs it says it uses the target as the key?
-        key: ${{ inputs.target }}${{ "-1" }}
+        key: ${{ inputs.target }}-1
     - uses: jetli/wasm-bindgen-action@v0.1.0
       if: ${{ inputs.target == 'wasm32-unknown-unknown' }}
     - name: 📎 Clippy
