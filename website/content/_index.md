@@ -7,7 +7,7 @@ title: PRQL
 hero_section:
   enable: true
   heading: "PRQL is a modern language for transforming data"
-  bottom_text: "— a simpler and more powerful SQL"
+  bottom_text: "— a simple, powerful, pipelined SQL replacement"
   button:
     enable: true
     link: https://prql-lang.org/book/

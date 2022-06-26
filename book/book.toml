@@ -1,13 +1,13 @@
 [book]
 authors = ["aljazerzen"]
-description = "Modern language for transforming data — a simpler and more powerful SQL"
+description = "Modern language for transforming data — a simple, powerful, pipelined SQL replacement"
 language = "en"
 multilingual = false
 src = "src"
 title = "PRQL Language Book"
 
 [output.html]
-additional-css = ["comparison-table.css", "././mdbook-admonish.css"]
+additional-css = ["comparison-table.css", "mdbook-admonish.css"]
 additional-js = ["highlight-prql.js"]
 git-repository-url = "https://github.com/prql/prql"
 

@@ -1,7 +1,6 @@
 # Introduction
 
-PRQL is a modern language for transforming data — a simpler and more powerful
-SQL. Like SQL, it's readable, explicit and declarative. Unlike SQL, it forms a
+PRQL is a modern language for transforming data — a simple, powerful, pipelined SQL replacement. Like SQL, it's readable, explicit and declarative. Unlike SQL, it forms a
 logical pipeline of transformations, and supports abstractions such as variables
 and functions. It can be used with any database that uses SQL, since it
 transpiles to SQL.
