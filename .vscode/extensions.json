@@ -1,5 +1,6 @@
 {
   "recommendations": [
+    // Keep in sync with Taskfile.yml
     "prql.prql",
     "rust-lang.rust-analyzer",
     "mitsuhiko.insta",

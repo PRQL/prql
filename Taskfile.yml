@@ -11,6 +11,7 @@
 version: "3"
 
 vars:
+  # Keeps in sync with .vscode/extensions.json
   vscode_extensions: |
     budparr.language-hugo-vscode
     esbenp.prettier-vscode
