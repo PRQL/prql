@@ -5,8 +5,8 @@ it. If we find ourselves using [s-strings](./language-features/s-strings.md) for
 something frequently, raise an issue and we'll add it to the stdlib.
 
 ```admonish note
-Currently the stdlib implementation doesn't support different DB implementations itself; 
-those need to be built deeper into the compiler. We'll resolve this at some point. Until 
+Currently the stdlib implementation doesn't support different DB implementations itself;
+those need to be built deeper into the compiler. We'll resolve this at some point. Until
 then, we'll only add functions here that are broadly supported by most DBs.
 ```
 
