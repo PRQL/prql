@@ -26,5 +26,5 @@ command = "mdbook-toc"
 renderer = ["html"]
 
 [preprocessor.admonish]
-assets_version = "1.0.0" # do not edit: managed by `mdbook-admonish install`
+assets_version = "2.0.0" # do not edit: managed by `mdbook-admonish install`
 command = "mdbook-admonish"
