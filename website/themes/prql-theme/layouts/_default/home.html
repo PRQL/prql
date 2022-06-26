@@ -1,7 +1,6 @@
 {{ define "main" }}
   <!-- ======= Hero Section ======= -->
   {{ with .Params.hero_section }}
-    <!---->
     {{ if .enable }}
       <section class="hero striped d-flex align-items-center">
         <div class="container">
@@ -15,7 +14,6 @@
               <h2 class="mb-3">{{ .heading | markdownify }}</h2>
               <p class="mb-3">{{ .bottom_text | markdownify }}</p>
               {{ if .button.enable }}
-                <!---->
                 {{ with .button }}
                   <a
                     class="btn"
@@ -25,7 +23,6 @@
                     {{ .label }}</a
                   >
                 {{ end }}
-                <!---->
               {{ end }}
             </div>
             <div class="col-lg-6 pt-4 pt-lg-0">
@@ -37,27 +34,23 @@
         </div>
       </section>
     {{ end }}
-    <!---->
   {{ end }}
   <!-- End Hero -->
 
   <main id="main">
     <!-- ======= principle Section ======= -->
     {{ with .Params.principle_section }}
-      <!---->
+      {{/* TODO: can we integrate this with section-cards? It's very similar */}}
       {{ if .enable }}
         <section class="principle_section">
           <div class="container">
-            <div class="row justify-content-center">
+            <div class="row">
               <div class="section-title">
-                <h2 class="mb-3">{{ .title | markdownify }}</h2>
-                <p>{{ .tagline | markdownify }}</p>
+                <h2>{{ .title | markdownify }}</h2>
               </div>
-              <div
-                class="row row-cols-1 row-cols-lg-3 justify-content-center g-3 mb-4"
-              >
+              <div class="row row-cols-1 row-cols-lg-3 justify-content-center">
                 {{ range .items }}
-                  <div class="col">
+                  <div class="col g-3">
                     <div class="card">
                       <h4>{{ .title | markdownify }}</h4>
                       <p class="blue-border">
@@ -72,13 +65,11 @@
           </div>
         </section>
       {{ end }}
-      <!---->
     {{ end }}
     <!-- End principle_section -->
 
     <!-- ======= Showcase Section ======= -->
     {{ with .Params.showcase_section }}
-      <!---->
       {{ if .enable }}
         <section class="content-section showcase-section section-bg">
           <div class="container">
@@ -139,7 +130,6 @@
           </div>
         </section>
       {{ end }}
-      <!---->
     {{ end }}
     {{ partial "section-cards" .Params.integrations_section }}
     {{ partial "section-cards" .Params.tools_section }}
