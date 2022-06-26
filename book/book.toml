@@ -21,10 +21,6 @@ command = "sh -c 'echo \"Installing mdbook-prql from mdbook\" 1>&2; cd $(git rev
 
 [preprocessor.prql]
 
-[preprocessor.toc]
-command = "mdbook-toc"
-renderer = ["html"]
-
 [preprocessor.admonish]
 assets_version = "2.0.0" # do not edit: managed by `mdbook-admonish install`
 command = "mdbook-admonish"
