@@ -15,14 +15,7 @@
       <ul>
         {{ range .Site.Menus.nav }}
           <li>
-            <a
-              href="{{ .URL }}"
-              class="nav-link scrollto"
-              target="{{ .Params.target }}"
-            >
-              {{ .Name }}
-              {{ .Post }}
-            </a>
+            {{ print "[" .Name "]" "("  .URL ")" | markdownify }}
           </li>
         {{ end }}
         <li>
