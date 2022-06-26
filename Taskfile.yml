@@ -11,10 +11,13 @@
 version: "3"
 
 vars:
+  # Keeps in sync with .vscode/extensions.json
   vscode_extensions: |
+    budparr.language-hugo-vscode
+    esbenp.prettier-vscode
+    mitsuhiko.insta
     prql.prql
     rust-lang.rust-analyzer
-    mitsuhiko.insta
 
 tasks:
   install-dev-tools:

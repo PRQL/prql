@@ -3,6 +3,6 @@
 .DS_Store
 
 dist
-.vscode
+.vscode/settings.json
 /*.prql
 .idea
