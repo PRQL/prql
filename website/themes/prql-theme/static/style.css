@@ -547,8 +547,13 @@ section {
 }
 
 .comments-section .card-container {
-  margin: 10px;
   width: 400px;
+  /* This is about the size of the biggest tweet, which isn't that reliable. We
+  define it here so the spacing doesn't change as the JS loads.
+
+  TODO: Maybe there are better ways to do this; e.g. could be embed the full
+  tweet in the compiled version of the page? */
+  height: 425px;
 }
 
 .quote {

@@ -3,20 +3,20 @@
     <div class="container">
       <div class="row content">
         <div class="section-title">
-          <h2 class="mb-3">{{ .title | markdownify }}</h2>
+          <h2>{{ .title | markdownify }}</h2>
         </div>
 
-        <div class="row row-cols-1 row-cols-lg-4 justify-content-left g-3 mb-4">
+        <div class="row row-cols-1 row-cols-lg-4 justify-content-left">
           {{ range .sections }}
-            <div class="col">
-              <div class="card mb-3">
-                {{ if .link }}
-                  <a href="{{ .link | relURL }}" target="_blank">
-                    <h4>
-                      {{ .label }}
-                      <sup><i class="bx bx-link-external"></i></sup>
-                    </h4>
-                  </a>
+            <div class="col g-3">
+              <div class="card">
+                {{ if and .link .label }}
+                  <h4>
+                    {{/* We recreate the markdown so external links will parse &
+                      display as such.
+                    */}}
+                    {{ print "[" .label "]" "(" .link ")" | markdownify }}
+                  </h4>
                 {{ else }}
                   <h4 class="text-muted">{{ .label }}</h4>
                 {{ end }}
