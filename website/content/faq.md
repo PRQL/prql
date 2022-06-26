@@ -2,7 +2,24 @@
 title: "FAQ"
 ---
 
-## This reminds me of something else, did you take the idea from them?
+## Cool story Hansel, but what can I actually do with PRQL now?
+
+We're still early, and the opportunities for using PRQL are focused on two
+integrations:
+
+- **[dbt-prql](https://github.com/prql/dbt-prql)** allows writing PRQL in
+  [dbt](https://www.getdbt.com/) models. It very simple to use — install
+  `dbt-prql` with pip, and then any text between a `{% prql %}` & `{% endprql %}` tag is compiled from PRQL.
+- **[Jupyter](https://pyprql.readthedocs.io/en/latest/magic_readme.html)**
+  allows writing PRQL in a Jupyter notebook or IPython repl, with a `%%prql`
+  magic. As well as connecting to existing DBs, our integration with DuckDB
+  enables querying pandas dataframes, CSVs & Parquet files, and writing the
+  output to a dataframe.
+
+Beyond these two integrations, it's very easy to add PRQL to your own apps with
+our [bindings](../content/_index.md#Bindings), for Rust, Python & JS.
+
+## Something here reminds me of another project, did you take the idea from them?
 
 Yes, probably. We're standing on the shoulders of giants:
 
