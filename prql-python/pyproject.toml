@@ -11,12 +11,6 @@ classifiers = [
 name = "prql-python"
 requires-python = ">=3.7"
 
-[tool.pytest.ini_options]
-addopts = """
--vv
--n auto
-"""
-
 [tool.maturin]
 # This is required because of https://github.com/PyO3/pyo3/pull/2135. Instead of
 # the suggestions there to run tests with `--no-default-features`, we instead

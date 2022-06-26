@@ -19,7 +19,7 @@ prql_query = """
     join salaries [emp_id]
     group [emp_id, gender] (
       aggregate [
-        emp_salary: average salary
+        avg_salary = average salary
       ]
     )
     join departments [dept_id]

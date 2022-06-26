@@ -22,3 +22,24 @@ jobs:
               URL: 'https://github.com/prql/prql/archive/${{ github.ref }}.tar.gz'
               }
             })
+
+  build-python-wheels:
+    uses: ./.github/workflows/python.yaml
+  publish-to-pypi:
+    runs-on: ubuntu-latest
+    # Currently excluded since we need to use the PYPI_API_TOKEN
+    # if: "startsWith(github.ref, 'refs/tags/')"
+    if: "false"
+    needs: [build-python-wheels]
+    steps:
+      - uses: actions/download-artifact@v3
+        with:
+          name: wheels
+      - name: Publish to PyPI
+        uses: messense/maturin-action@v1
+        env:
+          # TODO: Upload PYPI_API_TOKEN, confirm how we release all crates together.
+          MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+        with:
+          command: upload
+          args: --skip-existing *
