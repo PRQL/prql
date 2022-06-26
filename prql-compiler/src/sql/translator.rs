@@ -806,6 +806,49 @@ mod test {
     }
 
     #[test]
+    fn test_stdlib() {
+        let query: Query = parse(
+            r###"
+        from employees
+        aggregate (
+          [salary_usd = min salary]
+        )
+        "###,
+        )
+        .unwrap();
+
+        let sql = resolve_and_translate(query).unwrap();
+        assert_snapshot!(sql,
+            @r###"
+        SELECT
+          MIN(salary) AS salary_usd
+        FROM
+          employees
+        "###
+        );
+
+        let query: Query = parse(
+            r###"
+        from employees
+        aggregate (
+          [salary_usd = (round salary 2)]
+        )
+        "###,
+        )
+        .unwrap();
+
+        let sql = resolve_and_translate(query).unwrap();
+        assert_snapshot!(sql,
+            @r###"
+        SELECT
+          ROUND(salary, 2) AS salary_usd
+        FROM
+          employees
+        "###
+        );
+    }
+
+    #[test]
     fn test_range_of_ranges() -> Result<()> {
         let range1 = Range::from_ints(Some(1), Some(10));
         let range2 = Range::from_ints(Some(5), Some(6));
