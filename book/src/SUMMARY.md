@@ -32,7 +32,7 @@
   - [S-Strings](./language-features/s-strings.md)
   - [Strings](./language-features/strings.md)
 
-- [Stdlib]()
+- [Stdlib](./stdlib.md)
 - [Integrations]()
 
   - [VSCode]()
