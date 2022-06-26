@@ -1,5 +1,5 @@
 [package]
-description = "PRQL is a modern language for transforming data — a simpler and more powerful SQL."
+description = "PRQL is a modern language for transforming data — a simple, powerful, pipelined SQL replacement."
 edition = "2021"
 license = "Apache-2.0"
 name = "prql-compiler"
