@@ -203,7 +203,7 @@ bindings_section:
   enable: true
   title: "Bindings"
   sections:
-  # TODO: probably rename to `prql-compiler` later today
+    # TODO: probably rename to `prql-compiler` later today
     - link: https://crates.io/crates/prql
       label: "prql-compiler"
       text: "PRQL's compiler library, written in Rust."
