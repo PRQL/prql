@@ -1,0 +1,10 @@
+{
+  "httpHeaders": [
+    {
+      "headers": {
+        "Accept": "text/html"
+      },
+      "urls": ["https://crates.io"]
+    }
+  ]
+}

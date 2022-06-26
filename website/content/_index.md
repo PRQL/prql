@@ -203,13 +203,18 @@ bindings_section:
   enable: true
   title: "Bindings"
   sections:
-    - link: https://pypi.org/project/prql-python/
-      label: "prql-python"
-      text: "Python compiler library. Wrapper for prql-compiler."
+    # TODO: probably rename to `prql-compiler` later today
+    - link: https://crates.io/crates/prql
+      label: "prql-compiler"
+      text: "PRQL's compiler library, written in Rust."
 
-    - link: "https://www.npmjs.com/package/prql-js"
+    - link: https://pypi.org/project/prql-python
+      label: "prql-python"
+      text: "Python bindings for prql-compiler."
+
+    - link: https://www.npmjs.com/package/prql-js
       label: "prql-js"
-      text: "JavaScript compiler library. Wrapper for prql-compiler."
+      text: "JavaScript bindings for prql-compiler."
 
 comments_section:
   enable: true
