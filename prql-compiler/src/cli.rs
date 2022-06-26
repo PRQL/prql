@@ -63,7 +63,7 @@ impl Cli {
     pub fn execute(&mut self) -> Result<(), Error> {
         match self {
             Cli::Compile(command) => {
-                // Don't wait without a prompt when running `prql compile` —
+                // Don't wait without a prompt when running `prql-compiler compile` —
                 // it's confusing whether it's waiting for input or not. This
                 // offers the prompt.
                 if is_stdin(&command.input) && atty::is(atty::Stream::Stdin) {
