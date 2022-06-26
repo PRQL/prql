@@ -1452,6 +1452,39 @@ select [
     }
 
     #[test]
+    fn test_parse_backticks() -> Result<()> {
+        let prql = "
+from `a.b`
+aggregate [max c]
+";
+        assert_yaml_snapshot!(parse(prql)?, @r###"
+        ---
+        version: ~
+        dialect: Generic
+        nodes:
+          - Pipeline:
+              nodes:
+                - FuncCall:
+                    name: from
+                    args:
+                      - Ident: "`a.b`"
+                    named_args: {}
+                - FuncCall:
+                    name: aggregate
+                    args:
+                      - List:
+                          - FuncCall:
+                              name: max
+                              args:
+                                - Ident: c
+                              named_args: {}
+                    named_args: {}
+        "###);
+
+        Ok(())
+    }
+
+    #[test]
     fn test_parse_sort() -> Result<()> {
         assert_yaml_snapshot!(parse("
         from invoices
