@@ -1,9 +1,3 @@
-# From https://github.com/qorrect/PyPrql/blob/main/resources/stdlib.prql
-# (discussed on Discord that it's OK to copy here)
-#
-# We'll evaluate how we organize files, and what is a PRQL function vs encoded
-# in the transpiler.
-
 # Aggregate Functions
 
 func min <scalar|column> column ->  s"MIN({column})"
