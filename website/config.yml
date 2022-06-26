@@ -13,18 +13,11 @@ menu:
     - identifier: Book
       name: Book
       url: "https://prql-lang.org/book/"
-      # TODO: Could we automatically do these three lines for external links, across the whole site?
-      post: <sup><i class="bx bx-link-external"></i></sup>
-      params:
-        target: "_blank"
       weight: 1
     - identifier: Playground
       name: Playground
       url: "https://prql-lang.org/playground/"
       weight: 2
-      post: <sup><i class="bx bx-link-external"></i></sup>
-      params:
-        target: "_blank"
     - identifier: Roadmap
       name: Roadmap
       url: /roadmap/

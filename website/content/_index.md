@@ -181,7 +181,7 @@ integrations_section:
   title: "Integrations"
   sections:
     - label: dbt
-      link: https://github.com/prql/dbt-prql
+      link: "https://github.com/prql/dbt-prql"
       text: |
         Allows writing PRQL in dbt models.
         This combines the benefits of PRQL's power & simplicity within queries; with dbt's version control, lineage & testing across queries.
@@ -193,7 +193,7 @@ integrations_section:
         It can also set up an in-memory DuckDB instance, populated with a pandas DataFrame.
 
     - label: Visual Studio Code
-      link: https://marketplace.visualstudio.com/items?itemName=prql.prql
+      link: "https://marketplace.visualstudio.com/items?itemName=prql.prql"
       text: Extension with syntax highlighting and an upcoming language server.
 
     - label: "Prefect"
@@ -203,7 +203,7 @@ bindings_section:
   enable: true
   title: "Bindings"
   sections:
-    - link: https://pypi.org/project/prql-python/
+    - link: "https://pypi.org/project/prql-python/"
       label: "prql-python"
       text: "Python compiler library. Wrapper for prql-compiler."
 

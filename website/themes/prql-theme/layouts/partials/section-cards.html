@@ -10,13 +10,13 @@
           {{ range .sections }}
             <div class="col">
               <div class="card mb-3">
-                {{ if .link }}
-                  <a href="{{ .link | relURL }}" target="_blank">
-                    <h4>
-                      {{ .label }}
-                      <sup><i class="bx bx-link-external"></i></sup>
-                    </h4>
-                  </a>
+                {{ if and .link .label }}
+                  <h4>
+                    {{/* We recreate the markdown so external links will parse &
+                      display as such.
+                    */}}
+                    {{ print "[" .label "]" "(" .link ")" | markdownify }}
+                  </h4>
                 {{ else }}
                   <h4 class="text-muted">{{ .label }}</h4>
                 {{ end }}
