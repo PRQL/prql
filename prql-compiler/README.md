@@ -2,8 +2,8 @@
 
 `prql-compiler` contains the implementation of PRQL's compiler, written in rust.
 
-For more on PRQL, check out the [PRQL website](prql-lang.org) or the [PRQL
-repo](github.com/prql/prql).
+For more on PRQL, check out the [PRQL website](https://prql-lang.org) or the [PRQL
+repo](https://github.com/prql/prql).
 
 ## Installation
 
@@ -23,7 +23,7 @@ cargo install --path .
 ## Usage
 
 ```sh
-$ echo "from employees | filter has_dog" | prql-compiler compile
+$ echo "from employees | filter has_dog | select salary" | prql-compiler compile
 
 SELECT
   *
