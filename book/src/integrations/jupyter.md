@@ -12,7 +12,7 @@ Roughly speaking,
 all we do is parse PRQL to SQL and pass that through to `ipython-sql`.
 A full documentation of the supported features is available at their
 [repository][ipysql].
-Here,  we document those places where we differ from them,
+Here, we document those places where we differ from them,
 plus those features we think you are mostly likely to find useful.
 
 ## Usage

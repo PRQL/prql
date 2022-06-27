@@ -5,7 +5,7 @@ Because Prefect is in native python, it's extremely easy to integrate with PRQL.
 With a Postgres Task, replace:
 
 ```python
-PostgresExecute.run(..., query=sql) 
+PostgresExecute.run(..., query=sql)
 ```
 
 ```python
