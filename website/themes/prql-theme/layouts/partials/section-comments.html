@@ -7,26 +7,33 @@
         </div>
 
         <div class="row row-cols justify-content-center">
-          {{ range .quotes }}
+          {{ range .comments }}
             <div class="card-container">
               {{/* Margin-top & margin-bottom are set to match Tweets. Maybe there's
                 a better way of designing this? (and maybe we design from the stylesheet?)
               */}}
-              <div
-                class="card quote"
-                style="margin-top: 10px; margin-bottom: 10px; height: unset;"
-              >
-                <p class="quote-text">
-                  {{ .quote.text | markdownify }}
-                  <span> — {{ .quote.author | markdownify }} </span>
-                </p>
-              </div>
-            </div>
-          {{ end }}
-
-          {{ range .tweets }}
-            <div class="card-container">
-              {{ . | markdownify }}
+              {{ with .quote }}
+                <div
+                  class="card quote"
+                  style="margin-top: 10px; margin-bottom: 10px; height: unset;"
+                >
+                  {{ with .link }}
+                    <a class="quote-text" href="{{ . }}" >
+                  {{ else }}
+                    <p class="quote-text" >
+                  {{ end }}
+                  {{ .text | markdownify }}
+                    <span> — {{ .author | markdownify }} </span>
+                  {{ with .link }}
+                    </a>
+                  {{ else }}
+                    </p>
+                  {{ end }}
+                </div>
+              {{ end }}
+              {{ with .tweet }}
+                {{ . | markdownify }}
+              {{ end }}
             </div>
           {{ end }}
         </div>

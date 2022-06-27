@@ -568,7 +568,13 @@ section {
 .quote span {
   display: block;
   font-weight: bold;
-  margin: 20% auto;
+  margin-top: 30px;
+}
+
+.quote a:link,
+.quote a:visited {
+  text-decoration: none;
+  color: inherit;
 }
 
 /*--------------------------------------------------------------

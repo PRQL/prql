@@ -99,7 +99,7 @@ is questionable logic, "`n` languages have tried and failed so therefore SQL
 cannot be improved." suffers a similar fallacy. SQL isn't bad because it's old.
 It's bad because — in some cases — it's bad.
 
-## What's going on with this weird `aggregate` syntax? What's wrong with `SELECT` & `GROUP BY`?
+## What's going on with this `aggregate` function? What's wrong with `SELECT` & `GROUP BY`?
 
 SQL uses `SELECT` for all of these:
 
@@ -123,7 +123,8 @@ SQL uses `SELECT` for all of these:
 
 These are not orthogonal — `SELECT` does lots of different things depending on
 the context. It's difficult for both people and machines to evaluate the shape
-of the output. It's easy to mix meanings and raise an error (`SELECT x, MIN(y) FROM z`).
+of the output. It's easy to mix meanings and raise an error (e.g. `SELECT x,
+MIN(y) FROM z`).
 
 PRQL clearly delineates two operations with two transforms:
 
@@ -154,6 +155,14 @@ group department (
 )
 ```
 
-<!-- TODO: could add in comments from @hadley around "one of his biggest regrets" to dplyr -->
+While you should be skeptical of new claims from new entrants, but [Hadley
+Wickham](https://twitter.com/hadleywickham), the developer of
+[Tidyverse](https://www.tidyverse.org/)
+[commented](https://news.ycombinator.com/item?id=30067406) in a discussion on
+PRQL:
+
+> FWIW the separate `group_by()` is one of my greatest design regrets with dplyr
+> — I wish I had made `by` a parameter of `summarise()`, `mutate()`, `filter()`
+> etc.
 
 For more detail, check out the docs in the [PRQL Book](https://prql-lang.org/book).
