@@ -273,13 +273,13 @@ integrations_section:
   sections:
     - label: dbt
       link: https://github.com/prql/dbt-prql
-      text: 
-        Allows writing PRQL in dbt models.
+      text: Allows writing PRQL in dbt models.
         This combines the benefits of PRQL's power & simplicity within queries; with dbt's version control, lineage & testing across queries.
 
     - label: "Jupyter/IPython"
       link: https://pyprql.readthedocs.io/en/latest/magic_readme.html
-      text: "PyPrql contains a Jupyter extension, which executes a PRQL cell against a database.
+      text:
+        "PyPrql contains a Jupyter extension, which executes a PRQL cell against a database.
         It can also set up an in-memory DuckDB instance, populated with a pandas DataFrame."
 
     - label: Visual Studio Code
@@ -304,10 +304,9 @@ bindings_section:
     - link: https://crates.io/crates/prql-compiler
       label: "prql-compiler"
       text: |
-          PRQL's compiler library, written in Rust.
+        PRQL's compiler library, written in Rust.
 
-          `cargo install prql-compiler`
-
+        `cargo install prql-compiler`
 
 comments_section:
   enable: true
