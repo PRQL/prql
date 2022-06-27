@@ -99,6 +99,16 @@ is questionable logic, "`n` languages have tried and failed so therefore SQL
 cannot be improved." suffers a similar fallacy. SQL isn't bad because it's old.
 It's bad because — in some cases — it's bad.
 
+## Which databases does PRQL work with?
+
+PRQL compiles to SQL, so it's compatible with any database that accepts SQL.
+
+A query's dialect can be explicitly specified, allowing for dialect-specific SQL
+to be generated. See the [Dialect
+docs](https://prql-lang.org/book/queries/dialect_and_version.html) for more
+info; note that there is currently very limited implementation of this, and most
+dialects' implementation are identical to a generic implementation.
+
 ## What's going on with this `aggregate` function? What's wrong with `SELECT` & `GROUP BY`?
 
 SQL uses `SELECT` for all of these:
