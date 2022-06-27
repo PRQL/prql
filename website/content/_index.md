@@ -151,6 +151,33 @@ showcase_section:
         FROM
           weather
 
+    - id: top-n
+      label: Top n items
+      prql: |
+        from employees
+        group role (
+          sort join_date
+          take 1
+        )
+      sql: |
+        WITH table_0 AS (
+          SELECT
+            employees.*,
+            ROW NUMBER() OVER (
+              PARTITION BY role
+              ORDER BY
+                join_date
+            ) AS _rn
+          FROM
+            employees
+        )
+        SELECT
+          table_0.*
+        FROM
+          table_0
+        WHERE
+          _rn <= 1
+
 tools_section:
   enable: true
   title: "Tools"
