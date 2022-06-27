@@ -274,7 +274,7 @@ integrations_section:
     - label: dbt
       link: https://github.com/prql/dbt-prql
       text: Allows writing PRQL in dbt models.
-        This combines the benefits of PRQL's power & simplicity within queries; 
+        This combines the benefits of PRQL's power & simplicity within queries;
         with dbt's version control, lineage & testing across queries.
 
     - label: "Jupyter/IPython"
