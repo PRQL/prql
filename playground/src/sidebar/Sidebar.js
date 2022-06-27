@@ -59,7 +59,7 @@ function Sidebar({ library, onLoadFile }) {
           className="fileRow"
           target="_blank"
           rel="noopener noreferrer"
-          href="https://prql-lang.org/reference"
+          href="https://prql-lang.org/book/"
         >
           Language Reference
         </a>
