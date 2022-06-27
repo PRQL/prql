@@ -1,27 +1,29 @@
 name: release-brew
 on:
-  release:
-    type: [published]
+  pull-request:
+
+  # release:
+  #   type: [published]
 
 jobs:
-  dispatcher:
-    name: create the dispatch event
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/github-script@v6
-        with:
-          github-token: ${{ secrets.HOMEBREW_PRQL_TOKEN}}
-          script: |
-            await github.rest.actions.createWorkflowDispatch({
-              owner: 'prql',
-              repo: 'homebrew-prql',
-              workflow_id: 'update.yml',
-              ref: 'main',
-              inputs: {
-              version: '${{ github.ref }}',
-              URL: 'https://github.com/prql/prql/archive/${{ github.ref }}.tar.gz'
-              }
-            })
+  # dispatcher:
+  #   name: create the dispatch event
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/github-script@v6
+  #       with:
+  #         github-token: ${{ secrets.HOMEBREW_PRQL_TOKEN}}
+  #         script: |
+  #           await github.rest.actions.createWorkflowDispatch({
+  #             owner: 'prql',
+  #             repo: 'homebrew-prql',
+  #             workflow_id: 'update.yml',
+  #             ref: 'main',
+  #             inputs: {
+  #             version: '${{ github.ref }}',
+  #             URL: 'https://github.com/prql/prql/archive/${{ github.ref }}.tar.gz'
+  #             }
+  #           })
 
   build-python-wheels:
     uses: ./.github/workflows/python.yaml
@@ -29,7 +31,7 @@ jobs:
     runs-on: ubuntu-latest
     # Currently excluded since we need to use the PYPI_API_TOKEN
     # if: "startsWith(github.ref, 'refs/tags/')"
-    if: "false"
+    if: "true"
     needs: [build-python-wheels]
     steps:
       - uses: actions/download-artifact@v3
