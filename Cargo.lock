@@ -1065,7 +1065,7 @@ dependencies = [
 
 [[package]]
 name = "prql-compiler"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "anyhow",
  "ariadne",
@@ -1106,7 +1106,7 @@ dependencies = [
 
 [[package]]
 name = "prql-python"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "prql-compiler",
  "pyo3",
