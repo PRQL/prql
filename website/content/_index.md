@@ -234,7 +234,7 @@ showcase_section:
           version() AS db_version
 
     - id: joins
-    - label: Joins
+      label: Joins
       prql: |
         from employees
         join benefits [employee_id]
