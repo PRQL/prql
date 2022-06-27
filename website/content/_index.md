@@ -95,17 +95,18 @@ showcase_section:
     - id: friendly-syntax
       label: Friendly syntax
       prql: |
-        from order  # This is a comment
+        from order               # This is a comment
         filter status == "done"
-        sort [-amount]  # sort order
+        sort [-amount]           # sort order
       sql: |
         SELECT
-          order.*,
-          amount * COALESCE(promo, 0) AS promo_amount
-        FROM order
-        WHERE created_at > DATE '2022-06-13'
-          AND status = 'done'
-        ORDER BY amount DESC
+          order.*
+        FROM
+          order
+        WHERE
+          status = 'done'
+        ORDER BY
+          amount DESC
 
     - id: dates
       label: Dates
