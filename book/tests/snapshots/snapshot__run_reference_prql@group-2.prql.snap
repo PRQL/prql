@@ -6,7 +6,7 @@ input_file: book/tests/prql/transforms/group-2.prql
 WITH table_0 AS (
   SELECT
     employees.*,
-    ROW NUMBER() OVER (
+    ROW_NUMBER() OVER (
       PARTITION BY role
       ORDER BY
         join_date
