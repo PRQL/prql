@@ -208,7 +208,7 @@ showcase_section:
         WITH table_0 AS (
           SELECT
             employees.*,
-            ROW NUMBER() OVER (
+            ROW_NUMBER() OVER (
               PARTITION BY role
               ORDER BY
                 join_date
