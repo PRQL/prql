@@ -233,6 +233,23 @@ showcase_section:
         SELECT
           version() AS db_version
 
+    - id: joins
+    - label: Joins
+      prql: |
+        from employees
+        join benefits [employee_id]
+        join side:left p=positions [id==employee_id]
+        select [employee_id, role, vision_coverage]
+      sql: |
+        SELECT
+          employee_id,
+          role,
+          vision_coverage
+        FROM
+          employees
+          JOIN benefits USING(employee_id)
+          LEFT JOIN positions AS p ON id = employee_id
+
     - id: null-handling
       label: Null handling
       prql: |
