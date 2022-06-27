@@ -290,7 +290,6 @@ integrations_section:
       link: https://prql-lang.org/book/integrations/prefect.html
       text: Add PRQL models to your Prefect workflows with a single function.
 
-
 bindings_section:
   enable: true
   title: "Bindings"
