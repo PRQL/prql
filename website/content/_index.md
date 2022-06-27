@@ -234,7 +234,7 @@ showcase_section:
           version() AS db_version
 
     - id: joins
-    - label: Joins
+      label: Joins
       prql: |
         from employees
         join benefits [employee_id]
@@ -304,7 +304,7 @@ tools_section:
       text: |
         Reference compiler implementation. Has a CLI utility that can transpile, format and annotate PRQL queries.
 
-        `brew install prql/prq/prql-compiler`
+        `brew install prql/prql/prql-compiler`
 
 integrations_section:
   enable: true
