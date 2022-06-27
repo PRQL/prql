@@ -159,6 +159,28 @@ showcase_section:
           '/', page) AS url
         FROM web
     # markdown-link-check-enable
+    - id: windows
+      label: Windows
+      prql: |
+        from employees
+        group employee_id (
+          sort month
+          window rolling:12 (
+            derive [trail_12_m_comp = sum paycheck]
+          )
+        )
+      sql: |
+        SELECT
+          employees.*,
+          SUM(paycheck) OVER (
+            PARTITION BY employee_id
+            ORDER BY
+              month ROWS BETWEEN 11 PRECEDING
+              AND CURRENT ROW
+          ) AS trail_12_m_comp
+        FROM
+          employees
+
     - id: functions
       label: Functions
       prql: |
