@@ -20,54 +20,64 @@ logical pipeline of transformations, and supports abstractions such as variables
 and functions. It can be used with any database that uses SQL, since it
 transpiles to SQL.
 
-PRQL was discussed on [Hacker
-News](https://news.ycombinator.com/item?id=30060784#30062329) and
-[Lobsters](https://lobste.rs/s/oavgcx/prql_simpler_more_powerful_sql) earlier
-this year when it was just a proposal.
-
-Here's a short example of the language; for more examples, visit
-[prql-lang.org][prql website]. To experiment with PRQL in the browser, check out
-[PRQL Playground][prql playground].
+PRQL can be as simple as:
 
 ```elm
-from employees                                # Each line transforms the previous result.
+from employees
+filter country == "USA"                       # Each line transforms the previous result.
+aggregate [                                   # `aggregate` reduces column to a value.
+  max salary,
+  min salary,
+  count,                                      # Closing commas are allowed :)
+]
+```
+
+Here's a fuller example of the language;
+
+```elm
+from employees
 filter start_date > @2021-01-01               # Clear date syntax.
 derive [                                      # `derive` adds columns / variables.
-  gross_salary = salary + payroll_tax,
-  gross_cost = gross_salary + benefits_cost   # Variables can use other variables.
+  gross_salary = salary + (tax ?? 0),         # Terse coalesce
+  gross_cost = gross_salary + benefits_cost,  # Variables can use other variables.
 ]
 filter gross_cost > 0
 group [title, country] (                      # `group` runs a pipeline over each group.
   aggregate [                                 # `aggregate` reduces each group to a row.
-    average salary,
-    sum     salary,
     average gross_salary,
-    sum     gross_salary,
-    average gross_cost,
     sum_gross_cost = sum gross_cost,          # `=` sets a column name.
-    ct = count,
   ]
 )
+filter sum_gross_cost > 100000                # Identical syntax for SQL's `WHERE` & `HAVING`.
+derive id = f"{title}_{country}"              # F-strings like python.
 sort [sum_gross_cost, -country]               # `-country` means descending order.
-filter ct > 200
-take 20
+take 1..20                                    # Range expressions (also valid here as `take 20`).
 ```
 
-## Resources
+For more on the language, more examples & comparisons with SQL, visit
+[prql-lang.org][prql website]. To experiment with PRQL in the browser, check out
+[PRQL Playground][prql playground].
 
-To learn more, check out the [PRQL Website][prql website].
+## Get involved
 
-<!-- should we have a call-to-action like following #1 or on Twitter? -->
+To stay in touch with PRQL:
 
-For specific resources, check out:
+- Follow us on [Twitter](https://twitter.com/prql_lang)
+- Join us on [Discord](https://discord.gg/eQcfaCmsNc)
+- Star this repo
+- [Contribute](./CONTRIBUTING.md) — join us in building PRQL, through writing
+  code or inspiring others to use it. We're a really friendly community!
+
+## Explore
 
 - [PRQL Playground][prql playground] — experiment with PRQL in the browser.
 - [PRQL Book][prql book] — the language documentation.
-- [Contributing][contributing] — join us in building PRQL, through writing code or
-  inspiring others to use it.
+- [dbt-prql][dbt-prql] — write PRQL in dbt models.
+- [Jupyter magic](https://pyprql.readthedocs.io/en/latest/magic_readme.html) —
+  run PRQL in Jupyter, either against a DB, or a Pandas DataFrame / CSV /
+  Parquet file through DuckDB.
 - [PyPRQL Docs](https://pyprql.readthedocs.io) — the PyPRQL documentation, the
   python bindings to PRQL, including Jupyter magic.
-- [dbt-prql][dbt-prql] — write PRQL in dbt models.
 - [PRQL VSCode Extension](https://marketplace.visualstudio.com/items?itemName=prql.prql)
 - [PRQL-js](https://www.npmjs.com/package/prql-js) — JavaScript bindings for PRQL.
 
@@ -79,8 +89,8 @@ Many thanks to those who've made our progress possible:
 
 ### Core developers
 
-We have a few core developers who are responsible for reviewing code, making
-decisions on the direction of the language, and project administration:
+We have core developers who are responsible for reviewing code, making decisions
+on the direction of the language, and project administration:
 
 - [**@aljazerzen**](https://github.com/aljazerzen) — Aljaž Mur Eržen
 - [**@max-sixty**](https://github.com/max-sixty) — Maximilian Roos
