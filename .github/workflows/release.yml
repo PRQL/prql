@@ -1,11 +1,11 @@
-name: release-brew
+name: release
 on:
   release:
     type: [published]
 
 jobs:
-  dispatcher:
-    name: create the dispatch event
+  brew-dispatcher:
+    name: Release on homebrew-prql
     runs-on: ubuntu-latest
     steps:
       - uses: actions/github-script@v6
@@ -25,11 +25,9 @@ jobs:
 
   build-python-wheels:
     uses: ./.github/workflows/python.yaml
+
   publish-to-pypi:
     runs-on: ubuntu-latest
-    # Currently excluded since we need to use the PYPI_API_TOKEN
-    # if: "startsWith(github.ref, 'refs/tags/')"
-    if: "false"
     needs: [build-python-wheels]
     steps:
       - uses: actions/download-artifact@v3
@@ -38,7 +36,6 @@ jobs:
       - name: Publish to PyPI
         uses: messense/maturin-action@v1
         env:
-          # TODO: Upload PYPI_API_TOKEN, confirm how we release all crates together.
           MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
         with:
           command: upload
