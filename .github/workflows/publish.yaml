@@ -34,7 +34,7 @@ jobs:
       - uses: actions-rs/install@v0.1
         with:
           crate: mdbook-admonish
-          version: v1.7.0
+          version: 1.7.0
       - name: 🔨 Build book
         run: mdbook build
         working-directory: book/
