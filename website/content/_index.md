@@ -159,7 +159,6 @@ showcase_section:
           '/', page) AS url
         FROM web
     # markdown-link-check-enable
-
     - id: functions
       label: Functions
       prql: |
@@ -229,7 +228,6 @@ showcase_section:
           last_login IS NOT NULL
           AND deleted_at IS NULL
 
-
     - id: dialects
       label: Dialects
       prql: |
@@ -237,7 +235,7 @@ showcase_section:
 
         from employees
         sort age
-        take 10       
+        take 10
       sql: |
         SELECT
           TOP (10) employees.*
