@@ -35,6 +35,7 @@ jobs:
         with:
           crate: mdbook-admonish
           version: 1.7.0
+          use-tool-cache: true
       - name: 🔨 Build book
         run: mdbook build
         working-directory: book/
