@@ -1,6 +1,6 @@
 name: release-brew
 on:
-  pull-request:
+  pull-request
 
   # release:
   #   type: [published]
