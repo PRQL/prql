@@ -28,7 +28,7 @@ brew tap prql/homebrew-prql
 
 Then, to install prql-compiler:
 
-```sh						
+```sh
 brew install prql-compiler
 ```
 
