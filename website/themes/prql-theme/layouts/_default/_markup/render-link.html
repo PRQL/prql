@@ -4,11 +4,13 @@
   href="{{ .Destination | safeURL }}"
   {{ with .Title }}
     title="{{ . }}"
-  {{ end }}{{ if $is_external }}
+  {{ end }}
+  {{ if $is_external }}
     target="_blank" rel="noopener"
   {{ end }}
 >
-  {{- .Text | safeHTML }}{{ if $is_external -}}
+  {{ .Text | safeHTML }}
+  {{- if $is_external -}}
     <sup><i class="bx bx-link-external"></i></sup>
   {{- end -}}
 </a>
