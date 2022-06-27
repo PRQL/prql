@@ -8,6 +8,8 @@ With a Postgres Task, replace:
 PostgresExecute.run(..., query=sql)
 ```
 
+...with...
+
 ```python
 PostgresExecute.run(..., query=pyprql.to_sql(prql))
 ```
