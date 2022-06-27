@@ -123,8 +123,7 @@ SQL uses `SELECT` for all of these:
 
 These are not orthogonal — `SELECT` does lots of different things depending on
 the context. It's difficult for both people and machines to evaluate the shape
-of the output. It's easy to mix meanings and raise an error (e.g. `SELECT x,
-MIN(y) FROM z`).
+of the output. It's easy to mix meanings and raise an error (e.g. `SELECT x, MIN(y) FROM z`).
 
 PRQL clearly delineates two operations with two transforms:
 

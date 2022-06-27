@@ -219,26 +219,26 @@ comments_section:
   enable: true
   title: "What people are saying"
   comments:
-    # NB: The tweets use a custom shortcode, since we want to limit the media & conversation. 
-    - quote: 
+    # NB: The tweets use a custom shortcode, since we want to limit the media & conversation.
+    - quote:
         text: It starts with FROM, it fixes trailing commas, and it's called PRQL?? If this is a dream, don't wake me up.
         author: Jeremiah Lowin, Founder & CEO, Prefect.
     - tweet: "{{< tweet 1522562664467107840 >}}"
     - tweet: "{{< tweet 1485965394880131081 >}}"
-    - quote: 
+    - quote:
         text: Column aliases would have saved me hundreds of hours over the course of my career.
         author: "@dvasdekis"
         link: "https://news.ycombinator.com/item?id=30064873"
     - tweet: "{{< tweet 1514280454890872833 >}}"
     - tweet: "{{< tweet 1485958835844100098 >}}"
-    - quote: 
-        text: Having written some complex dbt projects...it gets  
-          right is to start with the table and work down. This is 
+    - quote:
+        text: Having written some complex dbt projects...it gets
+          right is to start with the table and work down. This is
           an enormous readability boost in large projects and leads to great intellisense.
-        author: Ruben Slabbert 
+        author: Ruben Slabbert
         link: "https://lobste.rs/s/oavgcx/prql_simpler_more_powerful_sql#c_nmzcd7"
     - tweet: "{{< tweet 1485795181198983170 >}}"
-    - quote: 
+    - quote:
         text: Just wanna say, I absolutely love this.
         author: Alex Kritchevsky
         link: "https://news.ycombinator.com/item?id=30063771"
