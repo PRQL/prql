@@ -5,6 +5,8 @@ on:
       - main
     tags:
       - "*"
+  # Called by pull-request when specifically requested
+  workflow_call:
 
 jobs:
   publish-gh-pages:
