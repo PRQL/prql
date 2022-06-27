@@ -18,15 +18,12 @@
                   style="margin-top: 10px; margin-bottom: 10px; height: unset;"
                 >
                   {{ with .link }}
-                    <a class="quote-text" href="{{ . }}" >
-                  {{ else }}
-                    <p class="quote-text" >
-                  {{ end }}
-                  {{ .text | markdownify }}
-                    <span> — {{ .author | markdownify }} </span>
-                  {{ with .link }}
+                    <a class="quote-text" href="{{ . }}">
+                      <span> — {{ .author | markdownify }} </span>
                     </a>
                   {{ else }}
+                    <p class="quote-text">
+                      {{ .text | markdownify }}
                     </p>
                   {{ end }}
                 </div>

@@ -6,5 +6,10 @@
       },
       "urls": ["https://crates.io"]
     }
+  ],
+  "ignorePatterns": [
+    {
+      "pattern": "^https://twitter.com"
+    }
   ]
 }
