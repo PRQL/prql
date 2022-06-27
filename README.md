@@ -1,3 +1,7 @@
+## 🎉 🎉 **Monday 2022-06-27: After several months of building, PRQL is ready to use! Check out the [0.2 Release Notes](https://github.com/prql/prql/releases/tag/0.2.0)!** 🎉 🎉
+
+---
+
 # PRQL
 
 <!-- User badges on first line (language docs & chat) -->
