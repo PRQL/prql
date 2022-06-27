@@ -29,6 +29,10 @@ jobs:
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v1
       - uses: peaceiris/actions-mdbook@v1
+      - uses: actions-rs/install@v0.1
+        with:
+          crate: mdbook-admonish
+          version: v1.7.0
       - name: 🔨 Build book
         run: mdbook build
         working-directory: book/
