@@ -159,7 +159,6 @@ showcase_section:
           '/', page) AS url
         FROM web
     # markdown-link-check-enable
-
     - id: windows
       label: Windows
       prql: |
