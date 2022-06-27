@@ -65,6 +65,10 @@ jobs:
     uses: ./.github/workflows/test-all.yaml
     if: contains(github.event.pull_request.labels.*.name, 'ci-run-all-tests')
 
+  publish:
+    uses: ./.github/workflows/publish.yaml
+    if: contains(github.event.pull_request.labels.*.name, 'ci-publish')
+
   check-links:
     # Another option is https://github.com/lycheeverse/lychee, but it was
     # weirdly difficult to exclude a directory, and I managed to get
