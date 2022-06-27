@@ -9,30 +9,27 @@ hero_section:
   heading: "PRQL is a modern language for transforming data"
   bottom_text: "— a simple, powerful, pipelined SQL replacement"
   button:
-    enable: true
+    enable: false
     link: https://prql-lang.org/book/
     label: "Reference"
   prql_example: |
     from employees
+    filter start_date > @2021-01-01
     derive [
-      gross_salary = salary + payroll_tax,
-      gross_cost = gross_salary + benefits_cost
+      gross_salary = salary + (tax ?? 0),
+      gross_cost = gross_salary + benefits_cost,
     ]
     filter gross_cost > 0
     group [title, country] (
       aggregate [
-        average salary,
-        sum     salary,
         average gross_salary,
-        sum     gross_salary,
-        average gross_cost,
         sum_gross_cost = sum gross_cost,
-        ct = count,
       ]
     )
+    filter sum_gross_cost > 100000
+    derive id = f"{title}_{country}"
     sort [sum_gross_cost, -country]
-    filter ct > 200
-    take 20
+    take 1..20
 
 ####################### Principles section #########################
 principle_section:
@@ -75,8 +72,8 @@ showcase_section:
     - PRQL consists of a curated set of orthogonal transformations, which are combined together to form a pipeline.
       That makes it easy to compose and extend queries. The language also benefits from modern features, such syntax for dates, ranges and f-strings as well as functions, type checking and better null handling.
   buttons:
-    - link: "/examples/"
-      label: "More examples"
+    # - link: "/examples/"
+    #   label: "More examples"
     - link: "/playground/"
       label: "Playground"
     - link: "/book/"
@@ -98,8 +95,7 @@ showcase_section:
     - id: friendly-syntax
       label: Friendly syntax
       prql: |
-        from order  # this is a comment
-        filter created_at > @2022-06-13  # dates
+        from order  # This is a comment
         filter status == "done"
         sort [-amount]  # sort order
       sql: |
@@ -111,27 +107,52 @@ showcase_section:
           AND status = 'done'
         ORDER BY amount DESC
 
-    - id: null-handling
-      label: Null handling
+    - id: dates
+      label: Dates
       prql: |
-        from users
-        filter last_login != null
-        filter deleted_at == null
-        derive channel = channel ?? "unknown"
+        from employees
+        derive [
+          age_at_year_end = (@2022-12-31 - dob),
+          first_check_in = start + 10days,
+        ]
       sql: |
         SELECT
-          users.*,
-          COALESCE(channel, 'unknown') AS channel
+          employees.*,
+          DATE '2022-12-31' - dob AS age_at_year_end,
+          start + INTERVAL '10' DAY AS first_check_in
         FROM
-          users
+          employees
+
+    - id: orthogonal
+      label: Orthogonality
+      prql: |
+        from employees
+        # Filter before aggregations
+        filter start_date > @2021-01-01
+        group country (
+          aggregate [max_salary = max salary]
+        )
+        # And filter after aggregations!
+        filter max_salary > 100000
+      sql: |
+        SELECT
+          country,
+          MAX(salary) AS max_salary
+        FROM
+          employees
         WHERE
-          last_login IS NOT NULL
-          AND deleted_at IS NULL
+          start_date > DATE '2021-01-01'
+        GROUP BY
+          country
+        HAVING
+          MAX(salary) > 100000
+
     # markdown-link-check-disable
     - id: f-strings
       label: F-strings
       prql: |
         from web
+        # Just like Python
         select url = f"http://www.{domain}.{tld}/{page}"
       sql: |
         SELECT CONCAT('http://www.', domain, '.', tld,
@@ -154,6 +175,8 @@ showcase_section:
     - id: top-n
       label: Top n items
       prql: |
+        # Most recent employee in each role
+        # Quite difficult in SQL...
         from employees
         group role (
           sort join_date
@@ -178,6 +201,49 @@ showcase_section:
         WHERE
           _rn <= 1
 
+    - id: s-string
+      label: S-strings
+      prql: |
+        # There's no `version` in PRQL, but
+        # we have an escape hatch:
+        derive db_version = s"version()"
+      sql: |
+        SELECT
+          version() AS db_version
+
+    - id: null-handling
+      label: Null handling
+      prql: |
+        from users
+        filter last_login != null
+        filter deleted_at == null
+        derive channel = channel ?? "unknown"
+      sql: |
+        SELECT
+          users.*,
+          COALESCE(channel, 'unknown') AS channel
+        FROM
+          users
+        WHERE
+          last_login IS NOT NULL
+          AND deleted_at IS NULL
+
+    - id: dialects
+      label: Dialects
+      prql: |
+        prql dialect:mssql  # Will generate TOP rather than LIMIT
+
+        from employees
+        sort age
+        take 10
+      sql: |
+        SELECT
+          TOP (10) employees.*
+        FROM
+          employees
+        ORDER BY
+          age
+
 tools_section:
   enable: true
   title: "Tools"
@@ -191,9 +257,9 @@ tools_section:
       text: |
         Reference compiler implementation. Has a CLI utility that can transpile, format and annotate PRQL queries.
 
-        `cargo install prql`
+        `cargo install prql-compiler`
 
-        `brew install prql/prq/prql`
+        `brew install prql/prq/prql-compiler`
 
     - link: https://github.com/prql/PyPrql
       label: "PyPrql"
@@ -216,7 +282,7 @@ integrations_section:
     - label: "Jupyter/IPython"
       link: https://pyprql.readthedocs.io/en/latest/magic_readme.html
       text: |
-        PyPrql has a magic extension, which executes a PRQL cell against a database.
+        PyPrql contains a Jupyter extension, which executes a PRQL cell against a database using the `%%prql` magic.
         It can also set up an in-memory DuckDB instance, populated with a pandas DataFrame.
 
     - label: Visual Studio Code
