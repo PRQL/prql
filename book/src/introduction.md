@@ -12,31 +12,25 @@ Let's get started with an example:
 
 ```prql
 from employees
-filter country_code == "USA"   # Each line transforms the previous result.
-derive [                       # This adds columns / variables.
-  gross_salary = salary + payroll_tax,
-  gross_cost = gross_salary + benefits_cost  # Variables can use other variables.
+filter start_date > @2021-01-01               # Clear date syntax.
+derive [                                      # `derive` adds columns / variables.
+  gross_salary = salary + (tax ?? 0),         # Terse coalesce
+  gross_cost = gross_salary + benefits_cost,  # Variables can use other variables.
 ]
 filter gross_cost > 0
-group [title, country_code] (  # For each group use a nested pipeline
-  aggregate [                  # Aggregate each group to a single row
-    average salary,
+group [title, country] (                      # `group` runs a pipeline over each group.
+  aggregate [                                 # `aggregate` reduces each group to a row.
     average gross_salary,
-    sum salary,
-    sum gross_salary,
-    average gross_cost,
-    sum_gross_cost = sum gross_cost,
-    ct = count,
+    sum_gross_cost = sum gross_cost,          # `=` sets a column name.
   ]
 )
-sort sum_gross_cost
-filter ct > 200
-take 20
-join countries side:left [country_code]
+filter sum_gross_cost > 100000                # Identical syntax for SQL's `WHERE` & `HAVING`.
 derive [
-  always_true = true,
-  db_version = s"version()",    # An S-string, which transpiles directly into SQL
+  id = f"{title}_{country}",                   # F-strings like python.
+  db_version = s"version()",                  # An S-string, which transpiles directly into SQL
 ]
+sort [sum_gross_cost, -country]               # `-country` means descending order.
+take 1..20                                    # Range expressions (also valid here as `take 20`).
 ```
 
 As you can see, PRQL is a linear **pipeline of transformations** — each line of the
