@@ -33,12 +33,12 @@
   - [Strings](./language-features/strings.md)
 
 - [Stdlib](./stdlib.md)
-- [Integrations]()
+- [Integrations](./integrations/README.md)
 
+  - [dbt](./integrations/dbt.md)
+  - [Jupyter](./integrations/jupyter.md)
+  - [Prefect](./integrations/prefect.md)
   - [VSCode]()
-  - [Jupyter]()
-  - [Prefect]()
-  - [dbt]()
   - [Rill]()
 
 - [Examples](./examples/README.md)
