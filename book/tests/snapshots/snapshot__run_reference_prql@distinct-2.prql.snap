@@ -6,7 +6,7 @@ input_file: book/tests/prql/language-features/distinct-2.prql
 WITH table_0 AS (
   SELECT
     employees.*,
-    ROW NUMBER() OVER (
+    ROW_NUMBER() OVER (
       PARTITION BY department
       ORDER BY
         age

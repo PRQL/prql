@@ -67,7 +67,7 @@ impl<'a> DistinctMaker<'a> {
 
         // declare new column
         let decl = Node::from(Item::SString(vec![InterpolateItem::String(
-            "ROW NUMBER()".to_string(),
+            "ROW_NUMBER()".to_string(),
         )]));
         let is_unsorted = sort.is_empty();
         let windowed = Windowed {

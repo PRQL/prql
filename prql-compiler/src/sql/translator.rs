@@ -2084,7 +2084,7 @@ take 20
         WITH table_0 AS (
           SELECT
             employees.*,
-            ROW NUMBER() OVER (PARTITION BY department) AS _rn
+            ROW_NUMBER() OVER (PARTITION BY department) AS _rn
           FROM
             employees
         )
@@ -2104,7 +2104,7 @@ take 20
         WITH table_0 AS (
           SELECT
             employees.*,
-            ROW NUMBER() OVER (
+            ROW_NUMBER() OVER (
               PARTITION BY department
               ORDER BY
                 salary
