@@ -1,6 +1,7 @@
 name: release-brew
 on:
-  pull-request
+  pull_request:
+    types: [opened, reopened, synchronize, labeled]
 
   # release:
   #   type: [published]
