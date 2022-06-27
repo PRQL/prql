@@ -252,15 +252,6 @@ tools_section:
       label: "Playground"
       text: "Online in-browser playground that compiles PRQL to SQL as you type."
 
-    - link: "https://github.com/prql/prql"
-      label: "prql-compiler"
-      text: |
-        Reference compiler implementation. Has a CLI utility that can transpile, format and annotate PRQL queries.
-
-        `cargo install prql-compiler`
-
-        `brew install prql/prq/prql-compiler`
-
     - link: https://github.com/prql/PyPrql
       label: "PyPrql"
       text: |
@@ -269,21 +260,27 @@ tools_section:
 
         `pip install pyprql`
 
+    - link: "https://github.com/prql/prql"
+      label: "prql-compiler"
+      text: |
+        Reference compiler implementation. Has a CLI utility that can transpile, format and annotate PRQL queries.
+
+        `brew install prql/prq/prql-compiler`
+
 integrations_section:
   enable: true
   title: "Integrations"
   sections:
     - label: dbt
       link: https://github.com/prql/dbt-prql
-      text: |
+      text: 
         Allows writing PRQL in dbt models.
         This combines the benefits of PRQL's power & simplicity within queries; with dbt's version control, lineage & testing across queries.
 
     - label: "Jupyter/IPython"
       link: https://pyprql.readthedocs.io/en/latest/magic_readme.html
-      text: |
-        PyPrql contains a Jupyter extension, which executes a PRQL cell against a database using the `%%prql` magic.
-        It can also set up an in-memory DuckDB instance, populated with a pandas DataFrame.
+      text: "PyPrql contains a Jupyter extension, which executes a PRQL cell against a database.
+        It can also set up an in-memory DuckDB instance, populated with a pandas DataFrame."
 
     - label: Visual Studio Code
       link: https://marketplace.visualstudio.com/items?itemName=prql.prql
@@ -296,17 +293,21 @@ bindings_section:
   enable: true
   title: "Bindings"
   sections:
-    - link: https://crates.io/crates/prql-compiler
-      label: "prql-compiler"
-      text: "PRQL's compiler library, written in Rust."
-
     - link: https://pypi.org/project/prql-python
       label: "prql-python"
-      text: "Python bindings for prql-compiler."
+      text: Python bindings for prql-compiler.
 
     - link: https://www.npmjs.com/package/prql-js
       label: "prql-js"
       text: "JavaScript bindings for prql-compiler."
+
+    - link: https://crates.io/crates/prql-compiler
+      label: "prql-compiler"
+      text: |
+          PRQL's compiler library, written in Rust.
+
+          `cargo install prql-compiler`
+
 
 comments_section:
   enable: true
