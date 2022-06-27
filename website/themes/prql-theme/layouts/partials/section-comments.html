@@ -17,13 +17,15 @@
                   class="card quote"
                   style="margin-top: 10px; margin-bottom: 10px; height: unset;"
                 >
-                  {{ with .link }}
-                    <a class="quote-text" href="{{ . }}">
-                      <span> — {{ .author | markdownify }} </span>
+                  {{ if .link }}
+                    <a class="quote-text" href="{{ .link }}" target="_blank">
+                      {{ .text }}
+                      <span> — {{ .author }} </span>
                     </a>
                   {{ else }}
                     <p class="quote-text">
-                      {{ .text | markdownify }}
+                      {{ .text }}
+                      <span> — {{ .author }} </span>
                     </p>
                   {{ end }}
                 </div>

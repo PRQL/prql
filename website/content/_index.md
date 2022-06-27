@@ -232,7 +232,8 @@ comments_section:
     - tweet: "{{< tweet 1514280454890872833 >}}"
     - tweet: "{{< tweet 1485958835844100098 >}}"
     - quote:
-        text: Having written some complex dbt projects...it gets
+        text:
+          Having written some complex dbt projects...the first thing...it gets
           right is to start with the table and work down. This is
           an enormous readability boost in large projects and leads to great intellisense.
         author: Ruben Slabbert
