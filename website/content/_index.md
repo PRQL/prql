@@ -49,11 +49,10 @@ principle_section:
         there's only one way of expressing each operation. We can eschew the debt that SQL has built up.
 
     - title: "Open"
-      main_text: "Both PRQL's code and community are open"
+      main_text: "PRQL is open-source, with an open community"
       content:
         PRQL will always be fully open-source and will never have a commercial product.
         By compiling to SQL, PRQL is compatible with most databases, existing tools, and programming languages that manage SQL.
-        Where possible, PRQL unifies syntax across databases.
         We're a welcoming community for users, contributors, and other projects.
 
     - title: "Extensible"
@@ -77,8 +76,6 @@ showcase_section:
     - PRQL consists of a curated set of orthogonal transformations, which are combined together to form a pipeline.
       That makes it easy to compose and extend queries. The language also benefits from modern features, such syntax for dates, ranges and f-strings as well as functions, type checking and better null handling.
   buttons:
-    # - link: "/examples/"
-    #   label: "More examples"
     - link: "/playground/"
       label: "Playground"
     - link: "/book/"
