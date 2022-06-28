@@ -49,21 +49,27 @@ principle_section:
         there's only one way of expressing each operation. We can eschew the debt that SQL has built up.
 
     - title: "Open"
-      main_text: "PRQL will always be open-source"
+      main_text: "Both PRQL's code and community are open"
       content:
-        PRQL is free-as-in-free, will never have a commercial product, and doesn’t prioritize one database over others.
-        By compiling to SQL, PRQL is instantly compatible with most databases, and existing tools or programming languages that manage SQL.
+        PRQL will always be fully open-source and will never have a commercial product. 
+        By compiling to SQL, PRQL is compatible with most databases, existing tools, and programming languages that manage SQL.
         Where possible, PRQL unifies syntax across databases.
+        We're a welcoming community for users, contributors, and other projects.
 
     - title: "Extensible"
-      main_text: "PRQL can be extended through functions"
-      content: PRQL has abstractions which make it a great platform to build on.
+      main_text: "PRQL is designed to be extended, from functions to language bindings"
+      content: 
+        PRQL has abstractions which make it a great platform to build on.
         Its explicit versioning allows changes without breaking backward-compatibility.
-        And in the cases where PRQL doesn't yet have an implementation, it allows embedding SQL with S-Strings.
+        And in the cases where PRQL doesn't yet have an implementation, 
+        it allows embedding SQL with S-Strings.
 
     - title: "Analytical"
       main_text: "PRQL's focus is analytical queries"
-      content: We de-emphasize other SQL features such as inserting data or transactions.
+      content: 
+        PRQL was originally designed to serve the growing need of writing analytical queries,
+        emphasizing data transformations, development speed, and readability. 
+        We de-emphasize other SQL features such as inserting data or transactions.
 
 showcase_section:
   enable: true
