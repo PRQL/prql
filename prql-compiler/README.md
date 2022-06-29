@@ -20,16 +20,10 @@ cargo install prql-compiler
 cargo install --path .
 ```
 
-It can be installed via brew! First, install the tap:
+It can be installed via brew too:
 
 ```sh
-brew tap prql/homebrew-prql
-```
-
-Then, to install prql-compiler:
-
-```sh
-brew install prql-compiler
+brew install prql/prql/prql-compiler
 ```
 
 ## Usage
