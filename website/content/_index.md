@@ -49,21 +49,25 @@ principle_section:
         there's only one way of expressing each operation. We can eschew the debt that SQL has built up.
 
     - title: "Open"
-      main_text: "PRQL will always be open-source"
+      main_text: "PRQL is open-source, with an open community"
       content:
-        PRQL is free-as-in-free, will never have a commercial product, and doesn’t prioritize one database over others.
-        By compiling to SQL, PRQL is instantly compatible with most databases, and existing tools or programming languages that manage SQL.
-        Where possible, PRQL unifies syntax across databases.
+        PRQL will always be fully open-source and will never have a commercial product.
+        By compiling to SQL, PRQL is compatible with most databases, existing tools, and programming languages that manage SQL.
+        We're a welcoming community for users, contributors, and other projects.
 
     - title: "Extensible"
-      main_text: "PRQL can be extended through functions"
+      main_text: "PRQL is designed to be extended, from functions to language bindings"
       content: PRQL has abstractions which make it a great platform to build on.
         Its explicit versioning allows changes without breaking backward-compatibility.
-        And in the cases where PRQL doesn't yet have an implementation, it allows embedding SQL with S-Strings.
+        And in the cases where PRQL doesn't yet have an implementation,
+        it allows embedding SQL with S-Strings.
 
     - title: "Analytical"
       main_text: "PRQL's focus is analytical queries"
-      content: We de-emphasize other SQL features such as inserting data or transactions.
+      content:
+        PRQL was originally designed to serve the growing need of writing analytical queries,
+        emphasizing data transformations, development speed, and readability.
+        We de-emphasize other SQL features such as inserting data or transactions.
 
 showcase_section:
   enable: true
@@ -72,8 +76,6 @@ showcase_section:
     - PRQL consists of a curated set of orthogonal transformations, which are combined together to form a pipeline.
       That makes it easy to compose and extend queries. The language also benefits from modern features, such syntax for dates, ranges and f-strings as well as functions, type checking and better null handling.
   buttons:
-    # - link: "/examples/"
-    #   label: "More examples"
     - link: "/playground/"
       label: "Playground"
     - link: "/book/"
@@ -95,17 +97,18 @@ showcase_section:
     - id: friendly-syntax
       label: Friendly syntax
       prql: |
-        from order  # This is a comment
+        from order               # This is a comment
         filter status == "done"
-        sort [-amount]  # sort order
+        sort [-amount]           # sort order
       sql: |
         SELECT
-          order.*,
-          amount * COALESCE(promo, 0) AS promo_amount
-        FROM order
-        WHERE created_at > DATE '2022-06-13'
-          AND status = 'done'
-        ORDER BY amount DESC
+          order.*
+        FROM
+          order
+        WHERE
+          status = 'done'
+        ORDER BY
+          amount DESC
 
     - id: dates
       label: Dates
@@ -234,7 +237,7 @@ showcase_section:
           version() AS db_version
 
     - id: joins
-    - label: Joins
+      label: Joins
       prql: |
         from employees
         join benefits [employee_id]
@@ -304,7 +307,7 @@ tools_section:
       text: |
         Reference compiler implementation. Has a CLI utility that can transpile, format and annotate PRQL queries.
 
-        `brew install prql/prq/prql-compiler`
+        `brew install prql/prql/prql-compiler`
 
 integrations_section:
   enable: true
