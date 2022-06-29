@@ -1,61 +1,70 @@
 # prql-js
 
-JavaScript bindings for [`prql-compiler`](https://github.com/prql/prql/). Check
-out <https://prql-lang.org> for more context.
+JavaScript bindings for [`prql-compiler`](https://github.com/prql/prql/). Check out <https://prql-lang.org> for more
+context.
+
+## Installation
+
+```sh
+npm install prql-js
+```
+
+## Usage
+
+Currently the `compile(prql_string)` function is the only function available.
+
+
+### From NodeJS
+```javascript
+const prql = require('prql-js2/dist/node/prql_js.js');
+
+const sql = prql.compile('from employees | select first_name').sql;
+console.log(sql);
+```
+
+### From a Browser
+```html
+<html>
+
+<head>
+    <script src="./node_modules/prql-js2/dist/web/prql_js.js"></script>
+    <script>
+        
+        const { compile } = wasm_bindgen;
+
+        async function run() {
+            await wasm_bindgen('./node_modules/prql-js2/dist/web/prql_js_bg.wasm');
+            const sql = compile('from employees | select first_name').sql;
+
+            console.log(sql);
+        }
+
+        run();
+    </script>
+</head>
+
+<body>
+</body>
+
+</html>
+
+```
+
+### From a Framework or a Bundler
+
+```typescript
+import compile from "prql-js2/dist/bundler/prql_js";
+
+const sql = compile(`from employees | select first_name`).sql;
+console.log(sql);
+```
+## Notes
+
 
 This uses
 [`wasm-pack`](https://rustwasm.github.io/docs/wasm-pack/tutorials/npm-browser-packages/index.html)
 to generate bindings[^1].
 
 [^1]:
-    though we would be very open to other approaches, and used `trunk`
-    successfully in a rust-driven approach to this, RIP `prql-web`.
-
-## Installation
-
-To install the currently published version:
-
-```sh
-npm install prql-js
-```
-
-This package is built to target a bundler (i.e. webpack). To use it with Node.js
-or import it directly in a browser as an ES module, [build it using a suitable
-`--target`](https://rustwasm.github.io/docs/wasm-pack/commands/build.html).
-
-## Usage
-
-```js
-import compile from "prql-js";
-
-const sql = compile(`from employees | select first_name`);
-console.log(sql);
-```
-
-Prints:
-
-```sql
-SELECT
-  first_name
-FROM
-  employees
-```
-
-For more information about the language, see [reference book](https://prql-lang.org/book).
-
-## Development
-
-Build:
-
-```sh
-wasm-pack build
-```
-
-This builds a node package in the `pkg` path. An example of including that as a
-dependency is in [`playground`](../playground/package.json).
-
-Test:
-
-```sh
-wasm-pack test --firefox
-```
+though we would be very open to other approaches, and used `trunk`
+successfully in a rust-driven approach to this, RIP `prql-web`.
