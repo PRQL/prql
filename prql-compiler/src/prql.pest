@@ -144,7 +144,10 @@ timestamp_inner = ${ date_inner ~ "T" ~ time_inner }
 
 // We can use this when want to ensure something is ending, like a date, so `@20-01-0`
 // isn't treated like a time `@20-01` `-` (minus) `0`.
-end_expr = _{ WHITESPACE | "," | ")" | "]" | EOI | NEWLINE }
+// (Not sure whether `..` should be here or in the items that allow it; feel
+// free to demote it to those items if `end_expr` is used somewhere where it's
+// not supported)
+end_expr = _{ WHITESPACE | "," | ")" | "]" | EOI | NEWLINE | ".." }
 
 // We pass text between `{{` and `}}` through, so dbt can use Jinja.
 jinja = { ("{{" ~ (!"}}" ~ ANY)* ~ "}}") }

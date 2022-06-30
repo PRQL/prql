@@ -1559,6 +1559,8 @@ aggregate [max c]
           less_than_ten = ..9,
           negative = (-5..),
           more_negative = -10..,
+          dates_open = @2020-01-01..,
+          dates = @2020-01-01..@2021-01-01,
         ]
         ").unwrap(), @r###"
         ---
@@ -1626,6 +1628,24 @@ aggregate [max c]
                                     Literal:
                                       Integer: -10
                                   end: ~
+                          - Assign:
+                              name: dates_open
+                              expr:
+                                Range:
+                                  start:
+                                    Literal:
+                                      Date: 2020-01-01
+                                  end: ~
+                          - Assign:
+                              name: dates
+                              expr:
+                                Range:
+                                  start:
+                                    Literal:
+                                      Date: 2020-01-01
+                                  end:
+                                    Literal:
+                                      Date: 2021-01-01
                     named_args: {}
         "###);
     }
