@@ -436,7 +436,18 @@ impl NameResolver {
 
         let func_dec = declared_at.unwrap();
         let func_dec = &self.context.declarations.0[func_dec].0;
-        let func_def = func_dec.as_function().unwrap().clone();
+        // TODO: raise a proper error message if there's no function (but where
+        // is best to do this? Should it get to this stage as an ExternRef?
+        // Shouldn't it be caught in the term above?)
+        let func_def = func_dec
+            .as_function()
+            .ok_or_else(|| {
+                Error::new(Reason::NotFound {
+                    name: func_call.name.clone(),
+                    namespace: "function".to_string(),
+                })
+            })?
+            .clone();
 
         // extract needed named args from positionals
         let named_params: HashSet<_> = (func_def.named_params)
