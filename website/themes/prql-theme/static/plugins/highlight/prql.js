@@ -116,4 +116,3 @@ Array.from(document.querySelectorAll("code.language-prql_no_test")).forEach(
 Array.from(document.querySelectorAll("code.language-elm")).forEach(
   (a) => console.log(a) || hljs.highlightBlock(a)
 );
-
