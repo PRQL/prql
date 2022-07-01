@@ -1454,8 +1454,10 @@ select [
     #[test]
     fn test_parse_backticks() -> Result<()> {
         let prql = "
-from `a.b`
+from `a`
 aggregate [max c]
+join `my-proj.dataset.table`
+join `my-proj`.`dataset`.`table`
 ";
         assert_yaml_snapshot!(parse(prql)?, @r###"
         ---
@@ -1467,7 +1469,7 @@ aggregate [max c]
                 - FuncCall:
                     name: from
                     args:
-                      - Ident: "`a.b`"
+                      - Ident: "`a`"
                     named_args: {}
                 - FuncCall:
                     name: aggregate
@@ -1478,6 +1480,16 @@ aggregate [max c]
                               args:
                                 - Ident: c
                               named_args: {}
+                    named_args: {}
+                - FuncCall:
+                    name: join
+                    args:
+                      - Ident: "`my-proj.dataset.table`"
+                    named_args: {}
+                - FuncCall:
+                    name: join
+                    args:
+                      - Ident: "`my-proj`.`dataset`.`table`"
                     named_args: {}
         "###);
 
