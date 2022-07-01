@@ -16,7 +16,7 @@ Currently the `compile(prql_string)` function is the only function available.
 
 ### From NodeJS
 ```javascript
-const prql = require('prql-js2/dist/node/prql_js.js');
+const prql = require('prql-js/dist/node/prql_js.js');
 
 const sql = prql.compile('from employees | select first_name').sql;
 console.log(sql);
@@ -27,13 +27,13 @@ console.log(sql);
 <html>
 
 <head>
-    <script src="./node_modules/prql-js2/dist/web/prql_js.js"></script>
+    <script src="./node_modules/prql-js/dist/web/prql_js.js"></script>
     <script>
         
         const { compile } = wasm_bindgen;
 
         async function run() {
-            await wasm_bindgen('./node_modules/prql-js2/dist/web/prql_js_bg.wasm');
+            await wasm_bindgen('./node_modules/prql-js/dist/web/prql_js_bg.wasm');
             const sql = compile('from employees | select first_name').sql;
 
             console.log(sql);
@@ -53,7 +53,7 @@ console.log(sql);
 ### From a Framework or a Bundler
 
 ```typescript
-import compile from "prql-js2/dist/bundler/prql_js";
+import compile from "prql-js/dist/bundler/prql_js";
 
 const sql = compile(`from employees | select first_name`).sql;
 console.log(sql);
