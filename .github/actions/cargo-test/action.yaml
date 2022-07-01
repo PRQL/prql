@@ -36,13 +36,12 @@ runs:
         key: ${{ inputs.target }}-1
     - uses: jetli/wasm-bindgen-action@v0.1.0
       if: ${{ inputs.target == 'wasm32-unknown-unknown' }}
-      # Ignoring until https://github.com/prql/prql/pull/741 is resolved
-    # - name: 📎 Clippy
-    #   uses: actions-rs/cargo@v1
-    #   with:
-    #     command: clippy
-    #     # Note that `--all-targets` doesn't refer to targets like `wasm32-unknown-unknown`.
-    #     args: --all-targets --workspace ${{ inputs.target_option }} -- -D warnings
+    - name: 📎 Clippy
+      uses: actions-rs/cargo@v1
+      with:
+        command: clippy
+        # Note that `--all-targets` doesn't refer to targets like `wasm32-unknown-unknown`.
+        args: --all-targets --workspace ${{ inputs.target_option }} -- -D warnings
     - name: ⌨️ Fmt
       uses: actions-rs/cargo@v1
       with:
