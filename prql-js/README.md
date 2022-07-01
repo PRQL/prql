@@ -11,15 +11,28 @@ npm install prql-js
 
 ## Usage
 
-Currently the `compile(prql_string)` function is the only function available.
+Currently these functions are exported 
+```javascript 
+function to_sql(prql_string); // returns SQL string 
+function to_json(prql_string); // returns AST as JSON 
+function compile(prql_string); // returns CompileResult, with error source lines and cols
+```
 
 
 ### From NodeJS
 ```javascript
 const prql = require('prql-js/dist/node/prql_js.js');
 
-const sql = prql.compile('from employees | select first_name').sql;
+const compileResult = prql.compile('from employees | select first_name');
+console.log(compileResult);
+
+const sql = prql.to_sql('from employees | select first_name');
 console.log(sql);
+
+// Whats returned from to_json is a JSON string, so parse it here.
+const json = JSON.parse(prql.to_json('from employees | select first_name'));
+console.log(json);
+
 ```
 
 ### From a Browser
@@ -34,7 +47,7 @@ console.log(sql);
 
         async function run() {
             await wasm_bindgen('./node_modules/prql-js/dist/web/prql_js_bg.wasm');
-            const sql = compile('from employees | select first_name').sql;
+            const sql = to_sql('from employees | select first_name');
 
             console.log(sql);
         }
@@ -55,7 +68,7 @@ console.log(sql);
 ```typescript
 import compile from "prql-js/dist/bundler/prql_js";
 
-const sql = compile(`from employees | select first_name`).sql;
+const sql = to_sql(`from employees | select first_name`);
 console.log(sql);
 ```
 ## Notes
