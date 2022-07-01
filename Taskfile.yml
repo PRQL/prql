@@ -141,3 +141,13 @@ tasks:
       # Only delete unreferenced snapshots on the default target — lots are excluded under wasm.
       - cargo insta test --accept --delete-unreferenced-snapshots -- --workspace --target={{.default_target}}
       - cargo insta test --accept -- --workspace --target=wasm32-unknown-unknown
+
+  build-web:
+    desc: Build the website
+    cmds:
+     - cd website && hugo --minify
+     - cd book && mdbook build
+     - mv book/book website/public/book
+     - cd playground && npm ci
+     - cd playground && npm run build
+     - mv playground/build website/public/playground
