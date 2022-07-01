@@ -30,7 +30,8 @@ pipeline = { WHITESPACE* ~ expr_call ~ (pipe ~ expr_call)* }
 
 // We include backticks because some DBs use them (e.g. BigQuery) and we don't,
 // so we pass anything within them directly through, including otherwise invalid
-// idents, like those with hyphens.
+// idents, like those with hyphens. Possibly we should consider applying this to
+// expressions rather than just idens — we can adjust as we see more cases.
 ident = @{ !operator ~ !(keyword ~ WHITESPACE) ~ ident_start ~ ("." ~ ident_next)* }
 // Either a normal ident (starting with a letter etc), or any string surrounded
 // by backticks.
