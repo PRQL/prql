@@ -18,8 +18,6 @@ static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 //     fn compile(s: &str);
 // }
 
-// Seems to be a wasm_bindgen problem (but need to look into it)
-#[allow(clippy::drop_non_drop)]
 #[wasm_bindgen]
 pub fn compile(s: &str) -> CompileResult {
     let result = prql_compiler::compile(s).map_err(|e| format_error(e, "", s, false));
