@@ -65,6 +65,5 @@ This uses
 [`wasm-pack`](https://rustwasm.github.io/docs/wasm-pack/tutorials/npm-browser-packages/index.html)
 to generate bindings[^1].
 
-[^1]:
-though we would be very open to other approaches, and used `trunk`
+[^1]: though we would be very open to other approaches, and used `trunk`
 successfully in a rust-driven approach to this, RIP `prql-web`.
