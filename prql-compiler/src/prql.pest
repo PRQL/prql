@@ -144,7 +144,7 @@ interpolate_string_inner = _{ ( interpolate_string_inner_literal | interpolate_b
 // We want to strip the outer `{}`, so we make a silent rule and then an inner
 // non-silent rule.
 interpolate_bracket = _{ "{" ~ interpolate_bracket_literal ~ "}" }
-interpolate_bracket_literal = { "{" ~ ( !( "}}" ) ~ ANY )+ ~ "}" }
+interpolate_bracket_literal = { "{" ~ ( !"}}"  ~ ANY )+ ~ "}" }
 interpolate_string_inner_literal = { ( !( PEEK | "{" ) ~ ANY )+ }
 
 interval_kind = { "microseconds" | "milliseconds" | "seconds" | "minutes" | "hours" | "days" | "weeks" | "months" | "years" }
