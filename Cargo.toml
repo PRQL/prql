@@ -1,5 +1,5 @@
 [workspace]
-
+default-members = ["prql-compiler"]
 members = [
   "prql-python",
   "prql-compiler",
