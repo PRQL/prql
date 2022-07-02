@@ -44,7 +44,7 @@ jobs:
           cache: "npm"
           cache-dependency-path: playground/package-lock.json
 
-      - uses: peaceiris/actions-taskfile@v1
+      - uses: arduino/setup-task@v1
       - name: 🕷️ Build website
         run: task build-website
 
