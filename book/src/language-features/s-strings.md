@@ -51,5 +51,5 @@ aren't otherwise valid; such as those containing a hyphen.
 
 ```prql
 from `project-foo.dataset.table`
-join `project-bar`.`dataset`.table` [col_bax]
+join `project-bar`.`dataset`.`table` [col_bax]
 ```
