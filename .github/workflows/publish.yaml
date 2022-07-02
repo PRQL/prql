@@ -46,7 +46,7 @@ jobs:
 
       - uses: arduino/setup-task@v1
       - name: 🕷️ Build website
-        run: task build-website
+        run: task build-web
 
       - name: 🚢 Deploy
         uses: peaceiris/actions-gh-pages@v3
