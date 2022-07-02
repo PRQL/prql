@@ -136,7 +136,7 @@ operator_compare = ${ "==" | "!=" | ">" | "<" | ">=" | "<=" }
 operator_logical = ${ ("and" | "or") ~ &WHITESPACE }
 operator_coalesce = ${ "??" }
 
-// If we have lots more string prefixes then wwe could just have a type
+// If we have lots more string prefixes then we could just have a type
 // `prefixed` string and parse in the parser, but manageable for now.
 s_string = ${ "s" ~ opening_quote ~ interpolate_string_inner ~ POP }
 f_string = ${ "f" ~ opening_quote ~ interpolate_string_inner ~ POP }
