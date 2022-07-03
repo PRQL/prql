@@ -44,7 +44,7 @@ public class Environment {
   public static boolean isAix() {
     return OS.contains("aix");
   }
-  
+
   public static boolean isUnix() {
     return OS.contains("nix") ||
         OS.contains("nux");
