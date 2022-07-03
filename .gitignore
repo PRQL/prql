@@ -6,3 +6,5 @@ dist
 .vscode/settings.json
 /*.prql
 .idea
+
+target/
