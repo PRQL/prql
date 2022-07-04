@@ -29,4 +29,4 @@ jobs:
       - name: Setup cross
         run: cargo install -f cross
       - name: Maven test
-        run: ./prql-java/java/mvnw test
+        run: cd ./prql-java/java/ && ./mvnw test
