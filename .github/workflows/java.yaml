@@ -24,6 +24,10 @@ jobs:
           toolchain: stable
           override: true
           default: true
+      - name: Add build targets
+        run: |
+          rustup target add x86_64-unknown-linux-gnu
+          rustup target add aarch64-unknown-linux-gnu
       - name: Setup Docker
         uses: docker-practice/actions-setup-docker@v1
       - name: Setup cross
