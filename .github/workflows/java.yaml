@@ -1,0 +1,32 @@
+name: java
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "prql-java/**"
+      - ".github/workflows/java.yaml"
+  workflow_call:
+
+jobs:
+  junit-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Setup toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+          default: true
+      - name: Setup Docker
+        uses: docker-practice/actions-setup-docker@v1
+      - name: Setup cross
+        run: cargo install -f cross
+      - name: Maven test
+        run: ./prql-java/java/mvnw test
