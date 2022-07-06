@@ -1,4 +1,5 @@
 // Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
+// Original License: https://github.com/facebook/rocksdb/blob/main/LICENSE.Apache
 package org.prql.prql4j;
 
 import java.io.IOException;
