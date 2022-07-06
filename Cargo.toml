@@ -1,9 +1,10 @@
 [workspace]
 default-members = ["prql-compiler"]
 members = [
-  "prql-python",
   "prql-compiler",
+  "prql-java",
   "prql-js",
+  "prql-python",
   "book",
   "book/mdbook-prql", # Should this be here or should we exclude?
 ]

@@ -1,0 +1,31 @@
+name: java
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "prql-java/**"
+      - ".github/workflows/java.yaml"
+  workflow_call:
+
+jobs:
+  junit-test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macOS-latest]
+    runs-on: ${{matrix.os}}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Setup toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+          default: true
+      - name: Maven test
+        run: cd ./prql-java/java/ && ./mvnw test
