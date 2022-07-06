@@ -29,6 +29,6 @@ jobs:
           rustup target add x86_64-unknown-linux-gnu
           cd ./prql-java/
           cargo build --release --target=x86_64-unknown-linux-gnu
-          cp -f target/x86_64-unknown-linux-gnu/release/libprql_java.so prql-java/java/src/main/resources/libprql_java-linux64.so
+          cp -f ../target/x86_64-unknown-linux-gnu/release/libprql_java.so java/src/main/resources/libprql_java-linux64.so
       - name: Maven test
         run: cd ./java/ && ./mvnw test
