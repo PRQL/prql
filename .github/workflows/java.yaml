@@ -14,7 +14,10 @@ on:
 
 jobs:
   junit-test:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macOS-latest]
+    runs-on: ${{matrix.os}}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -24,11 +27,5 @@ jobs:
           toolchain: stable
           override: true
           default: true
-      - name: build for x86_64-unknown-linux-gnu
-        run: |
-          rustup target add x86_64-unknown-linux-gnu
-          cd ./prql-java/
-          cargo build --release --target=x86_64-unknown-linux-gnu
-          cp -f ../target/x86_64-unknown-linux-gnu/release/libprql_java.so java/src/main/resources/libprql_java-linux64.so
       - name: Maven test
         run: cd ./prql-java/java/ && ./mvnw test
