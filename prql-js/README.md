@@ -18,7 +18,7 @@ Currently the `compile(prql_string)` function is the only function available.
 ```javascript
 const prql = require("prql-js/dist/node/prql_js.js");
 
-const sql = prql.compile("from employees | select first_name").sql;
+const { sql, error } = compile(`from employees | select first_name`);
 console.log(sql);
 ```
 
