@@ -77,7 +77,6 @@ jobs:
         working-directory: prql-js/
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
 #      - name: Bump npm version
 #        run: npm version patch
 #        working-directory: prql-js/
