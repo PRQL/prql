@@ -30,8 +30,8 @@
                 <version>1.6.0</version>
                 <executions>
                     <execution>
-                        <id>Run Script</id>
-                        <phase>initialize</phase>
+                        <id>Rust build for tests</id>
+                        <phase>generate-resources</phase>
                         <goals>
                             <goal>exec</goal>
                         </goals>
@@ -40,6 +40,16 @@
                             <arguments>
                                 <argument>${project.basedir}</argument>
                             </arguments>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>Rust build for release</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>../cross.sh</executable>
                         </configuration>
                     </execution>
                 </executions>
