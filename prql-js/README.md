@@ -28,7 +28,7 @@ or import it directly in a browser as an ES module, [build it using a suitable
 ```js
 import compile from "prql-js";
 
-const sql = compile(`from employees | select first_name`);
+const { sql, error } = compile(`from employees | select first_name`);
 console.log(sql);
 ```
 
