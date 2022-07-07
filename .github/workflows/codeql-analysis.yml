@@ -1,6 +1,6 @@
 # Currenly this is the default CodeQL config
 #
-name: "CodeQL"
+name: "code-ql"
 
 on:
   push:
@@ -13,7 +13,7 @@ on:
 
 jobs:
   analyze:
-    name: Analyze
+    name: analyze
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -23,7 +23,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: ["java", "javascript", "python"]
+        language: ["javascript", "python"]
+        # We could add java, but it require a custom build step and we have very little java...
         # CodeQL supports [ 'cpp', 'csharp', 'go', 'java', 'javascript', 'python', 'ruby' ]
         # Learn more about CodeQL language support at https://aka.ms/codeql-docs/language-support
 
