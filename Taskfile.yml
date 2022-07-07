@@ -82,7 +82,7 @@ tasks:
     status:
       - which pre-commit
     cmds:
-      - pip install -U pre-commit
+      - python3 -m pip install -U pre-commit
 
   install-brew-dependencies:
     status:
