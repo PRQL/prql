@@ -1,4 +1,4 @@
-fn main() {}
+#![cfg(not(target_family = "wasm"))]
 
 #[cfg(test)]
 mod tests {
