@@ -48,7 +48,7 @@ mod tests {
         pub fn query_csv(conn: &Connection, sql: &str) -> String {
             let mut statement = conn.prepare(sql).unwrap();
 
-            let csv_header = statement.column_names().join("\t");
+            let csv_header = statement.column_names().join(",");
             let column_count = statement.column_count();
 
             let csv_rows = statement
@@ -62,7 +62,7 @@ mod tests {
                             ValueRef::Blob(_) => unimplemented!(),
                         })
                         .collect::<Vec<_>>()
-                        .join("\t"))
+                        .join(","))
                 })
                 .unwrap()
                 .into_iter()
@@ -110,7 +110,7 @@ mod tests {
             // execute here so number of columns is known before we start parsing it
             statement.execute([]).unwrap();
 
-            let csv_header = statement.column_names().join("\t");
+            let csv_header = statement.column_names().join(",");
             let column_count = statement.column_count();
 
             // let rows = statement
@@ -137,7 +137,7 @@ mod tests {
                             }
                         })
                         .collect::<Vec<_>>()
-                        .join("\t"))
+                        .join(","))
                 })
                 .unwrap()
                 .into_iter()
@@ -174,7 +174,7 @@ mod tests {
                 .map(|c| c.name())
                 .take(100) // truncate to 100 rows
                 .collect::<Vec<_>>()
-                .join("\t");
+                .join(",");
 
             let rows = client.query(&statement, &[]).unwrap();
 
@@ -201,7 +201,7 @@ mod tests {
                             t => unimplemented!("postgres type {t}"),
                         })
                         .collect::<Vec<_>>()
-                        .join("\t"),
+                        .join(","),
                 );
             }
 
