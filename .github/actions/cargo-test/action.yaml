@@ -41,6 +41,7 @@ runs:
         args: --all-targets --workspace ${{ inputs.target_option }} -- -D warnings
     - name: ⌨️ Fmt
       uses: actions-rs/cargo@v1
+      if: ${{ inputs.target != 'wasm32-unknown-unknown' }}
       with:
         command: fmt
         args: --all --check
