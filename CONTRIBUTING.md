@@ -62,6 +62,10 @@ Setting up a local dev environment is simple, thanks to the rust ecosystem:
   of the code in a pull request is positive, feel free to merge.
   - If you don't have commit access and have made a few pull requests, ask
     and ye shall receive.
+- The primary way we ratchet the quality our code is through automated tests,
+  not manual review.
+  - If we break functionality without breaking tests, our tests are insufficient.
+  - This means we generally need some sort of test for code additions.
 - If you'd like a review a pull request before it merges, that's great — ask in
   the pull request.
 - People may review a pull request after it's been merged. As part of the
