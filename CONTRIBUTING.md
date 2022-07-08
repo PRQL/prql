@@ -27,6 +27,11 @@ lots of ways of contributing; big and small:
   - With sufficient examples, suggest a change to the language! (Though
     suggestions _without_ examples are difficult to engage with, so please do
     anchor suggestions in examples.)
+- Contribute towards the project.
+  - Improve our website / book.
+  - Tell people about PRQL.
+  - Find a group of users who would be interested in PRQL, help them get up to
+    speed, help the project understand what they need.
 
 Any of these will inspire others to invest their time and energy into the
 project; thank you in advance.
@@ -44,3 +49,27 @@ Setting up a local dev environment is simple, thanks to the rust ecosystem:
 - For quick contributions, hit `.` in GitHub to launch a [github.dev
   instance](https://github.dev/prql/prql).
 - Any problems: post an issue and we'll help.
+
+## Merging
+
+- **We merge any code that makes PRQL better**
+- A pull requests doesn't need to be perfect to be merged; it doesn't need to
+  solve a big problem. It needs to:
+  - be going in the right direction
+  - make some progress
+  - be transparent on its current state
+- If you have merge access, and are reasonably confident that the expected value
+  of the code in a pull request is positive, feel free to merge.
+  - If you don't have commit access and have made a few pull requests, ask
+    and ye shall receive.
+- If you'd like a review a pull request before it merges, that's great — ask in
+  the pull request.
+- People may review a pull request after it's been merged. As part of the
+  understanding that we can merge quickly, there's an expectation that we
+  respond to feedback after merges.
+- We should revert quite quickly if something isn't to our expectations, or
+  there isn't as much consensus as we hoped. It's very easy to revert code and
+  then re-revert when we've resolved the issue. It's not a sign of bad
+  engineering to have code reverted.
+- If a pull request hasn't received attention, please feel free to ping the pull
+  request after a day.
