@@ -5,7 +5,7 @@ members = [
   "prql-js",
   "prql-python",
   "book",
-  "book/mdbook-prql", # Should this be here or should we exclude?
+  "book/mdbook-prql",
   "test-databases",
 ]
 # Note we don't have a `default-members = ["prql-compiler"]`, since that causes
