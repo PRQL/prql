@@ -8,7 +8,7 @@ Database chinook.db was downloaded from https://www.sqlitetutorial.net/sqlite-sa
 
 Columns are renamed to snake_case, so Postgres and DuckDb don't struggle with them.
 
-For optimal accessability, portability between databases and file size, all tables are stored 
+For optimal accessability, portability between databases and file size, all tables are stored
 as CSV files. Their current size is 432kB, it could be gzip-ed to 112kB, but that would require a preprocessing step before running `cargo test`.
 
 ## SQLite
@@ -21,8 +21,8 @@ Can be run as part of `cargo test`. Uses bundled DuckDb, compiled as part of car
 
 ## Postgres
 
-If passed environmental variable `POSTGRES_HOST` this crate will requests postgres server that 
-should already have data loaded in. 
+If passed environmental variable `POSTGRES_HOST` this crate will requests postgres server that
+should already have data loaded in.
 
 ### Docker compose
 
