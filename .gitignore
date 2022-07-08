@@ -7,3 +7,7 @@ dist
 /*.prql
 */*.prql
 .idea
+
+target/
+
+**/libprql_java*
