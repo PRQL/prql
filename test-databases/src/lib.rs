@@ -1,4 +1,4 @@
-fn main() {}
+#![cfg(not(target_family = "wasm"))]
 
 #[cfg(test)]
 mod tests {
@@ -86,7 +86,7 @@ mod tests {
             let schema = load_schema();
             conn.execute_batch(&schema).unwrap();
             conn.execute_batch(
-                &r"
+                r"
                 COPY invoices FROM 'chinook/invoices.csv' (AUTO_DETECT TRUE);
                 COPY customers FROM 'chinook/customers.csv' (AUTO_DETECT TRUE);
                 COPY employees FROM 'chinook/employees.csv' (AUTO_DETECT TRUE);

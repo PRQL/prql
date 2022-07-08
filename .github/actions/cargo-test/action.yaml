@@ -31,7 +31,6 @@ runs:
         # tests, though in the docs it says it uses the target as the key?
         key: ${{ inputs.target }}
     - uses: jetli/wasm-bindgen-action@v0.1.0
-      if: ${{ inputs.target == 'wasm32-unknown-unknown' }}
       # Ignoring until https://github.com/prql/prql/pull/741 is resolved
     # - name: 📎 Clippy
     #   uses: actions-rs/cargo@v1
@@ -41,7 +40,6 @@ runs:
     #     args: --all-targets --workspace ${{ inputs.target_option }} -- -D warnings
     - name: ⌨️ Fmt
       uses: actions-rs/cargo@v1
-      if: ${{ inputs.target != 'wasm32-unknown-unknown' }}
       with:
         command: fmt
         args: --all --check
