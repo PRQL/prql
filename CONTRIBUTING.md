@@ -44,9 +44,9 @@ Setting up a local dev environment is simple, thanks to the rust ecosystem:
 - Install [`rustup` & `cargo`](https://doc.rust-lang.org/cargo/getting-started/installation.html).
 - That's it! Running `cargo test` should complete successfully.
 - For more advanced development; e.g. adjusting `insta` outputs or compiling for
-  web, run the commands in [Taskfile.yml](Taskfile.yml), either by copying &
-  pasting or by installing [Task](https://taskfile.dev/#/installation) and
-  running `task setup-dev`.
+  web, run the commands in `setup-dev` task in [Taskfile.yml](Taskfile.yml),
+  either by copying & pasting or by installing
+  [Task](https://taskfile.dev/#/installation) and running `task setup-dev`.
 - For quick contributions, hit `.` in GitHub to launch a [github.dev
   instance](https://github.dev/prql/prql).
 - Any problems: post an issue and we'll help.
@@ -54,34 +54,54 @@ Setting up a local dev environment is simple, thanks to the rust ecosystem:
 ## Merging
 
 - **We merge any code that makes PRQL better**
-- A pull request doesn't need to be perfect to be merged; it doesn't need to
-  solve a big problem. It needs to:
+- A PR doesn't need to be perfect to be merged; it doesn't need to solve a big
+  problem. It needs to:
   - be in the right direction
   - make incremental progress
-  - be explicit on its current state, so it's easy for others to make more
-    progress
-- If you have merge permissions, and are reasonably confident that the expected
-  value of the code in a pull request is positive, feel free to merge.
-  - If you don't have merge permissions and have made a few pull requests, ask
-    and ye shall receive.
-- The primary way we ratchet the quality our code is through automated tests.
-  - This means we generally need some sort of test for code changes to
-    demonstrate incremental progress.
-  - If a code change breaks functionality without breaking tests, our tests were
+  - be explicit on its current state, so others can continue the progress
+- If you have merge permissions, and are reasonably confident that a PR is
+  suitable to merge (whether or not you're the author), feel free to merge.
+  - If you don't have merge permissions and have authored a few PRs, ask and ye
+    shall receive.
+- The primary way we ratchet the code quality is through automated tests.
+  - This means PRs almost always need a test to demonstrate incremental
+    progress.
+  - If a change breaks functionality without breaking tests, our tests were
     insufficient.
-- We use PR reviews to offer assistance and discuss broad issues with the code.
-  - If you'd like a pull request to be reviewed before it merges, that's great —
-    ask / assign a reviewer.
-  - If a pull request hasn't received attention, please feel free to ping the pull
-    request after a day.
+- We use PR reviews to give general context, offer specific assistance, and
+  collaborate on larger decisions.
   - Reviews around 'nits' like code formatting / idioms / etc are very welcome.
-    But these are best handled through automated tests & lints rather than
-    manual intervention. There isn't an expectation that authors must respond to
-    refine-y feedback with specific changes.
-- People may review a pull request after it's been merged. As part of the
-  understanding that we can merge quickly, there's an expectation that
-  contributors respond to feedback after merges.
-- We should revert quite quickly if a pull request isn't consistent with our
-  expectations, or there isn't as much consensus as we had hoped. It's very easy
-  to revert code and then re-revert when we've resolved the issue. It's not a
-  sign of bad engineering to have code reverted!
+    But the norm is for them to be received as helpful advice, rather than as
+    mandatory tasks to complete. Adding automated tests & lints to automate
+    these suggestions is welcome.
+  - If you have merge permissions and would like a PR to be reviewed before it
+    merges, that's great — ask or assign a reviewer.
+  - If a PR hasn't received attention after a day, please feel free to ping the
+    pull request.
+- People may review a PR after it's merged. As part of the understanding that we
+  can merge quickly, contributors are expected to incorporate this feedback into
+  a future PR.
+- We should revert quickly if the impact of a PR turns out not to be consistent
+  with our expectations, or there isn't as much consensus on a decision as we
+  had hoped. It's very easy to revert code and then re-revert when we've
+  resolved the issue; it's a sign of moving quickly.
+
+## Tasks
+
+We have a couple of tasks which incorporate all building & testing. While they
+don't need to be run as part of a standard dev loop — generally we'll want to
+run a more specific test — they can be useful as a backstop to ensure everything
+works. They should be broadly consistent with the GitHub Actions workflows;
+please report any inconsistencies.
+
+To build everything:
+
+```sh
+task build-all
+```
+
+To run all tests; (which includes building everything):
+
+```sh
+task test-all
+```
