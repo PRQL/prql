@@ -1,4 +1,5 @@
-#![cfg(not(target_family = "wasm"))]
+// Re-enable on windows when duckdb supports it
+#![cfg(not(any(target_family = "windows", target_family = "wasm")))]
 
 #[cfg(test)]
 mod tests {
