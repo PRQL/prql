@@ -91,8 +91,9 @@ Setting up a local dev environment is simple, thanks to the rust ecosystem:
 We have a couple of tasks which incorporate all building & testing. While they
 don't need to be run as part of a standard dev loop — generally we'll want to
 run a more specific test — they can be useful as a backstop to ensure everything
-works. They should be broadly consistent with the GitHub Actions workflows;
-please report any inconsistencies.
+works, and as a reference for how each part of the repo is built & tested. They
+should be broadly consistent with the GitHub Actions workflows; please report
+any inconsistencies.
 
 To build everything:
 
