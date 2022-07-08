@@ -30,8 +30,9 @@ jobs:
         include:
           # TODO: I'm sure there's a better way of doing this, where `target_option` derives from `target`?
           - target: ""
+          # for wasm, test only prql-compiler crate
           - target: "wasm32-unknown-unknown"
-            target_option: "--target=wasm32-unknown-unknown"
+            target_option: "-p prql-compiler --target=wasm32-unknown-unknown"
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3

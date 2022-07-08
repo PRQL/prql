@@ -6,6 +6,7 @@ members = [
   "prql-python",
   "book",
   "book/mdbook-prql",
+  "test-databases",
 ]
 # Note we don't have a `default-members = ["prql-compiler"]`, since that causes
 # commands like `cargo test` to only run tests from the default package. And
