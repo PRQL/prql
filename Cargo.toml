@@ -5,7 +5,8 @@ members = [
   "prql-js",
   "prql-python",
   "book",
-  "book/mdbook-prql",
+  "book/mdbook-prql", # Should this be here or should we exclude?
+  "test-databases",
 ]
 # Note we don't have a `default-members = ["prql-compiler"]`, since that causes
 # commands like `cargo test` to only run tests from the default package. And
