@@ -7,7 +7,7 @@ mod semantic;
 mod sql;
 mod utils;
 
-use crate::{ast::Item};
+pub use crate::{ast::Item};
 
 pub use anyhow::Result;
 pub use ast::display;
