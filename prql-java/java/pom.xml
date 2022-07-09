@@ -63,6 +63,19 @@
                 <version>1.6.0</version>
                 <executions>
                     <execution>
+                        <id>Build for tests</id>
+                        <phase>generate-test-resources</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>build.sh</executable>
+                            <arguments>
+                                <argument>${project.basedir}</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                    <execution>
                         <id>Build for release</id>
                         <phase>generate-resources</phase>
                         <goals>
