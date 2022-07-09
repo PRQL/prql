@@ -297,7 +297,7 @@ impl Display for Item {
                     "aggregate" => write!(f, "( ")?,
                     _ => write!(f, "")?,
                 }
-                
+
                 f.write_str(func_call.name.as_str())?;
 
                 for (name, arg) in &func_call.named_args {
