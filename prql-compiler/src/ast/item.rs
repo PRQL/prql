@@ -239,9 +239,9 @@ impl Display for Item {
                         }
                     }
                     _ => {
-                        writeln!(f, "\n {}", pipeline.nodes[0].item)?;
+                        writeln!(f, "\n{}", pipeline.nodes[0].item)?;
                         for node in &pipeline.nodes[1..] {
-                            writeln!(f, " {}", node.item)?;
+                            writeln!(f, "{}", node.item)?;
                         }
                     }
                 }
