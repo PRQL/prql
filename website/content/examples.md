@@ -88,9 +88,9 @@ appending a `filter` transformation to the query.
 
 For more examples, check out the [PRQL Book](https://prql-lang.org/book/).
 
-<!-- 
+<!--
 
-TODO: This was a nice example for the proposal, but until we get functions which can contain column names, 
+TODO: This was a nice example for the proposal, but until we get functions which can contain column names,
 it doesn't compile, and so is confusing. When we get that working, we can re-enable it.
 
 ## A more complex example
