@@ -41,10 +41,15 @@ When we build, it will execute the `cross.sh` script to get all the rust cdylibs
 
 As to cross compilation toolchains, we use [cross](https://github.com/cross-rs/cross).
 
-## Publish
+## Publish(for maintainer)
 
-To publish the java lib to maven public repo, see this doc:
-https://central.sonatype.org/publish/publish-guide/
+To publish the java lib to maven public repo, 
+project maintainer need first register a project in the maven nexus repo, by the doc:
+https://central.sonatype.org/publish/publish-guide/.
+
+And then, we can release our artifact in the `release` workflow.
+The action we used is [action-maven-publish](https://github.com/marketplace/actions/action-maven-publish). 
+Project maintainer has to configure some personal information, those used in the first step, by the action's doc, such as `nexus_username`, `nexus_password`, `gpg_private_key`, `gpg_passphrase`.
 
 
 
