@@ -4,9 +4,42 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>org.prql</groupId>
+    <groupId>org.prqllang</groupId>
     <artifactId>prql-java</artifactId>
     <version>0.2.1</version>
+
+    <name>${project.groupId}:${project.artifactId}</name>
+    <description>prql-compiler api for java</description>
+    <url>https://github.com/prql/prql</url>
+
+    <licenses>
+        <license>
+            <name>The Apache License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <name>Aljaž Mur Eržen</name>
+            <email>TODO</email>
+            <url>https://aljaz.murerzen.eu/</url>
+        </developer>
+        <developer>
+            <name>Maximilian Roos</name>
+            <email>TODO</email>
+        </developer>
+        <developer>
+            <name>Charlie Sanders</name>
+            <email>TODO</email>
+        </developer>
+    </developers>
+
+    <scm>
+        <connection>scm:git:git://github.com/prql/prql.git</connection>
+        <developerConnection>scm:git:ssh://github.com:prql/prql.git</developerConnection>
+        <url>https://github.com/prql/prql/tree/main</url>
+    </scm>
 
     <properties>
         <maven.compiler.target>1.8</maven.compiler.target>
@@ -30,31 +63,103 @@
                 <version>1.6.0</version>
                 <executions>
                     <execution>
-                        <id>Rust build for tests</id>
+                        <id>Build for release</id>
                         <phase>generate-resources</phase>
                         <goals>
                             <goal>exec</goal>
                         </goals>
                         <configuration>
-                            <executable>build.sh</executable>
+                            <executable>../cross.sh</executable>
                             <arguments>
-                                <argument>${project.basedir}</argument>
+                                <argument>${project.basedir}/../</argument>
                             </arguments>
                         </configuration>
                     </execution>
+                </executions>
+            </plugin>
+
+            <!-- plugins for publishing -->
+            <plugin>
+                <groupId>org.sonatype.plugins</groupId>
+                <artifactId>nexus-staging-maven-plugin</artifactId>
+                <version>1.6.13</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <serverId>ossrh</serverId>
+                    <nexusUrl>https://s01.oss.sonatype.org/</nexusUrl>
+                    <autoReleaseAfterClose>true</autoReleaseAfterClose>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-gpg-plugin</artifactId>
+                <version>1.5</version>
+                <executions>
                     <execution>
-                        <id>Rust build for release</id>
-                        <phase>prepare-package</phase>
+                        <id>sign-artifacts</id>
+                        <phase>verify</phase>
                         <goals>
-                            <goal>exec</goal>
+                            <goal>sign</goal>
                         </goals>
                         <configuration>
-                            <executable>../cross.sh</executable>
+                            <gpgArguments>
+                                <arg>--pinentry-mode</arg>
+                                <arg>loopback</arg>
+                            </gpgArguments>
                         </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>3.1.0</version>
+                <executions>
+                    <execution>
+                        <id>attach-source</id>
+                        <phase>compile</phase>
+                        <goals>
+                            <goal>jar-no-fork</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>3.0.1</version>
+                <executions>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
                     </execution>
                 </executions>
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <id>deploy-snapshot</id>
+            <distributionManagement>
+                <snapshotRepository>
+                    <id>sonatype-nexus-snapshots</id>
+                    <name>Sonatype Nexus Snapshots</name>
+                    <url>https://s01.oss.sonatype.org/content/repositories/snapshots</url>
+                </snapshotRepository>
+            </distributionManagement>
+        </profile>
+        <profile>
+            <id>deploy</id>
+            <distributionManagement>
+                <repository>
+                    <id>sonatype-nexus-staging</id>
+                    <name>Nexus Release Repository</name>
+                    <url>https://s01.oss.sonatype.org/service/local/staging/deploy/maven2</url>
+                </repository>
+            </distributionManagement>
+        </profile>
+    </profiles>
 
 </project>

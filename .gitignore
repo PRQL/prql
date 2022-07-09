@@ -11,3 +11,4 @@ dist
 target/
 
 **/libprql_java*
+**/prql_java.dll

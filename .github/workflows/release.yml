@@ -41,21 +41,20 @@ jobs:
           command: upload
           args: --skip-existing *
 
-#  publish-to-maven:
-#    runs-on: ubuntu-latest
-#    steps:
-#      - name: Checkout code
-#        uses: actions/checkout@v3
-#      - name: Cross compile
-#        run: sh -c prql-java/cross.sh
-#      - name: Install Java and Maven
-#        uses: actions/setup-java@v1
-#        with:
-#          java-version: 8
-#      - name: Release Maven package
-#        uses: samuelmeuli/action-maven-publish@v1
-#        with:
-#          gpg_private_key: ${{ secrets.gpg_private_key }}
-#          gpg_passphrase: ${{ secrets.gpg_passphrase }}
-#          nexus_username: ${{ secrets.nexus_username }}
-#          nexus_password: ${{ secrets.nexus_password }}
+  publish-to-maven:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Install Java and Maven
+        uses: actions/setup-java@v1
+        with:
+          java-version: 8
+      - name: Release Maven package
+        uses: samuelmeuli/action-maven-publish@v1
+        with:
+          gpg_private_key: ${{ secrets.gpg_private_key }}
+          gpg_passphrase: ${{ secrets.gpg_passphrase }}
+          nexus_username: ${{ secrets.nexus_username }}
+          nexus_password: ${{ secrets.nexus_password }}
+          directory: prql-java/java/
