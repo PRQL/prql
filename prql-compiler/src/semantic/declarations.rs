@@ -80,7 +80,7 @@ impl Debug for Declarations {
 impl Display for Declaration {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Declaration::Expression(node) => write!(f, "{}", node.item),
+            Declaration::Expression(node) => write!(f, "({})", node.item),
             Declaration::ExternRef { table: _, variable } => write!(f, "<extern> {variable}"),
             Declaration::Table(t) => write!(f, "table {t} = ?"),
             Declaration::Function(func) => {

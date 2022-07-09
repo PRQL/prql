@@ -7,6 +7,8 @@ mod semantic;
 mod sql;
 mod utils;
 
+use crate::{ast::Item};
+
 pub use anyhow::Result;
 pub use ast::display;
 #[cfg(feature = "cli")]
@@ -14,6 +16,7 @@ pub use cli::Cli;
 pub use error::{format_error, SourceLocation};
 pub use parser::parse;
 pub use semantic::*;
+pub use ast::query::{Query};
 pub use sql::{resolve_and_translate, translate};
 
 /// Compile a PRQL string into a SQL string.
@@ -38,6 +41,12 @@ pub fn format(prql: &str) -> Result<String> {
 /// Compile a PRQL string into a JSON version of the Query.
 pub fn to_json(prql: &str) -> Result<String> {
     Ok(serde_json::to_string(&parse(prql)?)?)
+}
+
+// Compile a JSON string into PRQL.
+pub fn from_json(json: &str) -> Result<String> {
+    let query : Query = serde_json::from_str(json)?;
+    Ok(format!("{}", Item::Query(query)))
 }
 
 /// Exposes some library internals.

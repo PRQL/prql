@@ -239,9 +239,9 @@ impl Display for Item {
                         }
                     }
                     _ => {
-                        writeln!(f, "\n  {}", pipeline.nodes[0].item)?;
+                        writeln!(f, "\n {}", pipeline.nodes[0].item)?;
                         for node in &pipeline.nodes[1..] {
-                            writeln!(f, "  {}", node.item)?;
+                            writeln!(f, " {}", node.item)?;
                         }
                     }
                 }
@@ -293,6 +293,11 @@ impl Display for Item {
                 UnOp::Not => write!(f, "not {}", expr.item)?,
             },
             Item::FuncCall(func_call) => {
+                match func_call.name.as_str() {
+                    "aggregate" => write!(f, "( ")?,
+                    _ => write!(f, "")?,
+                }
+                
                 f.write_str(func_call.name.as_str())?;
 
                 for (name, arg) in &func_call.named_args {
@@ -300,6 +305,11 @@ impl Display for Item {
                 }
                 for arg in &func_call.args {
                     write!(f, " {}", arg.item)?;
+                }
+
+                match func_call.name.as_str() {
+                    "aggregate" => write!(f, ") ")?,
+                    _ => write!(f, "")?,
                 }
             }
             Item::SString(parts) => {
@@ -320,7 +330,7 @@ impl Display for Item {
                 f.write_char('>')?;
             }
             Item::Literal(literal) => {
-                write!(f, "{:?}", literal)?;
+                write!(f, "{}", literal)?;
             }
         }
         Ok(())

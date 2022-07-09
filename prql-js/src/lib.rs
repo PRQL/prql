@@ -41,6 +41,18 @@ pub fn compile(s: &str) -> CompileResult {
 }
 
 #[wasm_bindgen]
+pub fn to_json(query: &str) -> Result<String, String> {
+    prql_compiler::to_json(query)
+        .map_err(|err| err.to_string())
+}
+
+#[wasm_bindgen]
+pub fn from_json(json: &str) -> Result<String, String> {
+    prql_compiler::from_json(json)
+        .map_err(|err| err.to_string())
+}
+
+#[wasm_bindgen]
 #[derive(Default)]
 pub struct CompileResult {
     sql: Option<String>,
