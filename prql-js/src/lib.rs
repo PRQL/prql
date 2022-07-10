@@ -88,16 +88,16 @@ pub struct SourceLocation {
 #[wasm_bindgen]
 pub fn to_sql(s: &str) -> Option<String> {
     let result = prql_compiler::compile(s).map_err(|e| format_error(e, "", s, false));
-    handle_result(result)
+    return_or_throw_error(result)
 }
 
 #[wasm_bindgen]
 pub fn to_json(s: &str) -> Option<String> {
     let result = prql_compiler::to_json(s).map_err(|e| format_error(e, "", s, false));
-    handle_result(result)
+    return_or_throw_error(result)
 }
 
-fn handle_result(
+fn return_or_throw_error(
     result: Result<String, (String, Option<prql_compiler::SourceLocation>)>,
 ) -> Option<String> {
     match result {
