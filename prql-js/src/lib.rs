@@ -85,7 +85,6 @@ pub struct SourceLocation {
     pub end_column: usize,
 }
 
-
 #[wasm_bindgen]
 pub fn to_sql(s: &str) -> Option<String> {
     let result = prql_compiler::compile(s).map_err(|e| format_error(e, "", s, false));
@@ -98,12 +97,25 @@ pub fn to_json(s: &str) -> Option<String> {
     handle_result(result)
 }
 
-fn handle_result(result: Result<String, (String, Option<prql_compiler::SourceLocation>)>) -> Option<String> {
+fn handle_result(
+    result: Result<String, (String, Option<prql_compiler::SourceLocation>)>,
+) -> Option<String> {
     match result {
         Ok(sql) => Some(sql),
         Err(e) => {
             let location = e.1.unwrap();
-            wasm_bindgen::throw_str(str::replace(format!("{:?} at line {}, column {} to {}", e.0, location.start.0, location.start.1, location.end.1).as_str(), "\\n", "\n").as_str());
+            wasm_bindgen::throw_str(
+                str::replace(
+                    format!(
+                        "{:?} at line {}, column {} to {}",
+                        e.0, location.start.0, location.start.1, location.end.1
+                    )
+                    .as_str(),
+                    "\\n",
+                    "\n",
+                )
+                .as_str(),
+            );
         }
     }
 }
