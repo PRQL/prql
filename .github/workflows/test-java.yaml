@@ -7,7 +7,7 @@ on:
   pull_request:
     paths:
       - "prql-java/**"
-      - ".github/workflows/java.yaml"
+      - ".github/workflows/test-java.yaml"
   workflow_call:
 
 jobs:

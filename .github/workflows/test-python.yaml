@@ -10,7 +10,7 @@ on:
   pull_request:
     paths:
       - "prql-python/**"
-      - ".github/workflows/python.yaml"
+      - ".github/workflows/test-python.yaml"
   workflow_call:
 
 concurrency:
