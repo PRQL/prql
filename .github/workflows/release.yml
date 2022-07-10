@@ -2,6 +2,8 @@ name: release
 on:
   release:
     type: [published]
+  # Called by pull-request when specifically requested
+  workflow_call:
 
 jobs:
   brew-dispatcher:
@@ -26,7 +28,7 @@ jobs:
   build-python-wheels:
     uses: ./.github/workflows/python.yaml
 
-  release-prql-pythqn:
+  publish-prql-python:
     runs-on: ubuntu-latest
     needs: [build-python-wheels]
     steps:
@@ -41,11 +43,9 @@ jobs:
           command: upload
           args: --skip-existing *
 
-  publish-to-npm:
-    name: Release
+  publish-prql-js:
     runs-on: ubuntu-latest
     steps:
-      # Is this checkout needed ?
       - name: Checkout
         uses: actions/checkout@v3
         with:
