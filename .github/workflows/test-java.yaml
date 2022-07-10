@@ -5,11 +5,9 @@ on:
     branches:
       - main
   pull_request:
-    branches:
-      - main
     paths:
       - "prql-java/**"
-      - ".github/workflows/java.yaml"
+      - ".github/workflows/test-java.yaml"
   workflow_call:
 
 jobs:
@@ -28,4 +26,5 @@ jobs:
           override: true
           default: true
       - name: Maven test
-        run: cd ./prql-java/java/ && ./mvnw test
+        working-directory: prql-java/java/
+        run: ./mvnw test

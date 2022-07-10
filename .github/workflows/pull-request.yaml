@@ -71,8 +71,8 @@ jobs:
     if: contains(github.event.pull_request.labels.*.name, 'pr-run-all-tests')
 
   publish:
-    uses: ./.github/workflows/gh-pages.yaml
-    if: contains(github.event.pull_request.labels.*.name, 'pr-gh-pages')
+    uses: ./.github/workflows/publish-web.yaml
+    if: contains(github.event.pull_request.labels.*.name, 'pr-publish-web')
 
   check-links:
     # Another option is https://github.com/lycheeverse/lychee, but it was

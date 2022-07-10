@@ -9,7 +9,7 @@ on:
     types: [opened, reopened, synchronize, labeled]
     paths:
       - Taskfile.yml
-      - .github/workflows/taskfile.yaml
+      - .github/workflows/test-taskfile.yaml
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
