@@ -6,7 +6,7 @@ name: pull-request
 
 on:
   pull_request:
-    # Add `labeled`, so we can trigger a new run by adding a `ci-run-all-tests`
+    # Add `labeled`, so we can trigger a new run by adding a `pr-run-all-tests`
     # label, which we then use to trigger a `test-all` run.
     types: [opened, reopened, synchronize, labeled]
   # While most of these tests are covered by `test-all`, we need to build the cache.
@@ -60,14 +60,14 @@ jobs:
         run: mdbook build
         working-directory: book/
 
-  # Run Mac & Windows & other tests on `main` or a `ci-run-all-tests` label.
+  # Run Mac & Windows & other tests a `pr-run-all-tests` label (as well as on `main`).
   test-all:
     uses: ./.github/workflows/test-all.yaml
-    if: contains(github.event.pull_request.labels.*.name, 'ci-run-all-tests')
+    if: contains(github.event.pull_request.labels.*.name, 'pr-run-all-tests')
 
   publish:
-    uses: ./.github/workflows/publish.yaml
-    if: contains(github.event.pull_request.labels.*.name, 'ci-publish')
+    uses: ./.github/workflows/gh-pages.yaml
+    if: contains(github.event.pull_request.labels.*.name, 'pr-gh-pages')
 
   check-links:
     # Another option is https://github.com/lycheeverse/lychee, but it was

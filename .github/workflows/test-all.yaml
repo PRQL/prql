@@ -56,8 +56,9 @@ jobs:
           name: code-coverage-report
           path: cobertura.xml
 
-  # TODO: if the workflow depth was > two, then this would let us run the python
-  # workflow with a label.
+  # TODO: if the allowed workflow depth was > two, then this would let us run
+  # the python workflow with a label, which would be ideal. Currently `test-all`
+  # is limited to the other OSs.
   #
   # python:
   #   name: Python
