@@ -26,5 +26,5 @@ jobs:
           override: true
           default: true
       - name: Maven test
-        working-directory: prql-java/java/ 
+        working-directory: prql-java/java/
         run: ./mvnw test
