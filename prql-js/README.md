@@ -26,6 +26,7 @@ const prql = require("prql-js");
 
 const { sql, error } = compile(`from employees | select first_name`);
 console.log(sql);
+// handle error as well...
 ```
 
 ### From a Browser
@@ -39,9 +40,10 @@ console.log(sql);
 
       async function run() {
         await wasm_bindgen("./node_modules/prql-js/dist/web/prql_js_bg.wasm");
-        const sql = compile("from employees | select first_name").sql;
+        const { sql, error } = compile("from employees | select first_name");
 
         console.log(sql);
+        // handle error as well...
       }
 
       run();
@@ -57,8 +59,9 @@ console.log(sql);
 ```typescript
 import compile from "prql-js/dist/bundler";
 
-const sql = compile(`from employees | select first_name`).sql;
+const { sql, error } = compile(`from employees | select first_name`);
 console.log(sql);
+// handle error as well...
 ```
 
 ## Notes
