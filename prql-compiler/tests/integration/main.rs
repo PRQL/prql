@@ -37,7 +37,7 @@ mod tests {
         });
     }
 
-    /// Return a path relative to the root `databases` path.
+    /// Return a path relative to the root `integration` path.
     fn path(relative_path: &str) -> String {
         // Insired by insta's approach to finding a file in a test path.
         let root = env!("CARGO_MANIFEST_DIR");
