@@ -1906,4 +1906,71 @@ join `my-proj`.`dataset`.`table`
                     named_args: {}
         "###)
     }
+
+    #[test]
+    fn test_parse_gt_lt_gte_lte() {
+        assert_yaml_snapshot!(parse(r###"
+        from people
+        filter age >= 100
+        filter num_grandchildren <= 10
+        filter salary > 0
+        filter num_eyes < 2
+        "###).unwrap(), @r###"
+        ---
+        version: ~
+        dialect: Generic
+        nodes:
+          - Pipeline:
+              nodes:
+                - FuncCall:
+                    name: from
+                    args:
+                      - Ident: people
+                    named_args: {}
+                - FuncCall:
+                    name: filter
+                    args:
+                      - Binary:
+                          left:
+                            Ident: age
+                          op: Gte
+                          right:
+                            Literal:
+                              Integer: 100
+                    named_args: {}
+                - FuncCall:
+                    name: filter
+                    args:
+                      - Binary:
+                          left:
+                            Ident: num_grandchildren
+                          op: Lte
+                          right:
+                            Literal:
+                              Integer: 10
+                    named_args: {}
+                - FuncCall:
+                    name: filter
+                    args:
+                      - Binary:
+                          left:
+                            Ident: salary
+                          op: Gt
+                          right:
+                            Literal:
+                              Integer: 0
+                    named_args: {}
+                - FuncCall:
+                    name: filter
+                    args:
+                      - Binary:
+                          left:
+                            Ident: num_eyes
+                          op: Lt
+                          right:
+                            Literal:
+                              Integer: 2
+                    named_args: {}
+        "###)
+    }
 }
