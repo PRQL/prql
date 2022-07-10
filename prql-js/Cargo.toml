@@ -37,3 +37,8 @@ wasm-bindgen-test = "0.3.30"
 shared-version = true
 tag-name = "{{version}}"
 tag-prefix = ""
+
+[[package.metadata.release.pre-release-replacements]]
+file = "package.json"
+replace = '  "version": "{{version}}"'
+search = '  "version": "[\d\.]*"'

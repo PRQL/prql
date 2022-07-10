@@ -1,23 +1,23 @@
 {
-  "name": "prql-js",
+  "browser": "dist/web/prql_js.js",
   "description": "Javascript bindings for prql-compiler",
-  "version": "0.2.0",
-  "license": "Apache-2.0",
-  "scripts": {
-    "build-node": "wasm-pack build --target nodejs --release --out-dir dist/node",
-    "build-bundler": "wasm-pack build --target bundler --release --out-dir dist/bundler",
-    "build-web": "wasm-pack build --target no-modules --release --out-dir dist/web",
-    "build-all": "npm run build-node && npm run build-bundler && npm run build-web"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/prql/prql"
-  },
   "files": [
     "dist/**/*",
     "package.json"
   ],
+  "license": "Apache-2.0",
   "main": "dist/node/prql_js.js",
-  "browser": "dist/web/prql_js.js",
-  "types": "dist/node/prql_js.d.ts"
+  "name": "prql-js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/prql/prql"
+  },
+  "scripts": {
+    "build-all": "npm run build-node && npm run build-bundler && npm run build-web",
+    "build-bundler": "wasm-pack build --target bundler --release --out-dir dist/bundler",
+    "build-node": "wasm-pack build --target nodejs --release --out-dir dist/node",
+    "build-web": "wasm-pack build --target no-modules --release --out-dir dist/web"
+  },
+  "types": "dist/node/prql_js.d.ts",
+  "version": "0.2.2"
 }
