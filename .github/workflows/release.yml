@@ -40,3 +40,53 @@ jobs:
         with:
           command: upload
           args: --skip-existing *
+
+  publish-to-npm:
+    name: Release
+    runs-on: ubuntu-latest
+    steps:
+      # Is this checkout needed ?
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Make dist folder
+        run: mkdir dist
+
+      - name: Install wasm-pack
+        uses: jetli/wasm-pack-action@v0.3.0
+        with:
+          version: "latest"
+
+      - name: Run wasm-pack for node
+        run: wasm-pack build --target nodejs --release --out-dir dist/node
+        working-directory: prql-js/
+      - name: Run wasm-pack for web
+        run: wasm-pack build --target no-modules --release --out-dir dist/web
+        working-directory: prql-js/
+      - name: Run wasm-pack for bundler
+        run: wasm-pack build --target bundler --release --out-dir dist/bundler
+        working-directory: prql-js/
+
+      - name: Setup Node
+        uses: actions/setup-node@v2
+        with:
+          node-version: "18.x"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Publish package on npm
+        run: npm publish
+        working-directory: prql-js/
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+#      - name: Bump npm version
+#        run: npm version patch
+#        working-directory: prql-js/
+#
+#      - name: Commit version bump
+#        run: |
+#          git config user.name github-actions
+#          git config user.email github-actions@github.com
+#          git add prql-js/package.json
+#          git commit -m "Bump NPM version"
+#          git push

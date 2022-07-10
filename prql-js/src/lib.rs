@@ -1,4 +1,5 @@
 #![allow(clippy::unused_unit)]
+
 mod utils;
 
 use prql_compiler::format_error;
@@ -9,12 +10,6 @@ use wasm_bindgen::prelude::*;
 #[cfg(feature = "wee_alloc")]
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
-
-// This is how you call js functions
-// #[wasm_bindgen]
-// extern {
-//     fn compile(s: &str);
-// }
 
 #[wasm_bindgen]
 pub fn compile(s: &str) -> CompileResult {
@@ -88,4 +83,39 @@ pub struct SourceLocation {
 
     pub end_line: usize,
     pub end_column: usize,
+}
+
+#[wasm_bindgen]
+pub fn to_sql(s: &str) -> Option<String> {
+    let result = prql_compiler::compile(s).map_err(|e| format_error(e, "", s, false));
+    return_or_throw_error(result)
+}
+
+#[wasm_bindgen]
+pub fn to_json(s: &str) -> Option<String> {
+    let result = prql_compiler::to_json(s).map_err(|e| format_error(e, "", s, false));
+    return_or_throw_error(result)
+}
+
+fn return_or_throw_error(
+    result: Result<String, (String, Option<prql_compiler::SourceLocation>)>,
+) -> Option<String> {
+    match result {
+        Ok(sql) => Some(sql),
+        Err(e) => {
+            let location = e.1.unwrap();
+            wasm_bindgen::throw_str(
+                str::replace(
+                    format!(
+                        "{:?} at line {}, column {} to {}",
+                        e.0, location.start.0, location.start.1, location.end.1
+                    )
+                    .as_str(),
+                    "\\n",
+                    "\n",
+                )
+                .as_str(),
+            );
+        }
+    }
 }
