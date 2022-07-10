@@ -19,5 +19,5 @@
   ],
   "main": "dist/node/prql_js.js",
   "browser": "dist/web/prql_js.js",
-  "types": "prql_js.d.ts"
+  "types": "dist/node/prql_js.d.ts"
 }
