@@ -13,3 +13,12 @@ members = [
 [profile.release.package.prql-js]
 # Tell `rustc` to optimize for small code size.
 opt-level = "s"
+
+[workspace.metadata.release]
+allow-branch = ["main", "release"]
+consolidate-commits = true
+consolidate-pushes = true
+shared-version = true
+# These don't seem to be active for workspace...
+# tag-name = "{{version}}"
+# tag-prefix = ""

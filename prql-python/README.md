@@ -3,7 +3,10 @@
 `prql-python` offers rust bindings to the `prql-compiler` rust library. It
 exposes a python method `to_sql(query: str) -> str`.
 
-This is consumed by [PyPrql](https://github.com/prql/PyPrql).
+This is consumed by [PyPrql](https://github.com/prql/PyPrql) &
+[dbt-prql](https://github.com/prql/dbt-prql).
+
+The crate is not published to crates.io; only to PyPI.
 
 ## Installation
 

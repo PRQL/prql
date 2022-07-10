@@ -5,7 +5,7 @@ license = "Apache-2.0"
 name = "prql-compiler"
 repository = "https://github.com/prql/prql"
 rust-version = "1.59.0"
-version = "0.2.1"
+version = "0.2.2"
 
 [features]
 # We previously had `cli` not compile by default, because of an issue with
@@ -67,3 +67,8 @@ duckdb = {version = "0.4.0", features = ["bundled", "chrono"]}
 [[bench]]
 harness = false
 name = "bench"
+
+[package.metadata.release]
+shared-version = true
+tag-name = "{{version}}"
+tag-prefix = ""
