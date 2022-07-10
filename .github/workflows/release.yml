@@ -57,6 +57,7 @@ jobs:
         uses: jetli/wasm-pack-action@v0.3.0
         with:
           version: "latest"
+
       - name: Run wasm-pack for node
         run: wasm-pack build --target nodejs --release --out-dir dist/node
         working-directory: prql-js/
