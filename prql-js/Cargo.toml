@@ -38,7 +38,7 @@ shared-version = true
 tag-name = "{{version}}"
 tag-prefix = ""
 
-[[package.metadate.release.pre-release-replacements]]
+[[package.metadata.release.pre-release-replacements]]
 file = "package.json"
 replace = '  "version": "{{version}}"'
 search = '  "version": "[\d\.]*"'
