@@ -19,7 +19,6 @@ prql-compiler = {path = "../prql-compiler"}
 pyo3-build-config = "0.16.5"
 
 [package.metadata.release]
-publish = false
 shared-version = true
 tag-name = "{{version}}"
 tag-prefix = ""
