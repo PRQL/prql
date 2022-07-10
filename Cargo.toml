@@ -19,6 +19,6 @@ allow-branch = ["main", "release"]
 consolidate-commits = true
 consolidate-pushes = true
 # These don't seem to be active for workspace...
-shared-version = true
-tag-name = "{{version}}"
-tag-prefix = ""
+# shared-version = true
+# tag-name = "{{version}}"
+# tag-prefix = ""
