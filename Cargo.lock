@@ -1272,6 +1272,7 @@ dependencies = [
  "globset",
  "insta",
  "itertools",
+ "log",
  "mdbook",
  "mdbook-preprocessor-boilerplate",
  "prql-compiler",
@@ -1280,6 +1281,7 @@ dependencies = [
  "semver",
  "serde_json",
  "similar",
+ "trash",
  "walkdir",
 ]
 
@@ -1727,23 +1729,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c54b25569025b7fc9651de43004ae593a75ad88543b17178aa5e1b9c4f15f56f"
 dependencies = [
  "unicode-ident",
-]
-
-[[package]]
-name = "prql-book"
-version = "0.1.1"
-dependencies = [
- "anyhow",
- "globset",
- "insta",
- "itertools",
- "log",
- "prql-compiler",
- "pulldown-cmark",
- "pulldown-cmark-to-cmark",
- "similar",
- "trash",
- "walkdir",
 ]
 
 [[package]]
