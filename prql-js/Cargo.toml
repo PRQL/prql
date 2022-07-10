@@ -34,7 +34,6 @@ wee_alloc = {version = "0.4.5", optional = true}
 wasm-bindgen-test = "0.3.30"
 
 [package.metadata.release]
-publish = false
 shared-version = true
 tag-name = "{{version}}"
 tag-prefix = ""
