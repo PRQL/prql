@@ -60,7 +60,7 @@ mod tests {
         use rusqlite::{types::ValueRef, Connection};
 
         pub fn connect() -> Connection {
-            Connection::open(dbg!(path("data/chinook/chinook.db"))).unwrap()
+            Connection::open(path("data/chinook/chinook.db")).unwrap()
         }
 
         pub fn query_csv(conn: &Connection, sql: &str) -> String {
@@ -104,8 +104,8 @@ mod tests {
             let conn = Connection::open_in_memory().unwrap();
             let schema = load_schema();
             conn.execute_batch(&schema).unwrap();
-            let root = dbg!(path(""));
-            conn.execute_batch(dbg!(format!(
+            let root = path("");
+            conn.execute_batch(format!(
                 "
                 COPY invoices FROM '{root}/data/chinook/invoices.csv' (AUTO_DETECT TRUE);
                 COPY customers FROM '{root}/data/chinook/customers.csv' (AUTO_DETECT TRUE);
@@ -118,10 +118,9 @@ mod tests {
                 COPY media_types FROM '{root}/data/chinook/media_types.csv' (AUTO_DETECT TRUE);
                 COPY artists FROM '{root}/data/chinook/artists.csv' (AUTO_DETECT TRUE);
                 COPY invoice_items FROM '{root}/data/chinook/invoice_items.csv' (AUTO_DETECT TRUE);
-            "
-            )
-            .as_str()))
-                .unwrap();
+            ")
+            .as_str()).unwrap();
+
             conn
         }
 
