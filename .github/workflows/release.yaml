@@ -4,6 +4,7 @@ on:
     type: [published]
   # Called by pull-request when specifically requested
   workflow_call:
+  workflow_dispatch:
 
 jobs:
   brew-dispatcher:
