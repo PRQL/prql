@@ -1,10 +1,10 @@
 # PRQL test-databases
 
-> Test PRQL queries against different SQL RDMS
+Test PRQL queries against various SQL RDBMS.
 
 ## Data
 
-Database chinook.db was downloaded from https://www.sqlitetutorial.net/sqlite-sample-database/
+Database chinook.db was downloaded from <https://www.sqlitetutorial.net/sqlite-sample-database>
 
 Columns are renamed to snake_case, so Postgres and DuckDb don't struggle with them.
 
@@ -32,3 +32,8 @@ be run by running `docker-compose up`. This will:
 - build a docker image for Postgres (with data already loaded in)
 - build a docker image for this crate (+data), compiled with --tests
 - run the two images, executing the tests.
+
+## Test organization
+
+We follow the advice in
+<https://matklad.github.io/2021/02/27/delete-cargo-integration-tests.html>.
