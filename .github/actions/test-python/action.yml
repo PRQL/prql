@@ -11,8 +11,6 @@ runs:
       uses: ./.github/actions/build-wheel
     - name: Setup nox
       uses: ./.github/actions/setup-nox
-      with:
-        cache_number: 0
     - name: Run tests
       shell: bash
       run: nox -s tests -f prql-python/noxfile.py

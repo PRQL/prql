@@ -55,8 +55,7 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
-      - name: Java test
-        working-directory: prql-java/java/
+      - working-directory: prql-java/java/
         run: ./mvnw test
 
   code-cov:
