@@ -4,7 +4,6 @@ description: "Use maturin to build python dists of prql-python. Conditional if c
 runs:
   using: composite
   steps:
-    - uses: actions/checkout@v2
     - uses: Swatinem/rust-cache@v1
     - uses: messense/maturin-action@v1
       if: runner.os == 'Linux'
