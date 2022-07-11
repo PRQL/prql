@@ -116,7 +116,6 @@ We use a pyramid of tests — we have fast, focused tests at the bottom of the
 pyramid, which give us low latency feedback when developing, and then slower,
 broader tests which ensure that we don't miss anything as PRQL develops[^2].
 
-
 > If you're making your first contribution, you don't need to engage with all this
 > — it's fine to just make a change and push the results; the tests that run in
 > GitHub will point you towards any errors, which can be then be run locally if
@@ -142,10 +141,10 @@ Our tests:
   [Insta](https://insta.rs/), a snapshot testing tool which writes out the
   results of an expression in our code, making it faster to write and modify
   tests.
-  
+
   These are the fastest tests which run our code; they're designed to run on
   every save while you're developing. (While they're covered by `task test-all`,
-  you'll generally want to have a more focused test in a tight loop.).  For
+  you'll generally want to have a more focused test in a tight loop.). For
   example, this is a command I frequently run:
 
   ```sh
@@ -153,6 +152,7 @@ Our tests:
   ```
 
   Breaking this down:
+
   - `RUST_BACKTRACE=1` will print a full backtrace, including where an error
     value was created, for rust tests which return `Result`s.
   - `watchexec -e rs,toml,pest,md -cr --` will run the subsequent command on any
@@ -198,9 +198,12 @@ they're making it more difficult for you to make changes, or there are missing
 tests that would give you the confidence to make changes faster, then please
 raise an issue.
 
-[^1]: We don't want to re-run on _any_ file changing, because we can get into a
+[^1]:
+    We don't want to re-run on _any_ file changing, because we can get into a
     loop of writing snapshot files, triggering a change, writing a snapshot
     file, etc.
-[^2]: Our approach is very consistent with
+
+[^2]:
+    Our approach is very consistent with
     **[@matklad](https://github.com/matklad)**'s advice, in his excellent blog
-post [How to Test](https://matklad.github.io//2021/05/31/how-to-test.html).
+    post [How to Test](https://matklad.github.io//2021/05/31/how-to-test.html).
