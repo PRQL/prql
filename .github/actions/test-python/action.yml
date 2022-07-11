@@ -14,4 +14,5 @@ runs:
       with:
         cache_number: 0
     - name: Run tests
+      shell: bash
       run: nox -s tests -f prql-python/noxfile.py
