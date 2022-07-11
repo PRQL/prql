@@ -136,34 +136,17 @@ Our tests:
   in CI; any changes they make are added onto the branch automatically in an
   additional commit.
 
-- **Unit tests & inline insta snapshots** — Like most projects, we rely on
+- **Unit tests & inline insta snapshots** — like most projects, we rely on
   unit tests to test that our code basically works. We extensively use
   [Insta](https://insta.rs/), a snapshot testing tool which writes out the
   results of an expression in our code, making it faster to write and modify
-  tests.
+  tests. Here's an example of an insta test — only the initial line of each test
+  is written by us:
+  <https://github.com/prql/prql/blob/0.2.2/prql-compiler/src/parser.rs#L580-L605>.
 
   These are the fastest tests which run our code; they're designed to run on
   every save while you're developing. (While they're covered by `task test-all`,
-  you'll generally want to have a more focused test in a tight loop.). For
-  example, this is a command I frequently run:
-
-  ```sh
-  RUST_BACKTRACE=1 watchexec -e rs,toml,pest,md -cr -- cargo insta test --accept -- -p prql-compiler --lib
-  ```
-
-  Breaking this down:
-
-  - `RUST_BACKTRACE=1` will print a full backtrace, including where an error
-    value was created, for rust tests which return `Result`s.
-  - `watchexec -e rs,toml,pest,md -cr --` will run the subsequent command on any
-    change to files with extensions which we are generally editing[^1].
-  - `cargo insta test --accept --` runs tests with `insta`, a snapshot library, and
-    writes any results immediately. I rely on git to track changes, so I run
-    with `--accept`, but YMMV.
-  - `-p prql-compiler --lib` is passed to cargo by `insta`; `-p prql-compiler`
-    tells it to only run the tests for `prql-compiler` rather than the other
-    crates, and `--lib` to only run the unit tests rather than the integration
-    tests, which are much slower.
+  you'll generally want to have lower-latency tests running in a tight loop.).[^3]
 
 - **Integration tests** — these run tests against real databases, to ensure we're
   producing correct SQL.
@@ -208,3 +191,23 @@ raise an issue.
     Our approach is very consistent with
     **[@matklad](https://github.com/matklad)**'s advice, in his excellent blog
     post [How to Test](https://matklad.github.io//2021/05/31/how-to-test.html).
+
+[^3]: For example, this is a command I frequently run:
+
+  ```sh
+  RUST_BACKTRACE=1 watchexec -e rs,toml,pest,md -cr -- cargo insta test --accept -- -p prql-compiler --lib
+  ```
+
+  Breaking this down:
+
+- `RUST_BACKTRACE=1` will print a full backtrace, including where an error
+    value was created, for rust tests which return `Result`s.
+- `watchexec -e rs,toml,pest,md -cr --` will run the subsequent command on any
+    change to files with extensions which we are generally editing[^1].
+- `cargo insta test --accept --` runs tests with `insta`, a snapshot library, and
+    writes any results immediately. I rely on git to track changes, so I run
+    with `--accept`, but YMMV.
+- `-p prql-compiler --lib` is passed to cargo by `insta`; `-p prql-compiler`
+    tells it to only run the tests for `prql-compiler` rather than the other
+    crates, and `--lib` to only run the unit tests rather than the integration
+    tests, which are much slower.
