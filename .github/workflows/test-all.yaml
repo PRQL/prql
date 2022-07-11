@@ -26,7 +26,7 @@ jobs:
             target: "wasm32-unknown-unknown"
             target_option: "--target=wasm32-unknown-unknown"
     steps:
-    # Run each of these serially, because we're not in a rush.
+      # Run each of these serially, because we're not in a rush.
       - uses: ./.github/actions/test-rust
         with:
           target: ${{ matrix.target }}
