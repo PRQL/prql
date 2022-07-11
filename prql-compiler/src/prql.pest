@@ -31,11 +31,11 @@ pipeline = { WHITESPACE* ~ expr_call ~ (pipe ~ expr_call)* }
 // We include backticks because some DBs use them (e.g. BigQuery) and we don't,
 // so we pass anything within them directly through, including otherwise invalid
 // idents, like those with hyphens. Possibly we should consider applying this to
-// expressions rather than just idens — we can adjust as we see more cases.
+// expressions rather than just idents — we can adjust as we see more cases.
 ident = @{ !operator ~ !(keyword ~ WHITESPACE) ~ ident_start ~ ("." ~ ident_next)* }
-// Either a normal ident (starting with a letter etc), or any string surrounded
+// Either a normal ident (starting with a letter, `$` or `_`), or any string surrounded
 // by backticks.
-ident_start = _{ ((ASCII_ALPHA | "$" ) ~ (ASCII_ALPHANUMERIC | "_" )* ) | ident_backticks+ }
+ident_start = _{ ((ASCII_ALPHA | "$" | "_") ~ (ASCII_ALPHANUMERIC | "_" )* ) | ident_backticks+ }
 // We allow `e.*`, but not just `*`, since it might conflict with multiply in
 // some cases.
 ident_next = _{ ident_start | "*" }
@@ -132,7 +132,7 @@ operator = _{ operator_unary | operator_mul | operator_add | operator_compare | 
 operator_unary = ${ "-" | "+" | "!" }
 operator_mul = ${ "*" | "/" | "%" }
 operator_add = ${ "+" | "-" }
-operator_compare = ${ "==" | "!=" | ">" | "<" | ">=" | "<=" }
+operator_compare = ${ "==" | "!=" | ">=" | "<=" | ">" | "<" }
 operator_logical = ${ ("and" | "or") ~ &WHITESPACE }
 operator_coalesce = ${ "??" }
 

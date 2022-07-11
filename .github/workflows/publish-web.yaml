@@ -1,10 +1,8 @@
-name: publish
+name: publish-gh-pages
 on:
   push:
     branches:
       - main
-    tags:
-      - "*"
   # Called by pull-request when specifically requested
   workflow_call:
 
@@ -20,14 +18,11 @@ jobs:
           target: wasm32-unknown-unknown
           toolchain: stable
 
-      # website
+      # Website setup
       - name: Setup hugo
         uses: peaceiris/actions-hugo@v2.5.0
-      - name: Build website
-        run: hugo --minify
-        working-directory: website/
 
-      # book
+      # Book setup
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v1
       - uses: peaceiris/actions-mdbook@v1
@@ -36,11 +31,8 @@ jobs:
           crate: mdbook-admonish
           version: 1.7.0
           use-tool-cache: true
-      - name: 🔨 Build book
-        run: mdbook build
-        working-directory: book/
 
-      # playground
+      # Playground setup
       - uses: jetli/wasm-bindgen-action@v0.1.0
       - uses: jetli/wasm-pack-action@v0.3.0
       - name: Setup Node.js
@@ -49,15 +41,11 @@ jobs:
           node-version: 16.x
           cache: "npm"
           cache-dependency-path: playground/package-lock.json
-      - run: npm ci
-        working-directory: playground/
-      - run: npm run build
-        working-directory: playground/
 
-      - name: Move book and playground into website
-        run: |
-          mv book/book website/public/book
-          mv playground/build website/public/playground
+      - uses: arduino/setup-task@v1
+      - name: 🕷️ Build website
+        run: task build-web
+
       - name: 🚢 Deploy
         uses: peaceiris/actions-gh-pages@v3
         with:
