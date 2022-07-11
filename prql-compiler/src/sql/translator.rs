@@ -490,8 +490,20 @@ impl TryFrom<Item> for Expr {
                 if let Some(is_null) = try_into_is_null(&op, &left, &right)? {
                     is_null
                 } else {
+                    let left = match left.item {
+                        Item::Binary { .. } => {
+                            Box::new(Expr::Nested(Box::new(left.item.try_into()?)))
+                        }
+                        _ => Box::new(left.item.try_into()?),
+                    };
+                    let right = match right.item {
+                        Item::Binary { .. } => {
+                            Box::new(Expr::Nested(Box::new(right.item.try_into()?)))
+                        }
+                        _ => Box::new(right.item.try_into()?),
+                    };
                     Expr::BinaryOp {
-                        left: Box::new(left.item.try_into()?),
+                        left,
                         op: match op {
                             BinOp::Mul => BinaryOperator::Multiply,
                             BinOp::Div => BinaryOperator::Divide,
@@ -508,7 +520,7 @@ impl TryFrom<Item> for Expr {
                             BinOp::Or => BinaryOperator::Or,
                             BinOp::Coalesce => unreachable!(),
                         },
-                        right: Box::new(right.item.try_into()?),
+                        right,
                     }
                 }
             }
@@ -1137,6 +1149,22 @@ mod test {
           SUM(salary)
         FROM
           employees
+        "###
+        );
+
+        let query = parse(
+            r#"
+from cities
+select temp_c = (temp - 32) * 3
+    "#,
+        )?;
+        let sql = resolve_and_translate(query)?;
+        assert_display_snapshot!(sql,
+            @r###"
+        SELECT
+          (temp - 32) * 3 AS temp_c
+        FROM
+          cities
         "###
         );
         Ok(())
@@ -1866,8 +1894,8 @@ take 20
         FROM
           employees
         WHERE
-          age > 25
-          AND age < 40
+          (age > 25)
+          AND (age < 40)
         "###);
 
         assert_display_snapshot!((resolve_and_translate(parse(r###"
@@ -1881,8 +1909,8 @@ take 20
         FROM
           employees
         WHERE
-          age > 25
-          AND age < 40
+          (age > 25)
+          AND (age < 40)
         "###);
     }
 
@@ -1923,8 +1951,8 @@ take 20
         FROM
           employees
         WHERE
-          first_name IS NULL
-          AND last_name IS NULL
+          (first_name IS NULL)
+          AND (last_name IS NULL)
         "###);
 
         // IS NOT NULL
@@ -1938,8 +1966,8 @@ take 20
         FROM
           employees
         WHERE
-          first_name IS NOT NULL
-          AND last_name IS NOT NULL
+          (first_name IS NOT NULL)
+          AND (last_name IS NOT NULL)
         "###);
 
         Ok(())

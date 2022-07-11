@@ -127,7 +127,7 @@ tasks:
       - cd website && hugo
 
   test-all:
-    desc: Test everything, reseting snapshots. Running this isn't required when developing; it's for caching or as a reference.
+    desc: Test everything, resetting snapshots. Running this isn't required when developing; it's for caching or as a reference.
     vars:
       default_target:
         sh: default-target
