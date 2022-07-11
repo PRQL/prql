@@ -49,6 +49,7 @@ jobs:
       # Java test is simple enough that it's not worth splitting out into a
       # separate action. These three lines is copied to test-java, which runs on
       # any java change.
+    steps:
       - name: Java test
         working-directory: prql-java/java/
         run: ./mvnw test
