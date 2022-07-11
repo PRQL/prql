@@ -1,5 +1,6 @@
 #![allow(clippy::unused_unit)]
-
+// Seems to be a wasm_bindgen problem (but need to look into it)
+#![allow(clippy::drop_non_drop)]
 mod utils;
 
 use prql_compiler::format_error;
