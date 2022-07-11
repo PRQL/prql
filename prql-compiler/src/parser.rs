@@ -958,7 +958,7 @@ Canada
         "###);
         assert_yaml_snapshot!(
             ast_of_string(
-                "gross_salary = (salary + payroll_tax) * 1 + tax_rate",
+                "gross_salary = (salary + payroll_tax) * (1 + tax_rate)",
                 Rule::assign,
             )?,
             @r###"
@@ -970,19 +970,19 @@ Canada
               left:
                 Binary:
                   left:
-                    Binary:
-                      left:
-                        Ident: salary
-                      op: Add
-                      right:
-                        Ident: payroll_tax
-                  op: Mul
+                    Ident: salary
+                  op: Add
                   right:
+                    Ident: payroll_tax
+              op: Mul
+              right:
+                Binary:
+                  left:
                     Literal:
                       Integer: 1
-              op: Add
-              right:
-                Ident: tax_rate
+                  op: Add
+                  right:
+                    Ident: tax_rate
         "###);
         Ok(())
     }
