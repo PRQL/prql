@@ -6,7 +6,7 @@ name: pull-request
 
 on:
   pull_request:
-    # Add `labeled`, so we can trigger a new run by adding a `pr-run-all-tests`
+    # Add `labeled`, so we can trigger a new run by adding a `pr-test-all`
     # label, which we then use to trigger a `test-all` run.
     types: [opened, reopened, synchronize, labeled]
   # While most of these tests are covered by `test-all`, we need to build the cache.
@@ -23,7 +23,7 @@ concurrency:
 
 jobs:
   # Only run ubuntu on pull-requests, since it's fastest.
-  cargo-test:
+  test-rust:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -36,7 +36,7 @@ jobs:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
       - name: 📋 Test workspace
-        uses: ./.github/actions/cargo-test
+        uses: ./.github/actions/test-rust
         with:
           target: ${{ matrix.target }}
           target_option: ${{ matrix.target_option }}
@@ -65,10 +65,10 @@ jobs:
         run: mdbook build
         working-directory: book/
 
-  # Run Mac & Windows & other tests a `pr-run-all-tests` label (as well as on `main`).
+  # Run Mac & Windows & other tests a `pr-test-all` label (as well as on `main`).
   test-all:
     uses: ./.github/workflows/test-all.yaml
-    if: contains(github.event.pull_request.labels.*.name, 'pr-run-all-tests')
+    if: contains(github.event.pull_request.labels.*.name, 'pr-test-all')
 
   publish:
     uses: ./.github/workflows/publish-web.yaml

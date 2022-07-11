@@ -1,4 +1,4 @@
-name: cargo-test
+name: Test Rust
 description: Runs cargo test & cargo lint for a given platform & target.
 
 inputs:

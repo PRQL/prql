@@ -25,7 +25,12 @@ jobs:
             })
 
   build-python-wheels:
-    uses: ./.github/workflows/python.yaml
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: ./.github/actions/build-wheel
 
   publish-prql-python:
     runs-on: ubuntu-latest
