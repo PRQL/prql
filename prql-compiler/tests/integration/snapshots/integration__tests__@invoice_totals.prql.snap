@@ -1,7 +1,7 @@
 ---
-source: test-databases/src/main.rs
-expression: "sqlite::query_csv(&sqlite_conn, &sql)"
-input_file: test-databases/src/queries/invoice_totals.prql
+source: prql-compiler/tests/integration/main.rs
+expression: "duckdb::query_csv(&duckdb_conn, &sql)"
+input_file: prql-compiler/tests/integration/queries/invoice_totals.prql
 ---
 month,day,num_orders,num_tracks,total_price,running_total_num_tracks,num_tracks_last_week
 2009-01,2009-01-01,1,2,1.98,2,

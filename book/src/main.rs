@@ -68,6 +68,7 @@ fn handle_supports(pre: impl Preprocessor, sub_args: &ArgMatches) -> ! {
 }
 
 fn main() {
+    eprintln!("Running comparison preprocessor");
     run(
         ComparisonPreprocessor,
         "Create comparison examples between PRQL & SQL",
