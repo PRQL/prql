@@ -6,7 +6,7 @@ name: pull-request
 
 on:
   pull_request:
-    # Add `labeled`, so we can trigger a new run by adding a `ci-run-all-tests`
+    # Add `labeled`, so we can trigger a new run by adding a `pr-run-all-tests`
     # label, which we then use to trigger a `test-all` run.
     types: [opened, reopened, synchronize, labeled]
   # While most of these tests are covered by `test-all`, we need to build the cache.
@@ -30,9 +30,8 @@ jobs:
         include:
           # TODO: I'm sure there's a better way of doing this, where `target_option` derives from `target`?
           - target: ""
-          # for wasm, test only prql-compiler crate
           - target: "wasm32-unknown-unknown"
-            target_option: "-p prql-compiler --target=wasm32-unknown-unknown"
+            target_option: "--target=wasm32-unknown-unknown"
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
@@ -57,18 +56,23 @@ jobs:
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v1
       - uses: peaceiris/actions-mdbook@v1
+      - uses: actions-rs/install@v0.1
+        with:
+          crate: mdbook-admonish
+          version: 1.7.0
+          use-tool-cache: true
       - name: 🔨 Build
         run: mdbook build
         working-directory: book/
 
-  # Run Mac & Windows & other tests on `main` or a `ci-run-all-tests` label.
+  # Run Mac & Windows & other tests a `pr-run-all-tests` label (as well as on `main`).
   test-all:
     uses: ./.github/workflows/test-all.yaml
-    if: contains(github.event.pull_request.labels.*.name, 'ci-run-all-tests')
+    if: contains(github.event.pull_request.labels.*.name, 'pr-run-all-tests')
 
   publish:
-    uses: ./.github/workflows/publish.yaml
-    if: contains(github.event.pull_request.labels.*.name, 'ci-publish')
+    uses: ./.github/workflows/publish-web.yaml
+    if: contains(github.event.pull_request.labels.*.name, 'pr-publish-web')
 
   check-links:
     # Another option is https://github.com/lycheeverse/lychee, but it was

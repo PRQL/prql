@@ -8,11 +8,9 @@ on:
     branches:
       - main
   pull_request:
-    branches:
-      - main
     paths:
       - "prql-python/**"
-      - ".github/workflows/python.yaml"
+      - ".github/workflows/test-python.yaml"
   workflow_call:
 
 concurrency:

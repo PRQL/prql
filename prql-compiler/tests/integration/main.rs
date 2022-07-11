@@ -1,13 +1,16 @@
-fn main() {}
+// Re-enable on windows when duckdb supports it
+// https://github.com/wangfenjin/duckdb-rs/issues/62
+#![cfg(not(any(target_family = "windows", target_family = "wasm")))]
 
 #[cfg(test)]
 mod tests {
-    use std::fs;
+    use std::{fs, path::Path};
 
     use insta::{assert_snapshot, glob};
 
     #[test]
     fn test() {
+        // TODO: we could have a trait rather than mods for each of these?
         let mut pg_client = postgres::connect();
         let duckdb_conn = duckdb::connect();
         let sqlite_conn = sqlite::connect();
@@ -34,15 +37,30 @@ mod tests {
         });
     }
 
+    /// Return a path relative to the root `integration` path.
+    fn path(relative_path: &str) -> String {
+        // Insired by insta's approach to finding a file in a test path.
+        let root = env!("CARGO_MANIFEST_DIR");
+        Path::new(root)
+            .join("tests/integration")
+            .join(relative_path)
+            .canonicalize()
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .to_owned()
+    }
+
     fn load_schema() -> String {
-        fs::read_to_string("chinook/schema.sql").unwrap()
+        fs::read_to_string(path("data/chinook/schema.sql")).unwrap()
     }
 
     mod sqlite {
+        use super::path;
         use rusqlite::{types::ValueRef, Connection};
 
         pub fn connect() -> Connection {
-            Connection::open("chinook.db").unwrap()
+            Connection::open(path("data/chinook/chinook.db")).unwrap()
         }
 
         pub fn query_csv(conn: &Connection, sql: &str) -> String {
@@ -80,27 +98,29 @@ mod tests {
         use duckdb::{types::FromSql, types::ValueRef, Connection};
 
         use super::load_schema;
+        use super::path;
 
         pub fn connect() -> Connection {
             let conn = Connection::open_in_memory().unwrap();
             let schema = load_schema();
             conn.execute_batch(&schema).unwrap();
-            conn.execute_batch(
-                &r"
-                COPY invoices FROM 'chinook/invoices.csv' (AUTO_DETECT TRUE);
-                COPY customers FROM 'chinook/customers.csv' (AUTO_DETECT TRUE);
-                COPY employees FROM 'chinook/employees.csv' (AUTO_DETECT TRUE);
-                COPY tracks FROM 'chinook/tracks.csv' (AUTO_DETECT TRUE);
-                COPY albums FROM 'chinook/albums.csv' (AUTO_DETECT TRUE);
-                COPY genres FROM 'chinook/genres.csv' (AUTO_DETECT TRUE);
-                COPY playlist_track FROM 'chinook/playlist_track.csv' (AUTO_DETECT TRUE);
-                COPY playlists FROM 'chinook/playlists.csv' (AUTO_DETECT TRUE);
-                COPY media_types FROM 'chinook/media_types.csv' (AUTO_DETECT TRUE);
-                COPY artists FROM 'chinook/artists.csv' (AUTO_DETECT TRUE);
-                COPY invoice_items FROM 'chinook/invoice_items.csv' (AUTO_DETECT TRUE);
-            ",
-            )
-            .unwrap();
+            let root = path("");
+            conn.execute_batch(format!(
+                "
+                COPY invoices FROM '{root}/data/chinook/invoices.csv' (AUTO_DETECT TRUE);
+                COPY customers FROM '{root}/data/chinook/customers.csv' (AUTO_DETECT TRUE);
+                COPY employees FROM '{root}/data/chinook/employees.csv' (AUTO_DETECT TRUE);
+                COPY tracks FROM '{root}/data/chinook/tracks.csv' (AUTO_DETECT TRUE);
+                COPY albums FROM '{root}/data/chinook/albums.csv' (AUTO_DETECT TRUE);
+                COPY genres FROM '{root}/data/chinook/genres.csv' (AUTO_DETECT TRUE);
+                COPY playlist_track FROM '{root}/data/chinook/playlist_track.csv' (AUTO_DETECT TRUE);
+                COPY playlists FROM '{root}/data/chinook/playlists.csv' (AUTO_DETECT TRUE);
+                COPY media_types FROM '{root}/data/chinook/media_types.csv' (AUTO_DETECT TRUE);
+                COPY artists FROM '{root}/data/chinook/artists.csv' (AUTO_DETECT TRUE);
+                COPY invoice_items FROM '{root}/data/chinook/invoice_items.csv' (AUTO_DETECT TRUE);
+            ")
+            .as_str()).unwrap();
+
             conn
         }
 
@@ -112,8 +132,6 @@ mod tests {
 
             let csv_header = statement.column_names().join(",");
             let column_count = statement.column_count();
-
-            // let rows = statement
 
             let csv_rows = statement
                 .query_map([], |row| {

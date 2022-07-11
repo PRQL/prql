@@ -1,5 +1,5 @@
-# Workflow to check that the `task setup-dev` workflow is still working.
-name: setup-dev
+# Workflow to check that the workflows in Taskfile pass.
+name: taskfile
 
 on:
   push:
@@ -9,15 +9,14 @@ on:
     types: [opened, reopened, synchronize, labeled]
     paths:
       - Taskfile.yml
+      - .github/workflows/test-taskfile.yaml
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  # Only run ubuntu on pull-requests, since it's fastest. Run Mac & Windows only
-  # on `main` or a `ci-run-all-tests` label.
-  test-setup-dev:
+  test-taskfile:
     runs-on: macos-latest
     steps:
       - name: 📂 Checkout code
@@ -29,3 +28,5 @@ jobs:
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - run: task setup-dev
+      # This also encompases `build-all`
+      - run: task test-all

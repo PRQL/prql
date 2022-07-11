@@ -1,10 +1,8 @@
-name: publish
+name: publish-gh-pages
 on:
   push:
     branches:
       - main
-    tags:
-      - "*"
   # Called by pull-request when specifically requested
   workflow_call:
 
