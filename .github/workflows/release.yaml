@@ -83,17 +83,17 @@ jobs:
         working-directory: prql-js/
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-#      - name: Bump npm version
-#        run: npm version patch
-#        working-directory: prql-js/
-#
-#      - name: Commit version bump
-#        run: |
-#          git config user.name github-actions
-#          git config user.email github-actions@github.com
-#          git add prql-js/package.json
-#          git commit -m "Bump NPM version"
-#          git push
+  #      - name: Bump npm version
+  #        run: npm version patch
+  #        working-directory: prql-js/
+  #
+  #      - name: Commit version bump
+  #        run: |
+  #          git config user.name github-actions
+  #          git config user.email github-actions@github.com
+  #          git add prql-js/package.json
+  #          git commit -m "Bump NPM version"
+  #          git push
 
   publish-prql-java:
     runs-on: ubuntu-latest
