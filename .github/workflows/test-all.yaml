@@ -26,8 +26,6 @@ jobs:
             target: "wasm32-unknown-unknown"
             target_option: "--target=wasm32-unknown-unknown"
     steps:
-      - name: 📂 Checkout code
-        uses: actions/checkout@v3
       - uses: ./.github/actions/cargo-test
         with:
           target: ${{ matrix.target }}
@@ -46,7 +44,7 @@ jobs:
       - name: Run cargo-tarpaulin
         uses: actions-rs/tarpaulin@v0.1
         with:
-          # TODO: move this exclude to a config file.
+          # TODO: move this exclusion to a config file.
           args: "--workspace --exclude prql-python -- --test-threads 1"
       - name: Upload to codecov.io
         uses: codecov/codecov-action@v3
