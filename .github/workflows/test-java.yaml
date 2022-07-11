@@ -14,7 +14,7 @@ jobs:
   junit-test:
     strategy:
       matrix:
-        os: [ubuntu-latest, macOS-latest]
+        os: [ubuntu-latest, macos-latest]
     runs-on: ${{matrix.os}}
     steps:
       - name: Checkout code
@@ -25,6 +25,9 @@ jobs:
           toolchain: stable
           override: true
           default: true
+      # Java test is simple enough that it's not worth splitting out into a
+      # separate action. These three lines is copied to test-java, which runs on
+      # each merge.
       - name: Maven test
         working-directory: prql-java/java/
         run: ./mvnw test
