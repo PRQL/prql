@@ -1,6 +1,7 @@
+// https://github.com/rustwasm/wasm-bindgen/pull/2984
+// (and we can't name the exclusion because it only becomes present in 1.62)
+#![allow(clippy::all)]
 #![allow(clippy::unused_unit)]
-// Seems to be a wasm_bindgen problem (but need to look into it)
-#![allow(clippy::drop_non_drop)]
 mod utils;
 
 use prql_compiler::format_error;
