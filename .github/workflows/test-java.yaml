@@ -1,4 +1,4 @@
-name: java
+name: test-java
 
 on:
   push:
@@ -11,7 +11,7 @@ on:
   workflow_call:
 
 jobs:
-  junit-test:
+  test-java:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
