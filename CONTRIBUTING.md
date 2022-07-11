@@ -194,20 +194,20 @@ raise an issue.
 
 [^3]: For example, this is a command I frequently run:
 
-  ```sh
-  RUST_BACKTRACE=1 watchexec -e rs,toml,pest,md -cr -- cargo insta test --accept -- -p prql-compiler --lib
-  ```
+```sh
+RUST_BACKTRACE=1 watchexec -e rs,toml,pest,md -cr -- cargo insta test --accept -- -p prql-compiler --lib
+```
 
-  Breaking this down:
+Breaking this down:
 
 - `RUST_BACKTRACE=1` will print a full backtrace, including where an error
-    value was created, for rust tests which return `Result`s.
+  value was created, for rust tests which return `Result`s.
 - `watchexec -e rs,toml,pest,md -cr --` will run the subsequent command on any
-    change to files with extensions which we are generally editing[^1].
+  change to files with extensions which we are generally editing[^1].
 - `cargo insta test --accept --` runs tests with `insta`, a snapshot library, and
-    writes any results immediately. I rely on git to track changes, so I run
-    with `--accept`, but YMMV.
+  writes any results immediately. I rely on git to track changes, so I run
+  with `--accept`, but YMMV.
 - `-p prql-compiler --lib` is passed to cargo by `insta`; `-p prql-compiler`
-    tells it to only run the tests for `prql-compiler` rather than the other
-    crates, and `--lib` to only run the unit tests rather than the integration
-    tests, which are much slower.
+  tells it to only run the tests for `prql-compiler` rather than the other
+  crates, and `--lib` to only run the unit tests rather than the integration
+  tests, which are much slower.
