@@ -123,8 +123,8 @@ broader tests which ensure that we don't miss anything as PRQL develops[^2].
 
 Our tests:
 
-- **Static checks** — we run a few static checks to ensure the code stays healthy
-  and consistent. They're defined in
+- **[Static checks](.pre-commit-config.yaml)** — we run a few static checks to
+  ensure the code stays healthy and consistent. They're defined in
   [**`.pre-commit-config.yaml`**](.pre-commit-config.yaml), using
   [pre-commit](https://pre-commit.com). They can be run locally with
 
@@ -133,40 +133,49 @@ Our tests:
   ```
 
   The tests fix most of the issues they find themselves. Most of them also run
-  in CI; any changes they make are added onto the branch automatically in an
-  additional commit.
+  on GitHub on every commit; any changes they make are added onto the branch
+  automatically in an additional commit.
 
 - **Unit tests & inline insta snapshots** — like most projects, we rely on
   unit tests to test that our code basically works. We extensively use
   [Insta](https://insta.rs/), a snapshot testing tool which writes out the
   results of an expression in our code, making it faster to write and modify
-  tests.[^4]
+  tests[^4].
+
   These are the fastest tests which run our code; they're designed to run on
   every save while you're developing. (While they're covered by `task test-all`,
   you'll generally want to have lower-latency tests running in a tight loop.).[^3]
 
-- **Integration tests** — these run tests against real databases, to ensure we're
-  producing correct SQL.
+- **[Integration
+  tests](https://github.com/prql/prql/blob/main/prql-compiler/tests/integration/README.md)**
+  — these run tests against real databases, to ensure we're producing correct
+  SQL.
 
-- **Examples** — we compile all examples in the PRQL Book, to test that they
-  produce the SQL we expect, and that changes to our code don't cause any
-  unexpected regressions.
+- **[Examples](https://github.com/prql/prql/blob/main/book/tests/snapshot.rs)**
+  — we compile all examples in the PRQL Book, to test that they produce the SQL
+  we expect, and that changes to our code don't cause any unexpected
+  regressions.
 
-- **GitHub Actions on every commit** — we run tests on `prql-compiler` for
-  standard & wasm targets, and the examples in the book on every pull request
-  every time a commit is pushed. These are designed to run in under one minute,
-  and we should be reassessing their scope if they grow beyond that. Once these
-  pass, a pull request can be merged.
+- **[GitHub Actions on every
+  commit](https://github.com/prql/prql/blob/main/.github/workflows/pull-request.yaml)**
+  — we run tests on `prql-compiler` for standard & wasm targets, and the
+  examples in the book on every pull request every time a commit is pushed.
+  These are designed to run in under one minute, and we should be reassessing
+  their scope if they grow beyond that. Once these pass, a pull request can be
+  merged.
 
   All tests up to this point can be run with `task test-all` locally.
 
-- **GitHub Actions on specific changes** — we run additional tests on pull
-  requests when we identify changes to some paths, such as bindings to other
-  languages.
+- **[GitHub Actions on specific
+  changes](https://github.com/prql/prql/blob/main/.github/workflows/test-all.yaml)**
+  — we run additional tests on pull requests when we identify changes to some
+  paths, such as bindings to other languages.
 
-- **GitHub Actions on merge** — we run many more tests on every merge to main.
-  This includes testing across OSs, all our language bindings, our `task` tasks,
-  a measure of test code coverage, and some performance benchmarks.
+- **[GitHub Actions on
+  merge](https://github.com/prql/prql/tree/main/.github/workflows)** — we run
+  many more tests on every merge to main. This includes testing across OSs, all
+  our language bindings, our `task` tasks, a measure of test code coverage, and
+  some performance benchmarks.
 
   We can run these tests before a merge by adding a label `pr-test-all` to the
   PR.
