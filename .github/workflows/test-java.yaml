@@ -11,7 +11,7 @@ on:
   workflow_call:
 
 jobs:
-  test-java:
+  test:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
