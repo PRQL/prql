@@ -175,9 +175,10 @@ Our tests:
 - **GitHub Actions on every commit** — we run tests on `prql-compiler` for
   standard & wasm targets, and the examples in the book on every pull request
   every time a commit is pushed. These are designed to run in under one minute,
-  and we should be reassessing their scope if they grow beyond that.
+  and we should be reassessing their scope if they grow beyond that. Once these
+  pass, a pull request can be merged.
 
-  Everything up to this point is covered by running `task test-all` locally.
+  All tests up to this point can be run with `task test-all` locally.
 
 - **GitHub Actions on specific changes** — we run additional tests on pull
   requests when we identify changes to some paths, such as bindings to other
