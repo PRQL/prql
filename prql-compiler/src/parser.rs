@@ -222,11 +222,10 @@ fn ast_of_parse_pair(pair: Pair<Rule>) -> Result<Option<Node>> {
         }
         Rule::ident | Rule::jinja => {
             let inner = pair.as_str();
-            let stripped = if inner.starts_with('`') && inner.ends_with('`') {
-                &inner[1..inner.len() - 1]
-            } else {
-                inner
-            };
+            let stripped = inner
+                .strip_prefix('`')
+                .and_then(|s| s.strip_suffix('`'))
+                .unwrap_or(inner);
             Item::Ident(stripped.to_string())
         }
 

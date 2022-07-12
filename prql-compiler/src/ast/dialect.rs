@@ -31,6 +31,7 @@ impl Dialect {
         match self {
             Dialect::MsSql => Box::new(MsSqlDialect),
             Dialect::MySql => Box::new(MySqlDialect),
+            Dialect::BigQuery => Box::new(BigQueryDialect),
             _ => Box::new(GenericDialect),
         }
     }
@@ -44,8 +45,8 @@ impl Default for Dialect {
 
 pub struct GenericDialect;
 pub struct MySqlDialect;
-
 pub struct MsSqlDialect;
+pub struct BigQueryDialect;
 
 pub trait DialectHandler {
     fn use_top(&self) -> bool {
@@ -67,6 +68,12 @@ impl DialectHandler for MsSqlDialect {
 }
 
 impl DialectHandler for MySqlDialect {
+    fn ident_quote(&self) -> char {
+        '`'
+    }
+}
+
+impl DialectHandler for BigQueryDialect {
     fn ident_quote(&self) -> char {
         '`'
     }

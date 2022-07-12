@@ -84,11 +84,11 @@ pub fn translate_query(query: Query, context: Context) -> Result<sql_ast::Query>
     // convert each of the CTEs
     let ctes: Vec<_> = ctes
         .into_iter()
-        .map(|t| table_to_sql_cte(t, &dialect))
+        .map(|t| table_to_sql_cte(t, dialect.as_ref()))
         .try_collect()?;
 
     // convert main query
-    let mut main_query = sql_query_of_atomic_table(main_query, &dialect)?;
+    let mut main_query = sql_query_of_atomic_table(main_query, dialect.as_ref())?;
 
     // attach CTEs
     if !ctes.is_empty() {
@@ -122,7 +122,7 @@ fn into_tables(nodes: Vec<Node>) -> Result<Vec<Table>> {
     Ok([tables, vec![transforms.into()]].concat())
 }
 
-fn table_to_sql_cte(table: AtomicTable, dialect: &Box<dyn DialectHandler>) -> Result<sql_ast::Cte> {
+fn table_to_sql_cte(table: AtomicTable, dialect: &dyn DialectHandler) -> Result<sql_ast::Cte> {
     let alias = sql_ast::TableAlias {
         name: translate_ident(table.name.clone().unwrap().name, dialect),
         columns: vec![],
@@ -136,7 +136,7 @@ fn table_to_sql_cte(table: AtomicTable, dialect: &Box<dyn DialectHandler>) -> Re
 
 fn table_factor_of_table_ref(
     table_ref: &TableRef,
-    dialect: &Box<dyn DialectHandler>,
+    dialect: &dyn DialectHandler,
 ) -> TableFactor {
     TableFactor::Table {
         name: ObjectName(vec![translate_ident(table_ref.name.clone(), dialect)]),
@@ -153,7 +153,7 @@ fn table_factor_of_table_ref(
 // fn sql_query_of_atomic_table(table: AtomicTable, dialect: &Dialect) -> Result<sql_ast::Query> {
 fn sql_query_of_atomic_table(
     table: AtomicTable,
-    dialect: &Box<dyn DialectHandler>,
+    dialect: &dyn DialectHandler,
 ) -> Result<sql_ast::Query> {
     let frame = table.frame.ok_or_else(|| anyhow!("frame not provided?"))?;
 
@@ -417,7 +417,7 @@ fn range_of_ranges(ranges: Vec<Range>) -> Result<Range<i64>> {
 
 fn filter_of_pipeline(
     pipeline: &[Transform],
-    dialect: &Box<dyn DialectHandler>,
+    dialect: &dyn DialectHandler,
 ) -> Result<Option<Expr>> {
     let filters: Vec<Node> = pipeline
         .iter()
@@ -431,7 +431,7 @@ fn filter_of_pipeline(
 
 fn filter_of_filters(
     conditions: Vec<Node>,
-    dialect: &Box<dyn DialectHandler>,
+    dialect: &dyn DialectHandler,
 ) -> Result<Option<Expr>> {
     let mut condition = None;
     for filter in conditions {
@@ -458,14 +458,14 @@ fn expr_of_i64(number: i64) -> Expr {
     ))
 }
 
-fn top_of_i64(take: i64, dialect: &Box<dyn DialectHandler>) -> Top {
+fn top_of_i64(take: i64, dialect: &dyn DialectHandler) -> Top {
     Top {
         quantity: Some(translate_item(Item::Literal(Literal::Integer(take)), dialect).unwrap()),
         with_ties: false,
         percent: false,
     }
 }
-fn try_into_exprs(nodes: Vec<Node>, dialect: &Box<dyn DialectHandler>) -> Result<Vec<Expr>> {
+fn try_into_exprs(nodes: Vec<Node>, dialect: &dyn DialectHandler) -> Result<Vec<Expr>> {
     nodes
         .into_iter()
         .map(|x| x.item)
@@ -473,7 +473,7 @@ fn try_into_exprs(nodes: Vec<Node>, dialect: &Box<dyn DialectHandler>) -> Result
         .try_collect()
 }
 
-fn translate_select_item(item: Item, dialect: &Box<dyn DialectHandler>) -> Result<SelectItem> {
+fn translate_select_item(item: Item, dialect: &dyn DialectHandler) -> Result<SelectItem> {
     Ok(match item {
         Item::Binary { .. }
         | Item::Unary { .. }
@@ -490,7 +490,7 @@ fn translate_select_item(item: Item, dialect: &Box<dyn DialectHandler>) -> Resul
     })
 }
 
-fn translate_item(item: Item, dialect: &Box<dyn DialectHandler>) -> Result<Expr> {
+fn translate_item(item: Item, dialect: &dyn DialectHandler) -> Result<Expr> {
     Ok(match item {
         Item::Ident(ident) => Expr::CompoundIdentifier(
             ident
@@ -650,7 +650,7 @@ fn try_into_is_null(
     op: &BinOp,
     a: &Node,
     b: &Node,
-    dialect: &Box<dyn DialectHandler>,
+    dialect: &dyn DialectHandler,
 ) -> Result<Option<Expr>> {
     if matches!(op, BinOp::Eq) || matches!(op, BinOp::Ne) {
         let expr = if matches!(a.item, Item::Literal(Literal::Null)) {
@@ -702,7 +702,7 @@ fn try_into_window_frame((kind, range): (WindowKind, Range)) -> Result<sql_ast::
 // resolved and materialized and would be passed to here. But that has little advantage over current approach.
 // After some time when we know that current approach is good, this impl can be removed.
 #[allow(dead_code)]
-fn translate_func_call(func_call: FuncCall, dialect: &Box<dyn DialectHandler>) -> Result<Function> {
+fn translate_func_call(func_call: FuncCall, dialect: &dyn DialectHandler) -> Result<Function> {
     let FuncCall { name, args, .. } = func_call;
 
     Ok(Function {
@@ -718,7 +718,7 @@ fn translate_func_call(func_call: FuncCall, dialect: &Box<dyn DialectHandler>) -
 }
 fn translate_column_sort(
     sort: ColumnSort,
-    dialect: &Box<dyn DialectHandler>,
+    dialect: &dyn DialectHandler,
 ) -> Result<OrderByExpr> {
     Ok(OrderByExpr {
         expr: translate_item(sort.column.item, dialect)?,
@@ -731,7 +731,7 @@ fn translate_column_sort(
     })
 }
 
-fn translate_join(t: &Transform, dialect: &Box<dyn DialectHandler>) -> Result<Join> {
+fn translate_join(t: &Transform, dialect: &dyn DialectHandler) -> Result<Join> {
     match t {
         Transform::Join { side, with, filter } => {
             let constraint = match filter {
@@ -761,7 +761,7 @@ fn translate_join(t: &Transform, dialect: &Box<dyn DialectHandler>) -> Result<Jo
     }
 }
 
-fn translate_ident(ident: String, dialect: &Box<dyn DialectHandler>) -> sql_ast::Ident {
+fn translate_ident(ident: String, dialect: &dyn DialectHandler) -> sql_ast::Ident {
     fn starting_forbidden(c: char) -> bool {
         !(('a'..='z').contains(&c) || matches!(c, '_' | '$'))
     }
@@ -951,7 +951,7 @@ mod test {
         - String: )
         ",
         )?;
-        let expr: Expr = translate_item(ast.item, &dialect)?;
+        let expr: Expr = translate_item(ast.item, dialect.as_ref())?;
         assert_yaml_snapshot!(
             expr, @r###"
         ---
