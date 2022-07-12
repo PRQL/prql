@@ -134,10 +134,7 @@ fn table_to_sql_cte(table: AtomicTable, dialect: &dyn DialectHandler) -> Result<
     })
 }
 
-fn table_factor_of_table_ref(
-    table_ref: &TableRef,
-    dialect: &dyn DialectHandler,
-) -> TableFactor {
+fn table_factor_of_table_ref(table_ref: &TableRef, dialect: &dyn DialectHandler) -> TableFactor {
     TableFactor::Table {
         name: ObjectName(vec![translate_ident(table_ref.name.clone(), dialect)]),
         alias: table_ref.alias.clone().map(|a| TableAlias {
@@ -429,10 +426,7 @@ fn filter_of_pipeline(
     filter_of_filters(filters, dialect)
 }
 
-fn filter_of_filters(
-    conditions: Vec<Node>,
-    dialect: &dyn DialectHandler,
-) -> Result<Option<Expr>> {
+fn filter_of_filters(conditions: Vec<Node>, dialect: &dyn DialectHandler) -> Result<Option<Expr>> {
     let mut condition = None;
     for filter in conditions {
         if let Some(left) = condition {
@@ -716,10 +710,7 @@ fn translate_func_call(func_call: FuncCall, dialect: &dyn DialectHandler) -> Res
         distinct: false,
     })
 }
-fn translate_column_sort(
-    sort: ColumnSort,
-    dialect: &dyn DialectHandler,
-) -> Result<OrderByExpr> {
+fn translate_column_sort(sort: ColumnSort, dialect: &dyn DialectHandler) -> Result<OrderByExpr> {
     Ok(OrderByExpr {
         expr: translate_item(sort.column.item, dialect)?,
         asc: if matches!(sort.direction, SortDirection::Asc) {

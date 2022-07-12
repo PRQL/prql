@@ -58,8 +58,7 @@ pub trait DialectHandler {
     }
 }
 
-impl DialectHandler for GenericDialect {
-}
+impl DialectHandler for GenericDialect {}
 
 impl DialectHandler for MsSqlDialect {
     fn use_top(&self) -> bool {
