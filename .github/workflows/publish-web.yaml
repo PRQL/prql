@@ -29,7 +29,7 @@ jobs:
       - uses: baptiste0928/cargo-install@v1
         with:
           crate: mdbook-admonish
-          version: "1.7.0"  
+          version: "1.7.0"
 
       # Playground setup
       - uses: jetli/wasm-bindgen-action@v0.1.0
