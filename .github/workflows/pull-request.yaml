@@ -56,14 +56,10 @@ jobs:
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v1
       - uses: peaceiris/actions-mdbook@v1
-      - uses: actions-rs/install@v0.1
+      - uses: baptiste0928/cargo-install@v1
         with:
           crate: mdbook-admonish
-          # This seems to not allow this to be installed from cache, which then
-          # takes 3.5min to install...
-          #
-          # version: 1.7.0
-          use-tool-cache: true
+          version: "1.7.0"
       - name: 🔨 Build
         run: mdbook build
         working-directory: book/
