@@ -26,11 +26,10 @@ jobs:
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v1
       - uses: peaceiris/actions-mdbook@v1
-      - uses: actions-rs/install@v0.1
+      - uses: baptiste0928/cargo-install@v1
         with:
           crate: mdbook-admonish
-          version: 1.7.0
-          use-tool-cache: true
+          version: "1.7.0"  
 
       # Playground setup
       - uses: jetli/wasm-bindgen-action@v0.1.0
@@ -46,7 +45,7 @@ jobs:
       - name: 🕷️ Build website
         run: task build-web
 
-      - name: 🚢 Deploy
+      - name: 🖨️ Publish
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
