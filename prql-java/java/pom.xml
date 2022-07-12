@@ -21,17 +21,8 @@
 
     <developers>
         <developer>
-            <name>Aljaž Mur Eržen</name>
-            <email>TODO</email>
-            <url>https://aljaz.murerzen.eu/</url>
-        </developer>
-        <developer>
-            <name>Maximilian Roos</name>
-            <email>TODO</email>
-        </developer>
-        <developer>
-            <name>Charlie Sanders</name>
-            <email>TODO</email>
+            <name>PRQL Developers</name>
+            <url>prql@prql-lang.org</url>
         </developer>
     </developers>
 
