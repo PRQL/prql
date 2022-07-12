@@ -220,7 +220,14 @@ fn ast_of_parse_pair(pair: Pair<Rule>) -> Result<Option<Node>> {
                 pipeline: Box::new(pipeline),
             })
         }
-        Rule::ident | Rule::jinja => Item::Ident(pair.as_str().to_string()),
+        Rule::ident | Rule::jinja => {
+            let inner = pair.as_str();
+            let stripped = inner
+                .strip_prefix('`')
+                .and_then(|s| s.strip_suffix('`'))
+                .unwrap_or(inner);
+            Item::Ident(stripped.to_string())
+        }
 
         Rule::number => {
             let str = pair.as_str();
@@ -1469,7 +1476,7 @@ join `my-proj`.`dataset`.`table`
                 - FuncCall:
                     name: from
                     args:
-                      - Ident: "`a`"
+                      - Ident: a
                     named_args: {}
                 - FuncCall:
                     name: aggregate
@@ -1484,12 +1491,12 @@ join `my-proj`.`dataset`.`table`
                 - FuncCall:
                     name: join
                     args:
-                      - Ident: "`my-proj.dataset.table`"
+                      - Ident: my-proj.dataset.table
                     named_args: {}
                 - FuncCall:
                     name: join
                     args:
-                      - Ident: "`my-proj`.`dataset`.`table`"
+                      - Ident: "my-proj`.`dataset`.`table"
                     named_args: {}
         "###);
 

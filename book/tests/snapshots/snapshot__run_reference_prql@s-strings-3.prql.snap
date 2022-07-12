@@ -4,9 +4,9 @@ expression: sql
 input_file: book/tests/prql/language-features/s-strings-3.prql
 ---
 SELECT
-  `project-foo.dataset.table`.*,
-  `project-bar`.`dataset`.`table`.*,
+  "project-foo".dataset.table.*,
+  "project-bar".dataset.table.*,
   col_bax
 FROM
-  `project-foo.dataset.table`
-  JOIN `project-bar`.`dataset`.`table` USING(col_bax)
+  "project-foo.dataset.table"
+  JOIN "project-bar.dataset.table" USING(col_bax)
