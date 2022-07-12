@@ -27,7 +27,7 @@ if [ "$KERNEL_NAME" = 'Linux' ]; then
   else
     target='libprql_java-linux32.so'
   fi
-  cp -f ../target/release/libprql_java.so java/src/main/resources/${target}
+  cp -f ../target/release/libprql_java.so java/src/test/resources/${target}
 elif [ "$KERNEL_NAME" = 'Darwin' ]; then
   if [ "$ARCH" = 'arm64' ] || [ "$ARCH" = 'aarch64' ]; then
     target='libprql_java-osx-arm64.dylib'
@@ -37,7 +37,7 @@ elif [ "$KERNEL_NAME" = 'Darwin' ]; then
     echo [ERROR] have not support $ARCH:$$KERNEL_NAME yet
     exit 1
   fi
-  cp -f ../target/release/libprql_java.dylib java/src/main/resources/${target}
+  cp -f ../target/release/libprql_java.dylib java/src/test/resources/${target}
 fi
 
 ls -la ./java/src/main/resources

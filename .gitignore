@@ -9,5 +9,3 @@ dist
 .idea
 
 target/
-
-**/libprql_java*
