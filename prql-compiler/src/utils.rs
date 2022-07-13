@@ -1,8 +1,8 @@
 use anyhow::{anyhow, Result};
 use itertools::{Itertools, Position};
 
-use crate::error::{Error, Reason};
 use crate::ast::Node;
+use crate::error::{Error, Reason};
 
 // Inspired by version in sqlparser-rs; I'm surprised there isn't a version in
 // the stdlib / Itertools.
