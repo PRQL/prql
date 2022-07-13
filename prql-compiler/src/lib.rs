@@ -1,4 +1,4 @@
-mod ast;
+pub mod ast;
 #[cfg(feature = "cli")]
 mod cli;
 mod error;
@@ -38,17 +38,6 @@ pub fn format(prql: &str) -> Result<String> {
 /// Compile a PRQL string into a JSON version of the Query.
 pub fn to_json(prql: &str) -> Result<String> {
     Ok(serde_json::to_string(&parse(prql)?)?)
-}
-
-/// Exposes some library internals.
-///
-/// They are primarily exposed for documentation. There may be issues with using
-/// the exported items without items they rely on — feel free to request
-/// associated items be made public if required.
-pub mod internals {
-    pub use crate::ast::ast_fold::AstFold;
-    pub use crate::ast::Node;
-    pub use crate::utils::{IntoOnly, Only};
 }
 
 #[cfg(test)]

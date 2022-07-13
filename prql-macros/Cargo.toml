@@ -1,0 +1,11 @@
+[package]
+name = "prql-macros"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+proc_macro = true
+
+[dependencies]
+syn = "1.0"
+prql-compiler = { path = "../prql-compiler" }
