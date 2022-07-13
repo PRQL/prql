@@ -1,6 +1,7 @@
 [workspace]
 members = [
   "prql-compiler",
+  "prql-macros",
   "prql-java",
   "prql-js",
   "prql-python",
