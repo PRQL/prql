@@ -57,7 +57,7 @@ walkdir = "2.3.2"
 # For integration tests
 [target.'cfg(not(target_family="wasm"))'.dev-dependencies]
 postgres = "0.19.3"
-rusqlite = {version = "0.27.0", features = ["bundled", "csvtab"]}
+rusqlite = {version = "0.28.0", features = ["bundled", "csvtab"]}
 
 # Re-enable on windows when duckdb supports it
 # https://github.com/wangfenjin/duckdb-rs/issues/62
