@@ -108,9 +108,9 @@ class Workbench extends React.Component {
 
       window.setTimeout(() => {
         this.setState({ justCopied: false });
-      }, 2000)
+      }, 2000);
     } catch (e) {
-      console.error(e)
+      console.error(e);
     }
   }
 
