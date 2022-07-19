@@ -336,6 +336,7 @@ integrations_section:
 bindings_section:
   enable: true
   title: "Bindings"
+  section_id: "bindings"
   sections:
     - link: https://pypi.org/project/prql-python
       label: "prql-python"

@@ -1,5 +1,8 @@
 {{ if .enable }}
-  <section class="content-section cards-section">
+  <section
+    class="content-section cards-section"
+    {{ if .section_id }}id="{{ .section_id }}"{{ end }}
+  >
     <div class="container">
       <div class="row content">
         <div class="section-title">

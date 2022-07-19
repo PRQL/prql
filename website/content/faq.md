@@ -17,7 +17,7 @@ integrations:
   output to a dataframe.
 
 Beyond these two integrations, it's very easy to add PRQL to your own apps with
-our bindings, for Rust, Python & JS.
+our [bindings](/#bindings) for Rust, Python & JS.
 
 ## Something here reminds me of another project, did you take the idea from them?
 
