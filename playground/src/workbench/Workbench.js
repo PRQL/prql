@@ -23,6 +23,7 @@ class Workbench extends React.Component {
     filename: "input.prql",
     sql: "",
     prql: "",
+    justCopied: false,
   };
 
   loadFile(filename, content) {
@@ -97,6 +98,22 @@ class Workbench extends React.Component {
     }
   }
 
+  async copyOutput() {
+    const blob = new Blob([this.state.sql], { type: "text/plain" });
+    const data = [new window.ClipboardItem({ [blob.type]: blob })];
+    try {
+      await navigator.clipboard.write(data);
+
+      this.setState({ justCopied: true });
+
+      window.setTimeout(() => {
+        this.setState({ justCopied: false });
+      }, 2000);
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
   render() {
     return (
       <div className="column">
@@ -126,7 +143,13 @@ class Workbench extends React.Component {
           </div>
 
           <div className="tab">
-            <div className="tab-title">output.sql</div>
+            <div className="tab-top">
+              <div className="tab-title">output.sql</div>
+              <div className="spacer"></div>
+              <button onClick={() => this.copyOutput()}>
+                {this.state.justCopied ? "Copied!" : "Copy to clipboard"}
+              </button>
+            </div>
 
             <SyntaxHighlighter language="sql" useInlineStyles={false}>
               {this.state.sql}
