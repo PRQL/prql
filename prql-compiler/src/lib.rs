@@ -60,12 +60,12 @@ mod test {
         Ok(())
     }
 
-
     #[test]
     fn test_from_json() -> Result<()> {
         // Test that the SQL generated from the JSON of the PRQL is the same as the raw PRQL
-        let original_prql = "from employees|take 10";
+        let original_prql = "from employees | take 10";
         let sql_from_prql = compile(original_prql)?;
+
         let json = to_json(original_prql)?;
         let prql_from_json = from_json(&json)?;
         let sql_from_json = compile(&prql_from_json)?;
