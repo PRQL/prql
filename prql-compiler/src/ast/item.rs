@@ -299,7 +299,15 @@ impl Display for Item {
                     write!(f, " {name}: {}", arg.item)?;
                 }
                 for arg in &func_call.args {
-                    write!(f, " {}", arg.item)?;
+                    match arg.item {
+                        Item::FuncCall(_) => {
+                            write!(f, " ( {} )", arg.item)?;
+                        }
+
+                        _ => {
+                            write!(f, " {}", arg.item)?;
+                        }
+                    }
                 }
             }
             Item::SString(parts) => {
@@ -312,7 +320,7 @@ impl Display for Item {
                 write!(f, "{}{}", i.n, i.unit)?;
             }
             Item::Windowed(w) => {
-                write!(f, "{:?}", w.expr)?;
+                write!(f, "{}", w.expr.item)?;
             }
             Item::Type(typ) => {
                 f.write_char('<')?;
@@ -320,7 +328,7 @@ impl Display for Item {
                 f.write_char('>')?;
             }
             Item::Literal(literal) => {
-                write!(f, "{:?}", literal)?;
+                write!(f, "{}", literal)?;
             }
         }
         Ok(())
