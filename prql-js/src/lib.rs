@@ -99,6 +99,12 @@ pub fn to_json(s: &str) -> Option<String> {
     return_or_throw_error(result)
 }
 
+#[wasm_bindgen]
+pub fn from_json(s: &str) -> Option<String> {
+    let result = prql_compiler::from_json(s).map_err(|e| format_error(e, "", s, false));
+    return_or_throw_error(result)
+}
+
 fn return_or_throw_error(
     result: Result<String, (String, Option<prql_compiler::SourceLocation>)>,
 ) -> Option<String> {
