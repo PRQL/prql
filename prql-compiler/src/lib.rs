@@ -40,7 +40,7 @@ pub fn to_json(prql: &str) -> Result<String> {
     Ok(serde_json::to_string(&parse(prql)?)?)
 }
 
-// Convert JSON AST back to PRQL string
+/// Convert JSON AST back to PRQL string
 pub fn from_json(json: &str) -> Result<String> {
     Ok(display(serde_json::from_str(json)?))
 }
