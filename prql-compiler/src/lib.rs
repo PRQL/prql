@@ -63,7 +63,28 @@ mod test {
     #[test]
     fn test_from_json() -> Result<()> {
         // Test that the SQL generated from the JSON of the PRQL is the same as the raw PRQL
-        let original_prql = "from employees | take 10";
+        let original_prql = r#"from employees
+join salaries [emp_no]
+group [emp_no, gender] (
+  aggregate [
+    emp_salary = average salary
+  ]
+)
+join de=dept_emp [emp_no]
+join dm=dept_manager [
+  (dm.dept_no == de.dept_no) and s"(de.from_date, de.to_date) OVERLAPS (dm.from_date, dm.to_date)"
+]
+group [dm.emp_no, gender] (
+  aggregate [
+    salary_avg = average emp_salary,
+    salary_sd = stddev emp_salary
+  ]
+)
+derive mng_no = dm.emp_no
+join managers=employees [emp_no]
+derive mng_name = s"managers.first_name || ' ' || managers.last_name"
+select [mng_name, managers.gender, salary_avg, salary_sd]"#;
+
         let sql_from_prql = compile(original_prql)?;
 
         let json = to_json(original_prql)?;
