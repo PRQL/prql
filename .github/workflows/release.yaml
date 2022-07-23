@@ -79,7 +79,7 @@ jobs:
           registry-url: "https://registry.npmjs.org"
 
       - name: Run prql tests for node
-        run: npm i && npm test
+        run: npm i && npm run 
         working-directory: prql-js/tests/
 
 
