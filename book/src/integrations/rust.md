@@ -11,7 +11,8 @@ cargo add prql-compiler
 ## Usage
 
 `cargo run`
-####src/main.rs:
+
+#### src/main.rs:
 
 ```rust
 use prql_compiler::compile;
