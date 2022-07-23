@@ -206,16 +206,29 @@ impl Display for Item {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Item::Ident(s) => {
-                f.write_str(s)?;
+                write!(f, "`{s}`")?;
             }
             Item::Assign(ne) => {
-                write!(f, "{} = {}", ne.name, ne.expr.item)?;
+                match ne.expr.item {
+                    Item::FuncCall(_) => {
+                        write!(f, "{} = ({})", ne.name, ne.expr.item)?;
+                    }
+
+                    _ => {
+                        write!(f, "{} = {}", ne.name, ne.expr.item)?;
+                    }
+                };
             }
             Item::NamedArg(ne) => {
                 write!(f, "{}:{}", ne.name, ne.expr.item)?;
             }
             Item::Query(query) => {
-                write!(f, "prql dialect: {}\n\n", query.dialect)?;
+                write!(f, "prql dialect:{}", query.dialect)?;
+                match query.version {
+                    Some(version) => write!(f, " version:{}", version)?,
+                    None => {}
+                };
+                write!(f, "\n\n")?;
 
                 for node in &query.nodes {
                     match &node.item {
@@ -223,8 +236,9 @@ impl Display for Item {
                             for node in &p.nodes {
                                 writeln!(f, "{}", node.item)?;
                             }
+                            f.write_char('\n')?;
                         }
-                        _ => write!(f, "{}", node.item)?,
+                        _ => writeln!(f, "{}\n", node.item)?,
                     }
                 }
             }
@@ -258,10 +272,22 @@ impl Display for Item {
                 for arg in &func_def.named_params {
                     write!(f, " {}", arg.0.item)?;
                 }
-                write!(f, " = {}\n\n", func_def.body.item)?;
+                write!(f, " -> {}\n\n", func_def.body.item)?;
             }
             Item::Table(table) => {
-                write!(f, "table {} = {}\n\n", table.name, table.pipeline.item)?;
+                match table.pipeline.item {
+                    Item::FuncCall(_) => {
+                        write!(
+                            f,
+                            "table {} = (\n  {}\n)\n\n",
+                            table.name, table.pipeline.item
+                        )?;
+                    }
+
+                    _ => {
+                        write!(f, "table {} = {}\n\n", table.name, table.pipeline.item)?;
+                    }
+                };
             }
             Item::List(nodes) => {
                 if nodes.is_empty() {
@@ -286,10 +312,18 @@ impl Display for Item {
                 }
             }
             Item::Binary { op, left, right } => {
-                write!(f, "{} {op} {}", left.item, right.item)?;
+                match left.item {
+                    Item::FuncCall(_) => write!(f, "( {} )", left.item)?,
+                    _ => write!(f, "{}", left.item)?,
+                };
+                write!(f, " {op} ")?;
+                match right.item {
+                    Item::FuncCall(_) => write!(f, "( {} )", right.item)?,
+                    _ => write!(f, "{}", right.item)?,
+                };
             }
             Item::Unary { op, expr } => match op {
-                UnOp::Neg => write!(f, "!{}", expr.item)?,
+                UnOp::Neg => write!(f, "-{}", expr.item)?,
                 UnOp::Not => write!(f, "not {}", expr.item)?,
             },
             Item::FuncCall(func_call) => {
@@ -301,7 +335,9 @@ impl Display for Item {
                 for arg in &func_call.args {
                     match arg.item {
                         Item::FuncCall(_) => {
-                            write!(f, " ( {} )", arg.item)?;
+                            writeln!(f, " (")?;
+                            writeln!(f, "  {}", arg.item)?;
+                            f.write_char(')')?;
                         }
 
                         _ => {
