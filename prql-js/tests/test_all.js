@@ -1,6 +1,6 @@
-const assert = require('assert');
-const expect = require('chai').expect
-const prql = require('../dist/node');
+const assert = require("assert");
+const expect = require("chai").expect;
+const prql = require("../dist/node");
 const print = console.log;
 const employee_prql = `from employees
 join salaries [emp_no]
@@ -24,42 +24,43 @@ join managers=employees [emp_no]
 derive mng_name = s"managers.first_name || ' ' || managers.last_name"
 select [mng_name, managers.gender, salary_avg, salary_sd]`;
 
-
-describe('prql-js', () => {
-    describe('to_sql', () => {
-        it('should return valid sql from valid prql', () => {
-            const sql = prql.to_sql(employee_prql);
-            assert(sql.trim().toLowerCase().startsWith('with')
-                || sql.trim().toLowerCase().startsWith('select'));
-        });
-
-
-        it('should throw an error on invalid prql', () => {
-            expect(() => prql.to_sql('Mississippi has four S’s and four I’s.')).to.throw('Error')
-        });
+describe("prql-js", () => {
+  describe("to_sql", () => {
+    it("should return valid sql from valid prql", () => {
+      const sql = prql.to_sql(employee_prql);
+      assert(
+        sql.trim().toLowerCase().startsWith("with") ||
+          sql.trim().toLowerCase().startsWith("select")
+      );
     });
 
-    describe('compile', () => {
-        it('should return valid compile result for compile', () => {
-            const res = prql.compile(employee_prql);
-            expect(res.error).to.be.undefined;
-        });
+    it("should throw an error on invalid prql", () => {
+      expect(() =>
+        prql.to_sql("Mississippi has four S’s and four I’s.")
+      ).to.throw("Error");
+    });
+  });
 
-        it('should return  compile result with errors for compile', () => {
-            const res = prql.compile('Can you spell that without using S or I?');
-            expect(res.error).to.not.be.null;
-        });
+  describe("compile", () => {
+    it("should return valid compile result for compile", () => {
+      const res = prql.compile(employee_prql);
+      expect(res.error).to.be.undefined;
     });
 
-    describe('to_json', () => {
-        it('should return valid json  from valid prql', () => {
-            const js = JSON.parse(prql.to_json(employee_prql));
-            assert.equal(js.nodes.length, 1);
-        });
+    it("should return  compile result with errors for compile", () => {
+      const res = prql.compile("Can you spell that without using S or I?");
+      expect(res.error).to.not.be.null;
+    });
+  });
 
-        it('should throw an error on invalid prql', () => {
-            expect( () => prql.to_json('Answer: T-H-A-T!'))
-        });
+  describe("to_json", () => {
+    it("should return valid json  from valid prql", () => {
+      const js = JSON.parse(prql.to_json(employee_prql));
+      assert.equal(js.nodes.length, 1);
     });
 
+    it("should throw an error on invalid prql", () => {
+      expect(() => prql.to_json("Answer: T-H-A-T!"));
+    });
+  });
 });
