@@ -1,5 +1,5 @@
 {
-  "description": "Javascripttests for prql-compiler",
+  "description": "Javascript tests for prql-js",
   "files": [
     "package.json"
   ],
