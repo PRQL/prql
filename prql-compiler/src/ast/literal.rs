@@ -27,12 +27,39 @@ impl From<Literal> for anyhow::Error {
 impl Display for Literal {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Literal::Null => {}
+            Literal::Null => write!(f, "null")?,
             Literal::Integer(i) => write!(f, "{i}")?,
             Literal::Float(i) => write!(f, "{i}")?,
 
             Literal::String(s) => {
-                write!(f, "\"{s}\"")?;
+                match s.find('"') {
+                    Some(_) => {
+                        match s.find('\'') {
+                            Some(_) => {
+                                let mut min_quote = 3;
+                                // find minimum number of double quotes when string contains
+                                // both single and double quotes
+                                loop {
+                                    let stop = s
+                                        .find(&"\"".repeat(min_quote))
+                                        .map(|_| s.contains(&"\"".repeat(min_quote + 1)))
+                                        .unwrap_or(true);
+                                    if stop {
+                                        break;
+                                    } else {
+                                        min_quote += 1;
+                                    }
+                                }
+                                let quotes = "\"".repeat(min_quote);
+                                write!(f, "{quotes}{s}{quotes}")?;
+                            }
+
+                            None => write!(f, "'{s}'")?,
+                        };
+                    }
+
+                    None => write!(f, "\"{s}\"")?,
+                };
             }
 
             Literal::Boolean(b) => {
