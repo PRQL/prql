@@ -32,9 +32,9 @@ impl Display for Literal {
             Literal::Float(i) => write!(f, "{i}")?,
 
             Literal::String(s) => {
-                match s.find("\"") {
+                match s.find('"') {
                     Some(_) => {
-                        match s.find("'") {
+                        match s.find('\'') {
                             Some(_) => {
                                 let mut min_quote = 3;
                                 // find minimum number of double quotes when string contains
