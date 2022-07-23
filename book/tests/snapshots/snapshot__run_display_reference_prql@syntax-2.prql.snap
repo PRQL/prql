@@ -1,0 +1,21 @@
+---
+source: book/tests/snapshot.rs
+expression: "Item::Query(parse(&prql).unwrap())"
+input_file: book/tests/prql/queries/syntax-2.prql
+---
+prql dialect:generic
+
+derive [
+  x = 1,
+  y = 2,
+]
+derive [
+  a = `x`,
+  b = `y`,
+]
+derive [
+  c = `a`,
+  d = `b`,
+]
+
+

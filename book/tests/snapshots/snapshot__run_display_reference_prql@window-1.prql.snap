@@ -1,0 +1,20 @@
+---
+source: book/tests/snapshot.rs
+expression: "Item::Query(parse(&prql).unwrap())"
+input_file: book/tests/prql/transforms/window-1.prql
+---
+prql dialect:generic
+
+from `orders`
+sort `day`
+window rows:-3..3 (
+  derive [centered_weekly_average = (average `value`)]
+)
+group [`order_month`] (
+  sort `day`
+  window expanding:true (
+  derive [monthly_running_total = (sum `value`)]
+)
+)
+
+
