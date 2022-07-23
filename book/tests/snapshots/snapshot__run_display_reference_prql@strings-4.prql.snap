@@ -1,0 +1,8 @@
+---
+source: book/tests/snapshot.rs
+expression: "Item::Query(parse(&prql).unwrap())"
+input_file: book/tests/prql/language-features/strings-4.prql
+---
+prql dialect: generic
+
+derive x = "I said """hello world"""!"

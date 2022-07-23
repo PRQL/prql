@@ -1,0 +1,10 @@
+---
+source: book/tests/snapshot.rs
+expression: "Item::Query(parse(&prql).unwrap())"
+input_file: book/tests/prql/examples/misc-1.prql
+---
+prql dialect: generic
+
+from club_ratings
+filter rating != 
+group year ( derive [rating_norm = rating - average rating / stddev rating] )

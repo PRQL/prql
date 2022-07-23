@@ -1,0 +1,11 @@
+---
+source: book/tests/snapshot.rs
+expression: "Item::Query(parse(&prql).unwrap())"
+input_file: book/tests/prql/transforms/group-1.prql
+---
+prql dialect: generic
+
+from employees
+sort join_date
+take 1
+

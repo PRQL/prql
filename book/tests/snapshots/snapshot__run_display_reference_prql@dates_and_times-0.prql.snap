@@ -1,0 +1,10 @@
+---
+source: book/tests/snapshot.rs
+expression: "Item::Query(parse(&prql).unwrap())"
+input_file: book/tests/prql/language-features/dates_and_times-0.prql
+---
+prql dialect: generic
+
+from employees
+derive age_at_year_end = @2022-12-31 - dob
+
