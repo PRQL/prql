@@ -1,0 +1,20 @@
+{
+  "description": "Javascript tests for prql-js",
+  "files": [
+    "package.json"
+  ],
+  "license": "Apache-2.0",
+  "name": "prql-js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/prql/prql"
+  },
+  "scripts": {
+    "test": "mocha ."
+  },
+  "version": "0.2.2",
+  "dependencies": {
+    "chai": "^4.3.6",
+    "mocha": "^10.0.0"
+  }
+}
