@@ -3,8 +3,9 @@ source: book/tests/snapshot.rs
 expression: "Item::Query(parse(&prql).unwrap())"
 input_file: book/tests/prql/transforms/join-2.prql
 ---
-prql dialect: generic
+prql dialect:generic
 
-from employees
-join side:left p = positions [id == employee_id]
+from `employees`
+join side:`left` p = `positions` [`id` == `employee_id`]
+
 

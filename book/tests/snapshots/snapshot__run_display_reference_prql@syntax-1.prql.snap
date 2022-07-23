@@ -3,12 +3,13 @@ source: book/tests/snapshot.rs
 expression: "Item::Query(parse(&prql).unwrap())"
 input_file: book/tests/prql/queries/syntax-1.prql
 ---
-prql dialect: generic
+prql dialect:generic
 
-from employees
-filter department == "Product"
+from `employees`
+filter `department` == "Product"
 select [
-  first_name,
-  last_name,
+  `first_name`,
+  `last_name`,
 ]
+
 

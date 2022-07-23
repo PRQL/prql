@@ -3,16 +3,21 @@ source: book/tests/snapshot.rs
 expression: "Item::Query(parse(&prql).unwrap())"
 input_file: book/tests/prql/queries/functions-4.prql
 ---
-prql dialect: generic
+prql dialect:generic
 
-func celsius_of_fahrenheit temp = temp - 32 * 3
+func celsius_of_fahrenheit `temp` -> `temp` - 32 * 3
 
-func interp higher x lower:0 = x - lower / higher - lower
 
-from kettles
+
+func interp `higher` `x` lower:0 -> `x` - `lower` / `higher` - `lower`
+
+
+
+from `kettles`
 derive boiling_proportion = (
-  temp_c
-  celsius_of_fahrenheit
+  `temp_c`
+  `celsius_of_fahrenheit`
   interp 100
 )
+
 

@@ -3,11 +3,12 @@ source: book/tests/snapshot.rs
 expression: "Item::Query(parse(&prql).unwrap())"
 input_file: book/tests/prql/language-features/distinct-2.prql
 ---
-prql dialect: generic
+prql dialect:generic
 
-from employees
-group department (
-  sort age
+from `employees`
+group `department` (
+  sort `age`
   take 1
 )
+
 

@@ -3,8 +3,9 @@ source: book/tests/snapshot.rs
 expression: "Item::Query(parse(&prql).unwrap())"
 input_file: book/tests/prql/queries/syntax-4.prql
 ---
-prql dialect: generic
+prql dialect:generic
 
-from employees
-select first_name
+from `employees`
+select `first_name`
+
 

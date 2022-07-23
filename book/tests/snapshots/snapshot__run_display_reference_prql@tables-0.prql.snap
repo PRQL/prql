@@ -3,13 +3,19 @@ source: book/tests/snapshot.rs
 expression: "Item::Query(parse(&prql).unwrap())"
 input_file: book/tests/prql/queries/tables-0.prql
 ---
-prql dialect: generic
+prql dialect:generic
 
 table top_50 = (
-  from employees
-  sort salary
+  from `employees`
+  sort `salary`
   take 50
-  aggregate ( sum salary )
+  aggregate (
+  sum `salary`
+)
 )
 
-from another_table
+
+
+from `another_table`
+
+

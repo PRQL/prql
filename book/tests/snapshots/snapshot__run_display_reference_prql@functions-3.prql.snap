@@ -3,13 +3,16 @@ source: book/tests/snapshot.rs
 expression: "Item::Query(parse(&prql).unwrap())"
 input_file: book/tests/prql/queries/functions-3.prql
 ---
-prql dialect: generic
+prql dialect:generic
 
-func celsius_of_fahrenheit temp = temp - 32 * 3
+func celsius_of_fahrenheit `temp` -> `temp` - 32 * 3
 
-from cities
+
+
+from `cities`
 derive temp_c = (
-  temp_f
-  celsius_of_fahrenheit
+  `temp_f`
+  `celsius_of_fahrenheit`
 )
+
 
