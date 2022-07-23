@@ -80,7 +80,7 @@ jobs:
 
       - name: Run prql tests for node
         run: npm i && npm test
-        working-directory: prql-js/
+        working-directory: prql-js/tests/
 
       - name: Publish package on npm
         run: npm publish
