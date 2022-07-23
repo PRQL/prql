@@ -42,7 +42,7 @@ impl Display for Literal {
                                 loop {
                                     let stop = s
                                         .find(&"\"".repeat(min_quote))
-                                        .map(|_| s.find(&"\"".repeat(min_quote + 1)).is_some())
+                                        .map(|_| s.contains(&"\"".repeat(min_quote + 1)))
                                         .unwrap_or(true);
                                     if stop {
                                         break;
