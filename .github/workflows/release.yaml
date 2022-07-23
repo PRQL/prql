@@ -82,7 +82,6 @@ jobs:
         run: npm i && npm run test
         working-directory: prql-js/tests/
 
-
       - name: Publish package on npm
         run: npm publish
         working-directory: prql-js/
