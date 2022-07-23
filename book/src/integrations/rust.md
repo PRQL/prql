@@ -5,7 +5,7 @@
 ```
 cargo new myproject
 cd myproject
-cargo install prql-compiler
+cargo add prql-compiler
 ```
 
 ## Usage
