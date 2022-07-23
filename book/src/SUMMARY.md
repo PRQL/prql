@@ -33,13 +33,15 @@
   - [Strings](./language-features/strings.md)
 
 - [Stdlib](./stdlib.md)
+- [Bindings](./bindings/README.md)
+  - [Java](./bindings/java.md)
+  - [JavaScript](./bindings/javascript.md)
+  - [Python](./bindings/python.md)
+  - [Rust](./bindings/rust.md)
 - [Integrations](./integrations/README.md)
-
   - [dbt](./integrations/dbt.md)
   - [Jupyter](./integrations/jupyter.md)
   - [Prefect](./integrations/prefect.md)
-  - [Python](./integrations/python.md)
-  - [Rust](./integrations/rust.md)
   - [VSCode]()
   - [Rill]()
 
