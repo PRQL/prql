@@ -16,7 +16,7 @@ FROM
   employees
 WHERE
   country = 'USA'
-  AND salary + payroll_tax + benefits_cost > 0
+  AND (salary + payroll_tax + benefits_cost) > 0
 GROUP BY
   title,
   country

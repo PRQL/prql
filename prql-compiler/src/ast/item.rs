@@ -70,6 +70,29 @@ pub enum BinOp {
     Coalesce,
 }
 
+impl BinOp {
+    pub fn strength(&self) -> i32 {
+        // TODO: complete these
+        match self {
+            BinOp::Mod => 11,
+            BinOp::Mul => 10,
+            BinOp::Div => 10,
+            BinOp::Sub => 9,
+            BinOp::Add => 9,
+            _ => 20,
+        }
+    }
+}
+impl Item {
+    pub(crate) fn strength(&self) -> i32 {
+        // TODO: Do we need to include these for more than BinOps?
+        match self {
+            Item::Binary { op, .. } => op.strength(),
+            _ => 20,
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize, strum::EnumString)]
 pub enum UnOp {
     #[strum(to_string = "-")]

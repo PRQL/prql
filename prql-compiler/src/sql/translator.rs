@@ -491,11 +491,22 @@ fn translate_item(item: Item, dialect: &dyn DialectHandler) -> Result<Expr> {
 
         // do we need to surround operations with parentheses?
         Item::Binary { op, left, right } => {
+            let use_left_parentheses = left.item.strength() < op.strength();
+            let use_right_parentheses = right.item.strength() < op.strength();
+
             if let Some(is_null) = try_into_is_null(&op, &left, &right, dialect)? {
                 is_null
             } else {
+                let translated_left = translate_item(left.item, dialect)?;
+                let translated_right = translate_item(right.item, dialect)?;
                 Expr::BinaryOp {
-                    left: Box::new(translate_item(left.item, dialect)?),
+                    left: Box::new({
+                        if use_left_parentheses {
+                            Expr::Nested(Box::new(translated_left))
+                        } else {
+                            translated_left
+                        }
+                    }),
                     op: match op {
                         BinOp::Mul => BinaryOperator::Multiply,
                         BinOp::Div => BinaryOperator::Divide,
@@ -512,7 +523,13 @@ fn translate_item(item: Item, dialect: &dyn DialectHandler) -> Result<Expr> {
                         BinOp::Or => BinaryOperator::Or,
                         BinOp::Coalesce => unreachable!(),
                     },
-                    right: Box::new(translate_item(right.item, dialect)?),
+                    right: Box::new({
+                        if use_right_parentheses {
+                            Expr::Nested(Box::new(translated_right))
+                        } else {
+                            translated_right
+                        }
+                    }),
                 }
             }
         }
@@ -2221,6 +2238,26 @@ take 20
         FROM
           {{ ref('stg_orders') }}
         "###);
+    }
+
+    #[test]
+    fn test_precedence() -> Result<()> {
+        assert_display_snapshot!((resolve_and_translate(parse(r###"
+        from x
+        derive [
+          n = a + b,
+          r = a/n,
+        ]
+        select temp_c = (temp - 32) * 3
+        "###,
+        ).unwrap()).unwrap()), @r###"
+        SELECT
+          (temp - 32) * 3 AS temp_c
+        FROM
+          x
+        "###);
+
+        Ok(())
     }
 
     #[test]
