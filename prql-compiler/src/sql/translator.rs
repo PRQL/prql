@@ -767,10 +767,10 @@ fn translate_ident(ident: String, dialect: &dyn DialectHandler) -> Vec<sql_ast::
 }
 
 fn translate_ident_part(ident: String, dialect: &dyn DialectHandler) -> sql_ast::Ident {
+    // TODO: can probably represent these with a single regex
     fn starting_forbidden(c: char) -> bool {
         !(('a'..='z').contains(&c) || matches!(c, '_' | '$'))
     }
-
     fn subsequent_forbidden(c: char) -> bool {
         !(('a'..='z').contains(&c) || ('0'..='9').contains(&c) || matches!(c, '_' | '$'))
     }
