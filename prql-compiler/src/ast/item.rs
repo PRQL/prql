@@ -70,6 +70,31 @@ pub enum BinOp {
     Coalesce,
 }
 
+impl BinOp {
+    pub fn strength(&self) -> i32 {
+        // Is there some canonical reference for these? I'm guessing we want to
+        // copy SQL for them. At the moment it's just me guessing.
+        match self {
+            BinOp::Coalesce => 15,
+            BinOp::Mod => 11,
+            BinOp::Mul | BinOp::Div => 10,
+            BinOp::Sub | BinOp::Add => 9,
+            BinOp::Gt | BinOp::Lt | BinOp::Gte | BinOp::Lte => 5,
+            BinOp::Eq | BinOp::Ne => 4,
+            BinOp::And | BinOp::Or => 3,
+        }
+    }
+}
+impl Item {
+    pub(crate) fn strength(&self) -> i32 {
+        // TODO: Do we need to include these for more than BinOps?
+        match self {
+            Item::Binary { op, .. } => op.strength(),
+            _ => 20,
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize, strum::EnumString)]
 pub enum UnOp {
     #[strum(to_string = "-")]
