@@ -108,3 +108,20 @@ from employees  # Comment 1
 # Comment 2
 aggregate [average salary]
 ```
+
+## Backticks
+
+To use identifiers that are otherwise invalid, surround them with backticks.
+Depending on the dialect, these will remain as backticks or be converted to double-quotes
+
+```prql
+prql dialect:bigquery
+from `project-foo.dataset.table`
+join `project-bar.dataset.table` [col_bax]
+```
+
+```prql
+prql dialect:postgres
+from employees
+select `first name`
+```
