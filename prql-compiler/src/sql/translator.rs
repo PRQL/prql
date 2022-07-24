@@ -478,7 +478,7 @@ fn translate_select_item(item: Item, dialect: &dyn DialectHandler) -> Result<Sel
         | Item::Literal(_)
         | Item::Windowed(_) => SelectItem::UnnamedExpr(translate_item(item, dialect)?),
         Item::Assign(named) => SelectItem::ExprWithAlias {
-            alias: sql_ast::Ident::new(named.name),
+            alias: translate_ident_part(named.name, dialect),
             expr: translate_item(named.expr.item, dialect)?,
         },
         _ => bail!("Can't convert to SelectItem; {:?}", item),
@@ -780,7 +780,7 @@ fn translate_ident_part(ident: String, dialect: &dyn DialectHandler) -> sql_ast:
     if !is_asterisk
         && (ident.is_empty()
             || ident.starts_with(starting_forbidden)
-            || (ident.len() > 1 && ident.contains(subsequent_forbidden)))
+            || (ident.chars().count() > 1 && ident.contains(subsequent_forbidden)))
     {
         sql_ast::Ident::with_quote(dialect.ident_quote(), ident)
     } else {
@@ -1501,7 +1501,7 @@ take 20
         assert_display_snapshot!((resolve_and_translate(query)?), @r###"
         SELECT
           "anim""ls".*,
-          "BeeName" AS čebela,
+          "BeeName" AS "čebela",
           "bear's_name" AS medved
         FROM
           "anim""ls"
@@ -1520,7 +1520,7 @@ take 20
         assert_display_snapshot!((resolve_and_translate(query)?), @r###"
         SELECT
           `anim"ls`.*,
-          `BeeName` AS čebela,
+          `BeeName` AS `čebela`,
           `bear's_name` AS medved
         FROM
           `anim"ls`
