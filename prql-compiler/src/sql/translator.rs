@@ -2250,7 +2250,7 @@ take 20
         ]
         select temp_c = (temp - 32) * 3
         "###,
-        ).unwrap()).unwrap()), @r###"
+        )?)?), @r###"
         SELECT
           (temp - 32) * 3 AS temp_c
         FROM
