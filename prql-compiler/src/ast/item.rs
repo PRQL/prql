@@ -72,14 +72,16 @@ pub enum BinOp {
 
 impl BinOp {
     pub fn strength(&self) -> i32 {
-        // TODO: complete these
+        // Is there some canonical reference for these? I'm guessing we want to
+        // copy SQL for them. At the moment it's just me guessing.
         match self {
+            BinOp::Coalesce => 15,
             BinOp::Mod => 11,
-            BinOp::Mul => 10,
-            BinOp::Div => 10,
-            BinOp::Sub => 9,
-            BinOp::Add => 9,
-            _ => 20,
+            BinOp::Mul | BinOp::Div => 10,
+            BinOp::Sub | BinOp::Add => 9,
+            BinOp::Gt | BinOp::Lt | BinOp::Gte | BinOp::Lte => 5,
+            BinOp::Eq | BinOp::Ne => 4,
+            BinOp::And | BinOp::Or => 3,
         }
     }
 }
