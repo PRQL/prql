@@ -10,6 +10,9 @@ additional-js = ["highlight-prql.js"]
 git-repository-url = "https://github.com/prql/prql"
 
 [preprocessor.prql]
+# This is required because mdbook-prql isn't necessarily installed; maybe
+# there's a better way.
+command = "cargo run --bin mdbook-prql"
 
 [preprocessor.admonish]
 assets_version = "2.0.0" # do not edit: managed by `mdbook-admonish install`
