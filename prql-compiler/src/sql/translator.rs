@@ -24,6 +24,7 @@ use crate::ast::*;
 use crate::error::{Error, Reason};
 use crate::semantic::Context;
 use crate::utils::OrMap;
+use crate::utils::*;
 
 use super::materializer::MaterializationContext;
 use super::{distinct, un_group, MaterializedFrame};
@@ -124,7 +125,7 @@ fn into_tables(nodes: Vec<Node>) -> Result<Vec<Table>> {
 
 fn table_to_sql_cte(table: AtomicTable, dialect: &dyn DialectHandler) -> Result<sql_ast::Cte> {
     let alias = sql_ast::TableAlias {
-        name: translate_ident(table.name.clone().unwrap().name, dialect),
+        name: sql_ast::Ident::new(table.name.clone().unwrap().name),
         columns: vec![],
     };
     Ok(sql_ast::Cte {
@@ -136,9 +137,9 @@ fn table_to_sql_cte(table: AtomicTable, dialect: &dyn DialectHandler) -> Result<
 
 fn table_factor_of_table_ref(table_ref: &TableRef, dialect: &dyn DialectHandler) -> TableFactor {
     TableFactor::Table {
-        name: ObjectName(vec![translate_ident(table_ref.name.clone(), dialect)]),
+        name: sql_ast::ObjectName(translate_ident(table_ref.name.clone(), dialect)),
         alias: table_ref.alias.clone().map(|a| TableAlias {
-            name: translate_ident(a, dialect),
+            name: sql_ast::Ident::new(a),
             columns: vec![],
         }),
         args: None,
@@ -477,7 +478,7 @@ fn translate_select_item(item: Item, dialect: &dyn DialectHandler) -> Result<Sel
         | Item::Literal(_)
         | Item::Windowed(_) => SelectItem::UnnamedExpr(translate_item(item, dialect)?),
         Item::Assign(named) => SelectItem::ExprWithAlias {
-            alias: translate_ident(named.name, dialect),
+            alias: sql_ast::Ident::new(named.name),
             expr: translate_item(named.expr.item, dialect)?,
         },
         _ => bail!("Can't convert to SelectItem; {:?}", item),
@@ -486,12 +487,7 @@ fn translate_select_item(item: Item, dialect: &dyn DialectHandler) -> Result<Sel
 
 fn translate_item(item: Item, dialect: &dyn DialectHandler) -> Result<Expr> {
     Ok(match item {
-        Item::Ident(ident) => Expr::CompoundIdentifier(
-            ident
-                .split('.')
-                .map(|part| translate_ident(part.to_string(), dialect))
-                .collect(),
-        ),
+        Item::Ident(ident) => Expr::CompoundIdentifier(translate_ident(ident, dialect)),
 
         // do we need to surround operations with parentheses?
         Item::Binary { op, left, right } => {
@@ -733,7 +729,7 @@ fn translate_join(t: &Transform, dialect: &dyn DialectHandler) -> Result<Join> {
                 JoinFilter::Using(nodes) => JoinConstraint::Using(
                     nodes
                         .iter()
-                        .map(|x| Ok(translate_ident(x.item.clone().into_ident()?, dialect)))
+                        .map(|x| translate_ident(x.item.clone().into_ident()?, dialect).into_only())
                         .collect::<Result<Vec<_>>>()?,
                 ),
             };
@@ -752,7 +748,25 @@ fn translate_join(t: &Transform, dialect: &dyn DialectHandler) -> Result<Join> {
     }
 }
 
-fn translate_ident(ident: String, dialect: &dyn DialectHandler) -> sql_ast::Ident {
+/// Translate an PRQL Ident to a Vec of SQL Idents.
+// We return a vec of SQL Idents because sqlparser sometimes uses
+// [ObjectName](sql_ast::ObjectName) and sometimes uses
+// [Expr::CompoundIdentifier](sql_ast::Expr::CompoundIdentifier), each of which
+// are `Vec<Ident>`.
+fn translate_ident(ident: String, dialect: &dyn DialectHandler) -> Vec<sql_ast::Ident> {
+    let is_jinja = ident.starts_with("{{") && ident.ends_with("}}");
+
+    if !is_jinja {
+        ident
+            .split('.')
+            .map(|x| translate_ident_part(x.to_string(), dialect))
+            .collect()
+    } else {
+        vec![sql_ast::Ident::new(ident)]
+    }
+}
+
+fn translate_ident_part(ident: String, dialect: &dyn DialectHandler) -> sql_ast::Ident {
     fn starting_forbidden(c: char) -> bool {
         !(('a'..='z').contains(&c) || matches!(c, '_' | '$'))
     }
@@ -761,11 +775,9 @@ fn translate_ident(ident: String, dialect: &dyn DialectHandler) -> sql_ast::Iden
         !(('a'..='z').contains(&c) || ('0'..='9').contains(&c) || matches!(c, '_' | '$'))
     }
 
-    let is_jinja = ident.starts_with("{{") && ident.ends_with("}}");
     let is_asterisk = ident == "*";
 
-    if !is_jinja
-        && !is_asterisk
+    if !is_asterisk
         && (ident.is_empty()
             || ident.starts_with(starting_forbidden)
             || (ident.len() > 1 && ident.contains(subsequent_forbidden)))
@@ -1489,7 +1501,7 @@ take 20
         assert_display_snapshot!((resolve_and_translate(query)?), @r###"
         SELECT
           "anim""ls".*,
-          "BeeName" AS "čebela",
+          "BeeName" AS čebela,
           "bear's_name" AS medved
         FROM
           "anim""ls"
@@ -1508,7 +1520,7 @@ take 20
         assert_display_snapshot!((resolve_and_translate(query)?), @r###"
         SELECT
           `anim"ls`.*,
-          `BeeName` AS `čebela`,
+          `BeeName` AS čebela,
           `bear's_name` AS medved
         FROM
           `anim"ls`
@@ -2223,5 +2235,51 @@ take 20
         FROM
           employees
         "###);
+    }
+
+    #[test]
+    fn test_quoting() -> Result<()> {
+        // GH-#822
+        assert_display_snapshot!((resolve_and_translate(parse(r###"
+prql dialect:postgres
+from some_schema.tablename
+        "###,
+        )?)?), @r###"
+        SELECT
+          some_schema.tablename.*
+        FROM
+          some_schema.tablename
+        "###);
+
+        assert_display_snapshot!((resolve_and_translate(parse(r###"
+prql dialect:bigquery
+from db.schema.table
+join `db.schema.table2` [id]
+join `db.schema.t-able` [id]
+        "###,
+        )?)?), @r###"
+        SELECT
+          db.schema.table.*,
+          db.schema.table2.*,
+          db.schema.`t-able`.*,
+          id
+        FROM
+          db.schema.table
+          JOIN db.schema.table2 USING(id)
+          JOIN db.schema.`t-able` USING(id)
+        "###);
+
+        assert_display_snapshot!((resolve_and_translate(parse(r###"
+from table
+select `first name`
+        "###,
+        )?)?), @r###"
+        SELECT
+          "first name"
+        FROM
+          table
+        "###);
+
+        Ok(())
     }
 }
