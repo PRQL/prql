@@ -25,7 +25,7 @@ runs:
     - name: 💰 Cache
       id: cache
       uses: Swatinem/rust-cache@v1
-      if: ${{ inputs.use_cache }}
+      if: ${{ inputs.use_cache == true }}
     - name: 🏭 Compile
       uses: actions-rs/cargo@v1
       with:
@@ -33,6 +33,7 @@ runs:
         args: --timings=html -Z unstable-options
     - run: |
         echo ${{ inputs.use_cache }}
+        echo ${{ inputs.use_cache == 'true' }}
         echo ${{ steps.cache.outputs.cache-hit }}
       shell: bash
     - uses: actions/upload-artifact@v3
