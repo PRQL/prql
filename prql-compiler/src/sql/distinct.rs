@@ -83,8 +83,8 @@ impl<'a> DistinctMaker<'a> {
         let decl = Declaration::Expression(Box::new(Item::Windowed(windowed).into()));
         let row_number_id = self.context.declarations.push(decl, None);
 
-        // name it _rn
-        let mut ident = Node::from(Item::Ident("_rn".to_string()));
+        // name it _rn_X where X is the row_number_id
+        let mut ident = Node::from(Item::Ident(format!("_rn_{}", row_number_id)));
         ident.declared_at = Some(row_number_id);
 
         // add the two transforms
