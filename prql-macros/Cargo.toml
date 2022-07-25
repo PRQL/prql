@@ -1,11 +1,17 @@
 [package]
-name = "prql-macros"
-version = "0.1.0"
 edition = "2021"
+name = "prql-macros"
+publish = false
+version = "0.2.2"
 
 [lib]
 proc_macro = true
 
 [dependencies]
+prql-compiler = {path = "../prql-compiler"}
 syn = "1.0"
-prql-compiler = { path = "../prql-compiler" }
+
+[package.metadata.release]
+shared-version = true
+tag-name = "{{version}}"
+tag-prefix = ""
