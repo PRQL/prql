@@ -58,7 +58,7 @@ jobs:
       - working-directory: prql-java/java/
         run: ./mvnw test
 
-  code-cov:
+  measure-code-cov:
     runs-on: ubuntu-latest
     # Currently this runs `cargo clean` which makes the run taking 4 min. TODO:
     # see whether `skip_clean` is reliable and then add this job to every
