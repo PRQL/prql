@@ -86,9 +86,6 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
-      # We run with a cache generally, since that's the default mode
-      - name: 💰 Cache
-        uses: Swatinem/rust-cache@v1
+      - uses: ./.github/actions/time-compilation
         with:
           use_cache: true
-      - uses: ./.github/actions/time-compilation
