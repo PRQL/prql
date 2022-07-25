@@ -157,7 +157,7 @@ Our tests:
   regressions.
 
 - **[GitHub Actions on every
-  commit](https://github.com/prql/prql/blob/main/.github/workflows/pull-request.yaml?raw=true)**
+  commit](https://github.com/prql/prql/blob/main/.github/workflows/pull-request.yaml)**
   — we run tests on `prql-compiler` for standard & wasm targets, and the
   examples in the book on every pull request every time a commit is pushed.
   These are designed to run in under one minute, and we should be reassessing
@@ -167,7 +167,7 @@ Our tests:
   All tests up to this point can be run with `task test-all` locally.
 
 - **[GitHub Actions on specific
-  changes](https://github.com/prql/prql/blob/main/.github/workflows/test-all.yaml?raw=true)**
+  changes](https://github.com/prql/prql/blob/main/.github/workflows/test-all.yaml)**
   — we run additional tests on pull requests when we identify changes to some
   paths, such as bindings to other languages.
 
