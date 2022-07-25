@@ -22,7 +22,8 @@ runs:
         toolchain: nightly
         override: true
         default: true
-    - name: cache
+    - name: 💰 Cache
+      id: cache
       uses: Swatinem/rust-cache@v1
       if: ${{ inputs.use_cache }}
     - name: 🏭 Compile
