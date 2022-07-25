@@ -20,16 +20,20 @@ vars:
     rust-lang.rust-analyzer
 
 tasks:
-  install-dev-tools:
-    cmds:
-      - echo "\`install-dev-tools\` is renamed to \`setup-dev\` and will be removed soon."
-      - task: setup-dev
-
   setup-dev:
     desc: Install tools for PRQL development.
     cmds:
       # `--locked` installs from the underlying lock files (which is not the default?!)
-      - cargo install --locked cargo-audit cargo-insta default-target mdbook mdbook-admonish mdbook-toc wasm-bindgen-cli wasm-pack
+      - cargo install --locked
+        cargo-audit
+        cargo-insta
+        cargo-release
+        default-target
+        mdbook
+        mdbook-admonish
+        mdbook-toc
+        wasm-bindgen-cli
+        wasm-pack
       - rustup target add wasm32-unknown-unknown
       - python3 -m pip install -U maturin
       - task: install-pre-commit
