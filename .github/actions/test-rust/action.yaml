@@ -29,11 +29,13 @@ runs:
         # tests, though in the docs it says it uses the target as the key?
         key: ${{ inputs.target }}
     - uses: jetli/wasm-bindgen-action@v0.1.0
+      if: inputs.target == 'wasm32-unknown-unknown'
     - name: 📎 Clippy
       uses: actions-rs/cargo@v1
       with:
         command: clippy
-        # Note that `--all-targets` doesn't refer to targets like `wasm32-unknown-unknown`.
+        # Note that `--all-targets` doesn't refer to targets like
+        # `wasm32-unknown-unknown`; it refers to lib / bin / tests etc.
         args: --all-targets ${{ inputs.target_option }} -- -D warnings
     - name: ⌨️ Fmt
       uses: actions-rs/cargo@v1
