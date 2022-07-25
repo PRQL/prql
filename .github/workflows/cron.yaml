@@ -44,4 +44,4 @@ jobs:
         uses: actions/checkout@v3
       - uses: ./.github/actions/time-compilation
         with:
-          use-cache: {{matrix.use-cache}}
+          use-cache: ${{ matrix.use-cache }}
