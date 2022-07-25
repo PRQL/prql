@@ -29,20 +29,14 @@ jobs:
         with:
           config-file: .markdown-link-check.json
 
-  time-compilation-no-cache:
-    runs-on: ubuntu-latest
-    steps:
-      - name: 📂 Checkout code
-        uses: actions/checkout@v3
-      - uses: ./.github/actions/time-compilation
-        with:
-          use-cache: false
-
   time-compilation:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        use-cache: [true, false]
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
       - uses: ./.github/actions/time-compilation
         with:
-          use-cache: true
+          use-cache: {{matrix.use-cache}}

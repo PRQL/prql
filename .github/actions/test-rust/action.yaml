@@ -42,7 +42,7 @@ runs:
       with:
         command: fmt
         args: --all --check
-      # We split up the test compilation into as recommended in
+      # We split up the test compilation as recommended in
       # https://matklad.github.io/2021/09/04/fast-rust-builds.html
     - name: 🏭 Compile
       uses: actions-rs/cargo@v1
