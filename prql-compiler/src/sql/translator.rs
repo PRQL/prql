@@ -2197,7 +2197,7 @@ take 20
         WITH table_0 AS (
           SELECT
             employees.*,
-            ROW_NUMBER() OVER (PARTITION BY department) AS _rn
+            ROW_NUMBER() OVER (PARTITION BY department) AS _rn_81
           FROM
             employees
         )
@@ -2206,7 +2206,7 @@ take 20
         FROM
           table_0
         WHERE
-          _rn <= 3
+          _rn_81 <= 3
         "###);
 
         assert_display_snapshot!((resolve_and_translate(parse(r###"
@@ -2221,7 +2221,7 @@ take 20
               PARTITION BY department
               ORDER BY
                 salary
-            ) AS _rn
+            ) AS _rn_82
           FROM
             employees
         )
@@ -2230,7 +2230,7 @@ take 20
         FROM
           table_0
         WHERE
-          _rn BETWEEN 2
+          _rn_82 BETWEEN 2
           AND 3
         "###);
     }
@@ -2308,6 +2308,43 @@ take 20
           DISTINCT employees.*
         FROM
           employees
+        "###);
+    }
+
+    #[test]
+    fn test_rn_ids_are_unique() {
+        assert_display_snapshot!((resolve_and_translate(parse(r###"
+        from y_orig
+        group [y_id] (
+          take 2 # take 1 uses `distinct` instead of partitioning, which might be a separate bug
+        )
+        group [x_id] (
+          take 3
+        )
+        "###,
+        ).unwrap()).unwrap()), @r###"
+        WITH table_0 AS (
+          SELECT
+            y_orig.*,
+            ROW_NUMBER() OVER (PARTITION BY y_id) AS _rn_82
+          FROM
+            y_orig
+        ),
+        table_1 AS (
+          SELECT
+            table_0.*,
+            ROW_NUMBER() OVER (PARTITION BY x_id) AS _rn_83
+          FROM
+            table_0
+          WHERE
+            _rn_82 <= 2
+        )
+        SELECT
+          table_1.*
+        FROM
+          table_1
+        WHERE
+          _rn_83 <= 3
         "###);
     }
 
