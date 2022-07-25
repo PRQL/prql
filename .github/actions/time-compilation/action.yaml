@@ -1,5 +1,5 @@
 name: Time Compilation
-description: Time the cargo compilation. Can be run with or without a cache by creating one upstream.
+description: Time the cargo compilation, outputting an HTML file.
 
 inputs:
   target:
