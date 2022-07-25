@@ -85,4 +85,4 @@ jobs:
           base-branch: main
           # We also run without this in the cron workflow (maybe there's a
           # better way of organizing these so we DRY)
-          check-modified-files-only: 'yes'
+          check-modified-files-only: "yes"
