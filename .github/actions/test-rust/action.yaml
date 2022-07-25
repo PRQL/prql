@@ -42,6 +42,13 @@ runs:
       with:
         command: fmt
         args: --all --check
+      # We split up the test compilation into as recommended in
+      # https://matklad.github.io/2021/09/04/fast-rust-builds.html
+    - name: 🏭 Compile
+      uses: actions-rs/cargo@v1
+      with:
+        command: test
+        args: ${{ inputs.target_option }} --no-run --locked
     - name: 📋 Test
       uses: actions-rs/cargo@v1
       with:

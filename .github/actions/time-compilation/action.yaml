@@ -1,0 +1,40 @@
+name: Time Compilation
+description: Time the cargo compilation. Can be run with or without a cache by creating one upstream.
+
+inputs:
+  target:
+    description: "Target triple, like `wasm32-unknown-unknown"
+    required: false
+  target_option:
+    description: "--target={target}"
+    required: false
+  use-cache:
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: 🔗 Setup toolchain
+      # If we don't get a value, then skip; we're using the default value.
+      if: ${{ inputs.target }}
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        target: ${{ inputs.target }}
+        toolchain: nightly
+        override: true
+        default: true
+    - name: cache
+      uses: Swatinem/rust-cache@v1
+      if: ${{ inputs.cache }}
+    - name: 🏭 Compile
+      uses: actions-rs/cargo@v1
+      with:
+        command: build
+        args: --timings=html -Z unstable-options
+    - uses: actions/upload-artifact@v3
+      with:
+        name: cargo-timing.html
+        path: target/cargo-timings/*.html
+        # Only upload if we didn't want to use the cache, or we got a cache hit
+        if: ${{ !inputs.cache or steps.cache.outputs.cache-hit }}

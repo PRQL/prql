@@ -80,3 +80,15 @@ jobs:
         with:
           name: code-coverage-report
           path: cobertura.xml
+
+  time-compilation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v3
+      # We run with a cache generally, since that's the default mode
+      - name: 💰 Cache
+        uses: Swatinem/rust-cache@v1
+        with:
+          use-cache: true
+      - uses: ./.github/actions/time-compilation
