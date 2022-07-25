@@ -1,7 +1,9 @@
 name: release
 on:
-  release:
-    type: [released]
+  # FIME before merge
+  pull-request:
+  # release:
+  #   type: [released]
   workflow_dispatch:
 
 jobs:
