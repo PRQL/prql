@@ -101,20 +101,21 @@ jobs:
   #          git commit -m "Bump NPM version"
   #          git push
 
-  publish-prql-java:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-      - name: Install Java and Maven
-        uses: actions/setup-java@v3
-        with:
-          java-version: 8
-      - name: Release Maven package
-        uses: samuelmeuli/action-maven-publish@v1
-        with:
-          gpg_private_key: ${{ secrets.gpg_private_key }}
-          gpg_passphrase: ${{ secrets.gpg_passphrase }}
-          nexus_username: ${{ secrets.nexus_username }}
-          nexus_password: ${{ secrets.nexus_password }}
-          directory: prql-java/java/
+  # Requires another pass: https://github.com/prql/prql/issues/850
+  # publish-prql-java:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v3
+  #     - name: Install Java and Maven
+  #       uses: actions/setup-java@v3
+  #       with:
+  #         java-version: 8
+  #     - name: Release Maven package
+  #       uses: samuelmeuli/action-maven-publish@v1
+  #       with:
+  #         gpg_private_key: ${{ secrets.gpg_private_key }}
+  #         gpg_passphrase: ${{ secrets.gpg_passphrase }}
+  #         nexus_username: ${{ secrets.nexus_username }}
+  #         nexus_password: ${{ secrets.nexus_password }}
+  #         directory: prql-java/java/
