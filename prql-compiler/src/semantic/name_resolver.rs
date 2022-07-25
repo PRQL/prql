@@ -769,7 +769,7 @@ mod tests {
               PARTITION BY last_name
               ORDER BY
                 first_name
-            ) AS _rn
+            ) AS _rn_82
           FROM
             employees
         )
@@ -778,7 +778,7 @@ mod tests {
         FROM
           table_0
         WHERE
-          _rn <= 1
+          _rn_82 <= 1
         "###);
 
         let res = parse(
