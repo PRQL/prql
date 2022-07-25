@@ -15,8 +15,6 @@ runs:
   using: composite
   steps:
     - name: 🔗 Setup toolchain
-      # If we don't get a value, then skip; we're using the default value.
-      if: ${{ inputs.target }}
       uses: actions-rs/toolchain@v1
       with:
         profile: minimal
