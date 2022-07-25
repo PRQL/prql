@@ -8,7 +8,7 @@ inputs:
   target_option:
     description: "--target={target}"
     required: false
-  use-cache:
+  use_cache:
     required: true
 
 runs:
@@ -24,7 +24,7 @@ runs:
         default: true
     - name: cache
       uses: Swatinem/rust-cache@v1
-      if: ${{ inputs.use-cache }}
+      if: ${{ inputs.use_cache }}
     - name: 🏭 Compile
       uses: actions-rs/cargo@v1
       with:
@@ -35,4 +35,4 @@ runs:
         name: cargo-timing.html
         path: target/cargo-timings/*.html
         # Only upload if we didn't want to use the cache, or we got a cache hit
-      if: ${{ !inputs.use-cache || steps.cache.outputs.cache-hit }}
+      if: ${{ !inputs.use_cache || steps.cache.outputs.cache-hit }}

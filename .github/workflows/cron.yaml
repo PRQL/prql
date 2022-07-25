@@ -37,10 +37,10 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        use-cache: [true, false]
+        use_cache: [true, false]
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
       - uses: ./.github/actions/time-compilation
         with:
-          use-cache: ${{ matrix.use-cache }}
+          use_cache: ${{ matrix.use_cache }}

@@ -90,5 +90,5 @@ jobs:
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v1
         with:
-          use-cache: true
+          use_cache: true
       - uses: ./.github/actions/time-compilation
