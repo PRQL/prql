@@ -1,11 +1,11 @@
-name: Cargo audit
+name: Cron-checks
 
 on:
   schedule:
     - cron: "49 10 * * *"
 
 jobs:
-  audit:
+  cargo-audit:
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -19,3 +19,12 @@ jobs:
       - uses: actions-rs/audit-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+
+  check-links:
+    # We run on modified files only in PR, so do another check of all files here.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: gaurav-nelson/github-action-markdown-link-check@v1
+        with:
+          config-file: .markdown-link-check.json
