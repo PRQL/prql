@@ -30,9 +30,14 @@ runs:
       with:
         command: build
         args: --timings=html -Z unstable-options
+    - uses: actions/github-script@v6
+      with:
+        script: |
+          echo ${{ inputs.use_cache }}
+          echo ${{ steps.cache.outputs.cache-hit }}
     - uses: actions/upload-artifact@v3
       with:
         name: cargo-timing.html
         path: target/cargo-timings/*.html
         # Only upload if we didn't want to use the cache, or we got a cache hit
-      # if: ${{ !inputs.use_cache || steps.cache.outputs.cache-hit }}
+      if: ${{ !inputs.use_cache || steps.cache.outputs.cache-hit }}

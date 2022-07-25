@@ -1,4 +1,4 @@
-name: Cron
+name: cron
 
 on:
   schedule:
