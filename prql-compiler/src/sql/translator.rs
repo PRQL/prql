@@ -747,7 +747,16 @@ fn translate_join(t: &Transform, dialect: &dyn DialectHandler) -> Result<Join> {
                     nodes
                         .iter()
                         .map(|x| translate_ident(x.item.clone().into_ident()?, dialect).into_only())
-                        .collect::<Result<Vec<_>>>()?,
+                        .collect::<Result<Vec<_>>>()
+                        .map_err(|_| {
+                            Error::new(Reason::Expected {
+                                who: Some("join".to_string()),
+                                expected: "An identifer with only one part; no `.`".to_string(),
+                                // TODO: Add in the actual item (but I couldn't
+                                // get the error types to agree)
+                                found: "A multipart identifer".to_string(),
+                            })
+                        })?,
                 ),
             };
 
@@ -2238,6 +2247,34 @@ take 20
         FROM
           {{ ref('stg_orders') }}
         "###);
+    }
+
+    #[test]
+    fn test_join() -> Result<()> {
+        assert_display_snapshot!((resolve_and_translate(parse(r###"
+        from x
+        join y [id]
+        "###,
+        )?)?), @r###"
+        SELECT
+          x.*,
+          y.*,
+          id
+        FROM
+          x
+          JOIN y USING(id)
+        "###);
+
+        // TODO: is there a better way to format the errors? `anyhow::Error`
+        // doesn't seem to serialize. We'd really like to show and test the
+        // error messages in our test suite.
+        assert_snapshot!((resolve_and_translate(parse(r###"
+        from x
+        join y [x.id]
+        "###,
+        )?).unwrap_err().to_string()), @r###"Error { span: None, reason: Expected { who: Some("join"), expected: "An identifer with only one part; no `.`", found: "A multipart identifer" }, help: None }"###);
+
+        Ok(())
     }
 
     #[test]
