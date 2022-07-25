@@ -1,7 +1,7 @@
 name: release
 on:
   release:
-    type: [published]
+    type: [released]
   workflow_dispatch:
 
 jobs:
@@ -30,6 +30,8 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v3
       - uses: ./.github/actions/build-wheel
 
   publish-prql-python:
