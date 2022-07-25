@@ -1,7 +1,7 @@
 name: release
 on:
   # FIME before merge
-  pull-request:
+  pull_request:
   # release:
   #   type: [released]
   workflow_dispatch:
