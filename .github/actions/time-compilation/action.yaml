@@ -30,9 +30,7 @@ runs:
       with:
         command: build
         args: --timings=html -Z unstable-options
-    - uses: actions/github-script@v6
-      with:
-        script: |
+    - run: |
           echo ${{ inputs.use_cache }}
           echo ${{ steps.cache.outputs.cache-hit }}
     - uses: actions/upload-artifact@v3
