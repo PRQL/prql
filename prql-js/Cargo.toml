@@ -39,6 +39,7 @@ tag-name = "{{version}}"
 tag-prefix = ""
 
 [[package.metadata.release.pre-release-replacements]]
+exactly = 1
 file = "package.json"
 replace = '  "version": "{{version}}"'
-search = '  "version": "[\d\.]*"'
+search = '  "version": "(\d+\.\d+\.\d+)"'
