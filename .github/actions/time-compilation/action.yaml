@@ -37,4 +37,4 @@ runs:
         name: cargo-timing.html
         path: target/cargo-timings/*.html
         # Only upload if we didn't want to use the cache, or we got a cache hit
-        if: ${{ !inputs.cache or steps.cache.outputs.cache-hit }}
+        if: ${{ !inputs.cache || steps.cache.outputs.cache-hit }}
