@@ -26,7 +26,7 @@ runs:
     - name: 💰 Cache
       id: cache
       uses: Swatinem/rust-cache@v1
-      if: ${{ inputs.use_cache == true }}
+      if: inputs.use_cache
     - name: 🏭 Compile
       uses: actions-rs/cargo@v1
       with:
@@ -42,4 +42,4 @@ runs:
         name: cargo-timing.html
         path: target/cargo-timings/*.html
         # Only upload if we didn't want to use the cache, or we got a cache hit
-      if: ${{ inputs.use_cache == false || steps.cache.outputs.cache-hit == true }}
+      if: inputs.use_cache == false || steps.cache.outputs.cache-hit == true
