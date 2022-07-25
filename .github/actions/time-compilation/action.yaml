@@ -10,6 +10,7 @@ inputs:
     required: false
   use_cache:
     required: true
+    type: boolean
 
 runs:
   using: composite
