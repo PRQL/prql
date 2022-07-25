@@ -31,8 +31,9 @@ runs:
         command: build
         args: --timings=html -Z unstable-options
     - run: |
-        echo ${{ inputs.use_cache }}
-        echo ${{ steps.cache.outputs.cache-hit }}
+          echo ${{ inputs.use_cache }}
+          echo ${{ steps.cache.outputs.cache-hit }}
+      shell: bash 
     - uses: actions/upload-artifact@v3
       with:
         name: cargo-timing.html
