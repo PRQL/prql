@@ -3,6 +3,11 @@ name: Cron
 on:
   schedule:
     - cron: "49 10 * * *"
+  pull_request:
+    paths:
+      - ".github/workflows/cron.yaml"
+  workflow_call:
+
 
 jobs:
   cargo-audit:
