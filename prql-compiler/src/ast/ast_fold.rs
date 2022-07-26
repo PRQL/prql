@@ -50,6 +50,9 @@ pub trait AstFold {
     fn fold_func_call(&mut self, func_call: FuncCall) -> Result<FuncCall> {
         fold_func_call(self, func_call)
     }
+    fn fold_func_curry(&mut self, func_curry: FuncCurry) -> Result<FuncCurry> {
+        fold_func_curry(self, func_curry)
+    }
     fn fold_table_ref(&mut self, table_ref: TableRef) -> Result<TableRef> {
         fold_table_ref(self, table_ref)
     }
@@ -77,6 +80,9 @@ pub trait AstFold {
     fn fold_query(&mut self, query: Query) -> Result<Query> {
         fold_query(self, query)
     }
+    fn fold_resolved_query(&mut self, query: ResolvedQuery) -> Result<ResolvedQuery> {
+        fold_resolved_query(self, query)
+    }
 }
 
 pub fn fold_item<T: ?Sized + AstFold>(fold: &mut T, item: Item) -> Result<Item> {
@@ -101,6 +107,7 @@ pub fn fold_item<T: ?Sized + AstFold>(fold: &mut T, item: Item) -> Result<Item> 
         Item::Assign(named_expr) => Item::Assign(fold_named_expr(fold, named_expr)?),
         Item::NamedArg(named_expr) => Item::Assign(fold_named_expr(fold, named_expr)?),
         Item::Transform(transformation) => Item::Transform(fold.fold_transform(transformation)?),
+        Item::ResolvedQuery(query) => Item::ResolvedQuery(fold.fold_resolved_query(query)?),
         Item::SString(items) => Item::SString(
             items
                 .into_iter()
@@ -115,12 +122,12 @@ pub fn fold_item<T: ?Sized + AstFold>(fold: &mut T, item: Item) -> Result<Item> 
         ),
         Item::FuncDef(func) => Item::FuncDef(fold.fold_func_def(func)?),
         Item::FuncCall(func_call) => Item::FuncCall(fold.fold_func_call(func_call)?),
+        Item::FuncCurry(func_curry) => Item::FuncCurry(fold.fold_func_curry(func_curry)?),
         Item::Table(table) => Item::Table(fold.fold_table(table)?),
         Item::Windowed(window) => Item::Windowed(fold.fold_windowed(window)?),
         Item::Type(t) => Item::Type(fold.fold_type(t)?),
-        // These don't capture variables, so we don't need to replace
-        // them.
-        Item::Literal(_) | Item::Interval(_) => item,
+        // None of these capture variables, so we don't need to fold them.
+        Item::Empty | Item::Literal(_) | Item::Interval(_) => item,
     })
 }
 
@@ -147,6 +154,19 @@ pub fn fold_query<F: ?Sized + AstFold>(fold: &mut F, query: Query) -> Result<Que
     Ok(Query {
         nodes: fold.fold_nodes(query.nodes)?,
         ..query
+    })
+}
+
+pub fn fold_resolved_query<F: ?Sized + AstFold>(
+    fold: &mut F,
+    query: ResolvedQuery,
+) -> Result<ResolvedQuery> {
+    Ok(ResolvedQuery {
+        transforms: query
+            .transforms
+            .into_iter()
+            .map(|t| fold.fold_transform(t))
+            .try_collect()?,
     })
 }
 
@@ -188,45 +208,46 @@ pub fn fold_column_sort<T: ?Sized + AstFold>(
 
 pub fn fold_transform<T: ?Sized + AstFold>(
     fold: &mut T,
-    transformation: Transform,
+    mut transform: Transform,
 ) -> Result<Transform> {
-    Ok(match transformation {
-        Transform::From(table) => Transform::From(fold.fold_table_ref(table)?),
+    transform.kind = match transform.kind {
+        TransformKind::From(table) => TransformKind::From(fold.fold_table_ref(table)?),
 
-        Transform::Derive(assigns) => Transform::Derive(fold.fold_nodes(assigns)?),
-        Transform::Select(assigns) => Transform::Select(fold.fold_nodes(assigns)?),
-        Transform::Aggregate { assigns, by } => Transform::Aggregate {
+        TransformKind::Derive(assigns) => TransformKind::Derive(fold.fold_nodes(assigns)?),
+        TransformKind::Select(assigns) => TransformKind::Select(fold.fold_nodes(assigns)?),
+        TransformKind::Aggregate { assigns, by } => TransformKind::Aggregate {
             assigns: fold.fold_nodes(assigns)?,
             by: fold.fold_nodes(by)?,
         },
 
-        Transform::Filter(f) => Transform::Filter(Box::new(fold.fold_node(*f)?)),
-        Transform::Sort(items) => Transform::Sort(fold.fold_column_sorts(items)?),
-        Transform::Join { side, with, filter } => Transform::Join {
+        TransformKind::Filter(f) => TransformKind::Filter(Box::new(fold.fold_node(*f)?)),
+        TransformKind::Sort(items) => TransformKind::Sort(fold.fold_column_sorts(items)?),
+        TransformKind::Join { side, with, filter } => TransformKind::Join {
             side,
             with: fold.fold_table_ref(with)?,
             filter: fold.fold_join_filter(filter)?,
         },
-        Transform::Group { by, pipeline } => Transform::Group {
+        TransformKind::Group { by, pipeline } => TransformKind::Group {
             by: fold.fold_nodes(by)?,
-            pipeline: Box::new(fold.fold_node(*pipeline)?),
+            pipeline: fold.fold_resolved_query(pipeline)?,
         },
-        Transform::Window {
+        TransformKind::Window {
             kind,
             range,
             pipeline,
-        } => Transform::Window {
+        } => TransformKind::Window {
             range: fold_range(fold, range)?,
             kind,
-            pipeline: Box::new(fold.fold_node(*pipeline)?),
+            pipeline: fold.fold_resolved_query(pipeline)?,
         },
-        Transform::Take { by, range, sort } => Transform::Take {
+        TransformKind::Take { by, range, sort } => TransformKind::Take {
             range: fold_range(fold, range)?,
             by: fold.fold_nodes(by)?,
             sort: fold.fold_column_sorts(sort)?,
         },
-        Transform::Unique => Transform::Unique,
-    })
+        TransformKind::Unique => TransformKind::Unique,
+    };
+    Ok(transform)
 }
 
 pub fn fold_join_filter<T: ?Sized + AstFold>(fold: &mut T, f: JoinFilter) -> Result<JoinFilter> {
@@ -249,7 +270,7 @@ pub fn fold_func_call<T: ?Sized + AstFold>(fold: &mut T, func_call: FuncCall) ->
 
     Ok(FuncCall {
         // TODO: generalize? Or this never changes?
-        name: func_call.name.to_owned(),
+        name: func_call.name,
         args: func_call
             .args
             .into_iter()
@@ -259,6 +280,24 @@ pub fn fold_func_call<T: ?Sized + AstFold>(fold: &mut T, func_call: FuncCall) ->
             .named_args
             .into_iter()
             .map(|(name, expr)| fold.fold_node(*expr).map(|e| (name, Box::from(e))))
+            .try_collect()?,
+    })
+}
+pub fn fold_func_curry<T: ?Sized + AstFold>(
+    fold: &mut T,
+    func_curry: FuncCurry,
+) -> Result<FuncCurry> {
+    Ok(FuncCurry {
+        def_id: func_curry.def_id,
+        args: func_curry
+            .args
+            .into_iter()
+            .map(|item| fold.fold_node(item))
+            .try_collect()?,
+        named_args: func_curry
+            .named_args
+            .into_iter()
+            .map(|expr| expr.map(|e| fold.fold_node(e)).transpose())
             .try_collect()?,
     })
 }
@@ -274,20 +313,25 @@ pub fn fold_table_ref<T: ?Sized + AstFold>(fold: &mut T, table: TableRef) -> Res
 pub fn fold_func_def<T: ?Sized + AstFold>(fold: &mut T, func_def: FuncDef) -> Result<FuncDef> {
     Ok(FuncDef {
         name: fold.fold_ident(func_def.name)?,
-        positional_params: fold_typed_nodes(fold, func_def.positional_params)?,
-        named_params: fold_typed_nodes(fold, func_def.named_params)?,
+        positional_params: fold_func_param(fold, func_def.positional_params)?,
+        named_params: fold_func_param(fold, func_def.named_params)?,
         body: Box::new(fold.fold_node(*func_def.body)?),
-        return_type: func_def.return_type,
+        return_ty: func_def.return_ty,
     })
 }
 
-pub fn fold_typed_nodes<T: ?Sized + AstFold>(
+pub fn fold_func_param<T: ?Sized + AstFold>(
     fold: &mut T,
-    nodes: Vec<(Node, Option<Ty>)>,
-) -> Result<Vec<(Node, Option<Ty>)>> {
+    nodes: Vec<FuncParam>,
+) -> Result<Vec<FuncParam>> {
     nodes
         .into_iter()
-        .map(|(n, t)| Ok((fold.fold_node(n)?, t)))
+        .map(|param| {
+            Ok(FuncParam {
+                default_value: param.default_value.map(|n| fold.fold_node(n)).transpose()?,
+                ..param
+            })
+        })
         .try_collect()
 }
 

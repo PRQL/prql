@@ -5,6 +5,7 @@ use crate::ast::ast_fold::{fold_transform, AstFold};
 use crate::ast::*;
 
 /// sets `node.is_complex` of some nodes in AST
+#[allow(dead_code)]
 pub fn determine_complexity(nodes: Vec<Node>, context: &Context) -> Vec<Node> {
     let mut d = DetermineComplex {
         is_complex: false,
@@ -26,7 +27,7 @@ impl<'a> AstFold for DetermineComplex<'a> {
 
         if !node.is_complex {
             if let Some(declared_at) = node.declared_at {
-                let decl = self.context.declarations.0[declared_at].0.clone();
+                let decl = self.context.declarations.decls[declared_at].0.clone();
                 if let Declaration::Expression(expr) = decl {
                     let expr = self.fold_node(*expr).unwrap();
                     node.is_complex = expr.is_complex;
@@ -52,8 +53,8 @@ impl<'a> AstFold for DetermineComplex<'a> {
 
     fn fold_transform(&mut self, transform: Transform) -> Result<Transform> {
         // fold only filter transforms (other don't need is_complex)
-        match transform {
-            Transform::Filter(_) => fold_transform(self, transform),
+        match transform.kind {
+            TransformKind::Filter(_) => fold_transform(self, transform),
             _ => Ok(transform),
         }
     }

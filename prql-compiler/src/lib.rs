@@ -29,10 +29,8 @@ pub fn compile(prql: &str) -> Result<String> {
     parse(prql).and_then(resolve_and_translate)
 }
 
-pub fn resolve_and_translate(mut query: ast::Query) -> Result<String> {
-    // TODO: is there a way of avoiding this clone?
-    let (nodes, context) = semantic::resolve(query.clone(), None)?;
-    query.nodes = nodes;
+pub fn resolve_and_translate(query: ast::Query) -> Result<String> {
+    let (query, context) = semantic::resolve(query, None)?;
     translate(query, context)
 }
 

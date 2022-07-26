@@ -8,7 +8,7 @@ use crate::ast::ast_fold::*;
 use crate::ast::*;
 use crate::error::Span;
 
-pub fn label_references(nodes: &[Node], context: &Context, source_id: String, source: String) {
+pub fn label_references(query: Query, context: &Context, source_id: String, source: String) {
     let mut report = Report::build(ReportKind::Custom("Info", Color::Blue), &source_id, 0);
 
     let source = Source::from(source);
@@ -21,7 +21,7 @@ pub fn label_references(nodes: &[Node], context: &Context, source_id: String, so
         report: &mut report,
     };
     // traverse ast
-    labeler.fold_nodes(nodes.to_owned()).unwrap();
+    labeler.fold_query(query).unwrap();
     // traverse declarations
     // for (d, _) in &context.declarations {
     //     match d {
@@ -56,7 +56,7 @@ struct Labeler<'a> {
 impl<'a> AstFold for Labeler<'a> {
     fn fold_node(&mut self, node: Node) -> Result<Node> {
         if let Some(declared_at) = node.declared_at {
-            let (declaration, span) = &self.context.declarations.0[declared_at];
+            let (declaration, span) = &self.context.declarations.decls[declared_at];
             let message = if let Some(span) = span {
                 let span = self.source.get_line_range(&Range::from(*span));
                 if span.len() <= 1 {
@@ -90,10 +90,10 @@ impl<'a> AstFold for Labeler<'a> {
     }
 }
 
-pub fn collect_frames(nodes: Vec<Node>) -> Vec<(Span, Frame)> {
+pub fn collect_frames(query: Query) -> Vec<(Span, Frame)> {
     let mut collector = FrameCollector { frames: vec![] };
 
-    collector.fold_nodes(nodes).unwrap();
+    collector.fold_query(query).unwrap();
 
     collector.frames
 }
@@ -115,7 +115,7 @@ impl AstFold for FrameCollector {
                 .as_transform()
                 .ok_or_else(|| anyhow!("plain function in pipeline"))?;
 
-            frame.apply_transform(transform)?;
+            frame = transform.kind.apply_to(frame)?;
 
             self.frames.push((node.span.unwrap(), frame.clone()));
         }

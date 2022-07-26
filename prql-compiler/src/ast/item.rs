@@ -3,14 +3,15 @@ use std::fmt::{Display, Write};
 
 use anyhow::anyhow;
 use enum_as_inner::EnumAsInner;
-use itertools::Itertools;
 use semver::VersionReq;
+
 use serde::{Deserialize, Serialize};
 
 use super::*;
 
 #[derive(Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize)]
 pub enum Item {
+    Empty,
     Ident(Ident),
     Literal(Literal),
     Assign(NamedExpr),
@@ -18,6 +19,7 @@ pub enum Item {
     Query(Query),
     Pipeline(Pipeline),
     Transform(Transform),
+    ResolvedQuery(ResolvedQuery),
     List(Vec<Node>),
     Range(Range),
     Binary {
@@ -31,6 +33,7 @@ pub enum Item {
     },
     FuncDef(FuncDef),
     FuncCall(FuncCall),
+    FuncCurry(FuncCurry),
     Type(Ty),
     Table(Table),
     SString(Vec<InterpolateItem>),
@@ -94,14 +97,32 @@ pub enum UnOp {
 pub struct ListItem(pub Node);
 
 /// Function call.
-///
-/// Note that `named_args` cannot be determined during parsing, but only during resolving.
-/// Until then, they are stored in args as named expression.
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct FuncCall {
-    pub name: Ident,
+    pub name: Box<Node>,
     pub args: Vec<Node>,
     pub named_args: HashMap<Ident, Box<Node>>,
+}
+
+impl FuncCall {
+    pub fn without_args(name: Node) -> Self {
+        FuncCall {
+            name: Box::new(name),
+            args: vec![],
+            named_args: HashMap::new(),
+        }
+    }
+}
+
+/// A function call with missing positional arguments
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+pub struct FuncCurry {
+    pub def_id: usize,
+
+    pub args: Vec<Node>,
+
+    // same order as in FuncDef
+    pub named_args: Vec<Option<Node>>,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
@@ -187,18 +208,6 @@ pub struct Interval {
     pub unit: String, // Could be an enum IntervalType,
 }
 
-impl Pipeline {
-    pub fn into_transforms(self) -> Result<Vec<Transform>, Item> {
-        self.nodes
-            .into_iter()
-            .map(|f| f.item.into_transform())
-            .try_collect()
-    }
-
-    pub fn as_transforms(&self) -> Option<Vec<&Transform>> {
-        self.nodes.iter().map(|f| f.item.as_transform()).collect()
-    }
-}
 impl From<Vec<Node>> for Pipeline {
     fn from(nodes: Vec<Node>) -> Self {
         Pipeline { nodes }
@@ -214,6 +223,9 @@ impl From<Item> for anyhow::Error {
 impl Display for Item {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            Item::Empty => {
+                f.write_str("()")?;
+            }
             Item::Ident(s) => {
                 fn forbidden_start(c: char) -> bool {
                     !(('a'..='z').contains(&c) || matches!(c, '_' | '$'))
@@ -288,15 +300,20 @@ impl Display for Item {
                 f.write_char(')')?;
             }
             Item::Transform(transform) => {
-                write!(f, "{} <unimplemented>", transform.as_ref())?;
+                write!(f, "{} <unimplemented>", transform.kind.as_ref())?;
+            }
+            Item::ResolvedQuery(query) => {
+                for transform in &query.transforms {
+                    writeln!(f, "{} <unimplemented>", transform.kind.as_ref())?;
+                }
             }
             Item::FuncDef(func_def) => {
                 write!(f, "func {}", func_def.name)?;
                 for arg in &func_def.positional_params {
-                    write!(f, " {}", arg.0.item)?;
+                    write!(f, " {}", arg.name)?;
                 }
                 for arg in &func_def.named_params {
-                    write!(f, " {}", arg.0.item)?;
+                    write!(f, " {}", arg.name)?;
                 }
                 write!(f, " -> {}\n\n", func_def.body.item)?;
             }
@@ -353,7 +370,7 @@ impl Display for Item {
                 UnOp::Not => write!(f, "not {}", expr.item)?,
             },
             Item::FuncCall(func_call) => {
-                f.write_str(func_call.name.as_str())?;
+                write!(f, "{:}", func_call.name.item)?;
 
                 for (name, arg) in &func_call.named_args {
                     write!(f, " {name}: {}", arg.item)?;
@@ -372,6 +389,9 @@ impl Display for Item {
                     }
                 }
             }
+            Item::FuncCurry(_) => {
+                write!(f, "(func ? -> ?)")?;
+            }
             Item::SString(parts) => {
                 display_interpolation(f, "s", parts)?;
             }
@@ -386,7 +406,7 @@ impl Display for Item {
             }
             Item::Type(typ) => {
                 f.write_char('<')?;
-                display_type(f, typ)?;
+                write!(f, "{typ}")?;
                 f.write_char('>')?;
             }
             Item::Literal(literal) => {
@@ -412,26 +432,5 @@ fn display_interpolation(
         }
     }
     f.write_char('"')?;
-    Ok(())
-}
-
-fn display_type(f: &mut std::fmt::Formatter, typ: &Ty) -> Result<(), std::fmt::Error> {
-    match typ {
-        Ty::Literal(lit) => write!(f, "{:}", lit)?,
-        Ty::Named(name) => write!(f, "{:}", name)?,
-        Ty::Parameterized(t, param) => {
-            display_type(f, t)?;
-            write!(f, "<{:?}>", param.item)?
-        }
-        Ty::AnyOf(ts) => {
-            for (i, t) in ts.iter().enumerate() {
-                display_type(f, t)?;
-                if i < ts.len() - 1 {
-                    f.write_char('|')?;
-                }
-            }
-        }
-        Ty::Infer => {}
-    }
     Ok(())
 }

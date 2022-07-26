@@ -5,7 +5,7 @@ use std::fmt::{self, Debug, Display, Formatter, Write};
 use std::ops::{Add, Range};
 
 use crate::parser::PestError;
-#[derive(Debug, Clone, PartialEq, Eq, Copy, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Eq, Copy, Serialize, Deserialize)]
 pub struct Span {
     pub start: usize,
     pub end: usize,
@@ -285,5 +285,11 @@ impl<T> WithErrorInfo for Result<T, Error> {
 
     fn with_span(self, span: Option<Span>) -> Self {
         self.map_err(|e| e.with_span(span))
+    }
+}
+
+impl Debug for Span {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "span-chars-{}-{}", self.start, self.end)
     }
 }
