@@ -782,13 +782,24 @@ fn translate_join(t: &Transform, dialect: &dyn DialectHandler) -> Result<Join> {
 fn translate_ident(ident: String, dialect: &dyn DialectHandler) -> Vec<sql_ast::Ident> {
     let is_jinja = ident.starts_with("{{") && ident.ends_with("}}");
 
-    if !is_jinja {
-        ident
+    if is_jinja {
+        return vec![sql_ast::Ident::new(ident)];
+    }
+
+    match dialect.dialect() {
+        // BigQuery has some unusual rules around quoting idents #852 (it includes the
+        // project, which may be a cause). I'm not 100% it's watertight, but we'll see.
+        Dialect::BigQuery => {
+            if ident.split('.').count() > 2 {
+                return vec![sql_ast::Ident::with_quote(dialect.ident_quote(), ident)];
+            } else {
+                return vec![sql_ast::Ident::new(ident)];
+            }
+        }
+        _ => ident
             .split('.')
             .map(|x| translate_ident_part(x.to_string(), dialect))
-            .collect()
-    } else {
-        vec![sql_ast::Ident::new(ident)]
+            .collect(),
     }
 }
 
@@ -2312,45 +2323,8 @@ take 20
     }
 
     #[test]
-    fn test_rn_ids_are_unique() {
-        assert_display_snapshot!((resolve_and_translate(parse(r###"
-        from y_orig
-        group [y_id] (
-          take 2 # take 1 uses `distinct` instead of partitioning, which might be a separate bug
-        )
-        group [x_id] (
-          take 3
-        )
-        "###,
-        ).unwrap()).unwrap()), @r###"
-        WITH table_0 AS (
-          SELECT
-            y_orig.*,
-            ROW_NUMBER() OVER (PARTITION BY y_id) AS _rn_82
-          FROM
-            y_orig
-        ),
-        table_1 AS (
-          SELECT
-            table_0.*,
-            ROW_NUMBER() OVER (PARTITION BY x_id) AS _rn_83
-          FROM
-            table_0
-          WHERE
-            _rn_82 <= 2
-        )
-        SELECT
-          table_1.*
-        FROM
-          table_1
-        WHERE
-          _rn_83 <= 3
-        "###);
-    }
-
-    #[test]
     fn test_quoting() -> Result<()> {
-        // GH-#822
+        // #822
         assert_display_snapshot!((resolve_and_translate(parse(r###"
 prql dialect:postgres
 from some_schema.tablename
@@ -2362,6 +2336,7 @@ from some_schema.tablename
           some_schema.tablename
         "###);
 
+        // #852
         assert_display_snapshot!((resolve_and_translate(parse(r###"
 prql dialect:bigquery
 from db.schema.table
@@ -2370,14 +2345,14 @@ join `db.schema.t-able` [id]
         "###,
         )?)?), @r###"
         SELECT
-          db.schema.table.*,
-          db.schema.table2.*,
-          db.schema.`t-able`.*,
+          `db.schema.table.*`,
+          `db.schema.table2.*`,
+          `db.schema.t-able.*`,
           id
         FROM
-          db.schema.table
-          JOIN db.schema.table2 USING(id)
-          JOIN db.schema.`t-able` USING(id)
+          `db.schema.table`
+          JOIN `db.schema.table2` USING(id)
+          JOIN `db.schema.t-able` USING(id)
         "###);
 
         assert_display_snapshot!((resolve_and_translate(parse(r###"
