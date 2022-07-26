@@ -34,10 +34,11 @@ runs:
       uses: actions-rs/cargo@v1
       with:
         command: build
-        args: --timings=html -Z unstable-options
+        args: --timings=html --all-targets -Z unstable-options
     - uses: actions/upload-artifact@v3
       with:
         name: cargo-timing.html
         path: target/cargo-timings/cargo-timing-*.html
-        # Only upload if we didn't want to use the cache, or we got a cache hit
+        if-no-files-found: error
+        # Only upload if a) we didn't want to use the cache, or b) we got a cache hit
       if: inputs.use_cache == 'false' || steps.cache.outputs.cache-hit == 'true'
