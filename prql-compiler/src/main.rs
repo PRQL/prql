@@ -8,7 +8,7 @@ fn main() -> color_eyre::eyre::Result<()> {
     color_eyre::install()?;
     let mut cli = Cli::parse();
 
-    if let Err(error) = cli.execute() {
+    if let Err(error) = cli.run() {
         eprintln!("{error}");
         exit(1)
     }
