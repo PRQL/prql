@@ -2,6 +2,8 @@
 
 dist
 .vscode/settings.json
+.vscode/launch.json
 .idea
-
+/*.prql
+*/*.prql
 target
