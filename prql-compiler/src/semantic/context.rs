@@ -1,13 +1,15 @@
+use anyhow::Result;
+use itertools::Itertools;
 use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
 use std::fmt::Debug;
 
-use super::scope::NS_PARAM;
-use super::{Declaration, Declarations, Scope};
+use super::{split_var_name, Declaration, Declarations, Scope};
 use crate::ast::*;
 use crate::error::Span;
 
 /// Context of the pipeline.
-#[derive(Default, Debug, Serialize, Deserialize, Clone)]
+#[derive(Default, Serialize, Deserialize, Clone)]
 pub struct Context {
     /// Map of all accessible names (for each namespace)
     pub(crate) scope: Scope,
@@ -18,8 +20,7 @@ pub struct Context {
 
 impl Context {
     pub fn declare(&mut self, dec: Declaration, span: Option<Span>) -> usize {
-        self.declarations.0.push((dec, span));
-        self.declarations.0.len() - 1
+        self.declarations.push(dec, span)
     }
 
     pub fn declare_func(&mut self, func_def: FuncDef) -> usize {
@@ -33,38 +34,148 @@ impl Context {
         id
     }
 
-    pub fn declare_table(&mut self, t: &mut TableRef) {
-        let name = t.alias.clone().unwrap_or_else(|| t.name.clone());
-        let decl = Declaration::Table(name.clone());
+    pub fn declare_table(&mut self, name: Ident, alias: Option<String>) -> usize {
+        let alias = alias.unwrap_or_else(|| name.clone());
 
-        let table_id = self.declare(decl, None);
-        t.declared_at = Some(table_id);
+        let table_id = self.declare(Declaration::Table(alias.clone()), None);
 
-        let var_name = format!("{name}.*");
-        self.scope.add(var_name, table_id);
+        self.scope.add(alias, "*", table_id);
+        table_id
     }
 
-    pub fn declare_func_param(&mut self, node: &Node) -> usize {
-        let name = match &node.item {
-            Item::Ident(ident) => ident.clone(),
-            Item::NamedArg(NamedExpr { name, .. }) => name.clone(),
-            _ => unreachable!(),
-        };
+    pub fn lookup_name(&mut self, name: &str, span: Option<Span>) -> Result<usize, String> {
+        let (namespace, variable) = split_var_name(name);
 
-        // doesn't matter, will get overridden anyway
-        let decl = Box::new(Item::Ident("".to_string()).into());
+        // lookup the name
+        let decls = self.scope.lookup(namespace, name);
 
-        let id = self.declare(Declaration::Expression(decl), None);
+        match decls.len() {
+            // no match: try match *
+            0 => {}
 
-        self.scope.add(format!("{NS_PARAM}.{name}"), id);
+            // single match, great!
+            1 => return Ok(decls.into_iter().next().unwrap().1),
 
-        id
+            // ambiguous
+            _ => {
+                let decls = decls
+                    .into_iter()
+                    .map(|d| self.declarations.get(d.1))
+                    .map(|d| format!("`{d}`"))
+                    .join(", ");
+                return Err(format!(
+                    "Ambiguous reference. Could be from either of {decls}"
+                ));
+            }
+        }
+
+        // this variable can be from a namespace that we don't know all columns of
+        let decls = self.scope.lookup(namespace, "*");
+
+        match decls.len() {
+            0 => {
+                dbg!(&self.scope);
+                Err(format!("Unknown name `{name}`"))
+            }
+
+            // single match, great!
+            1 => {
+                let (namespace, table_id) = decls.into_iter().next().unwrap();
+
+                // declare this variable as ExternRef
+                let decl = Declaration::ExternRef {
+                    table: Some(table_id),
+                    variable: variable.to_string(),
+                };
+                let id = self.declare(decl, span);
+                self.scope.add(namespace, name.to_string(), id);
+
+                Ok(id)
+            }
+
+            // don't report ambiguous variable, database may be able to resolve them
+            _ => {
+                let decl = Declaration::ExternRef {
+                    table: None,
+                    variable: name.to_string(),
+                };
+                let id = self.declare(decl, span);
+
+                Ok(id)
+            }
+        }
+    }
+
+    pub fn lookup_namespaces_of(&mut self, variable: &str) -> HashSet<usize> {
+        let (ns, var_name) = split_var_name(variable);
+
+        let mut r = HashSet::new();
+        r.extend(self.scope.lookup(ns, var_name).into_iter().map(|d| d.1));
+        r.extend(self.scope.lookup(ns, "*").into_iter().map(|d| d.1));
+        r
+    }
+
+    /// Move top-level expressions into declarations and replace them with idents
+    pub(super) fn extract_decls(&mut self, nodes: Vec<Node>) -> Result<Vec<Node>> {
+        let mut res = Vec::with_capacity(nodes.len());
+        for mut node in nodes {
+            res.push(match node.item {
+                Item::Assign(NamedExpr { name, expr }) => {
+                    // introduce a new expression alias
+
+                    let expr = self.extract_decl(*expr)?;
+                    let id = expr.declared_at.unwrap();
+
+                    node.item = Item::Ident(name);
+                    node.declared_at = Some(id);
+                    node
+                }
+                _ => {
+                    // no new names, only fold the expr
+                    self.extract_decl(node)?
+                }
+            });
+        }
+        Ok(res)
+    }
+
+    fn extract_decl(&mut self, node: Node) -> Result<Node> {
+        Ok(match node.item {
+            // keep existing ident
+            Item::Ident(_) => node,
+
+            // declare new expression so it can be references from FrameColumn
+            _ => {
+                let span = node.span;
+                let id = self.declare(Declaration::Expression(Box::from(node)), span);
+
+                let mut placeholder = Node::from(Item::Ident("<unnamed>".to_string()));
+                placeholder.declared_at = Some(id);
+                placeholder
+            }
+        })
+    }
+
+    pub fn get_column_names(&self, frame: &Frame) -> Vec<Option<String>> {
+        frame
+            .columns
+            .iter()
+            .map(|col| match col {
+                FrameColumn::All(namespace) => {
+                    let (table, _) = &self.declarations.decls[*namespace];
+                    let table = table.as_table().map(|x| x.as_str()).unwrap_or("");
+                    Some(format!("{table}.*"))
+                }
+                FrameColumn::Unnamed(_) => None,
+                FrameColumn::Named(name, _) => Some(name.clone()),
+            })
+            .collect()
     }
 }
 
-impl From<Declaration> for anyhow::Error {
-    fn from(dec: Declaration) -> Self {
-        // panic!("Unexpected declaration type: {dec:?}");
-        anyhow::anyhow!("Unexpected declaration type: {dec:?}")
+impl Debug for Context {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "Declarations:\n{:?}", self.declarations)?;
+        writeln!(f, "Scope:\n{:?}", self.scope)
     }
 }

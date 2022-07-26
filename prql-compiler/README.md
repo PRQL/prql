@@ -38,3 +38,9 @@ FROM
 WHERE
   has_dog
 ```
+
+## Internal jargon
+
+Frame = Descriptor of a table. Contains list of columns (with names and types) and cardinality of rows. Does not contain data.
+
+Table = Frame + data within that frame. Relation table-frame is analogous to object-class in Java.

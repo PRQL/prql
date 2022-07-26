@@ -63,8 +63,12 @@ pub fn translate_query(query: Query, context: Context) -> Result<sql_ast::Query>
     for t in atomics {
         let table_id = t.name.clone().and_then(|x| x.declared_at);
 
+        // dbg!(&t.pipeline);
         let (pipeline, frame, c) = super::materialize(t.pipeline, context, table_id)?;
         context = c;
+
+        // dbg!(&pipeline);
+        // dbg!(&frame);
 
         materialized.push(AtomicTable {
             name: t.name,
@@ -89,6 +93,7 @@ pub fn translate_query(query: Query, context: Context) -> Result<sql_ast::Query>
         .try_collect()?;
 
     // convert main query
+    // dbg!(&main_query);
     let mut main_query = sql_query_of_atomic_table(main_query, dialect.as_ref())?;
 
     // attach CTEs
@@ -105,18 +110,18 @@ pub fn translate_query(query: Query, context: Context) -> Result<sql_ast::Query>
 #[derive(Debug)]
 pub struct AtomicTable {
     name: Option<TableRef>,
-    pipeline: Pipeline,
+    pipeline: ResolvedQuery,
     frame: Option<MaterializedFrame>,
 }
 
 fn into_tables(nodes: Vec<Node>) -> Result<Vec<Table>> {
     let mut tables: Vec<Table> = Vec::new();
-    let mut transforms: Vec<Node> = Vec::new();
+    let mut transforms: Vec<Transform> = Vec::new();
     for node in nodes {
         match node.item {
             Item::Table(t) => tables.push(t),
-            Item::Pipeline(p) => transforms.extend(p.nodes),
-            Item::Transform(_) => transforms.push(node),
+            Item::ResolvedQuery(t) => transforms.extend(t.transforms),
+            Item::Transform(t) => transforms.push(t),
             i => bail!("Unexpected item on top level: {i:?}"),
         }
     }
@@ -156,12 +161,12 @@ fn sql_query_of_atomic_table(
 ) -> Result<sql_ast::Query> {
     let frame = table.frame.ok_or_else(|| anyhow!("frame not provided?"))?;
 
-    let transforms = table.pipeline.into_transforms()?;
+    let transforms = table.pipeline.transforms;
 
     let mut from = transforms
         .iter()
-        .filter_map(|t| match t {
-            Transform::From(table_ref) => Some(TableWithJoins {
+        .filter_map(|t| match &t.kind {
+            TransformKind::From(table_ref) => Some(TableWithJoins {
                 relation: table_factor_of_table_ref(table_ref, dialect),
                 joins: vec![],
             }),
@@ -171,8 +176,8 @@ fn sql_query_of_atomic_table(
 
     let joins = transforms
         .iter()
-        .filter(|t| matches!(t, Transform::Join { .. }))
-        .map(|j| translate_join(j, dialect))
+        .filter(|t| matches!(t.kind, TransformKind::Join { .. }))
+        .map(|j| translate_join(&j.kind, dialect))
         .collect::<Result<Vec<_>>>()?;
     if !joins.is_empty() {
         if let Some(from) = from.last_mut() {
@@ -185,7 +190,7 @@ fn sql_query_of_atomic_table(
     // Split the pipeline into before & after the aggregate
     let aggregate_position = transforms
         .iter()
-        .position(|t| matches!(t, Transform::Aggregate { .. }))
+        .position(|t| matches!(t.kind, TransformKind::Aggregate { .. }))
         .unwrap_or(transforms.len());
     let (before, after) = transforms.split_at(aggregate_position);
 
@@ -195,8 +200,8 @@ fn sql_query_of_atomic_table(
 
     let takes = transforms
         .iter()
-        .filter_map(|t| match t {
-            Transform::Take { range, .. } => Some(range.clone()),
+        .filter_map(|t| match &t.kind {
+            TransformKind::Take { range, .. } => Some(range.clone()),
             _ => None,
         })
         .collect();
@@ -222,12 +227,17 @@ fn sql_query_of_atomic_table(
     let aggregate = transforms.get(aggregate_position);
 
     let group_bys: Vec<Node> = match aggregate {
-        Some(Transform::Aggregate { by, .. }) => by.clone(),
+        Some(Transform {
+            kind: TransformKind::Aggregate { by, .. },
+            ..
+        }) => by.clone(),
         None => vec![],
         _ => unreachable!("Expected an aggregate transformation"),
     };
 
-    let distinct = transforms.iter().any(|t| matches!(t, Transform::Unique));
+    let distinct = transforms
+        .iter()
+        .any(|t| matches!(t.kind, TransformKind::Unique));
 
     Ok(sql_ast::Query {
         body: Box::new(SetExpr::Select(Box::new(Select {
@@ -266,7 +276,7 @@ fn sql_query_of_atomic_table(
 
 /// Convert a pipeline into a number of pipelines which can each "fit" into a SELECT.
 fn atomic_pipelines_of_pipeline(
-    pipeline: Pipeline,
+    pipeline: ResolvedQuery,
     context: &mut MaterializationContext,
 ) -> Result<Vec<AtomicTable>> {
     // Insert a cut, when we find transformation that out of order:
@@ -281,17 +291,14 @@ fn atomic_pipelines_of_pipeline(
     //
     // So we loop through the Pipeline, and cut it into cte-sized pipelines,
     // which we'll then compose together.
-    let pipeline = Ok(pipeline.nodes)
+    let pipeline = Ok(pipeline)
         .and_then(un_group::un_group)
         .and_then(|x| distinct::take_to_distinct(x, context))?;
 
     let mut counts: HashMap<&str, u32> = HashMap::new();
     let mut splits = vec![0];
-    for (i, function) in pipeline.iter().enumerate() {
-        let transform =
-            (function.item.as_transform()).ok_or_else(|| anyhow!("expected Transform"))?;
-
-        let split = match transform.as_ref() {
+    for (i, transform) in pipeline.transforms.iter().enumerate() {
+        let split = match transform.kind.as_ref() {
             "Join" => {
                 counts.get("Filter").is_some()
                     || counts.get("Aggregate").is_some()
@@ -304,7 +311,7 @@ fn atomic_pipelines_of_pipeline(
                     || counts.get("Take").is_some()
             }
             "Sort" => counts.get("Take").is_some(),
-            "Filter" => counts.get("Take").is_some() || function.is_complex,
+            "Filter" => counts.get("Take").is_some() || transform.is_complex,
 
             // There can be many takes, but they have to be consecutive
             // For example `take 100 | sort a | take 10` can't be one CTE.
@@ -319,14 +326,14 @@ fn atomic_pipelines_of_pipeline(
             counts.clear();
         }
 
-        *counts.entry(transform.as_ref()).or_insert(0) += 1;
+        *counts.entry(transform.kind.as_ref()).or_insert(0) += 1;
     }
 
-    splits.push(pipeline.len());
+    splits.push(pipeline.transforms.len());
     let ctes = (0..splits.len() - 1)
-        .map(|i| pipeline[splits[i]..splits[i + 1]].to_vec())
+        .map(|i| pipeline.transforms[splits[i]..splits[i + 1]].to_vec())
         .filter(|x| !x.is_empty())
-        .map(|p| p.into())
+        .map(|transforms| transforms.into())
         .collect();
     Ok(ctes)
 }
@@ -341,7 +348,7 @@ fn atomic_tables_of_tables(
     let mut index = 0;
     for table in tables {
         // split table into atomics
-        let pipeline = table.pipeline.coerce_to_pipeline();
+        let pipeline = table.pipeline.item.into_resolved_query()?;
         let mut t_atomics: Vec<_> = atomic_pipelines_of_pipeline(pipeline, context)?;
 
         let (last, ctes) = t_atomics
@@ -349,9 +356,9 @@ fn atomic_tables_of_tables(
             .ok_or_else(|| anyhow!("No pipelines?"))?;
 
         // generate table names for all but last table
-        let mut last_name = None;
+        let mut prev_table_ref = None;
         for cte in ctes {
-            prepend_with_from(&mut cte.pipeline, last_name);
+            try_prepend_with_from(&mut cte.pipeline, prev_table_ref);
 
             let name = format!("table_{index}");
             let id = context.declare_table(&name);
@@ -360,18 +367,21 @@ fn atomic_tables_of_tables(
                 name,
                 alias: None,
                 declared_at: Some(id),
+                ty: None,
             });
             index += 1;
 
-            last_name = cte.name.clone();
+            let last_frame = cte.pipeline.transforms.last().map(|t| t.ty.clone());
+            prev_table_ref = cte.name.clone().zip(last_frame);
         }
 
         // use original table name
-        prepend_with_from(&mut last.pipeline, last_name);
+        try_prepend_with_from(&mut last.pipeline, prev_table_ref);
         last.name = Some(TableRef {
             name: table.name,
             alias: None,
             declared_at: table.id,
+            ty: None,
         });
 
         atomics.extend(t_atomics);
@@ -379,10 +389,15 @@ fn atomic_tables_of_tables(
     Ok(atomics)
 }
 
-fn prepend_with_from(pipeline: &mut Pipeline, table: Option<TableRef>) {
-    if let Some(table) = table {
-        let from = Transform::From(table);
-        pipeline.nodes.insert(0, Item::Transform(from).into());
+fn try_prepend_with_from(pipeline: &mut ResolvedQuery, table: Option<(TableRef, Frame)>) {
+    if let Some((mut table_ref, frame)) = table {
+        table_ref.ty = Some(Ty::Table(frame.clone()));
+        let transform = Transform {
+            ty: frame,
+            kind: TransformKind::From(table_ref),
+            is_complex: false,
+        };
+        pipeline.transforms.insert(0, transform);
     }
 }
 
@@ -420,8 +435,8 @@ fn filter_of_pipeline(
 ) -> Result<Option<Expr>> {
     let filters: Vec<Node> = pipeline
         .iter()
-        .filter_map(|t| match t {
-            Transform::Filter(filter) => Some(*filter.clone()),
+        .filter_map(|t| match &t.kind {
+            TransformKind::Filter(filter) => Some(*filter.clone()),
             _ => None,
         })
         .collect();
@@ -705,7 +720,7 @@ fn translate_func_call(func_call: FuncCall, dialect: &dyn DialectHandler) -> Res
     let FuncCall { name, args, .. } = func_call;
 
     Ok(Function {
-        name: ObjectName(vec![sql_ast::Ident::new(name)]),
+        name: ObjectName(vec![sql_ast::Ident::new(name.item.into_ident().unwrap())]),
         args: args
             .into_iter()
             .map(|a| translate_item(a.item, dialect))
@@ -728,9 +743,9 @@ fn translate_column_sort(sort: ColumnSort, dialect: &dyn DialectHandler) -> Resu
     })
 }
 
-fn translate_join(t: &Transform, dialect: &dyn DialectHandler) -> Result<Join> {
+fn translate_join(t: &TransformKind, dialect: &dyn DialectHandler) -> Result<Join> {
     match t {
-        Transform::Join { side, with, filter } => {
+        TransformKind::Join { side, with, filter } => {
             let constraint = match filter {
                 JoinFilter::On(nodes) => JoinConstraint::On(
                     filter_of_filters(nodes.clone(), dialect)?
@@ -904,20 +919,20 @@ impl SQLExpression for UnaryOperator {
     }
 }
 
-impl From<Vec<Node>> for Table {
-    fn from(functions: Vec<Node>) -> Self {
+impl From<Vec<Transform>> for Table {
+    fn from(transforms: Vec<Transform>) -> Self {
         Table {
             id: None,
             name: String::default(),
-            pipeline: Box::new(Item::Pipeline(functions.into()).into()),
+            pipeline: Box::new(Item::ResolvedQuery(ResolvedQuery { transforms }).into()),
         }
     }
 }
-impl From<Vec<Node>> for AtomicTable {
-    fn from(functions: Vec<Node>) -> Self {
+impl From<Vec<Transform>> for AtomicTable {
+    fn from(transforms: Vec<Transform>) -> Self {
         AtomicTable {
             name: None,
-            pipeline: functions.into(),
+            pipeline: ResolvedQuery { transforms },
             frame: None,
         }
     }
@@ -1000,14 +1015,19 @@ mod test {
         Ok(())
     }
 
-    fn parse_and_resolve(prql: &str) -> Result<Pipeline> {
-        let (mut nodes, _) = resolve(parse(prql)?, None)?;
-        let pipeline = nodes.remove(nodes.len() - 1).coerce_to_pipeline();
-        Ok(pipeline)
+    fn parse_and_resolve(prql: &str) -> Result<ResolvedQuery> {
+        let nodes = resolve(parse(prql)?, None)?.0.nodes;
+        Ok(nodes
+            .into_iter()
+            .find_map(|n| match n.item {
+                Item::ResolvedQuery(rq) => Some(rq),
+                _ => None,
+            })
+            .unwrap())
     }
 
     #[test]
-    fn test_ctes_of_pipeline() -> Result<()> {
+    fn test_ctes_of_pipeline() {
         let mut context = MaterializationContext::default();
 
         // One aggregate, take at the end
@@ -1019,8 +1039,8 @@ mod test {
         take 20
         "###;
 
-        let pipeline = parse_and_resolve(prql)?;
-        let queries = atomic_pipelines_of_pipeline(pipeline, &mut context)?;
+        let pipeline = parse_and_resolve(prql).unwrap();
+        let queries = atomic_pipelines_of_pipeline(pipeline, &mut context).unwrap();
         assert_eq!(queries.len(), 1);
 
         // One aggregate, but take at the top
@@ -1032,8 +1052,8 @@ mod test {
         sort sal
         "###;
 
-        let pipeline = parse_and_resolve(prql)?;
-        let queries = atomic_pipelines_of_pipeline(pipeline, &mut context)?;
+        let pipeline = parse_and_resolve(prql).unwrap();
+        let queries = atomic_pipelines_of_pipeline(pipeline, &mut context).unwrap();
         assert_eq!(queries.len(), 2);
 
         // A take, then two aggregates
@@ -1046,8 +1066,8 @@ mod test {
         sort sal
         "###;
 
-        let pipeline = parse_and_resolve(prql)?;
-        let queries = atomic_pipelines_of_pipeline(pipeline, &mut context)?;
+        let pipeline = parse_and_resolve(prql).unwrap();
+        let queries = atomic_pipelines_of_pipeline(pipeline, &mut context).unwrap();
         assert_eq!(queries.len(), 3);
 
         // A take, then a select
@@ -1057,10 +1077,9 @@ mod test {
         select first_name
         "###;
 
-        let pipeline = parse_and_resolve(prql)?;
-        let queries = atomic_pipelines_of_pipeline(pipeline, &mut context)?;
+        let pipeline = parse_and_resolve(prql).unwrap();
+        let queries = atomic_pipelines_of_pipeline(pipeline, &mut context).unwrap();
         assert_eq!(queries.len(), 1);
-        Ok(())
     }
     #[test]
     fn test_try_from_s_string_to_expr() -> Result<()> {

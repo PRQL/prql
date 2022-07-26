@@ -46,12 +46,12 @@ fn parse_tree_of_str(source: &str, rule: Rule) -> Result<Pairs<Rule>> {
 /// Parses a parse tree of pest Pairs into an AST.
 fn ast_of_parse_pairs(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
     pairs
+        .filter(|p| !matches!(p.as_rule(), Rule::EOI))
         .map(ast_of_parse_pair)
-        .filter_map(|n| n.transpose())
         .collect()
 }
 
-fn ast_of_parse_pair(pair: Pair<Rule>) -> Result<Option<Node>> {
+fn ast_of_parse_pair(pair: Pair<Rule>) -> Result<Node> {
     let span = pair.as_span();
     let rule = pair.as_rule();
 
@@ -105,14 +105,14 @@ fn ast_of_parse_pair(pair: Pair<Rule>) -> Result<Option<Node>> {
         Rule::expr_mul | Rule::expr_add | Rule::expr_compare | Rule::expr => {
             let mut pairs = pair.into_inner();
 
-            let mut expr = ast_of_parse_pair(pairs.next().unwrap())?.unwrap();
+            let mut expr = ast_of_parse_pair(pairs.next().unwrap())?;
             if let Some(op) = pairs.next() {
                 let op = BinOp::from_str(op.as_str())?;
 
                 expr = Node::from(Item::Binary {
                     op,
                     left: Box::new(expr),
-                    right: Box::new(ast_of_parse_pair(pairs.next().unwrap())?.unwrap()),
+                    right: Box::new(ast_of_parse_pair(pairs.next().unwrap())?),
                 });
             }
 
@@ -123,7 +123,7 @@ fn ast_of_parse_pair(pair: Pair<Rule>) -> Result<Option<Node>> {
 
             let op = pairs.next().unwrap();
 
-            let a = ast_of_parse_pair(pairs.next().unwrap())?.unwrap();
+            let a = ast_of_parse_pair(pairs.next().unwrap())?;
             match UnOp::from_str(op.as_str()) {
                 Ok(op) => Item::Unary {
                     op,
@@ -145,7 +145,7 @@ fn ast_of_parse_pair(pair: Pair<Rule>) -> Result<Option<Node>> {
             } else {
                 let parsed = ast_of_parse_pairs(pairs)?;
                 Item::FuncCall(FuncCall {
-                    name: "coalesce".to_string(),
+                    name: Box::new(Item::Ident("coalesce".to_string()).into()),
                     args: vec![parsed[0].clone(), parsed[2].clone()],
                     named_args: HashMap::new(),
                 })
@@ -170,8 +170,7 @@ fn ast_of_parse_pair(pair: Pair<Rule>) -> Result<Option<Node>> {
             let params = pairs.next().unwrap();
             let body = pairs.next().unwrap();
 
-            let (name, return_type) = parse_typed(name)?;
-            let name = name.item.into_ident()?;
+            let (name, return_type, _) = parse_typed(name)?;
 
             let params: Vec<_> = params
                 .into_inner()
@@ -179,34 +178,49 @@ fn ast_of_parse_pair(pair: Pair<Rule>) -> Result<Option<Node>> {
                 .map(parse_typed)
                 .try_collect()?;
 
-            let positional_params = params
-                .iter()
-                .filter(|x| matches!(x.0.item, Item::Ident(_)))
-                .cloned()
-                .collect();
-            let named_params = params
-                .iter()
-                .filter(|x| matches!(x.0.item, Item::NamedArg(_)))
-                .cloned()
-                .collect();
+            let mut positional_params = vec![];
+            let mut named_params = vec![];
+            for (name, ty, default_value) in params {
+                let param = FuncParam {
+                    name,
+                    ty,
+                    default_value,
+                    declared_at: None,
+                };
+                if param.default_value.is_some() {
+                    named_params.push(param)
+                } else {
+                    positional_params.push(param)
+                }
+            }
 
             Item::FuncDef(FuncDef {
                 name,
                 positional_params,
                 named_params,
-                body: Box::from(ast_of_parse_pair(body)?.unwrap()),
-                return_type,
+                body: Box::from(ast_of_parse_pair(body)?),
+                return_ty: return_type,
             })
         }
         Rule::func_call => {
-            let mut items = ast_of_parse_pairs(pair.into_inner())?;
+            let mut nodes = ast_of_parse_pairs(pair.into_inner())?;
 
-            let name = items.remove(0).item.into_ident()?;
+            let name = nodes.remove(0);
+
+            let mut named = HashMap::new();
+            let mut positional = Vec::new();
+            for node in nodes {
+                if let Item::NamedArg(ne) = node.item {
+                    named.insert(ne.name, ne.expr);
+                } else {
+                    positional.push(node);
+                }
+            }
 
             Item::FuncCall(FuncCall {
-                name,
-                args: items,
-                named_args: HashMap::new(),
+                name: Box::new(name),
+                args: positional,
+                named_args: named,
             })
         }
         Rule::table => {
@@ -253,9 +267,16 @@ fn ast_of_parse_pair(pair: Pair<Rule>) -> Result<Option<Node>> {
         Rule::pipeline => {
             let mut nodes = ast_of_parse_pairs(pair.into_inner())?;
             match nodes.len() {
-                0 => return Ok(None),
+                0 => unimplemented!(),
                 1 => nodes.remove(0).item,
                 _ => Item::Pipeline(Pipeline { nodes }),
+            }
+        }
+        Rule::nested_pipeline => {
+            if let Some(pipeline) = pair.into_inner().next() {
+                ast_of_parse_pair(pipeline)?.item
+            } else {
+                Item::Empty
             }
         }
         Rule::range => {
@@ -304,19 +325,20 @@ fn ast_of_parse_pair(pair: Pair<Rule>) -> Result<Option<Node>> {
                 .into_inner()
                 .into_iter()
                 .map(|pair| -> Result<Ty> {
-                    let mut parts: Vec<_> = pair.into_inner().into_iter().collect();
-                    let name = &parts.remove(0).as_str();
+                    let mut pairs = pair.into_inner();
+                    let name = pairs.next().unwrap().as_str();
                     let typ = match TyLit::from_str(name) {
                         Ok(t) => Ty::from(t),
-                        Err(_) => Ty::Named(name.to_string()),
+                        Err(_) if name == "builtin_keyword" => Ty::BuiltinKeyword,
+                        Err(_) if name == "assigns" => Ty::Assigns,
+                        Err(_) if name == "table" => Ty::Table(Frame::default()),
+                        Err(_) => {
+                            eprintln!("named type: {}", name);
+                            Ty::Named(name.to_string())
+                        }
                     };
 
-                    let param = parts
-                        .pop()
-                        .map(|p| ast_of_parse_pairs(p.into_inner()))
-                        .transpose()?
-                        .map(|p| p.into_only())
-                        .transpose()?;
+                    let param = pairs.next().map(ast_of_parse_pair).transpose()?;
 
                     Ok(if let Some(param) = param {
                         Ty::Parameterized(Box::new(typ), Box::new(param))
@@ -335,8 +357,6 @@ fn ast_of_parse_pair(pair: Pair<Rule>) -> Result<Option<Node>> {
             Item::Type(typ)
         }
 
-        Rule::EOI => return Ok(None),
-
         _ => unreachable!("{pair}"),
     };
     let mut node = Node::from(item);
@@ -344,18 +364,28 @@ fn ast_of_parse_pair(pair: Pair<Rule>) -> Result<Option<Node>> {
         start: span.start(),
         end: span.end(),
     });
-    Ok(Some(node))
+    Ok(node)
 }
 
-fn parse_typed(pair: Pair<Rule>) -> Result<(Node, Option<Ty>)> {
+fn parse_typed(pair: Pair<Rule>) -> Result<(String, Option<Ty>, Option<Node>)> {
     let mut pairs = pair.into_inner();
 
-    let node = ast_of_parse_pair(pairs.next().unwrap())?.unwrap();
+    let name = pairs.next().unwrap().as_str().to_string();
 
-    let ty = pairs.next();
-    let ty = ty.map(ast_of_parse_pair).transpose()?.flatten();
-    let ty = ty.map(|t| t.item.into_type()).transpose()?;
-    Ok((node, ty))
+    let nodes: Vec<_> = pairs.map(ast_of_parse_pair).try_collect()?;
+
+    let mut ty = None;
+    let mut default = None;
+
+    for node in nodes {
+        if let Item::Type(t) = node.item {
+            ty = Some(t);
+        } else {
+            default = Some(node);
+        }
+    }
+
+    Ok((name, ty, default))
 }
 
 fn named_expr_of_nodes(items: &mut Vec<Node>) -> Result<NamedExpr, anyhow::Error> {
@@ -377,7 +407,7 @@ fn ast_of_interpolate_items(pair: Pair<Rule>) -> Result<Vec<InterpolateItem>> {
                 | Rule::interpolate_double_bracket_literal => {
                     InterpolateItem::String(x.as_str().to_string())
                 }
-                _ => InterpolateItem::Expr(Box::new(ast_of_parse_pair(x)?.unwrap())),
+                _ => InterpolateItem::Expr(Box::new(ast_of_parse_pair(x)?)),
             })
         })
         .collect::<Result<_>>()
@@ -396,7 +426,8 @@ mod test {
         assert_yaml_snapshot!(ast_of_string(r#"take 10"#, Rule::expr_call)?, @r###"
         ---
         FuncCall:
-          name: take
+          name:
+            Ident: take
           args:
             - Literal:
                 Integer: 10
@@ -407,7 +438,8 @@ mod test {
         assert_yaml_snapshot!(ast_of_string(r#"take 1..10"#, Rule::expr_call)?, @r###"
         ---
         FuncCall:
-          name: take
+          name:
+            Ident: take
           args:
             - Range:
                 start:
@@ -637,15 +669,18 @@ Canada
             - Pipeline:
                 nodes:
                   - FuncCall:
-                      name: from
+                      name:
+                        Ident: from
                       args:
                         - Ident: "{{ ref('stg_orders') }}"
                       named_args: {}
                   - FuncCall:
-                      name: aggregate
+                      name:
+                        Ident: aggregate
                       args:
                         - FuncCall:
-                            name: sum
+                            name:
+                              Ident: sum
                             args:
                               - Ident: order_id
                             named_args: {}
@@ -680,7 +715,8 @@ Canada
               op: Add
               right:
                 FuncCall:
-                  name: f
+                  name:
+                    Ident: f
                   args:
                     - Literal:
                         Integer: 1
@@ -708,7 +744,8 @@ Canada
         ---
         List:
           - FuncCall:
-              name: a
+              name:
+                Ident: a
               args:
                 - Ident: b
               named_args: {}
@@ -780,7 +817,8 @@ Canada
           dialect: Generic
           nodes:
             - FuncCall:
-                name: filter
+                name:
+                  Ident: filter
                 args:
                   - Binary:
                       left:
@@ -800,12 +838,14 @@ Canada
           dialect: Generic
           nodes:
             - FuncCall:
-                name: filter
+                name:
+                  Ident: filter
                 args:
                   - Binary:
                       left:
                         FuncCall:
-                          name: upper
+                          name:
+                            Ident: upper
                           args:
                             - Ident: country
                           named_args: {}
@@ -831,16 +871,19 @@ Canada
             aggregate, @r###"
         ---
         FuncCall:
-          name: group
+          name:
+            Ident: group
           args:
             - List:
                 - Ident: title
             - FuncCall:
-                name: aggregate
+                name:
+                  Ident: aggregate
                 args:
                   - List:
                       - FuncCall:
-                          name: sum
+                          name:
+                            Ident: sum
                           args:
                             - Ident: salary
                           named_args: {}
@@ -859,16 +902,19 @@ Canada
             aggregate, @r###"
         ---
         FuncCall:
-          name: group
+          name:
+            Ident: group
           args:
             - List:
                 - Ident: title
             - FuncCall:
-                name: aggregate
+                name:
+                  Ident: aggregate
                 args:
                   - List:
                       - FuncCall:
-                          name: sum
+                          name:
+                            Ident: sum
                           args:
                             - Ident: salary
                           named_args: {}
@@ -884,7 +930,8 @@ Canada
         , @r###"
         ---
         FuncCall:
-          name: derive
+          name:
+            Ident: derive
           args:
             - List:
                 - Assign:
@@ -912,7 +959,8 @@ Canada
         , @r###"
         ---
         FuncCall:
-          name: select
+          name:
+            Ident: select
           args:
             - Ident: x
           named_args: {}
@@ -923,7 +971,8 @@ Canada
         , @r###"
         ---
         FuncCall:
-          name: select
+          name:
+            Ident: select
           args:
             - List:
                 - Ident: x
@@ -1044,8 +1093,8 @@ take 20
         FuncDef:
           name: plus_one
           positional_params:
-            - - Ident: x
-              - ~
+            - name: x
+              default_value: ~
           named_params: []
           body:
             Binary:
@@ -1055,7 +1104,7 @@ take 20
               right:
                 Literal:
                   Integer: 1
-          return_type: ~
+          return_ty: ~
         "###);
         assert_yaml_snapshot!(ast_of_string(
             "func identity x ->  x", Rule::func_def
@@ -1065,12 +1114,12 @@ take 20
         FuncDef:
           name: identity
           positional_params:
-            - - Ident: x
-              - ~
+            - name: x
+              default_value: ~
           named_params: []
           body:
             Ident: x
-          return_type: ~
+          return_ty: ~
         "###);
         assert_yaml_snapshot!(ast_of_string(
             "func plus_one x ->  (x + 1)", Rule::func_def
@@ -1080,8 +1129,8 @@ take 20
         FuncDef:
           name: plus_one
           positional_params:
-            - - Ident: x
-              - ~
+            - name: x
+              default_value: ~
           named_params: []
           body:
             Binary:
@@ -1091,7 +1140,7 @@ take 20
               right:
                 Literal:
                   Integer: 1
-          return_type: ~
+          return_ty: ~
         "###);
         assert_yaml_snapshot!(ast_of_string(
             "func plus_one x ->  x + 1", Rule::func_def
@@ -1101,8 +1150,8 @@ take 20
         FuncDef:
           name: plus_one
           positional_params:
-            - - Ident: x
-              - ~
+            - name: x
+              default_value: ~
           named_params: []
           body:
             Binary:
@@ -1112,7 +1161,7 @@ take 20
               right:
                 Literal:
                   Integer: 1
-          return_type: ~
+          return_ty: ~
         "###);
         // An example to show that we can't delayer the tree, despite there
         // being lots of layers.
@@ -1124,12 +1173,13 @@ take 20
         FuncDef:
           name: foo
           positional_params:
-            - - Ident: x
-              - ~
+            - name: x
+              default_value: ~
           named_params: []
           body:
             FuncCall:
-              name: foo
+              name:
+                Ident: foo
               args:
                 - Binary:
                     left:
@@ -1139,7 +1189,7 @@ take 20
                       Literal:
                         Integer: 1
               named_args: {}
-          return_type: ~
+          return_ty: ~
         "###);
 
         assert_yaml_snapshot!(ast_of_string("func return_constant ->  42", Rule::func_def)?, @r###"
@@ -1151,15 +1201,15 @@ take 20
           body:
             Literal:
               Integer: 42
-          return_type: ~
+          return_ty: ~
         "###);
         assert_yaml_snapshot!(ast_of_string(r#"func count X ->  s"SUM({X})""#, Rule::func_def)?, @r###"
         ---
         FuncDef:
           name: count
           positional_params:
-            - - Ident: X
-              - ~
+            - name: X
+              default_value: ~
           named_params: []
           body:
             SString:
@@ -1167,7 +1217,7 @@ take 20
               - Expr:
                   Ident: X
               - String: )
-          return_type: ~
+          return_ty: ~
         "###);
 
         /* TODO: Does not yet parse because `window` not yet implemented.
@@ -1192,14 +1242,12 @@ take 20
         FuncDef:
           name: add
           positional_params:
-            - - Ident: x
-              - ~
+            - name: x
+              default_value: ~
           named_params:
-            - - NamedArg:
-                  name: to
-                  expr:
-                    Ident: a
-              - ~
+            - name: to
+              default_value:
+                Ident: a
           body:
             Binary:
               left:
@@ -1207,7 +1255,7 @@ take 20
               op: Add
               right:
                 Ident: to
-          return_type: ~
+          return_ty: ~
         "###);
 
         Ok(())
@@ -1230,7 +1278,8 @@ take 20
         assert_yaml_snapshot!(
             func_call, @r###"
         ---
-        name: count
+        name:
+          Ident: count
         args:
           - SString:
               - String: "*"
@@ -1245,12 +1294,14 @@ take 20
           - Pipeline:
               nodes:
                 - FuncCall:
-                    name: from
+                    name:
+                      Ident: from
                     args:
                       - Ident: mytable
                     named_args: {}
                 - FuncCall:
-                    name: select
+                    name:
+                      Ident: select
                     args:
                       - List:
                           - Binary:
@@ -1271,7 +1322,8 @@ take 20
                                     Binary:
                                       left:
                                         FuncCall:
-                                          name: d
+                                          name:
+                                            Ident: d
                                           args:
                                             - Ident: e
                                           named_args: {}
@@ -1286,7 +1338,8 @@ take 20
             ast, @r###"
         ---
         FuncCall:
-          name: add
+          name:
+            Ident: add
           args:
             - Ident: bar
             - Assign:
@@ -1309,7 +1362,8 @@ take 20
           name: newest_employees
           pipeline:
             FuncCall:
-              name: from
+              name:
+                Ident: from
               args:
                 - Ident: employees
               named_args: {}
@@ -1336,35 +1390,41 @@ take 20
             Pipeline:
               nodes:
                 - FuncCall:
-                    name: from
+                    name:
+                      Ident: from
                     args:
                       - Ident: employees
                     named_args: {}
                 - FuncCall:
-                    name: group
+                    name:
+                      Ident: group
                     args:
                       - Ident: country
                       - FuncCall:
-                          name: aggregate
+                          name:
+                            Ident: aggregate
                           args:
                             - List:
                                 - Assign:
                                     name: average_country_salary
                                     expr:
                                       FuncCall:
-                                        name: average
+                                        name:
+                                          Ident: average
                                         args:
                                           - Ident: salary
                                         named_args: {}
                           named_args: {}
                     named_args: {}
                 - FuncCall:
-                    name: sort
+                    name:
+                      Ident: sort
                     args:
                       - Ident: tenure
                     named_args: {}
                 - FuncCall:
-                    name: take
+                    name:
+                      Ident: take
                     args:
                       - Literal:
                           Integer: 50
@@ -1395,12 +1455,14 @@ take 20
             Pipeline:
               nodes:
                 - FuncCall:
-                    name: from
+                    name:
+                      Ident: from
                     args:
                       - Ident: x_table
                     named_args: {}
                 - FuncCall:
-                    name: select
+                    name:
+                      Ident: select
                     args:
                       - Assign:
                           name: only_in_x
@@ -1421,7 +1483,8 @@ take 20
           nodes:
             - Ident: salary
             - FuncCall:
-                name: percentile
+                name:
+                  Ident: percentile
                 args:
                   - Literal:
                       Integer: 50
@@ -1436,20 +1499,21 @@ take 20
             - FuncDef:
                 name: median
                 positional_params:
-                  - - Ident: x
-                    - ~
+                  - name: x
+                    default_value: ~
                 named_params: []
                 body:
                   Pipeline:
                     nodes:
                       - Ident: x
                       - FuncCall:
-                          name: percentile
+                          name:
+                            Ident: percentile
                           args:
                             - Literal:
                                 Integer: 50
                           named_args: {}
-                return_type: ~
+                return_ty: ~
         "###);
     }
 
@@ -1469,12 +1533,14 @@ take 20
           - Pipeline:
               nodes:
                 - FuncCall:
-                    name: from
+                    name:
+                      Ident: from
                     args:
                       - Ident: mytable
                     named_args: {}
                 - FuncCall:
-                    name: filter
+                    name:
+                      Ident: filter
                     args:
                       - List:
                           - Binary:
@@ -1526,27 +1592,32 @@ join `my-proj`.`dataset`.`table`
           - Pipeline:
               nodes:
                 - FuncCall:
-                    name: from
+                    name:
+                      Ident: from
                     args:
                       - Ident: a
                     named_args: {}
                 - FuncCall:
-                    name: aggregate
+                    name:
+                      Ident: aggregate
                     args:
                       - List:
                           - FuncCall:
-                              name: max
+                              name:
+                                Ident: max
                               args:
                                 - Ident: c
                               named_args: {}
                     named_args: {}
                 - FuncCall:
-                    name: join
+                    name:
+                      Ident: join
                     args:
                       - Ident: my-proj.dataset.table
                     named_args: {}
                 - FuncCall:
-                    name: join
+                    name:
+                      Ident: join
                     args:
                       - Ident: my-proj.dataset.table
                     named_args: {}
@@ -1572,17 +1643,20 @@ join `my-proj`.`dataset`.`table`
           - Pipeline:
               nodes:
                 - FuncCall:
-                    name: from
+                    name:
+                      Ident: from
                     args:
                       - Ident: invoices
                     named_args: {}
                 - FuncCall:
-                    name: sort
+                    name:
+                      Ident: sort
                     args:
                       - Ident: issued_at
                     named_args: {}
                 - FuncCall:
-                    name: sort
+                    name:
+                      Ident: sort
                     args:
                       - Unary:
                           op: Neg
@@ -1590,13 +1664,15 @@ join `my-proj`.`dataset`.`table`
                             Ident: issued_at
                     named_args: {}
                 - FuncCall:
-                    name: sort
+                    name:
+                      Ident: sort
                     args:
                       - List:
                           - Ident: issued_at
                     named_args: {}
                 - FuncCall:
-                    name: sort
+                    name:
+                      Ident: sort
                     args:
                       - List:
                           - Unary:
@@ -1605,7 +1681,8 @@ join `my-proj`.`dataset`.`table`
                                 Ident: issued_at
                     named_args: {}
                 - FuncCall:
-                    name: sort
+                    name:
+                      Ident: sort
                     args:
                       - List:
                           - Ident: issued_at
@@ -1641,18 +1718,21 @@ join `my-proj`.`dataset`.`table`
           - Pipeline:
               nodes:
                 - FuncCall:
-                    name: from
+                    name:
+                      Ident: from
                     args:
                       - Ident: employees
                     named_args: {}
                 - FuncCall:
-                    name: filter
+                    name:
+                      Ident: filter
                     args:
                       - Pipeline:
                           nodes:
                             - Ident: age
                             - FuncCall:
-                                name: between
+                                name:
+                                  Ident: between
                                 args:
                                   - Range:
                                       start:
@@ -1664,7 +1744,8 @@ join `my-proj`.`dataset`.`table`
                                 named_args: {}
                     named_args: {}
                 - FuncCall:
-                    name: derive
+                    name:
+                      Ident: derive
                     args:
                       - List:
                           - Assign:
@@ -1734,12 +1815,14 @@ join `my-proj`.`dataset`.`table`
           - Pipeline:
               nodes:
                 - FuncCall:
-                    name: from
+                    name:
+                      Ident: from
                     args:
                       - Ident: employees
                     named_args: {}
                 - FuncCall:
-                    name: derive
+                    name:
+                      Ident: derive
                     args:
                       - List:
                           - Assign:
@@ -1769,7 +1852,8 @@ join `my-proj`.`dataset`.`table`
         dialect: Generic
         nodes:
           - FuncCall:
-              name: derive
+              name:
+                Ident: derive
               args:
                 - List:
                     - Assign:
@@ -1805,7 +1889,8 @@ join `my-proj`.`dataset`.`table`
         dialect: Generic
         nodes:
           - FuncCall:
-              name: derive
+              name:
+                Ident: derive
               args:
                 - Assign:
                     name: x
@@ -1827,7 +1912,8 @@ join `my-proj`.`dataset`.`table`
         dialect: MsSql
         nodes:
           - FuncCall:
-              name: from
+              name:
+                Ident: from
               args:
                 - Ident: employees
               named_args: {}
@@ -1843,7 +1929,8 @@ join `my-proj`.`dataset`.`table`
         dialect: BigQuery
         nodes:
           - FuncCall:
-              name: from
+              name:
+                Ident: from
               args:
                 - Ident: employees
               named_args: {}
@@ -1879,18 +1966,21 @@ join `my-proj`.`dataset`.`table`
           - Pipeline:
               nodes:
                 - FuncCall:
-                    name: from
+                    name:
+                      Ident: from
                     args:
                       - Ident: employees
                     named_args: {}
                 - FuncCall:
-                    name: derive
+                    name:
+                      Ident: derive
                     args:
                       - Assign:
                           name: amount
                           expr:
                             FuncCall:
-                              name: coalesce
+                              name:
+                                Ident: coalesce
                               args:
                                 - Ident: amount
                                 - Literal:
@@ -1910,7 +2000,8 @@ join `my-proj`.`dataset`.`table`
         dialect: Generic
         nodes:
           - FuncCall:
-              name: derive
+              name:
+                Ident: derive
               args:
                 - Assign:
                     name: x
@@ -1936,19 +2027,22 @@ join `my-proj`.`dataset`.`table`
           - Pipeline:
               nodes:
                 - FuncCall:
-                    name: from
+                    name:
+                      Ident: from
                     args:
                       - Ident: employees
                     named_args: {}
                 - FuncCall:
-                    name: join
+                    name:
+                      Ident: join
                     args:
                       - Ident: _salary
                       - List:
                           - Ident: employee_id
                     named_args: {}
                 - FuncCall:
-                    name: filter
+                    name:
+                      Ident: filter
                     args:
                       - Binary:
                           left:
@@ -1958,7 +2052,8 @@ join `my-proj`.`dataset`.`table`
                             Ident: $1
                     named_args: {}
                 - FuncCall:
-                    name: select
+                    name:
+                      Ident: select
                     args:
                       - List:
                           - Ident: _employees._underscored_column
@@ -1982,12 +2077,14 @@ join `my-proj`.`dataset`.`table`
           - Pipeline:
               nodes:
                 - FuncCall:
-                    name: from
+                    name:
+                      Ident: from
                     args:
                       - Ident: people
                     named_args: {}
                 - FuncCall:
-                    name: filter
+                    name:
+                      Ident: filter
                     args:
                       - Binary:
                           left:
@@ -1998,7 +2095,8 @@ join `my-proj`.`dataset`.`table`
                               Integer: 100
                     named_args: {}
                 - FuncCall:
-                    name: filter
+                    name:
+                      Ident: filter
                     args:
                       - Binary:
                           left:
@@ -2009,7 +2107,8 @@ join `my-proj`.`dataset`.`table`
                               Integer: 10
                     named_args: {}
                 - FuncCall:
-                    name: filter
+                    name:
+                      Ident: filter
                     args:
                       - Binary:
                           left:
@@ -2020,7 +2119,8 @@ join `my-proj`.`dataset`.`table`
                               Integer: 0
                     named_args: {}
                 - FuncCall:
-                    name: filter
+                    name:
+                      Ident: filter
                     args:
                       - Binary:
                           left:

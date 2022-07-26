@@ -1,7 +1,7 @@
 /// Types for outer-scope AST nodes (query, table, func def, transform)
 use serde::{Deserialize, Serialize};
 
-use super::{Dialect, Ident, Node, Range, Ty};
+use super::{Dialect, Frame, Ident, Node, Range, Ty};
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize, Default)]
 pub struct Query {
@@ -11,14 +11,32 @@ pub struct Query {
     pub nodes: Vec<Node>,
 }
 
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+pub struct ResolvedQuery {
+    pub transforms: Vec<Transform>,
+}
+
 /// Function definition.
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct FuncDef {
     pub name: Ident,
-    pub positional_params: Vec<(Node, Option<Ty>)>, // ident
-    pub named_params: Vec<(Node, Option<Ty>)>,      // named expr
+    pub positional_params: Vec<FuncParam>, // ident
+    pub named_params: Vec<FuncParam>,      // named expr
     pub body: Box<Node>,
-    pub return_type: Option<Ty>,
+    pub return_ty: Option<Ty>,
+}
+
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+pub struct FuncParam {
+    pub name: String,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ty: Option<Ty>,
+
+    pub default_value: Option<Node>,
+
+    #[serde(skip)]
+    pub declared_at: Option<usize>,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
@@ -29,8 +47,19 @@ pub struct Table {
 }
 
 /// Transform is a stage of a pipeline. It is created from a FuncCall during parsing.
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+pub struct Transform {
+    pub kind: TransformKind,
+
+    /// True when transform contains window functions
+    pub is_complex: bool,
+
+    /// Result type
+    pub ty: Frame,
+}
+
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize, strum::AsRefStr)]
-pub enum Transform {
+pub enum TransformKind {
     From(TableRef),
     Select(Vec<Node>),
     Filter(Box<Node>),
@@ -52,12 +81,12 @@ pub enum Transform {
     },
     Group {
         by: Vec<Node>,
-        pipeline: Box<Node>,
+        pipeline: ResolvedQuery,
     },
     Window {
         kind: WindowKind,
         range: Range,
-        pipeline: Box<Node>,
+        pipeline: ResolvedQuery,
     },
     Unique, // internal only, can be expressed with group & take
 }
@@ -67,11 +96,12 @@ pub enum WindowKind {
     Rows,
     Range,
 }
-#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct TableRef {
     pub name: String,
     pub alias: Option<String>,
     pub declared_at: Option<usize>,
+    pub ty: Option<Ty>,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
@@ -103,5 +133,15 @@ pub enum SortDirection {
 impl Default for SortDirection {
     fn default() -> Self {
         SortDirection::Asc
+    }
+}
+
+impl From<TransformKind> for Transform {
+    fn from(kind: TransformKind) -> Self {
+        Transform {
+            kind,
+            is_complex: false,
+            ty: Frame::default(),
+        }
     }
 }
