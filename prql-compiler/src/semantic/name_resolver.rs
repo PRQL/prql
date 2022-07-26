@@ -4,20 +4,18 @@ use anyhow::{bail, Result};
 use itertools::Itertools;
 
 use crate::ast::ast_fold::*;
+use crate::ast::*;
 use crate::error::{Error, Reason, Span, WithErrorInfo};
-use crate::{ast::*, split_var_name, Declaration};
 
 use super::complexity::determine_complexity;
 use super::frame::extract_sorts;
 use super::transforms;
-use super::Context;
+use super::{split_var_name, Context, Declaration};
 
 /// Runs semantic analysis on the query, using current state.
 ///
 /// Note that this removes function declarations from AST and saves them as current context.
-pub fn resolve_names(nodes: Vec<Node>, context: Option<Context>) -> Result<(Vec<Node>, Context)> {
-    let context = context.unwrap_or_else(init_context);
-
+pub fn resolve_names(nodes: Vec<Node>, context: Context) -> Result<(Vec<Node>, Context)> {
     let mut resolver = NameResolver::new(context);
 
     let nodes = resolver.fold_nodes(nodes)?;
@@ -574,28 +572,19 @@ impl NameResolver {
     }
 }
 
-/// Loads `internal.prql` which contains type definitions of transforms
-pub fn init_context() -> Context {
-    use crate::parse;
-    let transforms = include_str!("./transforms.prql");
-    let transforms = parse(transforms).unwrap().nodes;
-
-    let (_, context) = resolve_names(transforms, Some(Context::default())).unwrap();
-    context
-}
-
 #[cfg(test)]
 mod tests {
     use insta::assert_snapshot;
     use serde_yaml::from_str;
 
+    use crate::semantic::load_std_lib;
     use crate::{parse, resolve_and_translate};
 
     use super::*;
 
     #[test]
     fn test_scopes_during_from() {
-        let context = init_context();
+        let context = load_std_lib();
 
         let mut resolver = NameResolver::new(context);
 
@@ -618,7 +607,7 @@ mod tests {
 
     #[test]
     fn test_scopes_during_select() {
-        let context = init_context();
+        let context = load_std_lib();
 
         let mut resolver = NameResolver::new(context);
 
@@ -663,12 +652,14 @@ mod tests {
 
     #[test]
     fn test_variable_scoping() {
+        let context = load_std_lib();
+
         let prql = r#"
         from employees
         select first_name
         select last_name
         "#;
-        let result = parse(prql).and_then(|x| resolve_names(x.nodes, None));
+        let result = parse(prql).and_then(|x| resolve_names(x.nodes, context));
         assert!(result.is_err());
 
         let prql = r#"
@@ -688,22 +679,25 @@ mod tests {
 
     #[test]
     fn test_join_using_two_tables() {
+        let context = load_std_lib();
+
         let prql = r#"
         from employees
         select [first_name, emp_no]
         join salaries [emp_no]
         select [first_name, salaries.salary]
         "#;
-        let result = parse(prql).and_then(|x| resolve_names(x.nodes, None));
+        let result = parse(prql).and_then(|x| resolve_names(x.nodes, context));
         result.unwrap();
 
+        let context = load_std_lib();
         let prql = r#"
         from employees
         select first_name
         join salaries [emp_no]
         select [first_name, salaries.salary]
         "#;
-        let result = parse(prql).and_then(|x| resolve_names(x.nodes, None));
+        let result = parse(prql).and_then(|x| resolve_names(x.nodes, context));
         assert!(result.is_err());
     }
 

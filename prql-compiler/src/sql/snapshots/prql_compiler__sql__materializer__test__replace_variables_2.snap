@@ -6,7 +6,7 @@ expression: "&mat"
     From:
       name: employees
       alias: ~
-      declared_at: 41
+      declared_at: 79
 - Transform:
     Filter:
       Binary:
@@ -107,7 +107,11 @@ expression: "&mat"
                                 Ident: benefits_cost
                         - String: )
                     - SString:
-                        - String: COUNT(*)
+                        - String: COUNT(
+                        - Expr:
+                            SString:
+                              - String: "*"
+                        - String: )
                   by:
                     - Ident: title
                     - Ident: country

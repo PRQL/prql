@@ -3,18 +3,17 @@ pub mod ast;
 mod cli;
 mod error;
 mod parser;
-mod semantic;
+pub mod semantic;
 mod sql;
 mod utils;
 
 pub use anyhow::Result;
-pub use ast::display;
 #[cfg(feature = "cli")]
 pub use cli::Cli;
 pub use error::{format_error, SourceLocation};
 pub use parser::parse;
-pub use semantic::*;
-pub use sql::{resolve_and_translate, translate};
+pub use semantic::resolve;
+pub use sql::translate;
 
 /// Compile a PRQL string into a SQL string.
 ///
@@ -26,13 +25,15 @@ pub fn compile(prql: &str) -> Result<String> {
     parse(prql).and_then(resolve_and_translate)
 }
 
-/// Format an PRQL query
-///
-/// This has two stages:
-/// - [parse] — Build an AST from a PRQL query string.
-/// - [display] — Write a AST back to string.
+pub fn resolve_and_translate(mut query: ast::Query) -> Result<String> {
+    let (nodes, context) = semantic::resolve(query.nodes, None)?;
+    query.nodes = nodes;
+    translate(query, context)
+}
+
+/// Format a PRQL query
 pub fn format(prql: &str) -> Result<String> {
-    parse(prql).map(display)
+    parse(prql).map(|q| format!("{}", ast::Item::Query(q)))
 }
 
 /// Compile a PRQL string into a JSON version of the Query.
@@ -42,7 +43,8 @@ pub fn to_json(prql: &str) -> Result<String> {
 
 /// Convert JSON AST back to PRQL string
 pub fn from_json(json: &str) -> Result<String> {
-    Ok(display(serde_json::from_str(json)?))
+    let query = serde_json::from_str(json)?;
+    Ok(format!("{}", ast::Item::Query(query)))
 }
 
 #[cfg(test)]

@@ -9,11 +9,11 @@ use std::{
 };
 
 use crate::parse;
+use crate::semantic;
 use crate::{
     error::{self, Span},
     semantic::{Context, Frame},
 };
-use crate::{semantic, sql::load_std_lib};
 
 #[derive(Parser)]
 #[clap(name = env!("CARGO_PKG_NAME"), about, version)]
@@ -29,6 +29,9 @@ pub enum Cli {
     Annotate(CommandIO),
 
     Debug(CommandIO),
+
+    /// Produces intermediate representation of the query
+    Resolve(CommandIO),
 
     /// Transpiles to SQL
     Compile(CommandIO),
@@ -76,7 +79,7 @@ impl Cli {
             Cli::Format(_) => crate::format(source)?.as_bytes().to_vec(),
             Cli::Debug(_) => {
                 let query = parse(source)?;
-                let (nodes, context) = semantic::resolve_names(query.nodes, None)?;
+                let (nodes, context) = semantic::resolve(query.nodes, None)?;
 
                 semantic::label_references(&nodes, &context, "".to_string(), source.to_string());
 
@@ -86,9 +89,7 @@ impl Cli {
                 let query = parse(source)?;
 
                 // resolve
-                let std_lib = load_std_lib()?;
-                let (_, context) = semantic::resolve_names(std_lib, None)?;
-                let (nodes, context) = semantic::resolve_names(query.nodes, Some(context))?;
+                let (nodes, context) = semantic::resolve(query.nodes, None)?;
 
                 let frames = semantic::collect_frames(nodes);
 
@@ -97,6 +98,12 @@ impl Cli {
                     .as_bytes()
                     .to_vec()
             }
+            Cli::Resolve(_) => {
+                let ast = parse(source)?;
+                let (ir, _) = semantic::resolve(ast.nodes, None)?;
+
+                serde_yaml::to_vec(&ir)?
+            }
             Cli::Compile(_) => crate::compile(source)?.as_bytes().to_vec(),
         })
     }
@@ -104,7 +111,7 @@ impl Cli {
     fn read_input(&mut self) -> Result<(String, String)> {
         use Cli::*;
         match self {
-            Parse(io) | Format(io) | Debug(io) | Annotate(io) | Compile(io) => {
+            Parse(io) | Format(io) | Debug(io) | Annotate(io) | Resolve(io) | Compile(io) => {
                 // Don't wait without a prompt when running `prql-compiler compile` —
                 // it's confusing whether it's waiting for input or not. This
                 // offers the prompt.
@@ -124,7 +131,7 @@ impl Cli {
     fn write_output(&mut self, data: &[u8]) -> std::io::Result<()> {
         use Cli::*;
         match self {
-            Parse(io) | Format(io) | Debug(io) | Annotate(io) | Compile(io) => {
+            Parse(io) | Format(io) | Debug(io) | Annotate(io) | Resolve(io) | Compile(io) => {
                 io.output.write_all(data)
             }
         }
