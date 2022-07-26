@@ -278,23 +278,20 @@ mod tests {
     use insta::assert_yaml_snapshot;
 
     use crate::parse;
-    use crate::semantic::resolve_names;
-    use crate::sql::load_std_lib;
+    use crate::semantic::{load_std_lib, resolve};
 
     #[test]
     fn test_simple_casts() {
         let query = parse(r#"filter upper country = "USA""#).unwrap();
-        assert!(resolve_names(query.nodes, None).is_err());
+        assert!(resolve(query.nodes, None).is_err());
 
         let query = parse(r#"take"#).unwrap();
-        assert!(resolve_names(query.nodes, None).is_err());
+        assert!(resolve(query.nodes, None).is_err());
     }
 
     #[test]
     fn test_aggregate_positional_arg() {
-        let stdlib = load_std_lib().unwrap();
-        let (_, context) = resolve_names(stdlib, None).unwrap();
-        let context = Some(context);
+        let context = Some(load_std_lib());
 
         // distinct query #292
         let query = parse(
@@ -307,7 +304,7 @@ mod tests {
         ",
         )
         .unwrap();
-        let (result, _) = resolve_names(query.nodes, context.clone()).unwrap();
+        let (result, _) = resolve(query.nodes, context.clone()).unwrap();
         assert_yaml_snapshot!(result, @r###"
         ---
         - Pipeline:
@@ -347,7 +344,7 @@ mod tests {
         ",
         )
         .unwrap();
-        let result = resolve_names(query.nodes, context.clone());
+        let result = resolve(query.nodes, context.clone());
         assert!(result.is_err());
 
         // oops, two arguments
@@ -358,7 +355,7 @@ mod tests {
         ",
         )
         .unwrap();
-        let result = resolve_names(query.nodes, context.clone());
+        let result = resolve(query.nodes, context.clone());
         assert!(result.is_err());
 
         // correct function call
@@ -371,7 +368,7 @@ mod tests {
         ",
         )
         .unwrap();
-        let (result, _) = resolve_names(query.nodes, context).unwrap();
+        let (result, _) = resolve(query.nodes, context).unwrap();
         assert_yaml_snapshot!(result, @r###"
         ---
         - Pipeline:
@@ -399,9 +396,7 @@ mod tests {
 
     #[test]
     fn test_transform_sort() {
-        let stdlib = load_std_lib().unwrap();
-        let (_, context) = resolve_names(stdlib, None).unwrap();
-        let context = Some(context);
+        let context = Some(load_std_lib());
 
         let query = parse(
             "
@@ -415,7 +410,7 @@ mod tests {
         )
         .unwrap();
 
-        let (result, _) = resolve_names(query.nodes, context).unwrap();
+        let (result, _) = resolve(query.nodes, context).unwrap();
         assert_yaml_snapshot!(result, @r###"
         ---
         - Pipeline:
