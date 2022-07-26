@@ -1,8 +1,12 @@
-name: Cron-checks
+name: cron
 
 on:
   schedule:
     - cron: "49 10 * * *"
+  pull_request:
+    paths:
+      - ".github/workflows/cron.yaml"
+  workflow_call:
 
 jobs:
   cargo-audit:
@@ -28,3 +32,15 @@ jobs:
       - uses: gaurav-nelson/github-action-markdown-link-check@v1
         with:
           config-file: .markdown-link-check.json
+
+  time-compilation:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        use_cache: [true, false]
+    steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v3
+      - uses: ./.github/actions/time-compilation
+        with:
+          use_cache: ${{ matrix.use_cache }}

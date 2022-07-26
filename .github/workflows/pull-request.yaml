@@ -72,6 +72,10 @@ jobs:
     uses: ./.github/workflows/publish-web.yaml
     if: contains(github.event.pull_request.labels.*.name, 'pr-publish-web')
 
+  cron:
+    uses: ./.github/workflows/cron.yaml
+    if: contains(github.event.pull_request.labels.*.name, 'pr-cron')
+
   check-links:
     # Another option is https://github.com/lycheeverse/lychee, but it was
     # weirdly difficult to exclude a directory, and I managed to get
