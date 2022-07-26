@@ -3,10 +3,7 @@
 //! contains no query-specific logic.
 use crate::ast::ast_fold::*;
 use crate::ast::*;
-use crate::semantic;
-use crate::Declaration;
-use crate::Declarations;
-use crate::Frame;
+use crate::semantic::{Context, Declaration, Declarations, Frame};
 
 use anyhow::{anyhow, Result};
 use itertools::zip;
@@ -80,8 +77,8 @@ impl MaterializationContext {
     }
 }
 
-impl From<semantic::Context> for MaterializationContext {
-    fn from(context: semantic::Context) -> Self {
+impl From<Context> for MaterializationContext {
+    fn from(context: Context) -> Self {
         MaterializationContext {
             frame: Frame::default(),
             declarations: context.declarations,
@@ -326,7 +323,7 @@ impl std::fmt::Debug for MaterializationContext {
 mod test {
 
     use super::*;
-    use crate::{parse, semantic::resolve_names, utils::diff};
+    use crate::{parse, resolve, utils::diff};
     use insta::{assert_display_snapshot, assert_snapshot, assert_yaml_snapshot};
     use serde_yaml::to_string;
 
@@ -335,7 +332,7 @@ mod test {
     }
 
     fn resolve_and_materialize(query: Query) -> Result<Vec<Node>> {
-        let (res, context) = resolve_names(query.nodes, None)?;
+        let (res, context) = resolve(query.nodes, None)?;
 
         let pipeline = find_pipeline(res);
 
@@ -354,7 +351,7 @@ mod test {
     "#,
         )?;
 
-        let (res, context) = resolve_names(query.nodes, None)?;
+        let (res, context) = resolve(query.nodes, None)?;
 
         let pipeline = find_pipeline(res);
 
@@ -370,7 +367,7 @@ mod test {
         @@ -5,7 +5,3 @@
                  name: employees
                  alias: ~
-                 declared_at: 36
+                 declared_at: 79
         -  - Transform:
         -      Derive:
         -        - Ident: gross_salary
@@ -384,10 +381,6 @@ mod test {
     fn test_replace_variables_2() -> Result<()> {
         let query = parse(
             r#"
-func count ->  s"COUNT(*)"
-func average column ->  s"AVG({column})"
-func sum column ->  s"SUM({column})"
-
 from employees
 filter country == "USA"                           # Each line transforms the previous result.
 derive [                                         # This adds columns / variables.
@@ -421,7 +414,7 @@ take 20
     #[test]
     fn test_non_existent_function() -> Result<()> {
         let query = parse(r#"from mytable | filter (myfunc col1)"#)?;
-        assert!(resolve_names(query.nodes, None).is_err());
+        assert!(resolve(query.nodes, None).is_err());
 
         Ok(())
     }
@@ -430,30 +423,15 @@ take 20
     fn test_run_functions_args() -> Result<()> {
         let query = parse(
             r#"
-        func count x ->  s"count({x})"
-
         from employees
         aggregate [
-        count salary
+            sum salary
         ]
         "#,
         )?;
 
         assert_yaml_snapshot!(query.nodes, @r###"
         ---
-        - FuncDef:
-            name: count
-            positional_params:
-              - - Ident: x
-                - ~
-            named_params: []
-            body:
-              SString:
-                - String: count(
-                - Expr:
-                    Ident: x
-                - String: )
-            return_type: ~
         - Pipeline:
             nodes:
               - FuncCall:
@@ -466,14 +444,14 @@ take 20
                   args:
                     - List:
                         - FuncCall:
-                            name: count
+                            name: sum
                             args:
                               - Ident: salary
                             named_args: {}
                   named_args: {}
         "###);
 
-        let (res, context) = resolve_names(query.nodes, None)?;
+        let (res, context) = resolve(query.nodes, None)?;
 
         let pipeline = find_pipeline(res);
 
@@ -490,7 +468,7 @@ take 20
                assigns:
         -        - Ident: "<unnamed>"
         +        - SString:
-        +            - String: count(
+        +            - String: SUM(
         +            - Expr:
         +                Ident: salary
         +            - String: )
@@ -540,7 +518,7 @@ take 20
             From:
               name: a
               alias: ~
-              declared_at: 41
+              declared_at: 84
         "###);
 
         Ok(())
@@ -550,14 +528,12 @@ take 20
     fn test_run_inline_pipelines() -> Result<()> {
         let query = parse(
             r#"
-        func sum x ->  s"SUM({x})"
-
         from a
         aggregate [one = (foo | sum), two = (foo | sum)]
         "#,
         )?;
 
-        let (res, context) = resolve_names(query.nodes, None)?;
+        let (res, context) = resolve(query.nodes, None)?;
 
         let pipeline = find_pipeline(res);
 
@@ -586,7 +562,6 @@ take 20
         // Test it'll run the `sum foo` function first.
         let query = parse(
             r#"
-        func sum x ->  s"SUM({x})"
         func plus_one x ->  x + 1
 
         from a
@@ -602,7 +577,7 @@ take 20
             From:
               name: a
               alias: ~
-              declared_at: 40
+              declared_at: 81
         - Transform:
             Aggregate:
               assigns:
@@ -644,7 +619,7 @@ take 20
             From:
               name: foo_table
               alias: ~
-              declared_at: 39
+              declared_at: 82
         "###);
 
         Ok(())
@@ -654,11 +629,9 @@ take 20
     fn test_materialize_1() -> Result<()> {
         let query = parse(
             r#"
-        func count x ->  s"count({x})"
-
         from employees
         aggregate [
-            count salary
+            sum salary
         ]
         "#,
         )?;
@@ -671,12 +644,12 @@ take 20
             From:
               name: employees
               alias: ~
-              declared_at: 38
+              declared_at: 79
         - Transform:
             Aggregate:
               assigns:
                 - SString:
-                    - String: count(
+                    - String: SUM(
                     - Expr:
                         Ident: salary
                     - String: )
@@ -690,10 +663,6 @@ take 20
     fn test_materialize_2() -> Result<()> {
         let query = parse(
             r#"
-func count ->  s"COUNT(*)"
-func average column ->  s"AVG({column})"
-func sum column ->  s"SUM({column})"
-
 from employees
 filter country == "USA"                           # Each line transforms the previous result.
 derive [                                         # This adds columns / variables.
@@ -761,8 +730,6 @@ take 20
     fn test_variable_after_aggregate() -> Result<()> {
         let query = parse(
             r#"
-        func average column ->  s"AVG({column})"
-
         from employees
         group [title, emp_no] (
             aggregate [emp_salary = average salary]
@@ -780,7 +747,7 @@ take 20
             From:
               name: employees
               alias: ~
-              declared_at: 38
+              declared_at: 79
         - Transform:
             Group:
               by:
@@ -843,8 +810,8 @@ take 20
         "#,
         )?;
 
-        let (res1, context) = resolve_names(query1.nodes, None)?;
-        let (res2, context) = resolve_names(query2.nodes, Some(context))?;
+        let (res1, context) = resolve(query1.nodes, None)?;
+        let (res2, context) = resolve(query2.nodes, Some(context))?;
 
         let (mat, frame, context) = materialize(find_pipeline(res1), context.into(), None)?;
 
@@ -854,7 +821,7 @@ take 20
             From:
               name: orders
               alias: ~
-              declared_at: 36
+              declared_at: 79
         - Transform:
             Take:
               range:
@@ -886,14 +853,14 @@ take 20
             From:
               name: table_1
               alias: ~
-              declared_at: 41
+              declared_at: 84
         - Transform:
             Join:
               side: Inner
               with:
                 name: customers
                 alias: ~
-                declared_at: 42
+                declared_at: 85
               filter:
                 Using:
                   - Ident: customer_no
