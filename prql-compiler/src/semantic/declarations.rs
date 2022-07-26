@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::{Context, Result};
 use enum_as_inner::EnumAsInner;
 use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Display};
@@ -21,43 +21,74 @@ pub enum Declaration {
 }
 
 #[derive(Default, Serialize, Deserialize, Clone)]
-pub struct Declarations(pub Vec<(Declaration, Option<Span>)>);
+pub struct Declarations {
+    pub decls: Vec<(Declaration, Option<Span>)>,
+
+    // a pool of ids that can be reused
+    unused_pool: Vec<usize>,
+}
 
 impl Declarations {
     pub fn get(&self, id: usize) -> &Declaration {
-        &self.0[id].0
+        &self.decls[id].0
+    }
+
+    pub fn get_func(&self, id: Option<usize>) -> Result<&FuncDef> {
+        let id = id.context("unresolved function def?").unwrap();
+        let (decl, _span) = &self.decls[id];
+        decl.as_function().context("expected function definition?")
+        // .map_err(|e| {
+        //     eprintln!("{self:?}");
+        //     e
+        // })
     }
 
     pub fn push(&mut self, dec: Declaration, span: Option<Span>) -> usize {
-        self.0.push((dec, span));
-        self.0.len() - 1
+        if let Some(id) = self.unused_pool.pop() {
+            self.decls[id] = (dec, span);
+            id
+        } else {
+            self.decls.push((dec, span));
+            self.decls.len() - 1
+        }
     }
 
-    pub(crate) fn replace(&mut self, id: usize, new_decl: Declaration) {
-        let decl = self.0.get_mut(id).unwrap();
-        *decl = (new_decl, None);
+    pub(crate) fn replace(&mut self, id: usize, decl: Declaration) {
+        let reference = self.decls.get_mut(id).unwrap();
+        *reference = (decl, None);
     }
 
+    #[allow(dead_code)]
     pub(crate) fn replace_expr(&mut self, id: usize, expr: Node) {
         self.replace(id, Declaration::Expression(Box::new(expr)));
     }
 
     /// Takes a declaration with minimal memory copying. A dummy node is left in place.
     #[allow(dead_code)]
-    pub(super) fn take_expr(&mut self, id: usize) -> Result<Box<Node>> {
-        let (decl, _) = self.0.get_mut(id).unwrap();
+    pub(super) fn take(&mut self, id: usize) -> Declaration {
+        let (decl, _) = self.decls.get_mut(id).unwrap();
 
         let dummy = Node::from(Item::Literal(Literal::Null));
         let dummy = Declaration::Expression(Box::new(dummy));
-        let node = std::mem::replace(decl, dummy);
+        std::mem::replace(decl, dummy)
+    }
 
-        node.into_expression().map_err(|e| anyhow!(e))
+    /// Return id to pool of unused declarations that can be overriden.
+    pub(super) fn forget(&mut self, id: usize) {
+        self.unused_pool.push(id);
+    }
+}
+
+impl From<Declaration> for anyhow::Error {
+    fn from(dec: Declaration) -> Self {
+        // panic!("Unexpected declaration type: {dec:?}");
+        anyhow::anyhow!("Unexpected declaration type: {dec:?}")
     }
 }
 
 impl Debug for Declarations {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for (i, (d, _)) in self.0.iter().enumerate() {
+        for (i, (d, _)) in self.decls.iter().enumerate() {
             match d {
                 Declaration::Expression(v) => {
                     writeln!(f, "[{i:3}]: expr  `{}`", v.item)?;

@@ -3,35 +3,35 @@ use anyhow::Result;
 use crate::ast::ast_fold::*;
 use crate::ast::*;
 
-pub fn un_group(nodes: Vec<Node>) -> Result<Vec<Node>> {
-    UnGrouper {}.fold_nodes(nodes)
+pub fn un_group(query: ResolvedQuery) -> Result<ResolvedQuery> {
+    UnGrouper {}.fold_resolved_query(query)
 }
 
 /// Traverses AST and replaces transforms with nested pipelines with the pipeline
 struct UnGrouper {}
 
 impl AstFold for UnGrouper {
-    fn fold_nodes(&mut self, nodes: Vec<Node>) -> Result<Vec<Node>> {
-        let mut res = Vec::new();
+    fn fold_transform(&mut self, mut transform: Transform) -> Result<Transform> {
+        transform.kind = match transform.kind {
+            TransformKind::Group { pipeline, by } => {
+                let mut transforms = Vec::with_capacity(pipeline.transforms.len());
 
-        for node in nodes {
-            match node.item {
-                Item::Transform(Transform::Group { pipeline, .. }) => {
-                    let pipeline = self.fold_nodes(pipeline.item.into_pipeline().unwrap().nodes)?;
+                for t in pipeline.transforms {
+                    // ungroup inner
+                    let t = self.fold_transform(t)?;
 
-                    res.extend(pipeline.into_iter().filter(|x| {
-                        // remove all sorts
-                        x.item
-                            .as_transform()
-                            .map(|t| !matches!(t, Transform::Sort(_)))
-                            .unwrap_or(true)
-                    }));
+                    // remove all sorts
+                    if !matches!(t.kind, TransformKind::Sort(_)) {
+                        transforms.push(t);
+                    }
                 }
-                _ => {
-                    res.push(self.fold_node(node)?);
+                TransformKind::Group {
+                    by,
+                    pipeline: ResolvedQuery { transforms },
                 }
             }
-        }
-        Ok(res)
+            t => t,
+        };
+        Ok(transform)
     }
 }

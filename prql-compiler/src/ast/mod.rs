@@ -3,12 +3,14 @@
 /// The central struct here is [Node], that can be of different kinds, described with [item::Item].
 pub mod ast_fold;
 pub mod dialect;
+pub mod frame;
 pub mod item;
 pub mod literal;
 pub mod query;
 pub mod types;
 
 pub use self::dialect::*;
+pub use self::frame::*;
 pub use self::item::*;
 pub use self::literal::*;
 pub use self::query::*;
@@ -30,8 +32,10 @@ pub struct Node {
     pub span: Option<Span>,
     #[serde(skip)]
     pub declared_at: Option<usize>,
-    #[serde(skip)]
-    pub ty: Ty,
+
+    /// Type of expression this node represents. [None] means type has not yet been determined.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ty: Option<Ty>,
 
     /// Is true when containing window functions
     #[serde(skip)]
@@ -105,7 +109,7 @@ impl From<Item> for Node {
             item,
             span: None,
             declared_at: None,
-            ty: Ty::Infer,
+            ty: None,
             is_complex: false,
         }
     }

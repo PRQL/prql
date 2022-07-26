@@ -8,12 +8,10 @@ use std::{
     ops::Range,
 };
 
+use crate::ast::Frame;
+use crate::error::{self, Span};
 use crate::parse;
-use crate::semantic;
-use crate::{
-    error::{self, Span},
-    semantic::{Context, Frame},
-};
+use crate::semantic::{self, Context};
 
 #[derive(Parser)]
 #[clap(name = env!("CARGO_PKG_NAME"), about, version)]
@@ -82,9 +80,9 @@ impl Cli {
             Cli::Format(_) => crate::format(source)?.as_bytes().to_vec(),
             Cli::Debug(_) => {
                 let query = parse(source)?;
-                let (nodes, context) = semantic::resolve(query, None)?;
+                let (query, context) = semantic::resolve(query, None)?;
 
-                semantic::label_references(&nodes, &context, "".to_string(), source.to_string());
+                semantic::label_references(query, &context, "".to_string(), source.to_string());
 
                 format!("\n{context:?}").as_bytes().to_vec()
             }
@@ -92,9 +90,9 @@ impl Cli {
                 let query = parse(source)?;
 
                 // resolve
-                let (nodes, context) = semantic::resolve(query, None)?;
+                let (query, context) = semantic::resolve(query, None)?;
 
-                let frames = semantic::collect_frames(nodes);
+                let frames = semantic::collect_frames(query);
 
                 // combine with source
                 combine_prql_and_frames(source, frames, context)
@@ -105,6 +103,7 @@ impl Cli {
                 let ast = parse(source)?;
                 let (ir, _) = semantic::resolve(ast, None)?;
 
+                // format!("{ir:#?}").into_bytes()
                 serde_yaml::to_string(&ir)?.into_bytes()
             }
             Cli::Compile(_) => crate::compile(source)?.as_bytes().to_vec(),
@@ -159,8 +158,8 @@ fn combine_prql_and_frames(source: &str, frames: Vec<(Span, Frame)>, context: Co
         let chars: String = lines[printed_lines].chars().collect();
         printed_lines += 1;
 
-        let cols = frame
-            .get_column_names(&context)
+        let cols = context
+            .get_column_names(&frame)
             .into_iter()
             .map(|c| c.unwrap_or_else(|| "?".to_string()))
             .join(", ");

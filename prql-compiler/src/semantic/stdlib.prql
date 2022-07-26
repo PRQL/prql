@@ -1,5 +1,4 @@
 # Aggregate Functions
-
 func min <scalar|column> column ->  s"MIN({column})"
 func max <scalar|column> column ->  s"MAX({column})"
 func sum <scalar|column> column ->  s"SUM({column})"
@@ -21,7 +20,6 @@ func rank_dense<column> ->  s"DENSE_RANK()"
 func row_number<column> ->  s"ROW_NUMBER()"
 
 # Other functions
-
 func round<scalar> n_digits column ->  s"ROUND({column}, {n_digits})"
 func as<scalar> type column ->  s"CAST({column} AS {type})"
 # TODO: Introduce a notation for getting start and end out of a ranges
@@ -34,17 +32,13 @@ func in<bool> range value ->  s"{value} BETWEEN {range}"
 func coalesce value default -> s"COALESCE({value}, {default})"
 
 # Transform type definitions
-
-# (make sure to update cast_transfrom if you change any of the declarations
-# here)
-
-func from<table> source -> 0
-func select<table> assigns tbl -> 0
-func filter<table> condition tbl -> 0
-func derive<table> assigns tbl -> 0
-func aggregate<table> assigns tbl -> 0
-func sort<table> by tbl -> 0
-func take<table> expr tbl -> 0
-func join<table> with filter side:inner tbl -> 0
-func group<table> by pipeline tbl -> 0
-func window<table> rows:0..0 range:0..0 expanding:false rolling:0 pipeline tbl -> 0
+func from<table> source<table> -> ()
+func select<table> a<assigns<column>> tbl -> ()
+func filter<table> condition<bool> tbl -> ()
+func derive<table> a<assigns<column>> tbl -> ()
+func aggregate<table> a<assigns<column>> tbl -> ()
+func sort<table> by tbl -> ()
+func take<table> expr tbl -> ()
+func join<table> with<table> filter side<builtin_keyword>:inner tbl -> ()
+func group<table> by pipeline tbl -> ()
+func window<table> rows:0..0 range:0..0 expanding:false rolling:0 pipeline tbl -> ()
