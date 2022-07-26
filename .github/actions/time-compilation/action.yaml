@@ -20,7 +20,8 @@ runs:
       with:
         profile: minimal
         target: ${{ inputs.target }}
-        toolchain: nightly
+        # Pin this so caching works across days
+        toolchain: nightly-2022-07-26
         override: true
         default: true
     - name: 💰 Cache
