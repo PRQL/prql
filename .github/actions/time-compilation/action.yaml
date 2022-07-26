@@ -30,6 +30,9 @@ runs:
       # work); I'm really not sure why. There are some issues on the interwebs
       # around this, but I couldn't find one that explained it.
       if: inputs.use_cache == 'true'
+    - name: Remove cached results
+      shell: bash
+      run: rm -rf target/cargo-timings
     - name: 🏭 Compile
       uses: actions-rs/cargo@v1
       with:
