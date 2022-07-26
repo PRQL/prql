@@ -12,10 +12,11 @@ use itertools::Itertools;
 //   this comment looked interesting: https://github.com/rust-unofficial/patterns/discussions/236#discussioncomment-393517)
 // - https://news.ycombinator.com/item?id=25620110
 
-// TODO: some of these impls will be too specific because they were copied from
-// when ReplaceVariables was implemented directly. When we find a case that is
-// overfit on ReplaceVariables, we should add the custom impl to
-// ReplaceVariables, and write a more generic impl to this.
+// For some functions, we want to call a default impl, because copying &
+// pasting everything apart from a specific match is lots of repetition. So
+// we define a function outside the trait, by default call it, and let
+// implementors override the default while calling the function directly for
+// some cases. Ref https://stackoverflow.com/a/66077767/3064736
 pub trait AstFold {
     fn fold_node(&mut self, mut node: Node) -> Result<Node> {
         node.item = self.fold_item(node.item)?;
@@ -37,12 +38,6 @@ pub trait AstFold {
             pipeline: Box::new(self.fold_node(*table.pipeline)?),
         })
     }
-    // For some functions, we want to call a default impl, because copying &
-    // pasting everything apart from a specific match is lots of repetition. So
-    // we define a function outside the trait, by default call it, and let
-    // implementors override the default while calling the function directly for
-    // some cases. Feel free to extend the functions that are separate when
-    // necessary. Ref https://stackoverflow.com/a/66077767/3064736
     fn fold_transform(&mut self, transform: Transform) -> Result<Transform> {
         fold_transform(self, transform)
     }
@@ -120,7 +115,7 @@ pub fn fold_item<T: ?Sized + AstFold>(fold: &mut T, item: Item) -> Result<Item> 
         Item::Table(table) => Item::Table(fold.fold_table(table)?),
         Item::Windowed(window) => Item::Windowed(fold.fold_windowed(window)?),
         Item::Type(t) => Item::Type(fold.fold_type(t)?),
-        // None of these capture variables, so we don't need to replace
+        // These don't capture variables, so we don't need to replace
         // them.
         Item::Literal(_) | Item::Interval(_) => item,
     })
