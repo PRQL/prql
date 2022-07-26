@@ -26,7 +26,7 @@ runs:
     - name: 💰 Cache
       id: cache
       uses: Swatinem/rust-cache@v1
-      # This seems to require quotes; I'm really not sure why. There are some
+      # 'true' seems to require quotes; I'm really not sure why. There are some
       # issues on the interwebs around this, but I couldn't find one that
       # explained it.
       if: inputs.use_cache == 'true'
@@ -35,14 +35,9 @@ runs:
       with:
         command: build
         args: --timings=html -Z unstable-options
-    - run: |
-        echo ${{ inputs.use_cache }}
-        echo ${{ inputs.use_cache == 'true' }}
-        echo ${{ steps.cache.outputs.cache-hit }}
-      shell: bash
     - uses: actions/upload-artifact@v3
       with:
         name: cargo-timing.html
-        path: target/cargo-timings/*.html
+        path: target/cargo-timings/cargo-timing-.html
         # Only upload if we didn't want to use the cache, or we got a cache hit
       if: inputs.use_cache == 'false' || steps.cache.outputs.cache-hit == 'true'
