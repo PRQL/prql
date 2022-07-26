@@ -26,9 +26,9 @@ runs:
     - name: 💰 Cache
       id: cache
       uses: Swatinem/rust-cache@v1
-      # 'true' seems to require quotes; I'm really not sure why. There are some
-      # issues on the interwebs around this, but I couldn't find one that
-      # explained it.
+      # 'true' seems to require quotes (and using `inputs.use_cache` doesn't
+      # work); I'm really not sure why. There are some issues on the interwebs
+      # around this, but I couldn't find one that explained it.
       if: inputs.use_cache == 'true'
     - name: 🏭 Compile
       uses: actions-rs/cargo@v1
