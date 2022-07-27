@@ -3,9 +3,9 @@ source: book/tests/snapshot.rs
 expression: "Item::Query(parse(&prql).unwrap())"
 input_file: book/tests/prql/queries/syntax-7.prql
 ---
-prql dialect:bigquery
+prql dialect:mysql
 
-from `project-foo.dataset.table`
-join `project-bar.dataset.table` [`col_bax`]
+from `employees`
+select `first name`
 
 
