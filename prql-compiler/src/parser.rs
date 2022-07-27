@@ -307,10 +307,7 @@ fn ast_of_parse_pair(pair: Pair<Rule>) -> Result<Option<Node>> {
                     let name = &parts.remove(0).as_str();
                     let typ = match TyLit::from_str(name) {
                         Ok(t) => Ty::from(t),
-                        Err(_) => {
-                            eprintln!("named type: {}", name);
-                            Ty::Named(name.to_string())
-                        }
+                        Err(_) => Ty::Named(name.to_string()),
                     };
 
                     let param = parts
