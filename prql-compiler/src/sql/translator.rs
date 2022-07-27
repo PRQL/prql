@@ -487,7 +487,7 @@ fn translate_select_item(item: Item, dialect: &dyn DialectHandler) -> Result<Sel
 
 fn translate_item(item: Item, dialect: &dyn DialectHandler) -> Result<Expr> {
     Ok(match item {
-        Item::Ident(ident) => Expr::CompoundIdentifier(translate_ident(ident, dialect)),
+        Item::Ident(ident) => Expr::CompoundIdentifier(translate_column(ident, dialect)),
 
         Item::Binary { op, left, right } => {
             if let Some(is_null) = try_into_is_null(&op, &left, &right, dialect)? {
@@ -761,7 +761,29 @@ fn translate_join(t: &Transform, dialect: &dyn DialectHandler) -> Result<Join> {
     }
 }
 
-/// Translate an PRQL Ident to a Vec of SQL Idents.
+/// Translate a column name. We need to special-case this for BigQuery
+// Ref #852
+fn translate_column(ident: String, dialect: &dyn DialectHandler) -> Vec<sql_ast::Ident> {
+    match dialect.dialect() {
+        Dialect::BigQuery => {
+            if let Some((prefix, column)) = ident.rsplit_once('.') {
+                // If there's a table definition, pass it to `translate_ident` to
+                // be surrounded by quotes; without surrounding the table name
+                // with quotes.
+                translate_ident(prefix.to_string(), dialect)
+                    .into_iter()
+                    .chain(translate_ident(column.to_string(), dialect))
+                    .collect()
+            } else {
+                translate_ident(ident, dialect)
+            }
+            // vec![sql_ast::Ident::new(table), sql_ast::Ident::new(column)]
+        }
+        _ => translate_ident(ident, dialect),
+    }
+}
+
+/// Translate a PRQL Ident to a Vec of SQL Idents.
 // We return a vec of SQL Idents because sqlparser sometimes uses
 // [ObjectName](sql_ast::ObjectName) and sometimes uses
 // [Expr::CompoundIdentifier](sql_ast::Expr::CompoundIdentifier), each of which
@@ -769,13 +791,24 @@ fn translate_join(t: &Transform, dialect: &dyn DialectHandler) -> Result<Join> {
 fn translate_ident(ident: String, dialect: &dyn DialectHandler) -> Vec<sql_ast::Ident> {
     let is_jinja = ident.starts_with("{{") && ident.ends_with("}}");
 
-    if !is_jinja {
-        ident
+    if is_jinja {
+        return vec![sql_ast::Ident::new(ident)];
+    }
+
+    match dialect.dialect() {
+        // BigQuery has some unusual rules around quoting idents #852 (it includes the
+        // project, which may be a cause). I'm not 100% it's watertight, but we'll see.
+        Dialect::BigQuery => {
+            if ident.split('.').count() > 2 {
+                return vec![sql_ast::Ident::with_quote(dialect.ident_quote(), ident)];
+            } else {
+                return vec![sql_ast::Ident::new(ident)];
+            }
+        }
+        _ => ident
             .split('.')
             .map(|x| translate_ident_part(x.to_string(), dialect))
-            .collect()
-    } else {
-        vec![sql_ast::Ident::new(ident)]
+            .collect(),
     }
 }
 
@@ -2457,7 +2490,7 @@ take 20
 
     #[test]
     fn test_quoting() -> Result<()> {
-        // GH-#822
+        // #822
         assert_display_snapshot!((resolve_and_translate(parse(r###"
 prql dialect:postgres
 from some_schema.tablename
@@ -2469,6 +2502,7 @@ from some_schema.tablename
           some_schema.tablename
         "###);
 
+        // #852
         assert_display_snapshot!((resolve_and_translate(parse(r###"
 prql dialect:bigquery
 from db.schema.table
@@ -2477,14 +2511,14 @@ join `db.schema.t-able` [id]
         "###,
         )?)?), @r###"
         SELECT
-          db.schema.table.*,
-          db.schema.table2.*,
-          db.schema.`t-able`.*,
+          `db.schema.table`.*,
+          `db.schema.table2`.*,
+          `db.schema.t-able`.*,
           id
         FROM
-          db.schema.table
-          JOIN db.schema.table2 USING(id)
-          JOIN db.schema.`t-able` USING(id)
+          `db.schema.table`
+          JOIN `db.schema.table2` USING(id)
+          JOIN `db.schema.t-able` USING(id)
         "###);
 
         assert_display_snapshot!((resolve_and_translate(parse(r###"

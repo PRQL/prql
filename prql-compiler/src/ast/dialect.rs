@@ -26,6 +26,10 @@ pub enum Dialect {
     Snowflake,
 }
 
+// Is this the best approach for the Enum / Struct — basically that we have one
+// Enum that gets its respective Struct, and then the Struct can also get its
+// respective Enum?
+
 impl Dialect {
     pub fn handler(&self) -> Box<dyn DialectHandler> {
         match self {
@@ -49,6 +53,7 @@ pub struct MsSqlDialect;
 pub struct BigQueryDialect;
 
 pub trait DialectHandler {
+    fn dialect(&self) -> Dialect;
     fn use_top(&self) -> bool {
         false
     }
@@ -58,21 +63,34 @@ pub trait DialectHandler {
     }
 }
 
-impl DialectHandler for GenericDialect {}
+impl DialectHandler for GenericDialect {
+    fn dialect(&self) -> Dialect {
+        Dialect::Generic
+    }
+}
 
 impl DialectHandler for MsSqlDialect {
+    fn dialect(&self) -> Dialect {
+        Dialect::MySql
+    }
     fn use_top(&self) -> bool {
         true
     }
 }
 
 impl DialectHandler for MySqlDialect {
+    fn dialect(&self) -> Dialect {
+        Dialect::MySql
+    }
     fn ident_quote(&self) -> char {
         '`'
     }
 }
 
 impl DialectHandler for BigQueryDialect {
+    fn dialect(&self) -> Dialect {
+        Dialect::BigQuery
+    }
     fn ident_quote(&self) -> char {
         '`'
     }
