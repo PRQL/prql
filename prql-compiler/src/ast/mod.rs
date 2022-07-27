@@ -19,10 +19,6 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Reason, Span};
 
-pub fn display(query: Query) -> String {
-    format!("{}", Item::Query(query))
-}
-
 /// A name. Generally columns, tables, functions, variables.
 pub type Ident = String;
 

@@ -11,8 +11,8 @@ then, we'll only add functions here that are broadly supported by most DBs.
 ```
 
 Here's the source of the current [PRQL
-stdlib](https://github.com/prql/prql/blob/main/prql-compiler/src/sql/stdlib.prql):
+stdlib](https://github.com/prql/prql/blob/main/prql-compiler/src/semantic/stdlib.prql):
 
 ```prql_no_test
-{{#include ../../prql-compiler/src/sql/stdlib.prql}}
+{{#include ../../prql-compiler/src/semantic/stdlib.prql}}
 ```

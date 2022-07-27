@@ -25,7 +25,7 @@ pub enum FrameColumn {
 }
 
 impl Frame {
-    fn push_column(&mut self, name: Option<String>, id: usize) {
+    pub fn push_column(&mut self, name: Option<String>, id: usize) {
         // remove columns with the same name
         if let Some(name) = &name {
             self.columns.retain(|c| match c {
@@ -134,7 +134,9 @@ impl Frame {
                         self.push_column(Some(name.clone()), id);
                     }
                 }
-                _ => unreachable!("assign must contain only idents after being resolved"),
+                item => unreachable!(
+                    "assign must contain only idents after being resolved, but got `{item}`",
+                ),
             }
         }
     }

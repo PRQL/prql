@@ -1,7 +1,7 @@
 use anyhow::Result;
 
 use crate::ast::{ast_fold::AstFold, *};
-use crate::Declaration;
+use crate::semantic::Declaration;
 
 use super::materializer::MaterializationContext;
 

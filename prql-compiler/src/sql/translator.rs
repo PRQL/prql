@@ -489,58 +489,42 @@ fn translate_item(item: Item, dialect: &dyn DialectHandler) -> Result<Expr> {
     Ok(match item {
         Item::Ident(ident) => Expr::CompoundIdentifier(translate_column(ident, dialect)),
 
-        // do we need to surround operations with parentheses?
         Item::Binary { op, left, right } => {
-            let use_left_parentheses = left.item.strength() < op.strength();
-            let use_right_parentheses = right.item.strength() < op.strength();
-
             if let Some(is_null) = try_into_is_null(&op, &left, &right, dialect)? {
                 is_null
             } else {
-                let translated_left = translate_item(left.item, dialect)?;
-                let translated_right = translate_item(right.item, dialect)?;
+                let op = match op {
+                    BinOp::Mul => BinaryOperator::Multiply,
+                    BinOp::Div => BinaryOperator::Divide,
+                    BinOp::Mod => BinaryOperator::Modulo,
+                    BinOp::Add => BinaryOperator::Plus,
+                    BinOp::Sub => BinaryOperator::Minus,
+                    BinOp::Eq => BinaryOperator::Eq,
+                    BinOp::Ne => BinaryOperator::NotEq,
+                    BinOp::Gt => BinaryOperator::Gt,
+                    BinOp::Lt => BinaryOperator::Lt,
+                    BinOp::Gte => BinaryOperator::GtEq,
+                    BinOp::Lte => BinaryOperator::LtEq,
+                    BinOp::And => BinaryOperator::And,
+                    BinOp::Or => BinaryOperator::Or,
+                    BinOp::Coalesce => unreachable!(),
+                };
                 Expr::BinaryOp {
-                    left: Box::new({
-                        if use_left_parentheses {
-                            Expr::Nested(Box::new(translated_left))
-                        } else {
-                            translated_left
-                        }
-                    }),
-                    op: match op {
-                        BinOp::Mul => BinaryOperator::Multiply,
-                        BinOp::Div => BinaryOperator::Divide,
-                        BinOp::Mod => BinaryOperator::Modulo,
-                        BinOp::Add => BinaryOperator::Plus,
-                        BinOp::Sub => BinaryOperator::Minus,
-                        BinOp::Eq => BinaryOperator::Eq,
-                        BinOp::Ne => BinaryOperator::NotEq,
-                        BinOp::Gt => BinaryOperator::Gt,
-                        BinOp::Lt => BinaryOperator::Lt,
-                        BinOp::Gte => BinaryOperator::GtEq,
-                        BinOp::Lte => BinaryOperator::LtEq,
-                        BinOp::And => BinaryOperator::And,
-                        BinOp::Or => BinaryOperator::Or,
-                        BinOp::Coalesce => unreachable!(),
-                    },
-                    right: Box::new({
-                        if use_right_parentheses {
-                            Expr::Nested(Box::new(translated_right))
-                        } else {
-                            translated_right
-                        }
-                    }),
+                    left: translate_operand(left.item, op.binding_strength(), dialect)?,
+                    right: translate_operand(right.item, op.binding_strength(), dialect)?,
+                    op,
                 }
             }
         }
 
-        Item::Unary { op, expr: a } => Expr::UnaryOp {
-            op: match op {
+        Item::Unary { op, expr } => {
+            let op = match op {
                 UnOp::Neg => UnaryOperator::Minus,
                 UnOp::Not => UnaryOperator::Not,
-            },
-            expr: Box::new(translate_item(a.item, dialect)?),
-        },
+            };
+            let expr = translate_operand(expr.item, op.binding_strength(), dialect)?;
+            Expr::UnaryOp { op, expr }
+        }
 
         Item::Range(r) => {
             fn assert_bound(bound: Option<Box<Node>>) -> Result<Node, Error> {
@@ -661,17 +645,20 @@ fn try_into_is_null(
 ) -> Result<Option<Expr>> {
     if matches!(op, BinOp::Eq) || matches!(op, BinOp::Ne) {
         let expr = if matches!(a.item, Item::Literal(Literal::Null)) {
-            translate_item(b.item.clone(), dialect)?
+            b.item.clone()
         } else if matches!(b.item, Item::Literal(Literal::Null)) {
-            translate_item(a.item.clone(), dialect)?
+            a.item.clone()
         } else {
             return Ok(None);
         };
 
+        let min_strength = Expr::IsNull(Box::new(Expr::Value(Value::Null))).binding_strength();
+        let expr = translate_operand(expr, min_strength, dialect)?;
+
         return Ok(Some(if matches!(op, BinOp::Eq) {
-            Expr::IsNull(Box::new(expr))
+            Expr::IsNull(expr)
         } else {
-            Expr::IsNotNull(Box::new(expr))
+            Expr::IsNotNull(expr)
         }));
     }
 
@@ -847,6 +834,70 @@ fn translate_ident_part(ident: String, dialect: &dyn DialectHandler) -> sql_ast:
     }
 }
 
+/// Wraps into parenthesis if binding strength would be less than min_strength
+fn translate_operand(
+    expr: Item,
+    min_strength: i32,
+    dialect: &dyn DialectHandler,
+) -> Result<Box<Expr>> {
+    let expr = Box::new(translate_item(expr, dialect)?);
+
+    Ok(if expr.binding_strength() < min_strength {
+        Box::new(Expr::Nested(expr))
+    } else {
+        expr
+    })
+}
+
+trait SQLExpression {
+    /// Returns binding strength of an SQL expression
+    /// https://www.postgresql.org/docs/14/sql-syntax-lexical.html#id-1.5.3.5.13.2
+    /// https://docs.microsoft.com/en-us/sql/t-sql/language-elements/operator-precedence-transact-sql?view=sql-server-ver16
+    fn binding_strength(&self) -> i32;
+}
+impl SQLExpression for Expr {
+    fn binding_strength(&self) -> i32 {
+        // Strength of an expression depends only on the top-level operator, because all
+        // other nested expressions can only have lower strength
+        match self {
+            Expr::BinaryOp { op, .. } => op.binding_strength(),
+
+            Expr::UnaryOp { op, .. } => op.binding_strength(),
+
+            Expr::IsNull(_) | Expr::IsNotNull(_) => 5,
+
+            // all other items types bind stronger (function calls, literals, ...)
+            _ => 20,
+        }
+    }
+}
+impl SQLExpression for BinaryOperator {
+    fn binding_strength(&self) -> i32 {
+        use BinaryOperator::*;
+        match self {
+            Modulo | Multiply | Divide => 11,
+            Minus | Plus => 10,
+
+            ILike | NotILike | Like | NotLike => 7,
+            Gt | Lt | GtEq | LtEq | Eq | NotEq => 6,
+
+            And => 3,
+            Or => 2,
+
+            _ => 9,
+        }
+    }
+}
+impl SQLExpression for UnaryOperator {
+    fn binding_strength(&self) -> i32 {
+        match self {
+            UnaryOperator::Minus | UnaryOperator::Plus => 13,
+            UnaryOperator::Not => 4,
+            _ => 9,
+        }
+    }
+}
+
 impl From<Vec<Node>> for Table {
     fn from(functions: Vec<Node>) -> Self {
         Table {
@@ -869,7 +920,7 @@ impl From<Vec<Node>> for AtomicTable {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::{parser::parse, resolve_and_translate, resolve_names, sql::load_std_lib};
+    use crate::{parser::parse, resolve, resolve_and_translate};
     use insta::{assert_display_snapshot, assert_snapshot, assert_yaml_snapshot};
     use serde_yaml::from_str;
 
@@ -1058,10 +1109,7 @@ mod test {
     }
 
     fn parse_and_resolve(prql: &str) -> Result<Pipeline> {
-        let std_lib = load_std_lib()?;
-        let (_, context) = resolve_names(std_lib, None)?;
-
-        let (mut nodes, _) = resolve_names(parse(prql)?.nodes, Some(context))?;
+        let (mut nodes, _) = resolve(parse(prql)?.nodes, None)?;
         let pipeline = nodes.remove(nodes.len() - 1).coerce_to_pipeline();
         Ok(pipeline)
     }
@@ -2325,6 +2373,65 @@ take 20
           (temp - 32) * 3 AS temp_c
         FROM
           x
+        "###);
+
+        assert_display_snapshot!((resolve_and_translate(parse(r###"
+        func add a b -> a + b
+
+        from numbers
+        derive [sum_1 = a + b, sum_2 = add a b]
+        select [result = c * sum_1 + sum_2]
+        "###,
+        )?)?), @r###"
+        SELECT
+          c * (a + b) + a + b AS result
+        FROM
+          numbers
+        "###);
+
+        assert_display_snapshot!((resolve_and_translate(parse(r###"
+        from numbers
+        derive [g = -a]
+        select a * g
+        "###,
+        )?)?), @r###"
+        SELECT
+          a * - a
+        FROM
+          numbers
+        "###);
+
+        assert_display_snapshot!((resolve_and_translate(parse(r###"
+        from numbers
+        select negated_is_null = (!a) == null
+        "###,
+        )?)?), @r###"
+        SELECT
+          (NOT a) IS NULL AS negated_is_null
+        FROM
+          numbers
+        "###);
+
+        assert_display_snapshot!((resolve_and_translate(parse(r###"
+        from numbers
+        select is_not_null = !(a == null)
+        "###,
+        )?)?), @r###"
+        SELECT
+          NOT a IS NULL AS is_not_null
+        FROM
+          numbers
+        "###);
+
+        assert_display_snapshot!((resolve_and_translate(parse(r###"
+        from numbers
+        select (a + b) == null
+        "###
+        )?)?), @r###"
+        SELECT
+          a + b IS NULL
+        FROM
+          numbers
         "###);
 
         Ok(())
