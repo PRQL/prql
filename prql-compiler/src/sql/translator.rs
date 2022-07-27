@@ -487,7 +487,7 @@ fn translate_select_item(item: Item, dialect: &dyn DialectHandler) -> Result<Sel
 
 fn translate_item(item: Item, dialect: &dyn DialectHandler) -> Result<Expr> {
     Ok(match item {
-        Item::Ident(ident) => Expr::CompoundIdentifier(translate_ident(ident, dialect)),
+        Item::Ident(ident) => Expr::CompoundIdentifier(translate_column(ident, dialect)),
 
         // do we need to surround operations with parentheses?
         Item::Binary { op, left, right } => {
@@ -774,7 +774,29 @@ fn translate_join(t: &Transform, dialect: &dyn DialectHandler) -> Result<Join> {
     }
 }
 
-/// Translate an PRQL Ident to a Vec of SQL Idents.
+/// Translate a column name. We need to special-case this for BigQuery
+// Ref #852
+fn translate_column(ident: String, dialect: &dyn DialectHandler) -> Vec<sql_ast::Ident> {
+    match dialect.dialect() {
+        Dialect::BigQuery => {
+            if let Some((prefix, column)) = ident.rsplit_once('.') {
+                // If there's a table definition, pass it to `translate_ident` to
+                // be surrounded by quotes; without surrounding the table name
+                // with quotes.
+                translate_ident(prefix.to_string(), dialect)
+                    .into_iter()
+                    .chain(translate_ident(column.to_string(), dialect))
+                    .collect()
+            } else {
+                translate_ident(ident, dialect)
+            }
+            // vec![sql_ast::Ident::new(table), sql_ast::Ident::new(column)]
+        }
+        _ => translate_ident(ident, dialect),
+    }
+}
+
+/// Translate a PRQL Ident to a Vec of SQL Idents.
 // We return a vec of SQL Idents because sqlparser sometimes uses
 // [ObjectName](sql_ast::ObjectName) and sometimes uses
 // [Expr::CompoundIdentifier](sql_ast::Expr::CompoundIdentifier), each of which
@@ -2345,9 +2367,9 @@ join `db.schema.t-able` [id]
         "###,
         )?)?), @r###"
         SELECT
-          `db.schema.table.*`,
-          `db.schema.table2.*`,
-          `db.schema.t-able.*`,
+          `db.schema.table`.*,
+          `db.schema.table2`.*,
+          `db.schema.t-able`.*,
           id
         FROM
           `db.schema.table`
