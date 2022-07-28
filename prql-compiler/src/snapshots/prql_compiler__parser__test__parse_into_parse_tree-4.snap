@@ -26,7 +26,17 @@ expression: "parse_tree_of_str(r#\"    filter country == \"USA\"\"#, Rule::pipel
                             start: 4,
                             end: 10,
                         },
-                        inner: [],
+                        inner: [
+                            Pair {
+                                rule: ident_part_first,
+                                span: Span {
+                                    str: "filter",
+                                    start: 4,
+                                    end: 10,
+                                },
+                                inner: [],
+                            },
+                        ],
                     },
                     Pair {
                         rule: expr,
@@ -75,7 +85,17 @@ expression: "parse_tree_of_str(r#\"    filter country == \"USA\"\"#, Rule::pipel
                                                                     start: 11,
                                                                     end: 18,
                                                                 },
-                                                                inner: [],
+                                                                inner: [
+                                                                    Pair {
+                                                                        rule: ident_part_first,
+                                                                        span: Span {
+                                                                            str: "country",
+                                                                            start: 11,
+                                                                            end: 18,
+                                                                        },
+                                                                        inner: [],
+                                                                    },
+                                                                ],
                                                             },
                                                         ],
                                                     },

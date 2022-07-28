@@ -1,6 +1,6 @@
 ---
 source: prql-compiler/src/parser.rs
-expression: "parse_tree_of_str(\"join side:left country [id==employee_id]\",\n                  Rule::func_call)?"
+expression: "parse_tree_of_str(\"join side:left country [id==employee_id]\",\n        Rule::func_call)?"
 ---
 [
     Pair {
@@ -18,7 +18,17 @@ expression: "parse_tree_of_str(\"join side:left country [id==employee_id]\",\n  
                     start: 0,
                     end: 4,
                 },
-                inner: [],
+                inner: [
+                    Pair {
+                        rule: ident_part_first,
+                        span: Span {
+                            str: "join",
+                            start: 0,
+                            end: 4,
+                        },
+                        inner: [],
+                    },
+                ],
             },
             Pair {
                 rule: named_arg,
@@ -35,7 +45,17 @@ expression: "parse_tree_of_str(\"join side:left country [id==employee_id]\",\n  
                             start: 5,
                             end: 9,
                         },
-                        inner: [],
+                        inner: [
+                            Pair {
+                                rule: ident_part_first,
+                                span: Span {
+                                    str: "side",
+                                    start: 5,
+                                    end: 9,
+                                },
+                                inner: [],
+                            },
+                        ],
                     },
                     Pair {
                         rule: expr,
@@ -84,7 +104,17 @@ expression: "parse_tree_of_str(\"join side:left country [id==employee_id]\",\n  
                                                                     start: 10,
                                                                     end: 14,
                                                                 },
-                                                                inner: [],
+                                                                inner: [
+                                                                    Pair {
+                                                                        rule: ident_part_first,
+                                                                        span: Span {
+                                                                            str: "left",
+                                                                            start: 10,
+                                                                            end: 14,
+                                                                        },
+                                                                        inner: [],
+                                                                    },
+                                                                ],
                                                             },
                                                         ],
                                                     },
@@ -145,7 +175,17 @@ expression: "parse_tree_of_str(\"join side:left country [id==employee_id]\",\n  
                                                             start: 15,
                                                             end: 22,
                                                         },
-                                                        inner: [],
+                                                        inner: [
+                                                            Pair {
+                                                                rule: ident_part_first,
+                                                                span: Span {
+                                                                    str: "country",
+                                                                    start: 15,
+                                                                    end: 22,
+                                                                },
+                                                                inner: [],
+                                                            },
+                                                        ],
                                                     },
                                                 ],
                                             },
@@ -252,7 +292,17 @@ expression: "parse_tree_of_str(\"join side:left country [id==employee_id]\",\n  
                                                                                                             start: 24,
                                                                                                             end: 26,
                                                                                                         },
-                                                                                                        inner: [],
+                                                                                                        inner: [
+                                                                                                            Pair {
+                                                                                                                rule: ident_part_first,
+                                                                                                                span: Span {
+                                                                                                                    str: "id",
+                                                                                                                    start: 24,
+                                                                                                                    end: 26,
+                                                                                                                },
+                                                                                                                inner: [],
+                                                                                                            },
+                                                                                                        ],
                                                                                                     },
                                                                                                 ],
                                                                                             },
@@ -290,7 +340,17 @@ expression: "parse_tree_of_str(\"join side:left country [id==employee_id]\",\n  
                                                                                                             start: 28,
                                                                                                             end: 39,
                                                                                                         },
-                                                                                                        inner: [],
+                                                                                                        inner: [
+                                                                                                            Pair {
+                                                                                                                rule: ident_part_first,
+                                                                                                                span: Span {
+                                                                                                                    str: "employee_id",
+                                                                                                                    start: 28,
+                                                                                                                    end: 39,
+                                                                                                                },
+                                                                                                                inner: [],
+                                                                                                            },
+                                                                                                        ],
                                                                                                     },
                                                                                                 ],
                                                                                             },

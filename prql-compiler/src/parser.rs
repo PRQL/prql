@@ -220,13 +220,13 @@ fn ast_of_parse_pair(pair: Pair<Rule>) -> Result<Option<Node>> {
                 pipeline: Box::new(pipeline),
             })
         }
-        Rule::ident | Rule::jinja => {
+        Rule::jinja => {
             let inner = pair.as_str();
-            let stripped = inner
-                .strip_prefix('`')
-                .and_then(|s| s.strip_suffix('`'))
-                .unwrap_or(inner);
-            Item::Ident(stripped.to_string())
+            Item::Ident(inner.to_string())
+        }
+        Rule::ident => {
+            let inner = pair.clone().into_inner();
+            Item::Ident(inner.into_iter().map(|x| x.as_str().to_string()).collect())
         }
 
         Rule::number => {
@@ -244,6 +244,7 @@ fn ast_of_parse_pair(pair: Pair<Rule>) -> Result<Option<Node>> {
         Rule::null => Item::Literal(Literal::Null),
         Rule::boolean => Item::Literal(Literal::Boolean(pair.as_str() == "true")),
         Rule::string => {
+            // Takes the string_inner, without the quotes
             let inner = pair.into_inner().into_only()?.as_str().to_string();
             Item::Literal(Literal::String(inner))
         }
@@ -1474,6 +1475,7 @@ aggregate [max c]
 join `my-proj.dataset.table`
 join `my-proj`.`dataset`.`table`
 ";
+
         assert_yaml_snapshot!(parse(prql)?, @r###"
         ---
         version: ~
@@ -1504,7 +1506,7 @@ join `my-proj`.`dataset`.`table`
                 - FuncCall:
                     name: join
                     args:
-                      - Ident: "my-proj`.`dataset`.`table"
+                      - Ident: my-proj.dataset.table
                     named_args: {}
         "###);
 

@@ -1,6 +1,6 @@
 ---
 source: prql-compiler/src/parser.rs
-expression: "parse_tree_of_str(\"group [title, country] (\n                aggregate [sum salary]\n            )\",\n                  Rule::pipeline)?"
+expression: "parse_tree_of_str(\"group [title, country] (\n                aggregate [sum salary]\n            )\",\n        Rule::pipeline)?"
 ---
 [
     Pair {
@@ -26,7 +26,17 @@ expression: "parse_tree_of_str(\"group [title, country] (\n                aggre
                             start: 0,
                             end: 5,
                         },
-                        inner: [],
+                        inner: [
+                            Pair {
+                                rule: ident_part_first,
+                                span: Span {
+                                    str: "group",
+                                    start: 0,
+                                    end: 5,
+                                },
+                                inner: [],
+                            },
+                        ],
                     },
                     Pair {
                         rule: expr,
@@ -123,7 +133,17 @@ expression: "parse_tree_of_str(\"group [title, country] (\n                aggre
                                                                                                                     start: 7,
                                                                                                                     end: 12,
                                                                                                                 },
-                                                                                                                inner: [],
+                                                                                                                inner: [
+                                                                                                                    Pair {
+                                                                                                                        rule: ident_part_first,
+                                                                                                                        span: Span {
+                                                                                                                            str: "title",
+                                                                                                                            start: 7,
+                                                                                                                            end: 12,
+                                                                                                                        },
+                                                                                                                        inner: [],
+                                                                                                                    },
+                                                                                                                ],
                                                                                                             },
                                                                                                         ],
                                                                                                     },
@@ -182,7 +202,17 @@ expression: "parse_tree_of_str(\"group [title, country] (\n                aggre
                                                                                                                     start: 14,
                                                                                                                     end: 21,
                                                                                                                 },
-                                                                                                                inner: [],
+                                                                                                                inner: [
+                                                                                                                    Pair {
+                                                                                                                        rule: ident_part_first,
+                                                                                                                        span: Span {
+                                                                                                                            str: "country",
+                                                                                                                            start: 14,
+                                                                                                                            end: 21,
+                                                                                                                        },
+                                                                                                                        inner: [],
+                                                                                                                    },
+                                                                                                                ],
                                                                                                             },
                                                                                                         ],
                                                                                                     },
@@ -269,7 +299,17 @@ expression: "parse_tree_of_str(\"group [title, country] (\n                aggre
                                                                                     start: 41,
                                                                                     end: 50,
                                                                                 },
-                                                                                inner: [],
+                                                                                inner: [
+                                                                                    Pair {
+                                                                                        rule: ident_part_first,
+                                                                                        span: Span {
+                                                                                            str: "aggregate",
+                                                                                            start: 41,
+                                                                                            end: 50,
+                                                                                        },
+                                                                                        inner: [],
+                                                                                    },
+                                                                                ],
                                                                             },
                                                                             Pair {
                                                                                 rule: expr,
@@ -334,7 +374,17 @@ expression: "parse_tree_of_str(\"group [title, country] (\n                aggre
                                                                                                                                             start: 52,
                                                                                                                                             end: 55,
                                                                                                                                         },
-                                                                                                                                        inner: [],
+                                                                                                                                        inner: [
+                                                                                                                                            Pair {
+                                                                                                                                                rule: ident_part_first,
+                                                                                                                                                span: Span {
+                                                                                                                                                    str: "sum",
+                                                                                                                                                    start: 52,
+                                                                                                                                                    end: 55,
+                                                                                                                                                },
+                                                                                                                                                inner: [],
+                                                                                                                                            },
+                                                                                                                                        ],
                                                                                                                                     },
                                                                                                                                     Pair {
                                                                                                                                         rule: expr,
@@ -383,7 +433,17 @@ expression: "parse_tree_of_str(\"group [title, country] (\n                aggre
                                                                                                                                                                                     start: 56,
                                                                                                                                                                                     end: 62,
                                                                                                                                                                                 },
-                                                                                                                                                                                inner: [],
+                                                                                                                                                                                inner: [
+                                                                                                                                                                                    Pair {
+                                                                                                                                                                                        rule: ident_part_first,
+                                                                                                                                                                                        span: Span {
+                                                                                                                                                                                            str: "salary",
+                                                                                                                                                                                            start: 56,
+                                                                                                                                                                                            end: 62,
+                                                                                                                                                                                        },
+                                                                                                                                                                                        inner: [],
+                                                                                                                                                                                    },
+                                                                                                                                                                                ],
                                                                                                                                                                             },
                                                                                                                                                                         ],
                                                                                                                                                                     },

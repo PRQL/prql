@@ -777,7 +777,6 @@ fn translate_column(ident: String, dialect: &dyn DialectHandler) -> Vec<sql_ast:
             } else {
                 translate_ident(ident, dialect)
             }
-            // vec![sql_ast::Ident::new(table), sql_ast::Ident::new(column)]
         }
         _ => translate_ident(ident, dialect),
     }
@@ -2507,17 +2506,20 @@ from some_schema.tablename
 prql dialect:bigquery
 from db.schema.table
 join `db.schema.table2` [id]
+join `db`.`schema`.`table3` [id]
 join `db.schema.t-able` [id]
         "###,
         )?)?), @r###"
         SELECT
           `db.schema.table`.*,
           `db.schema.table2`.*,
+          `db.schema.table3`.*,
           `db.schema.t-able`.*,
           id
         FROM
           `db.schema.table`
           JOIN `db.schema.table2` USING(id)
+          JOIN `db.schema.table3` USING(id)
           JOIN `db.schema.t-able` USING(id)
         "###);
 
