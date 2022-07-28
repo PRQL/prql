@@ -1,7 +1,7 @@
 name: release
 on:
   release:
-    type: [released]
+    types: [released]
   workflow_dispatch:
 
 jobs:
