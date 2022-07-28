@@ -1,5 +1,5 @@
 ---
-source: prql-compiler/src/sql/translator.rs
+source: prql-compiler/src/lib.rs
 expression: sql
 ---
 SELECT
