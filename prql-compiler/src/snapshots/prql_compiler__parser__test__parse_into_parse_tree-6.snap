@@ -1,6 +1,6 @@
 ---
 source: prql-compiler/src/parser.rs
-expression: "parse_tree_of_str(r#\"[\n  gross_salary = salary + payroll_tax,\n  gross_cost   = gross_salary + benefits_cost\n]\"#,\n                  Rule::list)?"
+expression: "parse_tree_of_str(r#\"[\n  gross_salary = salary + payroll_tax,\n  gross_cost   = gross_salary + benefits_cost\n]\"#,\n        Rule::list)?"
 ---
 [
     Pair {
@@ -26,7 +26,17 @@ expression: "parse_tree_of_str(r#\"[\n  gross_salary = salary + payroll_tax,\n  
                             start: 4,
                             end: 16,
                         },
-                        inner: [],
+                        inner: [
+                            Pair {
+                                rule: ident_part_first,
+                                span: Span {
+                                    str: "gross_salary",
+                                    start: 4,
+                                    end: 16,
+                                },
+                                inner: [],
+                            },
+                        ],
                     },
                     Pair {
                         rule: expr,
@@ -75,7 +85,17 @@ expression: "parse_tree_of_str(r#\"[\n  gross_salary = salary + payroll_tax,\n  
                                                                     start: 19,
                                                                     end: 25,
                                                                 },
-                                                                inner: [],
+                                                                inner: [
+                                                                    Pair {
+                                                                        rule: ident_part_first,
+                                                                        span: Span {
+                                                                            str: "salary",
+                                                                            start: 19,
+                                                                            end: 25,
+                                                                        },
+                                                                        inner: [],
+                                                                    },
+                                                                ],
                                                             },
                                                         ],
                                                     },
@@ -111,7 +131,17 @@ expression: "parse_tree_of_str(r#\"[\n  gross_salary = salary + payroll_tax,\n  
                                                                             start: 28,
                                                                             end: 39,
                                                                         },
-                                                                        inner: [],
+                                                                        inner: [
+                                                                            Pair {
+                                                                                rule: ident_part_first,
+                                                                                span: Span {
+                                                                                    str: "payroll_tax",
+                                                                                    start: 28,
+                                                                                    end: 39,
+                                                                                },
+                                                                                inner: [],
+                                                                            },
+                                                                        ],
                                                                     },
                                                                 ],
                                                             },
@@ -142,7 +172,17 @@ expression: "parse_tree_of_str(r#\"[\n  gross_salary = salary + payroll_tax,\n  
                             start: 43,
                             end: 53,
                         },
-                        inner: [],
+                        inner: [
+                            Pair {
+                                rule: ident_part_first,
+                                span: Span {
+                                    str: "gross_cost",
+                                    start: 43,
+                                    end: 53,
+                                },
+                                inner: [],
+                            },
+                        ],
                     },
                     Pair {
                         rule: expr,
@@ -191,7 +231,17 @@ expression: "parse_tree_of_str(r#\"[\n  gross_salary = salary + payroll_tax,\n  
                                                                     start: 58,
                                                                     end: 70,
                                                                 },
-                                                                inner: [],
+                                                                inner: [
+                                                                    Pair {
+                                                                        rule: ident_part_first,
+                                                                        span: Span {
+                                                                            str: "gross_salary",
+                                                                            start: 58,
+                                                                            end: 70,
+                                                                        },
+                                                                        inner: [],
+                                                                    },
+                                                                ],
                                                             },
                                                         ],
                                                     },
@@ -227,7 +277,17 @@ expression: "parse_tree_of_str(r#\"[\n  gross_salary = salary + payroll_tax,\n  
                                                                             start: 73,
                                                                             end: 86,
                                                                         },
-                                                                        inner: [],
+                                                                        inner: [
+                                                                            Pair {
+                                                                                rule: ident_part_first,
+                                                                                span: Span {
+                                                                                    str: "benefits_cost",
+                                                                                    start: 73,
+                                                                                    end: 86,
+                                                                                },
+                                                                                inner: [],
+                                                                            },
+                                                                        ],
                                                                     },
                                                                 ],
                                                             },
