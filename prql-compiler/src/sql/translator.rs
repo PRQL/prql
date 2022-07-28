@@ -919,52 +919,9 @@ impl From<Vec<Node>> for AtomicTable {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::{parser::parse, resolve, resolve_and_translate};
-    use insta::{assert_snapshot, assert_yaml_snapshot};
+    use crate::{parser::parse, resolve};
+    use insta::assert_yaml_snapshot;
     use serde_yaml::from_str;
-
-    #[test]
-    fn test_stdlib() {
-        let query: Query = parse(
-            r###"
-        from employees
-        aggregate (
-          [salary_usd = min salary]
-        )
-        "###,
-        )
-        .unwrap();
-
-        let sql = resolve_and_translate(query).unwrap();
-        assert_snapshot!(sql,
-            @r###"
-        SELECT
-          MIN(salary) AS salary_usd
-        FROM
-          employees
-        "###
-        );
-
-        let query: Query = parse(
-            r###"
-        from employees
-        aggregate (
-          [salary_usd = (round salary 2)]
-        )
-        "###,
-        )
-        .unwrap();
-
-        let sql = resolve_and_translate(query).unwrap();
-        assert_snapshot!(sql,
-            @r###"
-        SELECT
-          ROUND(salary, 2) AS salary_usd
-        FROM
-          employees
-        "###
-        );
-    }
 
     #[test]
     fn test_range_of_ranges() -> Result<()> {

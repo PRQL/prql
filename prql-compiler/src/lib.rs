@@ -54,6 +54,43 @@ mod test {
     use insta::{assert_display_snapshot, assert_snapshot};
 
     #[test]
+    fn test_stdlib() {
+        let query = r###"
+        from employees
+        aggregate (
+          [salary_usd = min salary]
+        )
+        "###;
+
+        let sql = compile(query).unwrap();
+        assert_snapshot!(sql,
+            @r###"
+        SELECT
+          MIN(salary) AS salary_usd
+        FROM
+          employees
+        "###
+        );
+
+        let query = r###"
+        from employees
+        aggregate (
+          [salary_usd = (round salary 2)]
+        )
+        "###;
+
+        let sql = compile(query).unwrap();
+        assert_snapshot!(sql,
+            @r###"
+        SELECT
+          ROUND(salary, 2) AS salary_usd
+        FROM
+          employees
+        "###
+        );
+    }
+
+    #[test]
     fn test_to_json() -> Result<()> {
         let json = to_json("from employees | take 10")?;
         // Since the AST is so in flux right now just test that the brackets are present
