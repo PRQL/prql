@@ -58,7 +58,17 @@ expression: "parse_tree_of_str(\"[a, b, c,]\", Rule::list)?"
                                                             start: 1,
                                                             end: 2,
                                                         },
-                                                        inner: [],
+                                                        inner: [
+                                                            Pair {
+                                                                rule: ident_part_first,
+                                                                span: Span {
+                                                                    str: "a",
+                                                                    start: 1,
+                                                                    end: 2,
+                                                                },
+                                                                inner: [],
+                                                            },
+                                                        ],
                                                     },
                                                 ],
                                             },
@@ -117,7 +127,17 @@ expression: "parse_tree_of_str(\"[a, b, c,]\", Rule::list)?"
                                                             start: 4,
                                                             end: 5,
                                                         },
-                                                        inner: [],
+                                                        inner: [
+                                                            Pair {
+                                                                rule: ident_part_first,
+                                                                span: Span {
+                                                                    str: "b",
+                                                                    start: 4,
+                                                                    end: 5,
+                                                                },
+                                                                inner: [],
+                                                            },
+                                                        ],
                                                     },
                                                 ],
                                             },
@@ -176,7 +196,17 @@ expression: "parse_tree_of_str(\"[a, b, c,]\", Rule::list)?"
                                                             start: 7,
                                                             end: 8,
                                                         },
-                                                        inner: [],
+                                                        inner: [
+                                                            Pair {
+                                                                rule: ident_part_first,
+                                                                span: Span {
+                                                                    str: "c",
+                                                                    start: 7,
+                                                                    end: 8,
+                                                                },
+                                                                inner: [],
+                                                            },
+                                                        ],
                                                     },
                                                 ],
                                             },

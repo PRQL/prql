@@ -28,19 +28,21 @@ table = { "table" ~ ident ~ "=" ~ nested_pipeline }
 pipe = _{ NEWLINE | "|" }
 pipeline = { WHITESPACE* ~ expr_call ~ (pipe ~ expr_call)* }
 
-// We include backticks because some DBs use them (e.g. BigQuery) and we don't,
-// so we pass anything within them directly through, including otherwise invalid
-// idents, like those with hyphens. Possibly we should consider applying this to
-// expressions rather than just idents — we can adjust as we see more cases.
-ident = @{ !operator ~ !(keyword ~ WHITESPACE) ~ ident_start ~ ("." ~ ident_next)* }
+// See parser.rs for why this is so complicated to parse
+ident = ${ !operator ~ !(keyword ~ WHITESPACE) ~ (ident_part_first | ident_backticks) ~ (ident_part_next | ident_backticks)* }
 // Either a normal ident (starting with a letter, `$` or `_`), or any string surrounded
 // by backticks.
-ident_start = _{ ((ASCII_ALPHA | "$" | "_") ~ (ASCII_ALPHANUMERIC | "_" )* ) | ident_backticks+ }
-// We allow `e.*`, but not just `*`, since it might conflict with multiply in
+ident_part_first = { ((ASCII_ALPHA | "$" | "_") ~ (ASCII_ALPHANUMERIC | "_" )* ) }
+// We allow `e.*`, but not just `*`, since it would conflict with multiply in
 // some cases.
-ident_next = _{ ident_start | "*" }
+ident_part_next = _{ ident_separator ~ (ident_part_first | ident_star | ident_backticks) }
+// These two are split out so we can make `ident_part_next` silent, but still
+// capture these.
+ident_separator = { "." }
+ident_star = { "*" }
 // Anything surrounded by backticks, we pass through.
-ident_backticks = _{ "`" ~ (!NEWLINE ~ !"`" ~ ANY)* ~ "`" }
+// ident_backticks = _{ "`" ~ (!NEWLINE ~ !"`" ~ ANY)* ~ "`" }
+ident_backticks = _{ PUSH("`") ~ (!NEWLINE ~ string_inner)* ~ POP }
 // For sorting
 signed_ident = { ( "+" | "-" ) ~ ident }
 keyword = _{ "prql" | "table" | "func" }
@@ -87,6 +89,7 @@ expr_add = { expr_mul ~ (operator_add ~ expr_add)? }
 expr_mul = { term ~ (operator_mul ~ expr_mul)? }
 
 term = _{ ( s_string | f_string | range | literal | ident | nested_pipeline | expr_unary | list | jinja ) }
+// TODO: is this correct? We have `signed ident` above?
 // expr_unary is for sorting.
 expr_unary = { ( operator_unary ~ ( nested_pipeline | ident )) }
 literal = _{ interval | number | boolean | null | string | timestamp | date | time }
@@ -111,7 +114,7 @@ nested_pipeline = _{ "(" ~ (WHITESPACE | NEWLINE)* ~ pipeline ~ (WHITESPACE | NE
 single_quote = _{ "\"" | "'" }
 multi_quote = _{ "\""{3,} | "'"{3,} }
 opening_quote = _{ PUSH(multi_quote) | PUSH(single_quote) }
-// PEEK refers to the opening quote; either `"` or `'`.
+// PEEK refers to the opening quote; `"` or `'` or multiple quotes.
 string_inner = { ( !( PEEK ) ~ ANY )+ }
 // Either > 3 quotes, or just one. Currently both of those can be multiline.
 string = ${ ( opening_quote ) ~ string_inner ~ POP }
