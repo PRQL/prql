@@ -116,6 +116,11 @@ We use a pyramid of tests — we have fast, focused tests at the bottom of the
 pyramid, which give us low latency feedback when developing, and then slower,
 broader tests which ensure that we don't miss anything as PRQL develops[^2].
 
+[^2]:
+    Our approach is very consistent with
+    **[@matklad](https://github.com/matklad)**'s advice, in his excellent blog
+    post [How to Test](https://matklad.github.io//2021/05/31/how-to-test.html).
+
 > If you're making your first contribution, you don't need to engage with all this
 > — it's fine to just make a change and push the results; the tests that run in
 > GitHub will point you towards any errors, which can be then be run locally if
@@ -142,9 +147,38 @@ Our tests:
   results of an expression in our code, making it faster to write and modify
   tests[^4].
 
+[^4]:
+    [Here's an example of an insta
+    test](https://github.com/prql/prql/blob/0.2.2/prql-compiler/src/parser.rs#L580-L605)
+    — note that only the initial line of each test is written by us; the remainder
+    is filled in by insta.
+
   These are the fastest tests which run our code; they're designed to run on
   every save while you're developing. (While they're covered by `task test-all`,
   you'll generally want to have lower-latency tests running in a tight loop.).[^3]
+
+[^3]: For example, this is a command I frequently run:
+
+    ```sh
+    RUST_BACKTRACE=1 watchexec -e rs,toml,pest,md -cr -- cargo insta test --accept -- -p prql-compiler --lib
+    ```
+
+    Breaking this down:
+
+    - `RUST_BACKTRACE=1` will print a full backtrace, including where an error
+      value was created, for rust tests which return `Result`s.
+    - `watchexec -e rs,toml,pest,md -cr --` will run the subsequent command on any
+      change to files with extensions which we are generally editing[^1].
+    - `cargo insta test --accept --` runs tests with `insta`, a snapshot library, and
+      writes any results immediately. I rely on git to track changes, so I run
+      with `--accept`, but YMMV.
+    - `-p prql-compiler --lib` is passed to cargo by `insta`; `-p prql-compiler`
+      tells it to only run the tests for `prql-compiler` rather than the other
+      crates, and `--lib` to only run the unit tests rather than the integration
+      tests, which are much slower.
+    - Note that we don't want to re-run on _any_ file changing, because we can get into a
+      loop of writing snapshot files, triggering a change, writing a snapshot
+      file, etc.
 
 - **[Integration
   tests](https://github.com/prql/prql/blob/main/prql-compiler/tests/integration/README.md)**
@@ -188,38 +222,16 @@ they're making it more difficult for you to make changes, or there are missing
 tests that would give you the confidence to make changes faster, then please
 raise an issue.
 
-[^1]:
-    We don't want to re-run on _any_ file changing, because we can get into a
-    loop of writing snapshot files, triggering a change, writing a snapshot
-    file, etc.
+## Releases
 
-[^2]:
-    Our approach is very consistent with
-    **[@matklad](https://github.com/matklad)**'s advice, in his excellent blog
-    post [How to Test](https://matklad.github.io//2021/05/31/how-to-test.html).
+Currently we release in a semi-automated way:
 
-[^3]: For example, this is a command I frequently run:
+- Run `cargo release --no-push --no-publish --no-confirm -x patch` locally to
+  bump the versions, and PR the change on a branch
+- After merging, go to [Draft a new
+  release](https://github.com/prql/prql/releases/new), write up release notes,
+  select a new tag to be created, and hit the "Publish" button.
+- From there, all packages are published automatically based on our [release
+  workflow](.github/workflows/release.yaml).
 
-    ```sh
-    RUST_BACKTRACE=1 watchexec -e rs,toml,pest,md -cr -- cargo insta test --accept -- -p prql-compiler --lib
-    ```
-
-    Breaking this down:
-
-    - `RUST_BACKTRACE=1` will print a full backtrace, including where an error
-      value was created, for rust tests which return `Result`s.
-    - `watchexec -e rs,toml,pest,md -cr --` will run the subsequent command on any
-      change to files with extensions which we are generally editing[^1].
-    - `cargo insta test --accept --` runs tests with `insta`, a snapshot library, and
-      writes any results immediately. I rely on git to track changes, so I run
-      with `--accept`, but YMMV.
-    - `-p prql-compiler --lib` is passed to cargo by `insta`; `-p prql-compiler`
-      tells it to only run the tests for `prql-compiler` rather than the other
-      crates, and `--lib` to only run the unit tests rather than the integration
-      tests, which are much slower.
-
-[^4]:
-    [Here's an example of an insta
-    test](https://github.com/prql/prql/blob/0.2.2/prql-compiler/src/parser.rs#L580-L605)
-    — note that only the initial line of each test is written by us; the remainder
-    is filled in by insta. .
+We may make this more automated in future; e.g. automatic changelog creation.

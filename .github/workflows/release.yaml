@@ -54,8 +54,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
       - name: Make dist folder
         run: mkdir dist
 
@@ -89,17 +87,15 @@ jobs:
         working-directory: prql-js/
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-  #      - name: Bump npm version
-  #        run: npm version patch
-  #        working-directory: prql-js/
-  #
-  #      - name: Commit version bump
-  #        run: |
-  #          git config user.name github-actions
-  #          git config user.email github-actions@github.com
-  #          git add prql-js/package.json
-  #          git commit -m "Bump NPM version"
-  #          git push
+
+  # Possibly we roll this into a more complete approach, possibly with cargo-release.
+  publish-prql-compiler:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions-rs/cargo@v1
+        with:
+          command: publish
+          args: -p prql-compiler
 
   # Requires another pass: https://github.com/prql/prql/issues/850
   # publish-prql-java:
