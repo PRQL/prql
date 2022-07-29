@@ -153,9 +153,9 @@ Our tests:
     — note that only the initial line of each test is written by us; the remainder
     is filled in by insta.
 
-  These are the fastest tests which run our code; they're designed to run on
-  every save while you're developing. (While they're covered by `task test-all`,
-  you'll generally want to have lower-latency tests running in a tight loop.).[^3]
+These are the fastest tests which run our code; they're designed to run on
+every save while you're developing. (While they're covered by `task test-all`,
+you'll generally want to have lower-latency tests running in a tight loop.).[^3]
 
 [^3]: For example, this is a command I frequently run:
 
