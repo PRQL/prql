@@ -99,10 +99,8 @@ class Workbench extends React.Component {
   }
 
   async copyOutput() {
-    const blob = new Blob([this.state.sql], { type: "text/plain" });
-    const data = [new window.ClipboardItem({ [blob.type]: blob })];
     try {
-      await navigator.clipboard.write(data);
+      await navigator.clipboard.writeText(this.state.sql);
 
       this.setState({ justCopied: true });
 
