@@ -229,7 +229,7 @@ fn sql_query_of_atomic_table(
     let distinct = transforms.iter().any(|t| matches!(t, Transform::Unique));
 
     Ok(sql_ast::Query {
-        body: SetExpr::Select(Box::new(Select {
+        body: Box::new(SetExpr::Select(Box::new(Select {
             distinct,
             top: if dialect.use_top() {
                 limit.map(|l| top_of_i64(l, dialect))
@@ -249,7 +249,7 @@ fn sql_query_of_atomic_table(
             sort_by: vec![],
             having,
             qualify: None,
-        })),
+        }))),
         order_by,
         with: None,
         limit: if dialect.use_top() {
@@ -584,7 +584,10 @@ fn translate_item(item: Item, dialect: &dyn DialectHandler) -> Result<Expr> {
                 _ => bail!("Unsupported interval unit: {}", interval.unit),
             };
             Expr::Value(Value::Interval {
-                value: interval.n.to_string(),
+                value: Box::new(translate_item(
+                    Item::Literal(Literal::Integer(interval.n)),
+                    dialect,
+                )?),
                 leading_field: Some(sql_parser_datetime),
                 leading_precision: None,
                 last_field: None,
