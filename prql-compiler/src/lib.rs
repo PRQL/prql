@@ -339,7 +339,7 @@ select `first name`
         assert_display_snapshot!((compile(query)?), @r###"
         SELECT
           projects.*,
-          start + INTERVAL '10' DAY AS first_check_in
+          start + INTERVAL 10 DAY AS first_check_in
         FROM
           projects
         "###);
