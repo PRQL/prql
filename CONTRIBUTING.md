@@ -147,15 +147,10 @@ Our tests:
   results of an expression in our code, making it faster to write and modify
   tests[^4].
 
-[^4]:
-    [Here's an example of an insta
-    test](https://github.com/prql/prql/blob/0.2.2/prql-compiler/src/parser.rs#L580-L605)
-    — note that only the initial line of each test is written by us; the remainder
-    is filled in by insta.
-
-These are the fastest tests which run our code; they're designed to run on
-every save while you're developing. (While they're covered by `task test-all`,
-you'll generally want to have lower-latency tests running in a tight loop.).[^3]
+  These are the fastest tests which run our code; they're designed to run on
+  every save while you're developing. (While they're covered by `task test-all`,
+  you'll generally want to have lower-latency tests running in a tight
+  loop.)[^3]
 
 [^3]: For example, this is a command I frequently run:
 
@@ -168,7 +163,7 @@ you'll generally want to have lower-latency tests running in a tight loop.).[^3]
     - `RUST_BACKTRACE=1` will print a full backtrace, including where an error
       value was created, for rust tests which return `Result`s.
     - `watchexec -e rs,toml,pest,md -cr --` will run the subsequent command on any
-      change to files with extensions which we are generally editing[^1].
+      change to files with extensions which we are generally editing.
     - `cargo insta test --accept --` runs tests with `insta`, a snapshot library, and
       writes any results immediately. I rely on git to track changes, so I run
       with `--accept`, but YMMV.
@@ -179,6 +174,12 @@ you'll generally want to have lower-latency tests running in a tight loop.).[^3]
     - Note that we don't want to re-run on _any_ file changing, because we can get into a
       loop of writing snapshot files, triggering a change, writing a snapshot
       file, etc.
+
+[^4]:
+    [Here's an example of an insta
+    test](https://github.com/prql/prql/blob/0.2.2/prql-compiler/src/parser.rs#L580-L605)
+    — note that only the initial line of each test is written by us; the remainder
+    is filled in by insta.
 
 - **[Integration
   tests](https://github.com/prql/prql/blob/main/prql-compiler/tests/integration/README.md)**
@@ -194,7 +195,7 @@ you'll generally want to have lower-latency tests running in a tight loop.).[^3]
   commit](https://github.com/prql/prql/blob/main/.github/workflows/pull-request.yaml)**
   — we run tests on `prql-compiler` for standard & wasm targets, and the
   examples in the book on every pull request every time a commit is pushed.
-  These are designed to run in under one minute, and we should be reassessing
+  These are designed to run in under two minutes, and we should be reassessing
   their scope if they grow beyond that. Once these pass, a pull request can be
   merged.
 
