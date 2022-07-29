@@ -23,10 +23,10 @@ clio = {version = "0.2.2", optional = true}
 color-eyre = {version = "0.6.1", optional = true}
 enum-as-inner = "0.5.0"
 itertools = "0.10.3"
-pest = "2.1.3"
+pest = "2.2.1"
 pest_derive = "2.1.0"
 serde_json = "1.0.81"
-serde_yaml = "0.8.24"
+serde_yaml = "0.9.1"
 sqlformat = "0.2.0"
 strum = {version = "0.24.0", features = ["std", "derive"]}# for converting enum variants to string
 strum_macros = "0.24.0"
@@ -38,7 +38,7 @@ version = "3.2.3"
 
 [dependencies.sqlparser]
 features = ["serde"]
-version = "0.18.0"
+version = "0.19.0"
 
 [dependencies.serde]
 features = ["derive"]

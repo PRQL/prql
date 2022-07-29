@@ -74,7 +74,7 @@ impl Cli {
             Cli::Parse(_) => {
                 let ast = parse(source)?;
 
-                serde_yaml::to_vec(&ast)?
+                serde_yaml::to_string(&ast)?.into_bytes()
             }
             Cli::Format(_) => crate::format(source)?.as_bytes().to_vec(),
             Cli::Debug(_) => {
@@ -102,7 +102,7 @@ impl Cli {
                 let ast = parse(source)?;
                 let (ir, _) = semantic::resolve(ast.nodes, None)?;
 
-                serde_yaml::to_vec(&ir)?
+                serde_yaml::to_string(&ir)?.into_bytes()
             }
             Cli::Compile(_) => crate::compile(source)?.as_bytes().to_vec(),
         })
