@@ -364,14 +364,13 @@ mod test {
             &to_string(&mat)?
         ),
         @r###"
-        @@ -5,7 +5,3 @@
-                 name: employees
-                 alias: ~
-                 declared_at: 79
-        -  - Transform:
-        -      Derive:
-        -        - Ident: gross_salary
-        -        - Ident: gross_cost
+        @@ -3,6 +3,3 @@
+             name: employees
+             alias: null
+             declared_at: 79
+        -- Transform: !Derive
+        -  - Ident: gross_salary
+        -  - Ident: gross_cost
         "###);
 
         Ok(())
@@ -462,17 +461,17 @@ take 20
         let diff = diff(&to_string(&pipeline.nodes)?, &to_string(&mat.nodes)?);
         assert!(!diff.is_empty());
         assert_display_snapshot!(diff, @r###"
-        @@ -7,5 +7,9 @@
-         - Transform:
-             Aggregate:
-               assigns:
-        -        - Ident: "<unnamed>"
-        +        - SString:
-        +            - String: SUM(
-        +            - Expr:
-        +                Ident: salary
-        +            - String: )
-               by: []
+        @@ -4,5 +4,9 @@
+             declared_at: 79
+         - Transform: !Aggregate
+             assigns:
+        -    - Ident: <unnamed>
+        +    - SString:
+        +      - !String SUM(
+        +      - !Expr
+        +        Ident: salary
+        +      - !String )
+             by: []
         "###);
 
         Ok(())
@@ -540,23 +539,23 @@ take 20
         let (mat, _, _) = materialize(pipeline.clone(), context.into(), None)?;
 
         assert_snapshot!(diff(&to_string(&pipeline.nodes)?, &to_string(&mat.nodes)?), @r###"
-        @@ -7,6 +7,14 @@
-         - Transform:
-             Aggregate:
-               assigns:
-        -        - Ident: one
-        -        - Ident: two
-        +        - SString:
-        +            - String: SUM(
-        +            - Expr:
-        +                Ident: foo
-        +            - String: )
-        +        - SString:
-        +            - String: SUM(
-        +            - Expr:
-        +                Ident: foo
-        +            - String: )
-               by: []
+        @@ -4,6 +4,14 @@
+             declared_at: 79
+         - Transform: !Aggregate
+             assigns:
+        -    - Ident: one
+        -    - Ident: two
+        +    - SString:
+        +      - !String SUM(
+        +      - !Expr
+        +        Ident: foo
+        +      - !String )
+        +    - SString:
+        +      - !String SUM(
+        +      - !Expr
+        +        Ident: foo
+        +      - !String )
+             by: []
         "###);
 
         // Test it'll run the `sum foo` function first.
