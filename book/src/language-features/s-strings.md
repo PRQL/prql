@@ -34,6 +34,15 @@ join s=salaries side:left [
 ]
 ```
 
+To use brackets in an s-string, use double brackets:
+
+```prql
+from employees
+derive [
+  has_valid_title = s"regexp_contains(title, '([a-z0-9]*-){{2,}}')"
+]
+```
+
 For those who have used python, s-strings are similar to python's f-strings, but
 the result is SQL, rather than a string literal — a python f-string of
 `f"average{col}"` where `col="salary"` would produce `"average(salary)"`, with
