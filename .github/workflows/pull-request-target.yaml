@@ -1,4 +1,4 @@
-name: pull-request-check
+name: pull-request-target
 
 on:
   pull_request_target:
@@ -10,6 +10,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: amannn/action-semantic-pull-request@v4
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           requireScope: false
           disallowScopes:
