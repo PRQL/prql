@@ -87,7 +87,7 @@ For those interesting in joining, we also have a new [Contributing page](https:/
 
 [^1]: Think of 0.2.1 like C+ :)
 
-## [0.2.1] - 2022-06-27
+## [0.2.0] - 2022-06-27
 
 🎉 🎉 **After several months of building, PRQL is ready to use!** 🎉 🎉
 
