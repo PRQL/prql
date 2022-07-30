@@ -86,6 +86,12 @@ Setting up a local dev environment is simple, thanks to the rust ecosystem:
   had hoped. It's very easy to revert code and then re-revert when we've
   resolved the issue; it's a sign of moving quickly.
 
+- We're experimenting with [Conventional
+  Commits](https://www.conventionalcommits.org), enforced through
+  [action-semantic-pull-request](https://github.com/amannn/action-semantic-pull-request).
+  This would let us generate Changelogs automatically. It's not a required check
+  on PRs at the moment.
+
 ## Tasks
 
 We have a couple of tasks which incorporate all building & testing. While they
