@@ -229,14 +229,28 @@ mod test {
         // GH-#822
         assert_display_snapshot!((compile(r###"
 prql dialect:postgres
-from some_schema.tablename
+table UPPER = (
+  from lower
+)
+from UPPER
+join some_schema.tablename [id]
         "###)?), @r###"
+        WITH "UPPER" AS (
+          SELECT
+            lower.*
+          FROM
+            lower
+        )
         SELECT
-          some_schema.tablename.*
+          "UPPER".*,
+          some_schema.tablename.*,
+          id
         FROM
-          some_schema.tablename
+          "UPPER"
+          JOIN some_schema.tablename USING(id)
         "###);
 
+        // GH-#852
         assert_display_snapshot!((compile(r###"
 prql dialect:bigquery
 from db.schema.table

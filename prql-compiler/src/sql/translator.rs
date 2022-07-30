@@ -125,7 +125,7 @@ fn into_tables(nodes: Vec<Node>) -> Result<Vec<Table>> {
 
 fn table_to_sql_cte(table: AtomicTable, dialect: &dyn DialectHandler) -> Result<sql_ast::Cte> {
     let alias = sql_ast::TableAlias {
-        name: sql_ast::Ident::new(table.name.clone().unwrap().name),
+        name: translate_ident_part(table.name.as_ref().unwrap().clone().name, dialect),
         columns: vec![],
     };
     Ok(sql_ast::Cte {
@@ -789,7 +789,7 @@ fn translate_column(ident: String, dialect: &dyn DialectHandler) -> Vec<sql_ast:
 // We return a vec of SQL Idents because sqlparser sometimes uses
 // [ObjectName](sql_ast::ObjectName) and sometimes uses
 // [Expr::CompoundIdentifier](sql_ast::Expr::CompoundIdentifier), each of which
-// are `Vec<Ident>`.
+// contains `Vec<Ident>`.
 fn translate_ident(ident: String, dialect: &dyn DialectHandler) -> Vec<sql_ast::Ident> {
     let is_jinja = ident.starts_with("{{") && ident.ends_with("}}");
 

@@ -6,6 +6,8 @@
 
 ### Fixes
 
+- Fix quoting on upper case `table` names (@max-sixty)
+
 ### Documentation
 
 ### Web
@@ -14,7 +16,7 @@
 
 ### Internal changes
 
-- Trial using Conventional Commits (@max-sixty, #889)
+- Start trial using Conventional Commits (@max-sixty, #889)
 - Add crates.io release workflow, docs (@max-sixty, #887)
 
 ## [0.2.5] - 2022-07-29
