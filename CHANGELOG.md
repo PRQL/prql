@@ -44,7 +44,7 @@ A couple of weeks since the 0.2.2 release: we've squashed a few bugs, added some
 
 The 0.2.3 release includes:
 
-- Allow for escaping otherwise-invalid identifiers (@aljazerzen  & @max-sixty )
+- Allow for escaping otherwise-invalid identifiers (@aljazerzen & @max-sixty )
 - Fix a bug around operator precedence (@max-sixty )
 - Add a section the book on the language bindings (@charlie-sanders )
 - Add tests for our `Display` representation while fixing some existing bugs. This is gradually becoming our code formatter (@arrizalamin )
@@ -89,7 +89,7 @@ For those interesting in joining, we also have a new [Contributing page](https:/
 
 ## [0.2.1] - 2022-06-27
 
-🎉 🎉  **After several months of building, PRQL is ready to use!** 🎉 🎉
+🎉 🎉 **After several months of building, PRQL is ready to use!** 🎉 🎉
 
 ---
 
