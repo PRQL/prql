@@ -789,7 +789,7 @@ fn translate_column(ident: String, dialect: &dyn DialectHandler) -> Vec<sql_ast:
 // We return a vec of SQL Idents because sqlparser sometimes uses
 // [ObjectName](sql_ast::ObjectName) and sometimes uses
 // [Expr::CompoundIdentifier](sql_ast::Expr::CompoundIdentifier), each of which
-// contain `Vec<Ident>`.
+// contains `Vec<Ident>`.
 fn translate_ident(ident: String, dialect: &dyn DialectHandler) -> Vec<sql_ast::Ident> {
     let is_jinja = ident.starts_with("{{") && ident.ends_with("}}");
 
