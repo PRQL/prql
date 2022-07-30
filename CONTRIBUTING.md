@@ -51,7 +51,18 @@ Setting up a local dev environment is simple, thanks to the rust ecosystem:
   instance](https://github.dev/prql/prql).
 - Any problems: post an issue and we'll help.
 
-## Merging
+## Commits
+
+- If a change is user-facing, it would be helpful to add a line in
+  [**`CHANGELOG.md`**](CHANGELOG.md), with `{message}, ({@contributor, #X})`
+  where `X` is the PR number.
+- We're experimenting with using the [Conventional
+  Commits](https://www.conventionalcommits.org) message format, enforced through
+  [action-semantic-pull-request](https://github.com/amannn/action-semantic-pull-request).
+  This would let us generate Changelogs automatically. The check is not required
+  to pass at the moment.
+
+## Merges
 
 - **We merge any code that makes PRQL better**
 - A PR doesn't need to be perfect to be merged; it doesn't need to solve a big
@@ -86,13 +97,7 @@ Setting up a local dev environment is simple, thanks to the rust ecosystem:
   had hoped. It's very easy to revert code and then re-revert when we've
   resolved the issue; it's a sign of moving quickly.
 
-- We're experimenting with [Conventional
-  Commits](https://www.conventionalcommits.org), enforced through
-  [action-semantic-pull-request](https://github.com/amannn/action-semantic-pull-request).
-  This would let us generate Changelogs automatically. It's not a required check
-  on PRs at the moment.
-
-## Tasks
+## `task`
 
 We have a couple of tasks which incorporate all building & testing. While they
 don't need to be run as part of a standard dev loop — generally we'll want to
