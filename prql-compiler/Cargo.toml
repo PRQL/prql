@@ -51,7 +51,7 @@ globset = "0.4.8"
 insta = {version = "1.17.0", features = ["colors", "glob"]}
 pulldown-cmark = "0.9.1"
 pulldown-cmark-to-cmark = "10.0.1"
-similar = "2.1.0"
+similar = "2.2.0"
 walkdir = "2.3.2"
 
 # For integration tests
