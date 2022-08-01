@@ -8,13 +8,23 @@ updates:
       - dependency-name: "*"
         update-types:
           - version-update:semver-patch
+    commit-message:
+      prefix: "chore: "
 
   - package-ecosystem: github-actions
     directory: "/"
     schedule:
       interval: daily
+    commit-message:
+      prefix: "chore: "
 
   - package-ecosystem: "npm"
     directory: "/playground"
     schedule:
       interval: daily
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - version-update:semver-patch
+    commit-message:
+      prefix: "chore: "
