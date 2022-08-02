@@ -1375,6 +1375,45 @@ take 20
     }
 
     #[test]
+    fn test_parse_table_with_newlines() -> Result<()> {
+        assert_yaml_snapshot!(ast_of_string(
+          "table x = (
+
+            from x_table
+
+            select only_in_x = foo
+
+          )
+
+          from x",
+          Rule::table
+        )?, @r###"
+        ---
+        Table:
+          name: x
+          pipeline:
+            Pipeline:
+              nodes:
+                - FuncCall:
+                    name: from
+                    args:
+                      - Ident: x_table
+                    named_args: {}
+                - FuncCall:
+                    name: select
+                    args:
+                      - Assign:
+                          name: only_in_x
+                          expr:
+                            Ident: foo
+                    named_args: {}
+          id: ~
+        "###);
+
+        Ok(())
+    }
+
+    #[test]
     fn test_inline_pipeline() {
         assert_yaml_snapshot!(ast_of_string("(salary | percentile 50)", Rule::nested_pipeline).unwrap(), @r###"
         ---

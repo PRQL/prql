@@ -25,7 +25,7 @@ type_term = { ident ~ type_def? }
 
 table = { "table" ~ ident ~ "=" ~ nested_pipeline }
 
-pipe = _{ NEWLINE | "|" }
+pipe = _{ NEWLINE+ | "|" }
 pipeline = { WHITESPACE* ~ expr_call ~ (pipe ~ expr_call)* }
 
 // See parser.rs for why this is so complicated to parse

@@ -7,7 +7,6 @@ prql dialect:generic
 
 from `club_ratings`
 filter `rating` != null
-
 group `year` (
   derive [rating_norm = `rating` - ( average `rating` ) / ( stddev `rating` )]
 )
