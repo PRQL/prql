@@ -19,9 +19,9 @@ pub struct Frame {
 /// Columns we know about in a Frame. The usize value represents the table id.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum FrameColumn {
-    /// Equivalent of `foo_table.*`
+    /// Used for `foo_table.*`
     All(usize),
-    // TODO: when is this used?
+    /// Used for `derive a + b` (new column has no name)
     Unnamed(usize),
     Named(String, usize),
 }
