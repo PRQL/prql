@@ -13,13 +13,15 @@ use crate::ast::{ColumnSort, Item, Node, Transform};
 pub struct Frame {
     pub columns: Vec<FrameColumn>,
     pub sort: Vec<ColumnSort<usize>>,
-
     pub tables: Vec<usize>,
 }
 
+/// Columns we know about in a Frame. The usize value represents the table id.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum FrameColumn {
+    /// Used for `foo_table.*`
     All(usize),
+    /// Used for `derive a + b` (new column has no name)
     Unnamed(usize),
     Named(String, usize),
 }

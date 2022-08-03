@@ -15,7 +15,18 @@ use super::{split_var_name, Context, Declaration};
 /// Runs semantic analysis on the query, using current state.
 ///
 /// Note that this removes function declarations from AST and saves them as current context.
-pub fn resolve_names(nodes: Vec<Node>, context: Context) -> Result<(Vec<Node>, Context)> {
+pub fn resolve_names(query: Query, context: Context) -> Result<(Vec<Node>, Context)> {
+    let mut resolver = NameResolver::new(context);
+
+    let nodes = resolver.fold_query(query)?.nodes;
+
+    let nodes = determine_complexity(nodes, &resolver.context);
+
+    Ok((nodes, resolver.context))
+}
+
+// Version of `resolve_names` that works on nodes only
+pub(crate) fn resolve_nodes(nodes: Vec<Node>, context: Context) -> Result<(Vec<Node>, Context)> {
     let mut resolver = NameResolver::new(context);
 
     let nodes = resolver.fold_nodes(nodes)?;
@@ -26,6 +37,7 @@ pub fn resolve_names(nodes: Vec<Node>, context: Context) -> Result<(Vec<Node>, C
 }
 
 /// Can fold (walk) over AST and for each function call or variable find what they are referencing.
+#[derive(Debug)]
 pub struct NameResolver {
     pub context: Context,
 
@@ -659,7 +671,7 @@ mod tests {
         select first_name
         select last_name
         "#;
-        let result = parse(prql).and_then(|x| resolve_names(x.nodes, context));
+        let result = parse(prql).and_then(|x| resolve_names(x, context));
         assert!(result.is_err());
 
         let prql = r#"
@@ -687,7 +699,7 @@ mod tests {
         join salaries [emp_no]
         select [first_name, salaries.salary]
         "#;
-        let result = parse(prql).and_then(|x| resolve_names(x.nodes, context));
+        let result = parse(prql).and_then(|x| resolve_names(x, context));
         result.unwrap();
 
         let context = load_std_lib();
@@ -697,7 +709,7 @@ mod tests {
         join salaries [emp_no]
         select [first_name, salaries.salary]
         "#;
-        let result = parse(prql).and_then(|x| resolve_names(x.nodes, context));
+        let result = parse(prql).and_then(|x| resolve_names(x, context));
         assert!(result.is_err());
     }
 

@@ -277,16 +277,16 @@ fn unpack<const P: usize, const N: usize>(
 mod tests {
     use insta::assert_yaml_snapshot;
 
-    use crate::parse;
-    use crate::semantic::{load_std_lib, resolve};
+    use crate::semantic::load_std_lib;
+    use crate::{parse, semantic::resolve};
 
     #[test]
     fn test_simple_casts() {
         let query = parse(r#"filter upper country = "USA""#).unwrap();
-        assert!(resolve(query.nodes, None).is_err());
+        assert!(resolve(query, None).is_err());
 
         let query = parse(r#"take"#).unwrap();
-        assert!(resolve(query.nodes, None).is_err());
+        assert!(resolve(query, None).is_err());
     }
 
     #[test]
@@ -304,7 +304,7 @@ mod tests {
         ",
         )
         .unwrap();
-        let (result, _) = resolve(query.nodes, context.clone()).unwrap();
+        let (result, _) = resolve(query, context.clone()).unwrap();
         assert_yaml_snapshot!(result, @r###"
         ---
         - Pipeline:
@@ -344,7 +344,7 @@ mod tests {
         ",
         )
         .unwrap();
-        let result = resolve(query.nodes, context.clone());
+        let result = resolve(query, context.clone());
         assert!(result.is_err());
 
         // oops, two arguments
@@ -355,7 +355,7 @@ mod tests {
         ",
         )
         .unwrap();
-        let result = resolve(query.nodes, context.clone());
+        let result = resolve(query, context.clone());
         assert!(result.is_err());
 
         // correct function call
@@ -368,7 +368,7 @@ mod tests {
         ",
         )
         .unwrap();
-        let (result, _) = resolve(query.nodes, context).unwrap();
+        let (result, _) = resolve(query, context).unwrap();
         assert_yaml_snapshot!(result, @r###"
         ---
         - Pipeline:
@@ -410,7 +410,7 @@ mod tests {
         )
         .unwrap();
 
-        let (result, _) = resolve(query.nodes, context).unwrap();
+        let (result, _) = resolve(query, context).unwrap();
         assert_yaml_snapshot!(result, @r###"
         ---
         - Pipeline:

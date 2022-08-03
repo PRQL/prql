@@ -79,7 +79,7 @@ impl Cli {
             Cli::Format(_) => crate::format(source)?.as_bytes().to_vec(),
             Cli::Debug(_) => {
                 let query = parse(source)?;
-                let (nodes, context) = semantic::resolve(query.nodes, None)?;
+                let (nodes, context) = semantic::resolve(query, None)?;
 
                 semantic::label_references(&nodes, &context, "".to_string(), source.to_string());
 
@@ -89,7 +89,7 @@ impl Cli {
                 let query = parse(source)?;
 
                 // resolve
-                let (nodes, context) = semantic::resolve(query.nodes, None)?;
+                let (nodes, context) = semantic::resolve(query, None)?;
 
                 let frames = semantic::collect_frames(nodes);
 
@@ -100,7 +100,7 @@ impl Cli {
             }
             Cli::Resolve(_) => {
                 let ast = parse(source)?;
-                let (ir, _) = semantic::resolve(ast.nodes, None)?;
+                let (ir, _) = semantic::resolve(ast, None)?;
 
                 serde_yaml::to_string(&ir)?.into_bytes()
             }

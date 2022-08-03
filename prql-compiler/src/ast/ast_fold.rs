@@ -74,6 +74,9 @@ pub trait AstFold {
     fn fold_windowed(&mut self, windowed: Windowed) -> Result<Windowed> {
         fold_windowed(self, windowed)
     }
+    fn fold_query(&mut self, query: Query) -> Result<Query> {
+        fold_query(self, query)
+    }
 }
 
 pub fn fold_item<T: ?Sized + AstFold>(fold: &mut T, item: Item) -> Result<Item> {
@@ -137,6 +140,13 @@ pub fn fold_range<F: ?Sized + AstFold>(fold: &mut F, Range { start, end }: Range
     Ok(Range {
         start: fold_optional_box(fold, start)?,
         end: fold_optional_box(fold, end)?,
+    })
+}
+
+pub fn fold_query<F: ?Sized + AstFold>(fold: &mut F, query: Query) -> Result<Query> {
+    Ok(Query {
+        nodes: fold.fold_nodes(query.nodes)?,
+        ..query
     })
 }
 

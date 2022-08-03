@@ -52,6 +52,7 @@ fn extract_frame(pipeline: &mut Pipeline, context: &mut MaterializationContext) 
     });
     Ok(())
 }
+#[derive(Debug)]
 pub struct MaterializedFrame {
     pub columns: Vec<Node>,
     pub sort: Vec<ColumnSort>,
@@ -87,6 +88,7 @@ impl From<Context> for MaterializationContext {
 }
 
 /// Can fold (walk) over AST and replace function calls and variable references with their declarations.
+#[derive(Debug)]
 pub struct Materializer {
     pub context: MaterializationContext,
     pub remove_namespaces: bool,
@@ -323,7 +325,7 @@ impl std::fmt::Debug for MaterializationContext {
 mod test {
 
     use super::*;
-    use crate::{parse, resolve, utils::diff};
+    use crate::{parse, semantic::resolve, utils::diff};
     use insta::{assert_display_snapshot, assert_snapshot, assert_yaml_snapshot};
     use serde_yaml::to_string;
 
@@ -332,7 +334,7 @@ mod test {
     }
 
     fn resolve_and_materialize(query: Query) -> Result<Vec<Node>> {
-        let (res, context) = resolve(query.nodes, None)?;
+        let (res, context) = resolve(query, None)?;
 
         let pipeline = find_pipeline(res);
 
@@ -351,7 +353,7 @@ mod test {
     "#,
         )?;
 
-        let (res, context) = resolve(query.nodes, None)?;
+        let (res, context) = resolve(query, None)?;
 
         let pipeline = find_pipeline(res);
 
@@ -413,7 +415,7 @@ take 20
     #[test]
     fn test_non_existent_function() -> Result<()> {
         let query = parse(r#"from mytable | filter (myfunc col1)"#)?;
-        assert!(resolve(query.nodes, None).is_err());
+        assert!(resolve(query, None).is_err());
 
         Ok(())
     }
@@ -450,7 +452,7 @@ take 20
                   named_args: {}
         "###);
 
-        let (res, context) = resolve(query.nodes, None)?;
+        let (res, context) = resolve(query, None)?;
 
         let pipeline = find_pipeline(res);
 
@@ -532,7 +534,7 @@ take 20
         "#,
         )?;
 
-        let (res, context) = resolve(query.nodes, None)?;
+        let (res, context) = resolve(query, None)?;
 
         let pipeline = find_pipeline(res);
 
@@ -809,8 +811,8 @@ take 20
         "#,
         )?;
 
-        let (res1, context) = resolve(query1.nodes, None)?;
-        let (res2, context) = resolve(query2.nodes, Some(context))?;
+        let (res1, context) = resolve(query1, None)?;
+        let (res2, context) = resolve(query2, Some(context))?;
 
         let (mat, frame, context) = materialize(find_pipeline(res1), context.into(), None)?;
 
