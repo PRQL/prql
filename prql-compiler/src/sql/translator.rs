@@ -102,6 +102,7 @@ pub fn translate_query(query: Query, context: Context) -> Result<sql_ast::Query>
     Ok(main_query)
 }
 
+#[derive(Debug)]
 pub struct AtomicTable {
     name: Option<TableRef>,
     pipeline: Pipeline,
@@ -922,7 +923,7 @@ impl From<Vec<Node>> for AtomicTable {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::{parser::parse, resolve};
+    use crate::{parser::parse, semantic::resolve};
     use insta::assert_yaml_snapshot;
     use serde_yaml::from_str;
 
@@ -990,7 +991,7 @@ mod test {
     }
 
     fn parse_and_resolve(prql: &str) -> Result<Pipeline> {
-        let (mut nodes, _) = resolve(parse(prql)?.nodes, None)?;
+        let (mut nodes, _) = resolve(parse(prql)?, None)?;
         let pipeline = nodes.remove(nodes.len() - 1).coerce_to_pipeline();
         Ok(pipeline)
     }

@@ -6,7 +6,7 @@ pub const NS_PARAM: &str = "_param";
 pub const NS_FUNC: &str = "_func";
 
 /// Maps from accessible names in some context to their declarations.
-#[derive(Default, Serialize, Deserialize, Clone)]
+#[derive(Default, Debug, Serialize, Deserialize, Clone)]
 pub struct Scope {
     /// Mapping from idents to their declarations. For each namespace (table), a map from column names to their definitions
     /// "_param" is namespace of current function parameters

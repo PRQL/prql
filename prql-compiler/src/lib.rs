@@ -12,7 +12,6 @@ pub use anyhow::Result;
 pub use cli::Cli;
 pub use error::{format_error, SourceLocation};
 pub use parser::parse;
-pub use semantic::resolve;
 pub use sql::translate;
 
 /// Compile a PRQL string into a SQL string.
@@ -26,7 +25,8 @@ pub fn compile(prql: &str) -> Result<String> {
 }
 
 pub fn resolve_and_translate(mut query: ast::Query) -> Result<String> {
-    let (nodes, context) = semantic::resolve(query.nodes, None)?;
+    // TODO: is there a way of avoiding this clone?
+    let (nodes, context) = semantic::resolve(query.clone(), None)?;
     query.nodes = nodes;
     translate(query, context)
 }
