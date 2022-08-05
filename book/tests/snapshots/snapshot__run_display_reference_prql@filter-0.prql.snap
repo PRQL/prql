@@ -5,7 +5,7 @@ input_file: book/tests/prql/transforms/filter-0.prql
 ---
 prql dialect:generic
 
-from `employees`
-filter `age` > 25
+from employees
+filter age > 25
 
 

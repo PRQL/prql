@@ -5,13 +5,13 @@ input_file: book/tests/prql/language-features/ranges-0.prql
 ---
 prql dialect:generic
 
-from `events`
+from events
 filter (
-  `date`
+  date
   in @1776-07-04..@1787-09-17
 )
 filter (
-  `magnitude`
+  magnitude
   in 50..100
 )
 

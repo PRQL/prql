@@ -5,7 +5,7 @@ input_file: book/tests/prql/queries/syntax-3.prql
 ---
 prql dialect:generic
 
-from `employees`
-select [`first_name`]
+from employees
+select [first_name]
 
 

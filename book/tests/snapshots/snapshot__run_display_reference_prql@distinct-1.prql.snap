@@ -5,9 +5,9 @@ input_file: book/tests/prql/language-features/distinct-1.prql
 ---
 prql dialect:generic
 
-from `employees`
-select `department`
-group `department` (
+from employees
+select department
+group department (
   take 1
 )
 

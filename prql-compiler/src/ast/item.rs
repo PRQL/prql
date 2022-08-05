@@ -206,21 +206,39 @@ impl Display for Item {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Item::Ident(s) => {
-                write!(f, "`{s}`")?;
+                fn forbidden_start(c: char) -> bool {
+                    !(('a'..='z').contains(&c) || matches!(c, '_' | '$'))
+                }
+                fn forbidden_subsequent(c: char) -> bool {
+                    !(('a'..='z').contains(&c) || ('0'..='9').contains(&c) || matches!(c, '_'))
+                }
+
+                let needs_escape = s.is_empty()
+                    || s.starts_with(forbidden_start)
+                    || (s.len() > 1 && s.chars().skip(1).any(forbidden_subsequent));
+
+                if needs_escape {
+                    write!(f, "`{s}`")?;
+                } else {
+                    write!(f, "{s}")?;
+                }
             }
             Item::Assign(ne) => {
                 match ne.expr.item {
                     Item::FuncCall(_) => {
-                        write!(f, "{} = ({})", ne.name, ne.expr.item)?;
+                        // this is just a workaround for inserting parenthesis
+                        // full approach would include "binding strength"
+                        // checking, just as we do for SQL
+                        write!(f, "{} = ({})", Item::Ident(ne.name.clone()), ne.expr.item)?;
                     }
 
                     _ => {
-                        write!(f, "{} = {}", ne.name, ne.expr.item)?;
+                        write!(f, "{} = {}", Item::Ident(ne.name.clone()), ne.expr.item)?;
                     }
                 };
             }
             Item::NamedArg(ne) => {
-                write!(f, "{}:{}", ne.name, ne.expr.item)?;
+                write!(f, "{}:{}", Item::Ident(ne.name.clone()), ne.expr.item)?;
             }
             Item::Query(query) => {
                 write!(f, "prql dialect:{}", query.dialect)?;

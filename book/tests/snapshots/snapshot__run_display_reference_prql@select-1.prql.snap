@@ -5,10 +5,10 @@ input_file: book/tests/prql/transforms/select-1.prql
 ---
 prql dialect:generic
 
-from `employees`
+from employees
 select [
-  `first_name`,
-  `last_name`,
+  first_name,
+  last_name,
 ]
 
 
