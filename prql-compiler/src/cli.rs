@@ -219,7 +219,7 @@ group a_column (take 10 | sort b_column | derive [the_number = rank, last = lag 
         prql dialect:generic
 
         from `table.subdivision`
-        derive želva means turtle = a_column + 1 * 3
+        derive `želva_means_turtle` = `column with spaces` + 1 * 3
         group a_column (
           take 10
           sort b_column
