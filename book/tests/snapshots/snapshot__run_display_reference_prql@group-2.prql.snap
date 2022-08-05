@@ -5,9 +5,9 @@ input_file: book/tests/prql/transforms/group-2.prql
 ---
 prql dialect:generic
 
-from `employees`
-group `role` (
-  sort `join_date`
+from employees
+group role (
+  sort join_date
   take 1
 )
 

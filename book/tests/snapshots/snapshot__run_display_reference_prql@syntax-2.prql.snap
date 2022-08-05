@@ -10,12 +10,12 @@ derive [
   y = 2,
 ]
 derive [
-  a = `x`,
-  b = `y`,
+  a = x,
+  b = y,
 ]
 derive [
-  c = `a`,
-  d = `b`,
+  c = a,
+  d = b,
 ]
 
 

@@ -5,7 +5,7 @@ input_file: book/tests/prql/transforms/join-1.prql
 ---
 prql dialect:generic
 
-from `employees`
-join side:`full` `positions` [`emp_no`]
+from employees
+join side:full positions [emp_no]
 
 

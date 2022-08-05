@@ -5,8 +5,8 @@ input_file: book/tests/prql/queries/dialect_and_version-0.prql
 ---
 prql dialect:postgres
 
-from `employees`
-sort `age`
+from employees
+sort age
 take 10
 
 

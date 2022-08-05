@@ -6,6 +6,6 @@ input_file: book/tests/prql/queries/syntax-9.prql
 prql dialect:bigquery
 
 from `project-foo.dataset.table`
-join `project-bar.dataset.table` [`col_bax`]
+join `project-bar.dataset.table` [col_bax]
 
 
