@@ -209,10 +209,10 @@ group a_column (take 10 | sort b_column | derive [the_number = rank, last = lag 
         "#,
         )
         .unwrap();
-        
+
         // this test is here just to document behavior - the result is far from being correct:
         // - indentation does not stack
-        // - operator precedence is not considered (parenthesis are not inserted for numerical 
+        // - operator precedence is not considered (parenthesis are not inserted for numerical
         //   operations but are always inserted for function calls)
         assert_snapshot!(String::from_utf8(output).unwrap().trim(),
         @r###"

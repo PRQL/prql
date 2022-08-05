@@ -227,7 +227,7 @@ impl Display for Item {
                 match ne.expr.item {
                     Item::FuncCall(_) => {
                         // this is just a workaround for inserting parenthesis
-                        // full approach would include "binding strength" 
+                        // full approach would include "binding strength"
                         // checking, just as we do for SQL
                         write!(f, "{} = ({})", Item::Ident(ne.name.clone()), ne.expr.item)?;
                     }
