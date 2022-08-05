@@ -197,4 +197,37 @@ sort full
         sort full                                              # [?, full, gender]
         "###);
     }
+
+    #[test]
+    fn format_test() {
+        let output = Cli::execute(
+            &Cli::Format(CommandIO::default()),
+            r#"
+from table.subdivision
+ derive      `želva_means_turtle`   =    (`column with spaces` + 1) * 3
+group a_column (take 10 | sort b_column | derive [the_number = rank, last = lag 1 c_column] )
+        "#,
+        )
+        .unwrap();
+        
+        // this test is here just to document behavior - the result is far from being correct:
+        // - indentation does not stack
+        // - operator precedence is not considered (parenthesis are not inserted for numerical 
+        //   operations but are always inserted for function calls)
+        assert_snapshot!(String::from_utf8(output).unwrap().trim(),
+        @r###"
+        prql dialect:generic
+
+        from `table.subdivision`
+        derive želva means turtle = a_column + 1 * 3
+        group a_column (
+          take 10
+          sort b_column
+          derive [
+          the_number = rank,
+          last = (lag 1 c_column),
+        ]
+        )
+        "###);
+    }
 }
