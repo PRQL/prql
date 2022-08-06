@@ -7,7 +7,7 @@ use crate::ast::*;
 use crate::error::Span;
 
 /// Context of the pipeline.
-#[derive(Default, Serialize, Deserialize, Clone)]
+#[derive(Default, Debug, Serialize, Deserialize, Clone)]
 pub struct Context {
     /// Map of all accessible names (for each namespace)
     pub(crate) scope: Scope,
@@ -66,11 +66,5 @@ impl From<Declaration> for anyhow::Error {
     fn from(dec: Declaration) -> Self {
         // panic!("Unexpected declaration type: {dec:?}");
         anyhow::anyhow!("Unexpected declaration type: {dec:?}")
-    }
-}
-
-impl Debug for Context {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "{:?}", self.declarations)
     }
 }

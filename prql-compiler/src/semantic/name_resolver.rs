@@ -89,6 +89,30 @@ impl AstFold for NameResolver {
                         self.context.declare_func(func_def);
                         None
                     }
+                    Item::Table(_) => {
+                        // This is *extremely* hacky code to solve #820, and will
+                        // be removed soon™, given we are rewriting semantic.
+                        let extern_refs = self
+                            .context
+                            .declarations
+                            .0
+                            .iter()
+                            .filter_map(|(dec, _)| match dec {
+                                Declaration::ExternRef {
+                                    table: _,
+                                    variable: var,
+                                } => Some(var),
+                                _ => None,
+                            })
+                            .collect::<Vec<_>>();
+
+                        self.context
+                            .scope
+                            .variables
+                            .retain(|k, _| !extern_refs.contains(&k));
+
+                        Some(self.fold_node(node)?)
+                    }
                     _ => Some(self.fold_node(node)?),
                 })
             })
