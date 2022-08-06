@@ -52,7 +52,7 @@ jobs:
   publish-prql-js:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: 📂 Checkout code
         uses: actions/checkout@v3
       - name: Make dist folder
         run: mkdir dist
@@ -92,6 +92,8 @@ jobs:
   publish-prql-compiler:
     runs-on: ubuntu-latest
     steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v3
       - uses: actions-rs/cargo@v1
         with:
           command: publish
