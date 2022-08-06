@@ -239,8 +239,8 @@ raise an issue.
 Currently we release in a semi-automated way:
 
 - PR & merge an updated [Changelog](CHANGELOG.md).
-- Run `cargo release --no-push --no-publish --no-confirm -x patch` locally to
-  bump the versions, and PR the change on a branch
+- Run `cargo release --no-push --no-tag -x patch` locally to bump the versions,
+  and merge the change.
 - After merging, go to [Draft a new
   release](https://github.com/prql/prql/releases/new), write up release notes,
   select a new tag to be created, and hit the "Publish" button.
