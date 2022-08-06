@@ -238,6 +238,7 @@ raise an issue.
 
 Currently we release in a semi-automated way:
 
+- PR & merge an updated [Changelog](CHANGELOG.md).
 - Run `cargo release --no-push --no-publish --no-confirm -x patch` locally to
   bump the versions, and PR the change on a branch
 - After merging, go to [Draft a new
@@ -245,5 +246,20 @@ Currently we release in a semi-automated way:
   select a new tag to be created, and hit the "Publish" button.
 - From there, all packages are published automatically based on our [release
   workflow](.github/workflows/release.yaml).
+- Add in the sections for a new Changelog:
+
+  ```md
+  ### Features
+
+  ### Fixes
+
+  ### Documentation
+
+  ### Web
+
+  ### Integrations
+
+  ### Internal changes
+  ```
 
 We may make this more automated in future; e.g. automatic changelog creation.

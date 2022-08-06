@@ -1,25 +1,26 @@
 # PRQL Changelog
 
-## [unreleased]
-
-### Features
+## 0.2.6 — 2022-08-05
 
 ### Fixes
 
-- Fix quoting on upper case `table` names (@max-sixty)
+- Adjust `fmt` to only escape names when needed (@aljazerzen, #907)
+- Fix quoting on upper case `table` names (@max-sixty, #893)
+- Fix scoping of identical column names from multiple tables (@max-sixty, #908)
+- Fix parse error on newlines in a `table` (@sebastiantoh 🆕, #902)
+- Fix quoting of upper case table names (@max-sixty, #893)
 
 ### Documentation
 
-### Web
-
-### Integrations
+- Add docs on [Architecture](prql-compiler/ARCHITECTURE.md) (@aljazerzen, #904)
+- Add Changelog (@max-sixty, #890 #891)
 
 ### Internal changes
 
 - Start trial using Conventional Commits (@max-sixty, #889)
 - Add crates.io release workflow, docs (@max-sixty, #887)
 
-## [0.2.5] - 2022-07-29
+## 0.2.5 - 2022-07-29
 
 0.2.5 is a very small release following 0.2.4 yesterday. It includes:
 
@@ -27,7 +28,7 @@
 - Fix the "Copy to Clipboard" command in the Playground, for Firefox (#880,
   @mklopets )
 
-## [0.2.4] - 2022-07-28
+## 0.2.4 - 2022-07-28
 
 0.2.4 is a small release following 0.2.3 a few days ago. The 0.2.4 release includes:
 
@@ -40,7 +41,7 @@ Thanks to @ankane, `prql-compiler` is now available from homebrew core; `brew in
 
 [^2]: we still need to update docs and add a release workflow for this: <https://github.com/prql/prql/issues/866>
 
-## [0.2.3] - 2022-07-24
+## 0.2.3 - 2022-07-24
 
 A couple of weeks since the 0.2.2 release: we've squashed a few bugs, added some mid-sized features to the language, and made a bunch of internal improvements.
 
@@ -68,7 +69,7 @@ We're also going to document and modularize the compiler further. It's importan
 
 Thank you!
 
-## [0.2.2] - 2022-07-10
+## 0.2.2 - 2022-07-10
 
 We're a couple of weeks since our 0.2.0 release. Thanks for the surge in interest and contributions! 0.2.2[^1] has some fixes & some internal improvements:
 
@@ -89,7 +90,7 @@ For those interesting in joining, we also have a new [Contributing page](https:/
 
 [^1]: Think of 0.2.1 like C+ :)
 
-## [0.2.0] - 2022-06-27
+## 0.2.0 - 2022-06-27
 
 🎉 🎉 **After several months of building, PRQL is ready to use!** 🎉 🎉
 
