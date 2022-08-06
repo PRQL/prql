@@ -43,3 +43,10 @@ exactly = 1
 file = "package.json"
 replace = '  "version": "{{version}}"'
 search = '  "version": "(\d+\.\d+\.\d+)"'
+
+[[package.metadata.release.pre-release-replacements]]
+exactly = 1
+file = "../playground/package-lock.json"
+replace = '''    "../prql-js": {
+      "version": "{{version}}"'''
+search = '    "../prql-js": \{\n      "version": "[\d\.]+"'
