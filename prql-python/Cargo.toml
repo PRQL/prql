@@ -3,7 +3,7 @@ build = "build.rs"
 edition = "2021"
 name = "prql-python"
 publish = false
-version = "0.2.5"
+version = "0.2.6"
 
 [lib]
 crate-type = ["cdylib"]
