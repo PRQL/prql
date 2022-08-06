@@ -20,4 +20,3 @@ allow-branch = ["main", "release"]
 consolidate-commits = true
 consolidate-pushes = true
 shared-version = true
-
