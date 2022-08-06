@@ -1464,4 +1464,49 @@ take 20
         "###
         );
     }
+
+    #[test]
+    fn test_same_column_names() -> Result<()> {
+        // #820
+        let query = r###"
+table x = (
+  from x_table
+  select only_in_x = foo
+)
+
+table y = (
+  from y_table
+  select foo
+)
+
+from x
+join y [id]
+"###;
+
+        assert_display_snapshot!(compile(query)?,
+            @r###"
+        WITH x AS (
+          SELECT
+            foo AS only_in_x
+          FROM
+            x_table
+        ),
+        y AS (
+          SELECT
+            foo
+          FROM
+            y_table
+        )
+        SELECT
+          x.*,
+          y.*,
+          id
+        FROM
+          x
+          JOIN y USING(id)
+        "###
+        );
+
+        Ok(())
+    }
 }
