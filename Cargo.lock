@@ -890,18 +890,18 @@ checksum = "05a0bd019339e5d968b37855180087b7b9d512c5046fbd244cf8c95687927d6e"
 
 [[package]]
 name = "insta"
-version = "1.17.0"
+version = "1.18.0-alpha.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1e21173d5699a654cf191b0c05b0a937bb4f7cf07ee2e32da2af07a963e31577"
+checksum = "7434f24375f151c2bf41954e0a324a7198f14cf4de3ded44c8ebc126105a7aea"
 dependencies = [
  "console",
  "globset",
+ "linked-hash-map",
  "once_cell",
  "serde",
- "serde_json",
- "serde_yaml 0.8.26",
  "similar",
  "walkdir",
+ "yaml-rust",
 ]
 
 [[package]]
@@ -1663,7 +1663,7 @@ dependencies = [
  "rusqlite",
  "serde",
  "serde_json",
- "serde_yaml 0.9.1",
+ "serde_yaml",
  "similar",
  "sqlformat",
  "sqlparser",
@@ -2009,18 +2009,6 @@ dependencies = [
  "itoa 1.0.2",
  "ryu",
  "serde",
-]
-
-[[package]]
-name = "serde_yaml"
-version = "0.8.26"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "578a7433b776b56a35785ed5ce9a7e777ac0598aac5a6dd1b4b18a307c7fc71b"
-dependencies = [
- "indexmap",
- "ryu",
- "serde",
- "yaml-rust",
 ]
 
 [[package]]
