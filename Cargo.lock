@@ -890,9 +890,9 @@ checksum = "05a0bd019339e5d968b37855180087b7b9d512c5046fbd244cf8c95687927d6e"
 
 [[package]]
 name = "insta"
-version = "1.18.0-alpha.1"
+version = "1.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7434f24375f151c2bf41954e0a324a7198f14cf4de3ded44c8ebc126105a7aea"
+checksum = "49de01ff8a0781c5414e674b4469b81f6693d6bda6a4d405600c2acd06ebc6d3"
 dependencies = [
  "console",
  "globset",
