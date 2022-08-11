@@ -1,6 +1,7 @@
 # PRQL library target
 
 ## Description
+
 This module compiles PRQL as a library (both `.a` and `.so` are generated). This allows embedding in languages that support FFI - looking at Golang.
 
 ## Usage
@@ -13,7 +14,7 @@ Copy the `.a` and `.so` files in a convenient place and add the following compil
 
 Below is an example from an actual application that is using PRQL in Go.
 
-```go
+````go
 package prql
 
 /*
@@ -77,5 +78,4 @@ func ToJSON(prql string) (string, error) {
 	}
 
 	return "", errors.New(C.GoString(cstr))
-}```
-
+}````
