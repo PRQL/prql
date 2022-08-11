@@ -1,3 +1,5 @@
+#![cfg(not(target_family = "wasm"))]
+
 extern crate libc;
 
 use libc::{c_char, c_int};
