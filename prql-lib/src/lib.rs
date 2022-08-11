@@ -8,6 +8,9 @@ use std::ffi::CString;
 
 #[no_mangle]
 #[allow(non_snake_case)]
+/// # Safety
+///
+/// This function is inherently unsafe because it is using C ABI.
 pub unsafe extern "C" fn to_sql(query: *const c_char, out: *mut c_char) -> c_int {
     let prql_query: String = CStr::from_ptr(query).to_string_lossy().into_owned();
 
@@ -34,6 +37,9 @@ pub unsafe extern "C" fn to_sql(query: *const c_char, out: *mut c_char) -> c_int
 
 #[no_mangle]
 #[allow(non_snake_case)]
+/// # Safety
+///
+/// This function is inherently unsafe because it using C ABI.
 pub unsafe extern "C" fn to_json(query: *const c_char, out: *mut c_char) -> c_int {
     let prql_query: String = CStr::from_ptr(query).to_string_lossy().into_owned();
 
