@@ -803,9 +803,9 @@ fn translate_ident(ident: String, dialect: &dyn DialectHandler) -> Vec<sql_ast::
         // project, which may be a cause). I'm not 100% it's watertight, but we'll see.
         Dialect::BigQuery => {
             if ident.split('.').count() > 2 {
-                return vec![sql_ast::Ident::with_quote(dialect.ident_quote(), ident)];
+                vec![sql_ast::Ident::with_quote(dialect.ident_quote(), ident)]
             } else {
-                return vec![sql_ast::Ident::new(ident)];
+                vec![sql_ast::Ident::new(ident)]
             }
         }
         _ => ident

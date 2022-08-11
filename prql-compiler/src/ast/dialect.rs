@@ -2,7 +2,9 @@ use core::fmt::Debug;
 use serde::{Deserialize, Serialize};
 use strum;
 
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, strum::EnumString, strum::Display)]
+#[derive(
+    Debug, PartialEq, Eq, Clone, Serialize, Deserialize, strum::EnumString, strum::Display,
+)]
 pub enum Dialect {
     #[strum(serialize = "ansi")]
     Ansi,

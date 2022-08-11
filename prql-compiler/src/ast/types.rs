@@ -16,7 +16,9 @@ pub enum Ty {
     Infer,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, strum::EnumString, strum::Display)]
+#[derive(
+    Debug, Clone, Serialize, Deserialize, PartialEq, Eq, strum::EnumString, strum::Display,
+)]
 pub enum TyLit {
     #[strum(to_string = "table")]
     Table,

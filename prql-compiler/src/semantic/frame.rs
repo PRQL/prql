@@ -9,7 +9,7 @@ use crate::ast::{ColumnSort, Item, Node, Transform};
 
 /// Represents the object that is manipulated by the pipeline transforms.
 /// Similar to a view in a database or a data frame.
-#[derive(Clone, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Frame {
     pub columns: Vec<FrameColumn>,
     pub sort: Vec<ColumnSort<usize>>,
@@ -17,7 +17,7 @@ pub struct Frame {
 }
 
 /// Columns we know about in a Frame. The usize value represents the table id.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum FrameColumn {
     /// Used for `foo_table.*`
     All(usize),
