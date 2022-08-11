@@ -40,7 +40,7 @@ func ToSQL(prql string) (string, error) {
     // from the PRQL compiler with a very short query
 	cStringBufferLength := 1024
 
-    // allocate a buffer 3 times the length of the PRQL query to store the 
+    // allocate a buffer 3 times the length of the PRQL query to store the
     // generated SQL query
 	if len(prql)*3 > cStringBufferLength {
 		cStringBufferLength = len(prql) * 3
