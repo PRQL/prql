@@ -1,0 +1,18 @@
+[package]
+edition = "2021"
+name = "prql-lib"
+publish = false
+version = "0.2.6"
+
+[lib]
+crate_type = ["staticlib", "cdylib"]
+
+[dependencies]
+prql-compiler = { path = "../prql-compiler" }
+libc = "0.2"
+serde_json = "1.0"
+
+[package.metadata.release]
+shared-version = true
+tag-name = "{{version}}"
+tag-prefix = ""
