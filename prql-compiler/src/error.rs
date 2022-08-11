@@ -5,7 +5,7 @@ use std::fmt::{self, Debug, Display, Formatter, Write};
 use std::ops::{Add, Range};
 
 use crate::parser::PestError;
-#[derive(Debug, Clone, PartialEq, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Copy, Serialize, Deserialize)]
 pub struct Span {
     pub start: usize,
     pub end: usize,

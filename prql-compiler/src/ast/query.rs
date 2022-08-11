@@ -62,12 +62,12 @@ pub enum Transform {
     Unique, // internal only, can be expressed with group & take
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub enum WindowKind {
     Rows,
     Range,
 }
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub struct TableRef {
     pub name: String,
     pub alias: Option<String>,
@@ -80,7 +80,7 @@ pub enum JoinFilter {
     Using(Vec<Node>),
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub enum JoinSide {
     Inner,
     Left,
@@ -88,13 +88,13 @@ pub enum JoinSide {
     Full,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ColumnSort<T = Node> {
     pub direction: SortDirection,
     pub column: T,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum SortDirection {
     Asc,
     Desc,

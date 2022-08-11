@@ -1,5 +1,6 @@
 #![cfg(not(target_family = "wasm"))]
-
+// Getting a confusing error around the `&str` reference to the `#[pyfunction]` functions.
+#![allow(clippy::borrow_deref_ref)]
 use prql_compiler::compile;
 use pyo3::exceptions;
 use pyo3::prelude::*;

@@ -38,7 +38,9 @@ pub enum Item {
     Windowed(Windowed),
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, strum::Display, strum::EnumString)]
+#[derive(
+    Debug, PartialEq, Eq, Clone, Serialize, Deserialize, strum::Display, strum::EnumString,
+)]
 pub enum BinOp {
     #[strum(to_string = "*")]
     Mul,
@@ -70,7 +72,7 @@ pub enum BinOp {
     Coalesce,
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, strum::EnumString)]
+#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize, strum::EnumString)]
 pub enum UnOp {
     #[strum(to_string = "-")]
     Neg,
@@ -131,7 +133,7 @@ pub enum InterpolateItem {
 
 /// Inclusive-inclusive range.
 /// Missing bound means unbounded range.
-#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Range<T = Box<Node>> {
     pub start: Option<T>,
     pub end: Option<T>,
@@ -169,7 +171,7 @@ impl Range {
 // #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 // pub struct Interval(pub Vec<IntervalPart>);
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Interval {
     pub n: i64,       // Do any DBs use floats or decimals for this?
     pub unit: String, // Could be an enum IntervalType,
