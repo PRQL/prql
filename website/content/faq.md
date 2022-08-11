@@ -28,20 +28,16 @@ Yes, probably. We're standing on the shoulders of giants:
   - There's also [dbplyr](https://dbplyr.tidyverse.org/) which compiles a subset
     of dplyr to SQL, though requires an R runtime.
 - [Kusto](https://docs.microsoft.com/azure/data-explorer/kusto/query/samples?pivots=azuredataexplorer)
-  is also a beautiful pipelined language, very similar to PRQL. But it can only
+  is also a beautiful pipelined language, similar to PRQL. But it can only
   use Kusto-compatible DBs.
-  - A Kusto-to-SQL transpiler would be a legitimate alternative to PRQL, though
-    there would be some impedance mismatch in some areas. My central criticism
-    of Kusto is that it gives up broad compatibility without getting that much
-    in return.
 - [Against SQL](https://www.scattered-thoughts.net/writing/against-sql/) gives a
   fairly complete description of SQL's weaknesses, both for analytical and
   transactional queries. [**@jamii**](https://github.com/jamii) consistently
   writes insightful pieces, and it's worth sponsoring him for his updates.
 - Julia's [DataPipes.jl](https://gitlab.com/aplavin/DataPipes.jl) &
-  [Chain.jl](https://github.com/jkrumbiegel/Chain.jl), which demonstrate how
-  effective point-free pipelines can be, and how line-breaks can work as pipes.
-- [OCaml](https://ocaml.org/), for its elegant and simple syntax.
+  [Chain.jl](https://github.com/jkrumbiegel/Chain.jl) demonstrate how effective
+  point-free pipelines can be, and how line-breaks can work as pipes.
+- [OCaml](https://ocaml.org/)'s elegant and simple syntax serves as inspiration.
 
 And there are many projects similar to PRQL:
 
@@ -54,6 +50,11 @@ And there are many projects similar to PRQL:
 - [Malloy](https://github.com/looker-open-source/malloy) from Looker &
   [**@lloydtabb**](https://github.com/lloydtabb) in a new language which
   combines a declarative syntax for querying with a modelling layer.
+- [EdgeDB](https://www.edgedb.com/) is an alternative to SQL focused on
+  traditional transactional workloads (as opposed to PRQL's focus on analytical
+  workloads). Their post [We can do better than
+  SQL](https://www.edgedb.com/blog/we-can-do-better-than-sql) contains many of
+  the criticisms of SQL that inspired PRQL.
 - [FunSQL.jl](https://github.com/MechanicalRabbit/FunSQL.jl) is a library in
   Julia which compiles a nice query syntax to SQL. It requires a Julia runtime.
 - [LINQ](https://docs.microsoft.com/dotnet/csharp/linq/write-linq-queries),
@@ -61,10 +62,6 @@ And there are many projects similar to PRQL:
   SQL. It was one of the first languages to take this approach.
 - [Sift](https://github.com/RCHowell/Sift) is an experimental language which
   heavily uses pipes and relational algebra.
-- After writing the original proposal (including the name!), we found
-  [Preql](https://github.com/erezsh/Preql). Despite the similar name and
-  compiling to SQL, it seems to focus more on making the language python-like,
-  which is very different to this proposal.
 
 > If any of these descriptions can be improved, please feel free to PR changes.
 
