@@ -41,7 +41,7 @@ project; thank you in advance.
 
 Setting up a local dev environment is simple, thanks to the rust ecosystem:
 
-- Install [`rustup` & `cargo`](https://doc.rust-lang.org/cargo/getting-started/installation.html).
+- Install [`rustup` & `cargo`](https://doc.rust-lang.org/cargo/getting-started/installation.html)[^5].
 - That's it! Running `cargo test` should complete successfully.
 - For more advanced development; e.g. adjusting `insta` outputs or compiling for
   web, run `task setup-dev` by installing
@@ -50,6 +50,18 @@ Setting up a local dev environment is simple, thanks to the rust ecosystem:
 - For quick contributions, hit `.` in GitHub to launch a [github.dev
   instance](https://github.dev/prql/prql).
 - Any problems: post an issue and we'll help.
+
+[^5]:
+    We'll need a clang compiler to compile the DuckDB integration tests,
+    since we use [`duckdb-rs'](https://github.com/wangfenjin/duckdb-rs). To install a compiler:
+
+    - On Mac, install xcode `xcode-select --install`
+    - On Linux, `apt-get install libclang-dev`
+    - On Windows, `duckdb-rs` doesn't work anyway, so these tests are excluded
+
+    It's also possible to develop `prql-compiler` without using the integration
+    tests. Running `cargo test` from within the `prql-compiler` path should
+    complete successfully by running only the unit tests.
 
 ## Commits
 
