@@ -1,2 +1,6 @@
 [toolchain]
-channel = "stable"
+channel = "1.63.0"
+components = ["rustfmt", "clippy"]
+# We want two targets: wasm32, and the default target for the platform, which we
+# don't list here. (i.e. we use each platform to test each platform)
+targets = ["wasm32-unknown-unknown"]

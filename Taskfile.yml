@@ -34,7 +34,8 @@ tasks:
         mdbook-toc
         wasm-bindgen-cli
         wasm-pack
-      - rustup target add wasm32-unknown-unknown
+      # We no longer need this now we set it in `rust-toolchain.toml`, can be removed in time
+      # - rustup target add wasm32-unknown-unknown
       - python3 -m pip install -U maturin
       - task: install-pre-commit
       - task: install-brew-dependencies
