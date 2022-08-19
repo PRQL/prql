@@ -572,6 +572,7 @@ fn translate_item(item: Item, dialect: &dyn DialectHandler) -> Result<Expr> {
                 args,
                 distinct: false,
                 over: None,
+                special: false,
             })
         }
         Item::Interval(interval) => {
@@ -712,6 +713,7 @@ fn translate_func_call(func_call: FuncCall, dialect: &dyn DialectHandler) -> Res
             .collect::<Result<Vec<_>>>()?,
         over: None,
         distinct: false,
+        special: false,
     })
 }
 fn translate_column_sort(sort: ColumnSort, dialect: &dyn DialectHandler) -> Result<OrderByExpr> {
@@ -867,6 +869,8 @@ impl SQLExpression for Expr {
 
             Expr::UnaryOp { op, .. } => op.binding_strength(),
 
+            Expr::Like { .. } | Expr::ILike { .. } => 7,
+
             Expr::IsNull(_) | Expr::IsNotNull(_) => 5,
 
             // all other items types bind stronger (function calls, literals, ...)
@@ -881,7 +885,6 @@ impl SQLExpression for BinaryOperator {
             Modulo | Multiply | Divide => 11,
             Minus | Plus => 10,
 
-            ILike | NotILike | Like | NotLike => 7,
             Gt | Lt | GtEq | LtEq | Eq | NotEq => 6,
 
             And => 3,
