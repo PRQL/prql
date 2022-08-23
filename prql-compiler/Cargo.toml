@@ -48,7 +48,7 @@ version = "1.0.137"
 chrono = "0.4"
 criterion = "0.3.5"
 globset = "0.4.8"
-insta = {version = "1.18.0", features = ["colors", "glob", "yaml"]}
+insta = {version = "1.19.0", features = ["colors", "glob", "yaml"]}
 pulldown-cmark = "0.9.1"
 pulldown-cmark-to-cmark = "10.0.1"
 similar = "2.2.0"
