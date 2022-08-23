@@ -118,36 +118,32 @@ impl Context {
     /// Move top-level expressions into declarations and replace them with idents
     pub(super) fn extract_decls(&mut self, nodes: Vec<Expr>) -> Result<Vec<Expr>> {
         let mut res = Vec::with_capacity(nodes.len());
-        for mut node in nodes {
-            res.push(match node.kind {
-                ExprKind::Assign(NamedExpr { name, expr }) => {
-                    // introduce a new expression alias
+        for node in nodes {
+            let alias = node.alias.clone();
 
-                    let expr = self.extract_decl(*expr)?;
-                    let id = expr.declared_at.unwrap();
+            let expr = self.extract_decl(node)?;
 
-                    node.kind = ExprKind::Ident(name);
-                    node.declared_at = Some(id);
-                    node
-                }
-                _ => {
-                    // no new names, only fold the expr
-                    self.extract_decl(node)?
-                }
+            res.push(if let Some(alias) = alias {
+                // introduce a new expression alias
+                let mut ident = Expr::from(ExprKind::Ident(alias));
+                ident.declared_at = Some(expr.declared_at.unwrap());
+                ident
+            } else {
+                expr
             });
         }
         Ok(res)
     }
 
-    fn extract_decl(&mut self, node: Expr) -> Result<Expr> {
-        Ok(match node.kind {
+    fn extract_decl(&mut self, expr: Expr) -> Result<Expr> {
+        Ok(match expr.kind {
             // keep existing ident
-            ExprKind::Ident(_) => node,
+            ExprKind::Ident(_) => expr,
 
             // declare new expression so it can be references from FrameColumn
             _ => {
-                let span = node.span;
-                let id = self.declare(Declaration::Expression(Box::from(node)), span);
+                let span = expr.span;
+                let id = self.declare(Declaration::Expression(Box::from(expr)), span);
 
                 let mut placeholder = Expr::from(ExprKind::Ident("<unnamed>".to_string()));
                 placeholder.declared_at = Some(id);

@@ -205,21 +205,15 @@ impl Materializer {
     }
 }
 
-fn emit_column_with_name(expr_node: Expr, name: String) -> Expr {
+fn emit_column_with_name(mut expr_node: Expr, name: String) -> Expr {
     // is expr_node just an ident with same name?
     let expr_ident = expr_node.kind.as_ident().map(|n| split_var_name(n).1);
 
-    if expr_ident.map(|n| n == name).unwrap_or(false) {
-        // return just the ident
-        expr_node
-    } else {
-        // return expr with new name
-        ExprKind::Assign(NamedExpr {
-            expr: Box::new(expr_node),
-            name,
-        })
-        .into()
+    if !expr_ident.map(|n| n == name).unwrap_or(false) {
+        // set expr alias
+        expr_node.alias = Some(name);
     }
+    expr_node
 }
 
 impl AstFold for Materializer {
