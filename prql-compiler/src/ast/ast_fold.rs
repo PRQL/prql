@@ -108,8 +108,6 @@ pub fn fold_expr_kind<T: ?Sized + AstFold>(fold: &mut T, expr_kind: ExprKind) ->
         List(items) => List(fold.fold_exprs(items)?),
         Range(range) => Range(fold_range(fold, range)?),
         Pipeline(p) => Pipeline(fold.fold_pipeline(p)?),
-        Assign(named_expr) => Assign(fold_named_expr(fold, named_expr)?),
-        NamedArg(named_expr) => Assign(fold_named_expr(fold, named_expr)?),
         SString(items) => SString(
             items
                 .into_iter()
@@ -298,7 +296,7 @@ pub fn fold_func_call<T: ?Sized + AstFold>(fold: &mut T, func_call: FuncCall) ->
         named_args: func_call
             .named_args
             .into_iter()
-            .map(|(name, expr)| fold.fold_expr(*expr).map(|e| (name, Box::from(e))))
+            .map(|(name, expr)| fold.fold_expr(expr).map(|e| (name, e)))
             .try_collect()?,
     })
 }
@@ -352,16 +350,6 @@ pub fn fold_func_param<T: ?Sized + AstFold>(
             })
         })
         .try_collect()
-}
-
-pub fn fold_named_expr<T: ?Sized + AstFold>(
-    fold: &mut T,
-    named_expr: NamedExpr,
-) -> Result<NamedExpr> {
-    Ok(NamedExpr {
-        name: fold.fold_ident(named_expr.name)?,
-        expr: Box::new(fold.fold_expr(*named_expr.expr)?),
-    })
 }
 
 pub fn fold_type<T: ?Sized + AstFold>(fold: &mut T, t: Ty) -> Result<Ty> {

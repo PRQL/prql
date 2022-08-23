@@ -49,7 +49,7 @@ impl AstFold for Resolver {
     fn fold_expr(&mut self, mut node: Expr) -> Result<Expr> {
         let mut r = match node.kind {
             ExprKind::Ident(ref ident) => {
-                let id = self.lookup_name(ident, node.span)?;
+                let id = self.lookup_name(ident, node.span, &node.alias)?;
                 node.declared_at = Some(id);
 
                 let decl = self.context.declarations.get(id);
@@ -86,7 +86,7 @@ impl AstFold for Resolver {
                 let curry = match name.kind {
                     // by function name
                     ExprKind::Ident(name) => {
-                        let id = self.lookup_name(&name, node.span)?;
+                        let id = self.lookup_name(&name, node.span, &node.alias)?;
 
                         // construct an empty curry (this is a "fresh" call)
                         FuncCurry {
@@ -169,24 +169,30 @@ impl AstFold for Resolver {
 }
 
 impl Resolver {
-    pub fn lookup_name(&mut self, name: &str, span: Option<Span>) -> Result<usize> {
-        match self.namespace {
-            Namespace::Tables => {
-                let id = self.context.declare_table(name.to_string(), None);
-                Ok(id)
+    pub fn lookup_name(
+        &mut self,
+        name: &str,
+        span: Option<Span>,
+        alias: &Option<String>,
+    ) -> Result<usize> {
+        Ok(match self.namespace {
+            Namespace::Tables => self.context.declare_table(name.to_string(), alias.clone()),
+            Namespace::FunctionsColumns => {
+                let res = self.context.lookup_name(name, span);
+
+                match res {
+                    Ok(id) => id,
+                    Err(e) => bail!(Error::new(Reason::Simple(e)).with_span(span)),
+                }
             }
-            Namespace::FunctionsColumns => match self.context.lookup_name(name, span) {
-                Ok(id) => Ok(id),
-                Err(e) => bail!(Error::new(Reason::Simple(e)).with_span(span)),
-            },
-        }
+        })
     }
 
     fn fold_function(
         &mut self,
         curry: FuncCurry,
         args: Vec<Expr>,
-        named_args: HashMap<String, Box<Expr>>,
+        named_args: HashMap<String, Expr>,
         span: Option<Span>,
     ) -> Result<Expr, anyhow::Error> {
         //dbg!(&curry);
@@ -298,7 +304,7 @@ impl Resolver {
         &mut self,
         mut curry: FuncCurry,
         args: Vec<Expr>,
-        named_args: HashMap<Ident, Box<Expr>>,
+        named_args: HashMap<Ident, Expr>,
         func_def: &FuncDef,
     ) -> Result<FuncCurry> {
         for arg in args {
@@ -319,7 +325,7 @@ impl Resolver {
                     .find_position(|p| p.name == name)
                     .ok_or_else(|| anyhow::anyhow!("unknown named argument"))?;
 
-                curry.named_args[index] = Some(*arg);
+                curry.named_args[index] = Some(arg);
             }
         }
 

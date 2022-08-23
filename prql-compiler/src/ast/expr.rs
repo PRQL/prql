@@ -27,6 +27,9 @@ pub struct Expr {
     /// Is true when containing window functions
     #[serde(skip)]
     pub is_complex: bool,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub alias: Option<String>,
 }
 
 #[derive(Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize)]
@@ -34,8 +37,6 @@ pub enum ExprKind {
     Empty,
     Ident(Ident),
     Literal(Literal),
-    Assign(NamedExpr),
-    NamedArg(NamedExpr),
     Pipeline(Pipeline),
     List(Vec<Expr>),
     Range(Range),
@@ -123,7 +124,7 @@ pub struct ListItem(pub Expr);
 pub struct FuncCall {
     pub name: Box<Expr>,
     pub args: Vec<Expr>,
-    pub named_args: HashMap<Ident, Box<Expr>>,
+    pub named_args: HashMap<Ident, Expr>,
 }
 
 impl FuncCall {
@@ -170,12 +171,6 @@ impl Windowed {
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Pipeline {
     pub exprs: Vec<Expr>,
-}
-
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub struct NamedExpr {
-    pub name: Ident,
-    pub expr: Box<Expr>,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
@@ -237,28 +232,6 @@ impl Expr {
         node
     }
 
-    /// Return an error if this is a named expression.
-    pub fn discard_name(self) -> Result<Expr, Error> {
-        // TODO: replace this function with a prior type checking
-
-        if let ExprKind::Assign(_) = self.kind {
-            Err(Error::new(Reason::Unexpected {
-                found: "alias".to_string(),
-            })
-            .with_span(self.span))
-        } else {
-            Ok(self)
-        }
-    }
-
-    pub fn into_name_and_expr(self) -> (Option<Ident>, Expr) {
-        if let ExprKind::Assign(expr) = self.kind {
-            (Some(expr.name), *expr.expr)
-        } else {
-            (None, self)
-        }
-    }
-
     /// Often we don't care whether a List or single item is passed; e.g.
     /// `select x` vs `select [x, y]`. This equalizes them both to a vec of
     /// [Node]-s.
@@ -299,6 +272,7 @@ impl From<ExprKind> for Expr {
             declared_at: None,
             ty: None,
             is_complex: false,
+            alias: None,
         }
     }
 }
@@ -320,6 +294,8 @@ impl From<ExprKind> for anyhow::Error {
 
 impl Display for ExprKind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // TODO: print Expr.alias
+
         match self {
             ExprKind::Empty => {
                 f.write_str("()")?;
@@ -341,28 +317,6 @@ impl Display for ExprKind {
                 } else {
                     write!(f, "{s}")?;
                 }
-            }
-            ExprKind::Assign(ne) => {
-                match ne.expr.kind {
-                    ExprKind::FuncCall(_) => {
-                        // this is just a workaround for inserting parenthesis
-                        // full approach would include "binding strength"
-                        // checking, just as we do for SQL
-                        write!(
-                            f,
-                            "{} = ({})",
-                            ExprKind::Ident(ne.name.clone()),
-                            ne.expr.kind
-                        )?;
-                    }
-
-                    _ => {
-                        write!(f, "{} = {}", ExprKind::Ident(ne.name.clone()), ne.expr.kind)?;
-                    }
-                };
-            }
-            ExprKind::NamedArg(ne) => {
-                write!(f, "{}:{}", ExprKind::Ident(ne.name.clone()), ne.expr.kind)?;
             }
             ExprKind::Pipeline(pipeline) => {
                 f.write_char('(')?;

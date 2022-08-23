@@ -22,10 +22,7 @@ pub use reporting::{collect_frames, label_references};
 /// Runs semantic analysis on the query, using current state.
 ///
 /// Note that this removes function declarations from AST and saves them as current context.
-pub fn resolve(
-    statements: Vec<Stmt>,
-    context: Option<Context>,
-) -> anyhow::Result<(Query, Context)> {
+pub fn resolve(statements: Vec<Stmt>, context: Option<Context>) -> Result<(Query, Context)> {
     let context = context.unwrap_or_else(load_std_lib);
 
     let (query, context) = resolver::resolve(statements, context)?;
