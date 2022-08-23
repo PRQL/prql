@@ -233,7 +233,7 @@ pub fn cast_transform(
     func_call: FuncCurry,
 ) -> Result<Result<PipelineAndTransform, FuncCurry>> {
     // TODO: transform functions are currently matched by static id, which
-    // may change if stdlib.prql is changed. This is not ergonomic or readable.
+    // may change if stdlib.prql is changed. This is neither ergonomic nor readable.
     Ok(Ok(match func_call.def_id {
         0 => {
             let ([with], []) = unpack::<1, 0>(func_call)?;
@@ -311,7 +311,7 @@ pub fn cast_transform(
         6 => {
             let ([expr, pipeline], []) = unpack::<2, 0>(func_call)?;
 
-            let range = match expr.discard_name()?.kind {
+            let range = match expr.kind {
                 ExprKind::Literal(Literal::Integer(n)) => Range::from_ints(None, Some(n)),
                 ExprKind::Range(range) => range,
                 i => unimplemented!("`take` range: {i}"),
@@ -350,7 +350,7 @@ pub fn cast_transform(
 
             let with = unpack_table_ref(with)?;
 
-            let filter = filter.discard_name()?.coerce_to_vec();
+            let filter = filter.coerce_to_vec();
             let use_using =
                 (filter.iter().map(|x| &x.kind)).all(|x| matches!(x, ExprKind::Ident(_)));
 
@@ -495,8 +495,8 @@ pub fn cast_transform(
     }))
 }
 
-fn unpack_table_ref(node: Expr) -> Result<TableRef> {
-    let (alias, expr) = node.into_name_and_expr();
+fn unpack_table_ref(expr: Expr) -> Result<TableRef> {
+    let alias = expr.alias;
 
     let declared_at = expr.declared_at;
     let ty = expr.ty.clone();

@@ -22,9 +22,6 @@ pub fn resolve_type(node: &Expr) -> Result<Ty> {
             Literal::Timestamp(_) => TyLit::Timestamp.into(),
         },
 
-        ExprKind::Assign(_) => Ty::Assigns,
-
-        ExprKind::NamedArg(ne) => resolve_type(ne.expr.as_ref())?,
         ExprKind::Windowed(w) => resolve_type(w.expr.as_ref())?,
 
         ExprKind::Ident(_) | ExprKind::Pipeline(_) | ExprKind::FuncCall(_) => Ty::Infer,

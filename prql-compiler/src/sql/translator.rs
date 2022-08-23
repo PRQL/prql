@@ -208,7 +208,7 @@ fn sql_query_of_atomic_table(
         None
     } else {
         Some(sqlparser::ast::Offset {
-            value: translate_item(ExprKind::Literal(Literal::Integer(offset)), dialect)?,
+            value: translate_expr_kind(ExprKind::Literal(Literal::Integer(offset)), dialect)?,
             rows: sqlparser::ast::OffsetRows::None,
         })
     };
@@ -244,7 +244,7 @@ fn sql_query_of_atomic_table(
                 None
             },
             projection: (frame.columns.into_iter())
-                .map(|n| translate_select_item(n.kind, dialect))
+                .map(|expr| translate_select_item(expr, dialect))
                 .try_collect()?,
             into: None,
             from,
@@ -457,7 +457,7 @@ fn filter_of_filters(
     }
 
     condition
-        .map(|n| translate_item(n.kind, dialect))
+        .map(|n| translate_expr_kind(n.kind, dialect))
         .transpose()
 }
 
@@ -470,7 +470,9 @@ fn expr_of_i64(number: i64) -> sql_ast::Expr {
 
 fn top_of_i64(take: i64, dialect: &dyn DialectHandler) -> Top {
     Top {
-        quantity: Some(translate_item(ExprKind::Literal(Literal::Integer(take)), dialect).unwrap()),
+        quantity: Some(
+            translate_expr_kind(ExprKind::Literal(Literal::Integer(take)), dialect).unwrap(),
+        ),
         with_ties: false,
         percent: false,
     }
@@ -479,28 +481,23 @@ fn try_into_exprs(nodes: Vec<Expr>, dialect: &dyn DialectHandler) -> Result<Vec<
     nodes
         .into_iter()
         .map(|x| x.kind)
-        .map(|item| translate_item(item, dialect))
+        .map(|item| translate_expr_kind(item, dialect))
         .try_collect()
 }
 
-fn translate_select_item(item: ExprKind, dialect: &dyn DialectHandler) -> Result<SelectItem> {
-    Ok(match item {
-        ExprKind::Binary { .. }
-        | ExprKind::Unary { .. }
-        | ExprKind::SString(_)
-        | ExprKind::FString(_)
-        | ExprKind::Ident(_)
-        | ExprKind::Literal(_)
-        | ExprKind::Windowed(_) => SelectItem::UnnamedExpr(translate_item(item, dialect)?),
-        ExprKind::Assign(named) => SelectItem::ExprWithAlias {
-            alias: translate_ident_part(named.name, dialect),
-            expr: translate_item(named.expr.kind, dialect)?,
+fn translate_select_item(expr: Expr, dialect: &dyn DialectHandler) -> Result<SelectItem> {
+    let inner = translate_expr_kind(expr.kind, dialect)?;
+
+    Ok(match expr.alias {
+        Some(alias) => SelectItem::ExprWithAlias {
+            alias: translate_ident_part(alias, dialect),
+            expr: inner,
         },
-        _ => bail!("Can't convert to SelectItem; {:?}", item),
+        None => SelectItem::UnnamedExpr(inner),
     })
 }
 
-fn translate_item(item: ExprKind, dialect: &dyn DialectHandler) -> Result<sql_ast::Expr> {
+fn translate_expr_kind(item: ExprKind, dialect: &dyn DialectHandler) -> Result<sql_ast::Expr> {
     Ok(match item {
         ExprKind::Ident(ident) => {
             sql_ast::Expr::CompoundIdentifier(translate_column(ident, dialect))
@@ -551,8 +548,8 @@ fn translate_item(item: ExprKind, dialect: &dyn DialectHandler) -> Result<sql_as
                     ))
                 })
             }
-            let start: sql_ast::Expr = translate_item(assert_bound(r.start)?.kind, dialect)?;
-            let end: sql_ast::Expr = translate_item(assert_bound(r.end)?.kind, dialect)?;
+            let start: sql_ast::Expr = translate_expr_kind(assert_bound(r.start)?.kind, dialect)?;
+            let end: sql_ast::Expr = translate_expr_kind(assert_bound(r.end)?.kind, dialect)?;
             sql_ast::Expr::Identifier(sql_ast::Ident::new(format!("{} AND {}", start, end)))
         }
         // Fairly hacky — convert everything to a string, then concat it,
@@ -564,7 +561,7 @@ fn translate_item(item: ExprKind, dialect: &dyn DialectHandler) -> Result<sql_as
                 .map(|s_string_item| match s_string_item {
                     InterpolateItem::String(string) => Ok(string),
                     InterpolateItem::Expr(node) => {
-                        translate_item(node.kind, dialect).map(|expr| expr.to_string())
+                        translate_expr_kind(node.kind, dialect).map(|expr| expr.to_string())
                     }
                 })
                 .collect::<Result<Vec<String>>>()?
@@ -578,7 +575,7 @@ fn translate_item(item: ExprKind, dialect: &dyn DialectHandler) -> Result<sql_as
                     InterpolateItem::String(string) => {
                         Ok(sql_ast::Expr::Value(Value::SingleQuotedString(string)))
                     }
-                    InterpolateItem::Expr(node) => translate_item(node.kind, dialect),
+                    InterpolateItem::Expr(node) => translate_expr_kind(node.kind, dialect),
                 })
                 .map(|r| r.map(|e| FunctionArg::Unnamed(FunctionArgExpr::Expr(e))))
                 .collect::<Result<Vec<_>>>()?;
@@ -602,7 +599,7 @@ fn translate_item(item: ExprKind, dialect: &dyn DialectHandler) -> Result<sql_as
                 _ => bail!("Unsupported interval unit: {}", interval.unit),
             };
             sql_ast::Expr::Value(Value::Interval {
-                value: Box::new(translate_item(
+                value: Box::new(translate_expr_kind(
                     ExprKind::Literal(Literal::Integer(interval.n)),
                     dialect,
                 )?),
@@ -613,7 +610,7 @@ fn translate_item(item: ExprKind, dialect: &dyn DialectHandler) -> Result<sql_as
             })
         }
         ExprKind::Windowed(window) => {
-            let expr = translate_item(window.expr.kind, dialect)?;
+            let expr = translate_expr_kind(window.expr.kind, dialect)?;
 
             let default_frame = if window.sort.is_empty() {
                 (WindowKind::Rows, Range::unbounded())
@@ -725,7 +722,7 @@ fn translate_func_call(func_call: FuncCall, dialect: &dyn DialectHandler) -> Res
         name: ObjectName(vec![sql_ast::Ident::new(name.kind.into_ident().unwrap())]),
         args: args
             .into_iter()
-            .map(|a| translate_item(a.kind, dialect))
+            .map(|a| translate_expr_kind(a.kind, dialect))
             .map(|e| e.map(|a| FunctionArg::Unnamed(FunctionArgExpr::Expr(a))))
             .collect::<Result<Vec<_>>>()?,
         over: None,
@@ -735,7 +732,7 @@ fn translate_func_call(func_call: FuncCall, dialect: &dyn DialectHandler) -> Res
 }
 fn translate_column_sort(sort: ColumnSort, dialect: &dyn DialectHandler) -> Result<OrderByExpr> {
     Ok(OrderByExpr {
-        expr: translate_item(sort.column.kind, dialect)?,
+        expr: translate_expr_kind(sort.column.kind, dialect)?,
         asc: if matches!(sort.direction, SortDirection::Asc) {
             None // default order is ASC, so there is no need to emit it
         } else {
@@ -862,7 +859,7 @@ fn translate_operand(
     min_strength: i32,
     dialect: &dyn DialectHandler,
 ) -> Result<Box<sql_ast::Expr>> {
-    let expr = Box::new(translate_item(expr, dialect)?);
+    let expr = Box::new(translate_expr_kind(expr, dialect)?);
 
     Ok(if expr.binding_strength() < min_strength {
         Box::new(sql_ast::Expr::Nested(expr))
@@ -1079,7 +1076,7 @@ mod test {
         - String: )
         ",
         )?;
-        let expr: sql_ast::Expr = translate_item(ast.kind, dialect.as_ref())?;
+        let expr: sql_ast::Expr = translate_expr_kind(ast.kind, dialect.as_ref())?;
         assert_yaml_snapshot!(
             expr, @r###"
         ---

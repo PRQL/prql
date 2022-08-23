@@ -55,11 +55,9 @@ fn stmt_of_parse_pair(pair: Pair<Rule>) -> Result<Stmt> {
             StmtKind::Pipeline(exprs)
         }
         Rule::query_def => {
-            let parsed = exprs_of_parse_pairs(pair.into_inner())?;
-
-            let mut params: HashMap<_, _> = parsed
-                .into_iter()
-                .map(|x| x.kind.into_named_arg().map(|n| (n.name, n.expr)))
+            let mut params: HashMap<_, _> = pair
+                .into_inner()
+                .map(|x| exprs_of_parse_pairs(x.into_inner()).map(parse_named))
                 .try_collect()?;
 
             let version = params
@@ -155,8 +153,9 @@ fn exprs_of_parse_pairs(pairs: Pairs<Rule>) -> Result<Vec<Expr>> {
 fn expr_of_parse_pair(pair: Pair<Rule>) -> Result<Expr> {
     let span = pair.as_span();
     let rule = pair.as_rule();
+    let mut alias = None;
 
-    let item = match rule {
+    let kind = match rule {
         Rule::list => ExprKind::List(exprs_of_parse_pairs(pair.into_inner())?),
         Rule::expr_mul | Rule::expr_add | Rule::expr_compare | Rule::expr => {
             let mut pairs = pair.into_inner();
@@ -213,25 +212,26 @@ fn expr_of_parse_pair(pair: Pair<Rule>) -> Result<Expr> {
         Rule::operator_coalesce => ExprKind::Ident("-".to_string()),
 
         Rule::assign_call | Rule::assign => {
-            let mut items = exprs_of_parse_pairs(pair.into_inner())?;
-            ExprKind::Assign(named_expr_of_nodes(&mut items)?)
-        }
-        Rule::named_arg => {
-            let mut items = exprs_of_parse_pairs(pair.into_inner())?;
-            ExprKind::NamedArg(named_expr_of_nodes(&mut items)?)
+            let (a, expr) = parse_named(exprs_of_parse_pairs(pair.into_inner())?);
+            alias = Some(a);
+            expr.kind
         }
         Rule::func_call => {
-            let mut nodes = exprs_of_parse_pairs(pair.into_inner())?;
+            let mut pairs = pair.into_inner();
 
-            let name = nodes.remove(0);
+            let name = expr_of_parse_pair(pairs.next().unwrap())?;
 
             let mut named = HashMap::new();
             let mut positional = Vec::new();
-            for node in nodes {
-                if let ExprKind::NamedArg(ne) = node.kind {
-                    named.insert(ne.name, ne.expr);
-                } else {
-                    positional.push(node);
+            for arg in pairs {
+                match arg.as_rule() {
+                    Rule::named_arg => {
+                        let (a, expr) = parse_named(exprs_of_parse_pairs(arg.into_inner())?);
+                        named.insert(a, expr);
+                    }
+                    _ => {
+                        positional.push(expr_of_parse_pair(arg)?);
+                    }
                 }
             }
 
@@ -366,12 +366,17 @@ fn expr_of_parse_pair(pair: Pair<Rule>) -> Result<Expr> {
 
         _ => unreachable!("{pair}"),
     };
-    let mut node = Expr::from(item);
-    node.span = Some(Span {
-        start: span.start(),
-        end: span.end(),
-    });
-    Ok(node)
+    Ok(Expr {
+        kind,
+        span: Some(Span {
+            start: span.start(),
+            end: span.end(),
+        }),
+        alias,
+        declared_at: None,
+        ty: None,
+        is_complex: false,
+    })
 }
 
 fn parse_typed(pair: Pair<Rule>) -> Result<(String, Option<Ty>, Option<Expr>)> {
@@ -395,13 +400,10 @@ fn parse_typed(pair: Pair<Rule>) -> Result<(String, Option<Ty>, Option<Expr>)> {
     Ok((name, ty, default))
 }
 
-fn named_expr_of_nodes(items: &mut Vec<Expr>) -> Result<NamedExpr, anyhow::Error> {
-    let (ident, expr) = items.drain(..).collect_tuple().unwrap();
-    let ne = NamedExpr {
-        name: ident.kind.into_ident()?,
-        expr: Box::new(expr),
-    };
-    Ok(ne)
+fn parse_named(mut items: Vec<Expr>) -> (String, Expr) {
+    let expr = items.remove(1);
+    let alias = items.remove(0).kind.into_ident().unwrap();
+    (alias, expr)
 }
 
 fn ast_of_interpolate_items(pair: Pair<Rule>) -> Result<Vec<InterpolateItem>> {
