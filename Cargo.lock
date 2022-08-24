@@ -1714,7 +1714,7 @@ version = "0.2.6"
 dependencies = [
  "prql-compiler",
  "pyo3",
- "pyo3-build-config",
+ "pyo3-build-config 0.17.0",
 ]
 
 [[package]]
@@ -1748,7 +1748,7 @@ dependencies = [
  "indoc",
  "libc",
  "parking_lot",
- "pyo3-build-config",
+ "pyo3-build-config 0.16.6",
  "pyo3-ffi",
  "pyo3-macros",
  "unindent",
@@ -1756,9 +1756,19 @@ dependencies = [
 
 [[package]]
 name = "pyo3-build-config"
-version = "0.16.5"
+version = "0.16.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b5b65b546c35d8a3b1b2f0ddbac7c6a569d759f357f2b9df884f5d6b719152c8"
+checksum = "9c819d397859445928609d0ec5afc2da5204e0d0f73d6bf9e153b04e83c9cdc2"
+dependencies = [
+ "once_cell",
+ "target-lexicon",
+]
+
+[[package]]
+name = "pyo3-build-config"
+version = "0.17.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0a35ea0dde58f923bcd30f0f9a64e79033cd51e176c32bd50efccbbe7f289b25"
 dependencies = [
  "once_cell",
  "target-lexicon",
@@ -1771,7 +1781,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c275a07127c1aca33031a563e384ffdd485aee34ef131116fcd58e3430d1742b"
 dependencies = [
  "libc",
- "pyo3-build-config",
+ "pyo3-build-config 0.16.6",
 ]
 
 [[package]]
