@@ -8,7 +8,7 @@ use crate::error::Span;
 
 #[derive(Debug, EnumAsInner, Clone, Serialize, Deserialize)]
 pub enum Declaration {
-    Expression(Box<Node>),
+    Expression(Box<Expr>),
     ExternRef {
         /// Table can be None if we are unable to determine from which table this column
         /// is from.
@@ -59,7 +59,7 @@ impl Declarations {
     }
 
     #[allow(dead_code)]
-    pub(crate) fn replace_expr(&mut self, id: usize, expr: Node) {
+    pub(crate) fn replace_expr(&mut self, id: usize, expr: Expr) {
         self.replace(id, Declaration::Expression(Box::new(expr)));
     }
 
@@ -68,7 +68,7 @@ impl Declarations {
     pub(super) fn take(&mut self, id: usize) -> Declaration {
         let (decl, _) = self.decls.get_mut(id).unwrap();
 
-        let dummy = Node::from(Item::Literal(Literal::Null));
+        let dummy = Expr::from(ExprKind::Literal(Literal::Null));
         let dummy = Declaration::Expression(Box::new(dummy));
         std::mem::replace(decl, dummy)
     }
@@ -91,7 +91,7 @@ impl Debug for Declarations {
         for (i, (d, _)) in self.decls.iter().enumerate() {
             match d {
                 Declaration::Expression(v) => {
-                    writeln!(f, "[{i:3}]: expr  `{}`", v.item)?;
+                    writeln!(f, "[{i:3}]: expr  `{}`", v.kind)?;
                 }
                 Declaration::ExternRef { table, variable } => {
                     writeln!(f, "[{i:3}]: col   `{variable}` from table {table:?}")?;
@@ -111,11 +111,11 @@ impl Debug for Declarations {
 impl Display for Declaration {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Declaration::Expression(node) => write!(f, "{}", node.item),
+            Declaration::Expression(node) => write!(f, "{}", node.kind),
             Declaration::ExternRef { table: _, variable } => write!(f, "<extern> {variable}"),
             Declaration::Table(t) => write!(f, "table {t} = ?"),
             Declaration::Function(func) => {
-                let str = format!("{}", Item::FuncDef(func.clone()));
+                let str = format!("{}", StmtKind::FuncDef(func.clone()));
                 f.write_str(&str[..str.len() - 2])
             }
         }

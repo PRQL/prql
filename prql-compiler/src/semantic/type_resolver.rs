@@ -5,13 +5,13 @@ use anyhow::Result;
 use crate::ast::*;
 use crate::error::{Error, Reason};
 
-pub fn resolve_type(node: &Node) -> Result<Ty> {
+pub fn resolve_type(node: &Expr) -> Result<Ty> {
     if let Some(ty) = &node.ty {
         return Ok(ty.clone());
     }
 
-    Ok(match &node.item {
-        Item::Literal(ref literal) => match literal {
+    Ok(match &node.kind {
+        ExprKind::Literal(ref literal) => match literal {
             Literal::Null => Ty::Infer,
             Literal::Integer(_) => TyLit::Integer.into(),
             Literal::Float(_) => TyLit::Float.into(),
@@ -22,17 +22,17 @@ pub fn resolve_type(node: &Node) -> Result<Ty> {
             Literal::Timestamp(_) => TyLit::Timestamp.into(),
         },
 
-        Item::Assign(_) => Ty::Assigns,
+        ExprKind::Assign(_) => Ty::Assigns,
 
-        Item::NamedArg(ne) => resolve_type(ne.expr.as_ref())?,
-        Item::Windowed(w) => resolve_type(w.expr.as_ref())?,
+        ExprKind::NamedArg(ne) => resolve_type(ne.expr.as_ref())?,
+        ExprKind::Windowed(w) => resolve_type(w.expr.as_ref())?,
 
-        Item::Ident(_) | Item::Pipeline(_) | Item::FuncCall(_) => Ty::Infer,
+        ExprKind::Ident(_) | ExprKind::Pipeline(_) | ExprKind::FuncCall(_) => Ty::Infer,
 
-        Item::SString(_) => Ty::Infer, // TODO
-        Item::FString(_) => TyLit::String.into(),
-        Item::Interval(_) => Ty::Infer, // TODO
-        Item::Range(_) => Ty::Infer,    // TODO
+        ExprKind::SString(_) => Ty::Infer, // TODO
+        ExprKind::FString(_) => TyLit::String.into(),
+        ExprKind::Interval(_) => Ty::Infer, // TODO
+        ExprKind::Range(_) => Ty::Infer,    // TODO
 
         _ => Ty::Infer,
     })
@@ -41,14 +41,14 @@ pub fn resolve_type(node: &Node) -> Result<Ty> {
 #[allow(dead_code)]
 fn too_many_arguments(call: &FuncCall, expected_len: usize, passed_len: usize) -> Error {
     let err = Error::new(Reason::Expected {
-        who: Some(format!("{}", call.name.item)),
+        who: Some(format!("{}", call.name.kind)),
         expected: format!("{} arguments", expected_len),
         found: format!("{}", passed_len),
     });
     if passed_len >= 2 {
         err.with_help(format!(
             "If you are calling a function, you may want to add parentheses `{} [{:?} {:?}]`",
-            call.name.item, call.args[0], call.args[1]
+            call.name.kind, call.args[0], call.args[1]
         ))
     } else {
         err
@@ -56,7 +56,7 @@ fn too_many_arguments(call: &FuncCall, expected_len: usize, passed_len: usize) -
 }
 
 /// Validates that found node has expected type. Returns assumed type of the node.
-pub fn validate_type<F>(found: &Node, expected: &Ty, who: F) -> Result<Ty, Error>
+pub fn validate_type<F>(found: &Expr, expected: &Ty, who: F) -> Result<Ty, Error>
 where
     F: FnOnce() -> Option<String>,
 {

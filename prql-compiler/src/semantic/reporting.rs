@@ -1,6 +1,6 @@
 use std::ops::Range;
 
-use anyhow::{anyhow, Ok, Result};
+use anyhow::{Ok, Result};
 use ariadne::{Color, Label, Report, ReportBuilder, ReportKind, Source};
 
 use super::{Context, Declaration, Frame};
@@ -21,7 +21,7 @@ pub fn label_references(query: Query, context: &Context, source_id: String, sour
         report: &mut report,
     };
     // traverse ast
-    labeler.fold_query(query).unwrap();
+    labeler.fold_transforms(query.main_pipeline).unwrap();
     // traverse declarations
     // for (d, _) in &context.declarations {
     //     match d {
@@ -54,7 +54,7 @@ struct Labeler<'a> {
 }
 
 impl<'a> AstFold for Labeler<'a> {
-    fn fold_node(&mut self, node: Node) -> Result<Node> {
+    fn fold_expr(&mut self, node: Expr) -> Result<Expr> {
         if let Some(declared_at) = node.declared_at {
             let (declaration, span) = &self.context.declarations.decls[declared_at];
             let message = if let Some(span) = span {
@@ -86,7 +86,7 @@ impl<'a> AstFold for Labeler<'a> {
                 );
             }
         }
-        Ok(self.fold_item(node.item)?.into())
+        Ok(self.fold_expr_kind(node.kind)?.into())
     }
 }
 
@@ -104,26 +104,9 @@ struct FrameCollector {
 }
 
 impl AstFold for FrameCollector {
-    fn fold_table(&mut self, table: Table) -> Result<Table> {
-        Ok(table)
-    }
-
-    fn fold_pipeline(&mut self, pipeline: Pipeline) -> Result<Pipeline> {
-        let mut frame = Frame::default();
-        for node in &pipeline.nodes {
-            let transform = (node.item)
-                .as_transform()
-                .ok_or_else(|| anyhow!("plain function in pipeline"))?;
-
-            frame = transform.kind.apply_to(frame)?;
-
-            self.frames.push((node.span.unwrap(), frame.clone()));
-        }
-
-        Ok(pipeline)
-    }
-
-    fn fold_func_def(&mut self, function: FuncDef) -> Result<FuncDef> {
-        fold_func_def(self, function)
+    fn fold_transform(&mut self, transform: Transform) -> Result<Transform> {
+        self.frames
+            .push((transform.span.unwrap(), transform.ty.clone()));
+        Ok(transform)
     }
 }

@@ -116,17 +116,17 @@ impl Context {
     }
 
     /// Move top-level expressions into declarations and replace them with idents
-    pub(super) fn extract_decls(&mut self, nodes: Vec<Node>) -> Result<Vec<Node>> {
+    pub(super) fn extract_decls(&mut self, nodes: Vec<Expr>) -> Result<Vec<Expr>> {
         let mut res = Vec::with_capacity(nodes.len());
         for mut node in nodes {
-            res.push(match node.item {
-                Item::Assign(NamedExpr { name, expr }) => {
+            res.push(match node.kind {
+                ExprKind::Assign(NamedExpr { name, expr }) => {
                     // introduce a new expression alias
 
                     let expr = self.extract_decl(*expr)?;
                     let id = expr.declared_at.unwrap();
 
-                    node.item = Item::Ident(name);
+                    node.kind = ExprKind::Ident(name);
                     node.declared_at = Some(id);
                     node
                 }
@@ -139,17 +139,17 @@ impl Context {
         Ok(res)
     }
 
-    fn extract_decl(&mut self, node: Node) -> Result<Node> {
-        Ok(match node.item {
+    fn extract_decl(&mut self, node: Expr) -> Result<Expr> {
+        Ok(match node.kind {
             // keep existing ident
-            Item::Ident(_) => node,
+            ExprKind::Ident(_) => node,
 
             // declare new expression so it can be references from FrameColumn
             _ => {
                 let span = node.span;
                 let id = self.declare(Declaration::Expression(Box::from(node)), span);
 
-                let mut placeholder = Node::from(Item::Ident("<unnamed>".to_string()));
+                let mut placeholder = Expr::from(ExprKind::Ident("<unnamed>".to_string()));
                 placeholder.declared_at = Some(id);
                 placeholder
             }

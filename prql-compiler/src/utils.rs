@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Result};
 use itertools::{Itertools, Position};
 
-use crate::ast::Node;
+use crate::ast::Expr;
 use crate::error::{Error, Reason};
 
 // Inspired by version in sqlparser-rs; I'm surprised there isn't a version in
@@ -35,11 +35,11 @@ where
 }
 
 pub trait IntoOnlyNode {
-    fn into_only_node(self, who: &str, occupation: &str) -> Result<Node, Error>;
+    fn into_only_node(self, who: &str, occupation: &str) -> Result<Expr, Error>;
 }
 
-impl IntoOnlyNode for Vec<Node> {
-    fn into_only_node(mut self, who: &str, occupation: &str) -> Result<Node, Error> {
+impl IntoOnlyNode for Vec<Expr> {
+    fn into_only_node(mut self, who: &str, occupation: &str) -> Result<Expr, Error> {
         match self.len() {
             1 => Ok(self.remove(0)),
             0 => Err(Error {

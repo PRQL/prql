@@ -6,11 +6,11 @@ use crate::semantic::Declaration;
 use super::materializer::MaterializationContext;
 
 pub fn take_to_distinct(
-    query: ResolvedQuery,
+    query: Vec<Transform>,
     context: &mut MaterializationContext,
-) -> Result<ResolvedQuery> {
+) -> Result<Vec<Transform>> {
     let mut d = DistinctMaker { context };
-    d.fold_resolved_query(query)
+    d.fold_transforms(query)
 }
 /// Creates [Transform::Unique] from [Transform::Take]
 struct DistinctMaker<'a> {
@@ -18,10 +18,10 @@ struct DistinctMaker<'a> {
 }
 
 impl<'a> AstFold for DistinctMaker<'a> {
-    fn fold_resolved_query(&mut self, query: ResolvedQuery) -> Result<ResolvedQuery> {
+    fn fold_transforms(&mut self, transforms: Vec<Transform>) -> Result<Vec<Transform>> {
         let mut res = Vec::new();
 
-        for transform in query.transforms {
+        for transform in transforms {
             match transform.kind {
                 TransformKind::Take { ref by, .. } if by.is_empty() => {
                     res.push(transform);
@@ -48,10 +48,11 @@ impl<'a> AstFold for DistinctMaker<'a> {
                 }
             }
         }
-        Ok(ResolvedQuery { transforms: res })
+        Ok(res)
     }
 
     fn fold_func_def(&mut self, function: FuncDef) -> Result<FuncDef> {
+        // minor optimization: skip recursion for func def - there is no work to be done here
         Ok(function)
     }
 }
@@ -61,12 +62,12 @@ impl<'a> DistinctMaker<'a> {
         &mut self,
         range: Range,
         sort: Vec<ColumnSort>,
-        by: Vec<Node>,
+        by: Vec<Expr>,
     ) -> Vec<Transform> {
         let range_int = range.clone().into_int().unwrap();
 
         // declare new column
-        let decl = Node::from(Item::SString(vec![InterpolateItem::String(
+        let decl = Expr::from(ExprKind::SString(vec![InterpolateItem::String(
             "ROW_NUMBER()".to_string(),
         )]));
         let is_unsorted = sort.is_empty();
@@ -80,11 +81,11 @@ impl<'a> DistinctMaker<'a> {
                 (WindowKind::Range, Range::from_ints(None, Some(0)))
             },
         };
-        let decl = Declaration::Expression(Box::new(Item::Windowed(windowed).into()));
+        let decl = Declaration::Expression(Box::new(ExprKind::Windowed(windowed).into()));
         let row_number_id = self.context.declarations.push(decl, None);
 
         // name it _rn_X where X is the row_number_id
-        let mut ident = Node::from(Item::Ident(format!("_rn_{}", row_number_id)));
+        let mut ident = Expr::from(ExprKind::Ident(format!("_rn_{}", row_number_id)));
         ident.declared_at = Some(row_number_id);
 
         // add the two transforms
@@ -92,31 +93,32 @@ impl<'a> DistinctMaker<'a> {
             TransformKind::Derive(vec![ident.clone()]).into(),
             Transform {
                 kind: TransformKind::Filter(Box::new(match (range_int.start, range_int.end) {
-                    (Some(s), Some(e)) if s == e => Node::from(Item::Binary {
+                    (Some(s), Some(e)) if s == e => Expr::from(ExprKind::Binary {
                         left: Box::new(ident),
                         op: BinOp::Eq,
-                        right: Box::new(Item::Literal(Literal::Integer(s)).into()),
+                        right: Box::new(ExprKind::Literal(Literal::Integer(s)).into()),
                     }),
-                    (Some(s), None) => Node::from(Item::Binary {
+                    (Some(s), None) => Expr::from(ExprKind::Binary {
                         left: Box::new(ident),
                         op: BinOp::Gte,
-                        right: Box::new(Item::Literal(Literal::Integer(s)).into()),
+                        right: Box::new(ExprKind::Literal(Literal::Integer(s)).into()),
                     }),
-                    (None, Some(e)) => Node::from(Item::Binary {
+                    (None, Some(e)) => Expr::from(ExprKind::Binary {
                         left: Box::new(ident),
                         op: BinOp::Lte,
-                        right: Box::new(Item::Literal(Literal::Integer(e)).into()),
+                        right: Box::new(ExprKind::Literal(Literal::Integer(e)).into()),
                     }),
-                    (Some(_), Some(_)) => Item::SString(vec![
+                    (Some(_), Some(_)) => ExprKind::SString(vec![
                         InterpolateItem::Expr(Box::new(ident)),
                         InterpolateItem::String(" BETWEEN ".to_string()),
-                        InterpolateItem::Expr(Box::new(Item::Range(range).into())),
+                        InterpolateItem::Expr(Box::new(ExprKind::Range(range).into())),
                     ])
                     .into(),
-                    (None, None) => Item::Literal(Literal::Boolean(true)).into(),
+                    (None, None) => ExprKind::Literal(Literal::Boolean(true)).into(),
                 })),
                 is_complex: true, // this transform DOES contain windowed functions
                 ty: Frame::default(),
+                span: None,
             },
         ];
 

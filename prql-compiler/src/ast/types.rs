@@ -7,14 +7,14 @@ use serde::{Deserialize, Serialize};
 
 use crate::ast::Frame;
 
-use super::Node;
+use super::Expr;
 
 #[derive(Clone, PartialEq, Serialize, Deserialize, EnumAsInner)]
 pub enum Ty {
     Empty,
     Literal(TyLit),
     Named(String),
-    Parameterized(Box<Ty>, Box<Node>),
+    Parameterized(Box<Ty>, Box<Expr>),
     AnyOf(Vec<Ty>),
     Function(TyFunc),
 
@@ -33,9 +33,7 @@ pub enum Ty {
     Assigns,
 }
 
-#[derive(
-    Debug, Clone, Serialize, Deserialize, PartialEq, Eq, strum::EnumString, strum::Display,
-)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, strum::EnumString, strum::Display)]
 pub enum TyLit {
     #[strum(to_string = "column")]
     Column,
@@ -114,7 +112,7 @@ impl PartialOrd for Ty {
                 }
             }
             (Ty::Parameterized(l_ty, l_param), Ty::Parameterized(r_ty, r_param)) => {
-                if l_ty == r_ty && l_param.item.as_type() == r_param.item.as_type() {
+                if l_ty == r_ty && l_param.kind.as_type() == r_param.kind.as_type() {
                     Some(Ordering::Equal)
                 } else {
                     None
@@ -125,11 +123,11 @@ impl PartialOrd for Ty {
 
             // (assigns<A> < B) iff (A < B)
             (Ty::Parameterized(assigns, l), r) if matches!(**assigns, Ty::Assigns) => {
-                let l = l.item.as_type().unwrap();
+                let l = l.kind.as_type().unwrap();
                 l.partial_cmp(r)
             }
             (l, Ty::Parameterized(assigns, r)) if matches!(**assigns, Ty::Assigns) => {
-                let r = r.item.as_type().unwrap();
+                let r = r.kind.as_type().unwrap();
                 l.partial_cmp(r)
             }
 
@@ -153,7 +151,7 @@ impl Display for Ty {
             Ty::Literal(lit) => write!(f, "{:}", lit),
             Ty::Named(name) => write!(f, "{:}", name),
             Ty::Parameterized(t, param) => {
-                write!(f, "{t}<{}>", param.item.as_type().unwrap())
+                write!(f, "{t}<{}>", param.kind.as_type().unwrap())
             }
             Ty::AnyOf(ts) => {
                 for (i, t) in ts.iter().enumerate() {

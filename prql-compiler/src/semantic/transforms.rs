@@ -61,7 +61,7 @@ impl TransformKind {
             TransformKind::Group { pipeline, .. } => {
                 frame.sort.clear();
 
-                for transform in &pipeline.transforms {
+                for transform in pipeline {
                     frame = transform.kind.apply_to(frame)?;
                 }
                 frame
@@ -69,7 +69,7 @@ impl TransformKind {
             TransformKind::Window { pipeline, .. } => {
                 frame.sort.clear();
 
-                for transform in &pipeline.transforms {
+                for transform in pipeline {
                     frame = transform.kind.apply_to(frame)?;
                 }
                 frame
@@ -104,7 +104,7 @@ impl TransformKind {
                     JoinFilter::On(_) => {}
                     JoinFilter::Using(nodes) => {
                         for node in nodes {
-                            let name = node.item.as_ident().unwrap().clone();
+                            let name = node.kind.as_ident().unwrap().clone();
                             let id = node.declared_at.unwrap();
                             frame.push_column(Some(name), id);
                         }
@@ -225,7 +225,7 @@ impl TransformConstructor {
     }
 } */
 
-type PipelineAndTransform = (Option<Node>, TransformKind);
+type PipelineAndTransform = (Option<Expr>, TransformKind);
 
 /// try to convert function call with enough args into transform
 pub fn cast_transform(
@@ -238,7 +238,7 @@ pub fn cast_transform(
         0 => {
             let ([with], []) = unpack::<1, 0>(func_call)?;
 
-            (None, TransformKind::From(unpack_table_ref(with)))
+            (None, TransformKind::From(unpack_table_ref(with)?))
         }
         1 => {
             let ([assigns, pipeline], []) = unpack::<2, 0>(func_call)?;
@@ -274,10 +274,10 @@ pub fn cast_transform(
                 .coerce_to_vec()
                 .into_iter()
                 .map(|node| {
-                    let (column, direction) = match &node.item {
-                        Item::Ident(_) => (node.clone(), SortDirection::default()),
-                        Item::Unary { op, expr: a }
-                            if matches!((op, &a.item), (UnOp::Neg, Item::Ident(_))) =>
+                    let (column, direction) = match &node.kind {
+                        ExprKind::Ident(_) => (node.clone(), SortDirection::default()),
+                        ExprKind::Unary { op, expr: a }
+                            if matches!((op, &a.kind), (UnOp::Neg, ExprKind::Ident(_))) =>
                         {
                             (*a.clone(), SortDirection::Desc)
                         }
@@ -286,19 +286,19 @@ pub fn cast_transform(
                                 who: Some("`sort`".to_string()),
                                 expected: "column name, optionally prefixed with + or -"
                                     .to_string(),
-                                found: node.item.to_string(),
+                                found: node.kind.to_string(),
                             })
                             .with_span(node.span));
                         }
                     };
 
-                    if matches!(column.item, Item::Ident(_)) {
+                    if matches!(column.kind, ExprKind::Ident(_)) {
                         Ok(ColumnSort { direction, column })
                     } else {
                         Err(Error::new(Reason::Expected {
                             who: Some("`sort`".to_string()),
                             expected: "column name".to_string(),
-                            found: format!("`{}`", column.item),
+                            found: format!("`{}`", column.kind),
                         })
                         .with_help("you can introduce a new column with `derive`")
                         .with_span(column.span))
@@ -311,9 +311,9 @@ pub fn cast_transform(
         6 => {
             let ([expr, pipeline], []) = unpack::<2, 0>(func_call)?;
 
-            let range = match expr.discard_name()?.item {
-                Item::Literal(Literal::Integer(n)) => Range::from_ints(None, Some(n)),
-                Item::Range(range) => range,
+            let range = match expr.discard_name()?.kind {
+                ExprKind::Literal(Literal::Integer(n)) => Range::from_ints(None, Some(n)),
+                ExprKind::Range(range) => range,
                 i => unimplemented!("`take` range: {i}"),
             };
             (
@@ -330,7 +330,7 @@ pub fn cast_transform(
 
             let side = if let Some(side) = side {
                 let span = side.span;
-                let ident = side.unwrap(Item::into_ident, "ident")?;
+                let ident = side.unwrap(ExprKind::into_ident, "ident")?;
                 match ident.as_str() {
                     "inner" => JoinSide::Inner,
                     "left" => JoinSide::Left,
@@ -348,10 +348,11 @@ pub fn cast_transform(
                 JoinSide::Inner
             };
 
-            let with = unpack_table_ref(with);
+            let with = unpack_table_ref(with)?;
 
             let filter = filter.discard_name()?.coerce_to_vec();
-            let use_using = (filter.iter().map(|x| &x.item)).all(|x| matches!(x, Item::Ident(_)));
+            let use_using =
+                (filter.iter().map(|x| &x.kind)).all(|x| matches!(x, ExprKind::Ident(_)));
 
             let filter = if use_using {
                 JoinFilter::Using(filter)
@@ -368,8 +369,8 @@ pub fn cast_transform(
                 .coerce_to_vec()
                 .into_iter()
                 // check that they are only idents
-                .map(|n| match n.item {
-                    Item::Ident(_) => Ok(n),
+                .map(|n| match n.kind {
+                    ExprKind::Ident(_) => Ok(n),
                     _ => Err(Error::new(Reason::Simple(
                         "`group` expects only idents for the `by` argument".to_string(),
                     ))
@@ -377,16 +378,19 @@ pub fn cast_transform(
                 })
                 .try_collect()?;
 
-            // simulate evaulation of the inner pipeline
-            let mut value = Node::from(Item::ResolvedQuery(ResolvedQuery { transforms: vec![] }));
+            // simulate evaluation of the inner pipeline
+            let mut value = Expr::from(ExprKind::ResolvedPipeline(vec![]));
             value.ty = pl.ty.clone();
 
-            let pipeline = Node::from(Item::FuncCall(FuncCall {
+            let pipeline = Expr::from(ExprKind::FuncCall(FuncCall {
                 name: Box::new(pipeline),
                 args: vec![value],
                 named_args: Default::default(),
             }));
-            let pipeline = resolver.fold_node(pipeline)?.item.into_resolved_query()?;
+            let pipeline = resolver
+                .fold_expr(pipeline)?
+                .kind
+                .into_resolved_pipeline()?;
 
             (Some(pl), TransformKind::Group { by, pipeline })
         }
@@ -394,13 +398,13 @@ pub fn cast_transform(
             let ([pipeline, pl], [rows, range, expanding, rolling]) = unpack::<2, 4>(func_call)?;
 
             let expanding = if let Some(expanding) = expanding {
-                let as_bool = expanding.item.as_literal().and_then(|l| l.as_boolean());
+                let as_bool = expanding.kind.as_literal().and_then(|l| l.as_boolean());
 
                 *as_bool.ok_or_else(|| {
                     Error::new(Reason::Expected {
                         who: Some("parameter `expanding`".to_string()),
                         expected: "a boolean".to_string(),
-                        found: format!("{}", expanding.item),
+                        found: format!("{}", expanding.kind),
                     })
                     .with_span(expanding.span)
                 })?
@@ -409,13 +413,13 @@ pub fn cast_transform(
             };
 
             let rolling = if let Some(rolling) = rolling {
-                let as_int = rolling.item.as_literal().and_then(|x| x.as_integer());
+                let as_int = rolling.kind.as_literal().and_then(|x| x.as_integer());
 
                 *as_int.ok_or_else(|| {
                     Error::new(Reason::Expected {
                         who: Some("parameter `rolling`".to_string()),
                         expected: "a number".to_string(),
-                        found: format!("{}", rolling.item),
+                        found: format!("{}", rolling.kind),
                     })
                     .with_span(rolling.span)
                 })?
@@ -424,7 +428,7 @@ pub fn cast_transform(
             };
 
             let rows = if let Some(rows) = rows {
-                Some(rows.item.into_range().map_err(|x| {
+                Some(rows.kind.into_range().map_err(|x| {
                     Error::new(Reason::Expected {
                         who: Some("parameter `rows`".to_string()),
                         expected: "a range".to_string(),
@@ -437,7 +441,7 @@ pub fn cast_transform(
             };
 
             let range = if let Some(range) = range {
-                Some(range.item.into_range().map_err(|x| {
+                Some(range.kind.into_range().map_err(|x| {
                     Error::new(Reason::Expected {
                         who: Some("parameter `range`".to_string()),
                         expected: "a range".to_string(),
@@ -464,16 +468,19 @@ pub fn cast_transform(
                 (WindowKind::Rows, Range::unbounded())
             };
 
-            // simulate evaulation of the inner pipeline
-            let mut value = Node::from(Item::ResolvedQuery(ResolvedQuery { transforms: vec![] }));
+            // simulate evaluation of the inner pipeline
+            let mut value = Expr::from(ExprKind::ResolvedPipeline(vec![]));
             value.ty = pl.ty.clone();
 
-            let pipeline = Node::from(Item::FuncCall(FuncCall {
+            let pipeline = Expr::from(ExprKind::FuncCall(FuncCall {
                 name: Box::new(pipeline),
                 args: vec![value],
                 named_args: Default::default(),
             }));
-            let pipeline = resolver.fold_node(pipeline)?.item.into_resolved_query()?;
+            let pipeline = resolver
+                .fold_expr(pipeline)?
+                .kind
+                .into_resolved_pipeline()?;
 
             (
                 Some(pl),
@@ -488,24 +495,35 @@ pub fn cast_transform(
     }))
 }
 
-fn unpack_table_ref(node: Node) -> TableRef {
+fn unpack_table_ref(node: Expr) -> Result<TableRef> {
     let (alias, expr) = node.into_name_and_expr();
 
     let declared_at = expr.declared_at;
     let ty = expr.ty.clone();
 
-    let name = expr.item.into_ident().unwrap();
-    TableRef {
+    let name = expr.kind.into_ident().map_err(|e| {
+        Error::new(Reason::Expected {
+            who: None,
+            expected: "table name".to_string(),
+            found: format!("`{e}`"),
+        })
+        .with_span(expr.span)
+        .with_help(
+            r"Inline table expressions are not yet supported.
+            You can define new table with `table my_table = (...)`",
+        )
+    })?;
+    Ok(TableRef {
         name,
         alias,
         declared_at,
         ty,
-    }
+    })
 }
 
 fn unpack<const P: usize, const N: usize>(
     func_call: FuncCurry,
-) -> Result<([Node; P], [Option<Node>; N])> {
+) -> Result<([Expr; P], [Option<Expr>; N])> {
     let named = func_call.named_args.try_into().expect("bad transform cast");
     let positional = (func_call.args.try_into()).expect("bad transform cast");
 
@@ -534,33 +552,56 @@ mod tests {
         let (result, _) = resolve(query, None).unwrap();
         assert_yaml_snapshot!(result, @r###"
         ---
-        version: ~
-        dialect: Generic
-        nodes:
-          - ResolvedQuery:
-              - From:
-                  name: c_invoice
-                  alias: ~
-                  declared_at: 29
+        def:
+          version: ~
+          dialect: Generic
+        tables: []
+        main_pipeline:
+          - kind:
+              From:
+                name: c_invoice
+                alias: ~
+                declared_at: 29
+                ty:
+                  Table:
+                    columns:
+                      - All: 29
+                    sort: []
+                    tables: []
+            is_complex: false
+            ty:
+              columns:
+                - All: 29
+              sort: []
+              tables: []
+            span:
+              start: 9
+              end: 23
+          - kind:
+              Select:
+                - Ident: invoice_no
                   ty:
-                    Table:
-                      columns:
-                        - All: 29
-                      sort: []
-                      tables: []
-              - Select:
+                    Parameterized:
+                      - Assigns
+                      - Type:
+                          Literal: Column
+            is_complex: false
+            ty:
+              columns:
+                - Unnamed: 30
+              sort: []
+              tables: []
+            span:
+              start: 32
+              end: 49
+          - kind:
+              Group:
+                by:
                   - Ident: invoice_no
-                    ty:
-                      Parameterized:
-                        - Assigns
-                        - Type:
-                            Literal: Column
-              - Group:
-                  by:
-                    - Ident: invoice_no
-                      ty: Infer
-                  pipeline:
-                    - Take:
+                    ty: Infer
+                pipeline:
+                  - kind:
+                      Take:
                         range:
                           start: ~
                           end:
@@ -568,12 +609,22 @@ mod tests {
                               Integer: 1
                         by: []
                         sort: []
+                    is_complex: false
+                    ty:
+                      columns:
+                        - Unnamed: 30
+                      sort: []
+                      tables: []
+                    span: ~
+            is_complex: false
             ty:
-              Table:
-                columns:
-                  - Unnamed: 30
-                sort: []
-                tables: []
+              columns:
+                - Unnamed: 30
+              sort: []
+              tables: []
+            span:
+              start: 58
+              end: 105
         "###);
 
         // oops, two arguments #339
@@ -611,45 +662,58 @@ mod tests {
         let (result, _) = resolve(query, None).unwrap();
         assert_yaml_snapshot!(result, @r###"
         ---
-        version: ~
-        dialect: Generic
-        nodes:
-          - ResolvedQuery:
-              - From:
-                  name: c_invoice
-                  alias: ~
-                  declared_at: 29
-                  ty:
-                    Table:
+        def:
+          version: ~
+          dialect: Generic
+        tables: []
+        main_pipeline:
+          - kind:
+              From:
+                name: c_invoice
+                alias: ~
+                declared_at: 29
+                ty:
+                  Table:
+                    columns:
+                      - All: 29
+                    sort: []
+                    tables: []
+            is_complex: false
+            ty:
+              columns:
+                - All: 29
+              sort: []
+              tables: []
+            span:
+              start: 9
+              end: 23
+          - kind:
+              Group:
+                by:
+                  - Ident: date
+                    ty: Infer
+                pipeline:
+                  - kind:
+                      Aggregate:
+                        assigns:
+                          - Ident: "<unnamed>"
+                        by: []
+                    is_complex: false
+                    ty:
                       columns:
-                        - All: 29
+                        - Unnamed: 32
                       sort: []
                       tables: []
-              - Group:
-                  by:
-                    - Ident: date
-                      ty: Infer
-                  pipeline:
-                    - Aggregate:
-                        assigns:
-                          - SString:
-                              - String: AVG(
-                              - Expr:
-                                  Ident: amount
-                                  ty: Infer
-                              - String: )
-                            ty:
-                              Parameterized:
-                                - Assigns
-                                - Type:
-                                    Literal: Column
-                        by: []
+                    span: ~
+            is_complex: false
             ty:
-              Table:
-                columns:
-                  - Unnamed: 0
-                sort: []
-                tables: []
+              columns:
+                - Unnamed: 32
+              sort: []
+              tables: []
+            span:
+              start: 32
+              end: 93
         "###);
     }
 
@@ -670,61 +734,128 @@ mod tests {
         let (result, _) = resolve(query, None).unwrap();
         assert_yaml_snapshot!(result, @r###"
         ---
-        version: ~
-        dialect: Generic
-        nodes:
-          - ResolvedQuery:
-              - From:
-                  name: invoices
-                  alias: ~
-                  declared_at: 29
-                  ty:
-                    Table:
-                      columns:
-                        - All: 29
-                      sort: []
-                      tables: []
-              - Sort:
-                  - direction: Asc
-                    column:
-                      Ident: issued_at
-                      ty: Infer
-                  - direction: Desc
-                    column:
-                      Ident: amount
-                      ty: Infer
-                  - direction: Asc
-                    column:
-                      Ident: num_of_articles
-                      ty: Infer
-              - Sort:
-                  - direction: Asc
-                    column:
-                      Ident: issued_at
-                      ty: Infer
-              - Sort:
-                  - direction: Desc
-                    column:
-                      Ident: issued_at
-                      ty: Infer
-              - Sort:
-                  - direction: Asc
-                    column:
-                      Ident: issued_at
-                      ty: Infer
-              - Sort:
-                  - direction: Desc
-                    column:
-                      Ident: issued_at
-                      ty: Infer
+        def:
+          version: ~
+          dialect: Generic
+        tables: []
+        main_pipeline:
+          - kind:
+              From:
+                name: invoices
+                alias: ~
+                declared_at: 29
+                ty:
+                  Table:
+                    columns:
+                      - All: 29
+                    sort: []
+                    tables: []
+            is_complex: false
             ty:
-              Table:
-                columns:
-                  - All: 29
-                sort:
-                  - direction: Desc
-                    column: 33
-                tables: []
+              columns:
+                - All: 29
+              sort: []
+              tables: []
+            span:
+              start: 9
+              end: 22
+          - kind:
+              Sort:
+                - direction: Asc
+                  column:
+                    Ident: issued_at
+                    ty: Infer
+                - direction: Desc
+                  column:
+                    Ident: amount
+                    ty: Infer
+                - direction: Asc
+                  column:
+                    Ident: num_of_articles
+                    ty: Infer
+            is_complex: false
+            ty:
+              columns:
+                - All: 29
+              sort:
+                - direction: Asc
+                  column: 30
+                - direction: Desc
+                  column: 31
+                - direction: Asc
+                  column: 32
+              tables: []
+            span:
+              start: 31
+              end: 74
+          - kind:
+              Sort:
+                - direction: Asc
+                  column:
+                    Ident: issued_at
+                    ty: Infer
+            is_complex: false
+            ty:
+              columns:
+                - All: 29
+              sort:
+                - direction: Asc
+                  column: 33
+              tables: []
+            span:
+              start: 83
+              end: 97
+          - kind:
+              Sort:
+                - direction: Desc
+                  column:
+                    Ident: issued_at
+                    ty: Infer
+            is_complex: false
+            ty:
+              columns:
+                - All: 29
+              sort:
+                - direction: Desc
+                  column: 33
+              tables: []
+            span:
+              start: 106
+              end: 123
+          - kind:
+              Sort:
+                - direction: Asc
+                  column:
+                    Ident: issued_at
+                    ty: Infer
+            is_complex: false
+            ty:
+              columns:
+                - All: 29
+              sort:
+                - direction: Asc
+                  column: 33
+              tables: []
+            span:
+              start: 132
+              end: 148
+          - kind:
+              Sort:
+                - direction: Desc
+                  column:
+                    Ident: issued_at
+                    ty: Infer
+            is_complex: false
+            ty:
+              columns:
+                - All: 29
+              sort:
+                - direction: Desc
+                  column: 33
+              tables: []
+            span:
+              start: 157
+              end: 174
         "###);
     }
 }
