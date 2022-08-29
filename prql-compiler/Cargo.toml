@@ -38,7 +38,7 @@ version = "3.2.3"
 
 [dependencies.sqlparser]
 features = ["serde"]
-version = "0.21.0"
+version = "0.22.0"
 
 [dependencies.serde]
 features = ["derive"]
