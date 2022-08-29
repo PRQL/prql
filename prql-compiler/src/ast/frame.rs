@@ -2,7 +2,7 @@ use std::fmt::{Debug, Display, Formatter};
 
 use serde::{Deserialize, Serialize};
 
-use crate::ast::{ColumnSort, Item, Node};
+use crate::ast::{ColumnSort, Expr, ExprKind};
 
 /// Represents the object that is manipulated by the pipeline transforms.
 /// Similar to a view in a database or a data frame.
@@ -49,12 +49,12 @@ impl Frame {
         self.columns.push(column);
     }
 
-    pub fn apply_assigns(&mut self, assigns: &[Node]) {
+    pub fn apply_assigns(&mut self, assigns: &[Expr]) {
         for node in assigns {
             let id = node.declared_at.unwrap();
 
-            match &node.item {
-                Item::Assign(ne) => {
+            match &node.kind {
+                ExprKind::Assign(ne) => {
                     self.push_column(Some(ne.name.clone()), id);
                 }
                 _ => {

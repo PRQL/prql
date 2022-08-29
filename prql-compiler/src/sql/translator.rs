@@ -12,10 +12,9 @@ use anyhow::{anyhow, bail, Result};
 use itertools::Itertools;
 use sqlformat::{format, FormatOptions, QueryParams};
 use sqlparser::ast::{
-    self as sql_ast, BinaryOperator, DateTimeField, Expr, Function, FunctionArg, FunctionArgExpr,
-    Join, JoinConstraint, JoinOperator, ObjectName, OrderByExpr, Select, SelectItem, SetExpr,
-    TableAlias, TableFactor, TableWithJoins, Top, UnaryOperator, Value, WindowFrameBound,
-    WindowSpec,
+    self as sql_ast, BinaryOperator, DateTimeField, Function, FunctionArg, FunctionArgExpr, Join,
+    JoinConstraint, JoinOperator, ObjectName, OrderByExpr, Select, SelectItem, SetExpr, TableAlias,
+    TableFactor, TableWithJoins, Top, UnaryOperator, Value, WindowFrameBound, WindowSpec,
 };
 use std::collections::HashMap;
 
@@ -51,7 +50,7 @@ pub fn translate(query: Query, context: Context) -> Result<String> {
 
 pub fn translate_query(query: Query, context: Context) -> Result<sql_ast::Query> {
     // extract tables and the pipeline
-    let tables = into_tables(query.nodes)?;
+    let tables = into_tables(query.main_pipeline, query.tables)?;
 
     let mut context = MaterializationContext::from(context);
 
@@ -77,7 +76,7 @@ pub fn translate_query(query: Query, context: Context) -> Result<sql_ast::Query>
         });
     }
 
-    let dialect = query.dialect.handler();
+    let dialect = query.def.dialect.handler();
 
     // take last table
     if materialized.is_empty() {
@@ -110,23 +109,17 @@ pub fn translate_query(query: Query, context: Context) -> Result<sql_ast::Query>
 #[derive(Debug)]
 pub struct AtomicTable {
     name: Option<TableRef>,
-    pipeline: ResolvedQuery,
+    pipeline: Vec<Transform>,
     frame: Option<MaterializedFrame>,
 }
 
-fn into_tables(nodes: Vec<Node>) -> Result<Vec<Table>> {
-    let mut tables: Vec<Table> = Vec::new();
-    let mut transforms: Vec<Transform> = Vec::new();
-    for node in nodes {
-        match node.item {
-            Item::Table(t) => tables.push(t),
-            Item::ResolvedQuery(t) => transforms.extend(t.transforms),
-            Item::Transform(t) => transforms.push(t),
-            i => bail!("Unexpected item on top level: {i:?}"),
-        }
-    }
-
-    Ok([tables, vec![transforms.into()]].concat())
+fn into_tables(main_pipeline: Vec<Transform>, tables: Vec<Table>) -> Result<Vec<Table>> {
+    let main = Table {
+        id: None,
+        name: String::default(),
+        pipeline: main_pipeline,
+    };
+    Ok([tables, vec![main]].concat())
 }
 
 fn table_to_sql_cte(table: AtomicTable, dialect: &dyn DialectHandler) -> Result<sql_ast::Cte> {
@@ -161,9 +154,8 @@ fn sql_query_of_atomic_table(
 ) -> Result<sql_ast::Query> {
     let frame = table.frame.ok_or_else(|| anyhow!("frame not provided?"))?;
 
-    let transforms = table.pipeline.transforms;
-
-    let mut from = transforms
+    let mut from = table
+        .pipeline
         .iter()
         .filter_map(|t| match &t.kind {
             TransformKind::From(table_ref) => Some(TableWithJoins {
@@ -174,7 +166,8 @@ fn sql_query_of_atomic_table(
         })
         .collect::<Vec<_>>();
 
-    let joins = transforms
+    let joins = table
+        .pipeline
         .iter()
         .filter(|t| matches!(t.kind, TransformKind::Join { .. }))
         .map(|j| translate_join(&j.kind, dialect))
@@ -188,17 +181,19 @@ fn sql_query_of_atomic_table(
     }
 
     // Split the pipeline into before & after the aggregate
-    let aggregate_position = transforms
+    let aggregate_position = table
+        .pipeline
         .iter()
         .position(|t| matches!(t.kind, TransformKind::Aggregate { .. }))
-        .unwrap_or(transforms.len());
-    let (before, after) = transforms.split_at(aggregate_position);
+        .unwrap_or(table.pipeline.len());
+    let (before, after) = table.pipeline.split_at(aggregate_position);
 
     // Find the filters that come before the aggregation.
     let where_ = filter_of_pipeline(before, dialect)?;
     let having = filter_of_pipeline(after, dialect)?;
 
-    let takes = transforms
+    let takes = table
+        .pipeline
         .iter()
         .filter_map(|t| match &t.kind {
             TransformKind::Take { range, .. } => Some(range.clone()),
@@ -213,7 +208,7 @@ fn sql_query_of_atomic_table(
         None
     } else {
         Some(sqlparser::ast::Offset {
-            value: translate_item(Item::Literal(Literal::Integer(offset)), dialect)?,
+            value: translate_item(ExprKind::Literal(Literal::Integer(offset)), dialect)?,
             rows: sqlparser::ast::OffsetRows::None,
         })
     };
@@ -224,9 +219,9 @@ fn sql_query_of_atomic_table(
         .map(|s| translate_column_sort(s, dialect))
         .try_collect()?;
 
-    let aggregate = transforms.get(aggregate_position);
+    let aggregate = table.pipeline.get(aggregate_position);
 
-    let group_bys: Vec<Node> = match aggregate {
+    let group_bys: Vec<Expr> = match aggregate {
         Some(Transform {
             kind: TransformKind::Aggregate { by, .. },
             ..
@@ -235,7 +230,8 @@ fn sql_query_of_atomic_table(
         _ => unreachable!("Expected an aggregate transformation"),
     };
 
-    let distinct = transforms
+    let distinct = table
+        .pipeline
         .iter()
         .any(|t| matches!(t.kind, TransformKind::Unique));
 
@@ -248,7 +244,7 @@ fn sql_query_of_atomic_table(
                 None
             },
             projection: (frame.columns.into_iter())
-                .map(|n| translate_select_item(n.item, dialect))
+                .map(|n| translate_select_item(n.kind, dialect))
                 .try_collect()?,
             into: None,
             from,
@@ -276,7 +272,7 @@ fn sql_query_of_atomic_table(
 
 /// Convert a pipeline into a number of pipelines which can each "fit" into a SELECT.
 fn atomic_pipelines_of_pipeline(
-    pipeline: ResolvedQuery,
+    pipeline: Vec<Transform>,
     context: &mut MaterializationContext,
 ) -> Result<Vec<AtomicTable>> {
     // Insert a cut, when we find transformation that out of order:
@@ -297,7 +293,7 @@ fn atomic_pipelines_of_pipeline(
 
     let mut counts: HashMap<&str, u32> = HashMap::new();
     let mut splits = vec![0];
-    for (i, transform) in pipeline.transforms.iter().enumerate() {
+    for (i, transform) in pipeline.iter().enumerate() {
         let split = match transform.kind.as_ref() {
             "Join" => {
                 counts.get("Filter").is_some()
@@ -329,9 +325,9 @@ fn atomic_pipelines_of_pipeline(
         *counts.entry(transform.kind.as_ref()).or_insert(0) += 1;
     }
 
-    splits.push(pipeline.transforms.len());
+    splits.push(pipeline.len());
     let ctes = (0..splits.len() - 1)
-        .map(|i| pipeline.transforms[splits[i]..splits[i + 1]].to_vec())
+        .map(|i| pipeline[splits[i]..splits[i + 1]].to_vec())
         .filter(|x| !x.is_empty())
         .map(|transforms| transforms.into())
         .collect();
@@ -348,8 +344,7 @@ fn atomic_tables_of_tables(
     let mut index = 0;
     for table in tables {
         // split table into atomics
-        let pipeline = table.pipeline.item.into_resolved_query()?;
-        let mut t_atomics: Vec<_> = atomic_pipelines_of_pipeline(pipeline, context)?;
+        let mut t_atomics: Vec<_> = atomic_pipelines_of_pipeline(table.pipeline, context)?;
 
         let (last, ctes) = t_atomics
             .split_last_mut()
@@ -371,7 +366,7 @@ fn atomic_tables_of_tables(
             });
             index += 1;
 
-            let last_frame = cte.pipeline.transforms.last().map(|t| t.ty.clone());
+            let last_frame = cte.pipeline.last().map(|t| t.ty.clone());
             prev_table_ref = cte.name.clone().zip(last_frame);
         }
 
@@ -389,15 +384,16 @@ fn atomic_tables_of_tables(
     Ok(atomics)
 }
 
-fn try_prepend_with_from(pipeline: &mut ResolvedQuery, table: Option<(TableRef, Frame)>) {
+fn try_prepend_with_from(pipeline: &mut Vec<Transform>, table: Option<(TableRef, Frame)>) {
     if let Some((mut table_ref, frame)) = table {
         table_ref.ty = Some(Ty::Table(frame.clone()));
         let transform = Transform {
             ty: frame,
             kind: TransformKind::From(table_ref),
             is_complex: false,
+            span: None,
         };
-        pipeline.transforms.insert(0, transform);
+        pipeline.insert(0, transform);
     }
 }
 
@@ -432,8 +428,8 @@ fn range_of_ranges(ranges: Vec<Range>) -> Result<Range<i64>> {
 fn filter_of_pipeline(
     pipeline: &[Transform],
     dialect: &dyn DialectHandler,
-) -> Result<Option<Expr>> {
-    let filters: Vec<Node> = pipeline
+) -> Result<Option<sql_ast::Expr>> {
+    let filters: Vec<Expr> = pipeline
         .iter()
         .filter_map(|t| match &t.kind {
             TransformKind::Filter(filter) => Some(*filter.clone()),
@@ -443,11 +439,14 @@ fn filter_of_pipeline(
     filter_of_filters(filters, dialect)
 }
 
-fn filter_of_filters(conditions: Vec<Node>, dialect: &dyn DialectHandler) -> Result<Option<Expr>> {
+fn filter_of_filters(
+    conditions: Vec<Expr>,
+    dialect: &dyn DialectHandler,
+) -> Result<Option<sql_ast::Expr>> {
     let mut condition = None;
     for filter in conditions {
         if let Some(left) = condition {
-            condition = Some(Node::from(Item::Binary {
+            condition = Some(Expr::from(ExprKind::Binary {
                 op: BinOp::And,
                 left: Box::new(left),
                 right: Box::new(filter),
@@ -458,12 +457,12 @@ fn filter_of_filters(conditions: Vec<Node>, dialect: &dyn DialectHandler) -> Res
     }
 
     condition
-        .map(|n| translate_item(n.item, dialect))
+        .map(|n| translate_item(n.kind, dialect))
         .transpose()
 }
 
-fn expr_of_i64(number: i64) -> Expr {
-    Expr::Value(Value::Number(
+fn expr_of_i64(number: i64) -> sql_ast::Expr {
+    sql_ast::Expr::Value(Value::Number(
         number.to_string(),
         number.leading_zeros() < 32,
     ))
@@ -471,41 +470,43 @@ fn expr_of_i64(number: i64) -> Expr {
 
 fn top_of_i64(take: i64, dialect: &dyn DialectHandler) -> Top {
     Top {
-        quantity: Some(translate_item(Item::Literal(Literal::Integer(take)), dialect).unwrap()),
+        quantity: Some(translate_item(ExprKind::Literal(Literal::Integer(take)), dialect).unwrap()),
         with_ties: false,
         percent: false,
     }
 }
-fn try_into_exprs(nodes: Vec<Node>, dialect: &dyn DialectHandler) -> Result<Vec<Expr>> {
+fn try_into_exprs(nodes: Vec<Expr>, dialect: &dyn DialectHandler) -> Result<Vec<sql_ast::Expr>> {
     nodes
         .into_iter()
-        .map(|x| x.item)
+        .map(|x| x.kind)
         .map(|item| translate_item(item, dialect))
         .try_collect()
 }
 
-fn translate_select_item(item: Item, dialect: &dyn DialectHandler) -> Result<SelectItem> {
+fn translate_select_item(item: ExprKind, dialect: &dyn DialectHandler) -> Result<SelectItem> {
     Ok(match item {
-        Item::Binary { .. }
-        | Item::Unary { .. }
-        | Item::SString(_)
-        | Item::FString(_)
-        | Item::Ident(_)
-        | Item::Literal(_)
-        | Item::Windowed(_) => SelectItem::UnnamedExpr(translate_item(item, dialect)?),
-        Item::Assign(named) => SelectItem::ExprWithAlias {
+        ExprKind::Binary { .. }
+        | ExprKind::Unary { .. }
+        | ExprKind::SString(_)
+        | ExprKind::FString(_)
+        | ExprKind::Ident(_)
+        | ExprKind::Literal(_)
+        | ExprKind::Windowed(_) => SelectItem::UnnamedExpr(translate_item(item, dialect)?),
+        ExprKind::Assign(named) => SelectItem::ExprWithAlias {
             alias: translate_ident_part(named.name, dialect),
-            expr: translate_item(named.expr.item, dialect)?,
+            expr: translate_item(named.expr.kind, dialect)?,
         },
         _ => bail!("Can't convert to SelectItem; {:?}", item),
     })
 }
 
-fn translate_item(item: Item, dialect: &dyn DialectHandler) -> Result<Expr> {
+fn translate_item(item: ExprKind, dialect: &dyn DialectHandler) -> Result<sql_ast::Expr> {
     Ok(match item {
-        Item::Ident(ident) => Expr::CompoundIdentifier(translate_column(ident, dialect)),
+        ExprKind::Ident(ident) => {
+            sql_ast::Expr::CompoundIdentifier(translate_column(ident, dialect))
+        }
 
-        Item::Binary { op, left, right } => {
+        ExprKind::Binary { op, left, right } => {
             if let Some(is_null) = try_into_is_null(&op, &left, &right, dialect)? {
                 is_null
             } else {
@@ -525,64 +526,64 @@ fn translate_item(item: Item, dialect: &dyn DialectHandler) -> Result<Expr> {
                     BinOp::Or => BinaryOperator::Or,
                     BinOp::Coalesce => unreachable!(),
                 };
-                Expr::BinaryOp {
-                    left: translate_operand(left.item, op.binding_strength(), dialect)?,
-                    right: translate_operand(right.item, op.binding_strength(), dialect)?,
+                sql_ast::Expr::BinaryOp {
+                    left: translate_operand(left.kind, op.binding_strength(), dialect)?,
+                    right: translate_operand(right.kind, op.binding_strength(), dialect)?,
                     op,
                 }
             }
         }
 
-        Item::Unary { op, expr } => {
+        ExprKind::Unary { op, expr } => {
             let op = match op {
                 UnOp::Neg => UnaryOperator::Minus,
                 UnOp::Not => UnaryOperator::Not,
             };
-            let expr = translate_operand(expr.item, op.binding_strength(), dialect)?;
-            Expr::UnaryOp { op, expr }
+            let expr = translate_operand(expr.kind, op.binding_strength(), dialect)?;
+            sql_ast::Expr::UnaryOp { op, expr }
         }
 
-        Item::Range(r) => {
-            fn assert_bound(bound: Option<Box<Node>>) -> Result<Node, Error> {
+        ExprKind::Range(r) => {
+            fn assert_bound(bound: Option<Box<Expr>>) -> Result<Expr, Error> {
                 bound.map(|b| *b).ok_or_else(|| {
                     Error::new(Reason::Simple(
                         "range requires both bounds to be used this way".to_string(),
                     ))
                 })
             }
-            let start: Expr = translate_item(assert_bound(r.start)?.item, dialect)?;
-            let end: Expr = translate_item(assert_bound(r.end)?.item, dialect)?;
-            Expr::Identifier(sql_ast::Ident::new(format!("{} AND {}", start, end)))
+            let start: sql_ast::Expr = translate_item(assert_bound(r.start)?.kind, dialect)?;
+            let end: sql_ast::Expr = translate_item(assert_bound(r.end)?.kind, dialect)?;
+            sql_ast::Expr::Identifier(sql_ast::Ident::new(format!("{} AND {}", start, end)))
         }
         // Fairly hacky — convert everything to a string, then concat it,
-        // then convert to Expr. We can't use the `Item::Expr` code above
+        // then convert to sql_ast::Expr. We can't use the `Item::sql_ast::Expr` code above
         // since we don't want to intersperse with spaces.
-        Item::SString(s_string_items) => {
+        ExprKind::SString(s_string_items) => {
             let string = s_string_items
                 .into_iter()
                 .map(|s_string_item| match s_string_item {
                     InterpolateItem::String(string) => Ok(string),
                     InterpolateItem::Expr(node) => {
-                        translate_item(node.item, dialect).map(|expr| expr.to_string())
+                        translate_item(node.kind, dialect).map(|expr| expr.to_string())
                     }
                 })
                 .collect::<Result<Vec<String>>>()?
                 .join("");
-            Expr::Identifier(sql_ast::Ident::new(string))
+            sql_ast::Expr::Identifier(sql_ast::Ident::new(string))
         }
-        Item::FString(f_string_items) => {
+        ExprKind::FString(f_string_items) => {
             let args = f_string_items
                 .into_iter()
                 .map(|item| match item {
                     InterpolateItem::String(string) => {
-                        Ok(Expr::Value(Value::SingleQuotedString(string)))
+                        Ok(sql_ast::Expr::Value(Value::SingleQuotedString(string)))
                     }
-                    InterpolateItem::Expr(node) => translate_item(node.item, dialect),
+                    InterpolateItem::Expr(node) => translate_item(node.kind, dialect),
                 })
                 .map(|r| r.map(|e| FunctionArg::Unnamed(FunctionArgExpr::Expr(e))))
                 .collect::<Result<Vec<_>>>()?;
 
-            Expr::Function(Function {
+            sql_ast::Expr::Function(Function {
                 name: ObjectName(vec![sql_ast::Ident::new("CONCAT")]),
                 args,
                 distinct: false,
@@ -590,7 +591,7 @@ fn translate_item(item: Item, dialect: &dyn DialectHandler) -> Result<Expr> {
                 special: false,
             })
         }
-        Item::Interval(interval) => {
+        ExprKind::Interval(interval) => {
             let sql_parser_datetime = match interval.unit.as_str() {
                 "years" => DateTimeField::Year,
                 "months" => DateTimeField::Month,
@@ -600,9 +601,9 @@ fn translate_item(item: Item, dialect: &dyn DialectHandler) -> Result<Expr> {
                 "seconds" => DateTimeField::Second,
                 _ => bail!("Unsupported interval unit: {}", interval.unit),
             };
-            Expr::Value(Value::Interval {
+            sql_ast::Expr::Value(Value::Interval {
                 value: Box::new(translate_item(
-                    Item::Literal(Literal::Integer(interval.n)),
+                    ExprKind::Literal(Literal::Integer(interval.n)),
                     dialect,
                 )?),
                 leading_field: Some(sql_parser_datetime),
@@ -611,8 +612,8 @@ fn translate_item(item: Item, dialect: &dyn DialectHandler) -> Result<Expr> {
                 fractional_seconds_precision: None,
             })
         }
-        Item::Windowed(window) => {
-            let expr = translate_item(window.expr.item, dialect)?;
+        ExprKind::Windowed(window) => {
+            let expr = translate_item(window.expr.kind, dialect)?;
 
             let default_frame = if window.sort.is_empty() {
                 (WindowKind::Rows, Range::unbounded())
@@ -633,60 +634,61 @@ fn translate_item(item: Item, dialect: &dyn DialectHandler) -> Result<Expr> {
                 },
             };
 
-            Expr::Identifier(sql_ast::Ident::new(format!("{expr} OVER ({window})")))
+            sql_ast::Expr::Identifier(sql_ast::Ident::new(format!("{expr} OVER ({window})")))
         }
-        Item::Literal(l) => match l {
-            Literal::Null => Expr::Value(Value::Null),
-            Literal::String(s) => Expr::Value(Value::SingleQuotedString(s)),
-            Literal::Boolean(b) => Expr::Value(Value::Boolean(b)),
-            Literal::Float(f) => Expr::Value(Value::Number(format!("{f}"), false)),
-            Literal::Integer(i) => Expr::Value(Value::Number(format!("{i}"), false)),
-            Literal::Date(value) => Expr::TypedString {
+        ExprKind::Literal(l) => match l {
+            Literal::Null => sql_ast::Expr::Value(Value::Null),
+            Literal::String(s) => sql_ast::Expr::Value(Value::SingleQuotedString(s)),
+            Literal::Boolean(b) => sql_ast::Expr::Value(Value::Boolean(b)),
+            Literal::Float(f) => sql_ast::Expr::Value(Value::Number(format!("{f}"), false)),
+            Literal::Integer(i) => sql_ast::Expr::Value(Value::Number(format!("{i}"), false)),
+            Literal::Date(value) => sql_ast::Expr::TypedString {
                 data_type: sql_ast::DataType::Date,
                 value,
             },
-            Literal::Time(value) => Expr::TypedString {
+            Literal::Time(value) => sql_ast::Expr::TypedString {
                 data_type: sql_ast::DataType::Time,
                 value,
             },
-            Literal::Timestamp(value) => Expr::TypedString {
+            Literal::Timestamp(value) => sql_ast::Expr::TypedString {
                 data_type: sql_ast::DataType::Timestamp,
                 value,
             },
         },
-        _ => bail!("Can't convert to Expr; {item:?}"),
+        _ => bail!("Can't convert to sql_ast::Expr; {item:?}"),
     })
 }
 fn try_into_is_null(
     op: &BinOp,
-    a: &Node,
-    b: &Node,
+    a: &Expr,
+    b: &Expr,
     dialect: &dyn DialectHandler,
-) -> Result<Option<Expr>> {
+) -> Result<Option<sql_ast::Expr>> {
     if matches!(op, BinOp::Eq) || matches!(op, BinOp::Ne) {
-        let expr = if matches!(a.item, Item::Literal(Literal::Null)) {
-            b.item.clone()
-        } else if matches!(b.item, Item::Literal(Literal::Null)) {
-            a.item.clone()
+        let expr = if matches!(a.kind, ExprKind::Literal(Literal::Null)) {
+            b.kind.clone()
+        } else if matches!(b.kind, ExprKind::Literal(Literal::Null)) {
+            a.kind.clone()
         } else {
             return Ok(None);
         };
 
-        let min_strength = Expr::IsNull(Box::new(Expr::Value(Value::Null))).binding_strength();
+        let min_strength =
+            sql_ast::Expr::IsNull(Box::new(sql_ast::Expr::Value(Value::Null))).binding_strength();
         let expr = translate_operand(expr, min_strength, dialect)?;
 
         return Ok(Some(if matches!(op, BinOp::Eq) {
-            Expr::IsNull(expr)
+            sql_ast::Expr::IsNull(expr)
         } else {
-            Expr::IsNotNull(expr)
+            sql_ast::Expr::IsNotNull(expr)
         }));
     }
 
     Ok(None)
 }
 fn try_into_window_frame((kind, range): (WindowKind, Range)) -> Result<sql_ast::WindowFrame> {
-    fn parse_bound(bound: Node) -> Result<WindowFrameBound> {
-        let as_int = bound.item.into_literal()?.into_integer()?;
+    fn parse_bound(bound: Expr) -> Result<WindowFrameBound> {
+        let as_int = bound.kind.into_literal()?.into_integer()?;
         Ok(match as_int {
             0 => WindowFrameBound::CurrentRow,
             1.. => WindowFrameBound::Following(Some(as_int as u64)),
@@ -720,10 +722,10 @@ fn translate_func_call(func_call: FuncCall, dialect: &dyn DialectHandler) -> Res
     let FuncCall { name, args, .. } = func_call;
 
     Ok(Function {
-        name: ObjectName(vec![sql_ast::Ident::new(name.item.into_ident().unwrap())]),
+        name: ObjectName(vec![sql_ast::Ident::new(name.kind.into_ident().unwrap())]),
         args: args
             .into_iter()
-            .map(|a| translate_item(a.item, dialect))
+            .map(|a| translate_item(a.kind, dialect))
             .map(|e| e.map(|a| FunctionArg::Unnamed(FunctionArgExpr::Expr(a))))
             .collect::<Result<Vec<_>>>()?,
         over: None,
@@ -733,7 +735,7 @@ fn translate_func_call(func_call: FuncCall, dialect: &dyn DialectHandler) -> Res
 }
 fn translate_column_sort(sort: ColumnSort, dialect: &dyn DialectHandler) -> Result<OrderByExpr> {
     Ok(OrderByExpr {
-        expr: translate_item(sort.column.item, dialect)?,
+        expr: translate_item(sort.column.kind, dialect)?,
         asc: if matches!(sort.direction, SortDirection::Asc) {
             None // default order is ASC, so there is no need to emit it
         } else {
@@ -749,12 +751,12 @@ fn translate_join(t: &TransformKind, dialect: &dyn DialectHandler) -> Result<Joi
             let constraint = match filter {
                 JoinFilter::On(nodes) => JoinConstraint::On(
                     filter_of_filters(nodes.clone(), dialect)?
-                        .unwrap_or(Expr::Value(Value::Boolean(true))),
+                        .unwrap_or(sql_ast::Expr::Value(Value::Boolean(true))),
                 ),
                 JoinFilter::Using(nodes) => JoinConstraint::Using(
                     nodes
                         .iter()
-                        .map(|x| translate_ident(x.item.clone().into_ident()?, dialect).into_only())
+                        .map(|x| translate_ident(x.kind.clone().into_ident()?, dialect).into_only())
                         .collect::<Result<Vec<_>>>()
                         .map_err(|_| {
                             Error::new(Reason::Expected {
@@ -806,7 +808,7 @@ fn translate_column(ident: String, dialect: &dyn DialectHandler) -> Vec<sql_ast:
 /// Translate a PRQL Ident to a Vec of SQL Idents.
 // We return a vec of SQL Idents because sqlparser sometimes uses
 // [ObjectName](sql_ast::ObjectName) and sometimes uses
-// [Expr::CompoundIdentifier](sql_ast::Expr::CompoundIdentifier), each of which
+// [sql_ast::Expr::CompoundIdentifier](sql_ast::Expr::CompoundIdentifier), each of which
 // contains `Vec<Ident>`.
 fn translate_ident(ident: String, dialect: &dyn DialectHandler) -> Vec<sql_ast::Ident> {
     let is_jinja = ident.starts_with("{{") && ident.ends_with("}}");
@@ -856,14 +858,14 @@ fn translate_ident_part(ident: String, dialect: &dyn DialectHandler) -> sql_ast:
 
 /// Wraps into parenthesis if binding strength would be less than min_strength
 fn translate_operand(
-    expr: Item,
+    expr: ExprKind,
     min_strength: i32,
     dialect: &dyn DialectHandler,
-) -> Result<Box<Expr>> {
+) -> Result<Box<sql_ast::Expr>> {
     let expr = Box::new(translate_item(expr, dialect)?);
 
     Ok(if expr.binding_strength() < min_strength {
-        Box::new(Expr::Nested(expr))
+        Box::new(sql_ast::Expr::Nested(expr))
     } else {
         expr
     })
@@ -875,18 +877,18 @@ trait SQLExpression {
     /// https://docs.microsoft.com/en-us/sql/t-sql/language-elements/operator-precedence-transact-sql?view=sql-server-ver16
     fn binding_strength(&self) -> i32;
 }
-impl SQLExpression for Expr {
+impl SQLExpression for sql_ast::Expr {
     fn binding_strength(&self) -> i32 {
         // Strength of an expression depends only on the top-level operator, because all
         // other nested expressions can only have lower strength
         match self {
-            Expr::BinaryOp { op, .. } => op.binding_strength(),
+            sql_ast::Expr::BinaryOp { op, .. } => op.binding_strength(),
 
-            Expr::UnaryOp { op, .. } => op.binding_strength(),
+            sql_ast::Expr::UnaryOp { op, .. } => op.binding_strength(),
 
-            Expr::Like { .. } | Expr::ILike { .. } => 7,
+            sql_ast::Expr::Like { .. } | sql_ast::Expr::ILike { .. } => 7,
 
-            Expr::IsNull(_) | Expr::IsNotNull(_) => 5,
+            sql_ast::Expr::IsNull(_) | sql_ast::Expr::IsNotNull(_) => 5,
 
             // all other items types bind stronger (function calls, literals, ...)
             _ => 20,
@@ -919,20 +921,11 @@ impl SQLExpression for UnaryOperator {
     }
 }
 
-impl From<Vec<Transform>> for Table {
-    fn from(transforms: Vec<Transform>) -> Self {
-        Table {
-            id: None,
-            name: String::default(),
-            pipeline: Box::new(Item::ResolvedQuery(ResolvedQuery { transforms }).into()),
-        }
-    }
-}
 impl From<Vec<Transform>> for AtomicTable {
-    fn from(transforms: Vec<Transform>) -> Self {
+    fn from(pipeline: Vec<Transform>) -> Self {
         AtomicTable {
             name: None,
-            pipeline: ResolvedQuery { transforms },
+            pipeline,
             frame: None,
         }
     }
@@ -1015,15 +1008,8 @@ mod test {
         Ok(())
     }
 
-    fn parse_and_resolve(prql: &str) -> Result<ResolvedQuery> {
-        let nodes = resolve(parse(prql)?, None)?.0.nodes;
-        Ok(nodes
-            .into_iter()
-            .find_map(|n| match n.item {
-                Item::ResolvedQuery(rq) => Some(rq),
-                _ => None,
-            })
-            .unwrap())
+    fn parse_and_resolve(prql: &str) -> Result<Vec<Transform>> {
+        Ok(resolve(parse(prql)?, None)?.0.main_pipeline)
     }
 
     #[test]
@@ -1084,7 +1070,7 @@ mod test {
     #[test]
     fn test_try_from_s_string_to_expr() -> Result<()> {
         let dialect = Dialect::Generic.handler();
-        let ast: Node = from_str(
+        let ast: Expr = from_str(
             r"
         SString:
         - String: SUM(
@@ -1093,7 +1079,7 @@ mod test {
         - String: )
         ",
         )?;
-        let expr: Expr = translate_item(ast.item, dialect.as_ref())?;
+        let expr: sql_ast::Expr = translate_item(ast.kind, dialect.as_ref())?;
         assert_yaml_snapshot!(
             expr, @r###"
         ---

@@ -8,6 +8,7 @@ mod sql;
 mod utils;
 
 pub use anyhow::Result;
+use ast::Stmt;
 #[cfg(feature = "cli")]
 pub use cli::Cli;
 pub use error::{format_error, SourceLocation};
@@ -24,14 +25,14 @@ pub fn compile(prql: &str) -> Result<String> {
     parse(prql).and_then(resolve_and_translate)
 }
 
-pub fn resolve_and_translate(query: ast::Query) -> Result<String> {
-    let (query, context) = semantic::resolve(query, None)?;
+pub fn resolve_and_translate(statements: Vec<Stmt>) -> Result<String> {
+    let (query, context) = semantic::resolve(statements, None)?;
     translate(query, context)
 }
 
 /// Format a PRQL query
 pub fn format(prql: &str) -> Result<String> {
-    parse(prql).map(|q| format!("{}", ast::Item::Query(q)))
+    parse(prql).map(|q| format!("{}", ast::Statements(q)))
 }
 
 /// Compile a PRQL string into a JSON version of the Query.
@@ -41,8 +42,8 @@ pub fn to_json(prql: &str) -> Result<String> {
 
 /// Convert JSON AST back to PRQL string
 pub fn from_json(json: &str) -> Result<String> {
-    let query = serde_json::from_str(json)?;
-    Ok(format!("{}", ast::Item::Query(query)))
+    let stmts: Vec<Stmt> = serde_json::from_str(json)?;
+    Ok(format!("{}", ast::Statements(stmts)))
 }
 
 // Simple tests for "this PRQL creates this SQL" go here.
@@ -362,6 +363,7 @@ select `first name`
     #[test]
     fn test_dates() -> Result<()> {
         let query = r###"
+        from to_do_empty_table
         derive [
             date = @2011-02-01,
             timestamp = @2011-02-01T10:00,

@@ -3,8 +3,8 @@ use anyhow::Result;
 use crate::ast::ast_fold::*;
 use crate::ast::*;
 
-pub fn un_group(query: ResolvedQuery) -> Result<ResolvedQuery> {
-    UnGrouper {}.fold_resolved_query(query)
+pub fn un_group(transforms: Vec<Transform>) -> Result<Vec<Transform>> {
+    UnGrouper {}.fold_transforms(transforms)
 }
 
 /// Traverses AST and replaces transforms with nested pipelines with the pipeline
@@ -14,21 +14,18 @@ impl AstFold for UnGrouper {
     fn fold_transform(&mut self, mut transform: Transform) -> Result<Transform> {
         transform.kind = match transform.kind {
             TransformKind::Group { pipeline, by } => {
-                let mut transforms = Vec::with_capacity(pipeline.transforms.len());
+                let mut res = Vec::with_capacity(pipeline.len());
 
-                for t in pipeline.transforms {
+                for t in pipeline {
                     // ungroup inner
                     let t = self.fold_transform(t)?;
 
                     // remove all sorts
                     if !matches!(t.kind, TransformKind::Sort(_)) {
-                        transforms.push(t);
+                        res.push(t);
                     }
                 }
-                TransformKind::Group {
-                    by,
-                    pipeline: ResolvedQuery { transforms },
-                }
+                TransformKind::Group { by, pipeline: res }
             }
             t => t,
         };

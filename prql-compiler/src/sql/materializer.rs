@@ -12,17 +12,17 @@ use crate::semantic::split_var_name;
 
 /// Replaces all resolved functions and variables with their declarations.
 pub fn materialize(
-    mut pipeline: ResolvedQuery,
+    mut pipeline: Vec<Transform>,
     mut context: MaterializationContext,
     as_table: Option<usize>,
-) -> Result<(ResolvedQuery, MaterializedFrame, MaterializationContext)> {
+) -> Result<(Vec<Transform>, MaterializedFrame, MaterializationContext)> {
     context.frame.sort.clear();
     extract_frame(&mut pipeline, &mut context)?;
 
     let mut m = Materializer::new(context);
 
     // materialize the query
-    let pipeline = m.fold_resolved_query(pipeline)?;
+    let pipeline = m.fold_transforms(pipeline)?;
     let frame = m.context.frame.clone();
 
     // materialize each of the columns
@@ -38,12 +38,15 @@ pub fn materialize(
     Ok((pipeline, MaterializedFrame { columns, sort }, m.context))
 }
 
-fn extract_frame(pipeline: &mut ResolvedQuery, context: &mut MaterializationContext) -> Result<()> {
-    for transform in &pipeline.transforms {
+fn extract_frame(
+    pipeline: &mut Vec<Transform>,
+    context: &mut MaterializationContext,
+) -> Result<()> {
+    for transform in pipeline.iter_mut() {
         context.frame = transform.kind.apply_to(context.frame.clone())?;
     }
 
-    pipeline.transforms.retain(|transform| {
+    pipeline.retain(|transform| {
         !matches!(
             transform.kind,
             TransformKind::Select(_) | TransformKind::Derive(_) | TransformKind::Sort(_)
@@ -53,7 +56,7 @@ fn extract_frame(pipeline: &mut ResolvedQuery, context: &mut MaterializationCont
 }
 #[derive(Debug)]
 pub struct MaterializedFrame {
-    pub columns: Vec<Node>,
+    pub columns: Vec<Expr>,
     pub sort: Vec<ColumnSort>,
 }
 
@@ -106,7 +109,7 @@ impl Materializer {
         &mut self,
         columns: Vec<FrameColumn>,
         as_table: Option<usize>,
-    ) -> Result<Vec<Node>> {
+    ) -> Result<Vec<Expr>> {
         let mut to_replace = Vec::new();
 
         let res = columns
@@ -133,7 +136,7 @@ impl Materializer {
                     FrameColumn::All(namespace) => {
                         let decl = &self.context.declarations.get(namespace);
                         let table = decl.as_table().unwrap();
-                        Item::Ident(format!("{table}.*")).into()
+                        ExprKind::Ident(format!("{table}.*")).into()
                     }
                 })
             })
@@ -166,11 +169,11 @@ impl Materializer {
             .try_collect()
     }
 
-    fn materialize_declaration(&mut self, id: usize) -> Result<Node> {
+    fn materialize_declaration(&mut self, id: usize) -> Result<Expr> {
         let decl = self.context.declarations.get(id);
 
         let materialized = match decl.clone() {
-            Declaration::Expression(inner) => self.fold_node(*inner)?,
+            Declaration::Expression(inner) => self.fold_expr(*inner)?,
             Declaration::ExternRef { table, variable } => {
                 let name = if let Some(table) = table {
                     let (_, var_name) = split_var_name(&variable);
@@ -186,32 +189,32 @@ impl Materializer {
                     variable
                 };
 
-                Item::Ident(name).into()
+                ExprKind::Ident(name).into()
             }
             Declaration::Function(func_call) => {
                 // function without arguments (a global variable)
 
                 let body = func_call.body;
 
-                self.fold_node(*body)?
+                self.fold_expr(*body)?
             }
-            Declaration::Table(table) => Item::Ident(format!("{table}.*")).into(),
+            Declaration::Table(table) => ExprKind::Ident(format!("{table}.*")).into(),
         };
 
         Ok(materialized)
     }
 }
 
-fn emit_column_with_name(expr_node: Node, name: String) -> Node {
+fn emit_column_with_name(expr_node: Expr, name: String) -> Expr {
     // is expr_node just an ident with same name?
-    let expr_ident = expr_node.item.as_ident().map(|n| split_var_name(n).1);
+    let expr_ident = expr_node.kind.as_ident().map(|n| split_var_name(n).1);
 
     if expr_ident.map(|n| n == name).unwrap_or(false) {
         // return just the ident
         expr_node
     } else {
         // return expr with new name
-        Item::Assign(NamedExpr {
+        ExprKind::Assign(NamedExpr {
             expr: Box::new(expr_node),
             name,
         })
@@ -220,12 +223,12 @@ fn emit_column_with_name(expr_node: Node, name: String) -> Node {
 }
 
 impl AstFold for Materializer {
-    fn fold_node(&mut self, mut node: Node) -> Result<Node> {
+    fn fold_expr(&mut self, mut node: Expr) -> Result<Expr> {
         // We replace Items and also pass node to `inline_func_call`,
         // so we need to run this here rather than in `fold_func_call` or `fold_item`.
 
-        Ok(match node.item {
-            Item::Ident(_) => {
+        Ok(match node.kind {
+            ExprKind::Ident(_) => {
                 if let Some(id) = node.declared_at {
                     self.materialize_declaration(id)?
                 } else {
@@ -234,7 +237,7 @@ impl AstFold for Materializer {
             }
 
             _ => {
-                node.item = fold_item(self, node.item)?;
+                node.kind = fold_expr_kind(self, node.kind)?;
                 node
             }
         })
@@ -254,23 +257,13 @@ mod test {
     use insta::{assert_display_snapshot, assert_snapshot, assert_yaml_snapshot};
     use serde_yaml::to_string;
 
-    fn find_pipeline(res: Query) -> ResolvedQuery {
-        res.nodes
-            .into_iter()
-            .find_map(|node| match node.item {
-                Item::ResolvedQuery(rq) => Some(rq),
-                _ => None,
-            })
-            .unwrap()
-    }
+    fn resolve_and_materialize(stmts: Vec<Stmt>) -> Result<Vec<TransformKind>> {
+        let (res, context) = resolve(stmts, None)?;
 
-    fn resolve_and_materialize(query: Query) -> Result<Vec<TransformKind>> {
-        let (res, context) = resolve(query, None)?;
-
-        let pipeline = find_pipeline(res);
+        let pipeline = res.main_pipeline;
 
         let (mat, _, _) = materialize(pipeline, context.into(), None)?;
-        Ok(mat.transforms.into_iter().map(|t| t.kind).collect())
+        Ok(mat.into_iter().map(|t| t.kind).collect())
     }
 
     #[test]
@@ -286,14 +279,12 @@ mod test {
 
         let (res, context) = resolve(query, None)?;
 
-        let pipeline = find_pipeline(res);
-
-        let (mat, _, _) = materialize(pipeline.clone(), context.into(), None)?;
+        let (mat, _, _) = materialize(res.main_pipeline.clone(), context.into(), None)?;
 
         // We could make a convenience function for this. It's useful for
         // showing the diffs of an operation.
         assert_display_snapshot!(diff(
-            &to_string(&pipeline)?,
+            &to_string(&res.main_pipeline)?,
             &to_string(&mat)?
         ),
         @r###"
@@ -353,7 +344,7 @@ take 20
 
     #[test]
     fn test_run_functions_args() -> Result<()> {
-        let query = parse(
+        let stmts = parse(
             r#"
         from employees
         aggregate [
@@ -362,7 +353,7 @@ take 20
         "#,
         )?;
 
-        assert_yaml_snapshot!(query.nodes, @r###"
+        assert_yaml_snapshot!(stmts, @r###"
         ---
         - Pipeline:
             nodes:
@@ -386,18 +377,13 @@ take 20
                   named_args: {}
         "###);
 
-        let (res, context) = resolve(query, None)?;
+        let (res, context) = resolve(stmts, None)?;
 
-        let pipeline = find_pipeline(res);
-
-        let (mat, _, _) = materialize(pipeline.clone(), context.into(), None)?;
+        let (mat, _, _) = materialize(res.main_pipeline.clone(), context.into(), None)?;
 
         // We could make a convenience function for this. It's useful for
         // showing the diffs of an operation.
-        let diff = diff(
-            &to_string(&pipeline.transforms)?,
-            &to_string(&mat.transforms)?,
-        );
+        let diff = diff(&to_string(&res.main_pipeline)?, &to_string(&mat)?);
         assert!(!diff.is_empty());
         assert_display_snapshot!(diff, @r###"
         @@ -4,5 +4,9 @@
@@ -418,7 +404,7 @@ take 20
 
     #[test]
     fn test_run_functions_nested() -> Result<()> {
-        let query = parse(
+        let stmts = parse(
             r#"
         func lag_day x ->  s"lag_day_todo({x})"
         func ret x dividend_return ->  x / (lag_day x) - 1 + dividend_return
@@ -428,7 +414,7 @@ take 20
         "#,
         )?;
 
-        assert_yaml_snapshot!(query.nodes[2], @r###"
+        assert_yaml_snapshot!(stmts[2], @r###"
         ---
         Pipeline:
           nodes:
@@ -452,7 +438,7 @@ take 20
                 named_args: {}
         "###);
 
-        let mat = resolve_and_materialize(query).unwrap();
+        let mat = resolve_and_materialize(stmts).unwrap();
         assert_yaml_snapshot!(mat, @r###"
         ---
         - Transform:
@@ -476,11 +462,9 @@ take 20
 
         let (res, context) = resolve(query, None)?;
 
-        let pipeline = find_pipeline(res);
+        let (mat, _, _) = materialize(res.main_pipeline.clone(), context.into(), None)?;
 
-        let (mat, _, _) = materialize(pipeline.clone(), context.into(), None)?;
-
-        assert_snapshot!(diff(&to_string(&pipeline.transforms)?, &to_string(&mat.transforms)?), @r###"
+        assert_snapshot!(diff(&to_string(&res.main_pipeline)?, &to_string(&mat)?), @r###"
         @@ -4,6 +4,14 @@
              declared_at: 79
          - Transform: !Aggregate
@@ -802,9 +786,9 @@ take 20
         let (res1, context) = resolve(query1, None)?;
         let (res2, context) = resolve(query2, Some(context))?;
 
-        let (mat, frame, context) = materialize(find_pipeline(res1), context.into(), None)?;
+        let (mat, frame, context) = materialize(res1.main_pipeline, context.into(), None)?;
 
-        assert_yaml_snapshot!(mat.transforms, @r###"
+        assert_yaml_snapshot!(mat, @r###"
         ---
         - Transform:
             From:
@@ -842,9 +826,9 @@ take 20
           ty: Infer
         "###);
 
-        let (mat, frame, _) = materialize(find_pipeline(res2), context, None)?;
+        let (mat, frame, _) = materialize(res2.main_pipeline, context, None)?;
 
-        assert_yaml_snapshot!(mat.transforms, @r###"
+        assert_yaml_snapshot!(mat, @r###"
         ---
         - Transform:
             From:

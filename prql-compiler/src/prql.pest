@@ -11,11 +11,11 @@ WHITESPACE = _{ " " | "\t" }
 // Need to exclude # in strings (and maybe confirm whether this the syntax we want)
 COMMENT = _{ "#" ~ (!NEWLINE ~ ANY) * }
 
-query = { SOI ~ NEWLINE* ~ query_def ~ NEWLINE* ~ (( func_def | table | pipeline ) ~ ( NEWLINE+ | &EOI ))* ~ EOI }
+statements = _{ SOI ~ NEWLINE* ~ query_def ? ~ (func_def | table_def)* ~ pipeline_stmt? ~ EOI }
 
-query_def = { WHITESPACE* ~ ("prql" ~ named_arg* ~ NEWLINE)? }
+query_def = { "prql" ~ named_arg* ~ NEWLINE+ }
 
-func_def = { "func" ~ func_def_name ~ func_def_params ~ "->" ~ expr }
+func_def = { "func" ~ func_def_name ~ func_def_params ~ "->" ~ expr_call ~ ( NEWLINE+ | &EOI ) }
 
 func_def_name = { ident ~ type_def? }
 func_def_params = { func_def_param* }
@@ -23,10 +23,9 @@ func_def_param = { ident ~ type_def? ~ (":" ~ expr)? }
 type_def = { "<" ~ type_term ~ ( "|" ~ type_term)* ~ ">" }
 type_term = { ident ~ type_def? }
 
-table = { "table" ~ ident ~ "=" ~ nested_pipeline }
+table_def = { "table" ~ ident ~ "=" ~ nested_pipeline ~ ( NEWLINE+ | &EOI ) }
 
-pipe = _{ NEWLINE+ | "|" }
-pipeline = { WHITESPACE* ~ expr_call ~ (pipe ~ expr_call)* }
+pipeline_stmt = { pipeline ~ ( NEWLINE+ | &EOI ) }
 
 // See parser.rs for why this is so complicated to parse
 ident = ${ !operator ~ !(keyword ~ WHITESPACE) ~ (ident_part_first | ident_backticks) ~ (ident_part_next | ident_backticks)* }
@@ -71,6 +70,9 @@ keyword = _{ "prql" | "table" | "func" }
 // - +
 // - 1
 // - 2
+
+pipe = _{ NEWLINE+ | "|" }
+pipeline = { WHITESPACE* ~ expr_call ~ (pipe ~ expr_call)* }
 
 // whitespace is required to prevent matching s"string".
 // Forbid `operator` so `a - b` can't parse as `a` & `-b`.

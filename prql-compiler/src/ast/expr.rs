@@ -1,44 +1,65 @@
 use std::collections::HashMap;
 use std::fmt::{Display, Write};
 
-use anyhow::anyhow;
+use anyhow::{anyhow, Result};
 use enum_as_inner::EnumAsInner;
 use serde::{Deserialize, Serialize};
 
+use crate::error::{Error, Reason, Span};
+
 use super::*;
 
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Expr {
+    #[serde(flatten)]
+    pub kind: ExprKind,
+    #[serde(skip)]
+    pub span: Option<Span>,
+    #[serde(skip)]
+    pub declared_at: Option<usize>,
+
+    /// Type of expression this node represents. [None] means type has not yet been determined.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ty: Option<Ty>,
+
+    /// Is true when containing window functions
+    #[serde(skip)]
+    pub is_complex: bool,
+}
+
 #[derive(Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize)]
-pub enum Item {
+pub enum ExprKind {
     Empty,
     Ident(Ident),
     Literal(Literal),
     Assign(NamedExpr),
     NamedArg(NamedExpr),
-    Query(Query),
     Pipeline(Pipeline),
-    Transform(Transform),
-    ResolvedQuery(ResolvedQuery),
-    List(Vec<Node>),
+    List(Vec<Expr>),
     Range(Range),
     Binary {
-        left: Box<Node>,
+        left: Box<Expr>,
         op: BinOp,
-        right: Box<Node>,
+        right: Box<Expr>,
     },
     Unary {
         op: UnOp,
-        expr: Box<Node>,
+        expr: Box<Expr>,
     },
-    FuncDef(FuncDef),
     FuncCall(FuncCall),
     FuncCurry(FuncCurry),
     Type(Ty),
-    Table(Table),
     SString(Vec<InterpolateItem>),
     FString(Vec<InterpolateItem>),
     Interval(Interval),
     Windowed(Windowed),
+
+    /// Resolved table transforms.
+    ResolvedPipeline(Vec<Transform>),
 }
+
+/// A name. Generally columns, tables, functions, variables.
+pub type Ident = String;
 
 #[derive(
     Debug, PartialEq, Eq, Clone, Serialize, Deserialize, strum::Display, strum::EnumString,
@@ -83,18 +104,18 @@ pub enum UnOp {
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub struct ListItem(pub Node);
+pub struct ListItem(pub Expr);
 
 /// Function call.
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct FuncCall {
-    pub name: Box<Node>,
-    pub args: Vec<Node>,
-    pub named_args: HashMap<Ident, Box<Node>>,
+    pub name: Box<Expr>,
+    pub args: Vec<Expr>,
+    pub named_args: HashMap<Ident, Box<Expr>>,
 }
 
 impl FuncCall {
-    pub fn without_args(name: Node) -> Self {
+    pub fn without_args(name: Expr) -> Self {
         FuncCall {
             name: Box::new(name),
             args: vec![],
@@ -108,22 +129,22 @@ impl FuncCall {
 pub struct FuncCurry {
     pub def_id: usize,
 
-    pub args: Vec<Node>,
+    pub args: Vec<Expr>,
 
     // same order as in FuncDef
-    pub named_args: Vec<Option<Node>>,
+    pub named_args: Vec<Option<Expr>>,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Windowed {
-    pub expr: Box<Node>,
-    pub group: Vec<Node>,
-    pub sort: Vec<ColumnSort<Node>>,
+    pub expr: Box<Expr>,
+    pub group: Vec<Expr>,
+    pub sort: Vec<ColumnSort<Expr>>,
     pub window: (WindowKind, Range),
 }
 
 impl Windowed {
-    pub fn new(node: Node, window: (WindowKind, Range)) -> Self {
+    pub fn new(node: Expr, window: (WindowKind, Range)) -> Self {
         Windowed {
             expr: Box::new(node),
             group: vec![],
@@ -133,28 +154,28 @@ impl Windowed {
     }
 }
 
-/// Represents a value and a series of function curries
+/// A value and a series of functions that are to be applied to that value one after another.
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Pipeline {
-    pub nodes: Vec<Node>,
+    pub exprs: Vec<Expr>,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct NamedExpr {
     pub name: Ident,
-    pub expr: Box<Node>,
+    pub expr: Box<Expr>,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub enum InterpolateItem {
     String(String),
-    Expr(Box<Node>),
+    Expr(Box<Expr>),
 }
 
 /// Inclusive-inclusive range.
 /// Missing bound means unbounded range.
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
-pub struct Range<T = Box<Node>> {
+pub struct Range<T = Box<Expr>> {
     pub start: Option<T>,
     pub end: Option<T>,
 }
@@ -168,14 +189,14 @@ impl Range {
     }
 
     pub fn from_ints(start: Option<i64>, end: Option<i64>) -> Self {
-        let start = start.map(|x| Box::new(Node::from(Item::Literal(Literal::Integer(x)))));
-        let end = end.map(|x| Box::new(Node::from(Item::Literal(Literal::Integer(x)))));
+        let start = start.map(|x| Box::new(Expr::from(ExprKind::Literal(Literal::Integer(x)))));
+        let end = end.map(|x| Box::new(Expr::from(ExprKind::Literal(Literal::Integer(x)))));
         Range { start, end }
     }
 
     pub fn into_int(self) -> Result<Range<i64>> {
-        fn cast_bound(bound: Node) -> Result<i64> {
-            Ok(bound.item.into_literal()?.into_integer()?)
+        fn cast_bound(bound: Expr) -> Result<i64> {
+            Ok(bound.kind.into_literal()?.into_integer()?)
         }
 
         Ok(Range {
@@ -197,28 +218,101 @@ pub struct Interval {
     pub unit: String, // Could be an enum IntervalType,
 }
 
-impl From<Vec<Node>> for Pipeline {
-    fn from(nodes: Vec<Node>) -> Self {
-        Pipeline { nodes }
+impl Expr {
+    pub fn new_ident<S: ToString>(name: S, declared_at: usize) -> Expr {
+        let mut node: Expr = ExprKind::Ident(name.to_string()).into();
+        node.declared_at = Some(declared_at);
+        node
+    }
+
+    /// Return an error if this is a named expression.
+    pub fn discard_name(self) -> Result<Expr, Error> {
+        // TODO: replace this function with a prior type checking
+
+        if let ExprKind::Assign(_) = self.kind {
+            Err(Error::new(Reason::Unexpected {
+                found: "alias".to_string(),
+            })
+            .with_span(self.span))
+        } else {
+            Ok(self)
+        }
+    }
+
+    pub fn into_name_and_expr(self) -> (Option<Ident>, Expr) {
+        if let ExprKind::Assign(expr) = self.kind {
+            (Some(expr.name), *expr.expr)
+        } else {
+            (None, self)
+        }
+    }
+
+    /// Often we don't care whether a List or single item is passed; e.g.
+    /// `select x` vs `select [x, y]`. This equalizes them both to a vec of
+    /// [Node]-s.
+    pub fn coerce_to_vec(self) -> Vec<Expr> {
+        match self.kind {
+            ExprKind::List(items) => items,
+            _ => vec![self],
+        }
+    }
+
+    pub fn coerce_to_pipeline(self) -> Pipeline {
+        match self.kind {
+            ExprKind::Pipeline(p) => p,
+            _ => Pipeline { exprs: vec![self] },
+        }
+    }
+
+    pub fn unwrap<T, F>(self, f: F, expected: &str) -> Result<T, Error>
+    where
+        F: FnOnce(ExprKind) -> Result<T, ExprKind>,
+    {
+        f(self.kind).map_err(|i| {
+            Error::new(Reason::Expected {
+                who: None,
+                expected: expected.to_string(),
+                found: i.to_string(),
+            })
+            .with_span(self.span)
+        })
     }
 }
 
-impl From<Item> for anyhow::Error {
+impl From<ExprKind> for Expr {
+    fn from(item: ExprKind) -> Self {
+        Expr {
+            kind: item,
+            span: None,
+            declared_at: None,
+            ty: None,
+            is_complex: false,
+        }
+    }
+}
+
+impl From<Vec<Expr>> for Pipeline {
+    fn from(nodes: Vec<Expr>) -> Self {
+        Pipeline { exprs: nodes }
+    }
+}
+
+impl From<ExprKind> for anyhow::Error {
     // https://github.com/bluejekyll/enum-as-inner/issues/84
     #[allow(unreachable_code)]
-    fn from(item: Item) -> Self {
+    fn from(item: ExprKind) -> Self {
         // panic!("Failed to convert {item}")
         anyhow!("Failed to convert `{item}`")
     }
 }
 
-impl Display for Item {
+impl Display for ExprKind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Item::Empty => {
+            ExprKind::Empty => {
                 f.write_str("()")?;
             }
-            Item::Ident(s) => {
+            ExprKind::Ident(s) => {
                 fn forbidden_start(c: char) -> bool {
                     !(('a'..='z').contains(&c) || matches!(c, '_' | '$'))
                 }
@@ -236,172 +330,130 @@ impl Display for Item {
                     write!(f, "{s}")?;
                 }
             }
-            Item::Assign(ne) => {
-                match ne.expr.item {
-                    Item::FuncCall(_) => {
+            ExprKind::Assign(ne) => {
+                match ne.expr.kind {
+                    ExprKind::FuncCall(_) => {
                         // this is just a workaround for inserting parenthesis
                         // full approach would include "binding strength"
                         // checking, just as we do for SQL
-                        write!(f, "{} = ({})", Item::Ident(ne.name.clone()), ne.expr.item)?;
+                        write!(
+                            f,
+                            "{} = ({})",
+                            ExprKind::Ident(ne.name.clone()),
+                            ne.expr.kind
+                        )?;
                     }
 
                     _ => {
-                        write!(f, "{} = {}", Item::Ident(ne.name.clone()), ne.expr.item)?;
+                        write!(f, "{} = {}", ExprKind::Ident(ne.name.clone()), ne.expr.kind)?;
                     }
                 };
             }
-            Item::NamedArg(ne) => {
-                write!(f, "{}:{}", Item::Ident(ne.name.clone()), ne.expr.item)?;
+            ExprKind::NamedArg(ne) => {
+                write!(f, "{}:{}", ExprKind::Ident(ne.name.clone()), ne.expr.kind)?;
             }
-            Item::Query(query) => {
-                write!(f, "prql dialect:{}", query.dialect)?;
-                if let Some(version) = query.version {
-                    write!(f, " version:{}", version)?
-                };
-                write!(f, "\n\n")?;
-
-                for node in &query.nodes {
-                    match &node.item {
-                        Item::Pipeline(p) => {
-                            for node in &p.nodes {
-                                writeln!(f, "{}", node.item)?;
-                            }
-                            f.write_char('\n')?;
-                        }
-                        _ => writeln!(f, "{}\n", node.item)?,
-                    }
-                }
-            }
-            Item::Pipeline(pipeline) => {
+            ExprKind::Pipeline(pipeline) => {
                 f.write_char('(')?;
-                match pipeline.nodes.len() {
+                match pipeline.exprs.len() {
                     0 => {}
                     1 => {
-                        write!(f, "{}", pipeline.nodes[0].item)?;
-                        for node in &pipeline.nodes[1..] {
-                            write!(f, " | {}", node.item)?;
+                        write!(f, "{}", pipeline.exprs[0].kind)?;
+                        for node in &pipeline.exprs[1..] {
+                            write!(f, " | {}", node.kind)?;
                         }
                     }
                     _ => {
-                        writeln!(f, "\n  {}", pipeline.nodes[0].item)?;
-                        for node in &pipeline.nodes[1..] {
-                            writeln!(f, "  {}", node.item)?;
+                        writeln!(f, "\n  {}", pipeline.exprs[0].kind)?;
+                        for node in &pipeline.exprs[1..] {
+                            writeln!(f, "  {}", node.kind)?;
                         }
                     }
                 }
                 f.write_char(')')?;
             }
-            Item::Transform(transform) => {
-                write!(f, "{} <unimplemented>", transform.kind.as_ref())?;
-            }
-            Item::ResolvedQuery(query) => {
-                for transform in &query.transforms {
-                    writeln!(f, "{} <unimplemented>", transform.kind.as_ref())?;
-                }
-            }
-            Item::FuncDef(func_def) => {
-                write!(f, "func {}", func_def.name)?;
-                for arg in &func_def.positional_params {
-                    write!(f, " {}", arg.name)?;
-                }
-                for arg in &func_def.named_params {
-                    write!(f, " {}", arg.name)?;
-                }
-                write!(f, " -> {}\n\n", func_def.body.item)?;
-            }
-            Item::Table(table) => {
-                match table.pipeline.item {
-                    Item::FuncCall(_) => {
-                        write!(
-                            f,
-                            "table {} = (\n  {}\n)\n\n",
-                            table.name, table.pipeline.item
-                        )?;
-                    }
-
-                    _ => {
-                        write!(f, "table {} = {}\n\n", table.name, table.pipeline.item)?;
-                    }
-                };
-            }
-            Item::List(nodes) => {
+            ExprKind::List(nodes) => {
                 if nodes.is_empty() {
                     f.write_str("[]")?;
                 } else if nodes.len() == 1 {
-                    write!(f, "[{}]", nodes[0].item)?;
+                    write!(f, "[{}]", nodes[0].kind)?;
                 } else {
                     f.write_str("[\n")?;
                     for li in nodes.iter() {
-                        writeln!(f, "  {},", li.item)?;
+                        writeln!(f, "  {},", li.kind)?;
                     }
                     f.write_str("]")?;
                 }
             }
-            Item::Range(r) => {
+            ExprKind::Range(r) => {
                 if let Some(start) = &r.start {
-                    write!(f, "{}", start.item)?;
+                    write!(f, "{}", start.kind)?;
                 }
                 f.write_str("..")?;
                 if let Some(end) = &r.end {
-                    write!(f, "{}", end.item)?;
+                    write!(f, "{}", end.kind)?;
                 }
             }
-            Item::Binary { op, left, right } => {
-                match left.item {
-                    Item::FuncCall(_) => write!(f, "( {} )", left.item)?,
-                    _ => write!(f, "{}", left.item)?,
+            ExprKind::Binary { op, left, right } => {
+                match left.kind {
+                    ExprKind::FuncCall(_) => write!(f, "( {} )", left.kind)?,
+                    _ => write!(f, "{}", left.kind)?,
                 };
                 write!(f, " {op} ")?;
-                match right.item {
-                    Item::FuncCall(_) => write!(f, "( {} )", right.item)?,
-                    _ => write!(f, "{}", right.item)?,
+                match right.kind {
+                    ExprKind::FuncCall(_) => write!(f, "( {} )", right.kind)?,
+                    _ => write!(f, "{}", right.kind)?,
                 };
             }
-            Item::Unary { op, expr } => match op {
-                UnOp::Neg => write!(f, "-{}", expr.item)?,
-                UnOp::Not => write!(f, "not {}", expr.item)?,
+            ExprKind::Unary { op, expr } => match op {
+                UnOp::Neg => write!(f, "-{}", expr.kind)?,
+                UnOp::Not => write!(f, "not {}", expr.kind)?,
             },
-            Item::FuncCall(func_call) => {
-                write!(f, "{:}", func_call.name.item)?;
+            ExprKind::FuncCall(func_call) => {
+                write!(f, "{:}", func_call.name.kind)?;
 
                 for (name, arg) in &func_call.named_args {
-                    write!(f, " {name}: {}", arg.item)?;
+                    write!(f, " {name}: {}", arg.kind)?;
                 }
                 for arg in &func_call.args {
-                    match arg.item {
-                        Item::FuncCall(_) => {
+                    match arg.kind {
+                        ExprKind::FuncCall(_) => {
                             writeln!(f, " (")?;
-                            writeln!(f, "  {}", arg.item)?;
+                            writeln!(f, "  {}", arg.kind)?;
                             f.write_char(')')?;
                         }
 
                         _ => {
-                            write!(f, " {}", arg.item)?;
+                            write!(f, " {}", arg.kind)?;
                         }
                     }
                 }
             }
-            Item::FuncCurry(_) => {
+            ExprKind::FuncCurry(_) => {
                 write!(f, "(func ? -> ?)")?;
             }
-            Item::SString(parts) => {
+            ExprKind::SString(parts) => {
                 display_interpolation(f, "s", parts)?;
             }
-            Item::FString(parts) => {
+            ExprKind::FString(parts) => {
                 display_interpolation(f, "f", parts)?;
             }
-            Item::Interval(i) => {
+            ExprKind::Interval(i) => {
                 write!(f, "{}{}", i.n, i.unit)?;
             }
-            Item::Windowed(w) => {
-                write!(f, "{}", w.expr.item)?;
+            ExprKind::Windowed(w) => {
+                write!(f, "{}", w.expr.kind)?;
             }
-            Item::Type(typ) => {
+            ExprKind::ResolvedPipeline(transforms) => {
+                for transform in transforms {
+                    writeln!(f, "{} <unimplemented>", transform.kind.as_ref())?;
+                }
+            }
+            ExprKind::Type(typ) => {
                 f.write_char('<')?;
                 write!(f, "{typ}")?;
                 f.write_char('>')?;
             }
-            Item::Literal(literal) => {
+            ExprKind::Literal(literal) => {
                 write!(f, "{}", literal)?;
             }
         }
@@ -419,7 +471,7 @@ fn display_interpolation(
     for part in parts {
         match &part {
             InterpolateItem::String(s) => write!(f, "{s}")?,
-            InterpolateItem::Expr(e) => write!(f, "{{{}}}", e.item)?,
+            InterpolateItem::Expr(e) => write!(f, "{{{}}}", e.kind)?,
         }
     }
     f.write_char('"')?;
