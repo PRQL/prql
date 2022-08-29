@@ -19,7 +19,7 @@ use anyhow::{bail, Result};
 use globset::Glob;
 use insta::{assert_display_snapshot, assert_snapshot, glob};
 use log::warn;
-use prql_compiler::ast::Item;
+use prql_compiler::ast::Statements;
 use prql_compiler::*;
 use pulldown_cmark::{CodeBlockKind, Event, Parser, Tag};
 use std::fs;
@@ -143,7 +143,7 @@ fn run_display_reference_prql() -> Result<()> {
             return;
         }
 
-        assert_display_snapshot!(Item::Query(parse(&prql).unwrap()));
+        assert_display_snapshot!(Statements(parse(&prql).unwrap()));
     });
     Ok(())
 }

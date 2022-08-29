@@ -15,10 +15,10 @@ use super::{Context, Declaration, Frame};
 /// Runs semantic analysis on the query, using current state.
 ///
 /// Note that this removes function declarations from AST and saves them as current context.
-pub fn resolve(query: Query, context: Context) -> Result<(Query, Context)> {
+pub fn resolve(statements: Vec<Stmt>, context: Context) -> Result<(Query, Context)> {
     let mut resolver = Resolver::new(context);
 
-    let query = resolver.fold_query(query)?;
+    let query = resolver.fold_statements(statements)?;
 
     Ok((query, resolver.context))
 }
@@ -46,9 +46,9 @@ enum Namespace {
 }
 
 impl AstFold for Resolver {
-    fn fold_node(&mut self, mut node: Node) -> Result<Node> {
-        let mut r = match node.item {
-            Item::Ident(ref ident) => {
+    fn fold_expr(&mut self, mut node: Expr) -> Result<Expr> {
+        let mut r = match node.kind {
+            ExprKind::Ident(ref ident) => {
                 let id = self.lookup_name(ident, node.span)?;
                 node.declared_at = Some(id);
 
@@ -65,7 +65,7 @@ impl AstFold for Resolver {
                     }
 
                     // init type for tables
-                    Declaration::Table(_) => Node {
+                    Declaration::Table(_) => Expr {
                         ty: Some(Ty::Table(Frame::unknown(id))),
                         ..node
                     },
@@ -77,15 +77,15 @@ impl AstFold for Resolver {
                 }
             }
 
-            Item::FuncCall(FuncCall {
+            ExprKind::FuncCall(FuncCall {
                 name,
                 args,
                 named_args,
             }) => {
                 // find function
-                let curry = match name.item {
+                let curry = match name.kind {
                     // by function name
-                    Item::Ident(name) => {
+                    ExprKind::Ident(name) => {
                         let id = self.lookup_name(&name, node.span)?;
 
                         // construct an empty curry (this is a "fresh" call)
@@ -97,24 +97,29 @@ impl AstFold for Resolver {
                     }
 
                     // by using an inner curry
-                    Item::FuncCurry(curry) => curry,
+                    ExprKind::FuncCurry(curry) => curry,
 
-                    _ => todo!("throw an error"),
+                    kind => bail!(Error::new(Reason::Expected {
+                        who: None,
+                        expected: "a function".to_string(),
+                        found: format!("`{kind}`")
+                    })
+                    .with_span(name.span)),
                 };
 
                 self.fold_function(curry, args, named_args, node.span)?
             }
 
-            Item::Pipeline(Pipeline { mut nodes }) => {
+            ExprKind::Pipeline(Pipeline { exprs: mut nodes }) => {
                 let value = nodes.remove(0);
 
-                let mut value = self.fold_node(value)?;
+                let mut value = self.fold_expr(value)?;
 
-                if let Item::FuncCurry(_) = &value.item {
+                if let ExprKind::FuncCurry(_) = &value.kind {
                     // first value has evaluated to a function, which means we cannot
                     // evaluate the pipeline at the moment -> just keep the pipeline as is
                     nodes.insert(0, value);
-                    node.item = Item::Pipeline(Pipeline { nodes });
+                    node.kind = ExprKind::Pipeline(Pipeline { exprs: nodes });
                     node
                 } else {
                     let mut work_stack = Vec::with_capacity(nodes.len());
@@ -122,21 +127,21 @@ impl AstFold for Resolver {
                     while let Some(node) = work_stack.pop() {
                         //// dbg!(&node);
 
-                        let node = self.fold_node(node)?;
+                        let node = self.fold_expr(node)?;
 
                         //// dbg!(&node);
 
-                        value = match node.item {
-                            Item::FuncCurry(func) => {
+                        value = match node.kind {
+                            ExprKind::FuncCurry(func) => {
                                 self.fold_function(func, vec![value], HashMap::new(), node.span)?
                             }
-                            Item::Pipeline(Pipeline { nodes }) => {
+                            ExprKind::Pipeline(Pipeline { exprs: nodes }) => {
                                 work_stack.extend(nodes.into_iter().rev());
                                 value
                             }
                             item => bail!(
                                 "cannot apply argument `{}` to non-function: `{item}`",
-                                value.item
+                                value.kind
                             ),
                         };
                     }
@@ -144,14 +149,14 @@ impl AstFold for Resolver {
                 }
             }
 
-            Item::FuncCurry(_) => {
+            ExprKind::FuncCurry(_) => {
                 // this can happen on occasional second resolve of same expression
                 // in such case: skip any resolving
                 node
             }
 
             item => {
-                node.item = fold_item(self, item)?;
+                node.kind = fold_expr_kind(self, item)?;
                 node
             }
         };
@@ -160,25 +165,6 @@ impl AstFold for Resolver {
             r.ty = Some(resolve_type(&r)?)
         }
         Ok(r)
-    }
-
-    // save functions declarations
-    fn fold_nodes(&mut self, items: Vec<Node>) -> Result<Vec<Node>> {
-        // We cut out function def, so we need to run it
-        // here rather than in `fold_func_def`.
-        items
-            .into_iter()
-            .map(|node| {
-                Ok(match node.item {
-                    Item::FuncDef(func_def) => {
-                        self.context.declare_func(func_def);
-                        None
-                    }
-                    _ => Some(self.fold_node(node)?),
-                })
-            })
-            .filter_map(|x| x.transpose())
-            .try_collect()
     }
 }
 
@@ -199,10 +185,10 @@ impl Resolver {
     fn fold_function(
         &mut self,
         curry: FuncCurry,
-        args: Vec<Node>,
-        named_args: HashMap<String, Box<Node>>,
+        args: Vec<Expr>,
+        named_args: HashMap<String, Box<Expr>>,
         span: Option<Span>,
-    ) -> Result<Node, anyhow::Error> {
+    ) -> Result<Expr, anyhow::Error> {
         //dbg!(&curry);
 
         let id = Some(curry.def_id);
@@ -229,9 +215,8 @@ impl Resolver {
                 Ok((preceding_pipeline, transform)) => {
                     // this function call is a transform, append it to the pipeline
 
-                    let mut pipeline = preceding_pipeline.unwrap_or_else(|| {
-                        Item::ResolvedQuery(ResolvedQuery { transforms: vec![] }).into()
-                    });
+                    let mut pipeline = preceding_pipeline
+                        .unwrap_or_else(|| ExprKind::ResolvedPipeline(vec![]).into());
 
                     let ty = pipeline.ty.as_ref().and_then(|t| t.as_table());
                     let frame_before = ty.cloned().unwrap_or_default();
@@ -242,10 +227,11 @@ impl Resolver {
                         kind: transform,
                         ty: frame_after,
                         is_complex: false,
+                        span,
                     };
 
-                    if let Some(query) = pipeline.item.as_resolved_query_mut() {
-                        query.transforms.push(transform);
+                    if let Some(transforms) = pipeline.kind.as_resolved_pipeline_mut() {
+                        transforms.push(transform);
                     }
 
                     pipeline
@@ -264,7 +250,7 @@ impl Resolver {
                         self.context.scope.add(&param_namespace, &param.name, id);
                     }
                     for (param, arg) in zip(func_def.positional_params, curry.args) {
-                        let value = arg.item.clone().into();
+                        let value = arg.kind.clone().into();
                         let dec = Declaration::Expression(Box::new(value));
                         let id = self.context.declarations.push(dec, None);
 
@@ -275,7 +261,7 @@ impl Resolver {
                     // dbg!(&func_def.body);
 
                     // fold again, to resolve inner variables & functions
-                    let body = self.fold_node(*func_def.body)?;
+                    let body = self.fold_expr(*func_def.body)?;
 
                     // dbg!(&body);
 
@@ -295,7 +281,7 @@ impl Resolver {
         } else {
             // not enough arguments: construct a func closure
 
-            let mut node = Node::from(Item::FuncCurry(curry));
+            let mut node = Expr::from(ExprKind::FuncCurry(curry));
 
             let mut ty = type_of_func_def(&func_def);
             ty.args = ty.args[args_len..].to_vec();
@@ -311,8 +297,8 @@ impl Resolver {
     fn apply_args_to_curry(
         &mut self,
         mut curry: FuncCurry,
-        args: Vec<Node>,
-        named_args: HashMap<Ident, Box<Node>>,
+        args: Vec<Expr>,
+        named_args: HashMap<Ident, Box<Expr>>,
         func_def: &FuncDef,
     ) -> Result<FuncCurry> {
         for arg in args {
@@ -390,21 +376,21 @@ impl Resolver {
 
     fn resolve_function_arg(
         &mut self,
-        arg: Node,
+        arg: Expr,
         param: &FuncParam,
         func_name: &str,
-    ) -> Result<Node> {
+    ) -> Result<Expr> {
         let prev_namespace = self.namespace;
 
         let mut arg = match param.ty.as_ref() {
             Some(Ty::BuiltinKeyword) => arg,
             Some(Ty::Table(_)) => {
                 self.namespace = Namespace::Tables;
-                self.fold_node(arg)?
+                self.fold_expr(arg)?
             }
             _ => {
                 self.namespace = Namespace::FunctionsColumns;
-                self.fold_node(arg)?
+                self.fold_expr(arg)?
             }
         };
 
@@ -415,5 +401,53 @@ impl Resolver {
 
         self.namespace = prev_namespace;
         Ok(arg)
+    }
+
+    /// fold statements and extract results into a [Query]
+    fn fold_statements(&mut self, stmts: Vec<Stmt>) -> Result<Query> {
+        let mut def = None;
+        let mut main_pipeline = Vec::new();
+        let mut tables = Vec::new();
+
+        for stmt in stmts {
+            match stmt.kind {
+                StmtKind::QueryDef(d) => def = Some(d),
+                StmtKind::FuncDef(func_def) => {
+                    self.context.declare_func(func_def);
+                }
+                StmtKind::TableDef(table) => {
+                    let table = self.fold_table(table)?;
+                    let table = Table {
+                        id: table.id,
+                        name: table.name,
+                        pipeline: table.pipeline.kind.into_resolved_pipeline()?,
+                    };
+                    tables.push(table);
+                }
+                StmtKind::Pipeline(exprs) => {
+                    let expr = self.fold_expr(ExprKind::Pipeline(Pipeline { exprs }).into())?;
+
+                    match expr.kind {
+                        ExprKind::ResolvedPipeline(transforms) => {
+                            main_pipeline = transforms;
+                        }
+                        kind => {
+                            bail!(Error::new(Reason::Expected {
+                                who: None,
+                                expected: "pipeline that resolves to a table".to_string(),
+                                found: format!("`{kind}`")
+                            })
+                            .with_help("are you missing `from` statement?")
+                            .with_span(stmt.span))
+                        }
+                    }
+                }
+            }
+        }
+        Ok(Query {
+            def: def.unwrap_or_default(),
+            main_pipeline,
+            tables,
+        })
     }
 }
