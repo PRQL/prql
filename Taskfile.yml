@@ -141,7 +141,7 @@ tasks:
       # `parser::test_parse_pipeline_parse_tree`. Ideally we would a) retain
       # examples in the documentation (inc. tested), b) not rely on falliable
       # tests to extract them, which include compiling prql-compiler, c) not
-      # fail other compliation steps if they can't be extracted.
+      # fail other compilation steps if they can't be extracted.
       - cargo insta test --accept -- run_examples
       - task: build-all
       # Only delete unreferenced snapshots on the default target — lots are excluded under wasm.

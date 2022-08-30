@@ -8,7 +8,7 @@ Database chinook.db was downloaded from <https://www.sqlitetutorial.net/sqlite-s
 
 Columns are renamed to snake_case, so Postgres and DuckDb don't struggle with them.
 
-For optimal accessability, portability between databases and file size, all tables are stored
+For optimal accessibility, portability between databases and file size, all tables are stored
 as CSV files. Their current size is 432kB, it could be gzip-ed to 112kB, but that would require a preprocessing step before running `cargo test`.
 
 ## SQLite

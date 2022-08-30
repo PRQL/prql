@@ -1,4 +1,4 @@
-/// A trait to "fold" a PRQL AST (similiar to a visitor), so we can transitively
+/// A trait to "fold" a PRQL AST (similar to a visitor), so we can transitively
 /// apply some logic to a whole tree by just defining how we want to handle each
 /// type.
 use super::*;
