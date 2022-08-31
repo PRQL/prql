@@ -744,10 +744,10 @@ fn translate_join(t: &Transform, dialect: &dyn DialectHandler) -> Result<Join> {
                         .map_err(|_| {
                             Error::new(Reason::Expected {
                                 who: Some("join".to_string()),
-                                expected: "An identifer with only one part; no `.`".to_string(),
+                                expected: "An identifier with only one part; no `.`".to_string(),
                                 // TODO: Add in the actual item (but I couldn't
                                 // get the error types to agree)
-                                found: "A multipart identifer".to_string(),
+                                found: "A multipart identifier".to_string(),
                             })
                         })?,
                 ),

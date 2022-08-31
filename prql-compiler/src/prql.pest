@@ -106,7 +106,7 @@ nested_pipeline = _{ "(" ~ (WHITESPACE | NEWLINE)* ~ pipeline ~ (WHITESPACE | NE
 // we only keep the `string_inner` and discard the `string` given it contains
 // the quotes.
 //
-// TODO: I'm still a bit unclear how preceeding and trailing spaces are working
+// TODO: I'm still a bit unclear how preceding and trailing spaces are working
 // -- it seems that inner spaces are included without an atomic operator (or
 // with `ANY`), but prceeding & trailing spaces require both `ANY` _and_ an
 // atomic operator. We have some rudimentary tests for these.

@@ -1,6 +1,6 @@
 //! This module contains the parser, which is responsible for converting a tree
 //! of pest pairs into a tree of AST Items. It has a small function to call into
-//! pest to get the parse tree / concrete syntaxt tree, and then a large
+//! pest to get the parse tree / concrete syntax tree, and then a large
 //! function for turning that into PRQL AST.
 use std::collections::HashMap;
 use std::str::FromStr;
@@ -261,7 +261,7 @@ fn ast_of_parse_pair(pair: Pair<Rule>) -> Result<Option<Node>> {
         Rule::range => {
             let [start, end]: [Option<Box<Node>>; 2] = pair
                 .into_inner()
-                // Iterate over `start` & `end` (seperator is not a term).
+                // Iterate over `start` & `end` (separator is not a term).
                 .into_iter()
                 .map(|x| {
                     // Parse & Box each one.

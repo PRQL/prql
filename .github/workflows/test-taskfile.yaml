@@ -28,5 +28,5 @@ jobs:
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - run: task setup-dev
-      # This also encompases `build-all`
+      # This also encompasses `build-all`
       - run: task test-all

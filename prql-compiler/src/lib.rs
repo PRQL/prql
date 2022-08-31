@@ -940,7 +940,7 @@ select `first name`
         assert_snapshot!((compile(r###"
         from x
         join y [x.id]
-        "###).unwrap_err().to_string()), @r###"Error { span: None, reason: Expected { who: Some("join"), expected: "An identifer with only one part; no `.`", found: "A multipart identifer" }, help: None }"###);
+        "###).unwrap_err().to_string()), @r###"Error { span: None, reason: Expected { who: Some("join"), expected: "An identifier with only one part; no `.`", found: "A multipart identifier" }, help: None }"###);
 
         Ok(())
     }
