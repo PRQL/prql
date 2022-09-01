@@ -1,5 +1,11 @@
 # PRQL Changelog
 
+## [unreleased]
+
+### Fixes
+
+- `range_of_ranges` checks the Range end is smaller than its start (@shuozeli, #946)
+
 ## 0.2.6 — 2022-08-05
 
 ### Fixes

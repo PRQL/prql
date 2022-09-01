@@ -759,6 +759,18 @@ select `first name`
           employees OFFSET 4
         "###);
 
+        assert_display_snapshot!((compile(r###"
+        from employees
+        take 5..5
+        "###)?), @r###"
+        SELECT
+          employees.*
+        FROM
+          employees
+        LIMIT
+          1 OFFSET 4
+        "###);
+
         // should be one SELECT
         assert_display_snapshot!((compile(r###"
         from employees

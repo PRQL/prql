@@ -406,7 +406,7 @@ fn range_of_ranges(ranges: Vec<Range>) -> Result<Range<i64>> {
     if current
         .start
         .zip(current.end)
-        .map(|(s, e)| e <= s)
+        .map(|(s, e)| e < s)
         .unwrap_or(false)
     {
         bail!("Range end is before its start.");
@@ -936,6 +936,7 @@ mod test {
         let range2 = Range::from_ints(Some(5), Some(6));
         let range3 = Range::from_ints(Some(5), None);
         let range4 = Range::from_ints(None, Some(8));
+        let range5 = Range::from_ints(Some(5), Some(5));
 
         assert!(range_of_ranges(vec![range1.clone()])?.end.is_some());
 
@@ -988,6 +989,12 @@ mod test {
         ---
         start: ~
         end: 8
+        "###);
+
+        assert_yaml_snapshot!(range_of_ranges(vec![range5])?, @r###"
+        ---
+        start: 5
+        end: 5
         "###);
 
         Ok(())
