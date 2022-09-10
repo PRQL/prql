@@ -34,7 +34,7 @@ version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "57e6e951cfbb2db8de1828d49073a113a29fd7117b1596caa781a258c7e38d72"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if",
  "const-random",
  "getrandom",
  "once_cell",
