@@ -111,19 +111,7 @@ fn return_or_throw_error(
     match result {
         Ok(sql) => Some(sql),
         Err(e) => {
-            let location = e.1.unwrap();
-            wasm_bindgen::throw_str(
-                str::replace(
-                    format!(
-                        "{:?} at line {}, column {} to {}",
-                        e.0, location.start.0, location.start.1, location.end.1
-                    )
-                    .as_str(),
-                    "\\n",
-                    "\n",
-                )
-                .as_str(),
-            );
+            wasm_bindgen::throw_str(str::replace(e.0.as_str(), "\\n", "\n").as_str());
         }
     }
 }
