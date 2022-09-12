@@ -45,8 +45,8 @@ features = ["derive"]
 version = "1.0.137"
 
 [dev-dependencies]
+cfg-if = "0.1"
 chrono = "0.4"
-criterion = "0.3.5"
 globset = "0.4.8"
 insta = {version = "1.19.0", features = ["colors", "glob", "yaml"]}
 pulldown-cmark = "0.9.1"
@@ -56,6 +56,7 @@ walkdir = "2.3.2"
 
 # For integration tests
 [target.'cfg(not(target_family="wasm"))'.dev-dependencies]
+criterion = "0.4.0"
 postgres = "0.19.3"
 rusqlite = {version = "0.28.0", features = ["bundled", "csvtab"]}
 
