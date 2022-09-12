@@ -46,7 +46,7 @@ version = "1.0.137"
 
 [dev-dependencies]
 chrono = "0.4"
-criterion = "0.3.5"
+criterion = "0.4.0"
 globset = "0.4.8"
 insta = {version = "1.19.0", features = ["colors", "glob", "yaml"]}
 pulldown-cmark = "0.9.1"
