@@ -45,7 +45,7 @@ features = ["derive"]
 version = "1.0.137"
 
 [dev-dependencies]
-cfg-if = "0.1"
+cfg-if = "1.0"
 chrono = "0.4"
 globset = "0.4.8"
 insta = {version = "1.19.0", features = ["colors", "glob", "yaml"]}
