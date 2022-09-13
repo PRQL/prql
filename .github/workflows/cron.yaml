@@ -50,7 +50,7 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
-      - uses: a-kenji/update-rust-toolchain
+      - uses: a-kenji/update-rust-toolchain@main
         with:
           minor-version-delta: 1
           toolchain-path: "./rust-toolchain.toml"
