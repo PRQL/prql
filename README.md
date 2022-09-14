@@ -70,8 +70,9 @@ To stay in touch with PRQL:
 - Follow us on [Twitter](https://twitter.com/prql_lang)
 - Join us on [Discord](https://discord.gg/eQcfaCmsNc)
 - Star this repo
-- [Contribute](./CONTRIBUTING.md) — join us in building PRQL, through writing
-  code or inspiring others to use it. We're a really friendly community!
+- [Contribute][contributing] — join us in building PRQL, through writing
+  code or inspiring others to use it. It's easy to get started — the project can
+  be built in a couple of commands, and we're a really friendly community!
 
 ## Explore
 
@@ -105,6 +106,6 @@ We welcome others to join who have a track record of contributions.
 
 [prql book]: https://prql-lang.org/book
 [prql website]: https://prql-lang.org
-[prql playground]: https://prql-lang.org/playground
 [contributing]: ./CONTRIBUTING.md
+[prql playground]: https://prql-lang.org/playground
 [dbt-prql]: https://github.com/prql/dbt-prql
