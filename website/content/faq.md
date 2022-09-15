@@ -168,6 +168,7 @@ Wickham](https://twitter.com/hadleywickham), the developer of
 PRQL:
 
 <!-- TODO: the `>` doesn't seem to format on the website  -->
+
 > "FWIW the separate `group_by()` is one of my greatest design regrets with dplyr
 > — I wish I had made `by` a parameter of `summarise()`, `mutate()`, `filter()`
 > etc."
