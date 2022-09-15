@@ -80,13 +80,13 @@ many others have failed at?". Some thoughts:
   to balance profitability against compatibility, or try and expand up the stack
   to justify a valuation. Whether someone is building a new tool or writing a
   simple query — PRQL can be _more_ compatible across DBs than SQL.
-- PRQL is analytical. The biggest growth in SQL usage has been from querying large
-  amounts of data, often from analytical DBs that are specifically designed for
-  this — with columnar storage and wide denormalized tables. SQL carries a lot
-  of baggage unrelated to this, and focusing on the analytical use-case lets us
-  make a better language.
+- PRQL is analytical. The biggest growth in SQL usage over the past decade has
+  been from querying large amounts of data, often from analytical DBs that are
+  specifically designed for this — with columnar storage and wide denormalized
+  tables. SQL carries a lot of unrelated baggage, and focusing on the analytical
+  use-case lets us make a better language.
 - PRQL is simple. There's often a tradeoff between power and accessibility
-  — rust is powerful vs. Excel is accessible — but there are also instances
+  — e.g. rust is powerful vs. Excel is accessible — but there are also instances
   where we can expand the frontier. PRQL's orthogonality is an example of
   synthesizing this tradeoff — have a single `filter` rather than `WHERE` & `HAVING`
   & `QUALIFY` brings both more power _and_ more accessibility.
@@ -161,14 +161,15 @@ group department (
 )
 ```
 
-While you should be skeptical of new claims from new entrants, but [Hadley
+While you should be skeptical of new claims from new entrants [Hadley
 Wickham](https://twitter.com/hadleywickham), the developer of
 [Tidyverse](https://www.tidyverse.org/)
 [commented](https://news.ycombinator.com/item?id=30067406) in a discussion on
 PRQL:
 
-> FWIW the separate `group_by()` is one of my greatest design regrets with dplyr
+<!-- TODO: the `>` doesn't seem to format on the website  -->
+> "FWIW the separate `group_by()` is one of my greatest design regrets with dplyr
 > — I wish I had made `by` a parameter of `summarise()`, `mutate()`, `filter()`
-> etc.
+> etc."
 
 For more detail, check out the docs in the [PRQL Book](https://prql-lang.org/book).
