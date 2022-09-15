@@ -6,8 +6,8 @@ use crate::ast::*;
 use crate::semantic::{Context, Declaration, Declarations, Frame};
 
 use anyhow::{anyhow, Result};
-use itertools::zip;
 use itertools::Itertools;
+use std::iter::zip;
 
 use crate::semantic::{split_var_name, FrameColumn};
 
