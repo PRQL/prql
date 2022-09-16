@@ -12,12 +12,12 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: 🔗 Setup toolchain
-      # If we don't get a value, then skip; we're using the default value.
-      if: ${{ inputs.target }}
-      uses: dtolnay/rust-toolchain@master
-      with:
-        target: ${{ inputs.target }}
+    # - name: 🔗 Setup toolchain
+    #   # If we don't get a value, then skip; we're using the default value.
+    #   if: ${{ inputs.target }}
+    #   uses: dtolnay/rust-toolchain@master
+    #   with:
+    #     target: ${{ inputs.target }}
     - name: 💰 Cache
       uses: Swatinem/rust-cache@v1
       with:
