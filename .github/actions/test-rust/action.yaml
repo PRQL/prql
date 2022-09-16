@@ -19,7 +19,6 @@ runs:
       with:
         profile: minimal
         target: ${{ inputs.target }}
-        toolchain: stable
         override: true
         default: true
     - name: 💰 Cache
