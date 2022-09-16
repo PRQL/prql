@@ -23,14 +23,12 @@ jobs:
           - os: windows-latest
           - os: macos-latest
           - os: ubuntu-latest
-            target: "wasm32-unknown-unknown"
             target_option: "--target=wasm32-unknown-unknown"
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
       - uses: ./.github/actions/test-rust
         with:
-          target: ${{ matrix.target }}
           target_option: ${{ matrix.target_option }}
 
   test-python:
@@ -50,7 +48,7 @@ jobs:
         # TODO: enable for windows
         os: [ubuntu-latest, macos-latest]
       # Java test is simple enough that it's not worth splitting out into a
-      # separate action. These three lines is copied to test-java, which runs on
+      # separate action. These three lines are copied to test-java, which runs on
       # any java change.
     steps:
       - name: 📂 Checkout code

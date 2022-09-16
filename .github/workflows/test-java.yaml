@@ -19,14 +19,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-      - name: Setup toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
-          default: true
       # Java test is simple enough that it's not worth splitting out into a
-      # separate action. These three lines is copied to test-java, which runs on
+      # separate action. These three lines are copied to test-all, which runs on
       # each merge.
       - name: Maven test
         working-directory: prql-java/java/
