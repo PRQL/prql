@@ -23,14 +23,12 @@ jobs:
           - os: windows-latest
           - os: macos-latest
           - os: ubuntu-latest
-            target: "wasm32-unknown-unknown"
             target_option: "--target=wasm32-unknown-unknown"
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
       - uses: ./.github/actions/test-rust
         with:
-          target: ${{ matrix.target }}
           target_option: ${{ matrix.target_option }}
 
   test-python:
