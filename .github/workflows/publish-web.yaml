@@ -12,10 +12,6 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
-      - uses: dtolnay/rust-toolchain@master
-        with:
-          target: wasm32-unknown-unknown
-          toolchain: stable
 
       # Website setup
       - name: Setup hugo

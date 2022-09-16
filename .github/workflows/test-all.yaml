@@ -50,7 +50,7 @@ jobs:
         # TODO: enable for windows
         os: [ubuntu-latest, macos-latest]
       # Java test is simple enough that it's not worth splitting out into a
-      # separate action. These three lines is copied to test-java, which runs on
+      # separate action. These three lines are copied to test-java, which runs on
       # any java change.
     steps:
       - name: 📂 Checkout code

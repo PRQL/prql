@@ -44,11 +44,6 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
-      - name: 🔗 Setup rust toolchain
-        uses: dtolnay/rust-toolchain@master
-        with:
-          # https://github.com/actions-rs/toolchain/issues/126
-          toolchain: stable
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v1
       - uses: peaceiris/actions-mdbook@v1
