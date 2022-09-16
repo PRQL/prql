@@ -16,14 +16,11 @@ runs:
   using: composite
   steps:
     - name: 🔗 Setup toolchain
-      uses: actions-rs/toolchain@v1
+      uses: dtolnay/rust-toolchain@master
       with:
-        profile: minimal
         target: ${{ inputs.target }}
         # Pin this so caching works across days
         toolchain: nightly-2022-07-26
-        override: true
-        default: true
     - name: 💰 Cache
       id: cache
       uses: Swatinem/rust-cache@v1
