@@ -17,7 +17,7 @@ Fixes:
 Documentation:
 
 - Improve various docs (@max-sixty, #974, #971, #972, #970, #925)
-- Add reference to EdgeDB's blog post ot FAQ (@max-sixty, #922)
+- Add reference to EdgeDB's blog post in our FAQ (@max-sixty, #922)
 - Fix typos (@kianmeng, #943)
 
 Integrations:
