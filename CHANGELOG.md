@@ -1,14 +1,37 @@
 # PRQL Changelog
 
-## [unreleased]
+## 0.2.7 — 2022-09-17
 
-### Fixes
+0.2.7 is a fairly modest release, six weeks after 0.2.6. We have some more
+significant features, including a `union` operator and an overhaul of our type
+system, as open PRs which will follow in future releases.
 
-- `range_of_ranges` checks the Range end is smaller than its start (@shuozeli, #946)
+We also have new features in the [VSCode
+extension](https://github.com/prql/prql-code), courtesy of @jiripospisii,
+including a live output panel,
+
+Fixes:
+
+- `range_of_ranges` checks the Range end is smaller than its start (@shuozeli,  #946)
+
+Documentation:
+
+- Improve various docs (@max-sixty, #974, #971, #972, #970, #925)
+- Add reference to EdgeDB's blog post ot FAQ (@max-sixty, #922)
+- Fix typos (@kianmeng, #943)
+
+Integrations:
+
+- Add `prql-lib`, enabling language bindings with `go` (@sigxcpu76, #923)
+- Fix line numbers in JS exceptions (@charlie-sanders, #929)
+
+Internal changes:
+
+- Lock the version of the rust-toolchain, with auto-updates (@max-sixty, #926, #927)
 
 ## 0.2.6 — 2022-08-05
 
-### Fixes
+Fixes:
 
 - Adjust `fmt` to only escape names when needed (@aljazerzen, #907)
 - Fix quoting on upper case `table` names (@max-sixty, #893)
@@ -16,12 +39,12 @@
 - Fix parse error on newlines in a `table` (@sebastiantoh 🆕, #902)
 - Fix quoting of upper case table names (@max-sixty, #893)
 
-### Documentation
+Documentation:
 
 - Add docs on [Architecture](prql-compiler/ARCHITECTURE.md) (@aljazerzen, #904)
 - Add Changelog (@max-sixty, #890 #891)
 
-### Internal changes
+Internal changes:
 
 - Start trial using Conventional Commits (@max-sixty, #889)
 - Add crates.io release workflow, docs (@max-sixty, #887)
