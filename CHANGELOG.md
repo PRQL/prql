@@ -21,7 +21,7 @@ significant features, including a `union` operator and an overhaul of our type
 system, as open PRs which will follow in future releases.
 
 We also have new features in the [VSCode
-extension](https://github.com/prql/prql-code), courtesy of @jiripospisii,
+extension](https://github.com/prql/prql-code), courtesy of @jiripospisil,
 including a live output panel.
 
 Fixes:
