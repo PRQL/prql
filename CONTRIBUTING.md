@@ -139,6 +139,7 @@ We use a pyramid of tests — we have fast, focused tests at the bottom of the
 pyramid, which give us low latency feedback when developing, and then slower,
 broader tests which ensure that we don't miss anything as PRQL develops[^1].
 
+<!-- markdownlint-disable MD053 -->
 [^1]:
     Our approach is very consistent with
     **[@matklad](https://github.com/matklad)**'s advice, in his excellent blog
@@ -261,6 +262,8 @@ Currently we release in a semi-automated way:
 - Add in the sections for a new Changelog:
 
   ```md
+  ## 0.2.X — [unreleased]
+
   Features:
 
   Fixes:

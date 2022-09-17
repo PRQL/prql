@@ -1,5 +1,19 @@
 # PRQL Changelog
 
+## 0.2.X — [unreleased]
+
+Features:
+
+Fixes:
+
+Documentation:
+
+Web:
+
+Integrations:
+
+Internal changes:
+
 ## 0.2.7 — 2022-09-17
 
 0.2.7 is a fairly modest release, six weeks after 0.2.6. We have some more
