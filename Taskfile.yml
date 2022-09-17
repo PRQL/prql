@@ -21,7 +21,14 @@ vars:
 
 tasks:
   setup-dev:
-    desc: Install tools for PRQL development.
+    desc: install all tools for PRQL development
+    cmds:
+      - task: setup-cargo-tools
+      - task: setup-other-devtools
+
+  setup-cargo-tools:
+    # factored this out because it takes a long time to build
+    desc: Install cargo tools for PRQL development.
     cmds:
       # `--locked` installs from the underlying lock files (which is not the default?!)
       - cargo install --locked
@@ -34,6 +41,10 @@ tasks:
         mdbook-toc
         wasm-bindgen-cli
         wasm-pack
+
+  setup-other-devtools:
+    desc: Install other developer setup-cargo-tools
+    cmds:
       # We no longer need this now we set it in `rust-toolchain.toml`, can be removed in time
       # - rustup target add wasm32-unknown-unknown
       - python3 -m pip install -U maturin
