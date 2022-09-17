@@ -140,6 +140,7 @@ pyramid, which give us low latency feedback when developing, and then slower,
 broader tests which ensure that we don't miss anything as PRQL develops[^1].
 
 <!-- markdownlint-disable MD053 -->
+
 [^1]:
     Our approach is very consistent with
     **[@matklad](https://github.com/matklad)**'s advice, in his excellent blog
