@@ -137,9 +137,9 @@ as described on [Task](https://taskfile.dev/#/installation).
 
 We use a pyramid of tests — we have fast, focused tests at the bottom of the
 pyramid, which give us low latency feedback when developing, and then slower,
-broader tests which ensure that we don't miss anything as PRQL develops[^2].
+broader tests which ensure that we don't miss anything as PRQL develops[^1].
 
-[^2]:
+[^1]:
     Our approach is very consistent with
     **[@matklad](https://github.com/matklad)**'s advice, in his excellent blog
     post [How to Test](https://matklad.github.io//2021/05/31/how-to-test.html).
@@ -168,14 +168,14 @@ Our tests:
   unit tests to test that our code basically works. We extensively use
   [Insta](https://insta.rs/), a snapshot testing tool which writes out the
   results of an expression in our code, making it faster to write and modify
-  tests[^4].
+  tests[^3].
 
   These are the fastest tests which run our code; they're designed to run on
   every save while you're developing. (While they're covered by `task test-all`,
   you'll generally want to have lower-latency tests running in a tight
-  loop.)[^3]
+  loop.)[^2]
 
-[^3]: For example, this is a command I frequently run:
+[^2]: For example, this is a command I frequently run:
 
     ```sh
     RUST_BACKTRACE=1 watchexec -e rs,toml,pest,md -cr -- cargo insta test --accept -- -p prql-compiler --lib
@@ -198,7 +198,7 @@ Our tests:
       loop of writing snapshot files, triggering a change, writing a snapshot
       file, etc.
 
-[^4]:
+[^3]:
     [Here's an example of an insta
     test](https://github.com/prql/prql/blob/0.2.2/prql-compiler/src/parser.rs#L580-L605)
     — note that only the initial line of each test is written by us; the remainder
@@ -252,7 +252,7 @@ Currently we release in a semi-automated way:
 
 - PR & merge an updated [Changelog](CHANGELOG.md).
 - Run `cargo release --no-push --no-tag -x patch` locally to bump the versions,
-  and merge the change.
+  then PR the change.
 - After merging, go to [Draft a new
   release](https://github.com/prql/prql/releases/new), write up release notes,
   select a new tag to be created, and hit the "Publish" button.
@@ -261,17 +261,17 @@ Currently we release in a semi-automated way:
 - Add in the sections for a new Changelog:
 
   ```md
-  ### Features
+  Features:
 
-  ### Fixes
+  Fixes:
 
-  ### Documentation
+  Documentation:
 
-  ### Web
+  Web:
 
-  ### Integrations
+  Integrations:
 
-  ### Internal changes
+  Internal changes:
   ```
 
 We may make this more automated in future; e.g. automatic changelog creation.
