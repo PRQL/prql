@@ -1,5 +1,19 @@
 # PRQL Changelog
 
+## 0.2.X — [unreleased]
+
+Features:
+
+Fixes:
+
+Documentation:
+
+Web:
+
+Integrations:
+
+Internal changes:
+
 ## 0.2.7 — 2022-09-17
 
 0.2.7 is a fairly modest release, six weeks after 0.2.6. We have some more
@@ -7,8 +21,8 @@ significant features, including a `union` operator and an overhaul of our type
 system, as open PRs which will follow in future releases.
 
 We also have new features in the [VSCode
-extension](https://github.com/prql/prql-code), courtesy of @jiripospisii,
-including a live output panel,
+extension](https://github.com/prql/prql-code), courtesy of @jiripospisil,
+including a live output panel.
 
 Fixes:
 
