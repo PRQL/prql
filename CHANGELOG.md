@@ -12,7 +12,7 @@ including a live output panel,
 
 Fixes:
 
-- `range_of_ranges` checks the Range end is smaller than its start (@shuozeli,  #946)
+- `range_of_ranges` checks the Range end is smaller than its start (@shuozeli, #946)
 
 Documentation:
 

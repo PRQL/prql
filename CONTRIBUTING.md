@@ -175,8 +175,7 @@ Our tests:
   you'll generally want to have lower-latency tests running in a tight
   loop.)[^2]
 
-[^2]:
-    For example, this is a command I frequently run:
+[^2]: For example, this is a command I frequently run:
 
     ```sh
     RUST_BACKTRACE=1 watchexec -e rs,toml,pest,md -cr -- cargo insta test --accept -- -p prql-compiler --lib
