@@ -22,7 +22,7 @@ system, as open PRs which will follow in future releases.
 
 We also have new features in the [VSCode
 extension](https://github.com/prql/prql-code), courtesy of @jiripospisii,
-including a live output panel,
+including a live output panel.
 
 Fixes:
 
