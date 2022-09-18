@@ -230,91 +230,73 @@ type PipelineAndTransform = (Option<Expr>, TransformKind);
 /// try to convert function call with enough args into transform
 pub fn cast_transform(
     resolver: &mut Resolver,
-    func_call: FuncCurry,
-) -> Result<Result<PipelineAndTransform, FuncCurry>> {
-    // TODO: transform functions are currently matched by static id, which
-    // may change if stdlib.prql is changed. This is neither ergonomic nor readable.
-    Ok(Ok(match func_call.def_id {
-        0 => {
-            let ([with], []) = unpack::<1, 0>(func_call)?;
+    closure: Closure,
+) -> Result<Result<PipelineAndTransform, Closure>> {
+    Ok(Ok(match closure.name.as_deref().unwrap_or("") {
+        "from" => {
+            let ([with], []) = unpack::<1, 0>(closure)?;
 
             (None, TransformKind::From(unpack_table_ref(with)?))
         }
-        1 => {
-            let ([assigns, pipeline], []) = unpack::<2, 0>(func_call)?;
+        "select" => {
+            let ([assigns, pipeline], []) = unpack::<2, 0>(closure)?;
 
-            let assigns = resolver.context.extract_decls(assigns.coerce_to_vec())?;
+            let mut assigns = assigns.coerce_into_vec();
+            resolver.context.declare_as_idents(&mut assigns);
 
             (Some(pipeline), TransformKind::Select(assigns))
         }
-        2 => {
-            let ([filter, pipeline], []) = unpack::<2, 0>(func_call)?;
+        "filter" => {
+            let ([filter, pipeline], []) = unpack::<2, 0>(closure)?;
 
             (Some(pipeline), TransformKind::Filter(Box::new(filter)))
         }
-        3 => {
-            let ([assigns, pipeline], []) = unpack::<2, 0>(func_call)?;
+        "derive" => {
+            let ([assigns, pipeline], []) = unpack::<2, 0>(closure)?;
 
-            let assigns = resolver.context.extract_decls(assigns.coerce_to_vec())?;
+            let mut assigns = assigns.coerce_into_vec();
+            resolver.context.declare_as_idents(&mut assigns);
 
             (Some(pipeline), TransformKind::Derive(assigns))
         }
-        4 => {
-            let ([assigns, pipeline], []) = unpack::<2, 0>(func_call)?;
+        "aggregate" => {
+            let ([assigns, pipeline], []) = unpack::<2, 0>(closure)?;
 
-            let assigns = resolver.context.extract_decls(assigns.coerce_to_vec())?;
+            let mut assigns = assigns.coerce_into_vec();
+            resolver.context.declare_as_idents(&mut assigns);
             let by = vec![];
 
             (Some(pipeline), TransformKind::Aggregate { assigns, by })
         }
-        5 => {
-            let ([by, pipeline], []) = unpack::<2, 0>(func_call)?;
+        "sort" => {
+            let ([by, pipeline], []) = unpack::<2, 0>(closure)?;
 
             let by = by
-                .coerce_to_vec()
+                .coerce_into_vec()
                 .into_iter()
                 .map(|node| {
-                    let (column, direction) = match &node.kind {
-                        ExprKind::Ident(_) => (node.clone(), SortDirection::default()),
-                        ExprKind::Unary { op, expr: a }
-                            if matches!((op, &a.kind), (UnOp::Neg, ExprKind::Ident(_))) =>
-                        {
-                            (*a.clone(), SortDirection::Desc)
+                    let (mut column, direction) = match node.kind {
+                        ExprKind::Unary { op, expr } if matches!(op, UnOp::Neg) => {
+                            (*expr, SortDirection::Desc)
                         }
-                        _ => {
-                            return Err(Error::new(Reason::Expected {
-                                who: Some("`sort`".to_string()),
-                                expected: "column name, optionally prefixed with + or -"
-                                    .to_string(),
-                                found: node.kind.to_string(),
-                            })
-                            .with_span(node.span));
-                        }
+                        _ => (node, SortDirection::default()),
                     };
 
-                    if matches!(column.kind, ExprKind::Ident(_)) {
-                        Ok(ColumnSort { direction, column })
-                    } else {
-                        Err(Error::new(Reason::Expected {
-                            who: Some("`sort`".to_string()),
-                            expected: "column name".to_string(),
-                            found: format!("`{}`", column.kind),
-                        })
-                        .with_help("you can introduce a new column with `derive`")
-                        .with_span(column.span))
-                    }
+                    resolver.context.declare_as_ident(&mut column);
+
+                    ColumnSort { direction, column }
                 })
-                .try_collect()?;
+                .collect();
 
             (Some(pipeline), TransformKind::Sort(by))
         }
-        6 => {
-            let ([expr, pipeline], []) = unpack::<2, 0>(func_call)?;
+        "take" => {
+            let ([expr, pipeline], []) = unpack::<2, 0>(closure)?;
 
             let range = match expr.kind {
                 ExprKind::Literal(Literal::Integer(n)) => Range::from_ints(None, Some(n)),
                 ExprKind::Range(range) => range,
-                i => unimplemented!("`take` range: {i}"),
+                _ => unimplemented!("`take` range: {expr}"),
             };
             (
                 Some(pipeline),
@@ -325,12 +307,12 @@ pub fn cast_transform(
                 },
             )
         }
-        7 => {
-            let ([with, filter, pipeline], [side]) = unpack::<3, 1>(func_call)?;
+        "join" => {
+            let ([with, filter, pipeline], [side]) = unpack::<3, 1>(closure)?;
 
             let side = if let Some(side) = side {
                 let span = side.span;
-                let ident = side.unwrap(ExprKind::into_ident, "ident")?;
+                let ident = side.try_cast(ExprKind::into_ident, Some("side"), "ident")?;
                 match ident.as_str() {
                     "inner" => JoinSide::Inner,
                     "left" => JoinSide::Left,
@@ -350,7 +332,7 @@ pub fn cast_transform(
 
             let with = unpack_table_ref(with)?;
 
-            let filter = filter.coerce_to_vec();
+            let filter = filter.coerce_into_vec();
             let use_using =
                 (filter.iter().map(|x| &x.kind)).all(|x| matches!(x, ExprKind::Ident(_)));
 
@@ -362,11 +344,11 @@ pub fn cast_transform(
 
             (Some(pipeline), TransformKind::Join { side, with, filter })
         }
-        8 => {
-            let ([by, pipeline, pl], []) = unpack::<3, 0>(func_call)?;
+        "group" => {
+            let ([by, pipeline, pl], []) = unpack::<3, 0>(closure)?;
 
             let by = by
-                .coerce_to_vec()
+                .coerce_into_vec()
                 .into_iter()
                 // check that they are only idents
                 .map(|n| match n.kind {
@@ -394,8 +376,8 @@ pub fn cast_transform(
 
             (Some(pl), TransformKind::Group { by, pipeline })
         }
-        9 => {
-            let ([pipeline, pl], [rows, range, expanding, rolling]) = unpack::<2, 4>(func_call)?;
+        "window" => {
+            let ([pipeline, pl], [rows, range, expanding, rolling]) = unpack::<2, 4>(closure)?;
 
             let expanding = if let Some(expanding) = expanding {
                 let as_bool = expanding.kind.as_literal().and_then(|l| l.as_boolean());
@@ -404,7 +386,7 @@ pub fn cast_transform(
                     Error::new(Reason::Expected {
                         who: Some("parameter `expanding`".to_string()),
                         expected: "a boolean".to_string(),
-                        found: format!("{}", expanding.kind),
+                        found: format!("{expanding}"),
                     })
                     .with_span(expanding.span)
                 })?
@@ -419,7 +401,7 @@ pub fn cast_transform(
                     Error::new(Reason::Expected {
                         who: Some("parameter `rolling`".to_string()),
                         expected: "a number".to_string(),
-                        found: format!("{}", rolling.kind),
+                        found: format!("{rolling}"),
                     })
                     .with_span(rolling.span)
                 })?
@@ -428,27 +410,13 @@ pub fn cast_transform(
             };
 
             let rows = if let Some(rows) = rows {
-                Some(rows.kind.into_range().map_err(|x| {
-                    Error::new(Reason::Expected {
-                        who: Some("parameter `rows`".to_string()),
-                        expected: "a range".to_string(),
-                        found: format!("{}", x),
-                    })
-                    .with_span(rows.span)
-                })?)
+                Some(rows.try_cast(|r| r.into_range(), Some("parameter `rows`"), "a range")?)
             } else {
                 None
             };
 
             let range = if let Some(range) = range {
-                Some(range.kind.into_range().map_err(|x| {
-                    Error::new(Reason::Expected {
-                        who: Some("parameter `range`".to_string()),
-                        expected: "a range".to_string(),
-                        found: format!("{}", x),
-                    })
-                    .with_span(range.span)
-                })?)
+                Some(range.try_cast(|r| r.into_range(), Some("parameter `range`"), "a range")?)
             } else {
                 None
             };
@@ -491,7 +459,7 @@ pub fn cast_transform(
                 },
             )
         }
-        _ => return Ok(Err(func_call)),
+        _ => return Ok(Err(closure)),
     }))
 }
 
@@ -505,7 +473,7 @@ fn unpack_table_ref(expr: Expr) -> Result<TableRef> {
         Error::new(Reason::Expected {
             who: None,
             expected: "table name".to_string(),
-            found: format!("`{e}`"),
+            found: format!("`{}`", Expr::from(e)),
         })
         .with_span(expr.span)
         .with_help(
@@ -522,10 +490,13 @@ fn unpack_table_ref(expr: Expr) -> Result<TableRef> {
 }
 
 fn unpack<const P: usize, const N: usize>(
-    func_call: FuncCurry,
+    closure: Closure,
 ) -> Result<([Expr; P], [Option<Expr>; N])> {
-    let named = func_call.named_args.try_into().expect("bad transform cast");
-    let positional = (func_call.args.try_into()).expect("bad transform cast");
+    let named = closure
+        .named_args
+        .try_into()
+        .unwrap_or_else(|na| panic!("bad transform cast: {:?} {na:?}", closure.name));
+    let positional = closure.args.try_into().expect("bad transform cast");
 
     Ok((positional, named))
 }
@@ -581,14 +552,13 @@ mod tests {
               Select:
                 - Ident: invoice_no
                   ty:
-                    Parameterized:
-                      - Assigns
-                      - Type:
-                          Literal: Column
+                    Literal: Column
             is_complex: false
             ty:
               columns:
-                - Unnamed: 30
+                - Named:
+                    - invoice_no
+                    - 30
               sort: []
               tables: []
             span:
@@ -612,14 +582,18 @@ mod tests {
                     is_complex: false
                     ty:
                       columns:
-                        - Unnamed: 30
+                        - Named:
+                            - invoice_no
+                            - 30
                       sort: []
                       tables: []
                     span: ~
             is_complex: false
             ty:
               columns:
-                - Unnamed: 30
+                - Named:
+                    - invoice_no
+                    - 30
               sort: []
               tables: []
             span:
@@ -696,7 +670,14 @@ mod tests {
                   - kind:
                       Aggregate:
                         assigns:
-                          - Ident: "<unnamed>"
+                          - SString:
+                              - String: AVG(
+                              - Expr:
+                                  Ident: amount
+                                  ty: Infer
+                              - String: )
+                            ty:
+                              Literal: Column
                         by: []
                     is_complex: false
                     ty:
@@ -817,7 +798,7 @@ mod tests {
                 - All: 29
               sort:
                 - direction: Desc
-                  column: 33
+                  column: 34
               tables: []
             span:
               start: 106
@@ -834,7 +815,7 @@ mod tests {
                 - All: 29
               sort:
                 - direction: Asc
-                  column: 33
+                  column: 35
               tables: []
             span:
               start: 132
@@ -851,7 +832,7 @@ mod tests {
                 - All: 29
               sort:
                 - direction: Desc
-                  column: 33
+                  column: 36
               tables: []
             span:
               start: 157

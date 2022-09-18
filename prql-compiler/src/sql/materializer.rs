@@ -173,7 +173,11 @@ impl Materializer {
         let decl = self.context.declarations.get(id);
 
         let materialized = match decl.clone() {
-            Declaration::Expression(inner) => self.fold_expr(*inner)?,
+            Declaration::Expression(inner) => {
+                let mut inner = *inner;
+                inner.declared_at = None;
+                self.fold_expr(inner)?
+            }
             Declaration::ExternRef { table, variable } => {
                 let name = if let Some(table) = table {
                     let (_, var_name) = split_var_name(&variable);
@@ -191,12 +195,8 @@ impl Materializer {
 
                 ExprKind::Ident(name).into()
             }
-            Declaration::Function(func_call) => {
-                // function without arguments (a global variable)
-
-                let body = func_call.body;
-
-                self.fold_expr(*body)?
+            Declaration::Function(_) => {
+                unreachable!("unresolved function left in IR");
             }
             Declaration::Table(table) => ExprKind::Ident(format!("{table}.*")).into(),
         };
@@ -350,25 +350,24 @@ take 20
         assert_yaml_snapshot!(stmts, @r###"
         ---
         - Pipeline:
-            nodes:
-              - FuncCall:
-                  name:
-                    Ident: from
-                  args:
-                    - Ident: employees
-                  named_args: {}
-              - FuncCall:
-                  name:
-                    Ident: aggregate
-                  args:
-                    - List:
-                        - FuncCall:
-                            name:
-                              Ident: sum
-                            args:
-                              - Ident: salary
-                            named_args: {}
-                  named_args: {}
+            - FuncCall:
+                name:
+                  Ident: from
+                args:
+                  - Ident: employees
+                named_args: {}
+            - FuncCall:
+                name:
+                  Ident: aggregate
+                args:
+                  - List:
+                      - FuncCall:
+                          name:
+                            Ident: sum
+                          args:
+                            - Ident: salary
+                          named_args: {}
+                named_args: {}
         "###);
 
         let (res, context) = resolve(stmts, None)?;
@@ -380,16 +379,13 @@ take 20
         let diff = diff(&to_string(&res.main_pipeline)?, &to_string(&mat)?);
         assert!(!diff.is_empty());
         assert_display_snapshot!(diff, @r###"
-        @@ -4,5 +4,9 @@
-             declared_at: 79
-         - Transform: !Aggregate
-             assigns:
-        -    - Ident: <unnamed>
-        +    - SString:
-        +      - !String SUM(
-        +      - !Expr
-        +        Ident: salary
-        +      - !String )
+        @@ -22,7 +22,6 @@
+               - !String SUM(
+               - !Expr
+                 Ident: salary
+        -        ty: Infer
+               - !String )
+               ty: !Literal Column
              by: []
         "###);
 
@@ -411,25 +407,24 @@ take 20
         assert_yaml_snapshot!(stmts[2], @r###"
         ---
         Pipeline:
-          nodes:
-            - FuncCall:
-                name:
-                  Ident: from
-                args:
-                  - Ident: a
-                named_args: {}
-            - FuncCall:
-                name:
-                  Ident: select
-                args:
-                  - FuncCall:
-                      name:
-                        Ident: ret
-                      args:
-                        - Ident: b
-                        - Ident: c
-                      named_args: {}
-                named_args: {}
+          - FuncCall:
+              name:
+                Ident: from
+              args:
+                - Ident: a
+              named_args: {}
+          - FuncCall:
+              name:
+                Ident: select
+              args:
+                - FuncCall:
+                    name:
+                      Ident: ret
+                    args:
+                      - Ident: b
+                      - Ident: c
+                    named_args: {}
+              named_args: {}
         "###);
 
         let mat = resolve_and_materialize(stmts).unwrap();
@@ -459,23 +454,29 @@ take 20
         let (mat, _, _) = materialize(res.main_pipeline.clone(), context.into(), None)?;
 
         assert_snapshot!(diff(&to_string(&res.main_pipeline)?, &to_string(&mat)?), @r###"
-        @@ -4,6 +4,14 @@
-             declared_at: 79
-         - Transform: !Aggregate
+        @@ -18,10 +18,20 @@
+             end: 15
+         - kind: !Aggregate
              assigns:
         -    - Ident: one
+        +    - SString:
+        +      - !String SUM(
+        +      - !Expr
+        +        Ident: foo
+        +      - !String )
+               ty: !Literal Column
         -    - Ident: two
+        +      alias: one
         +    - SString:
         +      - !String SUM(
         +      - !Expr
         +        Ident: foo
         +      - !String )
-        +    - SString:
-        +      - !String SUM(
-        +      - !Expr
-        +        Ident: foo
-        +      - !String )
+               ty: !Literal Column
+        +      alias: two
              by: []
+           is_complex: false
+           ty:
         "###);
 
         // Test it'll run the `sum foo` function first.
@@ -492,36 +493,36 @@ take 20
 
         assert_yaml_snapshot!(mat, @r###"
         ---
-        - Transform:
-            From:
-              name: a
-              alias: ~
-              declared_at: 81
-        - Transform:
-            Aggregate:
-              assigns:
-                - Binary:
-                    left:
-                      SString:
-                        - String: SUM(
-                        - Expr:
-                            Ident: foo
-                        - String: )
-                    op: Add
-                    right:
-                      Literal:
-                        Integer: 1
-                      ty:
-                        Literal: Integer
-                  ty: Infer
-              by: []
-          ty:
-            Function:
-              named: {}
-              args:
-                - Infer
-              return_ty:
-                Literal: Table
+        - From:
+            name: a
+            alias: ~
+            declared_at: 30
+            ty:
+              Table:
+                columns:
+                  - All: 30
+                sort: []
+                tables: []
+        - Aggregate:
+            assigns:
+              - Binary:
+                  left:
+                    SString:
+                      - String: SUM(
+                      - Expr:
+                          Ident: foo
+                      - String: )
+                    ty: Infer
+                  op: Add
+                  right:
+                    Literal:
+                      Integer: 1
+                    ty:
+                      Literal: Integer
+                ty:
+                  Literal: Column
+                alias: a
+            by: []
         "###);
 
         Ok(())
@@ -544,11 +545,16 @@ take 20
 
         assert_yaml_snapshot!(mat, @r###"
         ---
-        - Transform:
-            From:
-              name: foo_table
-              alias: ~
-              declared_at: 82
+        - From:
+            name: foo_table
+            alias: ~
+            declared_at: 30
+            ty:
+              Table:
+                columns:
+                  - All: 30
+                sort: []
+                tables: []
         "###);
 
         Ok(())
@@ -569,28 +575,26 @@ take 20
         assert_yaml_snapshot!(mat,
             @r###"
         ---
-        - Transform:
-            From:
-              name: employees
-              alias: ~
-              declared_at: 79
-        - Transform:
-            Aggregate:
-              assigns:
-                - SString:
-                    - String: SUM(
-                    - Expr:
-                        Ident: salary
-                    - String: )
-                  ty: Infer
-              by: []
-          ty:
-            Function:
-              named: {}
-              args:
-                - Infer
-              return_ty:
-                Literal: Table
+        - From:
+            name: employees
+            alias: ~
+            declared_at: 29
+            ty:
+              Table:
+                columns:
+                  - All: 29
+                sort: []
+                tables: []
+        - Aggregate:
+            assigns:
+              - SString:
+                  - String: SUM(
+                  - Expr:
+                      Ident: salary
+                  - String: )
+                ty:
+                  Literal: Column
+            by: []
         "###
         );
         Ok(())
@@ -680,81 +684,73 @@ take 20
         let mat = resolve_and_materialize(query).unwrap();
         assert_yaml_snapshot!(mat, @r###"
         ---
-        - Transform:
-            From:
-              name: employees
-              alias: ~
-              declared_at: 79
-        - Transform:
-            Group:
-              by:
-                - Ident: title
-                - Ident: emp_no
-              pipeline:
-                Pipeline:
-                  nodes:
-                    - Transform:
-                        Aggregate:
-                          assigns:
-                            - SString:
+        - From:
+            name: employees
+            alias: ~
+            declared_at: 29
+            ty:
+              Table:
+                columns:
+                  - All: 29
+                sort: []
+                tables: []
+        - Group:
+            by:
+              - Ident: title
+              - Ident: emp_no
+            pipeline:
+              - kind:
+                  Aggregate:
+                    assigns:
+                      - SString:
+                          - String: AVG(
+                          - Expr:
+                              Ident: salary
+                          - String: )
+                        ty:
+                          Literal: Column
+                        alias: emp_salary
+                    by: []
+                is_complex: false
+                ty:
+                  columns:
+                    - Named:
+                        - emp_salary
+                        - 33
+                  sort: []
+                  tables: []
+                span: ~
+        - Group:
+            by:
+              - Ident: employees.title
+            pipeline:
+              - kind:
+                  Aggregate:
+                    assigns:
+                      - SString:
+                          - String: AVG(
+                          - Expr:
+                              SString:
                                 - String: AVG(
                                 - Expr:
                                     Ident: salary
                                 - String: )
-                              ty: Infer
-                          by:
-                            - Ident: title
-                            - Ident: emp_no
-                      ty:
-                        Function:
-                          named: {}
-                          args:
-                            - Infer
-                          return_ty:
-                            Literal: Table
-          ty:
-            Function:
-              named: {}
-              args:
-                - Infer
-              return_ty:
-                Literal: Table
-        - Transform:
-            Group:
-              by:
-                - Ident: title
-              pipeline:
-                Pipeline:
-                  nodes:
-                    - Transform:
-                        Aggregate:
-                          assigns:
-                            - SString:
-                                - String: AVG(
-                                - Expr:
-                                    SString:
-                                      - String: AVG(
-                                      - Expr:
-                                          Ident: salary
-                                      - String: )
-                                - String: )
-                              ty: Infer
-                          by:
-                            - Ident: title
-                      ty:
-                        Function:
-                          named: {}
-                          args:
-                            - Infer
-                          return_ty:
-                            Literal: Table
-          ty:
-            Function:
-              named: {}
-              args:
-                - Infer
-              return_ty:
-                Literal: Table
+                              ty:
+                                Literal: Column
+                          - String: )
+                        ty:
+                          Literal: Column
+                        alias: avg_salary
+                    by: []
+                is_complex: false
+                ty:
+                  columns:
+                    - Named:
+                        - avg_salary
+                        - 35
+                  sort: []
+                  tables: []
+                span: ~
         "###);
 
         Ok(())
@@ -784,12 +780,27 @@ take 20
 
         assert_yaml_snapshot!(mat, @r###"
         ---
-        - Transform:
+        - kind:
             From:
               name: orders
               alias: ~
-              declared_at: 79
-        - Transform:
+              declared_at: 29
+              ty:
+                Table:
+                  columns:
+                    - All: 29
+                  sort: []
+                  tables: []
+          is_complex: false
+          ty:
+            columns:
+              - All: 29
+            sort: []
+            tables: []
+          span:
+            start: 9
+            end: 20
+        - kind:
             Take:
               range:
                 start: ~
@@ -798,13 +809,24 @@ take 20
                     Integer: 20
               by: []
               sort: []
+          is_complex: false
           ty:
-            Function:
-              named: {}
-              args:
-                - Infer
-              return_ty:
-                Literal: Table
+            columns:
+              - Named:
+                  - customer_no
+                  - 30
+              - Named:
+                  - gross
+                  - 31
+              - Named:
+                  - tax
+                  - 32
+              - Unnamed: 35
+            sort: []
+            tables: []
+          span:
+            start: 83
+            end: 90
         "###);
         assert_yaml_snapshot!(frame.columns, @r###"
         ---
@@ -817,35 +839,64 @@ take 20
             op: Sub
             right:
               Ident: tax
-          ty: Infer
+          ty:
+            Literal: Column
         "###);
 
         let (mat, frame, _) = materialize(res2.main_pipeline, context, None)?;
 
         assert_yaml_snapshot!(mat, @r###"
         ---
-        - Transform:
+        - kind:
             From:
               name: table_1
               alias: ~
-              declared_at: 84
-        - Transform:
+              declared_at: 36
+              ty:
+                Table:
+                  columns:
+                    - All: 36
+                  sort: []
+                  tables: []
+          is_complex: false
+          ty:
+            columns:
+              - All: 36
+            sort: []
+            tables: []
+          span:
+            start: 9
+            end: 21
+        - kind:
             Join:
               side: Inner
               with:
                 name: customers
                 alias: ~
-                declared_at: 85
+                declared_at: 38
+                ty:
+                  Table:
+                    columns:
+                      - All: 38
+                    sort: []
+                    tables: []
               filter:
                 Using:
                   - Ident: customer_no
+          is_complex: false
           ty:
-            Function:
-              named: {}
-              args:
-                - Infer
-              return_ty:
-                Literal: Table
+            columns:
+              - All: 36
+              - All: 38
+              - Named:
+                  - customer_no
+                  - 37
+            sort: []
+            tables:
+              - 38
+          span:
+            start: 30
+            end: 58
         "###);
         assert_yaml_snapshot!(frame.columns, @r###"
         ---

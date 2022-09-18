@@ -105,7 +105,7 @@ struct FrameCollector {
 
 impl AstFold for FrameCollector {
     fn fold_transform(&mut self, transform: Transform) -> Result<Transform> {
-        let span = transform.span.unwrap();
+        let span = transform.span.expect("transform without a span?");
         self.frames.push((span, transform.ty.clone()));
         Ok(transform)
     }

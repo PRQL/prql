@@ -27,10 +27,6 @@ pub enum Ty {
     /// Some sort of globally defined enum, used for i.e. `join side:left`.
     /// This could be replaced with actual enums (which currently don't exist).
     BuiltinKeyword,
-
-    /// Type of the column assign operation.
-    /// Has parameter that can be either `table` or `column`.
-    Assigns,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, strum::EnumString, strum::Display)]
@@ -90,6 +86,10 @@ impl PartialOrd for Ty {
             // Not handled here. See type_resolver.
             (Ty::Infer, _) | (_, Ty::Infer) => None,
 
+            (Ty::Literal(TyLit::Column), Ty::Literal(TyLit::Column)) => Some(Ordering::Equal),
+            (Ty::Literal(TyLit::Column), Ty::Literal(_)) => Some(Ordering::Greater),
+            (Ty::Literal(_), Ty::Literal(TyLit::Column)) => Some(Ordering::Less),
+
             (Ty::Literal(l0), Ty::Literal(r0)) => {
                 if l0 == r0 {
                     Some(Ordering::Equal)
@@ -120,16 +120,6 @@ impl PartialOrd for Ty {
             }
             (Ty::Parameterized(l_ty, _), r_ty) if **l_ty == *r_ty => Some(Ordering::Equal),
             (l_ty, Ty::Parameterized(r_ty, _)) if *l_ty == **r_ty => Some(Ordering::Equal),
-
-            // (assigns<A> < B) iff (A < B)
-            (Ty::Parameterized(assigns, l), r) if matches!(**assigns, Ty::Assigns) => {
-                let l = l.kind.as_type().unwrap();
-                l.partial_cmp(r)
-            }
-            (l, Ty::Parameterized(assigns, r)) if matches!(**assigns, Ty::Assigns) => {
-                let r = r.kind.as_type().unwrap();
-                l.partial_cmp(r)
-            }
 
             (Ty::Table(_), Ty::Table(_)) => Some(Ordering::Equal),
 
@@ -165,7 +155,6 @@ impl Display for Ty {
             Ty::Table(frame) => write!(f, "table<{frame}>"),
             Ty::Infer => write!(f, "infer"),
             Ty::BuiltinKeyword => write!(f, "builtin_keyword"),
-            Ty::Assigns => write!(f, "assigns"),
             Ty::Function(func) => {
                 write!(f, "func")?;
 

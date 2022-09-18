@@ -93,7 +93,7 @@ impl Display for StmtKind {
             }
             StmtKind::Pipeline(exprs) => {
                 for expr in exprs {
-                    writeln!(f, "{}", expr.kind)?;
+                    writeln!(f, "{}", expr)?;
                 }
             }
             StmtKind::FuncDef(func_def) => {
@@ -104,11 +104,11 @@ impl Display for StmtKind {
                 for arg in &func_def.named_params {
                     write!(f, " {}", arg.name)?;
                 }
-                write!(f, " -> {}\n\n", func_def.body.kind)?;
+                write!(f, " -> {}\n\n", func_def.body)?;
             }
             StmtKind::TableDef(table) => {
-                let pipeline = &table.pipeline.kind;
-                match pipeline {
+                let pipeline = &table.pipeline;
+                match &pipeline.kind {
                     ExprKind::FuncCall(_) => {
                         write!(f, "table {} = (\n  {pipeline}\n)\n\n", table.name)?;
                     }
