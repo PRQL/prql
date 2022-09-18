@@ -62,12 +62,8 @@ pub fn translate_query(query: Query, context: Context) -> Result<sql_ast::Query>
     for t in atomics {
         let table_id = t.name.clone().and_then(|x| x.declared_at);
 
-        // dbg!(&t.pipeline);
         let (pipeline, frame, c) = super::materialize(t.pipeline, context, table_id)?;
         context = c;
-
-        // dbg!(&pipeline);
-        // dbg!(&frame);
 
         materialized.push(AtomicTable {
             name: t.name,
@@ -92,7 +88,6 @@ pub fn translate_query(query: Query, context: Context) -> Result<sql_ast::Query>
         .try_collect()?;
 
     // convert main query
-    // dbg!(&main_query);
     let mut main_query = sql_query_of_atomic_table(main_query, dialect.as_ref())?;
 
     // attach CTEs

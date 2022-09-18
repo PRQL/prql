@@ -101,10 +101,13 @@ impl Cli {
             }
             Cli::Resolve(_) => {
                 let ast = parse(source)?;
-                let (ir, _) = semantic::resolve(ast, None)?;
+                let (ir, context) = semantic::resolve(ast, None)?;
 
-                // format!("{ir:#?}").into_bytes()
-                serde_yaml::to_string(&ir)?.into_bytes()
+                [
+                    format!("{:?}", context.declarations).into_bytes(),
+                    serde_yaml::to_string(&ir)?.into_bytes(),
+                ]
+                .concat()
             }
             Cli::Compile(_) => crate::compile(source)?.as_bytes().to_vec(),
         })
@@ -181,22 +184,22 @@ mod tests {
             &Cli::Annotate(CommandIO::default()),
             r#"
 from initial_table
-select [first = name, last = last_name, gender]
-derive full_name = first + " " + last
+select [f = first_name, l = last_name, gender]
+derive full_name = f + " " + l
 take 23
-select [last + " " + first, full = full_name, gender]
+select [l + " " + f, full = full_name, gender]
 sort full
         "#,
         )
         .unwrap();
         assert_snapshot!(String::from_utf8(output).unwrap().trim(),
         @r###"
-        from initial_table                                     # [initial_table.*]
-        select [first = name, last = last_name, gender]        # [first, last, gender]
-        derive full_name = first + " " + last                  # [first, last, gender, full_name]
-        take 23                                                # [first, last, gender, full_name]
-        select [last + " " + first, full = full_name, gender]  # [?, full, gender]
-        sort full                                              # [?, full, gender]
+        from initial_table                              # [initial_table.*]
+        select [f = first_name, l = last_name, gender]  # [f, l, gender]
+        derive full_name = f + " " + l                  # [f, l, gender, full_name]
+        take 23                                         # [f, l, gender, full_name]
+        select [l + " " + f, full = full_name, gender]  # [?, full, gender]
+        sort full                                       # [?, full, gender]
         "###);
     }
 
@@ -218,8 +221,6 @@ group a_column (take 10 | sort b_column | derive [the_number = rank, last = lag 
         //   operations but are always inserted for function calls)
         assert_snapshot!(String::from_utf8(output).unwrap().trim(),
         @r###"
-        prql dialect:generic
-
         from `table.subdivision`
         derive `želva_means_turtle` = `column with spaces` + 1 * 3
         group a_column (
@@ -227,7 +228,7 @@ group a_column (take 10 | sort b_column | derive [the_number = rank, last = lag 
           sort b_column
           derive [
           the_number = rank,
-          last = (lag 1 c_column),
+          last = lag 1 c_column,
         ]
         )
         "###);

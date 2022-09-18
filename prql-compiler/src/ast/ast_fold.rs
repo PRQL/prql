@@ -60,8 +60,8 @@ pub trait AstFold {
     fn fold_func_call(&mut self, func_call: FuncCall) -> Result<FuncCall> {
         fold_func_call(self, func_call)
     }
-    fn fold_func_curry(&mut self, func_curry: FuncCurry) -> Result<FuncCurry> {
-        fold_func_curry(self, func_curry)
+    fn fold_closure(&mut self, closure: Closure) -> Result<Closure> {
+        fold_closure(self, closure)
     }
     fn fold_table_ref(&mut self, table_ref: TableRef) -> Result<TableRef> {
         fold_table_ref(self, table_ref)
@@ -121,7 +121,7 @@ pub fn fold_expr_kind<T: ?Sized + AstFold>(fold: &mut T, expr_kind: ExprKind) ->
                 .try_collect()?,
         ),
         FuncCall(func_call) => FuncCall(fold.fold_func_call(func_call)?),
-        FuncCurry(func_curry) => FuncCurry(fold.fold_func_curry(func_curry)?),
+        Closure(closure) => Closure(fold.fold_closure(closure)?),
         Windowed(window) => Windowed(fold.fold_windowed(window)?),
         Type(t) => Type(fold.fold_type(t)?),
         ResolvedPipeline(transforms) => ResolvedPipeline(fold.fold_transforms(transforms)?),
@@ -300,22 +300,20 @@ pub fn fold_func_call<T: ?Sized + AstFold>(fold: &mut T, func_call: FuncCall) ->
             .try_collect()?,
     })
 }
-pub fn fold_func_curry<T: ?Sized + AstFold>(
-    fold: &mut T,
-    func_curry: FuncCurry,
-) -> Result<FuncCurry> {
-    Ok(FuncCurry {
-        def_id: func_curry.def_id,
-        args: func_curry
+pub fn fold_closure<T: ?Sized + AstFold>(fold: &mut T, closure: Closure) -> Result<Closure> {
+    Ok(Closure {
+        body: Box::new(fold.fold_expr(*closure.body)?),
+        args: closure
             .args
             .into_iter()
             .map(|item| fold.fold_expr(item))
             .try_collect()?,
-        named_args: func_curry
+        named_args: closure
             .named_args
             .into_iter()
             .map(|expr| expr.map(|e| fold.fold_expr(e)).transpose())
             .try_collect()?,
+        ..closure
     })
 }
 

@@ -38,14 +38,14 @@ pub fn resolve_type(node: &Expr) -> Result<Ty> {
 #[allow(dead_code)]
 fn too_many_arguments(call: &FuncCall, expected_len: usize, passed_len: usize) -> Error {
     let err = Error::new(Reason::Expected {
-        who: Some(format!("{}", call.name.kind)),
+        who: Some(format!("{}", call.name)),
         expected: format!("{} arguments", expected_len),
         found: format!("{}", passed_len),
     });
     if passed_len >= 2 {
         err.with_help(format!(
             "If you are calling a function, you may want to add parentheses `{} [{:?} {:?}]`",
-            call.name.kind, call.args[0], call.args[1]
+            call.name, call.args[0], call.args[1]
         ))
     } else {
         err
@@ -82,18 +82,18 @@ where
     Ok(found_ty)
 }
 
-pub fn type_of_func_def(def: &FuncDef) -> TyFunc {
+pub fn type_of_closure(closure: &Closure) -> TyFunc {
     TyFunc {
-        args: def
-            .positional_params
+        args: closure
+            .params
             .iter()
             .map(|a| a.ty.clone().unwrap_or(Ty::Infer))
             .collect(),
-        named: def
+        named: closure
             .named_params
             .iter()
             .map(|a| (a.name.clone(), a.ty.clone().unwrap_or(Ty::Infer)))
             .collect(),
-        return_ty: Box::new(def.return_ty.clone().unwrap_or(Ty::Infer)),
+        return_ty: Box::new(Ty::Infer), // TODO
     }
 }
