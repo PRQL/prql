@@ -8,6 +8,7 @@ use semver::VersionReq;
 use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Reason, Span};
+use crate::semantic::Declaration;
 
 use super::*;
 
@@ -50,7 +51,7 @@ pub enum ExprKind {
         expr: Box<Expr>,
     },
     FuncCall(FuncCall),
-    FuncCurry(FuncCurry),
+    Closure(Closure),
     Type(Ty),
     SString(Vec<InterpolateItem>),
     FString(Vec<InterpolateItem>),
@@ -136,16 +137,20 @@ impl FuncCall {
         }
     }
 }
-
-/// A function call with missing positional arguments
+/// Function called with possibly missing positional arguments.
+/// May also contain environment that is needed to evaluate the body.
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub struct FuncCurry {
-    pub def_id: usize,
+pub struct Closure {
+    pub name: Option<String>,
+    pub body: Box<Expr>,
 
     pub args: Vec<Expr>,
+    pub params: Vec<FuncParam>,
 
-    // same order as in FuncDef
     pub named_args: Vec<Option<Expr>>,
+    pub named_params: Vec<FuncParam>,
+
+    pub env: HashMap<String, Declaration>,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
@@ -232,32 +237,38 @@ impl Expr {
         node
     }
 
-    /// Often we don't care whether a List or single item is passed; e.g.
-    /// `select x` vs `select [x, y]`. This equalizes them both to a vec of
-    /// [Node]-s.
-    pub fn coerce_to_vec(self) -> Vec<Expr> {
+    pub fn coerce_into_vec(self) -> Vec<Expr> {
         match self.kind {
             ExprKind::List(items) => items,
             _ => vec![self],
         }
     }
 
-    pub fn coerce_to_pipeline(self) -> Pipeline {
-        match self.kind {
-            ExprKind::Pipeline(p) => p,
-            _ => Pipeline { exprs: vec![self] },
+    pub fn coerce_as_mut_vec(&mut self) -> Vec<&mut Expr> {
+        if matches!(self.kind, ExprKind::List(_)) {
+            match &mut self.kind {
+                ExprKind::List(items) => items.iter_mut().collect(),
+                _ => unreachable!(),
+            }
+        } else {
+            vec![self]
         }
     }
 
-    pub fn unwrap<T, F>(self, f: F, expected: &str) -> Result<T, Error>
+    pub fn try_cast<T, F, S2: ToString>(
+        self,
+        f: F,
+        who: Option<&str>,
+        expected: S2,
+    ) -> Result<T, Error>
     where
         F: FnOnce(ExprKind) -> Result<T, ExprKind>,
     {
         f(self.kind).map_err(|i| {
             Error::new(Reason::Expected {
-                who: None,
+                who: who.map(|s| s.to_string()),
                 expected: expected.to_string(),
-                found: i.to_string(),
+                found: format!("`{}`", Expr::from(i)),
             })
             .with_span(self.span)
         })
@@ -286,52 +297,40 @@ impl From<Vec<Expr>> for Pipeline {
 impl From<ExprKind> for anyhow::Error {
     // https://github.com/bluejekyll/enum-as-inner/issues/84
     #[allow(unreachable_code)]
-    fn from(item: ExprKind) -> Self {
+    fn from(kind: ExprKind) -> Self {
         // panic!("Failed to convert {item}")
-        anyhow!("Failed to convert `{item}`")
+        anyhow!("Failed to convert `{}`", Expr::from(kind))
     }
 }
 
-impl Display for ExprKind {
+impl Display for Expr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        // TODO: print Expr.alias
+        if let Some(alias) = &self.alias {
+            display_ident(f, alias)?;
+            f.write_str(" = ")?;
+        }
 
-        match self {
+        match &self.kind {
             ExprKind::Empty => {
                 f.write_str("()")?;
             }
             ExprKind::Ident(s) => {
-                fn forbidden_start(c: char) -> bool {
-                    !(('a'..='z').contains(&c) || matches!(c, '_' | '$'))
-                }
-                fn forbidden_subsequent(c: char) -> bool {
-                    !(('a'..='z').contains(&c) || ('0'..='9').contains(&c) || matches!(c, '_'))
-                }
-
-                let needs_escape = s.is_empty()
-                    || s.starts_with(forbidden_start)
-                    || (s.len() > 1 && s.chars().skip(1).any(forbidden_subsequent));
-
-                if needs_escape {
-                    write!(f, "`{s}`")?;
-                } else {
-                    write!(f, "{s}")?;
-                }
+                display_ident(f, s)?;
             }
             ExprKind::Pipeline(pipeline) => {
                 f.write_char('(')?;
                 match pipeline.exprs.len() {
                     0 => {}
                     1 => {
-                        write!(f, "{}", pipeline.exprs[0].kind)?;
+                        write!(f, "{}", pipeline.exprs[0])?;
                         for node in &pipeline.exprs[1..] {
-                            write!(f, " | {}", node.kind)?;
+                            write!(f, " | {}", node)?;
                         }
                     }
                     _ => {
-                        writeln!(f, "\n  {}", pipeline.exprs[0].kind)?;
+                        writeln!(f, "\n  {}", pipeline.exprs[0])?;
                         for node in &pipeline.exprs[1..] {
-                            writeln!(f, "  {}", node.kind)?;
+                            writeln!(f, "  {}", node)?;
                         }
                     }
                 }
@@ -341,61 +340,67 @@ impl Display for ExprKind {
                 if nodes.is_empty() {
                     f.write_str("[]")?;
                 } else if nodes.len() == 1 {
-                    write!(f, "[{}]", nodes[0].kind)?;
+                    write!(f, "[{}]", nodes[0])?;
                 } else {
                     f.write_str("[\n")?;
                     for li in nodes.iter() {
-                        writeln!(f, "  {},", li.kind)?;
+                        writeln!(f, "  {},", li)?;
                     }
                     f.write_str("]")?;
                 }
             }
             ExprKind::Range(r) => {
                 if let Some(start) = &r.start {
-                    write!(f, "{}", start.kind)?;
+                    write!(f, "{}", start)?;
                 }
                 f.write_str("..")?;
                 if let Some(end) = &r.end {
-                    write!(f, "{}", end.kind)?;
+                    write!(f, "{}", end)?;
                 }
             }
             ExprKind::Binary { op, left, right } => {
                 match left.kind {
-                    ExprKind::FuncCall(_) => write!(f, "( {} )", left.kind)?,
-                    _ => write!(f, "{}", left.kind)?,
+                    ExprKind::FuncCall(_) => write!(f, "( {} )", left)?,
+                    _ => write!(f, "{}", left)?,
                 };
                 write!(f, " {op} ")?;
                 match right.kind {
-                    ExprKind::FuncCall(_) => write!(f, "( {} )", right.kind)?,
-                    _ => write!(f, "{}", right.kind)?,
+                    ExprKind::FuncCall(_) => write!(f, "( {} )", right)?,
+                    _ => write!(f, "{}", right)?,
                 };
             }
             ExprKind::Unary { op, expr } => match op {
-                UnOp::Neg => write!(f, "-{}", expr.kind)?,
-                UnOp::Not => write!(f, "not {}", expr.kind)?,
+                UnOp::Neg => write!(f, "-{}", expr)?,
+                UnOp::Not => write!(f, "not {}", expr)?,
             },
             ExprKind::FuncCall(func_call) => {
-                write!(f, "{:}", func_call.name.kind)?;
+                write!(f, "{:}", func_call.name)?;
 
                 for (name, arg) in &func_call.named_args {
-                    write!(f, " {name}: {}", arg.kind)?;
+                    write!(f, " {name}: {}", arg)?;
                 }
                 for arg in &func_call.args {
                     match arg.kind {
                         ExprKind::FuncCall(_) => {
                             writeln!(f, " (")?;
-                            writeln!(f, "  {}", arg.kind)?;
+                            writeln!(f, "  {}", arg)?;
                             f.write_char(')')?;
                         }
 
                         _ => {
-                            write!(f, " {}", arg.kind)?;
+                            write!(f, " {}", arg)?;
                         }
                     }
                 }
             }
-            ExprKind::FuncCurry(_) => {
-                write!(f, "(func ? -> ?)")?;
+            ExprKind::Closure(c) => {
+                write!(
+                    f,
+                    "<closure over {} with {}/{} args>",
+                    &c.body,
+                    c.args.len(),
+                    c.params.len()
+                )?;
             }
             ExprKind::SString(parts) => {
                 display_interpolation(f, "s", parts)?;
@@ -407,7 +412,7 @@ impl Display for ExprKind {
                 write!(f, "{}{}", i.n, i.unit)?;
             }
             ExprKind::Windowed(w) => {
-                write!(f, "{}", w.expr.kind)?;
+                write!(f, "{}", w.expr)?;
             }
             ExprKind::ResolvedPipeline(transforms) => {
                 for transform in transforms {
@@ -428,6 +433,24 @@ impl Display for ExprKind {
     }
 }
 
+fn display_ident(f: &mut std::fmt::Formatter, s: &str) -> Result<(), std::fmt::Error> {
+    fn forbidden_start(c: char) -> bool {
+        !(('a'..='z').contains(&c) || matches!(c, '_' | '$'))
+    }
+    fn forbidden_subsequent(c: char) -> bool {
+        !(('a'..='z').contains(&c) || ('0'..='9').contains(&c) || matches!(c, '_'))
+    }
+    let needs_escape = s.is_empty()
+        || s.starts_with(forbidden_start)
+        || (s.len() > 1 && s.chars().skip(1).any(forbidden_subsequent));
+
+    if needs_escape {
+        write!(f, "`{s}`")
+    } else {
+        write!(f, "{s}")
+    }
+}
+
 fn display_interpolation(
     f: &mut std::fmt::Formatter,
     prefix: &str,
@@ -438,7 +461,7 @@ fn display_interpolation(
     for part in parts {
         match &part {
             InterpolateItem::String(s) => write!(f, "{s}")?,
-            InterpolateItem::Expr(e) => write!(f, "{{{}}}", e.kind)?,
+            InterpolateItem::Expr(e) => write!(f, "{{{e}}}")?,
         }
     }
     f.write_char('"')?;

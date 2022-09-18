@@ -26,24 +26,20 @@ expression: "stmts_of_string(r#\"\nfrom employees\nfilter country == \"USA\"    
           Ident: derive
         args:
           - List:
-              - Assign:
-                  name: gross_salary
-                  expr:
-                    Binary:
-                      left:
-                        Ident: salary
-                      op: Add
-                      right:
-                        Ident: payroll_tax
-              - Assign:
-                  name: gross_cost
-                  expr:
-                    Binary:
-                      left:
-                        Ident: gross_salary
-                      op: Add
-                      right:
-                        Ident: benefits_cost
+              - Binary:
+                  left:
+                    Ident: salary
+                  op: Add
+                  right:
+                    Ident: payroll_tax
+                alias: gross_salary
+              - Binary:
+                  left:
+                    Ident: gross_salary
+                  op: Add
+                  right:
+                    Ident: benefits_cost
+                alias: gross_cost
         named_args: {}
     - FuncCall:
         name:
@@ -99,19 +95,15 @@ expression: "stmts_of_string(r#\"\nfrom employees\nfilter country == \"USA\"    
                         args:
                           - Ident: gross_cost
                         named_args: {}
-                    - Assign:
-                        name: sum_gross_cost
-                        expr:
-                          FuncCall:
-                            name:
-                              Ident: sum
-                            args:
-                              - Ident: gross_cost
-                            named_args: {}
-                    - Assign:
-                        name: ct
-                        expr:
-                          Ident: count
+                    - FuncCall:
+                        name:
+                          Ident: sum
+                        args:
+                          - Ident: gross_cost
+                        named_args: {}
+                      alias: sum_gross_cost
+                    - Ident: count
+                      alias: ct
               named_args: {}
         named_args: {}
     - FuncCall:

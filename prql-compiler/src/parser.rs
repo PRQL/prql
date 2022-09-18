@@ -52,7 +52,10 @@ fn stmt_of_parse_pair(pair: Pair<Rule>) -> Result<Stmt> {
     let kind = match rule {
         Rule::pipeline_stmt => {
             let pipeline = expr_of_parse_pair(pair.into_inner().next().unwrap())?;
-            let exprs = pipeline.coerce_to_pipeline().exprs;
+            let exprs = match pipeline.kind {
+                ExprKind::Pipeline(pipeline) => pipeline.exprs,
+                _ => vec![pipeline],
+            };
             StmtKind::Pipeline(exprs)
         }
         Rule::query_def => {
@@ -63,12 +66,12 @@ fn stmt_of_parse_pair(pair: Pair<Rule>) -> Result<Stmt> {
 
             let version = params
                 .remove("version")
-                .map(|v| v.unwrap(|i| i.parse_version(), "semver version number string"))
+                .map(|v| v.try_cast(|i| i.parse_version(), None, "semver version number string"))
                 .transpose()?;
 
             let dialect = if let Some(node) = params.remove("dialect") {
                 let span = node.span;
-                let dialect = node.unwrap(|i| i.into_ident(), "string")?;
+                let dialect = node.try_cast(|i| i.into_ident(), None, "string")?;
                 Dialect::from_str(&dialect).map_err(|_| {
                     Error::new(Reason::NotFound {
                         name: dialect,
@@ -337,7 +340,6 @@ fn expr_of_parse_pair(pair: Pair<Rule>) -> Result<Expr> {
                     let typ = match TyLit::from_str(name) {
                         Ok(t) => Ty::from(t),
                         Err(_) if name == "builtin_keyword" => Ty::BuiltinKeyword,
-                        Err(_) if name == "assigns" => Ty::Assigns,
                         Err(_) if name == "table" => Ty::Table(Frame::default()),
                         Err(_) => {
                             eprintln!("named type: {}", name);
@@ -953,18 +955,14 @@ Canada
             Ident: derive
           args:
             - List:
-                - Assign:
-                    name: x
+                - Literal:
+                    Integer: 5
+                  alias: x
+                - Unary:
+                    op: Neg
                     expr:
-                      Literal:
-                        Integer: 5
-                - Assign:
-                    name: y
-                    expr:
-                      Unary:
-                        op: Neg
-                        expr:
-                          Ident: x
+                      Ident: x
+                  alias: y
           named_args: {}
         "###);
 
@@ -1024,24 +1022,20 @@ Canada
         Rule::list)?, @r###"
         ---
         List:
-          - Assign:
-              name: gross_salary
-              expr:
-                Binary:
-                  left:
-                    Ident: salary
-                  op: Add
-                  right:
-                    Ident: payroll_tax
-          - Assign:
-              name: gross_cost
-              expr:
-                Binary:
-                  left:
-                    Ident: gross_salary
-                  op: Add
-                  right:
-                    Ident: benefits_cost
+          - Binary:
+              left:
+                Ident: salary
+              op: Add
+              right:
+                Ident: payroll_tax
+            alias: gross_salary
+          - Binary:
+              left:
+                Ident: gross_salary
+              op: Add
+              right:
+                Ident: benefits_cost
+            alias: gross_cost
         "###);
         assert_yaml_snapshot!(
             expr_of_string(
@@ -1050,26 +1044,24 @@ Canada
             )?,
             @r###"
         ---
-        Assign:
-          name: gross_salary
-          expr:
+        Binary:
+          left:
             Binary:
               left:
-                Binary:
-                  left:
-                    Ident: salary
-                  op: Add
-                  right:
-                    Ident: payroll_tax
-              op: Mul
+                Ident: salary
+              op: Add
               right:
-                Binary:
-                  left:
-                    Literal:
-                      Integer: 1
-                  op: Add
-                  right:
-                    Ident: tax_rate
+                Ident: payroll_tax
+          op: Mul
+          right:
+            Binary:
+              left:
+                Literal:
+                  Integer: 1
+              op: Add
+              right:
+                Ident: tax_rate
+        alias: gross_salary
         "###);
         Ok(())
     }
@@ -1357,11 +1349,9 @@ take 20
             Ident: add
           args:
             - Ident: bar
-            - Assign:
-                name: to
-                expr:
-                  Literal:
-                    Integer: 3
+            - Literal:
+                Integer: 3
+              alias: to
           named_args: {}
         "###);
     }
@@ -1419,15 +1409,13 @@ take 20
                               Ident: aggregate
                             args:
                               - List:
-                                  - Assign:
-                                      name: average_country_salary
-                                      expr:
-                                        FuncCall:
-                                          name:
-                                            Ident: average
-                                          args:
-                                            - Ident: salary
-                                          named_args: {}
+                                  - FuncCall:
+                                      name:
+                                        Ident: average
+                                      args:
+                                        - Ident: salary
+                                      named_args: {}
+                                    alias: average_country_salary
                             named_args: {}
                       named_args: {}
                   - FuncCall:
@@ -1477,10 +1465,8 @@ take 20
                       name:
                         Ident: select
                       args:
-                        - Assign:
-                            name: only_in_x
-                            expr:
-                              Ident: foo
+                        - Ident: foo
+                          alias: only_in_x
                       named_args: {}
             id: ~
         - Pipeline:
@@ -1748,56 +1734,44 @@ join `my-proj`.`dataset`.`table`
                   Ident: derive
                 args:
                   - List:
-                      - Assign:
-                          name: greater_than_ten
-                          expr:
-                            Range:
-                              start:
-                                Literal:
-                                  Integer: 11
-                              end: ~
-                      - Assign:
-                          name: less_than_ten
-                          expr:
-                            Range:
-                              start: ~
-                              end:
-                                Literal:
-                                  Integer: 9
-                      - Assign:
-                          name: negative
-                          expr:
-                            Range:
-                              start:
-                                Literal:
-                                  Integer: -5
-                              end: ~
-                      - Assign:
-                          name: more_negative
-                          expr:
-                            Range:
-                              start:
-                                Literal:
-                                  Integer: -10
-                              end: ~
-                      - Assign:
-                          name: dates_open
-                          expr:
-                            Range:
-                              start:
-                                Literal:
-                                  Date: 2020-01-01
-                              end: ~
-                      - Assign:
-                          name: dates
-                          expr:
-                            Range:
-                              start:
-                                Literal:
-                                  Date: 2020-01-01
-                              end:
-                                Literal:
-                                  Date: 2021-01-01
+                      - Range:
+                          start:
+                            Literal:
+                              Integer: 11
+                          end: ~
+                        alias: greater_than_ten
+                      - Range:
+                          start: ~
+                          end:
+                            Literal:
+                              Integer: 9
+                        alias: less_than_ten
+                      - Range:
+                          start:
+                            Literal:
+                              Integer: -5
+                          end: ~
+                        alias: negative
+                      - Range:
+                          start:
+                            Literal:
+                              Integer: -10
+                          end: ~
+                        alias: more_negative
+                      - Range:
+                          start:
+                            Literal:
+                              Date: 2020-01-01
+                          end: ~
+                        alias: dates_open
+                      - Range:
+                          start:
+                            Literal:
+                              Date: 2020-01-01
+                          end:
+                            Literal:
+                              Date: 2021-01-01
+                        alias: dates
                 named_args: {}
         "###);
     }
@@ -1821,17 +1795,15 @@ join `my-proj`.`dataset`.`table`
                   Ident: derive
                 args:
                   - List:
-                      - Assign:
-                          name: age_plus_two_years
-                          expr:
-                            Binary:
-                              left:
-                                Ident: age
-                              op: Add
-                              right:
-                                Interval:
-                                  n: 2
-                                  unit: years
+                      - Binary:
+                          left:
+                            Ident: age
+                          op: Add
+                          right:
+                            Interval:
+                              n: 2
+                              unit: years
+                        alias: age_plus_two_years
                 named_args: {}
         "###);
 
@@ -1850,21 +1822,15 @@ join `my-proj`.`dataset`.`table`
                   Ident: derive
                 args:
                   - List:
-                      - Assign:
-                          name: date
-                          expr:
-                            Literal:
-                              Date: 2011-02-01
-                      - Assign:
-                          name: timestamp
-                          expr:
-                            Literal:
-                              Timestamp: "2011-02-01T10:00"
-                      - Assign:
-                          name: time
-                          expr:
-                            Literal:
-                              Time: "14:00"
+                      - Literal:
+                          Date: 2011-02-01
+                        alias: date
+                      - Literal:
+                          Timestamp: "2011-02-01T10:00"
+                        alias: timestamp
+                      - Literal:
+                          Time: "14:00"
+                        alias: time
                 named_args: {}
         "###);
 
@@ -1884,10 +1850,8 @@ join `my-proj`.`dataset`.`table`
                 name:
                   Ident: derive
                 args:
-                  - Assign:
-                      name: x
-                      expr:
-                        Ident: r
+                  - Ident: r
+                    alias: x
                 named_args: {}
         "### )
     }
@@ -1910,17 +1874,15 @@ join `my-proj`.`dataset`.`table`
                 name:
                   Ident: derive
                 args:
-                  - Assign:
-                      name: amount
-                      expr:
-                        FuncCall:
-                          name:
-                            Ident: coalesce
-                          args:
-                            - Ident: amount
-                            - Literal:
-                                Integer: 0
-                          named_args: {}
+                  - FuncCall:
+                      name:
+                        Ident: coalesce
+                      args:
+                        - Ident: amount
+                        - Literal:
+                            Integer: 0
+                      named_args: {}
+                    alias: amount
                 named_args: {}
         "### )
     }
@@ -1936,11 +1898,9 @@ join `my-proj`.`dataset`.`table`
                 name:
                   Ident: derive
                 args:
-                  - Assign:
-                      name: x
-                      expr:
-                        Literal:
-                          Boolean: true
+                  - Literal:
+                      Boolean: true
+                    alias: x
                 named_args: {}
         "###)
     }

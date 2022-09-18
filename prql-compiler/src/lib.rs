@@ -53,21 +53,18 @@ pub fn from_json(json: &str) -> Result<String> {
 
 // Simple tests for "this PRQL creates this SQL" go here.
 #[cfg(test)]
-mod test {
+mod integration {
     use super::{compile, from_json, to_json, Result};
     use insta::{assert_display_snapshot, assert_snapshot};
 
     #[test]
     fn test_stdlib() {
-        let query = r###"
+        assert_snapshot!(compile(r###"
         from employees
         aggregate (
           [salary_usd = min salary]
         )
-        "###;
-
-        let sql = compile(query).unwrap();
-        assert_snapshot!(sql,
+        "###).unwrap(),
             @r###"
         SELECT
           MIN(salary) AS salary_usd
@@ -76,15 +73,12 @@ mod test {
         "###
         );
 
-        let query = r###"
+        assert_snapshot!(compile(r###"
         from employees
         aggregate (
           [salary_usd = (round 2 salary)]
         )
-        "###;
-
-        let sql = compile(query).unwrap();
-        assert_snapshot!(sql,
+        "###).unwrap(),
             @r###"
         SELECT
           ROUND(salary, 2) AS salary_usd
@@ -367,7 +361,7 @@ select `first name`
 
     #[test]
     fn test_dates() -> Result<()> {
-        let query = r###"
+        assert_display_snapshot!((compile(r###"
         from to_do_empty_table
         derive [
             date = @2011-02-01,
@@ -375,14 +369,14 @@ select `first name`
             time = @14:00,
             # datetime = @2011-02-01T10:00<datetime>,
         ]
-
-        "###;
-
-        assert_display_snapshot!((compile(query)?), @r###"
+        "###)?), @r###"
         SELECT
+          to_do_empty_table.*,
           DATE '2011-02-01' AS date,
           TIMESTAMP '2011-02-01T10:00' AS timestamp,
           TIME '14:00' AS time
+        FROM
+          to_do_empty_table
         "###);
 
         Ok(())
@@ -390,14 +384,12 @@ select `first name`
 
     #[test]
     fn test_window_functions() {
-        let query = r###"
+        assert_display_snapshot!((compile(r###"
         from employees
         group last_name (
             derive count
         )
-        "###;
-
-        assert_display_snapshot!((compile(query).unwrap()), @r###"
+        "###).unwrap()), @r###"
         SELECT
           employees.*,
           COUNT(*) OVER (PARTITION BY last_name)
@@ -603,9 +595,28 @@ select `first name`
     }
 
     #[test]
+    fn test_name_resolving() -> Result<()> {
+        let query = r###"
+        from numbers
+        derive x = 5
+        select [y = 6, z = x + y + a]
+        "###;
+        assert_display_snapshot!((compile(query)?), @r###"
+        SELECT
+          6 AS y,
+          5 + 6 + a AS z
+        FROM
+          numbers
+        "###);
+
+        Ok(())
+    }
+
+    #[test]
     fn test_strings() -> Result<()> {
         let query = r###"
-        derive [
+        from empty_table_to_do
+        select [
             x = "two households'",
             y = 'two households"',
             z = f"a {x} b' {y} c",
@@ -630,6 +641,8 @@ select `first name`
             'two households"',
             ' c'
           ) AS v
+        FROM
+          empty_table_to_do
         "###);
 
         Ok(())

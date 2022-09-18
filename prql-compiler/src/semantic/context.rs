@@ -1,7 +1,7 @@
 use anyhow::Result;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fmt::Debug;
 
 use super::{split_var_name, Declaration, Declarations, Scope};
@@ -74,7 +74,6 @@ impl Context {
 
         match decls.len() {
             0 => {
-                dbg!(&self.scope);
                 Err(format!("Unknown name `{name}`"))
             }
 
@@ -115,41 +114,27 @@ impl Context {
         r
     }
 
-    /// Move top-level expressions into declarations and replace them with idents
-    pub(super) fn extract_decls(&mut self, nodes: Vec<Expr>) -> Result<Vec<Expr>> {
-        let mut res = Vec::with_capacity(nodes.len());
-        for node in nodes {
-            let alias = node.alias.clone();
-
-            let expr = self.extract_decl(node)?;
-
-            res.push(if let Some(alias) = alias {
-                // introduce a new expression alias
-                let mut ident = Expr::from(ExprKind::Ident(alias));
-                ident.declared_at = Some(expr.declared_at.unwrap());
-                ident
-            } else {
-                expr
-            });
+    /// Ensure that expressions are declared.
+    /// If expr is aliased, replace it with an ident.
+    pub(super) fn declare_as_idents(&mut self, exprs: &mut [Expr]) {
+        for expr in exprs {
+            self.declare_as_ident(expr);
         }
-        Ok(res)
     }
 
-    fn extract_decl(&mut self, expr: Expr) -> Result<Expr> {
-        Ok(match expr.kind {
-            // keep existing ident
-            ExprKind::Ident(_) => expr,
+    /// Ensure that expression are declared.
+    /// If expr is aliased, replace it with an ident.
+    pub(super) fn declare_as_ident(&mut self, expr: &mut Expr) {
+        // ensure that expr id declared
+        expr.declared_at = expr.declared_at.or_else(|| {
+            Some(self.declare(Declaration::Expression(Box::from(expr.clone())), expr.span))
+        });
 
-            // declare new expression so it can be references from FrameColumn
-            _ => {
-                let span = expr.span;
-                let id = self.declare(Declaration::Expression(Box::from(expr)), span);
-
-                let mut placeholder = Expr::from(ExprKind::Ident("<unnamed>".to_string()));
-                placeholder.declared_at = Some(id);
-                placeholder
-            }
-        })
+        // replace expr with its alias
+        if let Some(alias) = &expr.alias {
+            expr.kind = ExprKind::Ident(alias.to_string());
+            expr.alias = None;
+        }
     }
 
     pub fn get_column_names(&self, frame: &Frame) -> Vec<Option<String>> {
@@ -166,6 +151,25 @@ impl Context {
                 FrameColumn::Named(name, _) => Some(name.clone()),
             })
             .collect()
+    }
+
+    pub fn take_decls(&mut self, namespace: &str) -> HashMap<String, Declaration> {
+        let dropped = self.scope.pop_namespace(namespace);
+        let mut res = HashMap::new();
+        for (name, id) in dropped.unwrap_or_default() {
+            let decl = self.declarations.take(id);
+            self.declarations.forget(id);
+            res.insert(name, decl);
+        }
+        res
+    }
+
+    pub fn insert_decls(&mut self, namespace: &str, decls: HashMap<String, Declaration>) {
+        for (name, dec) in decls {
+            let id = self.declarations.push(dec, None);
+
+            self.scope.add(namespace, name, id);
+        }
     }
 }
 

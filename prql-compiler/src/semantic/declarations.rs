@@ -6,7 +6,7 @@ use std::fmt::{Debug, Display};
 use crate::ast::*;
 use crate::error::Span;
 
-#[derive(Debug, EnumAsInner, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, EnumAsInner, Serialize, Deserialize)]
 pub enum Declaration {
     Expression(Box<Expr>),
     ExternRef {
@@ -91,7 +91,7 @@ impl Debug for Declarations {
         for (i, (d, _)) in self.decls.iter().enumerate() {
             match d {
                 Declaration::Expression(v) => {
-                    writeln!(f, "[{i:3}]: expr  `{}`", v.kind)?;
+                    writeln!(f, "[{i:3}]: expr  `{}`", v)?;
                 }
                 Declaration::ExternRef { table, variable } => {
                     writeln!(f, "[{i:3}]: col   `{variable}` from table {table:?}")?;
@@ -111,7 +111,7 @@ impl Debug for Declarations {
 impl Display for Declaration {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Declaration::Expression(node) => write!(f, "{}", node.kind),
+            Declaration::Expression(expr) => write!(f, "{}", expr),
             Declaration::ExternRef { table: _, variable } => write!(f, "<extern> {variable}"),
             Declaration::Table(t) => write!(f, "table {t} = ?"),
             Declaration::Function(func) => {
