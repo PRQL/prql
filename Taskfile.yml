@@ -104,16 +104,16 @@ tasks:
     status:
       - which hugo
       - which npm
-    preconditions:
-      - sh: which brew
-        msg: |
-
-
-          🔴 Can't find `brew`, which we use to install Hugo & npm. Either install brew and re-run this, or install them directly based on:
-          - https://gohugo.io/getting-started/installing/
-          - https://docs.npmjs.com/downloading-and-installing-node-js-and-npm
+    #    preconditions:
+    #      - sh: which brew
+    #        msg: |
+    #
+    #
+    #          🔴 Can't find `brew`, which we use to install Hugo & npm. Either install brew and re-run this, or install them directly based on:
+    #          - https://gohugo.io/getting-started/installing/
+    #          - https://docs.npmjs.com/downloading-and-installing-node-js-and-npm
     cmds:
-      - brew install hugo npm
+      - /home/linuxbrew/.linuxbrew/bin/brew install hugo npm
 
   install-npm-dependencies:
     cmds:

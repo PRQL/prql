@@ -1,25 +1,31 @@
 # Dockerfile to build the prql development environment
 
-
 # Build with docker build -t prql .
-# Invoke with docker run wgvanity [ string ]
+# Invoke with ????? docker run wgvanity [ string ]
 
-# FROM lukemathwalker/cargo-chef:latest-rust-1.56.0 AS chef
 FROM rust:1.63.0-buster
 WORKDIR app
 
+# ========= Install essential packages =========
 RUN apt-get update; apt install -y cmake pkg-config libssl-dev git gcc build-essential clang libclang-dev 
 RUN apt-get install -y python3.7 python3-pip
-# Install task
+
+# ========= Install task =========
 RUN sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b /usr/local/bin
 
-# copy the task file
-COPY Taskfile.yml .
+# ========= Install the cargo tools =========
+RUN cargo install --locked \
+        cargo-audit \
+        cargo-insta \
+        cargo-release \
+        default-target \
+        mdbook \
+        mdbook-admonish \
+        mdbook-toc \
+        wasm-bindgen-cli \
+        wasm-pack
 
-# Install the Cargo-based tools (takes a long time)
-RUN task setup-cargo-tools
-
-# install homebrew
+# ========= Install homebrew =========
 # https://stackoverflow.com/questions/58292862/how-to-install-homebrew-on-ubuntu-inside-docker-container
 RUN useradd -m -s /bin/zsh linuxbrew && \
     usermod -aG sudo linuxbrew &&  \
@@ -29,8 +35,27 @@ USER linuxbrew
 RUN /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
 USER root
 RUN chown -R $CONTAINER_USER: /home/linuxbrew/.linuxbrew
+ENV PATH="/home/linuxbrew/.linuxbrew/bin:${PATH}"
 
-RUN task setup-other-devtools
+# ========= Install the other dev tools =========
+RUN python3 -m pip install -U pre-commit					# Install pre-commit
+RUN python3 -m pip install maturin							# Install maturin
+RUN brew install \
+	hugo \
+	npm
+RUN npm install --location=global \
+	prettier \
+	prettier-plugin-go-template 					
+
+# ========= Copy the taskfile =========
+COPY Taskfile.yml .
+
+
+# ========= Need to figure out the rest 
+# ========= Create a volume so tools can access local directory 
+# ========= Create commands to run the playground
+# ========= Create command to watch for changes and re-run
+
 
 # FROM chef AS planner
 # RUN cargo setup-dev
