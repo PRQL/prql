@@ -18,7 +18,7 @@ PRQL is a modern language for transforming data — a simple, powerful, pipeline
 SQL replacement. Like SQL, it's readable, explicit and declarative. Unlike SQL, it forms a
 logical pipeline of transformations, and supports abstractions such as variables
 and functions. It can be used with any database that uses SQL, since it
-transpiles to SQL.
+compiles to SQL.
 
 PRQL can be as simple as:
 
@@ -50,6 +50,7 @@ group [title, country] (                      # `group` runs a pipeline over eac
 )
 filter sum_gross_cost > 100000                # Identical syntax for SQL's `WHERE` & `HAVING`.
 derive id = f"{title}_{country}"              # F-strings like python.
+derive country_code = s"LEFT(country, 2)"     # S-strings allow using SQL as an escape hatch
 sort [sum_gross_cost, -country]               # `-country` means descending order.
 take 1..20                                    # Range expressions (also valid here as `take 20`).
 ```

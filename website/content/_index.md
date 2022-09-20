@@ -28,6 +28,7 @@ hero_section:
     )
     filter sum_gross_cost > 100000
     derive id = f"{title}_{country}"
+    derive country_code = s"LEFT(country, 2)"
     sort [sum_gross_cost, -country]
     take 1..20
 
