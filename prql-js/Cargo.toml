@@ -9,6 +9,8 @@ version = "0.2.7"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
+doctest = false
+test = false
 
 [features]
 default = ["console_error_panic_hook"]
