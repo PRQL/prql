@@ -16,3 +16,13 @@ stdlib](https://github.com/prql/prql/blob/main/prql-compiler/src/semantic/stdlib
 ```prql_no_test
 {{#include ../../prql-compiler/src/semantic/stdlib.prql}}
 ```
+
+And a couple of examples:
+
+```prql
+from employees
+derive [
+  gross_salary = (salary + payroll_tax | as int),
+  gross_salary_rounded = (gross_salary | round 0),
+]
+```
