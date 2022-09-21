@@ -75,7 +75,7 @@ mod test {
         let query = r###"
         from employees
         aggregate (
-          [salary_usd = (round salary 2)]
+          [salary_usd = (round 2 salary)]
         )
         "###;
 
