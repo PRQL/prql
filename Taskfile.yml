@@ -20,17 +20,31 @@ vars:
     rust-lang.rust-analyzer
 
 tasks:
+  # main installer is "setup-dev" which calls other pieces
   setup-dev:
     desc: install all tools for PRQL development
     cmds:
-      - task: setup-cargo-tools
-      - task: setup-other-devtools
+      - task: install-cargo-tools
+      - task: install-maturin
+      - task: install-brew
+      - task: install-pre-commit
+      - task: install-brew-dependencies
+      - task: install-npm-dependencies
+      # We only suggest, rather than install;
+      #    we don't want to intrude (maybe we're being too conservative?).
+      - task: suggest-vscode-extensions
+      - task: install-precommit-install-hooks
+      - cmd: |
+          echo "
+          🟢 Set up complete! ✅🚀"
+        silent: true
 
-  setup-cargo-tools:
+  install-cargo-tools:
     # factored this out because it takes a long time to build
     desc: Install cargo tools for PRQL development.
     cmds:
-      # `--locked` installs from the underlying lock files (which is not the default?!)
+      # `--locked` installs from the underlying lock files
+      #     (which is not the default?!)
       - cargo install --locked
         cargo-audit
         cargo-insta
@@ -42,22 +56,23 @@ tasks:
         wasm-bindgen-cli
         wasm-pack
 
-  setup-other-devtools:
-    desc: Install other developer setup-cargo-tools
+  install-brew:
+    # brew might be installed, so check first
+    status:
+      - which brew
     cmds:
-      # We no longer need this now we set it in `rust-toolchain.toml`, can be removed in time
-      # - rustup target add wasm32-unknown-unknown
+      # https://stackoverflow.com/questions/58292862/how-to-install-homebrew-on-ubuntu-inside-docker-container
+      - useradd -m -s /bin/zsh linuxbrew
+      - usermod -aG sudo linuxbrew
+      - mkdir -p /home/linuxbrew/.linuxbrew
+      - chown -R linuxbrew /home/linuxbrew/.linuxbrew
+      - /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
+      - chown -R $CONTAINER_USER: /home/linuxbrew/.linuxbrew
+
+  install-maturin:
+    desc: Install maturin
+    cmds:
       - python3 -m pip install -U maturin
-      - task: install-pre-commit
-      - task: install-brew-dependencies
-      - task: install-npm-dependencies
-      # We only suggest, rather than install; we don't want to intrude (maybe we're being too conservative?).
-      - task: suggest-vscode-extensions
-      - pre-commit install-hooks
-      - cmd: |
-          echo "
-          🟢 Set up complete! ✅🚀"
-        silent: true
 
   suggest-vscode-extensions:
     desc: Check and suggest VSCode extensions.
@@ -70,20 +85,25 @@ tasks:
           {{ if not (contains . $.extensions) }}❌ {{.}} {{else}}✅ {{.}} {{ end }}
         {{ end -}}
     status:
-      # If vscode isn't installed, or there are no missing extensions, return 0 and exit early.
+      # If vscode isn't installed, or there are no missing extensions,
+      # return 0 and exit early.
       - '[ ! -x "$(which code)" ] || {{ not (contains "❌" .missing_extensions) }}'
     silent: true
     cmds:
       - |
         echo "
 
-        🟡 It looks like VSCode is installed but doesn't have all recommended extensions installed:
+        🟡 It looks like VSCode is installed but doesn't have all
+        recommended extensions installed:
         {{ .missing_extensions }}
 
         Install them with:
 
           task install-vscode-extensions
           "
+  install-precommit-install-hooks:
+    desc: pre-commit install-hooks
+      - pre-commit install-hooks
 
   install-vscode-extensions:
     desc: Install recommended VSCode extensions.
@@ -94,7 +114,8 @@ tasks:
         {{ end -}}
 
   install-pre-commit:
-    # Someone might have this installed with `brew`, so only install if it can't be found.
+    # Someone might have this installed with `brew`,
+    # so only install if it can't be found.
     status:
       - which pre-commit
     cmds:
@@ -104,14 +125,13 @@ tasks:
     status:
       - which hugo
       - which npm
-    #    preconditions:
-    #      - sh: which brew
-    #        msg: |
-    #
-    #
-    #          🔴 Can't find `brew`, which we use to install Hugo & npm. Either install brew and re-run this, or install them directly based on:
-    #          - https://gohugo.io/getting-started/installing/
-    #          - https://docs.npmjs.com/downloading-and-installing-node-js-and-npm
+    preconditions:
+      - sh: which brew
+        msg: |
+
+          🔴 Can't find `brew`, which we use to install Hugo & npm. Either install brew and re-run this, or install them directly based on:
+          - https://gohugo.io/getting-started/installing/
+          - https://docs.npmjs.com/downloading-and-installing-node-js-and-npm
     cmds:
       - /home/linuxbrew/.linuxbrew/bin/brew install hugo npm
 
