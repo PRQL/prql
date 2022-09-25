@@ -65,8 +65,8 @@ rusqlite = {version = "0.28.0", features = ["bundled", "csvtab"]}
 
 # Re-enable on windows when duckdb supports it
 # https://github.com/wangfenjin/duckdb-rs/issues/62
-[target.'cfg(not(any(target_family = "windows", target_family="wasm")))'.dev-dependencies]
-duckdb = {version = "0.5.0", features = ["bundled", "chrono"]}
+# [target.'cfg(not(any(target_family = "windows", target_family="wasm")))'.dev-dependencies]
+# duckdb = {version = "0.5.0", features = ["bundled", "chrono"]}
 
 [[bench]]
 harness = false
