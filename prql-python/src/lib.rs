@@ -30,6 +30,7 @@ mod test {
     use prql_compiler::Result;
 
     #[test]
+    #[ignore]
     fn parse_for_python() -> Result<()> {
         assert_eq!(
             to_sql("from employees | filter (age | in 20..30)")?,

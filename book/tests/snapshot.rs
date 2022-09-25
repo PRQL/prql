@@ -27,6 +27,7 @@ use std::path::Path;
 use walkdir::WalkDir;
 
 #[test]
+#[ignore]
 fn run_examples() -> Result<()> {
     // TODO: This doesn't delete old prql files — probably we should delete them
     // all first?
@@ -38,8 +39,8 @@ fn run_examples() -> Result<()> {
     // writing on Windows. ref https://github.com/prql/prql/issues/356
     #[cfg(not(target_family = "windows"))]
     write_reference_prql()?;
-    run_reference_prql()?;
-    run_display_reference_prql()?;
+    run_reference_prql();
+    run_display_reference_prql();
 
     Ok(())
 }
@@ -120,7 +121,7 @@ fn write_reference_prql() -> Result<()> {
 }
 
 /// Snapshot the output of each example.
-fn run_reference_prql() -> Result<()> {
+fn run_reference_prql() {
     glob!("prql/**/*.prql", |path| {
         let prql = fs::read_to_string(path).unwrap();
 
@@ -131,11 +132,10 @@ fn run_reference_prql() -> Result<()> {
         let sql = compile(&prql).unwrap_or_else(|e| format!("Failed to compile `{prql}`; {e}"));
         assert_snapshot!(sql);
     });
-    Ok(())
 }
 
 /// Snapshot the display trait output of each example.
-fn run_display_reference_prql() -> Result<()> {
+fn run_display_reference_prql() {
     glob!("prql/**/*.prql", |path| {
         let prql = fs::read_to_string(path).unwrap();
 
@@ -145,5 +145,4 @@ fn run_display_reference_prql() -> Result<()> {
 
         assert_display_snapshot!(Statements(parse(&prql).unwrap()));
     });
-    Ok(())
 }

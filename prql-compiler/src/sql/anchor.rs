@@ -1,279 +1,216 @@
 //! Transform the parsed AST into a "materialized" AST, by executing functions and
 //! replacing variables. The materialized AST is "flat", in the sense that it
 //! contains no query-specific logic.
-use crate::ast::ast_fold::*;
-use crate::ast::*;
-use crate::semantic::{Context, Declaration, Declarations};
+use std::collections::HashMap;
 
-use anyhow::Result;
-use itertools::Itertools;
+use crate::{
+    ast::TableRef,
+    ir::{
+        fold_table, CId, ColumnDef, Expr, ExprKind, IdGenerator, IrFold, Query, TId, Table,
+        Transform,
+    },
+};
 
-use crate::semantic::split_var_name;
-
-/// Replaces all resolved functions and variables with their declarations.
-pub fn materialize(
-    mut pipeline: Vec<Transform>,
-    mut context: MaterializationContext,
-    as_table: Option<usize>,
-) -> Result<(Vec<Transform>, MaterializedFrame, MaterializationContext)> {
-    context.frame.sort.clear();
-    extract_frame(&mut pipeline, &mut context)?;
-
-    let mut m = Materializer::new(context);
-
-    // materialize the query
-    let pipeline = m.fold_transforms(pipeline)?;
-    let frame = m.context.frame.clone();
-
-    // materialize each of the columns
-    let columns = m.anchor_columns(frame.columns, as_table)?;
-
-    let sort = m.materialize_sort(frame.sort)?;
-
-    // rename tables for future pipelines
-    if let Some(as_table) = as_table {
-        m.replace_tables(frame.tables, as_table);
-    }
-
-    Ok((pipeline, MaterializedFrame { columns, sort }, m.context))
-}
-
-fn extract_frame(
-    pipeline: &mut Vec<Transform>,
-    context: &mut MaterializationContext,
-) -> Result<()> {
-    for transform in pipeline.iter_mut() {
-        context.frame = transform.kind.apply_to(context.frame.clone())?;
-    }
-
-    pipeline.retain(|transform| {
-        !matches!(
-            transform.kind,
-            TransformKind::Select(_) | TransformKind::Derive(_) | TransformKind::Sort(_)
-        )
-    });
-    Ok(())
-}
-#[derive(Debug)]
-pub struct MaterializedFrame {
-    pub columns: Vec<Expr>,
-    pub sort: Vec<ColumnSort>,
-}
+use super::translator::determine_select_columns;
 
 #[derive(Default)]
-pub struct MaterializationContext {
-    /// Map of all accessible names (for each namespace)
-    pub(super) frame: Frame,
+pub struct AnchorContext {
+    pub(super) columns_defs: HashMap<CId, ColumnDef>,
 
-    /// All declarations, mostly from [semantic::Context]
-    pub(super) declarations: Declarations,
+    pub(super) columns_loc: HashMap<CId, TId>,
+
+    pub(super) table_names: HashMap<TId, String>,
+
+    next_col_name_id: u16,
+    next_table_name_id: u16,
+
+    pub(super) ids: IdGenerator,
 }
 
-impl MaterializationContext {
-    pub fn declare_table(&mut self, table: &str) -> usize {
-        let id = self
-            .declarations
-            .push(Declaration::Table(table.to_string()), None);
+impl AnchorContext {
+    pub fn of(query: Query) -> (Self, Query) {
+        let (ids, query) = IdGenerator::new_for(query);
 
-        self.frame.tables.push(id);
-        id
-    }
-}
-
-impl From<Context> for MaterializationContext {
-    fn from(context: Context) -> Self {
-        MaterializationContext {
-            frame: Frame::default(),
-            declarations: context.declarations,
-        }
-    }
-}
-
-/// Can fold (walk) over AST and replace function calls and variable references with their declarations.
-#[derive(Debug)]
-pub struct Materializer {
-    pub context: MaterializationContext,
-    pub remove_namespaces: bool,
-}
-
-impl Materializer {
-    fn new(context: MaterializationContext) -> Self {
-        Materializer {
-            remove_namespaces: context.frame.tables.len() == 1,
-            context,
-        }
-    }
-
-    /// Looks up column declarations and replaces them with an identifiers.
-    fn anchor_columns(
-        &mut self,
-        columns: Vec<FrameColumn>,
-        as_table: Option<usize>,
-    ) -> Result<Vec<Expr>> {
-        let mut to_replace = Vec::new();
-
-        let res = columns
-            .into_iter()
-            .map(|column| {
-                Ok(match column {
-                    FrameColumn::Named(name, id) => {
-                        let expr_node = self.materialize_declaration(id)?;
-
-                        let name = split_var_name(&name).1.to_string();
-
-                        let decl = Declaration::ExternRef {
-                            variable: name.clone(),
-                            table: as_table,
-                        };
-                        to_replace.push((id, decl));
-
-                        emit_column_with_name(expr_node, name)
-                    }
-                    FrameColumn::Unnamed(id) => {
-                        // no need to replace declaration, since it cannot be referenced again
-                        self.materialize_declaration(id)?
-                    }
-                    FrameColumn::All(namespace) => {
-                        let decl = &self.context.declarations.get(namespace);
-                        let table = decl.as_table().unwrap();
-                        ExprKind::Ident(format!("{table}.*")).into()
-                    }
-                })
-            })
-            .collect::<Result<Vec<_>>>()?;
-
-        for (id, decl) in to_replace {
-            self.context.declarations.replace(id, decl);
-        }
-
-        Ok(res)
-    }
-
-    fn replace_tables(&mut self, tables: Vec<usize>, new_table: usize) {
-        let new_table = self.context.declarations.get(new_table).clone();
-        for id in tables {
-            self.context.declarations.replace(id, new_table.clone());
-        }
-    }
-
-    /// Folds the column and returns expression that can be used in select.
-    /// Also returns column id and name if declaration should be replaced.
-    fn materialize_sort(&mut self, sort: Vec<ColumnSort<usize>>) -> Result<Vec<ColumnSort>> {
-        sort.into_iter()
-            .map(|s| {
-                Ok(ColumnSort {
-                    column: self.materialize_declaration(s.column)?,
-                    direction: s.direction,
-                })
-            })
-            .try_collect()
-    }
-
-    fn materialize_declaration(&mut self, id: usize) -> Result<Expr> {
-        let decl = self.context.declarations.get(id);
-
-        let materialized = match decl.clone() {
-            Declaration::Expression(inner) => {
-                let mut inner = *inner;
-                inner.declared_at = None;
-                self.fold_expr(inner)?
-            }
-            Declaration::ExternRef { table, variable } => {
-                let name = if let Some(table) = table {
-                    let (_, var_name) = split_var_name(&variable);
-
-                    if self.remove_namespaces {
-                        var_name.to_string()
-                    } else {
-                        let table = &self.context.declarations.get(table);
-                        let table = table.as_table().unwrap();
-                        format!("{table}.{var_name}")
-                    }
-                } else {
-                    variable
-                };
-
-                ExprKind::Ident(name).into()
-            }
-            Declaration::Function(_) => {
-                unreachable!("unresolved function left in IR");
-            }
-            Declaration::Table(table) => ExprKind::Ident(format!("{table}.*")).into(),
+        let context = AnchorContext {
+            columns_defs: HashMap::new(),
+            columns_loc: HashMap::new(),
+            table_names: HashMap::new(),
+            next_col_name_id: 0,
+            next_table_name_id: 0,
+            ids,
         };
+        QueryLoader::load(context, query)
+    }
 
-        Ok(materialized)
+    pub fn get_column_name(&self, cid: &CId) -> Option<String> {
+        let def = self.columns_defs.get(cid).unwrap();
+        def.name.clone()
+    }
+
+    pub fn gen_table_name(&mut self) -> String {
+        let id = self.next_table_name_id;
+        self.next_table_name_id += 1;
+
+        format!("_table_{id}")
+    }
+
+    fn ensure_column_name(&mut self, cid: &CId) -> String {
+        let def = self.columns_defs.get_mut(cid).unwrap();
+
+        if def.name.is_none() {
+            let id = self.next_col_name_id;
+            self.next_col_name_id += 1;
+
+            def.name = Some(format!("_expr_{id}"));
+        }
+
+        def.name.clone().unwrap()
+    }
+
+    pub fn materialize_expr(&self, cid: &CId) -> Expr {
+        let def = self.columns_defs.get(cid).unwrap();
+        def.expr.clone()
+    }
+
+    pub fn materialize_exprs(&self, cids: &[CId]) -> Vec<Expr> {
+        cids.iter().map(|cid| self.materialize_expr(cid)).collect()
+    }
+
+    pub fn materialize_name(&self, cid: &CId) -> String {
+        // TODO: figure out which columns need name and call ensure_column_name in advance
+        let col_name = self
+            .get_column_name(cid)
+            .expect("a column is referred by name, but it doesn't have one");
+
+        let tid = self.columns_loc.get(cid).unwrap();
+        let table_name = self.table_names.get(tid).unwrap();
+
+        format!("{table_name}.{col_name}")
+    }
+
+    pub fn split_pipeline(
+        &mut self,
+        pipeline: Vec<Transform>,
+        at_position: usize,
+        new_table_name: &str,
+    ) -> (Vec<Transform>, Vec<Transform>) {
+        let new_tid = self.ids.gen_tid();
+        self.table_names.insert(new_tid, new_table_name.to_string());
+
+        // define columns of the new CTE
+        let mut columns_redirect = HashMap::<CId, CId>::new();
+        let old_columns = determine_select_columns(&pipeline[0..at_position]);
+        let mut new_columns = Vec::new();
+        for old_cid in old_columns {
+            let new_cid = self.ids.gen_cid();
+            columns_redirect.insert(old_cid, new_cid);
+
+            let old_def = self.columns_defs.get(&old_cid).unwrap();
+
+            new_columns.push(ColumnDef {
+                id: new_cid,
+                name: old_def.name.clone(),
+                expr: Expr {
+                    kind: ExprKind::ExternRef {
+                        variable: self.ensure_column_name(&old_cid),
+                        table: Some(new_tid),
+                    },
+                    span: None,
+                },
+            });
+        }
+
+        let mut first = pipeline;
+        let mut second = first.split_off(at_position);
+
+        second.insert(
+            0,
+            Transform::From(
+                TableRef::LocalTable(new_table_name.to_string()),
+                new_columns,
+            ),
+        );
+
+        // TODO: redirect CID values in second pipeline
+
+        (first, second)
     }
 }
 
-fn emit_column_with_name(mut expr_node: Expr, name: String) -> Expr {
-    // is expr_node just an ident with same name?
-    let expr_ident = expr_node.kind.as_ident().map(|n| split_var_name(n).1);
+/// Loads info about [Query] into [AnchorContext]
+struct QueryLoader {
+    context: AnchorContext,
 
-    if !expr_ident.map(|n| n == name).unwrap_or(false) {
-        // set expr alias
-        expr_node.alias = Some(name);
-    }
-    expr_node
+    current_table: Option<TId>,
 }
 
-impl AstFold for Materializer {
-    fn fold_expr(&mut self, mut node: Expr) -> Result<Expr> {
-        // We replace Items and also pass node to `inline_func_call`,
-        // so we need to run this here rather than in `fold_func_call` or `fold_item`.
-
-        Ok(match node.kind {
-            ExprKind::Ident(_) => {
-                if let Some(id) = node.declared_at {
-                    self.materialize_declaration(id)?
-                } else {
-                    node
-                }
-            }
-
-            _ => {
-                node.kind = fold_expr_kind(self, node.kind)?;
-                node
-            }
-        })
+impl QueryLoader {
+    fn load(context: AnchorContext, query: Query) -> (AnchorContext, Query) {
+        let mut loader = QueryLoader {
+            context,
+            current_table: None,
+        };
+        let query = loader.fold_query(query).unwrap();
+        (loader.context, query)
     }
 }
 
-impl std::fmt::Debug for MaterializationContext {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "{:?}", self.declarations)
+impl IrFold for QueryLoader {
+    fn fold_table(&mut self, table: Table) -> anyhow::Result<Table> {
+        self.current_table = Some(table.id);
+
+        if let Some(name) = &table.name {
+            self.context.table_names.insert(table.id, name.clone());
+        }
+
+        fold_table(self, table)
+    }
+
+    fn fold_column_def(&mut self, cd: ColumnDef) -> anyhow::Result<ColumnDef> {
+        self.context.columns_defs.insert(cd.id, cd.clone());
+
+        if let Some(current_table) = self.current_table {
+            self.context.columns_loc.insert(cd.id, current_table);
+        }
+
+        Ok(cd)
     }
 }
-#[cfg(test)]
+
+#[cfg(asxas)]
 mod test {
 
     use super::*;
-    use crate::{parse, semantic::resolve, utils::diff};
+    use crate::{ast::Stmt, ir::Transform, parse, semantic::resolve, utils::diff};
+    use anyhow::Result;
     use insta::{assert_display_snapshot, assert_snapshot, assert_yaml_snapshot};
     use serde_yaml::to_string;
 
-    fn resolve_and_materialize(stmts: Vec<Stmt>) -> Result<Vec<TransformKind>> {
+    fn resolve_and_materialize(stmts: Vec<Stmt>) -> Result<Vec<Transform>> {
         let (res, context) = resolve(stmts, None)?;
 
         let pipeline = res.main_pipeline;
 
-        let (mat, _, _) = materialize(pipeline, context.into(), None)?;
-        Ok(mat.into_iter().map(|t| t.kind).collect())
+        let context = AnchorContext::default();
+        let (mat, _) = anchor_sql_select(pipeline, context, None)?;
+        Ok(mat)
     }
 
     #[test]
     fn test_replace_variables_1() -> Result<()> {
         let query = parse(
             r#"from employees
-    derive [                                         # This adds columns / variables.
-      gross_salary = salary + payroll_tax,
-      gross_cost =   gross_salary + benefits_cost     # Variables can use other variables.
-    ]
-    "#,
+        derive [                                         # This adds columns / variables.
+            gross_salary = salary + payroll_tax,
+            gross_cost =   gross_salary + benefits_cost     # Variables can use other variables.
+        ]
+        "#,
         )?;
 
         let (res, context) = resolve(query, None)?;
 
-        let (mat, _, _) = materialize(res.main_pipeline.clone(), context.into(), None)?;
+        let context = AnchorContext::default();
+        let (mat, _) = anchor_sql_select(res.main_pipeline.clone(), context, None)?;
 
         // We could make a convenience function for this. It's useful for
         // showing the diffs of an operation.
@@ -282,13 +219,32 @@ mod test {
             &to_string(&mat)?
         ),
         @r###"
-        @@ -3,6 +3,3 @@
-             name: employees
-             alias: null
-             declared_at: 79
-        -- Transform: !Derive
+        @@ -18,25 +18,3 @@
+           span:
+             start: 0
+             end: 14
+        -- kind: !Derive
         -  - Ident: gross_salary
+        -    ty: !Literal Column
         -  - Ident: gross_cost
+        -    ty: !Literal Column
+        -  is_complex: false
+        -  partition: []
+        -  window: null
+        -  ty:
+        -    columns:
+        -    - !All 29
+        -    - !Named
+        -      - gross_salary
+        -      - 32
+        -    - !Named
+        -      - gross_cost
+        -      - 34
+        -    sort: []
+        -    tables: []
+        -  span:
+        -    start: 19
+        -    end: 240
         "###);
 
         Ok(())
@@ -298,28 +254,28 @@ mod test {
     fn test_replace_variables_2() -> Result<()> {
         let query = parse(
             r#"
-from employees
-filter country == "USA"                           # Each line transforms the previous result.
-derive [                                         # This adds columns / variables.
-  gross_salary = salary + payroll_tax,
-  gross_cost   = gross_salary + benefits_cost    # Variables can use other variables.
-]
-filter gross_cost > 0
-group [title, country] (
-    aggregate [                  # `by` are the columns to group by.
-        average salary,                              # These are aggregation calcs run on each group.
-        sum     salary,
-        average gross_salary,
-        sum     gross_salary,
-        average gross_cost,
-        sum_gross_cost = sum gross_cost,
-        ct = count,
-    ]
-)
-sort sum_gross_cost
-filter sum_gross_cost > 200
-take 20
-"#,
+        from employees
+        filter country == "USA"                           # Each line transforms the previous result.
+        derive [                                         # This adds columns / variables.
+            gross_salary = salary + payroll_tax,
+            gross_cost   = gross_salary + benefits_cost    # Variables can use other variables.
+        ]
+        filter gross_cost > 0
+        group [title, country] (
+            aggregate [                  # `by` are the columns to group by.
+                average salary,                              # These are aggregation calcs run on each group.
+                sum     salary,
+                average gross_salary,
+                sum     gross_salary,
+                average gross_cost,
+                sum_gross_cost = sum gross_cost,
+                ct = count,
+            ]
+        )
+        sort sum_gross_cost
+        filter sum_gross_cost > 200
+        take 20
+        "#,
         )?;
 
         let mat = resolve_and_materialize(query).unwrap();
@@ -350,36 +306,39 @@ take 20
         assert_yaml_snapshot!(stmts, @r###"
         ---
         - Pipeline:
-            - FuncCall:
-                name:
-                  Ident: from
-                args:
-                  - Ident: employees
-                named_args: {}
-            - FuncCall:
-                name:
-                  Ident: aggregate
-                args:
-                  - List:
-                      - FuncCall:
-                          name:
-                            Ident: sum
-                          args:
-                            - Ident: salary
-                          named_args: {}
-                named_args: {}
+            Pipeline:
+              exprs:
+                - FuncCall:
+                    name:
+                      Ident: from
+                    args:
+                      - Ident: employees
+                    named_args: {}
+                - FuncCall:
+                    name:
+                      Ident: aggregate
+                    args:
+                      - List:
+                          - FuncCall:
+                              name:
+                                Ident: sum
+                              args:
+                                - Ident: salary
+                              named_args: {}
+                    named_args: {}
         "###);
 
         let (res, context) = resolve(stmts, None)?;
 
-        let (mat, _, _) = materialize(res.main_pipeline.clone(), context.into(), None)?;
+        let (mat, _) =
+            anchor_sql_select(res.main_pipeline.clone(), AnchorContext::default(), None)?;
 
         // We could make a convenience function for this. It's useful for
         // showing the diffs of an operation.
         let diff = diff(&to_string(&res.main_pipeline)?, &to_string(&mat)?);
         assert!(!diff.is_empty());
         assert_display_snapshot!(diff, @r###"
-        @@ -22,7 +22,6 @@
+        @@ -24,7 +24,6 @@
                - !String SUM(
                - !Expr
                  Ident: salary
@@ -407,24 +366,26 @@ take 20
         assert_yaml_snapshot!(stmts[2], @r###"
         ---
         Pipeline:
-          - FuncCall:
-              name:
-                Ident: from
-              args:
-                - Ident: a
-              named_args: {}
-          - FuncCall:
-              name:
-                Ident: select
-              args:
-                - FuncCall:
-                    name:
-                      Ident: ret
-                    args:
-                      - Ident: b
-                      - Ident: c
-                    named_args: {}
-              named_args: {}
+          Pipeline:
+            exprs:
+              - FuncCall:
+                  name:
+                    Ident: from
+                  args:
+                    - Ident: a
+                  named_args: {}
+              - FuncCall:
+                  name:
+                    Ident: select
+                  args:
+                    - FuncCall:
+                        name:
+                          Ident: ret
+                        args:
+                          - Ident: b
+                          - Ident: c
+                        named_args: {}
+                  named_args: {}
         "###);
 
         let mat = resolve_and_materialize(stmts).unwrap();
@@ -451,10 +412,11 @@ take 20
 
         let (res, context) = resolve(query, None)?;
 
-        let (mat, _, _) = materialize(res.main_pipeline.clone(), context.into(), None)?;
+        let (mat, _) =
+            anchor_sql_select(res.main_pipeline.clone(), AnchorContext::default(), None)?;
 
         assert_snapshot!(diff(&to_string(&res.main_pipeline)?, &to_string(&mat)?), @r###"
-        @@ -18,10 +18,20 @@
+        @@ -20,10 +20,20 @@
              end: 15
          - kind: !Aggregate
              assigns:
@@ -476,7 +438,7 @@ take 20
         +      alias: two
              by: []
            is_complex: false
-           ty:
+           partition: []
         "###);
 
         // Test it'll run the `sum foo` function first.
@@ -604,28 +566,28 @@ take 20
     fn test_materialize_2() -> Result<()> {
         let query = parse(
             r#"
-from employees
-filter country == "USA"                           # Each line transforms the previous result.
-derive [                                         # This adds columns / variables.
-  gross_salary = salary + payroll_tax,
-  gross_cost =   gross_salary + benefits_cost    # Variables can use other variables.
-]
-filter gross_cost > 0
-group [title, country] (
-    aggregate [                  # `by` are the columns to group by.
-        average salary,                              # These are aggregation calcs run on each group.
-        sum     salary,
-        average gross_salary,
-        sum     gross_salary,
-        average gross_cost,
-        sum_gross_cost = sum gross_cost,
-        ct = count,
-    ]
-)
-sort sum_gross_cost
-filter sum_gross_cost > 200
-take 20
-"#,
+        from employees
+        filter country == "USA"                           # Each line transforms the previous result.
+        derive [                                         # This adds columns / variables.
+            gross_salary = salary + payroll_tax,
+            gross_cost =   gross_salary + benefits_cost    # Variables can use other variables.
+        ]
+        filter gross_cost > 0
+        group [title, country] (
+            aggregate [                  # `by` are the columns to group by.
+                average salary,                              # These are aggregation calcs run on each group.
+                sum     salary,
+                average gross_salary,
+                sum     gross_salary,
+                average gross_cost,
+                sum_gross_cost = sum gross_cost,
+                ct = count,
+            ]
+        )
+        sort sum_gross_cost
+        filter sum_gross_cost > 200
+        take 20
+        "#,
         )?;
 
         let mat = resolve_and_materialize(query).unwrap();
@@ -712,6 +674,8 @@ take 20
                         alias: emp_salary
                     by: []
                 is_complex: false
+                partition: []
+                window: ~
                 ty:
                   columns:
                     - Named:
@@ -743,6 +707,8 @@ take 20
                         alias: avg_salary
                     by: []
                 is_complex: false
+                partition: []
+                window: ~
                 ty:
                   columns:
                     - Named:
@@ -776,7 +742,8 @@ take 20
         let (res1, context) = resolve(query1, None)?;
         let (res2, context) = resolve(query2, Some(context))?;
 
-        let (mat, frame, context) = materialize(res1.main_pipeline, context.into(), None)?;
+        let context = AnchorContext::default();
+        let (mat, context) = anchor_sql_select(res1.main_pipeline, context, None)?;
 
         assert_yaml_snapshot!(mat, @r###"
         ---
@@ -792,6 +759,8 @@ take 20
                   sort: []
                   tables: []
           is_complex: false
+          partition: []
+          window: ~
           ty:
             columns:
               - All: 29
@@ -810,6 +779,8 @@ take 20
               by: []
               sort: []
           is_complex: false
+          partition: []
+          window: ~
           ty:
             columns:
               - Named:
@@ -828,22 +799,8 @@ take 20
             start: 83
             end: 90
         "###);
-        assert_yaml_snapshot!(frame.columns, @r###"
-        ---
-        - Ident: customer_no
-        - Ident: gross
-        - Ident: tax
-        - Binary:
-            left:
-              Ident: gross
-            op: Sub
-            right:
-              Ident: tax
-          ty:
-            Literal: Column
-        "###);
 
-        let (mat, frame, _) = materialize(res2.main_pipeline, context, None)?;
+        let (mat, _) = anchor_sql_select(res2.main_pipeline, context, None)?;
 
         assert_yaml_snapshot!(mat, @r###"
         ---
@@ -859,6 +816,8 @@ take 20
                   sort: []
                   tables: []
           is_complex: false
+          partition: []
+          window: ~
           ty:
             columns:
               - All: 36
@@ -884,6 +843,8 @@ take 20
                 Using:
                   - Ident: customer_no
           is_complex: false
+          partition: []
+          window: ~
           ty:
             columns:
               - All: 36
@@ -897,12 +858,6 @@ take 20
           span:
             start: 30
             end: 58
-        "###);
-        assert_yaml_snapshot!(frame.columns, @r###"
-        ---
-        - Ident: table_1.*
-        - Ident: customers.*
-        - Ident: customer_no
         "###);
 
         Ok(())

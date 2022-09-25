@@ -5,16 +5,14 @@ use std::fmt::{Debug, Display, Formatter, Result, Write};
 use enum_as_inner::EnumAsInner;
 use serde::{Deserialize, Serialize};
 
-use crate::ast::Frame;
-
-use super::Expr;
+use super::Frame;
 
 #[derive(Clone, PartialEq, Serialize, Deserialize, EnumAsInner)]
 pub enum Ty {
     Empty,
     Literal(TyLit),
     Named(String),
-    Parameterized(Box<Ty>, Box<Expr>),
+    Parameterized(Box<Ty>, Box<Ty>),
     AnyOf(Vec<Ty>),
     Function(TyFunc),
 
@@ -114,7 +112,7 @@ impl PartialOrd for Ty {
                 }
             }
             (Ty::Parameterized(l_ty, l_param), Ty::Parameterized(r_ty, r_param)) => {
-                if l_ty == r_ty && l_param.kind.as_type() == r_param.kind.as_type() {
+                if l_ty == r_ty && l_param == r_param {
                     Some(Ordering::Equal)
                 } else {
                     None
@@ -143,7 +141,7 @@ impl Display for Ty {
             Ty::Literal(lit) => write!(f, "{:}", lit),
             Ty::Named(name) => write!(f, "{:}", name),
             Ty::Parameterized(t, param) => {
-                write!(f, "{t}<{}>", param.kind.as_type().unwrap())
+                write!(f, "{t}<{}>", param)
             }
             Ty::AnyOf(ts) => {
                 for (i, t) in ts.iter().enumerate() {

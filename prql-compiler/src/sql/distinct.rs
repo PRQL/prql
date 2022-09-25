@@ -1,9 +1,10 @@
 use anyhow::Result;
 
 use crate::ast::{ast_fold::AstFold, *};
+use crate::ir::{IrFold, Transform, TransformKind};
 use crate::semantic::Declaration;
 
-use super::materializer::MaterializationContext;
+use super::anchor::MaterializationContext;
 
 pub fn take_to_distinct(
     query: Vec<Transform>,
@@ -17,12 +18,13 @@ struct DistinctMaker<'a> {
     context: &'a mut MaterializationContext,
 }
 
-impl<'a> AstFold for DistinctMaker<'a> {
+impl<'a> IrFold for DistinctMaker<'a> {
     fn fold_transforms(&mut self, transforms: Vec<Transform>) -> Result<Vec<Transform>> {
         let mut res = Vec::new();
 
         for transform in transforms {
             match transform.kind {
+                /*
                 TransformKind::Take { ref by, .. } if by.is_empty() => {
                     res.push(transform);
                 }
@@ -46,11 +48,14 @@ impl<'a> AstFold for DistinctMaker<'a> {
                 _ => {
                     res.push(transform);
                 }
+                 */
             }
         }
         Ok(res)
     }
+}
 
+impl<'a> AstFold for DistinctMaker<'a> {
     fn fold_func_def(&mut self, function: FuncDef) -> Result<FuncDef> {
         // minor optimization: skip recursion for func def - there is no work to be done here
         Ok(function)
@@ -90,7 +95,10 @@ impl<'a> DistinctMaker<'a> {
 
         // add the two transforms
         let transforms = vec![
-            TransformKind::Derive(vec![ident.clone()]).into(),
+            Transform {
+
+            }, 
+        TransformKind::Derive(vec![ident.clone()]),
             Transform {
                 kind: TransformKind::Filter(Box::new(match (range_int.start, range_int.end) {
                     (Some(s), Some(e)) if s == e => Expr::from(ExprKind::Binary {
@@ -119,6 +127,8 @@ impl<'a> DistinctMaker<'a> {
                 is_complex: true, // this transform DOES contain windowed functions
                 ty: Frame::default(),
                 span: None,
+                partition: Vec::new(),
+                window: None,
             },
         ];
 

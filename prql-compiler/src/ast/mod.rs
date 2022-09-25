@@ -6,7 +6,6 @@ pub mod dialect;
 pub mod expr;
 pub mod frame;
 pub mod literal;
-pub mod query;
 pub mod stmt;
 pub mod types;
 
@@ -14,6 +13,5 @@ pub use self::dialect::*;
 pub use self::expr::*;
 pub use self::frame::*;
 pub use self::literal::*;
-pub use self::query::*;
 pub use self::stmt::*;
 pub use self::types::*;
