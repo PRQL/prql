@@ -1,10 +1,9 @@
 use anyhow::Result;
 
 use super::*;
-use crate::ast::ast_fold::{fold_transform, AstFold};
+use crate::ast::ast_fold::AstFold;
 use crate::ast::*;
 
-/// sets `node.is_complex` of some nodes in AST
 #[allow(dead_code)]
 pub fn determine_complexity(nodes: Vec<Expr>, context: &Context) -> Vec<Expr> {
     let mut d = DetermineComplex {
@@ -51,13 +50,13 @@ impl<'a> AstFold for DetermineComplex<'a> {
         Ok(res)
     }
 
-    fn fold_transform(&mut self, transform: Transform) -> Result<Transform> {
-        // fold only filter transforms (other don't need is_complex)
-        match transform.kind {
-            TransformKind::Filter(_) => fold_transform(self, transform),
-            _ => Ok(transform),
-        }
-    }
+    // fn fold_transform(&mut self, transform: Transform) -> Result<Transform> {
+    //     // fold only filter transforms (other don't need is_complex)
+    //     match transform.kind {
+    //         TransformKind::Filter(_) => fold_transform(self, transform),
+    //         _ => Ok(transform),
+    //     }
+    // }
 
     fn fold_type(&mut self, t: Ty) -> Result<Ty> {
         Ok(t)

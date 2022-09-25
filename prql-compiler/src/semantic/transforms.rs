@@ -4,6 +4,7 @@ use itertools::Itertools;
 use crate::ast::ast_fold::AstFold;
 use crate::ast::*;
 use crate::error::{Error, Reason};
+use crate::ir::{JoinFilter, JoinSide, TableRef, TransformKind, WindowKind};
 
 use super::resolver::Resolver;
 use super::{Frame, FrameColumn};
@@ -540,6 +541,8 @@ mod tests {
                     sort: []
                     tables: []
             is_complex: false
+            partition: []
+            window: ~
             ty:
               columns:
                 - All: 29
@@ -554,6 +557,8 @@ mod tests {
                   ty:
                     Literal: Column
             is_complex: false
+            partition: []
+            window: ~
             ty:
               columns:
                 - Named:
@@ -580,6 +585,8 @@ mod tests {
                         by: []
                         sort: []
                     is_complex: false
+                    partition: []
+                    window: ~
                     ty:
                       columns:
                         - Named:
@@ -589,6 +596,8 @@ mod tests {
                       tables: []
                     span: ~
             is_complex: false
+            partition: []
+            window: ~
             ty:
               columns:
                 - Named:
@@ -653,6 +662,8 @@ mod tests {
                     sort: []
                     tables: []
             is_complex: false
+            partition: []
+            window: ~
             ty:
               columns:
                 - All: 29
@@ -680,6 +691,8 @@ mod tests {
                               Literal: Column
                         by: []
                     is_complex: false
+                    partition: []
+                    window: ~
                     ty:
                       columns:
                         - Unnamed: 32
@@ -687,6 +700,8 @@ mod tests {
                       tables: []
                     span: ~
             is_complex: false
+            partition: []
+            window: ~
             ty:
               columns:
                 - Unnamed: 32
@@ -732,6 +747,8 @@ mod tests {
                     sort: []
                     tables: []
             is_complex: false
+            partition: []
+            window: ~
             ty:
               columns:
                 - All: 29
@@ -755,6 +772,8 @@ mod tests {
                     Ident: num_of_articles
                     ty: Infer
             is_complex: false
+            partition: []
+            window: ~
             ty:
               columns:
                 - All: 29
@@ -776,6 +795,8 @@ mod tests {
                     Ident: issued_at
                     ty: Infer
             is_complex: false
+            partition: []
+            window: ~
             ty:
               columns:
                 - All: 29
@@ -793,6 +814,8 @@ mod tests {
                     Ident: issued_at
                     ty: Infer
             is_complex: false
+            partition: []
+            window: ~
             ty:
               columns:
                 - All: 29
@@ -810,6 +833,8 @@ mod tests {
                     Ident: issued_at
                     ty: Infer
             is_complex: false
+            partition: []
+            window: ~
             ty:
               columns:
                 - All: 29
@@ -827,6 +852,8 @@ mod tests {
                     Ident: issued_at
                     ty: Infer
             is_complex: false
+            partition: []
+            window: ~
             ty:
               columns:
                 - All: 29

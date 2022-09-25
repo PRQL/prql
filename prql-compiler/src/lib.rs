@@ -2,6 +2,7 @@ pub mod ast;
 #[cfg(feature = "cli")]
 mod cli;
 mod error;
+mod ir;
 mod parser;
 pub mod semantic;
 mod sql;
@@ -48,7 +49,7 @@ pub fn from_json(json: &str) -> Result<String> {
 
 // Simple tests for "this PRQL creates this SQL" go here.
 #[cfg(test)]
-mod integration {
+mod test {
     use super::{compile, from_json, to_json, Result};
     use insta::{assert_display_snapshot, assert_snapshot};
 

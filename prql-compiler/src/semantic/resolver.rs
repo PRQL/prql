@@ -7,6 +7,7 @@ use itertools::Itertools;
 use crate::ast::ast_fold::*;
 use crate::ast::*;
 use crate::error::{Error, Reason, Span};
+use crate::ir::{Query, Table, Transform};
 use crate::semantic::scope::NS_PARAM;
 
 use super::scope::NS_FRAME;
@@ -203,6 +204,8 @@ impl Resolver {
                         ty: frame_after,
                         is_complex: false,
                         span,
+                        partition: vec![],
+                        window: None,
                     };
 
                     if let Some(transforms) = pipeline.kind.as_resolved_pipeline_mut() {
@@ -447,12 +450,12 @@ impl Resolver {
                     let table = Table {
                         id: table.id,
                         name: table.name,
-                        pipeline: table.pipeline.kind.into_resolved_pipeline()?,
+                        pipeline: table.value.kind.into_resolved_pipeline()?,
                     };
                     tables.push(table);
                 }
-                StmtKind::Pipeline(exprs) => {
-                    let expr = self.fold_expr(ExprKind::Pipeline(Pipeline { exprs }).into())?;
+                StmtKind::Pipeline(expr) => {
+                    let expr = self.fold_expr(expr)?;
 
                     match expr.kind {
                         ExprKind::ResolvedPipeline(transforms) => {

@@ -6,10 +6,13 @@ use enum_as_inner::EnumAsInner;
 use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Reason, Span};
+use crate::ir::{Transform, WindowKind};
 use crate::semantic::Declaration;
 
 use super::*;
 
+/// Expr is anything that has a value and thus a type. 
+/// If it cannot contain nested Exprs, is should be under [ExprKind::Literal].
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Expr {
     #[serde(flatten)]
@@ -33,7 +36,6 @@ pub struct Expr {
 
 #[derive(Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize)]
 pub enum ExprKind {
-    Empty,
     Ident(Ident),
     Literal(Literal),
     Pipeline(Pipeline),
@@ -50,13 +52,12 @@ pub enum ExprKind {
     },
     FuncCall(FuncCall),
     Closure(Closure),
-    Type(Ty),
     SString(Vec<InterpolateItem>),
     FString(Vec<InterpolateItem>),
-    Interval(Interval),
     Windowed(Windowed),
 
     /// Resolved table transforms.
+    /// TODO: figure out a way to remove this
     ResolvedPipeline(Vec<Transform>),
 }
 
@@ -180,14 +181,16 @@ pub struct Range<T = Box<Expr>> {
     pub end: Option<T>,
 }
 
-impl Range {
+impl <T> Range<T> {
     pub const fn unbounded() -> Self {
         Range {
             start: None,
             end: None,
         }
     }
+}
 
+impl Range {
     pub fn from_ints(start: Option<i64>, end: Option<i64>) -> Self {
         let start = start.map(|x| Box::new(Expr::from(ExprKind::Literal(Literal::Integer(x)))));
         let end = end.map(|x| Box::new(Expr::from(ExprKind::Literal(Literal::Integer(x)))));
@@ -299,9 +302,6 @@ impl Display for Expr {
         }
 
         match &self.kind {
-            ExprKind::Empty => {
-                f.write_str("()")?;
-            }
             ExprKind::Ident(s) => {
                 display_ident(f, s)?;
             }
@@ -396,9 +396,6 @@ impl Display for Expr {
             ExprKind::FString(parts) => {
                 display_interpolation(f, "f", parts)?;
             }
-            ExprKind::Interval(i) => {
-                write!(f, "{}{}", i.n, i.unit)?;
-            }
             ExprKind::Windowed(w) => {
                 write!(f, "{}", w.expr)?;
             }
@@ -406,11 +403,6 @@ impl Display for Expr {
                 for transform in transforms {
                     writeln!(f, "{} <unimplemented>", transform.kind.as_ref())?;
                 }
-            }
-            ExprKind::Type(typ) => {
-                f.write_char('<')?;
-                write!(f, "{typ}")?;
-                f.write_char('>')?;
             }
             ExprKind::Literal(literal) => {
                 write!(f, "{}", literal)?;

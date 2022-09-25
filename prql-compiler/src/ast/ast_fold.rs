@@ -1,9 +1,10 @@
 /// A trait to "fold" a PRQL AST (similar to a visitor), so we can transitively
 /// apply some logic to a whole tree by just defining how we want to handle each
 /// type.
-use super::*;
 use anyhow::Result;
 use itertools::Itertools;
+
+use super::*;
 
 // Fold pattern:
 // - https://rust-unofficial.github.io/patterns/patterns/creational/fold.html
@@ -35,21 +36,12 @@ pub trait AstFold {
     fn fold_exprs(&mut self, exprs: Vec<Expr>) -> Result<Vec<Expr>> {
         exprs.into_iter().map(|node| self.fold_expr(node)).collect()
     }
-    fn fold_ident(&mut self, ident: Ident) -> Result<Ident> {
-        Ok(ident)
-    }
     fn fold_table(&mut self, table: TableDef) -> Result<TableDef> {
         Ok(TableDef {
             id: table.id,
-            name: self.fold_ident(table.name)?,
-            pipeline: Box::new(self.fold_expr(*table.pipeline)?),
+            name: table.name,
+            value: Box::new(self.fold_expr(*table.value)?),
         })
-    }
-    fn fold_transform(&mut self, transform: Transform) -> Result<Transform> {
-        fold_transform(self, transform)
-    }
-    fn fold_transforms(&mut self, transforms: Vec<Transform>) -> Result<Vec<Transform>> {
-        fold_transforms(self, transforms)
     }
     fn fold_pipeline(&mut self, pipeline: Pipeline) -> Result<Pipeline> {
         fold_pipeline(self, pipeline)
@@ -63,23 +55,8 @@ pub trait AstFold {
     fn fold_closure(&mut self, closure: Closure) -> Result<Closure> {
         fold_closure(self, closure)
     }
-    fn fold_table_ref(&mut self, table_ref: TableRef) -> Result<TableRef> {
-        fold_table_ref(self, table_ref)
-    }
     fn fold_interpolate_item(&mut self, sstring_item: InterpolateItem) -> Result<InterpolateItem> {
         fold_interpolate_item(self, sstring_item)
-    }
-    fn fold_column_sort(&mut self, column_sort: ColumnSort) -> Result<ColumnSort> {
-        fold_column_sort(self, column_sort)
-    }
-    fn fold_column_sorts(&mut self, columns: Vec<ColumnSort>) -> Result<Vec<ColumnSort>> {
-        columns
-            .into_iter()
-            .map(|c| self.fold_column_sort(c))
-            .try_collect()
-    }
-    fn fold_join_filter(&mut self, f: JoinFilter) -> Result<JoinFilter> {
-        fold_join_filter(self, f)
     }
     fn fold_type(&mut self, t: Ty) -> Result<Ty> {
         fold_type(self, t)
@@ -87,15 +64,12 @@ pub trait AstFold {
     fn fold_windowed(&mut self, windowed: Windowed) -> Result<Windowed> {
         fold_windowed(self, windowed)
     }
-    fn fold_query(&mut self, query: Query) -> Result<Query> {
-        fold_query(self, query)
-    }
 }
 
 pub fn fold_expr_kind<T: ?Sized + AstFold>(fold: &mut T, expr_kind: ExprKind) -> Result<ExprKind> {
     use ExprKind::*;
     Ok(match expr_kind {
-        Ident(ident) => Ident(fold.fold_ident(ident)?),
+        Ident(ident) => Ident(ident),
         Binary { op, left, right } => Binary {
             op,
             left: Box::new(fold.fold_expr(*left)?),
@@ -123,10 +97,12 @@ pub fn fold_expr_kind<T: ?Sized + AstFold>(fold: &mut T, expr_kind: ExprKind) ->
         FuncCall(func_call) => FuncCall(fold.fold_func_call(func_call)?),
         Closure(closure) => Closure(fold.fold_closure(closure)?),
         Windowed(window) => Windowed(fold.fold_windowed(window)?),
-        Type(t) => Type(fold.fold_type(t)?),
-        ResolvedPipeline(transforms) => ResolvedPipeline(fold.fold_transforms(transforms)?),
+
+        // ResolvedPipeline cannot be folded by ast_fold, use ir_fold
+        ResolvedPipeline(transforms) => ResolvedPipeline(transforms),
+
         // None of these capture variables, so we don't need to fold them.
-        Empty | Literal(_) | Interval(_) => expr_kind,
+        Literal(_) => expr_kind,
     })
 }
 
@@ -135,7 +111,7 @@ pub fn fold_stmt_kind<T: ?Sized + AstFold>(fold: &mut T, stmt_kind: StmtKind) ->
     Ok(match stmt_kind {
         FuncDef(func) => FuncDef(fold.fold_func_def(func)?),
         TableDef(table) => TableDef(fold.fold_table(table)?),
-        Pipeline(exprs) => Pipeline(fold.fold_exprs(exprs)?),
+        Pipeline(expr) => Pipeline(fold.fold_expr(expr)?),
         QueryDef(_) => stmt_kind,
     })
 }
@@ -144,7 +120,7 @@ pub fn fold_windowed<F: ?Sized + AstFold>(fold: &mut F, window: Windowed) -> Res
     Ok(Windowed {
         expr: Box::new(fold.fold_expr(*window.expr)?),
         group: fold.fold_exprs(window.group)?,
-        sort: fold.fold_column_sorts(window.sort)?,
+        sort: window.sort,
         window: {
             let (kind, range) = window.window;
             (kind, fold_range(fold, range)?)
@@ -157,34 +133,6 @@ pub fn fold_range<F: ?Sized + AstFold>(fold: &mut F, Range { start, end }: Range
         start: fold_optional_box(fold, start)?,
         end: fold_optional_box(fold, end)?,
     })
-}
-
-pub fn fold_query<F: ?Sized + AstFold>(fold: &mut F, query: Query) -> Result<Query> {
-    Ok(Query {
-        def: query.def,
-        main_pipeline: fold.fold_transforms(query.main_pipeline)?,
-        tables: query
-            .tables
-            .into_iter()
-            .map(|t| {
-                Ok::<_, anyhow::Error>(Table {
-                    id: t.id,
-                    name: t.name,
-                    pipeline: fold.fold_transforms(t.pipeline)?,
-                })
-            })
-            .try_collect()?,
-    })
-}
-
-pub fn fold_transforms<F: ?Sized + AstFold>(
-    fold: &mut F,
-    transforms: Vec<Transform>,
-) -> Result<Vec<Transform>> {
-    transforms
-        .into_iter()
-        .map(|t| fold.fold_transform(t))
-        .try_collect()
 }
 
 pub fn fold_pipeline<T: ?Sized + AstFold>(fold: &mut T, pipeline: Pipeline) -> Result<Pipeline> {
@@ -220,57 +168,6 @@ pub fn fold_column_sort<T: ?Sized + AstFold>(
     Ok(ColumnSort {
         direction: sort_column.direction,
         column: fold.fold_expr(sort_column.column)?,
-    })
-}
-
-pub fn fold_transform<T: ?Sized + AstFold>(
-    fold: &mut T,
-    mut transform: Transform,
-) -> Result<Transform> {
-    transform.kind = match transform.kind {
-        TransformKind::From(table) => TransformKind::From(fold.fold_table_ref(table)?),
-
-        TransformKind::Derive(assigns) => TransformKind::Derive(fold.fold_exprs(assigns)?),
-        TransformKind::Select(assigns) => TransformKind::Select(fold.fold_exprs(assigns)?),
-        TransformKind::Aggregate { assigns, by } => TransformKind::Aggregate {
-            assigns: fold.fold_exprs(assigns)?,
-            by: fold.fold_exprs(by)?,
-        },
-
-        TransformKind::Filter(f) => TransformKind::Filter(Box::new(fold.fold_expr(*f)?)),
-        TransformKind::Sort(items) => TransformKind::Sort(fold.fold_column_sorts(items)?),
-        TransformKind::Join { side, with, filter } => TransformKind::Join {
-            side,
-            with: fold.fold_table_ref(with)?,
-            filter: fold.fold_join_filter(filter)?,
-        },
-        TransformKind::Group { by, pipeline } => TransformKind::Group {
-            by: fold.fold_exprs(by)?,
-            pipeline: fold.fold_transforms(pipeline)?,
-        },
-        TransformKind::Window {
-            kind,
-            range,
-            pipeline,
-        } => TransformKind::Window {
-            range: fold_range(fold, range)?,
-            kind,
-            pipeline: fold.fold_transforms(pipeline)?,
-        },
-        TransformKind::Take { by, range, sort } => TransformKind::Take {
-            range: fold_range(fold, range)?,
-            by: fold.fold_exprs(by)?,
-            sort: fold.fold_column_sorts(sort)?,
-        },
-        TransformKind::Unique => TransformKind::Unique,
-    };
-    Ok(transform)
-}
-
-pub fn fold_join_filter<T: ?Sized + AstFold>(fold: &mut T, f: JoinFilter) -> Result<JoinFilter> {
-    Ok(match f {
-        JoinFilter::On(nodes) => JoinFilter::On(fold.fold_exprs(nodes)?),
-        JoinFilter::Using(nodes) => JoinFilter::Using(fold.fold_exprs(nodes)?),
     })
 }
 
@@ -317,17 +214,9 @@ pub fn fold_closure<T: ?Sized + AstFold>(fold: &mut T, closure: Closure) -> Resu
     })
 }
 
-pub fn fold_table_ref<T: ?Sized + AstFold>(fold: &mut T, table: TableRef) -> Result<TableRef> {
-    Ok(TableRef {
-        name: fold.fold_ident(table.name)?,
-        alias: table.alias.map(|a| fold.fold_ident(a)).transpose()?,
-        ..table
-    })
-}
-
 pub fn fold_func_def<T: ?Sized + AstFold>(fold: &mut T, func_def: FuncDef) -> Result<FuncDef> {
     Ok(FuncDef {
-        name: fold.fold_ident(func_def.name)?,
+        name: func_def.name,
         positional_params: fold_func_param(fold, func_def.positional_params)?,
         named_params: fold_func_param(fold, func_def.named_params)?,
         body: Box::new(fold.fold_expr(*func_def.body)?),
@@ -354,8 +243,8 @@ pub fn fold_type<T: ?Sized + AstFold>(fold: &mut T, t: Ty) -> Result<Ty> {
     Ok(match t {
         Ty::Literal(_) => t,
         Ty::Parameterized(t, p) => Ty::Parameterized(
-            Box::new(fold_type(fold, *t)?),
-            Box::new(fold.fold_expr(*p)?),
+            Box::new(fold.fold_type(*t)?),
+            Box::new(fold.fold_type(*p)?),
         ),
         Ty::AnyOf(ts) => Ty::AnyOf(ts.into_iter().map(|t| fold_type(fold, t)).try_collect()?),
         _ => t,

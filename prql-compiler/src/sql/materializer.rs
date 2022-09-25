@@ -1,8 +1,9 @@
 //! Transform the parsed AST into a "materialized" AST, by executing functions and
 //! replacing variables. The materialized AST is "flat", in the sense that it
 //! contains no query-specific logic.
-use crate::ast::ast_fold::*;
+use crate::ast::ast_fold::{AstFold, *};
 use crate::ast::*;
+use crate::ir::{IrFold, Transform, TransformKind};
 use crate::semantic::{Context, Declaration, Declarations};
 
 use anyhow::Result;
@@ -216,23 +217,25 @@ fn emit_column_with_name(mut expr_node: Expr, name: String) -> Expr {
     expr_node
 }
 
+impl IrFold for Materializer {}
+
 impl AstFold for Materializer {
-    fn fold_expr(&mut self, mut node: Expr) -> Result<Expr> {
+    fn fold_expr(&mut self, mut expr: Expr) -> Result<Expr> {
         // We replace Items and also pass node to `inline_func_call`,
         // so we need to run this here rather than in `fold_func_call` or `fold_item`.
 
-        Ok(match node.kind {
+        Ok(match expr.kind {
             ExprKind::Ident(_) => {
-                if let Some(id) = node.declared_at {
+                if let Some(id) = expr.declared_at {
                     self.materialize_declaration(id)?
                 } else {
-                    node
+                    expr
                 }
             }
 
             _ => {
-                node.kind = fold_expr_kind(self, node.kind)?;
-                node
+                expr.kind = fold_expr_kind(self, expr.kind)?;
+                expr
             }
         })
     }
@@ -247,7 +250,7 @@ impl std::fmt::Debug for MaterializationContext {
 mod test {
 
     use super::*;
-    use crate::{parse, semantic::resolve, utils::diff};
+    use crate::{ir::TransformKind, parse, semantic::resolve, utils::diff};
     use insta::{assert_display_snapshot, assert_snapshot, assert_yaml_snapshot};
     use serde_yaml::to_string;
 
@@ -282,13 +285,32 @@ mod test {
             &to_string(&mat)?
         ),
         @r###"
-        @@ -3,6 +3,3 @@
-             name: employees
-             alias: null
-             declared_at: 79
-        -- Transform: !Derive
+        @@ -18,25 +18,3 @@
+           span:
+             start: 0
+             end: 14
+        -- kind: !Derive
         -  - Ident: gross_salary
+        -    ty: !Literal Column
         -  - Ident: gross_cost
+        -    ty: !Literal Column
+        -  is_complex: false
+        -  partition: []
+        -  window: null
+        -  ty:
+        -    columns:
+        -    - !All 29
+        -    - !Named
+        -      - gross_salary
+        -      - 32
+        -    - !Named
+        -      - gross_cost
+        -      - 34
+        -    sort: []
+        -    tables: []
+        -  span:
+        -    start: 19
+        -    end: 240
         "###);
 
         Ok(())
@@ -350,24 +372,26 @@ take 20
         assert_yaml_snapshot!(stmts, @r###"
         ---
         - Pipeline:
-            - FuncCall:
-                name:
-                  Ident: from
-                args:
-                  - Ident: employees
-                named_args: {}
-            - FuncCall:
-                name:
-                  Ident: aggregate
-                args:
-                  - List:
-                      - FuncCall:
-                          name:
-                            Ident: sum
-                          args:
-                            - Ident: salary
-                          named_args: {}
-                named_args: {}
+            Pipeline:
+              exprs:
+                - FuncCall:
+                    name:
+                      Ident: from
+                    args:
+                      - Ident: employees
+                    named_args: {}
+                - FuncCall:
+                    name:
+                      Ident: aggregate
+                    args:
+                      - List:
+                          - FuncCall:
+                              name:
+                                Ident: sum
+                              args:
+                                - Ident: salary
+                              named_args: {}
+                    named_args: {}
         "###);
 
         let (res, context) = resolve(stmts, None)?;
@@ -379,7 +403,7 @@ take 20
         let diff = diff(&to_string(&res.main_pipeline)?, &to_string(&mat)?);
         assert!(!diff.is_empty());
         assert_display_snapshot!(diff, @r###"
-        @@ -22,7 +22,6 @@
+        @@ -24,7 +24,6 @@
                - !String SUM(
                - !Expr
                  Ident: salary
@@ -407,24 +431,26 @@ take 20
         assert_yaml_snapshot!(stmts[2], @r###"
         ---
         Pipeline:
-          - FuncCall:
-              name:
-                Ident: from
-              args:
-                - Ident: a
-              named_args: {}
-          - FuncCall:
-              name:
-                Ident: select
-              args:
-                - FuncCall:
-                    name:
-                      Ident: ret
-                    args:
-                      - Ident: b
-                      - Ident: c
-                    named_args: {}
-              named_args: {}
+          Pipeline:
+            exprs:
+              - FuncCall:
+                  name:
+                    Ident: from
+                  args:
+                    - Ident: a
+                  named_args: {}
+              - FuncCall:
+                  name:
+                    Ident: select
+                  args:
+                    - FuncCall:
+                        name:
+                          Ident: ret
+                        args:
+                          - Ident: b
+                          - Ident: c
+                        named_args: {}
+                  named_args: {}
         "###);
 
         let mat = resolve_and_materialize(stmts).unwrap();
@@ -454,7 +480,7 @@ take 20
         let (mat, _, _) = materialize(res.main_pipeline.clone(), context.into(), None)?;
 
         assert_snapshot!(diff(&to_string(&res.main_pipeline)?, &to_string(&mat)?), @r###"
-        @@ -18,10 +18,20 @@
+        @@ -20,10 +20,20 @@
              end: 15
          - kind: !Aggregate
              assigns:
@@ -476,7 +502,7 @@ take 20
         +      alias: two
              by: []
            is_complex: false
-           ty:
+           partition: []
         "###);
 
         // Test it'll run the `sum foo` function first.
@@ -712,6 +738,8 @@ take 20
                         alias: emp_salary
                     by: []
                 is_complex: false
+                partition: []
+                window: ~
                 ty:
                   columns:
                     - Named:
@@ -743,6 +771,8 @@ take 20
                         alias: avg_salary
                     by: []
                 is_complex: false
+                partition: []
+                window: ~
                 ty:
                   columns:
                     - Named:
@@ -792,6 +822,8 @@ take 20
                   sort: []
                   tables: []
           is_complex: false
+          partition: []
+          window: ~
           ty:
             columns:
               - All: 29
@@ -810,6 +842,8 @@ take 20
               by: []
               sort: []
           is_complex: false
+          partition: []
+          window: ~
           ty:
             columns:
               - Named:
@@ -859,6 +893,8 @@ take 20
                   sort: []
                   tables: []
           is_complex: false
+          partition: []
+          window: ~
           ty:
             columns:
               - All: 36
@@ -884,6 +920,8 @@ take 20
                 Using:
                   - Ident: customer_no
           is_complex: false
+          partition: []
+          window: ~
           ty:
             columns:
               - All: 36

@@ -18,9 +18,9 @@ use sqlparser::ast::{
 };
 use std::collections::HashMap;
 
-use crate::ast::JoinFilter;
 use crate::ast::*;
 use crate::error::{Error, Reason};
+use crate::ir::*;
 use crate::semantic::Context;
 use crate::utils::OrMap;
 use crate::utils::*;
@@ -387,6 +387,8 @@ fn try_prepend_with_from(pipeline: &mut Vec<Transform>, table: Option<(TableRef,
             kind: TransformKind::From(table_ref),
             is_complex: false,
             span: None,
+            partition: Vec::new(),
+            window: None,
         };
         pipeline.insert(0, transform);
     }
@@ -583,27 +585,6 @@ fn translate_expr_kind(item: ExprKind, dialect: &dyn DialectHandler) -> Result<s
                 special: false,
             })
         }
-        ExprKind::Interval(interval) => {
-            let sql_parser_datetime = match interval.unit.as_str() {
-                "years" => DateTimeField::Year,
-                "months" => DateTimeField::Month,
-                "days" => DateTimeField::Day,
-                "hours" => DateTimeField::Hour,
-                "minutes" => DateTimeField::Minute,
-                "seconds" => DateTimeField::Second,
-                _ => bail!("Unsupported interval unit: {}", interval.unit),
-            };
-            sql_ast::Expr::Value(Value::Interval {
-                value: Box::new(translate_expr_kind(
-                    ExprKind::Literal(Literal::Integer(interval.n)),
-                    dialect,
-                )?),
-                leading_field: Some(sql_parser_datetime),
-                leading_precision: None,
-                last_field: None,
-                fractional_seconds_precision: None,
-            })
-        }
         ExprKind::Windowed(window) => {
             let expr = translate_expr_kind(window.expr.kind, dialect)?;
 
@@ -646,6 +627,27 @@ fn translate_expr_kind(item: ExprKind, dialect: &dyn DialectHandler) -> Result<s
                 data_type: sql_ast::DataType::Timestamp,
                 value,
             },
+            Literal::ValueAndUnit(vau) => {
+                let sql_parser_datetime = match vau.unit.as_str() {
+                    "years" => DateTimeField::Year,
+                    "months" => DateTimeField::Month,
+                    "days" => DateTimeField::Day,
+                    "hours" => DateTimeField::Hour,
+                    "minutes" => DateTimeField::Minute,
+                    "seconds" => DateTimeField::Second,
+                    _ => bail!("Unsupported interval unit: {}", vau.unit),
+                };
+                sql_ast::Expr::Value(Value::Interval {
+                    value: Box::new(translate_expr_kind(
+                        ExprKind::Literal(Literal::Integer(vau.n)),
+                        dialect,
+                    )?),
+                    leading_field: Some(sql_parser_datetime),
+                    leading_precision: None,
+                    last_field: None,
+                    fractional_seconds_precision: None,
+                })
+            }
         },
         _ => bail!("Can't convert to sql_ast::Expr; {item:?}"),
     })

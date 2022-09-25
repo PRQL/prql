@@ -28,7 +28,7 @@ filter country == "USA"                       # Each line transforms the previou
 aggregate [                                   # `aggregate` reduces column to a value.
   max salary,
   min salary,
-  count,                                      # Closing commas are allowed :)
+  count,                                      # Trailing commas are allowed.
 ]
 ```
 

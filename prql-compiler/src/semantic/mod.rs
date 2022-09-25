@@ -13,7 +13,8 @@ pub use self::scope::{split_var_name, Scope};
 pub use reporting::{collect_frames, label_references};
 
 use crate::ast::frame::{Frame, FrameColumn};
-use crate::ast::{Query, Stmt};
+use crate::ast::Stmt;
+use crate::ir::Query;
 
 use anyhow::Result;
 

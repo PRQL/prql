@@ -1,9 +1,13 @@
+mod ir_fold;
+
+pub use ir_fold::IrFold;
+
 /// Types for resolved AST
 use serde::{Deserialize, Serialize};
 
 use crate::error::Span;
 
-use super::{Dialect, Expr, Frame, Range, Ty};
+use crate::ast::{ColumnSort, Expr, Frame, QueryDef, Range, Ty};
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize, Default)]
 pub struct Query {
@@ -11,13 +15,6 @@ pub struct Query {
 
     pub tables: Vec<Table>,
     pub main_pipeline: Vec<Transform>,
-}
-
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, Default)]
-pub struct QueryDef {
-    pub version: Option<i64>,
-    #[serde(default)]
-    pub dialect: Dialect,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
@@ -28,11 +25,6 @@ pub struct Table {
     pub pipeline: Vec<Transform>,
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub struct ResolvedQuery {
-    pub transforms: Vec<Transform>,
-}
-
 /// Transform is a stage of a pipeline. It is created from a FuncCall during parsing.
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Transform {
@@ -40,6 +32,12 @@ pub struct Transform {
 
     /// True when transform contains window functions
     pub is_complex: bool,
+
+    /// Grouping of values in columns
+    pub partition: Vec<Expr>,
+
+    /// Windowing of values in columns
+    pub window: Option<(WindowKind, Range)>,
 
     /// Result type
     pub ty: Frame,
@@ -80,6 +78,11 @@ pub enum TransformKind {
     Unique, // internal only, can be expressed with group & take
 }
 
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+pub struct Windowed {
+    pub sort: Vec<ColumnSort<Expr>>,
+}
+
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub enum WindowKind {
     Rows,
@@ -107,24 +110,6 @@ pub enum JoinSide {
     Full,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct ColumnSort<T = Expr> {
-    pub direction: SortDirection,
-    pub column: T,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub enum SortDirection {
-    Asc,
-    Desc,
-}
-
-impl Default for SortDirection {
-    fn default() -> Self {
-        SortDirection::Asc
-    }
-}
-
 impl From<TransformKind> for Transform {
     fn from(kind: TransformKind) -> Self {
         Transform {
@@ -132,6 +117,8 @@ impl From<TransformKind> for Transform {
             is_complex: false,
             ty: Frame::default(),
             span: None,
+            partition: Vec::new(),
+            window: None,
         }
     }
 }

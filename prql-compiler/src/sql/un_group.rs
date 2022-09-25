@@ -1,7 +1,7 @@
 use anyhow::Result;
 
-use crate::ast::ast_fold::*;
-use crate::ast::*;
+use crate::ast::ast_fold::AstFold;
+use crate::ir::{IrFold, Transform, TransformKind};
 
 pub fn un_group(transforms: Vec<Transform>) -> Result<Vec<Transform>> {
     UnGrouper {}.fold_transforms(transforms)
@@ -10,7 +10,9 @@ pub fn un_group(transforms: Vec<Transform>) -> Result<Vec<Transform>> {
 /// Traverses AST and replaces transforms with nested pipelines with the pipeline
 struct UnGrouper {}
 
-impl AstFold for UnGrouper {
+impl AstFold for UnGrouper {}
+
+impl IrFold for UnGrouper {
     fn fold_transform(&mut self, mut transform: Transform) -> Result<Transform> {
         transform.kind = match transform.kind {
             TransformKind::Group { pipeline, by } => {

@@ -1,6 +1,7 @@
 use anyhow::Result;
 
 use crate::ast::{ast_fold::AstFold, *};
+use crate::ir::{IrFold, Transform, TransformKind, WindowKind};
 use crate::semantic::Declaration;
 
 use super::materializer::MaterializationContext;
@@ -17,7 +18,7 @@ struct DistinctMaker<'a> {
     context: &'a mut MaterializationContext,
 }
 
-impl<'a> AstFold for DistinctMaker<'a> {
+impl<'a> IrFold for DistinctMaker<'a> {
     fn fold_transforms(&mut self, transforms: Vec<Transform>) -> Result<Vec<Transform>> {
         let mut res = Vec::new();
 
@@ -50,7 +51,9 @@ impl<'a> AstFold for DistinctMaker<'a> {
         }
         Ok(res)
     }
+}
 
+impl<'a> AstFold for DistinctMaker<'a> {
     fn fold_func_def(&mut self, function: FuncDef) -> Result<FuncDef> {
         // minor optimization: skip recursion for func def - there is no work to be done here
         Ok(function)
@@ -119,6 +122,8 @@ impl<'a> DistinctMaker<'a> {
                 is_complex: true, // this transform DOES contain windowed functions
                 ty: Frame::default(),
                 span: None,
+                partition: Vec::new(),
+                window: None,
             },
         ];
 

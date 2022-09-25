@@ -7,6 +7,7 @@ use super::{Context, Declaration, Frame};
 use crate::ast::ast_fold::*;
 use crate::ast::*;
 use crate::error::Span;
+use crate::ir::{IrFold, Query, Transform};
 
 pub fn label_references(query: Query, context: &Context, source_id: String, source: String) {
     let mut report = Report::build(ReportKind::Custom("Info", Color::Blue), &source_id, 0);
@@ -90,6 +91,8 @@ impl<'a> AstFold for Labeler<'a> {
     }
 }
 
+impl<'a> IrFold for Labeler<'a> {}
+
 pub fn collect_frames(query: Query) -> Vec<(Span, Frame)> {
     let mut collector = FrameCollector { frames: vec![] };
 
@@ -103,7 +106,9 @@ struct FrameCollector {
     frames: Vec<(Span, Frame)>,
 }
 
-impl AstFold for FrameCollector {
+impl AstFold for FrameCollector {}
+
+impl IrFold for FrameCollector {
     fn fold_transform(&mut self, transform: Transform) -> Result<Transform> {
         let span = transform.span.expect("transform without a span?");
         self.frames.push((span, transform.ty.clone()));

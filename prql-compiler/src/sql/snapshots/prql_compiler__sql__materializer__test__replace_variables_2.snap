@@ -155,6 +155,8 @@ expression: "&mat"
                 alias: ct
             by: []
         is_complex: false
+        partition: []
+        window: ~
         ty:
           columns:
             - Unnamed: 42
