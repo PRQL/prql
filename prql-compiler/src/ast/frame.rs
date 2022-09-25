@@ -2,7 +2,7 @@ use std::fmt::{Debug, Display, Formatter};
 
 use serde::{Deserialize, Serialize};
 
-use crate::ast::{ColumnSort, Expr};
+use crate::ast::Expr;
 
 /// Represents the object that is manipulated by the pipeline transforms.
 /// Similar to a view in a database or a data frame.
@@ -21,6 +21,24 @@ pub enum FrameColumn {
     /// Used for `derive a + b` (new column has no name)
     Unnamed(usize),
     Named(String, usize),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ColumnSort<T = Expr> {
+    pub direction: SortDirection,
+    pub column: T,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub enum SortDirection {
+    Asc,
+    Desc,
+}
+
+impl Default for SortDirection {
+    fn default() -> Self {
+        SortDirection::Asc
+    }
 }
 
 impl Frame {

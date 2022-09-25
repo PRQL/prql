@@ -1,23 +1,24 @@
-mod complexity;
 mod context;
 mod declarations;
+mod lowering;
 mod reporting;
 mod resolver;
 mod scope;
 mod transforms;
 mod type_resolver;
 
-use crate::ast::frame::{Frame, FrameColumn};
-use crate::ast::{Query, Stmt};
-use crate::PRQL_VERSION;
-
-use anyhow::{bail, Result};
-use semver::{Version, VersionReq};
-
 pub use self::context::Context;
 pub use self::declarations::{Declaration, Declarations};
 pub use self::scope::{split_var_name, Scope};
 pub use reporting::{collect_frames, label_references};
+
+use crate::ast::frame::{Frame, FrameColumn};
+use crate::ast::Stmt;
+use crate::ir::Query;
+use crate::PRQL_VERSION;
+
+use anyhow::{bail, Result};
+use semver::{Version, VersionReq};
 
 /// Runs semantic analysis on the query, using current state.
 ///
@@ -25,7 +26,10 @@ pub use reporting::{collect_frames, label_references};
 pub fn resolve(statements: Vec<Stmt>, context: Option<Context>) -> Result<(Query, Context)> {
     let context = context.unwrap_or_else(load_std_lib);
 
-    let (query, context) = resolver::resolve(statements, context)?;
+    let (statements, context) = resolver::resolve(statements, context)?;
+
+    // TODO: make resolve return only query and remove this clone here:
+    let query = lowering::lower_ast_to_ir(statements, context.clone())?;
 
     if let Some(ref version) = query.def.version {
         check_query_version(version, &PRQL_VERSION)?;
@@ -57,7 +61,7 @@ mod test {
     use insta::assert_yaml_snapshot;
 
     use super::resolve;
-    use crate::{ast::Query, parse};
+    use crate::{ir::Query, parse};
 
     fn parse_and_resolve(query: &str) -> Result<Query> {
         let (query, _) = resolve(parse(query)?, None)?;
@@ -72,16 +76,21 @@ mod test {
         from employees
         "###).unwrap(), @r###"
         ---
-        - QueryDef:
-            version: ^1
-            dialect: MsSql
-        - Pipeline:
-            - FuncCall:
-                name:
-                  Ident: from
-                args:
-                  - Ident: employees
-                named_args: {}
+        def:
+          version: ^0
+          dialect: MsSql
+        tables: []
+        main_pipeline:
+          - From:
+              - LocalTable: employees
+              - - id: 0
+                  name: ~
+                  expr:
+                    kind:
+                      ExternRef:
+                        variable: "*"
+                        table: 0
+                    span: ~
         "### );
 
         assert_yaml_snapshot!(parse_and_resolve(r###"
@@ -90,16 +99,21 @@ mod test {
         from employees
         "###).unwrap(), @r###"
         ---
-        - QueryDef:
-            version: ^2
-            dialect: BigQuery
-        - Pipeline:
-            - FuncCall:
-                name:
-                  Ident: from
-                args:
-                  - Ident: employees
-                named_args: {}
+        def:
+          version: ^0.2
+          dialect: BigQuery
+        tables: []
+        main_pipeline:
+          - From:
+              - LocalTable: employees
+              - - id: 0
+                  name: ~
+                  expr:
+                    kind:
+                      ExternRef:
+                        variable: "*"
+                        table: 0
+                    span: ~
         "### );
 
         assert!(parse_and_resolve(

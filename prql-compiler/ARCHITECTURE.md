@@ -11,9 +11,12 @@ Compiler works in the following stages:
 
    - function declarations and other definitions are extracted into `Context::declarations`,
    - identifiers and function calls produce a lookup in `Context::scope` that finds associated declaration and saves the reference in `Node::declared_at`,
-   - function calls to transforms (`from`, `derive`, `filter`) are converted from `FuncCall` into `Transform`, which is more convenient for later processing.
+   - function calls to transforms (`from`, `derive`, `filter`) are converted from `FuncCall` into `TransformCall`, which is more convenient for later processing.
 
-3. SQL Translator - converts resolved AST into SQL.
+3. Lowering - converts the AST into IR (Intermediate Representation see `ir` module) that is more strictly typed, 
+   contains less information but is convenient for translating into SQL or some other backend.
+
+4. SQL Translator - converts resolved AST into SQL.
    It extracts all tables and pipeline and splits them into "atomic pipeline"s, which can be expressed with a single SELECT statement.
    Each atomic pipeline is then:
    - materialized (where needed, identifiers are converted into their declarations),

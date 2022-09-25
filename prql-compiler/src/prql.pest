@@ -59,7 +59,7 @@ expr_mul = { term ~ (operator_mul ~ expr_mul)? }
 
 term = _{ ( s_string | f_string | range | literal | ident | nested_pipeline | expr_unary | list | jinja ) }
 expr_unary = { ( operator_unary ~ ( nested_pipeline | ident )) }
-literal = _{ interval | number | boolean | null | string | timestamp | date | time }
+literal = _{ value_and_unit | number | boolean | null | string | timestamp | date | time }
 list = { "[" ~ (NEWLINE* ~ (assign_call | expr_call) ~ ("," ~ NEWLINE* ~ (assign_call | expr_call) )* ~ ","?)? ~ NEWLINE* ~ "]" }
 nested_pipeline = { "(" ~ (WHITESPACE | NEWLINE)* ~ pipeline? ~ (WHITESPACE | NEWLINE)* ~ ")" }
 
@@ -117,8 +117,8 @@ interpolate_double_bracket = _{ "{" ~ interpolate_double_bracket_literal ~ "}" }
 interpolate_double_bracket_literal = { "{" ~ ( !"}}"  ~ ANY )+ ~ "}" }
 interpolate_string_inner_literal = { ( !( PEEK | "{" ) ~ ANY )+ }
 
-interval_kind = { "microseconds" | "milliseconds" | "seconds" | "minutes" | "hours" | "days" | "weeks" | "months" | "years" }
-interval = ${ number ~ interval_kind }
+unit = { "microseconds" | "milliseconds" | "seconds" | "minutes" | "hours" | "days" | "weeks" | "months" | "years" }
+value_and_unit = ${ number ~ unit }
 
 date = ${ "@" ~ date_inner ~ &end_expr }
 time = ${ "@" ~ time_inner ~ &end_expr }

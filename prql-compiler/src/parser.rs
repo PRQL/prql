@@ -17,7 +17,6 @@ use super::ast::*;
 use super::utils::*;
 use crate::error::{Error, Reason, Span};
 
-
 #[derive(Parser)]
 #[grammar = "prql.pest"]
 struct PrqlParser;
@@ -52,11 +51,7 @@ fn stmt_of_parse_pair(pair: Pair<Rule>) -> Result<Stmt> {
     let kind = match rule {
         Rule::pipeline_stmt => {
             let pipeline = expr_of_parse_pair(pair.into_inner().next().unwrap())?;
-            let exprs = match pipeline.kind {
-                ExprKind::Pipeline(pipeline) => pipeline.exprs,
-                _ => vec![pipeline],
-            };
-            StmtKind::Pipeline(exprs)
+            StmtKind::Pipeline(pipeline)
         }
         Rule::query_def => {
             let mut params: HashMap<_, _> = pair
@@ -91,12 +86,12 @@ fn stmt_of_parse_pair(pair: Pair<Rule>) -> Result<Stmt> {
             let params = pairs.next().unwrap();
             let body = pairs.next().unwrap();
 
-            let (name, return_type, _) = parse_typed(name)?;
+            let (name, return_type, _) = parse_typed_ident(name)?;
 
             let params: Vec<_> = params
                 .into_inner()
                 .into_iter()
-                .map(parse_typed)
+                .map(parse_typed_ident)
                 .try_collect()?;
 
             let mut positional_params = vec![];
@@ -106,7 +101,6 @@ fn stmt_of_parse_pair(pair: Pair<Rule>) -> Result<Stmt> {
                     name,
                     ty,
                     default_value,
-                    declared_at: None,
                 };
                 if param.default_value.is_some() {
                     named_params.push(param)
@@ -131,7 +125,7 @@ fn stmt_of_parse_pair(pair: Pair<Rule>) -> Result<Stmt> {
             StmtKind::TableDef(TableDef {
                 id: None,
                 name: name.kind.into_ident()?,
-                pipeline: Box::new(pipeline),
+                value: Box::new(pipeline),
             })
         }
         _ => unreachable!("{pair}"),
@@ -286,7 +280,7 @@ fn expr_of_parse_pair(pair: Pair<Rule>) -> Result<Expr> {
             if let Some(pipeline) = pair.into_inner().next() {
                 expr_of_parse_pair(pipeline)?.kind
             } else {
-                ExprKind::Empty
+                ExprKind::Literal(Literal::Null)
             }
         }
         Rule::range => {
@@ -307,16 +301,16 @@ fn expr_of_parse_pair(pair: Pair<Rule>) -> Result<Expr> {
             ExprKind::Range(Range { start, end })
         }
 
-        Rule::interval => {
+        Rule::value_and_unit => {
             let pairs: Vec<_> = pair.into_inner().into_iter().collect();
             let [n, unit]: [Pair<Rule>; 2] = pairs
                 .try_into()
                 .map_err(|e| anyhow!("Expected two items; {e:?}"))?;
 
-            ExprKind::Interval(Interval {
+            ExprKind::Literal(Literal::ValueAndUnit(ValueAndUnit {
                 n: n.as_str().parse()?,
                 unit: unit.as_str().to_owned(),
-            })
+            }))
         }
 
         Rule::date | Rule::time | Rule::timestamp => {
@@ -328,42 +322,6 @@ fn expr_of_parse_pair(pair: Pair<Rule>) -> Result<Expr> {
                 Rule::timestamp => Literal::Timestamp(inner),
                 _ => unreachable!(),
             })
-        }
-
-        Rule::type_def => {
-            let mut types: Vec<_> = pair
-                .into_inner()
-                .into_iter()
-                .map(|pair| -> Result<Ty> {
-                    let mut pairs = pair.into_inner();
-                    let name = pairs.next().unwrap().as_str();
-                    let typ = match TyLit::from_str(name) {
-                        Ok(t) => Ty::from(t),
-                        Err(_) if name == "builtin_keyword" => Ty::BuiltinKeyword,
-                        Err(_) if name == "table" => Ty::Table(Frame::default()),
-                        Err(_) => {
-                            eprintln!("named type: {}", name);
-                            Ty::Named(name.to_string())
-                        }
-                    };
-
-                    let param = pairs.next().map(expr_of_parse_pair).transpose()?;
-
-                    Ok(if let Some(param) = param {
-                        Ty::Parameterized(Box::new(typ), Box::new(param))
-                    } else {
-                        typ
-                    })
-                })
-                .try_collect()?;
-
-            let typ = if types.len() > 1 {
-                Ty::AnyOf(types)
-            } else {
-                types.remove(0)
-            };
-
-            ExprKind::Type(typ)
         }
 
         _ => unreachable!("{pair}"),
@@ -381,21 +339,52 @@ fn expr_of_parse_pair(pair: Pair<Rule>) -> Result<Expr> {
     })
 }
 
-fn parse_typed(pair: Pair<Rule>) -> Result<(String, Option<Ty>, Option<Expr>)> {
+fn type_of_parse_pair(pair: Pair<Rule>) -> Result<Ty> {
+    let any_of_terms: Vec<_> = pair
+        .into_inner()
+        .into_iter()
+        .map(|pair| -> Result<Ty> {
+            let mut pairs = pair.into_inner();
+            let name = pairs.next().unwrap().as_str();
+            let typ = match TyLit::from_str(name) {
+                Ok(t) => Ty::from(t),
+                Err(_) if name == "builtin_keyword" => Ty::BuiltinKeyword,
+                Err(_) if name == "table" => Ty::Table(Frame::default()),
+                Err(_) => {
+                    eprintln!("named type: {}", name);
+                    Ty::Named(name.to_string())
+                }
+            };
+
+            let param = pairs.next().map(type_of_parse_pair).transpose()?;
+
+            Ok(if let Some(param) = param {
+                Ty::Parameterized(Box::new(typ), Box::new(param))
+            } else {
+                typ
+            })
+        })
+        .try_collect()?;
+
+    // is there only a single element?
+    Ok(match <[_; 1]>::try_from(any_of_terms) {
+        Ok([only]) => only,
+        Err(many) => Ty::AnyOf(many),
+    })
+}
+
+fn parse_typed_ident(pair: Pair<Rule>) -> Result<(String, Option<Ty>, Option<Expr>)> {
     let mut pairs = pair.into_inner();
 
     let name = pairs.next().unwrap().as_str().to_string();
 
-    let nodes: Vec<_> = pairs.map(expr_of_parse_pair).try_collect()?;
-
     let mut ty = None;
     let mut default = None;
-
-    for node in nodes {
-        if let ExprKind::Type(t) = node.kind {
-            ty = Some(t);
+    for pair in pairs {
+        if matches!(pair.as_rule(), Rule::type_def) {
+            ty = Some(type_of_parse_pair(pair)?);
         } else {
-            default = Some(node);
+            default = Some(expr_of_parse_pair(pair)?);
         }
     }
 
@@ -449,30 +438,30 @@ mod test {
         assert_yaml_snapshot!(stmts_of_string(r#"take 10"#)?, @r###"
         ---
         - Pipeline:
-            - FuncCall:
-                name:
-                  Ident: take
-                args:
-                  - Literal:
-                      Integer: 10
-                named_args: {}
+            FuncCall:
+              name:
+                Ident: take
+              args:
+                - Literal:
+                    Integer: 10
+              named_args: {}
         "###);
 
         assert_yaml_snapshot!(stmts_of_string(r#"take 1..10"#)?, @r###"
         ---
         - Pipeline:
-            - FuncCall:
-                name:
-                  Ident: take
-                args:
-                  - Range:
-                      start:
-                        Literal:
-                          Integer: 1
-                      end:
-                        Literal:
-                          Integer: 10
-                named_args: {}
+            FuncCall:
+              name:
+                Ident: take
+              args:
+                - Range:
+                    start:
+                      Literal:
+                        Integer: 1
+                    end:
+                      Literal:
+                        Integer: 10
+              named_args: {}
         "###);
 
         Ok(())
@@ -695,23 +684,25 @@ Canada
         "#)?, @r###"
         ---
         - Pipeline:
-            - FuncCall:
-                name:
-                  Ident: from
-                args:
-                  - Ident: "{{ ref('stg_orders') }}"
-                named_args: {}
-            - FuncCall:
-                name:
-                  Ident: aggregate
-                args:
-                  - FuncCall:
-                      name:
-                        Ident: sum
-                      args:
-                        - Ident: order_id
-                      named_args: {}
-                named_args: {}
+            Pipeline:
+              exprs:
+                - FuncCall:
+                    name:
+                      Ident: from
+                    args:
+                      - Ident: "{{ ref('stg_orders') }}"
+                    named_args: {}
+                - FuncCall:
+                    name:
+                      Ident: aggregate
+                    args:
+                      - FuncCall:
+                          name:
+                            Ident: sum
+                          args:
+                            - Ident: order_id
+                          named_args: {}
+                    named_args: {}
         "###);
         Ok(())
     }
@@ -840,41 +831,41 @@ Canada
             stmts_of_string(r#"filter country == "USA""#).unwrap(), @r###"
         ---
         - Pipeline:
-            - FuncCall:
-                name:
-                  Ident: filter
-                args:
-                  - Binary:
-                      left:
-                        Ident: country
-                      op: Eq
-                      right:
-                        Literal:
-                          String: USA
-                named_args: {}
+            FuncCall:
+              name:
+                Ident: filter
+              args:
+                - Binary:
+                    left:
+                      Ident: country
+                    op: Eq
+                    right:
+                      Literal:
+                        String: USA
+              named_args: {}
         "###);
 
         assert_yaml_snapshot!(
             stmts_of_string(r#"filter (upper country) == "USA""#).unwrap(), @r###"
         ---
         - Pipeline:
-            - FuncCall:
-                name:
-                  Ident: filter
-                args:
-                  - Binary:
-                      left:
-                        FuncCall:
-                          name:
-                            Ident: upper
-                          args:
-                            - Ident: country
-                          named_args: {}
-                      op: Eq
-                      right:
-                        Literal:
-                          String: USA
-                named_args: {}
+            FuncCall:
+              name:
+                Ident: filter
+              args:
+                - Binary:
+                    left:
+                      FuncCall:
+                        name:
+                          Ident: upper
+                        args:
+                          - Ident: country
+                        named_args: {}
+                    op: Eq
+                    right:
+                      Literal:
+                        String: USA
+              named_args: {}
         "###
         );
     }
@@ -891,26 +882,26 @@ Canada
             aggregate, @r###"
         ---
         - Pipeline:
-            - FuncCall:
-                name:
-                  Ident: group
-                args:
-                  - List:
-                      - Ident: title
-                  - FuncCall:
-                      name:
-                        Ident: aggregate
-                      args:
-                        - List:
-                            - FuncCall:
-                                name:
-                                  Ident: sum
-                                args:
-                                  - Ident: salary
-                                named_args: {}
-                            - Ident: count
-                      named_args: {}
-                named_args: {}
+            FuncCall:
+              name:
+                Ident: group
+              args:
+                - List:
+                    - Ident: title
+                - FuncCall:
+                    name:
+                      Ident: aggregate
+                    args:
+                      - List:
+                          - FuncCall:
+                              name:
+                                Ident: sum
+                              args:
+                                - Ident: salary
+                              named_args: {}
+                          - Ident: count
+                    named_args: {}
+              named_args: {}
         "###);
         let aggregate = stmts_of_string(
             r"group [title] (
@@ -922,25 +913,25 @@ Canada
             aggregate, @r###"
         ---
         - Pipeline:
-            - FuncCall:
-                name:
-                  Ident: group
-                args:
-                  - List:
-                      - Ident: title
-                  - FuncCall:
-                      name:
-                        Ident: aggregate
-                      args:
-                        - List:
-                            - FuncCall:
-                                name:
-                                  Ident: sum
-                                args:
-                                  - Ident: salary
-                                named_args: {}
-                      named_args: {}
-                named_args: {}
+            FuncCall:
+              name:
+                Ident: group
+              args:
+                - List:
+                    - Ident: title
+                - FuncCall:
+                    name:
+                      Ident: aggregate
+                    args:
+                      - List:
+                          - FuncCall:
+                              name:
+                                Ident: sum
+                              args:
+                                - Ident: salary
+                              named_args: {}
+                    named_args: {}
+              named_args: {}
         "###);
     }
 
@@ -1300,44 +1291,46 @@ take 20
         assert_yaml_snapshot!(parse(r#"from mytable | select [a and b + c or (d e) and f]"#).unwrap(), @r###"
         ---
         - Pipeline:
-            - FuncCall:
-                name:
-                  Ident: from
-                args:
-                  - Ident: mytable
-                named_args: {}
-            - FuncCall:
-                name:
-                  Ident: select
-                args:
-                  - List:
-                      - Binary:
-                          left:
-                            Ident: a
-                          op: And
-                          right:
-                            Binary:
+            Pipeline:
+              exprs:
+                - FuncCall:
+                    name:
+                      Ident: from
+                    args:
+                      - Ident: mytable
+                    named_args: {}
+                - FuncCall:
+                    name:
+                      Ident: select
+                    args:
+                      - List:
+                          - Binary:
                               left:
-                                Binary:
-                                  left:
-                                    Ident: b
-                                  op: Add
-                                  right:
-                                    Ident: c
-                              op: Or
+                                Ident: a
+                              op: And
                               right:
                                 Binary:
                                   left:
-                                    FuncCall:
-                                      name:
-                                        Ident: d
-                                      args:
-                                        - Ident: e
-                                      named_args: {}
-                                  op: And
+                                    Binary:
+                                      left:
+                                        Ident: b
+                                      op: Add
+                                      right:
+                                        Ident: c
+                                  op: Or
                                   right:
-                                    Ident: f
-                named_args: {}
+                                    Binary:
+                                      left:
+                                        FuncCall:
+                                          name:
+                                            Ident: d
+                                          args:
+                                            - Ident: e
+                                          named_args: {}
+                                      op: And
+                                      right:
+                                        Ident: f
+                    named_args: {}
         "###);
 
         let ast = expr_of_string(r#"add bar to=3"#, Rule::expr_call).unwrap();
@@ -1364,7 +1357,7 @@ take 20
         ---
         - TableDef:
             name: newest_employees
-            pipeline:
+            value:
               FuncCall:
                 name:
                   Ident: from
@@ -1390,7 +1383,7 @@ take 20
         ---
         - TableDef:
             name: newest_employees
-            pipeline:
+            value:
               Pipeline:
                 exprs:
                   - FuncCall:
@@ -1452,7 +1445,7 @@ take 20
         ---
         - TableDef:
             name: x
-            pipeline:
+            value:
               Pipeline:
                 exprs:
                   - FuncCall:
@@ -1470,12 +1463,12 @@ take 20
                       named_args: {}
             id: ~
         - Pipeline:
-            - FuncCall:
-                name:
-                  Ident: from
-                args:
-                  - Ident: x
-                named_args: {}
+            FuncCall:
+              name:
+                Ident: from
+              args:
+                - Ident: x
+              named_args: {}
         "###);
 
         Ok(())
@@ -1530,30 +1523,32 @@ take 20
         "#)?, @r###"
         ---
         - Pipeline:
-            - FuncCall:
-                name:
-                  Ident: from
-                args:
-                  - Ident: mytable
-                named_args: {}
-            - FuncCall:
-                name:
-                  Ident: filter
-                args:
-                  - List:
-                      - Binary:
-                          left:
-                            Ident: first_name
-                          op: Eq
-                          right:
-                            Ident: $1
-                      - Binary:
-                          left:
-                            Ident: last_name
-                          op: Eq
-                          right:
-                            Ident: $2.name
-                named_args: {}
+            Pipeline:
+              exprs:
+                - FuncCall:
+                    name:
+                      Ident: from
+                    args:
+                      - Ident: mytable
+                    named_args: {}
+                - FuncCall:
+                    name:
+                      Ident: filter
+                    args:
+                      - List:
+                          - Binary:
+                              left:
+                                Ident: first_name
+                              op: Eq
+                              right:
+                                Ident: $1
+                          - Binary:
+                              left:
+                                Ident: last_name
+                              op: Eq
+                              right:
+                                Ident: $2.name
+                    named_args: {}
         "###);
         Ok(())
     }
@@ -1585,36 +1580,38 @@ join `my-proj`.`dataset`.`table`
         assert_yaml_snapshot!(parse(prql)?, @r###"
         ---
         - Pipeline:
-            - FuncCall:
-                name:
-                  Ident: from
-                args:
-                  - Ident: a
-                named_args: {}
-            - FuncCall:
-                name:
-                  Ident: aggregate
-                args:
-                  - List:
-                      - FuncCall:
-                          name:
-                            Ident: max
-                          args:
-                            - Ident: c
-                          named_args: {}
-                named_args: {}
-            - FuncCall:
-                name:
-                  Ident: join
-                args:
-                  - Ident: my-proj.dataset.table
-                named_args: {}
-            - FuncCall:
-                name:
-                  Ident: join
-                args:
-                  - Ident: my-proj.dataset.table
-                named_args: {}
+            Pipeline:
+              exprs:
+                - FuncCall:
+                    name:
+                      Ident: from
+                    args:
+                      - Ident: a
+                    named_args: {}
+                - FuncCall:
+                    name:
+                      Ident: aggregate
+                    args:
+                      - List:
+                          - FuncCall:
+                              name:
+                                Ident: max
+                              args:
+                                - Ident: c
+                              named_args: {}
+                    named_args: {}
+                - FuncCall:
+                    name:
+                      Ident: join
+                    args:
+                      - Ident: my-proj.dataset.table
+                    named_args: {}
+                - FuncCall:
+                    name:
+                      Ident: join
+                    args:
+                      - Ident: my-proj.dataset.table
+                    named_args: {}
         "###);
 
         Ok(())
@@ -1632,56 +1629,58 @@ join `my-proj`.`dataset`.`table`
         ").unwrap(), @r###"
         ---
         - Pipeline:
-            - FuncCall:
-                name:
-                  Ident: from
-                args:
-                  - Ident: invoices
-                named_args: {}
-            - FuncCall:
-                name:
-                  Ident: sort
-                args:
-                  - Ident: issued_at
-                named_args: {}
-            - FuncCall:
-                name:
-                  Ident: sort
-                args:
-                  - Unary:
-                      op: Neg
-                      expr:
-                        Ident: issued_at
-                named_args: {}
-            - FuncCall:
-                name:
-                  Ident: sort
-                args:
-                  - List:
+            Pipeline:
+              exprs:
+                - FuncCall:
+                    name:
+                      Ident: from
+                    args:
+                      - Ident: invoices
+                    named_args: {}
+                - FuncCall:
+                    name:
+                      Ident: sort
+                    args:
                       - Ident: issued_at
-                named_args: {}
-            - FuncCall:
-                name:
-                  Ident: sort
-                args:
-                  - List:
+                    named_args: {}
+                - FuncCall:
+                    name:
+                      Ident: sort
+                    args:
                       - Unary:
                           op: Neg
                           expr:
                             Ident: issued_at
-                named_args: {}
-            - FuncCall:
-                name:
-                  Ident: sort
-                args:
-                  - List:
-                      - Ident: issued_at
-                      - Unary:
-                          op: Neg
-                          expr:
-                            Ident: amount
-                      - Ident: num_of_articles
-                named_args: {}
+                    named_args: {}
+                - FuncCall:
+                    name:
+                      Ident: sort
+                    args:
+                      - List:
+                          - Ident: issued_at
+                    named_args: {}
+                - FuncCall:
+                    name:
+                      Ident: sort
+                    args:
+                      - List:
+                          - Unary:
+                              op: Neg
+                              expr:
+                                Ident: issued_at
+                    named_args: {}
+                - FuncCall:
+                    name:
+                      Ident: sort
+                    args:
+                      - List:
+                          - Ident: issued_at
+                          - Unary:
+                              op: Neg
+                              expr:
+                                Ident: amount
+                          - Ident: num_of_articles
+                    named_args: {}
         "###);
 
         Ok(())
@@ -1703,76 +1702,78 @@ join `my-proj`.`dataset`.`table`
         ").unwrap(), @r###"
         ---
         - Pipeline:
-            - FuncCall:
-                name:
-                  Ident: from
-                args:
-                  - Ident: employees
-                named_args: {}
-            - FuncCall:
-                name:
-                  Ident: filter
-                args:
-                  - Pipeline:
-                      exprs:
-                        - Ident: age
-                        - FuncCall:
-                            name:
-                              Ident: between
-                            args:
-                              - Range:
-                                  start:
-                                    Literal:
-                                      Integer: 18
-                                  end:
-                                    Literal:
-                                      Integer: 40
-                            named_args: {}
-                named_args: {}
-            - FuncCall:
-                name:
-                  Ident: derive
-                args:
-                  - List:
-                      - Range:
-                          start:
-                            Literal:
-                              Integer: 11
-                          end: ~
-                        alias: greater_than_ten
-                      - Range:
-                          start: ~
-                          end:
-                            Literal:
-                              Integer: 9
-                        alias: less_than_ten
-                      - Range:
-                          start:
-                            Literal:
-                              Integer: -5
-                          end: ~
-                        alias: negative
-                      - Range:
-                          start:
-                            Literal:
-                              Integer: -10
-                          end: ~
-                        alias: more_negative
-                      - Range:
-                          start:
-                            Literal:
-                              Date: 2020-01-01
-                          end: ~
-                        alias: dates_open
-                      - Range:
-                          start:
-                            Literal:
-                              Date: 2020-01-01
-                          end:
-                            Literal:
-                              Date: 2021-01-01
-                        alias: dates
-                named_args: {}
+            Pipeline:
+              exprs:
+                - FuncCall:
+                    name:
+                      Ident: from
+                    args:
+                      - Ident: employees
+                    named_args: {}
+                - FuncCall:
+                    name:
+                      Ident: filter
+                    args:
+                      - Pipeline:
+                          exprs:
+                            - Ident: age
+                            - FuncCall:
+                                name:
+                                  Ident: between
+                                args:
+                                  - Range:
+                                      start:
+                                        Literal:
+                                          Integer: 18
+                                      end:
+                                        Literal:
+                                          Integer: 40
+                                named_args: {}
+                    named_args: {}
+                - FuncCall:
+                    name:
+                      Ident: derive
+                    args:
+                      - List:
+                          - Range:
+                              start:
+                                Literal:
+                                  Integer: 11
+                              end: ~
+                            alias: greater_than_ten
+                          - Range:
+                              start: ~
+                              end:
+                                Literal:
+                                  Integer: 9
+                            alias: less_than_ten
+                          - Range:
+                              start:
+                                Literal:
+                                  Integer: -5
+                              end: ~
+                            alias: negative
+                          - Range:
+                              start:
+                                Literal:
+                                  Integer: -10
+                              end: ~
+                            alias: more_negative
+                          - Range:
+                              start:
+                                Literal:
+                                  Date: 2020-01-01
+                              end: ~
+                            alias: dates_open
+                          - Range:
+                              start:
+                                Literal:
+                                  Date: 2020-01-01
+                              end:
+                                Literal:
+                                  Date: 2021-01-01
+                            alias: dates
+                    named_args: {}
         "###);
     }
 
@@ -1784,27 +1785,30 @@ join `my-proj`.`dataset`.`table`
         ").unwrap(), @r###"
         ---
         - Pipeline:
-            - FuncCall:
-                name:
-                  Ident: from
-                args:
-                  - Ident: employees
-                named_args: {}
-            - FuncCall:
-                name:
-                  Ident: derive
-                args:
-                  - List:
-                      - Binary:
-                          left:
-                            Ident: age
-                          op: Add
-                          right:
-                            Interval:
-                              n: 2
-                              unit: years
-                        alias: age_plus_two_years
-                named_args: {}
+            Pipeline:
+              exprs:
+                - FuncCall:
+                    name:
+                      Ident: from
+                    args:
+                      - Ident: employees
+                    named_args: {}
+                - FuncCall:
+                    name:
+                      Ident: derive
+                    args:
+                      - List:
+                          - Binary:
+                              left:
+                                Ident: age
+                              op: Add
+                              right:
+                                Literal:
+                                  ValueAndUnit:
+                                    n: 2
+                                    unit: years
+                            alias: age_plus_two_years
+                    named_args: {}
         "###);
 
         assert_yaml_snapshot!(parse("
@@ -1817,21 +1821,21 @@ join `my-proj`.`dataset`.`table`
         ").unwrap(), @r###"
         ---
         - Pipeline:
-            - FuncCall:
-                name:
-                  Ident: derive
-                args:
-                  - List:
-                      - Literal:
-                          Date: 2011-02-01
-                        alias: date
-                      - Literal:
-                          Timestamp: "2011-02-01T10:00"
-                        alias: timestamp
-                      - Literal:
-                          Time: "14:00"
-                        alias: time
-                named_args: {}
+            FuncCall:
+              name:
+                Ident: derive
+              args:
+                - List:
+                    - Literal:
+                        Date: 2011-02-01
+                      alias: date
+                    - Literal:
+                        Timestamp: "2011-02-01T10:00"
+                      alias: timestamp
+                    - Literal:
+                        Time: "14:00"
+                      alias: time
+              named_args: {}
         "###);
 
         assert!(parse("derive x = @2020-01-0").is_err());
@@ -1846,13 +1850,13 @@ join `my-proj`.`dataset`.`table`
         "###).unwrap(), @r###"
         ---
         - Pipeline:
-            - FuncCall:
-                name:
-                  Ident: derive
-                args:
-                  - Ident: r
-                    alias: x
-                named_args: {}
+            FuncCall:
+              name:
+                Ident: derive
+              args:
+                - Ident: r
+                  alias: x
+              named_args: {}
         "### )
     }
 
@@ -1864,26 +1868,28 @@ join `my-proj`.`dataset`.`table`
         "###).unwrap(), @r###"
         ---
         - Pipeline:
-            - FuncCall:
-                name:
-                  Ident: from
-                args:
-                  - Ident: employees
-                named_args: {}
-            - FuncCall:
-                name:
-                  Ident: derive
-                args:
-                  - FuncCall:
-                      name:
-                        Ident: coalesce
-                      args:
-                        - Ident: amount
-                        - Literal:
-                            Integer: 0
-                      named_args: {}
-                    alias: amount
-                named_args: {}
+            Pipeline:
+              exprs:
+                - FuncCall:
+                    name:
+                      Ident: from
+                    args:
+                      - Ident: employees
+                    named_args: {}
+                - FuncCall:
+                    name:
+                      Ident: derive
+                    args:
+                      - FuncCall:
+                          name:
+                            Ident: coalesce
+                          args:
+                            - Ident: amount
+                            - Literal:
+                                Integer: 0
+                          named_args: {}
+                        alias: amount
+                    named_args: {}
         "### )
     }
 
@@ -1894,14 +1900,14 @@ join `my-proj`.`dataset`.`table`
         "###).unwrap(), @r###"
         ---
         - Pipeline:
-            - FuncCall:
-                name:
-                  Ident: derive
-                args:
-                  - Literal:
-                      Boolean: true
-                    alias: x
-                named_args: {}
+            FuncCall:
+              name:
+                Ident: derive
+              args:
+                - Literal:
+                    Boolean: true
+                  alias: x
+              named_args: {}
         "###)
     }
 
@@ -1915,38 +1921,40 @@ join `my-proj`.`dataset`.`table`
         "###).unwrap(), @r###"
         ---
         - Pipeline:
-            - FuncCall:
-                name:
-                  Ident: from
-                args:
-                  - Ident: employees
-                named_args: {}
-            - FuncCall:
-                name:
-                  Ident: join
-                args:
-                  - Ident: _salary
-                  - List:
-                      - Ident: employee_id
-                named_args: {}
-            - FuncCall:
-                name:
-                  Ident: filter
-                args:
-                  - Binary:
-                      left:
-                        Ident: first_name
-                      op: Eq
-                      right:
-                        Ident: $1
-                named_args: {}
-            - FuncCall:
-                name:
-                  Ident: select
-                args:
-                  - List:
-                      - Ident: _employees._underscored_column
-                named_args: {}
+            Pipeline:
+              exprs:
+                - FuncCall:
+                    name:
+                      Ident: from
+                    args:
+                      - Ident: employees
+                    named_args: {}
+                - FuncCall:
+                    name:
+                      Ident: join
+                    args:
+                      - Ident: _salary
+                      - List:
+                          - Ident: employee_id
+                    named_args: {}
+                - FuncCall:
+                    name:
+                      Ident: filter
+                    args:
+                      - Binary:
+                          left:
+                            Ident: first_name
+                          op: Eq
+                          right:
+                            Ident: $1
+                    named_args: {}
+                - FuncCall:
+                    name:
+                      Ident: select
+                    args:
+                      - List:
+                          - Ident: _employees._underscored_column
+                    named_args: {}
         "###)
     }
 
@@ -1961,60 +1969,62 @@ join `my-proj`.`dataset`.`table`
         "###).unwrap(), @r###"
         ---
         - Pipeline:
-            - FuncCall:
-                name:
-                  Ident: from
-                args:
-                  - Ident: people
-                named_args: {}
-            - FuncCall:
-                name:
-                  Ident: filter
-                args:
-                  - Binary:
-                      left:
-                        Ident: age
-                      op: Gte
-                      right:
-                        Literal:
-                          Integer: 100
-                named_args: {}
-            - FuncCall:
-                name:
-                  Ident: filter
-                args:
-                  - Binary:
-                      left:
-                        Ident: num_grandchildren
-                      op: Lte
-                      right:
-                        Literal:
-                          Integer: 10
-                named_args: {}
-            - FuncCall:
-                name:
-                  Ident: filter
-                args:
-                  - Binary:
-                      left:
-                        Ident: salary
-                      op: Gt
-                      right:
-                        Literal:
-                          Integer: 0
-                named_args: {}
-            - FuncCall:
-                name:
-                  Ident: filter
-                args:
-                  - Binary:
-                      left:
-                        Ident: num_eyes
-                      op: Lt
-                      right:
-                        Literal:
-                          Integer: 2
-                named_args: {}
+            Pipeline:
+              exprs:
+                - FuncCall:
+                    name:
+                      Ident: from
+                    args:
+                      - Ident: people
+                    named_args: {}
+                - FuncCall:
+                    name:
+                      Ident: filter
+                    args:
+                      - Binary:
+                          left:
+                            Ident: age
+                          op: Gte
+                          right:
+                            Literal:
+                              Integer: 100
+                    named_args: {}
+                - FuncCall:
+                    name:
+                      Ident: filter
+                    args:
+                      - Binary:
+                          left:
+                            Ident: num_grandchildren
+                          op: Lte
+                          right:
+                            Literal:
+                              Integer: 10
+                    named_args: {}
+                - FuncCall:
+                    name:
+                      Ident: filter
+                    args:
+                      - Binary:
+                          left:
+                            Ident: salary
+                          op: Gt
+                          right:
+                            Literal:
+                              Integer: 0
+                    named_args: {}
+                - FuncCall:
+                    name:
+                      Ident: filter
+                    args:
+                      - Binary:
+                          left:
+                            Ident: num_eyes
+                          op: Lt
+                          right:
+                            Literal:
+                              Integer: 2
+                    named_args: {}
         "###)
     }
 }

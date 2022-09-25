@@ -14,6 +14,14 @@ pub enum Literal {
     Date(String),
     Time(String),
     Timestamp(String),
+    ValueAndUnit(ValueAndUnit),
+}
+
+// Compound units, such as "2 days 3 hours" can be represented as `2days + 3hours`
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ValueAndUnit {
+    pub n: i64,       // Do any DBs use floats or decimals for this?
+    pub unit: String, // Could be an enum IntervalType,
 }
 
 impl From<Literal> for anyhow::Error {
@@ -66,6 +74,10 @@ impl Display for Literal {
 
             Literal::Date(inner) | Literal::Time(inner) | Literal::Timestamp(inner) => {
                 write!(f, "@{inner}")?;
+            }
+
+            Literal::ValueAndUnit(i) => {
+                write!(f, "{}{}", i.n, i.unit)?;
             }
         }
         Ok(())

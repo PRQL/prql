@@ -11,6 +11,15 @@ pub const NS_FRAME: &str = "_frame";
 pub const NS_PARAM: &str = "_param";
 
 /// Maps from accessible names in some context to their declarations.
+///
+/// Generally, namespaces are table names, but to fit other names into same
+/// scope we have `_func` for all declared functions, `_frame` for current table in
+/// the pipeline and `_param` as a namespace for all parameters of
+/// currently-evaluating function. So:
+/// - _func is populated when functions are declared,
+/// - _frame is cleared and rebuild at each step of the pipeline, and
+/// - _param gets populated when a function body is evaluated and is dropped
+///   afterwards.
 #[derive(Default, Serialize, Deserialize, Clone)]
 pub struct Scope {
     /// Mapping from names to their declarations. For each namespace (table), we store a map from column names to their definitions.

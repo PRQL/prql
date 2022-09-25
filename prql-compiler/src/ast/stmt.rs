@@ -2,6 +2,7 @@ use std::fmt::Display;
 
 use anyhow::anyhow;
 use enum_as_inner::EnumAsInner;
+use semver::VersionReq;
 use serde::{Deserialize, Serialize};
 
 use crate::error::Span;
@@ -24,7 +25,14 @@ pub enum StmtKind {
     QueryDef(QueryDef),
     FuncDef(FuncDef),
     TableDef(TableDef),
-    Pipeline(Vec<Expr>),
+    Pipeline(Expr),
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize, Default)]
+pub struct QueryDef {
+    pub version: Option<VersionReq>,
+    #[serde(default)]
+    pub dialect: Dialect,
 }
 
 /// Function definition.
@@ -45,15 +53,12 @@ pub struct FuncParam {
     pub ty: Option<Ty>,
 
     pub default_value: Option<Expr>,
-
-    #[serde(skip)]
-    pub declared_at: Option<usize>,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct TableDef {
     pub name: String,
-    pub pipeline: Box<Expr>,
+    pub value: Box<Expr>,
     pub id: Option<usize>,
 }
 
@@ -91,11 +96,14 @@ impl Display for StmtKind {
                 };
                 write!(f, "\n\n")?;
             }
-            StmtKind::Pipeline(exprs) => {
-                for expr in exprs {
-                    writeln!(f, "{}", expr)?;
+            StmtKind::Pipeline(expr) => match &expr.kind {
+                ExprKind::Pipeline(pipeline) => {
+                    for expr in &pipeline.exprs {
+                        writeln!(f, "{expr}")?;
+                    }
                 }
-            }
+                _ => writeln!(f, "{}", expr)?,
+            },
             StmtKind::FuncDef(func_def) => {
                 write!(f, "func {}", func_def.name)?;
                 for arg in &func_def.positional_params {
@@ -107,7 +115,7 @@ impl Display for StmtKind {
                 write!(f, " -> {}\n\n", func_def.body)?;
             }
             StmtKind::TableDef(table) => {
-                let pipeline = &table.pipeline;
+                let pipeline = &table.value;
                 match &pipeline.kind {
                     ExprKind::FuncCall(_) => {
                         write!(f, "table {} = (\n  {pipeline}\n)\n\n", table.name)?;

@@ -20,16 +20,14 @@ pub fn resolve_type(node: &Expr) -> Result<Ty> {
             Literal::Date(_) => TyLit::Date.into(),
             Literal::Time(_) => TyLit::Time.into(),
             Literal::Timestamp(_) => TyLit::Timestamp.into(),
+            Literal::ValueAndUnit(_) => Ty::Infer, // TODO
         },
-
-        ExprKind::Windowed(w) => resolve_type(w.expr.as_ref())?,
 
         ExprKind::Ident(_) | ExprKind::Pipeline(_) | ExprKind::FuncCall(_) => Ty::Infer,
 
         ExprKind::SString(_) => Ty::Infer, // TODO
         ExprKind::FString(_) => TyLit::String.into(),
-        ExprKind::Interval(_) => Ty::Infer, // TODO
-        ExprKind::Range(_) => Ty::Infer,    // TODO
+        ExprKind::Range(_) => Ty::Infer, // TODO
 
         _ => Ty::Infer,
     })
