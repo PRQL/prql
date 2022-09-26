@@ -1,3 +1,4 @@
+<!-- Place this tag in your head or just before your close body tag. -->
 <header id="header" class="fixed-top d-flex align-items-center">
   <div class="container d-flex align-items-center">
     <a href="/" class="logo me-auto d-flex align-items-end">
@@ -18,14 +19,21 @@
             {{ print "[" .Name "]" "("  .URL ")" | markdownify }}
           </li>
         {{ end }}
-        <li>
-          <a class="icon" href="https://github.com/prql/prql"
-            ><i class="bx bxl-github"></i
-          ></a>
-        </li>
       </ul>
-
       <i class="bx bx-list-ul mobile-nav-toggle"></i>
     </nav>
+
+    <div style="margin-left: 20px;">
+      <!-- Generated from https://buttons.github.io/ -->
+      <a
+        class="github-button"
+        href="https://github.com/prql/prql"
+        data-size="large"
+        data-show-count="true"
+        aria-label="Star prql/prql on GitHub"
+      >
+        Star
+      </a>
+    </div>
   </div>
 </header>
