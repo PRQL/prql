@@ -28,3 +28,4 @@ repos:
 ci:
   # Currently network access isn't supported
   skip: [fmt, clippy, markdown-link-check]
+  autoupdate_commit_msg: "chore: pre-commit autoupdate"
