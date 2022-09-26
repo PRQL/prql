@@ -153,7 +153,8 @@ tasks:
     cmds:
       - cd website && hugo --minify
       - cd book && mdbook build
-      - mv book/book website/public/book
+      - mkdir -p website/public
+      - rsync -ai --checksum --delete book/book/ website/public/book/
       - cd playground && npm ci
       - cd playground && npm run build
-      - mv playground/build website/public/playground
+      - rsync -ai --checksum --delete playground/build/ website/public/playground/
