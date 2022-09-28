@@ -24,8 +24,8 @@ PRQL can be as simple as:
 
 ```elm
 from employees
-filter country == "USA"                       # Each line transforms the previous result.
-aggregate [                                   # `aggregate` reduces column to a value.
+filter country == "USA"                       # Each line transforms the previous result
+aggregate [                                   # `aggregate` reduces column to a value
   max salary,
   min salary,
   count,                                      # Closing commas are allowed :)
@@ -36,23 +36,23 @@ Here's a fuller example of the language;
 
 ```elm
 from employees
-filter start_date > @2021-01-01               # Clear date syntax.
-derive [                                      # `derive` adds columns / variables.
+filter start_date > @2021-01-01               # Clear date syntax
+derive [                                      # `derive` adds columns / variables
   gross_salary = salary + (tax ?? 0),         # Terse coalesce
-  gross_cost = gross_salary + benefits_cost,  # Variables can use other variables.
+  gross_cost = gross_salary + benefits_cost,  # Variables can use other variables
 ]
 filter gross_cost > 0
-group [title, country] (                      # `group` runs a pipeline over each group.
-  aggregate [                                 # `aggregate` reduces each group to a row.
+group [title, country] (                      # `group` runs a pipeline over each group
+  aggregate [                                 # `aggregate` reduces each group to a row
     average gross_salary,
-    sum_gross_cost = sum gross_cost,          # `=` sets a column name.
+    sum_gross_cost = sum gross_cost,          # `=` sets a column name
   ]
 )
-filter sum_gross_cost > 100000                # Identical syntax for SQL's `WHERE` & `HAVING`.
-derive id = f"{title}_{country}"              # F-strings like python.
+filter sum_gross_cost > 100000                # Identical syntax for SQL's `WHERE` & `HAVING`
+derive id = f"{title}_{country}"              # F-strings like python
 derive country_code = s"LEFT(country, 2)"     # S-strings allow using SQL as an escape hatch
-sort [sum_gross_cost, -country]               # `-country` means descending order.
-take 1..20                                    # Range expressions (also valid here as `take 20`).
+sort [sum_gross_cost, -country]               # `-country` means descending order
+take 1..20                                    # Range expressions (also valid here as `take 20`)
 ```
 
 For more on the language, more examples & comparisons with SQL, visit
