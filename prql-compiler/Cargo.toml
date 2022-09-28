@@ -37,7 +37,7 @@ strum_macros = "0.24.0"
 [dependencies.clap]
 features = ["derive"]
 optional = true
-version = "3.2.3"
+version = "4.0.0"
 
 [dependencies.sqlparser]
 features = ["serde"]
