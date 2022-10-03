@@ -22,11 +22,11 @@ doctest = false
 anyhow = "1.0.57"
 ariadne = "0.1.5"
 atty = {version = "0.2.14", optional = true}
-clio = {version = "0.2.2", optional = true}
+clio = {version = "0.2.4", features = ['clap-parse'], optional = true}
 color-eyre = {version = "0.6.1", optional = true}
 enum-as-inner = "0.5.0"
 itertools = "0.10.3"
-pest = "2.3.0"
+pest = "2.4.0"
 pest_derive = "2.3.0"
 serde_json = "1.0.81"
 serde_yaml = "0.9.1"
@@ -37,7 +37,7 @@ strum_macros = "0.24.0"
 [dependencies.clap]
 features = ["derive"]
 optional = true
-version = "4.0.6"
+version = "4.0.8"
 
 [dependencies.sqlparser]
 features = ["serde"]
