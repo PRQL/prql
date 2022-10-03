@@ -631,11 +631,11 @@ fn translate_item(item: Item, dialect: &dyn DialectHandler) -> Result<Expr> {
                 value,
             },
             Literal::Time(value) => Expr::TypedString {
-                data_type: sql_ast::DataType::Time,
+                data_type: sql_ast::DataType::Time(sql_ast::TimezoneInfo::None),
                 value,
             },
             Literal::Timestamp(value) => Expr::TypedString {
-                data_type: sql_ast::DataType::Timestamp,
+                data_type: sql_ast::DataType::Timestamp(sql_ast::TimezoneInfo::None),
                 value,
             },
         },
