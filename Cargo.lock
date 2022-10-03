@@ -377,10 +377,11 @@ dependencies = [
 
 [[package]]
 name = "clio"
-version = "0.2.3"
+version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c850d26e67812ca0adb581c77e4ad1fd0a27ea3a8f8205fddfe7d5f52b783788"
+checksum = "f4a0f0d303f28bcb233076bb506fa77ead8fb8d4ad4ec25d3a338ced01b0b875"
 dependencies = [
+ "clap 3.2.21",
  "libc",
 ]
 
