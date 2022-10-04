@@ -335,13 +335,27 @@ checksum = "1ed5341b2301a26ab80be5cbdced622e80ed808483c52e45e3310a877d3b37d7"
 dependencies = [
  "atty",
  "bitflags",
- "clap_derive",
- "clap_lex",
+ "clap_lex 0.2.4",
  "indexmap",
  "once_cell",
  "strsim",
  "termcolor",
  "textwrap 0.15.0",
+]
+
+[[package]]
+name = "clap"
+version = "4.0.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "30607dd93c420c6f1f80b544be522a0238a7db35e6a12968d28910983fee0df0"
+dependencies = [
+ "atty",
+ "bitflags",
+ "clap_derive",
+ "clap_lex 0.3.0",
+ "once_cell",
+ "strsim",
+ "termcolor",
 ]
 
 [[package]]
@@ -355,9 +369,9 @@ dependencies = [
 
 [[package]]
 name = "clap_derive"
-version = "3.2.18"
+version = "4.0.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ea0c8bce528c4be4da13ea6fead8965e95b6073585a2f05204bd8f4119f82a65"
+checksum = "a4a307492e1a34939f79d3b6b9650bd2b971513cd775436bf2b78defeb5af00b"
 dependencies = [
  "heck",
  "proc-macro-error",
@@ -376,12 +390,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "clap_lex"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0d4198f73e42b4936b35b5bb248d81d2b595ecb170da0bac7655c54eedfa8da8"
+dependencies = [
+ "os_str_bytes",
+]
+
+[[package]]
 name = "clio"
 version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f4a0f0d303f28bcb233076bb506fa77ead8fb8d4ad4ec25d3a338ced01b0b875"
 dependencies = [
- "clap 3.2.21",
+ "clap 4.0.9",
  "libc",
 ]
 
@@ -1716,7 +1739,7 @@ dependencies = [
  "atty",
  "cfg-if",
  "chrono",
- "clap 3.2.21",
+ "clap 4.0.9",
  "clio",
  "color-eyre",
  "criterion",
