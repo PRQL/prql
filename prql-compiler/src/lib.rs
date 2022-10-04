@@ -10,7 +10,7 @@ mod utils;
 pub use anyhow::Result;
 #[cfg(feature = "cli")]
 pub use cli::Cli;
-pub use error::{format_error, SourceLocation};
+pub use error::{format_error, FormattedError, SourceLocation};
 pub use parser::parse;
 pub use sql::translate;
 

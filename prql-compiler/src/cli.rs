@@ -61,7 +61,10 @@ impl Cli {
                 self.write_output(&buf)?;
             }
             Err(e) => {
-                print!("{:}", error::format_error(e, &source_id, &source, true).0);
+                print!(
+                    "{:}",
+                    error::format_error(e, &source_id, &source, true).message
+                );
                 std::process::exit(1)
             }
         }
