@@ -14,8 +14,8 @@ use similar::DiffableStr;
 use std::{io, process};
 
 /// Checks renderer support and runs the preprocessor.
-pub fn run(preprocessor: impl Preprocessor, description: &str) {
-    let matches = Command::new(preprocessor.name())
+pub fn run(preprocessor: impl Preprocessor, name: &'static str, description: &'static str) {
+    let matches = Command::new(name)
         .about(description)
         .subcommand(
             Command::new("supports")
@@ -56,7 +56,9 @@ fn handle_preprocessing(pre: impl Preprocessor) -> Result<()> {
 }
 
 fn handle_supports(pre: impl Preprocessor, sub_args: &ArgMatches) -> ! {
-    let renderer = sub_args.value_of("renderer").expect("Required argument");
+    let renderer = sub_args
+        .get_one::<String>("renderer")
+        .expect("Required argument");
     let supported = pre.supports_renderer(renderer);
 
     // Signal whether the renderer is supported by exiting with 1 or 0.
@@ -71,6 +73,7 @@ fn main() {
     eprintln!("Running comparison preprocessor");
     run(
         ComparisonPreprocessor,
+        "comparison-preprocessor",
         "Create comparison examples between PRQL & SQL",
     );
 }
