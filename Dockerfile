@@ -1,13 +1,14 @@
 # Dockerfile to build the prql development environment
 
 # Build with docker build -t prql .
-# Invoke with ????? docker run wgvanity [ string ]
+# Invoke with docker run --rm --mount type=bind,source="$(pwd)",target=/app prql
 
 FROM rust:1.63.0-buster
-WORKDIR app
+# rust:1.64.0-slim-buster
 
 # ========= Install essential apt packages =========
-RUN apt-get update; apt install -y \
+RUN apt-get -yq update \
+	&& apt install -y \
 	cmake \
 	pkg-config \
 	libssl-dev \
@@ -17,27 +18,30 @@ RUN apt-get update; apt install -y \
 	clang \
 	libclang-dev \
 	python3.7 \
-	python3-pip
-RUN rm -rf /var/lib/apt/lists/*
+	python3-pip \
+	curl \
+	gnupg \
+	ca-certificates \
+	nodejs \
+	npm \
+	&& rm -rf /var/lib/apt/lists/*
 
 # ========= Install task =========
 RUN sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b /usr/local/bin
 
-# ========= Copy the taskfile =========
+# ========= Set up workdir & copy the taskfile =========
+WORKDIR /app
 COPY Taskfile.yml .
 
-# ========= Install homebrew =========
-RUN task install-brew
-ENV PATH="/home/linuxbrew/.linuxbrew/bin:${PATH}"
-
-# ========= Install the cargo tools =========
-RUN task install-cargo-tools
-
-# ========= Install the other dev tools =========
+# ========= Install all development tools using task =========
+# RUN task install-brew
+# ENV PATH="/home/linuxbrew/.linuxbrew/bin:${PATH}"
 RUN task install-pre-commit
-RUN task install-brew-dependencies
 RUN task install-npm-dependencies
 RUN task install-precommit-install-hooks
+RUN task install-cargo-tools
+RUN curl -L https://github.com/gohugoio/hugo/releases/download/v0.91.2/hugo_0.91.2_Linux-64bit.deb -o hugo.deb \
+	&& apt install ./hugo.deb
 
 # ========= Need to figure out the rest 
 # ========= Create a volume so tools can access local directory 
@@ -48,9 +52,9 @@ RUN task install-precommit-install-hooks
 # FROM chef AS planner
 # RUN cargo setup-dev
 
-COPY . .
+# COPY . .
 
-ENTRYPOINT ["cargo test"]
+ENTRYPOINT ["/bin/bash"]
 
 # FROM chef AS builder 
 # COPY --from=planner /app/recipe.json recipe.json
