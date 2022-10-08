@@ -54,10 +54,11 @@ jobs:
       - name: Prepare tar for upload
         uses: actions/upload-pages-artifact@v1.0.4
         with:
-          # Not sure if this is required? I think probably the next step copies it, so fine if it gets cleaned up?
+          # Not sure if this is required? I think probably the next step copies
+          # it, so fine if it gets cleaned up?
           retention-days: 365
           path: website/public/
 
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@main
+        uses: actions/deploy-pages@v1.2.1
