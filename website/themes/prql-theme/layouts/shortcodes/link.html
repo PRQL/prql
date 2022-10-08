@@ -1,0 +1,2 @@
+{{/* Compile a link as markdown so it runs the `render-link` template */}}
+{{ print "[" (.Get "label") "]" "(" .Get "link" ")" | markdownify }}

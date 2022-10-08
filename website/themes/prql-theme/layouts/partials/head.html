@@ -1,17 +1,49 @@
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<head>
+  <meta charset="utf-8" />
+  <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+  {{ template "_internal/opengraph.html" . }}
 
-<title>{{ .Page.Title }}</title>
-<link rel="apple-touch-icon" sizes="180x180" href="{{ "/apple-touch-icon.png" | relURL }}">
-<link rel="icon" type="image/png" sizes="32x32" href="{{ "/favicon-32x32.png" | relURL }}">
-<link rel="icon" type="image/png" sizes="16x16" href="{{ "/favicon-16x16.png" | relURL }}">
 
-<!-- TODO: use Hugo to combine all of these into one -->
-<link href="{{ "/main.css" | relURL }}" rel="stylesheet">
-<link href="{{ "/water.css" | relURL }}" rel="stylesheet">
-<link href="{{ "/fonts/fonts.css" | relURL }}" rel="stylesheet">
+  <title>{{ .Page.Title }}</title>
+  <meta content="{{ .Page.Description }}" name="description" />
+  <meta content="{{ .Page.Keywords }}" name="keywords" />
 
-<link href="{{ "/highlight/highlight.css" | relURL }}" rel="stylesheet">
+  <!-- Favicons -->
+  <link
+    rel="apple-touch-icon"
+    sizes="180x180"
+    href="{{ "/img/apple-touch-icon.png" | relURL }}"
+  />
+  <!--32*32-->
+  <link
+    rel="icon"
+    type="image/png"
+    sizes="32x32"
+    href="{{ "/img/favicon-32x32.png" | relURL }}"
+  />
+  <!--16*16-->
+  <link
+    rel="icon"
+    type="image/png"
+    sizes="16x16"
+    href="{{ "/img/favicon-16x16.png" | relURL }}"
+  />
 
-<script defer="defer" src="{{ "/highlight/highlight.min.js" | relURL }}"></script>
-<script defer="defer" src="{{ "/highlight/prql.js" | relURL }}"></script>
+  <!-- Vendor CSS Files -->
+  <link
+    href="{{ "/plugins/bootstrap/bootstrap.min.css" | relURL }}"
+    rel="stylesheet"
+  />
+  <link href="{{ "/fonts/boxicons.min.css" | relURL }}" rel="stylesheet" />
+
+  <!--Highlights-->
+  <link href="/plugins/highlight/highlight.css" rel="stylesheet" />
+  <script defer="defer" src="/plugins/highlight/highlight.min.js"></script>
+  <script defer="defer" src="/plugins/highlight/prql.js"></script>
+
+  <!-- CSS File -->
+  <link href="{{ "/style.css" | relURL }}" rel="stylesheet" />
+
+  <!-- From https://buttons.github.io/ -->
+  <script async defer src="https://buttons.github.io/buttons.js"></script>
+</head>

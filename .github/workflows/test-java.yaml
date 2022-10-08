@@ -1,0 +1,27 @@
+name: test-java
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    paths:
+      - "prql-java/**"
+      - ".github/workflows/test-java.yaml"
+  workflow_call:
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{matrix.os}}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      # Java test is simple enough that it's not worth splitting out into a
+      # separate action. These three lines are copied to test-all, which runs on
+      # each merge.
+      - name: Maven test
+        working-directory: prql-java/java/
+        run: ./mvnw test

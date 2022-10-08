@@ -1,21 +1,52 @@
 baseURL: "https://prql-lang.org/"
-languageCode: "en-us"
-title: "PRQL"
-theme: "prql-theme"
+languageCode: en-us
+title: PRQL
+theme: prql-theme
+
+disableKinds:
+  - taxonomy
+  - term
+
+menu:
+  nav:
+    # TODO: Can we use the info from pages directly? https://gohugo.io/templates/menu-templates/#menu-entries-from-the-pages-front-matter
+    - identifier: Book
+      name: Book
+      url: "https://prql-lang.org/book/"
+      weight: 1
+    - identifier: Playground
+      name: Playground
+      url: "https://prql-lang.org/playground/"
+      weight: 2
+    - identifier: Roadmap
+      name: Roadmap
+      url: /roadmap/
+      weight: 3
+    - identifier: Examples
+      name: Examples
+      url: /examples/
+      weight: 4
+    - identifier: FAQ
+      name: FAQ
+      url: /faq/
+      weight: 5
 
 params:
-  main_menu:
-    - text: Reference
-      link: /reference
-
-    - text: Playground
-      link: /playground
-
-    - text: Roadmap
-      link: /roadmap
-
-    - text: Github
+  help_the_project:
+    list:
+      - text: Send a link to PRQL to a couple of people whose opinion you respect.
+      - text: |
+          Rewrite any of your own queries to PRQL to see if it makes sense.
+          You can use the [playground](https://prql-lang.org/playground) and submit issues
+          [here](https://github.com/prql/prql/issues). We are looking for any
+          use-cases that expose a poor design choice, a need of a feature, a pain point
+          or are just a sharp edge of the language.
+    button:
+      text: Contribute
       link: https://github.com/prql/prql
+  description: PRQL is a modern language for transforming data
+  images:
+    - static/img/favicon-32x32.png
+  title: PRQL
 
-  footer:
-    text: "© 2022, PRQL developers. Apache 2.0 Licensed"
+  license: "© 2022, PRQL developers. Apache 2.0 Licensed"

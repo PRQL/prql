@@ -11,7 +11,6 @@ use super::*;
 #[derive(Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize)]
 pub enum Item {
     Ident(Ident),
-    Operator(String),
     Literal(Literal),
     Assign(NamedExpr),
     NamedArg(NamedExpr),
@@ -20,15 +19,65 @@ pub enum Item {
     Transform(Transform),
     List(Vec<Node>),
     Range(Range),
-    Expr(Vec<Node>),
+    Binary {
+        left: Box<Node>,
+        op: BinOp,
+        right: Box<Node>,
+    },
+    Unary {
+        op: UnOp,
+        expr: Box<Node>,
+    },
     FuncDef(FuncDef),
     FuncCall(FuncCall),
-    Type(Type),
+    Type(Ty),
     Table(Table),
     SString(Vec<InterpolateItem>),
     FString(Vec<InterpolateItem>),
     Interval(Interval),
     Windowed(Windowed),
+}
+
+#[derive(
+    Debug, PartialEq, Eq, Clone, Serialize, Deserialize, strum::Display, strum::EnumString,
+)]
+pub enum BinOp {
+    #[strum(to_string = "*")]
+    Mul,
+    #[strum(to_string = "/")]
+    Div,
+    #[strum(to_string = "%")]
+    Mod,
+    #[strum(to_string = "+")]
+    Add,
+    #[strum(to_string = "-")]
+    Sub,
+    #[strum(to_string = "==")]
+    Eq,
+    #[strum(to_string = "!=")]
+    Ne,
+    #[strum(to_string = ">")]
+    Gt,
+    #[strum(to_string = "<")]
+    Lt,
+    #[strum(to_string = ">=")]
+    Gte,
+    #[strum(to_string = "<=")]
+    Lte,
+    #[strum(to_string = "and")]
+    And,
+    #[strum(to_string = "or")]
+    Or,
+    #[strum(to_string = "??")]
+    Coalesce,
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize, strum::EnumString)]
+pub enum UnOp {
+    #[strum(to_string = "-")]
+    Neg,
+    #[strum(to_string = "!")]
+    Not,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
@@ -63,10 +112,11 @@ impl Windowed {
         }
     }
 }
+
+/// Represents a value and a series of function curries
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Pipeline {
-    pub value: Option<Box<Node>>,
-    pub functions: Vec<Node>,
+    pub nodes: Vec<Node>,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
@@ -83,7 +133,7 @@ pub enum InterpolateItem {
 
 /// Inclusive-inclusive range.
 /// Missing bound means unbounded range.
-#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Range<T = Box<Node>> {
     pub start: Option<T>,
     pub end: Option<T>,
@@ -121,7 +171,7 @@ impl Range {
 // #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 // pub struct Interval(pub Vec<IntervalPart>);
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Interval {
     pub n: i64,       // Do any DBs use floats or decimals for this?
     pub unit: String, // Could be an enum IntervalType,
@@ -129,23 +179,19 @@ pub struct Interval {
 
 impl Pipeline {
     pub fn into_transforms(self) -> Result<Vec<Transform>, Item> {
-        self.functions
+        self.nodes
             .into_iter()
             .map(|f| f.item.into_transform())
             .try_collect()
     }
 
     pub fn as_transforms(&self) -> Option<Vec<&Transform>> {
-        self.functions
-            .iter()
-            .map(|f| f.item.as_transform())
-            .collect()
+        self.nodes.iter().map(|f| f.item.as_transform()).collect()
     }
 }
 impl From<Vec<Node>> for Pipeline {
-    fn from(functions: Vec<Node>) -> Self {
-        let value = None;
-        Pipeline { functions, value }
+    fn from(nodes: Vec<Node>) -> Self {
+        Pipeline { nodes }
     }
 }
 
@@ -162,45 +208,77 @@ impl Display for Item {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Item::Ident(s) => {
-                f.write_str(s)?;
-            }
-            Item::Operator(o) => {
-                f.write_str(o)?;
+                fn forbidden_start(c: char) -> bool {
+                    !(('a'..='z').contains(&c) || matches!(c, '_' | '$'))
+                }
+                fn forbidden_subsequent(c: char) -> bool {
+                    !(('a'..='z').contains(&c) || ('0'..='9').contains(&c) || matches!(c, '_'))
+                }
+
+                let needs_escape = s.is_empty()
+                    || s.starts_with(forbidden_start)
+                    || (s.len() > 1 && s.chars().skip(1).any(forbidden_subsequent));
+
+                if needs_escape {
+                    write!(f, "`{s}`")?;
+                } else {
+                    write!(f, "{s}")?;
+                }
             }
             Item::Assign(ne) => {
-                write!(f, "{} = {}", ne.name, ne.expr.item)?;
+                match ne.expr.item {
+                    Item::FuncCall(_) => {
+                        // this is just a workaround for inserting parenthesis
+                        // full approach would include "binding strength"
+                        // checking, just as we do for SQL
+                        write!(f, "{} = ({})", Item::Ident(ne.name.clone()), ne.expr.item)?;
+                    }
+
+                    _ => {
+                        write!(f, "{} = {}", Item::Ident(ne.name.clone()), ne.expr.item)?;
+                    }
+                };
             }
             Item::NamedArg(ne) => {
-                write!(f, "{}:{}", ne.name, ne.expr.item)?;
+                write!(f, "{}:{}", Item::Ident(ne.name.clone()), ne.expr.item)?;
             }
             Item::Query(query) => {
-                write!(f, "prql dialect: {}\n\n", query.dialect)?;
+                write!(f, "prql dialect:{}", query.dialect)?;
+                if let Some(version) = query.version {
+                    write!(f, " version:{}", version)?
+                };
+                write!(f, "\n\n")?;
 
                 for node in &query.nodes {
                     match &node.item {
                         Item::Pipeline(p) => {
-                            for node in &p.functions {
+                            for node in &p.nodes {
                                 writeln!(f, "{}", node.item)?;
                             }
+                            f.write_char('\n')?;
                         }
-                        _ => write!(f, "{}", node.item)?,
+                        _ => writeln!(f, "{}\n", node.item)?,
                     }
                 }
             }
             Item::Pipeline(pipeline) => {
-                if let Some(value) = &pipeline.value {
-                    write!(f, "({}", value.item)?;
-                    for node in &pipeline.functions {
-                        write!(f, " | {}", node.item)?;
+                f.write_char('(')?;
+                match pipeline.nodes.len() {
+                    0 => {}
+                    1 => {
+                        write!(f, "{}", pipeline.nodes[0].item)?;
+                        for node in &pipeline.nodes[1..] {
+                            write!(f, " | {}", node.item)?;
+                        }
                     }
-                    f.write_char(')')?;
-                } else {
-                    f.write_str("(\n")?;
-                    for node in &pipeline.functions {
-                        writeln!(f, "  {}", node.item)?;
+                    _ => {
+                        writeln!(f, "\n  {}", pipeline.nodes[0].item)?;
+                        for node in &pipeline.nodes[1..] {
+                            writeln!(f, "  {}", node.item)?;
+                        }
                     }
-                    f.write_str(")")?;
                 }
+                f.write_char(')')?;
             }
             Item::Transform(transform) => {
                 write!(f, "{} <unimplemented>", transform.as_ref())?;
@@ -213,10 +291,22 @@ impl Display for Item {
                 for arg in &func_def.named_params {
                     write!(f, " {}", arg.0.item)?;
                 }
-                write!(f, " = {}\n\n", func_def.body.item)?;
+                write!(f, " -> {}\n\n", func_def.body.item)?;
             }
             Item::Table(table) => {
-                write!(f, "table {} = {}\n\n", table.name, table.pipeline.item)?;
+                match table.pipeline.item {
+                    Item::FuncCall(_) => {
+                        write!(
+                            f,
+                            "table {} = (\n  {}\n)\n\n",
+                            table.name, table.pipeline.item
+                        )?;
+                    }
+
+                    _ => {
+                        write!(f, "table {} = {}\n\n", table.name, table.pipeline.item)?;
+                    }
+                };
             }
             Item::List(nodes) => {
                 if nodes.is_empty() {
@@ -240,14 +330,21 @@ impl Display for Item {
                     write!(f, "{}", end.item)?;
                 }
             }
-            Item::Expr(nodes) => {
-                for (i, node) in nodes.iter().enumerate() {
-                    write!(f, "{}", node.item)?;
-                    if i + 1 < nodes.len() {
-                        f.write_char(' ')?;
-                    }
-                }
+            Item::Binary { op, left, right } => {
+                match left.item {
+                    Item::FuncCall(_) => write!(f, "( {} )", left.item)?,
+                    _ => write!(f, "{}", left.item)?,
+                };
+                write!(f, " {op} ")?;
+                match right.item {
+                    Item::FuncCall(_) => write!(f, "( {} )", right.item)?,
+                    _ => write!(f, "{}", right.item)?,
+                };
             }
+            Item::Unary { op, expr } => match op {
+                UnOp::Neg => write!(f, "-{}", expr.item)?,
+                UnOp::Not => write!(f, "not {}", expr.item)?,
+            },
             Item::FuncCall(func_call) => {
                 f.write_str(func_call.name.as_str())?;
 
@@ -255,7 +352,17 @@ impl Display for Item {
                     write!(f, " {name}: {}", arg.item)?;
                 }
                 for arg in &func_call.args {
-                    write!(f, " {}", arg.item)?;
+                    match arg.item {
+                        Item::FuncCall(_) => {
+                            writeln!(f, " (")?;
+                            writeln!(f, "  {}", arg.item)?;
+                            f.write_char(')')?;
+                        }
+
+                        _ => {
+                            write!(f, " {}", arg.item)?;
+                        }
+                    }
                 }
             }
             Item::SString(parts) => {
@@ -268,7 +375,7 @@ impl Display for Item {
                 write!(f, "{}{}", i.n, i.unit)?;
             }
             Item::Windowed(w) => {
-                write!(f, "{:?}", w.expr)?;
+                write!(f, "{}", w.expr.item)?;
             }
             Item::Type(typ) => {
                 f.write_char('<')?;
@@ -276,7 +383,7 @@ impl Display for Item {
                 f.write_char('>')?;
             }
             Item::Literal(literal) => {
-                write!(f, "{:?}", literal)?;
+                write!(f, "{}", literal)?;
             }
         }
         Ok(())
@@ -300,14 +407,15 @@ fn display_interpolation(
     Ok(())
 }
 
-fn display_type(f: &mut std::fmt::Formatter, typ: &Type) -> Result<(), std::fmt::Error> {
+fn display_type(f: &mut std::fmt::Formatter, typ: &Ty) -> Result<(), std::fmt::Error> {
     match typ {
-        Type::Native(kind) => write!(f, "{:}", kind)?,
-        Type::Parameterized(t, param) => {
+        Ty::Literal(lit) => write!(f, "{:}", lit)?,
+        Ty::Named(name) => write!(f, "{:}", name)?,
+        Ty::Parameterized(t, param) => {
             display_type(f, t)?;
             write!(f, "<{:?}>", param.item)?
         }
-        Type::AnyOf(ts) => {
+        Ty::AnyOf(ts) => {
             for (i, t) in ts.iter().enumerate() {
                 display_type(f, t)?;
                 if i < ts.len() - 1 {
@@ -315,6 +423,7 @@ fn display_type(f: &mut std::fmt::Formatter, typ: &Type) -> Result<(), std::fmt:
                 }
             }
         }
+        Ty::Infer => {}
     }
     Ok(())
 }

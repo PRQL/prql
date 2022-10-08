@@ -1,0 +1,50 @@
+# Aggregate Functions
+
+func min <scalar|column> column ->  s"MIN({column})"
+func max <scalar|column> column ->  s"MAX({column})"
+func sum <scalar|column> column ->  s"SUM({column})"
+func avg <scalar|column> column ->  s"AVG({column})"
+func stddev <scalar|column> column ->  s"STDDEV({column})"
+func average <scalar|column> column ->  s"AVG({column})"
+func count <scalar|column> non_null:s"*" ->  s"COUNT({non_null})"
+# TODO: Possibly make this into `count distinct:true` (or like `distinct:` as an
+# abbreviation of that?)
+func count_distinct <scalar|column> column ->  s"COUNT(DISTINCT `{column}`)"
+
+# Window functions
+func lag<column> offset column ->  s"LAG({column}, {offset})"
+func lead<column> offset column ->  s"LEAD({column}, {offset})"
+func first<column> offset column ->  s"FIRST_VALUE({column}, {offset})"
+func last<column> offset column ->  s"LAST_VALUE({column}, {offset})"
+func rank<column> ->  s"RANK()"
+func rank_dense<column> ->  s"DENSE_RANK()"
+func row_number<column> ->  s"ROW_NUMBER()"
+
+# Other functions
+
+func round<scalar> n_digits column ->  s"ROUND({column}, {n_digits})"
+func as<scalar> type column ->  s"CAST({column} AS {type})"
+# TODO: Introduce a notation for getting start and end out of a ranges
+# could be range.0? or range.start? But to make this happen, we need to make
+# changes to how variables are resolved.
+func in<bool> range value ->  s"{value} BETWEEN {range}"
+
+# Logical functions
+# TODO: should we remove in favor of `??` to reduce ambiguity?
+func coalesce value default -> s"COALESCE({value}, {default})"
+
+# Transform type definitions
+
+# (make sure to update cast_transfrom if you change any of the declarations
+# here)
+
+func from<table> source -> 0
+func select<table> assigns tbl -> 0
+func filter<table> condition tbl -> 0
+func derive<table> assigns tbl -> 0
+func aggregate<table> assigns tbl -> 0
+func sort<table> by tbl -> 0
+func take<table> expr tbl -> 0
+func join<table> with filter side:inner tbl -> 0
+func group<table> by pipeline tbl -> 0
+func window<table> rows:0..0 range:0..0 expanding:false rolling:0 pipeline tbl -> 0

@@ -1,7 +1,7 @@
 /// Types for outer-scope AST nodes (query, table, func def, transform)
 use serde::{Deserialize, Serialize};
 
-use super::{Dialect, Ident, Node, Range, Type};
+use super::{Dialect, Ident, Node, Range, Ty};
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize, Default)]
 pub struct Query {
@@ -15,10 +15,10 @@ pub struct Query {
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct FuncDef {
     pub name: Ident,
-    pub positional_params: Vec<(Node, Option<Type>)>, // ident
-    pub named_params: Vec<(Node, Option<Type>)>,      // named expr
+    pub positional_params: Vec<(Node, Option<Ty>)>, // ident
+    pub named_params: Vec<(Node, Option<Ty>)>,      // named expr
     pub body: Box<Node>,
-    pub return_type: Option<Type>,
+    pub return_type: Option<Ty>,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
@@ -62,12 +62,12 @@ pub enum Transform {
     Unique, // internal only, can be expressed with group & take
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub enum WindowKind {
     Rows,
     Range,
 }
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub struct TableRef {
     pub name: String,
     pub alias: Option<String>,
@@ -80,7 +80,7 @@ pub enum JoinFilter {
     Using(Vec<Node>),
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub enum JoinSide {
     Inner,
     Left,
@@ -88,13 +88,13 @@ pub enum JoinSide {
     Full,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ColumnSort<T = Node> {
     pub direction: SortDirection,
     pub column: T,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum SortDirection {
     Asc,
     Desc,

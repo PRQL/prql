@@ -1,0 +1,11 @@
+---
+source: book/tests/snapshot.rs
+expression: "Item::Query(parse(&prql).unwrap())"
+input_file: book/tests/prql/transforms/select-0.prql
+---
+prql dialect:generic
+
+from employees
+select first_name
+
+

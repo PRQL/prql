@@ -1,7 +1,0 @@
----
-source: reference/tests/snapshot.rs
-expression: sql
-input_file: reference/tests/prql/language-features/s-strings-0.prql
----
-SELECT
-  version() AS db_version

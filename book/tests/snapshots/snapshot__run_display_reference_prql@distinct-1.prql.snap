@@ -1,0 +1,14 @@
+---
+source: book/tests/snapshot.rs
+expression: "Item::Query(parse(&prql).unwrap())"
+input_file: book/tests/prql/language-features/distinct-1.prql
+---
+prql dialect:generic
+
+from employees
+select department
+group department (
+  take 1
+)
+
+

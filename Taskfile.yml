@@ -1,38 +1,47 @@
 # This file gives new contributors an easy way to get everything they need,
-# assuming they have `cargo` and `Taskfile`.
+# assuming `cargo` and [Task](https://taskfile.dev) are installed.
 
-# Generally we shouldn't be requiring running this to have a good dev loop —
-# rust tools are independently good, and adding an intermediate layer means we're
+# Beyond installing requirements, we generally shouldn't be using this as a
+# Makefile, requiring running this to have a good dev loop — rust tools are
+# independently good, and adding an intermediate layer means we're
 # reimplementing things or getting in the way. Instead, this can be used to
-# aggregate commands that's aren't yet integrated.
+# aggregate commands that's are currently separate; e.g. check out `test-all`.
 
 # Some of the file may be somewhat over-engineered!
 
 version: "3"
 
 vars:
+  # Keeps in sync with .vscode/extensions.json
   vscode_extensions: |
+    budparr.language-hugo-vscode
+    esbenp.prettier-vscode
+    mitsuhiko.insta
     prql.prql
     rust-lang.rust-analyzer
-    mitsuhiko.insta
 
 tasks:
-  install-dev-tools:
-    cmds:
-      - echo "\`install-dev-tools\` is renamed to \`setup-dev\` and will be removed soon."
-      - task: setup-dev
-
   setup-dev:
     desc: Install tools for PRQL development.
     cmds:
       # `--locked` installs from the underlying lock files (which is not the default?!)
-      - cargo install --locked cargo-insta default-target mdbook mdbook-toc wasm-bindgen-cli wasm-pack
-      - rustup target add wasm32-unknown-unknown
+      - cargo install --locked
+        cargo-audit
+        cargo-insta
+        cargo-release
+        default-target
+        mdbook
+        mdbook-admonish
+        mdbook-toc
+        wasm-bindgen-cli
+        wasm-pack
       - python3 -m pip install -U maturin
       - task: install-pre-commit
       - task: install-brew-dependencies
-      # We only suggest, rather than install; we don't want to intrude (maybe we're being too conservative?).
+      - task: install-npm-dependencies
+      # We only suggest, rather than install; we don't want to intrude (though maybe we're being too conservative?).
       - task: suggest-vscode-extensions
+      - pre-commit install-hooks
       - cmd: |
           echo "
           🟢 Set up complete! ✅🚀"
@@ -77,7 +86,7 @@ tasks:
     status:
       - which pre-commit
     cmds:
-      - pip install -U pre-commit
+      - python3 -m pip install -U pre-commit
 
   install-brew-dependencies:
     status:
@@ -94,6 +103,16 @@ tasks:
     cmds:
       - brew install hugo npm
 
+  install-npm-dependencies:
+    cmds:
+      - npm install --location=global prettier prettier-plugin-go-template
+      - cmd:
+          echo "In order to get nice auto-formatting of web code in VSCode, VSCode
+          requires configuration to use the system-wide install of prettier. See
+          https://github.com/NiklasPor/prettier-plugin-go-template/issues/58#issuecomment-1085060511
+          for more info."
+        silent: true
+
   build-all:
     desc: Build everything. Running this isn't required when developing; it's for caching or as a reference.
     vars:
@@ -105,8 +124,37 @@ tasks:
     cmds:
       - |
         {{ range ( .targets | trim | splitLines ) -}}
-        cargo build --workspace --all-targets --target={{.}}
+        cargo build --all-targets --target={{.}}
         {{ end -}}
-      - mdbook build reference/
+      - mdbook build book/
       - cd playground && npm install && npm run build
       - cd website && hugo
+
+  test-all:
+    desc: Test everything, resetting snapshots. Running this isn't required when developing; it's for caching or as a reference.
+    vars:
+      default_target:
+        sh: default-target
+    cmds:
+      # We run this `run_examples` first for the reasons given in
+      # `parser::test_parse_pipeline_parse_tree`. Ideally we would a) retain
+      # examples in the documentation (inc. tested), b) not rely on falliable
+      # tests to extract them, which include compiling prql-compiler, c) not
+      # fail other compilation steps if they can't be extracted.
+      - cargo insta test --accept -- -p mdbook-prql run_examples
+      - task: build-all
+      # Only delete unreferenced snapshots on the default target — lots are excluded under wasm.
+      - cargo insta test --accept --delete-unreferenced-snapshots -- --target={{.default_target}}
+      - cargo insta test --accept -- --target=wasm32-unknown-unknown
+      - pre-commit run -a
+
+  build-web:
+    desc: Build the website
+    cmds:
+      - cd website && hugo --minify
+      - cd book && mdbook build
+      - mkdir -p website/public
+      - rsync -ai --checksum --delete book/book/ website/public/book/
+      - cd playground && npm ci
+      - cd playground && npm run build
+      - rsync -ai --checksum --delete playground/build/ website/public/playground/

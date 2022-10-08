@@ -1,0 +1,15 @@
+{
+  "httpHeaders": [
+    {
+      "headers": {
+        "Accept": "text/html"
+      },
+      "urls": ["https://crates.io"]
+    }
+  ],
+  "ignorePatterns": [
+    {
+      "pattern": "^https://twitter.com"
+    }
+  ]
+}

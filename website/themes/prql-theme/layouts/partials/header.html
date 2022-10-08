@@ -1,21 +1,39 @@
+<!-- Place this tag in your head or just before your close body tag. -->
+<header id="header" class="fixed-top d-flex align-items-center">
+  <div class="container d-flex align-items-center">
+    <a href="/" class="logo me-auto d-flex align-items-end">
+      <img
+        src="/img/icon.svg"
+        alt=""
+        class="img-fluid"
+        height="50"
+        width="50"
+      />
+      <h1>PRQL</h1>
+    </a>
 
-<header>
-
-  <nav>
-
-    <nav style="display: flex; align-items: center; flex-wrap: wrap;">
-      <a href="{{ "/" | relURL }}" style="display: flex; align-items: center">
-        <img src="{{ "/icon.svg" | relURL }}" style="margin: 0 -20px;" height="94" width="94" />
-        <h1 style="margin: 0.5rem 0 0 1rem; font-size: 3rem;">PRQL</h1>
-      </a>
-
-      <div style="flex-grow: 1"></div>
-
-      {{- range .Site.Params.main_menu }}
-        <a style="padding: 1rem" href="{{ .link | relURL }}">{{ .text }}</a>
-      {{- end }}
+    <nav id="navbar" class="navbar">
+      <ul>
+        {{ range .Site.Menus.nav }}
+          <li>
+            {{ print "[" .Name "]" "("  .URL ")" | markdownify }}
+          </li>
+        {{ end }}
+      </ul>
+      <i class="bx bx-list-ul mobile-nav-toggle"></i>
     </nav>
 
-  </nav>
-
+    <div style="margin-left: 20px;">
+      <!-- Generated from https://buttons.github.io/ -->
+      <a
+        class="github-button"
+        href="https://github.com/prql/prql"
+        data-size="large"
+        data-show-count="true"
+        aria-label="Star prql/prql on GitHub"
+      >
+        Star
+      </a>
+    </div>
+  </div>
 </header>

@@ -3,17 +3,15 @@ use std::collections::{HashMap, HashSet};
 use serde::{Deserialize, Serialize};
 
 pub const NS_PARAM: &str = "_param";
-const NS_GLOB: &str = "_glob";
+pub const NS_FUNC: &str = "_func";
 
 /// Maps from accessible names in some context to their declarations.
-#[derive(Default, Serialize, Deserialize, Clone)]
+#[derive(Default, Debug, Serialize, Deserialize, Clone)]
 pub struct Scope {
     /// Mapping from idents to their declarations. For each namespace (table), a map from column names to their definitions
     /// "_param" is namespace of current function parameters
-    /// "_glob" is namespace of functions without parameters (global variables)
+    /// "_func" is namespace of functions
     pub(super) variables: HashMap<String, HashSet<usize>>,
-
-    pub(super) functions: HashMap<String, usize>,
 }
 
 impl Scope {
@@ -26,12 +24,8 @@ impl Scope {
         self.cascade_variable(ident.as_str());
     }
 
-    pub(super) fn add_function(&mut self, name: String, id: usize, has_params: bool) {
-        if has_params {
-            self.functions.insert(name, id);
-        } else {
-            self.add(format!("{NS_GLOB}.{name}"), id);
-        }
+    pub(super) fn add_function(&mut self, name: String, id: usize) {
+        self.add(format!("{NS_FUNC}.{name}"), id);
     }
 
     // insert into lower namespaces, possibly creating ambiguities

@@ -1,10 +1,8 @@
 use anyhow::{anyhow, Result};
 use itertools::{Itertools, Position};
 
-use crate::{
-    error::{Error, Reason},
-    internals::Node,
-};
+use crate::ast::Node;
+use crate::error::{Error, Reason};
 
 // Inspired by version in sqlparser-rs; I'm surprised there isn't a version in
 // the stdlib / Itertools.
@@ -30,7 +28,7 @@ where
             // consumed; is there a way around this? I guess we could show
             // the items after the second, which is kinda weird.
             Some(Position::First(_)) => Err(anyhow!("Expected only one element, but found more.",)),
-            None => Err(anyhow!("Expected only one element, but found none.",)),
+            None => Err(anyhow!("Expected one element, but found none.",)),
             _ => unreachable!(),
         }
     }

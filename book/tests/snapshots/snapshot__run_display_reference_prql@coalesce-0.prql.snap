@@ -1,0 +1,13 @@
+---
+source: book/tests/snapshot.rs
+expression: "Item::Query(parse(&prql).unwrap())"
+input_file: book/tests/prql/language-features/coalesce-0.prql
+---
+prql dialect:generic
+
+from orders
+derive (
+  coalesce amount 0
+)
+
+

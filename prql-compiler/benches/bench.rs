@@ -5,17 +5,28 @@
 
 // TODO: add a small GHA workflow for this to run on "full tests".
 
-use criterion::{criterion_group, criterion_main, Criterion};
-use prql_compiler::*;
+// While benchmarks could run on wasm, the default features use Rayon, which
+// isn't supported. We're hardly using benchmarks so it's fine to exclude one
+// target.
 
-const CONTENT: &str = include_str!("../../reference/tests/prql/examples/variables-0.prql");
-fn compile_query() -> Result<String> {
-    compile(CONTENT)
+cfg_if::cfg_if! {
+    if #[cfg(target_family = "wasm")] {
+        fn main() {    panic!("Not used in wasm (but it seems cargo insists we have a `main` function).")}
+    } else {
+        use criterion::{criterion_group, criterion_main, Criterion};
+        use prql_compiler::*;
+
+        const CONTENT: &str = include_str!("../../book/tests/prql/examples/variables-0.prql");
+        fn compile_query() -> Result<String> {
+            compile(CONTENT)
+        }
+
+        fn criterion_benchmark(c: &mut Criterion) {
+            c.bench_function("variables-query", |b| b.iter(compile_query));
+        }
+
+        criterion_group!(benches, criterion_benchmark);
+        criterion_main!(benches);
+
+    }
 }
-
-fn criterion_benchmark(c: &mut Criterion) {
-    c.bench_function("variables-query", |b| b.iter(compile_query));
-}
-
-criterion_group!(benches, criterion_benchmark);
-criterion_main!(benches);

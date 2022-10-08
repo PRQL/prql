@@ -1,2 +1,0 @@
-from employees
-select full_name = f"{first} {last}"

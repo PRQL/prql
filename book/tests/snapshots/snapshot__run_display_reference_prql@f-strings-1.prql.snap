@@ -1,0 +1,11 @@
+---
+source: book/tests/snapshot.rs
+expression: "Item::Query(parse(&prql).unwrap())"
+input_file: book/tests/prql/language-features/f-strings-1.prql
+---
+prql dialect:generic
+
+from web
+select url = f"http{tls}://www.{domain}.{tld}/{page}"
+
+

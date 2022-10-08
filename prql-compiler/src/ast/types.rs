@@ -5,39 +5,72 @@ use serde::{Deserialize, Serialize};
 use super::Node;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub enum Type {
-    Native(NativeType),
-    Parameterized(Box<Type>, Box<Node>),
-    AnyOf(Vec<Type>),
+pub enum Ty {
+    Literal(TyLit),
+    Named(String),
+    Parameterized(Box<Ty>, Box<Node>),
+    AnyOf(Vec<Ty>),
+
+    /// Means that we have no information about the type of the variable and
+    /// that it should be inferred from other usages.
+    Infer,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, strum::EnumString, strum::Display)]
-pub enum NativeType {
-    #[strum(to_string = "frame")]
-    Frame,
+#[derive(
+    Debug, Clone, Serialize, Deserialize, PartialEq, Eq, strum::EnumString, strum::Display,
+)]
+pub enum TyLit {
+    #[strum(to_string = "table")]
+    Table,
     #[strum(to_string = "column")]
     Column,
     #[strum(to_string = "scalar")]
-    Scalar, // TODO: ScalarKind enum
+    Scalar,
+    #[strum(to_string = "integer")]
+    Integer,
+    #[strum(to_string = "float")]
+    Float,
+    #[strum(to_string = "boolean")]
+    Boolean,
+    #[strum(to_string = "string")]
+    String,
+    #[strum(to_string = "date")]
+    Date,
+    #[strum(to_string = "time")]
+    Time,
+    #[strum(to_string = "timestamp")]
+    Timestamp,
 }
 
-impl Type {
-    pub const fn frame() -> Type {
-        Type::Native(NativeType::Frame)
+impl Ty {
+    pub const fn frame() -> Ty {
+        Ty::Literal(TyLit::Table)
     }
 
-    pub const fn column() -> Type {
-        Type::Native(NativeType::Column)
+    pub const fn column() -> Ty {
+        Ty::Literal(TyLit::Column)
+    }
+}
+
+impl From<TyLit> for Ty {
+    fn from(lit: TyLit) -> Self {
+        Ty::Literal(lit)
+    }
+}
+
+impl Default for Ty {
+    fn default() -> Self {
+        Ty::Infer
     }
 }
 
 /// Implements a partial ordering or types:
 /// - higher up are types that include many others (AnyOf, Any) and
 /// - on the bottom are the atomic types (bool, string).
-impl PartialOrd for Type {
+impl PartialOrd for Ty {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         match (self, other) {
-            (Self::Native(l0), Self::Native(r0)) => {
+            (Self::Literal(l0), Self::Literal(r0)) => {
                 if l0 == r0 {
                     Some(Ordering::Equal)
                 } else {

@@ -1,3 +1,0 @@
-from employees
-select department
-group department ( | take 1) # Note below

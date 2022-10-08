@@ -6,26 +6,34 @@ expression: mat
     From:
       name: employees
       alias: ~
-      declared_at: 42
+      declared_at: 79
 - Transform:
     Filter:
-      Expr:
-        - Ident: country
-        - Operator: "=="
-        - Literal:
+      Binary:
+        left:
+          Ident: country
+        op: Eq
+        right:
+          Literal:
             String: USA
 - Transform:
     Filter:
-      Expr:
-        - Expr:
-            - Expr:
-                - Ident: salary
-                - Operator: +
-                - Ident: payroll_tax
-            - Operator: +
-            - Ident: benefits_cost
-        - Operator: ">"
-        - Literal:
+      Binary:
+        left:
+          Binary:
+            left:
+              Binary:
+                left:
+                  Ident: salary
+                op: Add
+                right:
+                  Ident: payroll_tax
+            op: Add
+            right:
+              Ident: benefits_cost
+        op: Gt
+        right:
+          Literal:
             Integer: 0
 - Transform:
     Group:
@@ -34,8 +42,7 @@ expression: mat
         - Ident: country
       pipeline:
         Pipeline:
-          value: ~
-          functions:
+          nodes:
             - Transform:
                 Aggregate:
                   assigns:
@@ -52,62 +59,84 @@ expression: mat
                     - SString:
                         - String: AVG(
                         - Expr:
-                            Expr:
-                              - Ident: salary
-                              - Operator: +
-                              - Ident: payroll_tax
+                            Binary:
+                              left:
+                                Ident: salary
+                              op: Add
+                              right:
+                                Ident: payroll_tax
                         - String: )
                     - SString:
                         - String: SUM(
                         - Expr:
-                            Expr:
-                              - Ident: salary
-                              - Operator: +
-                              - Ident: payroll_tax
+                            Binary:
+                              left:
+                                Ident: salary
+                              op: Add
+                              right:
+                                Ident: payroll_tax
                         - String: )
                     - SString:
                         - String: AVG(
                         - Expr:
-                            Expr:
-                              - Expr:
-                                  - Ident: salary
-                                  - Operator: +
-                                  - Ident: payroll_tax
-                              - Operator: +
-                              - Ident: benefits_cost
+                            Binary:
+                              left:
+                                Binary:
+                                  left:
+                                    Ident: salary
+                                  op: Add
+                                  right:
+                                    Ident: payroll_tax
+                              op: Add
+                              right:
+                                Ident: benefits_cost
                         - String: )
                     - SString:
                         - String: SUM(
                         - Expr:
-                            Expr:
-                              - Expr:
-                                  - Ident: salary
-                                  - Operator: +
-                                  - Ident: payroll_tax
-                              - Operator: +
-                              - Ident: benefits_cost
+                            Binary:
+                              left:
+                                Binary:
+                                  left:
+                                    Ident: salary
+                                  op: Add
+                                  right:
+                                    Ident: payroll_tax
+                              op: Add
+                              right:
+                                Ident: benefits_cost
                         - String: )
                     - SString:
-                        - String: COUNT(*)
+                        - String: COUNT(
+                        - Expr:
+                            SString:
+                              - String: "*"
+                        - String: )
                   by:
                     - Ident: title
                     - Ident: country
 - Transform:
     Filter:
-      Expr:
-        - SString:
+      Binary:
+        left:
+          SString:
             - String: SUM(
             - Expr:
-                Expr:
-                  - Expr:
-                      - Ident: salary
-                      - Operator: +
-                      - Ident: payroll_tax
-                  - Operator: +
-                  - Ident: benefits_cost
+                Binary:
+                  left:
+                    Binary:
+                      left:
+                        Ident: salary
+                      op: Add
+                      right:
+                        Ident: payroll_tax
+                  op: Add
+                  right:
+                    Ident: benefits_cost
             - String: )
-        - Operator: ">"
-        - Literal:
+        op: Gt
+        right:
+          Literal:
             Integer: 200
 - Transform:
     Take:

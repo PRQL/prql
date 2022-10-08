@@ -1,8 +1,9 @@
-/target
-
 .DS_Store
 
 dist
-.vscode
-/*.prql
+.vscode/settings.json
+.vscode/launch.json
 .idea
+/*.prql
+*/*.prql
+target

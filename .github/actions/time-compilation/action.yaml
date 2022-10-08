@@ -1,0 +1,38 @@
+name: Time Compilation
+description: Time the cargo compilation, outputting an HTML file.
+
+inputs:
+  use_cache:
+    required: true
+    type: boolean
+
+runs:
+  using: composite
+  steps:
+    # We need to pin the toolchain so caching works across days; and it requires nightly atm.
+    - name: 🔗 Setup toolchain
+      shell: bash
+      # Doing this ourselves since https://github.com/dtolnay/rust-toolchain/issues/29
+      run: rustup override set nightly-2022-07-26
+    - name: 💰 Cache
+      id: cache
+      uses: Swatinem/rust-cache@v1
+      # 'true' seems to require quotes (and using `inputs.use_cache` doesn't
+      # work); I'm really not sure why. There are some issues on the interwebs
+      # around this, but I couldn't find one that explained it.
+      if: inputs.use_cache == 'true'
+    - name: Remove cached results
+      shell: bash
+      run: rm -rf target/cargo-timings
+    - name: 🏭 Compile
+      uses: actions-rs/cargo@v1
+      with:
+        command: build
+        args: --timings=html --all-targets -Z unstable-options
+    - uses: actions/upload-artifact@v3
+      with:
+        name: cargo-timing.html
+        path: target/cargo-timings/cargo-timing-*.html
+        if-no-files-found: error
+        # Only upload if a) we got a cache hit or b) we didn't want to use the cache anyway
+      if: steps.cache.outputs.cache-hit == 'true' || inputs.use_cache == 'false'

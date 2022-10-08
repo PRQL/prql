@@ -1,22 +1,32 @@
 # prql-python
 
-`prql-python` exposes the prql-compiler rust package via the python method `to_sql(query:str)->str`
+`prql-python` offers rust bindings to the `prql-compiler` rust library. It
+exposes a python method `to_sql(query: str) -> str`.
 
+This is consumed by [PyPrql](https://github.com/prql/PyPrql) &
+[dbt-prql](https://github.com/prql/dbt-prql).
 
-#### Installation
+The crate is not published to crates.io; only to PyPI.
+
+## Installation
+
 `pip install prql-python`
-#### Usage
+
+## Usage
 
 ```python
 import prql_python as prql
-prql_query = '''
+
+prql_query = """
     from employees
-    join salaries [emp_no]
-    aggregate by:[emp_no, gender] [
-      emp_salary: average salary
-    ]
-    join departments [dept_no]
-'''
+    join salaries [emp_id]
+    group [dept_id, gender] (
+      aggregate [
+        avg_salary = average salary
+      ]
+    )
+"""
+
 sql = prql.to_sql(prql_query)
 ```
 

@@ -1,0 +1,26 @@
+/* Styling for Tables */
+
+.comparison {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  width: 100%;
+  padding-bottom: 3rem;
+}
+.comparison > div {
+  flex: 1 0 0;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 0.5rem;
+}
+.comparison h4 {
+  margin: 0;
+}
+.comparison pre {
+  margin: 0;
+  flex-grow: 1;
+}
+.comparison code {
+  padding: 0.5rem;
+  min-height: calc(100% - 1rem);
+}

@@ -9,23 +9,25 @@ use crate::ast::{ColumnSort, Item, Node, Transform};
 
 /// Represents the object that is manipulated by the pipeline transforms.
 /// Similar to a view in a database or a data frame.
-#[derive(Clone, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Frame {
     pub columns: Vec<FrameColumn>,
     pub sort: Vec<ColumnSort<usize>>,
-
     pub tables: Vec<usize>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+/// Columns we know about in a Frame. The usize value represents the table id.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum FrameColumn {
+    /// Used for `foo_table.*`
     All(usize),
+    /// Used for `derive a + b` (new column has no name)
     Unnamed(usize),
     Named(String, usize),
 }
 
 impl Frame {
-    fn push_column(&mut self, name: Option<String>, id: usize) {
+    pub fn push_column(&mut self, name: Option<String>, id: usize) {
         // remove columns with the same name
         if let Some(name) = &name {
             self.columns.retain(|c| match c {
@@ -134,7 +136,9 @@ impl Frame {
                         self.push_column(Some(name.clone()), id);
                     }
                 }
-                _ => unreachable!("assign must contain only idents after being resolved"),
+                item => unreachable!(
+                    "assign must contain only idents after being resolved, but got `{item}`",
+                ),
             }
         }
     }
@@ -144,7 +148,7 @@ impl Frame {
             .iter()
             .map(|col| match col {
                 FrameColumn::All(namespace) => {
-                    let (table, _) = &context.declarations[*namespace];
+                    let (table, _) = &context.declarations.0[*namespace];
                     let table = table.as_table().map(|x| x.as_str()).unwrap_or("");
                     Some(format!("{table}.*"))
                 }

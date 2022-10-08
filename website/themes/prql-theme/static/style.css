@@ -1,0 +1,640 @@
+/* Avenir Next */
+@font-face {
+  font-family: "Avenir Next";
+  font-weight: bold;
+  font-style: normal;
+  font-display: swap;
+  src: local(""), url("../fonts/AvenirNext.woff2") format("woff2"),
+    url("../fonts/AvenirNext.woff") format("woff");
+}
+
+/*--------------------------------------------------------------
+# General
+--------------------------------------------------------------*/
+:root {
+  --main-color: #202b38;
+  --secondary-color: #c92a2a;
+  --third-color: #1864ab;
+  --title-font: "Avenir Next", -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+  --body-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+}
+
+body {
+  font-family: var(--body-font);
+  color: var(--main-color);
+}
+
+a:hover {
+  color: var(--secondary-color);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--title-font);
+  font-weight: 900;
+}
+
+a.btn {
+  background-color: var(--main-color);
+  color: #fff;
+  font-size: 20px;
+  padding: 10px 20px;
+}
+
+a.btn:hover {
+  color: #fff;
+}
+
+a.btn-icon {
+  display: inline-flex !important;
+  font-size: 25px;
+  padding: 5px !important;
+  margin: 0.5rem 1rem;
+  color: #fff !important;
+  background: var(--third-color);
+  border-radius: 50%;
+  transition: all 0.3s;
+  text-decoration: none;
+}
+
+a.btn-icon:hover {
+  background: var(--main-color);
+}
+
+a.btn-icon i {
+  width: 1.5em;
+  line-height: 1.5;
+  text-align: center;
+}
+
+code {
+  padding: 2px 4px;
+  color: #ffffff;
+}
+
+/*--------------------------------------------------------------
+# Back to top button
+--------------------------------------------------------------*/
+.back-to-top {
+  position: fixed;
+  visibility: hidden;
+  opacity: 0;
+  right: 15px;
+  bottom: 15px;
+  z-index: 996;
+  background: var(--main-color);
+  width: 40px;
+  height: 40px;
+  border-radius: 4px;
+  transition: all 0.4s;
+  text-decoration: none;
+}
+
+.back-to-top i {
+  font-size: 28px;
+  color: #fff;
+  line-height: 0;
+}
+
+.back-to-top:hover {
+  background: var(--secondary-color);
+  color: #fff;
+}
+
+.back-to-top.active {
+  visibility: visible;
+  opacity: 1;
+}
+
+/*--------------------------------------------------------------
+# Header
+--------------------------------------------------------------*/
+#header {
+  background: white;
+  box-shadow: 0px 2px 15px rgba(0, 0, 0, 0.1);
+  z-index: 997;
+  padding: 15px 0;
+}
+
+#header .logo img {
+  max-height: 50px;
+}
+
+#header .logo h1 {
+  margin: 0;
+  line-height: 1;
+}
+
+#header a:not(.btn-icon) {
+  color: var(--main-color);
+  transition: 0.2s;
+  text-decoration: none;
+}
+
+#header a:hover,
+#header .active,
+#header .active:focus,
+#header li:hover > a {
+  color: var(--secondary-color);
+}
+
+/*--------------------------------------------------------------
+# Navigation Menu
+--------------------------------------------------------------*/
+/**
+* Desktop Navigation
+*/
+.navbar {
+  padding: 0;
+}
+
+.navbar ul {
+  margin: 0;
+  padding: 0;
+  display: flex;
+  list-style: none;
+  align-items: center;
+}
+
+.navbar li {
+  position: relative;
+}
+
+.navbar a,
+.navbar a:focus {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0 3px 30px;
+  font-family: var(--title-font);
+  font-size: 18px;
+  white-space: nowrap;
+}
+
+.navbar a.icon {
+  font-size: 30px;
+  padding: 10px 0 10px 30px;
+}
+
+/**
+* Mobile Navigation
+*/
+.mobile-nav-toggle {
+  color: #556270;
+  font-size: 28px;
+  cursor: pointer;
+  display: none;
+  line-height: 0;
+  transition: 0.5s;
+}
+
+.mobile-nav-toggle.bi-x {
+  color: #fff;
+}
+
+@media (max-width: 991px) {
+  .mobile-nav-toggle {
+    display: block;
+  }
+
+  .navbar ul {
+    display: none;
+  }
+}
+
+.navbar-mobile {
+  position: fixed;
+  overflow: hidden;
+  top: 0;
+  right: 0;
+  left: 0;
+  bottom: 0;
+  background: rgba(63, 73, 83, 0.9);
+  transition: 0.3s;
+  z-index: 999;
+}
+
+.navbar-mobile .mobile-nav-toggle {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+}
+
+.navbar-mobile ul {
+  display: block;
+  position: absolute;
+  top: 55px;
+  right: 15px;
+  bottom: 15px;
+  left: 15px;
+  padding: 10px 0;
+  background-color: #fff;
+  overflow-y: auto;
+  transition: 0.3s;
+}
+
+.navbar-mobile a,
+.navbar-mobile a:focus {
+  padding: 10px 20px;
+  font-size: 15px;
+  color: #556270;
+}
+
+.navbar-mobile a:hover,
+.navbar-mobile .active,
+.navbar-mobile li:hover > a {
+  color: #d9232d;
+}
+
+/*--------------------------------------------------------------
+# Hero Section
+--------------------------------------------------------------*/
+.hero {
+  width: 100%;
+  min-height: 100vh;
+  background: #f2f9ff;
+  background: repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 150px,
+      #f2f9ff 150px,
+      #f2f9ff 300px
+    ),
+    linear-gradient(#daeaff, #f2f9ff);
+  padding-top: 100px;
+}
+
+.no-hero {
+  padding-top: 80px;
+}
+
+.hero code.hljs {
+  padding: 1rem;
+}
+
+code {
+  background-color: var(--main-color);
+  border-radius: 8px;
+}
+
+/* width */
+pre ::-webkit-scrollbar {
+  height: 6px;
+}
+
+/* Track */
+pre ::-webkit-scrollbar-track {
+  background: var(--main-color);
+}
+
+/* Handle */
+pre ::-webkit-scrollbar-thumb {
+  background: #000;
+  border-radius: 4px;
+  width: 2px;
+}
+
+/* Handle on hover */
+pre ::-webkit-scrollbar-thumb:hover {
+  background: rgb(109, 109, 109);
+}
+
+.hero h4 {
+  font-size: 20px;
+  color: var(--main-color);
+}
+
+.hero h4 span {
+  color: #c92a2a;
+}
+
+.hero h2 {
+  font-size: 45px;
+  color: var(--main-color);
+  font-weight: 700;
+}
+
+.hero p {
+  font-size: 20px;
+  color: #4b5157;
+}
+
+.hero a {
+  color: #fff;
+  background-color: var(--third-color);
+  padding: 10px 20px;
+  font-size: 23px;
+  font-weight: 500;
+  margin-top: 20px;
+  transition: 0.3s;
+}
+
+.hero a:hover {
+  background-color: var(--main-color);
+}
+
+@media (max-width: 992px) {
+  #hero {
+    height: 100vh;
+  }
+
+  #hero .carousel-container {
+    top: 8px;
+  }
+}
+
+@media (max-width: 768px) {
+  #hero h2 {
+    font-size: 28px;
+  }
+}
+
+@media (min-width: 1024px) {
+  #hero .carousel-control-prev,
+  #hero .carousel-control-next {
+    width: 5%;
+  }
+}
+
+@media (max-height: 500px) {
+  #hero {
+    height: 120vh;
+  }
+}
+
+/*--------------------------------------------------------------
+# Sections General
+--------------------------------------------------------------*/
+section {
+  padding: 2rem 0;
+  overflow: hidden;
+}
+
+.section-bg,
+.services .icon-box {
+  background: #f2f9ff;
+  background: repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 150px,
+      #f2f9ff 150px,
+      #f2f9ff 300px
+    ),
+    linear-gradient(#daeaff, #f2f9ff);
+}
+
+.section-title h2 {
+  font-size: 45px;
+  font-weight: 700;
+  padding: 0;
+  letter-spacing: 2px;
+  font-variant: small-caps;
+  color: var(--main-color);
+}
+
+.section-title h3 {
+  font-size: 22px;
+  font-weight: 600;
+  padding: 0;
+  color: var(--third-color);
+}
+
+.section-title p {
+  margin: 0;
+  margin: 0;
+  font-size: 18px;
+  font-weight: 400;
+  color: var(--main-color);
+}
+
+/*--------------------------------------------------------------
+# Principles
+--------------------------------------------------------------*/
+.principle_section {
+  background: #f2f9ff;
+}
+
+.principle_section .card {
+  padding: 30px;
+  height: 100%;
+  border-radius: 0px;
+}
+
+.principle_section .card i {
+  color: #202b38;
+  font-size: 52px;
+}
+
+.principle_section .card h4 {
+  font-weight: 600;
+  font-size: 24px;
+  line-height: 60px;
+  margin-bottom: 20px;
+  color: var(--secondary-color);
+}
+
+.principle_section .card h4::after {
+  content: "";
+  width: 50%;
+  height: 2px;
+  display: block;
+  background: var(--third-color);
+  margin: 4px 0px;
+}
+
+.principle_section .card p {
+  color: var(--main-color);
+}
+
+/*--------------------------------------------------------------
+# showcase-section
+--------------------------------------------------------------*/
+.showcase-section {
+  background: #f2f9ff;
+}
+
+.showcase-section #v-pills-tabContent {
+  flex-grow: 1;
+}
+
+.nav-pills .nav-link {
+  color: var(--third-color);
+}
+
+.nav-pills .nav-link.active {
+  color: #fff;
+  background-color: var(--main-color);
+}
+
+/*--------------------------------------------------------------
+# content-section
+--------------------------------------------------------------*/
+.cards-section {
+  background: #f2f9ff;
+}
+
+.content-section .icon {
+  font-size: 250px;
+  color: var(--main-color);
+}
+
+.content-section .card {
+  padding: 15px;
+  height: 100%;
+  flex: 100%;
+}
+
+.content-section .card a {
+  color: var(--third-color);
+}
+
+.content-section .card a:hover {
+  color: var(--secondary-color);
+}
+
+.content-section h3 {
+  color: var(--third-color);
+  font-weight: 600;
+}
+
+.content-section ul {
+  list-style: none;
+}
+
+.content-section ul li P {
+  font-size: 22px;
+  color: var(--main-color);
+}
+
+.content-section code {
+  background-color: var(--main-color);
+  border-radius: 4px;
+  padding: 3px 7px;
+}
+
+.content-section ul li P i {
+  font-size: 12px;
+  padding: 3px;
+}
+
+.content-section code {
+  background-color: var(--main-color);
+  border-radius: 8px;
+}
+
+.highlight > pre {
+  background-color: transparent !important;
+}
+
+/*--------------------------------------------------------------
+# comments-section
+--------------------------------------------------------------*/
+.comments-section {
+  background: repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 150px,
+      #f2f9ff 150px,
+      #f2f9ff 300px
+    ),
+    linear-gradient(#f2f9ff, #daeaff);
+}
+
+.comments-section .card-container {
+  width: 400px;
+  /* This is about the size of the biggest tweet, which isn't that reliable. We
+  define it here so the spacing doesn't change as the JS loads.
+
+  TODO: Maybe there are better ways to do this; e.g. could be embed the full
+  tweet in the compiled version of the page? */
+  height: 425px;
+}
+
+.quote {
+  line-height: 1.6;
+}
+
+.quote-text {
+  margin: 30px;
+  font-size: 120%;
+}
+
+.quote span {
+  display: block;
+  font-weight: bold;
+  margin-top: 30px;
+}
+
+.quote a:link,
+.quote a:visited {
+  text-decoration: none;
+  color: inherit;
+}
+
+/*--------------------------------------------------------------
+# Article
+--------------------------------------------------------------*/
+
+article {
+  padding: 4rem 0;
+  font-size: 1.2em;
+}
+
+article h1 {
+  margin-bottom: 2rem;
+}
+
+article h2 {
+  margin: 2rem 0 1rem 0;
+}
+
+/*--------------------------------------------------------------
+# Footer
+--------------------------------------------------------------*/
+#footer {
+  background: var(--main-color);
+  background: linear-gradient(#1d252e, var(--main-color));
+  padding: 1rem 0 2rem 0;
+  color: #fff;
+}
+
+#footer p {
+  color: #bbb;
+}
+
+#footer a.btn {
+  color: #fff;
+  background-color: var(--secondary-color);
+}
+
+#footer ul {
+  padding-left: 1rem;
+  color: #bbb;
+}
+
+#footer .copyright {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 30px;
+}
+
+#footer .copyright i {
+  font-size: 28px;
+  color: rgba(219, 219, 219, 0.712);
+  padding-left: 20px;
+}
+
+#footer .copyright i:hover {
+  color: #fff;
+}
+
+#footer .copyright p {
+  display: flex;
+}

@@ -1,6 +1,6 @@
-use anyhow::{Error, Result};
+use anyhow::Result;
 use ariadne::Source;
-use clap::{ArgEnum, Args, Parser};
+use clap::Parser;
 use clio::{Input, Output};
 use itertools::Itertools;
 use std::{
@@ -8,51 +8,42 @@ use std::{
     ops::Range,
 };
 
-use crate::sql::load_std_lib;
-use crate::{ast::Item, parse};
+use crate::parse;
+use crate::semantic;
 use crate::{
     error::{self, Span},
     semantic::{Context, Frame},
 };
-use crate::{semantic, sql::resolve_and_translate};
-
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ArgEnum)]
-enum Format {
-    /// Abstract syntax tree (parse)
-    Ast,
-
-    /// Formatted PRQL
-    Fmt,
-
-    /// PRQL with annotated references to variables and functions
-    #[clap(name = "prql-refs")]
-    PrqlReferences,
-
-    /// PRQL with current table layout
-    PrqlFrames,
-
-    Sql,
-}
 
 #[derive(Parser)]
 #[clap(name = env!("CARGO_PKG_NAME"), about, version)]
 pub enum Cli {
-    Compile(CompileCommand),
+    /// Produces abstract syntax tree
+    Parse(CommandIO),
+
+    /// Formats PRQL code
+    #[clap(name = "fmt")]
+    Format(CommandIO),
+
+    /// Adds comments annotating current table layout
+    Annotate(CommandIO),
+
+    Debug(CommandIO),
+
+    /// Produces intermediate representation of the query
+    Resolve(CommandIO),
+
+    /// Transpiles to SQL
+    Compile(CommandIO),
 }
 
-#[derive(Args)]
-/// Compile a PRQL string into a SQL string.
-///
-/// See https://github.com/prql/prql for more information.
-pub struct CompileCommand {
-    #[clap(default_value="-", parse(try_from_os_str = Input::try_from))]
+#[derive(clap::Args, Default)]
+pub struct CommandIO {
+    #[clap(value_parser, default_value = "-")]
     input: Input,
 
-    #[clap(short, long, default_value = "-", parse(try_from_os_str = Output::try_from))]
+    #[clap(value_parser, default_value = "-")]
     output: Output,
-
-    #[clap(short, long, arg_enum, default_value = "sql")]
-    format: Format,
 }
 
 fn is_stdin(input: &Input) -> bool {
@@ -60,85 +51,94 @@ fn is_stdin(input: &Input) -> bool {
 }
 
 impl Cli {
-    pub fn execute(&mut self) -> Result<(), Error> {
-        match self {
-            Cli::Compile(command) => {
-                // Don't wait without a prompt when running `prql compile` —
-                // it's confusing whether it's waiting for input or not. This
-                // offers the prompt.
-                if is_stdin(&command.input) && atty::is(atty::Stream::Stdin) {
-                    println!("Enter PRQL, then ctrl-d:");
-                    println!();
-                }
+    pub fn run(&mut self) -> Result<()> {
+        let (source, source_id) = self.read_input()?;
 
-                let mut source = String::new();
-                command.input.read_to_string(&mut source)?;
-                let source_id = (*command.input.path()).to_str().unwrap();
+        let res = self.execute(&source);
 
-                let res = compile_to(command.format, &source);
-
-                match res {
-                    Ok(buf) => {
-                        command.output.write_all(&buf)?;
-                    }
-                    Err(e) => {
-                        print!("{:}", error::format_error(e, source_id, &source, true).0);
-                        std::process::exit(1)
-                    }
-                };
+        match res {
+            Ok(buf) => {
+                self.write_output(&buf)?;
+            }
+            Err(e) => {
+                print!(
+                    "{:}",
+                    error::format_error(e, &source_id, &source, true).message
+                );
+                std::process::exit(1)
             }
         }
 
         Ok(())
     }
-}
 
-fn compile_to(format: Format, source: &str) -> Result<Vec<u8>, Error> {
-    Ok(match format {
-        Format::Ast => {
-            let ast = parse(source)?;
+    fn execute(&self, source: &str) -> Result<Vec<u8>> {
+        Ok(match self {
+            Cli::Parse(_) => {
+                let ast = parse(source)?;
 
-            serde_yaml::to_vec(&ast)?
+                serde_yaml::to_string(&ast)?.into_bytes()
+            }
+            Cli::Format(_) => crate::format(source)?.as_bytes().to_vec(),
+            Cli::Debug(_) => {
+                let query = parse(source)?;
+                let (nodes, context) = semantic::resolve(query, None)?;
+
+                semantic::label_references(&nodes, &context, "".to_string(), source.to_string());
+
+                format!("\n{context:?}").as_bytes().to_vec()
+            }
+            Cli::Annotate(_) => {
+                let query = parse(source)?;
+
+                // resolve
+                let (nodes, context) = semantic::resolve(query, None)?;
+
+                let frames = semantic::collect_frames(nodes);
+
+                // combine with source
+                combine_prql_and_frames(source, frames, context)
+                    .as_bytes()
+                    .to_vec()
+            }
+            Cli::Resolve(_) => {
+                let ast = parse(source)?;
+                let (ir, _) = semantic::resolve(ast, None)?;
+
+                serde_yaml::to_string(&ir)?.into_bytes()
+            }
+            Cli::Compile(_) => crate::compile(source)?.as_bytes().to_vec(),
+        })
+    }
+
+    fn read_input(&mut self) -> Result<(String, String)> {
+        use Cli::*;
+        match self {
+            Parse(io) | Format(io) | Debug(io) | Annotate(io) | Resolve(io) | Compile(io) => {
+                // Don't wait without a prompt when running `prql-compiler compile` —
+                // it's confusing whether it's waiting for input or not. This
+                // offers the prompt.
+                if is_stdin(&io.input) && atty::is(atty::Stream::Stdin) {
+                    println!("Enter PRQL, then ctrl-d:");
+                    println!();
+                }
+
+                let mut source = String::new();
+                io.input.read_to_string(&mut source)?;
+                let source_id = (*io.input.path()).to_str().unwrap().to_string();
+                Ok((source, source_id))
+            }
         }
-        Format::Fmt => {
-            let query = parse(source)?;
-            let query = Item::Query(query);
+    }
 
-            format!("{query}").as_bytes().to_vec()
+    fn write_output(&mut self, data: &[u8]) -> std::io::Result<()> {
+        use Cli::*;
+        match self {
+            Parse(io) | Format(io) | Debug(io) | Annotate(io) | Resolve(io) | Compile(io) => {
+                io.output.write_all(data)
+            }
         }
-        Format::PrqlReferences => {
-            let std_lib = load_std_lib()?;
-            let (_, context) = semantic::resolve(std_lib, None)?;
-
-            let query = parse(source)?;
-            let (nodes, context) = semantic::resolve(query.nodes, Some(context))?;
-
-            semantic::label_references(&nodes, &context, "".to_string(), source.to_string());
-
-            format!("{context:?}").as_bytes().to_vec()
-        }
-        Format::PrqlFrames => {
-            let query = parse(source)?;
-
-            // resolve
-            let std_lib = load_std_lib()?;
-            let (_, context) = semantic::resolve(std_lib, None)?;
-            let (nodes, context) = semantic::resolve(query.nodes, Some(context))?;
-
-            let frames = semantic::collect_frames(nodes);
-
-            // combine with source
-            combine_prql_and_frames(source, frames, context)
-                .as_bytes()
-                .to_vec()
-        }
-        Format::Sql => {
-            let query = parse(source)?;
-            let sql = resolve_and_translate(query)?;
-
-            sql.as_bytes().to_vec()
-        }
-    })
+    }
 }
 
 fn combine_prql_and_frames(source: &str, frames: Vec<(Span, Frame)>, context: Context) -> String {
@@ -178,8 +178,8 @@ mod tests {
 
     #[test]
     fn prql_layouts_test() {
-        let output = compile_to(
-            Format::PrqlFrames,
+        let output = Cli::execute(
+            &Cli::Annotate(CommandIO::default()),
             r#"
 from initial_table
 select [first = name, last = last_name, gender]
@@ -198,6 +198,39 @@ sort full
         take 23                                                # [first, last, gender, full_name]
         select [last + " " + first, full = full_name, gender]  # [?, full, gender]
         sort full                                              # [?, full, gender]
+        "###);
+    }
+
+    #[test]
+    fn format_test() {
+        let output = Cli::execute(
+            &Cli::Format(CommandIO::default()),
+            r#"
+from table.subdivision
+ derive      `želva_means_turtle`   =    (`column with spaces` + 1) * 3
+group a_column (take 10 | sort b_column | derive [the_number = rank, last = lag 1 c_column] )
+        "#,
+        )
+        .unwrap();
+
+        // this test is here just to document behavior - the result is far from being correct:
+        // - indentation does not stack
+        // - operator precedence is not considered (parenthesis are not inserted for numerical
+        //   operations but are always inserted for function calls)
+        assert_snapshot!(String::from_utf8(output).unwrap().trim(),
+        @r###"
+        prql dialect:generic
+
+        from `table.subdivision`
+        derive `želva_means_turtle` = `column with spaces` + 1 * 3
+        group a_column (
+          take 10
+          sort b_column
+          derive [
+          the_number = rank,
+          last = (lag 1 c_column),
+        ]
+        )
         "###);
     }
 }

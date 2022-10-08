@@ -1,0 +1,28 @@
+---
+source: prql-compiler/src/lib.rs
+expression: sql
+---
+SELECT
+  title,
+  country,
+  AVG(salary),
+  SUM(salary),
+  AVG(salary + payroll_tax),
+  SUM(salary + payroll_tax),
+  AVG(salary + payroll_tax + benefits_cost),
+  SUM(salary + payroll_tax + benefits_cost) AS sum_gross_cost,
+  COUNT(*) AS ct
+FROM
+  employees
+WHERE
+  country = 'USA'
+  AND salary + payroll_tax + benefits_cost > 0
+GROUP BY
+  title,
+  country
+HAVING
+  COUNT(*) > 200
+ORDER BY
+  sum_gross_cost
+LIMIT
+  20

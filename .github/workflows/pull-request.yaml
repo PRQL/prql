@@ -6,7 +6,7 @@ name: pull-request
 
 on:
   pull_request:
-    # Add `labeled`, so we can trigger a new run by adding a `ci-run-all-tests`
+    # Add `labeled`, so we can trigger a new run by adding a `pr-test-all`
     # label, which we then use to trigger a `test-all` run.
     types: [opened, reopened, synchronize, labeled]
   # While most of these tests are covered by `test-all`, we need to build the cache.
@@ -23,22 +23,20 @@ concurrency:
 
 jobs:
   # Only run ubuntu on pull-requests, since it's fastest.
-  cargo-test:
+  test-rust:
     runs-on: ubuntu-latest
     strategy:
       matrix:
         include:
           # TODO: I'm sure there's a better way of doing this, where `target_option` derives from `target`?
-          - target: ""
-          - target: "wasm32-unknown-unknown"
-            target_option: "--target=wasm32-unknown-unknown"
+          - target_option: ""
+          - target_option: "--target=wasm32-unknown-unknown"
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
       - name: 📋 Test workspace
-        uses: ./.github/actions/cargo-test
+        uses: ./.github/actions/test-rust
         with:
-          target: ${{ matrix.target }}
           target_option: ${{ matrix.target_option }}
 
   test-book:
@@ -46,24 +44,29 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
-      - name: 🔗 Setup rust toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          target: wasm32-unknown-unknown
-          # https://github.com/actions-rs/toolchain/issues/126
-          toolchain: stable
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v1
       - uses: peaceiris/actions-mdbook@v1
+      - uses: baptiste0928/cargo-install@v1
+        with:
+          crate: mdbook-admonish
+          version: "1.7.0"
       - name: 🔨 Build
         run: mdbook build
-        working-directory: reference/
+        working-directory: book/
 
-  # Run Mac & Windows & other tests on `main` or a `ci-run-all-tests` label.
+  # Run Mac & Windows & other tests a `pr-test-all` label (as well as on `main`).
   test-all:
     uses: ./.github/workflows/test-all.yaml
-    if: contains(github.event.pull_request.labels.*.name, 'ci-run-all-tests')
+    if: contains(github.event.pull_request.labels.*.name, 'pr-test-all')
+
+  publish:
+    uses: ./.github/workflows/publish-web.yaml
+    if: contains(github.event.pull_request.labels.*.name, 'pr-publish-web')
+
+  cron:
+    uses: ./.github/workflows/cron.yaml
+    if: contains(github.event.pull_request.labels.*.name, 'pr-cron')
 
   check-links:
     # Another option is https://github.com/lycheeverse/lychee, but it was
@@ -73,3 +76,9 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: gaurav-nelson/github-action-markdown-link-check@v1
+        with:
+          config-file: .markdown-link-check.json
+          base-branch: main
+          # We also run without this in the cron workflow (maybe there's a
+          # better way of organizing these so we DRY)
+          check-modified-files-only: "yes"

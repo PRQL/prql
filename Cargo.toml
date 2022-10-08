@@ -1,13 +1,23 @@
 [workspace]
-
 members = [
-  "prql-python",
   "prql-compiler",
+  "prql-macros",
+  "prql-java",
+  "prql-lib",
   "prql-js",
-  "reference",
-  "reference/mdbook-prql", # Should this be here or should we exclude?
+  "prql-python",
+  "book",
 ]
+# Note we don't have a `default-members = ["prql-compiler"]`, since that causes
+# commands like `cargo test` to only run tests from the default package. And
+# `cargo insta test` doesn't have a `--workspace` flag.
 
 [profile.release.package.prql-js]
 # Tell `rustc` to optimize for small code size.
 opt-level = "s"
+
+[workspace.metadata.release]
+consolidate-commits = true
+consolidate-pushes = true
+pre-release-commit-message = "chore: Release {version}"
+shared-version = true

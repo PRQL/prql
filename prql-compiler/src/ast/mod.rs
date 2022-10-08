@@ -18,11 +18,6 @@ use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Reason, Span};
-use crate::utils::*;
-
-pub fn display(query: Query) -> String {
-    format!("{}", Item::Query(query))
-}
 
 /// A name. Generally columns, tables, functions, variables.
 pub type Ident = String;
@@ -35,6 +30,8 @@ pub struct Node {
     pub span: Option<Span>,
     #[serde(skip)]
     pub declared_at: Option<usize>,
+    #[serde(skip)]
+    pub ty: Ty,
 
     /// Is true when containing window functions
     #[serde(skip)]
@@ -80,6 +77,13 @@ impl Node {
         }
     }
 
+    pub fn coerce_to_pipeline(self) -> Pipeline {
+        match self.item {
+            Item::Pipeline(p) => p,
+            _ => Pipeline { nodes: vec![self] },
+        }
+    }
+
     pub fn unwrap<T, F>(self, f: F, expected: &str) -> Result<T, Error>
     where
         F: FnOnce(Item) -> Result<T, Item>,
@@ -95,26 +99,13 @@ impl Node {
     }
 }
 
-/// Wrap into [Item::Expr] if there is more than one term.
-pub trait IntoExpr {
-    fn into_expr(self) -> Item;
-}
-impl IntoExpr for Vec<Node> {
-    fn into_expr(self) -> Item {
-        if self.len() == 1 {
-            self.into_only().unwrap().item
-        } else {
-            Item::Expr(self)
-        }
-    }
-}
-
 impl From<Item> for Node {
     fn from(item: Item) -> Self {
         Node {
             item,
             span: None,
             declared_at: None,
+            ty: Ty::Infer,
             is_complex: false,
         }
     }

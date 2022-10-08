@@ -1,0 +1,10 @@
+{
+  "recommendations": [
+    // Keep in sync with Taskfile.yml
+    "prql.prql",
+    "rust-lang.rust-analyzer",
+    "mitsuhiko.insta",
+    "esbenp.prettier-vscode",
+    "budparr.language-hugo-vscode"
+  ]
+}

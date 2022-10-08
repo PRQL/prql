@@ -2,20 +2,26 @@
 build = "build.rs"
 edition = "2021"
 name = "prql-python"
-version = "0.0.3"
+publish = false
+version = "0.2.7"
 
 [lib]
 crate-type = ["cdylib"]
 name = "prql_python"
 
 [target.'cfg(not(target_family="wasm"))'.dependencies]
-pyo3 = {version = "0.16.5", features = ["abi3-py37"]}
+pyo3 = {version = "0.17.0", features = ["abi3-py37"]}
 
 [dependencies]
 prql-compiler = {path = "../prql-compiler"}
 
 [build-dependencies]
-pyo3-build-config = "0.16.5"
+pyo3-build-config = "0.17.0"
 
 [dev-dependencies]
 insta = {version = "1.14.0", features = []}
+
+[package.metadata.release]
+shared-version = true
+tag-name = "{{version}}"
+tag-prefix = ""

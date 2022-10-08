@@ -25,10 +25,24 @@ type_term = { ident ~ type_def? }
 
 table = { "table" ~ ident ~ "=" ~ nested_pipeline }
 
-pipe = _{ NEWLINE | "|" }
-pipeline = { WHITESPACE* ~ func_curry ~ (pipe ~ func_curry)* }
+pipe = _{ NEWLINE+ | "|" }
+pipeline = { WHITESPACE* ~ expr_call ~ (pipe ~ expr_call)* }
 
-ident = @{ !operator ~ !(keyword ~ WHITESPACE) ~ (ASCII_ALPHA | "$") ~ (ASCII_ALPHANUMERIC | "." | "_" | "*" )* }
+// See parser.rs for why this is so complicated to parse
+ident = ${ !operator ~ !(keyword ~ WHITESPACE) ~ (ident_part_first | ident_backticks) ~ (ident_part_next | ident_backticks)* }
+// Either a normal ident (starting with a letter, `$` or `_`), or any string surrounded
+// by backticks.
+ident_part_first = { ((ASCII_ALPHA | "$" | "_") ~ (ASCII_ALPHANUMERIC | "_" )* ) }
+// We allow `e.*`, but not just `*`, since it would conflict with multiply in
+// some cases.
+ident_part_next = _{ ident_separator ~ (ident_part_first | ident_star | ident_backticks) }
+// These two are split out so we can make `ident_part_next` silent, but still
+// capture these.
+ident_separator = { "." }
+ident_star = { "*" }
+// Anything surrounded by backticks, we pass through.
+// ident_backticks = _{ "`" ~ (!NEWLINE ~ !"`" ~ ANY)* ~ "`" }
+ident_backticks = _{ PUSH("`") ~ (!NEWLINE ~ string_inner)* ~ POP }
 // For sorting
 signed_ident = { ( "+" | "-" ) ~ ident }
 keyword = _{ "prql" | "table" | "func" }
@@ -60,28 +74,27 @@ keyword = _{ "prql" | "table" | "func" }
 
 // whitespace is required to prevent matching s"string".
 // Forbid `operator` so `a - b` can't parse as `a` & `-b`.
-func_call = ${ ident ~ WHITESPACE+ ~ (!operator ~ (named_arg | assign | expr))+ }
-func_curry = { ident ~ (named_arg | assign | expr)* }
+func_call = ${ ident ~ WHITESPACE+ ~ (!operator ~ (named_arg | assign | expr) ~ WHITESPACE*)+ }
 
-named_arg   = { ident ~ ":" ~ !":" ~ (assign | expr) }
-assign      = { ident ~ "=" ~ !"=" ~ expr }
-assign_call = { ident ~ "=" ~ !"=" ~ expr_call }
+named_arg   = !{ ident ~ ":" ~ !":" ~ (assign | expr) }
+assign      = !{ ident ~ "=" ~ !"=" ~ expr }
+assign_call = !{ ident ~ "=" ~ !"=" ~ expr_call }
 
-expr_call = { (func_call | expr) }
+expr_call = _{ (func_call | expr) }
 
-expr = !{ expr_coalesce ~ (operator_logical ~ expr_coalesce)* }
-expr_coalesce = { expr_compare ~ (operator_coalesce ~ expr_compare)* }
+expr = !{ expr_coalesce ~ (operator_logical ~ expr)? }
+expr_coalesce = { expr_compare ~ (operator_coalesce ~ expr_coalesce)? }
 expr_compare = { expr_add ~ (operator_compare ~ expr_add)? }
-expr_add = _{ expr_mul ~ (operator_add ~ expr_mul)* }
-expr_mul = _{ term ~ (operator_mul ~ term)* }
+expr_add = { expr_mul ~ (operator_add ~ expr_add)? }
+expr_mul = { term ~ (operator_mul ~ expr_mul)? }
 
-term = _{ ( s_string | f_string | range | literal | ident | nested_expr | nested_pipeline | signed_term | list ) }
-// signed_term is for sorting.
-signed_term = _{ ( operator_add ~ ( nested_expr | ident )) }
+term = _{ ( s_string | f_string | range | literal | ident | nested_pipeline | expr_unary | list | jinja ) }
+// TODO: is this correct? We have `signed ident` above?
+// expr_unary is for sorting.
+expr_unary = { ( operator_unary ~ ( nested_pipeline | ident )) }
 literal = _{ interval | number | boolean | null | string | timestamp | date | time }
 list = { "[" ~ (NEWLINE* ~ (assign_call | expr_call) ~ ("," ~ NEWLINE* ~ (assign_call | expr_call) )* ~ ","?)? ~ NEWLINE* ~ "]" }
-nested_expr = _{ "(" ~ expr_call ~ ")" }
-nested_pipeline = { "(" ~ expr_call? ~ pipe ~ pipeline ~ NEWLINE* ~ ")" }
+nested_pipeline = _{ "(" ~ (WHITESPACE | NEWLINE)* ~ pipeline ~ (WHITESPACE | NEWLINE)* ~ ")" }
 
 // We haven't implemented escapes — I think we can mostly pass those through to
 // SQL, but there may be things we're missing.
@@ -93,7 +106,7 @@ nested_pipeline = { "(" ~ expr_call? ~ pipe ~ pipeline ~ NEWLINE* ~ ")" }
 // we only keep the `string_inner` and discard the `string` given it contains
 // the quotes.
 //
-// TODO: I'm still a bit unclear how preceeding and trailing spaces are working
+// TODO: I'm still a bit unclear how preceding and trailing spaces are working
 // -- it seems that inner spaces are included without an atomic operator (or
 // with `ANY`), but prceeding & trailing spaces require both `ANY` _and_ an
 // atomic operator. We have some rudimentary tests for these.
@@ -101,10 +114,10 @@ nested_pipeline = { "(" ~ expr_call? ~ pipe ~ pipeline ~ NEWLINE* ~ ")" }
 single_quote = _{ "\"" | "'" }
 multi_quote = _{ "\""{3,} | "'"{3,} }
 opening_quote = _{ PUSH(multi_quote) | PUSH(single_quote) }
-// PEEK refers to the opening quote; either `"` or `'`.
+// PEEK refers to the opening quote; `"` or `'` or multiple quotes.
 string_inner = { ( !( PEEK ) ~ ANY )+ }
 // Either > 3 quotes, or just one. Currently both of those can be multiline.
-string = ${ ( opening_quote ) ~ string_inner ~ POP }
+string = ${ opening_quote ~ string_inner ~ POP }
 
 number = ${ operator_add? ~ ( ASCII_DIGIT )+ ~ ("." ~ ( ASCII_DIGIT )+)? }
 
@@ -119,17 +132,23 @@ range = ${ range_edge ~ ".." ~ range_edge }
 range_edge = ${ literal? }
 
 operator = _{ operator_unary | operator_mul | operator_add | operator_compare | operator_logical | operator_coalesce }
-operator_unary = ${ "-" }
+operator_unary = ${ "-" | "+" | "!" }
 operator_mul = ${ "*" | "/" | "%" }
 operator_add = ${ "+" | "-" }
-operator_compare = ${ "==" | "!=" | ">" | "<" | ">=" | "<=" }
-operator_logical = ${ ("and" | "or" | "not") ~ &WHITESPACE }
+operator_compare = ${ "==" | "!=" | ">=" | "<=" | ">" | "<" }
+operator_logical = ${ ("and" | "or") ~ &WHITESPACE }
 operator_coalesce = ${ "??" }
 
-// TODO: allow a raw s-string / f-string (but not an s-f string...)
-s_string = ${ "s" ~ opening_quote ~ ( interpolate_string_inner | ( "{" ~ expr_call ~ "}" ))* ~ POP }
-f_string = ${ "f" ~ opening_quote ~ ( interpolate_string_inner | ( "{" ~ expr_call ~ "}" ))* ~ POP }
-interpolate_string_inner = { ( !( PEEK | "{" ) ~ ANY )+ }
+// If we have lots more string prefixes then we could just have a type
+// `prefixed` string and parse in the parser, but manageable for now.
+s_string = ${ "s" ~ opening_quote ~ interpolate_string_inner ~ POP }
+f_string = ${ "f" ~ opening_quote ~ interpolate_string_inner ~ POP }
+interpolate_string_inner = _{ ( interpolate_string_inner_literal | interpolate_double_bracket | ( "{" ~ expr_call ~ "}" ))* }
+// We want to strip the outer `{}` of `{{}}`, so we make a silent rule and then
+// an inner non-silent rule.
+interpolate_double_bracket = _{ "{" ~ interpolate_double_bracket_literal ~ "}" }
+interpolate_double_bracket_literal = { "{" ~ ( !"}}"  ~ ANY )+ ~ "}" }
+interpolate_string_inner_literal = { ( !( PEEK | "{" ) ~ ANY )+ }
 
 interval_kind = { "microseconds" | "milliseconds" | "seconds" | "minutes" | "hours" | "days" | "weeks" | "months" | "years" }
 interval = ${ number ~ interval_kind }
@@ -145,4 +164,10 @@ timestamp_inner = ${ date_inner ~ "T" ~ time_inner }
 
 // We can use this when want to ensure something is ending, like a date, so `@20-01-0`
 // isn't treated like a time `@20-01` `-` (minus) `0`.
-end_expr = _{ WHITESPACE | "," | ")" | "]" | EOI | NEWLINE }
+// (Not sure whether `..` should be here or in the items that allow it; feel
+// free to demote it to those items if `end_expr` is used somewhere where it's
+// not supported)
+end_expr = _{ WHITESPACE | "," | ")" | "]" | EOI | NEWLINE | ".." }
+
+// We pass text between `{{` and `}}` through, so dbt can use Jinja.
+jinja = { ("{{" ~ (!"}}" ~ ANY)* ~ "}}") }
