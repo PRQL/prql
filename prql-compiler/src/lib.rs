@@ -10,7 +10,7 @@ mod utils;
 pub use anyhow::Result;
 #[cfg(feature = "cli")]
 pub use cli::Cli;
-pub use error::{format_error, SourceLocation};
+pub use error::{format_error, FormattedError, SourceLocation};
 pub use parser::parse;
 pub use sql::translate;
 
@@ -75,7 +75,7 @@ mod test {
         let query = r###"
         from employees
         aggregate (
-          [salary_usd = (round salary 2)]
+          [salary_usd = (round 2 salary)]
         )
         "###;
 

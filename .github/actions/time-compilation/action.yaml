@@ -2,12 +2,6 @@ name: Time Compilation
 description: Time the cargo compilation, outputting an HTML file.
 
 inputs:
-  target:
-    description: "Target triple, like `wasm32-unknown-unknown"
-    required: false
-  target_option:
-    description: "--target={target}"
-    required: false
   use_cache:
     required: true
     type: boolean
@@ -15,15 +9,11 @@ inputs:
 runs:
   using: composite
   steps:
+    # We need to pin the toolchain so caching works across days; and it requires nightly atm.
     - name: 🔗 Setup toolchain
-      uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        target: ${{ inputs.target }}
-        # Pin this so caching works across days
-        toolchain: nightly-2022-07-26
-        override: true
-        default: true
+      shell: bash
+      # Doing this ourselves since https://github.com/dtolnay/rust-toolchain/issues/29
+      run: rustup override set nightly-2022-07-26
     - name: 💰 Cache
       id: cache
       uses: Swatinem/rust-cache@v1
@@ -44,5 +34,5 @@ runs:
         name: cargo-timing.html
         path: target/cargo-timings/cargo-timing-*.html
         if-no-files-found: error
-        # Only upload if a) we didn't want to use the cache, or b) we got a cache hit
-      if: inputs.use_cache == 'false' || steps.cache.outputs.cache-hit == 'true'
+        # Only upload if a) we got a cache hit or b) we didn't want to use the cache anyway
+      if: steps.cache.outputs.cache-hit == 'true' || inputs.use_cache == 'false'

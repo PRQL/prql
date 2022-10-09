@@ -39,10 +39,10 @@ pub enum Cli {
 
 #[derive(clap::Args, Default)]
 pub struct CommandIO {
-    #[clap(default_value="-", parse(try_from_os_str = Input::try_from))]
+    #[clap(value_parser, default_value = "-")]
     input: Input,
 
-    #[clap(default_value = "-", parse(try_from_os_str = Output::try_from))]
+    #[clap(value_parser, default_value = "-")]
     output: Output,
 }
 
@@ -61,7 +61,10 @@ impl Cli {
                 self.write_output(&buf)?;
             }
             Err(e) => {
-                print!("{:}", error::format_error(e, &source_id, &source, true).0);
+                print!(
+                    "{:}",
+                    error::format_error(e, &source_id, &source, true).message
+                );
                 std::process::exit(1)
             }
         }

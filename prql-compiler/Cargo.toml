@@ -5,7 +5,7 @@ license = "Apache-2.0"
 name = "prql-compiler"
 repository = "https://github.com/prql/prql"
 rust-version = "1.59.0"
-version = "0.2.6"
+version = "0.2.7"
 
 [features]
 # We previously had `cli` not compile by default, because of an issue with
@@ -15,16 +15,19 @@ version = "0.2.6"
 cli = ["clio", "atty", "clap", "color-eyre"]
 default = ["anyhow/backtrace", "cli"]
 
+[lib]
+doctest = false
+
 [dependencies]
 anyhow = "1.0.57"
 ariadne = "0.1.5"
 atty = {version = "0.2.14", optional = true}
-clio = {version = "0.2.2", optional = true}
+clio = {version = "0.2.4", features = ['clap-parse'], optional = true}
 color-eyre = {version = "0.6.1", optional = true}
 enum-as-inner = "0.5.0"
 itertools = "0.10.3"
-pest = "2.3.0"
-pest_derive = "2.3.0"
+pest = "2.4.0"
+pest_derive = "2.4.0"
 serde_json = "1.0.81"
 serde_yaml = "0.9.1"
 sqlformat = "0.2.0"
@@ -34,11 +37,11 @@ strum_macros = "0.24.0"
 [dependencies.clap]
 features = ["derive"]
 optional = true
-version = "3.2.3"
+version = "4.0.9"
 
 [dependencies.sqlparser]
 features = ["serde"]
-version = "0.23.0"
+version = "0.25.0"
 
 [dependencies.serde]
 features = ["derive"]
@@ -48,7 +51,7 @@ version = "1.0.137"
 cfg-if = "1.0"
 chrono = "0.4"
 globset = "0.4.8"
-insta = {version = "1.19.0", features = ["colors", "glob", "yaml"]}
+insta = {version = "1.21.0", features = ["colors", "glob", "yaml"]}
 pulldown-cmark = "0.9.1"
 pulldown-cmark-to-cmark = "10.0.1"
 similar = "2.2.0"

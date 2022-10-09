@@ -335,8 +335,7 @@ checksum = "1ed5341b2301a26ab80be5cbdced622e80ed808483c52e45e3310a877d3b37d7"
 dependencies = [
  "atty",
  "bitflags",
- "clap_derive",
- "clap_lex",
+ "clap_lex 0.2.4",
  "indexmap",
  "once_cell",
  "strsim",
@@ -345,19 +344,48 @@ dependencies = [
 ]
 
 [[package]]
+<<<<<<< HEAD
 name = "clap_complete"
 version = "3.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3f7a2e0a962c45ce25afce14220bc24f9dade0a1787f185cecf96bfba7847cd8"
 dependencies = [
+=======
+name = "clap"
+version = "4.0.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "30607dd93c420c6f1f80b544be522a0238a7db35e6a12968d28910983fee0df0"
+dependencies = [
+ "atty",
+ "bitflags",
+ "clap_derive",
+ "clap_lex 0.3.0",
+ "once_cell",
+ "strsim",
+ "termcolor",
+]
+
+[[package]]
+name = "clap_complete"
+version = "3.2.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3f7a2e0a962c45ce25afce14220bc24f9dade0a1787f185cecf96bfba7847cd8"
+dependencies = [
+>>>>>>> main
  "clap 3.2.21",
 ]
 
 [[package]]
 name = "clap_derive"
+<<<<<<< HEAD
 version = "3.2.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ea0c8bce528c4be4da13ea6fead8965e95b6073585a2f05204bd8f4119f82a65"
+=======
+version = "4.0.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a4a307492e1a34939f79d3b6b9650bd2b971513cd775436bf2b78defeb5af00b"
+>>>>>>> main
 dependencies = [
  "heck",
  "proc-macro-error",
@@ -376,11 +404,21 @@ dependencies = [
 ]
 
 [[package]]
-name = "clio"
-version = "0.2.3"
+name = "clap_lex"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c850d26e67812ca0adb581c77e4ad1fd0a27ea3a8f8205fddfe7d5f52b783788"
+checksum = "0d4198f73e42b4936b35b5bb248d81d2b595ecb170da0bac7655c54eedfa8da8"
 dependencies = [
+ "os_str_bytes",
+]
+
+[[package]]
+name = "clio"
+version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f4a0f0d303f28bcb233076bb506fa77ead8fb8d4ad4ec25d3a338ced01b0b875"
+dependencies = [
+ "clap 4.0.9",
  "libc",
 ]
 
@@ -434,13 +472,13 @@ dependencies = [
 
 [[package]]
 name = "console"
-version = "0.15.1"
+version = "0.15.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "89eab4d20ce20cea182308bca13088fecea9c05f6776cf287205d41a0ed3c847"
+checksum = "c050367d967ced717c04b65d8c619d863ef9292ce0c5760028655a2fb298718c"
 dependencies = [
  "encode_unicode",
+ "lazy_static",
  "libc",
- "once_cell",
  "terminal_size",
  "winapi",
 ]
@@ -964,14 +1002,20 @@ checksum = "adab1eaa3408fb7f0c777a73e7465fd5656136fc93b670eb6df3c88c2c1344e3"
 
 [[package]]
 name = "insta"
+<<<<<<< HEAD
 version = "1.19.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fc61e98be01e89296f3343a878e9f8ca75a494cb5aaf29df65ef55734aeb85f5"
+=======
+version = "1.21.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "581d4e3314cae4536e5d22ffd23189d4a374696c5ef733eadafae0ed273fd303"
+>>>>>>> main
 dependencies = [
  "console",
  "globset",
+ "lazy_static",
  "linked-hash-map",
- "once_cell",
  "serde",
  "similar",
  "walkdir",
@@ -1245,7 +1289,7 @@ dependencies = [
 
 [[package]]
 name = "mdbook-prql"
-version = "0.2.6"
+version = "0.2.7"
 dependencies = [
  "anyhow",
  "clap 3.2.21",
@@ -1512,9 +1556,15 @@ checksum = "478c572c3d73181ff3c2539045f6eb99e5491218eae919370993b890cdbdd98e"
 
 [[package]]
 name = "pest"
+<<<<<<< HEAD
 version = "2.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cb779fcf4bb850fbbb0edc96ff6cf34fd90c4b1a112ce042653280d9a7364048"
+=======
+version = "2.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dbc7bc69c062e492337d74d59b120c274fd3d261b6bf6d3207d499b4b379c41a"
+>>>>>>> main
 dependencies = [
  "thiserror",
  "ucd-trie",
@@ -1522,9 +1572,15 @@ dependencies = [
 
 [[package]]
 name = "pest_derive"
+<<<<<<< HEAD
 version = "2.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "502b62a6d0245378b04ffe0a7fb4f4419a4815fce813bd8a0ec89a56e07d67b1"
+=======
+version = "2.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "60b75706b9642ebcb34dab3bc7750f811609a0eb1dd8b88c2d15bf628c1c65b2"
+>>>>>>> main
 dependencies = [
  "pest",
  "pest_generator",
@@ -1532,9 +1588,15 @@ dependencies = [
 
 [[package]]
 name = "pest_generator"
+<<<<<<< HEAD
 version = "2.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "451e629bf49b750254da26132f1a5a9d11fd8a95a3df51d15c4abd1ba154cb6c"
+=======
+version = "2.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f4f9272122f5979a6511a749af9db9bfc810393f63119970d7085fed1c4ea0db"
+>>>>>>> main
 dependencies = [
  "pest",
  "pest_meta",
@@ -1545,9 +1607,15 @@ dependencies = [
 
 [[package]]
 name = "pest_meta"
+<<<<<<< HEAD
 version = "2.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bcec162c71c45e269dfc3fc2916eaeb97feab22993a21bcce4721d08cd7801a6"
+=======
+version = "2.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4c8717927f9b79515e565a64fe46c38b8cd0427e64c40680b14a7365ab09ac8d"
+>>>>>>> main
 dependencies = [
  "once_cell",
  "pest",
@@ -1708,14 +1776,18 @@ dependencies = [
 
 [[package]]
 name = "prql-compiler"
-version = "0.2.6"
+version = "0.2.7"
 dependencies = [
  "anyhow",
  "ariadne",
  "atty",
  "cfg-if",
  "chrono",
+<<<<<<< HEAD
  "clap 3.2.21",
+=======
+ "clap 4.0.9",
+>>>>>>> main
  "clio",
  "color-eyre",
  "criterion",
@@ -1743,7 +1815,7 @@ dependencies = [
 
 [[package]]
 name = "prql-java"
-version = "0.2.6"
+version = "0.2.7"
 dependencies = [
  "jni",
  "prql-compiler",
@@ -1751,7 +1823,7 @@ dependencies = [
 
 [[package]]
 name = "prql-js"
-version = "0.2.6"
+version = "0.2.7"
 dependencies = [
  "console_error_panic_hook",
  "prql-compiler",
@@ -1761,7 +1833,7 @@ dependencies = [
 
 [[package]]
 name = "prql-lib"
-version = "0.2.6"
+version = "0.2.7"
 dependencies = [
  "libc",
  "prql-compiler",
@@ -1770,7 +1842,7 @@ dependencies = [
 
 [[package]]
 name = "prql-macros"
-version = "0.2.6"
+version = "0.2.7"
 dependencies = [
  "prql-compiler",
  "syn",
@@ -1778,7 +1850,7 @@ dependencies = [
 
 [[package]]
 name = "prql-python"
-version = "0.2.6"
+version = "0.2.7"
 dependencies = [
  "prql-compiler",
  "pyo3",
@@ -1898,9 +1970,9 @@ dependencies = [
 
 [[package]]
 name = "rand_core"
-version = "0.6.3"
+version = "0.6.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d34f1408f55294453790c48b2f1ebbb1c5b4b7563eb1f418bcfcfdbb06ebb4e7"
+checksum = "ec0be4795e2f6a28069bec0b5ff3e2ac9bafc99e6a9a7dc3547996c5c816922c"
 dependencies = [
  "getrandom",
 ]
@@ -2043,9 +2115,9 @@ checksum = "d29ab0c6d3fc0ee92fe66e2d99f700eab17a8d57d1c1d3b748380fb20baa78cd"
 
 [[package]]
 name = "semver"
-version = "1.0.13"
+version = "1.0.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "93f6841e709003d68bb2deee8c343572bf446003ec20a583e76f7b15cebf3711"
+checksum = "e25dfac463d778e353db5be2449d1cce89bd6fd23c9f1ea21310ce6e5a1b29c4"
 
 [[package]]
 name = "serde"
@@ -2178,9 +2250,9 @@ dependencies = [
 
 [[package]]
 name = "sqlparser"
-version = "0.23.0"
+version = "0.25.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0beb13adabbdda01b63d595f38c8bfd19a361e697fd94ce0098a634077bc5b25"
+checksum = "0781f2b6bd03e5adf065c8e772b49eaea9f640d06a1b9130330fe8bd2563f4fd"
 dependencies = [
  "log",
  "serde",
@@ -2565,9 +2637,15 @@ checksum = "58ee9362deb4a96cef4d437d1ad49cffc9b9e92d202b6995674e928ce684f112"
 
 [[package]]
 name = "unsafe-libyaml"
+<<<<<<< HEAD
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d0d925a83d750669cb4ec3e16d1a43eca5c706e6dba39e1bf80eaa42c021c999"
+=======
+version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c1e5fa573d8ac5f1a856f8d7be41d390ee973daf97c806b2c1a465e4e1406e68"
+>>>>>>> main
 
 [[package]]
 name = "url"

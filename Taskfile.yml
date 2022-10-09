@@ -1,10 +1,11 @@
 # This file gives new contributors an easy way to get everything they need,
-# assuming they have `cargo` and `Taskfile`.
+# assuming `cargo` and [Task](https://taskfile.dev) are installed.
 
-# Generally we shouldn't be requiring running this to have a good dev loop —
-# rust tools are independently good, and adding an intermediate layer means we're
+# Beyond installing requirements, we generally shouldn't be using this as a
+# Makefile, requiring running this to have a good dev loop — rust tools are
+# independently good, and adding an intermediate layer means we're
 # reimplementing things or getting in the way. Instead, this can be used to
-# aggregate commands that's aren't yet integrated.
+# aggregate commands that's are currently separate; e.g. check out `test-all`.
 
 # Some of the file may be somewhat over-engineered!
 
@@ -55,6 +56,7 @@ tasks:
         mdbook-toc
         wasm-bindgen-cli
         wasm-pack
+<<<<<<< HEAD
 
   install-brew:
     # brew might be installed, so check first
@@ -74,6 +76,19 @@ tasks:
     desc: Install maturin
     cmds:
       - python3 -m pip install -U maturin
+=======
+      - python3 -m pip install -U maturin
+      - task: install-pre-commit
+      - task: install-brew-dependencies
+      - task: install-npm-dependencies
+      # We only suggest, rather than install; we don't want to intrude (though maybe we're being too conservative?).
+      - task: suggest-vscode-extensions
+      - pre-commit install-hooks
+      - cmd: |
+          echo "
+          🟢 Set up complete! ✅🚀"
+        silent: true
+>>>>>>> main
 
   suggest-vscode-extensions:
     desc: Check and suggest VSCode extensions.
@@ -191,7 +206,8 @@ tasks:
     cmds:
       - cd website && hugo --minify
       - cd book && mdbook build
-      - mv book/book website/public/book
+      - mkdir -p website/public
+      - rsync -ai --checksum --delete book/book/ website/public/book/
       - cd playground && npm ci
       - cd playground && npm run build
-      - mv playground/build website/public/playground
+      - rsync -ai --checksum --delete playground/build/ website/public/playground/

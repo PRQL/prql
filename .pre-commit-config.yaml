@@ -13,13 +13,13 @@ repos:
       - id: fmt
       - id: clippy
   - repo: https://github.com/tcort/markdown-link-check
-    rev: v3.10.2
+    rev: v3.10.3
     hooks:
       - id: markdown-link-check
         files: \.md$
         args: ["--config=.markdown-link-check.json"]
   - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: v2.7.1
+    rev: v3.0.0-alpha.0
     hooks:
       - id: prettier
         additional_dependencies:
@@ -28,3 +28,4 @@ repos:
 ci:
   # Currently network access isn't supported
   skip: [fmt, clippy, markdown-link-check]
+  autoupdate_commit_msg: "chore: pre-commit autoupdate"

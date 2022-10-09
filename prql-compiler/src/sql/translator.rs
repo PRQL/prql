@@ -131,7 +131,7 @@ fn table_to_sql_cte(table: AtomicTable, dialect: &dyn DialectHandler) -> Result<
     };
     Ok(sql_ast::Cte {
         alias,
-        query: sql_query_of_atomic_table(table, dialect)?,
+        query: Box::new(sql_query_of_atomic_table(table, dialect)?),
         from: None,
     })
 }
@@ -585,7 +585,7 @@ fn translate_item(item: Item, dialect: &dyn DialectHandler) -> Result<Expr> {
                 "seconds" => DateTimeField::Second,
                 _ => bail!("Unsupported interval unit: {}", interval.unit),
             };
-            Expr::Value(Value::Interval {
+            Expr::Interval {
                 value: Box::new(translate_item(
                     Item::Literal(Literal::Integer(interval.n)),
                     dialect,
@@ -594,7 +594,7 @@ fn translate_item(item: Item, dialect: &dyn DialectHandler) -> Result<Expr> {
                 leading_precision: None,
                 last_field: None,
                 fractional_seconds_precision: None,
-            })
+            }
         }
         Item::Windowed(window) => {
             let expr = translate_item(window.expr.item, dialect)?;
@@ -631,11 +631,11 @@ fn translate_item(item: Item, dialect: &dyn DialectHandler) -> Result<Expr> {
                 value,
             },
             Literal::Time(value) => Expr::TypedString {
-                data_type: sql_ast::DataType::Time,
+                data_type: sql_ast::DataType::Time(sql_ast::TimezoneInfo::None),
                 value,
             },
             Literal::Timestamp(value) => Expr::TypedString {
-                data_type: sql_ast::DataType::Timestamp,
+                data_type: sql_ast::DataType::Timestamp(sql_ast::TimezoneInfo::None),
                 value,
             },
         },
