@@ -17,8 +17,8 @@ pub fn prql(input: TokenStream) -> TokenStream {
     let sql_string = match compile(&prql_string) {
         Ok(r) => r,
         Err(err) => {
-            let (formatted, _) = format_error(err, "<prql_macro>", &prql_string, true);
-            panic!("{}", formatted);
+            let err = format_error(err, "<prql_macro>", &prql_string, true);
+            panic!("{}", err.message);
         }
     };
 

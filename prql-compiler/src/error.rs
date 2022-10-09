@@ -64,6 +64,12 @@ impl Error {
     }
 }
 
+pub struct FormattedError {
+    pub message: String,
+    pub line: String,
+    pub location: Option<SourceLocation>,
+}
+
 // Needed for anyhow
 impl StdError for Error {}
 
@@ -79,11 +85,17 @@ pub fn format_error(
     source_id: &str,
     source: &str,
     color: bool,
-) -> (String, Option<SourceLocation>) {
+) -> FormattedError {
     let source = Source::from(source);
     let location = location(&error, &source);
 
-    (error_message(error, source_id, source, color), location)
+    let (line, output) = error_message_and_output(error, source_id, source, color);
+
+    FormattedError {
+        message: output,
+        line,
+        location,
+    }
 }
 
 fn location(error: &anyhow::Error, source: &Source) -> Option<SourceLocation> {
@@ -108,7 +120,12 @@ fn location(error: &anyhow::Error, source: &Source) -> Option<SourceLocation> {
     })
 }
 
-fn error_message(error: anyhow::Error, source_id: &str, source: Source, color: bool) -> String {
+fn error_message_and_output(
+    error: anyhow::Error,
+    source_id: &str,
+    source: Source,
+    color: bool,
+) -> (String, String) {
     let config = Config::default().with_color(color);
 
     if let Some(error) = error.downcast_ref::<Error>() {
@@ -132,7 +149,8 @@ fn error_message(error: anyhow::Error, source_id: &str, source: Source, color: b
                 .write((source_id, source), &mut out)
                 .unwrap();
 
-            return String::from_utf8(out).unwrap();
+            let output = String::from_utf8(out).unwrap();
+            return (message, output);
         } else {
             let mut out = format!("Error: {message}");
 
@@ -140,7 +158,7 @@ fn error_message(error: anyhow::Error, source_id: &str, source: Source, color: b
                 out = format!("{out}\n  help: {help}");
             }
 
-            return out;
+            return (message, out);
         }
     }
 
@@ -148,21 +166,22 @@ fn error_message(error: anyhow::Error, source_id: &str, source: Source, color: b
         let span = pest::as_range(error);
         let mut out = Vec::new();
 
+        let message = pest::as_message(error);
         Report::build(ReportKind::Error, source_id, span.start)
             .with_config(config)
             .with_message("during parsing")
-            .with_label(Label::new((source_id, span)).with_message(pest::as_message(error)))
+            .with_label(Label::new((source_id, span)).with_message(&message))
             .finish()
             .write((source_id, source), &mut out)
             .unwrap();
 
-        return String::from_utf8(out).unwrap();
+        return (message, String::from_utf8(out).unwrap());
     }
 
     // default to basic Display
-    let mut out = String::new();
-    write!(&mut out, "{:#?}", error).unwrap();
-    out
+    let mut message = String::new();
+    write!(&mut message, "{:#?}", error).unwrap();
+    (message.clone(), message)
 }
 
 impl Reason {
