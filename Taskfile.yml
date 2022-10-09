@@ -56,7 +56,6 @@ tasks:
         mdbook-toc
         wasm-bindgen-cli
         wasm-pack
-<<<<<<< HEAD
 
   install-brew:
     # brew might be installed, so check first
@@ -76,19 +75,6 @@ tasks:
     desc: Install maturin
     cmds:
       - python3 -m pip install -U maturin
-=======
-      - python3 -m pip install -U maturin
-      - task: install-pre-commit
-      - task: install-brew-dependencies
-      - task: install-npm-dependencies
-      # We only suggest, rather than install; we don't want to intrude (though maybe we're being too conservative?).
-      - task: suggest-vscode-extensions
-      - pre-commit install-hooks
-      - cmd: |
-          echo "
-          🟢 Set up complete! ✅🚀"
-        silent: true
->>>>>>> main
 
   suggest-vscode-extensions:
     desc: Check and suggest VSCode extensions.
