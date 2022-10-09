@@ -3,7 +3,7 @@
 A fast-feedback compiler from PRQL to SQL, hosted at <https://prql-lang.org/playground/>
 
 To run locally, [set up a development
-environment](../CONTRIBUTING.md#development-environment), and then run:
+environment](../DEVELOPMENT.md#development-environment), and then run:
 
 ```sh
 npm install
