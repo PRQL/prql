@@ -19,7 +19,7 @@ repos:
         files: \.md$
         args: ["--config=.markdown-link-check.json"]
   - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: v3.0.0-alpha.0
+    rev: v3.0.0-alpha.1
     hooks:
       - id: prettier
         additional_dependencies:
