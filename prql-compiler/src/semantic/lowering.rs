@@ -168,6 +168,35 @@ impl Lowerer {
                 // return an instance of this new table
                 self.create_a_table_instance(id, None, tid)
             }
+
+            ExprKind::Literal(pl::Literal::Relation(lit)) => {
+                let id = expr.id.unwrap();
+
+                // create a new table
+                let tid = self.tid.gen();
+
+                let cols = lit
+                    .columns
+                    .iter()
+                    .map(|c| RelationColumn::Single(Some(c.clone())))
+                    .collect_vec();
+
+                let relation = rq::Relation {
+                    kind: rq::RelationKind::Literal(lit),
+                    columns: cols.clone(),
+                };
+
+                log::debug!("lowering literal relation table, columns = {:?}", cols);
+                self.table_buffer.push(TableDecl {
+                    id: tid,
+                    name: None,
+                    relation,
+                });
+
+                // return an instance of this new table
+                self.create_a_table_instance(id, None, tid)
+            }
+
             _ => {
                 return Err(Error::new(Reason::Expected {
                     who: None,

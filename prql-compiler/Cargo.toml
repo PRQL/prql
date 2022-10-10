@@ -21,6 +21,7 @@ doctest = false
 [dependencies]
 anyhow = {version = "1.0.57", features = ["backtrace"]}
 ariadne = "0.1.5"
+csv = "1.1.6"
 enum-as-inner = "0.5.0"
 env_logger = {version = "0.9.1", features = ["termcolor"]}
 itertools = "0.10.3"

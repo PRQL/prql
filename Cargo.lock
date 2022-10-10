@@ -2056,6 +2056,7 @@ dependencies = [
  "clio",
  "color-eyre",
  "criterion",
+ "csv",
  "duckdb",
  "enum-as-inner",
  "env_logger 0.9.3",

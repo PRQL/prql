@@ -56,3 +56,6 @@ func map<list> fn list<list> -> null
 func zip<list> a<list> b<list> -> null
 func _eq<list> a<list> -> null
 func _is_null a -> a == null
+
+# Misc
+func from_csv<table> csv<string> -> null

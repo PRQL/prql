@@ -9,7 +9,7 @@ use anyhow::{anyhow, Result};
 use itertools::Itertools;
 use sqlparser::ast::{self as sql_ast, Select, SelectItem, SetExpr, TableWithJoins};
 
-use crate::ast::pl::{BinOp, Literal};
+use crate::ast::pl::{BinOp, Literal, RelationLiteral};
 use crate::ast::rq::{
     CId, Expr, ExprKind, Query, Relation, RelationKind, RqFold, TableDecl, Transform,
 };
@@ -17,10 +17,10 @@ use crate::error::{Error, Reason};
 use crate::utils::{BreakUp, IntoOnly, Pluck, TableCounter};
 
 use super::context::AnchorContext;
+use super::gen_expr::*;
 use super::gen_projection::*;
 use super::preprocess::{preprocess_distinct, preprocess_reorder};
-use super::{anchor, Dialect};
-use super::{gen_expr::*, Context};
+use super::{anchor, Context, Dialect};
 
 pub fn translate_query(query: Query, dialect: Option<Dialect>) -> Result<sql_ast::Query> {
     let dialect = if let Some(dialect) = dialect {
@@ -148,7 +148,7 @@ fn sql_query_of_relation(relation: RelationKind, context: &mut Context) -> Resul
     match relation {
         RelationKind::ExternRef(_) => unreachable!(),
         RelationKind::Pipeline(pipeline) => sql_query_of_pipeline(pipeline, context),
-        RelationKind::Literal(_) => todo!(),
+        RelationKind::Literal(lit) => Ok(sql_of_sample_data(lit)),
         RelationKind::SString(items) => translate_query_sstring(items, context),
     }
 }
@@ -333,6 +333,67 @@ fn sql_union_of_pipeline(
         fetch: None,
         locks: vec![],
     })
+}
+
+fn sql_of_sample_data(data: RelationLiteral) -> sql_ast::Query {
+    // TODO: this could be made to use VALUES instead of SELECT UNION ALL SELECT
+    //       I'm not sure about compatibility though.
+
+    let mut selects = vec![];
+
+    for row in data.rows {
+        // This seems *very* verbose. Maybe we put an issue into sqlparser-rs to
+        // have something like a builder for these?
+        let body = sql_ast::SetExpr::Select(Box::new(Select {
+            distinct: false,
+            top: None,
+            from: vec![],
+            projection: std::iter::zip(data.columns.clone(), row)
+                .map(|(col, value)| SelectItem::ExprWithAlias {
+                    expr: sql_ast::Expr::Identifier(sql_ast::Ident {
+                        value: value.into(),
+                        quote_style: None,
+                    }),
+                    alias: sql_ast::Ident {
+                        value: col,
+                        quote_style: None,
+                    },
+                })
+                .collect(),
+            selection: None,
+            group_by: vec![],
+            having: None,
+            lateral_views: vec![],
+            cluster_by: vec![],
+            distribute_by: vec![],
+            into: None,
+            qualify: None,
+            sort_by: vec![],
+        }));
+
+        selects.push(body)
+    }
+
+    // Not the most elegant way of doing this but sufficient for now.
+    let first = selects.remove(0);
+    let body = selects
+        .into_iter()
+        .fold(first, |acc, select| SetExpr::SetOperation {
+            op: sql_ast::SetOperator::Union,
+            set_quantifier: sql_ast::SetQuantifier::All,
+            left: Box::new(acc),
+            right: Box::new(select),
+        });
+
+    sql_ast::Query {
+        with: (None),
+        body: Box::new(body),
+        order_by: vec![],
+        limit: None,
+        offset: None,
+        fetch: None,
+        locks: vec![],
+    }
 }
 
 fn split_into_atomics(
