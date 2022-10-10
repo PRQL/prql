@@ -27,9 +27,10 @@ tasks:
     cmds:
       - task: install-cargo-tools
       - task: install-maturin
-      # - task: install-brew
       - task: install-pre-commit
-      - task: install-brew-dependencies
+      # - task: install-brew
+      - task: install-hugo
+      - task: install-nodejs
       - task: install-npm-dependencies
       # We only suggest, rather than install;
       #    we don't want to intrude (maybe we're being too conservative?).
@@ -123,24 +124,17 @@ tasks:
     cmds:
       - python3 -m pip install -U pre-commit
 
-  install-brew-dependencies:
-    # status:
-    #   - which hugo
-    #   - which npm
-    # preconditions:
-    #   - sh: which brew
-    #     msg: |
-
-    #       🔴 Can't find `brew`, which we use to install Hugo & npm. Either install brew and re-run this, or install them directly based on:
-    #       - https://gohugo.io/getting-started/installing/
-    #       - https://docs.npmjs.com/downloading-and-installing-node-js-and-npm
+  install-hugo:
     cmds:
       # - /home/linuxbrew/.linuxbrew/bin/brew install hugo
       - curl -L https://github.com/gohugoio/hugo/releases/download/v0.91.2/hugo_0.91.2_Linux-64bit.deb -o hugo.deb
       - apt install ./hugo.deb
-      # - /home/linuxbrew/.linuxbrew/bin/brew install hugo
+
+  install-nodejs:
+    cmds:
+      # - /home/linuxbrew/.linuxbrew/bin/brew install nodejs
       - curl -fsSL https://deb.nodesource.com/setup_16.x | bash -
-      - apt-get install -y nodejs
+      - apt install -y nodejs
 
   install-npm-dependencies:
     cmds:

@@ -7,3 +7,4 @@ dist
 /*.prql
 */*.prql
 target
+playground/node_modules
