@@ -1,11 +1,11 @@
 # PRQL Changelog
 
-## 0.3.0 — 2022-10-17
+## 0.2.8 — 2022-10-17
 
-0.3.0 is another modest release with some fixes, doc improvements, bindings
-improvements, and lots of internal changes. We're bumping the minor part of the
-release, because one of the fixes is a small breaking change to parameter
-ordering. More significant features are forthcoming!
+0.2.8 is another modest release with some fixes, doc improvements, bindings
+improvements, and lots of internal changes. Note that one of the fixes causes
+the behavior of `round` and `cast` to change slightly — though it's handled as a
+fix rather than a breaking change in semantic versioning.
 
 Fixes:
 
