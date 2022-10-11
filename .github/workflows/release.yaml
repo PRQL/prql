@@ -98,6 +98,8 @@ jobs:
         with:
           command: publish
           args: -p prql-compiler
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
   # Requires another pass: https://github.com/prql/prql/issues/850
   # publish-prql-java:
