@@ -19,5 +19,5 @@
     "build-web": "wasm-pack build --target no-modules --release --out-dir dist/web"
   },
   "types": "dist/node/prql_js.d.ts",
-  "version": "0.2.7"
+  "version": "0.2.8"
 }

@@ -1,6 +1,6 @@
 # PRQL Changelog
 
-## 0.2.X — [unreleased]
+## 0.2.9 — [unreleased]
 
 Features:
 
@@ -13,6 +13,50 @@ Web:
 Integrations:
 
 Internal changes:
+
+## 0.2.8 — 2022-10-17
+
+0.2.8 is another modest release with some fixes, doc improvements, bindings
+improvements, and lots of internal changes. Note that one of the fixes causes
+the behavior of `round` and `cast` to change slightly — though it's handled as a
+fix rather than a breaking change in semantic versioning.
+
+Fixes:
+
+- Change order of the `round` & `cast` function parameters to have the column
+  last; for example `round 2 foo_col` /
+  `cast int foo`. This is consistent with other functions, and makes piping
+  possible:
+
+  ```prql
+  derive [
+    gross_salary = (salary + payroll_tax | as int),
+    gross_salary_rounded = (gross_salary | round 0),
+  ]
+  ```
+
+Documentation:
+
+- Split `DEVELOPMENT.md` from `CONTRIBUTING.md` (@richb-hanover, #1010)
+- Make s-strings more prominent in website intro (@max-sixty, #982)
+
+Web:
+
+- Add GitHub star count to website (@max-sixty, #990)
+
+Integrations:
+
+- Expose a shortened error message, in particular for the VSCode extension
+  (@aljazerzen, #1005)
+
+Internal changes:
+
+- Specify 1.60.0 as minimum rust version (@max-sixty, #1011)
+- Remove old `wee-alloc` code (@max-sixty, #1013)
+- Upgrade clap to version 4 (@aj-bagwell, #1004)
+- Improve book-building script in Taskfile (@max-sixty, #989)
+- Publish website using an artifact rather than a long-lived branch (@max-sixty,
+  #1009)
 
 ## 0.2.7 — 2022-09-17
 

@@ -4,8 +4,8 @@ edition = "2021"
 license = "Apache-2.0"
 name = "prql-compiler"
 repository = "https://github.com/prql/prql"
-rust-version = "1.59.0"
-version = "0.2.7"
+rust-version = "1.60.0"
+version = "0.2.8"
 
 [features]
 # We previously had `cli` not compile by default, because of an issue with
