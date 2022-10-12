@@ -24,10 +24,11 @@ Finally, start up the Docker container with:
 cd <top-level-PRQL-directory>
 docker run -it -v $(pwd)/:/app -p 3000:3000 prql
 ```
-* You'll see a `root@xxxxxxxxx:/app/#` prompt
-* Enter the commands below for the component you're working on
-* Ctl-C to exit that component
-* Enter 'exit' to close down the Docker machine
+
+- You'll see a `root@xxxxxxxxx:/app/#` prompt
+- Enter the commands below for the component you're working on
+- Ctl-C to exit that component
+- Enter 'exit' to close down the Docker machine
 
 ## Running components under Docker
 
@@ -36,16 +37,19 @@ file in each of the component directories.
 Use the `docker run...` command above, then:
 
 **Playground** Use the command above, then enter:
+
 ```
 cd playground; npm start
 ```
 
 **Language Book** Use the command above, then enter:
+
 ```
 cd book; mdbook serve -n 0.0.0.0 -p 3000
 ```
 
 **Website** Use the command above, then enter:
+
 ```
 cd website; hugo server --bind 0.0.0.0 -p 3000
 ```
@@ -53,31 +57,37 @@ cd website; hugo server --bind 0.0.0.0 -p 3000
 _[I don't know how to run/test the following components]_
 
 **prql-compiler** Use the command above, then enter:
+
 ```
-cd prql-compiler; ***what do people need to do?*** 
+cd prql-compiler; ***what do people need to do?***
 ```
 
 **prql-java** Use the command above, then enter:
+
 ```
-  cd prql-java; *** what do people need to do?*** 
+  cd prql-java; *** what do people need to do?***
 ```
 
 **prql-js** Use the command above, then enter:
+
 ```
-  cd prql-js; ***what do people need to do?*** 
+  cd prql-js; ***what do people need to do?***
 ```
 
 **prql-lib** Use the command above, then enter:
+
 ```
-  cd prql-lib; ***what do people need to do?*** 
+  cd prql-lib; ***what do people need to do?***
 ```
 
 **prql-macros** Use the command above, then enter:
+
 ```
-  cd prql-macros; ***what do people need to do?*** 
+  cd prql-macros; ***what do people need to do?***
 ```
 
 **prql-python** Use the command above, then enter:
+
 ```
-  cd prql-python; ***what do people need to do?*** 
+  cd prql-python; ***what do people need to do?***
 ```

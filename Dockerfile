@@ -7,7 +7,7 @@
 # docker build -t prql .
 #
 # Invoke with:
-# 
+#
 # cd <top-level-PRQL-directory>
 # docker run -it -v $(pwd)/:/app -p 3000:3000 prql
 # You'll see a root@xxxxxxxxx:/app/# prompt
@@ -49,7 +49,7 @@ RUN task install-cargo-tools
 
 # ========= Install Node 16.x =========
 RUN curl -sL https://deb.nodesource.com/setup_16.x | bash -
-RUN apt install -y nodejs	
+RUN apt install -y nodejs
 
 # ========= Install remaining development tools using task =========
 RUN task install-pre-commit

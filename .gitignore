@@ -22,6 +22,5 @@ book/*.js
 book/*.html
 book/*.css
 book/.nojekyll
-book/*.png 
+book/*.png
 book/*.svg
-
