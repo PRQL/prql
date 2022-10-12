@@ -72,8 +72,12 @@ To stay in touch with PRQL:
 - Join us on [Discord](https://discord.gg/eQcfaCmsNc)
 - Star this repo
 - [Contribute][contributing] — join us in building PRQL, through writing
-  code or inspiring others to use it. It's easy to get started — the project can
-  be built in a couple of commands, and we're a really friendly community!
+  code or inspiring others to use it. 
+- See the [development](DEVELOPMENT.md) documentation for PRQL.
+It's easy to get started —
+the project can be built in a couple of commands,
+and we're a really friendly community!
+
 
 ## Explore
 

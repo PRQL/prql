@@ -4,6 +4,7 @@ Setting up a local dev environment for PRQL is simple, thanks to the rust ecosys
 
 - Install [`rustup` & `cargo`](https://doc.rust-lang.org/cargo/getting-started/installation.html)[^5].
 - That's it! Running `cargo test` should complete successfully.
+- Alternatively, [use the included Dockerfile](./USING_DOCKER.md)
 - For more advanced development; e.g. adjusting `insta` outputs or compiling for
   web, run `task setup-dev` by installing
   [Task](https://taskfile.dev/#/installation), or by copying & pasting them from

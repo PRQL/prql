@@ -1,13 +1,21 @@
 # Dockerfile to build the prql development environment
+# For more details, see the USING_DOCKER.md file
 
-# Build with docker build -t prql .
-# Invoke with docker run -it -v $(pwd)/:/app -p 3000:3000 prql
-#   To run playground:
-#			- cd playground
-# 		- npm start
-#		To build website:
-#		To build book:
-#		To ... (what else?)
+# Build with:
+#
+# cd <top-level-PRQL-directory>
+# docker build -t prql .
+#
+# Invoke with:
+# 
+# cd <top-level-PRQL-directory>
+# docker run -it -v $(pwd)/:/app -p 3000:3000 prql
+# You'll see a root@xxxxxxxxx:/app/# prompt
+# Enter the commands for the various tasks
+# Ctl-C to exit that task
+# Enter 'exit' to close down the Docker machine
+
+# See USING_DOCKER.md for instructions for various tasks
 
 FROM rust:1.63.0-slim-buster
 
