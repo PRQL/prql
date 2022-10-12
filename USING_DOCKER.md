@@ -42,7 +42,7 @@ cd playground; npm start
 
 **Language Book** Use the command above, then enter:
 ```
-cd book; mdbook serve -n 0.0.0.0 -p 30000
+cd book; mdbook serve -n 0.0.0.0 -p 3000
 ```
 
 **Website** Use the command above, then enter:
