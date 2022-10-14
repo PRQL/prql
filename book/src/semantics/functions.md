@@ -3,7 +3,7 @@
 ## Function call
 
 The major distinction between PRQL and today's conventional programming
-languages such as C or Python is the function call syntax. 
+languages such as C or Python is the function call syntax.
 It consists of the function name followed by arguments separated by whitespace.
 
 ```prql_no_test
@@ -26,7 +26,9 @@ the pipeline is equivalent to applying each of functions as the last argument of
 ```prql_no_test
 a | foo 3 | bar 'hello' 'world' | baz
 ```
+
 ... is equivalent to ...
+
 ```prql_no_test
 baz (bar 'hello' 'world' (foo 3 a))
 ```
@@ -38,23 +40,29 @@ from employees
 filter age > 50
 sort name
 ```
+
 ... is equivalent to ...
+
 ```elm
 from employees | filter age > 50 | sort name
 ```
+
 ... is equivalent to ...
+
 ```elm
 filter age > 50 (from employees) | sort name
 ```
+
 ... which is the same as:
+
 ```elm
 sort name (filter age > 50 (from (employees))
 ```
 
 ## Currying and late binding
 
-In PRQL, functions are first class citizens. 
-As cool as that sounds, we need simpler terms to explain it. 
-In essence in means that we can operate with functions are with any other value. 
+In PRQL, functions are first class citizens.
+As cool as that sounds, we need simpler terms to explain it.
+In essence in means that we can operate with functions are with any other value.
 
 <!-- TODO -->

@@ -26,7 +26,7 @@ scope is also injected with namespaces of tables which may have been referenced 
 These namespaces contain simply all the columns of the table and possibly a wildcard variable,
 which matches any variable (see the algorithm below).
 Within transforms, there is also a special namespace that does not have a name.
-It is called a *"frame"* and it contains columns of the current table the transform is operating on.
+It is called a _"frame"_ and it contains columns of the current table the transform is operating on.
 
 ## Resolving
 
@@ -74,4 +74,3 @@ Similarly, `d.title` needs the table prefix.
 But `created_at` has triggered the special rule and matched `*.*`,
 because it may reside in any of the two tables.
 This means that PRQL does not associate it with any table and the column is translated as is.
-
