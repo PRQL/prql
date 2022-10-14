@@ -1269,7 +1269,7 @@ dependencies = [
 
 [[package]]
 name = "mdbook-prql"
-version = "0.2.8"
+version = "0.2.9"
 dependencies = [
  "anyhow",
  "clap 3.2.21",
@@ -1732,7 +1732,7 @@ dependencies = [
 
 [[package]]
 name = "prql-compiler"
-version = "0.2.8"
+version = "0.2.9"
 dependencies = [
  "anyhow",
  "ariadne",
@@ -1767,7 +1767,7 @@ dependencies = [
 
 [[package]]
 name = "prql-java"
-version = "0.2.8"
+version = "0.2.9"
 dependencies = [
  "jni",
  "prql-compiler",
@@ -1775,7 +1775,7 @@ dependencies = [
 
 [[package]]
 name = "prql-js"
-version = "0.2.8"
+version = "0.2.9"
 dependencies = [
  "console_error_panic_hook",
  "prql-compiler",
@@ -1785,7 +1785,7 @@ dependencies = [
 
 [[package]]
 name = "prql-lib"
-version = "0.2.8"
+version = "0.2.9"
 dependencies = [
  "libc",
  "prql-compiler",
@@ -1794,7 +1794,7 @@ dependencies = [
 
 [[package]]
 name = "prql-macros"
-version = "0.2.8"
+version = "0.2.9"
 dependencies = [
  "prql-compiler",
  "syn",
@@ -1802,7 +1802,7 @@ dependencies = [
 
 [[package]]
 name = "prql-python"
-version = "0.2.8"
+version = "0.2.9"
 dependencies = [
  "prql-compiler",
  "pyo3",
