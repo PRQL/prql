@@ -245,7 +245,8 @@ fn ast_of_parse_pair(pair: Pair<Rule>) -> Result<Option<Node>> {
         Rule::boolean => Item::Literal(Literal::Boolean(pair.as_str() == "true")),
         Rule::string => {
             // Takes the string_inner, without the quotes
-            let inner = pair.into_inner().into_only()?.as_str().to_string();
+            let inner = pair.into_inner().into_only();
+            let inner = inner.map(|x| x.as_str().to_string()).unwrap_or_default();
             Item::Literal(Literal::String(inner))
         }
         Rule::s_string => Item::SString(ast_of_interpolate_items(pair)?),
@@ -578,6 +579,14 @@ Canada
         ---
         Literal:
           String: "\nCanada\n\"\n\"\"\"\n\n"
+        "###);
+
+        assert_yaml_snapshot!(
+          ast_of_string("''", Rule::string).unwrap(), 
+          @r###"
+        ---
+        Literal:
+          String: ""
         "###);
 
         Ok(())

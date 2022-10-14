@@ -117,7 +117,7 @@ opening_quote = _{ PUSH(multi_quote) | PUSH(single_quote) }
 // PEEK refers to the opening quote; `"` or `'` or multiple quotes.
 string_inner = { ( !( PEEK ) ~ ANY )+ }
 // Either > 3 quotes, or just one. Currently both of those can be multiline.
-string = ${ opening_quote ~ string_inner ~ POP }
+string = ${ opening_quote ~ string_inner? ~ POP }
 
 number = ${ operator_add? ~ ( ASCII_DIGIT )+ ~ ("." ~ ( ASCII_DIGIT )+)? }
 
