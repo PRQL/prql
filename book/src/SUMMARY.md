@@ -38,6 +38,9 @@
   - [JavaScript](./bindings/javascript.md)
   - [Python](./bindings/python.md)
   - [Rust](./bindings/rust.md)
+- [Semantics](./semantics/README.md)
+  - [Name resolving](./semantics/name-resolving.md)
+  - [Functions](./semantics/functions.md)
 - [Integrations](./integrations/README.md)
 
   - [dbt](./integrations/dbt.md)
