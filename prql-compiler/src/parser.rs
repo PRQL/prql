@@ -582,7 +582,7 @@ Canada
         "###);
 
         assert_yaml_snapshot!(
-          ast_of_string("''", Rule::string).unwrap(), 
+          ast_of_string("''", Rule::string).unwrap(),
           @r###"
         ---
         Literal:
