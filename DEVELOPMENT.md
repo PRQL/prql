@@ -14,7 +14,9 @@ Setting up a local dev environment for PRQL is simple, thanks to the rust ecosys
 
 [^5]:
     We'll need a clang compiler to compile the DuckDB integration tests,
-    since we use [`duckdb-rs'](https://github.com/wangfenjin/duckdb-rs). To install a compiler:
+    since we use
+    [`duckdb-rs'](https://github.com/wangfenjin/duckdb-rs).
+    To install a compiler:
 
     - On Mac, install xcode `xcode-select --install`
     - On Linux, `apt-get install libclang-dev`
@@ -34,13 +36,15 @@ Here's an overview:
 It shows the PRQL source beside the resulting SQL output.
 [README.md](./playground/README.md)
 
-**book:** Tools to build the PRQL language book that documents the language.
+**book:** Tools to build the PRQL language book that documents
+the language.
 [README.md](./book/README.md)
 
 **website:** Tools to build the `hugo` website.
 [README.md](./website/README.md)
 
-**prql-compiler:** Installation and usage instructions for building and running the `prql-compiler`.
+**prql-compiler:** Installation and usage instructions for
+building and running the `prql-compiler`.
 [README.md](./prql-compiler/README.md)
 
 **prql-java:** Rust bindings to the `prql-compiler` rust library.
@@ -49,12 +53,15 @@ It shows the PRQL source beside the resulting SQL output.
 **prql-js:** Javascript bindings to the `prql-compiler` rust library.
 [README.md](./prql-js/README.md)
 
-**prql-lib:** Generates `.a` and `.so` libraries from the `prql-compiler` rust library for bindings to other languages
+**prql-lib:** Generates `.a` and `.so` libraries from the
+`prql-compiler` rust library for bindings to other languages
 [README.md](./prql-lib/README.md)
 
-**prql-macros:** rust macros for PRQL [README.md](./prql-macros/README.md)
+**prql-macros:** rust macros for PRQL
+[README.md](./prql-macros/README.md)
 
-**prql-python:** Python bindings to the `prql-compiler` rust library. [README.md](./prql-python/README.md)
+**prql-python:** Python bindings to the `prql-compiler` rust library.
+[README.md](./prql-python/README.md)
 
 ## `task`
 
@@ -67,15 +74,11 @@ any inconsistencies.
 
 To build everything:
 
-```sh
 task build-all
-```
 
 To run all tests; (which includes building everything):
 
-```sh
 task test-all
-```
 
 These require installing Task, either `brew install go-task/tap/go-task` or
 as described on [Task](https://taskfile.dev/#/installation).
@@ -105,9 +108,7 @@ Our tests:
   [**`.pre-commit-config.yaml`**](.pre-commit-config.yaml), using
   [pre-commit](https://pre-commit.com). They can be run locally with
 
-  ```sh
   pre-commit run -a
-  ```
 
   The tests fix most of the issues they find themselves. Most of them also run
   on GitHub on every commit; any changes they make are added onto the branch
@@ -126,9 +127,8 @@ Our tests:
 
 [^2]: For example, this is a command I frequently run:
 
-    ```sh
-    RUST_BACKTRACE=1 watchexec -e rs,toml,pest,md -cr -- cargo insta test --accept -- -p prql-compiler --lib
-    ```
+    RUST_BACKTRACE=1 watchexec -e rs,toml,pest,md -cr \
+    -- cargo insta test --accept -- -p prql-compiler --lib
 
     Breaking this down:
 
@@ -136,16 +136,20 @@ Our tests:
       value was created, for rust tests which return `Result`s.
     - `watchexec -e rs,toml,pest,md -cr --` will run the subsequent command on any
       change to files with extensions which we are generally editing.
-    - `cargo insta test --accept --` runs tests with `insta`, a snapshot library, and
-      writes any results immediately. I rely on git to track changes, so I run
+    - `cargo insta test --accept --` runs tests with `insta`,
+      a snapshot library, and
+      writes any results immediately.
+      I rely on git to track changes, so I run
       with `--accept`, but YMMV.
     - `-p prql-compiler --lib` is passed to cargo by `insta`; `-p prql-compiler`
       tells it to only run the tests for `prql-compiler` rather than the other
-      crates, and `--lib` to only run the unit tests rather than the integration
+      crates,
+      and `--lib` to only run the unit tests rather than the integration
       tests, which are much slower.
-    - Note that we don't want to re-run on _any_ file changing, because we can get into a
-      loop of writing snapshot files, triggering a change, writing a snapshot
-      file, etc.
+    - Note that we don't want to re-run on _any_ file changing,
+      because we can get into a
+      loop of writing snapshot files, triggering a change,
+      writing a snapshot file, etc.
 
 [^3]:
     [Here's an example of an insta
@@ -187,8 +191,8 @@ Our tests:
   We can run these tests before a merge by adding a label `pr-test-all` to the
   PR.
 
-  If these tests fail after merging, we revert the merged commit before fixing the test and
-  then re-reverting.
+  If these tests fail after merging, we revert the merged commit
+  before fixing the test and then re-reverting.
 
 The goal of our tests is to allow us to make changes quickly. If you find
 they're making it more difficult for you to make changes, or there are missing
@@ -206,8 +210,8 @@ Currently we release in a semi-automated way:
   release](https://github.com/prql/prql/releases/new), copy the changelog entry
   into the release notes, select a new tag to be created, and hit the "Publish"
   button.
-- From there, all packages are published automatically based on our [release
-  workflow](.github/workflows/release.yaml).
+- From there, all packages are published automatically based on our
+  [release workflow](.github/workflows/release.yaml).
 - Add in the sections for a new Changelog:
 
   ```md
