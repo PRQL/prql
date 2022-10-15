@@ -2,7 +2,7 @@
 edition = "2021"
 name = "prql-macros"
 publish = false
-version = "0.2.8"
+version = "0.2.9"
 
 [lib]
 doctest = false

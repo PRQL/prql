@@ -1,6 +1,6 @@
 # PRQL Changelog
 
-## 0.2.9 — [unreleased]
+## 0.2.10 — [unreleased]
 
 Features:
 
@@ -14,7 +14,15 @@ Integrations:
 
 Internal changes:
 
-## 0.2.8 — 2022-10-17
+## 0.2.9 — 2022-10-14
+
+0.2.9 is a small release containing a bug fix for empty strings.
+
+Fixes:
+
+- Fix parsing of empty strings (@aljazerzen, #1024)
+
+## 0.2.8 — 2022-10-10
 
 0.2.8 is another modest release with some fixes, doc improvements, bindings
 improvements, and lots of internal changes. Note that one of the fixes causes
