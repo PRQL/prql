@@ -59,6 +59,11 @@ filter age > 50 (from employees) | sort name
 sort name (filter age > 50 (from (employees))
 ```
 
+As you can see, the first example with pipeline notation is much easier to comprehand,
+compared to the last one with the regular function call notation.
+This is why it is recomended to use pipelines for nested function calls that are 3 or more levels deep.
+
+
 ## Currying and late binding
 
 In PRQL, functions are first class citizens.
