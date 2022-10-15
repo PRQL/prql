@@ -19,6 +19,8 @@ pub fn to_json(query: &str) -> PyResult<String> {
 fn prql_python(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(to_sql, m)?)?;
     m.add_function(wrap_pyfunction!(to_json, m)?)?;
+    // From https://github.com/PyO3/maturin/issues/100
+    m.add("__version__", env!("CARGO_PKG_VERSION"))?;
 
     Ok(())
 }
