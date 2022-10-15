@@ -13,8 +13,10 @@ A summary of PRQL syntax
 | `:`             | Named args & Parameters | `interp lower:0 1600 sat_score`                         |
 | `[]`            | List                    | `select [id, amount]`                                   |
 | `()`            | Precedence              | `derive fahrenheit = (celsius - 32) * 1.8`              |
+| `''` & `""`     | Strings                 | `derive name = "Mary"`                                  |
+| ``` `` ```      | Quoted identifiers      | ```select `first name` ```                              |
 | `#`             | Comment                 | `# A comment`                                           |
-| `@`             | Date & times            | `@2021-01-01`                                           |
+| `@`             | Date & Times            | `@2021-01-01`                                           |
 | `==`            | Equality comparison     | `join s=salaries [s.emp_id == e.id]`                    |
 | `->`            | Function definitions    | `func add a b -> a + b`                                 |
 | `+`/`-`         | Sort order              | `sort [-amount, +date]`                                 |
@@ -109,11 +111,11 @@ from employees  # Comment 1
 aggregate [average salary]
 ```
 
-## Backticks
+## Quoted identifiers
 
 To use identifiers that are otherwise invalid, surround them with backticks.
 Depending on the dialect, these will remain as backticks or be converted to
-double-quotes
+double-quotes.
 
 ```prql
 prql dialect:mysql
