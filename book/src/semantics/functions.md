@@ -33,7 +33,7 @@ a | foo 3 | bar 'hello' 'world' | baz
 baz (bar 'hello' 'world' (foo 3 a))
 ```
 
-You may not have noticed, but transforms are regular functions too!
+As you may have noticed, transforms are regular functions too!
 
 ```elm
 from employees
