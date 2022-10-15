@@ -6,14 +6,14 @@ Because PRQL primarily handles relational data, it has specialized scoping rules
 
 In PRQL's compiler, a scope is the collection of all names one can reference from a specific point in the program.
 
-In PRQL, names in the scope are composed from namespace and variable name which are spearated by a dot, similar to SQL.
+In PRQL, names in the scope are composed from namespace and variable name which are separated by a dot, similar to SQL.
 Namespaces can contain many dots, but variable names cannot.
 
-> **Example**
->
-> Name `my_table.some_column` is a variable `some_column` from namespace `my_table`.
->
-> Name `foo.bar.baz` is a variable `baz` from namespace `foo.bar`.
+```admonish example
+Name `my_table.some_column` is a variable `some_column` from namespace `my_table`.
+
+Name `foo.bar.baz` is a variable `baz` from namespace `foo.bar`.
+```
 
 When processing a query, a scope is maintained and updated for each point in the query.
 
@@ -36,7 +36,7 @@ For each ident we want to resolve, we search the scope's items in order. One of 
 
 - Scope does not contain an exact match,
   but the ident did not specify a namespace, so we can match a namespace that contains a `*` wildcard.
-  The matched namespace is also updated to contain this new variable name.
+  If there's a single namespace, the matched namespace is also updated to contain this new variable name.
 
   In the case that there are multiple namespaces with a wildcard,
   we don't match with neither of the namespaces, but match as `*.*` name.
