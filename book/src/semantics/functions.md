@@ -63,7 +63,6 @@ As you can see, the first example with pipeline notation is much easier to compr
 compared to the last one with the regular function call notation.
 This is why it is recomended to use pipelines for nested function calls that are 3 or more levels deep.
 
-
 ## Currying and late binding
 
 In PRQL, functions are first class citizens.
