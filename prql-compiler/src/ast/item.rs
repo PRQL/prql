@@ -197,7 +197,6 @@ impl From<Vec<Node>> for Pipeline {
 
 impl From<Item> for anyhow::Error {
     fn from(item: Item) -> Self {
-        // panic!("Failed to convert {item}")
         anyhow!("Failed to convert `{item}`")
     }
 }
