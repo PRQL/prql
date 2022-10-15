@@ -199,7 +199,6 @@ impl From<Item> for anyhow::Error {
     // https://github.com/bluejekyll/enum-as-inner/issues/84
     #[allow(unreachable_code)]
     fn from(item: Item) -> Self {
-        // panic!("Failed to convert {item}")
         anyhow!("Failed to convert `{item}`")
     }
 }
