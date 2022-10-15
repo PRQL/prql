@@ -4,7 +4,7 @@ Because PRQL primarily handles relational data, it has specialized scoping rules
 
 ## Scopes
 
-For pruposes of this book, a scope is the collection of all names one can reference from a specific point in the program.
+In PRQL's compiler, a scope is the collection of all names one can reference from a specific point in the program.
 
 In PRQL, names in the scope are composed from namespace and variable name which are spearated by a dot, similar to SQL.
 Namespaces can contain many dots, but variable names cannot.
