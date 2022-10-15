@@ -35,7 +35,7 @@ baz (bar 'hello' 'world' (foo 3 a))
 
 As you may have noticed, transforms are regular functions too!
 
-```elm
+```prql
 from employees
 filter age > 50
 sort name
@@ -43,19 +43,19 @@ sort name
 
 ... is equivalent to ...
 
-```elm
+```prql
 from employees | filter age > 50 | sort name
 ```
 
 ... is equivalent to ...
 
-```elm
+```prql
 filter age > 50 (from employees) | sort name
 ```
 
 ... which is the same as:
 
-```elm
+```prql
 sort name (filter age > 50 (from (employees))
 ```
 
