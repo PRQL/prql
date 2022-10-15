@@ -214,20 +214,18 @@ Currently we release in a semi-automated way:
   [release workflow](.github/workflows/release.yaml).
 - Add in the sections for a new Changelog:
 
-  ```md
-  ## 0.2.X — [unreleased]
+## 0.2.X — [unreleased]
 
-  Features:
+Features:
 
-  Fixes:
+Fixes:
 
-  Documentation:
+Documentation:
 
-  Web:
+Web:
 
-  Integrations:
+Integrations:
 
-  Internal changes:
-  ```
+Internal changes:
 
 We may make this more automated in future; e.g. automatic changelog creation.
