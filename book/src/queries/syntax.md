@@ -5,6 +5,7 @@
 A summary of PRQL syntax
 
 <!-- The `|` characters need to be escaped, and surrounded with tags rather than backticks -->
+<!-- In the backticks, we seem to need a space in the backticks for it to display correctly... -->
 
 | Syntax          | Usage                   | Example                                                 |
 | --------------- | ----------------------- | ------------------------------------------------------- |
@@ -14,7 +15,7 @@ A summary of PRQL syntax
 | `[]`            | List                    | `select [id, amount]`                                   |
 | `()`            | Precedence              | `derive fahrenheit = (celsius - 32) * 1.8`              |
 | `''` & `""`     | Strings                 | `derive name = "Mary"`                                  |
-| ` `` `          | Quoted identifiers      | `` select `first name`  ``                              |
+| `` ` ` ``       | Quoted identifiers      | `` select `first name`  ``                              |
 | `#`             | Comment                 | `# A comment`                                           |
 | `@`             | Date & Times            | `@2021-01-01`                                           |
 | `==`            | Equality comparison     | `join s=salaries [s.emp_id == e.id]`                    |
