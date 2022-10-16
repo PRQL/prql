@@ -34,33 +34,49 @@ docker run -it -v $(pwd)/:/app -p 3000:3000 prql
 
 The following commands come from the `README.md`
 file in each of the component directories.
-Use the `docker run...` command above, then:
+Use the `docker run...` command above, then enter
+the command(s) below.
 
-**Playground** Use the command above, then enter:<br\>
-`cd playground; npm start`
+_(The first time you run a component, it may take some
+time to install additional files.
+Once they're built, start up is quick.)_
 
-**Language Book** Use the command above, then enter:<br\>
-`cd book; mdbook serve -n 0.0.0.0 -p 3000`
+**Playground:** Use the command above, then enter:
 
-**Website** Use the command above, then enter:<br\>
-`cd website; hugo server --bind 0.0.0.0 -p 3000`
+```bash
+cd playground
+npm install # first time only
+npm start
+```
 
-(_[I don't know how to run/test the following components]_)
+**Language Book:** Use the command above, then enter:
 
-**prql-compiler** Use the command above, then enter:<br\>
-`cd prql-compiler; ***what do people need to do?***`
+```
+cd book
+mdbook serve -n 0.0.0.0 -p 3000
+```
 
-**prql-java** Use the command above, then enter:<br\>
-`cd prql-java; *** what do people need to do?***`
+**Website:** Use the command above, then enter:
 
-**prql-js** Use the command above, then enter:<br\>
-`cd prql-js; ***what do people need to do?***`
+```
+cd website
+hugo server --bind 0.0.0.0 -p 3000
+```
 
-**prql-lib** Use the command above, then enter:<br\>
-`cd prql-lib; ***what do people need to do?***`
+**prql-compiler:** Use the command above, 
+`cd prql-compiler` then read the **Usage** section of the [README.md](./prql-compiler/README.md)
 
-**prql-macros** Use the command above, then enter:<br\>
-`cd prql-macros; ***what do people need to do?***`
+**prql-java:** Use the command above, 
+`cd prql-java ` then read the **Usage** section of the [README.md](./prql-java/README.md)
 
-**prql-python** Use the command above, then enter:<br\>
-`cd prql-python; ***what do people need to do?***`
+**prql-js:** Use the command above, 
+`cd prql-js ` then read the **Usage** section of the [README.md](./prql-js/README.md)
+
+**prql-lib:** Use the command above, 
+`cd prql-lib ` then read the **Usage** section of the [README.md](./prql-lib/README.md)
+
+**prql-macros:** Use the command above, 
+`cd prql-macros ` then read the **Usage** section of the [README.md](./prql-macros/README.md)
+
+**prql-python:** Use the command above, 
+`cd prql-python ` then read the **Usage** section of the [README.md](./prql-python/README.md)
