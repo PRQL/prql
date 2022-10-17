@@ -25,10 +25,10 @@ PRQL can be as simple as:
 ```elm
 from employees
 filter country == "USA"                       # Each line transforms the previous result
-aggregate [                                   # `aggregate` reduces column to a value
+aggregate [                                   # `aggregate` reduces each column to a value
   max salary,
   min salary,
-  count,                                      # Closing commas are allowed :)
+  count,                                      # Trailing commas are allowed :)
 ]
 ```
 
@@ -43,12 +43,12 @@ derive [                                      # `derive` adds columns / variable
 ]
 filter gross_cost > 0
 group [title, country] (                      # `group` runs a pipeline over each group
-  aggregate [                                 # `aggregate` reduces each group to a row
+  aggregate [                                 # `aggregate` reduces each group to a value
     average gross_salary,
     sum_gross_cost = sum gross_cost,          # `=` sets a column name
   ]
 )
-filter sum_gross_cost > 100000                # Identical syntax for SQL's `WHERE` & `HAVING`
+filter sum_gross_cost > 100000                # `filter` replaces both of SQL's `WHERE` & `HAVING`
 derive id = f"{title}_{country}"              # F-strings like python
 derive country_code = s"LEFT(country, 2)"     # S-strings allow using SQL as an escape hatch
 sort [sum_gross_cost, -country]               # `-country` means descending order
@@ -61,8 +61,16 @@ For more on the language, more examples & comparisons with SQL, visit
 
 ## Current status
 
-After several months of building, PRQL is ready to use! Check out the [0.2
-Release Notes](https://github.com/prql/prql/releases/tag/0.2.0)!
+PRQL is being actively developed by a growing community. It's ready to use for
+the intrepid, either as part of one of our supported extensions, or within your
+own tools, using one of our supported language bindings.
+
+PRQL still has some minor bugs and some missing features, and probably is only
+ready to rolled out to non-technical teams for fairly simple queries. We're very
+keen to hear what you would need to adopt it further.
+
+We expect a `0.3` release out in the coming weeks, which will add internal
+type-checking, close some lingering bugs, and unlock a few language features.
 
 ## Get involved
 
