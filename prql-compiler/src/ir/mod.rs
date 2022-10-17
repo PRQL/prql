@@ -1,13 +1,15 @@
+mod expr;
 mod ir_fold;
+mod id_gen;
 
-pub use ir_fold::IrFold;
+pub use ir_fold::*;
+pub use expr::{Expr, ExprKind};
+pub use id_gen::IdGenerator;
 
-/// Types for resolved AST
 use serde::{Deserialize, Serialize};
 
-use crate::error::Span;
-
-use crate::ast::{ColumnSort, Expr, Frame, QueryDef, Range, Ty};
+use crate::{ast::{WindowKind, TableRef, JoinSide, JoinFilter}};
+use crate::ast::{ColumnSort, QueryDef, Range};
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize, Default)]
 pub struct Query {
@@ -19,106 +21,68 @@ pub struct Query {
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Table {
-    pub name: String,
-    pub id: Option<usize>,
+    pub id: TId,
+
+    /// Given name of this table.
+    pub name: Option<String>,
 
     pub pipeline: Vec<Transform>,
 }
 
-/// Transform is a stage of a pipeline. It is created from a FuncCall during parsing.
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub struct Transform {
-    pub kind: TransformKind,
-
-    /// True when transform contains window functions
-    pub is_complex: bool,
-
-    /// Grouping of values in columns
-    pub partition: Vec<Expr>,
-
-    /// Windowing of values in columns
-    pub window: Option<(WindowKind, Range)>,
-
-    /// Result type
-    pub ty: Frame,
-
-    pub span: Option<Span>,
-}
-
+/// Transformation of a table.
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize, strum::AsRefStr)]
-pub enum TransformKind {
-    From(TableRef),
-    Select(Vec<Expr>),
-    Filter(Box<Expr>),
-    Derive(Vec<Expr>),
-    Aggregate {
-        assigns: Vec<Expr>,
-        by: Vec<Expr>,
-    },
-    Sort(Vec<ColumnSort<Expr>>),
-    Take {
-        range: Range,
-        by: Vec<Expr>,
-        sort: Vec<ColumnSort<Expr>>,
-    },
+pub enum Transform {
+    From(TableRef, Vec<ColumnDef>),
+    Derive(ColumnDef),
+    Select(Vec<CId>),
+    Filter(Expr),
+    Aggregate(Vec<ColumnDef>),
+    Sort(Vec<ColumnSort<CId>>),
+    Take(Range<Expr>),
     Join {
         side: JoinSide,
         with: TableRef,
-        filter: JoinFilter,
+        filter: JoinFilter<CId>,
     },
-    Group {
-        by: Vec<Expr>,
-        pipeline: Vec<Transform>,
-    },
-    Window {
-        kind: WindowKind,
-        range: Range,
-        pipeline: Vec<Transform>,
-    },
-    Unique, // internal only, can be expressed with group & take
+    Unique,    
+}
+
+/// Transformation of a table.
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+pub struct Window {
+    kind: WindowKind,
+    range: Range<CId>,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub struct Windowed {
-    pub sort: Vec<ColumnSort<Expr>>,
+pub struct ColumnDef {
+    pub id: CId,
+    pub name: Option<String>,
+    pub expr: Expr,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
-pub enum WindowKind {
-    Rows,
-    Range,
-}
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub struct TableRef {
-    pub name: String,
-    pub alias: Option<String>,
-    pub declared_at: Option<usize>,
-    pub ty: Option<Ty>,
+/// Column id
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct CId(usize);
+
+impl CId {
+    pub fn new(id: usize) -> Self {
+        CId(id)
+    }
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub enum JoinFilter {
-    On(Vec<Expr>),
-    Using(Vec<Expr>),
+/// Table id
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct TId(usize);
+
+impl TId {
+    pub fn new(id: usize) -> Self {
+        TId(id)
+    }
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
-pub enum JoinSide {
-    Inner,
-    Left,
-    Right,
-    Full,
-}
-
-impl From<TransformKind> for Transform {
-    fn from(kind: TransformKind) -> Self {
-        Transform {
-            kind,
-            is_complex: false,
-            ty: Frame::default(),
-            span: None,
-            partition: Vec::new(),
-            window: None,
-        }
+impl Default for Window {
+    fn default() -> Self {
+        Self { kind: WindowKind::Rows, range: Range::unbounded() }
     }
 }

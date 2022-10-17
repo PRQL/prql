@@ -61,8 +61,8 @@ pub trait AstFold {
     fn fold_type(&mut self, t: Ty) -> Result<Ty> {
         fold_type(self, t)
     }
-    fn fold_windowed(&mut self, windowed: Windowed) -> Result<Windowed> {
-        fold_windowed(self, windowed)
+    fn fold_window(&mut self, window: Window) -> Result<Window> {
+        fold_window(self, window)
     }
 }
 
@@ -96,10 +96,9 @@ pub fn fold_expr_kind<T: ?Sized + AstFold>(fold: &mut T, expr_kind: ExprKind) ->
         ),
         FuncCall(func_call) => FuncCall(fold.fold_func_call(func_call)?),
         Closure(closure) => Closure(fold.fold_closure(closure)?),
-        Windowed(window) => Windowed(fold.fold_windowed(window)?),
 
-        // ResolvedPipeline cannot be folded by ast_fold, use ir_fold
-        ResolvedPipeline(transforms) => ResolvedPipeline(transforms),
+        // TODO: expand this (it's probably not needed, so I didn't)
+        TransformCall(transform) => TransformCall(transform),
 
         // None of these capture variables, so we don't need to fold them.
         Literal(_) => expr_kind,
@@ -116,15 +115,10 @@ pub fn fold_stmt_kind<T: ?Sized + AstFold>(fold: &mut T, stmt_kind: StmtKind) ->
     })
 }
 
-pub fn fold_windowed<F: ?Sized + AstFold>(fold: &mut F, window: Windowed) -> Result<Windowed> {
-    Ok(Windowed {
-        expr: Box::new(fold.fold_expr(*window.expr)?),
-        group: fold.fold_exprs(window.group)?,
-        sort: window.sort,
-        window: {
-            let (kind, range) = window.window;
-            (kind, fold_range(fold, range)?)
-        },
+pub fn fold_window<F: ?Sized + AstFold>(fold: &mut F, window: Window) -> Result<Window> {
+    Ok(Window {
+        kind: window.kind,
+        range: fold_range(fold, window.range)?
     })
 }
 

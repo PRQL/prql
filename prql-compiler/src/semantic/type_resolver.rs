@@ -23,8 +23,6 @@ pub fn resolve_type(node: &Expr) -> Result<Ty> {
             Literal::ValueAndUnit(_) => Ty::Infer, // TODO
         },
 
-        ExprKind::Windowed(w) => resolve_type(w.expr.as_ref())?,
-
         ExprKind::Ident(_) | ExprKind::Pipeline(_) | ExprKind::FuncCall(_) => Ty::Infer,
 
         ExprKind::SString(_) => Ty::Infer, // TODO

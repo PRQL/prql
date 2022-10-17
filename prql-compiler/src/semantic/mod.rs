@@ -1,6 +1,6 @@
-mod complexity;
 mod context;
 mod declarations;
+mod lowering;
 mod reporting;
 mod resolver;
 mod scope;
@@ -24,7 +24,11 @@ use anyhow::Result;
 pub fn resolve(statements: Vec<Stmt>, context: Option<Context>) -> Result<(Query, Context)> {
     let context = context.unwrap_or_else(load_std_lib);
 
-    let (query, context) = resolver::resolve(statements, context)?;
+    let (statements, context) = resolver::resolve(statements, context)?;
+
+    // TODO: make resolve return only query and remove this clone here:
+    let query = lowering::lower_ast_to_ir(statements, context.clone())?;
+
     Ok((query, context))
 }
 

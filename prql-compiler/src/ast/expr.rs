@@ -6,12 +6,12 @@ use enum_as_inner::EnumAsInner;
 use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Reason, Span};
-use crate::ir::{Transform, WindowKind};
+use crate::ir::CId;
 use crate::semantic::Declaration;
 
 use super::*;
 
-/// Expr is anything that has a value and thus a type. 
+/// Expr is anything that has a value and thus a type.
 /// If it cannot contain nested Exprs, is should be under [ExprKind::Literal].
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Expr {
@@ -52,13 +52,9 @@ pub enum ExprKind {
     },
     FuncCall(FuncCall),
     Closure(Closure),
+    TransformCall(TransformCall),
     SString(Vec<InterpolateItem>),
     FString(Vec<InterpolateItem>),
-    Windowed(Windowed),
-
-    /// Resolved table transforms.
-    /// TODO: figure out a way to remove this
-    ResolvedPipeline(Vec<Transform>),
 }
 
 /// A name. Generally columns, tables, functions, variables.
@@ -143,22 +139,9 @@ pub struct Closure {
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub struct Windowed {
-    pub expr: Box<Expr>,
-    pub group: Vec<Expr>,
-    pub sort: Vec<ColumnSort<Expr>>,
-    pub window: (WindowKind, Range),
-}
-
-impl Windowed {
-    pub fn new(node: Expr, window: (WindowKind, Range)) -> Self {
-        Windowed {
-            expr: Box::new(node),
-            group: vec![],
-            sort: vec![],
-            window,
-        }
-    }
+pub struct Window {
+    pub kind: WindowKind,
+    pub range: Range,
 }
 
 /// A value and a series of functions that are to be applied to that value one after another.
@@ -168,9 +151,9 @@ pub struct Pipeline {
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub enum InterpolateItem {
+pub enum InterpolateItem<T = Expr> {
     String(String),
-    Expr(Box<Expr>),
+    Expr(Box<T>),
 }
 
 /// Inclusive-inclusive range.
@@ -181,7 +164,7 @@ pub struct Range<T = Box<Expr>> {
     pub end: Option<T>,
 }
 
-impl <T> Range<T> {
+impl<T> Range<T> {
     pub const fn unbounded() -> Self {
         Range {
             start: None,
@@ -196,29 +179,114 @@ impl Range {
         let end = end.map(|x| Box::new(Expr::from(ExprKind::Literal(Literal::Integer(x)))));
         Range { start, end }
     }
+}
 
-    pub fn into_int(self) -> Result<Range<i64>> {
-        fn cast_bound(bound: Expr) -> Result<i64> {
-            Ok(bound.kind.into_literal()?.into_integer()?)
+/// FuncCall with better typing. Returns the modified table.
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+pub struct TransformCall {
+    pub kind: Box<TransformKind>,
+
+    /// Grouping of values in columns
+    pub partition: Vec<CId>,
+
+    /// Windowing of values in columns
+    pub window: Window,
+
+    /// Windowing of values in columns
+    pub sort: Vec<ColumnSort<CId>>,
+}
+
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, strum::AsRefStr)]
+pub enum TransformKind {
+    From(Expr),
+    Derive {
+        assigns: Vec<Expr>,
+        tbl: Expr,
+    },
+    Select {
+        assigns: Vec<Expr>,
+        tbl: Expr,
+    },
+    Filter {
+        filter: Expr,
+        tbl: Expr,
+    },
+    Aggregate {
+        assigns: Vec<Expr>,
+        tbl: Expr,
+    },
+    Sort {
+        by: Vec<ColumnSort<Expr>>,
+        tbl: Expr,
+    },
+    Take {
+        range: Range,
+        tbl: Expr,
+    },
+    Join {
+        side: JoinSide,
+        with: Expr,
+        filter: JoinFilter<Expr>,
+        tbl: Expr,
+    },
+
+    Group {
+        by: Vec<Expr>,
+        pipeline: Expr,
+        tbl: Expr,
+    },
+
+    Window {
+        kind: WindowKind,
+        range: Range,
+        pipeline: Expr,
+        tbl: Expr,
+    },
+}
+
+impl TransformKind {
+    pub fn tbl_arg_mut(&mut self) -> Option<&mut Expr> {
+        use TransformKind::*;
+        match self {
+            From(_) => None,
+            Derive { tbl, .. }
+            | Select { tbl, .. }
+            | Filter { tbl, .. }
+            | Aggregate { tbl, .. }
+            | Sort { tbl, .. }
+            | Take { tbl, .. }
+            | Join { tbl, .. }
+            | Group { tbl, .. }
+            | Window { tbl, .. } => Some(tbl),
         }
-
-        Ok(Range {
-            start: self.start.map(|b| cast_bound(*b)).transpose()?,
-            end: self.end.map(|b| cast_bound(*b)).transpose()?,
-        })
     }
 }
 
-// I could imagine there being a wrapper of this to represent "2 days 3 hours".
-// Or should that be written as `2days + 3hours`?
-//
-// #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-// pub struct Interval(pub Vec<IntervalPart>);
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct Interval {
-    pub n: i64,       // Do any DBs use floats or decimals for this?
-    pub unit: String, // Could be an enum IntervalType,
+#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
+pub enum WindowKind {
+    Rows,
+    Range,
+}
+
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+pub enum TableRef {
+    LocalTable(String),
+    // TODO: add other sources such as files, URLs
+}
+
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+pub enum JoinFilter<T = CId> {
+    On(Vec<T>),
+    Using(Vec<T>),
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
+pub enum JoinSide {
+    Inner,
+    Left,
+    Right,
+    Full,
 }
 
 impl Expr {
@@ -282,6 +350,23 @@ impl From<ExprKind> for Expr {
 impl From<Vec<Expr>> for Pipeline {
     fn from(nodes: Vec<Expr>) -> Self {
         Pipeline { exprs: nodes }
+    }
+}
+
+impl From<TransformKind> for TransformCall {
+    fn from(kind: TransformKind) -> Self {
+        TransformCall {
+            kind: Box::new(kind),
+            partition: Vec::new(),
+            window: Window::default(),
+            sort: Vec::new(),
+        }
+    }
+}
+
+impl Default for Window {
+    fn default() -> Self {
+        Self { kind: WindowKind::Rows, range: Range::unbounded() }
     }
 }
 
@@ -396,13 +481,8 @@ impl Display for Expr {
             ExprKind::FString(parts) => {
                 display_interpolation(f, "f", parts)?;
             }
-            ExprKind::Windowed(w) => {
-                write!(f, "{}", w.expr)?;
-            }
-            ExprKind::ResolvedPipeline(transforms) => {
-                for transform in transforms {
-                    writeln!(f, "{} <unimplemented>", transform.kind.as_ref())?;
-                }
+            ExprKind::TransformCall(transform) => {
+                writeln!(f, "{} <unimplemented>", (*transform.kind).as_ref())?;
             }
             ExprKind::Literal(literal) => {
                 write!(f, "{}", literal)?;

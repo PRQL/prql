@@ -27,8 +27,8 @@ pub fn compile(prql: &str) -> Result<String> {
 }
 
 pub fn resolve_and_translate(statements: Vec<Stmt>) -> Result<String> {
-    let (query, context) = semantic::resolve(statements, None)?;
-    translate(query, context)
+    let (query, _context) = semantic::resolve(statements, None)?;
+    translate(query)
 }
 
 /// Format a PRQL query

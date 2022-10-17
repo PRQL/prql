@@ -110,8 +110,9 @@ impl AstFold for FrameCollector {}
 
 impl IrFold for FrameCollector {
     fn fold_transform(&mut self, transform: Transform) -> Result<Transform> {
-        let span = transform.span.expect("transform without a span?");
-        self.frames.push((span, transform.ty.clone()));
+        // TODO: fix this
+        // let span = transform.span.expect("transform without a span?");
+        // self.frames.push((span, transform.ty.clone()));
         Ok(transform)
     }
 }

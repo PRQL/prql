@@ -7,7 +7,6 @@ use itertools::Itertools;
 use crate::ast::ast_fold::*;
 use crate::ast::*;
 use crate::error::{Error, Reason, Span};
-use crate::ir::{Query, Table, Transform};
 use crate::semantic::scope::NS_PARAM;
 
 use super::scope::NS_FRAME;
@@ -17,12 +16,12 @@ use super::{Context, Declaration, Frame};
 /// Runs semantic analysis on the query, using current state.
 ///
 /// Note that this removes function declarations from AST and saves them as current context.
-pub fn resolve(statements: Vec<Stmt>, context: Context) -> Result<(Query, Context)> {
+pub fn resolve(statements: Vec<Stmt>, context: Context) -> Result<(Vec<Stmt>, Context)> {
     let mut resolver = Resolver::new(context);
 
-    let query = resolver.fold_statements(statements)?;
+    let statements = resolver.fold_statements(statements)?;
 
-    Ok((query, resolver.context))
+    Ok((statements, resolver.context))
 }
 
 /// Can fold (walk) over AST and for each function call or variable find what they are referencing.
@@ -42,6 +41,26 @@ impl Resolver {
             namespace: Namespace::FunctionsColumns,
             in_func_call_name: false,
         }
+    }
+
+    /// fold statements and extract results into a [Query]
+    fn fold_statements(&mut self, stmts: Vec<Stmt>) -> Result<Vec<Stmt>> {
+        let mut res = Vec::new();
+
+        for stmt in stmts {
+            let kind = match stmt.kind {
+                StmtKind::QueryDef(d) => StmtKind::QueryDef(d),
+                StmtKind::FuncDef(func_def) => {
+                    self.context.declare_func(func_def);
+                    continue;
+                }
+                StmtKind::TableDef(table) => StmtKind::TableDef(self.fold_table(table)?),
+                StmtKind::Pipeline(expr) => StmtKind::Pipeline(self.fold_expr(expr)?),
+            };
+
+            res.push(Stmt { kind, ..stmt })
+        }
+        Ok(res)
     }
 }
 
@@ -133,6 +152,16 @@ impl AstFold for Resolver {
         }
         Ok(r)
     }
+
+    fn fold_table(&mut self, TableDef { name, value, .. }: TableDef) -> Result<TableDef> {
+        let id = self.context.declare_table(name.clone(), None);
+
+        Ok(TableDef {
+            id: Some(id),
+            name: name,
+            value: Box::new(self.fold_expr(*value)?),
+        })
+    }
 }
 
 fn closure_of_func_def(func_def: &FuncDef) -> Closure {
@@ -188,31 +217,14 @@ impl Resolver {
 
             // evaluate
             match super::transforms::cast_transform(self, closure)? {
-                Ok((preceding_pipeline, transform)) => {
+                Ok(transform) => {
                     // this function call is a transform, append it to the pipeline
 
-                    let mut pipeline = preceding_pipeline
-                        .unwrap_or_else(|| ExprKind::ResolvedPipeline(vec![]).into());
-
-                    let ty = pipeline.ty.as_ref().and_then(|t| t.as_table());
-                    let frame_before = ty.cloned().unwrap_or_default();
-                    let frame_after = transform.apply_to(frame_before)?;
-                    pipeline.ty = Some(Ty::Table(frame_after.clone()));
-
-                    let transform = Transform {
-                        kind: transform,
-                        ty: frame_after,
-                        is_complex: false,
-                        span,
-                        partition: vec![],
-                        window: None,
-                    };
-
-                    if let Some(transforms) = pipeline.kind.as_resolved_pipeline_mut() {
-                        transforms.push(transform);
-                    }
-
-                    pipeline
+                    let ty = Ty::Table(transform.infer_type()?);
+                    let mut expr = Expr::from(ExprKind::TransformCall(transform.into()));
+                    expr.ty = Some(ty);
+                    expr.span = span;
+                    expr
                 }
                 Err(closure) => {
                     // this function call is not a transform, proceed with materialization
@@ -431,54 +443,6 @@ impl Resolver {
         };
         self.namespace = prev_namespace;
         res
-    }
-
-    /// fold statements and extract results into a [Query]
-    fn fold_statements(&mut self, stmts: Vec<Stmt>) -> Result<Query> {
-        let mut def = None;
-        let mut main_pipeline = Vec::new();
-        let mut tables = Vec::new();
-
-        for stmt in stmts {
-            match stmt.kind {
-                StmtKind::QueryDef(d) => def = Some(d),
-                StmtKind::FuncDef(func_def) => {
-                    self.context.declare_func(func_def);
-                }
-                StmtKind::TableDef(table) => {
-                    let table = self.fold_table(table)?;
-                    let table = Table {
-                        id: table.id,
-                        name: table.name,
-                        pipeline: table.value.kind.into_resolved_pipeline()?,
-                    };
-                    tables.push(table);
-                }
-                StmtKind::Pipeline(expr) => {
-                    let expr = self.fold_expr(expr)?;
-
-                    match expr.kind {
-                        ExprKind::ResolvedPipeline(transforms) => {
-                            main_pipeline = transforms;
-                        }
-                        _ => {
-                            bail!(Error::new(Reason::Expected {
-                                who: None,
-                                expected: "pipeline that resolves to a table".to_string(),
-                                found: format!("`{expr}`")
-                            })
-                            .with_help("are you missing `from` statement?")
-                            .with_span(stmt.span))
-                        }
-                    }
-                }
-            }
-        }
-        Ok(Query {
-            def: def.unwrap_or_default(),
-            main_pipeline,
-            tables,
-        })
     }
 }
 

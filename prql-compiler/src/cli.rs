@@ -102,7 +102,7 @@ impl Cli {
 
                 [
                     format!("{:?}", context.declarations).into_bytes(),
-                    serde_yaml::to_string(&ir)?.into_bytes(),
+                    serde_json::to_string_pretty(&ir)?.into_bytes(),
                 ]
                 .concat()
             }

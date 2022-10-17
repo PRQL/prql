@@ -1,10 +1,10 @@
 use anyhow::Result;
 
 use crate::ast::{ast_fold::AstFold, *};
-use crate::ir::{IrFold, Transform, TransformKind, WindowKind};
+use crate::ir::{IrFold, Transform, TransformKind};
 use crate::semantic::Declaration;
 
-use super::materializer::MaterializationContext;
+use super::anchor::MaterializationContext;
 
 pub fn take_to_distinct(
     query: Vec<Transform>,
@@ -24,6 +24,7 @@ impl<'a> IrFold for DistinctMaker<'a> {
 
         for transform in transforms {
             match transform.kind {
+                /*
                 TransformKind::Take { ref by, .. } if by.is_empty() => {
                     res.push(transform);
                 }
@@ -47,6 +48,7 @@ impl<'a> IrFold for DistinctMaker<'a> {
                 _ => {
                     res.push(transform);
                 }
+                 */
             }
         }
         Ok(res)
@@ -93,7 +95,10 @@ impl<'a> DistinctMaker<'a> {
 
         // add the two transforms
         let transforms = vec![
-            TransformKind::Derive(vec![ident.clone()]).into(),
+            Transform {
+
+            }, 
+        TransformKind::Derive(vec![ident.clone()]),
             Transform {
                 kind: TransformKind::Filter(Box::new(match (range_int.start, range_int.end) {
                     (Some(s), Some(e)) if s == e => Expr::from(ExprKind::Binary {

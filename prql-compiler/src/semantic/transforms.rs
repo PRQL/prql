@@ -4,10 +4,406 @@ use itertools::Itertools;
 use crate::ast::ast_fold::AstFold;
 use crate::ast::*;
 use crate::error::{Error, Reason};
-use crate::ir::{JoinFilter, JoinSide, TableRef, TransformKind, WindowKind};
 
 use super::resolver::Resolver;
-use super::{Frame, FrameColumn};
+use super::Frame;
+
+/// try to convert function call with enough args into transform
+pub fn cast_transform(
+    resolver: &mut Resolver,
+    closure: Closure,
+) -> Result<Result<TransformCall, Closure>> {
+    // TODO: We don't want to match transforms by name.
+    // Add `builtin` parse derivation that produces a special AST node.
+    // This node can then matched here instead of matching a string function name.
+
+    let kind = match closure.name.as_deref().unwrap_or("") {
+        "from" => {
+            let ([source], []) = unpack::<1, 0>(closure)?;
+
+            TransformKind::From(source)
+        }
+        "select" => {
+            let ([assigns, tbl], []) = unpack::<2, 0>(closure)?;
+
+            let mut assigns = assigns.coerce_into_vec();
+            resolver.context.declare_as_idents(&mut assigns);
+
+            TransformKind::Select { assigns, tbl }
+        }
+        "filter" => {
+            let ([filter, tbl], []) = unpack::<2, 0>(closure)?;
+
+            TransformKind::Filter { filter, tbl }
+        }
+        "derive" => {
+            let ([assigns, tbl], []) = unpack::<2, 0>(closure)?;
+
+            let mut assigns = assigns.coerce_into_vec();
+            resolver.context.declare_as_idents(&mut assigns);
+
+            TransformKind::Derive { assigns, tbl }
+        }
+        "aggregate" => {
+            let ([assigns, tbl], []) = unpack::<2, 0>(closure)?;
+
+            let mut assigns = assigns.coerce_into_vec();
+            resolver.context.declare_as_idents(&mut assigns);
+
+            TransformKind::Aggregate { assigns, tbl }
+        }
+        "sort" => {
+            let ([by, tbl], []) = unpack::<2, 0>(closure)?;
+
+            let by = by
+                .coerce_into_vec()
+                .into_iter()
+                .map(|node| {
+                    let (mut column, direction) = match node.kind {
+                        ExprKind::Unary { op, expr } if matches!(op, UnOp::Neg) => {
+                            (*expr, SortDirection::Desc)
+                        }
+                        _ => (node, SortDirection::default()),
+                    };
+
+                    resolver.context.declare_as_ident(&mut column);
+
+                    ColumnSort { direction, column }
+                })
+                .collect();
+
+            TransformKind::Sort { by, tbl }
+        }
+        "take" => {
+            let ([expr, tbl], []) = unpack::<2, 0>(closure)?;
+
+            let range = match expr.kind {
+                ExprKind::Literal(Literal::Integer(n)) => Range::from_ints(None, Some(n)),
+                ExprKind::Range(range) => range,
+                _ => unimplemented!("`take` range: {expr}"),
+            };
+
+            TransformKind::Take { range, tbl }
+        }
+        "join" => {
+            let ([with, filter, tbl], [side]) = unpack::<3, 1>(closure)?;
+
+            let side = if let Some(side) = side {
+                let span = side.span;
+                let ident = side.try_cast(ExprKind::into_ident, Some("side"), "ident")?;
+                match ident.as_str() {
+                    "inner" => JoinSide::Inner,
+                    "left" => JoinSide::Left,
+                    "right" => JoinSide::Right,
+                    "full" => JoinSide::Full,
+
+                    found => bail!(Error::new(Reason::Expected {
+                        who: Some("`side`".to_string()),
+                        expected: "inner, left, right or full".to_string(),
+                        found: found.to_string()
+                    })
+                    .with_span(span)),
+                }
+            } else {
+                JoinSide::Inner
+            };
+
+            let filter = filter.coerce_into_vec();
+            let use_using =
+                (filter.iter().map(|x| &x.kind)).all(|x| matches!(x, ExprKind::Ident(_)));
+
+            let filter = if use_using {
+                JoinFilter::Using(filter)
+            } else {
+                JoinFilter::On(filter)
+            };
+
+            TransformKind::Join {
+                side,
+                with,
+                filter,
+                tbl,
+            }
+        }
+        "group" => {
+            let ([by, pipeline, tbl], []) = unpack::<3, 0>(closure)?;
+
+            let by = by
+                .coerce_into_vec()
+                .into_iter()
+                // check that they are only idents
+                .map(|n| match n.kind {
+                    ExprKind::Ident(_) => Ok(n),
+                    _ => Err(Error::new(Reason::Simple(
+                        "`group` expects only idents for the `by` argument".to_string(),
+                    ))
+                    .with_span(n.span)),
+                })
+                .try_collect()?;
+
+            // simulate evaluation of the inner pipeline
+
+            // resolver will not resolve a function call if any arguments are missing but
+            // would instead return a closure to be resolved later.
+            // because the pipeline of group is a function that takes a table chunk and applies
+            // the transforms to it, it would not get resolved.
+            // thats why we trick the resolver with a dummy node that acts as table chunk and
+            // instruct resolver to apply the transform on that.
+
+            // TODO: having dummy already be `x` is a hack.
+            // Dummy should be substituted in later.
+            let mut dummy = Expr::from(ExprKind::Ident("_x".to_string()));
+            dummy.ty = tbl.ty.clone();
+
+            let pipeline = Expr::from(ExprKind::FuncCall(FuncCall {
+                name: Box::new(pipeline),
+                args: vec![dummy],
+                named_args: Default::default(),
+            }));
+            let pipeline = resolver.fold_expr(pipeline)?;
+
+            // now, we need wrap the result into a closure and replace the dummy node with closure's parameter.
+
+            // extract reference to the dummy node
+            // let mut tbl_node = extract_ref_to_first(&mut pipeline);
+            // *tbl_node = Expr::from(ExprKind::Ident("x".to_string()));
+
+            let pipeline = Expr::from(ExprKind::Closure(Closure {
+                name: None,
+                body: Box::new(pipeline),
+
+                args: vec![],
+                params: vec![FuncParam {
+                    name: "_x".to_string(),
+                    ty: None,
+                    default_value: None,
+                }],
+
+                named_args: vec![],
+                named_params: vec![],
+
+                env: Default::default(),
+            }));
+
+            TransformKind::Group { by, pipeline, tbl }
+        }
+        "window" => {
+            let ([pipeline, tbl], [rows, range, expanding, rolling]) = unpack::<2, 4>(closure)?;
+
+            let expanding = if let Some(expanding) = expanding {
+                let as_bool = expanding.kind.as_literal().and_then(|l| l.as_boolean());
+
+                *as_bool.ok_or_else(|| {
+                    Error::new(Reason::Expected {
+                        who: Some("parameter `expanding`".to_string()),
+                        expected: "a boolean".to_string(),
+                        found: format!("{expanding}"),
+                    })
+                    .with_span(expanding.span)
+                })?
+            } else {
+                false
+            };
+
+            let rolling = if let Some(rolling) = rolling {
+                let as_int = rolling.kind.as_literal().and_then(|x| x.as_integer());
+
+                *as_int.ok_or_else(|| {
+                    Error::new(Reason::Expected {
+                        who: Some("parameter `rolling`".to_string()),
+                        expected: "a number".to_string(),
+                        found: format!("{rolling}"),
+                    })
+                    .with_span(rolling.span)
+                })?
+            } else {
+                0
+            };
+
+            let rows = if let Some(rows) = rows {
+                Some(rows.try_cast(|r| r.into_range(), Some("parameter `rows`"), "a range")?)
+            } else {
+                None
+            };
+
+            let range = if let Some(range) = range {
+                Some(range.try_cast(|r| r.into_range(), Some("parameter `range`"), "a range")?)
+            } else {
+                None
+            };
+
+            let (kind, range) = if expanding {
+                (WindowKind::Rows, Range::from_ints(None, Some(0)))
+            } else if rolling > 0 {
+                (
+                    WindowKind::Rows,
+                    Range::from_ints(Some(-rolling + 1), Some(0)),
+                )
+            } else if let Some(range) = rows {
+                (WindowKind::Rows, range)
+            } else if let Some(range) = range {
+                (WindowKind::Range, range)
+            } else {
+                (WindowKind::Rows, Range::unbounded())
+            };
+
+            // simulate evaluation of the inner pipeline
+            let mut value = Expr::from(ExprKind::Literal(Literal::Null));
+            value.ty = tbl.ty.clone();
+
+            let pipeline = Expr::from(ExprKind::FuncCall(FuncCall {
+                name: Box::new(pipeline),
+                args: vec![value],
+                named_args: Default::default(),
+            }));
+            let pipeline = resolver.fold_expr(pipeline)?;
+
+            TransformKind::Window {
+                kind,
+                range,
+                pipeline,
+                tbl,
+            }
+        }
+        _ => return Ok(Err(closure)),
+    };
+
+    Ok(Ok(TransformCall::from(kind)))
+}
+
+impl TransformCall {
+    pub fn infer_type(&self) -> Result<Frame> {
+        use TransformKind::*;
+
+        fn ty_frame_or_default(expr: &Expr) -> Frame {
+            expr.ty
+                .as_ref()
+                .and_then(|t| t.as_table())
+                .cloned()
+                .unwrap_or_default()
+        }
+
+        Ok(match self.kind.as_ref() {
+            From(t) => match &t.ty {
+                Some(Ty::Table(f)) => f.clone(),
+                Some(ty) => bail!("`from` expected a table name, got `{t}` of type `{ty}`"),
+                a => bail!("`from` expected a frame got `{t:?}` of type {a:?}"),
+            },
+
+            Select { assigns, tbl } => {
+                let mut frame = ty_frame_or_default(tbl);
+
+                frame.columns.clear();
+                frame.apply_assigns(assigns);
+                frame
+            }
+            Derive { assigns, tbl } => {
+                let mut frame = ty_frame_or_default(tbl);
+
+                frame.apply_assigns(assigns);
+                frame
+            }
+            Group { pipeline, .. } => {
+                // pipeline's body is resolved, just use its type
+                let Closure { body, .. } = pipeline.kind.as_closure().unwrap();
+
+                body.ty.clone().unwrap().into_table().unwrap()
+            }
+            Window { pipeline, .. } => {
+                // pipeline's body is resolved, just use its type
+                let Closure { body, .. } = pipeline.kind.as_closure().unwrap();
+
+                body.ty.clone().unwrap().into_table().unwrap()
+            }
+            Aggregate { assigns, tbl } => {
+                let mut frame = ty_frame_or_default(tbl);
+
+                // let old_columns = frame.columns.clone();
+
+                frame.columns.clear();
+
+                // TODO: add `by` columns into frame when aggregate is within group
+                // for b in by {
+                //     let id = b.declared_at.unwrap();
+                //     let col = old_columns.iter().find(|c| c == &&id);
+                //     let name = col.and_then(|c| match c {
+                //         FrameColumn::Named(n, _) => Some(n.clone()),
+                //         _ => None,
+                //     });
+
+                //     frame.push_column(name, id);
+                // }
+
+                frame.apply_assigns(assigns);
+                frame
+            }
+            Join {
+                filter, tbl, ..
+            } => {
+                let mut frame = ty_frame_or_default(tbl);
+
+                // TODO: add table id into frame and columns
+                // let table_id = with
+                //     .declared_at
+                //     .ok_or_else(|| anyhow!("unresolved table {with:?}"))?;
+                // frame.tables.push(table_id);
+                // frame.columns.push(FrameColumn::All(table_id));
+
+                match filter {
+                    JoinFilter::On(_) => {}
+                    JoinFilter::Using(nodes) => {
+                        for node in nodes {
+                            let name = node.kind.as_ident().unwrap().clone();
+                            let id = node.declared_at.unwrap();
+                            frame.push_column(Some(name), id);
+                        }
+                    }
+                }
+                frame
+            }
+            Sort { by, tbl } => {
+                let mut frame = ty_frame_or_default(tbl);
+
+                frame.sort = extract_sorts(by)?;
+                frame
+            }
+            Filter { tbl, .. } | Take { tbl, .. } => {
+                ty_frame_or_default(tbl)
+            }
+        })
+
+        // if !self.within_group.is_empty() {
+        //     self.apply_group(&mut t)?;
+        // }
+        // if self.within_window.is_some() {
+        //     self.apply_window(&mut t)?;
+        // }
+    }
+}
+
+pub fn extract_sorts(sort: &[ColumnSort]) -> Result<Vec<ColumnSort<usize>>> {
+    sort.iter()
+        .map(|s| {
+            Ok(ColumnSort {
+                column: (s.column.declared_at)
+                    .ok_or_else(|| anyhow!("Unresolved ident in sort?"))?,
+                direction: s.direction.clone(),
+            })
+        })
+        .try_collect()
+}
+
+fn unpack<const P: usize, const N: usize>(
+    closure: Closure,
+) -> Result<([Expr; P], [Option<Expr>; N])> {
+    let named = closure
+        .named_args
+        .try_into()
+        .unwrap_or_else(|na| panic!("bad transform cast: {:?} {na:?}", closure.name));
+    let positional = closure.args.try_into().expect("bad transform cast");
+
+    Ok((positional, named))
+}
 
 /*
 fn fold_node(&mut self, mut node: Node) -> Result<Node> {
@@ -37,109 +433,6 @@ fn fold_node(&mut self, mut node: Node) -> Result<Node> {
     }
     Ok(node)
 } */
-
-impl TransformKind {
-    pub fn apply_to(&self, mut frame: Frame) -> Result<Frame> {
-        Ok(match self {
-            TransformKind::From(t) => match &t.ty {
-                Some(Ty::Table(f)) => f.clone(),
-                Some(ty) => bail!(
-                    "`from` expected a table name, got `{}` of type `{ty}`",
-                    t.name
-                ),
-                a => bail!("`from` expected a frame got `{t:?}` of type {a:?}"),
-            },
-
-            TransformKind::Select(assigns) => {
-                frame.columns.clear();
-                frame.apply_assigns(assigns);
-                frame
-            }
-            TransformKind::Derive(assigns) => {
-                frame.apply_assigns(assigns);
-                frame
-            }
-            TransformKind::Group { pipeline, .. } => {
-                frame.sort.clear();
-
-                for transform in pipeline {
-                    frame = transform.kind.apply_to(frame)?;
-                }
-                frame
-            }
-            TransformKind::Window { pipeline, .. } => {
-                frame.sort.clear();
-
-                for transform in pipeline {
-                    frame = transform.kind.apply_to(frame)?;
-                }
-                frame
-            }
-            TransformKind::Aggregate { assigns, by } => {
-                let old_columns = frame.columns.clone();
-
-                frame.columns.clear();
-
-                for b in by {
-                    let id = b.declared_at.unwrap();
-                    let col = old_columns.iter().find(|c| c == &&id);
-                    let name = col.and_then(|c| match c {
-                        FrameColumn::Named(n, _) => Some(n.clone()),
-                        _ => None,
-                    });
-
-                    frame.push_column(name, id);
-                }
-
-                frame.apply_assigns(assigns);
-                frame
-            }
-            TransformKind::Join { with, filter, .. } => {
-                let table_id = with
-                    .declared_at
-                    .ok_or_else(|| anyhow!("unresolved table {with:?}"))?;
-                frame.tables.push(table_id);
-                frame.columns.push(FrameColumn::All(table_id));
-
-                match filter {
-                    JoinFilter::On(_) => {}
-                    JoinFilter::Using(nodes) => {
-                        for node in nodes {
-                            let name = node.kind.as_ident().unwrap().clone();
-                            let id = node.declared_at.unwrap();
-                            frame.push_column(Some(name), id);
-                        }
-                    }
-                }
-                frame
-            }
-            TransformKind::Sort(sort) => {
-                frame.sort = extract_sorts(sort)?;
-                frame
-            }
-            TransformKind::Filter(_) | TransformKind::Take { .. } | TransformKind::Unique => frame,
-        })
-
-        // if !self.within_group.is_empty() {
-        //     self.apply_group(&mut t)?;
-        // }
-        // if self.within_window.is_some() {
-        //     self.apply_window(&mut t)?;
-        // }
-    }
-}
-
-pub fn extract_sorts(sort: &[ColumnSort]) -> Result<Vec<ColumnSort<usize>>> {
-    sort.iter()
-        .map(|s| {
-            Ok(ColumnSort {
-                column: (s.column.declared_at)
-                    .ok_or_else(|| anyhow!("Unresolved ident in sort?"))?,
-                direction: s.direction.clone(),
-            })
-        })
-        .try_collect()
-}
 
 /*
 impl TransformConstructor {
@@ -225,282 +518,6 @@ impl TransformConstructor {
         Ok(())
     }
 } */
-
-type PipelineAndTransform = (Option<Expr>, TransformKind);
-
-/// try to convert function call with enough args into transform
-pub fn cast_transform(
-    resolver: &mut Resolver,
-    closure: Closure,
-) -> Result<Result<PipelineAndTransform, Closure>> {
-    Ok(Ok(match closure.name.as_deref().unwrap_or("") {
-        "from" => {
-            let ([with], []) = unpack::<1, 0>(closure)?;
-
-            (None, TransformKind::From(unpack_table_ref(with)?))
-        }
-        "select" => {
-            let ([assigns, pipeline], []) = unpack::<2, 0>(closure)?;
-
-            let mut assigns = assigns.coerce_into_vec();
-            resolver.context.declare_as_idents(&mut assigns);
-
-            (Some(pipeline), TransformKind::Select(assigns))
-        }
-        "filter" => {
-            let ([filter, pipeline], []) = unpack::<2, 0>(closure)?;
-
-            (Some(pipeline), TransformKind::Filter(Box::new(filter)))
-        }
-        "derive" => {
-            let ([assigns, pipeline], []) = unpack::<2, 0>(closure)?;
-
-            let mut assigns = assigns.coerce_into_vec();
-            resolver.context.declare_as_idents(&mut assigns);
-
-            (Some(pipeline), TransformKind::Derive(assigns))
-        }
-        "aggregate" => {
-            let ([assigns, pipeline], []) = unpack::<2, 0>(closure)?;
-
-            let mut assigns = assigns.coerce_into_vec();
-            resolver.context.declare_as_idents(&mut assigns);
-            let by = vec![];
-
-            (Some(pipeline), TransformKind::Aggregate { assigns, by })
-        }
-        "sort" => {
-            let ([by, pipeline], []) = unpack::<2, 0>(closure)?;
-
-            let by = by
-                .coerce_into_vec()
-                .into_iter()
-                .map(|node| {
-                    let (mut column, direction) = match node.kind {
-                        ExprKind::Unary { op, expr } if matches!(op, UnOp::Neg) => {
-                            (*expr, SortDirection::Desc)
-                        }
-                        _ => (node, SortDirection::default()),
-                    };
-
-                    resolver.context.declare_as_ident(&mut column);
-
-                    ColumnSort { direction, column }
-                })
-                .collect();
-
-            (Some(pipeline), TransformKind::Sort(by))
-        }
-        "take" => {
-            let ([expr, pipeline], []) = unpack::<2, 0>(closure)?;
-
-            let range = match expr.kind {
-                ExprKind::Literal(Literal::Integer(n)) => Range::from_ints(None, Some(n)),
-                ExprKind::Range(range) => range,
-                _ => unimplemented!("`take` range: {expr}"),
-            };
-            (
-                Some(pipeline),
-                TransformKind::Take {
-                    range,
-                    by: vec![],
-                    sort: vec![],
-                },
-            )
-        }
-        "join" => {
-            let ([with, filter, pipeline], [side]) = unpack::<3, 1>(closure)?;
-
-            let side = if let Some(side) = side {
-                let span = side.span;
-                let ident = side.try_cast(ExprKind::into_ident, Some("side"), "ident")?;
-                match ident.as_str() {
-                    "inner" => JoinSide::Inner,
-                    "left" => JoinSide::Left,
-                    "right" => JoinSide::Right,
-                    "full" => JoinSide::Full,
-
-                    found => bail!(Error::new(Reason::Expected {
-                        who: Some("`side`".to_string()),
-                        expected: "inner, left, right or full".to_string(),
-                        found: found.to_string()
-                    })
-                    .with_span(span)),
-                }
-            } else {
-                JoinSide::Inner
-            };
-
-            let with = unpack_table_ref(with)?;
-
-            let filter = filter.coerce_into_vec();
-            let use_using =
-                (filter.iter().map(|x| &x.kind)).all(|x| matches!(x, ExprKind::Ident(_)));
-
-            let filter = if use_using {
-                JoinFilter::Using(filter)
-            } else {
-                JoinFilter::On(filter)
-            };
-
-            (Some(pipeline), TransformKind::Join { side, with, filter })
-        }
-        "group" => {
-            let ([by, pipeline, pl], []) = unpack::<3, 0>(closure)?;
-
-            let by = by
-                .coerce_into_vec()
-                .into_iter()
-                // check that they are only idents
-                .map(|n| match n.kind {
-                    ExprKind::Ident(_) => Ok(n),
-                    _ => Err(Error::new(Reason::Simple(
-                        "`group` expects only idents for the `by` argument".to_string(),
-                    ))
-                    .with_span(n.span)),
-                })
-                .try_collect()?;
-
-            // simulate evaluation of the inner pipeline
-            let mut value = Expr::from(ExprKind::ResolvedPipeline(vec![]));
-            value.ty = pl.ty.clone();
-
-            let pipeline = Expr::from(ExprKind::FuncCall(FuncCall {
-                name: Box::new(pipeline),
-                args: vec![value],
-                named_args: Default::default(),
-            }));
-            let pipeline = resolver
-                .fold_expr(pipeline)?
-                .kind
-                .into_resolved_pipeline()?;
-
-            (Some(pl), TransformKind::Group { by, pipeline })
-        }
-        "window" => {
-            let ([pipeline, pl], [rows, range, expanding, rolling]) = unpack::<2, 4>(closure)?;
-
-            let expanding = if let Some(expanding) = expanding {
-                let as_bool = expanding.kind.as_literal().and_then(|l| l.as_boolean());
-
-                *as_bool.ok_or_else(|| {
-                    Error::new(Reason::Expected {
-                        who: Some("parameter `expanding`".to_string()),
-                        expected: "a boolean".to_string(),
-                        found: format!("{expanding}"),
-                    })
-                    .with_span(expanding.span)
-                })?
-            } else {
-                false
-            };
-
-            let rolling = if let Some(rolling) = rolling {
-                let as_int = rolling.kind.as_literal().and_then(|x| x.as_integer());
-
-                *as_int.ok_or_else(|| {
-                    Error::new(Reason::Expected {
-                        who: Some("parameter `rolling`".to_string()),
-                        expected: "a number".to_string(),
-                        found: format!("{rolling}"),
-                    })
-                    .with_span(rolling.span)
-                })?
-            } else {
-                0
-            };
-
-            let rows = if let Some(rows) = rows {
-                Some(rows.try_cast(|r| r.into_range(), Some("parameter `rows`"), "a range")?)
-            } else {
-                None
-            };
-
-            let range = if let Some(range) = range {
-                Some(range.try_cast(|r| r.into_range(), Some("parameter `range`"), "a range")?)
-            } else {
-                None
-            };
-
-            let (kind, range) = if expanding {
-                (WindowKind::Rows, Range::from_ints(None, Some(0)))
-            } else if rolling > 0 {
-                (
-                    WindowKind::Rows,
-                    Range::from_ints(Some(-rolling + 1), Some(0)),
-                )
-            } else if let Some(range) = rows {
-                (WindowKind::Rows, range)
-            } else if let Some(range) = range {
-                (WindowKind::Range, range)
-            } else {
-                (WindowKind::Rows, Range::unbounded())
-            };
-
-            // simulate evaluation of the inner pipeline
-            let mut value = Expr::from(ExprKind::ResolvedPipeline(vec![]));
-            value.ty = pl.ty.clone();
-
-            let pipeline = Expr::from(ExprKind::FuncCall(FuncCall {
-                name: Box::new(pipeline),
-                args: vec![value],
-                named_args: Default::default(),
-            }));
-            let pipeline = resolver
-                .fold_expr(pipeline)?
-                .kind
-                .into_resolved_pipeline()?;
-
-            (
-                Some(pl),
-                TransformKind::Window {
-                    range,
-                    kind,
-                    pipeline,
-                },
-            )
-        }
-        _ => return Ok(Err(closure)),
-    }))
-}
-
-fn unpack_table_ref(expr: Expr) -> Result<TableRef> {
-    let alias = expr.alias;
-
-    let declared_at = expr.declared_at;
-    let ty = expr.ty.clone();
-
-    let name = expr.kind.into_ident().map_err(|e| {
-        Error::new(Reason::Expected {
-            who: None,
-            expected: "table name".to_string(),
-            found: format!("`{}`", Expr::from(e)),
-        })
-        .with_span(expr.span)
-        .with_help(
-            r"Inline table expressions are not yet supported.
-            You can define new table with `table my_table = (...)`",
-        )
-    })?;
-    Ok(TableRef {
-        name,
-        alias,
-        declared_at,
-        ty,
-    })
-}
-
-fn unpack<const P: usize, const N: usize>(
-    closure: Closure,
-) -> Result<([Expr; P], [Option<Expr>; N])> {
-    let named = closure
-        .named_args
-        .try_into()
-        .unwrap_or_else(|na| panic!("bad transform cast: {:?} {na:?}", closure.name));
-    let positional = closure.args.try_into().expect("bad transform cast");
-
-    Ok((positional, named))
-}
 
 #[cfg(test)]
 mod tests {
