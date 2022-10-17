@@ -44,7 +44,7 @@ For each ident we want to resolve, we search the scope's items in order. One of 
   not to be associated with any of them.
   Instead, it is translated into the column name only, so database can determine which table it belongs to.
   Note that this may lead to PRQL passing on ambigous queries to the database, instead of resulting error early.
-
+<!-- TODO @max-sixty to add a reference to roadmap about db cohesion? -->
 - Otherwise, the nothing is matched and an error is raised.
 
 ## Translating to SQL
