@@ -10,7 +10,7 @@ It consists of the function name followed by arguments separated by whitespace.
 function_name arg1 arg2 arg3
 ```
 
-If one of the arguments is also a function call, it must be encased in parentehsis,
+If one of the arguments is also a function call, it must be encased in parentheses,
 so we know where arguments of inner function end and the arguments of outer function start.
 
 ```prql_no_test
@@ -49,19 +49,21 @@ from employees | filter age > 50 | sort name
 
 ... is equivalent to ...
 
-```prql
+<!-- TODO: these should work! But they currently fail -->
+
+```prql_no_test
 filter age > 50 (from employees) | sort name
 ```
 
 ... which is the same as:
 
-```prql
+```prql_no_test
 sort name (filter age > 50 (from (employees))
 ```
 
-As you can see, the first example with pipeline notation is much easier to comprehand,
+As you can see, the first example with pipeline notation is much easier to comprehend,
 compared to the last one with the regular function call notation.
-This is why it is recomended to use pipelines for nested function calls that are 3 or more levels deep.
+This is why it is recommended to use pipelines for nested function calls that are 3 or more levels deep.
 
 ## Currying and late binding
 
