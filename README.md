@@ -59,15 +59,16 @@ For more on the language, more examples & comparisons with SQL, visit
 [prql-lang.org][prql website]. To experiment with PRQL in the browser, check out
 [PRQL Playground][prql playground].
 
-## Current status - October 2022
+## Current status — October 2022
 
 PRQL is being actively developed by a growing community. It's ready to use for
 the intrepid, either as part of one of our supported extensions, or within your
 own tools, using one of our supported language bindings.
 
 PRQL still has some minor bugs and some missing features, and probably is only
-ready to rolled out to non-technical teams for fairly simple queries. We're very
-keen to hear what you would need to adopt it further.
+ready to rolled out to non-technical teams for fairly simple queries. We're
+exploring where to focus further development; we welcome use-cases. Here's our
+current [Roadmap](https://prql-lang.org/roadmap/).
 
 We expect a `0.3` release out in the coming weeks, which will add internal
 type-checking, close some lingering bugs, and unlock a few language features.
