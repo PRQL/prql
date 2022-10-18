@@ -158,7 +158,7 @@ impl AstFold for Resolver {
 
         Ok(TableDef {
             id: Some(id),
-            name: name,
+            name,
             value: Box::new(self.fold_expr(*value)?),
         })
     }
@@ -212,7 +212,6 @@ impl Resolver {
         let enough_args = closure.args.len() >= closure.params.len();
 
         let mut r = if enough_args {
-            
             let closure = self.resolve_function_args(closure)?;
 
             // evaluate
@@ -221,7 +220,7 @@ impl Resolver {
                     // this function call is a transform, append it to the pipeline
 
                     let ty = Ty::Table(transform.infer_type()?);
-                    let mut expr = Expr::from(ExprKind::TransformCall(transform.into()));
+                    let mut expr = Expr::from(ExprKind::TransformCall(transform));
                     expr.ty = Some(ty);
                     expr.span = span;
                     expr

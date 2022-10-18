@@ -183,7 +183,7 @@ impl Lowerer {
                 tbl,
             } => {
                 let transform = Transform::Join {
-                    side: side,
+                    side,
                     with: lower_table_ref(with)?,
                     filter: match filter {
                         ast::JoinFilter::On(exprs) => {
@@ -230,10 +230,10 @@ impl Lowerer {
         exprs: Vec<ast::Expr>,
         transforms: &mut Vec<Transform>,
     ) -> Result<Vec<CId>> {
-        Ok(exprs
+        exprs
             .into_iter()
             .map(|x| self.declare_as_column(x, transforms))
-            .try_collect()?)
+            .try_collect()
     }
 
     fn declare_as_column(
@@ -242,7 +242,7 @@ impl Lowerer {
         transforms: &mut Vec<Transform>,
     ) -> Result<ir::CId> {
         let name = expr_ast.alias.clone();
-        let id = expr_ast.declared_at.clone();
+        let id = expr_ast.declared_at;
 
         let expr = self.lower_expr(expr_ast)?;
 
@@ -305,7 +305,7 @@ impl Lowerer {
                 right: Box::new(self.lower_expr(*right)?),
             },
             ast::ExprKind::Unary { op, expr } => ir::ExprKind::Unary {
-                op: op,
+                op,
                 expr: Box::new(self.lower_expr(*expr)?),
             },
             ast::ExprKind::FuncCall(_) => bail!("Cannot lower to IR expr: `{ast:?}`"),

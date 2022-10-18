@@ -1,15 +1,15 @@
 mod expr;
-mod ir_fold;
 mod id_gen;
+mod ir_fold;
 
-pub use ir_fold::*;
 pub use expr::{Expr, ExprKind};
 pub use id_gen::IdGenerator;
+pub use ir_fold::*;
 
 use serde::{Deserialize, Serialize};
 
-use crate::{ast::{WindowKind, TableRef, JoinSide, JoinFilter}};
 use crate::ast::{ColumnSort, QueryDef, Range};
+use crate::ast::{JoinFilter, JoinSide, TableRef, WindowKind};
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize, Default)]
 pub struct Query {
@@ -44,11 +44,11 @@ pub enum Transform {
         with: TableRef,
         filter: JoinFilter<CId>,
     },
-    Unique,    
+    Unique,
 }
 
 /// Transformation of a table.
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub struct Window {
     kind: WindowKind,
     range: Range<CId>,
@@ -83,6 +83,9 @@ impl TId {
 
 impl Default for Window {
     fn default() -> Self {
-        Self { kind: WindowKind::Rows, range: Range::unbounded() }
+        Self {
+            kind: WindowKind::Rows,
+            range: Range::unbounded(),
+        }
     }
 }

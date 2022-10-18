@@ -4,8 +4,8 @@ use anyhow::{bail, Result};
 use itertools::Itertools;
 use sqlparser::ast::{
     self as sql_ast, BinaryOperator, DateTimeField, Function, FunctionArg, FunctionArgExpr, Join,
-    JoinConstraint, JoinOperator, ObjectName, OrderByExpr, SelectItem, TableFactor,
-    Top, UnaryOperator, Value, WindowFrameBound,
+    JoinConstraint, JoinOperator, ObjectName, OrderByExpr, SelectItem, TableFactor, Top,
+    UnaryOperator, Value, WindowFrameBound,
 };
 
 use crate::ast::{
@@ -234,8 +234,8 @@ fn try_range_into_int(range: Range<Expr>) -> Result<Range<i64>> {
     }
 
     Ok(Range {
-        start: range.start.map(|b| cast_bound(b)).transpose()?,
-        end: range.end.map(|b| cast_bound(b)).transpose()?,
+        start: range.start.map(cast_bound).transpose()?,
+        end: range.end.map(cast_bound).transpose()?,
     })
 }
 
@@ -306,9 +306,7 @@ fn try_into_is_null(
 }
 
 #[allow(dead_code)]
-fn try_into_window_frame(
-    (kind, range): (WindowKind, Range<Expr>),
-) -> Result<sql_ast::WindowFrame> {
+fn try_into_window_frame((kind, range): (WindowKind, Range<Expr>)) -> Result<sql_ast::WindowFrame> {
     fn parse_bound(bound: Expr) -> Result<WindowFrameBound> {
         let as_int = bound.kind.into_literal()?.into_integer()?;
         Ok(match as_int {
@@ -381,7 +379,7 @@ pub(super) fn translate_join(t: &Transform, context: &mut Context) -> Result<Joi
     if let Transform::Join { side, with, filter } = t {
         let constraint = match filter {
             JoinFilter::On(nodes) => {
-                let conditions = context.anchor.materialize_exprs(&nodes);
+                let conditions = context.anchor.materialize_exprs(nodes);
                 JoinConstraint::On(
                     filter_of_filters(conditions, context)?
                         .unwrap_or(sql_ast::Expr::Value(Value::Boolean(true))),

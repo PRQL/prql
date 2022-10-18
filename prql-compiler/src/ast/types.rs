@@ -5,7 +5,7 @@ use std::fmt::{Debug, Display, Formatter, Result, Write};
 use enum_as_inner::EnumAsInner;
 use serde::{Deserialize, Serialize};
 
-use super::{Frame};
+use super::Frame;
 
 #[derive(Clone, PartialEq, Serialize, Deserialize, EnumAsInner)]
 pub enum Ty {

@@ -118,7 +118,7 @@ pub fn fold_stmt_kind<T: ?Sized + AstFold>(fold: &mut T, stmt_kind: StmtKind) ->
 pub fn fold_window<F: ?Sized + AstFold>(fold: &mut F, window: Window) -> Result<Window> {
     Ok(Window {
         kind: window.kind,
-        range: fold_range(fold, window.range)?
+        range: fold_range(fold, window.range)?,
     })
 }
 
@@ -236,10 +236,9 @@ pub fn fold_func_param<T: ?Sized + AstFold>(
 pub fn fold_type<T: ?Sized + AstFold>(fold: &mut T, t: Ty) -> Result<Ty> {
     Ok(match t {
         Ty::Literal(_) => t,
-        Ty::Parameterized(t, p) => Ty::Parameterized(
-            Box::new(fold.fold_type(*t)?),
-            Box::new(fold.fold_type(*p)?),
-        ),
+        Ty::Parameterized(t, p) => {
+            Ty::Parameterized(Box::new(fold.fold_type(*t)?), Box::new(fold.fold_type(*p)?))
+        }
         Ty::AnyOf(ts) => Ty::AnyOf(ts.into_iter().map(|t| fold_type(fold, t)).try_collect()?),
         _ => t,
     })

@@ -46,7 +46,7 @@ pub fn translate(query: Query) -> Result<String> {
 }
 
 pub fn translate_query(query: Query) -> Result<sql_ast::Query> {
-    let dialect = query.def.clone().dialect.handler();
+    let dialect = query.def.dialect.handler();
 
     let (anchor, query) = AnchorContext::of(query);
 
@@ -137,7 +137,7 @@ fn sql_query_of_atomic_query(
     let joins = pipeline
         .iter()
         .filter(|t| matches!(t, Transform::Join { .. }))
-        .map(|j| translate_join(&j, context))
+        .map(|j| translate_join(j, context))
         .collect::<Result<Vec<_>>>()?;
     if !joins.is_empty() {
         if let Some(from) = from.last_mut() {
@@ -292,7 +292,7 @@ fn find_next_atomic_split(pipeline: &[Transform]) -> Option<usize> {
         *counts.entry(transform.as_ref()).or_insert(0) += 1;
     }
 
-    return None;
+    None
 }
 
 /// Converts a series of tables into a series of atomic tables, by putting the

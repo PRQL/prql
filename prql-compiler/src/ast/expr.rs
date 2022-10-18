@@ -150,7 +150,7 @@ pub struct Pipeline {
     pub exprs: Vec<Expr>,
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub enum InterpolateItem<T = Expr> {
     String(String),
     Expr(Box<T>),
@@ -187,13 +187,13 @@ pub struct TransformCall {
     pub kind: Box<TransformKind>,
 
     /// Grouping of values in columns
-    pub partition: Vec<CId>,
+    pub partition: Vec<Expr>,
 
     /// Windowing of values in columns
     pub window: Window,
 
     /// Windowing of values in columns
-    pub sort: Vec<ColumnSort<CId>>,
+    pub sort: Vec<ColumnSort>,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize, strum::AsRefStr)]
@@ -262,20 +262,19 @@ impl TransformKind {
     }
 }
 
-
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub enum WindowKind {
     Rows,
     Range,
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub enum TableRef {
     LocalTable(String),
     // TODO: add other sources such as files, URLs
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub enum JoinFilter<T = CId> {
     On(Vec<T>),
     Using(Vec<T>),
@@ -366,7 +365,10 @@ impl From<TransformKind> for TransformCall {
 
 impl Default for Window {
     fn default() -> Self {
-        Self { kind: WindowKind::Rows, range: Range::unbounded() }
+        Self {
+            kind: WindowKind::Rows,
+            range: Range::unbounded(),
+        }
     }
 }
 

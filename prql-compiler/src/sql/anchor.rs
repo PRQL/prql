@@ -6,8 +6,8 @@ use std::collections::HashMap;
 use crate::{
     ast::TableRef,
     ir::{
-        fold_table, CId, ColumnDef, Expr, ExprKind, IdGenerator, IrFold, Query,
-        TId, Table, Transform,
+        fold_table, CId, ColumnDef, Expr, ExprKind, IdGenerator, IrFold, Query, TId, Table,
+        Transform,
     },
 };
 
@@ -43,7 +43,7 @@ impl AnchorContext {
     }
 
     pub fn get_column_name(&self, cid: &CId) -> Option<String> {
-        let def = self.columns_defs.get(&cid).unwrap();
+        let def = self.columns_defs.get(cid).unwrap();
         def.name.clone()
     }
 
@@ -55,7 +55,7 @@ impl AnchorContext {
     }
 
     fn ensure_column_name(&mut self, cid: &CId) -> String {
-        let def = self.columns_defs.get_mut(&cid).unwrap();
+        let def = self.columns_defs.get_mut(cid).unwrap();
 
         if def.name.is_none() {
             let id = self.next_col_name_id;
@@ -68,7 +68,7 @@ impl AnchorContext {
     }
 
     pub fn materialize_expr(&self, cid: &CId) -> Expr {
-        let def = self.columns_defs.get(&cid).unwrap();
+        let def = self.columns_defs.get(cid).unwrap();
         def.expr.clone()
     }
 
@@ -148,7 +148,7 @@ impl QueryLoader {
     fn load(context: AnchorContext, query: Query) -> (AnchorContext, Query) {
         let mut loader = QueryLoader {
             context,
-            current_table: None
+            current_table: None,
         };
         let query = loader.fold_query(query).unwrap();
         (loader.context, query)

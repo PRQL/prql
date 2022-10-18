@@ -337,9 +337,7 @@ impl TransformCall {
                 frame.apply_assigns(assigns);
                 frame
             }
-            Join {
-                filter, tbl, ..
-            } => {
+            Join { filter, tbl, .. } => {
                 let mut frame = ty_frame_or_default(tbl);
 
                 // TODO: add table id into frame and columns
@@ -367,9 +365,7 @@ impl TransformCall {
                 frame.sort = extract_sorts(by)?;
                 frame
             }
-            Filter { tbl, .. } | Take { tbl, .. } => {
-                ty_frame_or_default(tbl)
-            }
+            Filter { tbl, .. } | Take { tbl, .. } => ty_frame_or_default(tbl),
         })
 
         // if !self.within_group.is_empty() {

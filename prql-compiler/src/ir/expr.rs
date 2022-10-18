@@ -1,8 +1,11 @@
 use enum_as_inner::EnumAsInner;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
-use crate::{ast::{Literal, Range, BinOp, UnOp, InterpolateItem}, error::Span};
-use super::{TId, CId};
+use super::{CId, TId};
+use crate::{
+    ast::{BinOp, InterpolateItem, Literal, Range, UnOp},
+    error::Span,
+};
 
 /// Analogous to [crate::ast::Expr], but with stricter.
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
@@ -10,7 +13,6 @@ pub struct Expr {
     pub kind: ExprKind,
     pub span: Option<Span>,
 }
-
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize, EnumAsInner)]
 pub enum ExprKind {
@@ -33,7 +35,6 @@ pub enum ExprKind {
     SString(Vec<InterpolateItem<Expr>>),
     FString(Vec<InterpolateItem<Expr>>),
 }
-
 
 impl From<ExprKind> for anyhow::Error {
     // https://github.com/bluejekyll/enum-as-inner/issues/84

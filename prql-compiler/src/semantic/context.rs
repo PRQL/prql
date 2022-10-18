@@ -73,9 +73,7 @@ impl Context {
         let decls = self.scope.lookup(namespace, "*");
 
         match decls.len() {
-            0 => {
-                Err(format!("Unknown name `{name}`"))
-            }
+            0 => Err(format!("Unknown name `{name}`")),
 
             // single match, great!
             1 => {

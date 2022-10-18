@@ -95,16 +95,14 @@ impl Display for StmtKind {
                 };
                 write!(f, "\n\n")?;
             }
-            StmtKind::Pipeline(expr) => {
-                match &expr.kind {
-                    ExprKind::Pipeline(pipeline) => {
-                        for expr in &pipeline.exprs {
-                            writeln!(f, "{expr}")?;
-                        }
-                    },
-                    _ => writeln!(f, "{}", expr)?
+            StmtKind::Pipeline(expr) => match &expr.kind {
+                ExprKind::Pipeline(pipeline) => {
+                    for expr in &pipeline.exprs {
+                        writeln!(f, "{expr}")?;
+                    }
                 }
-            }
+                _ => writeln!(f, "{}", expr)?,
+            },
             StmtKind::FuncDef(func_def) => {
                 write!(f, "func {}", func_def.name)?;
                 for arg in &func_def.positional_params {
