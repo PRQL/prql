@@ -12,7 +12,8 @@ Setting up a local dev environment for PRQL is simple, thanks to the rust ecosys
   instance](https://github.dev/prql/prql).
 - Any problems: post an issue and we'll help.
 
-[^5]: For completeness: running the full tests requires a couple of additional
+[^5]:
+    For completeness: running the full tests requires a couple of additional
     components that most systems will have installed already:
 
     - A clang compiler to compile the DuckDB integration tests,
