@@ -6,6 +6,7 @@ on:
   push:
     branches:
       - main
+      - add-dockerfile
   # Called by pull-request when specifically requested
   workflow_call:
 
