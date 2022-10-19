@@ -24,8 +24,10 @@ Setting up a local dev environment for PRQL is simple, thanks to the rust ecosys
 
     - Python >= 3.7 to compile `prql-python`.
 
-    It's very possible to develop `prql-compiler` without using the integration tests or `prql-python`. Running
-    `cargo test -p prql-compiler --lib` should complete successfully by running only the unit tests in the `prql-compiler` package.
+    It's very possible to develop `prql-compiler` without these, by avoiding
+    using the integration tests or `prql-python`. Running `cargo test -p
+    prql-compiler --lib` should complete successfully by running only the unit
+    tests in the `prql-compiler` package.
 
 ## Components of PRQL
 
