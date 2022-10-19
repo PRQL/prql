@@ -369,6 +369,7 @@ mod test {
     }
 
     #[test]
+    #[ignore]
     fn test_ctes_of_pipeline() {
         // One aggregate, take at the end
         let prql: &str = r###"

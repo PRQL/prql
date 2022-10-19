@@ -465,6 +465,7 @@ mod test {
     use crate::compile;
 
     #[test]
+    #[ignore]
     fn test_func_call_resolve() {
         assert_display_snapshot!(compile(r#"
         from employees
