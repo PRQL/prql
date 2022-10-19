@@ -109,8 +109,9 @@ We have core developers who are responsible for reviewing code, making decisions
 on the direction of the language, and project administration:
 
 - [**@aljazerzen**](https://github.com/aljazerzen) — Aljaž Mur Eržen
-- [**@max-sixty**](https://github.com/max-sixty) — Maximilian Roos
 - [**@charlie-sanders**](https://github.com/charlie-sanders) — Charlie Sanders
+- [**@max-sixty**](https://github.com/max-sixty) — Maximilian Roos
+- [**@snth**](https://github.com/snth) — Tobias Brandt
 
 We welcome others to join who have a track record of contributions.
 
