@@ -22,7 +22,7 @@ jobs:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
       - name: 💰 Cache
-        uses: Swatinem/rust-cache@v1
+        uses: Swatinem/rust-cache@v2
       - name: Install Task
         uses: arduino/setup-task@v1
         with:

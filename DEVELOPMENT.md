@@ -22,8 +22,9 @@ Setting up a local dev environment for PRQL is simple, thanks to the rust ecosys
     - On Linux, `apt-get install libclang-dev`
     - On Windows, `duckdb-rs` doesn't work anyway, so these tests are excluded
 
-    It's also possible to develop `prql-compiler` without using the integration tests. Running
-    `cargo test --lib` should complete successfully by running only the unit tests.
+    It's also possible to develop `prql-compiler` without using the integration tests.
+    Running `cargo test --lib` should complete successfully
+    by running only the unit tests.
 
 ## Components of PRQL
 
@@ -73,11 +74,15 @@ any inconsistencies.
 
 To build everything:
 
+```bash
 task build-all
+```
 
 To run all tests; (which includes building everything):
 
+```bash
 task test-all
+```
 
 These require installing Task, either `brew install go-task/tap/go-task` or
 as described on [Task](https://taskfile.dev/#/installation).
@@ -213,18 +218,21 @@ Currently we release in a semi-automated way:
   [release workflow](.github/workflows/release.yaml).
 - Add in the sections for a new Changelog:
 
-## 0.2.X — [unreleased]
+  ```md
+  ## 0.2.X — [unreleased]
 
-Features:
+  Features:
 
-Fixes:
+  Fixes:
 
-Documentation:
+  Documentation:
 
-Web:
+  Web:
 
-Integrations:
+  Integrations:
 
-Internal changes:
+  Internal changes:
 
-We may make this more automated in future; e.g. automatic changelog creation.
+  We may make this more automated in future;
+  e.g. automatic changelog creation.
+  ```

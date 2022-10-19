@@ -10,7 +10,7 @@ runs:
   using: composite
   steps:
     - name: 💰 Cache
-      uses: Swatinem/rust-cache@v1
+      uses: Swatinem/rust-cache@v2
       with:
         # Without inputs.target, it seems to select linux x64 in the wasm32
         # tests, though in the docs it says it uses the target as the key?

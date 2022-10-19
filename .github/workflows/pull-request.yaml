@@ -45,7 +45,7 @@ jobs:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
       - name: 💰 Cache
-        uses: Swatinem/rust-cache@v1
+        uses: Swatinem/rust-cache@v2
       - uses: peaceiris/actions-mdbook@v1
       - uses: baptiste0928/cargo-install@v1
         with:
