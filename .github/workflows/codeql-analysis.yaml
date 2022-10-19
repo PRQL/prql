@@ -4,7 +4,7 @@ name: "code-ql"
 
 on:
   push:
-    branches: ["main","add-dockerfile"]
+    branches: ["main"]
   pull_request:
     branches: ["main"]
   schedule:
