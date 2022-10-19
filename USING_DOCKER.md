@@ -6,6 +6,28 @@ Using Docker means you do not have to concern
 yourself that these tools will conflict with
 other software on your computer.
 
+## Development cycle
+
+The developer loop when using Docker is substantially the same as
+if the tools had been installed directly.
+
+All the source files live in the `prql` directory on your machine.
+Just use `git` to pull or to push the `prql` directory as normal.
+As you edit the source, the tools (wrapped in the Docker container)
+watch those directories and re-run
+so you can see your results instantly.
+
+When you exit the Docker container (say, at the end of the development
+session), the `prql` directory on the local machine contains the
+latest files. 
+
+To do all this, build the Docker container and start it
+as described in the **Installation** section.
+Then read the separate steps in **Running components under Docker**
+for each component you wish to work on.
+
+## Installation
+
 First install Docker on your computer,
 using one of the many guides on the internet.
 
