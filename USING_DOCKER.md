@@ -19,7 +19,7 @@ so you can see your results instantly.
 
 When you exit the Docker container (say, at the end of the development
 session), the `prql` directory on the local machine contains the
-latest files. 
+latest files.
 
 To do all this, build the Docker container and start it
 as described in the **Installation** section.
@@ -73,20 +73,21 @@ npm start
 
 **Language Book:** Use the command above, then enter:
 
-```
+```bash
 cd book
 mdbook serve -n 0.0.0.0 -p 3000
 ```
 
 **Website:** Use the command above, then enter:
 
-```
+```bash
 cd website
 hugo server --bind 0.0.0.0 -p 3000
 ```
 
 **prql-compiler:** Use the command above,
-`cd prql-compiler` then read the **Usage** section of the [README.md](./prql-compiler/README.md)
+`cd prql-compiler` then read the **Usage** section of the
+[README.md](./prql-compiler/README.md)
 
 **prql-java:** Use the command above,
 `cd prql-java` then read the **Usage** section of the [README.md](./prql-java/README.md)
@@ -108,16 +109,20 @@ hugo server --bind 0.0.0.0 -p 3000
 While the Dockerfile is under development, use these minimal tests
 before committing new code.
 
-1. **Check the Taskfile.yml** Run these commands to ensure that the `Taskfile.yml` still builds the "normal" environment:
+1. **Check the Taskfile.yml** Run these commands to ensure that the
+   `Taskfile.yml` still builds the "normal" environment:
 
-   ```
+   ```bash
    cd <directory-with-prql>
    cargo test
    task setup-dev
    ```
-   
-2. **Build the Docker container** as described above.
 
-3. **Quick tests for the Docker container** Start the container (as described above), then check the various components (also, as described above)
+1. **Build the Docker container** as described above.
 
-4. **Examine the Github actions/workflows** for errors in your own repo before pushing to the main `prql/prql` repo.
+1. **Quick tests for the Docker container**
+   Start the container (as described above),
+   then check the various components (also, as described above)
+
+1. **Examine the Github actions/workflows** for errors in
+   your own repo before pushing to the main `prql/prql` repo.
