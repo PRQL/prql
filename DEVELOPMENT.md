@@ -22,9 +22,8 @@ Setting up a local dev environment for PRQL is simple, thanks to the rust ecosys
     - On Linux, `apt-get install libclang-dev`
     - On Windows, `duckdb-rs` doesn't work anyway, so these tests are excluded
 
-    It's also possible to develop `prql-compiler` without using the integration
-    tests. Running `cargo test` from within the `prql-compiler` path should
-    complete successfully by running only the unit tests.
+    It's also possible to develop `prql-compiler` without using the integration tests. Running
+    `cargo test --lib` should complete successfully by running only the unit tests.
 
 ## Components of PRQL
 

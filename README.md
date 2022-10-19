@@ -26,10 +26,10 @@ PRQL can be as simple as:
 ```elm
 from employees
 filter country == "USA"                       # Each line transforms the previous result
-aggregate [                                   # `aggregate` reduces column to a value
+aggregate [                                   # `aggregate` reduces each column to a value
   max salary,
   min salary,
-  count,                                      # Closing commas are allowed :)
+  count,                                      # Trailing commas are allowed :)
 ]
 ```
 
@@ -44,12 +44,12 @@ derive [                                      # `derive` adds columns / variable
 ]
 filter gross_cost > 0
 group [title, country] (                      # `group` runs a pipeline over each group
-  aggregate [                                 # `aggregate` reduces each group to a row
+  aggregate [                                 # `aggregate` reduces each group to a value
     average gross_salary,
     sum_gross_cost = sum gross_cost,          # `=` sets a column name
   ]
 )
-filter sum_gross_cost > 100000                # Identical syntax for SQL's `WHERE` & `HAVING`
+filter sum_gross_cost > 100000                # `filter` replaces both of SQL's `WHERE` & `HAVING`
 derive id = f"{title}_{country}"              # F-strings like python
 derive country_code = s"LEFT(country, 2)"     # S-strings allow using SQL as an escape hatch
 sort [sum_gross_cost, -country]               # `-country` means descending order
@@ -61,10 +61,19 @@ For more on the language, more examples & comparisons with SQL, visit
 To experiment with PRQL in the browser, check out
 [PRQL Playground][prql playground].
 
-## Current status
+## Current status — October 2022
 
-After several months of building, PRQL is ready to use! Check out the [0.2
-Release Notes](https://github.com/prql/prql/releases/tag/0.2.0)!
+PRQL is being actively developed by a growing community. It's ready to use for
+the intrepid, either as part of one of our supported extensions, or within your
+own tools, using one of our supported language bindings.
+
+PRQL still has some minor bugs and some missing features, and probably is only
+ready to rolled out to non-technical teams for fairly simple queries. We're
+exploring where to focus further development; we welcome use-cases. Here's our
+current [Roadmap](https://prql-lang.org/roadmap/).
+
+We expect a `0.3` release out in the coming weeks, which will add internal
+type-checking, close some lingering bugs, and unlock a few language features.
 
 ## Get involved
 
@@ -105,8 +114,9 @@ We have core developers who are responsible for reviewing code, making decisions
 on the direction of the language, and project administration:
 
 - [**@aljazerzen**](https://github.com/aljazerzen) — Aljaž Mur Eržen
-- [**@max-sixty**](https://github.com/max-sixty) — Maximilian Roos
 - [**@charlie-sanders**](https://github.com/charlie-sanders) — Charlie Sanders
+- [**@max-sixty**](https://github.com/max-sixty) — Maximilian Roos
+- [**@snth**](https://github.com/snth) — Tobias Brandt
 
 We welcome others to join who have a track record of contributions.
 
