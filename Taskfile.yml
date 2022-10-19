@@ -30,7 +30,6 @@ tasks:
       - task: install-cargo-tools
       - task: install-maturin
       - task: install-pre-commit
-      # - task: install-brew
       - task: install-brew-dependencies
       - task: install-npm-dependencies
       # We only suggest, rather than install;
@@ -39,7 +38,7 @@ tasks:
       - task: install-precommit-install-hooks
       - cmd: |
           echo "
-          🟢 Set up complete! ✅🚀"
+          🟢 Setup complete! ✅🚀"
         silent: true
 
   install-cargo-tools:
@@ -58,20 +57,6 @@ tasks:
         mdbook-toc
         wasm-bindgen-cli
         wasm-pack
-
-  install-brew:
-    # brew might be installed, so check first
-    status:
-      - which brew
-    cmds:
-      # https://stackoverflow.com/questions/58292862/how-to-install-homebrew-on-ubuntu-inside-docker-container
-      - useradd -m -s /bin/zsh linuxbrew
-      - usermod -aG sudo linuxbrew
-      - mkdir -p /home/linuxbrew/.linuxbrew
-      - chown -R linuxbrew /home/linuxbrew/.linuxbrew
-      - export HOMEBREW_INSTALL_FROM_API=1
-      - /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
-      - chown -R $CONTAINER_USER: /home/linuxbrew/.linuxbrew
 
   install-maturin:
     desc: Install maturin
@@ -97,8 +82,7 @@ tasks:
       - |
         echo "
 
-        🟡 It looks like VSCode is installed but doesn't have all
-        recommended extensions installed:
+        🟡 It looks like VSCode is installed but doesn't have all recommended extensions installed:
         {{ .missing_extensions }}
 
         Install them with:
@@ -137,6 +121,24 @@ tasks:
           - https://docs.npmjs.com/downloading-and-installing-node-js-and-npm
     cmds:
       - brew install hugo npm
+
+  # The next three tasks are not currently used for Dockerfile
+  # Installing brew takes forever so the Dockerfile simply
+  # installs hugo & nodejs directly
+
+  install-brew:
+    # Initially added for building Docker container
+    status:
+      - which brew
+    cmds:
+      # https://stackoverflow.com/questions/58292862/how-to-install-homebrew-on-ubuntu-inside-docker-container
+      - useradd -m -s /bin/zsh linuxbrew
+      - usermod -aG sudo linuxbrew
+      - mkdir -p /home/linuxbrew/.linuxbrew
+      - chown -R linuxbrew /home/linuxbrew/.linuxbrew
+      - export HOMEBREW_INSTALL_FROM_API=1
+      - /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
+      - chown -R $CONTAINER_USER: /home/linuxbrew/.linuxbrew
 
   install-hugo:
     cmds:

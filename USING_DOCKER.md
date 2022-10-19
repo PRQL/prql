@@ -63,20 +63,39 @@ cd website
 hugo server --bind 0.0.0.0 -p 3000
 ```
 
-**prql-compiler:** Use the command above, 
+**prql-compiler:** Use the command above,
 `cd prql-compiler` then read the **Usage** section of the [README.md](./prql-compiler/README.md)
 
-**prql-java:** Use the command above, 
-`cd prql-java ` then read the **Usage** section of the [README.md](./prql-java/README.md)
+**prql-java:** Use the command above,
+`cd prql-java` then read the **Usage** section of the [README.md](./prql-java/README.md)
 
-**prql-js:** Use the command above, 
-`cd prql-js ` then read the **Usage** section of the [README.md](./prql-js/README.md)
+**prql-js:** Use the command above,
+`cd prql-js` then read the **Usage** section of the [README.md](./prql-js/README.md)
 
-**prql-lib:** Use the command above, 
-`cd prql-lib ` then read the **Usage** section of the [README.md](./prql-lib/README.md)
+**prql-lib:** Use the command above,
+`cd prql-lib` then read the **Usage** section of the [README.md](./prql-lib/README.md)
 
-**prql-macros:** Use the command above, 
-`cd prql-macros ` then read the **Usage** section of the [README.md](./prql-macros/README.md)
+**prql-macros:** Use the command above,
+`cd prql-macros` then read the **Usage** section of the [README.md](./prql-macros/README.md)
 
-**prql-python:** Use the command above, 
-`cd prql-python ` then read the **Usage** section of the [README.md](./prql-python/README.md)
+**prql-python:** Use the command above,
+`cd prql-python` then read the **Usage** section of the [README.md](./prql-python/README.md)
+
+## Minimal testing for Dockerfile
+
+While the Dockerfile is under development, use these minimal tests
+before committing new code.
+
+1. **Check the Taskfile.yml** Run these commands to ensure that the `Taskfile.yml` still builds the "normal" environment:
+
+   ```
+cd <directory-with-prql>
+cargo test
+task setup-dev
+```
+
+2. **Build the Docker container** as described above.
+
+3. **Quick tests for the Docker container** Start the container (as described above), then check the various components (also, as described above)
+
+4. **Examine the Github actions/workflows** for errors after pushing the code.
