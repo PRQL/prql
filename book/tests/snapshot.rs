@@ -19,7 +19,7 @@ use anyhow::{bail, Result};
 use globset::Glob;
 use insta::{assert_display_snapshot, assert_snapshot, glob};
 use log::warn;
-use prql_compiler::ast::{ExprKind, Statements};
+use prql_compiler::ast::Statements;
 use prql_compiler::*;
 use pulldown_cmark::{CodeBlockKind, Event, Parser, Tag};
 use std::fs;

@@ -604,6 +604,7 @@ select `first name`
     }
 
     #[test]
+    #[ignore]
     #[should_panic]
     fn test_strings() {
         let query = r###"
@@ -1000,6 +1001,7 @@ select [mng_name, managers.gender, salary_avg, salary_sd]"#;
         assert_eq!(sql_from_prql, sql_from_json);
     }
     #[test]
+    #[ignore]
     #[should_panic]
     fn test_f_string() {
         let query = r###"
