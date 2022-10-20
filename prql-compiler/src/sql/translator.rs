@@ -15,7 +15,7 @@ use sqlparser::ast::{self as sql_ast, Select, SetExpr, TableWithJoins};
 use std::collections::HashMap;
 
 use crate::ast::{DialectHandler, Literal};
-use crate::ir::{CId, Expr, ExprKind, Query, Table, Transform};
+use crate::ir::{Expr, ExprKind, Query, Table, TableExpr, Transform};
 
 use super::anchor::AnchorContext;
 use super::codegen::*;
@@ -53,7 +53,7 @@ pub fn translate_query(query: Query) -> Result<sql_ast::Query> {
     let mut context = Context { dialect, anchor };
 
     // extract tables and the pipeline
-    let tables = into_tables(query.main_pipeline, query.tables, &mut context)?;
+    let tables = into_tables(query.expr, query.tables, &mut context)?;
 
     // split to atomics
     let mut atomics = atomic_queries_of_tables(tables, &mut context);
@@ -93,14 +93,14 @@ pub struct AtomicQuery {
 }
 
 fn into_tables(
-    main_pipeline: Vec<Transform>,
+    main_pipeline: TableExpr,
     tables: Vec<Table>,
     context: &mut Context,
 ) -> Result<Vec<Table>> {
     let main = Table {
         id: context.anchor.ids.gen_tid(),
         name: None,
-        pipeline: main_pipeline,
+        expr: main_pipeline,
     };
     Ok([tables, vec![main]].concat())
 }
@@ -121,13 +121,13 @@ fn sql_query_of_atomic_query(
     pipeline: Vec<Transform>,
     context: &mut Context,
 ) -> Result<sql_ast::Query> {
-    let select = determine_select_columns(&pipeline);
+    let select = context.anchor.determine_select_columns(&pipeline);
 
     let mut from = pipeline
         .iter()
         .filter_map(|t| match &t {
-            Transform::From(table_ref, _) => Some(TableWithJoins {
-                relation: table_factor_of_table_ref(table_ref, context),
+            Transform::From(tid) => Some(TableWithJoins {
+                relation: table_factor_of_tid(tid, context),
                 joins: vec![],
             }),
             _ => None,
@@ -186,9 +186,14 @@ fn sql_query_of_atomic_query(
             _ => None,
         })
         .last()
-        .iter()
-        .flat_map(|sorts| sorts.iter().map(|s| translate_column_sort(s, context)))
-        .try_collect()?;
+        .map(|sorts| {
+            sorts
+                .iter()
+                .map(|s| translate_column_sort(s, context))
+                .try_collect()
+        })
+        .transpose()?
+        .unwrap_or_default();
 
     let aggregate = pipeline.get(aggregate_position);
 
@@ -236,23 +241,10 @@ fn sql_query_of_atomic_query(
     })
 }
 
-pub(super) fn determine_select_columns(pipeline: &[Transform]) -> Vec<CId> {
-    let mut columns = Vec::new();
-
-    for transform in pipeline {
-        match transform {
-            Transform::From(_, col_defs) => columns = col_defs.iter().map(|def| def.id).collect(),
-            Transform::Select(cols) => columns = cols.clone(),
-            _ => {}
-        }
-    }
-
-    columns
-}
-
 /// Finds maximum number of transforms that can "fit" into a SELECT query.
 fn find_next_atomic_split(pipeline: &[Transform]) -> Option<usize> {
     // Pipeline must be split when there is a transformation that out of order:
+    // - derive (no limit),
     // - joins (no limit),
     // - filters (for WHERE)
     // - aggregate (max 1x)
@@ -261,6 +253,7 @@ fn find_next_atomic_split(pipeline: &[Transform]) -> Option<usize> {
     // - take (no limit)
 
     let mut counts: HashMap<&str, u32> = HashMap::new();
+    let mut split_at = None;
     for (i, transform) in pipeline.iter().enumerate() {
         let split = match transform.as_ref() {
             "Join" => {
@@ -286,10 +279,21 @@ fn find_next_atomic_split(pipeline: &[Transform]) -> Option<usize> {
         };
 
         if split {
-            return Some(i);
+            split_at = Some(i);
         }
 
         *counts.entry(transform.as_ref()).or_insert(0) += 1;
+    }
+
+    // rollback all selects and derives
+    if let Some(mut split_at) = split_at {
+        while matches!(
+            pipeline[split_at],
+            Transform::Derive(_) | Transform::Select(_)
+        ) {
+            split_at -= 1;
+        }
+        return Some(split_at);
     }
 
     None
@@ -305,9 +309,14 @@ fn atomic_queries_of_tables(tables: Vec<Table>, context: &mut Context) -> Vec<At
 }
 
 fn atomic_queries_of_table(table: Table, context: &mut Context) -> Vec<AtomicQuery> {
-    let mut atomics = Vec::new();
+    let mut pipeline = match table.expr {
+        TableExpr::Pipeline(pipeline) => pipeline,
 
-    let mut pipeline = table.pipeline;
+        // ref does not need it's own CTE
+        TableExpr::Ref(_) => return Vec::new(),
+    };
+
+    let mut atomics = Vec::new();
     while let Some(at_position) = find_next_atomic_split(&pipeline) {
         let name = context.anchor.gen_table_name();
 
@@ -327,7 +336,10 @@ fn atomic_queries_of_table(table: Table, context: &mut Context) -> Vec<AtomicQue
     atomics
 }
 
-fn filter_of_pipeline(pipeline: &[Transform], context: &Context) -> Result<Option<sql_ast::Expr>> {
+fn filter_of_pipeline(
+    pipeline: &[Transform],
+    context: &mut Context,
+) -> Result<Option<sql_ast::Expr>> {
     let filters: Vec<Expr> = pipeline
         .iter()
         .filter_map(|t| match &t {
@@ -363,7 +375,7 @@ mod test {
         let table = Table {
             id: context.anchor.ids.gen_tid(),
             name: None,
-            pipeline: query.main_pipeline,
+            expr: query.expr,
         };
         Ok((table, context))
     }

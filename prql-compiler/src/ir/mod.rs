@@ -11,12 +11,12 @@ use serde::{Deserialize, Serialize};
 use crate::ast::{ColumnSort, QueryDef, Range};
 use crate::ast::{JoinFilter, JoinSide, TableRef, WindowKind};
 
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Query {
     pub def: QueryDef,
 
     pub tables: Vec<Table>,
-    pub main_pipeline: Vec<Transform>,
+    pub expr: TableExpr,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
@@ -26,13 +26,19 @@ pub struct Table {
     /// Given name of this table.
     pub name: Option<String>,
 
-    pub pipeline: Vec<Transform>,
+    pub expr: TableExpr,
+}
+
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+pub enum TableExpr {
+    Ref(TableRef),
+    Pipeline(Vec<Transform>),
 }
 
 /// Transformation of a table.
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize, strum::AsRefStr)]
 pub enum Transform {
-    From(TableRef, Vec<ColumnDef>),
+    From(TId),
     Derive(ColumnDef),
     Select(Vec<CId>),
     Filter(Expr),
@@ -41,7 +47,7 @@ pub enum Transform {
     Take(Range<Expr>),
     Join {
         side: JoinSide,
-        with: TableRef,
+        with: TId,
         filter: JoinFilter<CId>,
     },
     Unique,

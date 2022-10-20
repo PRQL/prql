@@ -274,7 +274,6 @@ select `first name`
         "###);
     }
     #[test]
-    #[should_panic]
     fn test_sorts() {
         let query = r###"
         from invoices
@@ -294,7 +293,6 @@ select `first name`
     }
 
     #[test]
-    #[should_panic]
     fn test_ranges() {
         let query = r###"
         from employees
@@ -638,7 +636,6 @@ select `first name`
     }
 
     #[test]
-    #[should_panic]
     fn test_filter() {
         // https://github.com/prql/prql/issues/469
         let query = r###"
@@ -926,7 +923,6 @@ select `first name`
     }
 
     #[test]
-    #[should_panic]
     fn test_dbt_query() {
         assert_display_snapshot!((compile(r###"
         from {{ ref('stg_orders') }}
@@ -1084,7 +1080,6 @@ select [mng_name, managers.gender, salary_avg, salary_sd]"#;
     }
 
     #[test]
-    #[should_panic]
     fn test_prql_to_sql_1() {
         let query = r#"
     from employees
