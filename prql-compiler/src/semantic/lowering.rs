@@ -315,38 +315,35 @@ impl Lowerer {
             ast::ExprKind::FuncCall(_) => bail!("Cannot lower to IR expr: `{ast:?}`"),
             ast::ExprKind::Closure(_) => bail!("Cannot lower to IR expr: `{ast:?}`"),
             ast::ExprKind::TransformCall(_) => bail!("Cannot lower to IR expr: `{ast:?}`"),
-            ast::ExprKind::SString(items) => ir::ExprKind::SString(
-                items
-                    .into_iter()
-                    .map(|i| -> Result<InterpolateItem<ir::Expr>> {
-                        Ok(match i {
-                            InterpolateItem::String(s) => InterpolateItem::String(s),
-                            InterpolateItem::Expr(e) => {
-                                InterpolateItem::Expr(Box::new(self.lower_expr(*e)?))
-                            }
-                        })
-                    })
-                    .try_collect()?,
-            ),
-            ast::ExprKind::FString(items) => ir::ExprKind::SString(
-                items
-                    .into_iter()
-                    .map(|i| -> Result<InterpolateItem<ir::Expr>> {
-                        Ok(match i {
-                            InterpolateItem::String(s) => InterpolateItem::String(s),
-                            InterpolateItem::Expr(e) => {
-                                InterpolateItem::Expr(Box::new(self.lower_expr(*e)?))
-                            }
-                        })
-                    })
-                    .try_collect()?,
-            ),
+            ast::ExprKind::SString(items) => {
+                ir::ExprKind::SString(self.lower_interpolations(items)?)
+            }
+            ast::ExprKind::FString(items) => {
+                ir::ExprKind::FString(self.lower_interpolations(items)?)
+            }
         };
 
         Ok(ir::Expr {
             kind,
             span: ast.span,
         })
+    }
+
+    fn lower_interpolations(
+        &mut self,
+        items: Vec<InterpolateItem>,
+    ) -> Result<Vec<InterpolateItem<ir::Expr>>, anyhow::Error> {
+        items
+            .into_iter()
+            .map(|i| {
+                Ok(match i {
+                    InterpolateItem::String(s) => InterpolateItem::String(s),
+                    InterpolateItem::Expr(e) => {
+                        InterpolateItem::Expr(Box::new(self.lower_expr(*e)?))
+                    }
+                })
+            })
+            .try_collect()
     }
 }
 
