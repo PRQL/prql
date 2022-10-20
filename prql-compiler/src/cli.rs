@@ -79,20 +79,26 @@ impl Cli {
             }
             Cli::Format(_) => crate::format(source)?.as_bytes().to_vec(),
             Cli::Debug(_) => {
-                let query = parse(source)?;
-                let (query, context) = semantic::resolve(query, None)?;
+                let stmts = parse(source)?;
+                let (stmts, context) = semantic::resolve_only(stmts, None)?;
 
-                semantic::label_references(query, &context, "".to_string(), source.to_string());
+                let (references, stmts) =
+                    semantic::label_references(stmts, &context, "".to_string(), source.to_string());
 
-                format!("\n{context:?}").as_bytes().to_vec()
+                [
+                    references,
+                    format!("\n{context:?}").into_bytes(),
+                    serde_yaml::to_string(&stmts)?.into_bytes(),
+                ]
+                .concat()
             }
             Cli::Annotate(_) => {
-                let query = parse(source)?;
+                let stmts = parse(source)?;
 
                 // resolve
-                let (query, context) = semantic::resolve(query, None)?;
+                let (stmts, context) = semantic::resolve_only(stmts, None)?;
 
-                let frames = semantic::collect_frames(query);
+                let frames = semantic::collect_frames(stmts);
 
                 // combine with source
                 combine_prql_and_frames(source, frames, context)
@@ -101,13 +107,9 @@ impl Cli {
             }
             Cli::Resolve(_) => {
                 let ast = parse(source)?;
-                let (ir, context) = semantic::resolve(ast, None)?;
+                let (ir, _) = semantic::resolve(ast, None)?;
 
-                [
-                    format!("{:?}", context.declarations).into_bytes(),
-                    serde_json::to_string_pretty(&ir)?.into_bytes(),
-                ]
-                .concat()
+                serde_json::to_string_pretty(&ir)?.into_bytes()
             }
             Cli::Compile(_) => crate::compile(source)?.as_bytes().to_vec(),
         })
@@ -158,6 +160,9 @@ fn combine_prql_and_frames(source: &str, frames: Vec<(Span, Frame)>, context: Co
             printed_lines += 1;
         }
 
+        if printed_lines >= lines.len() {
+            break;
+        }
         let chars: String = lines[printed_lines].chars().collect();
         printed_lines += 1;
 
@@ -168,8 +173,11 @@ fn combine_prql_and_frames(source: &str, frames: Vec<(Span, Frame)>, context: Co
             .join(", ");
         result.push(format!("{chars:width$} # [{cols}]"));
     }
+    for line in lines.iter().skip(printed_lines) {
+        result.push(line.chars().collect());
+    }
 
-    result.into_iter().join("\n")
+    result.into_iter().join("\n") + "\n"
 }
 
 #[cfg(test)]
@@ -179,6 +187,7 @@ mod tests {
     use super::*;
 
     #[test]
+    #[ignore]
     fn prql_layouts_test() {
         let output = Cli::execute(
             &Cli::Annotate(CommandIO::default()),

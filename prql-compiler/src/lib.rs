@@ -1055,8 +1055,9 @@ select [mng_name, managers.gender, salary_avg, salary_sd]"#;
         let prql_from_json = from_json(&json).unwrap();
         let sql_from_json = compile(&prql_from_json).unwrap();
 
-        assert_eq!(sql_from_prql, sql_from_json)
+        assert_eq!(sql_from_prql, sql_from_json);
     }
+
     #[test]
     #[ignore]
     fn test_f_string() {
@@ -1119,7 +1120,7 @@ select [mng_name, managers.gender, salary_avg, salary_sd]"#;
         LIMIT
           20
         "###
-        )
+        );
     }
 
     #[test]

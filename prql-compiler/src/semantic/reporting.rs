@@ -7,9 +7,13 @@ use super::{Context, Declaration, Frame};
 use crate::ast::ast_fold::*;
 use crate::ast::*;
 use crate::error::Span;
-use crate::ir::{IrFold, Query, Transform};
 
-pub fn label_references(query: Query, context: &Context, source_id: String, source: String) {
+pub fn label_references(
+    stmts: Vec<Stmt>,
+    context: &Context,
+    source_id: String,
+    source: String,
+) -> (Vec<u8>, Vec<Stmt>) {
     let mut report = Report::build(ReportKind::Custom("Info", Color::Blue), &source_id, 0);
 
     let source = Source::from(source);
@@ -22,28 +26,14 @@ pub fn label_references(query: Query, context: &Context, source_id: String, sour
         report: &mut report,
     };
     // traverse ast
-    labeler.fold_transforms(query.main_pipeline).unwrap();
-    // traverse declarations
-    // for (d, _) in &context.declarations {
-    //     match d {
-    //         Declaration::Variable(n) | Declaration::Function(FuncDef { body: n, .. }) => {
-    //             labeler.fold_node(*(*n).clone()).unwrap();
-    //         }
-    //         Declaration::Table(_) => todo!(),
-    //     }
-    // }
+    let stmts = labeler.fold_stmts(stmts).unwrap();
 
-    // label all declarations
-    // for (dec, span) in &context.declarations {
-    //     if let Some(span) = span {
-    //         report.add_label(
-    //             Label::new((source_id.clone(), Range::from(*span)))
-    //                 .with_message(dec.to_string()),
-    //         );
-    //     }
-    // }
-
-    report.finish().print((source_id, source)).unwrap();
+    let mut out = Vec::new();
+    report
+        .finish()
+        .write((source_id, source), &mut out)
+        .unwrap();
+    (out, stmts)
 }
 
 /// Traverses AST and add labels for each of the idents and function calls
@@ -91,12 +81,10 @@ impl<'a> AstFold for Labeler<'a> {
     }
 }
 
-impl<'a> IrFold for Labeler<'a> {}
-
-pub fn collect_frames(query: Query) -> Vec<(Span, Frame)> {
+pub fn collect_frames(stmts: Vec<Stmt>) -> Vec<(Span, Frame)> {
     let mut collector = FrameCollector { frames: vec![] };
 
-    collector.fold_query(query).unwrap();
+    collector.fold_stmts(stmts).unwrap();
 
     collector.frames
 }
@@ -106,13 +94,30 @@ struct FrameCollector {
     frames: Vec<(Span, Frame)>,
 }
 
-impl AstFold for FrameCollector {}
+impl AstFold for FrameCollector {
+    fn fold_expr(&mut self, expr: Expr) -> Result<Expr> {
+        if let ExprKind::TransformCall(tc) = &expr.kind {
+            let span = match tc.kind.as_ref() {
+                TransformKind::From(expr) => expr.span.unwrap(),
+                TransformKind::Derive { tbl, .. }
+                | TransformKind::Select { tbl, .. }
+                | TransformKind::Filter { tbl, .. }
+                | TransformKind::Aggregate { tbl, .. }
+                | TransformKind::Sort { tbl, .. }
+                | TransformKind::Take { tbl, .. }
+                | TransformKind::Join { tbl, .. }
+                | TransformKind::Group { tbl, .. }
+                | TransformKind::Window { tbl, .. } => tbl.span.unwrap(),
+            };
 
-impl IrFold for FrameCollector {
-    fn fold_transform(&mut self, transform: Transform) -> Result<Transform> {
-        // TODO: fix this
-        // let span = transform.span.expect("transform without a span?");
-        // self.frames.push((span, transform.ty.clone()));
-        Ok(transform)
+            let frame = expr.ty.clone().and_then(|t| t.into_table().ok());
+            if let Some(frame) = frame {
+                self.frames.push((span, frame));
+            }
+        }
+
+        let mut expr = expr;
+        expr.kind = self.fold_expr_kind(expr.kind)?;
+        Ok(expr)
     }
 }

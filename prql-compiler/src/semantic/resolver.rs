@@ -73,6 +73,7 @@ enum Namespace {
 impl AstFold for Resolver {
     fn fold_expr(&mut self, mut node: Expr) -> Result<Expr> {
         let alias = node.alias.clone();
+        let span = node.span;
         let mut r = match node.kind {
             ExprKind::Ident(ref ident) => {
                 let id = self.lookup_name(ident, node.span, &node.alias)?;
@@ -147,8 +148,11 @@ impl AstFold for Resolver {
         };
         r.alias = alias;
 
+        if r.span.is_none() {
+            r.span = span;
+        }
         if r.ty.is_none() {
-            r.ty = Some(resolve_type(&r)?)
+            r.ty = Some(resolve_type(&r)?);
         }
         Ok(r)
     }

@@ -38,6 +38,18 @@ pub fn resolve(statements: Vec<Stmt>, context: Option<Context>) -> Result<(Query
     Ok((query, context))
 }
 
+/// Runs semantic analysis on the query, using current state.
+///
+/// Note that this removes function declarations from AST and saves them as current context.
+pub fn resolve_only(
+    statements: Vec<Stmt>,
+    context: Option<Context>,
+) -> Result<(Vec<Stmt>, Context)> {
+    let context = context.unwrap_or_else(load_std_lib);
+
+    resolver::resolve(statements, context)
+}
+
 pub fn load_std_lib() -> Context {
     use crate::parse;
     let std_lib = include_str!("./stdlib.prql");
