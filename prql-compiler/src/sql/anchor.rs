@@ -3,15 +3,13 @@
 //! contains no query-specific logic.
 use std::collections::HashMap;
 
-use crate::{
-    ast::TableRef,
-    ir::{
-        fold_table, CId, ColumnDef, Expr, ExprKind, IdGenerator, IrFold, Query, TId, Table,
-        Transform,
-    },
-};
+use anyhow::Result;
 
-use super::translator::determine_select_columns;
+use crate::ast::TableRef;
+use crate::ir::{
+    fold_table, CId, ColumnDef, Expr, ExprKind, IdGenerator, IrFold, Query, TId, Table, TableExpr,
+    Transform,
+};
 
 #[derive(Default)]
 pub struct AnchorContext {
@@ -19,12 +17,22 @@ pub struct AnchorContext {
 
     pub(super) columns_loc: HashMap<CId, TId>,
 
-    pub(super) table_names: HashMap<TId, String>,
+    pub(super) table_defs: HashMap<TId, TableDef>,
 
     next_col_name_id: u16,
     next_table_name_id: u16,
 
     pub(super) ids: IdGenerator,
+}
+
+pub struct TableDef {
+    /// How to reference this table
+    pub name: String,
+
+    pub columns: Vec<ColumnDef>,
+
+    /// How to materialize in FROM/WITH clauses
+    pub expr: TableExpr,
 }
 
 impl AnchorContext {
@@ -34,7 +42,7 @@ impl AnchorContext {
         let context = AnchorContext {
             columns_defs: HashMap::new(),
             columns_loc: HashMap::new(),
-            table_names: HashMap::new(),
+            table_defs: HashMap::new(),
             next_col_name_id: 0,
             next_table_name_id: 0,
             ids,
@@ -51,7 +59,7 @@ impl AnchorContext {
         let id = self.next_table_name_id;
         self.next_table_name_id += 1;
 
-        format!("_table_{id}")
+        format!("table_{id}")
     }
 
     fn ensure_column_name(&mut self, cid: &CId) -> String {
@@ -68,7 +76,10 @@ impl AnchorContext {
     }
 
     pub fn materialize_expr(&self, cid: &CId) -> Expr {
-        let def = self.columns_defs.get(cid).unwrap();
+        let def = self
+            .columns_defs
+            .get(cid)
+            .unwrap_or_else(|| panic!("missing column id {cid:?}"));
         def.expr.clone()
     }
 
@@ -76,16 +87,20 @@ impl AnchorContext {
         cids.iter().map(|cid| self.materialize_expr(cid)).collect()
     }
 
-    pub fn materialize_name(&self, cid: &CId) -> String {
+    pub fn materialize_name(&mut self, cid: &CId) -> String {
         // TODO: figure out which columns need name and call ensure_column_name in advance
-        let col_name = self
-            .get_column_name(cid)
-            .expect("a column is referred by name, but it doesn't have one");
+        // let col_name = self
+        //     .get_column_name(cid)
+        //     .expect("a column is referred by name, but it doesn't have one");
+        let col_name = self.ensure_column_name(cid);
 
-        let tid = self.columns_loc.get(cid).unwrap();
-        let table_name = self.table_names.get(tid).unwrap();
+        if let Some(tid) = self.columns_loc.get(cid) {
+            let table = self.table_defs.get(tid).unwrap();
 
-        format!("{table_name}.{col_name}")
+            format!("{}.{}", table.name, col_name)
+        } else {
+            col_name
+        }
     }
 
     pub fn split_pipeline(
@@ -95,11 +110,10 @@ impl AnchorContext {
         new_table_name: &str,
     ) -> (Vec<Transform>, Vec<Transform>) {
         let new_tid = self.ids.gen_tid();
-        self.table_names.insert(new_tid, new_table_name.to_string());
 
         // define columns of the new CTE
         let mut columns_redirect = HashMap::<CId, CId>::new();
-        let old_columns = determine_select_columns(&pipeline[0..at_position]);
+        let old_columns = self.determine_select_columns(&pipeline[0..at_position]);
         let mut new_columns = Vec::new();
         for old_cid in old_columns {
             let new_cid = self.ids.gen_cid();
@@ -107,7 +121,7 @@ impl AnchorContext {
 
             let old_def = self.columns_defs.get(&old_cid).unwrap();
 
-            new_columns.push(ColumnDef {
+            let new_def = ColumnDef {
                 id: new_cid,
                 name: old_def.name.clone(),
                 expr: Expr {
@@ -117,23 +131,47 @@ impl AnchorContext {
                     },
                     span: None,
                 },
-            });
+            };
+            self.columns_defs.insert(new_cid, new_def.clone());
+            self.columns_loc.insert(new_cid, new_tid);
+            new_columns.push(new_def);
         }
 
         let mut first = pipeline;
         let mut second = first.split_off(at_position);
 
-        second.insert(
-            0,
-            Transform::From(
-                TableRef::LocalTable(new_table_name.to_string()),
-                new_columns,
-            ),
+        self.table_defs.insert(
+            new_tid,
+            TableDef {
+                name: new_table_name.to_string(),
+                expr: TableExpr::Ref(TableRef::LocalTable(new_table_name.to_string())),
+                columns: new_columns,
+            },
         );
+
+        second.insert(0, Transform::From(new_tid));
 
         // TODO: redirect CID values in second pipeline
 
         (first, second)
+    }
+
+    pub fn determine_select_columns(&self, pipeline: &[Transform]) -> Vec<CId> {
+        let mut columns = Vec::new();
+
+        for transform in pipeline {
+            columns = match transform {
+                Transform::From(tid) => {
+                    let table_def = &self.table_defs.get(tid).unwrap();
+                    table_def.columns.iter().map(|c| c.id).collect()
+                }
+                Transform::Select(cols) => cols.clone(),
+                Transform::Aggregate(cols) => cols.iter().map(|c| c.id).collect(),
+                _ => continue,
+            }
+        }
+
+        columns
     }
 }
 
@@ -150,23 +188,48 @@ impl QueryLoader {
             context,
             current_table: None,
         };
+        // fold query
         let query = loader.fold_query(query).unwrap();
-        (loader.context, query)
+        let mut context = loader.context;
+
+        // move tables into Context
+        for table in query.tables.clone() {
+            let name = table.name.as_ref().unwrap();
+
+            let star_col = ColumnDef {
+                id: context.ids.gen_cid(),
+                expr: Expr {
+                    kind: ExprKind::ExternRef {
+                        variable: "*".to_string(),
+                        table: Some(table.id),
+                    },
+                    span: None,
+                },
+                name: None,
+            };
+            context.columns_loc.insert(star_col.id, table.id);
+            context.columns_defs.insert(star_col.id, star_col.clone());
+
+            let table_def = TableDef {
+                name: name.clone(),
+                columns: vec![star_col],
+                expr: table.expr,
+            };
+            context.table_defs.insert(table.id, table_def);
+        }
+
+        (context, query)
     }
 }
 
 impl IrFold for QueryLoader {
-    fn fold_table(&mut self, table: Table) -> anyhow::Result<Table> {
+    fn fold_table(&mut self, table: Table) -> Result<Table> {
         self.current_table = Some(table.id);
-
-        if let Some(name) = &table.name {
-            self.context.table_names.insert(table.id, name.clone());
-        }
 
         fold_table(self, table)
     }
 
-    fn fold_column_def(&mut self, cd: ColumnDef) -> anyhow::Result<ColumnDef> {
+    fn fold_column_def(&mut self, cd: ColumnDef) -> Result<ColumnDef> {
         self.context.columns_defs.insert(cd.id, cd.clone());
 
         if let Some(current_table) = self.current_table {
@@ -174,6 +237,16 @@ impl IrFold for QueryLoader {
         }
 
         Ok(cd)
+    }
+}
+
+struct CidRedirector {
+    redirects: HashMap<CId, CId>,
+}
+
+impl IrFold for CidRedirector {
+    fn fold_cid(&mut self, cid: CId) -> Result<CId> {
+        Ok(self.redirects.get(&cid).cloned().unwrap_or(cid))
     }
 }
 

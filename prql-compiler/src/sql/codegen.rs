@@ -10,7 +10,7 @@ use sqlparser::ast::{
 
 use crate::ast::{
     BinOp, ColumnSort, Dialect, InterpolateItem, JoinFilter, JoinSide, Literal, Range,
-    SortDirection, TableRef, UnOp, WindowKind,
+    SortDirection, UnOp, WindowKind,
 };
 use crate::error::{Error, Reason};
 use crate::ir::*;
@@ -19,7 +19,7 @@ use crate::utils::*;
 
 use super::translator::Context;
 
-pub(super) fn translate_expr_kind(item: ExprKind, context: &Context) -> Result<sql_ast::Expr> {
+pub(super) fn translate_expr_kind(item: ExprKind, context: &mut Context) -> Result<sql_ast::Expr> {
     Ok(match item {
         ExprKind::ColumnRef(cid) => {
             let name = context.anchor.materialize_name(&cid);
@@ -28,8 +28,8 @@ pub(super) fn translate_expr_kind(item: ExprKind, context: &Context) -> Result<s
         }
         ExprKind::ExternRef { variable, table } => {
             let name = if let Some(table_id) = table {
-                let table_name = context.anchor.table_names.get(&table_id).unwrap();
-                format!("{table_name}.{variable}")
+                let table_def = context.anchor.table_defs.get(&table_id).unwrap();
+                format!("{}.{variable}", table_def.name)
             } else {
                 variable
             };
@@ -189,14 +189,14 @@ pub(super) fn translate_expr_kind(item: ExprKind, context: &Context) -> Result<s
     })
 }
 
-pub(super) fn table_factor_of_table_ref(table_ref: &TableRef, context: &Context) -> TableFactor {
-    match table_ref {
-        TableRef::LocalTable(name) => TableFactor::Table {
-            name: sql_ast::ObjectName(translate_ident(name.clone(), context)),
-            alias: None,
-            args: None,
-            with_hints: vec![],
-        },
+pub(super) fn table_factor_of_tid(tid: &TId, context: &Context) -> TableFactor {
+    let def = context.anchor.table_defs.get(tid).unwrap();
+
+    TableFactor::Table {
+        name: sql_ast::ObjectName(translate_ident(def.name.clone(), context)),
+        alias: None,
+        args: None,
+        with_hints: vec![],
     }
 }
 
@@ -246,7 +246,7 @@ pub(super) fn expr_of_i64(number: i64) -> sql_ast::Expr {
     ))
 }
 
-pub(super) fn top_of_i64(take: i64, context: &Context) -> Top {
+pub(super) fn top_of_i64(take: i64, context: &mut Context) -> Top {
     Top {
         quantity: Some(
             translate_expr_kind(ExprKind::Literal(Literal::Integer(take)), context).unwrap(),
@@ -255,7 +255,10 @@ pub(super) fn top_of_i64(take: i64, context: &Context) -> Top {
         percent: false,
     }
 }
-pub(super) fn try_into_exprs(nodes: Vec<Expr>, context: &Context) -> Result<Vec<sql_ast::Expr>> {
+pub(super) fn try_into_exprs(
+    nodes: Vec<Expr>,
+    context: &mut Context,
+) -> Result<Vec<sql_ast::Expr>> {
     nodes
         .into_iter()
         .map(|x| x.kind)
@@ -263,7 +266,7 @@ pub(super) fn try_into_exprs(nodes: Vec<Expr>, context: &Context) -> Result<Vec<
         .try_collect()
 }
 
-pub(super) fn translate_select_item(cid: CId, context: &Context) -> Result<SelectItem> {
+pub(super) fn translate_select_item(cid: CId, context: &mut Context) -> Result<SelectItem> {
     let expr = context.anchor.materialize_expr(&cid);
     let expr = translate_expr_kind(expr.kind, context)?;
 
@@ -289,7 +292,7 @@ fn try_into_is_null(
     op: &BinOp,
     a: &Expr,
     b: &Expr,
-    context: &Context,
+    context: &mut Context,
 ) -> Result<Option<sql_ast::Expr>> {
     if matches!(op, BinOp::Eq) || matches!(op, BinOp::Ne) {
         let expr = if matches!(a.kind, ExprKind::Literal(Literal::Null)) {
@@ -345,11 +348,11 @@ fn try_into_window_frame((kind, range): (WindowKind, Range<Expr>)) -> Result<sql
 
 pub(super) fn translate_column_sort(
     sort: &ColumnSort<CId>,
-    context: &Context,
+    context: &mut Context,
 ) -> Result<OrderByExpr> {
-    let column = context.anchor.materialize_expr(&sort.column);
+    let column = context.anchor.materialize_name(&sort.column);
     Ok(OrderByExpr {
-        expr: translate_expr_kind(column.kind, context)?,
+        expr: sql_ast::Expr::CompoundIdentifier(translate_ident(column, context)),
         asc: if matches!(sort.direction, SortDirection::Asc) {
             None // default order is ASC, so there is no need to emit it
         } else {
@@ -361,7 +364,7 @@ pub(super) fn translate_column_sort(
 
 pub(super) fn filter_of_filters(
     conditions: Vec<Expr>,
-    context: &Context,
+    context: &mut Context,
 ) -> Result<Option<sql_ast::Expr>> {
     let mut condition = None;
     for filter in conditions {
@@ -415,7 +418,7 @@ pub(super) fn translate_join(t: &Transform, context: &mut Context) -> Result<Joi
         };
 
         Ok(Join {
-            relation: table_factor_of_table_ref(with, context),
+            relation: table_factor_of_tid(with, context),
             join_operator: match *side {
                 JoinSide::Inner => JoinOperator::Inner(constraint),
                 JoinSide::Left => JoinOperator::LeftOuter(constraint),
@@ -507,7 +510,7 @@ pub(super) fn translate_ident_part(ident: String, context: &Context) -> sql_ast:
 fn translate_operand(
     expr: ExprKind,
     min_strength: i32,
-    context: &Context,
+    context: &mut Context,
 ) -> Result<Box<sql_ast::Expr>> {
     let expr = Box::new(translate_expr_kind(expr, context)?);
 

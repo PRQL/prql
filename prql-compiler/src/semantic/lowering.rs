@@ -3,9 +3,9 @@ use std::collections::HashMap;
 use anyhow::{bail, Result};
 use itertools::Itertools;
 
-use crate::ast::{InterpolateItem, Range};
+use crate::ast::{Expr, InterpolateItem, Range};
 use crate::error::{Error, Reason};
-use crate::ir::{CId, ColumnDef, IdGenerator, Query, TId, Table, Transform};
+use crate::ir::{CId, ColumnDef, IdGenerator, Query, TId, Table, TableExpr, Transform};
 use crate::{ast, ir};
 
 use super::Context;
@@ -31,20 +31,22 @@ pub fn lower_ast_to_ir(statements: Vec<ast::Stmt>, context: Context) -> Result<Q
                 tables.push(Table {
                     id: tid,
                     name: Some(table_def.name),
-                    pipeline: l.lower_pipeline(*table_def.value)?,
+                    expr: l.lower_table_expr(*table_def.value)?,
                 });
             }
             ast::StmtKind::Pipeline(expr) => {
-                let ir = l.lower_pipeline(expr)?;
+                let ir = l.lower_table_expr(expr)?;
                 main_pipeline = Some(ir);
             }
         }
     }
 
+    tables.extend(l.tables);
+
     Ok(Query {
         def: query_def.unwrap_or_default(),
         tables,
-        main_pipeline: main_pipeline
+        expr: main_pipeline
             .ok_or_else(|| Error::new(Reason::Simple("missing main pipeline".to_string())))?,
     })
 }
@@ -59,6 +61,9 @@ struct Lowerer {
 
     /// mapping from [crate::semantic::Declarations] into [TId]s
     table_mapping: HashMap<usize, TId>,
+
+    /// tables to be added to Query.tables
+    tables: Vec<Table>,
 }
 
 impl Lowerer {
@@ -69,7 +74,23 @@ impl Lowerer {
             ids: IdGenerator::empty(),
             column_mapping: HashMap::new(),
             table_mapping: HashMap::new(),
+            tables: Vec::new(),
         }
+    }
+
+    fn lower_table(&mut self, expr: Expr) -> Result<TId> {
+        let id = self.ensure_table_id(expr.declared_at.unwrap());
+
+        let expr = self.lower_table_expr(expr)?;
+
+        let name = match &expr {
+            TableExpr::Ref(ast::TableRef::LocalTable(name)) => Some(name.clone()),
+            _ => None,
+        };
+
+        self.tables.push(Table { id, name, expr });
+
+        Ok(id)
     }
 
     fn ensure_table_id(&mut self, id: usize) -> TId {
@@ -79,8 +100,11 @@ impl Lowerer {
             .or_insert_with(|| self.ids.gen_tid())
     }
 
-    fn lower_pipeline(&mut self, ast: ast::Expr) -> Result<Vec<Transform>> {
-        self.lower_transform(ast)
+    fn lower_table_expr(&mut self, expr: Expr) -> Result<TableExpr> {
+        Ok(match expr.kind {
+            ast::ExprKind::Ident(name) => TableExpr::Ref(ast::TableRef::LocalTable(name)),
+            _ => TableExpr::Pipeline(self.lower_transform(expr)?),
+        })
     }
 
     fn lower_transform(&mut self, ast: ast::Expr) -> Result<Vec<Transform>> {
@@ -101,22 +125,9 @@ impl Lowerer {
 
         let tbl = match *transform_call.kind {
             ast::TransformKind::From(expr) => {
-                let tid = self.ensure_table_id(expr.declared_at.unwrap());
+                let id = self.lower_table(expr)?;
 
-                transforms.push(Transform::From(
-                    lower_table_ref(expr)?,
-                    vec![ColumnDef {
-                        id: self.ids.gen_cid(),
-                        expr: ir::Expr {
-                            kind: ir::ExprKind::ExternRef {
-                                variable: "*".to_string(),
-                                table: Some(tid),
-                            },
-                            span: None,
-                        },
-                        name: None,
-                    }],
-                ));
+                transforms.push(Transform::From(id));
 
                 None
             }
@@ -182,9 +193,11 @@ impl Lowerer {
                 filter,
                 tbl,
             } => {
+                let with = self.lower_table(with)?;
+
                 let transform = Transform::Join {
                     side,
-                    with: lower_table_ref(with)?,
+                    with,
                     filter: match filter {
                         ast::JoinFilter::On(exprs) => {
                             ast::JoinFilter::On(self.declare_as_columns(exprs, &mut transforms)?)
@@ -344,20 +357,4 @@ impl Lowerer {
             span: ast.span,
         })
     }
-}
-
-fn lower_table_ref(expr: ast::Expr) -> Result<ast::TableRef> {
-    let name = expr.kind.into_ident().map_err(|e| {
-        Error::new(Reason::Expected {
-            who: None,
-            expected: "table name".to_string(),
-            found: format!("`{}`", ast::Expr::from(e)),
-        })
-        .with_span(expr.span)
-        .with_help(
-            r"Inline table expressions are not yet supported.
-            You can define new table with `table my_table = (...)`",
-        )
-    })?;
-    Ok(ast::TableRef::LocalTable(name))
 }

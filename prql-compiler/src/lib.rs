@@ -280,6 +280,7 @@ select `first name`
           table
         "###);
     }
+    
     #[test]
     #[ignore]
     fn test_sorts() {
@@ -301,7 +302,6 @@ select `first name`
     }
 
     #[test]
-    #[ignore]
     fn test_ranges() {
         let query = r###"
         from employees
@@ -647,7 +647,6 @@ select `first name`
     }
 
     #[test]
-    #[ignore]
     fn test_filter() {
         // https://github.com/prql/prql/issues/469
         let query = r###"
@@ -935,7 +934,6 @@ select `first name`
     }
 
     #[test]
-    #[ignore]
     fn test_dbt_query() {
         assert_display_snapshot!((compile(r###"
         from {{ ref('stg_orders') }}
@@ -1381,7 +1379,6 @@ take 20
     }
 
     #[test]
-    #[ignore]
     fn test_dialects() {
         // Generic
         let query = r###"
