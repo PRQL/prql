@@ -19,7 +19,7 @@ so you can see your results instantly.
 When you exit the Docker container (say, at the end of the development
 session), the `prql` directory on the local machine contains the
 latest files.
-You can use `git` to pull or to push the `prql` directory as normal.
+You can use `git` to pull or to push the `prql` repo as normal.
 
 To do all this, build the Docker container and start it
 as described in the **Installation** section.
@@ -58,7 +58,7 @@ docker run -it -v $(pwd)/:/app -p 3000:3000 prql
 
 - You'll see a `root@xxxxxxxxx:/app/#` prompt
 - Enter the commands below for the component you're working on
-- Ctl-C to exit that component
+- Ctrl-C to exit that component
 - Enter 'exit' to close down the Docker machine
 
 ## Running components under Docker
