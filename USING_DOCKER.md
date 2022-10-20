@@ -12,7 +12,6 @@ The developer loop when using Docker is substantially the same as
 if the tools had been installed directly.
 
 All the source files live in the `prql` directory on your machine.
-Just use `git` to pull or to push the `prql` directory as normal.
 As you edit the source, the tools (wrapped in the Docker container)
 watch those directories and re-run
 so you can see your results instantly.
@@ -20,6 +19,7 @@ so you can see your results instantly.
 When you exit the Docker container (say, at the end of the development
 session), the `prql` directory on the local machine contains the
 latest files.
+You can use `git` to pull or to push the `prql` directory as normal.
 
 To do all this, build the Docker container and start it
 as described in the **Installation** section.
@@ -39,6 +39,15 @@ necessary developer tools.)_
 cd <top-level-PRQL-directory>
 docker build -t prql .
 ```
+
+_Optional:_ To perform a minimal suite of tests
+before each new commit to git, install the `pre-commit` program
+on the machine that hosts your Docker container.
+Then (one time) run `pre-commit install-hooks` to set up
+your `git` client to use the `.pre-commit-config.yaml` config file.
+These tests will run each time you commit so you can avoid silly mistakes.
+(NB: `pre-commit` must be done on the host machine
+since the Docker container only reads the repository.)
 
 Finally, start up the Docker container with:
 
