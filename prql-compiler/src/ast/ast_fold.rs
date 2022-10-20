@@ -52,6 +52,9 @@ pub trait AstFold {
     fn fold_func_call(&mut self, func_call: FuncCall) -> Result<FuncCall> {
         fold_func_call(self, func_call)
     }
+    fn fold_transform_call(&mut self, transform_call: TransformCall) -> Result<TransformCall> {
+        fold_transform_call(self, transform_call)
+    }
     fn fold_closure(&mut self, closure: Closure) -> Result<Closure> {
         fold_closure(self, closure)
     }
@@ -97,8 +100,7 @@ pub fn fold_expr_kind<T: ?Sized + AstFold>(fold: &mut T, expr_kind: ExprKind) ->
         FuncCall(func_call) => FuncCall(fold.fold_func_call(func_call)?),
         Closure(closure) => Closure(fold.fold_closure(closure)?),
 
-        // TODO: expand this (it's probably not needed, so I didn't)
-        TransformCall(transform) => TransformCall(transform),
+        TransformCall(transform) => TransformCall(fold.fold_transform_call(transform)?),
 
         // None of these capture variables, so we don't need to fold them.
         Literal(_) => expr_kind,
@@ -191,6 +193,90 @@ pub fn fold_func_call<T: ?Sized + AstFold>(fold: &mut T, func_call: FuncCall) ->
             .try_collect()?,
     })
 }
+
+pub fn fold_transform_call<T: ?Sized + AstFold>(
+    fold: &mut T,
+    t: TransformCall,
+) -> Result<TransformCall> {
+    Ok(TransformCall {
+        kind: Box::new(fold_transform_kind(fold, *t.kind)?),
+        partition: fold.fold_exprs(t.partition)?,
+        window: fold.fold_window(t.window)?,
+        sort: t
+            .sort
+            .into_iter()
+            .map(|s| fold_column_sort(fold, s))
+            .try_collect()?,
+    })
+}
+
+pub fn fold_transform_kind<T: ?Sized + AstFold>(
+    fold: &mut T,
+    t: TransformKind,
+) -> Result<TransformKind> {
+    use TransformKind::*;
+    Ok(match t {
+        From(expr) => From(fold.fold_expr(expr)?),
+        Derive { assigns, tbl } => Derive {
+            assigns: fold.fold_exprs(assigns)?,
+            tbl: fold.fold_expr(tbl)?,
+        },
+        Select { assigns, tbl } => Select {
+            assigns: fold.fold_exprs(assigns)?,
+            tbl: fold.fold_expr(tbl)?,
+        },
+        Filter { filter, tbl } => Filter {
+            filter: fold.fold_expr(filter)?,
+            tbl: fold.fold_expr(tbl)?,
+        },
+        Aggregate { assigns, tbl } => Aggregate {
+            assigns: fold.fold_exprs(assigns)?,
+            tbl: fold.fold_expr(tbl)?,
+        },
+        Sort { by, tbl } => Sort {
+            by: by
+                .into_iter()
+                .map(|s| fold_column_sort(fold, s))
+                .try_collect()?,
+            tbl: fold.fold_expr(tbl)?,
+        },
+        Take { range, tbl } => Take {
+            range: fold_range(fold, range)?,
+            tbl: fold.fold_expr(tbl)?,
+        },
+        Join {
+            side,
+            with,
+            filter,
+            tbl,
+        } => Join {
+            tbl: fold.fold_expr(tbl)?,
+            side,
+            with: fold.fold_expr(with)?,
+            filter: match filter {
+                JoinFilter::On(exprs) => JoinFilter::On(fold.fold_exprs(exprs)?),
+                JoinFilter::Using(exprs) => JoinFilter::Using(fold.fold_exprs(exprs)?),
+            },
+        },
+        Group { by, pipeline, tbl } => Group {
+            tbl: fold.fold_expr(tbl)?,
+            by: fold.fold_exprs(by)?,
+            pipeline: fold.fold_expr(pipeline)?,
+        },
+        Window {
+            kind,
+            range,
+            pipeline,
+            tbl,
+        } => Window {
+            tbl: fold.fold_expr(tbl)?,
+            kind,
+            range: fold_range(fold, range)?,
+            pipeline: fold.fold_expr(pipeline)?,
+        },
+    })
+}
+
 pub fn fold_closure<T: ?Sized + AstFold>(fold: &mut T, closure: Closure) -> Result<Closure> {
     Ok(Closure {
         body: Box::new(fold.fold_expr(*closure.body)?),
