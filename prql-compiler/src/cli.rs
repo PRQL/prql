@@ -79,13 +79,15 @@ impl Cli {
                 let stmts = parse(source)?;
                 let (stmts, context) = semantic::resolve_only(stmts, None)?;
 
-                let (references, stmts) = semantic::label_references(stmts, &context, "".to_string(), source.to_string());
+                let (references, stmts) =
+                    semantic::label_references(stmts, &context, "".to_string(), source.to_string());
 
                 [
                     references,
                     format!("\n{context:?}").into_bytes(),
                     serde_yaml::to_string(&stmts)?.into_bytes(),
-                ].concat()
+                ]
+                .concat()
             }
             Cli::Annotate(_) => {
                 let stmts = parse(source)?;
@@ -156,7 +158,7 @@ fn combine_prql_and_frames(source: &str, frames: Vec<(Span, Frame)>, context: Co
         }
 
         if printed_lines >= lines.len() {
-            break
+            break;
         }
         let chars: String = lines[printed_lines].chars().collect();
         printed_lines += 1;
@@ -168,8 +170,8 @@ fn combine_prql_and_frames(source: &str, frames: Vec<(Span, Frame)>, context: Co
             .join(", ");
         result.push(format!("{chars:width$} # [{cols}]"));
     }
-    for line in printed_lines..lines.len() {
-        result.push(lines[line].chars().collect());
+    for line in lines.iter().skip(printed_lines) {
+        result.push(line.chars().collect());
     }
 
     result.into_iter().join("\n") + "\n"
@@ -182,7 +184,7 @@ mod tests {
     use super::*;
 
     #[test]
-    #[ignore]
+    #[should_panic]
     fn prql_layouts_test() {
         let output = Cli::execute(
             &Cli::Annotate(CommandIO::default()),

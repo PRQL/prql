@@ -99,15 +99,15 @@ impl AstFold for FrameCollector {
         if let ExprKind::TransformCall(tc) = &expr.kind {
             let span = match tc.kind.as_ref() {
                 TransformKind::From(expr) => expr.span.unwrap(),
-                TransformKind::Derive { tbl, .. } |
-                TransformKind::Select { tbl, .. } |
-                TransformKind::Filter { tbl, .. } |
-                TransformKind::Aggregate { tbl, .. } |
-                TransformKind::Sort { tbl, .. } |
-                TransformKind::Take { tbl, .. } |
-                TransformKind::Join { tbl, .. } |
-                TransformKind::Group { tbl, .. } |
-                TransformKind::Window { tbl, .. } => tbl.span.unwrap()
+                TransformKind::Derive { tbl, .. }
+                | TransformKind::Select { tbl, .. }
+                | TransformKind::Filter { tbl, .. }
+                | TransformKind::Aggregate { tbl, .. }
+                | TransformKind::Sort { tbl, .. }
+                | TransformKind::Take { tbl, .. }
+                | TransformKind::Join { tbl, .. }
+                | TransformKind::Group { tbl, .. }
+                | TransformKind::Window { tbl, .. } => tbl.span.unwrap(),
             };
 
             let frame = expr.ty.clone().and_then(|t| t.into_table().ok());

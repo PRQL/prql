@@ -73,7 +73,7 @@ enum Namespace {
 impl AstFold for Resolver {
     fn fold_expr(&mut self, mut node: Expr) -> Result<Expr> {
         let alias = node.alias.clone();
-        let span = node.span.clone();
+        let span = node.span;
         let mut r = match node.kind {
             ExprKind::Ident(ref ident) => {
                 let id = self.lookup_name(ident, node.span, &node.alias)?;
@@ -469,7 +469,7 @@ mod test {
     use crate::compile;
 
     #[test]
-    #[ignore]
+    #[should_panic]
     fn test_func_call_resolve() {
         assert_display_snapshot!(compile(r#"
         from employees

@@ -35,7 +35,10 @@ pub fn resolve(statements: Vec<Stmt>, context: Option<Context>) -> Result<(Query
 /// Runs semantic analysis on the query, using current state.
 ///
 /// Note that this removes function declarations from AST and saves them as current context.
-pub fn resolve_only(statements: Vec<Stmt>, context: Option<Context>) -> Result<(Vec<Stmt>, Context)> {
+pub fn resolve_only(
+    statements: Vec<Stmt>,
+    context: Option<Context>,
+) -> Result<(Vec<Stmt>, Context)> {
     let context = context.unwrap_or_else(load_std_lib);
 
     resolver::resolve(statements, context)
