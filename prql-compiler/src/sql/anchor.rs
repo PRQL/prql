@@ -166,7 +166,7 @@ impl AnchorContext {
                     table_def.columns.iter().map(|c| c.id).collect()
                 }
                 Transform::Select(cols) => cols.clone(),
-                Transform::Aggregate(cols) => cols.iter().map(|c| c.id).collect(),
+                Transform::Aggregate(cols) => cols.to_vec(),
                 _ => continue,
             }
         }

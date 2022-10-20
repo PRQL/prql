@@ -758,7 +758,7 @@ mod tests {
             - From: 0
             - Derive:
                 id: 4
-                name: ~
+                name: issued_at
                 expr:
                   kind:
                     ExternRef:
@@ -769,7 +769,7 @@ mod tests {
                     end: 46
             - Derive:
                 id: 5
-                name: ~
+                name: amount
                 expr:
                   kind:
                     ExternRef:
@@ -780,7 +780,7 @@ mod tests {
                     end: 55
             - Derive:
                 id: 6
-                name: ~
+                name: num_of_articles
                 expr:
                   kind:
                     ExternRef:
@@ -798,7 +798,7 @@ mod tests {
                   column: 6
             - Derive:
                 id: 3
-                name: ~
+                name: issued_at
                 expr:
                   kind:
                     ExternRef:
@@ -812,7 +812,7 @@ mod tests {
                   column: 3
             - Derive:
                 id: 2
-                name: ~
+                name: issued_at
                 expr:
                   kind:
                     ExternRef:
@@ -826,7 +826,7 @@ mod tests {
                   column: 2
             - Derive:
                 id: 1
-                name: ~
+                name: issued_at
                 expr:
                   kind:
                     ExternRef:
@@ -840,7 +840,7 @@ mod tests {
                   column: 1
             - Derive:
                 id: 0
-                name: ~
+                name: issued_at
                 expr:
                   kind:
                     ExternRef:
