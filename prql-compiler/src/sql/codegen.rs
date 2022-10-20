@@ -269,9 +269,7 @@ pub(super) fn translate_select_item(cid: CId, context: &Context) -> Result<Selec
 
     let inferred_name = match &expr {
         sql_ast::Expr::Identifier(name) => Some(vec![&name.value]),
-        sql_ast::Expr::CompoundIdentifier(parts) => {
-            Some(parts.iter().map(|p| &p.value).collect())
-        }
+        sql_ast::Expr::CompoundIdentifier(parts) => Some(parts.iter().map(|p| &p.value).collect()),
         _ => None,
     };
 
