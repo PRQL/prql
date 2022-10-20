@@ -212,6 +212,7 @@ impl Resolver {
         let enough_args = closure.args.len() >= closure.params.len();
 
         let mut r = if enough_args {
+
             let closure = self.resolve_function_args(closure)?;
 
             // evaluate
