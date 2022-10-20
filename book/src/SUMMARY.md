@@ -41,6 +41,9 @@
   - [Python](./bindings/python.md)
   - [R](./bindings/r.md)
   - [Rust](./bindings/rust.md)
+- [Internals](./internals/README.md)
+  - [Name resolving](./internals/name-resolving.md)
+  - [Functions](./internals/functions.md)
 - [Integrations]()
 
   - [dbt](./integrations/dbt.md)
