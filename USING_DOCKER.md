@@ -104,7 +104,7 @@ hugo server --bind 0.0.0.0 -p 3000
 **prql-python:** Use the command above,
 `cd prql-python` then read the **Usage** section of the [README.md](./prql-python/README.md)
 
-## Minimal testing for Dockerfile
+## Manual testing for Dockerfile
 
 While the Dockerfile is under development, use these minimal tests
 before committing new code.
