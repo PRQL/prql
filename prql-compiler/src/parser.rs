@@ -2055,4 +2055,46 @@ join `my-proj`.`dataset`.`table`
                     named_args: {}
         "###)
     }
+
+    #[test]
+    fn check_valid_version() {
+        let stmt = format!("prql version:{}\n", env!("CARGO_PKG_VERSION_MAJOR"));
+        assert!(parse(&stmt).is_ok());
+
+        let stmt = format!(
+            r#"
+        prql version:"{}"
+        "#,
+            env!("CARGO_PKG_VERSION_MAJOR")
+        );
+        assert!(parse(&stmt).is_ok());
+
+        let stmt = format!(
+            r#"
+            prql version:"{}.{}"
+            "#,
+            env!("CARGO_PKG_VERSION_MAJOR"),
+            env!("CARGO_PKG_VERSION_MINOR")
+        );
+        assert!(parse(&stmt).is_ok());
+
+        let stmt = format!(
+            r#"
+            prql version:"{}.{}.{}"
+            "#,
+            env!("CARGO_PKG_VERSION_MAJOR"),
+            env!("CARGO_PKG_VERSION_MINOR"),
+            env!("CARGO_PKG_VERSION_PATCH"),
+        );
+        assert!(parse(&stmt).is_ok());
+    }
+
+    #[test]
+    fn check_invalid_version() {
+        let stmt = format!(
+            "prql version:{}\n",
+            env!("CARGO_PKG_VERSION_MAJOR").parse::<usize>().unwrap() + 1
+        );
+        assert!(parse(&stmt).is_err());
+    }
 }
