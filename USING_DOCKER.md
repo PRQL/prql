@@ -58,7 +58,7 @@ docker run -it -v $(pwd)/:/app -p 3000:3000 prql
 
 - You'll see a `root@xxxxxxxxx:/app/#` prompt
 - Enter the commands below for the component you're working on
-- Ctl-C to exit that component
+- Ctrl-C to exit that component
 - Enter 'exit' to close down the Docker machine
 
 ## Running components under Docker
