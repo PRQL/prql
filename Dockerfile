@@ -52,9 +52,7 @@ RUN curl -sL https://deb.nodesource.com/setup_16.x | bash -
 RUN apt install -y nodejs
 
 # ========= Install remaining development tools using task =========
-RUN task install-pre-commit
 RUN task install-npm-dependencies
-RUN task install-precommit-install-hooks
 
 # ========= Install hugo =========
 RUN curl -L https://github.com/gohugoio/hugo/releases/download/v0.91.2/hugo_0.91.2_Linux-64bit.deb -o hugo.deb \
