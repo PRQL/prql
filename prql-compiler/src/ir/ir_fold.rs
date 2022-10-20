@@ -28,6 +28,9 @@ pub trait IrFold {
     fn fold_table(&mut self, table: Table) -> Result<Table> {
         fold_table(self, table)
     }
+    fn fold_table_expr(&mut self, table_expr: TableExpr) -> Result<TableExpr> {
+        fold_table_expr(self, table_expr)
+    }
     fn fold_query(&mut self, query: Query) -> Result<Query> {
         fold_query(self, query)
     }
@@ -41,20 +44,30 @@ pub trait IrFold {
             expr: self.fold_ir_expr(cd.expr)?,
         })
     }
+    fn fold_cid(&mut self, cid: CId) -> Result<CId> {
+        Ok(cid)
+    }
 }
 
 pub fn fold_table<F: ?Sized + IrFold>(fold: &mut F, t: Table) -> Result<Table> {
     Ok(Table {
         id: t.id,
         name: t.name,
-        pipeline: fold.fold_transforms(t.pipeline)?,
+        expr: fold.fold_table_expr(t.expr)?,
+    })
+}
+
+pub fn fold_table_expr<F: ?Sized + IrFold>(fold: &mut F, t: TableExpr) -> Result<TableExpr> {
+    Ok(match t {
+        TableExpr::Ref(r) => TableExpr::Ref(r),
+        TableExpr::Pipeline(transforms) => TableExpr::Pipeline(fold.fold_transforms(transforms)?),
     })
 }
 
 pub fn fold_query<F: ?Sized + IrFold>(fold: &mut F, query: Query) -> Result<Query> {
     Ok(Query {
         def: query.def,
-        main_pipeline: fold.fold_transforms(query.main_pipeline)?,
+        expr: fold.fold_table_expr(query.expr)?,
         tables: query
             .tables
             .into_iter()
@@ -77,16 +90,46 @@ pub fn fold_transform<T: ?Sized + IrFold>(
     fold: &mut T,
     mut transform: Transform,
 ) -> Result<Transform> {
+    use Transform::*;
+
     transform = match transform {
-        Transform::Derive(assigns) => Transform::Derive(fold.fold_column_def(assigns)?),
-        Transform::Aggregate(column_defs) => Transform::Aggregate(
+        From(tid) => From(tid),
+
+        Derive(assigns) => Derive(fold.fold_column_def(assigns)?),
+        Aggregate(column_defs) => Aggregate(
             column_defs
                 .into_iter()
                 .map(|cd| fold.fold_column_def(cd))
                 .try_collect()?,
         ),
 
-        kind => kind,
+        Select(ids) => Select(ids.into_iter().map(|i| fold.fold_cid(i)).try_collect()?),
+        Filter(i) => Filter(i),
+        Sort(sorts) => Sort(
+            sorts
+                .into_iter()
+                .map(|s| -> Result<ColumnSort<CId>> {
+                    Ok(ColumnSort {
+                        column: fold.fold_cid(s.column)?,
+                        direction: s.direction,
+                    })
+                })
+                .try_collect()?,
+        ),
+        Take(range) => Take(range),
+        Join { side, with, filter } => Join {
+            side,
+            with,
+            filter: match filter {
+                JoinFilter::On(ids) => {
+                    JoinFilter::On(ids.into_iter().map(|i| fold.fold_cid(i)).try_collect()?)
+                }
+                JoinFilter::Using(ids) => {
+                    JoinFilter::Using(ids.into_iter().map(|i| fold.fold_cid(i)).try_collect()?)
+                }
+            },
+        },
+        Unique => Unique,
     };
     Ok(transform)
 }

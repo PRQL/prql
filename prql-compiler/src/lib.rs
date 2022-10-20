@@ -312,6 +312,7 @@ select `first name`
           table
         "###);
     }
+
     #[test]
     #[ignore]
     fn test_sorts() {
@@ -336,9 +337,12 @@ select `first name`
     #[ignore]
     fn test_numbers() {
         let query = r###"
-        derive x = 5
-        derive y = 5.0
-        derive z = 5.00
+        from numbers
+        select [
+            x = 5,
+            y = 5.0,
+            z = 5.00,
+        ]
         "###;
 
         assert_display_snapshot!((compile(query).unwrap()), @r###"
@@ -351,7 +355,6 @@ select `first name`
     }
 
     #[test]
-    #[ignore]
     fn test_ranges() {
         let query = r###"
         from employees
@@ -697,7 +700,6 @@ select `first name`
     }
 
     #[test]
-    #[ignore]
     fn test_filter() {
         // https://github.com/prql/prql/issues/469
         let query = r###"
@@ -985,7 +987,6 @@ select `first name`
     }
 
     #[test]
-    #[ignore]
     fn test_dbt_query() {
         assert_display_snapshot!((compile(r###"
         from {{ ref('stg_orders') }}

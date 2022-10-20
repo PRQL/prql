@@ -91,18 +91,15 @@ mod test {
         def:
           version: ^0
           dialect: MsSql
-        tables: []
-        main_pipeline:
-          - From:
-              - LocalTable: employees
-              - - id: 0
-                  name: ~
-                  expr:
-                    kind:
-                      ExternRef:
-                        variable: "*"
-                        table: 0
-                    span: ~
+        tables:
+          - id: 0
+            name: employees
+            expr:
+              Ref:
+                LocalTable: employees
+        expr:
+          Pipeline:
+            - From: 0
         "### );
 
         assert_yaml_snapshot!(parse_and_resolve(r###"
@@ -114,18 +111,15 @@ mod test {
         def:
           version: ^0.2
           dialect: BigQuery
-        tables: []
-        main_pipeline:
-          - From:
-              - LocalTable: employees
-              - - id: 0
-                  name: ~
-                  expr:
-                    kind:
-                      ExternRef:
-                        variable: "*"
-                        table: 0
-                    span: ~
+        tables:
+          - id: 0
+            name: employees
+            expr:
+              Ref:
+                LocalTable: employees
+        expr:
+          Pipeline:
+            - From: 0
         "### );
 
         assert!(parse_and_resolve(

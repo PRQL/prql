@@ -747,114 +747,111 @@ mod tests {
         def:
           version: ~
           dialect: Generic
-        tables: []
-        main_pipeline:
-          - From:
-              - LocalTable: invoices
-              - - id: 7
-                  name: ~
-                  expr:
-                    kind:
-                      ExternRef:
-                        variable: "*"
-                        table: 0
-                    span: ~
-          - Derive:
-              id: 4
-              name: ~
-              expr:
-                kind:
-                  ExternRef:
-                    variable: issued_at
-                    table: ~
-                span:
-                  start: 37
-                  end: 46
-          - Derive:
-              id: 5
-              name: ~
-              expr:
-                kind:
-                  ExternRef:
-                    variable: amount
-                    table: ~
-                span:
-                  start: 49
-                  end: 55
-          - Derive:
-              id: 6
-              name: ~
-              expr:
-                kind:
-                  ExternRef:
-                    variable: num_of_articles
-                    table: ~
-                span:
-                  start: 57
-                  end: 73
-          - Sort:
-              - direction: Asc
-                column: 4
-              - direction: Desc
-                column: 5
-              - direction: Asc
-                column: 6
-          - Derive:
-              id: 3
-              name: ~
-              expr:
-                kind:
-                  ExternRef:
-                    variable: issued_at
-                    table: ~
-                span:
-                  start: 88
-                  end: 97
-          - Sort:
-              - direction: Asc
-                column: 3
-          - Derive:
-              id: 2
-              name: ~
-              expr:
-                kind:
-                  ExternRef:
-                    variable: issued_at
-                    table: ~
-                span:
-                  start: 113
-                  end: 122
-          - Sort:
-              - direction: Desc
-                column: 2
-          - Derive:
-              id: 1
-              name: ~
-              expr:
-                kind:
-                  ExternRef:
-                    variable: issued_at
-                    table: ~
-                span:
-                  start: 138
-                  end: 147
-          - Sort:
-              - direction: Asc
-                column: 1
-          - Derive:
-              id: 0
-              name: ~
-              expr:
-                kind:
-                  ExternRef:
-                    variable: issued_at
-                    table: ~
-                span:
-                  start: 164
-                  end: 173
-          - Sort:
-              - direction: Desc
-                column: 0
+        tables:
+          - id: 0
+            name: invoices
+            expr:
+              Ref:
+                LocalTable: invoices
+        expr:
+          Pipeline:
+            - From: 0
+            - Derive:
+                id: 4
+                name: ~
+                expr:
+                  kind:
+                    ExternRef:
+                      variable: issued_at
+                      table: ~
+                  span:
+                    start: 37
+                    end: 46
+            - Derive:
+                id: 5
+                name: ~
+                expr:
+                  kind:
+                    ExternRef:
+                      variable: amount
+                      table: ~
+                  span:
+                    start: 49
+                    end: 55
+            - Derive:
+                id: 6
+                name: ~
+                expr:
+                  kind:
+                    ExternRef:
+                      variable: num_of_articles
+                      table: ~
+                  span:
+                    start: 57
+                    end: 73
+            - Sort:
+                - direction: Asc
+                  column: 4
+                - direction: Desc
+                  column: 5
+                - direction: Asc
+                  column: 6
+            - Derive:
+                id: 3
+                name: ~
+                expr:
+                  kind:
+                    ExternRef:
+                      variable: issued_at
+                      table: ~
+                  span:
+                    start: 88
+                    end: 97
+            - Sort:
+                - direction: Asc
+                  column: 3
+            - Derive:
+                id: 2
+                name: ~
+                expr:
+                  kind:
+                    ExternRef:
+                      variable: issued_at
+                      table: ~
+                  span:
+                    start: 113
+                    end: 122
+            - Sort:
+                - direction: Desc
+                  column: 2
+            - Derive:
+                id: 1
+                name: ~
+                expr:
+                  kind:
+                    ExternRef:
+                      variable: issued_at
+                      table: ~
+                  span:
+                    start: 138
+                    end: 147
+            - Sort:
+                - direction: Asc
+                  column: 1
+            - Derive:
+                id: 0
+                name: ~
+                expr:
+                  kind:
+                    ExternRef:
+                      variable: issued_at
+                      table: ~
+                  span:
+                    start: 164
+                    end: 173
+            - Sort:
+                - direction: Desc
+                  column: 0
         "###);
     }
 }
