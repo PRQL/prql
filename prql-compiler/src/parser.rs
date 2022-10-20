@@ -76,9 +76,7 @@ fn ast_of_parse_pair(pair: Pair<Rule>) -> Result<Option<Node>> {
 
             let version = params
                 .remove("version")
-                .map(|v| v.unwrap(|i| i.into_literal(), "literal"))
-                .transpose()?
-                .map(|x| x.into_integer())
+                .map(|v| v.unwrap(|i| i.parse_version(), "semver version number string"))
                 .transpose()?;
 
             let dialect = if let Some(node) = params.remove("dialect") {
