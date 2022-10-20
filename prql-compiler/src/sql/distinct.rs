@@ -97,7 +97,7 @@ impl<'a> DistinctMaker<'a> {
         let transforms = vec![
             Transform {
 
-            }, 
+            },
         TransformKind::Derive(vec![ident.clone()]),
             Transform {
                 kind: TransformKind::Filter(Box::new(match (range_int.start, range_int.end) {

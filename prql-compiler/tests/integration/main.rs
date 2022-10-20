@@ -12,7 +12,7 @@ mod tests {
     fn test() {
         // TODO: we could have a trait rather than mods for each of these?
         let mut pg_client = postgres::connect();
-        let duckdb_conn = duckdb::connect();
+        // let duckdb_conn = duckdb::connect();
         let sqlite_conn = sqlite::connect();
 
         // for each of the queries
@@ -29,7 +29,7 @@ mod tests {
 
             // save both csv files as same snapshot
             assert_snapshot!("", sqlite::query_csv(&sqlite_conn, &sql));
-            assert_snapshot!("", duckdb::query_csv(&duckdb_conn, &sql));
+            // assert_snapshot!("", duckdb::query_csv(&duckdb_conn, &sql));
 
             if let Some(pg_client) = &mut pg_client {
                 assert_snapshot!("", postgres::query_csv(pg_client, &sql));
@@ -51,9 +51,9 @@ mod tests {
             .to_owned()
     }
 
-    fn load_schema() -> String {
-        fs::read_to_string(path("data/chinook/schema.sql")).unwrap()
-    }
+    // fn load_schema() -> String {
+    //     fs::read_to_string(path("data/chinook/schema.sql")).unwrap()
+    // }
 
     mod sqlite {
         use super::path;
@@ -93,6 +93,7 @@ mod tests {
         }
     }
 
+    /*
     mod duckdb {
         use chrono::{DateTime, Utc};
         use duckdb::{types::FromSql, types::ValueRef, Connection};
@@ -167,6 +168,7 @@ mod tests {
             csv_header + "\n" + &csv_rows
         }
     }
+    */
 
     mod postgres {
         use std::time::SystemTime;
