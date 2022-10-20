@@ -95,7 +95,6 @@ mod test {
     }
 
     #[test]
-    #[should_panic]
     fn test_precedence() {
         assert_display_snapshot!((compile(r###"
         from x
@@ -589,7 +588,6 @@ select `first name`
     }
 
     #[test]
-    #[should_panic]
     fn test_name_resolving() {
         let query = r###"
         from numbers
@@ -1374,7 +1372,6 @@ take 20
     }
 
     #[test]
-    #[should_panic]
     fn test_dialects() {
         // Generic
         let query = r###"

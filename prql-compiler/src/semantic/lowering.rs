@@ -241,7 +241,11 @@ impl Lowerer {
         expr_ast: ast::Expr,
         transforms: &mut Vec<Transform>,
     ) -> Result<ir::CId> {
-        let name = expr_ast.alias.clone();
+        let name = if let Some(alias) = expr_ast.alias.clone() {
+            Some(alias)
+        } else {
+            expr_ast.kind.as_ident().cloned()
+        };
         let id = expr_ast.declared_at;
 
         let expr = self.lower_expr(expr_ast)?;

@@ -267,13 +267,24 @@ pub(super) fn translate_select_item(cid: CId, context: &Context) -> Result<Selec
     let expr = context.anchor.materialize_expr(&cid);
     let expr = translate_expr_kind(expr.kind, context)?;
 
-    Ok(match context.anchor.get_column_name(&cid) {
-        Some(alias) => SelectItem::ExprWithAlias {
-            alias: translate_ident_part(alias, context),
-            expr,
-        },
-        None => SelectItem::UnnamedExpr(expr),
-    })
+    let inferred_name = match &expr {
+        sql_ast::Expr::Identifier(name) => Some(vec![&name.value]),
+        sql_ast::Expr::CompoundIdentifier(parts) => {
+            Some(parts.iter().map(|p| &p.value).collect())
+        }
+        _ => None,
+    };
+
+    if let Some(alias) = context.anchor.get_column_name(&cid) {
+        if Some(vec![&alias]) != inferred_name {
+            return Ok(SelectItem::ExprWithAlias {
+                alias: translate_ident_part(alias, context),
+                expr,
+            });
+        }
+    }
+
+    Ok(SelectItem::UnnamedExpr(expr))
 }
 
 fn try_into_is_null(
