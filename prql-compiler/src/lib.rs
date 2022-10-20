@@ -11,8 +11,13 @@ pub use anyhow::Result;
 #[cfg(feature = "cli")]
 pub use cli::Cli;
 pub use error::{format_error, FormattedError, SourceLocation};
+use once_cell::sync::Lazy;
 pub use parser::parse;
+use semver::Version;
 pub use sql::translate;
+
+pub(crate) static PRQL_VERSION: Lazy<Version> =
+    Lazy::new(|| Version::parse(env!("CARGO_PKG_VERSION")).expect("Invalid PRQL version number"));
 
 /// Compile a PRQL string into a SQL string.
 ///

@@ -12,10 +12,12 @@ use pest::iterators::Pair;
 use pest::iterators::Pairs;
 use pest::Parser;
 use pest_derive::Parser;
+use semver::{Version, VersionReq};
 
 use super::ast::*;
 use super::utils::*;
 use crate::error::{Error, Reason, Span};
+use crate::PRQL_VERSION;
 
 #[derive(Parser)]
 #[grammar = "prql.pest"]
@@ -28,7 +30,21 @@ pub(crate) type PestRule = Rule;
 pub fn parse(string: &str) -> Result<Query> {
     let ast = ast_of_string(string, Rule::query)?;
 
-    ast.item.into_query().map_err(|_| unreachable!())
+    let query = ast.item.into_query().unwrap();
+
+    if let Some(ref version) = query.version {
+        check_query_version(version, &PRQL_VERSION)?;
+    }
+
+    Ok(query)
+}
+
+fn check_query_version(query_version: &VersionReq, prql_version: &Version) -> Result<()> {
+    if !query_version.matches(prql_version) {
+        bail!("This query uses version of PRQL that is not supported by your prql-compiler. You may want to upgrade it.");
+    }
+
+    Ok(())
 }
 
 /// Parse a string into an AST. Unlike [parse], this can start from any rule.
