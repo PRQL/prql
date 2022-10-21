@@ -365,7 +365,7 @@ mod test {
     use crate::{ast::GenericDialect, parse, semantic::resolve};
 
     fn parse_and_resolve(prql: &str) -> Result<(Table, Context)> {
-        let query = resolve(parse(prql)?, None)?.0;
+        let query = resolve(parse(prql)?)?.0;
         let (anchor, query) = AnchorContext::of(query);
         let mut context = Context {
             dialect: Box::new(GenericDialect {}),

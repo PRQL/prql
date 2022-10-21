@@ -21,8 +21,8 @@ use anyhow::Result;
 /// Runs semantic analysis on the query, using current state.
 ///
 /// Note that this removes function declarations from AST and saves them as current context.
-pub fn resolve(statements: Vec<Stmt>, context: Option<Context>) -> Result<(Query, Context)> {
-    let context = context.unwrap_or_else(load_std_lib);
+pub fn resolve(statements: Vec<Stmt>) -> Result<(Query, Context)> {
+    let context = load_std_lib();
 
     let (statements, context) = resolver::resolve(statements, context)?;
 
