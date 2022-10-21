@@ -40,16 +40,25 @@ cd <top-level-PRQL-directory>
 docker build -t prql .
 ```
 
-_Optional:_ To guard against silly mistakes before each `git commit ...`,
-install the `pre-commit` program
-on the machine that hosts your Docker container.
-Then (one time) run `pre-commit install-hooks` to configure your
-`git` client with the contents of the `.pre-commit-config.yaml` file. [^1]
+_Optional:_ The `pre-commit` program makes a quick check 
+for silly mistakes of all files: rust formatting,
+`.yaml` problems, Markdown style, pretty-printing, etc.
+Run it on the machine that hosts your Docker container.
+You can also configure `git` to run `pre-commit` automatically
+for each commit. [^1]
+
+```bash
+pre-commit run -a
+```
 
 [^1]:
-    The `git commit ...` (and the resulting `pre-commit` action)
-    should only be done manually on the host machine,
-    not by any automatic action of the tools in the Docker container.
+    `pre-commit` can run automatically each time you
+    commit to your `git` repo.
+    
+    _One-time setup:_ Run `pre-commit install-hooks`
+    on the host machine that hosts the Docker container.
+    This configures your `git` client with the commands
+    from the `.pre-commit-config.yaml` file.
 
 Finally, start up the Docker container with:
 
