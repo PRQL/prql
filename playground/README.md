@@ -6,6 +6,7 @@ To run locally, [set up a development
 environment](../DEVELOPMENT.md#development-environment), and then run:
 
 ```sh
+cd playground
 npm install
 npm start
 ```

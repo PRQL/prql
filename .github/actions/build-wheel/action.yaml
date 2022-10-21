@@ -4,7 +4,7 @@ description: "Use maturin to build python dists of prql-python. Conditional if c
 runs:
   using: composite
   steps:
-    - uses: Swatinem/rust-cache@v1
+    - uses: Swatinem/rust-cache@v2
     - uses: messense/maturin-action@v1
       if: runner.os == 'Linux'
       with:
@@ -22,7 +22,7 @@ runs:
         command: build
         args: --release --no-sdist -o dist --universal2 -m prql-python/Cargo.toml
     - name: Upload wheels
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: wheels
         path: dist

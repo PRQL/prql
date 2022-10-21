@@ -15,9 +15,10 @@
 **P**ipelined **R**elational **Q**uery **L**anguage, pronounced "Prequel".
 
 PRQL is a modern language for transforming data — a simple, powerful, pipelined
-SQL replacement. Like SQL, it's readable, explicit and declarative. Unlike SQL, it forms a
-logical pipeline of transformations, and supports abstractions such as variables
-and functions. It can be used with any database that uses SQL, since it
+SQL replacement. Like SQL, it's readable, explicit and declarative.
+Unlike SQL, it forms a logical pipeline of transformations,
+and supports abstractions such as variables and functions.
+It can be used with any database that uses SQL, since it
 compiles to SQL.
 
 PRQL can be as simple as:
@@ -56,7 +57,8 @@ take 1..20                                    # Range expressions (also valid he
 ```
 
 For more on the language, more examples & comparisons with SQL, visit
-[prql-lang.org][prql website]. To experiment with PRQL in the browser, check out
+[prql-lang.org][prql website].
+To experiment with PRQL in the browser, check out
 [PRQL Playground][prql playground].
 
 ## Current status — October 2022
@@ -81,8 +83,11 @@ To stay in touch with PRQL:
 - Join us on [Discord](https://discord.gg/eQcfaCmsNc)
 - Star this repo
 - [Contribute][contributing] — join us in building PRQL, through writing
-  code or inspiring others to use it. It's easy to get started — the project can
-  be built in a couple of commands, and we're a really friendly community!
+  code or inspiring others to use it.
+- See the [development](DEVELOPMENT.md) documentation for PRQL.
+  It's easy to get started —
+  the project can be built in a couple of commands,
+  and we're a really friendly community!
 
 ## Explore
 

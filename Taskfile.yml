@@ -21,10 +21,30 @@ vars:
     rust-lang.rust-analyzer
 
 tasks:
+  # main installer is "setup-dev" which calls other tasks
   setup-dev:
     desc: Install tools for PRQL development.
     cmds:
-      # `--locked` installs from the underlying lock files (which is not the default?!)
+      - task: install-cargo-tools
+      - task: install-maturin
+      - task: install-pre-commit
+      - task: install-brew-dependencies
+      - task: install-npm-dependencies
+      # We only suggest, rather than install;
+      #    we don't want to intrude (maybe we're being too conservative?).
+      - task: suggest-vscode-extensions
+      - pre-commit install-hooks
+      - cmd: |
+          echo "
+          🟢 Setup complete! ✅🚀"
+        silent: true
+
+  install-cargo-tools:
+    # factored this out because it takes a long time to build
+    desc: Install cargo tools for PRQL development.
+    cmds:
+      # `--locked` installs from the underlying lock files
+      #     (which is not the default?!)
       - cargo install --locked
         cargo-audit
         cargo-insta
@@ -35,17 +55,11 @@ tasks:
         mdbook-toc
         wasm-bindgen-cli
         wasm-pack
+
+  install-maturin:
+    desc: Install maturin
+    cmds:
       - python3 -m pip install -U maturin
-      - task: install-pre-commit
-      - task: install-brew-dependencies
-      - task: install-npm-dependencies
-      # We only suggest, rather than install; we don't want to intrude (though maybe we're being too conservative?).
-      - task: suggest-vscode-extensions
-      - pre-commit install-hooks
-      - cmd: |
-          echo "
-          🟢 Set up complete! ✅🚀"
-        silent: true
 
   suggest-vscode-extensions:
     desc: Check and suggest VSCode extensions.
@@ -58,7 +72,8 @@ tasks:
           {{ if not (contains . $.extensions) }}❌ {{.}} {{else}}✅ {{.}} {{ end }}
         {{ end -}}
     status:
-      # If vscode isn't installed, or there are no missing extensions, return 0 and exit early.
+      # If vscode isn't installed, or there are no missing extensions,
+      # return 0 and exit early.
       - '[ ! -x "$(which code)" ] || {{ not (contains "❌" .missing_extensions) }}'
     silent: true
     cmds:
@@ -73,6 +88,10 @@ tasks:
           task install-vscode-extensions
           "
 
+  install-precommit-install-hooks:
+    desc: pre-commit install-hooks
+      - pre-commit install-hooks
+
   install-vscode-extensions:
     desc: Install recommended VSCode extensions.
     cmds:
@@ -82,7 +101,8 @@ tasks:
         {{ end -}}
 
   install-pre-commit:
-    # Someone might have this installed with `brew`, so only install if it can't be found.
+    # Someone might have this installed with `brew`,
+    # so only install if it can't be found.
     status:
       - which pre-commit
     cmds:
@@ -158,3 +178,35 @@ tasks:
       - cd playground && npm ci
       - cd playground && npm run build
       - rsync -ai --checksum --delete playground/build/ website/public/playground/
+# The next three tasks are not used for either:
+#  - the Dockerfile (installing brew takes forever)
+#    so the Dockerfile simply installs hugo & nodejs directly
+#  - the "desktop setup" - it uses other tasks in the Taskfile.yml
+# They remain in the Taskfile.yml as a hint if they should ever be needed
+
+# install-brew:
+#   # Initially added for building Docker container
+#   status:
+#     - which brew
+#   cmds:
+#     # https://stackoverflow.com/questions/58292862/how-to-install-homebrew-on-ubuntu-inside-docker-container
+#     - useradd -m -s /bin/zsh linuxbrew
+#     - usermod -aG sudo linuxbrew
+#     - mkdir -p /home/linuxbrew/.linuxbrew
+#     - chown -R linuxbrew /home/linuxbrew/.linuxbrew
+#     - export HOMEBREW_INSTALL_FROM_API=1
+#     - /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
+#     - chown -R $CONTAINER_USER: /home/linuxbrew/.linuxbrew
+
+# install-hugo:
+#   cmds:
+#     # - /home/linuxbrew/.linuxbrew/bin/brew install hugo
+#     - curl -L https://github.com/gohugoio/hugo/releases/download/v0.91.2/hugo_0.91.2_Linux-64bit.deb -o hugo.deb
+#     - apt install ./hugo.deb
+
+# install-nodejs:
+#   cmds:
+#     # - /home/linuxbrew/.linuxbrew/bin/brew install nodejs
+#     - curl -fsSL https://deb.nodesource.com/setup_16.x | bash -
+#     - apt install -y nodejs
+#     - cd /app/playground/ ; npm install

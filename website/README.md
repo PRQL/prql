@@ -5,6 +5,7 @@ A [hugo](https://gohugo.io/) website with PRQL theme, which uses minimal [water.
 Serve:
 
 ```sh
+cd website
 hugo server
 ```
 
