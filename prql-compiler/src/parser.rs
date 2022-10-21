@@ -41,7 +41,7 @@ pub fn parse(string: &str) -> Result<Query> {
 
 fn check_query_version(query_version: &VersionReq, prql_version: &Version) -> Result<()> {
     if !query_version.matches(prql_version) {
-        bail!("This query uses version of PRQL that is not supported by your prql-compiler. You may want to upgrade it.");
+        bail!("This query uses version of PRQL that is not supported by your prql-compiler. You may want to upgrade the compiler.");
     }
 
     Ok(())
