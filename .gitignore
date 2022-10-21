@@ -7,6 +7,3 @@ dist
 /*.prql
 */*.prql
 target
-node_modules/
-package.json
-package-lock.json
