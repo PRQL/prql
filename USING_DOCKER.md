@@ -40,7 +40,7 @@ cd <top-level-PRQL-directory>
 docker build -t prql .
 ```
 
-_Optional:_ The `pre-commit` program makes a quick check 
+_Optional:_ The `pre-commit` program makes a quick check
 for silly mistakes of all files: rust formatting,
 `.yaml` problems, Markdown style, pretty-printing, etc.
 Run it on the machine that hosts your Docker container.
@@ -54,7 +54,7 @@ pre-commit run -a
 [^1]:
     `pre-commit` can run automatically each time you
     commit to your `git` repo.
-    
+
     _One-time setup:_ Run `pre-commit install-hooks`
     on the host machine that hosts the Docker container.
     This configures your `git` client with the commands
