@@ -2,7 +2,7 @@
 edition = "2021"
 name = "prql-lib"
 publish = false
-version = "0.2.9"
+version.workspace = true
 
 [lib]
 crate_type = ["staticlib", "cdylib"]
