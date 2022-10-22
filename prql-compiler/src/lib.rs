@@ -54,7 +54,6 @@ mod test {
     use insta::{assert_display_snapshot, assert_snapshot};
 
     #[test]
-    #[should_panic]
     fn test_stdlib() {
         assert_snapshot!(compile(r###"
         from employees
@@ -86,12 +85,11 @@ mod test {
     }
 
     #[test]
-    #[should_panic]
     fn test_to_json() {
         let json = to_json("from employees | take 10").unwrap();
         // Since the AST is so in flux right now just test that the brackets are present
-        assert_eq!(json.chars().next().unwrap(), '{');
-        assert_eq!(json.chars().nth(json.len() - 1).unwrap(), '}');
+        assert_eq!(json.chars().next().unwrap(), '[');
+        assert_eq!(json.chars().nth(json.len() - 1).unwrap(), ']');
     }
 
     #[test]
@@ -1060,7 +1058,6 @@ select [mng_name, managers.gender, salary_avg, salary_sd]"#;
     }
 
     #[test]
-    #[should_panic]
     fn test_sql_of_ast_2() {
         let query = r###"
         from employees

@@ -76,6 +76,10 @@ pub fn fold_query<F: ?Sized + IrFold>(fold: &mut F, query: Query) -> Result<Quer
     })
 }
 
+fn fold_cids<F: ?Sized + IrFold>(fold: &mut F, cids: Vec<CId>) -> Result<Vec<CId>> {
+    cids.into_iter().map(|i| fold.fold_cid(i)).try_collect()
+}
+
 pub fn fold_transforms<F: ?Sized + IrFold>(
     fold: &mut F,
     transforms: Vec<Transform>,
@@ -96,14 +100,9 @@ pub fn fold_transform<T: ?Sized + IrFold>(
         From(tid) => From(tid),
 
         Derive(assigns) => Derive(fold.fold_column_def(assigns)?),
-        Aggregate(column_defs) => Aggregate(
-            column_defs
-                .into_iter()
-                .map(|cd| fold.fold_column_def(cd))
-                .try_collect()?,
-        ),
+        Aggregate(ids) => Aggregate(fold_cids(fold, ids)?),
 
-        Select(ids) => Select(ids.into_iter().map(|i| fold.fold_cid(i)).try_collect()?),
+        Select(ids) => Select(fold_cids(fold, ids)?),
         Filter(i) => Filter(i),
         Sort(sorts) => Sort(
             sorts
@@ -122,10 +121,10 @@ pub fn fold_transform<T: ?Sized + IrFold>(
             with,
             filter: match filter {
                 JoinFilter::On(ids) => {
-                    JoinFilter::On(ids.into_iter().map(|i| fold.fold_cid(i)).try_collect()?)
+                    JoinFilter::On(fold_cids(fold, ids)?)
                 }
                 JoinFilter::Using(ids) => {
-                    JoinFilter::Using(ids.into_iter().map(|i| fold.fold_cid(i)).try_collect()?)
+                    JoinFilter::Using(fold_cids(fold, ids)?)
                 }
             },
         },

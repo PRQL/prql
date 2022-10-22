@@ -154,15 +154,7 @@ impl Lowerer {
                 Some(tbl)
             }
             ast::TransformKind::Aggregate { assigns, tbl } => {
-                let mut select = Vec::new();
-                for assign in assigns {
-                    let name = assign.alias.clone();
-                    let expr = self.lower_expr(assign)?;
-
-                    let id = self.ids.gen_cid();
-                    let def = ColumnDef { id, expr, name };
-                    select.push(def);
-                }
+                let select = self.declare_as_columns(assigns, &mut transforms)?;
 
                 transforms.push(Transform::Aggregate(select));
                 Some(tbl)

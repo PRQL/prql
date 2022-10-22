@@ -42,7 +42,7 @@ pub enum Transform {
     Derive(ColumnDef),
     Select(Vec<CId>),
     Filter(Expr),
-    Aggregate(Vec<ColumnDef>),
+    Aggregate(Vec<CId>),
     Sort(Vec<ColumnSort<CId>>),
     Take(Range<Expr>),
     Join {
