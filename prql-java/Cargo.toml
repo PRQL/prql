@@ -10,7 +10,7 @@ doctest = false
 test = false
 
 [dependencies]
-jni = "0.19.0"
+jni = "0.20.0"
 prql-compiler = {path = "../prql-compiler"}
 
 [package.metadata.release]
