@@ -17,7 +17,6 @@ requires-python = ">=3.7"
 # disable by default and then enable in the build, given that we're going to be
 # testing more often than building.
 
-# When https://github.com/PyO3/maturin/issues/325 merges, we can at least
-# remove this config.
+# When https://github.com/PyO3/pyo3/pull/2135 merges, we can remove this config.
 
-cargo-extra-args = "--features pyo3/extension-module"
+features = ["pyo3/extension-module"]
