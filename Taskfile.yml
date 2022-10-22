@@ -43,15 +43,17 @@ tasks:
     # factored this out because it takes a long time to build
     desc: Install cargo tools for PRQL development.
     cmds:
-      # `--locked` installs from the underlying lock files
-      #     (which is not the default?!)
+      # `--locked` installs from the underlying lock files (which is not the
+      # default?!)
+      #
+      # https://github.com/tommilligan/mdbook-admonish/issues/41
+      # mdbook-admonish
       - cargo install --locked
         cargo-audit
         cargo-insta
         cargo-release
         default-target
         mdbook
-        mdbook-admonish
         mdbook-toc
         wasm-bindgen-cli
         wasm-pack
