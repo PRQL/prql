@@ -5,6 +5,9 @@ runs:
   using: composite
   steps:
     - uses: Swatinem/rust-cache@v2
+    - uses: actions/setup-python@v2
+      with:
+        python-version: 3.9
     - uses: messense/maturin-action@v1
       if: runner.os == 'Linux'
       with:
