@@ -13,7 +13,7 @@ runs:
     - name: 🔗 Setup toolchain
       shell: bash
       # Doing this ourselves since https://github.com/dtolnay/rust-toolchain/issues/29
-      run: rustup override set nightly-2022-10-26
+      run: rustup override set nightly-2022-10-22
     - name: 💰 Cache
       id: cache
       uses: Swatinem/rust-cache@v2
