@@ -18,6 +18,5 @@ opt-level = "s"
 
 [workspace.metadata.release]
 consolidate-commits = true
-consolidate-pushes = true
 pre-release-commit-message = "chore: Release {{version}}"
 shared-version = true
