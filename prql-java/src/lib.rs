@@ -17,7 +17,7 @@ pub extern "system" fn Java_org_prql_prql4j_PrqlCompiler_toSql(
         prql_compiler::compile(&prql_query).expect("Couldn't compile query to prql!");
     env.new_string(rs_sql_str)
         .expect("Couldn't create java string!")
-        .into_inner()
+        .into_raw()
 }
 
 #[no_mangle]
@@ -35,5 +35,5 @@ pub extern "system" fn Java_org_prql_prql4j_PrqlCompiler_toJson(
         prql_compiler::to_json(&prql_query).expect("Couldn't get prql json of query!");
     env.new_string(rs_json_str)
         .expect("Couldn't create java string!")
-        .into_inner()
+        .into_raw()
 }

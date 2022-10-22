@@ -15,12 +15,12 @@ runs:
       if: runner.os == 'Windows'
       with:
         command: build
-        args: --release --no-sdist -o dist -m prql-python/Cargo.toml
+        args: --release -o dist -m prql-python/Cargo.toml
     - uses: messense/maturin-action@v1
       if: runner.os == 'macOS'
       with:
         command: build
-        args: --release --no-sdist -o dist --universal2 -m prql-python/Cargo.toml
+        args: --release -o dist --universal2 -m prql-python/Cargo.toml
     - name: Upload wheels
       uses: actions/upload-artifact@v3
       with:
