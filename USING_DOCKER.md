@@ -47,8 +47,8 @@ You can also configure `git` to run `pre-commit` automatically
 for each commit with the second (one-time) command below.
 
 ```bash
-pre-commit run -a                # Run checks manually
-pre-commit install install-hooks # (one time) install the git hooks
+pre-commit run -a                  # Run checks manually
+pre-commit install --install-hooks # (one time) install the git hooks
 ```
 
 Finally, start up the Docker container with:
