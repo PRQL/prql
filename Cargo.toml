@@ -16,6 +16,9 @@ members = [
 # Tell `rustc` to optimize for small code size.
 opt-level = "s"
 
+[workspace.package]
+version = "0.2.9"
+
 [workspace.metadata.release]
 consolidate-commits = true
 pre-release-commit-message = "chore: Release {{version}}"
