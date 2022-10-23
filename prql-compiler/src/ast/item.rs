@@ -4,7 +4,7 @@ use std::fmt::{Display, Write};
 use anyhow::anyhow;
 use enum_as_inner::EnumAsInner;
 use itertools::Itertools;
-use semver::{Comparator, Op, Prerelease, VersionReq};
+use semver::VersionReq;
 use serde::{Deserialize, Serialize};
 
 use super::*;
@@ -43,19 +43,6 @@ impl Item {
     pub fn parse_version(self) -> std::result::Result<VersionReq, Self> {
         match self {
             Self::Literal(Literal::String(ref s)) => VersionReq::parse(s).map_err(|_| self),
-            Self::Literal(Literal::Integer(major)) => {
-                let comp = Comparator {
-                    op: Op::Exact,
-                    major: major.try_into().map_err(|_| self)?,
-                    minor: None,
-                    patch: None,
-                    pre: Prerelease::EMPTY,
-                };
-
-                Ok(VersionReq {
-                    comparators: vec![comp],
-                })
-            }
             _ => Err(self),
         }
     }
