@@ -45,15 +45,13 @@ tasks:
     cmds:
       # `--locked` installs from the underlying lock files (which is not the
       # default?!)
-      #
-      # https://github.com/tommilligan/mdbook-admonish/issues/41
-      # mdbook-admonish
       - cargo install --locked
         cargo-audit
         cargo-insta
         cargo-release
         default-target
         mdbook
+        mdbook-admonish
         mdbook-toc
         wasm-bindgen-cli
         wasm-pack
