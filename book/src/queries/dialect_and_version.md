@@ -45,7 +45,7 @@ take 10
 PRQL allows specifying a version of the language in the PRQL header, like:
 
 ```prql
-prql version:1
+prql version:"0.2"
 
 from employees
 ```

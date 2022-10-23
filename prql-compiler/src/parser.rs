@@ -41,7 +41,7 @@ pub fn parse(string: &str) -> Result<Query> {
 
 fn check_query_version(query_version: &VersionReq, prql_version: &Version) -> Result<()> {
     if !query_version.matches(prql_version) {
-        bail!("This query uses version of PRQL that is not supported by your prql-compiler. You may want to upgrade the compiler.");
+        bail!("This query uses a version of PRQL that is not supported by your prql-compiler. You may want to upgrade the compiler.");
     }
 
     Ok(())
@@ -1841,12 +1841,12 @@ join `my-proj`.`dataset`.`table`
     #[test]
     fn test_header() {
         assert_yaml_snapshot!(parse(r###"
-        prql dialect:mssql version:1
+        prql dialect:mssql version:"0"
 
         from employees
         "###).unwrap(), @r###"
         ---
-        version: 1
+        version: ^0
         dialect: MsSql
         nodes:
           - FuncCall:
@@ -1857,12 +1857,12 @@ join `my-proj`.`dataset`.`table`
         "### );
 
         assert_yaml_snapshot!(parse(r###"
-        prql dialect:bigquery version:2
+        prql dialect:bigquery version:"0.2"
 
         from employees
         "###).unwrap(), @r###"
         ---
-        version: 2
+        version: ^0.2
         dialect: BigQuery
         nodes:
           - FuncCall:
@@ -1875,6 +1875,14 @@ join `my-proj`.`dataset`.`table`
         assert!(parse(
             r###"
         prql dialect:bigquery version:foo
+        from employees
+        "###,
+        )
+        .is_err());
+
+        assert!(parse(
+            r###"
+        prql dialect:bigquery version:"25"
         from employees
         "###,
         )
@@ -2058,9 +2066,6 @@ join `my-proj`.`dataset`.`table`
 
     #[test]
     fn check_valid_version() {
-        let stmt = format!("prql version:{}\n", env!("CARGO_PKG_VERSION_MAJOR"));
-        assert!(parse(&stmt).is_ok());
-
         let stmt = format!(
             r#"
         prql version:"{}"
