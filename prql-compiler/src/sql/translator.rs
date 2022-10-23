@@ -820,10 +820,16 @@ fn translate_ident(ident: String, dialect: &dyn DialectHandler) -> Vec<sql_ast::
 fn translate_ident_part(ident: String, dialect: &dyn DialectHandler) -> sql_ast::Ident {
     // TODO: can probably represent these with a single regex
     fn starting_forbidden(c: char) -> bool {
-        !(('a'..='z').contains(&c) || matches!(c, '_' | '$'))
+        // Until #820 is fixed, allowing caps lets @mklopets & co use s-strings more easily
+        // !(('a'..='z').contains(&c) || matches!(c, '_' | '$'))
+        !(('a'..='z').contains(&c) || ('A'..='Z').contains(&c) || matches!(c, '_' | '$'))
     }
     fn subsequent_forbidden(c: char) -> bool {
-        !(('a'..='z').contains(&c) || ('0'..='9').contains(&c) || matches!(c, '_' | '$'))
+        !(('a'..='z').contains(&c)
+        // TODO: remove this when #820 is fixed
+            || ('A'..='Z').contains(&c)
+            || ('0'..='9').contains(&c)
+            || matches!(c, '_' | '$'))
     }
 
     let is_asterisk = ident == "*";

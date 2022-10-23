@@ -235,18 +235,18 @@ table UPPER = (
 from UPPER
 join some_schema.tablename [id]
         "###)?), @r###"
-        WITH "UPPER" AS (
+        WITH UPPER AS (
           SELECT
             lower.*
           FROM
             lower
         )
         SELECT
-          "UPPER".*,
+          UPPER.*,
           some_schema.tablename.*,
           id
         FROM
-          "UPPER"
+          UPPER
           JOIN some_schema.tablename USING(id)
         "###);
 
@@ -1377,10 +1377,10 @@ take 20
 
         assert_display_snapshot!((compile(query)?), @r###"
         SELECT
-          "FirstName",
+          FirstName,
           "last name"
         FROM
-          "Employees"
+          Employees
         LIMIT
           3
         "###);
@@ -1395,10 +1395,10 @@ take 20
 
         assert_display_snapshot!((compile(query)?), @r###"
         SELECT
-          TOP (3) "FirstName",
+          TOP (3) FirstName,
           "last name"
         FROM
-          "Employees"
+          Employees
         "###);
 
         // MySQL
@@ -1411,10 +1411,10 @@ take 20
 
         assert_display_snapshot!((compile(query)?), @r###"
         SELECT
-          `FirstName`,
+          FirstName,
           `last name`
         FROM
-          `Employees`
+          Employees
         LIMIT
           3
         "###);
@@ -1433,7 +1433,7 @@ take 20
         assert_display_snapshot!((compile(query)?), @r###"
         SELECT
           "anim""ls".*,
-          "BeeName" AS "čebela",
+          BeeName AS "čebela",
           "bear's_name" AS medved
         FROM
           "anim""ls"
@@ -1450,7 +1450,7 @@ take 20
         assert_display_snapshot!((compile(query)?), @r###"
         SELECT
           `anim"ls`.*,
-          `BeeName` AS `čebela`,
+          BeeName AS `čebela`,
           `bear's_name` AS medved
         FROM
           `anim"ls`
