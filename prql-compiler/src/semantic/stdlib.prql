@@ -32,13 +32,13 @@ func in<bool> range value ->  s"{value} BETWEEN {range}"
 func coalesce value default -> s"COALESCE({value}, {default})"
 
 # Transform type definitions
-func from<table> source<table> -> null
-func select<table> a<column> tbl -> null
-func filter<table> condition<bool> tbl -> null
-func derive<table> a<column> tbl -> null
-func aggregate<table> a<column> tbl -> null
-func sort<table> by tbl -> null
-func take<table> expr tbl -> null
-func join<table> with<table> filter side<builtin_keyword>:inner tbl -> null
-func group<table> by pipeline tbl -> null
-func window<table> rows:0..0 range:0..0 expanding:false rolling:0 pipeline tbl -> null
+func from<table> tables.source<table> -> null
+func select<table> a<column> tbl<table> -> null
+func filter<table> condition<bool> tbl<table> -> null
+func derive<table> a<column> tbl<table> -> null
+func aggregate<table> a<column> tbl<table> -> null
+func sort<table> by tbl<table> -> null
+func take<table> expr tbl<table> -> null
+func join<table> tables.with<table> filter noresolve.side:inner tbl<table> -> null
+func group<table> by pipeline tbl<table> -> null
+func window<table> rows:0..0 range:0..0 expanding:false rolling:0 pipeline tbl<table> -> null

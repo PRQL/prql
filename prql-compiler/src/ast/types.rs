@@ -21,10 +21,6 @@ pub enum Ty {
     /// Means that we have no information about the type of the variable and
     /// that it should be inferred from other usages.
     Infer,
-
-    /// Some sort of globally defined enum, used for i.e. `join side:left`.
-    /// This could be replaced with actual enums (which currently don't exist).
-    BuiltinKeyword,
 }
 
 #[derive(
@@ -154,7 +150,6 @@ impl Display for Ty {
             }
             Ty::Table(frame) => write!(f, "table<{frame}>"),
             Ty::Infer => write!(f, "infer"),
-            Ty::BuiltinKeyword => write!(f, "builtin_keyword"),
             Ty::Function(func) => {
                 write!(f, "func")?;
 

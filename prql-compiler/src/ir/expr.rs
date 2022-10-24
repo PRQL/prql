@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use super::{CId, TId};
 use crate::{
-    ast::{BinOp, InterpolateItem, Literal, Range, UnOp},
+    ast::{BinOp, InterpolateItem, Literal, Range},
     error::Span,
 };
 
@@ -34,6 +34,12 @@ pub enum ExprKind {
     },
     SString(Vec<InterpolateItem<Expr>>),
     FString(Vec<InterpolateItem<Expr>>),
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
+pub enum UnOp {
+    Neg,
+    Not,
 }
 
 impl From<ExprKind> for anyhow::Error {
