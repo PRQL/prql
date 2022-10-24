@@ -9,6 +9,7 @@ mod tests {
     use insta::{assert_snapshot, glob};
 
     #[test]
+    #[ignore]
     fn test() {
         // TODO: we could have a trait rather than mods for each of these?
         let mut pg_client = postgres::connect();
