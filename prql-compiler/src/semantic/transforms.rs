@@ -519,7 +519,7 @@ mod tests {
         ",
         )
         .unwrap();
-        let (result, _) = resolve(query).unwrap();
+        let result = resolve(query).unwrap();
         assert_yaml_snapshot!(result, @r###"
         ---
         def:
@@ -640,7 +640,7 @@ mod tests {
         ",
         )
         .unwrap();
-        let (result, _) = resolve(query).unwrap();
+        let result = resolve(query).unwrap();
         assert_yaml_snapshot!(result, @r###"
         ---
         def:
@@ -725,7 +725,7 @@ mod tests {
         )
         .unwrap();
 
-        let (result, _) = resolve(query).unwrap();
+        let result = resolve(query).unwrap();
         assert_yaml_snapshot!(result, @r###"
         ---
         def:

@@ -198,7 +198,7 @@ pub struct TransformCall {
     pub sort: Vec<ColumnSort>,
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, strum::AsRefStr)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, strum::AsRefStr, EnumAsInner)]
 pub enum TransformKind {
     From(Expr),
     Derive {
@@ -400,6 +400,15 @@ impl From<ExprKind> for anyhow::Error {
     fn from(kind: ExprKind) -> Self {
         // panic!("Failed to convert {item}")
         anyhow!("Failed to convert `{}`", Expr::from(kind))
+    }
+}
+
+impl From<TransformKind> for anyhow::Error {
+    // https://github.com/bluejekyll/enum-as-inner/issues/84
+    #[allow(unreachable_code)]
+    fn from(kind: TransformKind) -> Self {
+        // panic!("Failed to convert {item}")
+        anyhow!("Failed to convert `{kind:?}`")
     }
 }
 

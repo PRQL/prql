@@ -1,0 +1,31 @@
+---
+source: prql-compiler/src/semantic/resolver.rs
+expression: "resolve_derive(r#\"\n            func add x to:1 -> x + to\n\n            from foo_table\n            derive [\n                added = add bar to:3,\n                added_default = add bar\n            ]\n            \"#).unwrap()"
+---
+- Binary:
+    left:
+      Ident: bar
+      ty: Infer
+    op: Add
+    right:
+      Literal:
+        Integer: 3
+      ty:
+        Literal: Integer
+  ty:
+    Literal: Column
+  alias: added
+- Binary:
+    left:
+      Ident: bar
+      ty: Infer
+    op: Add
+    right:
+      Literal:
+        Integer: 1
+      ty:
+        Literal: Integer
+  ty:
+    Literal: Column
+  alias: added_default
+
