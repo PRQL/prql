@@ -360,7 +360,7 @@ mod tests {
         let prql = r#"
         from employees
         select [first_name, emp_no]
-        join salaries [emp_no]
+        join salaries [~emp_no]
         select [first_name, salaries.salary]
         "#;
         let result = parse(prql).and_then(|x| resolve_names(x, context));
@@ -369,7 +369,7 @@ mod tests {
         let prql = r#"
         from employees
         select first_name
-        join salaries [emp_no]
+        join salaries [~emp_no]
         select [first_name, salaries.salary]
         "#;
         let result = parse(prql).and_then(|x| resolve_names(x, context));
@@ -380,7 +380,7 @@ mod tests {
     fn test_ambiguous_resolve() {
         let prql = r#"
         from employees
-        join salaries [emp_no]
+        join salaries [~emp_no]
         select first_name      # this could belong to either table!
         "#;
         let result = parse(prql).and_then(resolve_and_translate).unwrap();
@@ -407,7 +407,7 @@ mod tests {
         let prql = r#"
         from employees
         select [first_name, emp_no]
-        join salaries [emp_no]
+        join salaries [~emp_no]
         select [first_name, emp_no, salary]
         "#;
         let result = parse(prql).and_then(resolve_and_translate).unwrap();

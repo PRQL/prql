@@ -27,6 +27,7 @@ use std::path::Path;
 use walkdir::WalkDir;
 
 #[test]
+#[ignore]
 fn run_examples() -> Result<()> {
     // TODO: This doesn't delete old prql files — probably we should delete them
     // all first?

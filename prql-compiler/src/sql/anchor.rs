@@ -83,6 +83,7 @@ impl AnchorContext {
         def.expr.clone()
     }
 
+    #[allow(dead_code)]
     pub fn materialize_exprs(&self, cids: &[CId]) -> Vec<Expr> {
         cids.iter().map(|cid| self.materialize_expr(cid)).collect()
     }
@@ -160,14 +161,18 @@ impl AnchorContext {
         let mut columns = Vec::new();
 
         for transform in pipeline {
-            columns = match transform {
+            match transform {
                 Transform::From(tid) => {
                     let table_def = &self.table_defs.get(tid).unwrap();
-                    table_def.columns.iter().map(|c| c.id).collect()
+                    columns = table_def.columns.iter().map(|c| c.id).collect();
                 }
-                Transform::Select(cols) => cols.clone(),
-                Transform::Aggregate(cols) => cols.iter().map(|c| c.id).collect(),
-                _ => continue,
+                Transform::Select(cols) => columns = cols.clone(),
+                Transform::Aggregate(cols) => columns = cols.clone(),
+                Transform::Join { with, .. } => {
+                    let table_def = &self.table_defs.get(with).unwrap();
+                    columns.extend(table_def.columns.iter().map(|c| c.id));
+                }
+                _ => {}
             }
         }
 
@@ -808,7 +813,7 @@ mod test {
         let query2 = parse(
             r#"
         from table_1
-        join customers [customer_no]
+        join customers [~customer_no]
         "#,
         )?;
 

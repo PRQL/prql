@@ -226,7 +226,7 @@ pub fn fold_transform_kind<T: ?Sized + AstFold>(
             tbl: fold.fold_expr(tbl)?,
         },
         Filter { filter, tbl } => Filter {
-            filter: fold.fold_expr(filter)?,
+            filter: Box::new(fold.fold_expr(*filter)?),
             tbl: fold.fold_expr(tbl)?,
         },
         Aggregate { assigns, tbl } => Aggregate {
@@ -252,16 +252,13 @@ pub fn fold_transform_kind<T: ?Sized + AstFold>(
         } => Join {
             tbl: fold.fold_expr(tbl)?,
             side,
-            with: fold.fold_expr(with)?,
-            filter: match filter {
-                JoinFilter::On(exprs) => JoinFilter::On(fold.fold_exprs(exprs)?),
-                JoinFilter::Using(exprs) => JoinFilter::Using(fold.fold_exprs(exprs)?),
-            },
+            with: Box::new(fold.fold_expr(*with)?),
+            filter: Box::new(fold.fold_expr(*filter)?),
         },
         Group { by, pipeline, tbl } => Group {
             tbl: fold.fold_expr(tbl)?,
             by: fold.fold_exprs(by)?,
-            pipeline: fold.fold_expr(pipeline)?,
+            pipeline: Box::new(fold.fold_expr(*pipeline)?),
         },
         Window {
             kind,
@@ -272,7 +269,7 @@ pub fn fold_transform_kind<T: ?Sized + AstFold>(
             tbl: fold.fold_expr(tbl)?,
             kind,
             range: fold_range(fold, range)?,
-            pipeline: fold.fold_expr(pipeline)?,
+            pipeline: Box::new(fold.fold_expr(*pipeline)?),
         },
     })
 }
