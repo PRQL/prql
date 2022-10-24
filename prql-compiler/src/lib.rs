@@ -54,6 +54,10 @@ mod test {
     use insta::{assert_display_snapshot, assert_snapshot};
 
     #[test]
+<<<<<<< HEAD
+=======
+    #[ignore]
+>>>>>>> 0942575 (tests: Ignore rather than panic)
     fn test_stdlib() {
         assert_snapshot!(compile(r###"
         from employees
@@ -85,6 +89,10 @@ mod test {
     }
 
     #[test]
+<<<<<<< HEAD
+=======
+    #[ignore]
+>>>>>>> 0942575 (tests: Ignore rather than panic)
     fn test_to_json() {
         let json = to_json("from employees | take 10").unwrap();
         // Since the AST is so in flux right now just test that the brackets are present
@@ -166,7 +174,7 @@ mod test {
         );
     }
     #[test]
-    #[should_panic]
+    #[ignore]
     fn test_pipelines() {
         assert_display_snapshot!((compile(r###"
         from employees
@@ -180,7 +188,7 @@ mod test {
     }
 
     #[test]
-    #[should_panic]
+    #[ignore]
     fn test_rn_ids_are_unique() {
         assert_display_snapshot!((compile(r###"
         from y_orig
@@ -217,6 +225,10 @@ mod test {
     }
 
     #[test]
+<<<<<<< HEAD
+=======
+    #[ignore]
+>>>>>>> 0942575 (tests: Ignore rather than panic)
     fn test_quoting() {
         // GH-#822
         assert_display_snapshot!((compile(r###"
@@ -328,7 +340,7 @@ select `first name`
     }
 
     #[test]
-    #[should_panic]
+    #[ignore]
     fn test_interval() {
         let query = r###"
         from projects
@@ -345,7 +357,7 @@ select `first name`
     }
 
     #[test]
-    #[should_panic]
+    #[ignore]
     fn test_dates() {
         assert_display_snapshot!((compile(r###"
         from to_do_empty_table
@@ -367,7 +379,7 @@ select `first name`
     }
 
     #[test]
-    #[should_panic]
+    #[ignore]
     fn test_window_functions() {
         assert_display_snapshot!((compile(r###"
         from employees
@@ -493,7 +505,7 @@ select `first name`
     }
 
     #[test]
-    #[should_panic]
+    #[ignore]
     fn test_window_functions_2() {
         // detect sum as a window function, even without group or window
         assert_display_snapshot!((compile(r###"
@@ -669,7 +681,7 @@ select `first name`
     }
 
     #[test]
-    #[should_panic]
+    #[ignore]
     fn test_nulls() {
         assert_display_snapshot!((compile(r###"
         from employees
@@ -723,7 +735,7 @@ select `first name`
     }
 
     #[test]
-    #[should_panic]
+    #[ignore]
     fn test_range() {
         assert_display_snapshot!((compile(r###"
         from employees
@@ -812,7 +824,7 @@ select `first name`
     }
 
     #[test]
-    #[should_panic]
+    #[ignore]
     fn test_distinct() {
         // window functions cannot materialize into where statement: CTE is needed
         assert_display_snapshot!((compile(r###"
@@ -931,6 +943,10 @@ select `first name`
     }
 
     #[test]
+<<<<<<< HEAD
+=======
+    #[ignore]
+>>>>>>> 0942575 (tests: Ignore rather than panic)
     fn test_join() {
         assert_display_snapshot!((compile(r###"
         from x
@@ -948,7 +964,7 @@ select `first name`
     }
 
     #[test]
-    #[should_panic]
+    #[ignore]
     fn test_from_json() {
         // Test that the SQL generated from the JSON of the PRQL is the same as the raw PRQL
         let original_prql = r#"from employees
@@ -1012,7 +1028,7 @@ select [mng_name, managers.gender, salary_avg, salary_sd]"#;
     }
 
     #[test]
-    #[should_panic]
+    #[ignore]
     fn test_sql_of_ast_1() {
         let query = r###"
         from employees
@@ -1088,7 +1104,7 @@ select [mng_name, managers.gender, salary_avg, salary_sd]"#;
     }
 
     #[test]
-    #[should_panic]
+    #[ignore]
     fn test_prql_to_sql_2() {
         let query = r#"
 from employees
@@ -1119,7 +1135,7 @@ take 20
     }
 
     #[test]
-    #[should_panic]
+    #[ignore]
     fn test_prql_to_sql_table() {
         // table
         let query = r#"
@@ -1173,7 +1189,7 @@ take 20
     }
 
     #[test]
-    #[should_panic]
+    #[ignore]
     fn test_nonatomic() {
         // A take, then two aggregates
         let query = r###"
@@ -1229,7 +1245,7 @@ take 20
     }
 
     #[test]
-    #[should_panic]
+    #[ignore]
     /// Confirm a nonatomic table works.
     fn test_nonatomic_table() {
         // A take, then two aggregates
@@ -1269,7 +1285,7 @@ take 20
     }
 
     #[test]
-    #[should_panic]
+    #[ignore]
     fn test_table_names_between_splits() {
         let prql = r###"
         from employees
@@ -1326,7 +1342,7 @@ take 20
     }
 
     #[test]
-    #[should_panic]
+    #[ignore]
     fn test_table_alias() {
         // Alias on from
         let query = r###"
@@ -1408,7 +1424,7 @@ take 20
     }
 
     #[test]
-    #[should_panic]
+    #[ignore]
     fn test_ident_escaping() {
         // Generic
         let query = r###"
@@ -1443,7 +1459,7 @@ take 20
         "###);
     }
     #[test]
-    #[should_panic]
+    #[ignore]
     fn test_literal() {
         let query = r###"
         from employees
@@ -1463,6 +1479,10 @@ take 20
     }
 
     #[test]
+<<<<<<< HEAD
+=======
+    #[ignore]
+>>>>>>> 0942575 (tests: Ignore rather than panic)
     fn test_same_column_names() {
         // #820
         let query = r###"
