@@ -118,12 +118,6 @@ impl Context {
         expr.declared_at = expr.declared_at.or_else(|| {
             Some(self.declare(Declaration::Expression(Box::from(expr.clone())), expr.span))
         });
-
-        // replace expr with its alias
-        if let Some(alias) = &expr.alias {
-            expr.kind = ExprKind::Ident(alias.to_string().into());
-            expr.alias = None;
-        }
     }
 
     pub fn get_column_names(&self, frame: &Frame) -> Vec<Option<String>> {
