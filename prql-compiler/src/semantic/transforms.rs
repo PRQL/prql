@@ -519,7 +519,7 @@ mod tests {
         ",
         )
         .unwrap();
-        let (result, _) = resolve(query, None).unwrap();
+        let result = resolve(query).unwrap();
         assert_yaml_snapshot!(result, @r###"
         ---
         def:
@@ -616,7 +616,7 @@ mod tests {
         ",
         )
         .unwrap();
-        let result = resolve(query, None);
+        let result = resolve(query);
         assert!(result.is_err());
 
         // oops, two arguments
@@ -627,7 +627,7 @@ mod tests {
         ",
         )
         .unwrap();
-        let result = resolve(query, None);
+        let result = resolve(query);
         assert!(result.is_err());
 
         // correct function call
@@ -640,7 +640,7 @@ mod tests {
         ",
         )
         .unwrap();
-        let (result, _) = resolve(query, None).unwrap();
+        let result = resolve(query).unwrap();
         assert_yaml_snapshot!(result, @r###"
         ---
         def:
@@ -725,7 +725,7 @@ mod tests {
         )
         .unwrap();
 
-        let (result, _) = resolve(query, None).unwrap();
+        let result = resolve(query).unwrap();
         assert_yaml_snapshot!(result, @r###"
         ---
         def:

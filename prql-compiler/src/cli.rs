@@ -107,7 +107,7 @@ impl Cli {
             }
             Cli::Resolve(_) => {
                 let ast = parse(source)?;
-                let (ir, _) = semantic::resolve(ast, None)?;
+                let ir = semantic::resolve(ast)?;
 
                 serde_json::to_string_pretty(&ir)?.into_bytes()
             }
