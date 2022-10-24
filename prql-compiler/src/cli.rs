@@ -185,7 +185,6 @@ mod tests {
 
     #[test]
     #[ignore]
-    #[should_panic]
     fn prql_layouts_test() {
         let output = Cli::execute(
             &Cli::Annotate(CommandIO::default()),
