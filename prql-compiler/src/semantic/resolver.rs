@@ -498,7 +498,7 @@ mod test {
         "#).unwrap(),
             @r###"
         SELECT
-          COUNT(salary),
+          COUNT(employees.salary),
           COUNT(*)
         FROM
           employees
