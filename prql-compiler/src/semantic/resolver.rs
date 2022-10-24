@@ -487,7 +487,7 @@ mod test {
     use crate::compile;
 
     #[test]
-    #[should_panic]
+    #[ignore]
     fn test_func_call_resolve() {
         assert_display_snapshot!(compile(r#"
         from employees
@@ -498,7 +498,7 @@ mod test {
         "#).unwrap(),
             @r###"
         SELECT
-          COUNT(salary),
+          COUNT(employees.salary),
           COUNT(*)
         FROM
           employees
