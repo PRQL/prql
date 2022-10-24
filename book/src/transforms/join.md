@@ -11,9 +11,9 @@ join side:{inner|left|right|full} {table} {[conditions]}
 - `side` decides which rows to include. Defaults to `inner`
 - Table reference
 - List of conditions
-  - Result of join operation is a cartesian (cross) product of rows from both tables, 
+  - Result of join operation is a cartesian (cross) product of rows from both tables,
     which is the filtered to match all of these conditions.
-  - If all terms are only column identifiers, 
+  - If all terms are only column identifiers,
     columns with these names from both tables with be tested for equality to one another.
     For example, `[col1, col2]` is equivalent to `[left.col1 == right.col1, left.col2 == right.col2]`
 
