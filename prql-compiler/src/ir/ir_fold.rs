@@ -119,10 +119,7 @@ pub fn fold_transform<T: ?Sized + IrFold>(
         Join { side, with, filter } => Join {
             side,
             with,
-            filter: match filter {
-                JoinFilter::On(ids) => JoinFilter::On(fold_cids(fold, ids)?),
-                JoinFilter::Using(ids) => JoinFilter::Using(fold_cids(fold, ids)?),
-            },
+            filter: fold.fold_ir_expr(filter)?,
         },
         Unique => Unique,
     };

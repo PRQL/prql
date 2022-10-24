@@ -8,6 +8,7 @@ use super::{Frame, FrameColumn};
 
 pub const NS_FUNC: &str = "_func";
 pub const NS_FRAME: &str = "_frame";
+pub const NS_FRAME_RIGHT: &str = "_right";
 pub const NS_PARAM: &str = "_param";
 
 /// Maps from accessible names in some context to their declarations.
@@ -45,12 +46,12 @@ impl Scope {
         self.add(NS_FUNC, name, id);
     }
 
-    pub(super) fn add_frame_columns(&mut self, frame: &Frame) {
+    pub(super) fn add_frame_columns(&mut self, frame: &Frame, namespace: &str) {
         for column in &frame.columns {
             match column {
-                FrameColumn::All(table_id) => self.add(NS_FRAME, "*", *table_id),
+                FrameColumn::All(table_id) => self.add(namespace, "*", *table_id),
                 FrameColumn::Unnamed(_) => {} // you cannot reference unnamed columns, duh!
-                FrameColumn::Named(name, id) => self.add(NS_FRAME, name, *id),
+                FrameColumn::Named(name, id) => self.add(namespace, name, *id),
             }
         }
     }

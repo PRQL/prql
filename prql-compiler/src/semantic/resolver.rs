@@ -1,15 +1,15 @@
 use std::collections::HashMap;
 use std::iter::zip;
 
-use anyhow::{bail, Result};
-use itertools::Itertools;
+use anyhow::{anyhow, bail, Result};
+use itertools::{Itertools, Position};
 
 use crate::ast::ast_fold::*;
 use crate::ast::*;
 use crate::error::{Error, Reason, Span};
 use crate::semantic::scope::NS_PARAM;
 
-use super::scope::NS_FRAME;
+use super::scope::{NS_FRAME, NS_FRAME_RIGHT};
 use super::type_resolver::{resolve_type, type_of_closure, validate_type};
 use super::{Context, Declaration, Frame};
 
@@ -139,6 +139,25 @@ impl AstFold for Resolver {
 
             ExprKind::Closure(closure) => {
                 self.fold_function(closure, vec![], HashMap::new(), node.span)?
+            }
+
+            ExprKind::Unary {
+                op: UnOp::EqSelf,
+                expr,
+            } => {
+                let ident = expr.kind.into_ident().map_err(|_| {
+                    anyhow!("you can only use column names with self-equality operator.")
+                })?;
+
+                node.kind = ExprKind::Binary {
+                    left: Box::new(Expr::from(ExprKind::Ident(format!("{NS_FRAME}.{ident}")))),
+                    op: BinOp::Eq,
+                    right: Box::new(Expr::from(ExprKind::Ident(format!(
+                        "{NS_FRAME_RIGHT}.{ident}"
+                    )))),
+                };
+                node.kind = fold_expr_kind(self, node.kind)?;
+                node
             }
 
             item => {
@@ -317,7 +336,7 @@ impl Resolver {
 
     fn resolve_function_args(&mut self, to_resolve: Closure) -> Result<Closure> {
         let mut closure = Closure {
-            args: Vec::with_capacity(to_resolve.args.len()),
+            args: vec![Expr::null(); to_resolve.args.len()],
             named_args: Vec::with_capacity(to_resolve.named_args.len()),
             ..to_resolve
         };
@@ -326,17 +345,52 @@ impl Resolver {
 
         {
             // positional args
-            // use reverse order because frame must be resolved first so it can be added to scope
-            let mut frame_in_scope = false;
-            for (index, arg) in to_resolve.args.into_iter().enumerate().rev() {
-                let param = &closure.params[index];
 
+            let (tables, other): (Vec<_>, Vec<_>) = zip(&closure.params, to_resolve.args)
+                .enumerate()
+                .partition(|(_, (param, _))| {
+                    let is_table = param
+                        .ty
+                        .as_ref()
+                        .map(|t| matches!(t, Ty::Table(_)))
+                        .unwrap_or_default();
+
+                    is_table
+                });
+            closure.args = vec![Expr::null(); closure.params.len()];
+
+            // resolve tables
+            for pos in tables.into_iter().with_position() {
+                let is_last = matches!(pos, Position::Last(_) | Position::Only(_));
+                let (index, (param, arg)) = pos.into_inner();
+
+                // just fold the argument alone
+                let arg = self.fold_and_type_check(arg, param, func_name)?;
+
+                // add table's frame into scope
+                if let Some(Ty::Table(frame)) = &arg.ty {
+                    if let Some(alias) = arg.alias.clone() {
+                        self.context.scope.add_frame_columns(frame, &alias);
+                    }
+
+                    if is_last {
+                        self.context.scope.add_frame_columns(frame, NS_FRAME);
+                    } else {
+                        self.context.scope.add_frame_columns(frame, NS_FRAME_RIGHT);
+                    }
+                }
+
+                closure.args[index] = arg;
+            }
+
+            // resolve other positional
+            for (index, (param, arg)) in other {
                 let arg = match arg.kind {
                     // if this is a list, fold one by one
                     ExprKind::List(items) => {
                         let mut res = Vec::with_capacity(items.len());
                         for item in items {
-                            let mut item = self.resolve_function_arg(item, param, func_name)?;
+                            let mut item = self.fold_and_type_check(item, param, func_name)?;
 
                             // add aliased columns into scope
                             if let Some(alias) = item.alias.clone() {
@@ -354,24 +408,13 @@ impl Resolver {
                     }
 
                     // just fold the argument alone
-                    _ => self.resolve_function_arg(arg, param, func_name)?,
+                    _ => self.fold_and_type_check(arg, param, func_name)?,
                 };
 
-                // add table's frame into scope
-                if !frame_in_scope {
-                    if let Some(Ty::Table(frame)) = &arg.ty {
-                        self.context.scope.add_frame_columns(frame);
-                        frame_in_scope = true;
-                    }
-                }
-
-                // push front (because of reverse resolve order)
-                closure.args.insert(0, arg);
+                closure.args[index] = arg;
             }
 
-            if frame_in_scope {
-                self.context.scope.drop(NS_FRAME);
-            }
+            self.context.scope.drop(NS_FRAME);
         }
 
         {
@@ -380,7 +423,7 @@ impl Resolver {
                 if let Some(arg) = arg {
                     let param = &closure.named_params[index];
 
-                    let arg = self.resolve_function_arg(arg, param, func_name)?;
+                    let arg = self.fold_and_type_check(arg, param, func_name)?;
                     closure.named_args.push(Some(arg));
                 } else {
                     closure.named_args.push(None);
@@ -391,37 +434,13 @@ impl Resolver {
         Ok(closure)
     }
 
-    fn resolve_function_arg(
+    fn fold_and_type_check(
         &mut self,
         arg: Expr,
         param: &FuncParam,
         func_name: Option<&str>,
     ) -> Result<Expr> {
-        let mut arg = match arg.kind {
-            // if this is a list, fold one by one
-            ExprKind::List(items) => {
-                let mut res = Vec::with_capacity(items.len());
-                for item in items {
-                    let mut item = self.fold_within_namespace(item, &param.ty)?;
-
-                    // add aliased columns into scope
-                    if let Some(alias) = item.alias.clone() {
-                        self.context.declare_as_ident(&mut item);
-
-                        let id = item.declared_at.unwrap();
-                        self.context.scope.add(NS_FRAME, alias, id);
-                    }
-                    res.push(item);
-                }
-                Expr {
-                    kind: ExprKind::List(res),
-                    ..arg
-                }
-            }
-
-            // just fold the argument alone
-            _ => self.fold_within_namespace(arg, &param.ty)?,
-        };
+        let mut arg = self.fold_within_namespace(arg, &param.name)?;
 
         // validate type
         let param_ty = param.ty.as_ref().unwrap_or(&Ty::Infer);
@@ -431,19 +450,18 @@ impl Resolver {
         Ok(arg)
     }
 
-    fn fold_within_namespace(&mut self, expr: Expr, ty: &Option<Ty>) -> Result<Expr> {
+    fn fold_within_namespace(&mut self, expr: Expr, param_name: &str) -> Result<Expr> {
         let prev_namespace = self.namespace;
-        let res = match ty.as_ref() {
-            Some(Ty::BuiltinKeyword) => Ok(expr),
-            Some(Ty::Table(_)) => {
-                self.namespace = Namespace::Tables;
-                self.fold_expr(expr)
-            }
-            _ => {
-                self.namespace = Namespace::FunctionsColumns;
-                self.fold_expr(expr)
-            }
+
+        if param_name.starts_with("noresolve.") {
+            return Ok(expr);
+        } else if param_name.starts_with("tables.") {
+            self.namespace = Namespace::Tables;
+        } else {
+            self.namespace = Namespace::FunctionsColumns;
         };
+
+        let res = self.fold_expr(expr);
         self.namespace = prev_namespace;
         res
     }
@@ -469,7 +487,6 @@ mod test {
     use crate::compile;
 
     #[test]
-    #[ignore]
     fn test_func_call_resolve() {
         assert_display_snapshot!(compile(r#"
         from employees

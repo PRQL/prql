@@ -149,7 +149,7 @@ impl Lowerer {
                 Some(tbl)
             }
             ast::TransformKind::Filter { filter, tbl } => {
-                transforms.push(Transform::Filter(self.lower_expr(filter)?));
+                transforms.push(Transform::Filter(self.lower_expr(*filter)?));
 
                 Some(tbl)
             }
@@ -185,19 +185,12 @@ impl Lowerer {
                 filter,
                 tbl,
             } => {
-                let with = self.lower_table(with)?;
+                let with = self.lower_table(*with)?;
 
                 let transform = Transform::Join {
                     side,
                     with,
-                    filter: match filter {
-                        ast::JoinFilter::On(exprs) => {
-                            ast::JoinFilter::On(self.declare_as_columns(exprs, &mut transforms)?)
-                        }
-                        ast::JoinFilter::Using(exprs) => {
-                            ast::JoinFilter::Using(self.declare_as_columns(exprs, &mut transforms)?)
-                        }
-                    },
+                    filter: self.lower_expr(*filter)?,
                 };
                 transforms.push(transform);
 
@@ -210,7 +203,7 @@ impl Lowerer {
                     partition.push(iid);
                 }
 
-                transforms.extend(self.lower_transform(pipeline)?);
+                transforms.extend(self.lower_transform(*pipeline)?);
 
                 Some(tbl)
             }
@@ -277,7 +270,7 @@ impl Lowerer {
 
         let kind = match ast.kind {
             ast::ExprKind::Ident(_) => {
-                let id = ast.declared_at.unwrap();
+                let id = ast.declared_at.expect("unresolved ident node");
                 let decl = self.context.declarations.get(id);
 
                 match decl {
@@ -314,7 +307,11 @@ impl Lowerer {
                 right: Box::new(self.lower_expr(*right)?),
             },
             ast::ExprKind::Unary { op, expr } => ir::ExprKind::Unary {
-                op,
+                op: match op {
+                    ast::UnOp::Neg => ir::UnOp::Neg,
+                    ast::UnOp::Not => ir::UnOp::Not,
+                    ast::UnOp::EqSelf => bail!("Cannot lower to IR expr: `{op:?}`"),
+                },
                 expr: Box::new(self.lower_expr(*expr)?),
             },
             ast::ExprKind::FuncCall(_) => bail!("Cannot lower to IR expr: `{ast:?}`"),

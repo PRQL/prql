@@ -9,13 +9,12 @@ use sqlparser::ast::{
 };
 
 use crate::ast::{
-    BinOp, ColumnSort, Dialect, InterpolateItem, JoinFilter, JoinSide, Literal, Range,
-    SortDirection, UnOp, WindowKind,
+    BinOp, ColumnSort, Dialect, InterpolateItem, JoinSide, Literal, Range, SortDirection,
+    WindowKind,
 };
 use crate::error::{Error, Reason};
 use crate::ir::*;
 use crate::utils::OrMap;
-use crate::utils::*;
 
 use super::translator::Context;
 
@@ -390,33 +389,7 @@ pub(super) fn filter_of_filters(
 
 pub(super) fn translate_join(t: &Transform, context: &mut Context) -> Result<Join> {
     if let Transform::Join { side, with, filter } = t {
-        let constraint = match filter {
-            JoinFilter::On(nodes) => {
-                let conditions = context.anchor.materialize_exprs(nodes);
-                JoinConstraint::On(
-                    filter_of_filters(conditions, context)?
-                        .unwrap_or(sql_ast::Expr::Value(Value::Boolean(true))),
-                )
-            }
-            JoinFilter::Using(nodes) => JoinConstraint::Using(
-                nodes
-                    .iter()
-                    .map(|x| {
-                        let name = context.anchor.materialize_name(x);
-                        translate_ident(name, context).into_only()
-                    })
-                    .collect::<Result<Vec<_>>>()
-                    .map_err(|_| {
-                        Error::new(Reason::Expected {
-                            who: Some("join".to_string()),
-                            expected: "An identifier with only one part; no `.`".to_string(),
-                            // TODO: Add in the actual item (but I couldn't
-                            // get the error types to agree)
-                            found: "A multipart identifier".to_string(),
-                        })
-                    })?,
-            ),
-        };
+        let constraint = JoinConstraint::On(translate_expr_kind(filter.kind.clone(), context)?);
 
         Ok(Join {
             relation: table_factor_of_tid(with, context),

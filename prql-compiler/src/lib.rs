@@ -255,7 +255,6 @@ mod test {
     }
 
     #[test]
-    #[ignore]
     fn test_quoting() {
         // GH-#822
         assert_display_snapshot!((compile(r###"
@@ -264,7 +263,7 @@ table UPPER = (
   from lower
 )
 from UPPER
-join some_schema.tablename [id]
+join some_schema.tablename [~id]
         "###).unwrap()), @r###"
         WITH "UPPER" AS (
           SELECT
@@ -274,29 +273,27 @@ join some_schema.tablename [id]
         )
         SELECT
           "UPPER".*,
-          some_schema.tablename.*,
-          id
+          some_schema.tablename.*
         FROM
           "UPPER"
-          JOIN some_schema.tablename USING(id)
+          JOIN some_schema.tablename ON "UPPER".id = some_schema.tablename.id
         "###);
 
         // GH-#852
         assert_display_snapshot!((compile(r###"
 prql dialect:bigquery
 from db.schema.table
-join `db.schema.table2` [id]
-join `db.schema.t-able` [id]
+join `db.schema.table2` [~id]
+join `db.schema.t-able` [~id]
         "###).unwrap()), @r###"
         SELECT
           `db.schema.table`.*,
           `db.schema.table2`.*,
-          `db.schema.t-able`.*,
-          id
+          `db.schema.t-able`.*
         FROM
           `db.schema.table`
-          JOIN `db.schema.table2` USING(id)
-          JOIN `db.schema.t-able` USING(id)
+          JOIN `db.schema.table2` ON `db.schema.table`.id = `db.schema.table2`.id
+          JOIN `db.schema.t-able` ON `db.schema.table2`.id = `db.schema.table2`.id
         "###);
 
         assert_display_snapshot!((compile(r###"
@@ -447,7 +444,7 @@ select `first name`
 
         let query = r###"
         from co=cust_order
-        join ol=order_line [order_id]
+        join ol=order_line [~order_id]
         derive [
           order_month = s"TO_CHAR({co.order_date}, '%Y-%m')",
           order_day = s"TO_CHAR({co.order_date}, '%Y-%m-%d')",
@@ -994,28 +991,20 @@ select `first name`
     }
 
     #[test]
-    #[ignore]
     fn test_join() {
         assert_display_snapshot!((compile(r###"
         from x
-        join y [id]
+        join y [~id]
         "###).unwrap()), @r###"
         SELECT
           x.*,
-          y.*,
-          id
+          y.*
         FROM
           x
-          JOIN y USING(id)
+          JOIN y ON x.id = y.id
         "###);
 
-        // TODO: is there a better way to format the errors? `anyhow::Error`
-        // doesn't seem to serialize. We'd really like to show and test the
-        // error messages in our test suite.
-        assert_snapshot!((compile(r###"
-        from x
-        join y [x.id]
-        "###).unwrap_err().to_string()), @r###"Error { span: None, reason: Expected { who: Some("join"), expected: "An identifier with only one part; no `.`", found: "A multipart identifier" }, help: None }"###);
+        compile("from x | join y [~x.id]").unwrap_err();
     }
 
     #[test]
@@ -1023,13 +1012,13 @@ select `first name`
     fn test_from_json() {
         // Test that the SQL generated from the JSON of the PRQL is the same as the raw PRQL
         let original_prql = r#"from employees
-join salaries [emp_no]
+join salaries [~emp_no]
 group [emp_no, gender] (
   aggregate [
     emp_salary = average salary
   ]
 )
-join de=dept_emp [emp_no]
+join de=dept_emp [~emp_no]
 join dm=dept_manager [
   (dm.dept_no == de.dept_no) and s"(de.from_date, de.to_date) OVERLAPS (dm.from_date, dm.to_date)"
 ]
@@ -1040,7 +1029,7 @@ group [dm.emp_no, gender] (
   ]
 )
 derive mng_no = dm.emp_no
-join managers=employees [emp_no]
+join managers=employees [~emp_no]
 derive mng_name = s"managers.first_name || ' ' || managers.last_name"
 select [mng_name, managers.gender, salary_avg, salary_sd]"#;
 
@@ -1137,7 +1126,6 @@ select [mng_name, managers.gender, salary_avg, salary_sd]"#;
     }
 
     #[test]
-    #[ignore]
     fn test_prql_to_sql_1() {
         let query = r#"
     from employees
@@ -1208,7 +1196,7 @@ take 20
             )
         )
         from newest_employees
-        join average_salaries [country]
+        join average_salaries [~country]
         select [name, salary, average_country_salary]
         "#;
         let sql = compile(query).unwrap();
@@ -1311,7 +1299,7 @@ take 20
             aggregate [s"count(*)"]
         )
         from a
-        join b [country]
+        join b [~country]
         select [name, salary, average_country_salary]
 "###;
 
@@ -1335,7 +1323,7 @@ take 20
           average_country_salary
         FROM
           a
-          JOIN b USING(country)
+          JOIN b ON a.country = b.country
         "###);
     }
 
@@ -1344,9 +1332,9 @@ take 20
     fn test_table_names_between_splits() {
         let prql = r###"
         from employees
-        join d=department [dept_no]
+        join d=department [~dept_no]
         take 10
-        join s=salaries [emp_no]
+        join s=salaries [~emp_no]
         select [employees.emp_no, d.name, s.salary]
         "###;
         let result = compile(prql).unwrap();
@@ -1358,7 +1346,7 @@ take 20
             dept_no
           FROM
             employees
-            JOIN department AS d USING(dept_no)
+            JOIN department ON employees.dept_no = department.dept_no
           LIMIT
             10
         )
@@ -1368,13 +1356,13 @@ take 20
           s.salary
         FROM
           table_0
-          JOIN salaries AS s USING(emp_no)
+          JOIN salaries AS s ON table_0.emp_no = s.emp_no
         "###);
 
         let prql = r###"
         from e=employees
         take 10
-        join salaries [emp_no]
+        join salaries [~emp_no]
         select [e.*, salary]
         "###;
         let result = compile(prql).unwrap();
@@ -1392,7 +1380,7 @@ take 20
           salary
         FROM
           table_0
-          JOIN salaries USING(emp_no)
+          JOIN salaries ON table_0.emp_no = salaries.emp_no
         "###);
     }
 
@@ -1534,7 +1522,6 @@ take 20
     }
 
     #[test]
-    #[ignore]
     fn test_same_column_names() {
         // #820
         let query = r###"
@@ -1549,7 +1536,7 @@ table y = (
 )
 
 from x
-join y [id]
+join y [~id]
 "###;
 
         assert_display_snapshot!(compile(query).unwrap(),
@@ -1568,11 +1555,10 @@ join y [id]
         )
         SELECT
           x.*,
-          y.*,
-          id
+          y.*
         FROM
           x
-          JOIN y USING(id)
+          JOIN y ON x.id = y.id
         "###
         );
     }

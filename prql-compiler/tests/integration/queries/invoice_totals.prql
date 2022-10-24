@@ -1,5 +1,5 @@
 from i=invoices
-join ii=invoice_items [invoice_id]
+join ii=invoice_items [~invoice_id]
 derive [
     month = s"STRFTIME('%Y-%m', {i.invoice_date})",
     day = s"STRFTIME('%Y-%m-%d', {i.invoice_date})",

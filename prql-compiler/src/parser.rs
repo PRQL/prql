@@ -348,7 +348,6 @@ fn type_of_parse_pair(pair: Pair<Rule>) -> Result<Ty> {
             let name = pairs.next().unwrap().as_str();
             let typ = match TyLit::from_str(name) {
                 Ok(t) => Ty::from(t),
-                Err(_) if name == "builtin_keyword" => Ty::BuiltinKeyword,
                 Err(_) if name == "table" => Ty::Table(Frame::default()),
                 Err(_) => {
                     eprintln!("named type: {}", name);
@@ -1563,7 +1562,7 @@ take 20
         // #284
 
         let prql = "from c_invoice
-join doc:c_doctype [c_invoice_id]
+join doc:c_doctype [~c_invoice_id]
 select [
 \tinvoice_no,
 \tdocstatus
@@ -1920,7 +1919,7 @@ join `my-proj`.`dataset`.`table`
     fn test_parse_allowed_idents() {
         assert_yaml_snapshot!(parse(r###"
         from employees
-        join _salary [employee_id] # table with leading underscore
+        join _salary [~employee_id] # table with leading underscore
         filter first_name == $1
         select [_employees._underscored_column]
         "###).unwrap(), @r###"
@@ -1940,7 +1939,10 @@ join `my-proj`.`dataset`.`table`
                     args:
                       - Ident: _salary
                       - List:
-                          - Ident: employee_id
+                          - Unary:
+                              op: EqSelf
+                              expr:
+                                Ident: employee_id
                     named_args: {}
                 - FuncCall:
                     name:
