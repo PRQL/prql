@@ -91,7 +91,7 @@ pub fn cast_transform(
             let side = if let Some(side) = side {
                 let span = side.span;
                 let ident = side.try_cast(ExprKind::into_ident, Some("side"), "ident")?;
-                match ident.as_str() {
+                match ident.to_string().as_str() {
                     "inner" => JoinSide::Inner,
                     "left" => JoinSide::Left,
                     "right" => JoinSide::Right,
@@ -152,7 +152,10 @@ pub fn cast_transform(
 
             // TODO: having dummy already be `x` is a hack.
             // Dummy should be substituted in later.
-            let mut dummy = Expr::from(ExprKind::Ident("_x".to_string()));
+            let mut dummy = Expr::from(ExprKind::Ident(IdentWithNamespace {
+                namespace: None,
+                ident: ("_x".to_string()),
+            }));
             dummy.ty = tbl.ty.clone();
 
             let pipeline = Expr::from(ExprKind::FuncCall(FuncCall {
@@ -353,7 +356,7 @@ impl TransformCall {
                         for node in nodes {
                             let name = node.kind.as_ident().unwrap().clone();
                             let id = node.declared_at.unwrap();
-                            frame.push_column(Some(name), id);
+                            frame.push_column(Some(name.to_string()), id);
                         }
                     }
                 }

@@ -76,7 +76,7 @@ impl AstFold for Resolver {
         let span = node.span;
         let mut r = match node.kind {
             ExprKind::Ident(ref ident) => {
-                let id = self.lookup_name(ident, node.span, &node.alias)?;
+                let id = self.lookup_name(ident.into(), node.span, &node.alias)?;
                 node.declared_at = Some(id);
 
                 let decl = self.context.declarations.get(id);

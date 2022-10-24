@@ -130,7 +130,7 @@ impl Context {
 
         // replace expr with its alias
         if let Some(alias) = &expr.alias {
-            expr.kind = ExprKind::Ident(alias.to_string());
+            expr.kind = ExprKind::Ident(alias.to_string().into());
             expr.alias = None;
         }
     }
