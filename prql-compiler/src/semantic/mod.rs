@@ -23,19 +23,18 @@ use semver::{Version, VersionReq};
 /// Runs semantic analysis on the query, using current state.
 ///
 /// Note that this removes function declarations from AST and saves them as current context.
-pub fn resolve(statements: Vec<Stmt>, context: Option<Context>) -> Result<(Query, Context)> {
-    let context = context.unwrap_or_else(load_std_lib);
+pub fn resolve(statements: Vec<Stmt>) -> Result<Query> {
+    let context = load_std_lib();
 
     let (statements, context) = resolver::resolve(statements, context)?;
 
-    // TODO: make resolve return only query and remove this clone here:
-    let query = lowering::lower_ast_to_ir(statements, context.clone())?;
+    let query = lowering::lower_ast_to_ir(statements, context)?;
 
     if let Some(ref version) = query.def.version {
         check_query_version(version, &PRQL_VERSION)?;
     }
 
-    Ok((query, context))
+    Ok(query)
 }
 
 /// Runs semantic analysis on the query, using current state.
@@ -76,8 +75,7 @@ mod test {
     use crate::{ir::Query, parse};
 
     fn parse_and_resolve(query: &str) -> Result<Query> {
-        let (query, _) = resolve(parse(query)?, None)?;
-        Ok(query)
+        resolve(parse(query)?)
     }
 
     #[test]
