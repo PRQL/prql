@@ -100,6 +100,8 @@ pub enum UnOp {
     Neg,
     #[strum(to_string = "!")]
     Not,
+    #[strum(to_string = "~")]
+    EqSelf,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
@@ -208,7 +210,7 @@ pub enum TransformKind {
         tbl: Expr,
     },
     Filter {
-        filter: Expr,
+        filter: Box<Expr>,
         tbl: Expr,
     },
     Aggregate {
@@ -225,21 +227,21 @@ pub enum TransformKind {
     },
     Join {
         side: JoinSide,
-        with: Expr,
-        filter: JoinFilter<Expr>,
+        with: Box<Expr>,
+        filter: Box<Expr>,
         tbl: Expr,
     },
 
     Group {
         by: Vec<Expr>,
-        pipeline: Expr,
+        pipeline: Box<Expr>,
         tbl: Expr,
     },
 
     Window {
         kind: WindowKind,
         range: Range,
-        pipeline: Expr,
+        pipeline: Box<Expr>,
         tbl: Expr,
     },
 }
@@ -295,6 +297,10 @@ impl Expr {
         node
     }
 
+    pub fn null() -> Expr {
+        Expr::from(ExprKind::Literal(Literal::Null))
+    }
+
     pub fn coerce_into_vec(self) -> Vec<Expr> {
         match self.kind {
             ExprKind::List(items) => items,
@@ -330,6 +336,22 @@ impl Expr {
             })
             .with_span(self.span)
         })
+    }
+
+    pub fn collect_and(mut exprs: Vec<Expr>) -> Expr {
+        let mut aggregate = if let Some(first) = exprs.pop() {
+            first
+        } else {
+            return Expr::from(ExprKind::Literal(Literal::Boolean(true)));
+        };
+        while let Some(e) = exprs.pop() {
+            aggregate = Expr::from(ExprKind::Binary {
+                left: Box::new(e),
+                op: BinOp::And,
+                right: Box::new(aggregate),
+            })
+        }
+        aggregate
     }
 }
 
@@ -447,6 +469,7 @@ impl Display for Expr {
             ExprKind::Unary { op, expr } => match op {
                 UnOp::Neg => write!(f, "-{}", expr)?,
                 UnOp::Not => write!(f, "not {}", expr)?,
+                UnOp::EqSelf => write!(f, "@{}", expr)?,
             },
             ExprKind::FuncCall(func_call) => {
                 write!(f, "{:}", func_call.name)?;

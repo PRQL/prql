@@ -1,7 +1,7 @@
 use anyhow::Result;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::fmt::Debug;
 
 use super::{split_var_name, Declaration, Declarations, Scope};
@@ -101,15 +101,6 @@ impl Context {
                 Ok(id)
             }
         }
-    }
-
-    pub fn lookup_namespaces_of(&mut self, variable: &str) -> HashSet<usize> {
-        let (ns, var_name) = split_var_name(variable);
-
-        let mut r = HashSet::new();
-        r.extend(self.scope.lookup(ns, var_name).into_iter().map(|d| d.1));
-        r.extend(self.scope.lookup(ns, "*").into_iter().map(|d| d.1));
-        r
     }
 
     /// Ensure that expressions are declared.

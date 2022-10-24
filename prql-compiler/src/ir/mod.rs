@@ -2,14 +2,14 @@ mod expr;
 mod id_gen;
 mod ir_fold;
 
-pub use expr::{Expr, ExprKind};
+pub use expr::{Expr, ExprKind, UnOp};
 pub use id_gen::IdGenerator;
 pub use ir_fold::*;
 
 use serde::{Deserialize, Serialize};
 
 use crate::ast::{ColumnSort, QueryDef, Range};
-use crate::ast::{JoinFilter, JoinSide, TableRef, WindowKind};
+use crate::ast::{JoinSide, TableRef, WindowKind};
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Query {
@@ -48,7 +48,7 @@ pub enum Transform {
     Join {
         side: JoinSide,
         with: TId,
-        filter: JoinFilter<CId>,
+        filter: Expr,
     },
     Unique,
 }

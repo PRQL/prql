@@ -34,6 +34,7 @@ pub fn cast_transform(
         "filter" => {
             let ([filter, tbl], []) = unpack::<2, 0>(closure)?;
 
+            let filter = Box::new(filter);
             TransformKind::Filter { filter, tbl }
         }
         "derive" => {
@@ -108,16 +109,9 @@ pub fn cast_transform(
                 JoinSide::Inner
             };
 
-            let filter = filter.coerce_into_vec();
-            let use_using =
-                (filter.iter().map(|x| &x.kind)).all(|x| matches!(x, ExprKind::Ident(_)));
+            let filter = Box::new(Expr::collect_and(filter.coerce_into_vec()));
 
-            let filter = if use_using {
-                JoinFilter::Using(filter)
-            } else {
-                JoinFilter::On(filter)
-            };
-
+            let with = Box::new(with);
             TransformKind::Join {
                 side,
                 with,
@@ -185,6 +179,7 @@ pub fn cast_transform(
                 env: Default::default(),
             }));
 
+            let pipeline = Box::new(pipeline);
             TransformKind::Group { by, pipeline, tbl }
         }
         "window" => {
@@ -256,7 +251,7 @@ pub fn cast_transform(
                 args: vec![value],
                 named_args: Default::default(),
             }));
-            let pipeline = resolver.fold_expr(pipeline)?;
+            let pipeline = Box::new(resolver.fold_expr(pipeline)?);
 
             TransformKind::Window {
                 kind,
@@ -337,26 +332,15 @@ impl TransformCall {
                 frame.apply_assigns(assigns);
                 frame
             }
-            Join { filter, tbl, .. } => {
+            Join { tbl, with, .. } => {
                 let mut frame = ty_frame_or_default(tbl);
 
-                // TODO: add table id into frame and columns
-                // let table_id = with
-                //     .declared_at
-                //     .ok_or_else(|| anyhow!("unresolved table {with:?}"))?;
-                // frame.tables.push(table_id);
-                // frame.columns.push(FrameColumn::All(table_id));
+                let table_id = with
+                    .declared_at
+                    .ok_or_else(|| anyhow!("unresolved table {with:?}"))?;
+                frame.tables.push(table_id);
+                frame.columns.push(FrameColumn::All(table_id));
 
-                match filter {
-                    JoinFilter::On(_) => {}
-                    JoinFilter::Using(nodes) => {
-                        for node in nodes {
-                            let name = node.kind.as_ident().unwrap().clone();
-                            let id = node.declared_at.unwrap();
-                            frame.push_column(Some(name), id);
-                        }
-                    }
-                }
                 frame
             }
             Sort { by, tbl } => {
