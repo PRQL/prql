@@ -1,3 +1,4 @@
+use semver::VersionReq;
 /// Types for outer-scope AST nodes (query, table, func def, transform)
 use serde::{Deserialize, Serialize};
 
@@ -5,7 +6,7 @@ use super::{Dialect, Ident, Node, Range, Ty};
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize, Default)]
 pub struct Query {
-    pub version: Option<i64>,
+    pub version: Option<VersionReq>,
     #[serde(default)]
     pub dialect: Dialect,
     pub nodes: Vec<Node>,

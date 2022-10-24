@@ -4,6 +4,7 @@ use std::fmt::{Display, Write};
 use anyhow::anyhow;
 use enum_as_inner::EnumAsInner;
 use itertools::Itertools;
+use semver::VersionReq;
 use serde::{Deserialize, Serialize};
 
 use super::*;
@@ -36,6 +37,15 @@ pub enum Item {
     FString(Vec<InterpolateItem>),
     Interval(Interval),
     Windowed(Windowed),
+}
+
+impl Item {
+    pub fn parse_version(self) -> std::result::Result<VersionReq, Self> {
+        match self {
+            Self::Literal(Literal::String(ref s)) => VersionReq::parse(s).map_err(|_| self),
+            _ => Err(self),
+        }
+    }
 }
 
 #[derive(
@@ -241,7 +251,7 @@ impl Display for Item {
             }
             Item::Query(query) => {
                 write!(f, "prql dialect:{}", query.dialect)?;
-                if let Some(version) = query.version {
+                if let Some(ref version) = query.version {
                     write!(f, " version:{}", version)?
                 };
                 write!(f, "\n\n")?;
@@ -383,6 +393,7 @@ impl Display for Item {
                 write!(f, "{}", literal)?;
             }
         }
+
         Ok(())
     }
 }

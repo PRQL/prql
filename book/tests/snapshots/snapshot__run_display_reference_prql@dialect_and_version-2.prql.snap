@@ -3,7 +3,7 @@ source: book/tests/snapshot.rs
 expression: "Item::Query(parse(&prql).unwrap())"
 input_file: book/tests/prql/queries/dialect_and_version-2.prql
 ---
-prql dialect:generic version:1
+prql dialect:generic version:^0.2
 
 from employees
 

@@ -12,10 +12,12 @@ use pest::iterators::Pair;
 use pest::iterators::Pairs;
 use pest::Parser;
 use pest_derive::Parser;
+use semver::{Version, VersionReq};
 
 use super::ast::*;
 use super::utils::*;
 use crate::error::{Error, Reason, Span};
+use crate::PRQL_VERSION;
 
 #[derive(Parser)]
 #[grammar = "prql.pest"]
@@ -28,7 +30,21 @@ pub(crate) type PestRule = Rule;
 pub fn parse(string: &str) -> Result<Query> {
     let ast = ast_of_string(string, Rule::query)?;
 
-    ast.item.into_query().map_err(|_| unreachable!())
+    let query = ast.item.into_query().unwrap();
+
+    if let Some(ref version) = query.version {
+        check_query_version(version, &PRQL_VERSION)?;
+    }
+
+    Ok(query)
+}
+
+fn check_query_version(query_version: &VersionReq, prql_version: &Version) -> Result<()> {
+    if !query_version.matches(prql_version) {
+        bail!("This query uses a version of PRQL that is not supported by your prql-compiler. You may want to upgrade the compiler.");
+    }
+
+    Ok(())
 }
 
 /// Parse a string into an AST. Unlike [parse], this can start from any rule.
@@ -76,9 +92,7 @@ fn ast_of_parse_pair(pair: Pair<Rule>) -> Result<Option<Node>> {
 
             let version = params
                 .remove("version")
-                .map(|v| v.unwrap(|i| i.into_literal(), "literal"))
-                .transpose()?
-                .map(|x| x.into_integer())
+                .map(|v| v.unwrap(|i| i.parse_version(), "semver version number string"))
                 .transpose()?;
 
             let dialect = if let Some(node) = params.remove("dialect") {
@@ -1827,12 +1841,12 @@ join `my-proj`.`dataset`.`table`
     #[test]
     fn test_header() {
         assert_yaml_snapshot!(parse(r###"
-        prql dialect:mssql version:1
+        prql dialect:mssql version:"0"
 
         from employees
         "###).unwrap(), @r###"
         ---
-        version: 1
+        version: ^0
         dialect: MsSql
         nodes:
           - FuncCall:
@@ -1843,12 +1857,12 @@ join `my-proj`.`dataset`.`table`
         "### );
 
         assert_yaml_snapshot!(parse(r###"
-        prql dialect:bigquery version:2
+        prql dialect:bigquery version:"0.2"
 
         from employees
         "###).unwrap(), @r###"
         ---
-        version: 2
+        version: ^0.2
         dialect: BigQuery
         nodes:
           - FuncCall:
@@ -1861,6 +1875,14 @@ join `my-proj`.`dataset`.`table`
         assert!(parse(
             r###"
         prql dialect:bigquery version:foo
+        from employees
+        "###,
+        )
+        .is_err());
+
+        assert!(parse(
+            r###"
+        prql dialect:bigquery version:"25"
         from employees
         "###,
         )
@@ -2040,5 +2062,44 @@ join `my-proj`.`dataset`.`table`
                               Integer: 2
                     named_args: {}
         "###)
+    }
+
+    #[test]
+    fn check_valid_version() {
+        let stmt = format!(
+            r#"
+        prql version:"{}"
+        "#,
+            env!("CARGO_PKG_VERSION_MAJOR")
+        );
+        assert!(parse(&stmt).is_ok());
+
+        let stmt = format!(
+            r#"
+            prql version:"{}.{}"
+            "#,
+            env!("CARGO_PKG_VERSION_MAJOR"),
+            env!("CARGO_PKG_VERSION_MINOR")
+        );
+        assert!(parse(&stmt).is_ok());
+
+        let stmt = format!(
+            r#"
+            prql version:"{}.{}.{}"
+            "#,
+            env!("CARGO_PKG_VERSION_MAJOR"),
+            env!("CARGO_PKG_VERSION_MINOR"),
+            env!("CARGO_PKG_VERSION_PATCH"),
+        );
+        assert!(parse(&stmt).is_ok());
+    }
+
+    #[test]
+    fn check_invalid_version() {
+        let stmt = format!(
+            "prql version:{}\n",
+            env!("CARGO_PKG_VERSION_MAJOR").parse::<usize>().unwrap() + 1
+        );
+        assert!(parse(&stmt).is_err());
     }
 }
