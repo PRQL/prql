@@ -257,23 +257,26 @@ fn expr_of_parse_pair(pair: Pair<Rule>) -> Result<Expr> {
         }
         Rule::ident => {
             let inner = pair.clone().into_inner();
-            let mut parts = inner
+            inner
                 .into_iter()
                 .map(|x| x.as_str().to_string())
-                .collect::<Vec<String>>();
-
-            // `name` is the final item (i.e. `bar` in `foo.bar`); `namespace` is all
-            // the items before that.
-
-            // (probably a nicer way of doing this in rust)
-            let name = parts.pop().unwrap();
-            let namespace = if !parts.is_empty() {
-                Some(parts.into_iter().join("."))
-            } else {
-                None
-            };
-
-            ExprKind::Ident(Ident { name, namespace })
+                .collect::<Vec<String>>()
+                // `name` is the final item (i.e. `bar` in `foo.bar`); `namespace` is all
+                // the items before that. So we split the last item off as
+                // `name` and only add a `namespace` if there's at least one
+                // additional item.
+                .split_last()
+                .map(|(name, namespace)| {
+                    ExprKind::Ident(Ident {
+                        namespace: if namespace.is_empty() {
+                            None
+                        } else {
+                            Some(namespace.join("."))
+                        },
+                        name: name.to_string(),
+                    })
+                })
+                .unwrap()
         }
 
         Rule::number => {
