@@ -66,23 +66,6 @@ pub struct Ident {
     pub namespace: Option<String>,
     pub name: String,
 }
-
-impl From<Ident> for String {
-    fn from(ident: Ident) -> Self {
-        match ident.namespace {
-            Some(namespace) => format!("{}.{}", namespace, ident.name),
-            None => ident.name,
-        }
-    }
-}
-impl From<String> for Ident {
-    fn from(ident: String) -> Self {
-        Ident {
-            namespace: None,
-            name: ident,
-        }
-    }
-}
 impl ToString for Ident {
     fn to_string(&self) -> String {
         match &self.namespace {
@@ -324,7 +307,11 @@ pub enum JoinSide {
 
 impl Expr {
     pub fn new_ident<S: ToString>(name: S, declared_at: usize) -> Expr {
-        let mut node: Expr = ExprKind::Ident(name.to_string().into()).into();
+        let mut node: Expr = ExprKind::Ident(Ident {
+            namespace: None,
+            name: name.to_string(),
+        })
+        .into();
         node.declared_at = Some(declared_at);
         node
     }

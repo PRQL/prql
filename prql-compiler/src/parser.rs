@@ -250,7 +250,10 @@ fn expr_of_parse_pair(pair: Pair<Rule>) -> Result<Expr> {
         }
         Rule::jinja => {
             let inner = pair.as_str();
-            ExprKind::Ident(inner.to_string().into())
+            ExprKind::Ident(Ident {
+                namespace: None,
+                name: inner.to_string(),
+            })
         }
         Rule::ident => {
             let inner = pair.clone().into_inner();
@@ -419,7 +422,7 @@ fn parse_typed_ident(pair: Pair<Rule>) -> Result<(String, Option<Ty>, Option<Exp
 fn parse_named(mut items: Vec<Expr>) -> (String, Expr) {
     let expr = items.remove(1);
     let alias = items.remove(0).kind.into_ident().unwrap();
-    (alias.into(), expr)
+    (alias.to_string(), expr)
 }
 
 fn ast_of_interpolate_items(pair: Pair<Rule>) -> Result<Vec<InterpolateItem>> {

@@ -73,7 +73,7 @@ impl Frame {
             let name = expr
                 .alias
                 .clone()
-                .or_else(|| expr.kind.as_ident().cloned().map(|x| x.into()));
+                .or_else(|| expr.kind.as_ident().cloned().map(|x| x.to_string()));
 
             self.push_column(name, id);
         }
