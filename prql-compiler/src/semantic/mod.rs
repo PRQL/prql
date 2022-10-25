@@ -21,15 +21,12 @@ use anyhow::Result;
 /// Runs semantic analysis on the query, using current state.
 ///
 /// Note that this removes function declarations from AST and saves them as current context.
-pub fn resolve(statements: Vec<Stmt>) -> Result<(Query, Context)> {
+pub fn resolve(statements: Vec<Stmt>) -> Result<Query> {
     let context = load_std_lib();
 
     let (statements, context) = resolver::resolve(statements, context)?;
 
-    // TODO: make resolve return only query and remove this clone here:
-    let query = lowering::lower_ast_to_ir(statements, context.clone())?;
-
-    Ok((query, context))
+    lowering::lower_ast_to_ir(statements, context)
 }
 
 /// Runs semantic analysis on the query, using current state.

@@ -104,7 +104,7 @@ impl Cli {
             }
             Cli::Resolve(_) => {
                 let ast = parse(source)?;
-                let (ir, _) = semantic::resolve(ast)?;
+                let ir = semantic::resolve(ast)?;
 
                 serde_json::to_string_pretty(&ir)?.into_bytes()
             }
@@ -185,7 +185,6 @@ mod tests {
 
     #[test]
     #[ignore]
-    #[should_panic]
     fn prql_layouts_test() {
         let output = Cli::execute(
             &Cli::Annotate(CommandIO::default()),

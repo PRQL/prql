@@ -506,7 +506,7 @@ mod tests {
     use crate::{parse, semantic::resolve};
 
     #[test]
-    #[should_panic]
+    #[ignore]
     fn test_aggregate_positional_arg() {
         // distinct query #292
         let query = parse(
@@ -519,7 +519,7 @@ mod tests {
         ",
         )
         .unwrap();
-        let (result, _) = resolve(query).unwrap();
+        let result = resolve(query).unwrap();
         assert_yaml_snapshot!(result, @r###"
         ---
         def:
@@ -640,7 +640,7 @@ mod tests {
         ",
         )
         .unwrap();
-        let (result, _) = resolve(query).unwrap();
+        let result = resolve(query).unwrap();
         assert_yaml_snapshot!(result, @r###"
         ---
         def:
@@ -725,7 +725,7 @@ mod tests {
         )
         .unwrap();
 
-        let (result, _) = resolve(query).unwrap();
+        let result = resolve(query).unwrap();
         assert_yaml_snapshot!(result, @r###"
         ---
         def:

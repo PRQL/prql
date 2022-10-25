@@ -361,11 +361,13 @@ impl From<Vec<Transform>> for AtomicQuery {
 
 #[cfg(test)]
 mod test {
+    use insta::assert_yaml_snapshot;
+
     use super::*;
     use crate::{ast::GenericDialect, parse, semantic::resolve};
 
     fn parse_and_resolve(prql: &str) -> Result<(Table, Context)> {
-        let query = resolve(parse(prql)?)?.0;
+        let query = resolve(parse(prql)?)?;
         let (anchor, query) = AnchorContext::of(query);
         let mut context = Context {
             dialect: Box::new(GenericDialect {}),
@@ -381,7 +383,7 @@ mod test {
     }
 
     #[test]
-    #[should_panic]
+    #[ignore]
     fn test_ctes_of_pipeline() {
         // One aggregate, take at the end
         let prql: &str = r###"
@@ -433,5 +435,25 @@ mod test {
         let (table, mut context) = parse_and_resolve(prql).unwrap();
         let queries = atomic_queries_of_table(table, &mut context);
         assert_eq!(queries.len(), 1);
+    }
+
+    #[test]
+    #[ignore]
+    fn test_variable_after_aggregate() {
+        let query = &r#"
+        from employees
+        group [title, emp_no] (
+            aggregate [emp_salary = average salary]
+        )
+        group [title] (
+            aggregate [avg_salary = average emp_salary]
+        )
+        "#;
+
+        let query = resolve(parse(query).unwrap()).unwrap();
+
+        let sql_ast = translate_query(query).unwrap();
+
+        assert_yaml_snapshot!(sql_ast);
     }
 }

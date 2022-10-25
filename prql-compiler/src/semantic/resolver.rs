@@ -482,12 +482,33 @@ fn env_of_closure(closure: Closure) -> (HashMap<String, Declaration>, Expr) {
 
 #[cfg(test)]
 mod test {
-    use insta::assert_display_snapshot;
+    use anyhow::Result;
+    use insta::{assert_display_snapshot, assert_yaml_snapshot};
 
-    use crate::compile;
+    use crate::ast::{Expr, Ty};
+    use crate::semantic::resolve_only;
+    use crate::utils::IntoOnly;
+    use crate::{compile, parse};
+
+    fn parse_and_resolve(query: &str) -> Result<Expr> {
+        let (stmts, _) = resolve_only(parse(query)?, None)?;
+
+        Ok(stmts.into_only()?.kind.into_pipeline()?)
+    }
+
+    fn resolve_type(query: &str) -> Result<Ty> {
+        Ok(parse_and_resolve(query)?.ty.unwrap_or_default())
+    }
+
+    fn resolve_derive(query: &str) -> Result<Vec<Expr>> {
+        let expr = parse_and_resolve(query)?;
+        let derive = expr.kind.into_transform_call()?;
+        let (assigns, _) = derive.kind.into_derive()?;
+        Ok(assigns)
+    }
 
     #[test]
-    #[should_panic]
+    #[ignore]
     fn test_func_call_resolve() {
         assert_display_snapshot!(compile(r#"
         from employees
@@ -498,11 +519,117 @@ mod test {
         "#).unwrap(),
             @r###"
         SELECT
-          COUNT(salary),
+          COUNT(employees.salary),
           COUNT(*)
         FROM
           employees
         "###
         );
+    }
+
+    #[test]
+    fn test_variables_1() {
+        assert_yaml_snapshot!(resolve_derive(
+            r#"
+            from employees
+            derive [
+                gross_salary = salary + payroll_tax,
+                gross_cost =   gross_salary + benefits_cost
+            ]
+            "#
+        )
+        .unwrap());
+    }
+
+    #[test]
+    fn test_non_existent_function() {
+        parse_and_resolve(r#"from mytable | filter (myfunc col1)"#).unwrap_err();
+    }
+
+    #[test]
+    fn test_functions_1() {
+        assert_yaml_snapshot!(resolve_derive(
+            r#"
+            func subtract a b -> a - b
+            
+            from employees
+            derive [
+                net_salary = subtract gross_salary tax
+            ]
+            "#
+        )
+        .unwrap());
+    }
+
+    #[test]
+    #[ignore]
+    fn test_functions_nested() {
+        assert_yaml_snapshot!(resolve_derive(
+            r#"
+            func lag_day x -> s"lag_day_todo({x})"
+            func ret x dividend_return ->  x / (lag_day x) - 1 + dividend_return
+    
+            from a
+            select (ret b c)
+            "#
+        )
+        .unwrap());
+    }
+
+    #[test]
+    fn test_functions_pipeline() {
+        assert_yaml_snapshot!(resolve_derive(
+            r#"
+            from a
+            derive one = (foo | sum)
+            "#
+        )
+        .unwrap());
+
+        assert_yaml_snapshot!(resolve_derive(
+            r#"
+            func plus_one x -> x + 1
+            func plus x y -> x + y
+
+            from a
+            derive [b = (sum foo | plus_one | plus 2)]
+            "#
+        )
+        .unwrap());
+    }
+    #[test]
+    fn test_named_args() {
+        assert_yaml_snapshot!(resolve_derive(
+            r#"
+            func add x to:1 -> x + to
+
+            from foo_table
+            derive [
+                added = add bar to:3,
+                added_default = add bar
+            ]
+            "#
+        )
+        .unwrap());
+    }
+
+    #[test]
+    fn test_frames_and_names() {
+        assert_yaml_snapshot!(resolve_type(
+            r#"
+            from orders
+            select [customer_no, gross, tax, gross - tax]
+            take 20
+            "#
+        )
+        .unwrap());
+
+        assert_yaml_snapshot!(resolve_type(
+            r#"
+            from table_1
+            join customers [~customer_no]
+            "#
+        )
+        .unwrap());
     }
 }

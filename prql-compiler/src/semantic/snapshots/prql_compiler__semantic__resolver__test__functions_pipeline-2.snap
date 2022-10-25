@@ -1,0 +1,32 @@
+---
+source: prql-compiler/src/semantic/resolver.rs
+expression: "resolve_derive(r#\"\n            func plus_one x -> x + 1\n            func plus x y -> x + y\n\n            from a\n            derive [b = (sum foo | plus_one | plus 2)]\n            \"#).unwrap()"
+---
+- Binary:
+    left:
+      Literal:
+        Integer: 2
+      ty:
+        Literal: Integer
+    op: Add
+    right:
+      Binary:
+        left:
+          SString:
+            - String: SUM(
+            - Expr:
+                Ident: foo
+                ty: Infer
+            - String: )
+          ty: Infer
+        op: Add
+        right:
+          Literal:
+            Integer: 1
+          ty:
+            Literal: Integer
+      ty: Infer
+  ty:
+    Literal: Column
+  alias: b
+
