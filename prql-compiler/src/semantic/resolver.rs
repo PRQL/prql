@@ -551,7 +551,7 @@ mod test {
         assert_yaml_snapshot!(resolve_derive(
             r#"
             func subtract a b -> a - b
-            
+
             from employees
             derive [
                 net_salary = subtract gross_salary tax
@@ -568,7 +568,7 @@ mod test {
             r#"
             func lag_day x -> s"lag_day_todo({x})"
             func ret x dividend_return ->  x / (lag_day x) - 1 + dividend_return
-    
+
             from a
             select (ret b c)
             "#
