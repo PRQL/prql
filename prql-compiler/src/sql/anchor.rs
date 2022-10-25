@@ -88,20 +88,19 @@ impl AnchorContext {
         cids.iter().map(|cid| self.materialize_expr(cid)).collect()
     }
 
-    pub fn materialize_name(&mut self, cid: &CId) -> String {
+    pub fn materialize_name(&mut self, cid: &CId) -> (Option<String>, String) {
         // TODO: figure out which columns need name and call ensure_column_name in advance
         // let col_name = self
         //     .get_column_name(cid)
         //     .expect("a column is referred by name, but it doesn't have one");
         let col_name = self.ensure_column_name(cid);
 
-        if let Some(tid) = self.columns_loc.get(cid) {
+        let table = self.columns_loc.get(cid).map(|tid| {
             let table = self.table_defs.get(tid).unwrap();
 
-            format!("{}.{}", table.name, col_name)
-        } else {
-            col_name
-        }
+            table.name.clone()
+        });
+        (table, col_name)
     }
 
     pub fn split_pipeline(

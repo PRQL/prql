@@ -38,7 +38,7 @@ pub struct QueryDef {
 /// Function definition.
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct FuncDef {
-    pub name: Ident,
+    pub name: String,
     pub positional_params: Vec<FuncParam>, // ident
     pub named_params: Vec<FuncParam>,      // named expr
     pub body: Box<Expr>,

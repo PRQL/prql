@@ -34,7 +34,7 @@ impl Context {
         id
     }
 
-    pub fn declare_table(&mut self, name: Ident, alias: Option<String>) -> usize {
+    pub fn declare_table(&mut self, name: String, alias: Option<String>) -> usize {
         let alias = alias.unwrap_or_else(|| name.clone());
 
         let table_id = self.declare(Declaration::Table(alias.clone()), None);

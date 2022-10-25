@@ -1,14 +1,18 @@
 ---
 source: prql-compiler/src/semantic/resolver.rs
-expression: "resolve_derive(r#\"\n            func subtract a b -> a - b\n            \n            from employees\n            derive [\n                net_salary = subtract gross_salary tax\n            ]\n            \"#).unwrap()"
+expression: "resolve_derive(r#\"\n            func subtract a b -> a - b\n\n            from employees\n            derive [\n                net_salary = subtract gross_salary tax\n            ]\n            \"#).unwrap()"
 ---
 - Binary:
     left:
-      Ident: gross_salary
+      Ident:
+        namespace: ~
+        name: gross_salary
       ty: Infer
     op: Sub
     right:
-      Ident: tax
+      Ident:
+        namespace: ~
+        name: tax
       ty: Infer
   ty:
     Literal: Column

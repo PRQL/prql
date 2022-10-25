@@ -76,7 +76,7 @@ impl AstFold for Resolver {
         let span = node.span;
         let mut r = match node.kind {
             ExprKind::Ident(ref ident) => {
-                let id = self.lookup_name(ident, node.span, &node.alias)?;
+                let id = self.lookup_name(ident.to_string().as_str(), node.span, &node.alias)?;
                 node.declared_at = Some(id);
 
                 let decl = self.context.declarations.get(id);
@@ -148,13 +148,21 @@ impl AstFold for Resolver {
                 let ident = expr.kind.into_ident().map_err(|_| {
                     anyhow!("you can only use column names with self-equality operator.")
                 })?;
+                if ident.namespace.is_some() {
+                    bail!("you cannot use namespace prefix with self-equality operator.");
+                }
+                let ident = ident.name;
 
                 node.kind = ExprKind::Binary {
-                    left: Box::new(Expr::from(ExprKind::Ident(format!("{NS_FRAME}.{ident}")))),
+                    left: Box::new(Expr::from(ExprKind::Ident(Ident {
+                        namespace: Some(NS_FRAME.to_string()),
+                        name: ident.clone(),
+                    }))),
                     op: BinOp::Eq,
-                    right: Box::new(Expr::from(ExprKind::Ident(format!(
-                        "{NS_FRAME_RIGHT}.{ident}"
-                    )))),
+                    right: Box::new(Expr::from(ExprKind::Ident(Ident {
+                        namespace: Some(NS_FRAME_RIGHT.to_string()),
+                        name: ident,
+                    }))),
                 };
                 node.kind = fold_expr_kind(self, node.kind)?;
                 node
@@ -307,7 +315,7 @@ impl Resolver {
         &mut self,
         mut closure: Closure,
         args: Vec<Expr>,
-        named_args: HashMap<Ident, Expr>,
+        named_args: HashMap<String, Expr>,
     ) -> Result<Closure> {
         for arg in args {
             closure.args.push(arg);
@@ -508,7 +516,6 @@ mod test {
     }
 
     #[test]
-    #[ignore]
     fn test_func_call_resolve() {
         assert_display_snapshot!(compile(r#"
         from employees
@@ -551,7 +558,7 @@ mod test {
         assert_yaml_snapshot!(resolve_derive(
             r#"
             func subtract a b -> a - b
-            
+
             from employees
             derive [
                 net_salary = subtract gross_salary tax
@@ -568,7 +575,7 @@ mod test {
             r#"
             func lag_day x -> s"lag_day_todo({x})"
             func ret x dividend_return ->  x / (lag_day x) - 1 + dividend_return
-    
+
             from a
             select (ret b c)
             "#

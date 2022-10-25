@@ -274,7 +274,7 @@ select `first name`
           table
         "###);
     }
-    
+
     #[test]
     #[ignore]
     fn test_sorts() {
@@ -1074,7 +1074,6 @@ select [mng_name, managers.gender, salary_avg, salary_sd]"#;
     }
 
     #[test]
-    #[ignore]
     fn test_prql_to_sql_1() {
         let query = r#"
     from employees
