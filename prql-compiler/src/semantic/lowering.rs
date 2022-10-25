@@ -102,7 +102,9 @@ impl Lowerer {
 
     fn lower_table_expr(&mut self, expr: Expr) -> Result<TableExpr> {
         Ok(match expr.kind {
-            ast::ExprKind::Ident(name) => TableExpr::Ref(ast::TableRef::LocalTable(name)),
+            ast::ExprKind::Ident(name) => {
+                TableExpr::Ref(ast::TableRef::LocalTable(name.to_string()))
+            }
             _ => TableExpr::Pipeline(self.lower_transform(expr)?),
         })
     }
@@ -242,7 +244,7 @@ impl Lowerer {
         let name = if let Some(alias) = expr_ast.alias.clone() {
             Some(alias)
         } else {
-            expr_ast.kind.as_ident().cloned()
+            expr_ast.kind.as_ident().cloned().map(|x| x.to_string())
         };
         let id = expr_ast.declared_at;
 

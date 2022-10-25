@@ -69,7 +69,29 @@ impl ExprKind {
 }
 
 /// A name. Generally columns, tables, functions, variables.
-pub type Ident = String;
+#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
+pub struct Ident {
+    pub namespace: Option<String>,
+    pub name: String,
+}
+
+impl Ident {
+    pub fn new_name<S: ToString>(name: S) -> Self {
+        Ident {
+            namespace: None,
+            name: name.to_string(),
+        }
+    }
+}
+
+impl ToString for Ident {
+    fn to_string(&self) -> String {
+        match &self.namespace {
+            Some(namespace) => format!("{}.{}", namespace, self.name),
+            None => self.name.clone(),
+        }
+    }
+}
 
 #[derive(
     Debug, PartialEq, Eq, Clone, Serialize, Deserialize, strum::Display, strum::EnumString,
@@ -123,7 +145,7 @@ pub struct ListItem(pub Expr);
 pub struct FuncCall {
     pub name: Box<Expr>,
     pub args: Vec<Expr>,
-    pub named_args: HashMap<Ident, Expr>,
+    pub named_args: HashMap<String, Expr>,
 }
 
 impl FuncCall {
@@ -303,7 +325,7 @@ pub enum JoinSide {
 
 impl Expr {
     pub fn new_ident<S: ToString>(name: S, declared_at: usize) -> Expr {
-        let mut node: Expr = ExprKind::Ident(name.to_string()).into();
+        let mut node: Expr = ExprKind::Ident(Ident::new_name(name)).into();
         node.declared_at = Some(declared_at);
         node
     }
@@ -432,7 +454,7 @@ impl Display for Expr {
 
         match &self.kind {
             ExprKind::Ident(s) => {
-                display_ident(f, s)?;
+                display_ident(f, s.to_string().as_str())?;
             }
             ExprKind::Pipeline(pipeline) => {
                 f.write_char('(')?;

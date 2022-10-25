@@ -21,19 +21,18 @@ use super::translator::Context;
 pub(super) fn translate_expr_kind(item: ExprKind, context: &mut Context) -> Result<sql_ast::Expr> {
     Ok(match item {
         ExprKind::ColumnRef(cid) => {
-            let name = context.anchor.materialize_name(&cid);
+            let (table, column) = context.anchor.materialize_name(&cid);
 
-            sql_ast::Expr::CompoundIdentifier(translate_column(name, context))
+            sql_ast::Expr::CompoundIdentifier(translate_ident(table, Some(column), context))
         }
         ExprKind::ExternRef { variable, table } => {
-            let name = if let Some(table_id) = table {
+            let table = table.map(|table_id| {
                 let table_def = context.anchor.table_defs.get(&table_id).unwrap();
-                format!("{}.{variable}", table_def.name)
-            } else {
-                variable
-            };
 
-            sql_ast::Expr::CompoundIdentifier(translate_column(name, context))
+                table_def.name.clone()
+            });
+
+            sql_ast::Expr::CompoundIdentifier(translate_ident(table, Some(variable), context))
         }
 
         ExprKind::Binary { op, left, right } => {
@@ -193,7 +192,7 @@ pub(super) fn table_factor_of_tid(tid: &TId, context: &Context) -> TableFactor {
     let def = context.anchor.table_defs.get(tid).unwrap();
 
     TableFactor::Table {
-        name: sql_ast::ObjectName(translate_ident(def.name.clone(), context)),
+        name: sql_ast::ObjectName(translate_ident(Some(def.name.clone()), None, context)),
         alias: None,
         args: None,
         with_hints: vec![],
@@ -350,9 +349,9 @@ pub(super) fn translate_column_sort(
     sort: &ColumnSort<CId>,
     context: &mut Context,
 ) -> Result<OrderByExpr> {
-    let column = context.anchor.materialize_name(&sort.column);
+    let (table, column) = context.anchor.materialize_name(&sort.column);
     Ok(OrderByExpr {
-        expr: sql_ast::Expr::CompoundIdentifier(translate_ident(column, context)),
+        expr: sql_ast::Expr::CompoundIdentifier(translate_ident(table, Some(column), context)),
         asc: if matches!(sort.direction, SortDirection::Asc) {
             None // default order is ASC, so there is no need to emit it
         } else {
@@ -405,60 +404,36 @@ pub(super) fn translate_join(t: &Transform, context: &mut Context) -> Result<Joi
     }
 }
 
-/// Translate a column name. We need to special-case this for BigQuery
-// Ref #852
-fn translate_column(ident: String, context: &Context) -> Vec<sql_ast::Ident> {
-    match context.dialect.dialect() {
-        Dialect::BigQuery => {
-            if let Some((prefix, column)) = ident.rsplit_once('.') {
-                // If there's a table definition, pass it to `translate_ident` to
-                // be surrounded by quotes; without surrounding the table name
-                // with quotes.
-                translate_ident(prefix.to_string(), context)
-                    .into_iter()
-                    .chain(translate_ident(column.to_string(), context))
-                    .collect()
-            } else {
-                translate_ident(ident, context)
-            }
-        }
-        _ => translate_ident(ident, context),
-    }
-}
-
 /// Translate a PRQL Ident to a Vec of SQL Idents.
 // We return a vec of SQL Idents because sqlparser sometimes uses
 // [ObjectName](sql_ast::ObjectName) and sometimes uses
 // [sql_ast::Expr::CompoundIdentifier](sql_ast::Expr::CompoundIdentifier), each of which
 // contains `Vec<Ident>`.
-pub(super) fn translate_ident(ident: String, context: &Context) -> Vec<sql_ast::Ident> {
-    let is_jinja = ident.starts_with("{{") && ident.ends_with("}}");
-
-    if is_jinja {
-        return vec![sql_ast::Ident::new(ident)];
-    }
-
-    match context.dialect.dialect() {
-        // BigQuery has some unusual rules around quoting idents #852 (it includes the
-        // project, which may be a cause). I'm not 100% it's watertight, but we'll see.
-        Dialect::BigQuery => {
-            if ident.split('.').count() > 2 {
-                vec![sql_ast::Ident::with_quote(
-                    context.dialect.ident_quote(),
-                    ident,
-                )]
-            } else {
-                vec![sql_ast::Ident::new(ident)]
-            }
+pub(super) fn translate_ident(
+    relation_name: Option<String>,
+    column: Option<String>,
+    context: &Context,
+) -> Vec<sql_ast::Ident> {
+    let mut parts = Vec::with_capacity(4);
+    if let Some(relation) = relation_name {
+        // Special-case this for BigQuery, Ref #852
+        if matches!(context.dialect.dialect(), Dialect::BigQuery) {
+            parts.push(relation);
+        } else {
+            parts.extend(relation.split('.').map(|s| s.to_string()));
         }
-        _ => ident
-            .split('.')
-            .map(|x| translate_ident_part(x.to_string(), context))
-            .collect(),
     }
+    parts.extend(column);
+
+    parts
+        .into_iter()
+        .map(|x| translate_ident_part(x, context))
+        .collect()
 }
 
 pub(super) fn translate_ident_part(ident: String, context: &Context) -> sql_ast::Ident {
+    let is_jinja = ident.starts_with("{{") && ident.ends_with("}}");
+
     // TODO: can probably represent these with a single regex
     fn starting_forbidden(c: char) -> bool {
         !(('a'..='z').contains(&c) || matches!(c, '_' | '$'))
@@ -470,6 +445,7 @@ pub(super) fn translate_ident_part(ident: String, context: &Context) -> sql_ast:
     let is_asterisk = ident == "*";
 
     if !is_asterisk
+        && !is_jinja
         && (ident.is_empty()
             || ident.starts_with(starting_forbidden)
             || (ident.chars().count() > 1 && ident.contains(subsequent_forbidden)))

@@ -4,11 +4,15 @@ expression: "resolve_derive(r#\"\n            from employees\n            derive
 ---
 - Binary:
     left:
-      Ident: salary
+      Ident:
+        namespace: ~
+        name: salary
       ty: Infer
     op: Add
     right:
-      Ident: payroll_tax
+      Ident:
+        namespace: ~
+        name: payroll_tax
       ty: Infer
   ty:
     Literal: Column
@@ -17,17 +21,23 @@ expression: "resolve_derive(r#\"\n            from employees\n            derive
     left:
       Binary:
         left:
-          Ident: salary
+          Ident:
+            namespace: ~
+            name: salary
           ty: Infer
         op: Add
         right:
-          Ident: payroll_tax
+          Ident:
+            namespace: ~
+            name: payroll_tax
           ty: Infer
       ty:
         Literal: Column
     op: Add
     right:
-      Ident: benefits_cost
+      Ident:
+        namespace: ~
+        name: benefits_cost
       ty: Infer
   ty:
     Literal: Column
