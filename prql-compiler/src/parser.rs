@@ -198,13 +198,7 @@ fn expr_of_parse_pair(pair: Pair<Rule>) -> Result<Expr> {
             } else {
                 let parsed = exprs_of_parse_pairs(pairs)?;
                 ExprKind::FuncCall(FuncCall {
-                    name: Box::new(
-                        ExprKind::Ident(Ident {
-                            namespace: None,
-                            name: ("coalesce".to_string()),
-                        })
-                        .into(),
-                    ),
+                    name: Box::new(ExprKind::Ident(Ident::new_name("coalesce")).into()),
                     args: vec![parsed[0].clone(), parsed[2].clone()],
                     named_args: HashMap::new(),
                 })
@@ -213,10 +207,7 @@ fn expr_of_parse_pair(pair: Pair<Rule>) -> Result<Expr> {
         // This makes the previous parsing a bit easier, but is hacky;
         // ideally find a better way (but it doesn't seem that easy to
         // parse parts of a Pairs).
-        Rule::operator_coalesce => ExprKind::Ident(Ident {
-            namespace: None,
-            name: "-".to_string(),
-        }),
+        Rule::operator_coalesce => ExprKind::Ident(Ident::new_name("-")),
 
         Rule::assign_call | Rule::assign => {
             let (a, expr) = parse_named(exprs_of_parse_pairs(pair.into_inner())?);
@@ -250,10 +241,7 @@ fn expr_of_parse_pair(pair: Pair<Rule>) -> Result<Expr> {
         }
         Rule::jinja => {
             let inner = pair.as_str();
-            ExprKind::Ident(Ident {
-                namespace: None,
-                name: inner.to_string(),
-            })
+            ExprKind::Ident(Ident::new_name(inner))
         }
         Rule::ident => {
             let inner = pair.clone().into_inner();
