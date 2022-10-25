@@ -54,7 +54,6 @@ mod test {
     use insta::{assert_display_snapshot, assert_snapshot};
 
     #[test]
-    #[ignore]
     fn test_stdlib() {
         assert_snapshot!(compile(r###"
         from employees
@@ -86,7 +85,6 @@ mod test {
     }
 
     #[test]
-    #[ignore]
     fn test_to_json() {
         let json = to_json("from employees | take 10").unwrap();
         // Since the AST is so in flux right now just test that the brackets are present
@@ -219,7 +217,6 @@ mod test {
     }
 
     #[test]
-    #[ignore]
     fn test_quoting() {
         // GH-#822
         assert_display_snapshot!((compile(r###"
@@ -1070,7 +1067,6 @@ select [mng_name, managers.gender, salary_avg, salary_sd]"#;
     }
 
     #[test]
-    #[ignore]
     fn test_prql_to_sql_1() {
         let query = r#"
     from employees
@@ -1467,7 +1463,6 @@ take 20
     }
 
     #[test]
-    #[ignore]
     fn test_same_column_names() {
         // #820
         let query = r###"

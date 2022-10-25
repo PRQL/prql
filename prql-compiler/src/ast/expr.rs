@@ -63,6 +63,16 @@ pub struct Ident {
     pub namespace: Option<String>,
     pub name: String,
 }
+
+impl From<String> for Ident {
+    fn from(name: String) -> Self {
+        Ident {
+            namespace: None,
+            name,
+        }
+    }
+}
+
 impl ToString for Ident {
     fn to_string(&self) -> String {
         match &self.namespace {
