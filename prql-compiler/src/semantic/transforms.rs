@@ -146,7 +146,7 @@ pub fn cast_transform(
 
             // TODO: having dummy already be `x` is a hack.
             // Dummy should be substituted in later.
-            let mut dummy = Expr::from(ExprKind::Ident(Ident::new_name("_x")));
+            let mut dummy = Expr::from(ExprKind::Ident(Ident::from_name("_x")));
             dummy.ty = tbl.ty.clone();
 
             let pipeline = Expr::from(ExprKind::FuncCall(FuncCall {

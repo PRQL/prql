@@ -76,7 +76,7 @@ pub struct Ident {
 }
 
 impl Ident {
-    pub fn new_name<S: ToString>(name: S) -> Self {
+    pub fn from_name<S: ToString>(name: S) -> Self {
         Ident {
             namespace: None,
             name: name.to_string(),
@@ -325,7 +325,7 @@ pub enum JoinSide {
 
 impl Expr {
     pub fn new_ident<S: ToString>(name: S, declared_at: usize) -> Expr {
-        let mut node: Expr = ExprKind::Ident(Ident::new_name(name)).into();
+        let mut node: Expr = ExprKind::Ident(Ident::from_name(name)).into();
         node.declared_at = Some(declared_at);
         node
     }
@@ -448,13 +448,13 @@ impl From<TransformKind> for anyhow::Error {
 impl Display for Expr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if let Some(alias) = &self.alias {
-            display_ident(f, alias)?;
+            display_ident_part(f, alias)?;
             f.write_str(" = ")?;
         }
 
         match &self.kind {
             ExprKind::Ident(s) => {
-                display_ident(f, s.to_string().as_str())?;
+                display_ident(f, s)?;
             }
             ExprKind::Pipeline(pipeline) => {
                 f.write_char('(')?;
@@ -560,7 +560,16 @@ impl Display for Expr {
     }
 }
 
-fn display_ident(f: &mut std::fmt::Formatter, s: &str) -> Result<(), std::fmt::Error> {
+fn display_ident(f: &mut std::fmt::Formatter, ident: &Ident) -> Result<(), std::fmt::Error> {
+    if let Some(ns) = &ident.namespace {
+        display_ident_part(f, ns)?;
+        f.write_char('.')?;
+    }
+    display_ident_part(f, &ident.name)?;
+    Ok(())
+}
+
+fn display_ident_part(f: &mut std::fmt::Formatter, s: &str) -> Result<(), std::fmt::Error> {
     fn forbidden_start(c: char) -> bool {
         !(('a'..='z').contains(&c) || matches!(c, '_' | '$'))
     }
