@@ -57,9 +57,6 @@ pub enum ExprKind {
     FString(Vec<InterpolateItem>),
 }
 
-// We are moving `Ident` from being a string to containing the structure of a
-// namespace. Eventually we can remove this and just use `Ident` everywhere.
-// https://github.com/prql/prql/issues/1031
 /// A name. Generally columns, tables, functions, variables.
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub struct Ident {
