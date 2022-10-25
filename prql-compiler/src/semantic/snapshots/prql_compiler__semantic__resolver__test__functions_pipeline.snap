@@ -5,7 +5,9 @@ expression: "resolve_derive(r#\"\n            from a\n            derive one = (
 - SString:
     - String: SUM(
     - Expr:
-        Ident: foo
+        Ident:
+          namespace: ~
+          ident: foo
         ty: Infer
     - String: )
   ty:
