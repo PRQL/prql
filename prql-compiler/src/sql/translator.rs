@@ -289,7 +289,7 @@ fn find_next_atomic_split(pipeline: &[Transform]) -> Option<usize> {
     if let Some(mut split_at) = split_at {
         while matches!(
             pipeline[split_at],
-            Transform::Derive(_) | Transform::Select(_)
+            Transform::Compute(_) | Transform::Select(_)
         ) {
             split_at -= 1;
         }
@@ -313,7 +313,7 @@ fn atomic_queries_of_table(table: Table, context: &mut Context) -> Vec<AtomicQue
         TableExpr::Pipeline(pipeline) => pipeline,
 
         // ref does not need it's own CTE
-        TableExpr::Ref(_) => return Vec::new(),
+        TableExpr::Ref(_, _) => return Vec::new(),
     };
 
     let mut atomics = Vec::new();

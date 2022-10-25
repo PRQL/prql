@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt::Debug;
 
-use super::{split_var_name, Declaration, Declarations, Scope};
+use super::{Declaration, Declarations, Scope};
 use crate::ast::*;
 use crate::error::Span;
 
@@ -43,24 +43,22 @@ impl Context {
         table_id
     }
 
-    pub fn lookup_name(&mut self, name: &str, span: Option<Span>) -> Result<usize, String> {
-        let (namespace, variable) = split_var_name(name);
-
+    pub fn lookup_ident(&mut self, ident: &Ident, span: Option<Span>) -> Result<usize, String> {
         // lookup the name
-        let decls = self.scope.lookup(namespace, name);
+        let decls = self.scope.lookup(ident);
 
         match decls.len() {
             // no match: try match *
             0 => {}
 
             // single match, great!
-            1 => return Ok(decls.into_iter().next().unwrap().1),
+            1 => return Ok(decls.into_iter().next().unwrap().0),
 
             // ambiguous
             _ => {
                 let decls = decls
                     .into_iter()
-                    .map(|d| self.declarations.get(d.1))
+                    .map(|d| self.declarations.get(d.0))
                     .map(|d| format!("`{d}`"))
                     .join(", ");
                 return Err(format!(
@@ -70,22 +68,27 @@ impl Context {
         }
 
         // this variable can be from a namespace that we don't know all columns of
-        let decls = self.scope.lookup(namespace, "*");
+        let decls = self.scope.lookup(&Ident {
+            namespace: ident.namespace.clone(),
+            name: "*".to_string(),
+        });
 
         match decls.len() {
-            0 => Err(format!("Unknown name `{name}`")),
+            0 => Err(format!("Unknown name `{}`", ident.to_string())),
 
             // single match, great!
             1 => {
-                let (namespace, table_id) = decls.into_iter().next().unwrap();
+                let (table_id, namespaces) = decls.into_iter().next().unwrap();
 
                 // declare this variable as ExternRef
                 let decl = Declaration::ExternRef {
                     table: Some(table_id),
-                    variable: variable.to_string(),
+                    variable: ident.name.clone(),
                 };
                 let id = self.declare(decl, span);
-                self.scope.add(namespace, name.to_string(), id);
+                for namespace in namespaces {
+                    self.scope.add(namespace, ident.to_string(), id);
+                }
 
                 Ok(id)
             }
@@ -94,7 +97,7 @@ impl Context {
             _ => {
                 let decl = Declaration::ExternRef {
                     table: None,
-                    variable: name.to_string(),
+                    variable: ident.to_string(),
                 };
                 let id = self.declare(decl, span);
 

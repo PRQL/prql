@@ -4,6 +4,8 @@ use std::fmt::Debug;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 
+use crate::ast::Ident;
+
 use super::{Frame, FrameColumn};
 
 pub const NS_FUNC: &str = "_func";
@@ -57,39 +59,31 @@ impl Scope {
     }
 
     /// Searches lookup tables in the stack top-to-bottom
-    pub fn lookup(&mut self, namespace: &str, var_name: &str) -> HashSet<(String, usize)> {
-        let mut res = HashSet::new();
+    pub fn lookup(&mut self, ident: &Ident) -> HashMap<usize, HashSet<String>> {
+        let mut res: HashMap<usize, HashSet<_>> = HashMap::new();
 
-        if !namespace.is_empty() {
+        if let Some(namespace) = &ident.namespace {
             if let Some(stack) = self.namespaces.get(namespace) {
-                for table in stack.iter().rev() {
-                    if let Some(id) = table.get(var_name) {
-                        res.insert((namespace.to_string(), *id));
+                // for table in stack.iter().rev() {
+                if let Some(table) = stack.last() {
+                    if let Some(id) = table.get(&ident.name) {
+                        res.entry(*id).or_default().insert(namespace.to_string());
                     }
                 }
             }
         } else {
             // no namespace specified: lookup in all namespaces
             for (namespace, stack) in &self.namespaces {
-                for table in stack.iter().rev() {
-                    if let Some(id) = table.get(var_name) {
-                        res.insert((namespace.clone(), *id));
+                // for table in stack.iter().rev() {
+                if let Some(table) = stack.last() {
+                    if let Some(id) = table.get(&ident.name) {
+                        res.entry(*id).or_default().insert(namespace.clone());
                     }
                 }
             }
         }
 
         res
-    }
-
-    // /// Retains only functions tables and drop frame columns and function params
-    // pub(super) fn drop_non_global(&mut self) {
-    //     self.namespaces.retain(|name, _| name == NS_FUNC);
-    // }
-
-    /// Drops a namespace completely (including all over-layed scopes)
-    pub(super) fn drop(&mut self, namespace: &str) {
-        self.namespaces.remove(namespace);
     }
 
     pub(super) fn push_namespace(&mut self, namespace: &str) {
@@ -101,11 +95,6 @@ impl Scope {
         let stack = self.namespaces.entry(namespace.to_string()).or_default();
         stack.pop()
     }
-}
-
-/// Splits ident into namespaces and variable name
-pub fn split_var_name(ident: &str) -> (&str, &str) {
-    ident.rsplit_once('.').unwrap_or(("", ident))
 }
 
 impl Debug for Scope {

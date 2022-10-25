@@ -9,7 +9,7 @@ mod type_resolver;
 
 pub use self::context::Context;
 pub use self::declarations::{Declaration, Declarations};
-pub use self::scope::{split_var_name, Scope};
+pub use self::scope::Scope;
 pub use reporting::{collect_frames, label_references};
 
 use crate::ast::frame::{Frame, FrameColumn};
@@ -94,10 +94,20 @@ mod test {
             name: employees
             expr:
               Ref:
-                LocalTable: employees
+                - LocalTable: employees
+                - - id: 0
+                    name: ~
+                    expr:
+                      kind:
+                        ExternRef:
+                          variable: "*"
+                          table: 0
+                      span: ~
         expr:
           Pipeline:
             - From: 0
+            - Select:
+                - 0
         "### );
 
         assert_yaml_snapshot!(parse_and_resolve(r###"
@@ -114,10 +124,20 @@ mod test {
             name: employees
             expr:
               Ref:
-                LocalTable: employees
+                - LocalTable: employees
+                - - id: 0
+                    name: ~
+                    expr:
+                      kind:
+                        ExternRef:
+                          variable: "*"
+                          table: 0
+                      span: ~
         expr:
           Pipeline:
             - From: 0
+            - Select:
+                - 0
         "### );
 
         assert!(parse_and_resolve(

@@ -59,7 +59,12 @@ pub fn fold_table<F: ?Sized + IrFold>(fold: &mut F, t: Table) -> Result<Table> {
 
 pub fn fold_table_expr<F: ?Sized + IrFold>(fold: &mut F, t: TableExpr) -> Result<TableExpr> {
     Ok(match t {
-        TableExpr::Ref(r) => TableExpr::Ref(r),
+        TableExpr::Ref(table_ref, defs) => TableExpr::Ref(
+            table_ref,
+            defs.into_iter()
+                .map(|d| fold.fold_column_def(d))
+                .try_collect()?,
+        ),
         TableExpr::Pipeline(transforms) => TableExpr::Pipeline(fold.fold_transforms(transforms)?),
     })
 }
@@ -99,7 +104,7 @@ pub fn fold_transform<T: ?Sized + IrFold>(
     transform = match transform {
         From(tid) => From(tid),
 
-        Derive(assigns) => Derive(fold.fold_column_def(assigns)?),
+        Compute(assigns) => Compute(fold.fold_column_def(assigns)?),
         Aggregate(ids) => Aggregate(fold_cids(fold, ids)?),
 
         Select(ids) => Select(fold_cids(fold, ids)?),

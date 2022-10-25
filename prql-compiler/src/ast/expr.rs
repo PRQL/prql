@@ -511,7 +511,7 @@ impl Display for Expr {
             ExprKind::Unary { op, expr } => match op {
                 UnOp::Neg => write!(f, "-{}", expr)?,
                 UnOp::Not => write!(f, "not {}", expr)?,
-                UnOp::EqSelf => write!(f, "@{}", expr)?,
+                UnOp::EqSelf => write!(f, "~{}", expr)?,
             },
             ExprKind::FuncCall(func_call) => {
                 write!(f, "{:}", func_call.name)?;

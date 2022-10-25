@@ -298,11 +298,32 @@ impl TransformCall {
                 frame.apply_assigns(assigns);
                 frame
             }
-            Group { pipeline, .. } => {
+            Group { pipeline, by, .. } => {
                 // pipeline's body is resolved, just use its type
                 let Closure { body, .. } = pipeline.kind.as_closure().unwrap();
 
-                body.ty.clone().unwrap().into_table().unwrap()
+                let mut frame = body.ty.clone().unwrap().into_table().unwrap();
+
+                // prepend aggregate with `by` columns
+                if let ExprKind::TransformCall(TransformCall { kind, .. }) = &body.as_ref().kind {
+                    if let TransformKind::Aggregate { .. } = kind.as_ref() {
+                        let aggregate_columns = frame.columns;
+                        frame.columns = Vec::new();
+                        for b in by {
+                            let id = b.declared_at.unwrap();
+                            let name = b.alias.clone().or_else(|| match &b.kind {
+                                ExprKind::Ident(ident) => Some(ident.name.clone()),
+                                _ => None,
+                            });
+
+                            frame.push_column(name, id);
+                        }
+
+                        frame.columns.extend(aggregate_columns);
+                    }
+                }
+
+                frame
             }
             Window { pipeline, .. } => {
                 // pipeline's body is resolved, just use its type
@@ -312,22 +333,7 @@ impl TransformCall {
             }
             Aggregate { assigns, tbl } => {
                 let mut frame = ty_frame_or_default(tbl);
-
-                // let old_columns = frame.columns.clone();
-
                 frame.columns.clear();
-
-                // TODO: add `by` columns into frame when aggregate is within group
-                // for b in by {
-                //     let id = b.declared_at.unwrap();
-                //     let col = old_columns.iter().find(|c| c == &&id);
-                //     let name = col.and_then(|c| match c {
-                //         FrameColumn::Named(n, _) => Some(n.clone()),
-                //         _ => None,
-                //     });
-
-                //     frame.push_column(name, id);
-                // }
 
                 frame.apply_assigns(assigns);
                 frame
@@ -736,40 +742,48 @@ mod tests {
             name: invoices
             expr:
               Ref:
-                LocalTable: invoices
+                - LocalTable: invoices
+                - - id: 7
+                    name: ~
+                    expr:
+                      kind:
+                        ExternRef:
+                          variable: "*"
+                          table: 0
+                      span: ~
         expr:
           Pipeline:
             - From: 0
-            - Derive:
+            - Compute:
                 id: 4
                 name: issued_at
                 expr:
                   kind:
                     ExternRef:
                       variable: issued_at
-                      table: ~
+                      table: 0
                   span:
                     start: 37
                     end: 46
-            - Derive:
+            - Compute:
                 id: 5
                 name: amount
                 expr:
                   kind:
                     ExternRef:
                       variable: amount
-                      table: ~
+                      table: 0
                   span:
                     start: 49
                     end: 55
-            - Derive:
+            - Compute:
                 id: 6
                 name: num_of_articles
                 expr:
                   kind:
                     ExternRef:
                       variable: num_of_articles
-                      table: ~
+                      table: 0
                   span:
                     start: 57
                     end: 73
@@ -780,62 +794,64 @@ mod tests {
                   column: 5
                 - direction: Asc
                   column: 6
-            - Derive:
+            - Compute:
                 id: 3
                 name: issued_at
                 expr:
                   kind:
                     ExternRef:
                       variable: issued_at
-                      table: ~
+                      table: 0
                   span:
                     start: 88
                     end: 97
             - Sort:
                 - direction: Asc
                   column: 3
-            - Derive:
+            - Compute:
                 id: 2
                 name: issued_at
                 expr:
                   kind:
                     ExternRef:
                       variable: issued_at
-                      table: ~
+                      table: 0
                   span:
                     start: 113
                     end: 122
             - Sort:
                 - direction: Desc
                   column: 2
-            - Derive:
+            - Compute:
                 id: 1
                 name: issued_at
                 expr:
                   kind:
                     ExternRef:
                       variable: issued_at
-                      table: ~
+                      table: 0
                   span:
                     start: 138
                     end: 147
             - Sort:
                 - direction: Asc
                   column: 1
-            - Derive:
+            - Compute:
                 id: 0
                 name: issued_at
                 expr:
                   kind:
                     ExternRef:
                       variable: issued_at
-                      table: ~
+                      table: 0
                   span:
                     start: 164
                     end: 173
             - Sort:
                 - direction: Desc
                   column: 0
+            - Select:
+                - 7
         "###);
     }
 }

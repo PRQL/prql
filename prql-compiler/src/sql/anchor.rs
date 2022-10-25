@@ -137,21 +137,30 @@ impl AnchorContext {
             new_columns.push(new_def);
         }
 
-        let mut first = pipeline;
-        let mut second = first.split_off(at_position);
-
+        // define a new local table
         self.table_defs.insert(
             new_tid,
             TableDef {
                 name: new_table_name.to_string(),
-                expr: TableExpr::Ref(TableRef::LocalTable(new_table_name.to_string())),
+                expr: TableExpr::Ref(
+                    TableRef::LocalTable(new_table_name.to_string()),
+                    new_columns.clone(),
+                ),
                 columns: new_columns,
             },
         );
 
+        // split the pipeline
+        let mut first = pipeline;
+        let mut second = first.split_off(at_position);
+
+        // adjust second part: prepend from and rewrite expressions to use new columns
         second.insert(0, Transform::From(new_tid));
 
-        // TODO: redirect CID values in second pipeline
+        let mut redirector = CidRedirector {
+            redirects: columns_redirect,
+        };
+        let second = redirector.fold_transforms(second).unwrap();
 
         (first, second)
     }
@@ -198,25 +207,32 @@ impl QueryLoader {
 
         // move tables into Context
         for table in query.tables.clone() {
-            let name = table.name.as_ref().unwrap();
+            let name = table.name.as_ref().unwrap().clone();
 
-            let star_col = ColumnDef {
-                id: context.ids.gen_cid(),
-                expr: Expr {
-                    kind: ExprKind::ExternRef {
-                        variable: "*".to_string(),
-                        table: Some(table.id),
-                    },
-                    span: None,
-                },
-                name: None,
+            let columns = match &table.expr {
+                TableExpr::Ref(_, cols) => cols.clone(),
+                TableExpr::Pipeline(_) => {
+                    let star_col = ColumnDef {
+                        id: context.ids.gen_cid(),
+                        expr: Expr {
+                            kind: ExprKind::ExternRef {
+                                variable: "*".to_string(),
+                                table: Some(table.id),
+                            },
+                            span: None,
+                        },
+                        name: None,
+                    };
+                    context.columns_loc.insert(star_col.id, table.id);
+                    context.columns_defs.insert(star_col.id, star_col.clone());
+
+                    vec![star_col]
+                }
             };
-            context.columns_loc.insert(star_col.id, table.id);
-            context.columns_defs.insert(star_col.id, star_col.clone());
 
             let table_def = TableDef {
-                name: name.clone(),
-                columns: vec![star_col],
+                name,
+                columns,
                 expr: table.expr,
             };
             context.table_defs.insert(table.id, table_def);

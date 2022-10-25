@@ -19,20 +19,17 @@ pub fn lower_ast_to_ir(statements: Vec<ast::Stmt>, context: Context) -> Result<Q
 
     let mut query_def = None;
     let mut main_pipeline = None;
-    let mut tables = Vec::new();
 
     for statement in statements {
         match statement.kind {
             ast::StmtKind::QueryDef(def) => query_def = Some(def),
             ast::StmtKind::FuncDef(_) => {}
             ast::StmtKind::TableDef(table_def) => {
-                let tid = l.ensure_table_id(table_def.id.unwrap());
+                let id = l.ensure_table_id(table_def.id.unwrap());
 
-                tables.push(Table {
-                    id: tid,
-                    name: Some(table_def.name),
-                    expr: l.lower_table_expr(*table_def.value)?,
-                });
+                let name = Some(table_def.name);
+                let expr = l.lower_table_expr(*table_def.value)?;
+                l.push_table(Table { id, name, expr });
             }
             ast::StmtKind::Pipeline(expr) => {
                 let ir = l.lower_table_expr(expr)?;
@@ -41,11 +38,9 @@ pub fn lower_ast_to_ir(statements: Vec<ast::Stmt>, context: Context) -> Result<Q
         }
     }
 
-    tables.extend(l.tables);
-
     Ok(Query {
         def: query_def.unwrap_or_default(),
-        tables,
+        tables: l.tables,
         expr: main_pipeline
             .ok_or_else(|| Error::new(Reason::Simple("missing main pipeline".to_string())))?,
     })
@@ -62,6 +57,9 @@ struct Lowerer {
     /// mapping from [crate::semantic::Declarations] into [TId]s
     table_mapping: HashMap<usize, TId>,
 
+    /// descriptor of known table columns
+    tables_frames: HashMap<TId, Vec<CId>>,
+
     /// tables to be added to Query.tables
     tables: Vec<Table>,
 }
@@ -74,8 +72,25 @@ impl Lowerer {
             ids: IdGenerator::empty(),
             column_mapping: HashMap::new(),
             table_mapping: HashMap::new(),
+            tables_frames: HashMap::new(),
             tables: Vec::new(),
         }
+    }
+
+    fn push_table(&mut self, table: Table) {
+        let columns = match &table.expr {
+            TableExpr::Ref(_, cols) => cols.iter().map(|c| c.id).collect(),
+            TableExpr::Pipeline(transforms) => {
+                if let Some(Transform::Select(cols)) = transforms.last() {
+                    cols.clone()
+                } else {
+                    todo!();
+                }
+            }
+        };
+
+        self.tables_frames.insert(table.id, columns);
+        self.tables.push(table);
     }
 
     fn lower_table(&mut self, expr: Expr) -> Result<TId> {
@@ -84,11 +99,11 @@ impl Lowerer {
         let expr = self.lower_table_expr(expr)?;
 
         let name = match &expr {
-            TableExpr::Ref(ast::TableRef::LocalTable(name)) => Some(name.clone()),
+            TableExpr::Ref(ast::TableRef::LocalTable(name), _) => Some(name.clone()),
             _ => None,
         };
 
-        self.tables.push(Table { id, name, expr });
+        self.push_table(Table { id, name, expr });
 
         Ok(id)
     }
@@ -103,9 +118,31 @@ impl Lowerer {
     fn lower_table_expr(&mut self, expr: Expr) -> Result<TableExpr> {
         Ok(match expr.kind {
             ast::ExprKind::Ident(name) => {
-                TableExpr::Ref(ast::TableRef::LocalTable(name.to_string()))
+                // a table reference by name, lower to local table
+
+                let star_col = ColumnDef {
+                    id: self.ids.gen_cid(),
+                    expr: ir::Expr {
+                        kind: ir::ExprKind::ExternRef {
+                            variable: "*".to_string(),
+                            table: Some(self.table_mapping[&expr.declared_at.unwrap()]),
+                        },
+                        span: None,
+                    },
+                    name: None,
+                };
+
+                TableExpr::Ref(ast::TableRef::LocalTable(name.to_string()), vec![star_col])
             }
-            _ => TableExpr::Pipeline(self.lower_transform(expr)?),
+
+            _ => {
+                let ty = expr.ty.clone();
+
+                let mut transforms = self.lower_transform(expr)?;
+                self.push_select(ty, &mut transforms);
+
+                TableExpr::Pipeline(transforms)
+            }
         })
     }
 
@@ -225,6 +262,24 @@ impl Lowerer {
         Ok(result)
     }
 
+    fn push_select(&mut self, ty: Option<ast::Ty>, transforms: &mut Vec<Transform>) {
+        let frame = ty.unwrap().into_table().unwrap();
+
+        use ast::FrameColumn::*;
+        let columns = (frame.columns.into_iter())
+            .flat_map(|col| match col {
+                All(table_id) => {
+                    let tid = self.table_mapping[&table_id];
+                    self.tables_frames[&tid].clone()
+                }
+                Unnamed(id) | Named(_, id) => {
+                    vec![self.column_mapping[&id]]
+                }
+            })
+            .collect();
+        transforms.push(Transform::Select(columns));
+    }
+
     fn declare_as_columns(
         &mut self,
         exprs: Vec<ast::Expr>,
@@ -261,7 +316,7 @@ impl Lowerer {
             self.column_mapping.insert(id, cid);
         }
 
-        transforms.push(Transform::Derive(def));
+        transforms.push(Transform::Compute(def));
         Ok(cid)
     }
 

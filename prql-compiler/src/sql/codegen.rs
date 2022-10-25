@@ -270,13 +270,13 @@ pub(super) fn translate_select_item(cid: CId, context: &mut Context) -> Result<S
     let expr = translate_expr_kind(expr.kind, context)?;
 
     let inferred_name = match &expr {
-        sql_ast::Expr::Identifier(name) => Some(vec![&name.value]),
-        sql_ast::Expr::CompoundIdentifier(parts) => Some(parts.iter().map(|p| &p.value).collect()),
+        sql_ast::Expr::Identifier(name) => Some(&name.value),
+        sql_ast::Expr::CompoundIdentifier(parts) => parts.last().map(|p| &p.value),
         _ => None,
     };
 
     if let Some(alias) = context.anchor.get_column_name(&cid) {
-        if Some(vec![&alias]) != inferred_name {
+        if Some(&alias) != inferred_name {
             return Ok(SelectItem::ExprWithAlias {
                 alias: translate_ident_part(alias, context),
                 expr,
