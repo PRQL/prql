@@ -6,13 +6,13 @@ expression: "resolve_derive(r#\"\n            from employees\n            derive
     left:
       Ident:
         namespace: ~
-        ident: salary
+        name: salary
       ty: Infer
     op: Add
     right:
       Ident:
         namespace: ~
-        ident: payroll_tax
+        name: payroll_tax
       ty: Infer
   ty:
     Literal: Column
@@ -23,13 +23,13 @@ expression: "resolve_derive(r#\"\n            from employees\n            derive
         left:
           Ident:
             namespace: ~
-            ident: salary
+            name: salary
           ty: Infer
         op: Add
         right:
           Ident:
             namespace: ~
-            ident: payroll_tax
+            name: payroll_tax
           ty: Infer
       ty:
         Literal: Column
@@ -37,7 +37,7 @@ expression: "resolve_derive(r#\"\n            from employees\n            derive
     right:
       Ident:
         namespace: ~
-        ident: benefits_cost
+        name: benefits_cost
       ty: Infer
   ty:
     Literal: Column

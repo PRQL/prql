@@ -17,7 +17,7 @@ expression: "resolve_derive(r#\"\n            func plus_one x -> x + 1\n        
             - Expr:
                 Ident:
                   namespace: ~
-                  ident: foo
+                  name: foo
                 ty: Infer
             - String: )
           ty: Infer

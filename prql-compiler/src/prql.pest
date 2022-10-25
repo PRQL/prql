@@ -19,20 +19,19 @@ table_def = { "table" ~ ident ~ "=" ~ nested_pipeline ~ ( NEWLINE+ | &EOI ) }
 
 pipeline_stmt = { pipeline ~ ( NEWLINE+ | &EOI ) }
 
-// See parser.rs for why this is so complicated to parse
+// An ident is a sequence of word-like terms, separated by `.`. Where surrounded
+// by backticks, the term is taken as-is, including any periods it contains.
 ident = ${ !operator ~ !(keyword ~ WHITESPACE) ~ (ident_part_first | ident_backticks) ~ (ident_part_next | ident_backticks)* }
 // Either a normal ident (starting with a letter, `$` or `_`), or any string surrounded
 // by backticks.
 ident_part_first = { ((ASCII_ALPHA | "$" | "_") ~ (ASCII_ALPHANUMERIC | "_" )* ) }
 // We allow `e.*`, but not just `*`, since it would conflict with multiply in
 // some cases.
-ident_part_next = _{ ident_separator ~ (ident_part_first | ident_star | ident_backticks) }
-// These two are split out so we can make `ident_part_next` silent, but still
-// capture these.
-ident_separator = { "." }
+ident_part_next = _{  "."  ~ (ident_part_first | ident_star | ident_backticks) }
+// This is split out so we can make `ident_part_next` silent, but still capture
+// it.
 ident_star = { "*" }
 // Anything surrounded by backticks, we pass through.
-// ident_backticks = _{ "`" ~ (!NEWLINE ~ !"`" ~ ANY)* ~ "`" }
 ident_backticks = _{ PUSH("`") ~ (!NEWLINE ~ string_inner)* ~ POP }
 keyword = _{ "prql" | "table" | "func" }
 

@@ -6,7 +6,7 @@ expression: "resolve_derive(r#\"\n            func add x to:1 -> x + to\n\n     
     left:
       Ident:
         namespace: ~
-        ident: bar
+        name: bar
       ty: Infer
     op: Add
     right:
@@ -21,7 +21,7 @@ expression: "resolve_derive(r#\"\n            func add x to:1 -> x + to\n\n     
     left:
       Ident:
         namespace: ~
-        ident: bar
+        name: bar
       ty: Infer
     op: Add
     right:

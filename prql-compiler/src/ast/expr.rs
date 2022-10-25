@@ -36,7 +36,7 @@ pub struct Expr {
 
 #[derive(Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize)]
 pub enum ExprKind {
-    Ident(IdentWithNamespace),
+    Ident(Ident),
     Literal(Literal),
     Pipeline(Pipeline),
     List(Vec<Expr>),
@@ -57,45 +57,37 @@ pub enum ExprKind {
     FString(Vec<InterpolateItem>),
 }
 
-/// A name. Generally columns, tables, functions, variables.
-pub type Ident = String;
-
 // We are moving `Ident` from being a string to containing the structure of a
 // namespace. Eventually we can remove this and just use `Ident` everywhere.
 // https://github.com/prql/prql/issues/1031
+/// A name. Generally columns, tables, functions, variables.
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
-pub struct IdentWithNamespace {
+pub struct Ident {
     pub namespace: Option<String>,
-    pub ident: Ident,
+    pub name: String,
 }
 
-impl From<IdentWithNamespace> for Ident {
-    fn from(ident: IdentWithNamespace) -> Self {
-        match ident.namespace {
-            Some(namespace) => format!("{}.{}", namespace, ident.ident),
-            None => ident.ident,
-        }
-    }
-}
-impl<'a> From<&'a IdentWithNamespace> for &'a str {
-    fn from(ident: &'a IdentWithNamespace) -> Self {
-        // TODO: this loses the namespace and is a temporary hack
-        &ident.ident
-    }
-}
-impl From<Ident> for IdentWithNamespace {
+impl From<Ident> for String {
     fn from(ident: Ident) -> Self {
-        IdentWithNamespace {
-            namespace: None,
-            ident,
+        match ident.namespace {
+            Some(namespace) => format!("{}.{}", namespace, ident.name),
+            None => ident.name,
         }
     }
 }
-impl ToString for IdentWithNamespace {
+impl From<String> for Ident {
+    fn from(ident: String) -> Self {
+        Ident {
+            namespace: None,
+            name: ident,
+        }
+    }
+}
+impl ToString for Ident {
     fn to_string(&self) -> String {
         match &self.namespace {
-            Some(namespace) => format!("{}.{}", namespace, self.ident),
-            None => self.ident.clone(),
+            Some(namespace) => format!("{}.{}", namespace, self.name),
+            None => self.name.clone(),
         }
     }
 }
@@ -152,7 +144,7 @@ pub struct ListItem(pub Expr);
 pub struct FuncCall {
     pub name: Box<Expr>,
     pub args: Vec<Expr>,
-    pub named_args: HashMap<Ident, Expr>,
+    pub named_args: HashMap<String, Expr>,
 }
 
 impl FuncCall {
@@ -461,7 +453,7 @@ impl Display for Expr {
 
         match &self.kind {
             ExprKind::Ident(s) => {
-                display_ident(f, s.into())?;
+                display_ident(f, s.to_string().as_str())?;
             }
             ExprKind::Pipeline(pipeline) => {
                 f.write_char('(')?;

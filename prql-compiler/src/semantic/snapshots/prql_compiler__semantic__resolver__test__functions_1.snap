@@ -6,13 +6,13 @@ expression: "resolve_derive(r#\"\n            func subtract a b -> a - b\n\n    
     left:
       Ident:
         namespace: ~
-        ident: gross_salary
+        name: gross_salary
       ty: Infer
     op: Sub
     right:
       Ident:
         namespace: ~
-        ident: tax
+        name: tax
       ty: Infer
   ty:
     Literal: Column

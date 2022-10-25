@@ -7,7 +7,7 @@ expression: "resolve_derive(r#\"\n            from a\n            derive one = (
     - Expr:
         Ident:
           namespace: ~
-          ident: foo
+          name: foo
         ty: Infer
     - String: )
   ty:

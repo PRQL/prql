@@ -407,6 +407,8 @@ pub(super) fn translate_join(t: &Transform, context: &mut Context) -> Result<Joi
 /// Translate a column name. We need to special-case this for BigQuery
 // Ref #852
 fn translate_column(ident: String, context: &Context) -> Vec<sql_ast::Ident> {
+    // TODO: since we have changed how idents are parsed, I think this is no
+    // longer needed; confirm when we renable tests on the semantic branch
     match context.dialect.dialect() {
         Dialect::BigQuery => {
             if let Some((prefix, column)) = ident.rsplit_once('.') {

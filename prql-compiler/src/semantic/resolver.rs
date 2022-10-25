@@ -76,7 +76,7 @@ impl AstFold for Resolver {
         let span = node.span;
         let mut r = match node.kind {
             ExprKind::Ident(ref ident) => {
-                let id = self.lookup_name(ident.into(), node.span, &node.alias)?;
+                let id = self.lookup_name(ident.to_string().as_str(), node.span, &node.alias)?;
                 node.declared_at = Some(id);
 
                 let decl = self.context.declarations.get(id);
@@ -151,17 +151,17 @@ impl AstFold for Resolver {
                     .map_err(|_| {
                         anyhow!("you can only use column names with self-equality operator.")
                     })?
-                    .ident;
+                    .name;
 
                 node.kind = ExprKind::Binary {
-                    left: Box::new(Expr::from(ExprKind::Ident(IdentWithNamespace {
+                    left: Box::new(Expr::from(ExprKind::Ident(Ident {
                         namespace: Some(NS_FRAME.to_string()),
-                        ident: ident.clone(),
+                        name: ident.clone(),
                     }))),
                     op: BinOp::Eq,
-                    right: Box::new(Expr::from(ExprKind::Ident(IdentWithNamespace {
+                    right: Box::new(Expr::from(ExprKind::Ident(Ident {
                         namespace: Some(NS_FRAME_RIGHT.to_string()),
-                        ident,
+                        name: ident,
                     }))),
                 };
                 node.kind = fold_expr_kind(self, node.kind)?;
@@ -315,7 +315,7 @@ impl Resolver {
         &mut self,
         mut closure: Closure,
         args: Vec<Expr>,
-        named_args: HashMap<Ident, Expr>,
+        named_args: HashMap<String, Expr>,
     ) -> Result<Closure> {
         for arg in args {
             closure.args.push(arg);
