@@ -99,7 +99,7 @@ impl AstFold for FrameCollector {
         if let ExprKind::TransformCall(tc) = &expr.kind {
             let span = match tc.kind.as_ref() {
                 TransformKind::From(expr) => expr.span.unwrap(),
-                TransformKind::Derive { tbl, .. }
+                TransformKind::Compute { tbl, .. }
                 | TransformKind::Select { tbl, .. }
                 | TransformKind::Filter { tbl, .. }
                 | TransformKind::Aggregate { tbl, .. }

@@ -1,6 +1,6 @@
 ---
 source: prql-compiler/src/semantic/resolver.rs
-expression: "resolve_type(r#\"\n            from orders\n            select [customer_no, gross, tax, gross - tax]\n            take 20\n            \"#).unwrap().unwrap()"
+expression: "resolve_type(r#\"\n            from orders\n            select [customer_no, gross, tax, gross - tax]\n            take 20\n            \"#).unwrap()"
 ---
 Table:
   columns:
@@ -13,7 +13,7 @@ Table:
     - Named:
         - tax
         - 32
-    - Unnamed: 35
+    - Unnamed: 33
   sort: []
   tables: []
 

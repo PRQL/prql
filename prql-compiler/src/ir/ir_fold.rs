@@ -59,7 +59,12 @@ pub fn fold_table<F: ?Sized + IrFold>(fold: &mut F, t: Table) -> Result<Table> {
 
 pub fn fold_table_expr<F: ?Sized + IrFold>(fold: &mut F, t: TableExpr) -> Result<TableExpr> {
     Ok(match t {
-        TableExpr::Ref(r) => TableExpr::Ref(r),
+        TableExpr::Ref(table_ref, defs) => TableExpr::Ref(
+            table_ref,
+            defs.into_iter()
+                .map(|d| fold.fold_column_def(d))
+                .try_collect()?,
+        ),
         TableExpr::Pipeline(transforms) => TableExpr::Pipeline(fold.fold_transforms(transforms)?),
     })
 }

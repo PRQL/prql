@@ -313,7 +313,7 @@ fn atomic_queries_of_table(table: Table, context: &mut Context) -> Vec<AtomicQue
         TableExpr::Pipeline(pipeline) => pipeline,
 
         // ref does not need it's own CTE
-        TableExpr::Ref(_) => return Vec::new(),
+        TableExpr::Ref(_, _) => return Vec::new(),
     };
 
     let mut atomics = Vec::new();

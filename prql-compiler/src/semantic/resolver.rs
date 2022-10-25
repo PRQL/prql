@@ -76,7 +76,7 @@ impl AstFold for Resolver {
         let span = node.span;
         let mut r = match node.kind {
             ExprKind::Ident(ref ident) => {
-                let id = self.lookup_name(ident.to_string().as_str(), node.span, &node.alias)?;
+                let id = self.lookup_ident(ident, node.span, &node.alias)?;
                 node.declared_at = Some(id);
 
                 let decl = self.context.declarations.get(id);
@@ -151,18 +151,21 @@ impl AstFold for Resolver {
                 if ident.namespace.is_some() {
                     bail!("you cannot use namespace prefix with self-equality operator.");
                 }
-                let ident = ident.name;
 
+                let mut left = Expr::from(ExprKind::Ident(Ident {
+                    namespace: Some(NS_FRAME.to_string()),
+                    name: ident.name.clone(),
+                }));
+                left.span = node.span;
+                let mut right = Expr::from(ExprKind::Ident(Ident {
+                    namespace: Some(NS_FRAME_RIGHT.to_string()),
+                    name: ident.name,
+                }));
+                right.span = node.span;
                 node.kind = ExprKind::Binary {
-                    left: Box::new(Expr::from(ExprKind::Ident(Ident {
-                        namespace: Some(NS_FRAME.to_string()),
-                        name: ident.clone(),
-                    }))),
+                    left: Box::new(left),
                     op: BinOp::Eq,
-                    right: Box::new(Expr::from(ExprKind::Ident(Ident {
-                        namespace: Some(NS_FRAME_RIGHT.to_string()),
-                        name: ident,
-                    }))),
+                    right: Box::new(right),
                 };
                 node.kind = fold_expr_kind(self, node.kind)?;
                 node
@@ -211,20 +214,23 @@ fn closure_of_func_def(func_def: &FuncDef) -> Closure {
 }
 
 impl Resolver {
-    pub fn lookup_name(
+    pub fn lookup_ident(
         &mut self,
-        name: &str,
+        ident: &Ident,
         span: Option<Span>,
         alias: &Option<String>,
     ) -> Result<usize> {
         Ok(match self.namespace {
-            Namespace::Tables => self.context.declare_table(name.to_string(), alias.clone()),
+            Namespace::Tables => self.context.declare_table(ident.to_string(), alias.clone()),
             Namespace::FunctionsColumns => {
-                let res = self.context.lookup_name(name, span);
+                let res = self.context.lookup_ident(ident, span);
 
                 match res {
                     Ok(id) => id,
-                    Err(e) => bail!(Error::new(Reason::Simple(e)).with_span(span)),
+                    Err(e) => {
+                        dbg!(&self.context);
+                        bail!(Error::new(Reason::Simple(e)).with_span(span))
+                    }
                 }
             }
         })
@@ -367,6 +373,9 @@ impl Resolver {
                 });
             closure.args = vec![Expr::null(); closure.params.len()];
 
+            self.context.scope.push_namespace(NS_FRAME);
+            self.context.scope.push_namespace(NS_FRAME_RIGHT);
+
             // resolve tables
             for pos in tables.into_iter().with_position() {
                 let is_last = matches!(pos, Position::Last(_) | Position::Only(_));
@@ -422,7 +431,8 @@ impl Resolver {
                 closure.args[index] = arg;
             }
 
-            self.context.scope.drop(NS_FRAME);
+            self.context.scope.pop_namespace(NS_FRAME);
+            self.context.scope.pop_namespace(NS_FRAME_RIGHT);
         }
 
         {
@@ -452,7 +462,9 @@ impl Resolver {
 
         // validate type
         let param_ty = param.ty.as_ref().unwrap_or(&Ty::Infer);
-        let assumed_ty = validate_type(&arg, param_ty, || func_name.map(|n| n.to_string()))?;
+        let assumed_ty = validate_type(&arg, param_ty, || {
+            func_name.map(|n| format!("function `{n}`, param `{}`", param.name))
+        })?;
         arg.ty = Some(assumed_ty);
 
         Ok(arg)
@@ -511,11 +523,12 @@ mod test {
     fn resolve_derive(query: &str) -> Result<Vec<Expr>> {
         let expr = parse_and_resolve(query)?;
         let derive = expr.kind.into_transform_call()?;
-        let (assigns, _) = derive.kind.into_derive()?;
+        let (assigns, _) = derive.kind.into_compute()?;
         Ok(assigns)
     }
 
     #[test]
+    #[ignore]
     fn test_func_call_resolve() {
         assert_display_snapshot!(compile(r#"
         from employees
@@ -526,7 +539,7 @@ mod test {
         "#).unwrap(),
             @r###"
         SELECT
-          COUNT(employees.salary),
+          COUNT(salary),
           COUNT(*)
         FROM
           employees
@@ -635,6 +648,19 @@ mod test {
             r#"
             from table_1
             join customers [~customer_no]
+            "#
+        )
+        .unwrap());
+
+        assert_yaml_snapshot!(resolve_type(
+            r#"
+            from employees
+            join salaries [~emp_no]
+            group [emp_no, gender] (
+                aggregate [
+                    emp_salary = average salary
+                ]
+            )
             "#
         )
         .unwrap());

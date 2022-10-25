@@ -234,7 +234,7 @@ pub struct TransformCall {
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize, strum::AsRefStr, EnumAsInner)]
 pub enum TransformKind {
     From(Expr),
-    Derive {
+    Compute {
         assigns: Vec<Expr>,
         tbl: Expr,
     },
@@ -284,7 +284,7 @@ impl TransformKind {
         use TransformKind::*;
         match self {
             From(_) => None,
-            Derive { tbl, .. }
+            Compute { tbl, .. }
             | Select { tbl, .. }
             | Filter { tbl, .. }
             | Aggregate { tbl, .. }

@@ -31,7 +31,7 @@ pub struct Table {
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub enum TableExpr {
-    Ref(TableRef),
+    Ref(TableRef, Vec<ColumnDef>),
     Pipeline(Vec<Transform>),
 }
 
