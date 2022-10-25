@@ -38,7 +38,7 @@
   - [JavaScript](./bindings/javascript.md)
   - [Python](./bindings/python.md)
   - [Rust](./bindings/rust.md)
-- [Internals](./semantics/README.md)
+- [Internals](./internals/README.md)
   - [Name resolving](./internals/name-resolving.md)
   - [Functions](./internals/functions.md)
 - [Integrations](./integrations/README.md)
