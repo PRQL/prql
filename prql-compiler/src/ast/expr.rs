@@ -36,7 +36,7 @@ pub struct Expr {
 
 #[derive(Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize)]
 pub enum ExprKind {
-    Ident(Ident),
+    Ident(IdentWithNamespace),
     Literal(Literal),
     Pipeline(Pipeline),
     List(Vec<Expr>),
@@ -59,6 +59,46 @@ pub enum ExprKind {
 
 /// A name. Generally columns, tables, functions, variables.
 pub type Ident = String;
+
+// We are moving `Ident` from being a string to containing the structure of a
+// namespace. Eventually we can remove this and just use `Ident` everywhere.
+// https://github.com/prql/prql/issues/1031
+#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
+pub struct IdentWithNamespace {
+    pub namespace: Option<String>,
+    pub ident: Ident,
+}
+
+impl From<IdentWithNamespace> for Ident {
+    fn from(ident: IdentWithNamespace) -> Self {
+        match ident.namespace {
+            Some(namespace) => format!("{}.{}", namespace, ident.ident),
+            None => ident.ident,
+        }
+    }
+}
+impl<'a> From<&'a IdentWithNamespace> for &'a str {
+    fn from(ident: &'a IdentWithNamespace) -> Self {
+        // TODO: this loses the namespace and is a temporary hack
+        &ident.ident
+    }
+}
+impl From<Ident> for IdentWithNamespace {
+    fn from(ident: Ident) -> Self {
+        IdentWithNamespace {
+            namespace: None,
+            ident,
+        }
+    }
+}
+impl ToString for IdentWithNamespace {
+    fn to_string(&self) -> String {
+        match &self.namespace {
+            Some(namespace) => format!("{}.{}", namespace, self.ident),
+            None => self.ident.clone(),
+        }
+    }
+}
 
 #[derive(
     Debug, PartialEq, Eq, Clone, Serialize, Deserialize, strum::Display, strum::EnumString,
@@ -292,7 +332,7 @@ pub enum JoinSide {
 
 impl Expr {
     pub fn new_ident<S: ToString>(name: S, declared_at: usize) -> Expr {
-        let mut node: Expr = ExprKind::Ident(name.to_string()).into();
+        let mut node: Expr = ExprKind::Ident(name.to_string().into()).into();
         node.declared_at = Some(declared_at);
         node
     }
@@ -421,7 +461,7 @@ impl Display for Expr {
 
         match &self.kind {
             ExprKind::Ident(s) => {
-                display_ident(f, s)?;
+                display_ident(f, s.into())?;
             }
             ExprKind::Pipeline(pipeline) => {
                 f.write_char('(')?;

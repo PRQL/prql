@@ -76,7 +76,7 @@ impl AstFold for Resolver {
         let span = node.span;
         let mut r = match node.kind {
             ExprKind::Ident(ref ident) => {
-                let id = self.lookup_name(ident, node.span, &node.alias)?;
+                let id = self.lookup_name(ident.into(), node.span, &node.alias)?;
                 node.declared_at = Some(id);
 
                 let decl = self.context.declarations.get(id);
@@ -145,16 +145,24 @@ impl AstFold for Resolver {
                 op: UnOp::EqSelf,
                 expr,
             } => {
-                let ident = expr.kind.into_ident().map_err(|_| {
-                    anyhow!("you can only use column names with self-equality operator.")
-                })?;
+                let ident = expr
+                    .kind
+                    .into_ident()
+                    .map_err(|_| {
+                        anyhow!("you can only use column names with self-equality operator.")
+                    })?
+                    .ident;
 
                 node.kind = ExprKind::Binary {
-                    left: Box::new(Expr::from(ExprKind::Ident(format!("{NS_FRAME}.{ident}")))),
+                    left: Box::new(Expr::from(ExprKind::Ident(IdentWithNamespace {
+                        namespace: Some(NS_FRAME.to_string()),
+                        ident: ident.clone(),
+                    }))),
                     op: BinOp::Eq,
-                    right: Box::new(Expr::from(ExprKind::Ident(format!(
-                        "{NS_FRAME_RIGHT}.{ident}"
-                    )))),
+                    right: Box::new(Expr::from(ExprKind::Ident(IdentWithNamespace {
+                        namespace: Some(NS_FRAME_RIGHT.to_string()),
+                        ident,
+                    }))),
                 };
                 node.kind = fold_expr_kind(self, node.kind)?;
                 node
@@ -551,7 +559,7 @@ mod test {
         assert_yaml_snapshot!(resolve_derive(
             r#"
             func subtract a b -> a - b
-            
+
             from employees
             derive [
                 net_salary = subtract gross_salary tax
@@ -568,7 +576,7 @@ mod test {
             r#"
             func lag_day x -> s"lag_day_todo({x})"
             func ret x dividend_return ->  x / (lag_day x) - 1 + dividend_return
-    
+
             from a
             select (ret b c)
             "#

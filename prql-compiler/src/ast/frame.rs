@@ -70,7 +70,10 @@ impl Frame {
     pub fn apply_assigns(&mut self, assigns: &[Expr]) {
         for expr in assigns {
             let id = expr.declared_at.unwrap();
-            let name = expr.alias.clone().or_else(|| expr.kind.as_ident().cloned());
+            let name = expr
+                .alias
+                .clone()
+                .or_else(|| expr.kind.as_ident().cloned().map(|x| x.into()));
 
             self.push_column(name, id);
         }
