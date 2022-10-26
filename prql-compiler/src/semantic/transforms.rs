@@ -135,49 +135,8 @@ pub fn cast_transform(
                 })
                 .try_collect()?;
 
-            // simulate evaluation of the inner pipeline
-
-            // resolver will not resolve a function call if any arguments are missing but
-            // would instead return a closure to be resolved later.
-            // because the pipeline of group is a function that takes a table chunk and applies
-            // the transforms to it, it would not get resolved.
-            // thats why we trick the resolver with a dummy node that acts as table chunk and
-            // instruct resolver to apply the transform on that.
-
-            // TODO: having dummy already be `x` is a hack.
-            // Dummy should be substituted in later.
-            let mut dummy = Expr::from(ExprKind::Ident(Ident::from_name("_x")));
-            dummy.ty = tbl.ty.clone();
-
-            let pipeline = Expr::from(ExprKind::FuncCall(FuncCall {
-                name: Box::new(pipeline),
-                args: vec![dummy],
-                named_args: Default::default(),
-            }));
-            let pipeline = resolver.fold_expr(pipeline)?;
-
-            // now, we need wrap the result into a closure and replace the dummy node with closure's parameter.
-
-            // extract reference to the dummy node
-            // let mut tbl_node = extract_ref_to_first(&mut pipeline);
-            // *tbl_node = Expr::from(ExprKind::Ident("x".to_string()));
-
-            let pipeline = Expr::from(ExprKind::Closure(Closure {
-                name: None,
-                body: Box::new(pipeline),
-
-                args: vec![],
-                params: vec![FuncParam {
-                    name: "_x".to_string(),
-                    ty: None,
-                    default_value: None,
-                }],
-
-                named_args: vec![],
-                named_params: vec![],
-
-                env: Default::default(),
-            }));
+            let pipeline =
+                fold_by_simulating_eval(resolver, pipeline, tbl.ty.clone().unwrap(), "_group_tbl")?;
 
             let pipeline = Box::new(pipeline);
             TransformKind::Group { by, pipeline, tbl }
@@ -242,21 +201,13 @@ pub fn cast_transform(
                 (WindowKind::Rows, Range::unbounded())
             };
 
-            // simulate evaluation of the inner pipeline
-            let mut value = Expr::from(ExprKind::Literal(Literal::Null));
-            value.ty = tbl.ty.clone();
-
-            let pipeline = Expr::from(ExprKind::FuncCall(FuncCall {
-                name: Box::new(pipeline),
-                args: vec![value],
-                named_args: Default::default(),
-            }));
-            let pipeline = Box::new(resolver.fold_expr(pipeline)?);
+            let pipeline =
+                fold_by_simulating_eval(resolver, pipeline, tbl.ty.clone().unwrap(), "_window_tbl")?;
 
             TransformKind::Window {
                 kind,
                 range,
-                pipeline,
+                pipeline: Box::new(pipeline),
                 tbl,
             }
         }
@@ -264,6 +215,58 @@ pub fn cast_transform(
     };
 
     Ok(Ok(TransformCall::from(kind)))
+}
+
+/// Simulate evaluation of the inner pipeline of group or window
+// Creates a dummy node that acts as value that pipeline can be resolved upon.
+fn fold_by_simulating_eval(
+    resolver: &mut Resolver,
+    pipeline: Expr,
+    val_type: Ty,
+    param_name: &str,
+) -> Result<Expr, anyhow::Error> {
+    // resolver will not resolve a function call if any arguments are missing
+    // but would instead return a closure to be resolved later.
+    // because the pipeline of group is a function that takes a table chunk
+    // and applies the transforms to it, it would not get resolved.
+    // thats why we trick the resolver with a dummy node that acts as table
+    // chunk and instruct resolver to apply the transform on that.
+
+    // TODO: having dummy already be `x` is a hack.
+    // Dummy should be substituted in later.
+    let mut dummy = Expr::from(ExprKind::Ident(Ident::from_name(param_name.to_string())));
+    dummy.ty = Some(val_type);
+    let pipeline = Expr::from(ExprKind::FuncCall(FuncCall {
+        name: Box::new(pipeline),
+        args: vec![dummy],
+        named_args: Default::default(),
+    }));
+    let pipeline = resolver.fold_expr(pipeline)?;
+
+    // now, we need wrap the result into a closure and replace
+    // the dummy node with closure's parameter.
+
+    // extract reference to the dummy node
+    // let mut tbl_node = extract_ref_to_first(&mut pipeline);
+    // *tbl_node = Expr::from(ExprKind::Ident("x".to_string()));
+
+    let pipeline = Expr::from(ExprKind::Closure(Closure {
+        name: None,
+        body: Box::new(pipeline),
+
+        args: vec![],
+        params: vec![FuncParam {
+            name: param_name.to_string(),
+            ty: None,
+            default_value: None,
+        }],
+
+        named_args: vec![],
+        named_params: vec![],
+
+        env: Default::default(),
+    }));
+    Ok(pipeline)
 }
 
 impl TransformCall {
