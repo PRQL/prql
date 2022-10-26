@@ -222,12 +222,15 @@ pub struct TransformCall {
     pub kind: Box<TransformKind>,
 
     /// Grouping of values in columns
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub partition: Vec<Expr>,
 
     /// Windowing of values in columns
+    #[serde(default, skip_serializing_if = "Window::is_default")]
     pub window: Window,
 
     /// Windowing of values in columns
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub sort: Vec<ColumnSort>,
 }
 
@@ -415,6 +418,21 @@ impl From<TransformKind> for TransformCall {
             window: Window::default(),
             sort: Vec::new(),
         }
+    }
+}
+
+impl Window {
+    fn is_default(&self) -> bool {
+        matches!(
+            self,
+            Window {
+                kind: WindowKind::Rows,
+                range: Range {
+                    start: None,
+                    end: None
+                }
+            }
+        )
     }
 }
 
