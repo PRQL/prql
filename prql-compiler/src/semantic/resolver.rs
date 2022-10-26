@@ -18,8 +18,7 @@ use super::{Context, Declaration, Frame};
 /// Note that this removes function declarations from AST and saves them as current context.
 pub fn resolve(statements: Vec<Stmt>, context: Context) -> Result<(Vec<Stmt>, Context)> {
     let mut resolver = Resolver::new(context);
-
-    let statements = resolver.fold_statements(statements)?;
+    let statements = resolver.fold_stmts(statements)?;
 
     Ok((statements, resolver.context))
 }
@@ -42,9 +41,16 @@ impl Resolver {
             in_func_call_name: false,
         }
     }
+}
 
-    /// fold statements and extract results into a [Query]
-    fn fold_statements(&mut self, stmts: Vec<Stmt>) -> Result<Vec<Stmt>> {
+#[derive(Debug, Clone, Copy)]
+enum Namespace {
+    FunctionsColumns,
+    Tables,
+}
+
+impl AstFold for Resolver {
+    fn fold_stmts(&mut self, stmts: Vec<Stmt>) -> Result<Vec<Stmt>> {
         let mut res = Vec::new();
 
         for stmt in stmts {
@@ -62,15 +68,7 @@ impl Resolver {
         }
         Ok(res)
     }
-}
 
-#[derive(Debug, Clone, Copy)]
-enum Namespace {
-    FunctionsColumns,
-    Tables,
-}
-
-impl AstFold for Resolver {
     fn fold_expr(&mut self, mut node: Expr) -> Result<Expr> {
         let alias = node.alias.clone();
         let span = node.span;
@@ -523,7 +521,7 @@ mod test {
     fn resolve_derive(query: &str) -> Result<Vec<Expr>> {
         let expr = parse_and_resolve(query)?;
         let derive = expr.kind.into_transform_call()?;
-        let (assigns, _) = derive.kind.into_compute()?;
+        let (assigns, _) = derive.kind.into_derive()?;
         Ok(assigns)
     }
 

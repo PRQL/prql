@@ -43,7 +43,7 @@ pub fn cast_transform(
             let mut assigns = assigns.coerce_into_vec();
             resolver.context.declare_as_idents(&mut assigns);
 
-            TransformKind::Compute { assigns, tbl }
+            TransformKind::Derive { assigns, tbl }
         }
         "aggregate" => {
             let ([assigns, tbl], []) = unpack::<2, 0>(closure)?;
@@ -292,7 +292,7 @@ impl TransformCall {
                 frame.apply_assigns(assigns);
                 frame
             }
-            Compute { assigns, tbl } => {
+            Derive { assigns, tbl } => {
                 let mut frame = ty_frame_or_default(tbl);
 
                 frame.apply_assigns(assigns);

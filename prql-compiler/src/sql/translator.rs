@@ -289,7 +289,7 @@ fn find_next_atomic_split(pipeline: &[Transform]) -> Option<usize> {
     if let Some(mut split_at) = split_at {
         while matches!(
             pipeline[split_at],
-            Transform::Derive(_) | Transform::Select(_)
+            Transform::Compute(_) | Transform::Select(_)
         ) {
             split_at -= 1;
         }

@@ -217,7 +217,7 @@ pub fn fold_transform_kind<T: ?Sized + AstFold>(
     use TransformKind::*;
     Ok(match t {
         From(expr) => From(fold.fold_expr(expr)?),
-        Compute { assigns, tbl } => Compute {
+        Derive { assigns, tbl } => Derive {
             assigns: fold.fold_exprs(assigns)?,
             tbl: fold.fold_expr(tbl)?,
         },

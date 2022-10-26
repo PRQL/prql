@@ -39,7 +39,7 @@ pub enum TableExpr {
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize, strum::AsRefStr)]
 pub enum Transform {
     From(TId),
-    Derive(ColumnDef),
+    Compute(ColumnDef),
     Select(Vec<CId>),
     Filter(Expr),
     Aggregate(Vec<CId>),

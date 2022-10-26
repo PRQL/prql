@@ -170,7 +170,7 @@ impl Lowerer {
 
                 None
             }
-            ast::TransformKind::Compute { assigns, tbl } => {
+            ast::TransformKind::Derive { assigns, tbl } => {
                 for assign in assigns {
                     self.declare_as_column(assign, &mut transforms)?;
                 }
@@ -316,7 +316,7 @@ impl Lowerer {
             self.column_mapping.insert(id, cid);
         }
 
-        transforms.push(Transform::Derive(def));
+        transforms.push(Transform::Compute(def));
         Ok(cid)
     }
 
