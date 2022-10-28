@@ -201,8 +201,12 @@ pub fn cast_transform(
                 (WindowKind::Rows, Range::unbounded())
             };
 
-            let pipeline =
-                fold_by_simulating_eval(resolver, pipeline, tbl.ty.clone().unwrap(), "_window_tbl")?;
+            let pipeline = fold_by_simulating_eval(
+                resolver,
+                pipeline,
+                tbl.ty.clone().unwrap(),
+                "_window_tbl",
+            )?;
 
             TransformKind::Window {
                 kind,
