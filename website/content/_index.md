@@ -347,6 +347,10 @@ bindings_section:
       label: "prql-js"
       text: "JavaScript bindings for prql-compiler."
 
+    - link: https://eitsupi.r-universe.dev/ui#package:prqlr
+      label: "prqlr"
+      text: "R bindings for prql-compiler."
+
     - link: https://crates.io/crates/prql-compiler
       label: "prql-compiler"
       text: |
