@@ -50,5 +50,12 @@ prql version:"0.2"
 from employees
 ```
 
-When the functionality is implemented, it will allow the language to evolve
-without breaking existing queries.
+This has two roles, one of which is implemented:
+
+- The compiler will raise an error if the compiler is older than the query
+  version. This prevents confusing errors when queries use newer features of the
+  language but the compiler hasn't yet been upgraded.
+- The compiler will compile for the major version of the query. This allows the
+  language to evolve without breaking existing queries, or forcing multiple
+  installations of the compiler. This isn't yet implemented, but is a gating
+  feature for PRQL 1.0.
