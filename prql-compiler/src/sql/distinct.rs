@@ -95,10 +95,8 @@ impl<'a> DistinctMaker<'a> {
 
         // add the two transforms
         let transforms = vec![
-            Transform {
-
-            },
-        TransformKind::Derive(vec![ident.clone()]),
+            Transform {},
+            TransformKind::Derive(vec![ident.clone()]),
             Transform {
                 kind: TransformKind::Filter(Box::new(match (range_int.start, range_int.end) {
                     (Some(s), Some(e)) if s == e => Expr::from(ExprKind::Binary {
