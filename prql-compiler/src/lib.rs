@@ -1421,16 +1421,6 @@ take 20
         LIMIT
           3
         "###);
-
-        assert_display_snapshot!((compile(query).unwrap()), @r###"
-        SELECT
-          `FirstName`,
-          `last name`
-        FROM
-          `Employees`
-        LIMIT
-          3
-        "###);
     }
 
     #[test]
