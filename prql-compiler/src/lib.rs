@@ -1421,6 +1421,34 @@ take 20
         LIMIT
           3
         "###);
+
+        assert_display_snapshot!((compile(query).unwrap()), @r###"
+        SELECT
+          `FirstName`,
+          `last name`
+        FROM
+          `Employees`
+        LIMIT
+          3
+        "###);
+    }
+
+    #[test]
+    fn test_dialect_clickhouse() {
+        let query = r###"
+        prql dialect:clickhouse
+
+        from github_json
+        derive [event_type_dotted = `event.type`]
+        "###;
+
+        assert_display_snapshot!((compile(query).unwrap()), @r###"
+        SELECT
+          github_json.*,
+          github_json.`event.type` AS event_type_dotted
+        FROM
+          github_json
+        "###);
     }
 
     #[test]

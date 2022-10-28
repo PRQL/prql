@@ -757,7 +757,7 @@ mod tests {
         expr:
           Pipeline:
             - From: 0
-            - Derive:
+            - Compute:
                 id: 4
                 name: issued_at
                 expr:
@@ -768,7 +768,7 @@ mod tests {
                   span:
                     start: 37
                     end: 46
-            - Derive:
+            - Compute:
                 id: 5
                 name: amount
                 expr:
@@ -779,7 +779,7 @@ mod tests {
                   span:
                     start: 49
                     end: 55
-            - Derive:
+            - Compute:
                 id: 6
                 name: num_of_articles
                 expr:
@@ -797,7 +797,7 @@ mod tests {
                   column: 5
                 - direction: Asc
                   column: 6
-            - Derive:
+            - Compute:
                 id: 3
                 name: issued_at
                 expr:
@@ -811,7 +811,7 @@ mod tests {
             - Sort:
                 - direction: Asc
                   column: 3
-            - Derive:
+            - Compute:
                 id: 2
                 name: issued_at
                 expr:
@@ -825,7 +825,7 @@ mod tests {
             - Sort:
                 - direction: Desc
                   column: 2
-            - Derive:
+            - Compute:
                 id: 1
                 name: issued_at
                 expr:
@@ -839,7 +839,7 @@ mod tests {
             - Sort:
                 - direction: Asc
                   column: 1
-            - Derive:
+            - Compute:
                 id: 0
                 name: issued_at
                 expr:
