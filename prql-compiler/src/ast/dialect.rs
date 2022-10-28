@@ -38,6 +38,7 @@ impl Dialect {
             Dialect::MsSql => Box::new(MsSqlDialect),
             Dialect::MySql => Box::new(MySqlDialect),
             Dialect::BigQuery => Box::new(BigQueryDialect),
+            Dialect::ClickHouse => Box::new(ClickHouseDialect),
             _ => Box::new(GenericDialect),
         }
     }
@@ -53,6 +54,7 @@ pub struct GenericDialect;
 pub struct MySqlDialect;
 pub struct MsSqlDialect;
 pub struct BigQueryDialect;
+pub struct ClickHouseDialect;
 
 pub trait DialectHandler {
     fn dialect(&self) -> Dialect;
@@ -83,6 +85,15 @@ impl DialectHandler for MsSqlDialect {
 impl DialectHandler for MySqlDialect {
     fn dialect(&self) -> Dialect {
         Dialect::MySql
+    }
+    fn ident_quote(&self) -> char {
+        '`'
+    }
+}
+
+impl DialectHandler for ClickHouseDialect {
+    fn dialect(&self) -> Dialect {
+        Dialect::ClickHouse
     }
     fn ident_quote(&self) -> char {
         '`'
