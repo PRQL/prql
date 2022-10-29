@@ -15,7 +15,7 @@ use sqlparser::ast::{self as sql_ast, Select, SetExpr, TableWithJoins};
 use std::collections::HashMap;
 
 use crate::ast::{DialectHandler, Literal};
-use crate::ir::{Expr, ExprKind, Query, Table, TableExpr, Transform};
+use crate::ir::{Expr, ExprKind, IrFold, Query, Table, TableCounter, TableExpr, Transform};
 
 use super::anchor::AnchorContext;
 use super::codegen::*;
@@ -126,6 +126,10 @@ fn sql_query_of_atomic_query(
     pipeline: Vec<Transform>,
     context: &mut Context,
 ) -> Result<sql_ast::Query> {
+    let mut counter = TableCounter::default();
+    let pipeline = counter.fold_transforms(pipeline)?;
+    context.omit_ident_prefix = counter.count() == 1;
+
     let select = context.anchor.determine_select_columns(&pipeline);
 
     let mut from = pipeline
