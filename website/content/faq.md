@@ -44,7 +44,7 @@ And there are many projects similar to PRQL:
 - [Ecto](https://hexdocs.pm/ecto/Ecto.html#module-query) is a sophisticated
   ORM library in Elixir which has pipelined queries as well as more traditional
   ORM features.
-- [Morel](http://blog.hydromatic.net/2020/02/25/morel-a-functional-language-for-data.html)
+- [Morel](https://www.thestrangeloop.com/2021/morel-a-functional-query-language.html)
   is a functional language for data, also with a pipeline concept. It doesn't
   compile to SQL but states that it can access external data.
 - [Malloy](https://github.com/looker-open-source/malloy) from Looker &
