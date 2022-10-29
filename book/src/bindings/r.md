@@ -1,6 +1,6 @@
 # R (prqlr)
 
-JavaScript bindings for [`prql-compiler`](https://github.com/prql/prql/).
+R bindings for [`prql-compiler`](https://github.com/prql/prql/).
 Check out <https://eitsupi.github.io/prqlr/> for more context.
 
 ## Installation
