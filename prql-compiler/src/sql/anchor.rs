@@ -66,10 +66,17 @@ impl AnchorContext {
         let def = self.columns_defs.get_mut(cid).unwrap();
 
         if def.name.is_none() {
-            let id = self.next_col_name_id;
-            self.next_col_name_id += 1;
+            match &def.expr.kind {
+                ExprKind::ExternRef { variable, .. } if variable == "*" => {
+                    def.name = Some("*".into());
+                }
+                _ => {
+                    let id = self.next_col_name_id;
+                    self.next_col_name_id += 1;
 
-            def.name = Some(format!("_expr_{id}"));
+                    def.name = Some(format!("_expr_{id}"));
+                }
+            }
         }
 
         def.name.clone().unwrap()
