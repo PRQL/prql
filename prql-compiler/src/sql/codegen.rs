@@ -415,14 +415,17 @@ pub(super) fn translate_ident(
     context: &Context,
 ) -> Vec<sql_ast::Ident> {
     let mut parts = Vec::with_capacity(4);
-    if let Some(relation) = relation_name {
-        // Special-case this for BigQuery, Ref #852
-        if matches!(context.dialect.dialect(), Dialect::BigQuery) {
-            parts.push(relation);
-        } else {
-            parts.extend(relation.split('.').map(|s| s.to_string()));
+    if !context.omit_ident_prefix || column.is_none() {
+        if let Some(relation) = relation_name {
+            // Special-case this for BigQuery, Ref #852
+            if matches!(context.dialect.dialect(), Dialect::BigQuery) {
+                parts.push(relation);
+            } else {
+                parts.extend(relation.split('.').map(|s| s.to_string()));
+            }
         }
     }
+
     parts.extend(column);
 
     parts

@@ -59,7 +59,6 @@ mod test {
     use insta::{assert_display_snapshot, assert_snapshot};
 
     #[test]
-    #[ignore]
     fn test_stdlib() {
         assert_snapshot!(compile(r###"
         from employees
@@ -99,7 +98,6 @@ mod test {
     }
 
     #[test]
-    #[ignore]
     fn test_precedence() {
         assert_display_snapshot!((compile(r###"
         from x
@@ -257,7 +255,6 @@ mod test {
     }
 
     #[test]
-    #[ignore]
     fn test_quoting() {
         // GH-#822
         assert_display_snapshot!((compile(r###"
@@ -270,7 +267,7 @@ join some_schema.tablename [~id]
         "###).unwrap()), @r###"
         WITH "UPPER" AS (
           SELECT
-            lower.*
+            *
           FROM
             lower
         )
@@ -319,7 +316,7 @@ select `first name`
 
         assert_display_snapshot!((compile(query).unwrap()), @r###"
         SELECT
-          invoices.*
+          *
         FROM
           invoices
         ORDER BY
@@ -351,7 +348,6 @@ select `first name`
     }
 
     #[test]
-    #[ignore]
     fn test_ranges() {
         let query = r###"
         from employees
@@ -360,7 +356,7 @@ select `first name`
 
         assert_display_snapshot!((compile(query).unwrap()), @r###"
         SELECT
-          employees.*
+          *
         FROM
           employees
         WHERE
@@ -382,7 +378,7 @@ select `first name`
 
         assert_display_snapshot!((compile(query).unwrap()), @r###"
         SELECT
-          events.*
+          *
         FROM
           events
         WHERE
@@ -392,7 +388,6 @@ select `first name`
     }
 
     #[test]
-    #[ignore]
     fn test_interval() {
         let query = r###"
         from projects
@@ -401,7 +396,7 @@ select `first name`
 
         assert_display_snapshot!((compile(query).unwrap()), @r###"
         SELECT
-          projects.*,
+          *,
           start + INTERVAL 10 DAY AS first_check_in
         FROM
           projects
@@ -420,7 +415,7 @@ select `first name`
         ]
         "###).unwrap()), @r###"
         SELECT
-          to_do_empty_table.*,
+          *,
           DATE '2011-02-01' AS date,
           TIMESTAMP '2011-02-01T10:00' AS timestamp,
           TIME '14:00' AS time
@@ -644,7 +639,6 @@ select `first name`
     }
 
     #[test]
-    #[ignore]
     fn test_name_resolving() {
         let query = r###"
         from numbers
@@ -695,7 +689,6 @@ select `first name`
     }
 
     #[test]
-    #[ignore]
     fn test_filter() {
         // https://github.com/prql/prql/issues/469
         let query = r###"
@@ -710,7 +703,7 @@ select `first name`
         filter age > 25 and age < 40
         "###).unwrap()), @r###"
         SELECT
-          employees.*
+          *
         FROM
           employees
         WHERE
@@ -724,7 +717,7 @@ select `first name`
         filter age < 40
         "###).unwrap()), @r###"
         SELECT
-          employees.*
+          *
         FROM
           employees
         WHERE
@@ -734,7 +727,6 @@ select `first name`
     }
 
     #[test]
-    #[ignore]
     fn test_nulls() {
         assert_display_snapshot!((compile(r###"
         from employees
@@ -752,7 +744,7 @@ select `first name`
         derive amount = amount + 2 ?? 3 * 5
         "###).unwrap()), @r###"
         SELECT
-          employees.*,
+          *,
           COALESCE(amount + 2, 3 * 5) AS amount
         FROM
           employees
@@ -764,7 +756,7 @@ select `first name`
         filter first_name == null and null == last_name
         "###).unwrap()), @r###"
         SELECT
-          employees.*
+          *
         FROM
           employees
         WHERE
@@ -778,7 +770,7 @@ select `first name`
         filter first_name != null and null != last_name
         "###).unwrap()), @r###"
         SELECT
-          employees.*
+          *
         FROM
           employees
         WHERE
@@ -795,7 +787,7 @@ select `first name`
         take ..10
         "###).unwrap()), @r###"
         SELECT
-          employees.*
+          *
         FROM
           employees
         LIMIT
@@ -807,7 +799,7 @@ select `first name`
         take 5..10
         "###).unwrap()), @r###"
         SELECT
-          employees.*
+          *
         FROM
           employees
         LIMIT
@@ -819,7 +811,7 @@ select `first name`
         take 5..
         "###).unwrap()), @r###"
         SELECT
-          employees.*
+          *
         FROM
           employees OFFSET 4
         "###);
@@ -829,7 +821,7 @@ select `first name`
         take 5..5
         "###).unwrap()), @r###"
         SELECT
-          employees.*
+          *
         FROM
           employees
         LIMIT
@@ -843,7 +835,7 @@ select `first name`
         take 1..5
         "###).unwrap()), @r###"
         SELECT
-          employees.*
+          *
         FROM
           employees
         LIMIT
@@ -983,7 +975,6 @@ select `first name`
     }
 
     #[test]
-    #[ignore]
     fn test_dbt_query() {
         assert_display_snapshot!((compile(r###"
         from {{ ref('stg_orders') }}
@@ -1049,7 +1040,6 @@ select [mng_name, managers.gender, salary_avg, salary_sd]"#;
     }
 
     #[test]
-    #[ignore]
     fn test_f_string() {
         let query = r###"
         from employees
@@ -1114,7 +1104,6 @@ select [mng_name, managers.gender, salary_avg, salary_sd]"#;
     }
 
     #[test]
-    #[ignore]
     fn test_sql_of_ast_2() {
         let query = r###"
         from employees
@@ -1134,7 +1123,6 @@ select [mng_name, managers.gender, salary_avg, salary_sd]"#;
     }
 
     #[test]
-    #[ignore]
     fn test_prql_to_sql_1() {
         let query = r#"
         from employees
@@ -1421,7 +1409,6 @@ take 20
     }
 
     #[test]
-    #[ignore]
     fn test_dialects() {
         // Generic
         let query = r###"
@@ -1487,15 +1474,14 @@ take 20
 
         assert_display_snapshot!((compile(query).unwrap()), @r###"
         SELECT
-          github_json.*,
-          github_json.`event.type` AS event_type_dotted
+          *,
+          `event.type` AS event_type_dotted
         FROM
           github_json
         "###);
     }
 
     #[test]
-    #[ignore]
     fn test_ident_escaping() {
         // Generic
         let query = r###"
@@ -1505,7 +1491,7 @@ take 20
 
         assert_display_snapshot!((compile(query).unwrap()), @r###"
         SELECT
-          "anim""ls".*,
+          *,
           "BeeName" AS "čebela",
           "bear's_name" AS medved
         FROM
@@ -1522,7 +1508,7 @@ take 20
 
         assert_display_snapshot!((compile(query).unwrap()), @r###"
         SELECT
-          `anim"ls`.*,
+          *,
           `BeeName` AS `čebela`,
           `bear's_name` AS medved
         FROM
@@ -1541,7 +1527,7 @@ take 20
         assert_display_snapshot!(sql,
             @r###"
         SELECT
-          employees.*,
+          *,
           true AS always_true
         FROM
           employees

@@ -34,7 +34,7 @@ mod test {
     fn parse_for_python() -> Result<()> {
         assert_eq!(
             to_sql("from employees | filter (age | in 20..30)")?,
-            "SELECT\n  employees.*\nFROM\n  employees\nWHERE\n  employees.age BETWEEN 20\n  AND 30"
+            "SELECT\n  *\nFROM\n  employees\nWHERE\n  age BETWEEN 20\n  AND 30"
         );
 
         Ok(())
