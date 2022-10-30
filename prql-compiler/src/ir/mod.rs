@@ -1,10 +1,12 @@
 mod expr;
 mod id_gen;
 mod ir_fold;
+mod table_counter;
 
 pub use expr::{Expr, ExprKind, UnOp};
 pub use id_gen::IdGenerator;
 pub use ir_fold::*;
+pub use table_counter::TableCounter;
 
 use serde::{Deserialize, Serialize};
 

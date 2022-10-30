@@ -15,7 +15,7 @@ use sqlparser::ast::{self as sql_ast, Select, SetExpr, TableWithJoins};
 use std::collections::HashMap;
 
 use crate::ast::{DialectHandler, Literal};
-use crate::ir::{Expr, ExprKind, Query, Table, TableExpr, Transform};
+use crate::ir::{Expr, ExprKind, IrFold, Query, Table, TableCounter, TableExpr, Transform};
 
 use super::anchor::AnchorContext;
 use super::codegen::*;
@@ -23,6 +23,7 @@ use super::codegen::*;
 pub(super) struct Context {
     pub dialect: Box<dyn DialectHandler>,
     pub anchor: AnchorContext,
+    pub omit_ident_prefix: bool,
 }
 
 /// Translate a PRQL AST into a SQL string.
@@ -50,7 +51,11 @@ pub fn translate_query(query: Query) -> Result<sql_ast::Query> {
 
     let (anchor, query) = AnchorContext::of(query);
 
-    let mut context = Context { dialect, anchor };
+    let mut context = Context {
+        dialect,
+        anchor,
+        omit_ident_prefix: false,
+    };
 
     // extract tables and the pipeline
     let tables = into_tables(query.expr, query.tables, &mut context)?;
@@ -121,6 +126,10 @@ fn sql_query_of_atomic_query(
     pipeline: Vec<Transform>,
     context: &mut Context,
 ) -> Result<sql_ast::Query> {
+    let mut counter = TableCounter::default();
+    let pipeline = counter.fold_transforms(pipeline)?;
+    context.omit_ident_prefix = counter.count() == 1;
+
     let select = context.anchor.determine_select_columns(&pipeline);
 
     let mut from = pipeline
@@ -372,6 +381,7 @@ mod test {
         let mut context = Context {
             dialect: Box::new(GenericDialect {}),
             anchor,
+            omit_ident_prefix: false,
         };
 
         let table = Table {
