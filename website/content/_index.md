@@ -32,6 +32,34 @@ hero_section:
     sort [sum_gross_cost, -country]
     take 1..20
 
+####################### Why PRQL section #########################
+why_prql_section:
+  enable: true
+  title: "Why PRQL?"
+  items:
+    - title: For data engineers
+      content:
+        - PRQL is database agnostic, compiling to many dialects of SQL
+        - PRQL is concise; with abstractions like variables & functions
+        - PRQL doesn't cap you — it can embed SQL when necessary
+    - title: For analysts
+      content:
+        - PRQL is ergonomic for data exploration — for example, commenting out
+          transforms or columns maintains a valid query
+        - PRQL is simple to learn, with a small number of powerful concepts
+    - title: For tools
+      content:
+        - PRQL is database agnostic
+        - PRQL is a stable foundation to build on; we're open-source and will never have
+          a commercial product
+        - A PRQL query is a closer analogy for how a database executes the query than a
+          SQL query
+        - PRQL is easy for machines to write, as well as people
+    - title: For HackerNews enthusiasts
+      content:
+        - The PRQL compiler is written in rust
+        - We talk about "orthogonal language features" a lot
+
 ####################### Principles section #########################
 principle_section:
   enable: true
