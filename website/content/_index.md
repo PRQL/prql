@@ -41,11 +41,11 @@ why_prql_section:
       content:
         - PRQL is database agnostic, compiling to many dialects of SQL
         - PRQL is concise; with abstractions like variables & functions
-        - PRQL doesn't cap you — it can embed SQL when necessary
+        - PRQL isn't limiting — it can contain embedded SQL when necessary
     - title: For analysts
       content:
         - PRQL is ergonomic for data exploration — for example, commenting out
-          transforms or columns maintains a valid query
+          a filter, or a column in a list, will maintain a valid query
         - PRQL is simple to learn, with a small number of powerful concepts
     - title: For tools
       content:
