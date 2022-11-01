@@ -47,7 +47,7 @@ why_prql_section:
     - title: For analysts
       content:
         - PRQL is ergonomic for data exploration — for example, commenting out
-          a filter, or a column in a list, is still a valid query
+          a filter, or a column in a list, maintains a valid query
         - PRQL is simple and easy to understand, with a small number of powerful concepts
         - PRQL allows for powerful autocomplete, type-checking, and helpful error messages _(in progress)_
     - title: For tools
