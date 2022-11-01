@@ -3,7 +3,6 @@
 layout: home
 title: PRQL
 
-####################### Hero section #########################
 hero_section:
   enable: true
   heading: "PRQL is a modern language for transforming data"
@@ -32,7 +31,6 @@ hero_section:
     sort [sum_gross_cost, -country]
     take 1..20
 
-####################### Why PRQL section #########################
 why_prql_section:
   enable: true
   title: "Why PRQL?"
@@ -60,44 +58,6 @@ why_prql_section:
       content:
         - The PRQL compiler is written in rust
         - We talk about "orthogonal language features" a lot
-
-####################### Principles section #########################
-principle_section:
-  enable: true
-  title: "Principles"
-  items:
-    - title: "Pipelined"
-      main_text: "A PRQL query is a linear pipeline of transformations"
-      content:
-        Each line of the query is a transformation of the previous line’s result.
-        This makes it easy to read, and simple to write.
-
-    - title: "Simple"
-      main_text: "PRQL serves both sophisticated engineers and analysts without coding experience."
-      content:
-        By providing a small number of powerful & orthogonal primitives, queries are simpler —
-        there's only one way of expressing each operation. We can eschew the debt that SQL has built up.
-
-    - title: "Open"
-      main_text: "PRQL is open-source, with an open community"
-      content:
-        PRQL will always be fully open-source and will never have a commercial product.
-        By compiling to SQL, PRQL is compatible with most databases, existing tools, and programming languages that manage SQL.
-        We're a welcoming community for users, contributors, and other projects.
-
-    - title: "Extensible"
-      main_text: "PRQL is designed to be extended, from functions to language bindings"
-      content: PRQL has abstractions which make it a great platform to build on.
-        Its explicit versioning allows changes without breaking backward-compatibility.
-        And in the cases where PRQL doesn't yet have an implementation,
-        it allows embedding SQL with S-Strings.
-
-    - title: "Analytical"
-      main_text: "PRQL's focus is analytical queries"
-      content:
-        PRQL was originally designed to serve the growing need of writing analytical queries,
-        emphasizing data transformations, development speed, and readability.
-        We de-emphasize other SQL features such as inserting data or transactions.
 
 showcase_section:
   enable: true
@@ -315,6 +275,43 @@ showcase_section:
           employees
         ORDER BY
           age
+
+principles_section:
+  enable: true
+  title: "Principles"
+  items:
+    - title: "Pipelined"
+      main_text: "A PRQL query is a linear pipeline of transformations"
+      content:
+        Each line of the query is a transformation of the previous line’s result.
+        This makes it easy to read, and simple to write.
+
+    - title: "Simple"
+      main_text: "PRQL serves both sophisticated engineers and analysts without coding experience."
+      content:
+        By providing a small number of powerful & orthogonal primitives, queries are simpler —
+        there's only one way of expressing each operation. We can eschew the debt that SQL has built up.
+
+    - title: "Open"
+      main_text: "PRQL is open-source, with an open community"
+      content:
+        PRQL will always be fully open-source and will never have a commercial product.
+        By compiling to SQL, PRQL is compatible with most databases, existing tools, and programming languages that manage SQL.
+        We're a welcoming community for users, contributors, and other projects.
+
+    - title: "Extensible"
+      main_text: "PRQL is designed to be extended, from functions to language bindings"
+      content: PRQL has abstractions which make it a great platform to build on.
+        Its explicit versioning allows changes without breaking backward-compatibility.
+        And in the cases where PRQL doesn't yet have an implementation,
+        it allows embedding SQL with S-Strings.
+
+    - title: "Analytical"
+      main_text: "PRQL's focus is analytical queries"
+      content:
+        PRQL was originally designed to serve the growing need of writing analytical queries,
+        emphasizing data transformations, development speed, and readability.
+        We de-emphasize other SQL features such as inserting data or transactions.
 
 tools_section:
   enable: true
