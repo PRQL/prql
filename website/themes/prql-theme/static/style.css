@@ -414,24 +414,24 @@ section {
 }
 
 /*--------------------------------------------------------------
-# Principles
+# Cards
 --------------------------------------------------------------*/
-.principle_section {
+.big-cards-section {
   background: #f2f9ff;
 }
 
-.principle_section .card {
+.big-cards-section .card {
   padding: 30px;
   height: 100%;
   border-radius: 0px;
 }
 
-.principle_section .card i {
+.big-cards-section .card i {
   color: #202b38;
   font-size: 52px;
 }
 
-.principle_section .card h4 {
+.big-cards-section .card h4 {
   font-weight: 600;
   font-size: 24px;
   line-height: 60px;
@@ -439,7 +439,7 @@ section {
   color: var(--secondary-color);
 }
 
-.principle_section .card h4::after {
+.big-cards-section .card h4::after {
   content: "";
   width: 50%;
   height: 2px;
@@ -448,7 +448,7 @@ section {
   margin: 4px 0px;
 }
 
-.principle_section .card p {
+.big-cards-section .card p {
   color: var(--main-color);
 }
 
@@ -485,7 +485,7 @@ section {
 }
 
 .content-section .card {
-  padding: 15px;
+  padding: 1.5em;
   height: 100%;
   flex: 100%;
 }
