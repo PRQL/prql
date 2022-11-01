@@ -42,14 +42,14 @@ why_prql_section:
         - PRQL is concise, with abstractions such as variables & functions
         - PRQL is database agnostic, compiling to many dialects of SQL
         - PRQL isn't limiting — it can contain embedded SQL where necessary
-        - PRQL includes bindings to most major languages _[more langs in progress]_
-        - PRQL allows for column lineage and type inspection _[in progress]_
+        - PRQL has bindings to most major languages _(and more are in progress)_
+        - PRQL allows for column lineage and type inspection _(in progress)_
     - title: For analysts
       content:
         - PRQL is ergonomic for data exploration — for example, commenting out
           a filter, or a column in a list, is still a valid query
         - PRQL is simple and easy to understand, with a small number of powerful concepts
-        - PRQL allows for powerful autocomplete, type-checking, and helpful error messages _[in progress]_
+        - PRQL allows for powerful autocomplete, type-checking, and helpful error messages _(in progress)_
     - title: For tools
       content:
         - PRQL is a stable foundation to build on; we're open-source and will never have
