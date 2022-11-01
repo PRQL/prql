@@ -39,22 +39,23 @@ why_prql_section:
   items:
     - title: For data engineers
       content:
+        - PRQL is concise, with abstractions such as variables & functions
         - PRQL is database agnostic, compiling to many dialects of SQL
-        - PRQL is concise; with abstractions like variables & functions
-        - PRQL isn't limiting — it can contain embedded SQL when necessary
+        - PRQL isn't limiting — it can contain embedded SQL where necessary
+        - PRQL includes bindings to most major languages _[more langs in progress]_
+        - PRQL allows for column lineage and type inspection _[in progress]_
     - title: For analysts
       content:
         - PRQL is ergonomic for data exploration — for example, commenting out
-          a filter, or a column in a list, will maintain a valid query
-        - PRQL is simple to learn, with a small number of powerful concepts
+          a filter, or a column in a list, is still a valid query
+        - PRQL is simple and easy to understand, with a small number of powerful concepts
+        - PRQL allows for powerful autocomplete, type-checking, and helpful error messages _[in progress]_
     - title: For tools
       content:
-        - PRQL is database agnostic
         - PRQL is a stable foundation to build on; we're open-source and will never have
           a commercial product
-        - A PRQL query is a closer analogy for how a database executes the query than a
-          SQL query
-        - PRQL is easy for machines to write, as well as people
+        - PRQL is a single secular standard which tools can target
+        - PRQL is easy for machines to read & write
     - title: For HackerNews enthusiasts
       content:
         - The PRQL compiler is written in rust
