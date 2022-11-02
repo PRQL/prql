@@ -3,6 +3,7 @@ mod id_gen;
 mod ir_fold;
 mod table_counter;
 
+use enum_as_inner::EnumAsInner;
 pub use expr::{Expr, ExprKind, UnOp};
 pub use id_gen::IdGenerator;
 pub use ir_fold::*;
@@ -68,16 +69,17 @@ pub struct ColumnDef {
     pub kind: ColumnDefKind,
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, EnumAsInner)]
 pub enum ColumnDefKind {
     Wildcard(TId),
-    Column { name: Option<String>, expr: Expr },
+    ExternRef(String),
+    Expr { name: Option<String>, expr: Expr },
 }
 
 impl ColumnDef {
     pub fn get_name(&self) -> Option<&String> {
         match &self.kind {
-            ColumnDefKind::Column { name, .. } => name.as_ref(),
+            ColumnDefKind::Expr { name, .. } => name.as_ref(),
             _ => None,
         }
     }

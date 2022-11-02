@@ -40,9 +40,21 @@ pub fn lower_ast_to_ir(statements: Vec<ast::Stmt>, context: Context) -> Result<Q
         }
     }
 
+    // set ExternRefs of Ref tables
+    let tables = l
+        .tables
+        .into_iter()
+        .map(|mut t| {
+            if let TableExpr::Ref(_, cols) = &mut t.expr {
+                cols.extend(l.extern_refs.remove(&t.id).unwrap_or_default());
+            };
+            t
+        })
+        .collect();
+
     Ok(Query {
         def: query_def.unwrap_or_default(),
-        tables: l.tables,
+        tables,
         expr: main_pipeline
             .ok_or_else(|| Error::new(Reason::Simple("missing main pipeline".to_string())))?,
     })
@@ -59,8 +71,13 @@ struct Lowerer {
     /// mapping from [crate::semantic::Declarations] into [TId]s
     table_mapping: HashMap<usize, TId>,
 
-    /// descriptor of known table columns
+    /// descriptor of known table columns (this will probably go into semantic::Context)
     tables_frames: HashMap<TId, Vec<CId>>,
+
+    /// column definitions of input tables to the query
+    // This is needed here, because extern refs may be found in the query
+    // even after a table is lowered.
+    extern_refs: HashMap<TId, Vec<ColumnDef>>,
 
     /// tables to be added to Query.tables
     tables: Vec<Table>,
@@ -75,6 +92,7 @@ impl Lowerer {
             column_mapping: HashMap::new(),
             table_mapping: HashMap::new(),
             tables_frames: HashMap::new(),
+            extern_refs: HashMap::new(),
             tables: Vec::new(),
         }
     }
@@ -82,13 +100,10 @@ impl Lowerer {
     fn push_table(&mut self, table: Table) {
         let columns = match &table.expr {
             TableExpr::Ref(_, cols) => cols.iter().map(|c| c.id).collect(),
-            TableExpr::Pipeline(transforms) => {
-                if let Some(Transform::Select(cols)) = transforms.last() {
-                    cols.clone()
-                } else {
-                    todo!();
-                }
-            }
+            TableExpr::Pipeline(transforms) => match transforms.last() {
+                Some(Transform::Select(cols)) => cols.clone(),
+                _ => unreachable!(),
+            },
         };
 
         self.tables_frames.insert(table.id, columns);
@@ -294,7 +309,7 @@ impl Lowerer {
         let name = if let Some(alias) = expr_ast.alias.clone() {
             Some(alias)
         } else {
-            expr_ast.kind.as_ident().cloned().map(|x| x.to_string())
+            expr_ast.kind.as_ident().map(|x| x.name.clone())
         };
         let id = expr_ast.declared_at;
 
@@ -303,7 +318,7 @@ impl Lowerer {
         let cid = self.ids.gen_cid();
         let def = ColumnDef {
             id: cid,
-            kind: ColumnDefKind::Column { name, expr },
+            kind: ColumnDefKind::Expr { name, expr },
         };
 
         if let Some(id) = id {
@@ -322,23 +337,39 @@ impl Lowerer {
         let kind = match ast.kind {
             ast::ExprKind::Ident(_) => {
                 let id = ast.declared_at.expect("unresolved ident node");
-                let decl = self.context.declarations.get(id);
 
-                match decl {
-                    super::Declaration::Expression(expr) => {
-                        if let Some(cid) = self.column_mapping.get(&id).cloned() {
-                            ir::ExprKind::ColumnRef(cid)
-                        } else {
-                            self.lower_expr(*expr.clone())?.kind
+                if let Some(cid) = self.column_mapping.get(&id).cloned() {
+                    ir::ExprKind::ColumnRef(cid)
+                } else {
+                    let decl = self.context.declarations.get(id).clone();
+
+                    match decl {
+                        super::Declaration::Expression(expr) => self.lower_expr(*expr)?.kind,
+                        super::Declaration::ExternRef { table, variable } => {
+                            if let Some(table_id) = table {
+                                let tid = self.ensure_table_id(table_id);
+                                let refs = self.extern_refs.entry(tid).or_default();
+
+                                let cid = self.ids.gen_cid();
+
+                                // println!("{tid:?}: {refs:?} + {id:?}");
+                                refs.push(ColumnDef {
+                                    id: cid,
+                                    kind: ColumnDefKind::ExternRef(variable),
+                                });
+
+                                self.column_mapping.insert(id, cid);
+                                ir::ExprKind::ColumnRef(cid)
+                            } else {
+                                ir::ExprKind::SString(vec![InterpolateItem::String(variable)])
+                            }
                         }
-                    }
-                    super::Declaration::ExternRef { table, variable } => ir::ExprKind::ExternRef {
-                        variable: variable.clone(),
-                        table: table.map(|x| self.ensure_table_id(x)),
-                    },
-                    super::Declaration::Table(_) => bail!("Cannot lower a table ref to IR expr"),
-                    super::Declaration::Function(_) => {
-                        bail!("Cannot lower a function ref to IR expr")
+                        super::Declaration::Table(_) => {
+                            bail!("Cannot lower a table ref to IR expr")
+                        }
+                        super::Declaration::Function(_) => {
+                            bail!("Cannot lower a function ref to IR expr")
+                        }
                     }
                 }
             }
@@ -399,3 +430,59 @@ impl Lowerer {
             .try_collect()
     }
 }
+
+// Collects all ExternRefs and
+// pub struct ExternRefExtractor<'a> {
+//     context: &'a mut AnchorContext,
+// }
+
+// impl<'a> ExternRefExtractor<'a> {
+//     pub fn extract(context: &mut AnchorContext, pipeline: Vec<Transform>) -> Vec<Transform> {
+//         let mut e = ExternRefExtractor { context };
+//         e.fold_transforms(pipeline).unwrap()
+//     }
+// }
+
+// impl<'a> IrFold for ExternRefExtractor<'a> {
+//     fn fold_expr(&mut self, mut expr: Expr) -> Result<Expr> {
+//         Ok(if let ExprKind::ExternRef { variable, .. } = &expr.kind {
+//             let id = self.context.ids.gen_cid();
+//             let new_def = ColumnDef {
+//                 id,
+//                 kind: ColumnDefKind::Expr {
+//                     name: Some(variable.clone()),
+//                     expr,
+//                 },
+//             };
+//             self.context.columns_defs.insert(id, new_def);
+//             Expr {
+//                 kind: ExprKind::ColumnRef(id),
+//                 span: None,
+//             }
+//         } else {
+//             expr.kind = self.fold_expr_kind(expr.kind)?;
+//             expr
+//         })
+//     }
+
+//     fn fold_column_def(&mut self, cd: ColumnDef) -> Result<ColumnDef> {
+//         // exactly the same as default impl,
+//         // except that fold_expr is inlined for the first level,
+//         // to prevent extracting ExternRefs that are already in root of a def.
+
+//         Ok(ColumnDef {
+//             id: cd.id,
+//             kind: match cd.kind {
+//                 ColumnDefKind::Wildcard(tid) => ColumnDefKind::Wildcard(tid),
+//                 ColumnDefKind::Expr { name, expr } => ColumnDefKind::Expr {
+//                     name,
+//                     expr: {
+//                         let mut expr = expr;
+//                         expr.kind = self.fold_expr_kind(expr.kind)?;
+//                         expr
+//                     },
+//                 },
+//             },
+//         })
+//     }
+// }

@@ -4,6 +4,8 @@
 use anyhow::Result;
 use itertools::Itertools;
 
+use crate::ast::InterpolateItem;
+
 use super::*;
 
 // Fold pattern:
@@ -34,17 +36,22 @@ pub trait IrFold {
     fn fold_query(&mut self, query: Query) -> Result<Query> {
         fold_query(self, query)
     }
-    fn fold_ir_expr(&mut self, expr: Expr) -> Result<Expr> {
-        Ok(expr) // TODO: actually fold this when needed
+    fn fold_expr(&mut self, mut expr: Expr) -> Result<Expr> {
+        expr.kind = self.fold_expr_kind(expr.kind)?;
+        Ok(expr)
+    }
+    fn fold_expr_kind(&mut self, kind: ExprKind) -> Result<ExprKind> {
+        fold_expr_kind(self, kind)
     }
     fn fold_column_def(&mut self, cd: ColumnDef) -> Result<ColumnDef> {
         Ok(ColumnDef {
             id: cd.id,
             kind: match cd.kind {
                 ColumnDefKind::Wildcard(tid) => ColumnDefKind::Wildcard(tid),
-                ColumnDefKind::Column { name, expr } => ColumnDefKind::Column {
+                ColumnDefKind::ExternRef(name) => ColumnDefKind::ExternRef(name),
+                ColumnDefKind::Expr { name, expr } => ColumnDefKind::Expr {
                     name,
-                    expr: self.fold_ir_expr(expr)?,
+                    expr: self.fold_expr(expr)?,
                 },
             },
         })
@@ -129,9 +136,65 @@ pub fn fold_transform<T: ?Sized + IrFold>(
         Join { side, with, filter } => Join {
             side,
             with,
-            filter: fold.fold_ir_expr(filter)?,
+            filter: fold.fold_expr(filter)?,
         },
         Unique => Unique,
     };
     Ok(transform)
+}
+
+pub fn fold_expr_kind<F: ?Sized + IrFold>(fold: &mut F, kind: ExprKind) -> Result<ExprKind> {
+    Ok(match kind {
+        ExprKind::ColumnRef(cid) => ExprKind::ColumnRef(fold.fold_cid(cid)?),
+
+        ExprKind::Binary { left, op, right } => ExprKind::Binary {
+            left: Box::new(fold.fold_expr(*left)?),
+            op,
+            right: Box::new(fold.fold_expr(*right)?),
+        },
+        ExprKind::Unary { op, expr } => ExprKind::Unary {
+            op,
+            expr: Box::new(fold.fold_expr(*expr)?),
+        },
+        ExprKind::Range(range) => ExprKind::Range(Range {
+            start: fold_optional_box(fold, range.start)?,
+            end: fold_optional_box(fold, range.end)?,
+        }),
+
+        ExprKind::SString(items) => ExprKind::SString(fold_interpolate_items(fold, items)?),
+        ExprKind::FString(items) => ExprKind::FString(fold_interpolate_items(fold, items)?),
+
+        ExprKind::Literal(_) => kind,
+    })
+}
+
+/// Helper
+pub fn fold_optional_box<F: ?Sized + IrFold>(
+    fold: &mut F,
+    opt: Option<Box<Expr>>,
+) -> Result<Option<Box<Expr>>> {
+    Ok(match opt {
+        Some(e) => Some(Box::new(fold.fold_expr(*e)?)),
+        None => None,
+    })
+}
+
+pub fn fold_interpolate_items<T: ?Sized + IrFold>(
+    fold: &mut T,
+    items: Vec<InterpolateItem<Expr>>,
+) -> Result<Vec<InterpolateItem<Expr>>> {
+    items
+        .into_iter()
+        .map(|i| fold_interpolate_item(fold, i))
+        .try_collect()
+}
+
+pub fn fold_interpolate_item<T: ?Sized + IrFold>(
+    fold: &mut T,
+    item: InterpolateItem<Expr>,
+) -> Result<InterpolateItem<Expr>> {
+    Ok(match item {
+        InterpolateItem::String(string) => InterpolateItem::String(string),
+        InterpolateItem::Expr(expr) => InterpolateItem::Expr(Box::new(fold.fold_expr(*expr)?)),
+    })
 }

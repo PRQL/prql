@@ -25,16 +25,6 @@ pub(super) fn translate_expr_kind(item: ExprKind, context: &mut Context) -> Resu
 
             sql_ast::Expr::CompoundIdentifier(translate_ident(table, Some(column), context))
         }
-        ExprKind::ExternRef { variable, table } => {
-            let table = table.map(|table_id| {
-                let table_def = context.anchor.table_defs.get(&table_id).unwrap();
-
-                table_def.name.clone()
-            });
-
-            sql_ast::Expr::CompoundIdentifier(translate_ident(table, Some(variable), context))
-        }
-
         ExprKind::Binary { op, left, right } => {
             if let Some(is_null) = try_into_is_null(&op, &left, &right, context)? {
                 is_null

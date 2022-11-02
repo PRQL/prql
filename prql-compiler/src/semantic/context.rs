@@ -87,7 +87,7 @@ impl Context {
                 };
                 let id = self.declare(decl, span);
                 for namespace in namespaces {
-                    self.scope.add(namespace, ident.to_string(), id);
+                    self.scope.add(namespace, &ident.name, id);
                 }
 
                 Ok(id)
@@ -97,7 +97,7 @@ impl Context {
             _ => {
                 let decl = Declaration::ExternRef {
                     table: None,
-                    variable: ident.to_string(),
+                    variable: ident.name.clone(),
                 };
                 let id = self.declare(decl, span);
 
