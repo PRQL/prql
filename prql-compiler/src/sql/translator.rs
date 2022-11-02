@@ -12,13 +12,13 @@ use anyhow::{anyhow, bail, Result};
 use itertools::Itertools;
 use sqlformat::{format, FormatOptions, QueryParams};
 use sqlparser::ast::{self as sql_ast, Select, SetExpr, TableWithJoins};
-use std::collections::HashMap;
 
 use crate::ast::{DialectHandler, Literal};
 use crate::ir::{Expr, ExprKind, IrFold, Query, Table, TableCounter, TableExpr, Transform};
 
-use super::anchor::AnchorContext;
+use super::anchor;
 use super::codegen::*;
+use super::context::AnchorContext;
 
 pub(super) struct Context {
     pub dialect: Box<dyn DialectHandler>,
@@ -130,7 +130,13 @@ fn sql_query_of_atomic_query(
     let pipeline = counter.fold_transforms(pipeline)?;
     context.omit_ident_prefix = counter.count() == 1;
 
-    let select = context.anchor.determine_select_columns(&pipeline);
+    let select = pipeline
+        .iter()
+        .find_map(|t| match &t {
+            Transform::Select(cols) => Some(cols.clone()),
+            _ => None,
+        })
+        .unwrap_or_default();
 
     let mut from = pipeline
         .iter()
@@ -250,64 +256,6 @@ fn sql_query_of_atomic_query(
     })
 }
 
-/// Finds maximum number of transforms that can "fit" into a SELECT query.
-fn find_next_atomic_split(pipeline: &[Transform]) -> Option<usize> {
-    // Pipeline must be split when there is a transformation that out of order:
-    // - derive (no limit),
-    // - joins (no limit),
-    // - filters (for WHERE)
-    // - aggregate (max 1x)
-    // - sort (no limit)
-    // - filters (for HAVING)
-    // - take (no limit)
-
-    let mut counts: HashMap<&str, u32> = HashMap::new();
-    let mut split_at = None;
-    for (i, transform) in pipeline.iter().enumerate() {
-        let split = match transform.as_ref() {
-            "Join" => {
-                counts.get("Filter").is_some()
-                    || counts.get("Aggregate").is_some()
-                    || counts.get("Sort").is_some()
-                    || counts.get("Take").is_some()
-            }
-            "Aggregate" => {
-                counts.get("Aggregate").is_some()
-                    || counts.get("Sort").is_some()
-                    || counts.get("Take").is_some()
-            }
-            "Sort" => counts.get("Take").is_some(),
-            "Filter" => counts.get("Take").is_some(), // || transform.is_complex,
-
-            // There can be many takes, but they have to be consecutive
-            // For example `take 100 | sort a | take 10` can't be one CTE.
-            // But this is enforced by transform order anyway.
-            "Take" => false,
-
-            _ => false,
-        };
-
-        if split {
-            split_at = Some(i);
-        }
-
-        *counts.entry(transform.as_ref()).or_insert(0) += 1;
-    }
-
-    // rollback all selects and derives
-    if let Some(mut split_at) = split_at {
-        while matches!(
-            pipeline[split_at],
-            Transform::Compute(_) | Transform::Select(_)
-        ) {
-            split_at -= 1;
-        }
-        return Some(split_at);
-    }
-
-    None
-}
-
 /// Converts a series of tables into a series of atomic tables, by putting the
 /// next pipeline's `from` as the current pipelines's table name.
 fn atomic_queries_of_tables(tables: Vec<Table>, context: &mut Context) -> Vec<AtomicQuery> {
@@ -325,22 +273,66 @@ fn atomic_queries_of_table(table: Table, context: &mut Context) -> Vec<AtomicQue
         TableExpr::Ref(_, _) => return Vec::new(),
     };
 
-    let mut atomics = Vec::new();
-    while let Some(at_position) = find_next_atomic_split(&pipeline) {
-        let name = context.anchor.gen_table_name();
+    let mut output_cols = context.anchor.determine_select_columns(&pipeline);
 
-        let split = context.anchor.split_pipeline(pipeline, at_position, &name);
-        atomics.push(AtomicQuery {
-            name: Some(name),
-            pipeline: split.0,
-        });
-        pipeline = split.1;
+    // split pipeline, back to front
+    let mut parts_rev = Vec::new();
+    loop {
+        let (preceding, split) =
+            anchor::split_off_back(&mut context.anchor, output_cols.clone(), pipeline);
+
+        if let Some((preceding, cols_at_split)) = preceding {
+            parts_rev.push((split, cols_at_split.clone()));
+
+            pipeline = preceding;
+            output_cols = cols_at_split;
+        } else {
+            parts_rev.push((split, Vec::new()));
+            break;
+        }
     }
+    parts_rev.reverse();
+    let mut parts = parts_rev;
 
-    atomics.push(AtomicQuery {
-        name: table.name,
-        pipeline,
-    });
+    // add names to pipelines, anchor, front to back
+    let mut atomics = Vec::with_capacity(parts.len());
+    let last = parts.pop().unwrap();
+
+    if !parts.is_empty() {
+        let first = parts.remove(0);
+
+        let first_name = context.anchor.gen_table_name();
+        atomics.push(AtomicQuery {
+            name: Some(first_name.clone()),
+            pipeline: first.0,
+        });
+
+        let mut prev_name = first_name;
+        for (pipeline, cols_before) in parts.into_iter() {
+            let name = context.anchor.gen_table_name();
+            let pipeline =
+                anchor::anchor_split(&mut context.anchor, &prev_name, &cols_before, pipeline);
+
+            atomics.push(AtomicQuery {
+                name: Some(name.clone()),
+                pipeline,
+            });
+
+            prev_name = name;
+        }
+
+        let pipeline = anchor::anchor_split(&mut context.anchor, &prev_name, &last.1, last.0);
+        atomics.push(AtomicQuery {
+            name: table.name,
+            pipeline,
+        });
+    } else {
+        let pipeline = last.0;
+        atomics.push(AtomicQuery {
+            name: table.name,
+            pipeline,
+        });
+    }
 
     atomics
 }

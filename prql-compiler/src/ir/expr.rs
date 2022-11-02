@@ -1,7 +1,7 @@
 use enum_as_inner::EnumAsInner;
 use serde::{Deserialize, Serialize};
 
-use super::{CId, TId};
+use super::CId;
 use crate::{
     ast::{BinOp, InterpolateItem, Literal, Range},
     error::Span,
@@ -17,10 +17,6 @@ pub struct Expr {
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize, EnumAsInner)]
 pub enum ExprKind {
     ColumnRef(CId),
-    ExternRef {
-        variable: String,
-        table: Option<TId>,
-    },
     Literal(Literal),
     Range(Range<Box<Expr>>),
     Binary {

@@ -850,7 +850,8 @@ select `first name`
         "###).unwrap()), @r###"
         WITH table_0 AS (
           SELECT
-            *
+            *,
+            name
           FROM
             employees
           LIMIT
