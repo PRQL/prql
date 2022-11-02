@@ -59,7 +59,6 @@ mod test {
     use insta::{assert_display_snapshot, assert_snapshot};
 
     #[test]
-    #[ignore]
     fn test_stdlib() {
         assert_snapshot!(compile(r###"
         from employees
