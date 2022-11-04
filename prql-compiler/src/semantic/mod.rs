@@ -96,13 +96,8 @@ mod test {
               Ref:
                 - LocalTable: employees
                 - - id: 0
-                    name: ~
-                    expr:
-                      kind:
-                        ExternRef:
-                          variable: "*"
-                          table: 0
-                      span: ~
+                    kind:
+                      Wildcard: 0
         expr:
           Pipeline:
             - From: 0
@@ -126,13 +121,8 @@ mod test {
               Ref:
                 - LocalTable: employees
                 - - id: 0
-                    name: ~
-                    expr:
-                      kind:
-                        ExternRef:
-                          variable: "*"
-                          table: 0
-                      span: ~
+                    kind:
+                      Wildcard: 0
         expr:
           Pipeline:
             - From: 0

@@ -40,8 +40,13 @@ pub trait IrFold {
     fn fold_column_def(&mut self, cd: ColumnDef) -> Result<ColumnDef> {
         Ok(ColumnDef {
             id: cd.id,
-            name: cd.name,
-            expr: self.fold_ir_expr(cd.expr)?,
+            kind: match cd.kind {
+                ColumnDefKind::Wildcard(tid) => ColumnDefKind::Wildcard(tid),
+                ColumnDefKind::Column { name, expr } => ColumnDefKind::Column {
+                    name,
+                    expr: self.fold_ir_expr(expr)?,
+                },
+            },
         })
     }
     fn fold_cid(&mut self, cid: CId) -> Result<CId> {

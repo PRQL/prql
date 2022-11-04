@@ -7,8 +7,8 @@ use anyhow::Result;
 
 use crate::ast::TableRef;
 use crate::ir::{
-    fold_table, CId, ColumnDef, Expr, ExprKind, IdGenerator, IrFold, Query, TId, Table, TableExpr,
-    Transform,
+    fold_table, CId, ColumnDef, ColumnDefKind, Expr, ExprKind, IdGenerator, IrFold, Query, TId,
+    Table, TableExpr, Transform,
 };
 
 #[derive(Default)]
@@ -52,7 +52,7 @@ impl AnchorContext {
 
     pub fn get_column_name(&self, cid: &CId) -> Option<String> {
         let def = self.columns_defs.get(cid).unwrap();
-        def.name.clone()
+        def.get_name().cloned()
     }
 
     pub fn gen_table_name(&mut self) -> String {
@@ -65,14 +65,17 @@ impl AnchorContext {
     fn ensure_column_name(&mut self, cid: &CId) -> String {
         let def = self.columns_defs.get_mut(cid).unwrap();
 
-        if def.name.is_none() {
-            let id = self.next_col_name_id;
-            self.next_col_name_id += 1;
+        if let ColumnDefKind::Column { name, .. } = &mut def.kind {
+            if name.is_none() {
+                let id = self.next_col_name_id;
+                self.next_col_name_id += 1;
 
-            def.name = Some(format!("_expr_{id}"));
+                *name = Some(format!("_expr_{id}"));
+            }
+            name.clone().unwrap()
+        } else {
+            unreachable!("cannot ensure name for a star column")
         }
-
-        def.name.clone().unwrap()
     }
 
     pub fn materialize_expr(&self, cid: &CId) -> Expr {
@@ -80,7 +83,17 @@ impl AnchorContext {
             .columns_defs
             .get(cid)
             .unwrap_or_else(|| panic!("missing column id {cid:?}"));
-        def.expr.clone()
+
+        match &def.kind {
+            ColumnDefKind::Wildcard(tid) => Expr {
+                kind: ExprKind::ExternRef {
+                    variable: "*".to_string(),
+                    table: Some(*tid),
+                },
+                span: None,
+            },
+            ColumnDefKind::Column { expr, .. } => expr.clone(),
+        }
     }
 
     #[allow(dead_code)]
@@ -123,13 +136,18 @@ impl AnchorContext {
 
             let new_def = ColumnDef {
                 id: new_cid,
-                name: old_def.name.clone(),
-                expr: Expr {
-                    kind: ExprKind::ExternRef {
-                        variable: self.ensure_column_name(&old_cid),
-                        table: Some(new_tid),
+                kind: match &old_def.kind {
+                    ColumnDefKind::Wildcard(tid) => ColumnDefKind::Wildcard(*tid),
+                    ColumnDefKind::Column { name, .. } => ColumnDefKind::Column {
+                        name: name.clone(),
+                        expr: Expr {
+                            kind: ExprKind::ExternRef {
+                                variable: self.ensure_column_name(&old_cid),
+                                table: Some(new_tid),
+                            },
+                            span: None,
+                        },
                     },
-                    span: None,
                 },
             };
             self.columns_defs.insert(new_cid, new_def.clone());
@@ -214,14 +232,7 @@ impl QueryLoader {
                 TableExpr::Pipeline(_) => {
                     let star_col = ColumnDef {
                         id: context.ids.gen_cid(),
-                        expr: Expr {
-                            kind: ExprKind::ExternRef {
-                                variable: "*".to_string(),
-                                table: Some(table.id),
-                            },
-                            span: None,
-                        },
-                        name: None,
+                        kind: ColumnDefKind::Wildcard(table.id),
                     };
                     context.columns_loc.insert(star_col.id, table.id);
                     context.columns_defs.insert(star_col.id, star_col.clone());
