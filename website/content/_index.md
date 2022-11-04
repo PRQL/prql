@@ -46,7 +46,7 @@ why_prql_section:
       content:
         - PRQL is ergonomic for data exploration — for example, commenting out
           a filter, or a column in a list, maintains a valid query
-        - PRQL is simple and easy to understand, with a small number of powerful concepts
+        - PRQL is simple, and easy to understand, with a small number of powerful concepts
         - PRQL allows for powerful autocomplete, type-checking, and helpful error messages _(in progress)_
     - title: For tools
       content:
@@ -289,7 +289,7 @@ principles_section:
     - title: "Simple"
       main_text: "PRQL serves both sophisticated engineers and analysts without coding experience."
       content:
-        By providing a small number of powerful & orthogonal primitives, queries are simpler —
+        By providing a small number of powerful & orthogonal primitives, queries are simple and composable —
         there's only one way of expressing each operation. We can eschew the debt that SQL has built up.
 
     - title: "Open"
