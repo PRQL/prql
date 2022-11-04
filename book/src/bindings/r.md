@@ -4,7 +4,7 @@ R bindings for [`prql-compiler`](https://github.com/prql/prql/).
 Check out <https://eitsupi.github.io/prqlr/> for more context.
 
 ```admonish note
-`prqlr` is generously maintained by [@eitsupi](https://github.com/eitsupi) in the 
+`prqlr` is generously maintained by [@eitsupi](https://github.com/eitsupi) in the
 [eitsupi/prqlr](https://github.com/eitsupi/prqlr) repo.
 ```
 
