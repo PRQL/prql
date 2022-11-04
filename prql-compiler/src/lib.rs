@@ -780,7 +780,6 @@ select `first name`
     }
 
     #[test]
-    #[ignore]
     fn test_range() {
         assert_display_snapshot!((compile(r###"
         from employees
@@ -851,14 +850,14 @@ select `first name`
         "###).unwrap()), @r###"
         WITH table_0 AS (
           SELECT
-            employees.*
+            *
           FROM
             employees
           LIMIT
             10 OFFSET 10
         )
         SELECT
-          table_0.*
+          *
         FROM
           table_0
         ORDER BY
@@ -1252,7 +1251,7 @@ take 20
         assert_display_snapshot!((compile(query).unwrap()), @r###"
         WITH table_0 AS (
           SELECT
-            employees.*
+            *
           FROM
             employees
           LIMIT
@@ -1285,7 +1284,6 @@ take 20
     }
 
     #[test]
-    #[ignore]
     /// Confirm a nonatomic table works.
     fn test_nonatomic_table() {
         // A take, then two aggregates
@@ -1303,7 +1301,7 @@ take 20
         assert_display_snapshot!((compile(query).unwrap()), @r###"
         WITH table_0 AS (
           SELECT
-            employees.*
+            *
           FROM
             employees
           LIMIT

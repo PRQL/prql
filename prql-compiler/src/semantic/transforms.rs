@@ -751,49 +751,50 @@ mod tests {
               Ref:
                 - LocalTable: invoices
                 - - id: 7
-                    name: ~
-                    expr:
-                      kind:
-                        ExternRef:
-                          variable: "*"
-                          table: 0
-                      span: ~
+                    kind:
+                      Wildcard: 0
         expr:
           Pipeline:
             - From: 0
             - Compute:
                 id: 4
-                name: issued_at
-                expr:
-                  kind:
-                    ExternRef:
-                      variable: issued_at
-                      table: 0
-                  span:
-                    start: 37
-                    end: 46
+                kind:
+                  Column:
+                    name: issued_at
+                    expr:
+                      kind:
+                        ExternRef:
+                          variable: issued_at
+                          table: 0
+                      span:
+                        start: 37
+                        end: 46
             - Compute:
                 id: 5
-                name: amount
-                expr:
-                  kind:
-                    ExternRef:
-                      variable: amount
-                      table: 0
-                  span:
-                    start: 49
-                    end: 55
+                kind:
+                  Column:
+                    name: amount
+                    expr:
+                      kind:
+                        ExternRef:
+                          variable: amount
+                          table: 0
+                      span:
+                        start: 49
+                        end: 55
             - Compute:
                 id: 6
-                name: num_of_articles
-                expr:
-                  kind:
-                    ExternRef:
-                      variable: num_of_articles
-                      table: 0
-                  span:
-                    start: 57
-                    end: 73
+                kind:
+                  Column:
+                    name: num_of_articles
+                    expr:
+                      kind:
+                        ExternRef:
+                          variable: num_of_articles
+                          table: 0
+                      span:
+                        start: 57
+                        end: 73
             - Sort:
                 - direction: Asc
                   column: 4
@@ -803,57 +804,65 @@ mod tests {
                   column: 6
             - Compute:
                 id: 3
-                name: issued_at
-                expr:
-                  kind:
-                    ExternRef:
-                      variable: issued_at
-                      table: 0
-                  span:
-                    start: 88
-                    end: 97
+                kind:
+                  Column:
+                    name: issued_at
+                    expr:
+                      kind:
+                        ExternRef:
+                          variable: issued_at
+                          table: 0
+                      span:
+                        start: 88
+                        end: 97
             - Sort:
                 - direction: Asc
                   column: 3
             - Compute:
                 id: 2
-                name: issued_at
-                expr:
-                  kind:
-                    ExternRef:
-                      variable: issued_at
-                      table: 0
-                  span:
-                    start: 113
-                    end: 122
+                kind:
+                  Column:
+                    name: issued_at
+                    expr:
+                      kind:
+                        ExternRef:
+                          variable: issued_at
+                          table: 0
+                      span:
+                        start: 113
+                        end: 122
             - Sort:
                 - direction: Desc
                   column: 2
             - Compute:
                 id: 1
-                name: issued_at
-                expr:
-                  kind:
-                    ExternRef:
-                      variable: issued_at
-                      table: 0
-                  span:
-                    start: 138
-                    end: 147
+                kind:
+                  Column:
+                    name: issued_at
+                    expr:
+                      kind:
+                        ExternRef:
+                          variable: issued_at
+                          table: 0
+                      span:
+                        start: 138
+                        end: 147
             - Sort:
                 - direction: Asc
                   column: 1
             - Compute:
                 id: 0
-                name: issued_at
-                expr:
-                  kind:
-                    ExternRef:
-                      variable: issued_at
-                      table: 0
-                  span:
-                    start: 164
-                    end: 173
+                kind:
+                  Column:
+                    name: issued_at
+                    expr:
+                      kind:
+                        ExternRef:
+                          variable: issued_at
+                          table: 0
+                      span:
+                        start: 164
+                        end: 173
             - Sort:
                 - direction: Desc
                   column: 0

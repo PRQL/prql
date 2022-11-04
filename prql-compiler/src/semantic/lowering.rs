@@ -5,7 +5,9 @@ use itertools::Itertools;
 
 use crate::ast::{Expr, InterpolateItem, Range};
 use crate::error::{Error, Reason};
-use crate::ir::{CId, ColumnDef, IdGenerator, Query, TId, Table, TableExpr, Transform};
+use crate::ir::{
+    CId, ColumnDef, ColumnDefKind, IdGenerator, Query, TId, Table, TableExpr, Transform,
+};
 use crate::{ast, ir};
 
 use super::Context;
@@ -122,14 +124,7 @@ impl Lowerer {
 
                 let star_col = ColumnDef {
                     id: self.ids.gen_cid(),
-                    expr: ir::Expr {
-                        kind: ir::ExprKind::ExternRef {
-                            variable: "*".to_string(),
-                            table: Some(self.table_mapping[&expr.declared_at.unwrap()]),
-                        },
-                        span: None,
-                    },
-                    name: None,
+                    kind: ColumnDefKind::Wildcard(self.table_mapping[&expr.declared_at.unwrap()]),
                 };
 
                 TableExpr::Ref(ast::TableRef::LocalTable(name.to_string()), vec![star_col])
@@ -308,8 +303,7 @@ impl Lowerer {
         let cid = self.ids.gen_cid();
         let def = ColumnDef {
             id: cid,
-            expr,
-            name,
+            kind: ColumnDefKind::Column { name, expr },
         };
 
         if let Some(id) = id {

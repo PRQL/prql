@@ -65,8 +65,22 @@ pub struct Window {
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct ColumnDef {
     pub id: CId,
-    pub name: Option<String>,
-    pub expr: Expr,
+    pub kind: ColumnDefKind,
+}
+
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+pub enum ColumnDefKind {
+    Wildcard(TId),
+    Column { name: Option<String>, expr: Expr },
+}
+
+impl ColumnDef {
+    pub fn get_name(&self) -> Option<&String> {
+        match &self.kind {
+            ColumnDefKind::Column { name, .. } => name.as_ref(),
+            _ => None,
+        }
+    }
 }
 
 /// Column id
