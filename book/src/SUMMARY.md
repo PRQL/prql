@@ -42,6 +42,7 @@
   - [R](./bindings/r.md)
   - [Rust](./bindings/rust.md)
 - [Integrations]()
+
   - [dbt](./integrations/dbt.md)
   - [Jupyter](./integrations/jupyter.md)
   - [Prefect](./integrations/prefect.md)
