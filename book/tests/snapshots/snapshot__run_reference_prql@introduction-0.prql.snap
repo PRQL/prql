@@ -9,7 +9,7 @@ SELECT
   AVG(salary + COALESCE(tax, 0)),
   SUM(salary + COALESCE(tax, 0) + benefits_cost) AS sum_gross_cost,
   CONCAT(title, '_', country) AS id,
-  version() AS db_version
+  LEFT(country, 2) AS country_code
 FROM
   employees
 WHERE
