@@ -353,7 +353,7 @@ integrations_section:
         It can also set up an in-memory DuckDB instance, populated with a pandas DataFrame."
 
     - label: Visual Studio Code
-      link: https://marketplace.visualstudio.com/items?itemName=prql.prql
+      link: https://marketplace.visualstudio.com/items?itemName=prql-lang.prql-vscode
       text: Extension with syntax highlighting and an upcoming language server.
 
     - label: "Prefect"
