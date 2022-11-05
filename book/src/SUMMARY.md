@@ -1,7 +1,9 @@
 # Summary
 
+<!-- markdownlint-disable MD042 — some pages aren't finished yet (though the graying out of top level pages is not ideal — it's either that, or links to pages that are blank. Or maybe we try and write a useful page for each heading?) -->
+
 - [Introduction](./introduction.md)
-- [Queries](./queries/queries.md)
+- [Queries]()
   - [Pipelines](./queries/pipelines.md)
   - [Functions](./queries/functions.md)
   - [Tables](./queries/tables.md)
@@ -18,7 +20,7 @@
   - [Sort](./transforms/sort.md)
   - [Take](./transforms/take.md)
   - [Window](./transforms/window.md)
-- [Language features](./language-features/README.md)
+- [Language features]()
 
   - [Coalesce](./language-features/coalesce.md)
     <!-- `DATE_TRUNC(foo_date, YEAR)` -> `foo_date.year`? Or -> `foo_date | as year`? Or `foo_date | to year`? -->
@@ -33,13 +35,13 @@
   - [Strings](./language-features/strings.md)
 
 - [Stdlib](./stdlib.md)
-- [Bindings](./bindings/README.md)
+- [Bindings]()
   - [Java](./bindings/java.md)
   - [JavaScript](./bindings/javascript.md)
   - [Python](./bindings/python.md)
   - [R](./bindings/r.md)
   - [Rust](./bindings/rust.md)
-- [Integrations](./integrations/README.md)
+- [Integrations]()
 
   - [dbt](./integrations/dbt.md)
   - [Jupyter](./integrations/jupyter.md)
