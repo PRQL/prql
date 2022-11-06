@@ -130,7 +130,6 @@ impl AnchorContext {
                     columns = table.columns.iter().map(|c| c.id).collect();
                 }
                 Transform::Select(cols) => columns = cols.clone(),
-                Transform::Aggregate(cols) => columns = cols.clone(),
                 Transform::Join { with: table, .. } => {
                     columns.extend(table.columns.iter().map(|c| c.id));
                 }

@@ -267,7 +267,7 @@ fn get_requirements(transform: &Transform) -> Vec<Requirement> {
     use Transform::*;
 
     let cids = match transform {
-        Select(cids) | Aggregate(cids) => cids.clone(),
+        Select(cids) | Aggregate { by: cids } => cids.clone(),
         Filter(expr) | Join { filter: expr, .. } => {
             CidCollector::collect(expr.clone()).into_iter().collect()
         }
@@ -290,8 +290,7 @@ fn get_requirements(transform: &Transform) -> Vec<Requirement> {
         Select(_) => Complexity::Windowed,
         Filter(_) => Complexity::Expr,
 
-        // TODO: change this to Ident when aggregate is refactored to contain by instead of assigns
-        Aggregate(_) => Complexity::Expr,
+        Aggregate { .. } => Complexity::Ident,
 
         Sort(_) => Complexity::Ident,
         Take(_) => Complexity::Expr,

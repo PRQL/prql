@@ -202,10 +202,13 @@ impl Lowerer {
                 transforms.push(Transform::Filter(self.lower_expr(*filter)?));
             }
             ast::TransformKind::Aggregate { assigns, .. } => {
-                self.window = None;
-                let select = self.declare_as_columns(assigns, &mut transforms)?;
+                let window = self.window.take();
 
-                transforms.push(Transform::Aggregate(select))
+                let select = self.declare_as_columns(assigns, &mut transforms)?;
+                transforms.push(Transform::Select(select));
+
+                let by = window.unwrap().partition;
+                transforms.push(Transform::Aggregate { by });
             }
             ast::TransformKind::Sort { by, .. } => {
                 let sorts = self.lower_sorts(by, &mut transforms)?;

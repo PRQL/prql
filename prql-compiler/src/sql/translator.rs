@@ -185,12 +185,10 @@ fn sql_query_of_atomic_query(
     let having = filter_of_pipeline(after, context)?;
 
     // GROUP BY
-    let aggregate = pipeline.get(aggregate_position);
-    let group_bys: Vec<CId> = match aggregate {
-        Some(Transform::Aggregate(_)) => vec![], // TODO: add by argument to Aggregate and use it here
-        None => vec![],
-        _ => unreachable!("Expected an aggregate transformation"),
-    };
+    let aggregate = pipeline.get(aggregate_position).cloned();
+    let group_bys: Vec<CId> = aggregate
+        .map(|a| a.into_aggregate().unwrap())
+        .unwrap_or_default();
 
     context.pre_projection = false;
 

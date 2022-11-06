@@ -1092,7 +1092,6 @@ select [mng_name, managers.gender, salary_avg, salary_sd]"#;
     }
 
     #[test]
-    #[ignore]
     fn test_sql_of_ast_1() {
         let query = r###"
         from employees
@@ -1226,6 +1225,8 @@ take 20
             AVG(salary) AS average_country_salary
           FROM
             salaries
+          GROUP BY
+            country
         ),
         newest_employees AS (
           SELECT
@@ -1333,6 +1334,8 @@ take 20
             count(*)
           FROM
             table_0
+          GROUP BY
+            country
         )
         SELECT
           b.name,
@@ -1402,7 +1405,6 @@ take 20
     }
 
     #[test]
-    #[ignore]
     fn test_table_alias() {
         // Alias on from
         let query = r###"
