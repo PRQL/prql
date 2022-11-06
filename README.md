@@ -99,7 +99,7 @@ To stay in touch with PRQL:
   Parquet file through DuckDB.
 - [PyPRQL Docs](https://pyprql.readthedocs.io) — the PyPRQL documentation, the
   python bindings to PRQL, including Jupyter magic.
-- [PRQL VSCode Extension](https://marketplace.visualstudio.com/items?itemName=prql.prql)
+- [PRQL VSCode Extension](https://marketplace.visualstudio.com/items?itemName=prql-lang.prql-vscode)
 - [PRQL-js](https://www.npmjs.com/package/prql-js) — JavaScript bindings for PRQL.
 
 ### Contributors

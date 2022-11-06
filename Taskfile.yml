@@ -17,7 +17,7 @@ vars:
     budparr.language-hugo-vscode
     esbenp.prettier-vscode
     mitsuhiko.insta
-    prql.prql
+    prql-lang.prql-vscode
     rust-lang.rust-analyzer
 
 tasks:
