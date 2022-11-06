@@ -44,7 +44,9 @@ pub enum Transform {
     Compute(ColumnDef),
     Select(Vec<CId>),
     Filter(Expr),
-    Aggregate(Vec<CId>),
+    Aggregate {
+        by: Vec<CId>,
+    },
     Sort(Vec<ColumnSort<CId>>),
     Take(Range<Expr>),
     Join {

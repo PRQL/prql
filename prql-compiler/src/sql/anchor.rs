@@ -175,7 +175,7 @@ impl AnchorContext {
                     columns = table_def.columns.iter().map(|c| c.id).collect();
                 }
                 Transform::Select(cols) => columns = cols.clone(),
-                Transform::Aggregate(cols) => columns = cols.clone(),
+                Transform::Aggregate { by } => columns = by.clone(),
                 Transform::Join { with, .. } => {
                     let table_def = &self.table_defs.get(with).unwrap();
                     columns.extend(table_def.columns.iter().map(|c| c.id));

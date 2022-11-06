@@ -105,7 +105,9 @@ pub fn fold_transform<T: ?Sized + IrFold>(
         From(tid) => From(tid),
 
         Compute(assigns) => Compute(fold.fold_column_def(assigns)?),
-        Aggregate(ids) => Aggregate(fold_cids(fold, ids)?),
+        Aggregate { by } => Aggregate {
+            by: fold_cids(fold, by)?,
+        },
 
         Select(ids) => Select(fold_cids(fold, ids)?),
         Filter(i) => Filter(i),

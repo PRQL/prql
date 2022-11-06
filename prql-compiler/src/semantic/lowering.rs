@@ -195,7 +195,7 @@ impl Lowerer {
             ast::TransformKind::Aggregate { assigns, tbl } => {
                 let select = self.declare_as_columns(assigns, &mut transforms)?;
 
-                transforms.push(Transform::Aggregate(select));
+                transforms.push(Transform::Aggregate { by: select });
                 Some(tbl)
             }
             ast::TransformKind::Sort { by, tbl } => {

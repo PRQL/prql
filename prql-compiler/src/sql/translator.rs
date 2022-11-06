@@ -207,8 +207,7 @@ fn sql_query_of_atomic_query(
     let aggregate = pipeline.get(aggregate_position);
 
     let group_bys: Vec<Expr> = match aggregate {
-        Some(Transform::Aggregate(_)) => vec![], // TODO: add by argument to Aggregate and use it here
-        None => vec![],
+        Some(Transform::Aggregate { .. }) | None => vec![], // TODO: add by argument to Aggregate and use it here
         _ => unreachable!("Expected an aggregate transformation"),
     };
 
