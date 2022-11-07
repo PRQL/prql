@@ -100,6 +100,8 @@ pub fn split_off_back(
     let remaining_pipeline = if pipeline.is_empty() {
         None
     } else {
+        log::debug!("splitting avail={inputs_avail:?} required={inputs_required:?}");
+
         // drop inputs that were satisfied in current pipeline
         let (_, inputs_in_curr) = context.collect_pipeline_inputs(&curr_pipeline_rev);
         let inputs_remaining = inputs_required
