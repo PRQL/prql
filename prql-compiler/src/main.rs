@@ -5,6 +5,7 @@ fn main() -> color_eyre::eyre::Result<()> {
     use clap::Parser;
     use prql_compiler::Cli;
 
+    env_logger::builder().format_timestamp(None).init();
     color_eyre::install()?;
     let mut cli = Cli::parse();
 

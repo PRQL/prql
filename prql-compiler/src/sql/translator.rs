@@ -282,6 +282,7 @@ fn atomic_queries_of_table(table: Table, context: &mut Context) -> Vec<AtomicQue
             anchor::split_off_back(&mut context.anchor, output_cols.clone(), pipeline);
 
         if let Some((preceding, cols_at_split)) = preceding {
+            log::debug!("pipeline split after {}", preceding.last().unwrap().as_ref());
             parts_rev.push((split, cols_at_split.clone()));
 
             pipeline = preceding;
