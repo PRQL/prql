@@ -307,7 +307,7 @@ pub enum WindowKind {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
-pub enum TableRef {
+pub enum TableExternRef {
     LocalTable(String),
     // TODO: add other sources such as files, URLs
 }

@@ -4,8 +4,8 @@ use anyhow::{bail, Result};
 use itertools::Itertools;
 use sqlparser::ast::{
     self as sql_ast, BinaryOperator, DateTimeField, Function, FunctionArg, FunctionArgExpr, Join,
-    JoinConstraint, JoinOperator, ObjectName, OrderByExpr, SelectItem, TableFactor, Top,
-    UnaryOperator, Value, WindowFrameBound,
+    JoinConstraint, JoinOperator, ObjectName, OrderByExpr, SelectItem, TableAlias, TableFactor,
+    Top, UnaryOperator, Value, WindowFrameBound,
 };
 
 use crate::ast::{
@@ -18,15 +18,11 @@ use crate::utils::OrMap;
 
 use super::translator::Context;
 
-pub(super) fn translate_expr_kind(item: ExprKind, context: &mut Context) -> Result<sql_ast::Expr> {
+pub(super) fn translate_expr_kind(item: ExprKind, ctx: &mut Context) -> Result<sql_ast::Expr> {
     Ok(match item {
-        ExprKind::ColumnRef(cid) => {
-            let (table, column) = context.anchor.materialize_name(&cid);
-
-            sql_ast::Expr::CompoundIdentifier(translate_ident(table, Some(column), context))
-        }
+        ExprKind::ColumnRef(cid) => translate_cid(cid, ctx)?,
         ExprKind::Binary { op, left, right } => {
-            if let Some(is_null) = try_into_is_null(&op, &left, &right, context)? {
+            if let Some(is_null) = try_into_is_null(&op, &left, &right, ctx)? {
                 is_null
             } else {
                 let op = match op {
@@ -46,8 +42,8 @@ pub(super) fn translate_expr_kind(item: ExprKind, context: &mut Context) -> Resu
                     BinOp::Coalesce => unreachable!(),
                 };
                 sql_ast::Expr::BinaryOp {
-                    left: translate_operand(left.kind, op.binding_strength(), context)?,
-                    right: translate_operand(right.kind, op.binding_strength(), context)?,
+                    left: translate_operand(left.kind, op.binding_strength(), ctx)?,
+                    right: translate_operand(right.kind, op.binding_strength(), ctx)?,
                     op,
                 }
             }
@@ -58,7 +54,7 @@ pub(super) fn translate_expr_kind(item: ExprKind, context: &mut Context) -> Resu
                 UnOp::Neg => UnaryOperator::Minus,
                 UnOp::Not => UnaryOperator::Not,
             };
-            let expr = translate_operand(expr.kind, op.binding_strength(), context)?;
+            let expr = translate_operand(expr.kind, op.binding_strength(), ctx)?;
             sql_ast::Expr::UnaryOp { op, expr }
         }
 
@@ -70,8 +66,8 @@ pub(super) fn translate_expr_kind(item: ExprKind, context: &mut Context) -> Resu
                     ))
                 })
             }
-            let start: sql_ast::Expr = translate_expr_kind(assert_bound(r.start)?.kind, context)?;
-            let end: sql_ast::Expr = translate_expr_kind(assert_bound(r.end)?.kind, context)?;
+            let start: sql_ast::Expr = translate_expr_kind(assert_bound(r.start)?.kind, ctx)?;
+            let end: sql_ast::Expr = translate_expr_kind(assert_bound(r.end)?.kind, ctx)?;
             sql_ast::Expr::Identifier(sql_ast::Ident::new(format!("{} AND {}", start, end)))
         }
         // Fairly hacky — convert everything to a string, then concat it,
@@ -83,7 +79,7 @@ pub(super) fn translate_expr_kind(item: ExprKind, context: &mut Context) -> Resu
                 .map(|s_string_item| match s_string_item {
                     InterpolateItem::String(string) => Ok(string),
                     InterpolateItem::Expr(node) => {
-                        translate_expr_kind(node.kind, context).map(|expr| expr.to_string())
+                        translate_expr_kind(node.kind, ctx).map(|expr| expr.to_string())
                     }
                 })
                 .collect::<Result<Vec<String>>>()?
@@ -97,7 +93,7 @@ pub(super) fn translate_expr_kind(item: ExprKind, context: &mut Context) -> Resu
                     InterpolateItem::String(string) => {
                         Ok(sql_ast::Expr::Value(Value::SingleQuotedString(string)))
                     }
-                    InterpolateItem::Expr(node) => translate_expr_kind(node.kind, context),
+                    InterpolateItem::Expr(node) => translate_expr_kind(node.kind, ctx),
                 })
                 .map(|r| r.map(|e| FunctionArg::Unnamed(FunctionArgExpr::Expr(e))))
                 .collect::<Result<Vec<_>>>()?;
@@ -165,7 +161,7 @@ pub(super) fn translate_expr_kind(item: ExprKind, context: &mut Context) -> Resu
                 sql_ast::Expr::Interval {
                     value: Box::new(translate_expr_kind(
                         ExprKind::Literal(Literal::Integer(vau.n)),
-                        context,
+                        ctx,
                     )?),
                     leading_field: Some(sql_parser_datetime),
                     leading_precision: None,
@@ -177,12 +173,39 @@ pub(super) fn translate_expr_kind(item: ExprKind, context: &mut Context) -> Resu
     })
 }
 
-pub(super) fn table_factor_of_tid(tid: &TId, context: &Context) -> TableFactor {
-    let def = context.anchor.table_defs.get(tid).unwrap();
+fn translate_cid(cid: CId, ctx: &mut Context) -> Result<sql_ast::Expr> {
+    if ctx.pre_projection {
+        let def = ctx.anchor.columns_defs.get(&cid).unwrap();
+
+        if let ColumnDefKind::Expr { expr, .. } = &def.kind {
+            return translate_expr_kind(expr.kind.clone(), ctx);
+        }
+    }
+
+    // translate into ident
+    let (table, column) = ctx.anchor.materialize_name(&cid);
+
+    let proj = if ctx.pre_projection { "pre" } else { "post" };
+    log::debug!(
+        "translating {cid:?} {} projection: {:?}.{}",
+        proj,
+        table,
+        column
+    );
+
+    let ident = sql_ast::Expr::CompoundIdentifier(translate_ident(table, Some(column), ctx));
+    Ok(ident)
+}
+
+pub(super) fn table_factor_of_tid(table_ref: TableRef, ctx: &Context) -> TableFactor {
+    let def = ctx.anchor.table_defs.get(&table_ref.source).unwrap();
 
     TableFactor::Table {
-        name: sql_ast::ObjectName(translate_ident(Some(def.name.clone()), None, context)),
-        alias: None,
+        name: sql_ast::ObjectName(translate_ident(def.name.clone(), None, ctx)),
+        alias: table_ref.name.map(|ident| TableAlias {
+            name: translate_ident_part(ident, ctx),
+            columns: vec![],
+        }),
         args: None,
         with_hints: vec![],
     }
@@ -234,29 +257,25 @@ pub(super) fn expr_of_i64(number: i64) -> sql_ast::Expr {
     ))
 }
 
-pub(super) fn top_of_i64(take: i64, context: &mut Context) -> Top {
+pub(super) fn top_of_i64(take: i64, ctx: &mut Context) -> Top {
     Top {
         quantity: Some(
-            translate_expr_kind(ExprKind::Literal(Literal::Integer(take)), context).unwrap(),
+            translate_expr_kind(ExprKind::Literal(Literal::Integer(take)), ctx).unwrap(),
         ),
         with_ties: false,
         percent: false,
     }
 }
-pub(super) fn try_into_exprs(
-    nodes: Vec<Expr>,
-    context: &mut Context,
-) -> Result<Vec<sql_ast::Expr>> {
+pub(super) fn try_into_exprs(nodes: Vec<Expr>, ctx: &mut Context) -> Result<Vec<sql_ast::Expr>> {
     nodes
         .into_iter()
         .map(|x| x.kind)
-        .map(|item| translate_expr_kind(item, context))
+        .map(|item| translate_expr_kind(item, ctx))
         .try_collect()
 }
 
-pub(super) fn translate_select_item(cid: CId, context: &mut Context) -> Result<SelectItem> {
-    let expr = context.anchor.materialize_expr(&cid);
-    let expr = translate_expr_kind(expr.kind, context)?;
+pub(super) fn translate_select_item(cid: CId, ctx: &mut Context) -> Result<SelectItem> {
+    let expr = translate_cid(cid, ctx)?;
 
     let inferred_name = match &expr {
         sql_ast::Expr::Identifier(name) => Some(&name.value),
@@ -264,10 +283,10 @@ pub(super) fn translate_select_item(cid: CId, context: &mut Context) -> Result<S
         _ => None,
     };
 
-    if let Some(alias) = context.anchor.get_column_name(&cid) {
+    if let Some(alias) = ctx.anchor.get_column_name(&cid) {
         if Some(&alias) != inferred_name {
             return Ok(SelectItem::ExprWithAlias {
-                alias: translate_ident_part(alias, context),
+                alias: translate_ident_part(alias, ctx),
                 expr,
             });
         }
@@ -280,7 +299,7 @@ fn try_into_is_null(
     op: &BinOp,
     a: &Expr,
     b: &Expr,
-    context: &mut Context,
+    ctx: &mut Context,
 ) -> Result<Option<sql_ast::Expr>> {
     if matches!(op, BinOp::Eq) || matches!(op, BinOp::Ne) {
         let expr = if matches!(a.kind, ExprKind::Literal(Literal::Null)) {
@@ -293,7 +312,7 @@ fn try_into_is_null(
 
         let min_strength =
             sql_ast::Expr::IsNull(Box::new(sql_ast::Expr::Value(Value::Null))).binding_strength();
-        let expr = translate_operand(expr, min_strength, context)?;
+        let expr = translate_operand(expr, min_strength, ctx)?;
 
         return Ok(Some(if matches!(op, BinOp::Eq) {
             sql_ast::Expr::IsNull(expr)
@@ -336,11 +355,10 @@ fn try_into_window_frame((kind, range): (WindowKind, Range<Expr>)) -> Result<sql
 
 pub(super) fn translate_column_sort(
     sort: &ColumnSort<CId>,
-    context: &mut Context,
+    ctx: &mut Context,
 ) -> Result<OrderByExpr> {
-    let (table, column) = context.anchor.materialize_name(&sort.column);
     Ok(OrderByExpr {
-        expr: sql_ast::Expr::CompoundIdentifier(translate_ident(table, Some(column), context)),
+        expr: translate_cid(sort.column, ctx)?,
         asc: if matches!(sort.direction, SortDirection::Asc) {
             None // default order is ASC, so there is no need to emit it
         } else {
@@ -352,7 +370,7 @@ pub(super) fn translate_column_sort(
 
 pub(super) fn filter_of_filters(
     conditions: Vec<Expr>,
-    context: &mut Context,
+    ctx: &mut Context,
 ) -> Result<Option<sql_ast::Expr>> {
     let mut condition = None;
     for filter in conditions {
@@ -371,26 +389,25 @@ pub(super) fn filter_of_filters(
     }
 
     condition
-        .map(|n| translate_expr_kind(n.kind, context))
+        .map(|n| translate_expr_kind(n.kind, ctx))
         .transpose()
 }
 
-pub(super) fn translate_join(t: &Transform, context: &mut Context) -> Result<Join> {
-    if let Transform::Join { side, with, filter } = t {
-        let constraint = JoinConstraint::On(translate_expr_kind(filter.kind.clone(), context)?);
+pub(super) fn translate_join(
+    (side, with, filter): (JoinSide, TableRef, Expr),
+    ctx: &mut Context,
+) -> Result<Join> {
+    let constraint = JoinConstraint::On(translate_expr_kind(filter.kind, ctx)?);
 
-        Ok(Join {
-            relation: table_factor_of_tid(with, context),
-            join_operator: match *side {
-                JoinSide::Inner => JoinOperator::Inner(constraint),
-                JoinSide::Left => JoinOperator::LeftOuter(constraint),
-                JoinSide::Right => JoinOperator::RightOuter(constraint),
-                JoinSide::Full => JoinOperator::FullOuter(constraint),
-            },
-        })
-    } else {
-        unreachable!()
-    }
+    Ok(Join {
+        relation: table_factor_of_tid(with, ctx),
+        join_operator: match side {
+            JoinSide::Inner => JoinOperator::Inner(constraint),
+            JoinSide::Left => JoinOperator::LeftOuter(constraint),
+            JoinSide::Right => JoinOperator::RightOuter(constraint),
+            JoinSide::Full => JoinOperator::FullOuter(constraint),
+        },
+    })
 }
 
 /// Translate a PRQL Ident to a Vec of SQL Idents.
@@ -401,13 +418,13 @@ pub(super) fn translate_join(t: &Transform, context: &mut Context) -> Result<Joi
 pub(super) fn translate_ident(
     relation_name: Option<String>,
     column: Option<String>,
-    context: &Context,
+    ctx: &Context,
 ) -> Vec<sql_ast::Ident> {
     let mut parts = Vec::with_capacity(4);
-    if !context.omit_ident_prefix || column.is_none() {
+    if !ctx.omit_ident_prefix || column.is_none() {
         if let Some(relation) = relation_name {
             // Special-case this for BigQuery, Ref #852
-            if matches!(context.dialect.dialect(), Dialect::BigQuery) {
+            if matches!(ctx.dialect.dialect(), Dialect::BigQuery) {
                 parts.push(relation);
             } else {
                 parts.extend(relation.split('.').map(|s| s.to_string()));
@@ -419,11 +436,11 @@ pub(super) fn translate_ident(
 
     parts
         .into_iter()
-        .map(|x| translate_ident_part(x, context))
+        .map(|x| translate_ident_part(x, ctx))
         .collect()
 }
 
-pub(super) fn translate_ident_part(ident: String, context: &Context) -> sql_ast::Ident {
+pub(super) fn translate_ident_part(ident: String, ctx: &Context) -> sql_ast::Ident {
     let is_jinja = ident.starts_with("{{") && ident.ends_with("}}");
 
     // TODO: can probably represent these with a single regex
@@ -442,7 +459,7 @@ pub(super) fn translate_ident_part(ident: String, context: &Context) -> sql_ast:
             || ident.starts_with(starting_forbidden)
             || (ident.chars().count() > 1 && ident.contains(subsequent_forbidden)))
     {
-        sql_ast::Ident::with_quote(context.dialect.ident_quote(), ident)
+        sql_ast::Ident::with_quote(ctx.dialect.ident_quote(), ident)
     } else {
         sql_ast::Ident::new(ident)
     }
@@ -452,9 +469,9 @@ pub(super) fn translate_ident_part(ident: String, context: &Context) -> sql_ast:
 fn translate_operand(
     expr: ExprKind,
     min_strength: i32,
-    context: &mut Context,
+    ctx: &mut Context,
 ) -> Result<Box<sql_ast::Expr>> {
-    let expr = Box::new(translate_expr_kind(expr, context)?);
+    let expr = Box::new(translate_expr_kind(expr, ctx)?);
 
     Ok(if expr.binding_strength() < min_strength {
         Box::new(sql_ast::Expr::Nested(expr))

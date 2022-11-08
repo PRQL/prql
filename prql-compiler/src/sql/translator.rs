@@ -14,7 +14,9 @@ use sqlformat::{format, FormatOptions, QueryParams};
 use sqlparser::ast::{self as sql_ast, Select, SetExpr, TableWithJoins};
 
 use crate::ast::{DialectHandler, Literal};
-use crate::ir::{Expr, ExprKind, IrFold, Query, Table, TableCounter, TableExpr, Transform};
+use crate::ir::{Expr, ExprKind, IrFold, Query, TableCounter, TableDef, TableExpr, Transform};
+use crate::sql::anchor::materialize_inputs;
+use crate::utils::{IntoOnly, Pluck};
 
 use super::anchor;
 use super::codegen::*;
@@ -23,7 +25,14 @@ use super::context::AnchorContext;
 pub(super) struct Context {
     pub dialect: Box<dyn DialectHandler>,
     pub anchor: AnchorContext,
+
     pub omit_ident_prefix: bool,
+
+    /// True iff codegen should generate expressions before SELECT's projection is applied.
+    /// For example:
+    /// - WHERE needs `pre_projection=true`, but
+    /// - ORDER BY needs `pre_projection=false`.
+    pub pre_projection: bool,
 }
 
 /// Translate a PRQL AST into a SQL string.
@@ -55,13 +64,14 @@ pub fn translate_query(query: Query) -> Result<sql_ast::Query> {
         dialect,
         anchor,
         omit_ident_prefix: false,
+        pre_projection: false,
     };
 
     // extract tables and the pipeline
     let tables = into_tables(query.expr, query.tables, &mut context)?;
 
     // split to atomics
-    let mut atomics = atomic_queries_of_tables(tables, &mut context);
+    let mut atomics = split_all_into_atomics(tables, &mut context);
 
     // take last table
     if atomics.is_empty() {
@@ -99,11 +109,11 @@ pub struct AtomicQuery {
 
 fn into_tables(
     main_pipeline: TableExpr,
-    tables: Vec<Table>,
+    tables: Vec<TableDef>,
     context: &mut Context,
-) -> Result<Vec<Table>> {
-    let main = Table {
-        id: context.anchor.ids.gen_tid(),
+) -> Result<Vec<TableDef>> {
+    let main = TableDef {
+        id: context.anchor.tid.gen(),
         name: None,
         expr: main_pipeline,
     };
@@ -127,31 +137,32 @@ fn sql_query_of_atomic_query(
     context: &mut Context,
 ) -> Result<sql_ast::Query> {
     let mut counter = TableCounter::default();
-    let pipeline = counter.fold_transforms(pipeline)?;
+    let mut pipeline = counter.fold_transforms(pipeline)?;
     context.omit_ident_prefix = counter.count() == 1;
+    log::debug!("atomic query contains {} tables", counter.count());
 
-    let select = pipeline
-        .iter()
-        .find_map(|t| match &t {
-            Transform::Select(cols) => Some(cols.clone()),
-            _ => None,
-        })
-        .unwrap_or_default();
+    context.pre_projection = true;
+
+    let projection = pipeline
+        .pluck(|t| t.into_select())
+        .into_only()
+        .unwrap_or_default()
+        .into_iter()
+        .map(|id| translate_select_item(id, context))
+        .try_collect()?;
 
     let mut from = pipeline
-        .iter()
-        .filter_map(|t| match &t {
-            Transform::From(tid) => Some(TableWithJoins {
-                relation: table_factor_of_tid(tid, context),
-                joins: vec![],
-            }),
-            _ => None,
+        .pluck(|t| t.into_from())
+        .into_iter()
+        .map(|source| TableWithJoins {
+            relation: table_factor_of_tid(source, context),
+            joins: vec![],
         })
         .collect::<Vec<_>>();
 
     let joins = pipeline
-        .iter()
-        .filter(|t| matches!(t, Transform::Join { .. }))
+        .pluck(|t| t.into_join())
+        .into_iter()
         .map(|j| translate_join(j, context))
         .collect::<Result<Vec<_>>>()?;
     if !joins.is_empty() {
@@ -169,17 +180,21 @@ fn sql_query_of_atomic_query(
         .unwrap_or(pipeline.len());
     let (before, after) = pipeline.split_at(aggregate_position);
 
-    // Find the filters that come before the aggregation.
+    // GROUP BY
+    let aggregate = pipeline.get(aggregate_position);
+    let group_bys: Vec<Expr> = match aggregate {
+        Some(Transform::Aggregate(_)) => vec![], // TODO: add by argument to Aggregate and use it here
+        None => vec![],
+        _ => unreachable!("Expected an aggregate transformation"),
+    };
+
+    // WHERE and HAVING
     let where_ = filter_of_pipeline(before, context)?;
+
+    context.pre_projection = false;
     let having = filter_of_pipeline(after, context)?;
 
-    let takes = pipeline
-        .iter()
-        .filter_map(|t| match &t {
-            Transform::Take(range) => Some(range.clone()),
-            _ => None,
-        })
-        .collect();
+    let takes = pipeline.pluck(|t| t.into_take());
     let take = range_of_ranges(takes)?;
     let offset = take.start.map(|s| s - 1).unwrap_or(0);
     let limit = take.end.map(|e| e - offset);
@@ -195,11 +210,7 @@ fn sql_query_of_atomic_query(
 
     // Use sorting from the frame
     let order_by = pipeline
-        .iter()
-        .filter_map(|t| match t {
-            Transform::Sort(cols) => Some(cols),
-            _ => None,
-        })
+        .pluck(|t| t.into_sort())
         .last()
         .map(|sorts| {
             sorts
@@ -209,14 +220,6 @@ fn sql_query_of_atomic_query(
         })
         .transpose()?
         .unwrap_or_default();
-
-    let aggregate = pipeline.get(aggregate_position);
-
-    let group_bys: Vec<Expr> = match aggregate {
-        Some(Transform::Aggregate(_)) => vec![], // TODO: add by argument to Aggregate and use it here
-        None => vec![],
-        _ => unreachable!("Expected an aggregate transformation"),
-    };
 
     let distinct = pipeline.iter().any(|t| matches!(t, Transform::Unique));
 
@@ -228,10 +231,7 @@ fn sql_query_of_atomic_query(
             } else {
                 None
             },
-            projection: select
-                .into_iter()
-                .map(|id| translate_select_item(id, context))
-                .try_collect()?,
+            projection,
             into: None,
             from,
             lateral_views: vec![],
@@ -258,20 +258,22 @@ fn sql_query_of_atomic_query(
 
 /// Converts a series of tables into a series of atomic tables, by putting the
 /// next pipeline's `from` as the current pipelines's table name.
-fn atomic_queries_of_tables(tables: Vec<Table>, context: &mut Context) -> Vec<AtomicQuery> {
+fn split_all_into_atomics(tables: Vec<TableDef>, context: &mut Context) -> Vec<AtomicQuery> {
     tables
         .into_iter()
-        .flat_map(|t| atomic_queries_of_table(t, context))
+        .flat_map(|t| split_into_atomics(t, context))
         .collect()
 }
 
-fn atomic_queries_of_table(table: Table, context: &mut Context) -> Vec<AtomicQuery> {
+fn split_into_atomics(table: TableDef, context: &mut Context) -> Vec<AtomicQuery> {
     let mut pipeline = match table.expr {
         TableExpr::Pipeline(pipeline) => pipeline,
 
         // ref does not need it's own CTE
-        TableExpr::Ref(_, _) => return Vec::new(),
+        TableExpr::ExternRef(_, _) => return Vec::new(),
     };
+
+    materialize_inputs(&pipeline, &mut context.anchor);
 
     let mut output_cols = context.anchor.determine_select_columns(&pipeline);
 
@@ -282,7 +284,10 @@ fn atomic_queries_of_table(table: Table, context: &mut Context) -> Vec<AtomicQue
             anchor::split_off_back(&mut context.anchor, output_cols.clone(), pipeline);
 
         if let Some((preceding, cols_at_split)) = preceding {
-            log::debug!("pipeline split after {}", preceding.last().unwrap().as_ref());
+            log::debug!(
+                "pipeline split after {}",
+                preceding.last().unwrap().as_ref()
+            );
             parts_rev.push((split, cols_at_split.clone()));
 
             pipeline = preceding;
@@ -299,7 +304,10 @@ fn atomic_queries_of_table(table: Table, context: &mut Context) -> Vec<AtomicQue
     let mut atomics = Vec::with_capacity(parts.len());
     let last = parts.pop().unwrap();
 
-    if !parts.is_empty() {
+    let last_pipeline = if parts.is_empty() {
+        last.0
+    } else {
+        // this code chunk is bloated but I cannot find a more concise alternative
         let first = parts.remove(0);
 
         let first_name = context.anchor.gen_table_name();
@@ -322,18 +330,12 @@ fn atomic_queries_of_table(table: Table, context: &mut Context) -> Vec<AtomicQue
             prev_name = name;
         }
 
-        let pipeline = anchor::anchor_split(&mut context.anchor, &prev_name, &last.1, last.0);
-        atomics.push(AtomicQuery {
-            name: table.name,
-            pipeline,
-        });
-    } else {
-        let pipeline = last.0;
-        atomics.push(AtomicQuery {
-            name: table.name,
-            pipeline,
-        });
-    }
+        anchor::anchor_split(&mut context.anchor, &prev_name, &last.1, last.0)
+    };
+    atomics.push(AtomicQuery {
+        name: table.name,
+        pipeline: last_pipeline,
+    });
 
     atomics
 }
@@ -368,17 +370,18 @@ mod test {
     use super::*;
     use crate::{ast::GenericDialect, parse, semantic::resolve};
 
-    fn parse_and_resolve(prql: &str) -> Result<(Table, Context)> {
+    fn parse_and_resolve(prql: &str) -> Result<(TableDef, Context)> {
         let query = resolve(parse(prql)?)?;
         let (anchor, query) = AnchorContext::of(query);
         let mut context = Context {
             dialect: Box::new(GenericDialect {}),
             anchor,
             omit_ident_prefix: false,
+            pre_projection: false,
         };
 
-        let table = Table {
-            id: context.anchor.ids.gen_tid(),
+        let table = TableDef {
+            id: context.anchor.tid.gen(),
             name: None,
             expr: query.expr,
         };
@@ -386,7 +389,6 @@ mod test {
     }
 
     #[test]
-    #[ignore]
     fn test_ctes_of_pipeline() {
         // One aggregate, take at the end
         let prql: &str = r###"
@@ -398,7 +400,7 @@ mod test {
         "###;
 
         let (table, mut context) = parse_and_resolve(prql).unwrap();
-        let queries = atomic_queries_of_table(table, &mut context);
+        let queries = split_into_atomics(table, &mut context);
         assert_eq!(queries.len(), 1);
 
         // One aggregate, but take at the top
@@ -411,7 +413,7 @@ mod test {
         "###;
 
         let (table, mut context) = parse_and_resolve(prql).unwrap();
-        let queries = atomic_queries_of_table(table, &mut context);
+        let queries = split_into_atomics(table, &mut context);
         assert_eq!(queries.len(), 2);
 
         // A take, then two aggregates
@@ -420,12 +422,12 @@ mod test {
         take 20
         filter country == "USA"
         aggregate [sal = average salary]
-        aggregate [sal = average sal]
-        sort sal
+        aggregate [sal2 = average sal]
+        sort sal2
         "###;
 
         let (table, mut context) = parse_and_resolve(prql).unwrap();
-        let queries = atomic_queries_of_table(table, &mut context);
+        let queries = split_into_atomics(table, &mut context);
         assert_eq!(queries.len(), 3);
 
         // A take, then a select
@@ -436,7 +438,7 @@ mod test {
         "###;
 
         let (table, mut context) = parse_and_resolve(prql).unwrap();
-        let queries = atomic_queries_of_table(table, &mut context);
+        let queries = split_into_atomics(table, &mut context);
         assert_eq!(queries.len(), 1);
     }
 

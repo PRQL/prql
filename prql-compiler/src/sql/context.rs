@@ -6,45 +6,51 @@ use std::collections::{HashMap, HashSet};
 use anyhow::Result;
 
 use crate::ir::{
-    fold_table, CId, ColumnDef, ColumnDefKind, Expr, ExprKind, IdGenerator, IrFold, Query, TId,
-    Table, TableExpr, Transform,
+    fold_table, fold_table_ref, CId, ColumnDef, ColumnDefKind, IdGenerator, IrFold, Query, TId,
+    TableDef, TableRef, Transform,
 };
 
 #[derive(Default)]
 pub struct AnchorContext {
     pub(super) columns_defs: HashMap<CId, ColumnDef>,
 
-    pub(super) columns_loc: HashMap<CId, TId>,
+    pub(super) columns_loc: HashMap<CId, TIId>,
 
     pub(super) table_defs: HashMap<TId, TableDef>,
+
+    pub(super) table_instances: HashMap<TIId, TableRef>,
 
     next_col_name_id: u16,
     next_table_name_id: u16,
 
-    pub(super) ids: IdGenerator,
+    pub(super) cid: IdGenerator<CId>,
+    pub(super) tid: IdGenerator<TId>,
+    pub(super) tiid: IdGenerator<TIId>,
 }
+/// Table instance id
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct TIId(usize);
 
-pub struct TableDef {
-    /// How to reference this table
-    pub name: String,
-
-    pub columns: Vec<ColumnDef>,
-
-    /// How to materialize in FROM/WITH clauses
-    pub expr: TableExpr,
+impl From<usize> for TIId {
+    fn from(id: usize) -> Self {
+        TIId(id)
+    }
 }
 
 impl AnchorContext {
     pub fn of(query: Query) -> (Self, Query) {
-        let (ids, query) = IdGenerator::new_for(query);
+        let (cid, tid, query) = IdGenerator::load(query);
 
         let context = AnchorContext {
             columns_defs: HashMap::new(),
             columns_loc: HashMap::new(),
             table_defs: HashMap::new(),
+            table_instances: HashMap::new(),
             next_col_name_id: 0,
             next_table_name_id: 0,
-            ids,
+            cid,
+            tid,
+            tiid: IdGenerator::new(),
         };
         QueryLoader::load(context, query)
     }
@@ -61,6 +67,14 @@ impl AnchorContext {
         format!("table_{id}")
     }
 
+    pub fn store_new_column(&mut self, kind: ColumnDefKind, tiid: TIId) -> CId {
+        let id = self.cid.gen();
+        let def = ColumnDef { id, kind };
+        self.columns_defs.insert(id, def);
+        self.columns_loc.insert(id, tiid);
+        id
+    }
+
     pub fn ensure_column_name(&mut self, cid: &CId) -> String {
         let def = self.columns_defs.get_mut(cid).unwrap();
 
@@ -74,29 +88,9 @@ impl AnchorContext {
                 }
                 name.clone().unwrap()
             }
-            ColumnDefKind::Wildcard(_) => "*".to_string(),
+            ColumnDefKind::Wildcard => "*".to_string(),
             ColumnDefKind::ExternRef(name) => name.clone(),
         }
-    }
-
-    pub fn materialize_expr(&self, cid: &CId) -> Expr {
-        let def = self
-            .columns_defs
-            .get(cid)
-            .unwrap_or_else(|| panic!("missing column id {cid:?}"));
-
-        match &def.kind {
-            ColumnDefKind::Expr { expr, .. } => expr.clone(),
-            _ => Expr {
-                kind: ExprKind::ColumnRef(*cid),
-                span: None,
-            },
-        }
-    }
-
-    #[allow(dead_code)]
-    pub fn materialize_exprs(&self, cids: &[CId]) -> Vec<Expr> {
-        cids.iter().map(|cid| self.materialize_expr(cid)).collect()
     }
 
     pub fn materialize_name(&mut self, cid: &CId) -> (Option<String>, String) {
@@ -106,12 +100,18 @@ impl AnchorContext {
         //     .expect("a column is referred by name, but it doesn't have one");
         let col_name = self.ensure_column_name(cid);
 
-        let table = self.columns_loc.get(cid).map(|tid| {
-            let table = self.table_defs.get(tid).unwrap();
+        let table_name = self.columns_loc.get(cid).map(|tiid| {
+            let table = self.table_instances.get(tiid).unwrap();
 
-            table.name.clone()
+            if let Some(alias) = &table.name {
+                alias.clone()
+            } else {
+                let def = &self.table_defs[&table.source];
+                def.name.clone().unwrap()
+            }
         });
-        (table, col_name)
+
+        (table_name, col_name)
     }
 
     pub fn determine_select_columns(&self, pipeline: &[Transform]) -> Vec<CId> {
@@ -119,15 +119,13 @@ impl AnchorContext {
 
         for transform in pipeline {
             match transform {
-                Transform::From(tid) => {
-                    let table_def = &self.table_defs.get(tid).unwrap();
-                    columns = table_def.columns.iter().map(|c| c.id).collect();
+                Transform::From(table) => {
+                    columns = table.columns.iter().map(|c| c.id).collect();
                 }
                 Transform::Select(cols) => columns = cols.clone(),
                 Transform::Aggregate(cols) => columns = cols.clone(),
-                Transform::Join { with, .. } => {
-                    let table_def = &self.table_defs.get(with).unwrap();
-                    columns.extend(table_def.columns.iter().map(|c| c.id));
+                Transform::Join { with: table, .. } => {
+                    columns.extend(table.columns.iter().map(|c| c.id));
                 }
                 _ => {}
             }
@@ -137,13 +135,20 @@ impl AnchorContext {
     }
 
     /// Returns a set of all columns of all tables in a pipeline
-    pub fn collect_pipeline_inputs(&self, pipeline: &[Transform]) -> (Vec<TId>, HashSet<CId>) {
+    pub fn collect_pipeline_inputs(&self, pipeline: &[Transform]) -> (Vec<TIId>, HashSet<CId>) {
         let mut tables = Vec::new();
         let mut columns = HashSet::new();
         for t in pipeline {
-            if let Transform::From(tid) | Transform::Join { with: tid, .. } = t {
-                tables.push(*tid);
-                columns.extend(self.table_defs[tid].columns.iter().map(|c| c.id));
+            if let Transform::From(table) | Transform::Join { with: table, .. } = t {
+                // a hack to get TIId of a TableRef
+                // (ideally, TIId would be saved in TableRef)
+                if let Some(column) = table.columns.first() {
+                    tables.push(self.columns_loc[&column.id]);
+                } else {
+                    panic!("table without columns?")
+                }
+
+                columns.extend(table.columns.iter().map(|c| c.id));
             }
         }
         (tables, columns)
@@ -153,64 +158,40 @@ impl AnchorContext {
 /// Loads info about [Query] into [AnchorContext]
 struct QueryLoader {
     context: AnchorContext,
-
-    current_table: Option<TId>,
 }
 
 impl QueryLoader {
     fn load(context: AnchorContext, query: Query) -> (AnchorContext, Query) {
-        let mut loader = QueryLoader {
-            context,
-            current_table: None,
-        };
-        // fold query
+        let mut loader = QueryLoader { context };
         let query = loader.fold_query(query).unwrap();
-        let mut context = loader.context;
-
-        // move tables into Context
-        for table in query.tables.clone() {
-            let name = table.name.as_ref().unwrap().clone();
-
-            let columns = match &table.expr {
-                TableExpr::Ref(_, cols) => cols.clone(),
-                TableExpr::Pipeline(_) => {
-                    let star_col = ColumnDef {
-                        id: context.ids.gen_cid(),
-                        kind: ColumnDefKind::Wildcard(table.id),
-                    };
-                    context.columns_loc.insert(star_col.id, table.id);
-                    context.columns_defs.insert(star_col.id, star_col.clone());
-
-                    vec![star_col]
-                }
-            };
-
-            let table_def = TableDef {
-                name,
-                columns,
-                expr: table.expr,
-            };
-            context.table_defs.insert(table.id, table_def);
-        }
-
-        (context, query)
+        (loader.context, query)
     }
 }
 
 impl IrFold for QueryLoader {
-    fn fold_table(&mut self, table: Table) -> Result<Table> {
-        self.current_table = Some(table.id);
+    fn fold_table(&mut self, table: TableDef) -> Result<TableDef> {
+        let table = fold_table(self, table)?;
 
-        fold_table(self, table)
+        self.context.table_defs.insert(table.id, table.clone());
+        Ok(table)
     }
 
     fn fold_column_def(&mut self, cd: ColumnDef) -> Result<ColumnDef> {
         self.context.columns_defs.insert(cd.id, cd.clone());
+        Ok(cd)
+    }
 
-        if let Some(current_table) = self.current_table {
-            self.context.columns_loc.insert(cd.id, current_table);
+    fn fold_table_ref(&mut self, table_ref: TableRef) -> Result<TableRef> {
+        let tiid = self.context.tiid.gen();
+
+        // store
+        self.context.table_instances.insert(tiid, table_ref.clone());
+
+        // store column locations
+        for col in &table_ref.columns {
+            self.context.columns_loc.insert(col.id, tiid);
         }
 
-        Ok(cd)
+        fold_table_ref(self, table_ref)
     }
 }

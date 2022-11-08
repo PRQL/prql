@@ -93,16 +93,26 @@ mod test {
           - id: 0
             name: employees
             expr:
-              Ref:
+              ExternRef:
                 - LocalTable: employees
                 - - id: 0
-                    kind:
-                      Wildcard: 0
+                    kind: Wildcard
         expr:
           Pipeline:
-            - From: 0
+            - From:
+                source: 0
+                columns:
+                  - id: 1
+                    kind:
+                      Expr:
+                        name: ~
+                        expr:
+                          kind:
+                            ColumnRef: 0
+                          span: ~
+                name: ~
             - Select:
-                - 0
+                - 1
         "### );
 
         assert_yaml_snapshot!(parse_and_resolve(r###"
@@ -118,16 +128,26 @@ mod test {
           - id: 0
             name: employees
             expr:
-              Ref:
+              ExternRef:
                 - LocalTable: employees
                 - - id: 0
-                    kind:
-                      Wildcard: 0
+                    kind: Wildcard
         expr:
           Pipeline:
-            - From: 0
+            - From:
+                source: 0
+                columns:
+                  - id: 1
+                    kind:
+                      Expr:
+                        name: ~
+                        expr:
+                          kind:
+                            ColumnRef: 0
+                          span: ~
+                name: ~
             - Select:
-                - 0
+                - 1
         "### );
 
         assert!(parse_and_resolve(

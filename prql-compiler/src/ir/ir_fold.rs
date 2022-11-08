@@ -27,11 +27,14 @@ pub trait IrFold {
     fn fold_transforms(&mut self, transforms: Vec<Transform>) -> Result<Vec<Transform>> {
         fold_transforms(self, transforms)
     }
-    fn fold_table(&mut self, table: Table) -> Result<Table> {
+    fn fold_table(&mut self, table: TableDef) -> Result<TableDef> {
         fold_table(self, table)
     }
     fn fold_table_expr(&mut self, table_expr: TableExpr) -> Result<TableExpr> {
         fold_table_expr(self, table_expr)
+    }
+    fn fold_table_ref(&mut self, table_ref: TableRef) -> Result<TableRef> {
+        fold_table_ref(self, table_ref)
     }
     fn fold_query(&mut self, query: Query) -> Result<Query> {
         fold_query(self, query)
@@ -47,7 +50,7 @@ pub trait IrFold {
         Ok(ColumnDef {
             id: cd.id,
             kind: match cd.kind {
-                ColumnDefKind::Wildcard(tid) => ColumnDefKind::Wildcard(tid),
+                ColumnDefKind::Wildcard => ColumnDefKind::Wildcard,
                 ColumnDefKind::ExternRef(name) => ColumnDefKind::ExternRef(name),
                 ColumnDefKind::Expr { name, expr } => ColumnDefKind::Expr {
                     name,
@@ -61,8 +64,8 @@ pub trait IrFold {
     }
 }
 
-pub fn fold_table<F: ?Sized + IrFold>(fold: &mut F, t: Table) -> Result<Table> {
-    Ok(Table {
+pub fn fold_table<F: ?Sized + IrFold>(fold: &mut F, t: TableDef) -> Result<TableDef> {
+    Ok(TableDef {
         id: t.id,
         name: t.name,
         expr: fold.fold_table_expr(t.expr)?,
@@ -71,13 +74,25 @@ pub fn fold_table<F: ?Sized + IrFold>(fold: &mut F, t: Table) -> Result<Table> {
 
 pub fn fold_table_expr<F: ?Sized + IrFold>(fold: &mut F, t: TableExpr) -> Result<TableExpr> {
     Ok(match t {
-        TableExpr::Ref(table_ref, defs) => TableExpr::Ref(
+        TableExpr::ExternRef(table_ref, defs) => TableExpr::ExternRef(
             table_ref,
             defs.into_iter()
                 .map(|d| fold.fold_column_def(d))
                 .try_collect()?,
         ),
         TableExpr::Pipeline(transforms) => TableExpr::Pipeline(fold.fold_transforms(transforms)?),
+    })
+}
+
+pub fn fold_table_ref<F: ?Sized + IrFold>(fold: &mut F, table_ref: TableRef) -> Result<TableRef> {
+    Ok(TableRef {
+        name: table_ref.name,
+        source: table_ref.source,
+        columns: table_ref
+            .columns
+            .into_iter()
+            .map(|c| fold.fold_column_def(c))
+            .try_collect()?,
     })
 }
 
@@ -114,7 +129,7 @@ pub fn fold_transform<T: ?Sized + IrFold>(
     use Transform::*;
 
     transform = match transform {
-        From(tid) => From(tid),
+        From(tid) => From(fold.fold_table_ref(tid)?),
 
         Compute(assigns) => Compute(fold.fold_column_def(assigns)?),
         Aggregate(ids) => Aggregate(fold_cids(fold, ids)?),
@@ -135,7 +150,7 @@ pub fn fold_transform<T: ?Sized + IrFold>(
         Take(range) => Take(range),
         Join { side, with, filter } => Join {
             side,
-            with,
+            with: fold.fold_table_ref(with)?,
             filter: fold.fold_expr(filter)?,
         },
         Unique => Unique,

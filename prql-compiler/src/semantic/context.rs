@@ -45,25 +45,27 @@ impl Context {
 
     pub fn lookup_ident(&mut self, ident: &Ident, span: Option<Span>) -> Result<usize, String> {
         // lookup the name
-        let decls = self.scope.lookup(ident);
+        if ident.name != "*" {
+            let decls = self.scope.lookup(ident);
 
-        match decls.len() {
-            // no match: try match *
-            0 => {}
+            match decls.len() {
+                // no match: try match *
+                0 => {}
 
-            // single match, great!
-            1 => return Ok(decls.into_iter().next().unwrap().0),
+                // single match, great!
+                1 => return Ok(decls.into_iter().next().unwrap().0),
 
-            // ambiguous
-            _ => {
-                let decls = decls
-                    .into_iter()
-                    .map(|d| self.declarations.get(d.0))
-                    .map(|d| format!("`{d}`"))
-                    .join(", ");
-                return Err(format!(
-                    "Ambiguous reference. Could be from either of {decls}"
-                ));
+                // ambiguous
+                _ => {
+                    let decls = decls
+                        .into_iter()
+                        .map(|d| self.declarations.get(d.0))
+                        .map(|d| format!("`{d}`"))
+                        .join(", ");
+                    return Err(format!(
+                        "Ambiguous reference. Could be from either of {decls}"
+                    ));
+                }
             }
         }
 

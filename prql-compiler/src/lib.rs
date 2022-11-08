@@ -1271,7 +1271,6 @@ take 20
     }
 
     #[test]
-    #[ignore]
     fn test_table_names_between_splits() {
         let prql = r###"
         from employees
@@ -1284,12 +1283,12 @@ take 20
         assert_display_snapshot!(result, @r###"
         WITH table_0 AS (
           SELECT
-            employees.*,
-            d.*,
-            dept_no
+            employees.emp_no,
+            d.name,
+            d.emp_no
           FROM
             employees
-            JOIN department ON employees.dept_no = department.dept_no
+            JOIN department AS d ON employees.dept_no = d.dept_no
           LIMIT
             10
         )
@@ -1312,7 +1311,8 @@ take 20
         assert_display_snapshot!(result, @r###"
         WITH table_0 AS (
           SELECT
-            e.*
+            *,
+            emp_no
           FROM
             employees AS e
           LIMIT

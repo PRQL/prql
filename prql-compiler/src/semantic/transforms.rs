@@ -748,121 +748,199 @@ mod tests {
           - id: 0
             name: invoices
             expr:
-              Ref:
+              ExternRef:
                 - LocalTable: invoices
-                - - id: 10
-                    kind:
-                      Wildcard: 0
+                - - id: 1
+                    kind: Wildcard
                   - id: 0
+                    kind:
+                      ExternRef: issued_at
+                  - id: 2
+                    kind:
+                      ExternRef: issued_at
+                  - id: 3
+                    kind:
+                      ExternRef: issued_at
+                  - id: 4
+                    kind:
+                      ExternRef: issued_at
+                  - id: 5
                     kind:
                       ExternRef: issued_at
                   - id: 6
                     kind:
                       ExternRef: amount
-                  - id: 8
+                  - id: 7
                     kind:
                       ExternRef: num_of_articles
         expr:
           Pipeline:
-            - From: 0
+            - From:
+                source: 0
+                columns:
+                  - id: 8
+                    kind:
+                      Expr:
+                        name: ~
+                        expr:
+                          kind:
+                            ColumnRef: 1
+                          span: ~
+                  - id: 9
+                    kind:
+                      Expr:
+                        name: ~
+                        expr:
+                          kind:
+                            ColumnRef: 0
+                          span: ~
+                  - id: 10
+                    kind:
+                      Expr:
+                        name: ~
+                        expr:
+                          kind:
+                            ColumnRef: 2
+                          span: ~
+                  - id: 11
+                    kind:
+                      Expr:
+                        name: ~
+                        expr:
+                          kind:
+                            ColumnRef: 3
+                          span: ~
+                  - id: 12
+                    kind:
+                      Expr:
+                        name: ~
+                        expr:
+                          kind:
+                            ColumnRef: 4
+                          span: ~
+                  - id: 13
+                    kind:
+                      Expr:
+                        name: ~
+                        expr:
+                          kind:
+                            ColumnRef: 5
+                          span: ~
+                  - id: 14
+                    kind:
+                      Expr:
+                        name: ~
+                        expr:
+                          kind:
+                            ColumnRef: 6
+                          span: ~
+                  - id: 15
+                    kind:
+                      Expr:
+                        name: ~
+                        expr:
+                          kind:
+                            ColumnRef: 7
+                          span: ~
+                name: ~
             - Compute:
-                id: 5
+                id: 16
                 kind:
                   Expr:
                     name: issued_at
                     expr:
                       kind:
-                        ColumnRef: 4
+                        ColumnRef: 13
                       span:
                         start: 37
                         end: 46
             - Compute:
-                id: 7
+                id: 17
                 kind:
                   Expr:
                     name: amount
                     expr:
                       kind:
-                        ColumnRef: 6
+                        ColumnRef: 14
                       span:
                         start: 49
                         end: 55
             - Compute:
-                id: 9
+                id: 18
                 kind:
                   Expr:
                     name: num_of_articles
                     expr:
                       kind:
-                        ColumnRef: 8
+                        ColumnRef: 15
                       span:
                         start: 57
                         end: 73
             - Sort:
                 - direction: Asc
-                  column: 5
+                  column: 16
                 - direction: Desc
-                  column: 7
+                  column: 17
                 - direction: Asc
-                  column: 9
+                  column: 18
             - Compute:
-                id: 4
+                id: 19
                 kind:
                   Expr:
                     name: issued_at
                     expr:
                       kind:
-                        ColumnRef: 3
+                        ColumnRef: 16
                       span:
                         start: 88
                         end: 97
             - Sort:
                 - direction: Asc
-                  column: 4
+                  column: 19
             - Compute:
-                id: 3
+                id: 20
                 kind:
                   Expr:
                     name: issued_at
                     expr:
                       kind:
-                        ColumnRef: 2
+                        ColumnRef: 19
                       span:
                         start: 113
                         end: 122
             - Sort:
                 - direction: Desc
-                  column: 3
+                  column: 20
             - Compute:
-                id: 2
+                id: 21
                 kind:
                   Expr:
                     name: issued_at
                     expr:
                       kind:
-                        ColumnRef: 1
+                        ColumnRef: 20
                       span:
                         start: 138
                         end: 147
             - Sort:
                 - direction: Asc
-                  column: 2
+                  column: 21
             - Compute:
-                id: 1
+                id: 22
                 kind:
                   Expr:
                     name: issued_at
                     expr:
                       kind:
-                        ColumnRef: 0
+                        ColumnRef: 21
                       span:
                         start: 164
                         end: 173
             - Sort:
                 - direction: Desc
-                  column: 1
+                  column: 22
             - Select:
-                - 10
+                - 8
         "###);
     }
 }
