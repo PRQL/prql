@@ -1,13 +1,15 @@
 use anyhow::Result;
+use core::panic;
 use itertools::Itertools;
 use std::collections::{HashMap, HashSet};
 
-use crate::{
-    ast::TableRef,
-    ir::{CId, ColumnDef, ColumnDefKind, Expr, ExprKind, IrFold, TableExpr, Transform},
+use crate::ast::TableExternRef;
+use crate::ir::{
+    fold_transform, CId, ColumnDef, ColumnDefKind, Expr, ExprKind, IrFold, TableDef, TableExpr,
+    TableRef, Transform,
 };
 
-use super::context::{AnchorContext, TableDef};
+use super::context::AnchorContext;
 
 type RemainingPipeline = (Vec<Transform>, Vec<CId>);
 
@@ -28,6 +30,8 @@ pub fn split_off_back(
     let inputs_avail = extend_wildcards(context, input_columns);
     let mut inputs_required = Vec::new();
 
+    log::debug!("traversing pipeline to obtain columns: {output_cols:?}");
+
     // iterate backwards
     let mut curr_pipeline_rev = Vec::new();
     while let Some(transform) = pipeline.pop() {
@@ -42,14 +46,14 @@ pub fn split_off_back(
         // anchor and record all requirements
         let required = get_requirements(&transform);
         for r in required {
-            let r_inputs = anchor_column(context, r, &inputs_avail);
+            let r_inputs = anchor_column(context, r.col, r.max_complexity, &inputs_avail);
 
             output_cols.extend(&r_inputs - &inputs_avail);
             inputs_required.extend(r_inputs);
         }
 
         // push into current pipeline
-        if !matches!(transform, Transform::Compute(_) | Transform::Select(_)) {
+        if !matches!(transform, Transform::Select(_)) {
             curr_pipeline_rev.push(transform);
         }
     }
@@ -58,14 +62,11 @@ pub fn split_off_back(
     let has_all_inputs = inputs_required.iter().all(|c| inputs_avail.contains(c));
     if !has_all_inputs && pipeline.is_empty() {
         // push From back to the remaining pipeline
-        if let Some(transform) = curr_pipeline_rev.pop() {
-            if let Transform::From(_) = &transform {
-                pipeline.push(transform);
-            } else {
-                panic!("pipeline does not start with From!");
-            }
+        let transform = curr_pipeline_rev.pop().unwrap();
+        if let Transform::From(_) = &transform {
+            pipeline.push(transform);
         } else {
-            unreachable!();
+            panic!("pipeline does not start with From!");
         }
     }
 
@@ -79,16 +80,7 @@ pub fn split_off_back(
         let cols = if cols.is_empty() {
             input_tables
                 .iter()
-                .map(|tid| {
-                    let id = context.ids.gen_cid();
-                    let def = ColumnDef {
-                        id,
-                        kind: ColumnDefKind::Wildcard(*tid),
-                    };
-                    context.columns_defs.insert(id, def);
-                    context.columns_loc.insert(id, *tid);
-                    id
-                })
+                .map(|tiid| context.store_new_column(ColumnDefKind::Wildcard, *tiid))
                 .collect()
         } else {
             cols
@@ -119,7 +111,10 @@ pub fn split_off_back(
 fn extend_wildcards(context: &AnchorContext, mut cols: HashSet<CId>) -> HashSet<CId> {
     let wildcard_tables: HashSet<_> = cols
         .iter()
-        .filter_map(|cid| context.columns_defs[cid].kind.as_wildcard().cloned())
+        .filter_map(|cid| match context.columns_defs[cid].kind {
+            ColumnDefKind::Wildcard => Some(context.columns_loc[cid]),
+            _ => None,
+        })
         .collect();
 
     for (cid, tid) in &context.columns_loc {
@@ -135,60 +130,98 @@ fn extend_wildcards(context: &AnchorContext, mut cols: HashSet<CId>) -> HashSet<
 /// - redefine columns materialized in preceding pipeline
 /// - redirect all references to original columns to the new ones
 pub fn anchor_split(
-    context: &mut AnchorContext,
+    ctx: &mut AnchorContext,
     first_table_name: &str,
     cols_at_split: &[CId],
     second_pipeline: Vec<Transform>,
 ) -> Vec<Transform> {
-    let new_tid = context.ids.gen_tid();
+    let new_tid = ctx.tid.gen();
+    let new_tiid = ctx.tiid.gen();
 
     // define columns of the new CTE
-    let mut columns_redirect = HashMap::<CId, CId>::new();
+    let mut cid_redirects = HashMap::<CId, CId>::new();
     let mut new_columns = Vec::new();
     for old_cid in cols_at_split {
-        let new_cid = context.ids.gen_cid();
-        columns_redirect.insert(*old_cid, new_cid);
+        let new_cid = ctx.cid.gen();
+        cid_redirects.insert(*old_cid, new_cid);
 
-        let old_def = context.columns_defs.get(old_cid).unwrap();
+        let old_def = ctx.columns_defs.get(old_cid).unwrap();
 
         let new_def = ColumnDef {
             id: new_cid,
             kind: match &old_def.kind {
-                ColumnDefKind::Wildcard(tid) => ColumnDefKind::Wildcard(*tid),
+                ColumnDefKind::Wildcard => ColumnDefKind::Wildcard,
                 ColumnDefKind::ExternRef(name) => ColumnDefKind::ExternRef(name.clone()),
                 ColumnDefKind::Expr { .. } => {
-                    ColumnDefKind::ExternRef(context.ensure_column_name(old_cid))
+                    ColumnDefKind::ExternRef(ctx.ensure_column_name(old_cid))
                 }
             },
         };
-        context.columns_defs.insert(new_cid, new_def.clone());
-        context.columns_loc.insert(new_cid, new_tid);
+        ctx.columns_defs.insert(new_cid, new_def.clone());
+        ctx.columns_loc.insert(new_cid, new_tiid);
         new_columns.push(new_def);
     }
 
-    // define a new local table
-    context.table_defs.insert(
+    // define a new table
+    ctx.table_defs.insert(
         new_tid,
         TableDef {
-            name: first_table_name.to_string(),
-            expr: TableExpr::Ref(
-                TableRef::LocalTable(first_table_name.to_string()),
-                new_columns.clone(),
-            ),
-            columns: new_columns,
+            id: new_tid,
+            name: Some(first_table_name.to_string()),
+            // dummy expr
+            expr: TableExpr::ExternRef(TableExternRef::LocalTable("".to_string()), vec![]),
         },
     );
 
-    // split the pipeline
-    let mut pipeline = second_pipeline;
+    // define instance of that table
+    let table_ref = TableRef {
+        source: new_tid,
+        name: None,
+        columns: new_columns,
+    };
+    ctx.table_instances.insert(new_tiid, table_ref.clone());
 
     // adjust second part: prepend from and rewrite expressions to use new columns
-    pipeline.insert(0, Transform::From(new_tid));
+    let mut second = second_pipeline;
+    second.insert(0, Transform::From(table_ref));
 
-    let mut redirector = CidRedirector {
-        redirects: columns_redirect,
-    };
-    redirector.fold_transforms(pipeline).unwrap()
+    let mut redirector = CidRedirector { ctx, cid_redirects };
+    redirector.fold_transforms(second).unwrap()
+}
+
+/// For the purpose of codegen, TableRef should contain ExternRefs to other
+/// tables as if they were actual tables in the database.
+/// This function converts TableRef.columns to ExternRefs (or Wildcard)
+pub fn materialize_inputs(pipeline: &[Transform], ctx: &mut AnchorContext) {
+    let (_, inputs) = ctx.collect_pipeline_inputs(pipeline);
+    for cid in inputs {
+        let extern_ref = infer_extern_ref(cid, ctx);
+
+        if let Some(extern_ref) = extern_ref {
+            let def = ctx.columns_defs.get_mut(&cid).unwrap();
+            def.kind = extern_ref;
+        } else {
+            panic!("cannot infer an name for {cid:?}")
+        }
+    }
+}
+
+fn infer_extern_ref(cid: CId, ctx: &AnchorContext) -> Option<ColumnDefKind> {
+    let def = &ctx.columns_defs[&cid];
+
+    match &def.kind {
+        ColumnDefKind::Wildcard | ColumnDefKind::ExternRef(_) => Some(def.kind.clone()),
+        ColumnDefKind::Expr { name, expr } => {
+            if let Some(name) = name {
+                Some(ColumnDefKind::ExternRef(name.clone()))
+            } else {
+                match &expr.kind {
+                    ExprKind::ColumnRef(cid) => infer_extern_ref(*cid, ctx),
+                    _ => None,
+                }
+            }
+        }
+    }
 }
 
 /// Determines whether a pipeline must be split at a transform to
@@ -285,27 +318,30 @@ fn get_requirements(transform: &Transform) -> Vec<Requirement> {
 /// Returns column references that were not materialized.
 fn anchor_column(
     context: &mut AnchorContext,
-    req: Requirement,
+    cid: CId,
+    max_complexity: Complexity,
     inputs_avail: &HashSet<CId>,
 ) -> HashSet<CId> {
-    let col_def = &context.columns_defs[&req.col];
+    let col_def = &context.columns_defs[&cid];
 
     match &col_def.kind {
         ColumnDefKind::Expr { expr, .. } => {
             let (mat, inputs) =
-                Materializer::materialize(expr.clone(), req.max_complexity, inputs_avail, context);
+                Materializer::materialize(expr.clone(), max_complexity, inputs_avail, context);
 
-            let col_def = context.columns_defs.get_mut(&req.col).unwrap();
+            let col_def = context.columns_defs.get_mut(&cid).unwrap();
             let (_, expr) = &mut col_def.kind.as_expr_mut().unwrap();
             **expr = mat;
 
-            // if let ExprKind::ExternRef { .. } = &expr.kind {
-            //     inputs.insert(req.col);
-            // }
-
             inputs
         }
-        ColumnDefKind::Wildcard(_) | ColumnDefKind::ExternRef(_) => HashSet::from([req.col]),
+        ColumnDefKind::Wildcard | ColumnDefKind::ExternRef(_) => {
+            if inputs_avail.contains(&cid) {
+                HashSet::from([cid])
+            } else {
+                panic!("cannot anchor {:?}. This is probably caused by bad IR", cid)
+            }
+        }
     }
 }
 
@@ -352,24 +388,23 @@ impl<'a> Materializer<'a> {
 impl<'a> IrFold for Materializer<'a> {
     fn fold_expr(&mut self, mut expr: Expr) -> Result<Expr> {
         if let ExprKind::ColumnRef(cid) = &expr.kind {
-            // is this column available in one of input tables?
-            if !self.inputs_avail.contains(cid) {
-                // it is not, try to materialize it
+            let def = &self.context.columns_defs[cid];
+            match &def.kind {
+                ColumnDefKind::Expr { expr, .. } => {
+                    let complexity = infer_complexity(def);
 
-                let def = &self.context.columns_defs[cid];
-                let complexity = infer_complexity(def);
-
-                if complexity > self.max_complexity {
-                    // complexity too high, put off materialization
-                } else {
-                    // in-place materialization
-                    return match &def.kind {
-                        ColumnDefKind::Wildcard(_) => Ok(expr),
-                        ColumnDefKind::ExternRef(_) => Ok(expr),
-                        ColumnDefKind::Expr { expr, .. } => self.fold_expr(expr.clone()),
-                    };
+                    if complexity > self.max_complexity {
+                        // complexity too high, put off materialization
+                    } else {
+                        // in-place materialization
+                        return self.fold_expr(expr.clone());
+                    }
                 }
+
+                // no need to materialize
+                ColumnDefKind::Wildcard | ColumnDefKind::ExternRef(_) => {}
             }
+
             self.inputs_required.insert(*cid);
         }
 
@@ -389,11 +424,11 @@ fn infer_complexity(col_def: &ColumnDef) -> Complexity {
     use Complexity::*;
 
     match &col_def.kind {
-        ColumnDefKind::Wildcard(_) => Ident,
         ColumnDefKind::Expr { expr, .. } => match &expr.kind {
             ColumnRef(_) => Ident,
             _ => Expr,
         },
+        ColumnDefKind::Wildcard => Ident,
         ColumnDefKind::ExternRef(_) => Ident,
     }
 }
@@ -418,12 +453,24 @@ impl IrFold for CidCollector {
     }
 }
 
-struct CidRedirector {
-    redirects: HashMap<CId, CId>,
+struct CidRedirector<'a> {
+    ctx: &'a mut AnchorContext,
+    cid_redirects: HashMap<CId, CId>,
 }
 
-impl IrFold for CidRedirector {
+impl<'a> IrFold for CidRedirector<'a> {
     fn fold_cid(&mut self, cid: CId) -> Result<CId> {
-        Ok(self.redirects.get(&cid).cloned().unwrap_or(cid))
+        Ok(self.cid_redirects.get(&cid).cloned().unwrap_or(cid))
+    }
+
+    fn fold_transform(&mut self, transform: Transform) -> Result<Transform> {
+        match transform {
+            Transform::Compute(cd) => {
+                let cd = self.fold_column_def(cd)?;
+                self.ctx.columns_defs.insert(cd.id, cd.clone());
+                Ok(Transform::Compute(cd))
+            }
+            _ => fold_transform(self, transform),
+        }
     }
 }

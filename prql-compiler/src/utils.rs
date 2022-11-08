@@ -108,3 +108,29 @@ impl<T> OrMap<T> for Option<T> {
         }
     }
 }
+
+pub trait Pluck<T> {
+    fn pluck<R, F>(&mut self, f: F) -> Vec<R>
+    where
+        F: Fn(T) -> Result<R, T>;
+}
+
+impl<T> Pluck<T> for Vec<T> {
+    fn pluck<R, F>(&mut self, f: F) -> Vec<R>
+    where
+        F: Fn(T) -> Result<R, T>,
+    {
+        let mut matched = Vec::new();
+        let mut not_matched = Vec::new();
+
+        for transform in self.drain(..) {
+            match f(transform) {
+                Ok(t) => matched.push(t),
+                Err(transform) => not_matched.push(transform),
+            }
+        }
+
+        self.extend(not_matched);
+        matched
+    }
+}

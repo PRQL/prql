@@ -3,14 +3,15 @@ use std::collections::HashMap;
 use anyhow::{bail, Result};
 use itertools::Itertools;
 
-use crate::ast::{Expr, InterpolateItem, Range};
+use crate::ast::ast_fold::AstFold;
+use crate::ast::{Expr, InterpolateItem, Range, TableExternRef};
 use crate::error::{Error, Reason};
 use crate::ir::{
-    CId, ColumnDef, ColumnDefKind, IdGenerator, Query, TId, Table, TableExpr, Transform,
+    CId, ColumnDef, ColumnDefKind, IdGenerator, Query, TId, TableDef, TableExpr, Transform,
 };
 use crate::{ast, ir};
 
-use super::Context;
+use super::{Context, Declaration};
 
 /// Convert AST into IR and make sure that:
 /// - transforms are not nested,
@@ -18,6 +19,10 @@ use super::Context;
 /// - make sure there are no unresolved
 pub fn lower_ast_to_ir(statements: Vec<ast::Stmt>, context: Context) -> Result<Query> {
     let mut l = Lowerer::new(context);
+
+    // TODO: when extern refs will be resolved to a local instance of a table
+    // instead of a the global table definition, this could be removed
+    let statements = ExternRefExtractor::extract(&mut l, statements);
 
     let mut query_def = None;
     let mut main_pipeline = None;
@@ -30,28 +35,29 @@ pub fn lower_ast_to_ir(statements: Vec<ast::Stmt>, context: Context) -> Result<Q
                 let id = l.ensure_table_id(table_def.id.unwrap());
 
                 let name = Some(table_def.name);
-                let expr = l.lower_table_expr(*table_def.value)?;
-                l.push_table(Table { id, name, expr });
+                let expr = l.lower_table_pipeline(*table_def.value)?;
+                l.tables_pipeline.push(TableDef { id, name, expr });
             }
             ast::StmtKind::Pipeline(expr) => {
-                let ir = l.lower_table_expr(expr)?;
+                let ir = l.lower_table_pipeline(expr)?;
                 main_pipeline = Some(ir);
             }
         }
     }
 
-    // set ExternRefs of Ref tables
-    let tables = l
-        .tables
-        .into_iter()
-        .map(|mut t| {
-            if let TableExpr::Ref(_, cols) = &mut t.expr {
-                cols.extend(l.extern_refs.remove(&t.id).unwrap_or_default());
-            };
-            t
-        })
-        .collect();
+    // TODO: remove this block after proper table def inference is in place
+    for t in l.tables_extern.values_mut() {
+        match &mut t.expr {
+            TableExpr::ExternRef(name, _) => {
+                *name = TableExternRef::LocalTable(t.name.clone().unwrap());
+            }
+            TableExpr::Pipeline(_) => unreachable!(),
+        }
+    }
 
+    let tables = (l.tables_extern.into_values())
+        .chain(l.tables_pipeline.into_iter())
+        .collect();
     Ok(Query {
         def: query_def.unwrap_or_default(),
         tables,
@@ -61,7 +67,8 @@ pub fn lower_ast_to_ir(statements: Vec<ast::Stmt>, context: Context) -> Result<Q
 }
 
 struct Lowerer {
-    ids: IdGenerator,
+    cid: IdGenerator<CId>,
+    tid: IdGenerator<TId>,
 
     context: Context,
 
@@ -71,16 +78,14 @@ struct Lowerer {
     /// mapping from [crate::semantic::Declarations] into [TId]s
     table_mapping: HashMap<usize, TId>,
 
-    /// descriptor of known table columns (this will probably go into semantic::Context)
-    tables_frames: HashMap<TId, Vec<CId>>,
-
-    /// column definitions of input tables to the query
-    // This is needed here, because extern refs may be found in the query
-    // even after a table is lowered.
-    extern_refs: HashMap<TId, Vec<ColumnDef>>,
+    // TODO: this is a workaround for not resolving columns to a table instance, but to underlying extern table
+    cid_redirect: HashMap<CId, CId>,
 
     /// tables to be added to Query.tables
-    tables: Vec<Table>,
+    tables_extern: HashMap<TId, TableDef>,
+
+    /// tables to be added to Query.tables
+    tables_pipeline: Vec<TableDef>,
 }
 
 impl Lowerer {
@@ -88,76 +93,103 @@ impl Lowerer {
         Lowerer {
             context,
 
-            ids: IdGenerator::empty(),
+            cid: IdGenerator::new(),
+            tid: IdGenerator::new(),
+
             column_mapping: HashMap::new(),
             table_mapping: HashMap::new(),
-            tables_frames: HashMap::new(),
-            extern_refs: HashMap::new(),
-            tables: Vec::new(),
+
+            cid_redirect: HashMap::new(),
+
+            tables_extern: HashMap::new(),
+            tables_pipeline: Vec::new(),
         }
     }
 
-    fn push_table(&mut self, table: Table) {
-        let columns = match &table.expr {
-            TableExpr::Ref(_, cols) => cols.iter().map(|c| c.id).collect(),
-            TableExpr::Pipeline(transforms) => match transforms.last() {
-                Some(Transform::Select(cols)) => cols.clone(),
-                _ => unreachable!(),
-            },
+    fn lower_table_ref(&mut self, expr: Expr) -> Result<ir::TableRef> {
+        let id = self.ensure_table_id(expr.declared_at.unwrap());
+        let alias = expr.alias.clone();
+
+        let columns = if let Some(table) = self.tables_pipeline.iter().find(|t| t.id == id) {
+            if let TableExpr::Pipeline(transforms) = &table.expr {
+                transforms.last().unwrap().as_select().unwrap().clone()
+            } else {
+                unreachable!();
+            }
+        } else {
+            let (name, cols) = self.extern_table_entry(expr.declared_at.unwrap());
+
+            *name = Some(expr.kind.into_ident().unwrap().to_string());
+
+            cols.iter().map(|c| c.id).collect()
         };
 
-        self.tables_frames.insert(table.id, columns);
-        self.tables.push(table);
+        // create columns of the table instance
+        let columns = columns
+            .into_iter()
+            .map(|cid| {
+                let new_cid = self.cid.gen();
+                self.cid_redirect.insert(cid, new_cid);
+                ColumnDef {
+                    id: new_cid,
+                    kind: ColumnDefKind::Expr {
+                        name: None,
+                        expr: ir::Expr {
+                            kind: ir::ExprKind::ColumnRef(cid),
+                            span: None,
+                        },
+                    },
+                }
+            })
+            .collect();
+
+        Ok(ir::TableRef {
+            source: id,
+            name: alias,
+            columns,
+        })
     }
 
-    fn lower_table(&mut self, expr: Expr) -> Result<TId> {
-        let id = self.ensure_table_id(expr.declared_at.unwrap());
+    fn extern_table_entry(&mut self, id: usize) -> (&mut Option<String>, &mut Vec<ColumnDef>) {
+        let tid = self.ensure_table_id(id);
+        let refs = self.tables_extern.entry(tid);
 
-        let expr = self.lower_table_expr(expr)?;
+        let table = refs.or_insert_with(|| TableDef {
+            id: tid,
+            name: None,
+            expr: TableExpr::ExternRef(
+                TableExternRef::LocalTable("".to_string()),
+                vec![ColumnDef {
+                    id: self.cid.gen(),
+                    kind: ColumnDefKind::Wildcard,
+                }],
+            ),
+        });
 
-        let name = match &expr {
-            TableExpr::Ref(ast::TableRef::LocalTable(name), _) => Some(name.clone()),
-            _ => None,
-        };
-
-        self.push_table(Table { id, name, expr });
-
-        Ok(id)
+        match &mut table.expr {
+            TableExpr::ExternRef(_, cols) => (&mut table.name, cols),
+            TableExpr::Pipeline(_) => unreachable!(),
+        }
     }
 
     fn ensure_table_id(&mut self, id: usize) -> TId {
         *self
             .table_mapping
             .entry(id)
-            .or_insert_with(|| self.ids.gen_tid())
+            .or_insert_with(|| self.tid.gen())
     }
 
-    fn lower_table_expr(&mut self, expr: Expr) -> Result<TableExpr> {
-        Ok(match expr.kind {
-            ast::ExprKind::Ident(name) => {
-                // a table reference by name, lower to local table
+    fn lower_table_pipeline(&mut self, expr: Expr) -> Result<TableExpr> {
+        let ty = expr.ty.clone();
 
-                let star_col = ColumnDef {
-                    id: self.ids.gen_cid(),
-                    kind: ColumnDefKind::Wildcard(self.table_mapping[&expr.declared_at.unwrap()]),
-                };
+        let mut transforms = self.lower_transform(expr)?;
+        self.push_select(ty, &mut transforms);
 
-                TableExpr::Ref(ast::TableRef::LocalTable(name.to_string()), vec![star_col])
-            }
-
-            _ => {
-                let ty = expr.ty.clone();
-
-                let mut transforms = self.lower_transform(expr)?;
-                self.push_select(ty, &mut transforms);
-
-                TableExpr::Pipeline(transforms)
-            }
-        })
+        Ok(TableExpr::Pipeline(transforms))
     }
 
     fn lower_transform(&mut self, ast: ast::Expr) -> Result<Vec<Transform>> {
-        let transform_call = match ast.kind {
+        let mut transform_call = match ast.kind {
             ast::ExprKind::TransformCall(transform) => transform,
             _ => {
                 bail!(Error::new(Reason::Expected {
@@ -172,69 +204,59 @@ impl Lowerer {
 
         let mut transforms = Vec::new();
 
-        let tbl = match *transform_call.kind {
+        // results starts with result of inner table
+        if let Some(tbl) = transform_call.kind.tbl_arg_mut().cloned() {
+            transforms.extend(self.lower_transform(tbl)?);
+        }
+
+        // ... and continues with transforms created in this function
+        match *transform_call.kind {
             ast::TransformKind::From(expr) => {
-                let id = self.lower_table(expr)?;
+                let id = self.lower_table_ref(expr)?;
 
                 transforms.push(Transform::From(id));
-
-                None
             }
-            ast::TransformKind::Derive { assigns, tbl } => {
+            ast::TransformKind::Derive { assigns, .. } => {
                 for assign in assigns {
                     self.declare_as_column(assign, &mut transforms)?;
                 }
-
-                Some(tbl)
             }
-            ast::TransformKind::Select { assigns, tbl } => {
+            ast::TransformKind::Select { assigns, .. } => {
                 let mut select = Vec::new();
                 for assign in assigns {
                     let iid = self.declare_as_column(assign, &mut transforms)?;
                     select.push(iid);
                 }
                 transforms.push(Transform::Select(select));
-
-                Some(tbl)
             }
-            ast::TransformKind::Filter { filter, tbl } => {
+            ast::TransformKind::Filter { filter, .. } => {
                 transforms.push(Transform::Filter(self.lower_expr(*filter)?));
-
-                Some(tbl)
             }
-            ast::TransformKind::Aggregate { assigns, tbl } => {
+            ast::TransformKind::Aggregate { assigns, .. } => {
                 let select = self.declare_as_columns(assigns, &mut transforms)?;
 
-                transforms.push(Transform::Aggregate(select));
-                Some(tbl)
+                transforms.push(Transform::Aggregate(select))
             }
-            ast::TransformKind::Sort { by, tbl } => {
+            ast::TransformKind::Sort { by, .. } => {
                 let mut sorts = Vec::new();
                 for ast::ColumnSort { column, direction } in by {
                     let column = self.declare_as_column(column, &mut transforms)?;
                     sorts.push(ast::ColumnSort { direction, column });
                 }
                 transforms.push(Transform::Sort(sorts));
-
-                Some(tbl)
             }
-            ast::TransformKind::Take { range, tbl } => {
+            ast::TransformKind::Take { range, .. } => {
                 let range = Range {
                     start: range.start.map(|x| self.lower_expr(*x)).transpose()?,
                     end: range.end.map(|x| self.lower_expr(*x)).transpose()?,
                 };
 
                 transforms.push(Transform::Take(range));
-
-                Some(tbl)
             }
             ast::TransformKind::Join {
-                side,
-                with,
-                filter,
-                tbl,
+                side, with, filter, ..
             } => {
-                let with = self.lower_table(*with)?;
+                let with = self.lower_table_ref(*with)?;
 
                 let transform = Transform::Join {
                     side,
@@ -242,10 +264,8 @@ impl Lowerer {
                     filter: self.lower_expr(*filter)?,
                 };
                 transforms.push(transform);
-
-                Some(tbl)
             }
-            ast::TransformKind::Group { by, pipeline, tbl } => {
+            ast::TransformKind::Group { by, pipeline, .. } => {
                 let mut partition = Vec::new();
                 for x in by {
                     let iid = self.declare_as_column(x, &mut transforms)?;
@@ -253,39 +273,41 @@ impl Lowerer {
                 }
 
                 transforms.extend(self.lower_transform(*pipeline)?);
-
-                Some(tbl)
             }
-            ast::TransformKind::Window { tbl, .. } => Some(tbl),
-        };
+            ast::TransformKind::Window { .. } => {
+                // TODO
+            }
+        }
 
-        // results starts with result of inner table
-        let mut result = if let Some(tbl) = tbl {
-            self.lower_transform(tbl)?
-        } else {
-            Vec::new()
-        };
-
-        // ... and continues with transforms created in this function
-        result.extend(transforms);
-
-        Ok(result)
+        Ok(transforms)
     }
 
+    /// Append a Select of final table columns derived from frame
+    #[allow(clippy::needless_collect)]
     fn push_select(&mut self, ty: Option<ast::Ty>, transforms: &mut Vec<Transform>) {
         let frame = ty.unwrap().into_table().unwrap();
 
+        log::debug!("push_select of a frame: {:?}", frame.columns);
+
         use ast::FrameColumn::*;
         let columns = (frame.columns.into_iter())
-            .flat_map(|col| match col {
+            .map(|col| match col {
                 All(table_id) => {
-                    let tid = self.table_mapping[&table_id];
-                    self.tables_frames[&tid].clone()
+                    let (_, cols) = self.extern_table_entry(table_id);
+                    cols.iter()
+                        .find_map(|cd| match cd.kind {
+                            ColumnDefKind::Wildcard => Some(cd.id),
+                            _ => None,
+                        })
+                        .unwrap()
                 }
-                Unnamed(id) | Named(_, id) => {
-                    vec![self.column_mapping[&id]]
-                }
+                Unnamed(id) | Named(_, id) => self.column_mapping[&id],
             })
+            .collect::<Vec<_>>();
+
+        let columns = columns
+            .into_iter()
+            .map(|cid| self.cid_redirect.get(&cid).cloned().unwrap_or(cid))
             .collect();
         transforms.push(Transform::Select(columns));
     }
@@ -315,7 +337,7 @@ impl Lowerer {
 
         let expr = self.lower_expr(expr_ast)?;
 
-        let cid = self.ids.gen_cid();
+        let cid = self.cid.gen();
         let def = ColumnDef {
             id: cid,
             kind: ColumnDefKind::Expr { name, expr },
@@ -339,35 +361,28 @@ impl Lowerer {
                 let id = ast.declared_at.expect("unresolved ident node");
 
                 if let Some(cid) = self.column_mapping.get(&id).cloned() {
+                    let cid = self.cid_redirect.get(&cid).cloned().unwrap_or(cid);
+
                     ir::ExprKind::ColumnRef(cid)
                 } else {
                     let decl = self.context.declarations.get(id).clone();
 
                     match decl {
-                        super::Declaration::Expression(expr) => self.lower_expr(*expr)?.kind,
-                        super::Declaration::ExternRef { table, variable } => {
-                            if let Some(table_id) = table {
-                                let tid = self.ensure_table_id(table_id);
-                                let refs = self.extern_refs.entry(tid).or_default();
+                        Declaration::Expression(expr) => self.lower_expr(*expr)?.kind,
+                        Declaration::ExternRef { table, variable } => {
+                            if table.is_some() {
+                                // extern ref has been extracted with ExternRefExtractor prior to lowering
 
-                                let cid = self.ids.gen_cid();
-
-                                // println!("{tid:?}: {refs:?} + {id:?}");
-                                refs.push(ColumnDef {
-                                    id: cid,
-                                    kind: ColumnDefKind::ExternRef(variable),
-                                });
-
-                                self.column_mapping.insert(id, cid);
-                                ir::ExprKind::ColumnRef(cid)
+                                let cid = self.column_mapping.get(&id).unwrap();
+                                ir::ExprKind::ColumnRef(*cid)
                             } else {
                                 ir::ExprKind::SString(vec![InterpolateItem::String(variable)])
                             }
                         }
-                        super::Declaration::Table(_) => {
+                        Declaration::Table(_) => {
                             bail!("Cannot lower a table ref to IR expr")
                         }
-                        super::Declaration::Function(_) => {
+                        Declaration::Function(_) => {
                             bail!("Cannot lower a function ref to IR expr")
                         }
                     }
@@ -432,57 +447,48 @@ impl Lowerer {
 }
 
 // Collects all ExternRefs and
-// pub struct ExternRefExtractor<'a> {
-//     context: &'a mut AnchorContext,
-// }
+struct ExternRefExtractor<'a> {
+    lowerer: &'a mut Lowerer,
+}
 
-// impl<'a> ExternRefExtractor<'a> {
-//     pub fn extract(context: &mut AnchorContext, pipeline: Vec<Transform>) -> Vec<Transform> {
-//         let mut e = ExternRefExtractor { context };
-//         e.fold_transforms(pipeline).unwrap()
-//     }
-// }
+impl<'a> ExternRefExtractor<'a> {
+    fn extract(lowerer: &mut Lowerer, stmts: Vec<ast::Stmt>) -> Vec<ast::Stmt> {
+        let mut e = ExternRefExtractor { lowerer };
+        e.fold_stmts(stmts).unwrap()
+    }
+}
 
-// impl<'a> IrFold for ExternRefExtractor<'a> {
-//     fn fold_expr(&mut self, mut expr: Expr) -> Result<Expr> {
-//         Ok(if let ExprKind::ExternRef { variable, .. } = &expr.kind {
-//             let id = self.context.ids.gen_cid();
-//             let new_def = ColumnDef {
-//                 id,
-//                 kind: ColumnDefKind::Expr {
-//                     name: Some(variable.clone()),
-//                     expr,
-//                 },
-//             };
-//             self.context.columns_defs.insert(id, new_def);
-//             Expr {
-//                 kind: ExprKind::ColumnRef(id),
-//                 span: None,
-//             }
-//         } else {
-//             expr.kind = self.fold_expr_kind(expr.kind)?;
-//             expr
-//         })
-//     }
+impl<'a> AstFold for ExternRefExtractor<'a> {
+    fn fold_expr(&mut self, mut expr: Expr) -> Result<Expr> {
+        if let Some(id) = expr.declared_at {
+            let decl = self.lowerer.context.declarations.get(id).clone();
 
-//     fn fold_column_def(&mut self, cd: ColumnDef) -> Result<ColumnDef> {
-//         // exactly the same as default impl,
-//         // except that fold_expr is inlined for the first level,
-//         // to prevent extracting ExternRefs that are already in root of a def.
+            if let Declaration::ExternRef {
+                table: Some(table_id),
+                variable,
+            } = decl
+            {
+                // yes, this CId could have been generated only if needed
+                // but I don't want to bother with lowerer mut borrow
+                let new_cid = self.lowerer.cid.gen();
+                let kind = ColumnDefKind::ExternRef(variable.clone());
+                let col_def = ColumnDef { id: new_cid, kind };
 
-//         Ok(ColumnDef {
-//             id: cd.id,
-//             kind: match cd.kind {
-//                 ColumnDefKind::Wildcard(tid) => ColumnDefKind::Wildcard(tid),
-//                 ColumnDefKind::Expr { name, expr } => ColumnDefKind::Expr {
-//                     name,
-//                     expr: {
-//                         let mut expr = expr;
-//                         expr.kind = self.fold_expr_kind(expr.kind)?;
-//                         expr
-//                     },
-//                 },
-//             },
-//         })
-//     }
-// }
+                let (_, cols) = self.lowerer.extern_table_entry(table_id);
+                let existing = cols.iter().find_map(|cd| match &cd.kind {
+                    ColumnDefKind::ExternRef(name) if *name == variable => Some(cd.id),
+                    _ => None,
+                });
+                if let Some(existing) = existing {
+                    self.lowerer.column_mapping.insert(id, existing);
+                } else {
+                    cols.push(col_def);
+                    self.lowerer.column_mapping.insert(id, new_cid);
+                }
+            }
+        }
+
+        expr.kind = self.fold_expr_kind(expr.kind)?;
+        Ok(expr)
+    }
+}

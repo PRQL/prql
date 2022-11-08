@@ -33,9 +33,9 @@ func coalesce value default -> s"COALESCE({value}, {default})"
 
 # Transform type definitions
 func from<table> tables.source<table> -> null
-func select<table> a<column> tbl<table> -> null
+func select<table> columns<column> tbl<table> -> null
 func filter<table> condition<bool> tbl<table> -> null
-func derive<table> a<column> tbl<table> -> null
+func derive<table> columns<column> tbl<table> -> null
 func aggregate<table> a<column> tbl<table> -> null
 func sort<table> by tbl<table> -> null
 func take<table> expr tbl<table> -> null

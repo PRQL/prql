@@ -12,36 +12,49 @@ pub use table_counter::TableCounter;
 use serde::{Deserialize, Serialize};
 
 use crate::ast::{ColumnSort, QueryDef, Range};
-use crate::ast::{JoinSide, TableRef, WindowKind};
+use crate::ast::{JoinSide, TableExternRef, WindowKind};
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Query {
     pub def: QueryDef,
 
-    pub tables: Vec<Table>,
+    pub tables: Vec<TableDef>,
     pub expr: TableExpr,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub struct Table {
+pub struct TableDef {
     pub id: TId,
 
-    /// Given name of this table.
+    /// Given name of this table (name of the CTE)
     pub name: Option<String>,
 
     pub expr: TableExpr,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+pub struct TableRef {
+    // referenced table
+    pub source: TId,
+
+    // new column definitions are required because there may be multiple instances
+    // of this table in the same query
+    pub columns: Vec<ColumnDef>,
+
+    /// Given name of this table (table alias)
+    pub name: Option<String>,
+}
+
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub enum TableExpr {
-    Ref(TableRef, Vec<ColumnDef>),
+    ExternRef(TableExternRef, Vec<ColumnDef>),
     Pipeline(Vec<Transform>),
 }
 
 /// Transformation of a table.
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, strum::AsRefStr)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, strum::AsRefStr, EnumAsInner)]
 pub enum Transform {
-    From(TId),
+    From(TableRef),
     Compute(ColumnDef),
     Select(Vec<CId>),
     Filter(Expr),
@@ -50,7 +63,7 @@ pub enum Transform {
     Take(Range<Expr>),
     Join {
         side: JoinSide,
-        with: TId,
+        with: TableRef,
         filter: Expr,
     },
     Unique,
@@ -71,7 +84,7 @@ pub struct ColumnDef {
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize, EnumAsInner)]
 pub enum ColumnDefKind {
-    Wildcard(TId),
+    Wildcard,
     ExternRef(String),
     Expr { name: Option<String>, expr: Expr },
 }
@@ -86,22 +99,34 @@ impl ColumnDef {
 }
 
 /// Column id
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct CId(usize);
 
-impl CId {
-    pub fn new(id: usize) -> Self {
+impl From<usize> for CId {
+    fn from(id: usize) -> Self {
         CId(id)
     }
 }
 
+impl std::fmt::Debug for CId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "column-{}", self.0)
+    }
+}
+
 /// Table id
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct TId(usize);
 
-impl TId {
-    pub fn new(id: usize) -> Self {
+impl From<usize> for TId {
+    fn from(id: usize) -> Self {
         TId(id)
+    }
+}
+
+impl std::fmt::Debug for TId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "table-{}", self.0)
     }
 }
 
