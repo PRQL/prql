@@ -468,20 +468,23 @@ impl<'a> AstFold for ExternRefExtractor<'a> {
                 variable,
             } = decl
             {
-                let cid = self.lowerer.cid.gen();
+                // yes, this CId could have been generated only if needed
+                // but I don't want to bother with lowerer mut borrow
+                let new_cid = self.lowerer.cid.gen();
                 let kind = ColumnDefKind::ExternRef(variable.clone());
-                let col_def = ColumnDef { id: cid, kind };
+                let col_def = ColumnDef { id: new_cid, kind };
 
                 let (_, cols) = self.lowerer.extern_table_entry(table_id);
-                let exists = cols.iter().all(|cd| match &cd.kind {
-                    ColumnDefKind::ExternRef(name) => name == &variable,
-                    _ => false,
+                let existing = cols.iter().find_map(|cd| match &cd.kind {
+                    ColumnDefKind::ExternRef(name) if *name == variable => Some(cd.id),
+                    _ => None,
                 });
-                if !exists {
+                if let Some(existing) = existing {
+                    self.lowerer.column_mapping.insert(id, existing);
+                } else {
                     cols.push(col_def);
+                    self.lowerer.column_mapping.insert(id, new_cid);
                 }
-
-                self.lowerer.column_mapping.insert(id, cid);
             }
         }
 

@@ -755,18 +755,6 @@ mod tests {
                   - id: 0
                     kind:
                       ExternRef: issued_at
-                  - id: 2
-                    kind:
-                      ExternRef: issued_at
-                  - id: 3
-                    kind:
-                      ExternRef: issued_at
-                  - id: 4
-                    kind:
-                      ExternRef: issued_at
-                  - id: 5
-                    kind:
-                      ExternRef: issued_at
                   - id: 6
                     kind:
                       ExternRef: amount
@@ -800,41 +788,9 @@ mod tests {
                         name: ~
                         expr:
                           kind:
-                            ColumnRef: 2
-                          span: ~
-                  - id: 11
-                    kind:
-                      Expr:
-                        name: ~
-                        expr:
-                          kind:
-                            ColumnRef: 3
-                          span: ~
-                  - id: 12
-                    kind:
-                      Expr:
-                        name: ~
-                        expr:
-                          kind:
-                            ColumnRef: 4
-                          span: ~
-                  - id: 13
-                    kind:
-                      Expr:
-                        name: ~
-                        expr:
-                          kind:
-                            ColumnRef: 5
-                          span: ~
-                  - id: 14
-                    kind:
-                      Expr:
-                        name: ~
-                        expr:
-                          kind:
                             ColumnRef: 6
                           span: ~
-                  - id: 15
+                  - id: 11
                     kind:
                       Expr:
                         name: ~
@@ -844,47 +800,75 @@ mod tests {
                           span: ~
                 name: ~
             - Compute:
+                id: 12
+                kind:
+                  Expr:
+                    name: issued_at
+                    expr:
+                      kind:
+                        ColumnRef: 9
+                      span:
+                        start: 37
+                        end: 46
+            - Compute:
+                id: 13
+                kind:
+                  Expr:
+                    name: amount
+                    expr:
+                      kind:
+                        ColumnRef: 10
+                      span:
+                        start: 49
+                        end: 55
+            - Compute:
+                id: 14
+                kind:
+                  Expr:
+                    name: num_of_articles
+                    expr:
+                      kind:
+                        ColumnRef: 11
+                      span:
+                        start: 57
+                        end: 73
+            - Sort:
+                - direction: Asc
+                  column: 12
+                - direction: Desc
+                  column: 13
+                - direction: Asc
+                  column: 14
+            - Compute:
+                id: 15
+                kind:
+                  Expr:
+                    name: issued_at
+                    expr:
+                      kind:
+                        ColumnRef: 12
+                      span:
+                        start: 88
+                        end: 97
+            - Sort:
+                - direction: Asc
+                  column: 15
+            - Compute:
                 id: 16
                 kind:
                   Expr:
                     name: issued_at
                     expr:
                       kind:
-                        ColumnRef: 13
-                      span:
-                        start: 37
-                        end: 46
-            - Compute:
-                id: 17
-                kind:
-                  Expr:
-                    name: amount
-                    expr:
-                      kind:
-                        ColumnRef: 14
-                      span:
-                        start: 49
-                        end: 55
-            - Compute:
-                id: 18
-                kind:
-                  Expr:
-                    name: num_of_articles
-                    expr:
-                      kind:
                         ColumnRef: 15
                       span:
-                        start: 57
-                        end: 73
+                        start: 113
+                        end: 122
             - Sort:
-                - direction: Asc
-                  column: 16
                 - direction: Desc
-                  column: 17
-                - direction: Asc
-                  column: 18
+                  column: 16
             - Compute:
-                id: 19
+                id: 17
                 kind:
                   Expr:
                     name: issued_at
@@ -892,53 +876,25 @@ mod tests {
                       kind:
                         ColumnRef: 16
                       span:
-                        start: 88
-                        end: 97
-            - Sort:
-                - direction: Asc
-                  column: 19
-            - Compute:
-                id: 20
-                kind:
-                  Expr:
-                    name: issued_at
-                    expr:
-                      kind:
-                        ColumnRef: 19
-                      span:
-                        start: 113
-                        end: 122
-            - Sort:
-                - direction: Desc
-                  column: 20
-            - Compute:
-                id: 21
-                kind:
-                  Expr:
-                    name: issued_at
-                    expr:
-                      kind:
-                        ColumnRef: 20
-                      span:
                         start: 138
                         end: 147
             - Sort:
                 - direction: Asc
-                  column: 21
+                  column: 17
             - Compute:
-                id: 22
+                id: 18
                 kind:
                   Expr:
                     name: issued_at
                     expr:
                       kind:
-                        ColumnRef: 21
+                        ColumnRef: 17
                       span:
                         start: 164
                         end: 173
             - Sort:
                 - direction: Desc
-                  column: 22
+                  column: 18
             - Select:
                 - 8
         "###);
