@@ -1,7 +1,7 @@
 use anyhow::Result;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fmt::Debug;
 
 use super::{Declaration, Declarations, Scope};
@@ -16,6 +16,9 @@ pub struct Context {
 
     /// All declarations, even those out of scope
     pub(crate) declarations: Declarations,
+
+    /// Set of all ids that should be inlined during resolving
+    pub(crate) inline: HashSet<usize>,
 }
 
 impl Context {
@@ -146,6 +149,7 @@ impl Context {
         let mut res = HashMap::new();
         for (name, id) in dropped.unwrap_or_default() {
             let decl = self.declarations.take(id);
+            self.inline.remove(&id);
             self.declarations.forget(id);
             res.insert(name, decl);
         }
@@ -155,7 +159,7 @@ impl Context {
     pub fn insert_decls(&mut self, namespace: &str, decls: HashMap<String, Declaration>) {
         for (name, dec) in decls {
             let id = self.declarations.push(dec, None);
-
+            self.inline.insert(id);
             self.scope.add(namespace, name, id);
         }
     }

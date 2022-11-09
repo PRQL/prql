@@ -101,7 +101,13 @@ impl AstFold for Resolver {
                         ..node
                     },
 
-                    Declaration::Expression(expr) => *expr.clone(),
+                    Declaration::Expression(expr) => {
+                        if self.context.inline.contains(&id) {
+                            *expr.clone()
+                        } else {
+                            node
+                        }
+                    }
 
                     _ => node,
                 }
@@ -473,12 +479,15 @@ impl Resolver {
     ) -> Result<Expr> {
         let mut arg = self.fold_within_namespace(arg, &param.name)?;
 
-        // validate type
-        let param_ty = param.ty.as_ref().unwrap_or(&Ty::Infer);
-        let assumed_ty = validate_type(&arg, param_ty, || {
-            func_name.map(|n| format!("function `{n}`, param `{}`", param.name))
-        })?;
-        arg.ty = Some(assumed_ty);
+        // don't validate types of unresolved exprs
+        if arg.ty.is_some() {
+            // validate type
+            let param_ty = param.ty.as_ref().unwrap_or(&Ty::Infer);
+            let assumed_ty = validate_type(&arg, param_ty, || {
+                func_name.map(|n| format!("function `{n}`, param `{}`", param.name))
+            })?;
+            arg.ty = Some(assumed_ty);
+        }
 
         Ok(arg)
     }

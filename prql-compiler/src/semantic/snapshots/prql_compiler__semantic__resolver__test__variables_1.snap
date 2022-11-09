@@ -19,20 +19,10 @@ expression: "resolve_derive(r#\"\n            from employees\n            derive
   alias: gross_salary
 - Binary:
     left:
-      Binary:
-        left:
-          Ident:
-            namespace: ~
-            name: salary
-          ty: Infer
-        op: Add
-        right:
-          Ident:
-            namespace: ~
-            name: payroll_tax
-          ty: Infer
-      ty:
-        Literal: Column
+      Ident:
+        namespace: ~
+        name: gross_salary
+      ty: Infer
     op: Add
     right:
       Ident:

@@ -365,7 +365,7 @@ impl From<Vec<Transform>> for AtomicQuery {
 
 #[cfg(test)]
 mod test {
-    use insta::assert_yaml_snapshot;
+    use insta::assert_snapshot;
 
     use super::*;
     use crate::{ast::GenericDialect, parse, semantic::resolve};
@@ -443,7 +443,6 @@ mod test {
     }
 
     #[test]
-    #[ignore]
     fn test_variable_after_aggregate() {
         let query = &r#"
         from employees
@@ -457,8 +456,8 @@ mod test {
 
         let query = resolve(parse(query).unwrap()).unwrap();
 
-        let sql_ast = translate_query(query).unwrap();
+        let sql_ast = translate(query).unwrap();
 
-        assert_yaml_snapshot!(sql_ast);
+        assert_snapshot!(sql_ast);
     }
 }

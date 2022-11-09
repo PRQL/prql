@@ -124,18 +124,7 @@ pub fn cast_transform(
         "group" => {
             let ([by, pipeline, tbl], []) = unpack::<3, 0>(closure)?;
 
-            let by = by
-                .coerce_into_vec()
-                .into_iter()
-                // check that they are only idents
-                .map(|n| match n.kind {
-                    ExprKind::Ident(_) => Ok(n),
-                    _ => Err(Error::new(Reason::Simple(
-                        "`group` expects only idents for the `by` argument".to_string(),
-                    ))
-                    .with_span(n.span)),
-                })
-                .try_collect()?;
+            let by = by.coerce_into_vec();
 
             let pipeline = fold_by_simulating_eval(resolver, pipeline, tbl.ty.clone().unwrap())?;
 
@@ -468,6 +457,7 @@ impl AstFold for Flattener {
 
                 self.replace_map.insert(table_param.name.clone(), tbl);
                 self.partition = by;
+                self.sort.clear();
 
                 let expr = self.fold_expr(*pipeline.body)?;
 
@@ -528,10 +518,10 @@ impl AstFold for Flattener {
 mod tests {
     use insta::assert_yaml_snapshot;
 
-    use crate::{parse, semantic::resolve};
+    use crate::parse;
+    use crate::semantic::{resolve, resolve_only};
 
     #[test]
-    #[ignore]
     fn test_aggregate_positional_arg() {
         // distinct query #292
         let query = parse(
@@ -628,74 +618,57 @@ mod tests {
         ",
         )
         .unwrap();
-        let result = resolve(query).unwrap();
+        let (result, _) = resolve_only(query, None).unwrap();
         assert_yaml_snapshot!(result, @r###"
         ---
-        def:
-          version: ~
-          dialect: Generic
-        tables: []
-        main_pipeline:
-          - kind:
-              From:
-                name: c_invoice
-                alias: ~
-                declared_at: 29
-                ty:
-                  Table:
-                    columns:
-                      - All: 29
-                    sort: []
-                    tables: []
-            is_complex: false
-            partition: []
-            window: ~
-            ty:
-              columns:
-                - All: 29
-              sort: []
-              tables: []
-            span:
-              start: 9
-              end: 23
-          - kind:
-              Group:
-                by:
-                  - Ident: date
-                    ty: Infer
-                pipeline:
-                  - kind:
-                      Aggregate:
-                        assigns:
-                          - SString:
-                              - String: AVG(
-                              - Expr:
-                                  Ident: amount
-                                  ty: Infer
-                              - String: )
-                            ty:
-                              Literal: Column
-                        by: []
-                    is_complex: false
-                    partition: []
-                    window: ~
+        - Pipeline:
+            TransformCall:
+              kind:
+                Aggregate:
+                  assigns:
+                    - SString:
+                        - String: AVG(
+                        - Expr:
+                            Ident:
+                              namespace: ~
+                              name: amount
+                            ty: Infer
+                        - String: )
+                      ty:
+                        Literal: Column
+                  tbl:
+                    TransformCall:
+                      kind:
+                        From:
+                          Ident:
+                            namespace: ~
+                            name: c_invoice
+                          ty:
+                            Table:
+                              columns:
+                                - All: 29
+                              sort: []
+                              tables: []
                     ty:
-                      columns:
-                        - Unnamed: 32
-                      sort: []
-                      tables: []
-                    span: ~
-            is_complex: false
-            partition: []
-            window: ~
+                      Table:
+                        columns:
+                          - All: 29
+                        sort: []
+                        tables: []
+              partition:
+                - Ident:
+                    namespace: ~
+                    name: date
+                  ty: Infer
             ty:
-              columns:
-                - Unnamed: 32
-              sort: []
-              tables: []
-            span:
-              start: 32
-              end: 93
+              Table:
+                columns:
+                  - Named:
+                      - date
+                      - 30
+                  - Unnamed: 34
+                sort: []
+                tables: []
         "###);
     }
 

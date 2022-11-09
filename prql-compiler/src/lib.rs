@@ -195,7 +195,7 @@ mod test {
           c + a - b,
           c - d - (a - b),
           c + d + a - b,
-          y - z,
+          y - z AS x,
           -(y - z)
         FROM
           numbers
@@ -425,8 +425,7 @@ select `first name`
     }
 
     #[test]
-    #[ignore]
-    fn test_window_functions() {
+    fn test_window_functions_00() {
         assert_display_snapshot!((compile(r###"
         from employees
         group last_name (
@@ -434,31 +433,35 @@ select `first name`
         )
         "###).unwrap()), @r###"
         SELECT
-          employees.*,
+          *,
           COUNT(*) OVER (PARTITION BY last_name)
         FROM
           employees
         "###);
+    }
 
+    #[test]
+    #[ignore]
+    fn test_window_functions_02() {
         let query = r###"
         from co=cust_order
         join ol=order_line [~order_id]
         derive [
-          order_month = s"TO_CHAR({co.order_date}, '%Y-%m')",
-          order_day = s"TO_CHAR({co.order_date}, '%Y-%m-%d')",
+            order_month = s"TO_CHAR({co.order_date}, '%Y-%m')",
+            order_day = s"TO_CHAR({co.order_date}, '%Y-%m-%d')",
         ]
         group [order_month, order_day] (
-          aggregate [
-            num_orders = s"COUNT(DISTINCT {co.order_id})",
-            num_books = count non_null:ol.book_id,
-            total_price = sum ol.price,
-          ]
+            aggregate [
+                num_orders = s"COUNT(DISTINCT {co.order_id})",
+                num_books = count non_null:ol.book_id,
+                total_price = sum ol.price,
+            ]
         )
         group [order_month] (
-          sort order_day
-          window expanding:true (
-            derive [running_total_num_books = sum num_books]
-          )
+            sort order_day
+            window expanding:true (
+                derive [running_total_num_books = sum num_books]
+            )
         )
         sort order_day
         derive [num_books_last_week = lag 7 num_books]
@@ -491,7 +494,10 @@ select `first name`
         ORDER BY
           order_day
         "###);
+    }
 
+    #[test]
+    fn test_window_functions_03() {
         // lag must be recognized as window function, even outside of group context
         // rank must not have two OVER clauses
         let query = r###"
@@ -502,13 +508,16 @@ select `first name`
 
         assert_display_snapshot!((compile(query).unwrap()), @r###"
         SELECT
-          daily_orders.*,
+          *,
           LAG(num_orders, 7) OVER () AS last_week,
           SUM(num_orders) OVER (PARTITION BY month) AS total_month
         FROM
           daily_orders
         "###);
+    }
 
+    #[test]
+    fn test_window_functions_04() {
         // sort does not affects into groups, group undoes sorting
         let query = r###"
         from daily_orders
@@ -519,15 +528,17 @@ select `first name`
 
         assert_display_snapshot!((compile(query).unwrap()), @r###"
         SELECT
-          daily_orders.*,
+          *,
           RANK() OVER (PARTITION BY month) AS total_month,
           LAG(num_orders, 7) OVER () AS last_week
         FROM
           daily_orders
-        ORDER BY
-          day
         "###);
+    }
 
+    #[test]
+    #[ignore]
+    fn test_window_functions_05() {
         // sort does not leak out of groups
         let query = r###"
         from daily_orders
@@ -551,8 +562,7 @@ select `first name`
     }
 
     #[test]
-    #[ignore]
-    fn test_window_functions_2() {
+    fn test_window_functions_06() {
         // detect sum as a window function, even without group or window
         assert_display_snapshot!((compile(r###"
         from foo
@@ -562,13 +572,16 @@ select `first name`
         )
         "###).unwrap()), @r###"
         SELECT
-          foo.*,
+          *,
           SUM(b) OVER () AS a,
           SUM(b) OVER (PARTITION BY c) AS d
         FROM
           foo
         "###);
+    }
 
+    #[test]
+    fn test_window_functions_07() {
         assert_display_snapshot!((compile(r###"
         from foo
         window expanding:true (
@@ -576,7 +589,7 @@ select `first name`
         )
         "###).unwrap()), @r###"
         SELECT
-          foo.*,
+          *,
           SUM(b) OVER (
             ROWS BETWEEN UNBOUNDED PRECEDING
             AND CURRENT ROW
@@ -584,7 +597,10 @@ select `first name`
         FROM
           foo
         "###);
+    }
 
+    #[test]
+    fn test_window_functions_08() {
         assert_display_snapshot!((compile(r###"
         from foo
         window rolling:3 (
@@ -592,7 +608,7 @@ select `first name`
         )
         "###).unwrap()), @r###"
         SELECT
-          foo.*,
+          *,
           SUM(b) OVER (
             ROWS BETWEEN 2 PRECEDING
             AND CURRENT ROW
@@ -600,7 +616,10 @@ select `first name`
         FROM
           foo
         "###);
+    }
 
+    #[test]
+    fn test_window_functions_09() {
         assert_display_snapshot!((compile(r###"
         from foo
         window rows:0..4 (
@@ -608,7 +627,7 @@ select `first name`
         )
         "###).unwrap()), @r###"
         SELECT
-          foo.*,
+          *,
           SUM(b) OVER (
             ROWS BETWEEN CURRENT ROW
             AND 4 FOLLOWING
@@ -616,7 +635,10 @@ select `first name`
         FROM
           foo
         "###);
+    }
 
+    #[test]
+    fn test_window_functions_10() {
         assert_display_snapshot!((compile(r###"
         from foo
         sort day
@@ -625,7 +647,7 @@ select `first name`
         )
         "###).unwrap()), @r###"
         SELECT
-          foo.*,
+          *,
           SUM(b) OVER (
             ORDER BY
               day RANGE BETWEEN 4 PRECEDING
@@ -633,6 +655,8 @@ select `first name`
           ) AS next_four_days
         FROM
           foo
+        ORDER BY
+          day
         "###);
 
         // TODO: add test for preceding
@@ -1143,7 +1167,6 @@ select [mng_name, managers.gender, salary_avg, salary_sd]"#;
     }
 
     #[test]
-    #[ignore]
     fn test_prql_to_sql_2() {
         let query = r#"
 from employees
@@ -1174,7 +1197,6 @@ take 20
     }
 
     #[test]
-    #[ignore]
     fn test_prql_to_sql_table() {
         // table
         let query = r#"
@@ -1200,7 +1222,7 @@ take 20
             @r###"
         WITH newest_employees AS (
           SELECT
-            employees.*
+            *
           FROM
             employees
           ORDER BY
@@ -1213,16 +1235,14 @@ take 20
             AVG(salary) AS average_country_salary
           FROM
             salaries
-          GROUP BY
-            country
         )
         SELECT
           name,
-          average_salaries.salary,
-          average_salaries.average_country_salary
+          salary,
+          average_country_salary
         FROM
           newest_employees
-          JOIN average_salaries USING(country)
+          JOIN average_salaries ON newest_employees.country = average_salaries.country
         "###
         );
     }
