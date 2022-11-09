@@ -67,14 +67,6 @@ impl AnchorContext {
         format!("table_{id}")
     }
 
-    pub fn store_new_column(&mut self, kind: ColumnDefKind, tiid: TIId) -> CId {
-        let id = self.cid.gen();
-        let def = ColumnDef { id, kind };
-        self.columns_defs.insert(id, def);
-        self.columns_loc.insert(id, tiid);
-        id
-    }
-
     pub fn ensure_column_name(&mut self, cid: &CId) -> String {
         let def = self.columns_defs.get_mut(cid).unwrap();
 

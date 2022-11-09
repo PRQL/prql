@@ -28,9 +28,8 @@ pub struct Expr {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub ty: Option<Ty>,
 
-    /// Is true when containing window functions
     #[serde(skip)]
-    pub is_complex: bool,
+    pub needs_window: bool,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub alias: Option<String>,
@@ -163,6 +162,7 @@ impl FuncCall {
 pub struct Closure {
     pub name: Option<String>,
     pub body: Box<Expr>,
+    pub body_ty: Option<Ty>,
 
     pub args: Vec<Expr>,
     pub params: Vec<FuncParam>,
@@ -173,10 +173,10 @@ pub struct Closure {
     pub env: HashMap<String, Declaration>,
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub struct Window {
+#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
+pub struct WindowFrame<T = Box<Expr>> {
     pub kind: WindowKind,
-    pub range: Range,
+    pub range: Range<T>,
 }
 
 /// A value and a series of functions that are to be applied to that value one after another.
@@ -225,11 +225,11 @@ pub struct TransformCall {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub partition: Vec<Expr>,
 
-    /// Windowing of values in columns
-    #[serde(default, skip_serializing_if = "Window::is_default")]
-    pub window: Window,
+    /// Windowing frame of columns
+    #[serde(default, skip_serializing_if = "WindowFrame::is_default")]
+    pub frame: WindowFrame,
 
-    /// Windowing of values in columns
+    /// Windowing order of columns
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub sort: Vec<ColumnSort>,
 }
@@ -398,7 +398,7 @@ impl From<ExprKind> for Expr {
             span: None,
             declared_at: None,
             ty: None,
-            is_complex: false,
+            needs_window: false,
             alias: None,
         }
     }
@@ -415,17 +415,17 @@ impl From<TransformKind> for TransformCall {
         TransformCall {
             kind: Box::new(kind),
             partition: Vec::new(),
-            window: Window::default(),
+            frame: WindowFrame::default(),
             sort: Vec::new(),
         }
     }
 }
 
-impl Window {
+impl WindowFrame {
     fn is_default(&self) -> bool {
         matches!(
             self,
-            Window {
+            WindowFrame {
                 kind: WindowKind::Rows,
                 range: Range {
                     start: None,
@@ -436,7 +436,7 @@ impl Window {
     }
 }
 
-impl Default for Window {
+impl<T> Default for WindowFrame<T> {
     fn default() -> Self {
         Self {
             kind: WindowKind::Rows,

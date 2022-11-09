@@ -11,8 +11,8 @@ pub use table_counter::TableCounter;
 
 use serde::{Deserialize, Serialize};
 
-use crate::ast::{ColumnSort, QueryDef, Range};
-use crate::ast::{JoinSide, TableExternRef, WindowKind};
+use crate::ast::{ColumnSort, QueryDef, Range, WindowFrame};
+use crate::ast::{JoinSide, TableExternRef};
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Query {
@@ -70,16 +70,20 @@ pub enum Transform {
 }
 
 /// Transformation of a table.
-#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, Default)]
 pub struct Window {
-    kind: WindowKind,
-    range: Range<CId>,
+    pub frame: WindowFrame<Expr>,
+    pub partition: Vec<CId>,
+    pub sort: Vec<ColumnSort<CId>>,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct ColumnDef {
     pub id: CId,
     pub kind: ColumnDefKind,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub window: Option<Window>,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize, EnumAsInner)]
@@ -127,14 +131,5 @@ impl From<usize> for TId {
 impl std::fmt::Debug for TId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "table-{}", self.0)
-    }
-}
-
-impl Default for Window {
-    fn default() -> Self {
-        Self {
-            kind: WindowKind::Rows,
-            range: Range::unbounded(),
-        }
     }
 }

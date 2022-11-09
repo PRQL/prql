@@ -262,6 +262,7 @@ fn fold_by_simulating_eval(
     let pipeline = Expr::from(ExprKind::Closure(Closure {
         name: None,
         body: Box::new(pipeline),
+        body_ty: None,
 
         args: vec![],
         params: vec![FuncParam {
@@ -414,6 +415,8 @@ pub struct Flattener {
     /// so it's passed to parent call of `fold_transform_call`
     sort: Vec<ColumnSort>,
 
+    sort_undone: bool,
+
     /// Group affects transforms in it's inner pipeline.
     /// This means that this field has to be set before folding inner pipeline,
     /// and unset after the folding.
@@ -422,7 +425,7 @@ pub struct Flattener {
     /// Window affects transforms in it's inner pipeline.
     /// This means that this field has to be set before folding inner pipeline,
     /// and unset after the folding.
-    window: Window,
+    window: WindowFrame,
 
     /// Window and group contain Closures in their inner pipelines.
     /// These closures have form similar to this function:
@@ -447,9 +450,16 @@ impl AstFold for Flattener {
 
                 self.sort = by.clone();
 
-                TransformKind::Sort { by, tbl }
+                if self.sort_undone {
+                    return Ok(tbl.kind.into_transform_call().unwrap());
+                } else {
+                    TransformKind::Sort { by, tbl }
+                }
             }
             TransformKind::Group { by, pipeline, tbl } => {
+                let sort_undone = self.sort_undone;
+                self.sort_undone = true;
+
                 let tbl = self.fold_expr(tbl)?;
 
                 let pipeline = pipeline.kind.into_closure().unwrap();
@@ -463,6 +473,8 @@ impl AstFold for Flattener {
 
                 self.partition = Vec::new();
                 self.replace_map.remove(&table_param.name);
+                self.sort.clear();
+                self.sort_undone = sort_undone;
 
                 return Ok(expr.kind.into_transform_call().unwrap());
             }
@@ -472,16 +484,17 @@ impl AstFold for Flattener {
                 pipeline,
                 tbl,
             } => {
+                let tbl = self.fold_expr(tbl)?;
                 let pipeline = pipeline.kind.into_closure().unwrap();
 
                 let table_param = &pipeline.params[0];
 
                 self.replace_map.insert(table_param.name.clone(), tbl);
-                self.window = Window { kind, range };
+                self.window = WindowFrame { kind, range };
 
                 let expr = self.fold_expr(*pipeline.body)?;
 
-                self.window = Window::default();
+                self.window = WindowFrame::default();
                 self.replace_map.remove(&table_param.name);
 
                 return Ok(expr.kind.into_transform_call().unwrap());
@@ -492,7 +505,7 @@ impl AstFold for Flattener {
         Ok(TransformCall {
             kind: Box::new(kind),
             partition: self.partition.clone(),
-            window: self.window.clone(),
+            frame: self.window.clone(),
             sort: self.sort.clone(),
         })
     }
@@ -510,120 +523,6 @@ impl AstFold for Flattener {
         Ok(expr)
     }
 }
-
-/*
-fn fold_node(&mut self, mut node: Node) -> Result<Node> {
-    match node.item {
-        Item::FuncCall(func_call) => {
-            if let Some(transform) = cast_transform(&func_call, node.declared_at)? {
-                node.item = Item::Transform(self.fold_transform(transform)?);
-            } else {
-                let func_def = self.context.declarations.get_func(node.declared_at)?;
-                let return_type = func_def.return_ty.clone();
-
-                let func_call = Item::FuncCall(self.fold_func_call(func_call)?);
-
-                // wrap into windowed
-                if Some(Ty::column()) <= return_type && !self.within_aggregate {
-                    node.item = self.wrap_into_windowed(func_call, node.declared_at);
-                    node.declared_at = None;
-                } else {
-                    node.item = func_call;
-                }
-            }
-        }
-
-        item => {
-            node.item = fold_item(self, item)?;
-        }
-    }
-    Ok(node)
-} */
-
-/*
-impl TransformConstructor {
-    fn wrap_into_windowed(&self, expr: Item, declared_at: Option<usize>) -> Item {
-        const REF: &str = "<ref>";
-
-        let mut expr: Node = expr.into();
-        expr.declared_at = declared_at;
-
-        let frame = self
-            .within_window
-            .clone()
-            .unwrap_or((WindowKind::Rows, Range::unbounded()));
-
-        let mut window = Windowed::new(expr, frame);
-
-        if !self.within_group.is_empty() {
-            window.group = (self.within_group)
-                .iter()
-                .map(|id| Node::new_ident(REF, *id))
-                .collect();
-        }
-        if !self.sorted.is_empty() {
-            window.sort = (self.sorted)
-                .iter()
-                .map(|s| ColumnSort {
-                    column: Node::new_ident(REF, s.column),
-                    direction: s.direction.clone(),
-                })
-                .collect();
-        }
-
-        Item::Windowed(window)
-    }
-
-    fn apply_group(&mut self, t: &mut Transform) -> Result<()> {
-        match t {
-            Transform::Select(_)
-            | Transform::Derive(_)
-            | Transform::Sort(_)
-            | Transform::Window { .. } => {
-                // ok
-            }
-            Transform::Aggregate { by, .. } => {
-                *by = (self.within_group)
-                    .iter()
-                    .map(|id| Node::new_ident("<ref>", *id))
-                    .collect();
-            }
-            Transform::Take { by, sort, .. } => {
-                *by = (self.within_group)
-                    .iter()
-                    .map(|id| Node::new_ident("<ref>", *id))
-                    .collect();
-
-                *sort = (self.sorted)
-                    .iter()
-                    .map(|s| ColumnSort {
-                        column: Node::new_ident("<ref>", s.column),
-                        direction: s.direction.clone(),
-                    })
-                    .collect();
-            }
-            _ => {
-                // TODO: attach span to this error
-                bail!(Error::new(Reason::Simple(format!(
-                    "transform `{}` is not allowed within group context",
-                    t.as_ref()
-                ))))
-            }
-        }
-        Ok(())
-    }
-
-    fn apply_window(&mut self, t: &mut Transform) -> Result<()> {
-        if !matches!(t, Transform::Select(_) | Transform::Derive(_)) {
-            // TODO: attach span to this error
-            bail!(Error::new(Reason::Simple(format!(
-                "transform `{}` is not allowed within window context",
-                t.as_ref()
-            ))))
-        }
-        Ok(())
-    }
-} */
 
 #[cfg(test)]
 mod tests {
@@ -684,19 +583,8 @@ mod tests {
                             ColumnRef: 0
                           span: ~
                 name: ~
-            - Compute:
-                id: 5
-                kind:
-                  Expr:
-                    name: invoice_no
-                    expr:
-                      kind:
-                        ColumnRef: 4
-                      span:
-                        start: 39
-                        end: 49
             - Select:
-                - 5
+                - 4
             - Take:
                 start: ~
                 end:
@@ -705,7 +593,7 @@ mod tests {
                       Integer: 1
                   span: ~
             - Select:
-                - 5
+                - 4
         "###);
 
         // oops, two arguments #339
@@ -886,102 +774,25 @@ mod tests {
                             ColumnRef: 7
                           span: ~
                 name: ~
-            - Compute:
-                id: 19
-                kind:
-                  Expr:
-                    name: issued_at
-                    expr:
-                      kind:
-                        ColumnRef: 16
-                      span:
-                        start: 37
-                        end: 46
-            - Compute:
-                id: 20
-                kind:
-                  Expr:
-                    name: amount
-                    expr:
-                      kind:
-                        ColumnRef: 17
-                      span:
-                        start: 49
-                        end: 55
-            - Compute:
-                id: 21
-                kind:
-                  Expr:
-                    name: num_of_articles
-                    expr:
-                      kind:
-                        ColumnRef: 18
-                      span:
-                        start: 57
-                        end: 73
             - Sort:
                 - direction: Asc
-                  column: 19
+                  column: 16
                 - direction: Desc
-                  column: 20
+                  column: 17
                 - direction: Asc
-                  column: 21
-            - Compute:
-                id: 22
-                kind:
-                  Expr:
-                    name: issued_at
-                    expr:
-                      kind:
-                        ColumnRef: 19
-                      span:
-                        start: 88
-                        end: 97
+                  column: 18
             - Sort:
                 - direction: Asc
-                  column: 22
-            - Compute:
-                id: 23
-                kind:
-                  Expr:
-                    name: issued_at
-                    expr:
-                      kind:
-                        ColumnRef: 22
-                      span:
-                        start: 113
-                        end: 122
+                  column: 16
             - Sort:
                 - direction: Desc
-                  column: 23
-            - Compute:
-                id: 24
-                kind:
-                  Expr:
-                    name: issued_at
-                    expr:
-                      kind:
-                        ColumnRef: 23
-                      span:
-                        start: 138
-                        end: 147
+                  column: 16
             - Sort:
                 - direction: Asc
-                  column: 24
-            - Compute:
-                id: 25
-                kind:
-                  Expr:
-                    name: issued_at
-                    expr:
-                      kind:
-                        ColumnRef: 24
-                      span:
-                        start: 164
-                        end: 173
+                  column: 16
             - Sort:
                 - direction: Desc
-                  column: 25
+                  column: 16
             - Select:
                 - 15
         "###);

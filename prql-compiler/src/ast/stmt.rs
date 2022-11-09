@@ -25,7 +25,7 @@ pub enum StmtKind {
     QueryDef(QueryDef),
     FuncDef(FuncDef),
     TableDef(TableDef),
-    Pipeline(Expr),
+    Pipeline(Box<Expr>),
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize, Default)]

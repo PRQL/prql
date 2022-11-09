@@ -80,7 +80,17 @@ pub fn split_off_back(
         let cols = if cols.is_empty() {
             input_tables
                 .iter()
-                .map(|tiid| context.store_new_column(ColumnDefKind::Wildcard, *tiid))
+                .map(|tiid| {
+                    let id = context.cid.gen();
+                    let def = ColumnDef {
+                        id,
+                        kind: ColumnDefKind::Wildcard,
+                        window: None,
+                    };
+                    context.columns_defs.insert(id, def);
+                    context.columns_loc.insert(id, *tiid);
+                    id
+                })
                 .collect()
         } else {
             cols
@@ -156,6 +166,7 @@ pub fn anchor_split(
                     ColumnDefKind::ExternRef(ctx.ensure_column_name(old_cid))
                 }
             },
+            window: None,
         };
         ctx.columns_defs.insert(new_cid, new_def.clone());
         ctx.columns_loc.insert(new_cid, new_tiid);
@@ -424,10 +435,16 @@ fn infer_complexity(col_def: &ColumnDef) -> Complexity {
     use Complexity::*;
 
     match &col_def.kind {
-        ColumnDefKind::Expr { expr, .. } => match &expr.kind {
-            ColumnRef(_) => Ident,
-            _ => Expr,
-        },
+        ColumnDefKind::Expr { expr, .. } => {
+            if col_def.window.is_some() {
+                Windowed
+            } else {
+                match &expr.kind {
+                    ColumnRef(_) => Ident,
+                    _ => Expr,
+                }
+            }
+        }
         ColumnDefKind::Wildcard => Ident,
         ColumnDefKind::ExternRef(_) => Ident,
     }

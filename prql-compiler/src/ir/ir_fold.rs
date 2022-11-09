@@ -47,21 +47,43 @@ pub trait IrFold {
         fold_expr_kind(self, kind)
     }
     fn fold_column_def(&mut self, cd: ColumnDef) -> Result<ColumnDef> {
-        Ok(ColumnDef {
-            id: cd.id,
-            kind: match cd.kind {
-                ColumnDefKind::Wildcard => ColumnDefKind::Wildcard,
-                ColumnDefKind::ExternRef(name) => ColumnDefKind::ExternRef(name),
-                ColumnDefKind::Expr { name, expr } => ColumnDefKind::Expr {
-                    name,
-                    expr: self.fold_expr(expr)?,
-                },
-            },
-        })
+        fold_column_def(self, cd)
     }
     fn fold_cid(&mut self, cid: CId) -> Result<CId> {
         Ok(cid)
     }
+}
+
+fn fold_column_def<F: ?Sized + IrFold>(
+    fold: &mut F,
+    cd: ColumnDef,
+) -> Result<ColumnDef, anyhow::Error> {
+    Ok(ColumnDef {
+        id: cd.id,
+        kind: match cd.kind {
+            ColumnDefKind::Wildcard => ColumnDefKind::Wildcard,
+            ColumnDefKind::ExternRef(name) => ColumnDefKind::ExternRef(name),
+            ColumnDefKind::Expr { name, expr } => ColumnDefKind::Expr {
+                name,
+                expr: fold.fold_expr(expr)?,
+            },
+        },
+        window: cd.window.map(|w| fold_window(fold, w)).transpose()?,
+    })
+}
+
+fn fold_window<F: ?Sized + IrFold>(fold: &mut F, w: Window) -> Result<Window> {
+    Ok(Window {
+        frame: WindowFrame {
+            kind: w.frame.kind,
+            range: Range {
+                start: w.frame.range.start.map(|x| fold.fold_expr(x)).transpose()?,
+                end: w.frame.range.end.map(|x| fold.fold_expr(x)).transpose()?,
+            },
+        },
+        partition: fold_cids(fold, w.partition)?,
+        sort: fold_column_sorts(fold, w.sort)?,
+    })
 }
 
 pub fn fold_table<F: ?Sized + IrFold>(fold: &mut F, t: TableDef) -> Result<TableDef> {
@@ -136,17 +158,7 @@ pub fn fold_transform<T: ?Sized + IrFold>(
 
         Select(ids) => Select(fold_cids(fold, ids)?),
         Filter(i) => Filter(i),
-        Sort(sorts) => Sort(
-            sorts
-                .into_iter()
-                .map(|s| -> Result<ColumnSort<CId>> {
-                    Ok(ColumnSort {
-                        column: fold.fold_cid(s.column)?,
-                        direction: s.direction,
-                    })
-                })
-                .try_collect()?,
-        ),
+        Sort(sorts) => Sort(fold_column_sorts(fold, sorts)?),
         Take(range) => Take(range),
         Join { side, with, filter } => Join {
             side,
@@ -156,6 +168,21 @@ pub fn fold_transform<T: ?Sized + IrFold>(
         Unique => Unique,
     };
     Ok(transform)
+}
+
+fn fold_column_sorts<T: ?Sized + IrFold>(
+    fold: &mut T,
+    sorts: Vec<ColumnSort<CId>>,
+) -> Result<Vec<ColumnSort<CId>>> {
+    sorts
+        .into_iter()
+        .map(|s| -> Result<ColumnSort<CId>> {
+            Ok(ColumnSort {
+                column: fold.fold_cid(s.column)?,
+                direction: s.direction,
+            })
+        })
+        .try_collect()
 }
 
 pub fn fold_expr_kind<F: ?Sized + IrFold>(fold: &mut F, kind: ExprKind) -> Result<ExprKind> {

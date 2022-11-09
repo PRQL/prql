@@ -14,7 +14,7 @@ use sqlformat::{format, FormatOptions, QueryParams};
 use sqlparser::ast::{self as sql_ast, Select, SetExpr, TableWithJoins};
 
 use crate::ast::{DialectHandler, Literal};
-use crate::ir::{Expr, ExprKind, IrFold, Query, TableCounter, TableDef, TableExpr, Transform};
+use crate::ir::{CId, Expr, ExprKind, IrFold, Query, TableCounter, TableDef, TableExpr, Transform};
 use crate::sql::anchor::materialize_inputs;
 use crate::utils::{IntoOnly, Pluck};
 
@@ -180,19 +180,19 @@ fn sql_query_of_atomic_query(
         .unwrap_or(pipeline.len());
     let (before, after) = pipeline.split_at(aggregate_position);
 
+    // WHERE and HAVING
+    let where_ = filter_of_pipeline(before, context)?;
+    let having = filter_of_pipeline(after, context)?;
+
     // GROUP BY
     let aggregate = pipeline.get(aggregate_position);
-    let group_bys: Vec<Expr> = match aggregate {
+    let group_bys: Vec<CId> = match aggregate {
         Some(Transform::Aggregate(_)) => vec![], // TODO: add by argument to Aggregate and use it here
         None => vec![],
         _ => unreachable!("Expected an aggregate transformation"),
     };
 
-    // WHERE and HAVING
-    let where_ = filter_of_pipeline(before, context)?;
-
     context.pre_projection = false;
-    let having = filter_of_pipeline(after, context)?;
 
     let takes = pipeline.pluck(|t| t.into_take());
     let take = range_of_ranges(takes)?;

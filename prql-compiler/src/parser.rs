@@ -51,7 +51,7 @@ fn stmt_of_parse_pair(pair: Pair<Rule>) -> Result<Stmt> {
     let kind = match rule {
         Rule::pipeline_stmt => {
             let pipeline = expr_of_parse_pair(pair.into_inner().next().unwrap())?;
-            StmtKind::Pipeline(pipeline)
+            StmtKind::Pipeline(Box::new(pipeline))
         }
         Rule::query_def => {
             let mut params: HashMap<_, _> = pair
@@ -354,7 +354,7 @@ fn expr_of_parse_pair(pair: Pair<Rule>) -> Result<Expr> {
         alias,
         declared_at: None,
         ty: None,
-        is_complex: false,
+        needs_window: false,
     })
 }
 

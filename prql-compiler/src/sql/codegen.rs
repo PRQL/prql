@@ -5,12 +5,12 @@ use itertools::Itertools;
 use sqlparser::ast::{
     self as sql_ast, BinaryOperator, DateTimeField, Function, FunctionArg, FunctionArgExpr, Join,
     JoinConstraint, JoinOperator, ObjectName, OrderByExpr, SelectItem, TableAlias, TableFactor,
-    Top, UnaryOperator, Value, WindowFrameBound,
+    Top, UnaryOperator, Value, WindowFrameBound, WindowSpec,
 };
 
 use crate::ast::{
     BinOp, ColumnSort, Dialect, InterpolateItem, JoinSide, Literal, Range, SortDirection,
-    WindowKind,
+    WindowFrame, WindowKind,
 };
 use crate::error::{Error, Reason};
 use crate::ir::*;
@@ -106,30 +106,6 @@ pub(super) fn translate_expr_kind(item: ExprKind, ctx: &mut Context) -> Result<s
                 special: false,
             })
         }
-        // ExprKind::Windowed(window) => {
-        //     let expr = translate_expr_kind(window.expr.kind, dialect)?;
-
-        //     let default_frame = if window.sort.is_empty() {
-        //         (WindowKind::Rows, Range::unbounded())
-        //     } else {
-        //         (WindowKind::Range, Range::from_ints(None, Some(0)))
-        //     };
-
-        //     let window = WindowSpec {
-        //         partition_by: try_into_exprs(window.group, dialect)?,
-        //         order_by: (window.sort)
-        //             .into_iter()
-        //             .map(|s| translate_column_sort(s, dialect))
-        //             .try_collect()?,
-        //         window_frame: if window.window == default_frame {
-        //             None
-        //         } else {
-        //             Some(try_into_window_frame(window.window)?)
-        //         },
-        //     };
-
-        //     sql_ast::Expr::Identifier(sql_ast::Ident::new(format!("{expr} OVER ({window})")))
-        // }
         ExprKind::Literal(l) => match l {
             Literal::Null => sql_ast::Expr::Value(Value::Null),
             Literal::String(s) => sql_ast::Expr::Value(Value::SingleQuotedString(s)),
@@ -178,7 +154,15 @@ fn translate_cid(cid: CId, ctx: &mut Context) -> Result<sql_ast::Expr> {
         let def = ctx.anchor.columns_defs.get(&cid).unwrap();
 
         if let ColumnDefKind::Expr { expr, .. } = &def.kind {
-            return translate_expr_kind(expr.kind.clone(), ctx);
+            let window = def.window.clone();
+
+            let expr = translate_expr_kind(expr.kind.clone(), ctx)?;
+
+            return if let Some(window) = window {
+                translate_windowed(expr, window, ctx)
+            } else {
+                Ok(expr)
+            };
         }
     }
 
@@ -266,11 +250,9 @@ pub(super) fn top_of_i64(take: i64, ctx: &mut Context) -> Top {
         percent: false,
     }
 }
-pub(super) fn try_into_exprs(nodes: Vec<Expr>, ctx: &mut Context) -> Result<Vec<sql_ast::Expr>> {
-    nodes
-        .into_iter()
-        .map(|x| x.kind)
-        .map(|item| translate_expr_kind(item, ctx))
+pub(super) fn try_into_exprs(cids: Vec<CId>, ctx: &mut Context) -> Result<Vec<sql_ast::Expr>> {
+    cids.into_iter()
+        .map(|cid| translate_cid(cid, ctx))
         .try_collect()
 }
 
@@ -324,8 +306,48 @@ fn try_into_is_null(
     Ok(None)
 }
 
-#[allow(dead_code)]
-fn try_into_window_frame((kind, range): (WindowKind, Range<Expr>)) -> Result<sql_ast::WindowFrame> {
+fn translate_windowed(
+    expr: sql_ast::Expr,
+    window: Window,
+    ctx: &mut Context,
+) -> Result<sql_ast::Expr> {
+    let default_frame = {
+        let (kind, range) = if window.sort.is_empty() {
+            (WindowKind::Rows, Range::unbounded())
+        } else {
+            (
+                WindowKind::Range,
+                Range {
+                    start: None,
+                    end: Some(Expr {
+                        kind: ExprKind::Literal(Literal::Integer(0)),
+                        span: None,
+                    }),
+                },
+            )
+        };
+        WindowFrame { kind, range }
+    };
+
+    let window = WindowSpec {
+        partition_by: try_into_exprs(window.partition, ctx)?,
+        order_by: (window.sort)
+            .into_iter()
+            .map(|sort| translate_column_sort(&sort, ctx))
+            .try_collect()?,
+        window_frame: if window.frame == default_frame {
+            None
+        } else {
+            Some(try_into_window_frame(window.frame)?)
+        },
+    };
+
+    Ok(sql_ast::Expr::Identifier(sql_ast::Ident::new(format!(
+        "{expr} OVER ({window})"
+    ))))
+}
+
+fn try_into_window_frame(frame: WindowFrame<Expr>) -> Result<sql_ast::WindowFrame> {
     fn parse_bound(bound: Expr) -> Result<WindowFrameBound> {
         let as_int = bound.kind.into_literal()?.into_integer()?;
         Ok(match as_int {
@@ -336,16 +358,16 @@ fn try_into_window_frame((kind, range): (WindowKind, Range<Expr>)) -> Result<sql
     }
 
     Ok(sql_ast::WindowFrame {
-        units: match kind {
+        units: match frame.kind {
             WindowKind::Rows => sql_ast::WindowFrameUnits::Rows,
             WindowKind::Range => sql_ast::WindowFrameUnits::Range,
         },
-        start_bound: if let Some(start) = range.start {
+        start_bound: if let Some(start) = frame.range.start {
             parse_bound(start)?
         } else {
             WindowFrameBound::Preceding(None)
         },
-        end_bound: Some(if let Some(end) = range.end {
+        end_bound: Some(if let Some(end) = frame.range.end {
             parse_bound(end)?
         } else {
             WindowFrameBound::Following(None)

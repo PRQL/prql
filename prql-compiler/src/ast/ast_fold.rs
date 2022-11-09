@@ -64,7 +64,7 @@ pub trait AstFold {
     fn fold_type(&mut self, t: Ty) -> Result<Ty> {
         fold_type(self, t)
     }
-    fn fold_window(&mut self, window: Window) -> Result<Window> {
+    fn fold_window(&mut self, window: WindowFrame) -> Result<WindowFrame> {
         fold_window(self, window)
     }
 }
@@ -112,13 +112,13 @@ pub fn fold_stmt_kind<T: ?Sized + AstFold>(fold: &mut T, stmt_kind: StmtKind) ->
     Ok(match stmt_kind {
         FuncDef(func) => FuncDef(fold.fold_func_def(func)?),
         TableDef(table) => TableDef(fold.fold_table(table)?),
-        Pipeline(expr) => Pipeline(fold.fold_expr(expr)?),
+        Pipeline(expr) => Pipeline(Box::new(fold.fold_expr(*expr)?)),
         QueryDef(_) => stmt_kind,
     })
 }
 
-pub fn fold_window<F: ?Sized + AstFold>(fold: &mut F, window: Window) -> Result<Window> {
-    Ok(Window {
+pub fn fold_window<F: ?Sized + AstFold>(fold: &mut F, window: WindowFrame) -> Result<WindowFrame> {
+    Ok(WindowFrame {
         kind: window.kind,
         range: fold_range(fold, window.range)?,
     })
@@ -210,7 +210,7 @@ pub fn fold_transform_call<T: ?Sized + AstFold>(
     Ok(TransformCall {
         kind: Box::new(fold_transform_kind(fold, *t.kind)?),
         partition: fold.fold_exprs(t.partition)?,
-        window: fold.fold_window(t.window)?,
+        frame: fold.fold_window(t.frame)?,
         sort: fold_column_sorts(fold, t.sort)?,
     })
 }

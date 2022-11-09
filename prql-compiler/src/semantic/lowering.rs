@@ -4,7 +4,7 @@ use anyhow::{bail, Result};
 use itertools::Itertools;
 
 use crate::ast::ast_fold::AstFold;
-use crate::ast::{Expr, InterpolateItem, Range, TableExternRef};
+use crate::ast::{Expr, InterpolateItem, Range, TableExternRef, WindowFrame};
 use crate::error::{Error, Reason};
 use crate::ir::{
     CId, ColumnDef, ColumnDefKind, IdGenerator, Query, TId, TableDef, TableExpr, Transform,
@@ -39,7 +39,7 @@ pub fn lower_ast_to_ir(statements: Vec<ast::Stmt>, context: Context) -> Result<Q
                 l.tables_pipeline.push(TableDef { id, name, expr });
             }
             ast::StmtKind::Pipeline(expr) => {
-                let ir = l.lower_table_pipeline(expr)?;
+                let ir = l.lower_table_pipeline(*expr)?;
                 main_pipeline = Some(ir);
             }
         }
@@ -72,6 +72,9 @@ struct Lowerer {
 
     context: Context,
 
+    // current window for any new column defs
+    window: Option<ir::Window>,
+
     /// mapping from [crate::semantic::Declarations] into [CId]s
     column_mapping: HashMap<usize, CId>,
 
@@ -92,6 +95,7 @@ impl Lowerer {
     fn new(context: Context) -> Self {
         Lowerer {
             context,
+            window: None,
 
             cid: IdGenerator::new(),
             tid: IdGenerator::new(),
@@ -139,6 +143,7 @@ impl Lowerer {
                             span: None,
                         },
                     },
+                    window: None,
                 }
             })
             .collect();
@@ -162,6 +167,7 @@ impl Lowerer {
                 vec![ColumnDef {
                     id: self.cid.gen(),
                     kind: ColumnDefKind::Wildcard,
+                    window: None,
                 }],
             ),
         });
@@ -210,6 +216,17 @@ impl Lowerer {
         }
 
         // ... and continues with transforms created in this function
+
+        let window = ir::Window {
+            frame: WindowFrame {
+                kind: transform_call.frame.kind,
+                range: self.lower_range(transform_call.frame.range)?,
+            },
+            partition: self.declare_as_columns(transform_call.partition, &mut transforms)?,
+            sort: self.lower_sorts(transform_call.sort, &mut transforms)?,
+        };
+        self.window = Some(window);
+
         match *transform_call.kind {
             ast::TransformKind::From(expr) => {
                 let id = self.lower_table_ref(expr)?;
@@ -233,16 +250,13 @@ impl Lowerer {
                 transforms.push(Transform::Filter(self.lower_expr(*filter)?));
             }
             ast::TransformKind::Aggregate { assigns, .. } => {
+                self.window = None;
                 let select = self.declare_as_columns(assigns, &mut transforms)?;
 
                 transforms.push(Transform::Aggregate(select))
             }
             ast::TransformKind::Sort { by, .. } => {
-                let mut sorts = Vec::new();
-                for ast::ColumnSort { column, direction } in by {
-                    let column = self.declare_as_column(column, &mut transforms)?;
-                    sorts.push(ast::ColumnSort { direction, column });
-                }
+                let sorts = self.lower_sorts(by, &mut transforms)?;
                 transforms.push(Transform::Sort(sorts));
             }
             ast::TransformKind::Take { range, .. } => {
@@ -265,21 +279,31 @@ impl Lowerer {
                 };
                 transforms.push(transform);
             }
-            ast::TransformKind::Group { by, pipeline, .. } => {
-                let mut partition = Vec::new();
-                for x in by {
-                    let iid = self.declare_as_column(x, &mut transforms)?;
-                    partition.push(iid);
-                }
-
-                transforms.extend(self.lower_transform(*pipeline)?);
-            }
-            ast::TransformKind::Window { .. } => {
-                // TODO
-            }
+            ast::TransformKind::Group { .. } | ast::TransformKind::Window { .. } => unreachable!(),
         }
+        self.window = None;
 
         Ok(transforms)
+    }
+
+    fn lower_range(&mut self, range: ast::Range<Box<ast::Expr>>) -> Result<Range<ir::Expr>> {
+        Ok(Range {
+            start: range.start.map(|x| self.lower_expr(*x)).transpose()?,
+            end: range.end.map(|x| self.lower_expr(*x)).transpose()?,
+        })
+    }
+
+    fn lower_sorts(
+        &mut self,
+        by: Vec<ast::ColumnSort>,
+        transforms: &mut Vec<Transform>,
+    ) -> Result<Vec<ast::ColumnSort<CId>>> {
+        by.into_iter()
+            .map(|ast::ColumnSort { column, direction }| {
+                let column = self.declare_as_column(column, transforms)?;
+                Ok(ast::ColumnSort { direction, column })
+            })
+            .try_collect()
     }
 
     /// Append a Select of final table columns derived from frame
@@ -328,6 +352,9 @@ impl Lowerer {
         expr_ast: ast::Expr,
         transforms: &mut Vec<Transform>,
     ) -> Result<ir::CId> {
+        // copy metadata before lowering
+        let has_alias = expr_ast.alias.is_some();
+        let needs_window = expr_ast.needs_window;
         let name = if let Some(alias) = expr_ast.alias.clone() {
             Some(alias)
         } else {
@@ -335,12 +362,29 @@ impl Lowerer {
         };
         let id = expr_ast.declared_at;
 
+        // lower
         let expr = self.lower_expr(expr_ast)?;
 
+        // don't create new ColumnDef if expr is just a ColumnRef
+        if let ir::ExprKind::ColumnRef(cid) = &expr.kind {
+            if !has_alias && !needs_window {
+                return Ok(*cid);
+            }
+        }
+
+        // determine window, but only for s-strings
+        let window = if needs_window {
+            self.window.clone()
+        } else {
+            None
+        };
+
+        // construct ColumnDef
         let cid = self.cid.gen();
         let def = ColumnDef {
             id: cid,
             kind: ColumnDefKind::Expr { name, expr },
+            window,
         };
 
         if let Some(id) = id {
@@ -431,7 +475,7 @@ impl Lowerer {
     fn lower_interpolations(
         &mut self,
         items: Vec<InterpolateItem>,
-    ) -> Result<Vec<InterpolateItem<ir::Expr>>, anyhow::Error> {
+    ) -> Result<Vec<InterpolateItem<ir::Expr>>> {
         items
             .into_iter()
             .map(|i| {
@@ -472,7 +516,11 @@ impl<'a> AstFold for ExternRefExtractor<'a> {
                 // but I don't want to bother with lowerer mut borrow
                 let new_cid = self.lowerer.cid.gen();
                 let kind = ColumnDefKind::ExternRef(variable.clone());
-                let col_def = ColumnDef { id: new_cid, kind };
+                let col_def = ColumnDef {
+                    id: new_cid,
+                    kind,
+                    window: None,
+                };
 
                 let (_, cols) = self.lowerer.extern_table_entry(table_id);
                 let existing = cols.iter().find_map(|cd| match &cd.kind {

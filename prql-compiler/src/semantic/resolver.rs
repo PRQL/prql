@@ -65,7 +65,7 @@ impl AstFold for Resolver {
                     continue;
                 }
                 StmtKind::TableDef(table) => StmtKind::TableDef(self.fold_table(table)?),
-                StmtKind::Pipeline(expr) => StmtKind::Pipeline(self.fold_expr(expr)?),
+                StmtKind::Pipeline(expr) => StmtKind::Pipeline(Box::new(self.fold_expr(*expr)?)),
             };
 
             res.push(Stmt { kind, ..stmt })
@@ -204,6 +204,7 @@ fn closure_of_func_def(func_def: &FuncDef) -> Closure {
     Closure {
         name: Some(func_def.name.clone()),
         body: func_def.body.clone(),
+        body_ty: func_def.return_ty.clone(),
 
         args: vec![],
         params: func_def.positional_params.clone(),
@@ -266,6 +267,7 @@ impl Resolver {
                 }
                 Err(closure) => {
                     // this function call is not a transform, proceed with materialization
+                    let needs_window = Some(Ty::column()) <= closure.body_ty;
 
                     let (func_env, body) = env_of_closure(closure);
 
@@ -278,7 +280,7 @@ impl Resolver {
                     // remove param decls
                     let func_env = self.context.take_decls(NS_PARAM);
 
-                    if let ExprKind::Closure(mut inner_closure) = body.kind {
+                    let mut res = if let ExprKind::Closure(mut inner_closure) = body.kind {
                         // body couldn't been resolved - construct a closure to be evaluated later
 
                         inner_closure.env = func_env;
@@ -295,12 +297,16 @@ impl Resolver {
                             named_args: vec![],
                             named_params: vec![],
                             body: Box::new(Expr::from(ExprKind::Closure(inner_closure))),
+                            body_ty: None,
                             env: HashMap::new(),
                         }))
                     } else {
                         // resolved, return result
                         body
-                    }
+                    };
+
+                    res.needs_window = needs_window;
+                    res
                 }
             }
         } else {
@@ -520,7 +526,7 @@ mod test {
     fn parse_and_resolve(query: &str) -> Result<Expr> {
         let (stmts, _) = resolve_only(parse(query)?, None)?;
 
-        Ok(stmts.into_only()?.kind.into_pipeline()?)
+        Ok(*stmts.into_only()?.kind.into_pipeline()?)
     }
 
     fn resolve_type(query: &str) -> Result<Ty> {
