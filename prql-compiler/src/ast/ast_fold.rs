@@ -157,6 +157,15 @@ pub fn fold_interpolate_item<T: ?Sized + AstFold>(
     })
 }
 
+pub fn fold_column_sorts<T: ?Sized + AstFold>(
+    fold: &mut T,
+    sort: Vec<ColumnSort>,
+) -> Result<Vec<ColumnSort>> {
+    sort.into_iter()
+        .map(|s| fold_column_sort(fold, s))
+        .try_collect()
+}
+
 pub fn fold_column_sort<T: ?Sized + AstFold>(
     fold: &mut T,
     sort_column: ColumnSort,
@@ -202,11 +211,7 @@ pub fn fold_transform_call<T: ?Sized + AstFold>(
         kind: Box::new(fold_transform_kind(fold, *t.kind)?),
         partition: fold.fold_exprs(t.partition)?,
         window: fold.fold_window(t.window)?,
-        sort: t
-            .sort
-            .into_iter()
-            .map(|s| fold_column_sort(fold, s))
-            .try_collect()?,
+        sort: fold_column_sorts(fold, t.sort)?,
     })
 }
 

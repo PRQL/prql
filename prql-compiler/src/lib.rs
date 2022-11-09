@@ -1005,7 +1005,6 @@ select `first name`
     }
 
     #[test]
-    #[ignore]
     fn test_from_json() {
         // Test that the SQL generated from the JSON of the PRQL is the same as the raw PRQL
         let original_prql = r#"from employees

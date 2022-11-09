@@ -10,6 +10,7 @@ use crate::error::{Error, Reason, Span};
 use crate::semantic::scope::NS_PARAM;
 
 use super::scope::{NS_FRAME, NS_FRAME_RIGHT};
+use super::transforms::Flattener;
 use super::type_resolver::{resolve_type, type_of_closure, validate_type};
 use super::{Context, Declaration, Frame};
 
@@ -19,6 +20,9 @@ use super::{Context, Declaration, Frame};
 pub fn resolve(statements: Vec<Stmt>, context: Context) -> Result<(Vec<Stmt>, Context)> {
     let mut resolver = Resolver::new(context);
     let statements = resolver.fold_stmts(statements)?;
+
+    let mut flattener = Flattener::default();
+    let statements = flattener.fold_stmts(statements)?;
 
     Ok((statements, resolver.context))
 }

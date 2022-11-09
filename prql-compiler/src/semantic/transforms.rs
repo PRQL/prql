@@ -1,12 +1,14 @@
+use std::collections::HashMap;
+
 use anyhow::{anyhow, bail, Result};
 use itertools::Itertools;
 
-use crate::ast::ast_fold::AstFold;
+use crate::ast::ast_fold::{fold_column_sorts, fold_transform_kind, AstFold};
 use crate::ast::*;
 use crate::error::{Error, Reason};
 
 use super::resolver::Resolver;
-use super::Frame;
+use super::{Declaration, Frame};
 
 /// try to convert function call with enough args into transform
 pub fn cast_transform(
@@ -135,8 +137,7 @@ pub fn cast_transform(
                 })
                 .try_collect()?;
 
-            let pipeline =
-                fold_by_simulating_eval(resolver, pipeline, tbl.ty.clone().unwrap(), "_group_tbl")?;
+            let pipeline = fold_by_simulating_eval(resolver, pipeline, tbl.ty.clone().unwrap())?;
 
             let pipeline = Box::new(pipeline);
             TransformKind::Group { by, pipeline, tbl }
@@ -201,12 +202,7 @@ pub fn cast_transform(
                 (WindowKind::Rows, Range::unbounded())
             };
 
-            let pipeline = fold_by_simulating_eval(
-                resolver,
-                pipeline,
-                tbl.ty.clone().unwrap(),
-                "_window_tbl",
-            )?;
+            let pipeline = fold_by_simulating_eval(resolver, pipeline, tbl.ty.clone().unwrap())?;
 
             TransformKind::Window {
                 kind,
@@ -227,8 +223,17 @@ fn fold_by_simulating_eval(
     resolver: &mut Resolver,
     pipeline: Expr,
     val_type: Ty,
-    param_name: &str,
 ) -> Result<Expr, anyhow::Error> {
+    // this is a workaround for having unique names
+    let param_name = {
+        let a_unique_number = resolver.context.declare(
+            Declaration::Expression(Box::new(Expr::from(ExprKind::Literal(Literal::Null)))),
+            None,
+        );
+
+        format!("_tbl_{}", a_unique_number)
+    };
+
     // resolver will not resolve a function call if any arguments are missing
     // but would instead return a closure to be resolved later.
     // because the pipeline of group is a function that takes a table chunk
@@ -238,7 +243,7 @@ fn fold_by_simulating_eval(
 
     // TODO: having dummy already be `x` is a hack.
     // Dummy should be substituted in later.
-    let mut dummy = Expr::from(ExprKind::Ident(Ident::from_name(param_name.to_string())));
+    let mut dummy = Expr::from(ExprKind::Ident(Ident::from_name(param_name.clone())));
     dummy.ty = Some(val_type);
     let pipeline = Expr::from(ExprKind::FuncCall(FuncCall {
         name: Box::new(pipeline),
@@ -260,7 +265,7 @@ fn fold_by_simulating_eval(
 
         args: vec![],
         params: vec![FuncParam {
-            name: param_name.to_string(),
+            name: param_name,
             ty: None,
             default_value: None,
         }],
@@ -396,6 +401,114 @@ fn unpack<const P: usize, const N: usize>(
     let positional = closure.args.try_into().expect("bad transform cast");
 
     Ok((positional, named))
+}
+
+/// Flattens group and window [TransformCall]s into a single pipeline.
+/// Sets partition, window and sort of [TransformCall].
+#[derive(Default)]
+pub struct Flattener {
+    /// Sort affects downstream transforms in a pipeline.
+    /// Because transform pipelines are represented by nested [TransformCall]s,
+    /// affected transforms are all ancestor nodes of sort [TransformCall].
+    /// This means that this field has to be set after folding inner table,
+    /// so it's passed to parent call of `fold_transform_call`
+    sort: Vec<ColumnSort>,
+
+    /// Group affects transforms in it's inner pipeline.
+    /// This means that this field has to be set before folding inner pipeline,
+    /// and unset after the folding.
+    partition: Vec<Expr>,
+
+    /// Window affects transforms in it's inner pipeline.
+    /// This means that this field has to be set before folding inner pipeline,
+    /// and unset after the folding.
+    window: Window,
+
+    /// Window and group contain Closures in their inner pipelines.
+    /// These closures have form similar to this function:
+    /// ```
+    /// func closure tbl_chunk -> (derive ... (sort ... (tbl_chunk)))
+    /// ```
+    /// To flatten a window or group, we need to replace group/window transform
+    /// with their closure's body and replace `tbl_chunk` with pipeline
+    /// preceding the group/window transform.
+    ///
+    /// That's what `replace_map` is for.
+    replace_map: HashMap<String, Expr>,
+}
+
+impl AstFold for Flattener {
+    fn fold_transform_call(&mut self, t: TransformCall) -> Result<TransformCall> {
+        let kind = match *t.kind {
+            TransformKind::Sort { by, tbl } => {
+                // fold
+                let by = fold_column_sorts(self, by)?;
+                let tbl = self.fold_expr(tbl)?;
+
+                self.sort = by.clone();
+
+                TransformKind::Sort { by, tbl }
+            }
+            TransformKind::Group { by, pipeline, tbl } => {
+                let tbl = self.fold_expr(tbl)?;
+
+                let pipeline = pipeline.kind.into_closure().unwrap();
+
+                let table_param = &pipeline.params[0];
+
+                self.replace_map.insert(table_param.name.clone(), tbl);
+                self.partition = by;
+
+                let expr = self.fold_expr(*pipeline.body)?;
+
+                self.partition = Vec::new();
+                self.replace_map.remove(&table_param.name);
+
+                return Ok(expr.kind.into_transform_call().unwrap());
+            }
+            TransformKind::Window {
+                kind,
+                range,
+                pipeline,
+                tbl,
+            } => {
+                let pipeline = pipeline.kind.into_closure().unwrap();
+
+                let table_param = &pipeline.params[0];
+
+                self.replace_map.insert(table_param.name.clone(), tbl);
+                self.window = Window { kind, range };
+
+                let expr = self.fold_expr(*pipeline.body)?;
+
+                self.window = Window::default();
+                self.replace_map.remove(&table_param.name);
+
+                return Ok(expr.kind.into_transform_call().unwrap());
+            }
+            kind => fold_transform_kind(self, kind)?,
+        };
+
+        Ok(TransformCall {
+            kind: Box::new(kind),
+            partition: self.partition.clone(),
+            window: self.window.clone(),
+            sort: self.sort.clone(),
+        })
+    }
+
+    fn fold_expr(&mut self, mut expr: Expr) -> Result<Expr> {
+        if let ExprKind::Ident(ident) = &expr.kind {
+            if ident.namespace.is_none() {
+                if let Some(replacement) = self.replace_map.remove(&ident.name) {
+                    return Ok(replacement);
+                }
+            }
+        }
+
+        expr.kind = self.fold_expr_kind(expr.kind)?;
+        Ok(expr)
+    }
 }
 
 /*
@@ -538,87 +651,61 @@ mod tests {
         def:
           version: ~
           dialect: Generic
-        tables: []
-        main_pipeline:
-          - kind:
-              From:
-                name: c_invoice
-                alias: ~
-                declared_at: 29
-                ty:
-                  Table:
-                    columns:
-                      - All: 29
-                    sort: []
-                    tables: []
-            is_complex: false
-            partition: []
-            window: ~
-            ty:
-              columns:
-                - All: 29
-              sort: []
-              tables: []
-            span:
-              start: 9
-              end: 23
-          - kind:
-              Select:
-                - Ident: invoice_no
-                  ty:
-                    Literal: Column
-            is_complex: false
-            partition: []
-            window: ~
-            ty:
-              columns:
-                - Named:
-                    - invoice_no
-                    - 30
-              sort: []
-              tables: []
-            span:
-              start: 32
-              end: 49
-          - kind:
-              Group:
-                by:
-                  - Ident: invoice_no
-                    ty: Infer
-                pipeline:
-                  - kind:
-                      Take:
-                        range:
-                          start: ~
-                          end:
-                            Literal:
-                              Integer: 1
-                        by: []
-                        sort: []
-                    is_complex: false
-                    partition: []
-                    window: ~
-                    ty:
-                      columns:
-                        - Named:
-                            - invoice_no
-                            - 30
-                      sort: []
-                      tables: []
-                    span: ~
-            is_complex: false
-            partition: []
-            window: ~
-            ty:
-              columns:
-                - Named:
-                    - invoice_no
-                    - 30
-              sort: []
-              tables: []
-            span:
-              start: 58
-              end: 105
+        tables:
+          - id: 0
+            name: c_invoice
+            expr:
+              ExternRef:
+                - LocalTable: c_invoice
+                - - id: 1
+                    kind: Wildcard
+                  - id: 0
+                    kind:
+                      ExternRef: invoice_no
+        expr:
+          Pipeline:
+            - From:
+                source: 0
+                columns:
+                  - id: 3
+                    kind:
+                      Expr:
+                        name: ~
+                        expr:
+                          kind:
+                            ColumnRef: 1
+                          span: ~
+                  - id: 4
+                    kind:
+                      Expr:
+                        name: ~
+                        expr:
+                          kind:
+                            ColumnRef: 0
+                          span: ~
+                name: ~
+            - Compute:
+                id: 5
+                kind:
+                  Expr:
+                    name: invoice_no
+                    expr:
+                      kind:
+                        ColumnRef: 4
+                      span:
+                        start: 39
+                        end: 49
+            - Select:
+                - 5
+            - Take:
+                start: ~
+                end:
+                  kind:
+                    Literal:
+                      Integer: 1
+                  span: ~
+            - Select:
+                - 5
         "###);
 
         // oops, two arguments #339
@@ -766,7 +853,7 @@ mod tests {
             - From:
                 source: 0
                 columns:
-                  - id: 8
+                  - id: 15
                     kind:
                       Expr:
                         name: ~
@@ -774,7 +861,7 @@ mod tests {
                           kind:
                             ColumnRef: 1
                           span: ~
-                  - id: 9
+                  - id: 16
                     kind:
                       Expr:
                         name: ~
@@ -782,7 +869,7 @@ mod tests {
                           kind:
                             ColumnRef: 0
                           span: ~
-                  - id: 10
+                  - id: 17
                     kind:
                       Expr:
                         name: ~
@@ -790,7 +877,7 @@ mod tests {
                           kind:
                             ColumnRef: 6
                           span: ~
-                  - id: 11
+                  - id: 18
                     kind:
                       Expr:
                         name: ~
@@ -800,75 +887,7 @@ mod tests {
                           span: ~
                 name: ~
             - Compute:
-                id: 12
-                kind:
-                  Expr:
-                    name: issued_at
-                    expr:
-                      kind:
-                        ColumnRef: 9
-                      span:
-                        start: 37
-                        end: 46
-            - Compute:
-                id: 13
-                kind:
-                  Expr:
-                    name: amount
-                    expr:
-                      kind:
-                        ColumnRef: 10
-                      span:
-                        start: 49
-                        end: 55
-            - Compute:
-                id: 14
-                kind:
-                  Expr:
-                    name: num_of_articles
-                    expr:
-                      kind:
-                        ColumnRef: 11
-                      span:
-                        start: 57
-                        end: 73
-            - Sort:
-                - direction: Asc
-                  column: 12
-                - direction: Desc
-                  column: 13
-                - direction: Asc
-                  column: 14
-            - Compute:
-                id: 15
-                kind:
-                  Expr:
-                    name: issued_at
-                    expr:
-                      kind:
-                        ColumnRef: 12
-                      span:
-                        start: 88
-                        end: 97
-            - Sort:
-                - direction: Asc
-                  column: 15
-            - Compute:
-                id: 16
-                kind:
-                  Expr:
-                    name: issued_at
-                    expr:
-                      kind:
-                        ColumnRef: 15
-                      span:
-                        start: 113
-                        end: 122
-            - Sort:
-                - direction: Desc
-                  column: 16
-            - Compute:
-                id: 17
+                id: 19
                 kind:
                   Expr:
                     name: issued_at
@@ -876,27 +895,95 @@ mod tests {
                       kind:
                         ColumnRef: 16
                       span:
-                        start: 138
-                        end: 147
+                        start: 37
+                        end: 46
+            - Compute:
+                id: 20
+                kind:
+                  Expr:
+                    name: amount
+                    expr:
+                      kind:
+                        ColumnRef: 17
+                      span:
+                        start: 49
+                        end: 55
+            - Compute:
+                id: 21
+                kind:
+                  Expr:
+                    name: num_of_articles
+                    expr:
+                      kind:
+                        ColumnRef: 18
+                      span:
+                        start: 57
+                        end: 73
             - Sort:
                 - direction: Asc
-                  column: 17
+                  column: 19
+                - direction: Desc
+                  column: 20
+                - direction: Asc
+                  column: 21
             - Compute:
-                id: 18
+                id: 22
                 kind:
                   Expr:
                     name: issued_at
                     expr:
                       kind:
-                        ColumnRef: 17
+                        ColumnRef: 19
+                      span:
+                        start: 88
+                        end: 97
+            - Sort:
+                - direction: Asc
+                  column: 22
+            - Compute:
+                id: 23
+                kind:
+                  Expr:
+                    name: issued_at
+                    expr:
+                      kind:
+                        ColumnRef: 22
+                      span:
+                        start: 113
+                        end: 122
+            - Sort:
+                - direction: Desc
+                  column: 23
+            - Compute:
+                id: 24
+                kind:
+                  Expr:
+                    name: issued_at
+                    expr:
+                      kind:
+                        ColumnRef: 23
+                      span:
+                        start: 138
+                        end: 147
+            - Sort:
+                - direction: Asc
+                  column: 24
+            - Compute:
+                id: 25
+                kind:
+                  Expr:
+                    name: issued_at
+                    expr:
+                      kind:
+                        ColumnRef: 24
                       span:
                         start: 164
                         end: 173
             - Sort:
                 - direction: Desc
-                  column: 18
+                  column: 25
             - Select:
-                - 8
+                - 15
         "###);
     }
 }
