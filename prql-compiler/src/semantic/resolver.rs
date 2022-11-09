@@ -336,8 +336,13 @@ impl Resolver {
                 let (index, _) = closure
                     .named_params
                     .iter()
-                    .find_position(|p| p.name == name)
-                    .ok_or_else(|| anyhow::anyhow!("unknown named argument"))?;
+                    .find_position(|p| p.name.split('.').last() == Some(&name))
+                    .ok_or_else(|| {
+                        anyhow::anyhow!(
+                            "unknown named argument `{name}` to closure {:?}",
+                            closure.name
+                        )
+                    })?;
 
                 closure.named_args[index] = Some(arg);
             }
