@@ -16,7 +16,7 @@ jobs:
             await github.rest.actions.createWorkflowDispatch({
               owner: 'prql',
               repo: 'homebrew-prql',
-              workflow_id: 'update.yml',
+              workflow_id: 'update.yaml',
               ref: 'main',
               inputs: {
               version: '${{ github.ref }}',
