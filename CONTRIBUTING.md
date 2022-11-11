@@ -84,3 +84,18 @@ project; thank you in advance.
   with our expectations, or there isn't as much consensus on a decision as we
   had hoped. It's very easy to revert code and then re-revert when we've
   resolved the issue; it's a sign of moving quickly.
+
+## Core team
+
+If you have any questions or feedback and don't receive a response on one of the
+general channels such as GitHub or Discord, feel free to reach out to:
+
+- [**@aljazerzen**](https://github.com/aljazerzen) — Aljaž Mur Eržen
+- [**@max-sixty**](https://github.com/max-sixty) — Maximilian Roos
+- [**@snth**](https://github.com/snth) — Tobias Brandt
+
+### Core team Emeritus
+
+Thank you to those who have previously served on the core team:
+
+- [**@charlie-sanders**](https://github.com/charlie-sanders) — Charlie Sanders
