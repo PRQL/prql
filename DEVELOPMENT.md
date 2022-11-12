@@ -1,15 +1,27 @@
-# Development environment
+# Development
+
+## Development environment
 
 Setting up a local dev environment for PRQL is simple, thanks to the rust ecosystem:
 
 - Install [`rustup` & `cargo`](https://doc.rust-lang.org/cargo/getting-started/installation.html)[^5].
 - That's it! Running `cargo test` should complete successfully.
-- For more advanced development; e.g. adjusting `insta` outputs or compiling for
-  web, run `task setup-dev` by installing
-  [Task](https://taskfile.dev/#/installation), or by copying & pasting them from
-  [Taskfile.yml](Taskfile.yml).
-- For quick contributions, hit `.` in GitHub to launch a [github.dev
-  instance](https://github.dev/prql/prql).
+- Alternatively, for quick contributions, hit `.` in GitHub to launch a
+  [github.dev instance](https://github.dev/prql/prql).
+
+### Installing a full development environment
+
+For more advanced development; e.g. adjusting `insta` outputs or compiling for
+web either:
+
+- Install Task; either `brew install go-task/tap/go-task` or as described on
+  [Task](https://taskfile.dev/#/installation) and then run:
+
+  ```sh
+  task setup-dev
+  ```
+
+- ...or copy & paste the various commands from [Taskfile.yml](Taskfile.yml).
 - Any problems: post an issue and we'll help.
 
 [^5]:
@@ -26,42 +38,11 @@ Setting up a local dev environment for PRQL is simple, thanks to the rust ecosys
     - Python >= 3.7 to compile `prql-python`.
 
     It's very possible to develop `prql-compiler` without these, by avoiding
-    using the integration tests or `prql-python`. Running `cargo test -p prql-compiler --lib` should complete successfully by running only the unit
+    using the integration tests or `prql-python`. Running `cargo test -p prql-compiler --lib`
+    should complete successfully by running only the unit
     tests in the `prql-compiler` package.
 
-## Components of PRQL
-
-The PRQL project has several components.
-Instructions for working with them are in the **README.md** file in their directory.
-Here's an overview:
-
-**playground:** A web GUI for the PRQL compiler.
-It shows the PRQL source beside the resulting SQL output.
-[README.md](./playground/README.md)
-
-**book:** Tools to build the PRQL language book that documents the language.
-[README.md](./book/README.md)
-
-**website:** Tools to build the `hugo` website.
-[README.md](./website/README.md)
-
-**prql-compiler:** Installation and usage instructions for building and running the `prql-compiler`.
-[README.md](./prql-compiler/README.md)
-
-**prql-java:** Rust bindings to the `prql-compiler` rust library.
-[README.md](./prql-java/README.md)
-
-**prql-js:** Javascript bindings to the `prql-compiler` rust library.
-[README.md](./prql-js/README.md)
-
-**prql-lib:** Generates `.a` and `.so` libraries from the `prql-compiler` rust library for bindings to other languages
-[README.md](./prql-lib/README.md)
-
-**prql-macros:** rust macros for PRQL [README.md](./prql-macros/README.md)
-
-**prql-python:** Python bindings to the `prql-compiler` rust library. [README.md](./prql-python/README.md)
-
-## `task`
+## Encapsulated building & testing
 
 We have a couple of tasks which incorporate all building & testing. While they
 don't need to be run as part of a standard dev loop — generally we'll want to
@@ -84,6 +65,36 @@ task test-all
 
 These require installing Task, either `brew install go-task/tap/go-task` or
 as described on [Task](https://taskfile.dev/#/installation).
+
+## Components of PRQL
+
+The PRQL project has several components. Instructions for working with them are
+in the **README.md** file in their directory. Here's an overview:
+
+**[playground](./playground/README.md)**: A web GUI for the PRQL compiler. It
+shows the PRQL source beside the resulting SQL output.
+
+**[book](./book/README.md)**: Tools to build the PRQL language book that
+documents the language.
+
+**[website](./website/README.md)**: Tools to build the `hugo` website.
+
+**[prql-compiler](./prql-compiler/README.md)**: Installation and usage
+instructions for building and running the `prql-compiler`.
+
+**[prql-java](./prql-java/README.md)**: Rust bindings to the `prql-compiler`
+rust library.
+
+**[prql-js](./prql-js/README.md)**: Javascript bindings to the `prql-compiler`
+rust library.
+
+**[prql-lib](./prql-lib/README.md)**: Generates `.a` and `.so` libraries from
+the `prql-compiler` rust library for bindings to other languages
+
+**[prql-macros](./prql-macros/README.md)**: rust macros for PRQL
+
+**[prql-python](./prql-python/README.md)**: Python bindings to the
+`prql-compiler` rust library.
 
 ## Tests
 
