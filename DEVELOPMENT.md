@@ -17,9 +17,9 @@ web either:
 - Install Task; either `brew install go-task/tap/go-task` or as described on
   [Task](https://taskfile.dev/#/installation) and then run:
 
-     ```sh
-     task setup-dev
-     ```
+  ```sh
+  task setup-dev
+  ```
 
 - ...or copy & paste the various commands from [Taskfile.yml](Taskfile.yml).
 - Any problems: post an issue and we'll help.
@@ -38,7 +38,7 @@ web either:
     - Python >= 3.7 to compile `prql-python`.
 
     It's very possible to develop `prql-compiler` without these, by avoiding
-    using the integration tests or `prql-python`. Running `cargo test -p prql-compiler --lib` 
+    using the integration tests or `prql-python`. Running `cargo test -p prql-compiler --lib`
     should complete successfully by running only the unit
     tests in the `prql-compiler` package.
 
