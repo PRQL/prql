@@ -80,17 +80,7 @@ pub fn split_off_back(
         let cols = if cols.is_empty() {
             input_tables
                 .iter()
-                .map(|tiid| {
-                    let id = context.cid.gen();
-                    let def = ColumnDef {
-                        id,
-                        kind: ColumnDefKind::Wildcard,
-                        window: None,
-                    };
-                    context.columns_defs.insert(id, def);
-                    context.columns_loc.insert(id, *tiid);
-                    id
-                })
+                .map(|tiid| context.register_column(ColumnDefKind::Wildcard, *tiid))
                 .collect()
         } else {
             cols
@@ -146,31 +136,25 @@ pub fn anchor_split(
     second_pipeline: Vec<Transform>,
 ) -> Vec<Transform> {
     let new_tid = ctx.tid.gen();
-    let new_tiid = ctx.tiid.gen();
 
     // define columns of the new CTE
     let mut cid_redirects = HashMap::<CId, CId>::new();
     let mut new_columns = Vec::new();
     for old_cid in cols_at_split {
-        let new_cid = ctx.cid.gen();
-        cid_redirects.insert(*old_cid, new_cid);
-
         let old_def = ctx.columns_defs.get(old_cid).unwrap();
 
-        let new_def = ColumnDef {
-            id: new_cid,
-            kind: match &old_def.kind {
-                ColumnDefKind::Wildcard => ColumnDefKind::Wildcard,
-                ColumnDefKind::ExternRef(name) => ColumnDefKind::ExternRef(name.clone()),
-                ColumnDefKind::Expr { .. } => {
-                    ColumnDefKind::ExternRef(ctx.ensure_column_name(old_cid))
-                }
-            },
-            window: None,
+        let kind = match &old_def.kind {
+            ColumnDefKind::Wildcard => ColumnDefKind::Wildcard,
+            ColumnDefKind::ExternRef(name) => ColumnDefKind::ExternRef(name.clone()),
+            ColumnDefKind::Expr { .. } => ColumnDefKind::ExternRef(ctx.ensure_column_name(old_cid)),
         };
-        ctx.columns_defs.insert(new_cid, new_def.clone());
-        ctx.columns_loc.insert(new_cid, new_tiid);
-        new_columns.push(new_def);
+
+        let id = ctx.cid.gen();
+        let window = None;
+        let col = ColumnDef { id, kind, window };
+
+        new_columns.push(col);
+        cid_redirects.insert(*old_cid, id);
     }
 
     // define a new table
@@ -179,7 +163,8 @@ pub fn anchor_split(
         TableDef {
             id: new_tid,
             name: Some(first_table_name.to_string()),
-            // dummy expr
+            // here we should put the pipeline, but because how this function is called,
+            // we need to return the pipeline directly, so we just instert dummy expr instead
             expr: TableExpr::ExternRef(TableExternRef::LocalTable("".to_string()), vec![]),
         },
     );
@@ -190,7 +175,7 @@ pub fn anchor_split(
         name: None,
         columns: new_columns,
     };
-    ctx.table_instances.insert(new_tiid, table_ref.clone());
+    ctx.register_table_instance(table_ref.clone());
 
     // adjust second part: prepend from and rewrite expressions to use new columns
     let mut second = second_pipeline;

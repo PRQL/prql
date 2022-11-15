@@ -42,17 +42,32 @@ impl AnchorContext {
         let (cid, tid, query) = IdGenerator::load(query);
 
         let context = AnchorContext {
-            columns_defs: HashMap::new(),
-            columns_loc: HashMap::new(),
-            table_defs: HashMap::new(),
-            table_instances: HashMap::new(),
-            next_col_name_id: 0,
-            next_table_name_id: 0,
             cid,
             tid,
             tiid: IdGenerator::new(),
+            ..Default::default()
         };
         QueryLoader::load(context, query)
+    }
+
+    pub fn register_column(&mut self, kind: ColumnDefKind, tiid: TIId) -> CId {
+        let id = self.cid.gen();
+        let window = None;
+
+        self.columns_defs.insert(id, ColumnDef { id, kind, window });
+        self.columns_loc.insert(id, tiid);
+        id
+    }
+
+    pub fn register_table_instance(&mut self, table_ref: TableRef) {
+        let tiid = self.tiid.gen();
+
+        for column in &table_ref.columns {
+            self.columns_defs.insert(column.id, column.clone());
+            self.columns_loc.insert(column.id, tiid);
+        }
+
+        self.table_instances.insert(tiid, table_ref);
     }
 
     pub fn get_column_name(&self, cid: &CId) -> Option<String> {
