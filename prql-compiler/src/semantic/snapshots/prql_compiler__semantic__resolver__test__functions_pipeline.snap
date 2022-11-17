@@ -6,7 +6,7 @@ expression: "resolve_derive(r#\"\n            from a\n            derive one = (
     - String: SUM(
     - Expr:
         Ident:
-          namespace: ~
+          path: []
           name: foo
         ty: Infer
     - String: )

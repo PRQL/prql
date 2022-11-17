@@ -502,7 +502,7 @@ impl AstFold for Flattener {
 
     fn fold_expr(&mut self, mut expr: Expr) -> Result<Expr> {
         if let ExprKind::Ident(ident) = &expr.kind {
-            if ident.namespace.is_none() {
+            if ident.path.is_empty() {
                 if let Some(replacement) = self.replace_map.remove(&ident.name) {
                     return Ok(replacement);
                 }
@@ -630,7 +630,7 @@ mod tests {
                         - String: AVG(
                         - Expr:
                             Ident:
-                              namespace: ~
+                              path: []
                               name: amount
                             ty: Infer
                         - String: )
@@ -641,7 +641,7 @@ mod tests {
                       kind:
                         From:
                           Ident:
-                            namespace: ~
+                            path: []
                             name: c_invoice
                           ty:
                             Table:
@@ -657,7 +657,7 @@ mod tests {
                         tables: []
               partition:
                 - Ident:
-                    namespace: ~
+                    path: []
                     name: date
                   ty: Infer
             ty:

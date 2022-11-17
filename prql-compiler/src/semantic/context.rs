@@ -74,12 +74,12 @@ impl Context {
 
         // this variable can be from a namespace that we don't know all columns of
         let decls = self.scope.lookup(&Ident {
-            namespace: ident.namespace.clone(),
+            path: ident.path.clone(),
             name: "*".to_string(),
         });
 
         match decls.len() {
-            0 => Err(format!("Unknown name `{}`", ident.to_string())),
+            0 => Err(format!("Unknown name {ident:?}")),
 
             // single match, great!
             1 => {

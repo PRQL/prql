@@ -8,23 +8,23 @@ expression: "stmts_of_string(r#\"\nfrom employees\nfilter country == \"USA\"    
         - FuncCall:
             name:
               Ident:
-                namespace: ~
+                path: []
                 name: from
             args:
               - Ident:
-                  namespace: ~
+                  path: []
                   name: employees
             named_args: {}
         - FuncCall:
             name:
               Ident:
-                namespace: ~
+                path: []
                 name: filter
             args:
               - Binary:
                   left:
                     Ident:
-                      namespace: ~
+                      path: []
                       name: country
                   op: Eq
                   right:
@@ -34,43 +34,43 @@ expression: "stmts_of_string(r#\"\nfrom employees\nfilter country == \"USA\"    
         - FuncCall:
             name:
               Ident:
-                namespace: ~
+                path: []
                 name: derive
             args:
               - List:
                   - Binary:
                       left:
                         Ident:
-                          namespace: ~
+                          path: []
                           name: salary
                       op: Add
                       right:
                         Ident:
-                          namespace: ~
+                          path: []
                           name: payroll_tax
                     alias: gross_salary
                   - Binary:
                       left:
                         Ident:
-                          namespace: ~
+                          path: []
                           name: gross_salary
                       op: Add
                       right:
                         Ident:
-                          namespace: ~
+                          path: []
                           name: benefits_cost
                     alias: gross_cost
             named_args: {}
         - FuncCall:
             name:
               Ident:
-                namespace: ~
+                path: []
                 name: filter
             args:
               - Binary:
                   left:
                     Ident:
-                      namespace: ~
+                      path: []
                       name: gross_cost
                   op: Gt
                   right:
@@ -80,86 +80,86 @@ expression: "stmts_of_string(r#\"\nfrom employees\nfilter country == \"USA\"    
         - FuncCall:
             name:
               Ident:
-                namespace: ~
+                path: []
                 name: group
             args:
               - List:
                   - Ident:
-                      namespace: ~
+                      path: []
                       name: title
                   - Ident:
-                      namespace: ~
+                      path: []
                       name: country
               - FuncCall:
                   name:
                     Ident:
-                      namespace: ~
+                      path: []
                       name: aggregate
                   args:
                     - List:
                         - FuncCall:
                             name:
                               Ident:
-                                namespace: ~
+                                path: []
                                 name: average
                             args:
                               - Ident:
-                                  namespace: ~
+                                  path: []
                                   name: salary
                             named_args: {}
                         - FuncCall:
                             name:
                               Ident:
-                                namespace: ~
+                                path: []
                                 name: sum
                             args:
                               - Ident:
-                                  namespace: ~
+                                  path: []
                                   name: salary
                             named_args: {}
                         - FuncCall:
                             name:
                               Ident:
-                                namespace: ~
+                                path: []
                                 name: average
                             args:
                               - Ident:
-                                  namespace: ~
+                                  path: []
                                   name: gross_salary
                             named_args: {}
                         - FuncCall:
                             name:
                               Ident:
-                                namespace: ~
+                                path: []
                                 name: sum
                             args:
                               - Ident:
-                                  namespace: ~
+                                  path: []
                                   name: gross_salary
                             named_args: {}
                         - FuncCall:
                             name:
                               Ident:
-                                namespace: ~
+                                path: []
                                 name: average
                             args:
                               - Ident:
-                                  namespace: ~
+                                  path: []
                                   name: gross_cost
                             named_args: {}
                         - FuncCall:
                             name:
                               Ident:
-                                namespace: ~
+                                path: []
                                 name: sum
                             args:
                               - Ident:
-                                  namespace: ~
+                                  path: []
                                   name: gross_cost
                             named_args: {}
                           alias: sum_gross_cost
                         - Ident:
-                            namespace: ~
+                            path: []
                             name: count
                           alias: ct
                   named_args: {}
@@ -167,23 +167,23 @@ expression: "stmts_of_string(r#\"\nfrom employees\nfilter country == \"USA\"    
         - FuncCall:
             name:
               Ident:
-                namespace: ~
+                path: []
                 name: sort
             args:
               - Ident:
-                  namespace: ~
+                  path: []
                   name: sum_gross_cost
             named_args: {}
         - FuncCall:
             name:
               Ident:
-                namespace: ~
+                path: []
                 name: filter
             args:
               - Binary:
                   left:
                     Ident:
-                      namespace: ~
+                      path: []
                       name: ct
                   op: Gt
                   right:
@@ -193,7 +193,7 @@ expression: "stmts_of_string(r#\"\nfrom employees\nfilter country == \"USA\"    
         - FuncCall:
             name:
               Ident:
-                namespace: ~
+                path: []
                 name: take
             args:
               - Literal:

@@ -263,7 +263,7 @@ table UPPER = (
   from lower
 )
 from UPPER
-join some_schema.tablename [~id]
+join `some_schema.tablename` [~id]
         "###).unwrap()), @r###"
         WITH "UPPER" AS (
           SELECT
@@ -282,7 +282,7 @@ join some_schema.tablename [~id]
         // GH-#852
         assert_display_snapshot!((compile(r###"
 prql dialect:bigquery
-from db.schema.table
+from `db.schema.table`
 join `db.schema.table2` [~id]
 join `db.schema.t-able` [~id]
         "###).unwrap()), @r###"

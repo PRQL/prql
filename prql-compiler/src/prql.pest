@@ -9,30 +9,32 @@ query_def = { "prql" ~ named_arg* ~ NEWLINE+ }
 
 func_def = { "func" ~ func_def_name ~ func_def_params ~ "->" ~ expr_call ~ ( NEWLINE+ | &EOI ) }
 
-func_def_name = { ident ~ type_def? }
+func_def_name = { ident_part ~ type_def? }
 func_def_params = { func_def_param* }
-func_def_param = { ident ~ type_def? ~ (":" ~ expr)? }
+func_def_param = { ident_part ~ type_def? ~ (":" ~ expr)? }
 type_def = { "<" ~ type_term ~ ( "|" ~ type_term)* ~ ">" }
-type_term = { ident ~ type_def? }
+type_term = { ident_part ~ type_def? }
 
-table_def = { "table" ~ ident ~ "=" ~ nested_pipeline ~ ( NEWLINE+ | &EOI ) }
+table_def = { "table" ~ ident_part ~ "=" ~ nested_pipeline ~ ( NEWLINE+ | &EOI ) }
 
 pipeline_stmt = { pipeline ~ ( NEWLINE+ | &EOI ) }
 
 // An ident is a sequence of word-like terms, separated by `.`. Where surrounded
 // by backticks, the term is taken as-is, including any periods it contains.
-ident = ${ !operator ~ !(keyword ~ WHITESPACE) ~ (ident_part_first | ident_backticks) ~ (ident_part_next | ident_backticks)* }
+// We allow `e.*`, but not just `*`, since it would conflict with multiply in some cases.
+ident = ${ 
+    !operator ~ !(keyword ~ WHITESPACE) 
+    ~ (ident_plain | ident_backticks) 
+    ~ ("."  ~ (ident_plain | ident_backticks | ident_star))* 
+}
+ident_part = ${ ident_plain | ident_backticks }
 // Either a normal ident (starting with a letter, `$` or `_`), or any string surrounded
 // by backticks.
-ident_part_first = { ((ASCII_ALPHA | "$" | "_") ~ (ASCII_ALPHANUMERIC | "_" )* ) }
-// We allow `e.*`, but not just `*`, since it would conflict with multiply in
-// some cases.
-ident_part_next = _{  "."  ~ (ident_part_first | ident_star | ident_backticks) }
-// This is split out so we can make `ident_part_next` silent, but still capture
-// it.
-ident_star = { "*" }
-// Anything surrounded by backticks, we pass through.
+ident_plain = { ((ASCII_ALPHA | "$" | "_") ~ (ASCII_ALPHANUMERIC | "_" )* ) }
 ident_backticks = _{ PUSH("`") ~ (!NEWLINE ~ string_inner)* ~ POP }
+// This is split out so we can make `ident_part_next` silent, but still capture it.
+ident_star = { "*" }
+
 keyword = _{ "prql" | "table" | "func" }
 
 
@@ -44,9 +46,9 @@ pipeline = { WHITESPACE* ~ expr_call ~ (pipe ~ expr_call)* }
 // TODO: allow expr for function
 func_call = ${ ident ~ WHITESPACE+ ~ (!operator ~ (named_arg | assign | expr) ~ WHITESPACE*)+ }
 
-named_arg   = !{ ident ~ ":" ~ !":" ~ (assign | expr) }
-assign      = !{ ident ~ "=" ~ !"=" ~ expr }
-assign_call = !{ ident ~ "=" ~ !"=" ~ expr_call }
+named_arg   = !{ ident_part ~ ":" ~ !":" ~ (assign | expr) }
+assign      = !{ ident_part ~ "=" ~ !"=" ~ expr }
+assign_call = !{ ident_part ~ "=" ~ !"=" ~ expr_call }
 
 expr_call = _{ (func_call | expr) }
 

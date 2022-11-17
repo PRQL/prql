@@ -70,25 +70,22 @@ impl ExprKind {
 /// A name. Generally columns, tables, functions, variables.
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub struct Ident {
-    pub namespace: Option<String>,
+    pub path: Vec<String>,
     pub name: String,
 }
 
 impl Ident {
     pub fn from_name<S: ToString>(name: S) -> Self {
         Ident {
-            namespace: None,
+            path: Vec::new(),
             name: name.to_string(),
         }
     }
 }
 
-impl ToString for Ident {
-    fn to_string(&self) -> String {
-        match &self.namespace {
-            Some(namespace) => format!("{}.{}", namespace, self.name),
-            None => self.name.clone(),
-        }
+impl std::fmt::Display for Ident {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        display_ident(f, self)
     }
 }
 
@@ -579,8 +576,8 @@ impl Display for Expr {
 }
 
 fn display_ident(f: &mut std::fmt::Formatter, ident: &Ident) -> Result<(), std::fmt::Error> {
-    if let Some(ns) = &ident.namespace {
-        display_ident_part(f, ns)?;
+    for part in &ident.path {
+        display_ident_part(f, part)?;
         f.write_char('.')?;
     }
     display_ident_part(f, &ident.name)?;

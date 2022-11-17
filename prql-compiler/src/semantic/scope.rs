@@ -62,7 +62,7 @@ impl Scope {
     pub fn lookup(&mut self, ident: &Ident) -> HashMap<usize, HashSet<String>> {
         let mut res: HashMap<usize, HashSet<_>> = HashMap::new();
 
-        if let Some(namespace) = &ident.namespace {
+        if let Some(namespace) = ident.path.last() {
             if let Some(stack) = self.namespaces.get(namespace) {
                 // for table in stack.iter().rev() {
                 if let Some(table) = stack.last() {

@@ -123,7 +123,7 @@ impl Lowerer {
         } else {
             let (name, cols) = self.extern_table_entry(expr.declared_at.unwrap());
 
-            *name = Some(expr.kind.into_ident().unwrap().to_string());
+            *name = Some(expr.kind.into_ident().unwrap().name);
 
             cols.iter().map(|c| c.id).collect()
         };

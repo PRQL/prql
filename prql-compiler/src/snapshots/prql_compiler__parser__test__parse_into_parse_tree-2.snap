@@ -20,7 +20,7 @@ expression: "parse_tree_of_str(\"select [a, b, c]\", Rule::func_call)?"
                 },
                 inner: [
                     Pair {
-                        rule: ident_part_first,
+                        rule: ident_plain,
                         span: Span {
                             str: "select",
                             start: 0,
@@ -127,7 +127,7 @@ expression: "parse_tree_of_str(\"select [a, b, c]\", Rule::func_call)?"
                                                                                                         },
                                                                                                         inner: [
                                                                                                             Pair {
-                                                                                                                rule: ident_part_first,
+                                                                                                                rule: ident_plain,
                                                                                                                 span: Span {
                                                                                                                     str: "a",
                                                                                                                     start: 8,
@@ -196,7 +196,7 @@ expression: "parse_tree_of_str(\"select [a, b, c]\", Rule::func_call)?"
                                                                                                         },
                                                                                                         inner: [
                                                                                                             Pair {
-                                                                                                                rule: ident_part_first,
+                                                                                                                rule: ident_plain,
                                                                                                                 span: Span {
                                                                                                                     str: "b",
                                                                                                                     start: 11,
@@ -265,7 +265,7 @@ expression: "parse_tree_of_str(\"select [a, b, c]\", Rule::func_call)?"
                                                                                                         },
                                                                                                         inner: [
                                                                                                             Pair {
-                                                                                                                rule: ident_part_first,
+                                                                                                                rule: ident_plain,
                                                                                                                 span: Span {
                                                                                                                     str: "c",
                                                                                                                     start: 14,

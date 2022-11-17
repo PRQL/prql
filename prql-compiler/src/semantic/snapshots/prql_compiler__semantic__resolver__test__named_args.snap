@@ -5,7 +5,7 @@ expression: "resolve_derive(r#\"\n            func add x to:1 -> x + to\n\n     
 - Binary:
     left:
       Ident:
-        namespace: ~
+        path: []
         name: bar
       ty: Infer
     op: Add
@@ -20,7 +20,7 @@ expression: "resolve_derive(r#\"\n            func add x to:1 -> x + to\n\n     
 - Binary:
     left:
       Ident:
-        namespace: ~
+        path: []
         name: bar
       ty: Infer
     op: Add

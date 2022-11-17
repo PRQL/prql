@@ -1,6 +1,6 @@
 ---
 source: prql-compiler/src/parser.rs
-expression: "parse_tree_of_str(&include_str!(\"../../book/tests/prql/examples/variables-0.prql\").trim().replace(\"\\r\\n\",\n                                                                                                  \"\\n\"),\n                  Rule::pipeline).unwrap()"
+expression: "parse_tree_of_str(&include_str!(\"../../book/tests/prql/examples/variables-0.prql\").trim().replace(\"\\r\\n\",\n                \"\\n\"), Rule::pipeline).unwrap()"
 ---
 [
     Pair {
@@ -28,7 +28,7 @@ expression: "parse_tree_of_str(&include_str!(\"../../book/tests/prql/examples/va
                         },
                         inner: [
                             Pair {
-                                rule: ident_part_first,
+                                rule: ident_plain,
                                 span: Span {
                                     str: "from",
                                     start: 0,
@@ -87,7 +87,7 @@ expression: "parse_tree_of_str(&include_str!(\"../../book/tests/prql/examples/va
                                                                 },
                                                                 inner: [
                                                                     Pair {
-                                                                        rule: ident_part_first,
+                                                                        rule: ident_plain,
                                                                         span: Span {
                                                                             str: "employees",
                                                                             start: 5,
@@ -126,7 +126,7 @@ expression: "parse_tree_of_str(&include_str!(\"../../book/tests/prql/examples/va
                         },
                         inner: [
                             Pair {
-                                rule: ident_part_first,
+                                rule: ident_plain,
                                 span: Span {
                                     str: "filter",
                                     start: 15,
@@ -185,7 +185,7 @@ expression: "parse_tree_of_str(&include_str!(\"../../book/tests/prql/examples/va
                                                                 },
                                                                 inner: [
                                                                     Pair {
-                                                                        rule: ident_part_first,
+                                                                        rule: ident_plain,
                                                                         span: Span {
                                                                             str: "country",
                                                                             start: 22,
@@ -272,7 +272,7 @@ expression: "parse_tree_of_str(&include_str!(\"../../book/tests/prql/examples/va
                         },
                         inner: [
                             Pair {
-                                rule: ident_part_first,
+                                rule: ident_plain,
                                 span: Span {
                                     str: "derive",
                                     start: 105,
@@ -339,7 +339,7 @@ expression: "parse_tree_of_str(&include_str!(\"../../book/tests/prql/examples/va
                                                                         },
                                                                         inner: [
                                                                             Pair {
-                                                                                rule: ident,
+                                                                                rule: ident_part,
                                                                                 span: Span {
                                                                                     str: "gross_salary",
                                                                                     start: 185,
@@ -347,7 +347,7 @@ expression: "parse_tree_of_str(&include_str!(\"../../book/tests/prql/examples/va
                                                                                 },
                                                                                 inner: [
                                                                                     Pair {
-                                                                                        rule: ident_part_first,
+                                                                                        rule: ident_plain,
                                                                                         span: Span {
                                                                                             str: "gross_salary",
                                                                                             start: 185,
@@ -406,7 +406,7 @@ expression: "parse_tree_of_str(&include_str!(\"../../book/tests/prql/examples/va
                                                                                                                         },
                                                                                                                         inner: [
                                                                                                                             Pair {
-                                                                                                                                rule: ident_part_first,
+                                                                                                                                rule: ident_plain,
                                                                                                                                 span: Span {
                                                                                                                                     str: "salary",
                                                                                                                                     start: 200,
@@ -452,7 +452,7 @@ expression: "parse_tree_of_str(&include_str!(\"../../book/tests/prql/examples/va
                                                                                                                                 },
                                                                                                                                 inner: [
                                                                                                                                     Pair {
-                                                                                                                                        rule: ident_part_first,
+                                                                                                                                        rule: ident_plain,
                                                                                                                                         span: Span {
                                                                                                                                             str: "payroll_tax",
                                                                                                                                             start: 209,
@@ -485,7 +485,7 @@ expression: "parse_tree_of_str(&include_str!(\"../../book/tests/prql/examples/va
                                                                         },
                                                                         inner: [
                                                                             Pair {
-                                                                                rule: ident,
+                                                                                rule: ident_part,
                                                                                 span: Span {
                                                                                     str: "gross_cost",
                                                                                     start: 224,
@@ -493,7 +493,7 @@ expression: "parse_tree_of_str(&include_str!(\"../../book/tests/prql/examples/va
                                                                                 },
                                                                                 inner: [
                                                                                     Pair {
-                                                                                        rule: ident_part_first,
+                                                                                        rule: ident_plain,
                                                                                         span: Span {
                                                                                             str: "gross_cost",
                                                                                             start: 224,
@@ -552,7 +552,7 @@ expression: "parse_tree_of_str(&include_str!(\"../../book/tests/prql/examples/va
                                                                                                                         },
                                                                                                                         inner: [
                                                                                                                             Pair {
-                                                                                                                                rule: ident_part_first,
+                                                                                                                                rule: ident_plain,
                                                                                                                                 span: Span {
                                                                                                                                     str: "gross_salary",
                                                                                                                                     start: 237,
@@ -598,7 +598,7 @@ expression: "parse_tree_of_str(&include_str!(\"../../book/tests/prql/examples/va
                                                                                                                                 },
                                                                                                                                 inner: [
                                                                                                                                     Pair {
-                                                                                                                                        rule: ident_part_first,
+                                                                                                                                        rule: ident_plain,
                                                                                                                                         span: Span {
                                                                                                                                             str: "benefits_cost",
                                                                                                                                             start: 252,
@@ -653,7 +653,7 @@ expression: "parse_tree_of_str(&include_str!(\"../../book/tests/prql/examples/va
                         },
                         inner: [
                             Pair {
-                                rule: ident_part_first,
+                                rule: ident_plain,
                                 span: Span {
                                     str: "filter",
                                     start: 306,
@@ -712,7 +712,7 @@ expression: "parse_tree_of_str(&include_str!(\"../../book/tests/prql/examples/va
                                                                 },
                                                                 inner: [
                                                                     Pair {
-                                                                        rule: ident_part_first,
+                                                                        rule: ident_plain,
                                                                         span: Span {
                                                                             str: "gross_cost",
                                                                             start: 313,
@@ -789,7 +789,7 @@ expression: "parse_tree_of_str(&include_str!(\"../../book/tests/prql/examples/va
                         },
                         inner: [
                             Pair {
-                                rule: ident_part_first,
+                                rule: ident_plain,
                                 span: Span {
                                     str: "group",
                                     start: 328,
@@ -896,7 +896,7 @@ expression: "parse_tree_of_str(&include_str!(\"../../book/tests/prql/examples/va
                                                                                                                 },
                                                                                                                 inner: [
                                                                                                                     Pair {
-                                                                                                                        rule: ident_part_first,
+                                                                                                                        rule: ident_plain,
                                                                                                                         span: Span {
                                                                                                                             str: "title",
                                                                                                                             start: 335,
@@ -965,7 +965,7 @@ expression: "parse_tree_of_str(&include_str!(\"../../book/tests/prql/examples/va
                                                                                                                 },
                                                                                                                 inner: [
                                                                                                                     Pair {
-                                                                                                                        rule: ident_part_first,
+                                                                                                                        rule: ident_plain,
                                                                                                                         span: Span {
                                                                                                                             str: "country",
                                                                                                                             start: 342,
@@ -1070,7 +1070,7 @@ expression: "parse_tree_of_str(&include_str!(\"../../book/tests/prql/examples/va
                                                                                         },
                                                                                         inner: [
                                                                                             Pair {
-                                                                                                rule: ident_part_first,
+                                                                                                rule: ident_plain,
                                                                                                 span: Span {
                                                                                                     str: "aggregate",
                                                                                                     start: 414,
@@ -1145,7 +1145,7 @@ expression: "parse_tree_of_str(&include_str!(\"../../book/tests/prql/examples/va
                                                                                                                                                 },
                                                                                                                                                 inner: [
                                                                                                                                                     Pair {
-                                                                                                                                                        rule: ident_part_first,
+                                                                                                                                                        rule: ident_plain,
                                                                                                                                                         span: Span {
                                                                                                                                                             str: "average",
                                                                                                                                                             start: 500,
@@ -1204,7 +1204,7 @@ expression: "parse_tree_of_str(&include_str!(\"../../book/tests/prql/examples/va
                                                                                                                                                                                         },
                                                                                                                                                                                         inner: [
                                                                                                                                                                                             Pair {
-                                                                                                                                                                                                rule: ident_part_first,
+                                                                                                                                                                                                rule: ident_plain,
                                                                                                                                                                                                 span: Span {
                                                                                                                                                                                                     str: "salary",
                                                                                                                                                                                                     start: 508,
@@ -1243,7 +1243,7 @@ expression: "parse_tree_of_str(&include_str!(\"../../book/tests/prql/examples/va
                                                                                                                                                 },
                                                                                                                                                 inner: [
                                                                                                                                                     Pair {
-                                                                                                                                                        rule: ident_part_first,
+                                                                                                                                                        rule: ident_plain,
                                                                                                                                                         span: Span {
                                                                                                                                                             str: "average",
                                                                                                                                                             start: 520,
@@ -1302,7 +1302,7 @@ expression: "parse_tree_of_str(&include_str!(\"../../book/tests/prql/examples/va
                                                                                                                                                                                         },
                                                                                                                                                                                         inner: [
                                                                                                                                                                                             Pair {
-                                                                                                                                                                                                rule: ident_part_first,
+                                                                                                                                                                                                rule: ident_plain,
                                                                                                                                                                                                 span: Span {
                                                                                                                                                                                                     str: "gross_salary",
                                                                                                                                                                                                     start: 528,
@@ -1341,7 +1341,7 @@ expression: "parse_tree_of_str(&include_str!(\"../../book/tests/prql/examples/va
                                                                                                                                                 },
                                                                                                                                                 inner: [
                                                                                                                                                     Pair {
-                                                                                                                                                        rule: ident_part_first,
+                                                                                                                                                        rule: ident_plain,
                                                                                                                                                         span: Span {
                                                                                                                                                             str: "sum",
                                                                                                                                                             start: 546,
@@ -1400,7 +1400,7 @@ expression: "parse_tree_of_str(&include_str!(\"../../book/tests/prql/examples/va
                                                                                                                                                                                         },
                                                                                                                                                                                         inner: [
                                                                                                                                                                                             Pair {
-                                                                                                                                                                                                rule: ident_part_first,
+                                                                                                                                                                                                rule: ident_plain,
                                                                                                                                                                                                 span: Span {
                                                                                                                                                                                                     str: "salary",
                                                                                                                                                                                                     start: 550,
@@ -1439,7 +1439,7 @@ expression: "parse_tree_of_str(&include_str!(\"../../book/tests/prql/examples/va
                                                                                                                                                 },
                                                                                                                                                 inner: [
                                                                                                                                                     Pair {
-                                                                                                                                                        rule: ident_part_first,
+                                                                                                                                                        rule: ident_plain,
                                                                                                                                                         span: Span {
                                                                                                                                                             str: "sum",
                                                                                                                                                             start: 562,
@@ -1498,7 +1498,7 @@ expression: "parse_tree_of_str(&include_str!(\"../../book/tests/prql/examples/va
                                                                                                                                                                                         },
                                                                                                                                                                                         inner: [
                                                                                                                                                                                             Pair {
-                                                                                                                                                                                                rule: ident_part_first,
+                                                                                                                                                                                                rule: ident_plain,
                                                                                                                                                                                                 span: Span {
                                                                                                                                                                                                     str: "gross_salary",
                                                                                                                                                                                                     start: 566,
@@ -1537,7 +1537,7 @@ expression: "parse_tree_of_str(&include_str!(\"../../book/tests/prql/examples/va
                                                                                                                                                 },
                                                                                                                                                 inner: [
                                                                                                                                                     Pair {
-                                                                                                                                                        rule: ident_part_first,
+                                                                                                                                                        rule: ident_plain,
                                                                                                                                                         span: Span {
                                                                                                                                                             str: "average",
                                                                                                                                                             start: 584,
@@ -1596,7 +1596,7 @@ expression: "parse_tree_of_str(&include_str!(\"../../book/tests/prql/examples/va
                                                                                                                                                                                         },
                                                                                                                                                                                         inner: [
                                                                                                                                                                                             Pair {
-                                                                                                                                                                                                rule: ident_part_first,
+                                                                                                                                                                                                rule: ident_plain,
                                                                                                                                                                                                 span: Span {
                                                                                                                                                                                                     str: "gross_cost",
                                                                                                                                                                                                     start: 592,
@@ -1627,7 +1627,7 @@ expression: "parse_tree_of_str(&include_str!(\"../../book/tests/prql/examples/va
                                                                                                                                         },
                                                                                                                                         inner: [
                                                                                                                                             Pair {
-                                                                                                                                                rule: ident,
+                                                                                                                                                rule: ident_part,
                                                                                                                                                 span: Span {
                                                                                                                                                     str: "sum_gross_cost",
                                                                                                                                                     start: 608,
@@ -1635,7 +1635,7 @@ expression: "parse_tree_of_str(&include_str!(\"../../book/tests/prql/examples/va
                                                                                                                                                 },
                                                                                                                                                 inner: [
                                                                                                                                                     Pair {
-                                                                                                                                                        rule: ident_part_first,
+                                                                                                                                                        rule: ident_plain,
                                                                                                                                                         span: Span {
                                                                                                                                                             str: "sum_gross_cost",
                                                                                                                                                             start: 608,
@@ -1662,7 +1662,7 @@ expression: "parse_tree_of_str(&include_str!(\"../../book/tests/prql/examples/va
                                                                                                                                                         },
                                                                                                                                                         inner: [
                                                                                                                                                             Pair {
-                                                                                                                                                                rule: ident_part_first,
+                                                                                                                                                                rule: ident_plain,
                                                                                                                                                                 span: Span {
                                                                                                                                                                     str: "sum",
                                                                                                                                                                     start: 625,
@@ -1721,7 +1721,7 @@ expression: "parse_tree_of_str(&include_str!(\"../../book/tests/prql/examples/va
                                                                                                                                                                                                 },
                                                                                                                                                                                                 inner: [
                                                                                                                                                                                                     Pair {
-                                                                                                                                                                                                        rule: ident_part_first,
+                                                                                                                                                                                                        rule: ident_plain,
                                                                                                                                                                                                         span: Span {
                                                                                                                                                                                                             str: "gross_cost",
                                                                                                                                                                                                             start: 629,
@@ -1754,7 +1754,7 @@ expression: "parse_tree_of_str(&include_str!(\"../../book/tests/prql/examples/va
                                                                                                                                         },
                                                                                                                                         inner: [
                                                                                                                                             Pair {
-                                                                                                                                                rule: ident,
+                                                                                                                                                rule: ident_part,
                                                                                                                                                 span: Span {
                                                                                                                                                     str: "ct",
                                                                                                                                                     start: 645,
@@ -1762,7 +1762,7 @@ expression: "parse_tree_of_str(&include_str!(\"../../book/tests/prql/examples/va
                                                                                                                                                 },
                                                                                                                                                 inner: [
                                                                                                                                                     Pair {
-                                                                                                                                                        rule: ident_part_first,
+                                                                                                                                                        rule: ident_plain,
                                                                                                                                                         span: Span {
                                                                                                                                                             str: "ct",
                                                                                                                                                             start: 645,
@@ -1821,7 +1821,7 @@ expression: "parse_tree_of_str(&include_str!(\"../../book/tests/prql/examples/va
                                                                                                                                                                                         },
                                                                                                                                                                                         inner: [
                                                                                                                                                                                             Pair {
-                                                                                                                                                                                                rule: ident_part_first,
+                                                                                                                                                                                                rule: ident_plain,
                                                                                                                                                                                                 span: Span {
                                                                                                                                                                                                     str: "count",
                                                                                                                                                                                                     start: 650,
@@ -1890,7 +1890,7 @@ expression: "parse_tree_of_str(&include_str!(\"../../book/tests/prql/examples/va
                         },
                         inner: [
                             Pair {
-                                rule: ident_part_first,
+                                rule: ident_plain,
                                 span: Span {
                                     str: "sort",
                                     start: 663,
@@ -1949,7 +1949,7 @@ expression: "parse_tree_of_str(&include_str!(\"../../book/tests/prql/examples/va
                                                                 },
                                                                 inner: [
                                                                     Pair {
-                                                                        rule: ident_part_first,
+                                                                        rule: ident_plain,
                                                                         span: Span {
                                                                             str: "sum_gross_cost",
                                                                             start: 668,
@@ -1988,7 +1988,7 @@ expression: "parse_tree_of_str(&include_str!(\"../../book/tests/prql/examples/va
                         },
                         inner: [
                             Pair {
-                                rule: ident_part_first,
+                                rule: ident_plain,
                                 span: Span {
                                     str: "filter",
                                     start: 683,
@@ -2047,7 +2047,7 @@ expression: "parse_tree_of_str(&include_str!(\"../../book/tests/prql/examples/va
                                                                 },
                                                                 inner: [
                                                                     Pair {
-                                                                        rule: ident_part_first,
+                                                                        rule: ident_plain,
                                                                         span: Span {
                                                                             str: "ct",
                                                                             start: 690,
@@ -2124,7 +2124,7 @@ expression: "parse_tree_of_str(&include_str!(\"../../book/tests/prql/examples/va
                         },
                         inner: [
                             Pair {
-                                rule: ident_part_first,
+                                rule: ident_plain,
                                 span: Span {
                                     str: "take",
                                     start: 699,

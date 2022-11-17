@@ -5,13 +5,13 @@ expression: "resolve_derive(r#\"\n            func subtract a b -> a - b\n\n    
 - Binary:
     left:
       Ident:
-        namespace: ~
+        path: []
         name: gross_salary
       ty: Infer
     op: Sub
     right:
       Ident:
-        namespace: ~
+        path: []
         name: tax
       ty: Infer
   ty:

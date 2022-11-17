@@ -1,6 +1,6 @@
 ---
 source: prql-compiler/src/parser.rs
-expression: "parse_tree_of_str(\"group [title, country] (\n                aggregate [sum salary]\n            )\",\n                  Rule::pipeline)?"
+expression: "parse_tree_of_str(\"group [title, country] (\n                aggregate [sum salary]\n            )\",\n        Rule::pipeline)?"
 ---
 [
     Pair {
@@ -28,7 +28,7 @@ expression: "parse_tree_of_str(\"group [title, country] (\n                aggre
                         },
                         inner: [
                             Pair {
-                                rule: ident_part_first,
+                                rule: ident_plain,
                                 span: Span {
                                     str: "group",
                                     start: 0,
@@ -135,7 +135,7 @@ expression: "parse_tree_of_str(\"group [title, country] (\n                aggre
                                                                                                                 },
                                                                                                                 inner: [
                                                                                                                     Pair {
-                                                                                                                        rule: ident_part_first,
+                                                                                                                        rule: ident_plain,
                                                                                                                         span: Span {
                                                                                                                             str: "title",
                                                                                                                             start: 7,
@@ -204,7 +204,7 @@ expression: "parse_tree_of_str(\"group [title, country] (\n                aggre
                                                                                                                 },
                                                                                                                 inner: [
                                                                                                                     Pair {
-                                                                                                                        rule: ident_part_first,
+                                                                                                                        rule: ident_plain,
                                                                                                                         span: Span {
                                                                                                                             str: "country",
                                                                                                                             start: 14,
@@ -309,7 +309,7 @@ expression: "parse_tree_of_str(\"group [title, country] (\n                aggre
                                                                                         },
                                                                                         inner: [
                                                                                             Pair {
-                                                                                                rule: ident_part_first,
+                                                                                                rule: ident_plain,
                                                                                                 span: Span {
                                                                                                     str: "aggregate",
                                                                                                     start: 41,
@@ -384,7 +384,7 @@ expression: "parse_tree_of_str(\"group [title, country] (\n                aggre
                                                                                                                                                 },
                                                                                                                                                 inner: [
                                                                                                                                                     Pair {
-                                                                                                                                                        rule: ident_part_first,
+                                                                                                                                                        rule: ident_plain,
                                                                                                                                                         span: Span {
                                                                                                                                                             str: "sum",
                                                                                                                                                             start: 52,
@@ -443,7 +443,7 @@ expression: "parse_tree_of_str(\"group [title, country] (\n                aggre
                                                                                                                                                                                         },
                                                                                                                                                                                         inner: [
                                                                                                                                                                                             Pair {
-                                                                                                                                                                                                rule: ident_part_first,
+                                                                                                                                                                                                rule: ident_plain,
                                                                                                                                                                                                 span: Span {
                                                                                                                                                                                                     str: "salary",
                                                                                                                                                                                                     start: 56,

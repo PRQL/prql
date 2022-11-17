@@ -156,17 +156,17 @@ impl AstFold for Resolver {
                 let ident = expr.kind.into_ident().map_err(|_| {
                     anyhow!("you can only use column names with self-equality operator.")
                 })?;
-                if ident.namespace.is_some() {
+                if !ident.path.is_empty() {
                     bail!("you cannot use namespace prefix with self-equality operator.");
                 }
 
                 let mut left = Expr::from(ExprKind::Ident(Ident {
-                    namespace: Some(NS_FRAME.to_string()),
+                    path: vec![NS_FRAME.to_string()],
                     name: ident.name.clone(),
                 }));
                 left.span = node.span;
                 let mut right = Expr::from(ExprKind::Ident(Ident {
-                    namespace: Some(NS_FRAME_RIGHT.to_string()),
+                    path: vec![NS_FRAME_RIGHT.to_string()],
                     name: ident.name,
                 }));
                 right.span = node.span;

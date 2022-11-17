@@ -5,13 +5,13 @@ expression: "resolve_derive(r#\"\n            from employees\n            derive
 - Binary:
     left:
       Ident:
-        namespace: ~
+        path: []
         name: salary
       ty: Infer
     op: Add
     right:
       Ident:
-        namespace: ~
+        path: []
         name: payroll_tax
       ty: Infer
   ty:
@@ -20,13 +20,13 @@ expression: "resolve_derive(r#\"\n            from employees\n            derive
 - Binary:
     left:
       Ident:
-        namespace: ~
+        path: []
         name: gross_salary
       ty: Infer
     op: Add
     right:
       Ident:
-        namespace: ~
+        path: []
         name: benefits_cost
       ty: Infer
   ty:

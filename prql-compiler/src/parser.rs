@@ -56,7 +56,7 @@ fn stmt_of_parse_pair(pair: Pair<Rule>) -> Result<Stmt> {
         Rule::query_def => {
             let mut params: HashMap<_, _> = pair
                 .into_inner()
-                .map(|x| exprs_of_parse_pairs(x.into_inner()).map(parse_named))
+                .map(|x| parse_named(x.into_inner()))
                 .try_collect()?;
 
             let version = params
@@ -69,7 +69,7 @@ fn stmt_of_parse_pair(pair: Pair<Rule>) -> Result<Stmt> {
                 let dialect = node.try_cast(|i| i.into_ident(), None, "string")?;
                 Dialect::from_str(&dialect.to_string()).map_err(|_| {
                     Error::new(Reason::NotFound {
-                        name: dialect.to_string(),
+                        name: format!("{dialect:?}"),
                         namespace: "dialect".to_string(),
                     })
                     .with_span(span)
@@ -118,13 +118,14 @@ fn stmt_of_parse_pair(pair: Pair<Rule>) -> Result<Stmt> {
             })
         }
         Rule::table_def => {
-            let parsed = exprs_of_parse_pairs(pair.into_inner())?;
-            let [name, pipeline]: [Expr; 2] = parsed
-                .try_into()
-                .map_err(|e| anyhow!("Expected two items; {e:?}"))?;
+            let mut pairs = pair.into_inner();
+
+            let name = parse_ident_part(pairs.next().unwrap());
+            let pipeline = expr_of_parse_pair(pairs.next().unwrap())?;
+
             StmtKind::TableDef(TableDef {
                 id: None,
-                name: name.kind.into_ident()?.to_string(),
+                name,
                 value: Box::new(pipeline),
             })
         }
@@ -208,7 +209,7 @@ fn expr_of_parse_pair(pair: Pair<Rule>) -> Result<Expr> {
         Rule::operator_coalesce => ExprKind::Ident(Ident::from_name("-")),
 
         Rule::assign_call | Rule::assign => {
-            let (a, expr) = parse_named(exprs_of_parse_pairs(pair.into_inner())?);
+            let (a, expr) = parse_named(pair.into_inner())?;
             alias = Some(a);
             expr.kind
         }
@@ -222,7 +223,7 @@ fn expr_of_parse_pair(pair: Pair<Rule>) -> Result<Expr> {
             for arg in pairs {
                 match arg.as_rule() {
                     Rule::named_arg => {
-                        let (a, expr) = parse_named(exprs_of_parse_pairs(arg.into_inner())?);
+                        let (a, expr) = parse_named(arg.into_inner())?;
                         named.insert(a, expr);
                     }
                     _ => {
@@ -243,26 +244,13 @@ fn expr_of_parse_pair(pair: Pair<Rule>) -> Result<Expr> {
         }
         Rule::ident => {
             let inner = pair.clone().into_inner();
-            inner
+            let mut parts = inner
                 .into_iter()
                 .map(|x| x.as_str().to_string())
-                .collect::<Vec<String>>()
-                // `name` is the final item (i.e. `bar` in `foo.bar`); `namespace` is all
-                // the items before that. So we split the last item off as
-                // `name` and only add a `namespace` if there's at least one
-                // additional item.
-                .split_last()
-                .map(|(name, namespace)| {
-                    ExprKind::Ident(Ident {
-                        namespace: if namespace.is_empty() {
-                            None
-                        } else {
-                            Some(namespace.join("."))
-                        },
-                        name: name.to_string(),
-                    })
-                })
-                .unwrap()
+                .collect::<Vec<String>>();
+            let name = parts.pop().unwrap();
+
+            ExprKind::Ident(Ident { path: parts, name })
         }
 
         Rule::number => {
@@ -364,8 +352,8 @@ fn type_of_parse_pair(pair: Pair<Rule>) -> Result<Ty> {
         .into_iter()
         .map(|pair| -> Result<Ty> {
             let mut pairs = pair.into_inner();
-            let name = pairs.next().unwrap().as_str();
-            let typ = match TyLit::from_str(name) {
+            let name = parse_ident_part(pairs.next().unwrap());
+            let typ = match TyLit::from_str(&name) {
                 Ok(t) => Ty::from(t),
                 Err(_) if name == "table" => Ty::Table(Frame::default()),
                 Err(_) => {
@@ -394,7 +382,7 @@ fn type_of_parse_pair(pair: Pair<Rule>) -> Result<Ty> {
 fn parse_typed_ident(pair: Pair<Rule>) -> Result<(String, Option<Ty>, Option<Expr>)> {
     let mut pairs = pair.into_inner();
 
-    let name = pairs.next().unwrap().as_str().to_string();
+    let name = parse_ident_part(pairs.next().unwrap());
 
     let mut ty = None;
     let mut default = None;
@@ -409,10 +397,15 @@ fn parse_typed_ident(pair: Pair<Rule>) -> Result<(String, Option<Ty>, Option<Exp
     Ok((name, ty, default))
 }
 
-fn parse_named(mut items: Vec<Expr>) -> (String, Expr) {
-    let expr = items.remove(1);
-    let alias = items.remove(0).kind.into_ident().unwrap();
-    (alias.to_string(), expr)
+fn parse_named(mut pairs: Pairs<Rule>) -> Result<(String, Expr)> {
+    let alias = parse_ident_part(pairs.next().unwrap());
+    let expr = expr_of_parse_pair(pairs.next().unwrap())?;
+
+    Ok((alias, expr))
+}
+
+fn parse_ident_part(pair: Pair<Rule>) -> String {
+    pair.into_inner().next().unwrap().as_str().to_string()
 }
 
 fn ast_of_interpolate_items(pair: Pair<Rule>) -> Result<Vec<InterpolateItem>> {
@@ -459,7 +452,7 @@ mod test {
             FuncCall:
               name:
                 Ident:
-                  namespace: ~
+                  path: []
                   name: take
               args:
                 - Literal:
@@ -473,7 +466,7 @@ mod test {
             FuncCall:
               name:
                 Ident:
-                  namespace: ~
+                  path: []
                   name: take
               args:
                 - Range:
@@ -666,7 +659,7 @@ Canada
           - String: SUM(
           - Expr:
               Ident:
-                namespace: ~
+                path: []
                 name: col
           - String: )
         "###);
@@ -713,27 +706,27 @@ Canada
                 - FuncCall:
                     name:
                       Ident:
-                        namespace: ~
+                        path: []
                         name: from
                     args:
                       - Ident:
-                          namespace: ~
+                          path: []
                           name: "{{ ref('stg_orders') }}"
                     named_args: {}
                 - FuncCall:
                     name:
                       Ident:
-                        namespace: ~
+                        path: []
                         name: aggregate
                     args:
                       - FuncCall:
                           name:
                             Ident:
-                              namespace: ~
+                              path: []
                               name: sum
                           args:
                             - Ident:
-                                namespace: ~
+                                path: []
                                 name: order_id
                           named_args: {}
                     named_args: {}
@@ -769,7 +762,7 @@ Canada
                 FuncCall:
                   name:
                     Ident:
-                      namespace: ~
+                      path: []
                       name: f
                   args:
                     - Literal:
@@ -800,11 +793,11 @@ Canada
           - FuncCall:
               name:
                 Ident:
-                  namespace: ~
+                  path: []
                   name: a
               args:
                 - Ident:
-                    namespace: ~
+                    path: []
                     name: b
               named_args: {}
         "###);
@@ -812,10 +805,10 @@ Canada
         ---
         List:
           - Ident:
-              namespace: ~
+              path: []
               name: a
           - Ident:
-              namespace: ~
+              path: []
               name: b
         "###);
         assert_ne!(ab, a_comma_b);
@@ -824,16 +817,16 @@ Canada
         ---
         List:
           - Ident:
-              namespace: ~
+              path: []
               name: amount
           - Ident:
-              namespace: ~
+              path: []
               name: amount
           - Unary:
               op: Neg
               expr:
                 Ident:
-                  namespace: ~
+                  path: []
                   name: amount
         "###);
         // Operators in list items
@@ -841,16 +834,16 @@ Canada
         ---
         List:
           - Ident:
-              namespace: ~
+              path: []
               name: amount
           - Ident:
-              namespace: ~
+              path: []
               name: amount
           - Unary:
               op: Neg
               expr:
                 Ident:
-                  namespace: ~
+                  path: []
                   name: amount
         "###);
     }
@@ -895,13 +888,13 @@ Canada
             FuncCall:
               name:
                 Ident:
-                  namespace: ~
+                  path: []
                   name: filter
               args:
                 - Binary:
                     left:
                       Ident:
-                        namespace: ~
+                        path: []
                         name: country
                     op: Eq
                     right:
@@ -917,7 +910,7 @@ Canada
             FuncCall:
               name:
                 Ident:
-                  namespace: ~
+                  path: []
                   name: filter
               args:
                 - Binary:
@@ -925,11 +918,11 @@ Canada
                       FuncCall:
                         name:
                           Ident:
-                            namespace: ~
+                            path: []
                             name: upper
                         args:
                           - Ident:
-                              namespace: ~
+                              path: []
                               name: country
                         named_args: {}
                     op: Eq
@@ -956,32 +949,32 @@ Canada
             FuncCall:
               name:
                 Ident:
-                  namespace: ~
+                  path: []
                   name: group
               args:
                 - List:
                     - Ident:
-                        namespace: ~
+                        path: []
                         name: title
                 - FuncCall:
                     name:
                       Ident:
-                        namespace: ~
+                        path: []
                         name: aggregate
                     args:
                       - List:
                           - FuncCall:
                               name:
                                 Ident:
-                                  namespace: ~
+                                  path: []
                                   name: sum
                               args:
                                 - Ident:
-                                    namespace: ~
+                                    path: []
                                     name: salary
                               named_args: {}
                           - Ident:
-                              namespace: ~
+                              path: []
                               name: count
                     named_args: {}
               named_args: {}
@@ -999,28 +992,28 @@ Canada
             FuncCall:
               name:
                 Ident:
-                  namespace: ~
+                  path: []
                   name: group
               args:
                 - List:
                     - Ident:
-                        namespace: ~
+                        path: []
                         name: title
                 - FuncCall:
                     name:
                       Ident:
-                        namespace: ~
+                        path: []
                         name: aggregate
                     args:
                       - List:
                           - FuncCall:
                               name:
                                 Ident:
-                                  namespace: ~
+                                  path: []
                                   name: sum
                               args:
                                 - Ident:
-                                    namespace: ~
+                                    path: []
                                     name: salary
                               named_args: {}
                     named_args: {}
@@ -1037,7 +1030,7 @@ Canada
         FuncCall:
           name:
             Ident:
-              namespace: ~
+              path: []
               name: derive
           args:
             - List:
@@ -1048,7 +1041,7 @@ Canada
                     op: Neg
                     expr:
                       Ident:
-                        namespace: ~
+                        path: []
                         name: x
                   alias: y
           named_args: {}
@@ -1066,11 +1059,11 @@ Canada
         FuncCall:
           name:
             Ident:
-              namespace: ~
+              path: []
               name: select
           args:
             - Ident:
-                namespace: ~
+                path: []
                 name: x
           named_args: {}
         "###);
@@ -1082,15 +1075,15 @@ Canada
         FuncCall:
           name:
             Ident:
-              namespace: ~
+              path: []
               name: select
           args:
             - List:
                 - Ident:
-                    namespace: ~
+                    path: []
                     name: x
                 - Ident:
-                    namespace: ~
+                    path: []
                     name: y
           named_args: {}
         "###);
@@ -1107,7 +1100,7 @@ Canada
         Binary:
           left:
             Ident:
-              namespace: ~
+              path: []
               name: country
           op: Eq
           right:
@@ -1125,23 +1118,23 @@ Canada
           - Binary:
               left:
                 Ident:
-                  namespace: ~
+                  path: []
                   name: salary
               op: Add
               right:
                 Ident:
-                  namespace: ~
+                  path: []
                   name: payroll_tax
             alias: gross_salary
           - Binary:
               left:
                 Ident:
-                  namespace: ~
+                  path: []
                   name: gross_salary
               op: Add
               right:
                 Ident:
-                  namespace: ~
+                  path: []
                   name: benefits_cost
             alias: gross_cost
         "###);
@@ -1157,12 +1150,12 @@ Canada
             Binary:
               left:
                 Ident:
-                  namespace: ~
+                  path: []
                   name: salary
               op: Add
               right:
                 Ident:
-                  namespace: ~
+                  path: []
                   name: payroll_tax
           op: Mul
           right:
@@ -1173,7 +1166,7 @@ Canada
               op: Add
               right:
                 Ident:
-                  namespace: ~
+                  path: []
                   name: tax_rate
         alias: gross_salary
         "###);
@@ -1224,7 +1217,7 @@ take 20
               Binary:
                 left:
                   Ident:
-                    namespace: ~
+                    path: []
                     name: x
                 op: Add
                 right:
@@ -1243,7 +1236,7 @@ take 20
             named_params: []
             body:
               Ident:
-                namespace: ~
+                path: []
                 name: x
             return_ty: ~
         "###);
@@ -1260,7 +1253,7 @@ take 20
               Binary:
                 left:
                   Ident:
-                    namespace: ~
+                    path: []
                     name: x
                 op: Add
                 right:
@@ -1281,7 +1274,7 @@ take 20
               Binary:
                 left:
                   Ident:
-                    namespace: ~
+                    path: []
                     name: x
                 op: Add
                 right:
@@ -1302,19 +1295,19 @@ take 20
               FuncCall:
                 name:
                   Ident:
-                    namespace: ~
+                    path: []
                     name: some_func
                 args:
                   - FuncCall:
                       name:
                         Ident:
-                          namespace: ~
+                          path: []
                           name: foo
                       args:
                         - Binary:
                             left:
                               Ident:
-                                namespace: ~
+                                path: []
                                 name: bar
                             op: Add
                             right:
@@ -1324,12 +1317,12 @@ take 20
                   - Binary:
                       left:
                         Ident:
-                          namespace: ~
+                          path: []
                           name: plax
                       op: Sub
                       right:
                         Ident:
-                          namespace: ~
+                          path: []
                           name: baz
                 named_args: {}
             return_ty: ~
@@ -1359,7 +1352,7 @@ take 20
                 - String: SUM(
                 - Expr:
                     Ident:
-                      namespace: ~
+                      path: []
                       name: X
                 - String: )
             return_ty: ~
@@ -1393,18 +1386,18 @@ take 20
               - name: to
                 default_value:
                   Ident:
-                    namespace: ~
+                    path: []
                     name: a
             body:
               Binary:
                 left:
                   Ident:
-                    namespace: ~
+                    path: []
                     name: x
                 op: Add
                 right:
                   Ident:
-                    namespace: ~
+                    path: []
                     name: to
             return_ty: ~
         "###);
@@ -1420,7 +1413,7 @@ take 20
         assert_yaml_snapshot!(
             ident, @r###"
         ---
-        namespace: ~
+        path: []
         name: count
         "###);
 
@@ -1432,7 +1425,7 @@ take 20
         ---
         name:
           Ident:
-            namespace: ~
+            path: []
             name: count
         args:
           - SString:
@@ -1448,24 +1441,24 @@ take 20
                 - FuncCall:
                     name:
                       Ident:
-                        namespace: ~
+                        path: []
                         name: from
                     args:
                       - Ident:
-                          namespace: ~
+                          path: []
                           name: mytable
                     named_args: {}
                 - FuncCall:
                     name:
                       Ident:
-                        namespace: ~
+                        path: []
                         name: select
                     args:
                       - List:
                           - Binary:
                               left:
                                 Ident:
-                                  namespace: ~
+                                  path: []
                                   name: a
                               op: And
                               right:
@@ -1474,12 +1467,12 @@ take 20
                                     Binary:
                                       left:
                                         Ident:
-                                          namespace: ~
+                                          path: []
                                           name: b
                                       op: Add
                                       right:
                                         Ident:
-                                          namespace: ~
+                                          path: []
                                           name: c
                                   op: Or
                                   right:
@@ -1488,17 +1481,17 @@ take 20
                                         FuncCall:
                                           name:
                                             Ident:
-                                              namespace: ~
+                                              path: []
                                               name: d
                                           args:
                                             - Ident:
-                                                namespace: ~
+                                                path: []
                                                 name: e
                                           named_args: {}
                                       op: And
                                       right:
                                         Ident:
-                                          namespace: ~
+                                          path: []
                                           name: f
                     named_args: {}
         "###);
@@ -1510,11 +1503,11 @@ take 20
         FuncCall:
           name:
             Ident:
-              namespace: ~
+              path: []
               name: add
           args:
             - Ident:
-                namespace: ~
+                path: []
                 name: bar
             - Literal:
                 Integer: 3
@@ -1535,11 +1528,11 @@ take 20
               FuncCall:
                 name:
                   Ident:
-                    namespace: ~
+                    path: []
                     name: from
                 args:
                   - Ident:
-                      namespace: ~
+                      path: []
                       name: employees
                 named_args: {}
             id: ~
@@ -1567,37 +1560,37 @@ take 20
                   - FuncCall:
                       name:
                         Ident:
-                          namespace: ~
+                          path: []
                           name: from
                       args:
                         - Ident:
-                            namespace: ~
+                            path: []
                             name: employees
                       named_args: {}
                   - FuncCall:
                       name:
                         Ident:
-                          namespace: ~
+                          path: []
                           name: group
                       args:
                         - Ident:
-                            namespace: ~
+                            path: []
                             name: country
                         - FuncCall:
                             name:
                               Ident:
-                                namespace: ~
+                                path: []
                                 name: aggregate
                             args:
                               - List:
                                   - FuncCall:
                                       name:
                                         Ident:
-                                          namespace: ~
+                                          path: []
                                           name: average
                                       args:
                                         - Ident:
-                                            namespace: ~
+                                            path: []
                                             name: salary
                                       named_args: {}
                                     alias: average_country_salary
@@ -1606,17 +1599,17 @@ take 20
                   - FuncCall:
                       name:
                         Ident:
-                          namespace: ~
+                          path: []
                           name: sort
                       args:
                         - Ident:
-                            namespace: ~
+                            path: []
                             name: tenure
                       named_args: {}
                   - FuncCall:
                       name:
                         Ident:
-                          namespace: ~
+                          path: []
                           name: take
                       args:
                         - Literal:
@@ -1649,21 +1642,21 @@ take 20
                   - FuncCall:
                       name:
                         Ident:
-                          namespace: ~
+                          path: []
                           name: from
                       args:
                         - Ident:
-                            namespace: ~
+                            path: []
                             name: x_table
                       named_args: {}
                   - FuncCall:
                       name:
                         Ident:
-                          namespace: ~
+                          path: []
                           name: select
                       args:
                         - Ident:
-                            namespace: ~
+                            path: []
                             name: foo
                           alias: only_in_x
                       named_args: {}
@@ -1672,11 +1665,11 @@ take 20
             FuncCall:
               name:
                 Ident:
-                  namespace: ~
+                  path: []
                   name: from
               args:
                 - Ident:
-                    namespace: ~
+                    path: []
                     name: x
               named_args: {}
         "###);
@@ -1691,12 +1684,12 @@ take 20
         Pipeline:
           exprs:
             - Ident:
-                namespace: ~
+                path: []
                 name: salary
             - FuncCall:
                 name:
                   Ident:
-                    namespace: ~
+                    path: []
                     name: percentile
                 args:
                   - Literal:
@@ -1715,12 +1708,12 @@ take 20
               Pipeline:
                 exprs:
                   - Ident:
-                      namespace: ~
+                      path: []
                       name: x
                   - FuncCall:
                       name:
                         Ident:
-                          namespace: ~
+                          path: []
                           name: percentile
                       args:
                         - Literal:
@@ -1746,39 +1739,40 @@ take 20
                 - FuncCall:
                     name:
                       Ident:
-                        namespace: ~
+                        path: []
                         name: from
                     args:
                       - Ident:
-                          namespace: ~
+                          path: []
                           name: mytable
                     named_args: {}
                 - FuncCall:
                     name:
                       Ident:
-                        namespace: ~
+                        path: []
                         name: filter
                     args:
                       - List:
                           - Binary:
                               left:
                                 Ident:
-                                  namespace: ~
+                                  path: []
                                   name: first_name
                               op: Eq
                               right:
                                 Ident:
-                                  namespace: ~
+                                  path: []
                                   name: $1
                           - Binary:
                               left:
                                 Ident:
-                                  namespace: ~
+                                  path: []
                                   name: last_name
                               op: Eq
                               right:
                                 Ident:
-                                  namespace: $2
+                                  path:
+                                    - $2
                                   name: name
                     named_args: {}
         "###);
@@ -1817,49 +1811,51 @@ join `my-proj`.`dataset`.`table`
                 - FuncCall:
                     name:
                       Ident:
-                        namespace: ~
+                        path: []
                         name: from
                     args:
                       - Ident:
-                          namespace: ~
+                          path: []
                           name: a.b
                     named_args: {}
                 - FuncCall:
                     name:
                       Ident:
-                        namespace: ~
+                        path: []
                         name: aggregate
                     args:
                       - List:
                           - FuncCall:
                               name:
                                 Ident:
-                                  namespace: ~
+                                  path: []
                                   name: max
                               args:
                                 - Ident:
-                                    namespace: ~
+                                    path: []
                                     name: c
                               named_args: {}
                     named_args: {}
                 - FuncCall:
                     name:
                       Ident:
-                        namespace: ~
+                        path: []
                         name: join
                     args:
                       - Ident:
-                          namespace: ~
+                          path: []
                           name: my-proj.dataset.table
                     named_args: {}
                 - FuncCall:
                     name:
                       Ident:
-                        namespace: ~
+                        path: []
                         name: join
                     args:
                       - Ident:
-                          namespace: my-proj.dataset
+                          path:
+                            - my-proj
+                            - dataset
                           name: table
                     named_args: {}
         "###);
@@ -1884,51 +1880,51 @@ join `my-proj`.`dataset`.`table`
                 - FuncCall:
                     name:
                       Ident:
-                        namespace: ~
+                        path: []
                         name: from
                     args:
                       - Ident:
-                          namespace: ~
+                          path: []
                           name: invoices
                     named_args: {}
                 - FuncCall:
                     name:
                       Ident:
-                        namespace: ~
+                        path: []
                         name: sort
                     args:
                       - Ident:
-                          namespace: ~
+                          path: []
                           name: issued_at
                     named_args: {}
                 - FuncCall:
                     name:
                       Ident:
-                        namespace: ~
+                        path: []
                         name: sort
                     args:
                       - Unary:
                           op: Neg
                           expr:
                             Ident:
-                              namespace: ~
+                              path: []
                               name: issued_at
                     named_args: {}
                 - FuncCall:
                     name:
                       Ident:
-                        namespace: ~
+                        path: []
                         name: sort
                     args:
                       - List:
                           - Ident:
-                              namespace: ~
+                              path: []
                               name: issued_at
                     named_args: {}
                 - FuncCall:
                     name:
                       Ident:
-                        namespace: ~
+                        path: []
                         name: sort
                     args:
                       - List:
@@ -1936,27 +1932,27 @@ join `my-proj`.`dataset`.`table`
                               op: Neg
                               expr:
                                 Ident:
-                                  namespace: ~
+                                  path: []
                                   name: issued_at
                     named_args: {}
                 - FuncCall:
                     name:
                       Ident:
-                        namespace: ~
+                        path: []
                         name: sort
                     args:
                       - List:
                           - Ident:
-                              namespace: ~
+                              path: []
                               name: issued_at
                           - Unary:
                               op: Neg
                               expr:
                                 Ident:
-                                  namespace: ~
+                                  path: []
                                   name: amount
                           - Ident:
-                              namespace: ~
+                              path: []
                               name: num_of_articles
                     named_args: {}
         "###);
@@ -1985,28 +1981,28 @@ join `my-proj`.`dataset`.`table`
                 - FuncCall:
                     name:
                       Ident:
-                        namespace: ~
+                        path: []
                         name: from
                     args:
                       - Ident:
-                          namespace: ~
+                          path: []
                           name: employees
                     named_args: {}
                 - FuncCall:
                     name:
                       Ident:
-                        namespace: ~
+                        path: []
                         name: filter
                     args:
                       - Pipeline:
                           exprs:
                             - Ident:
-                                namespace: ~
+                                path: []
                                 name: age
                             - FuncCall:
                                 name:
                                   Ident:
-                                    namespace: ~
+                                    path: []
                                     name: between
                                 args:
                                   - Range:
@@ -2021,7 +2017,7 @@ join `my-proj`.`dataset`.`table`
                 - FuncCall:
                     name:
                       Ident:
-                        namespace: ~
+                        path: []
                         name: derive
                     args:
                       - List:
@@ -2080,24 +2076,24 @@ join `my-proj`.`dataset`.`table`
                 - FuncCall:
                     name:
                       Ident:
-                        namespace: ~
+                        path: []
                         name: from
                     args:
                       - Ident:
-                          namespace: ~
+                          path: []
                           name: employees
                     named_args: {}
                 - FuncCall:
                     name:
                       Ident:
-                        namespace: ~
+                        path: []
                         name: derive
                     args:
                       - List:
                           - Binary:
                               left:
                                 Ident:
-                                  namespace: ~
+                                  path: []
                                   name: age
                               op: Add
                               right:
@@ -2122,7 +2118,7 @@ join `my-proj`.`dataset`.`table`
             FuncCall:
               name:
                 Ident:
-                  namespace: ~
+                  path: []
                   name: derive
               args:
                 - List:
@@ -2153,11 +2149,11 @@ join `my-proj`.`dataset`.`table`
             FuncCall:
               name:
                 Ident:
-                  namespace: ~
+                  path: []
                   name: derive
               args:
                 - Ident:
-                    namespace: ~
+                    path: []
                     name: r
                   alias: x
               named_args: {}
@@ -2177,27 +2173,27 @@ join `my-proj`.`dataset`.`table`
                 - FuncCall:
                     name:
                       Ident:
-                        namespace: ~
+                        path: []
                         name: from
                     args:
                       - Ident:
-                          namespace: ~
+                          path: []
                           name: employees
                     named_args: {}
                 - FuncCall:
                     name:
                       Ident:
-                        namespace: ~
+                        path: []
                         name: derive
                     args:
                       - FuncCall:
                           name:
                             Ident:
-                              namespace: ~
+                              path: []
                               name: coalesce
                           args:
                             - Ident:
-                                namespace: ~
+                                path: []
                                 name: amount
                             - Literal:
                                 Integer: 0
@@ -2217,7 +2213,7 @@ join `my-proj`.`dataset`.`table`
             FuncCall:
               name:
                 Ident:
-                  namespace: ~
+                  path: []
                   name: derive
               args:
                 - Literal:
@@ -2242,56 +2238,57 @@ join `my-proj`.`dataset`.`table`
                 - FuncCall:
                     name:
                       Ident:
-                        namespace: ~
+                        path: []
                         name: from
                     args:
                       - Ident:
-                          namespace: ~
+                          path: []
                           name: employees
                     named_args: {}
                 - FuncCall:
                     name:
                       Ident:
-                        namespace: ~
+                        path: []
                         name: join
                     args:
                       - Ident:
-                          namespace: ~
+                          path: []
                           name: _salary
                       - List:
                           - Unary:
                               op: EqSelf
                               expr:
                                 Ident:
-                                  namespace: ~
+                                  path: []
                                   name: employee_id
                     named_args: {}
                 - FuncCall:
                     name:
                       Ident:
-                        namespace: ~
+                        path: []
                         name: filter
                     args:
                       - Binary:
                           left:
                             Ident:
-                              namespace: ~
+                              path: []
                               name: first_name
                           op: Eq
                           right:
                             Ident:
-                              namespace: ~
+                              path: []
                               name: $1
                     named_args: {}
                 - FuncCall:
                     name:
                       Ident:
-                        namespace: ~
+                        path: []
                         name: select
                     args:
                       - List:
                           - Ident:
-                              namespace: _employees
+                              path:
+                                - _employees
                               name: _underscored_column
                     named_args: {}
         "###)
@@ -2313,23 +2310,23 @@ join `my-proj`.`dataset`.`table`
                 - FuncCall:
                     name:
                       Ident:
-                        namespace: ~
+                        path: []
                         name: from
                     args:
                       - Ident:
-                          namespace: ~
+                          path: []
                           name: people
                     named_args: {}
                 - FuncCall:
                     name:
                       Ident:
-                        namespace: ~
+                        path: []
                         name: filter
                     args:
                       - Binary:
                           left:
                             Ident:
-                              namespace: ~
+                              path: []
                               name: age
                           op: Gte
                           right:
@@ -2339,13 +2336,13 @@ join `my-proj`.`dataset`.`table`
                 - FuncCall:
                     name:
                       Ident:
-                        namespace: ~
+                        path: []
                         name: filter
                     args:
                       - Binary:
                           left:
                             Ident:
-                              namespace: ~
+                              path: []
                               name: num_grandchildren
                           op: Lte
                           right:
@@ -2355,13 +2352,13 @@ join `my-proj`.`dataset`.`table`
                 - FuncCall:
                     name:
                       Ident:
-                        namespace: ~
+                        path: []
                         name: filter
                     args:
                       - Binary:
                           left:
                             Ident:
-                              namespace: ~
+                              path: []
                               name: salary
                           op: Gt
                           right:
@@ -2371,13 +2368,13 @@ join `my-proj`.`dataset`.`table`
                 - FuncCall:
                     name:
                       Ident:
-                        namespace: ~
+                        path: []
                         name: filter
                     args:
                       - Binary:
                           left:
                             Ident:
-                              namespace: ~
+                              path: []
                               name: num_eyes
                           op: Lt
                           right:
