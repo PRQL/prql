@@ -52,7 +52,7 @@ jobs:
         run: task build-web
 
       - name: Prepare tar for upload
-        uses: actions/upload-pages-artifact@v1.0.4
+        uses: actions/upload-pages-artifact@v1.0.5
         with:
           path: website/public/
 
