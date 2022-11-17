@@ -6,6 +6,8 @@ A summary of PRQL syntax
 
 <!-- markdownlint-disable MD033 — the `|` characters need to be escaped, and surrounded with tags rather than backticks   -->
 
+<!-- I can't seem to get "Quoted identifies" to work without a space between the backticks. VSCode will preview ` `` ` correctly, but not mdbook -->
+
 | Syntax          | Usage                   | Example                                                 |
 | --------------- | ----------------------- | ------------------------------------------------------- |
 | <code>\|</code> | Pipe                    | <code>from employees \| select first_name</code>        |
@@ -14,7 +16,7 @@ A summary of PRQL syntax
 | `[]`            | List                    | `select [id, amount]`                                   |
 | `()`            | Precedence              | `derive fahrenheit = (celsius - 32) * 1.8`              |
 | `''` & `""`     | Strings                 | `derive name = "Mary"`                                  |
-| ` `` `          | Quoted identifiers      | `` select `first name`  ``                              |
+| `` ` ` ``       | Quoted identifiers      | `` select `first name`  ``                              |
 | `#`             | Comment                 | `# A comment`                                           |
 | `@`             | Date & Times            | `@2021-01-01`                                           |
 | `==`            | Equality comparison     | `join s=salaries [s.emp_id == e.id]`                    |
