@@ -854,16 +854,38 @@ fn translate_operand(
     })
 }
 
+pub enum Associativity {
+    Left,
+    Right,
+    Both,
+}
+
 trait SQLExpression {
     /// Returns binding strength of an SQL expression
     /// https://www.postgresql.org/docs/14/sql-syntax-lexical.html#id-1.5.3.5.13.2
     /// https://docs.microsoft.com/en-us/sql/t-sql/language-elements/operator-precedence-transact-sql?view=sql-server-ver16
     fn binding_strength(&self) -> i32;
+    fn associativity(&self) -> Associativity;
 }
+
 impl SQLExpression for Expr {
     fn binding_strength(&self) -> i32 {
         // Strength of an expression depends only on the top-level operator, because all
         // other nested expressions can only have lower strength
+        match self {
+            Expr::BinaryOp { op, .. } => op.binding_strength(),
+
+            Expr::UnaryOp { op, .. } => op.binding_strength(),
+
+            Expr::Like { .. } | Expr::ILike { .. } => 7,
+
+            Expr::IsNull(_) | Expr::IsNotNull(_) => 5,
+
+            // all other items types bind stronger (function calls, literals, ...)
+            _ => 20,
+        }
+    }
+    fn associativity(&self) -> Associativity {
         match self {
             Expr::BinaryOp { op, .. } => op.binding_strength(),
 
