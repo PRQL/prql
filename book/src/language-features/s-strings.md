@@ -45,7 +45,7 @@ derive [
 
 For those who have used python, s-strings are similar to python's f-strings, but
 the result is SQL code, rather than a string literal. For example, a python
-f-string of `f"average{col}"`  would produce `"average(salary)"`, with quotes;
+f-string of `f"average{col}"` would produce `"average(salary)"`, with quotes;
 while in PRQL, `s"average{col}"` produces `average(salary)`, without quotes.
 
 S-strings in user code are intended as an escape-hatch for an unimplemented
