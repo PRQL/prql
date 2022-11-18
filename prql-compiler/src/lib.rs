@@ -307,6 +307,23 @@ select `first name`
     }
 
     #[test]
+    fn test_numbers() -> Result<()> {
+        let query = r###"
+        derive x = 5
+        derive y = 5.0
+        derive z = 5.00
+        "###;
+
+        assert_display_snapshot!((compile(query)?), @r###"
+        SELECT
+          5 AS x,
+          5.0 AS y,
+          5.0 AS z
+        "###);
+
+        Ok(())
+    }
+    #[test]
     fn test_ranges() -> Result<()> {
         let query = r###"
         from employees

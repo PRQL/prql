@@ -779,6 +779,11 @@ Canada
         Literal:
           Float: 23.6
         "###);
+        assert_yaml_snapshot!(ast_of_string(r#"23.0"#, Rule::number)?, @r###"
+        ---
+        Literal:
+          Float: 23
+        "###);
         assert_yaml_snapshot!(ast_of_string(r#"2 + 2"#, Rule::expr)?, @r###"
         ---
         Binary:

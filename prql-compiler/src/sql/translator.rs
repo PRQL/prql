@@ -624,7 +624,7 @@ fn translate_item(item: Item, dialect: &dyn DialectHandler) -> Result<Expr> {
             Literal::Null => Expr::Value(Value::Null),
             Literal::String(s) => Expr::Value(Value::SingleQuotedString(s)),
             Literal::Boolean(b) => Expr::Value(Value::Boolean(b)),
-            Literal::Float(f) => Expr::Value(Value::Number(format!("{f}"), false)),
+            Literal::Float(f) => Expr::Value(Value::Number(format!("{f:?}"), false)),
             Literal::Integer(i) => Expr::Value(Value::Number(format!("{i}"), false)),
             Literal::Date(value) => Expr::TypedString {
                 data_type: sql_ast::DataType::Date,
