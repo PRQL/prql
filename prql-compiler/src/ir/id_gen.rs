@@ -1,11 +1,12 @@
 use std::marker::PhantomData;
 
 use anyhow::Result;
+use serde::{Deserialize, Serialize};
 
 use super::ir_fold::fold_table;
 use super::{CId, ColumnDef, IrFold, Query, TId, TableDef};
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct IdGenerator<T: From<usize>> {
     next_id: usize,
     phantom: PhantomData<T>,

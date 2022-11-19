@@ -124,7 +124,6 @@ fn stmt_of_parse_pair(pair: Pair<Rule>) -> Result<Stmt> {
             let pipeline = expr_of_parse_pair(pairs.next().unwrap())?;
 
             StmtKind::TableDef(TableDef {
-                id: None,
                 name,
                 value: Box::new(pipeline),
             })
@@ -334,15 +333,12 @@ fn expr_of_parse_pair(pair: Pair<Rule>) -> Result<Expr> {
         _ => unreachable!("{pair}"),
     };
     Ok(Expr {
-        kind,
         span: Some(Span {
             start: span.start(),
             end: span.end(),
         }),
         alias,
-        declared_at: None,
-        ty: None,
-        needs_window: false,
+        ..Expr::from(kind)
     })
 }
 
@@ -452,8 +448,7 @@ mod test {
             FuncCall:
               name:
                 Ident:
-                  path: []
-                  name: take
+                  - take
               args:
                 - Literal:
                     Integer: 10
@@ -466,8 +461,7 @@ mod test {
             FuncCall:
               name:
                 Ident:
-                  path: []
-                  name: take
+                  - take
               args:
                 - Range:
                     start:
@@ -659,8 +653,7 @@ Canada
           - String: SUM(
           - Expr:
               Ident:
-                path: []
-                name: col
+                - col
           - String: )
         "###);
         assert_yaml_snapshot!(expr_of_string(r#"s"SUM({2 + 2})""#, Rule::expr_call)?, @r###"
@@ -706,28 +699,23 @@ Canada
                 - FuncCall:
                     name:
                       Ident:
-                        path: []
-                        name: from
+                        - from
                     args:
                       - Ident:
-                          path: []
-                          name: "{{ ref('stg_orders') }}"
+                          - "{{ ref('stg_orders') }}"
                     named_args: {}
                 - FuncCall:
                     name:
                       Ident:
-                        path: []
-                        name: aggregate
+                        - aggregate
                     args:
                       - FuncCall:
                           name:
                             Ident:
-                              path: []
-                              name: sum
+                              - sum
                           args:
                             - Ident:
-                                path: []
-                                name: order_id
+                                - order_id
                           named_args: {}
                     named_args: {}
         "###);
@@ -762,8 +750,7 @@ Canada
                 FuncCall:
                   name:
                     Ident:
-                      path: []
-                      name: f
+                      - f
                   args:
                     - Literal:
                         Integer: 1
@@ -793,23 +780,19 @@ Canada
           - FuncCall:
               name:
                 Ident:
-                  path: []
-                  name: a
+                  - a
               args:
                 - Ident:
-                    path: []
-                    name: b
+                    - b
               named_args: {}
         "###);
         assert_yaml_snapshot!(a_comma_b, @r###"
         ---
         List:
           - Ident:
-              path: []
-              name: a
+              - a
           - Ident:
-              path: []
-              name: b
+              - b
         "###);
         assert_ne!(ab, a_comma_b);
 
@@ -817,34 +800,28 @@ Canada
         ---
         List:
           - Ident:
-              path: []
-              name: amount
+              - amount
           - Ident:
-              path: []
-              name: amount
+              - amount
           - Unary:
               op: Neg
               expr:
                 Ident:
-                  path: []
-                  name: amount
+                  - amount
         "###);
         // Operators in list items
         assert_yaml_snapshot!(expr_of_string(r#"[amount, +amount, -amount]"#, Rule::list).unwrap(), @r###"
         ---
         List:
           - Ident:
-              path: []
-              name: amount
+              - amount
           - Ident:
-              path: []
-              name: amount
+              - amount
           - Unary:
               op: Neg
               expr:
                 Ident:
-                  path: []
-                  name: amount
+                  - amount
         "###);
     }
 
@@ -888,14 +865,12 @@ Canada
             FuncCall:
               name:
                 Ident:
-                  path: []
-                  name: filter
+                  - filter
               args:
                 - Binary:
                     left:
                       Ident:
-                        path: []
-                        name: country
+                        - country
                     op: Eq
                     right:
                       Literal:
@@ -910,20 +885,17 @@ Canada
             FuncCall:
               name:
                 Ident:
-                  path: []
-                  name: filter
+                  - filter
               args:
                 - Binary:
                     left:
                       FuncCall:
                         name:
                           Ident:
-                            path: []
-                            name: upper
+                            - upper
                         args:
                           - Ident:
-                              path: []
-                              name: country
+                              - country
                         named_args: {}
                     op: Eq
                     right:
@@ -949,33 +921,27 @@ Canada
             FuncCall:
               name:
                 Ident:
-                  path: []
-                  name: group
+                  - group
               args:
                 - List:
                     - Ident:
-                        path: []
-                        name: title
+                        - title
                 - FuncCall:
                     name:
                       Ident:
-                        path: []
-                        name: aggregate
+                        - aggregate
                     args:
                       - List:
                           - FuncCall:
                               name:
                                 Ident:
-                                  path: []
-                                  name: sum
+                                  - sum
                               args:
                                 - Ident:
-                                    path: []
-                                    name: salary
+                                    - salary
                               named_args: {}
                           - Ident:
-                              path: []
-                              name: count
+                              - count
                     named_args: {}
               named_args: {}
         "###);
@@ -992,29 +958,24 @@ Canada
             FuncCall:
               name:
                 Ident:
-                  path: []
-                  name: group
+                  - group
               args:
                 - List:
                     - Ident:
-                        path: []
-                        name: title
+                        - title
                 - FuncCall:
                     name:
                       Ident:
-                        path: []
-                        name: aggregate
+                        - aggregate
                     args:
                       - List:
                           - FuncCall:
                               name:
                                 Ident:
-                                  path: []
-                                  name: sum
+                                  - sum
                               args:
                                 - Ident:
-                                    path: []
-                                    name: salary
+                                    - salary
                               named_args: {}
                     named_args: {}
               named_args: {}
@@ -1030,8 +991,7 @@ Canada
         FuncCall:
           name:
             Ident:
-              path: []
-              name: derive
+              - derive
           args:
             - List:
                 - Literal:
@@ -1041,8 +1001,7 @@ Canada
                     op: Neg
                     expr:
                       Ident:
-                        path: []
-                        name: x
+                        - x
                   alias: y
           named_args: {}
         "###);
@@ -1059,12 +1018,10 @@ Canada
         FuncCall:
           name:
             Ident:
-              path: []
-              name: select
+              - select
           args:
             - Ident:
-                path: []
-                name: x
+                - x
           named_args: {}
         "###);
 
@@ -1075,16 +1032,13 @@ Canada
         FuncCall:
           name:
             Ident:
-              path: []
-              name: select
+              - select
           args:
             - List:
                 - Ident:
-                    path: []
-                    name: x
+                    - x
                 - Ident:
-                    path: []
-                    name: y
+                    - y
           named_args: {}
         "###);
 
@@ -1100,8 +1054,7 @@ Canada
         Binary:
           left:
             Ident:
-              path: []
-              name: country
+              - country
           op: Eq
           right:
             Literal:
@@ -1118,24 +1071,20 @@ Canada
           - Binary:
               left:
                 Ident:
-                  path: []
-                  name: salary
+                  - salary
               op: Add
               right:
                 Ident:
-                  path: []
-                  name: payroll_tax
+                  - payroll_tax
             alias: gross_salary
           - Binary:
               left:
                 Ident:
-                  path: []
-                  name: gross_salary
+                  - gross_salary
               op: Add
               right:
                 Ident:
-                  path: []
-                  name: benefits_cost
+                  - benefits_cost
             alias: gross_cost
         "###);
         assert_yaml_snapshot!(
@@ -1150,13 +1099,11 @@ Canada
             Binary:
               left:
                 Ident:
-                  path: []
-                  name: salary
+                  - salary
               op: Add
               right:
                 Ident:
-                  path: []
-                  name: payroll_tax
+                  - payroll_tax
           op: Mul
           right:
             Binary:
@@ -1166,8 +1113,7 @@ Canada
               op: Add
               right:
                 Ident:
-                  path: []
-                  name: tax_rate
+                  - tax_rate
         alias: gross_salary
         "###);
         Ok(())
@@ -1217,8 +1163,7 @@ take 20
               Binary:
                 left:
                   Ident:
-                    path: []
-                    name: x
+                    - x
                 op: Add
                 right:
                   Literal:
@@ -1236,8 +1181,7 @@ take 20
             named_params: []
             body:
               Ident:
-                path: []
-                name: x
+                - x
             return_ty: ~
         "###);
         assert_yaml_snapshot!(stmts_of_string("func plus_one x ->  (x + 1)")?
@@ -1253,8 +1197,7 @@ take 20
               Binary:
                 left:
                   Ident:
-                    path: []
-                    name: x
+                    - x
                 op: Add
                 right:
                   Literal:
@@ -1274,8 +1217,7 @@ take 20
               Binary:
                 left:
                   Ident:
-                    path: []
-                    name: x
+                    - x
                 op: Add
                 right:
                   Literal:
@@ -1295,20 +1237,17 @@ take 20
               FuncCall:
                 name:
                   Ident:
-                    path: []
-                    name: some_func
+                    - some_func
                 args:
                   - FuncCall:
                       name:
                         Ident:
-                          path: []
-                          name: foo
+                          - foo
                       args:
                         - Binary:
                             left:
                               Ident:
-                                path: []
-                                name: bar
+                                - bar
                             op: Add
                             right:
                               Literal:
@@ -1317,13 +1256,11 @@ take 20
                   - Binary:
                       left:
                         Ident:
-                          path: []
-                          name: plax
+                          - plax
                       op: Sub
                       right:
                         Ident:
-                          path: []
-                          name: baz
+                          - baz
                 named_args: {}
             return_ty: ~
         "###);
@@ -1352,8 +1289,7 @@ take 20
                 - String: SUM(
                 - Expr:
                     Ident:
-                      path: []
-                      name: X
+                      - X
                 - String: )
             return_ty: ~
         "###);
@@ -1386,19 +1322,16 @@ take 20
               - name: to
                 default_value:
                   Ident:
-                    path: []
-                    name: a
+                    - a
             body:
               Binary:
                 left:
                   Ident:
-                    path: []
-                    name: x
+                    - x
                 op: Add
                 right:
                   Ident:
-                    path: []
-                    name: to
+                    - to
             return_ty: ~
         "###);
 
@@ -1413,8 +1346,7 @@ take 20
         assert_yaml_snapshot!(
             ident, @r###"
         ---
-        path: []
-        name: count
+        - count
         "###);
 
         // A non-friendly option for #154
@@ -1425,8 +1357,7 @@ take 20
         ---
         name:
           Ident:
-            path: []
-            name: count
+            - count
         args:
           - SString:
               - String: "*"
@@ -1441,25 +1372,21 @@ take 20
                 - FuncCall:
                     name:
                       Ident:
-                        path: []
-                        name: from
+                        - from
                     args:
                       - Ident:
-                          path: []
-                          name: mytable
+                          - mytable
                     named_args: {}
                 - FuncCall:
                     name:
                       Ident:
-                        path: []
-                        name: select
+                        - select
                     args:
                       - List:
                           - Binary:
                               left:
                                 Ident:
-                                  path: []
-                                  name: a
+                                  - a
                               op: And
                               right:
                                 Binary:
@@ -1467,13 +1394,11 @@ take 20
                                     Binary:
                                       left:
                                         Ident:
-                                          path: []
-                                          name: b
+                                          - b
                                       op: Add
                                       right:
                                         Ident:
-                                          path: []
-                                          name: c
+                                          - c
                                   op: Or
                                   right:
                                     Binary:
@@ -1481,18 +1406,15 @@ take 20
                                         FuncCall:
                                           name:
                                             Ident:
-                                              path: []
-                                              name: d
+                                              - d
                                           args:
                                             - Ident:
-                                                path: []
-                                                name: e
+                                                - e
                                           named_args: {}
                                       op: And
                                       right:
                                         Ident:
-                                          path: []
-                                          name: f
+                                          - f
                     named_args: {}
         "###);
 
@@ -1503,12 +1425,10 @@ take 20
         FuncCall:
           name:
             Ident:
-              path: []
-              name: add
+              - add
           args:
             - Ident:
-                path: []
-                name: bar
+                - bar
             - Literal:
                 Integer: 3
               alias: to
@@ -1528,14 +1448,11 @@ take 20
               FuncCall:
                 name:
                   Ident:
-                    path: []
-                    name: from
+                    - from
                 args:
                   - Ident:
-                      path: []
-                      name: employees
+                      - employees
                 named_args: {}
-            id: ~
         "###);
 
         assert_yaml_snapshot!(stmts_of_string(
@@ -1560,38 +1477,31 @@ take 20
                   - FuncCall:
                       name:
                         Ident:
-                          path: []
-                          name: from
+                          - from
                       args:
                         - Ident:
-                            path: []
-                            name: employees
+                            - employees
                       named_args: {}
                   - FuncCall:
                       name:
                         Ident:
-                          path: []
-                          name: group
+                          - group
                       args:
                         - Ident:
-                            path: []
-                            name: country
+                            - country
                         - FuncCall:
                             name:
                               Ident:
-                                path: []
-                                name: aggregate
+                                - aggregate
                             args:
                               - List:
                                   - FuncCall:
                                       name:
                                         Ident:
-                                          path: []
-                                          name: average
+                                          - average
                                       args:
                                         - Ident:
-                                            path: []
-                                            name: salary
+                                            - salary
                                       named_args: {}
                                     alias: average_country_salary
                             named_args: {}
@@ -1599,23 +1509,19 @@ take 20
                   - FuncCall:
                       name:
                         Ident:
-                          path: []
-                          name: sort
+                          - sort
                       args:
                         - Ident:
-                            path: []
-                            name: tenure
+                            - tenure
                       named_args: {}
                   - FuncCall:
                       name:
                         Ident:
-                          path: []
-                          name: take
+                          - take
                       args:
                         - Literal:
                             Integer: 50
                       named_args: {}
-            id: ~
         "###);
         Ok(())
     }
@@ -1642,35 +1548,28 @@ take 20
                   - FuncCall:
                       name:
                         Ident:
-                          path: []
-                          name: from
+                          - from
                       args:
                         - Ident:
-                            path: []
-                            name: x_table
+                            - x_table
                       named_args: {}
                   - FuncCall:
                       name:
                         Ident:
-                          path: []
-                          name: select
+                          - select
                       args:
                         - Ident:
-                            path: []
-                            name: foo
+                            - foo
                           alias: only_in_x
                       named_args: {}
-            id: ~
         - Pipeline:
             FuncCall:
               name:
                 Ident:
-                  path: []
-                  name: from
+                  - from
               args:
                 - Ident:
-                    path: []
-                    name: x
+                    - x
               named_args: {}
         "###);
 
@@ -1684,13 +1583,11 @@ take 20
         Pipeline:
           exprs:
             - Ident:
-                path: []
-                name: salary
+                - salary
             - FuncCall:
                 name:
                   Ident:
-                    path: []
-                    name: percentile
+                    - percentile
                 args:
                   - Literal:
                       Integer: 50
@@ -1708,13 +1605,11 @@ take 20
               Pipeline:
                 exprs:
                   - Ident:
-                      path: []
-                      name: x
+                      - x
                   - FuncCall:
                       name:
                         Ident:
-                          path: []
-                          name: percentile
+                          - percentile
                       args:
                         - Literal:
                             Integer: 50
@@ -1739,41 +1634,34 @@ take 20
                 - FuncCall:
                     name:
                       Ident:
-                        path: []
-                        name: from
+                        - from
                     args:
                       - Ident:
-                          path: []
-                          name: mytable
+                          - mytable
                     named_args: {}
                 - FuncCall:
                     name:
                       Ident:
-                        path: []
-                        name: filter
+                        - filter
                     args:
                       - List:
                           - Binary:
                               left:
                                 Ident:
-                                  path: []
-                                  name: first_name
+                                  - first_name
                               op: Eq
                               right:
                                 Ident:
-                                  path: []
-                                  name: $1
+                                  - $1
                           - Binary:
                               left:
                                 Ident:
-                                  path: []
-                                  name: last_name
+                                  - last_name
                               op: Eq
                               right:
                                 Ident:
-                                  path:
-                                    - $2
-                                  name: name
+                                  - $2
+                                  - name
                     named_args: {}
         "###);
         Ok(())
@@ -1811,52 +1699,43 @@ join `my-proj`.`dataset`.`table`
                 - FuncCall:
                     name:
                       Ident:
-                        path: []
-                        name: from
+                        - from
                     args:
                       - Ident:
-                          path: []
-                          name: a.b
+                          - a.b
                     named_args: {}
                 - FuncCall:
                     name:
                       Ident:
-                        path: []
-                        name: aggregate
+                        - aggregate
                     args:
                       - List:
                           - FuncCall:
                               name:
                                 Ident:
-                                  path: []
-                                  name: max
+                                  - max
                               args:
                                 - Ident:
-                                    path: []
-                                    name: c
+                                    - c
                               named_args: {}
                     named_args: {}
                 - FuncCall:
                     name:
                       Ident:
-                        path: []
-                        name: join
+                        - join
                     args:
                       - Ident:
-                          path: []
-                          name: my-proj.dataset.table
+                          - my-proj.dataset.table
                     named_args: {}
                 - FuncCall:
                     name:
                       Ident:
-                        path: []
-                        name: join
+                        - join
                     args:
                       - Ident:
-                          path:
-                            - my-proj
-                            - dataset
-                          name: table
+                          - my-proj
+                          - dataset
+                          - table
                     named_args: {}
         "###);
 
@@ -1880,80 +1759,66 @@ join `my-proj`.`dataset`.`table`
                 - FuncCall:
                     name:
                       Ident:
-                        path: []
-                        name: from
+                        - from
                     args:
                       - Ident:
-                          path: []
-                          name: invoices
+                          - invoices
                     named_args: {}
                 - FuncCall:
                     name:
                       Ident:
-                        path: []
-                        name: sort
+                        - sort
                     args:
                       - Ident:
-                          path: []
-                          name: issued_at
+                          - issued_at
                     named_args: {}
                 - FuncCall:
                     name:
                       Ident:
-                        path: []
-                        name: sort
+                        - sort
                     args:
                       - Unary:
                           op: Neg
                           expr:
                             Ident:
-                              path: []
-                              name: issued_at
+                              - issued_at
                     named_args: {}
                 - FuncCall:
                     name:
                       Ident:
-                        path: []
-                        name: sort
+                        - sort
                     args:
                       - List:
                           - Ident:
-                              path: []
-                              name: issued_at
+                              - issued_at
                     named_args: {}
                 - FuncCall:
                     name:
                       Ident:
-                        path: []
-                        name: sort
+                        - sort
                     args:
                       - List:
                           - Unary:
                               op: Neg
                               expr:
                                 Ident:
-                                  path: []
-                                  name: issued_at
+                                  - issued_at
                     named_args: {}
                 - FuncCall:
                     name:
                       Ident:
-                        path: []
-                        name: sort
+                        - sort
                     args:
                       - List:
                           - Ident:
-                              path: []
-                              name: issued_at
+                              - issued_at
                           - Unary:
                               op: Neg
                               expr:
                                 Ident:
-                                  path: []
-                                  name: amount
+                                  - amount
                           - Ident:
-                              path: []
-                              name: num_of_articles
+                              - num_of_articles
                     named_args: {}
         "###);
 
@@ -1981,29 +1846,24 @@ join `my-proj`.`dataset`.`table`
                 - FuncCall:
                     name:
                       Ident:
-                        path: []
-                        name: from
+                        - from
                     args:
                       - Ident:
-                          path: []
-                          name: employees
+                          - employees
                     named_args: {}
                 - FuncCall:
                     name:
                       Ident:
-                        path: []
-                        name: filter
+                        - filter
                     args:
                       - Pipeline:
                           exprs:
                             - Ident:
-                                path: []
-                                name: age
+                                - age
                             - FuncCall:
                                 name:
                                   Ident:
-                                    path: []
-                                    name: between
+                                    - between
                                 args:
                                   - Range:
                                       start:
@@ -2017,8 +1877,7 @@ join `my-proj`.`dataset`.`table`
                 - FuncCall:
                     name:
                       Ident:
-                        path: []
-                        name: derive
+                        - derive
                     args:
                       - List:
                           - Range:
@@ -2076,25 +1935,21 @@ join `my-proj`.`dataset`.`table`
                 - FuncCall:
                     name:
                       Ident:
-                        path: []
-                        name: from
+                        - from
                     args:
                       - Ident:
-                          path: []
-                          name: employees
+                          - employees
                     named_args: {}
                 - FuncCall:
                     name:
                       Ident:
-                        path: []
-                        name: derive
+                        - derive
                     args:
                       - List:
                           - Binary:
                               left:
                                 Ident:
-                                  path: []
-                                  name: age
+                                  - age
                               op: Add
                               right:
                                 Literal:
@@ -2118,8 +1973,7 @@ join `my-proj`.`dataset`.`table`
             FuncCall:
               name:
                 Ident:
-                  path: []
-                  name: derive
+                  - derive
               args:
                 - List:
                     - Literal:
@@ -2149,12 +2003,10 @@ join `my-proj`.`dataset`.`table`
             FuncCall:
               name:
                 Ident:
-                  path: []
-                  name: derive
+                  - derive
               args:
                 - Ident:
-                    path: []
-                    name: r
+                    - r
                   alias: x
               named_args: {}
         "### )
@@ -2173,28 +2025,23 @@ join `my-proj`.`dataset`.`table`
                 - FuncCall:
                     name:
                       Ident:
-                        path: []
-                        name: from
+                        - from
                     args:
                       - Ident:
-                          path: []
-                          name: employees
+                          - employees
                     named_args: {}
                 - FuncCall:
                     name:
                       Ident:
-                        path: []
-                        name: derive
+                        - derive
                     args:
                       - FuncCall:
                           name:
                             Ident:
-                              path: []
-                              name: coalesce
+                              - coalesce
                           args:
                             - Ident:
-                                path: []
-                                name: amount
+                                - amount
                             - Literal:
                                 Integer: 0
                           named_args: {}
@@ -2213,8 +2060,7 @@ join `my-proj`.`dataset`.`table`
             FuncCall:
               name:
                 Ident:
-                  path: []
-                  name: derive
+                  - derive
               args:
                 - Literal:
                     Boolean: true
@@ -2238,58 +2084,48 @@ join `my-proj`.`dataset`.`table`
                 - FuncCall:
                     name:
                       Ident:
-                        path: []
-                        name: from
+                        - from
                     args:
                       - Ident:
-                          path: []
-                          name: employees
+                          - employees
                     named_args: {}
                 - FuncCall:
                     name:
                       Ident:
-                        path: []
-                        name: join
+                        - join
                     args:
                       - Ident:
-                          path: []
-                          name: _salary
+                          - _salary
                       - List:
                           - Unary:
                               op: EqSelf
                               expr:
                                 Ident:
-                                  path: []
-                                  name: employee_id
+                                  - employee_id
                     named_args: {}
                 - FuncCall:
                     name:
                       Ident:
-                        path: []
-                        name: filter
+                        - filter
                     args:
                       - Binary:
                           left:
                             Ident:
-                              path: []
-                              name: first_name
+                              - first_name
                           op: Eq
                           right:
                             Ident:
-                              path: []
-                              name: $1
+                              - $1
                     named_args: {}
                 - FuncCall:
                     name:
                       Ident:
-                        path: []
-                        name: select
+                        - select
                     args:
                       - List:
                           - Ident:
-                              path:
-                                - _employees
-                              name: _underscored_column
+                              - _employees
+                              - _underscored_column
                     named_args: {}
         "###)
     }
@@ -2310,24 +2146,20 @@ join `my-proj`.`dataset`.`table`
                 - FuncCall:
                     name:
                       Ident:
-                        path: []
-                        name: from
+                        - from
                     args:
                       - Ident:
-                          path: []
-                          name: people
+                          - people
                     named_args: {}
                 - FuncCall:
                     name:
                       Ident:
-                        path: []
-                        name: filter
+                        - filter
                     args:
                       - Binary:
                           left:
                             Ident:
-                              path: []
-                              name: age
+                              - age
                           op: Gte
                           right:
                             Literal:
@@ -2336,14 +2168,12 @@ join `my-proj`.`dataset`.`table`
                 - FuncCall:
                     name:
                       Ident:
-                        path: []
-                        name: filter
+                        - filter
                     args:
                       - Binary:
                           left:
                             Ident:
-                              path: []
-                              name: num_grandchildren
+                              - num_grandchildren
                           op: Lte
                           right:
                             Literal:
@@ -2352,14 +2182,12 @@ join `my-proj`.`dataset`.`table`
                 - FuncCall:
                     name:
                       Ident:
-                        path: []
-                        name: filter
+                        - filter
                     args:
                       - Binary:
                           left:
                             Ident:
-                              path: []
-                              name: salary
+                              - salary
                           op: Gt
                           right:
                             Literal:
@@ -2368,14 +2196,12 @@ join `my-proj`.`dataset`.`table`
                 - FuncCall:
                     name:
                       Ident:
-                        path: []
-                        name: filter
+                        - filter
                     args:
                       - Binary:
                           left:
                             Ident:
-                              path: []
-                              name: num_eyes
+                              - num_eyes
                           op: Lt
                           right:
                             Literal:

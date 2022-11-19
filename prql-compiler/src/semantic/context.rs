@@ -1,173 +1,285 @@
 use anyhow::Result;
+use enum_as_inner::EnumAsInner;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet};
-use std::fmt::Debug;
+use std::{collections::HashMap, fmt::Debug};
 
-use super::{Declaration, Declarations, Scope};
-use crate::ast::*;
-use crate::error::Span;
+use super::module::{Module, NS_DEFAULT_DB, NS_NO_RESOLVE, NS_STD};
+use crate::{ast::*, error::Span};
 
 /// Context of the pipeline.
 #[derive(Default, Serialize, Deserialize, Clone)]
 pub struct Context {
     /// Map of all accessible names (for each namespace)
-    pub(crate) scope: Scope,
+    pub(crate) root_mod: Module,
 
-    /// All declarations, even those out of scope
-    pub(crate) declarations: Declarations,
+    pub(crate) span_map: HashMap<usize, Span>,
+}
 
-    /// Set of all ids that should be inlined during resolving
-    pub(crate) inline: HashSet<usize>,
+#[derive(Debug, Default, Serialize, Deserialize, Clone)]
+pub struct Decl {
+    pub declared_at: Option<usize>,
+
+    pub kind: DeclKind,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, EnumAsInner)]
+pub enum DeclKind {
+    /// A nested namespace
+    Module(Module),
+
+    /// Nested namespaces that do lookup in layers from top to bottom, stoping at first match.
+    LayeredModules(Vec<Module>),
+
+    TableDef {
+        /// Columns layout
+        frame: TableFrame,
+
+        /// None means that this is an extern table (actual table in database)
+        /// Some means a CTE
+        expr: Option<Box<Expr>>,
+    },
+
+    Column(usize),
+
+    /// Contains a default value to be created in parent namespace matched.
+    Wildcard(Box<DeclKind>),
+
+    FuncDef(FuncDef),
+
+    Expr(Box<Expr>),
+
+    NoResolve,
+}
+
+#[derive(Clone, Default, Eq, Debug, PartialEq, Serialize, Deserialize)]
+pub struct TableFrame {
+    pub columns: Vec<TableColumn>,
+}
+
+#[derive(Clone, Eq, Debug, PartialEq, Serialize, Deserialize)]
+pub enum TableColumn {
+    Wildcard,
+    Single(Option<String>),
 }
 
 impl Context {
-    pub fn declare(&mut self, dec: Declaration, span: Option<Span>) -> usize {
-        self.declarations.push(dec, span)
-    }
-
-    pub fn declare_func(&mut self, func_def: FuncDef) -> usize {
+    pub fn declare_func(&mut self, func_def: FuncDef, id: Option<usize>) {
         let name = func_def.name.clone();
 
-        let span = func_def.body.span;
-        let id = self.declare(Declaration::Function(func_def), span);
+        let path = vec![NS_STD.to_string()];
+        let ident = Ident { name, path };
 
-        self.scope.add_function(name, id);
-
-        id
+        let decl = Decl {
+            kind: DeclKind::FuncDef(func_def),
+            declared_at: id,
+        };
+        self.root_mod.insert(ident, decl).unwrap();
     }
 
-    pub fn declare_table(&mut self, name: String, alias: Option<String>) -> usize {
-        let alias = alias.unwrap_or_else(|| name.clone());
+    pub fn declare_table(&mut self, table_def: TableDef, id: Option<usize>) {
+        let name = table_def.name;
+        let path = vec![NS_DEFAULT_DB.to_string()];
+        let ident = Ident { name, path };
 
-        let table_id = self.declare(Declaration::Table(alias.clone()), None);
+        let frame = table_def.value.ty.clone().unwrap().into_table().unwrap();
+        let frame = TableFrame {
+            columns: (frame.columns.into_iter())
+                .map(|col| match col {
+                    FrameColumn::Wildcard { .. } => TableColumn::Wildcard,
+                    FrameColumn::Single { name, .. } => TableColumn::Single(name.map(|n| n.name)),
+                })
+                .collect(),
+        };
 
-        self.scope.add(alias, "*", table_id);
-        table_id
+        let expr = Some(table_def.value);
+        let decl = Decl {
+            declared_at: id,
+            kind: DeclKind::TableDef { frame, expr },
+        };
+
+        self.root_mod.insert(ident, decl).unwrap();
     }
 
-    pub fn lookup_ident(&mut self, ident: &Ident, span: Option<Span>) -> Result<usize, String> {
+    pub fn resolve_ident(&mut self, ident: &Ident) -> Result<Ident, String> {
         // lookup the name
         if ident.name != "*" {
-            let decls = self.scope.lookup(ident);
+            let decls = self.root_mod.lookup(ident);
 
             match decls.len() {
                 // no match: try match *
                 0 => {}
 
                 // single match, great!
-                1 => return Ok(decls.into_iter().next().unwrap().0),
+                1 => return Ok(decls.into_iter().next().unwrap()),
 
                 // ambiguous
                 _ => {
-                    let decls = decls
-                        .into_iter()
-                        .map(|d| self.declarations.get(d.0))
-                        .map(|d| format!("`{d}`"))
-                        .join(", ");
-                    return Err(format!(
-                        "Ambiguous reference. Could be from either of {decls}"
-                    ));
+                    let decls = decls.into_iter().map(|d| d.to_string()).join(", ");
+                    return Err(format!("Ambiguous reference. Could be from any of {decls}"));
                 }
             }
         }
 
         // this variable can be from a namespace that we don't know all columns of
-        let decls = self.scope.lookup(&Ident {
+        let decls = self.root_mod.lookup(&Ident {
             path: ident.path.clone(),
             name: "*".to_string(),
         });
 
         match decls.len() {
-            0 => Err(format!("Unknown name {ident:?}")),
+            0 => Err(format!("Unknown name {ident}")),
 
             // single match, great!
             1 => {
-                let (table_id, namespaces) = decls.into_iter().next().unwrap();
+                let wildcard_ident = decls.into_iter().next().unwrap();
 
-                // declare this variable as ExternRef
-                let decl = Declaration::ExternRef {
-                    table: Some(table_id),
-                    variable: ident.name.clone(),
-                };
-                let id = self.declare(decl, span);
-                for namespace in namespaces {
-                    self.scope.add(namespace, &ident.name, id);
+                let wildcard = self.root_mod.get(&wildcard_ident).unwrap();
+                let wildcard_default = wildcard.kind.as_wildcard().cloned().unwrap();
+
+                let module_ident = wildcard_ident.pop().unwrap();
+                let module = self.root_mod.get_mut(&module_ident).unwrap();
+                let module = module.kind.as_module_mut().unwrap();
+
+                // insert default
+                module
+                    .names
+                    .insert(ident.name.clone(), Decl::from(*wildcard_default));
+
+                // table columns
+                if let Some(table_ident) = module.instance_of_table.clone() {
+                    log::debug!("infering {ident} to be from table {table_ident}");
+                    self.infer_table_column(&table_ident, &ident.name)?;
                 }
 
-                Ok(id)
+                Ok(module_ident + Ident::from_name(ident.name.clone()))
             }
 
             // don't report ambiguous variable, database may be able to resolve them
             _ => {
-                let decl = Declaration::ExternRef {
-                    table: None,
-                    variable: ident.name.clone(),
-                };
-                let id = self.declare(decl, span);
+                // insert default
+                let ident = NS_NO_RESOLVE.to_string();
+                self.root_mod
+                    .names
+                    .insert(ident, Decl::from(DeclKind::NoResolve));
 
-                Ok(id)
+                log::debug!(
+                    "... could either of {:?}",
+                    decls.iter().map(|x| x.to_string()).collect_vec()
+                );
+
+                Ok(Ident::from_name(NS_NO_RESOLVE))
             }
         }
     }
 
-    /// Ensure that expressions are declared.
-    /// If expr is aliased, replace it with an ident.
-    pub(super) fn declare_as_idents(&mut self, exprs: &mut [Expr]) {
-        for expr in exprs {
-            self.declare_as_ident(expr);
-        }
-    }
+    fn infer_table_column(&mut self, table_ident: &Ident, col_name: &str) -> Result<(), String> {
+        let table = self.root_mod.get_mut(table_ident).unwrap();
+        let (frame, expr) = table.kind.as_table_def_mut().unwrap();
 
-    /// Ensure that expression are declared.
-    /// If expr is aliased, replace it with an ident.
-    pub(super) fn declare_as_ident(&mut self, expr: &mut Expr) {
-        // ensure that expr id declared
-        expr.declared_at = expr.declared_at.or_else(|| {
-            Some(self.declare(Declaration::Expression(Box::from(expr.clone())), expr.span))
-        });
-    }
-
-    pub fn get_column_names(&self, frame: &Frame) -> Vec<Option<String>> {
-        frame
+        let has_wildcard = frame
             .columns
             .iter()
-            .map(|col| match col {
-                FrameColumn::All(namespace) => {
-                    let (table, _) = &self.declarations.decls[*namespace];
-                    let table = table.as_table().map(|x| x.as_str()).unwrap_or("");
-                    Some(format!("{table}.*"))
+            .any(|c| matches!(c, TableColumn::Wildcard));
+        if !has_wildcard {
+            return Err(format!("Table {table_ident:?} does not have wildcard."));
+        }
+
+        let exists = frame.columns.iter().any(|c| match c {
+            TableColumn::Single(Some(n)) => n == col_name,
+            _ => false,
+        });
+        if exists {
+            return Ok(());
+        }
+
+        let col = TableColumn::Single(Some(col_name.to_string()));
+        frame.columns.push(col);
+
+        // also add into input tables of this table expression
+        if let Some(expr) = &expr {
+            if let Some(Ty::Table(frame)) = expr.ty.as_ref() {
+                let wildcard_inputs = (frame.columns.iter())
+                    .filter_map(|c| c.as_wildcard())
+                    .collect_vec();
+
+                match wildcard_inputs.len() {
+                    0 => return Err(format!("Cannot infer where {table_ident}.{col_name} is from")),
+                    1 => {
+                        let input_name = wildcard_inputs.into_iter().next().unwrap();
+
+                        let input = frame.find_input(input_name).unwrap();
+                        let table_ident = input.table.clone();
+                        self.infer_table_column(&table_ident, col_name)?;
+                    }
+                    _ => {
+                        return Err(format!("Cannot infer where {table_ident}.{col_name} is from. It could be any of {wildcard_inputs:?}"))
+                    }
                 }
-                FrameColumn::Unnamed(_) => None,
-                FrameColumn::Named(name, _) => Some(name.clone()),
-            })
-            .collect()
-    }
-
-    pub fn take_decls(&mut self, namespace: &str) -> HashMap<String, Declaration> {
-        let dropped = self.scope.pop_namespace(namespace);
-        let mut res = HashMap::new();
-        for (name, id) in dropped.unwrap_or_default() {
-            let decl = self.declarations.take(id);
-            self.inline.remove(&id);
-            self.declarations.forget(id);
-            res.insert(name, decl);
+            }
         }
-        res
-    }
 
-    pub fn insert_decls(&mut self, namespace: &str, decls: HashMap<String, Declaration>) {
-        for (name, dec) in decls {
-            let id = self.declarations.push(dec, None);
-            self.inline.insert(id);
-            self.scope.add(namespace, name, id);
-        }
+        Ok(())
+    }
+}
+
+impl Default for DeclKind {
+    fn default() -> Self {
+        DeclKind::Module(Module::default())
     }
 }
 
 impl Debug for Context {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "Declarations:\n{:?}", self.declarations)?;
-        writeln!(f, "Scope:\n{:?}", self.scope)
+        self.root_mod.fmt(f)
+    }
+}
+
+impl From<DeclKind> for Decl {
+    fn from(kind: DeclKind) -> Self {
+        Decl {
+            kind,
+            declared_at: None,
+        }
+    }
+}
+
+impl std::fmt::Display for Decl {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(&self.kind, f)
+    }
+}
+
+impl std::fmt::Display for DeclKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Module(arg0) => f.debug_tuple("Module").field(arg0).finish(),
+            Self::LayeredModules(arg0) => f.debug_tuple("LayeredModules").field(arg0).finish(),
+            Self::TableDef { frame, expr } => write!(f, "TableDef: {frame} {expr:?}"),
+            Self::Column(arg0) => write!(f, "Column (target {arg0})"),
+            Self::Wildcard(arg0) => write!(f, "Wildcard (default: {arg0})"),
+            Self::FuncDef(arg0) => write!(f, "FuncDef: {arg0}"),
+            Self::Expr(arg0) => write!(f, "Expr: {arg0}"),
+            Self::NoResolve => write!(f, "NoResolve"),
+        }
+    }
+}
+
+impl std::fmt::Display for TableFrame {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("[")?;
+        for (index, col) in self.columns.iter().enumerate() {
+            let is_last = index == self.columns.len() - 1;
+
+            let col = match col {
+                TableColumn::Wildcard => "*",
+                TableColumn::Single(name) => name.as_deref().unwrap_or("<unnamed>"),
+            };
+            f.write_str(col)?;
+            if !is_last {
+                f.write_str(", ")?;
+            }
+        }
+        f.write_str("]")
     }
 }

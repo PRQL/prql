@@ -14,6 +14,8 @@ pub struct Statements(pub Vec<Stmt>);
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Stmt {
+    #[serde(skip)]
+    pub id: Option<usize>,
     #[serde(flatten)]
     pub kind: StmtKind,
     #[serde(skip)]
@@ -59,12 +61,15 @@ pub struct FuncParam {
 pub struct TableDef {
     pub name: String,
     pub value: Box<Expr>,
-    pub id: Option<usize>,
 }
 
 impl From<StmtKind> for Stmt {
     fn from(kind: StmtKind) -> Self {
-        Stmt { kind, span: None }
+        Stmt {
+            kind,
+            span: None,
+            id: None,
+        }
     }
 }
 
@@ -105,14 +110,7 @@ impl Display for StmtKind {
                 _ => writeln!(f, "{}", expr)?,
             },
             StmtKind::FuncDef(func_def) => {
-                write!(f, "func {}", func_def.name)?;
-                for arg in &func_def.positional_params {
-                    write!(f, " {}", arg.name)?;
-                }
-                for arg in &func_def.named_params {
-                    write!(f, " {}", arg.name)?;
-                }
-                write!(f, " -> {}\n\n", func_def.body)?;
+                writeln!(f, "{func_def}\n")?;
             }
             StmtKind::TableDef(table) => {
                 let pipeline = &table.value;
@@ -128,5 +126,18 @@ impl Display for StmtKind {
             }
         }
         Ok(())
+    }
+}
+
+impl Display for FuncDef {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "func {}", self.name)?;
+        for arg in &self.positional_params {
+            write!(f, " {}", arg.name)?;
+        }
+        for arg in &self.named_params {
+            write!(f, " {}", arg.name)?;
+        }
+        write!(f, " -> {}", self.body)
     }
 }

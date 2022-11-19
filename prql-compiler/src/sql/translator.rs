@@ -443,6 +443,7 @@ mod test {
     }
 
     #[test]
+    #[ignore]
     fn test_variable_after_aggregate() {
         let query = &r#"
         from employees

@@ -1,20 +1,18 @@
 mod context;
-mod declarations;
 mod lowering;
+mod module;
 mod reporting;
 mod resolver;
-mod scope;
 mod transforms;
 mod type_resolver;
 
 pub use self::context::Context;
-pub use self::declarations::{Declaration, Declarations};
-pub use self::scope::Scope;
 pub use reporting::{collect_frames, label_references};
 
 use crate::ast::frame::{Frame, FrameColumn};
 use crate::ast::Stmt;
 use crate::ir::Query;
+use crate::semantic::module::Module;
 use crate::PRQL_VERSION;
 
 use anyhow::{bail, Result};
@@ -54,7 +52,12 @@ pub fn load_std_lib() -> Context {
     let std_lib = include_str!("./stdlib.prql");
     let statements = parse(std_lib).unwrap();
 
-    let (_, context) = resolver::resolve(statements, Context::default()).unwrap();
+    let context = Context {
+        root_mod: Module::new(),
+        ..Context::default()
+    };
+
+    let (_, context) = resolver::resolve(statements, context).unwrap();
     context
 }
 
@@ -103,13 +106,7 @@ mod test {
                 source: 0
                 columns:
                   - id: 1
-                    kind:
-                      Expr:
-                        name: ~
-                        expr:
-                          kind:
-                            ColumnRef: 0
-                          span: ~
+                    kind: Wildcard
                 name: ~
             - Select:
                 - 1
@@ -138,13 +135,7 @@ mod test {
                 source: 0
                 columns:
                   - id: 1
-                    kind:
-                      Expr:
-                        name: ~
-                        expr:
-                          kind:
-                            ColumnRef: 0
-                          span: ~
+                    kind: Wildcard
                 name: ~
             - Select:
                 - 1

@@ -4,16 +4,27 @@ expression: "resolve_type(r#\"\n            from employees\n            join sal
 ---
 Table:
   columns:
-    - Named:
-        - emp_no
-        - 33
-    - Named:
-        - gender
-        - 34
-    - Named:
-        - emp_salary
-        - 38
-  sort: []
-  tables:
-    - 29
+    - Single:
+        name:
+          - emp_no
+        expr_id: 15
+    - Single:
+        name:
+          - gender
+        expr_id: 16
+    - Single:
+        name:
+          - emp_salary
+        expr_id: 23
+  inputs:
+    - id: 11
+      name: employees
+      table:
+        - default_db
+        - employees
+    - id: 8
+      name: salaries
+      table:
+        - default_db
+        - salaries
 

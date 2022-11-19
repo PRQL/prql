@@ -1,26 +1,45 @@
 use std::fmt::{Debug, Display, Formatter};
 
+use enum_as_inner::EnumAsInner;
+use itertools::{Itertools, Position};
 use serde::{Deserialize, Serialize};
 
 use crate::ast::Expr;
 
+use super::Ident;
+
 /// Represents the object that is manipulated by the pipeline transforms.
 /// Similar to a view in a database or a data frame.
-#[derive(Clone, Default, Eq, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Default, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Frame {
     pub columns: Vec<FrameColumn>,
-    pub sort: Vec<ColumnSort<usize>>,
-    pub tables: Vec<usize>,
+
+    pub inputs: Vec<FrameInput>,
 }
 
-/// Columns we know about in a Frame. The usize value represents the table id.
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Eq, Debug, PartialEq, Serialize, Deserialize)]
+pub struct FrameInput {
+    /// id of the node in AST that declares this input
+    pub id: usize,
+
+    /// local name of this input within a query
+    pub name: String,
+
+    /// fully qualified name of table that provides the data for this frame
+    pub table: Ident,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize, EnumAsInner)]
 pub enum FrameColumn {
     /// Used for `foo_table.*`
-    All(usize),
-    /// Used for `derive a + b` (new column has no name)
-    Unnamed(usize),
-    Named(String, usize),
+    Wildcard {
+        input_name: String,
+    },
+
+    Single {
+        name: Option<Ident>,
+        expr_id: usize,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -42,34 +61,17 @@ impl Default for SortDirection {
 }
 
 impl Frame {
-    pub fn unknown(table_id: usize) -> Self {
-        Frame {
-            columns: vec![FrameColumn::All(table_id)],
-            sort: Vec::new(),
-            tables: vec![],
-        }
-    }
-
     pub fn push_column(&mut self, name: Option<String>, id: usize) {
-        // remove columns with the same name
-        if let Some(name) = &name {
-            self.columns.retain(|c| match c {
-                FrameColumn::Named(n, _) => n != name,
-                _ => true,
-            })
-        }
-
-        let column = if let Some(name) = name {
-            FrameColumn::Named(name, id)
-        } else {
-            FrameColumn::Unnamed(id)
-        };
-        self.columns.push(column);
+        self.columns.push(FrameColumn::Single {
+            name: name.map(Ident::from_name),
+            expr_id: id,
+        });
     }
 
     pub fn apply_assigns(&mut self, assigns: &[Expr]) {
         for expr in assigns {
-            let id = expr.declared_at.unwrap();
+            let id = expr.id.unwrap();
+
             let name = expr
                 .alias
                 .clone()
@@ -78,27 +80,65 @@ impl Frame {
             self.push_column(name, id);
         }
     }
+
+    pub fn find_input(&self, input_name: &str) -> Option<&FrameInput> {
+        self.inputs.iter().find(|i| i.name == input_name)
+    }
 }
 
 impl Display for Frame {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "[")?;
-        for t_col in &self.columns {
-            match t_col {
-                FrameColumn::All(ns) => write!(f, " {ns}.* ")?,
-                FrameColumn::Named(name, id) => write!(f, " {name}:{id} ")?,
-                FrameColumn::Unnamed(id) => write!(f, " {id} ")?,
-            }
-        }
-        write!(f, "]")
+        display_frame(self, f, false)
     }
 }
 
-impl PartialEq<usize> for FrameColumn {
-    fn eq(&self, other: &usize) -> bool {
-        match self {
-            FrameColumn::All(_) => false,
-            FrameColumn::Unnamed(id) | FrameColumn::Named(_, id) => id == other,
+impl Debug for Frame {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        display_frame(self, f, true)
+    }
+}
+
+fn display_frame(frame: &Frame, f: &mut Formatter, display_ids: bool) -> std::fmt::Result {
+    write!(f, "[")?;
+    for col in frame.columns.iter().with_position() {
+        let is_last = matches!(col, Position::Last(_) | Position::Only(_));
+        display_frame_column(col.into_inner(), f, display_ids)?;
+        if !is_last {
+            write!(f, ", ")?;
         }
+    }
+    write!(f, "]")
+}
+
+fn display_frame_column(
+    col: &FrameColumn,
+    f: &mut Formatter,
+    display_ids: bool,
+) -> std::fmt::Result {
+    match col {
+        FrameColumn::Wildcard { input_name } => {
+            write!(f, "{input_name}.*")?;
+        }
+        FrameColumn::Single { name, expr_id } => {
+            if let Some(name) = name {
+                write!(f, "{name}")?
+            } else {
+                write!(f, "?")?
+            }
+            if display_ids {
+                write!(f, ":{expr_id}")?
+            }
+        }
+    }
+    Ok(())
+}
+
+impl std::ops::Add<Frame> for Frame {
+    type Output = Frame;
+
+    fn add(mut self, rhs: Frame) -> Frame {
+        self.columns.extend(rhs.columns);
+        self.inputs.extend(rhs.inputs);
+        self
     }
 }

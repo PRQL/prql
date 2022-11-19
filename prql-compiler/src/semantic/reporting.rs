@@ -3,7 +3,9 @@ use std::ops::Range;
 use anyhow::{Ok, Result};
 use ariadne::{Color, Label, Report, ReportBuilder, ReportKind, Source};
 
-use super::{Context, Declaration, Frame};
+use super::context::DeclKind;
+use super::module::NS_DEFAULT_DB;
+use super::{Context, Frame};
 use crate::ast::ast_fold::*;
 use crate::ast::*;
 use crate::error::Span;
@@ -25,7 +27,7 @@ pub fn label_references(
         source_id: &source_id,
         report: &mut report,
     };
-    // traverse ast
+    labeler.fold_table_exprs();
     let stmts = labeler.fold_stmts(stmts).unwrap();
 
     let mut out = Vec::new();
@@ -44,40 +46,85 @@ struct Labeler<'a> {
     report: &'a mut ReportBuilder<(String, Range<usize>)>,
 }
 
+impl<'a> Labeler<'a> {
+    fn fold_table_exprs(&mut self) {
+        if let Some(default_db) = self.context.root_mod.names.get(NS_DEFAULT_DB) {
+            let default_db = default_db.clone().kind.into_module().unwrap();
+
+            for (_, decl) in default_db.names.into_iter() {
+                if let DeclKind::TableDef {
+                    expr: Some(expr), ..
+                } = decl.kind
+                {
+                    self.fold_expr(*expr).unwrap();
+                }
+            }
+        }
+    }
+
+    fn get_span_lines(&mut self, id: usize) -> Option<String> {
+        let decl_span = self.context.span_map.get(&id);
+        decl_span.map(|decl_span| {
+            let line_span = self.source.get_line_range(&Range::from(*decl_span));
+            if line_span.len() <= 1 {
+                format!(" at line {}", line_span.start + 1)
+            } else {
+                format!(" at lines {}-{}", line_span.start + 1, line_span.end)
+            }
+        })
+    }
+}
+
 impl<'a> AstFold for Labeler<'a> {
     fn fold_expr(&mut self, node: Expr) -> Result<Expr> {
-        if let Some(declared_at) = node.declared_at {
-            let (declaration, span) = &self.context.declarations.decls[declared_at];
-            let message = if let Some(span) = span {
-                let span = self.source.get_line_range(&Range::from(*span));
-                if span.len() <= 1 {
-                    format!("[{declared_at}] {declaration} at line {}", span.start + 1)
-                } else {
-                    format!(
-                        "[{declared_at}] {declaration} at lines {}-{}",
-                        span.start + 1,
-                        span.end
-                    )
-                }
-            } else {
-                declaration.to_string()
-            };
-            let color = match declaration {
-                Declaration::Expression(_) => Color::Blue,
-                Declaration::ExternRef { .. } => Color::Cyan,
-                Declaration::Table { .. } => Color::Magenta,
-                Declaration::Function(_) => Color::Yellow,
-            };
-
+        if let Some(ident) = node.kind.as_ident() {
             if let Some(span) = node.span {
+                let decl = self.context.root_mod.get(ident);
+
+                let ident = format!("[{ident}]");
+
+                let (decl, color) = if let Some(decl) = decl {
+                    let color = match &decl.kind {
+                        DeclKind::Expr(_) => Color::Blue,
+                        DeclKind::Column { .. } => Color::Yellow,
+                        DeclKind::TableDef { .. } => Color::Red,
+                        DeclKind::FuncDef(_) => Color::Magenta,
+                        DeclKind::Module(_) => Color::Cyan,
+                        DeclKind::LayeredModules(_) => Color::Cyan,
+                        DeclKind::NoResolve => Color::White,
+                        DeclKind::Wildcard(_) => Color::White,
+                    };
+
+                    let location = decl
+                        .declared_at
+                        .and_then(|id| self.get_span_lines(id))
+                        .unwrap_or_default();
+
+                    let decl = match &decl.kind {
+                        DeclKind::TableDef { frame, .. } => format!("table {frame}"),
+                        _ => decl.to_string(),
+                    };
+
+                    (format!("{decl}{location}"), color)
+                } else if let Some(decl_id) = node.target_id {
+                    let lines = self.get_span_lines(decl_id).unwrap_or_default();
+
+                    (format!("variable{lines}"), Color::Yellow)
+                } else {
+                    ("".to_string(), Color::White)
+                };
+
                 self.report.add_label(
                     Label::new((self.source_id.to_string(), Range::from(span)))
-                        .with_message(message)
+                        .with_message(format!("{ident} {decl}"))
                         .with_color(color),
                 );
             }
         }
-        Ok(self.fold_expr_kind(node.kind)?.into())
+        Ok(Expr {
+            kind: self.fold_expr_kind(node.kind)?,
+            ..node
+        })
     }
 }
 

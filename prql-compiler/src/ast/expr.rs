@@ -9,7 +9,6 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Reason, Span};
 use crate::ir::CId;
-use crate::semantic::Declaration;
 
 use super::*;
 
@@ -17,12 +16,16 @@ use super::*;
 /// If it cannot contain nested Exprs, is should be under [ExprKind::Literal].
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Expr {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub id: Option<usize>,
     #[serde(flatten)]
     pub kind: ExprKind,
     #[serde(skip)]
     pub span: Option<Span>,
-    #[serde(skip)]
-    pub declared_at: Option<usize>,
+
+    /// For [Ident]s, this is id of node referenced by the ident
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub target_id: Option<usize>,
 
     /// Type of expression this node represents. [None] means type has not yet been determined.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -52,7 +55,7 @@ pub enum ExprKind {
         expr: Box<Expr>,
     },
     FuncCall(FuncCall),
-    Closure(Closure),
+    Closure(Box<Closure>),
     TransformCall(TransformCall),
     SString(Vec<InterpolateItem>),
     FString(Vec<InterpolateItem>),
@@ -67,27 +70,7 @@ impl ExprKind {
     }
 }
 
-/// A name. Generally columns, tables, functions, variables.
-#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
-pub struct Ident {
-    pub path: Vec<String>,
-    pub name: String,
-}
-
-impl Ident {
-    pub fn from_name<S: ToString>(name: S) -> Self {
-        Ident {
-            path: Vec::new(),
-            name: name.to_string(),
-        }
-    }
-}
-
-impl std::fmt::Display for Ident {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        display_ident(f, self)
-    }
-}
+mod modname {}
 
 #[derive(
     Debug, PartialEq, Eq, Clone, Serialize, Deserialize, strum::Display, strum::EnumString,
@@ -157,7 +140,7 @@ impl FuncCall {
 /// May also contain environment that is needed to evaluate the body.
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Closure {
-    pub name: Option<String>,
+    pub name: Option<Ident>,
     pub body: Box<Expr>,
     pub body_ty: Option<Ty>,
 
@@ -167,7 +150,7 @@ pub struct Closure {
     pub named_args: Vec<Option<Expr>>,
     pub named_params: Vec<FuncParam>,
 
-    pub env: HashMap<String, Declaration>,
+    pub env: HashMap<String, Expr>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
@@ -324,12 +307,6 @@ pub enum JoinSide {
 }
 
 impl Expr {
-    pub fn new_ident<S: ToString>(name: S, declared_at: usize) -> Expr {
-        let mut node: Expr = ExprKind::Ident(Ident::from_name(name)).into();
-        node.declared_at = Some(declared_at);
-        node
-    }
-
     pub fn null() -> Expr {
         Expr::from(ExprKind::Literal(Literal::Null))
     }
@@ -389,11 +366,12 @@ impl Expr {
 }
 
 impl From<ExprKind> for Expr {
-    fn from(item: ExprKind) -> Self {
+    fn from(kind: ExprKind) -> Self {
         Expr {
-            kind: item,
+            id: None,
+            kind,
             span: None,
-            declared_at: None,
+            target_id: None,
             ty: None,
             needs_window: false,
             alias: None,
@@ -572,33 +550,6 @@ impl Display for Expr {
         }
 
         Ok(())
-    }
-}
-
-fn display_ident(f: &mut std::fmt::Formatter, ident: &Ident) -> Result<(), std::fmt::Error> {
-    for part in &ident.path {
-        display_ident_part(f, part)?;
-        f.write_char('.')?;
-    }
-    display_ident_part(f, &ident.name)?;
-    Ok(())
-}
-
-fn display_ident_part(f: &mut std::fmt::Formatter, s: &str) -> Result<(), std::fmt::Error> {
-    fn forbidden_start(c: char) -> bool {
-        !(('a'..='z').contains(&c) || matches!(c, '_' | '$'))
-    }
-    fn forbidden_subsequent(c: char) -> bool {
-        !(('a'..='z').contains(&c) || ('0'..='9').contains(&c) || matches!(c, '_'))
-    }
-    let needs_escape = s.is_empty()
-        || s.starts_with(forbidden_start)
-        || (s.len() > 1 && s.chars().skip(1).any(forbidden_subsequent));
-
-    if needs_escape {
-        write!(f, "`{s}`")
-    } else {
-        write!(f, "{s}")
     }
 }
 

@@ -1,75 +1,71 @@
 use std::collections::HashMap;
 
 use anyhow::{anyhow, bail, Result};
-use itertools::Itertools;
 
 use crate::ast::ast_fold::{fold_column_sorts, fold_transform_kind, AstFold};
 use crate::ast::*;
 use crate::error::{Error, Reason};
 
+use super::context::{Decl, DeclKind};
+use super::module::{Module, NS_PARAM};
 use super::resolver::Resolver;
-use super::{Declaration, Frame};
+use super::Frame;
 
 /// try to convert function call with enough args into transform
 pub fn cast_transform(
     resolver: &mut Resolver,
     closure: Closure,
 ) -> Result<Result<TransformCall, Closure>> {
-    // TODO: We don't want to match transforms by name.
-    // Add `builtin` parse derivation that produces a special AST node.
-    // This node can then matched here instead of matching a string function name.
+    let name = closure.name.as_ref().filter(|n| !n.name.contains('.'));
+    let name = if let Some(name) = name {
+        name.to_string()
+    } else {
+        return Ok(Err(closure));
+    };
 
-    let kind = match closure.name.as_deref().unwrap_or("") {
-        "from" => {
+    let kind = match name.as_str() {
+        "std.from" => {
             let ([source], []) = unpack::<1, 0>(closure)?;
 
             TransformKind::From(source)
         }
-        "select" => {
+        "std.select" => {
             let ([assigns, tbl], []) = unpack::<2, 0>(closure)?;
 
-            let mut assigns = assigns.coerce_into_vec();
-            resolver.context.declare_as_idents(&mut assigns);
-
+            let assigns = assigns.coerce_into_vec();
             TransformKind::Select { assigns, tbl }
         }
-        "filter" => {
+        "std.filter" => {
             let ([filter, tbl], []) = unpack::<2, 0>(closure)?;
 
             let filter = Box::new(filter);
             TransformKind::Filter { filter, tbl }
         }
-        "derive" => {
+        "std.derive" => {
             let ([assigns, tbl], []) = unpack::<2, 0>(closure)?;
 
-            let mut assigns = assigns.coerce_into_vec();
-            resolver.context.declare_as_idents(&mut assigns);
-
+            let assigns = assigns.coerce_into_vec();
             TransformKind::Derive { assigns, tbl }
         }
-        "aggregate" => {
+        "std.aggregate" => {
             let ([assigns, tbl], []) = unpack::<2, 0>(closure)?;
 
-            let mut assigns = assigns.coerce_into_vec();
-            resolver.context.declare_as_idents(&mut assigns);
-
+            let assigns = assigns.coerce_into_vec();
             TransformKind::Aggregate { assigns, tbl }
         }
-        "sort" => {
+        "std.sort" => {
             let ([by, tbl], []) = unpack::<2, 0>(closure)?;
 
             let by = by
                 .coerce_into_vec()
                 .into_iter()
                 .map(|node| {
-                    let (mut column, direction) = match node.kind {
+                    let (column, direction) = match node.kind {
                         ExprKind::Unary { op, expr } if matches!(op, UnOp::Neg) => {
                             (*expr, SortDirection::Desc)
                         }
                         _ => (node, SortDirection::default()),
                     };
-
-                    resolver.context.declare_as_ident(&mut column);
 
                     ColumnSort { direction, column }
                 })
@@ -77,7 +73,7 @@ pub fn cast_transform(
 
             TransformKind::Sort { by, tbl }
         }
-        "take" => {
+        "std.take" => {
             let ([expr, tbl], []) = unpack::<2, 0>(closure)?;
 
             let range = match expr.kind {
@@ -88,7 +84,7 @@ pub fn cast_transform(
 
             TransformKind::Take { range, tbl }
         }
-        "join" => {
+        "std.join" => {
             let ([with, filter, tbl], [side]) = unpack::<3, 1>(closure)?;
 
             let side = if let Some(side) = side {
@@ -121,7 +117,7 @@ pub fn cast_transform(
                 tbl,
             }
         }
-        "group" => {
+        "std.group" => {
             let ([by, pipeline, tbl], []) = unpack::<3, 0>(closure)?;
 
             let by = by.coerce_into_vec();
@@ -131,7 +127,7 @@ pub fn cast_transform(
             let pipeline = Box::new(pipeline);
             TransformKind::Group { by, pipeline, tbl }
         }
-        "window" => {
+        "std.window" => {
             let ([pipeline, tbl], [rows, range, expanding, rolling]) = unpack::<2, 4>(closure)?;
 
             let expanding = if let Some(expanding) = expanding {
@@ -213,15 +209,8 @@ fn fold_by_simulating_eval(
     pipeline: Expr,
     val_type: Ty,
 ) -> Result<Expr, anyhow::Error> {
-    // this is a workaround for having unique names
-    let param_name = {
-        let a_unique_number = resolver.context.declare(
-            Declaration::Expression(Box::new(Expr::from(ExprKind::Literal(Literal::Null)))),
-            None,
-        );
-
-        format!("_tbl_{}", a_unique_number)
-    };
+    let param_name = "_tbl";
+    let param_id = resolver.id.gen();
 
     // resolver will not resolve a function call if any arguments are missing
     // but would instead return a closure to be resolved later.
@@ -230,16 +219,21 @@ fn fold_by_simulating_eval(
     // thats why we trick the resolver with a dummy node that acts as table
     // chunk and instruct resolver to apply the transform on that.
 
-    // TODO: having dummy already be `x` is a hack.
-    // Dummy should be substituted in later.
-    let mut dummy = Expr::from(ExprKind::Ident(Ident::from_name(param_name.clone())));
+    let mut dummy = Expr::from(ExprKind::Ident(Ident::from_name(param_name)));
     dummy.ty = Some(val_type);
+
     let pipeline = Expr::from(ExprKind::FuncCall(FuncCall {
         name: Box::new(pipeline),
         args: vec![dummy],
         named_args: Default::default(),
     }));
+
+    let env = Module::singleton(param_name, Decl::from(DeclKind::Column(param_id)));
+    resolver.decls.root_mod.stack_push(NS_PARAM, env);
+
     let pipeline = resolver.fold_expr(pipeline)?;
+
+    resolver.decls.root_mod.stack_pop(NS_PARAM).unwrap();
 
     // now, we need wrap the result into a closure and replace
     // the dummy node with closure's parameter.
@@ -248,14 +242,14 @@ fn fold_by_simulating_eval(
     // let mut tbl_node = extract_ref_to_first(&mut pipeline);
     // *tbl_node = Expr::from(ExprKind::Ident("x".to_string()));
 
-    let pipeline = Expr::from(ExprKind::Closure(Closure {
+    let pipeline = Expr::from(ExprKind::Closure(Box::new(Closure {
         name: None,
         body: Box::new(pipeline),
         body_ty: None,
 
         args: vec![],
         params: vec![FuncParam {
-            name: param_name,
+            name: param_id.to_string(),
             ty: None,
             default_value: None,
         }],
@@ -264,7 +258,7 @@ fn fold_by_simulating_eval(
         named_params: vec![],
 
         env: Default::default(),
-    }));
+    })));
     Ok(pipeline)
 }
 
@@ -272,37 +266,33 @@ impl TransformCall {
     pub fn infer_type(&self) -> Result<Frame> {
         use TransformKind::*;
 
-        fn ty_frame_or_default(expr: &Expr) -> Frame {
+        fn ty_frame_or_default(expr: &Expr) -> Result<Frame> {
             expr.ty
                 .as_ref()
                 .and_then(|t| t.as_table())
                 .cloned()
-                .unwrap_or_default()
+                .ok_or_else(|| anyhow!("expected {expr:?} to have table type"))
         }
 
         Ok(match self.kind.as_ref() {
-            From(t) => match &t.ty {
-                Some(Ty::Table(f)) => f.clone(),
-                Some(ty) => bail!("`from` expected a table name, got `{t}` of type `{ty}`"),
-                a => bail!("`from` expected a frame got `{t:?}` of type {a:?}"),
-            },
+            From(tbl) => ty_frame_or_default(tbl)?,
 
             Select { assigns, tbl } => {
-                let mut frame = ty_frame_or_default(tbl);
+                let mut frame = ty_frame_or_default(tbl)?;
 
                 frame.columns.clear();
                 frame.apply_assigns(assigns);
                 frame
             }
             Derive { assigns, tbl } => {
-                let mut frame = ty_frame_or_default(tbl);
+                let mut frame = ty_frame_or_default(tbl)?;
 
                 frame.apply_assigns(assigns);
                 frame
             }
             Group { pipeline, by, .. } => {
                 // pipeline's body is resolved, just use its type
-                let Closure { body, .. } = pipeline.kind.as_closure().unwrap();
+                let Closure { body, .. } = pipeline.kind.as_closure().unwrap().as_ref();
 
                 let mut frame = body.ty.clone().unwrap().into_table().unwrap();
 
@@ -312,7 +302,9 @@ impl TransformCall {
                         let aggregate_columns = frame.columns;
                         frame.columns = Vec::new();
                         for b in by {
-                            let id = b.declared_at.unwrap();
+                            log::debug!("group by {b}");
+
+                            let id = b.id.unwrap();
                             let name = b.alias.clone().or_else(|| match &b.kind {
                                 ExprKind::Ident(ident) => Some(ident.name.clone()),
                                 _ => None,
@@ -329,35 +321,19 @@ impl TransformCall {
             }
             Window { pipeline, .. } => {
                 // pipeline's body is resolved, just use its type
-                let Closure { body, .. } = pipeline.kind.as_closure().unwrap();
+                let Closure { body, .. } = pipeline.kind.as_closure().unwrap().as_ref();
 
                 body.ty.clone().unwrap().into_table().unwrap()
             }
             Aggregate { assigns, tbl } => {
-                let mut frame = ty_frame_or_default(tbl);
+                let mut frame = ty_frame_or_default(tbl)?;
                 frame.columns.clear();
 
                 frame.apply_assigns(assigns);
                 frame
             }
-            Join { tbl, with, .. } => {
-                let mut frame = ty_frame_or_default(tbl);
-
-                let table_id = with
-                    .declared_at
-                    .ok_or_else(|| anyhow!("unresolved table {with:?}"))?;
-                frame.tables.push(table_id);
-                frame.columns.push(FrameColumn::All(table_id));
-
-                frame
-            }
-            Sort { by, tbl } => {
-                let mut frame = ty_frame_or_default(tbl);
-
-                frame.sort = extract_sorts(by)?;
-                frame
-            }
-            Filter { tbl, .. } | Take { tbl, .. } => ty_frame_or_default(tbl),
+            Join { tbl, with, .. } => ty_frame_or_default(tbl)? + ty_frame_or_default(with)?,
+            Sort { tbl, .. } | Filter { tbl, .. } | Take { tbl, .. } => ty_frame_or_default(tbl)?,
         })
 
         // if !self.within_group.is_empty() {
@@ -367,18 +343,6 @@ impl TransformCall {
         //     self.apply_window(&mut t)?;
         // }
     }
-}
-
-pub fn extract_sorts(sort: &[ColumnSort]) -> Result<Vec<ColumnSort<usize>>> {
-    sort.iter()
-        .map(|s| {
-            Ok(ColumnSort {
-                column: (s.column.declared_at)
-                    .ok_or_else(|| anyhow!("Unresolved ident in sort?"))?,
-                direction: s.direction.clone(),
-            })
-        })
-        .try_collect()
 }
 
 fn unpack<const P: usize, const N: usize>(
@@ -426,11 +390,20 @@ pub struct Flattener {
     /// preceding the group/window transform.
     ///
     /// That's what `replace_map` is for.
-    replace_map: HashMap<String, Expr>,
+    replace_map: HashMap<usize, Expr>,
+}
+
+impl Flattener {
+    pub fn fold(expr: Expr) -> Expr {
+        let mut f = Flattener::default();
+        f.fold_expr(expr).unwrap()
+    }
 }
 
 impl AstFold for Flattener {
     fn fold_transform_call(&mut self, t: TransformCall) -> Result<TransformCall> {
+        log::debug!("flattening {}", (*t.kind).as_ref());
+
         let kind = match *t.kind {
             TransformKind::Sort { by, tbl } => {
                 // fold
@@ -454,15 +427,16 @@ impl AstFold for Flattener {
                 let pipeline = pipeline.kind.into_closure().unwrap();
 
                 let table_param = &pipeline.params[0];
+                let param_id = table_param.name.parse::<usize>().unwrap();
 
-                self.replace_map.insert(table_param.name.clone(), tbl);
+                self.replace_map.insert(param_id, tbl);
                 self.partition = by;
                 self.sort.clear();
 
                 let expr = self.fold_expr(*pipeline.body)?;
 
-                self.partition = Vec::new();
-                self.replace_map.remove(&table_param.name);
+                self.replace_map.remove(&param_id);
+                self.partition.clear();
                 self.sort.clear();
                 self.sort_undone = sort_undone;
 
@@ -478,14 +452,15 @@ impl AstFold for Flattener {
                 let pipeline = pipeline.kind.into_closure().unwrap();
 
                 let table_param = &pipeline.params[0];
+                let param_id = table_param.name.parse::<usize>().unwrap();
 
-                self.replace_map.insert(table_param.name.clone(), tbl);
+                self.replace_map.insert(param_id, tbl);
                 self.window = WindowFrame { kind, range };
 
                 let expr = self.fold_expr(*pipeline.body)?;
 
                 self.window = WindowFrame::default();
-                self.replace_map.remove(&table_param.name);
+                self.replace_map.remove(&param_id);
 
                 return Ok(expr.kind.into_transform_call().unwrap());
             }
@@ -501,11 +476,9 @@ impl AstFold for Flattener {
     }
 
     fn fold_expr(&mut self, mut expr: Expr) -> Result<Expr> {
-        if let ExprKind::Ident(ident) = &expr.kind {
-            if ident.path.is_empty() {
-                if let Some(replacement) = self.replace_map.remove(&ident.name) {
-                    return Ok(replacement);
-                }
+        if let Some(target) = &expr.target_id {
+            if let Some(replacement) = self.replace_map.remove(target) {
+                return Ok(replacement);
             }
         }
 
@@ -546,9 +519,9 @@ mod tests {
             expr:
               ExternRef:
                 - LocalTable: c_invoice
-                - - id: 1
+                - - id: 0
                     kind: Wildcard
-                  - id: 0
+                  - id: 1
                     kind:
                       ExternRef: invoice_no
         expr:
@@ -556,25 +529,19 @@ mod tests {
             - From:
                 source: 0
                 columns:
+                  - id: 2
+                    kind: Wildcard
                   - id: 3
                     kind:
                       Expr:
-                        name: ~
+                        name: invoice_no
                         expr:
                           kind:
                             ColumnRef: 1
                           span: ~
-                  - id: 4
-                    kind:
-                      Expr:
-                        name: ~
-                        expr:
-                          kind:
-                            ColumnRef: 0
-                          span: ~
                 name: ~
             - Select:
-                - 4
+                - 3
             - Take:
                 start: ~
                 end:
@@ -583,7 +550,7 @@ mod tests {
                       Integer: 1
                   span: ~
             - Select:
-                - 4
+                - 3
         "###);
 
         // oops, two arguments #339
@@ -622,53 +589,80 @@ mod tests {
         assert_yaml_snapshot!(result, @r###"
         ---
         - Pipeline:
+            id: 1
             TransformCall:
               kind:
                 Aggregate:
                   assigns:
-                    - SString:
+                    - id: 15
+                      SString:
                         - String: AVG(
                         - Expr:
+                            id: 19
                             Ident:
-                              path: []
-                              name: amount
+                              - _frame
+                              - c_invoice
+                              - amount
+                            target_id: 7
                             ty: Infer
                         - String: )
                       ty:
                         Literal: Column
                   tbl:
+                    id: 5
                     TransformCall:
                       kind:
                         From:
+                          id: 7
                           Ident:
-                            path: []
-                            name: c_invoice
+                            - default_db
+                            - c_invoice
                           ty:
                             Table:
                               columns:
-                                - All: 29
-                              sort: []
-                              tables: []
+                                - Wildcard:
+                                    input_name: c_invoice
+                              inputs:
+                                - id: 7
+                                  name: c_invoice
+                                  table:
+                                    - default_db
+                                    - c_invoice
                     ty:
                       Table:
                         columns:
-                          - All: 29
-                        sort: []
-                        tables: []
+                          - Wildcard:
+                              input_name: c_invoice
+                        inputs:
+                          - id: 7
+                            name: c_invoice
+                            table:
+                              - default_db
+                              - c_invoice
               partition:
-                - Ident:
-                    path: []
-                    name: date
+                - id: 8
+                  Ident:
+                    - _frame
+                    - c_invoice
+                    - date
+                  target_id: 7
                   ty: Infer
             ty:
               Table:
                 columns:
-                  - Named:
-                      - date
-                      - 30
-                  - Unnamed: 34
-                sort: []
-                tables: []
+                  - Single:
+                      name:
+                        - date
+                      expr_id: 8
+                  - Single:
+                      name: ~
+                      expr_id: 15
+                inputs:
+                  - id: 7
+                    name: c_invoice
+                    table:
+                      - default_db
+                      - c_invoice
         "###);
     }
 
@@ -698,15 +692,15 @@ mod tests {
             expr:
               ExternRef:
                 - LocalTable: invoices
-                - - id: 1
+                - - id: 0
                     kind: Wildcard
-                  - id: 0
+                  - id: 1
                     kind:
                       ExternRef: issued_at
-                  - id: 6
+                  - id: 2
                     kind:
                       ExternRef: amount
-                  - id: 7
+                  - id: 3
                     kind:
                       ExternRef: num_of_articles
         expr:
@@ -714,60 +708,54 @@ mod tests {
             - From:
                 source: 0
                 columns:
-                  - id: 15
+                  - id: 4
+                    kind: Wildcard
+                  - id: 5
                     kind:
                       Expr:
-                        name: ~
+                        name: issued_at
                         expr:
                           kind:
                             ColumnRef: 1
                           span: ~
-                  - id: 16
+                  - id: 6
                     kind:
                       Expr:
-                        name: ~
+                        name: amount
                         expr:
                           kind:
-                            ColumnRef: 0
+                            ColumnRef: 2
                           span: ~
-                  - id: 17
+                  - id: 7
                     kind:
                       Expr:
-                        name: ~
+                        name: num_of_articles
                         expr:
                           kind:
-                            ColumnRef: 6
-                          span: ~
-                  - id: 18
-                    kind:
-                      Expr:
-                        name: ~
-                        expr:
-                          kind:
-                            ColumnRef: 7
+                            ColumnRef: 3
                           span: ~
                 name: ~
             - Sort:
                 - direction: Asc
-                  column: 16
+                  column: 5
                 - direction: Desc
-                  column: 17
+                  column: 6
                 - direction: Asc
-                  column: 18
-            - Sort:
-                - direction: Asc
-                  column: 16
-            - Sort:
-                - direction: Desc
-                  column: 16
+                  column: 7
             - Sort:
                 - direction: Asc
-                  column: 16
+                  column: 5
             - Sort:
                 - direction: Desc
-                  column: 16
+                  column: 5
+            - Sort:
+                - direction: Asc
+                  column: 5
+            - Sort:
+                - direction: Desc
+                  column: 5
             - Select:
-                - 15
+                - 4
         "###);
     }
 }

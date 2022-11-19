@@ -7,12 +7,12 @@ use itertools::{Itertools, Position};
 use crate::ast::ast_fold::*;
 use crate::ast::*;
 use crate::error::{Error, Reason, Span};
-use crate::semantic::scope::NS_PARAM;
+use crate::ir::IdGenerator;
 
-use super::scope::{NS_FRAME, NS_FRAME_RIGHT};
+use super::context::{Context, Decl, DeclKind, TableColumn};
+use super::module::{Module, NS_FRAME, NS_FRAME_RIGHT, NS_PARAM};
 use super::transforms::Flattener;
 use super::type_resolver::{resolve_type, type_of_closure, validate_type};
-use super::{Context, Declaration, Frame};
 
 /// Runs semantic analysis on the query, using current state.
 ///
@@ -21,51 +21,61 @@ pub fn resolve(statements: Vec<Stmt>, context: Context) -> Result<(Vec<Stmt>, Co
     let mut resolver = Resolver::new(context);
     let statements = resolver.fold_stmts(statements)?;
 
-    let mut flattener = Flattener::default();
-    let statements = flattener.fold_stmts(statements)?;
-
-    Ok((statements, resolver.context))
+    Ok((statements, resolver.decls))
 }
 
 /// Can fold (walk) over AST and for each function call or variable find what they are referencing.
 pub struct Resolver {
-    pub context: Context,
+    pub decls: Context,
 
-    namespace: Namespace,
+    default_namespace: Option<String>,
 
     /// Sometimes ident closures must be resolved and sometimes not. See [test::test_func_call_resolve].
     in_func_call_name: bool,
+
+    pub(super) id: IdGenerator<usize>,
 }
 
 impl Resolver {
     fn new(context: Context) -> Self {
         Resolver {
-            context,
-            namespace: Namespace::FunctionsColumns,
+            decls: context,
+            default_namespace: None,
             in_func_call_name: false,
+            id: IdGenerator::new(),
         }
     }
-}
-
-#[derive(Debug, Clone, Copy)]
-enum Namespace {
-    FunctionsColumns,
-    Tables,
 }
 
 impl AstFold for Resolver {
     fn fold_stmts(&mut self, stmts: Vec<Stmt>) -> Result<Vec<Stmt>> {
         let mut res = Vec::new();
 
-        for stmt in stmts {
+        for mut stmt in stmts {
+            stmt.id = Some(self.id.gen());
+            if let Some(span) = stmt.span {
+                self.decls.span_map.insert(stmt.id.unwrap(), span);
+            }
+
             let kind = match stmt.kind {
                 StmtKind::QueryDef(d) => StmtKind::QueryDef(d),
                 StmtKind::FuncDef(func_def) => {
-                    self.context.declare_func(func_def);
+                    self.decls.declare_func(func_def, stmt.id);
                     continue;
                 }
-                StmtKind::TableDef(table) => StmtKind::TableDef(self.fold_table(table)?),
-                StmtKind::Pipeline(expr) => StmtKind::Pipeline(Box::new(self.fold_expr(*expr)?)),
+                StmtKind::TableDef(table_def) => {
+                    let table_def = self.fold_table(table_def)?;
+                    let table_def = TableDef {
+                        value: Box::new(Flattener::fold(*table_def.value)),
+                        ..table_def
+                    };
+                    self.decls.declare_table(table_def, stmt.id);
+                    continue;
+                }
+                StmtKind::Pipeline(expr) => {
+                    let x = Flattener::fold(self.fold_expr(*expr)?);
+                    StmtKind::Pipeline(Box::new(x))
+                }
             };
 
             res.push(Stmt { kind, ..stmt })
@@ -73,43 +83,91 @@ impl AstFold for Resolver {
         Ok(res)
     }
 
-    fn fold_expr(&mut self, mut node: Expr) -> Result<Expr> {
+    fn fold_expr(&mut self, node: Expr) -> Result<Expr> {
+        let id = self.id.gen();
         let alias = node.alias.clone();
         let span = node.span;
+
+        if let Some(span) = span {
+            self.decls.span_map.insert(id, span);
+        }
+
+        log::trace!("folding expr {node:?}");
+
         let mut r = match node.kind {
-            ExprKind::Ident(ref ident) => {
-                let id = self.lookup_ident(ident, node.span, &node.alias)?;
-                node.declared_at = Some(id);
+            ExprKind::Ident(ident) => {
+                log::debug!("resolving ident {ident}...");
+                let fq_ident = self.resolve_ident(&ident, node.span)?;
+                log::debug!("... resolved to {fq_ident}");
+                let entry = self.decls.root_mod.get(&fq_ident).unwrap();
+                log::debug!("... which is {entry}");
 
-                let decl = self.context.declarations.get(id);
-
-                match decl {
+                match &entry.kind {
                     // convert ident to function without args
-                    Declaration::Function(func_def) => {
-                        let closure = closure_of_func_def(func_def);
+                    DeclKind::FuncDef(func_def) => {
+                        let closure = closure_of_func_def(func_def, fq_ident);
 
                         if self.in_func_call_name {
-                            Expr::from(ExprKind::Closure(closure))
+                            Expr::from(ExprKind::Closure(Box::new(closure)))
                         } else {
                             self.fold_function(closure, vec![], HashMap::new(), node.span)?
                         }
                     }
 
-                    // init type for tables
-                    Declaration::Table(_) => Expr {
-                        ty: Some(Ty::Table(Frame::unknown(id))),
+                    DeclKind::Column(target_id) => Expr {
+                        kind: ExprKind::Ident(fq_ident),
+                        target_id: Some(*target_id),
                         ..node
                     },
 
-                    Declaration::Expression(expr) => {
-                        if self.context.inline.contains(&id) {
-                            *expr.clone()
-                        } else {
-                            node
+                    DeclKind::TableDef { frame, .. } => {
+                        let alias = node.alias.unwrap_or_else(|| ident.name.clone());
+
+                        let instance_frame = Frame {
+                            inputs: vec![FrameInput {
+                                id,
+                                name: alias.clone(),
+                                table: fq_ident.clone(),
+                            }],
+                            columns: frame
+                                .columns
+                                .iter()
+                                .map(|col| match col {
+                                    TableColumn::Wildcard => FrameColumn::Wildcard {
+                                        input_name: alias.clone(),
+                                    },
+                                    TableColumn::Single(name) => FrameColumn::Single {
+                                        name: name.clone().map(|name| Ident {
+                                            name,
+                                            path: vec![alias.clone()],
+                                        }),
+                                        expr_id: id,
+                                    },
+                                })
+                                .collect(),
+                        };
+
+                        log::debug!("instanced table {fq_ident} as {instance_frame:?}");
+
+                        Expr {
+                            kind: ExprKind::Ident(fq_ident),
+                            ty: Some(Ty::Table(instance_frame)),
+                            alias: None,
+                            ..node
                         }
                     }
 
-                    _ => node,
+                    DeclKind::Expr(expr) => expr.as_ref().clone(),
+
+                    DeclKind::NoResolve => Expr {
+                        kind: ExprKind::Ident(ident),
+                        ..node
+                    },
+
+                    _ => Expr {
+                        kind: ExprKind::Ident(fq_ident),
+                        ..node
+                    },
                 }
             }
 
@@ -127,63 +185,29 @@ impl AstFold for Resolver {
                 let closure = name.try_cast(|n| n.into_closure(), None, "a function")?;
 
                 // fold function
-                self.fold_function(closure, args, named_args, node.span)?
+                self.fold_function(*closure, args, named_args, node.span)?
             }
 
-            ExprKind::Pipeline(Pipeline { mut exprs }) => {
-                let mut value = exprs.remove(0);
-                for expr in exprs {
-                    let span = expr.span;
-
-                    value = Expr::from(ExprKind::FuncCall(FuncCall {
-                        name: Box::new(expr),
-                        args: vec![value],
-                        named_args: HashMap::new(),
-                    }));
-                    value.span = span;
-                }
-                self.fold_expr(value)?
-            }
+            ExprKind::Pipeline(pipeline) => self.fold_expr(pipeline_to_func_calls(pipeline))?,
 
             ExprKind::Closure(closure) => {
-                self.fold_function(closure, vec![], HashMap::new(), node.span)?
+                self.fold_function(*closure, vec![], HashMap::new(), node.span)?
             }
 
             ExprKind::Unary {
                 op: UnOp::EqSelf,
                 expr,
             } => {
-                let ident = expr.kind.into_ident().map_err(|_| {
-                    anyhow!("you can only use column names with self-equality operator.")
-                })?;
-                if !ident.path.is_empty() {
-                    bail!("you cannot use namespace prefix with self-equality operator.");
-                }
-
-                let mut left = Expr::from(ExprKind::Ident(Ident {
-                    path: vec![NS_FRAME.to_string()],
-                    name: ident.name.clone(),
-                }));
-                left.span = node.span;
-                let mut right = Expr::from(ExprKind::Ident(Ident {
-                    path: vec![NS_FRAME_RIGHT.to_string()],
-                    name: ident.name,
-                }));
-                right.span = node.span;
-                node.kind = ExprKind::Binary {
-                    left: Box::new(left),
-                    op: BinOp::Eq,
-                    right: Box::new(right),
-                };
-                node.kind = fold_expr_kind(self, node.kind)?;
-                node
+                let kind = self.resolve_eq_self(*expr, span)?;
+                Expr { kind, ..node }
             }
 
-            item => {
-                node.kind = fold_expr_kind(self, item)?;
-                node
-            }
+            item => Expr {
+                kind: fold_expr_kind(self, item)?,
+                ..node
+            },
         };
+        r.id = Some(id);
         r.alias = alias;
 
         if r.span.is_none() {
@@ -194,21 +218,26 @@ impl AstFold for Resolver {
         }
         Ok(r)
     }
-
-    fn fold_table(&mut self, TableDef { name, value, .. }: TableDef) -> Result<TableDef> {
-        let id = self.context.declare_table(name.clone(), None);
-
-        Ok(TableDef {
-            id: Some(id),
-            name,
-            value: Box::new(self.fold_expr(*value)?),
-        })
-    }
 }
 
-fn closure_of_func_def(func_def: &FuncDef) -> Closure {
+fn pipeline_to_func_calls(Pipeline { mut exprs }: Pipeline) -> Expr {
+    let mut value = exprs.remove(0);
+    for expr in exprs {
+        let span = expr.span;
+
+        value = Expr::from(ExprKind::FuncCall(FuncCall {
+            name: Box::new(expr),
+            args: vec![value],
+            named_args: HashMap::new(),
+        }));
+        value.span = span;
+    }
+    value
+}
+
+fn closure_of_func_def(func_def: &FuncDef, fq_ident: Ident) -> Closure {
     Closure {
-        name: Some(func_def.name.clone()),
+        name: Some(fq_ident),
         body: func_def.body.clone(),
         body_ty: func_def.return_ty.clone(),
 
@@ -223,25 +252,20 @@ fn closure_of_func_def(func_def: &FuncDef) -> Closure {
 }
 
 impl Resolver {
-    pub fn lookup_ident(
-        &mut self,
-        ident: &Ident,
-        span: Option<Span>,
-        alias: &Option<String>,
-    ) -> Result<usize> {
-        Ok(match self.namespace {
-            Namespace::Tables => self.context.declare_table(ident.to_string(), alias.clone()),
-            Namespace::FunctionsColumns => {
-                let res = self.context.lookup_ident(ident, span);
+    pub fn resolve_ident(&mut self, ident: &Ident, span: Option<Span>) -> Result<Ident> {
+        let res = if ident.path.is_empty() && self.default_namespace.is_some() {
+            let defaulted = Ident {
+                path: vec![self.default_namespace.clone().unwrap()],
+                name: ident.name.clone(),
+            };
+            self.decls.resolve_ident(&defaulted)
+        } else {
+            self.decls.resolve_ident(ident)
+        };
 
-                match res {
-                    Ok(id) => id,
-                    Err(e) => {
-                        dbg!(&self.context);
-                        bail!(Error::new(Reason::Simple(e)).with_span(span))
-                    }
-                }
-            }
+        res.map_err(|e| {
+            log::debug!("cannot resolve, context={:#?}", self.decls);
+            anyhow!(Error::new(Reason::Simple(e)).with_span(span))
         })
     }
 
@@ -277,26 +301,27 @@ impl Resolver {
 
                     let (func_env, body) = env_of_closure(closure);
 
-                    self.context.scope.push_namespace(NS_PARAM);
-                    self.context.insert_decls(NS_PARAM, func_env);
+                    self.decls.root_mod.stack_push(NS_PARAM, func_env);
+                    log::debug!("stack_push");
 
                     // fold again, to resolve inner variables & functions
                     let body = self.fold_expr(body)?;
 
                     // remove param decls
-                    let func_env = self.context.take_decls(NS_PARAM);
+                    log::debug!("stack_pop");
+                    let func_env = self.decls.root_mod.stack_pop(NS_PARAM).unwrap();
 
                     let mut res = if let ExprKind::Closure(mut inner_closure) = body.kind {
                         // body couldn't been resolved - construct a closure to be evaluated later
 
-                        inner_closure.env = func_env;
+                        inner_closure.env = func_env.into_exprs();
 
                         let (got, missing) =
                             inner_closure.params.split_at(inner_closure.args.len());
                         let missing = missing.to_vec();
                         inner_closure.params = got.to_vec();
 
-                        Expr::from(ExprKind::Closure(Closure {
+                        Expr::from(ExprKind::Closure(Box::new(Closure {
                             name: None,
                             args: vec![],
                             params: missing,
@@ -305,7 +330,7 @@ impl Resolver {
                             body: Box::new(Expr::from(ExprKind::Closure(inner_closure))),
                             body_ty: None,
                             env: HashMap::new(),
-                        }))
+                        })))
                     } else {
                         // resolved, return result
                         body
@@ -322,7 +347,7 @@ impl Resolver {
             ty.args = ty.args[args_len..].to_vec();
             ty.named.clear();
 
-            let mut node = Expr::from(ExprKind::Closure(closure));
+            let mut node = Expr::from(ExprKind::Closure(Box::new(closure)));
             node.ty = Some(Ty::Function(ty));
 
             node
@@ -374,7 +399,7 @@ impl Resolver {
             ..to_resolve
         };
 
-        let func_name = closure.name.as_deref();
+        let func_name = &closure.name;
 
         {
             // positional args
@@ -392,31 +417,31 @@ impl Resolver {
                 });
             closure.args = vec![Expr::null(); closure.params.len()];
 
-            self.context.scope.push_namespace(NS_FRAME);
-            self.context.scope.push_namespace(NS_FRAME_RIGHT);
+            let has_tables = !tables.is_empty();
 
-            // resolve tables
-            for pos in tables.into_iter().with_position() {
-                let is_last = matches!(pos, Position::Last(_) | Position::Only(_));
-                let (index, (param, arg)) = pos.into_inner();
+            if has_tables {
+                self.decls.root_mod.shadow(NS_FRAME);
+                self.decls.root_mod.shadow(NS_FRAME_RIGHT);
 
-                // just fold the argument alone
-                let arg = self.fold_and_type_check(arg, param, func_name)?;
+                // resolve tables
+                for pos in tables.into_iter().with_position() {
+                    let is_last = matches!(pos, Position::Last(_) | Position::Only(_));
+                    let (index, (param, arg)) = pos.into_inner();
 
-                // add table's frame into scope
-                if let Some(Ty::Table(frame)) = &arg.ty {
-                    if let Some(alias) = arg.alias.clone() {
-                        self.context.scope.add_frame_columns(frame, &alias);
+                    // just fold the argument alone
+                    let arg = self.fold_and_type_check(arg, param, func_name)?;
+
+                    // add table's frame into scope
+                    if let Some(Ty::Table(frame)) = &arg.ty {
+                        if is_last {
+                            self.decls.root_mod.insert_frame(frame, NS_FRAME);
+                        } else {
+                            self.decls.root_mod.insert_frame(frame, NS_FRAME_RIGHT);
+                        }
                     }
 
-                    if is_last {
-                        self.context.scope.add_frame_columns(frame, NS_FRAME);
-                    } else {
-                        self.context.scope.add_frame_columns(frame, NS_FRAME_RIGHT);
-                    }
+                    closure.args[index] = arg;
                 }
-
-                closure.args[index] = arg;
             }
 
             // resolve other positional
@@ -426,14 +451,12 @@ impl Resolver {
                     ExprKind::List(items) => {
                         let mut res = Vec::with_capacity(items.len());
                         for item in items {
-                            let mut item = self.fold_and_type_check(item, param, func_name)?;
+                            let item = self.fold_and_type_check(item, param, func_name)?;
 
                             // add aliased columns into scope
                             if let Some(alias) = item.alias.clone() {
-                                self.context.declare_as_ident(&mut item);
-
-                                let id = item.declared_at.unwrap();
-                                self.context.scope.add(NS_FRAME, alias, id);
+                                let id = item.id.unwrap();
+                                self.decls.root_mod.insert_frame_col(NS_FRAME, alias, id);
                             }
                             res.push(item);
                         }
@@ -450,8 +473,10 @@ impl Resolver {
                 closure.args[index] = arg;
             }
 
-            self.context.scope.pop_namespace(NS_FRAME);
-            self.context.scope.pop_namespace(NS_FRAME_RIGHT);
+            if has_tables {
+                self.decls.root_mod.unshadow(NS_FRAME);
+                self.decls.root_mod.unshadow(NS_FRAME_RIGHT);
+            }
         }
 
         {
@@ -475,7 +500,7 @@ impl Resolver {
         &mut self,
         arg: Expr,
         param: &FuncParam,
-        func_name: Option<&str>,
+        func_name: &Option<Ident>,
     ) -> Result<Expr> {
         let mut arg = self.fold_within_namespace(arg, &param.name)?;
 
@@ -484,7 +509,9 @@ impl Resolver {
             // validate type
             let param_ty = param.ty.as_ref().unwrap_or(&Ty::Infer);
             let assumed_ty = validate_type(&arg, param_ty, || {
-                func_name.map(|n| format!("function `{n}`, param `{}`", param.name))
+                func_name
+                    .as_ref()
+                    .map(|n| format!("function {n}, param `{}`", param.name))
             })?;
             arg.ty = Some(assumed_ty);
         }
@@ -493,32 +520,66 @@ impl Resolver {
     }
 
     fn fold_within_namespace(&mut self, expr: Expr, param_name: &str) -> Result<Expr> {
-        let prev_namespace = self.namespace;
+        let prev_namespace = self.default_namespace.take();
 
         if param_name.starts_with("noresolve.") {
             return Ok(expr);
-        } else if param_name.starts_with("tables.") {
-            self.namespace = Namespace::Tables;
+        } else if let Some((ns, _)) = param_name.split_once('.') {
+            self.default_namespace = Some(ns.to_string());
         } else {
-            self.namespace = Namespace::FunctionsColumns;
+            self.default_namespace = None;
         };
 
         let res = self.fold_expr(expr);
-        self.namespace = prev_namespace;
+        self.default_namespace = prev_namespace;
         res
+    }
+
+    fn resolve_eq_self(&mut self, expr: Expr, span: Option<Span>) -> Result<ExprKind> {
+        let ident = expr
+            .kind
+            .into_ident()
+            .map_err(|_| anyhow!("you can only use column names with self-equality operator."))?;
+        if !ident.path.is_empty() {
+            bail!("you cannot use namespace prefix with self-equality operator.");
+        }
+        let mut left = Expr::from(ExprKind::Ident(Ident {
+            path: vec![NS_FRAME.to_string()],
+            name: ident.name.clone(),
+        }));
+        left.span = span;
+        let mut right = Expr::from(ExprKind::Ident(Ident {
+            path: vec![NS_FRAME_RIGHT.to_string()],
+            name: ident.name,
+        }));
+        right.span = span;
+        let kind = ExprKind::Binary {
+            left: Box::new(left),
+            op: BinOp::Eq,
+            right: Box::new(right),
+        };
+        let kind = fold_expr_kind(self, kind)?;
+        Ok(kind)
     }
 }
 
-fn env_of_closure(closure: Closure) -> (HashMap<String, Declaration>, Expr) {
-    let mut func_env = HashMap::new();
+fn env_of_closure(closure: Closure) -> (Module, Expr) {
+    let mut func_env = Module::default();
 
-    for (param, arg) in zip(closure.named_params, closure.named_args) {
+    let named = zip(closure.named_params, closure.named_args).map(|(param, arg)| {
         let value = arg.unwrap_or_else(|| param.default_value.unwrap());
-        func_env.insert(param.name.clone(), Declaration::Expression(Box::new(value)));
+        (param.name, value)
+    });
+    let positional = zip(closure.params, closure.args).map(|(param, arg)| (param.name, arg));
+
+    for (name, value) in named.chain(positional) {
+        let v = Decl {
+            declared_at: value.id,
+            kind: DeclKind::Expr(Box::new(value)),
+        };
+        func_env.names.insert(name, v);
     }
-    for (param, arg) in zip(&closure.params, closure.args) {
-        func_env.insert(param.name.clone(), Declaration::Expression(Box::new(arg)));
-    }
+
     (func_env, *closure.body)
 }
 

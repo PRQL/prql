@@ -284,16 +284,16 @@ join `some_schema.tablename` [~id]
 prql dialect:bigquery
 from `db.schema.table`
 join `db.schema.table2` [~id]
-join `db.schema.t-able` [~id]
+join c = `db.schema.t-able` [`db.schema.table`.id == c.id]
         "###).unwrap()), @r###"
         SELECT
           `db.schema.table`.*,
           `db.schema.table2`.*,
-          `db.schema.t-able`.*
+          c.*
         FROM
           `db.schema.table`
           JOIN `db.schema.table2` ON `db.schema.table`.id = `db.schema.table2`.id
-          JOIN `db.schema.t-able` ON `db.schema.table2`.id = `db.schema.t-able`.id
+          JOIN `db.schema.t-able` AS c ON `db.schema.table`.id = c.id
         "###);
 
         assert_display_snapshot!((compile(r###"
@@ -1048,7 +1048,7 @@ group [dm.emp_no, gender] (
     salary_sd = stddev emp_salary
   ]
 )
-derive mng_no = dm.emp_no
+derive mng_no = emp_no
 join managers=employees [~emp_no]
 derive mng_name = s"managers.first_name || ' ' || managers.last_name"
 select [mng_name, managers.gender, salary_avg, salary_sd]"#;
@@ -1220,7 +1220,14 @@ take 20
         let sql = compile(query).unwrap();
         assert_display_snapshot!(sql,
             @r###"
-        WITH newest_employees AS (
+        WITH average_salaries AS (
+          SELECT
+            country,
+            AVG(salary) AS average_country_salary
+          FROM
+            salaries
+        ),
+        newest_employees AS (
           SELECT
             *
           FROM
@@ -1229,17 +1236,11 @@ take 20
             tenure
           LIMIT
             50
-        ), average_salaries AS (
-          SELECT
-            country,
-            AVG(salary) AS average_country_salary
-          FROM
-            salaries
         )
         SELECT
-          name,
-          salary,
-          average_country_salary
+          newest_employees.name,
+          newest_employees.salary,
+          average_salaries.average_country_salary
         FROM
           newest_employees
           JOIN average_salaries ON newest_employees.country = average_salaries.country
@@ -1311,7 +1312,7 @@ take 20
         table a = (
             from employees
             take 50
-            aggregate [s"count(*)"]
+            group country (aggregate [s"count(*)"])
         )
         from a
         join b [~country]
@@ -1321,21 +1322,22 @@ take 20
         assert_display_snapshot!((compile(query).unwrap()), @r###"
         WITH table_0 AS (
           SELECT
-            *
+            country
           FROM
             employees
           LIMIT
             50
         ), a AS (
           SELECT
+            country,
             count(*)
           FROM
             table_0
         )
         SELECT
-          name,
-          salary,
-          average_country_salary
+          b.name,
+          b.salary,
+          b.average_country_salary
         FROM
           a
           JOIN b ON a.country = b.country
@@ -1348,6 +1350,7 @@ take 20
         from employees
         join d=department [~dept_no]
         take 10
+        derive emp_no = employees.emp_no
         join s=salaries [~emp_no]
         select [employees.emp_no, d.name, s.salary]
         "###;
@@ -1356,8 +1359,7 @@ take 20
         WITH table_0 AS (
           SELECT
             employees.emp_no,
-            d.name,
-            d.emp_no
+            d.name
           FROM
             employees
             JOIN department AS d ON employees.dept_no = d.dept_no
@@ -1411,7 +1413,7 @@ take 20
                     emp_salary = average salary
                 ]
             )
-            select [e.emp_no, emp_salary]
+            select [emp_no, emp_salary]
         "###;
 
         assert_display_snapshot!((compile(query).unwrap()), @r###"
@@ -1568,7 +1570,7 @@ table y = (
 )
 
 from x
-join y [~id]
+join y [foo == only_in_x]
 "###;
 
         assert_display_snapshot!(compile(query).unwrap(),
@@ -1586,11 +1588,11 @@ join y [~id]
             y_table
         )
         SELECT
-          x.*,
-          y.*
+          x.only_in_x,
+          y.foo
         FROM
           x
-          JOIN y ON x.id = y.id
+          JOIN y ON y.foo = x.only_in_x
         "###
         );
     }

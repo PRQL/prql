@@ -4,9 +4,19 @@ expression: "resolve_type(r#\"\n            from table_1\n            join custo
 ---
 Table:
   columns:
-    - All: 30
-    - All: 29
-  sort: []
-  tables:
-    - 29
+    - Wildcard:
+        input_name: table_1
+    - Wildcard:
+        input_name: customers
+  inputs:
+    - id: 8
+      name: table_1
+      table:
+        - default_db
+        - table_1
+    - id: 5
+      name: customers
+      table:
+        - default_db
+        - customers
 

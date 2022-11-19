@@ -11,7 +11,7 @@ use std::{
 use crate::ast::Frame;
 use crate::error::{self, Span};
 use crate::parse;
-use crate::semantic::{self, Context};
+use crate::semantic;
 
 #[derive(Parser)]
 #[clap(name = env!("CARGO_PKG_NAME"), about, version)]
@@ -87,7 +87,7 @@ impl Cli {
 
                 [
                     references,
-                    format!("\n{context:?}").into_bytes(),
+                    format!("\n{context:#?}\n").into_bytes(),
                     serde_yaml::to_string(&stmts)?.into_bytes(),
                 ]
                 .concat()
@@ -96,14 +96,12 @@ impl Cli {
                 let stmts = parse(source)?;
 
                 // resolve
-                let (stmts, context) = semantic::resolve_only(stmts, None)?;
+                let (stmts, _) = semantic::resolve_only(stmts, None)?;
 
                 let frames = semantic::collect_frames(stmts);
 
                 // combine with source
-                combine_prql_and_frames(source, frames, context)
-                    .as_bytes()
-                    .to_vec()
+                combine_prql_and_frames(source, frames).as_bytes().to_vec()
             }
             Cli::Resolve(_) => {
                 let ast = parse(source)?;
@@ -145,7 +143,7 @@ impl Cli {
     }
 }
 
-fn combine_prql_and_frames(source: &str, frames: Vec<(Span, Frame)>, context: Context) -> String {
+fn combine_prql_and_frames(source: &str, frames: Vec<(Span, Frame)>) -> String {
     let source = Source::from(source);
     let lines = source.lines().collect_vec();
     let width = lines.iter().map(|l| l.len()).max().unwrap_or(0);
@@ -166,12 +164,7 @@ fn combine_prql_and_frames(source: &str, frames: Vec<(Span, Frame)>, context: Co
         let chars: String = lines[printed_lines].chars().collect();
         printed_lines += 1;
 
-        let cols = context
-            .get_column_names(&frame)
-            .into_iter()
-            .map(|c| c.unwrap_or_else(|| "?".to_string()))
-            .join(", ");
-        result.push(format!("{chars:width$} # [{cols}]"));
+        result.push(format!("{chars:width$} # {frame}"));
     }
     for line in lines.iter().skip(printed_lines) {
         result.push(line.chars().collect());
