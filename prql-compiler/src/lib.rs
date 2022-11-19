@@ -129,7 +129,7 @@ mod test {
         select [result = c * sum_1 + sum_2]
         "###)?), @r###"
         SELECT
-          c * (a + b) + a + b AS result
+          c * (a + b) + (a + b) AS result
         FROM
           numbers
         "###);
@@ -173,6 +173,32 @@ mod test {
         )?, @r###"
         SELECT
           a + b IS NULL
+        FROM
+          numbers
+        "###
+        );
+
+        assert_display_snapshot!(compile(
+          r###"
+          from numbers
+          derive [
+            c - (a + b),
+            c + (a - b),
+            c + a - b,
+            c + a + b,
+            (c + a) - b,
+            ((c - d) - (a - b)),
+          ]
+          "###
+          )?, @r###"
+        SELECT
+          numbers.*,
+          c - (a + b),
+          c + (a - b),
+          c + (a - b),
+          c + (a + b),
+          (c + a) - b,
+          (c - d) - (a - b)
         FROM
           numbers
         "###

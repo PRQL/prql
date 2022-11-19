@@ -522,6 +522,7 @@ fn translate_item(item: Item, dialect: &dyn DialectHandler) -> Result<Expr> {
             let op = match op {
                 UnOp::Neg => UnaryOperator::Minus,
                 UnOp::Not => UnaryOperator::Not,
+                // UnOp::Plus => UnaryOperator::Plus,
             };
             let expr = translate_operand(expr.item, op.binding_strength(), dialect)?;
             Expr::UnaryOp { op, expr }
@@ -842,12 +843,22 @@ fn translate_ident_part(ident: String, dialect: &dyn DialectHandler) -> sql_ast:
 /// Wraps into parenthesis if binding strength would be less than min_strength
 fn translate_operand(
     expr: Item,
+    // TODO: I think rename this to `parent_strength` to be more semantically descriptive
     min_strength: i32,
+    // parent_assoc: Assoc,
     dialect: &dyn DialectHandler,
 ) -> Result<Box<Expr>> {
+    // let x = match expr {
+    //     Item::Binary { right, .. } => match *right {
+    //         Expr::BinaryOp { .. } => Expr::Nested(right),
+    //     },
+    //     _ => expr,
+    // };
     let expr = Box::new(translate_item(expr, dialect)?);
 
     Ok(if expr.binding_strength() < min_strength {
+        Box::new(Expr::Nested(expr))
+    } else if expr.binding_strength() == min_strength {
         Box::new(Expr::Nested(expr))
     } else {
         expr
@@ -865,7 +876,12 @@ trait SQLExpression {
     /// https://www.postgresql.org/docs/14/sql-syntax-lexical.html#id-1.5.3.5.13.2
     /// https://docs.microsoft.com/en-us/sql/t-sql/language-elements/operator-precedence-transact-sql?view=sql-server-ver16
     fn binding_strength(&self) -> i32;
-    fn associativity(&self) -> Associativity;
+    fn associativity(&self) -> Associativity {
+        match self {
+            _ => Associativity::Both,
+        }
+    }
+    // fn associativity(&self) -> Associativity;
 }
 
 impl SQLExpression for Expr {
@@ -887,16 +903,7 @@ impl SQLExpression for Expr {
     }
     fn associativity(&self) -> Associativity {
         match self {
-            Expr::BinaryOp { op, .. } => op.binding_strength(),
-
-            Expr::UnaryOp { op, .. } => op.binding_strength(),
-
-            Expr::Like { .. } | Expr::ILike { .. } => 7,
-
-            Expr::IsNull(_) | Expr::IsNotNull(_) => 5,
-
-            // all other items types bind stronger (function calls, literals, ...)
-            _ => 20,
+            _ => Associativity::Both,
         }
     }
 }
