@@ -4,7 +4,7 @@
 
 0.2.10 contains a few helpful fixes.
 
-Work continues on our `semantic` refactor — look out for 0.3.0 soon!
+Work continues on our `semantic` refactor — look out for .3.0 soon!
 
 Features:
 
@@ -15,7 +15,7 @@ Fixes:
 
 - Fix nesting of expressions with equal binding strength and left associativity,
   such as `a - (b - c)` (@max-sixty, #1136)
-- Fix: Retain floats without significant digits as floats (@max-sixty, #1141)
+- Retain floats without significant digits as floats (@max-sixty, #1141)
 
 Documentation:
 
