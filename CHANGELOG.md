@@ -25,7 +25,7 @@ Documentation:
 
 Internal changes:
 
-- Use workspace versioning (#1065)
+- Use workspace versioning (@max-sixty, #1065)
 
 ## 0.2.9 — 2022-10-14
 
