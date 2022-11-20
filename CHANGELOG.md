@@ -1,10 +1,25 @@
 # PRQL Changelog
 
+## 0.2.11 — [unreleased]
+
+Features:
+
+Fixes:
+
+Documentation:
+
+Web:
+
+Integrations:
+
+Internal changes:
+
 ## 0.2.10 — 2022-11-20
 
 0.2.10 contains a few helpful fixes.
 
-Work continues on our `semantic` refactor — look out for .3.0 soon!
+Work continues on our `semantic` refactor — look out for 0.3.0 soon! Many thanks
+to @aljazerzen for his pivotal contributions to this.
 
 Features:
 
