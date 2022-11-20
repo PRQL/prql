@@ -178,6 +178,38 @@ mod test {
         "###
         );
 
+        assert_display_snapshot!(compile(
+          r###"
+          from numbers
+          derive x = (y - z)
+          select [
+            c - (a + b),
+            c + (a - b),
+            c + a - b,
+            c + a + b,
+            (c + a) - b,
+            ((c - d) - (a - b)),
+            ((c + d) + (a - b)),
+            +x,
+            -x,
+          ]
+          "###
+          )?, @r###"
+        SELECT
+          c - (a + b),
+          c + a - b,
+          c + a - b,
+          c + a + b,
+          c + a - b,
+          c - d - (a - b),
+          c + d + a - b,
+          y - z AS x,
+          -(y - z)
+        FROM
+          numbers
+        "###
+        );
+
         Ok(())
     }
     #[test]
