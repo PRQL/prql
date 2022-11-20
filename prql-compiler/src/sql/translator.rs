@@ -516,7 +516,8 @@ fn translate_item(item: Item, dialect: &dyn DialectHandler) -> Result<Expr> {
                     left: translate_operand(
                         left.item,
                         op.binding_strength(),
-                        // No right-associativity in SQL
+                        // No right-associativity in SQL,so we never need to fix
+                        // the left associativity.
                         false,
                         dialect,
                     )?,
@@ -536,7 +537,9 @@ fn translate_item(item: Item, dialect: &dyn DialectHandler) -> Result<Expr> {
                 UnOp::Neg => UnaryOperator::Minus,
                 UnOp::Not => UnaryOperator::Not,
             };
-            let expr = translate_operand(expr.item, op.binding_strength(), true, dialect)?;
+            let fix_associativity = matches!(op.associativity(), Associativity::Left);
+            let expr =
+                translate_operand(expr.item, op.binding_strength(), fix_associativity, dialect)?;
             Expr::UnaryOp { op, expr }
         }
 
@@ -877,7 +880,7 @@ fn translate_operand(
 }
 
 /// Associativity of an expression's operator.
-/// There is now exponent symbol in SQL, so we don't seem to have a `Right` variant.
+/// Note that there's no exponent symbol in SQL, so we don't seem to require a `Right` variant.
 /// https://en.wikipedia.org/wiki/Operator_associativity
 pub enum Associativity {
     Left,
@@ -889,9 +892,7 @@ trait SQLExpression {
     /// https://www.postgresql.org/docs/14/sql-syntax-lexical.html#id-1.5.3.5.13.2
     /// https://docs.microsoft.com/en-us/sql/t-sql/language-elements/operator-precedence-transact-sql?view=sql-server-ver16
     fn binding_strength(&self) -> i32;
-    fn associativity(&self) -> Associativity {
-        Associativity::Both
-    }
+    fn associativity(&self) -> Associativity;
 }
 
 impl SQLExpression for Expr {
@@ -948,6 +949,13 @@ impl SQLExpression for UnaryOperator {
             UnaryOperator::Minus | UnaryOperator::Plus => 13,
             UnaryOperator::Not => 4,
             _ => 9,
+        }
+    }
+
+    fn associativity(&self) -> Associativity {
+        match self {
+            UnaryOperator::Minus => Associativity::Left,
+            _ => Associativity::Both,
         }
     }
 }

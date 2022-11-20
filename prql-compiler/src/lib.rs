@@ -182,26 +182,27 @@ mod test {
           r###"
           from numbers
           derive x = (y - z)
-          derive [
+          select [
             c - (a + b),
             c + (a - b),
             c + a - b,
             c + a + b,
             (c + a) - b,
             ((c - d) - (a - b)),
+            ((c + d) + (a - b)),
             +x,
             -x,
           ]
           "###
           )?, @r###"
         SELECT
-          numbers.*,
           c - (a + b),
           c + a - b,
           c + a - b,
           c + a + b,
           c + a - b,
           c - d - (a - b),
+          c + d + a - b,
           y - z AS x,
           -(y - z)
         FROM
