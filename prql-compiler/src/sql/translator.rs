@@ -535,7 +535,6 @@ fn translate_item(item: Item, dialect: &dyn DialectHandler) -> Result<Expr> {
             let op = match op {
                 UnOp::Neg => UnaryOperator::Minus,
                 UnOp::Not => UnaryOperator::Not,
-                // UnOp::Plus => UnaryOperator::Plus,
             };
             let expr = translate_operand(expr.item, op.binding_strength(), true, dialect)?;
             Expr::UnaryOp { op, expr }
@@ -672,6 +671,7 @@ fn try_into_is_null(
         };
 
         let min_strength = Expr::IsNull(Box::new(Expr::Value(Value::Null))).binding_strength();
+        // TODO: should we always be fixing the associativity here?
         let expr = translate_operand(expr, min_strength, true, dialect)?;
 
         return Ok(Some(if matches!(op, BinOp::Eq) {

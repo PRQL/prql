@@ -181,6 +181,7 @@ mod test {
         assert_display_snapshot!(compile(
           r###"
           from numbers
+          derive x = (y - z)
           derive [
             c - (a + b),
             c + (a - b),
@@ -188,6 +189,8 @@ mod test {
             c + a + b,
             (c + a) - b,
             ((c - d) - (a - b)),
+            +x,
+            -x,
           ]
           "###
           )?, @r###"
@@ -198,7 +201,9 @@ mod test {
           c + a - b,
           c + a + b,
           c + a - b,
-          c - d - (a - b)
+          c - d - (a - b),
+          y - z AS x,
+          -(y - z)
         FROM
           numbers
         "###
