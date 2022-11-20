@@ -516,7 +516,7 @@ fn translate_item(item: Item, dialect: &dyn DialectHandler) -> Result<Expr> {
                     left: translate_operand(
                         left.item,
                         op.binding_strength(),
-                        // No right-associativity in SQL,so we never need to fix
+                        // No right-associativity in SQL, so we never need to fix
                         // the left associativity.
                         false,
                         dialect,
