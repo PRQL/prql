@@ -510,9 +510,22 @@ fn translate_item(item: Item, dialect: &dyn DialectHandler) -> Result<Expr> {
                     BinOp::Or => BinaryOperator::Or,
                     BinOp::Coalesce => unreachable!(),
                 };
+                let fix_right_associativity = matches!(op.associativity(), Associativity::Left);
+
                 Expr::BinaryOp {
-                    left: translate_operand(left.item, op.binding_strength(), dialect)?,
-                    right: translate_operand(right.item, op.binding_strength(), dialect)?,
+                    left: translate_operand(
+                        left.item,
+                        op.binding_strength(),
+                        // No right-associativity in SQL
+                        false,
+                        dialect,
+                    )?,
+                    right: translate_operand(
+                        right.item,
+                        op.binding_strength(),
+                        fix_right_associativity,
+                        dialect,
+                    )?,
                     op,
                 }
             }
@@ -524,7 +537,7 @@ fn translate_item(item: Item, dialect: &dyn DialectHandler) -> Result<Expr> {
                 UnOp::Not => UnaryOperator::Not,
                 // UnOp::Plus => UnaryOperator::Plus,
             };
-            let expr = translate_operand(expr.item, op.binding_strength(), dialect)?;
+            let expr = translate_operand(expr.item, op.binding_strength(), true, dialect)?;
             Expr::UnaryOp { op, expr }
         }
 
@@ -659,7 +672,7 @@ fn try_into_is_null(
         };
 
         let min_strength = Expr::IsNull(Box::new(Expr::Value(Value::Null))).binding_strength();
-        let expr = translate_operand(expr, min_strength, dialect)?;
+        let expr = translate_operand(expr, min_strength, true, dialect)?;
 
         return Ok(Some(if matches!(op, BinOp::Eq) {
             Expr::IsNull(expr)
@@ -845,29 +858,29 @@ fn translate_operand(
     expr: Item,
     // TODO: I think rename this to `parent_strength` to be more semantically descriptive
     min_strength: i32,
-    // parent_assoc: Assoc,
+    fix_associativity: bool,
     dialect: &dyn DialectHandler,
 ) -> Result<Box<Expr>> {
-    // let x = match expr {
-    //     Item::Binary { right, .. } => match *right {
-    //         Expr::BinaryOp { .. } => Expr::Nested(right),
-    //     },
-    //     _ => expr,
-    // };
-    let expr = Box::new(translate_item(expr, dialect)?);
+    let translated = Box::new(translate_item(expr, dialect)?);
 
-    Ok(if expr.binding_strength() < min_strength {
-        Box::new(Expr::Nested(expr))
-    } else if expr.binding_strength() == min_strength {
-        Box::new(Expr::Nested(expr))
-    } else {
-        expr
-    })
+    // Either the binding strength is less than its parent, or it's equal and we
+    // need to correct for the associativity of the operator (e.g. `a - (b - c)`)
+    Ok(
+        if translated.binding_strength() < min_strength
+            || translated.binding_strength() == min_strength && fix_associativity
+        {
+            Box::new(Expr::Nested(translated))
+        } else {
+            translated
+        },
+    )
 }
 
+/// Associativity of an expression's operator.
+/// There is now exponent symbol in SQL, so we don't seem to have a `Right` variant.
+/// https://en.wikipedia.org/wiki/Operator_associativity
 pub enum Associativity {
     Left,
-    Right,
     Both,
 }
 
@@ -877,11 +890,8 @@ trait SQLExpression {
     /// https://docs.microsoft.com/en-us/sql/t-sql/language-elements/operator-precedence-transact-sql?view=sql-server-ver16
     fn binding_strength(&self) -> i32;
     fn associativity(&self) -> Associativity {
-        match self {
-            _ => Associativity::Both,
-        }
+        Associativity::Both
     }
-    // fn associativity(&self) -> Associativity;
 }
 
 impl SQLExpression for Expr {
@@ -903,6 +913,8 @@ impl SQLExpression for Expr {
     }
     fn associativity(&self) -> Associativity {
         match self {
+            Expr::BinaryOp { op, .. } => op.associativity(),
+            Expr::UnaryOp { op, .. } => op.associativity(),
             _ => Associativity::Both,
         }
     }
@@ -920,6 +932,13 @@ impl SQLExpression for BinaryOperator {
             Or => 2,
 
             _ => 9,
+        }
+    }
+    fn associativity(&self) -> Associativity {
+        use BinaryOperator::*;
+        match self {
+            Minus | Divide => Associativity::Left,
+            _ => Associativity::Both,
         }
     }
 }
