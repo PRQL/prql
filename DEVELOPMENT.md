@@ -22,7 +22,7 @@ web either:
   ```
 
 - ...or copy & paste the various commands from [Taskfile.yml](Taskfile.yml).
-- Any problems: post an issue and we'll help.
+- Any problems: post an issue or Discord and we'll help.
 
 [^5]:
     For completeness: running the full tests requires a couple of additional
@@ -32,7 +32,7 @@ web either:
       since we use [`duckdb-rs'](https://github.com/wangfenjin/duckdb-rs). To install a compiler:
 
       - On Mac, install xcode `xcode-select --install`
-      - On Linux, `apt-get install libclang-dev`
+      - On Debian Linux, `apt-get install libclang-dev`
       - On Windows, `duckdb-rs` doesn't work anyway, so these tests are excluded
 
     - Python >= 3.7 to compile `prql-python`.
@@ -143,14 +143,14 @@ Our tests:
 [^2]: For example, this is a command I frequently run:
 
     ```sh
-    RUST_BACKTRACE=1 watchexec -e rs,toml,pest,md -cr -- cargo insta test --accept -- -p prql-compiler --lib
+    RUST_BACKTRACE=1 watchexec -e rs,toml,pest,md -cr --ignore='target/**' -- cargo insta test --accept -- -p prql-compiler --lib
     ```
 
     Breaking this down:
 
     - `RUST_BACKTRACE=1` will print a full backtrace, including where an error
       value was created, for rust tests which return `Result`s.
-    - `watchexec -e rs,toml,pest,md -cr --` will run the subsequent command on any
+    - `watchexec -e rs,toml,pest,md -cr --ignore='target/**' --` will run the subsequent command on any
       change to files with extensions which we are generally editing.
     - `cargo insta test --accept --` runs tests with `insta`, a snapshot library, and
       writes any results immediately. I rely on git to track changes, so I run
@@ -158,10 +158,10 @@ Our tests:
     - `-p prql-compiler --lib` is passed to cargo by `insta`; `-p prql-compiler`
       tells it to only run the tests for `prql-compiler` rather than the other
       crates, and `--lib` to only run the unit tests rather than the integration
-      tests, which are much slower.
-    - Note that we don't want to re-run on _any_ file changing, because we can get into a
-      loop of writing snapshot files, triggering a change, writing a snapshot
-      file, etc.
+      tests, which are slower.
+    - Note that we don't want to re-run on _any_ file changing, because we can
+      get into a loop of writing snapshot files, triggering a change, writing a
+      snapshot file, etc.
 
 [^3]:
     [Here's an example of an insta
@@ -203,8 +203,8 @@ Our tests:
   We can run these tests before a merge by adding a label `pr-test-all` to the
   PR.
 
-  If these tests fail after merging, we revert the merged commit before fixing the test and
-  then re-reverting.
+  If these tests fail after merging, we revert the merged commit before fixing
+  the test and then re-reverting.
 
 The goal of our tests is to allow us to make changes quickly. If you find
 they're making it more difficult for you to make changes, or there are missing
