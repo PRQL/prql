@@ -23,3 +23,16 @@ version = "0.2.11"
 consolidate-commits = true
 pre-release-commit-message = "chore: Release {{version}}"
 shared-version = true
+
+[[workspace.metadata.release.pre-release-replacements]]
+exactly = 1
+file = "prql-js/package.json"
+replace = '  "version": "{{version}}"'
+search = '  "version": "(\d+\.\d+\.\d+)"'
+
+[[workspace.metadata.release.pre-release-replacements]]
+exactly = 1
+file = "playground/package-lock.json"
+replace = '''    "../prql-js": {
+      "version": "{{version}}"'''
+search = '    "../prql-js": \{\n      "version": "[\d\.]+"'
