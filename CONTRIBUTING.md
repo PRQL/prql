@@ -11,9 +11,6 @@ lots of ways of contributing - big and small:
 - Contribute towards the code. Most of the code is written in rust, and there's
   enough to do such that any level of experience with rust is sufficient.
   Read the [DEVELOPMENT.md](./DEVELOPMENT.md) file to get started.
-- And if
-  you have rust questions, there are lots of friendly people on the Discord who
-  will patiently help you.
   - Find an issue labeled [help
     wanted](https://github.com/prql/prql/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22)
     or [good first
@@ -22,6 +19,10 @@ lots of ways of contributing - big and small:
     the Issue or Discord.
   - Start with something tiny! Write a test / write a docstring / make some rust
     nicer — it's a great way to get started by making an lasting impact in 30 minutes.
+  - And if you have rust questions, there are lots of friendly people on the
+    Discord who will patiently help you.
+- Contribute towards the docs. Anything from shaping a whole section of the
+  docs, to simply improving a confusing paragraph or fixing a typo.
 - Contribute towards the language.
   - Find instances where the compiler produces incorrect results, and post a bug
     report — feel free to use the [playground](https://prql-lang.org/playground).
@@ -78,8 +79,8 @@ project; thank you in advance.
   - If a PR hasn't received attention after a day, please feel free to ping the
     pull request.
 - People may review a PR after it's merged. As part of the understanding that we
-  can merge quickly, contributors are expected to incorporate this feedback into
-  a future PR.
+  can merge quickly, contributors are expected to incorporate substantive
+  feedback into a future PR.
 - We should revert quickly if the impact of a PR turns out not to be consistent
   with our expectations, or there isn't as much consensus on a decision as we
   had hoped. It's very easy to revert code and then re-revert when we've
