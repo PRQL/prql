@@ -659,7 +659,7 @@ fn try_into_is_null(
         };
 
         let strength = Expr::IsNull(Box::new(Expr::Value(Value::Null))).binding_strength();
-        let expr = translate_operand(expr, strength, true, dialect)?;
+        let expr = translate_operand(expr, strength, false, dialect)?;
 
         return Ok(Some(if matches!(op, BinOp::Eq) {
             Expr::IsNull(expr)
