@@ -510,25 +510,12 @@ fn translate_item(item: Item, dialect: &dyn DialectHandler) -> Result<Expr> {
                     BinOp::Or => BinaryOperator::Or,
                     BinOp::Coalesce => unreachable!(),
                 };
-                let fix_right_associativity = matches!(op.associativity(), Associativity::Left);
 
-                Expr::BinaryOp {
-                    left: translate_operand(
-                        left.item,
-                        op.binding_strength(),
-                        // No right-associativity in SQL, so we never need to fix
-                        // the left associativity.
-                        false,
-                        dialect,
-                    )?,
-                    right: translate_operand(
-                        right.item,
-                        op.binding_strength(),
-                        fix_right_associativity,
-                        dialect,
-                    )?,
-                    op,
-                }
+                let strength = op.binding_strength();
+                let left = translate_operand(left.item, strength, !op.associates_left(), dialect)?;
+                let right =
+                    translate_operand(right.item, strength, !op.associates_right(), dialect)?;
+                Expr::BinaryOp { left, right, op }
             }
         }
 
@@ -537,9 +524,7 @@ fn translate_item(item: Item, dialect: &dyn DialectHandler) -> Result<Expr> {
                 UnOp::Neg => UnaryOperator::Minus,
                 UnOp::Not => UnaryOperator::Not,
             };
-            let fix_associativity = matches!(op.associativity(), Associativity::Left);
-            let expr =
-                translate_operand(expr.item, op.binding_strength(), fix_associativity, dialect)?;
+            let expr = translate_operand(expr.item, op.binding_strength(), false, dialect)?;
             Expr::UnaryOp { op, expr }
         }
 
@@ -673,9 +658,8 @@ fn try_into_is_null(
             return Ok(None);
         };
 
-        let min_strength = Expr::IsNull(Box::new(Expr::Value(Value::Null))).binding_strength();
-        // TODO: should we always be fixing the associativity here?
-        let expr = translate_operand(expr, min_strength, true, dialect)?;
+        let strength = Expr::IsNull(Box::new(Expr::Value(Value::Null))).binding_strength();
+        let expr = translate_operand(expr, strength, true, dialect)?;
 
         return Ok(Some(if matches!(op, BinOp::Eq) {
             Expr::IsNull(expr)
@@ -859,32 +843,34 @@ fn translate_ident_part(ident: String, dialect: &dyn DialectHandler) -> sql_ast:
 /// Wraps into parenthesis if binding strength would be less than min_strength
 fn translate_operand(
     expr: Item,
-    // TODO: I think rename this to `parent_strength` to be more semantically descriptive
-    min_strength: i32,
+    parent_strength: i32,
     fix_associativity: bool,
     dialect: &dyn DialectHandler,
 ) -> Result<Box<Expr>> {
     let translated = Box::new(translate_item(expr, dialect)?);
 
+    let strength = translated.binding_strength();
+
     // Either the binding strength is less than its parent, or it's equal and we
     // need to correct for the associativity of the operator (e.g. `a - (b - c)`)
-    Ok(
-        if translated.binding_strength() < min_strength
-            || translated.binding_strength() == min_strength && fix_associativity
-        {
-            Box::new(Expr::Nested(translated))
-        } else {
-            translated
-        },
-    )
+    let needs_nesting =
+        strength < parent_strength || (strength == parent_strength && fix_associativity);
+
+    Ok(if needs_nesting {
+        Box::new(Expr::Nested(translated))
+    } else {
+        translated
+    })
 }
 
 /// Associativity of an expression's operator.
 /// Note that there's no exponent symbol in SQL, so we don't seem to require a `Right` variant.
 /// https://en.wikipedia.org/wiki/Operator_associativity
+#[allow(dead_code)]
 pub enum Associativity {
     Left,
     Both,
+    Right,
 }
 
 trait SQLExpression {
@@ -892,7 +878,25 @@ trait SQLExpression {
     /// https://www.postgresql.org/docs/14/sql-syntax-lexical.html#id-1.5.3.5.13.2
     /// https://docs.microsoft.com/en-us/sql/t-sql/language-elements/operator-precedence-transact-sql?view=sql-server-ver16
     fn binding_strength(&self) -> i32;
-    fn associativity(&self) -> Associativity;
+
+    fn associativity(&self) -> Associativity {
+        Associativity::Both
+    }
+
+    /// Returns true iff `a + b + c = (a + b) + c`
+    fn associates_left(&self) -> bool {
+        matches!(
+            self.associativity(),
+            Associativity::Left | Associativity::Both
+        )
+    }
+    /// Returns true iff `a + b + c = a + (b + c)`
+    fn associates_right(&self) -> bool {
+        matches!(
+            self.associativity(),
+            Associativity::Right | Associativity::Both
+        )
+    }
 }
 
 impl SQLExpression for Expr {
@@ -949,13 +953,6 @@ impl SQLExpression for UnaryOperator {
             UnaryOperator::Minus | UnaryOperator::Plus => 13,
             UnaryOperator::Not => 4,
             _ => 9,
-        }
-    }
-
-    fn associativity(&self) -> Associativity {
-        match self {
-            UnaryOperator::Minus => Associativity::Left,
-            _ => Associativity::Both,
         }
     }
 }
