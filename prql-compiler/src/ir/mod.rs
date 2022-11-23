@@ -60,6 +60,7 @@ pub enum Transform {
     Filter(Expr),
     Aggregate {
         by: Vec<CId>,
+        compute: Vec<CId>,
     },
     Sort(Vec<ColumnSort<CId>>),
     Take(Range<Expr>),
@@ -86,9 +87,12 @@ pub struct ColumnDef {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub window: Option<Window>,
+
+    #[serde(skip_serializing)]
+    pub is_aggregation: bool,
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, EnumAsInner)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, strum::AsRefStr, EnumAsInner)]
 pub enum ColumnDefKind {
     Wildcard,
     ExternRef(String),

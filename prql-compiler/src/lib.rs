@@ -903,13 +903,14 @@ select `first name`
         "###).unwrap()), @r###"
         WITH table_0 AS (
           SELECT
-            employees.*,
+            *,
             ROW_NUMBER() OVER () AS rn
           FROM
             employees
         )
         SELECT
-          table_0.*
+          *,
+          rn
         FROM
           table_0
         WHERE
@@ -1129,17 +1130,17 @@ select [mng_name, managers.gender, salary_avg, salary_sd]"#;
     fn test_sql_of_ast_2() {
         let query = r###"
         from employees
-        aggregate sum_salary = s"count({salary})"
+        aggregate sum_salary = s"sum({salary})"
         filter sum_salary > 100
         "###;
         let sql = compile(query).unwrap();
         assert_snapshot!(sql, @r###"
         SELECT
-          count(salary) AS sum_salary
+          sum(salary) AS sum_salary
         FROM
           employees
         HAVING
-          count(salary) > 100
+          sum(salary) > 100
         "###);
         assert!(sql.to_lowercase().contains(&"having".to_lowercase()));
     }
@@ -1250,7 +1251,6 @@ take 20
     }
 
     #[test]
-    #[ignore]
     fn test_nonatomic() {
         // A take, then two aggregates
         let query = r###"
@@ -1273,7 +1273,9 @@ take 20
         assert_display_snapshot!((compile(query).unwrap()), @r###"
         WITH table_0 AS (
           SELECT
-            *
+            title,
+            country,
+            salary
           FROM
             employees
           LIMIT

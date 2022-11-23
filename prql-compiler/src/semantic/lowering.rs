@@ -117,6 +117,7 @@ impl Lowerer {
                 id: new_cid,
                 kind,
                 window: None,
+                is_aggregation: false,
             });
         }
 
@@ -174,7 +175,7 @@ impl Lowerer {
                 kind: transform_call.frame.kind,
                 range: self.lower_range(transform_call.frame.range)?,
             },
-            partition: self.declare_as_columns(transform_call.partition, &mut transforms)?,
+            partition: self.declare_as_columns(transform_call.partition, &mut transforms, false)?,
             sort: self.lower_sorts(transform_call.sort, &mut transforms)?,
         };
         self.window = Some(window);
@@ -186,16 +187,10 @@ impl Lowerer {
                 transforms.push(Transform::From(id));
             }
             ast::TransformKind::Derive { assigns, .. } => {
-                for assign in assigns {
-                    self.declare_as_column(assign, &mut transforms)?;
-                }
+                self.declare_as_columns(assigns, &mut transforms, false)?;
             }
             ast::TransformKind::Select { assigns, .. } => {
-                let mut select = Vec::new();
-                for assign in assigns {
-                    let iid = self.declare_as_column(assign, &mut transforms)?;
-                    select.push(iid);
-                }
+                let select = self.declare_as_columns(assigns, &mut transforms, false)?;
                 transforms.push(Transform::Select(select));
             }
             ast::TransformKind::Filter { filter, .. } => {
@@ -204,11 +199,10 @@ impl Lowerer {
             ast::TransformKind::Aggregate { assigns, .. } => {
                 let window = self.window.take();
 
-                let select = self.declare_as_columns(assigns, &mut transforms)?;
-                transforms.push(Transform::Select(select));
+                let compute = self.declare_as_columns(assigns, &mut transforms, true)?;
 
                 let by = window.unwrap().partition;
-                transforms.push(Transform::Aggregate { by });
+                transforms.push(Transform::Aggregate { by, compute });
             }
             ast::TransformKind::Sort { by, .. } => {
                 let sorts = self.lower_sorts(by, &mut transforms)?;
@@ -258,7 +252,7 @@ impl Lowerer {
     ) -> Result<Vec<ast::ColumnSort<CId>>> {
         by.into_iter()
             .map(|ast::ColumnSort { column, direction }| {
-                let column = self.declare_as_column(column, transforms)?;
+                let column = self.declare_as_column(column, transforms, false)?;
                 Ok(ast::ColumnSort { direction, column })
             })
             .try_collect()
@@ -324,10 +318,11 @@ impl Lowerer {
         &mut self,
         exprs: Vec<ast::Expr>,
         transforms: &mut Vec<Transform>,
+        is_aggregation: bool,
     ) -> Result<Vec<CId>> {
         exprs
             .into_iter()
-            .map(|x| self.declare_as_column(x, transforms))
+            .map(|x| self.declare_as_column(x, transforms, is_aggregation))
             .try_collect()
     }
 
@@ -335,6 +330,7 @@ impl Lowerer {
         &mut self,
         expr_ast: ast::Expr,
         transforms: &mut Vec<Transform>,
+        is_aggregation: bool,
     ) -> Result<ir::CId> {
         // copy metadata before lowering
         let has_alias = expr_ast.alias.is_some();
@@ -370,6 +366,7 @@ impl Lowerer {
             id: cid,
             kind: ColumnDefKind::Expr { name, expr },
             window,
+            is_aggregation,
         };
         self.column_mapping.insert(id, cid);
 
@@ -572,6 +569,7 @@ fn lower_extern_table(
                 TableColumn::Single(name) => ColumnDefKind::ExternRef(name.clone().unwrap()),
             },
             window: None,
+            is_aggregation: false,
         })
         .collect_vec();
 

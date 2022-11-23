@@ -185,10 +185,14 @@ fn sql_query_of_atomic_query(
     let having = filter_of_pipeline(after, context)?;
 
     // GROUP BY
-    let aggregate = pipeline.get(aggregate_position).cloned();
-    let group_bys: Vec<CId> = aggregate
-        .map(|a| a.into_aggregate().unwrap())
+    let aggregate = pipeline.get(aggregate_position);
+    let group_by: Vec<CId> = aggregate
+        .map(|t| match t {
+            Transform::Aggregate { by, .. } => by.clone(),
+            _ => unreachable!(),
+        })
         .unwrap_or_default();
+    let group_by = try_into_exprs(group_by, context)?;
 
     context.pre_projection = false;
 
@@ -234,7 +238,7 @@ fn sql_query_of_atomic_query(
             from,
             lateral_views: vec![],
             selection: where_,
-            group_by: try_into_exprs(group_bys, context)?,
+            group_by,
             cluster_by: vec![],
             distribute_by: vec![],
             sort_by: vec![],
@@ -441,7 +445,6 @@ mod test {
     }
 
     #[test]
-    #[ignore]
     fn test_variable_after_aggregate() {
         let query = &r#"
         from employees

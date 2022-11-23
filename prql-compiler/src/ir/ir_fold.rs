@@ -69,6 +69,7 @@ fn fold_column_def<F: ?Sized + IrFold>(
             },
         },
         window: cd.window.map(|w| fold_window(fold, w)).transpose()?,
+        is_aggregation: cd.is_aggregation,
     })
 }
 
@@ -154,12 +155,13 @@ pub fn fold_transform<T: ?Sized + IrFold>(
         From(tid) => From(fold.fold_table_ref(tid)?),
 
         Compute(assigns) => Compute(fold.fold_column_def(assigns)?),
-        Aggregate { by } => Aggregate {
+        Aggregate { by, compute } => Aggregate {
             by: fold_cids(fold, by)?,
+            compute: fold_cids(fold, compute)?,
         },
 
         Select(ids) => Select(fold_cids(fold, ids)?),
-        Filter(i) => Filter(i),
+        Filter(i) => Filter(fold.fold_expr(i)?),
         Sort(sorts) => Sort(fold_column_sorts(fold, sorts)?),
         Take(range) => Take(range),
         Join { side, with, filter } => Join {

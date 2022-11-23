@@ -52,9 +52,13 @@ impl AnchorContext {
 
     pub fn register_column(&mut self, kind: ColumnDefKind, tiid: TIId) -> CId {
         let id = self.cid.gen();
-        let window = None;
-
-        self.columns_defs.insert(id, ColumnDef { id, kind, window });
+        let def = ColumnDef {
+            id,
+            kind,
+            window: None,
+            is_aggregation: false,
+        };
+        self.columns_defs.insert(id, def);
         self.columns_loc.insert(id, tiid);
         id
     }
@@ -130,6 +134,9 @@ impl AnchorContext {
                     columns = table.columns.iter().map(|c| c.id).collect();
                 }
                 Transform::Select(cols) => columns = cols.clone(),
+                Transform::Aggregate { by, compute } => {
+                    columns = [by.clone(), compute.clone()].concat()
+                }
                 Transform::Join { with: table, .. } => {
                     columns.extend(table.columns.iter().map(|c| c.id));
                 }

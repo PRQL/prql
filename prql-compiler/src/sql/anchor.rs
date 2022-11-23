@@ -17,7 +17,7 @@ type RemainingPipeline = (Vec<Transform>, Vec<CId>);
 /// maximum number of transforms while "fitting" into a SELECT query.
 pub fn split_off_back(
     context: &mut AnchorContext,
-    mut output_cols: Vec<CId>,
+    output_cols: Vec<CId>,
     mut pipeline: Vec<Transform>,
 ) -> (Option<RemainingPipeline>, Vec<Transform>) {
     if pipeline.is_empty() {
@@ -38,6 +38,7 @@ pub fn split_off_back(
         // stop if split is needed
         let split = is_split_required(&transform, &following_transforms);
         if split {
+            log::debug!("split required after {}", transform.as_ref());
             pipeline.push(transform);
             break;
         }
@@ -45,10 +46,17 @@ pub fn split_off_back(
 
         // anchor and record all requirements
         let required = get_requirements(&transform);
+        log::debug!("transform {} requires:", transform.as_ref());
         for r in required {
-            let r_inputs = anchor_column(context, r.col, r.max_complexity, &inputs_avail);
+            log::debug!(".. {r:?}");
 
-            output_cols.extend(&r_inputs - &inputs_avail);
+            let r_inputs = anchor_column(context, r.col, r.max_complexity, &inputs_avail);
+            log::debug!(".... still need inputs={r_inputs:?}");
+
+            if !r_inputs.contains(&r.col) {
+                // requirment was satisfied
+                inputs_required.retain(|i| *i != r.col);
+            }
             inputs_required.extend(r_inputs);
         }
 
@@ -59,15 +67,13 @@ pub fn split_off_back(
     }
 
     // prevent finishing if there are still missing requirements
+    let inputs_required = inputs_required.into_iter().unique().collect_vec();
     let has_all_inputs = inputs_required.iter().all(|c| inputs_avail.contains(c));
     if !has_all_inputs && pipeline.is_empty() {
         // push From back to the remaining pipeline
-        let transform = curr_pipeline_rev.pop().unwrap();
-        if let Transform::From(_) = &transform {
-            pipeline.push(transform);
-        } else {
-            panic!("pipeline does not start with From!");
-        }
+        let from = curr_pipeline_rev.pop().unwrap();
+        from.as_from().unwrap();
+        pipeline.push(from);
     }
 
     // figure out SELECT columns
@@ -92,7 +98,16 @@ pub fn split_off_back(
     let remaining_pipeline = if pipeline.is_empty() {
         None
     } else {
-        log::debug!("splitting avail={inputs_avail:?} required={inputs_required:?}");
+        if log::log_enabled!(log::Level::Debug) {
+            log::debug!("splitting:");
+            log::debug!(".. avail={inputs_avail:?}");
+            log::debug!(".. required={inputs_required:?}");
+            let missing = inputs_required
+                .iter()
+                .filter(|c| !inputs_avail.contains(c))
+                .collect_vec();
+            log::debug!(".. missing={missing:?}");
+        }
 
         // drop inputs that were satisfied in current pipeline
         let (_, inputs_in_curr) = context.collect_pipeline_inputs(&curr_pipeline_rev);
@@ -150,8 +165,12 @@ pub fn anchor_split(
         };
 
         let id = ctx.cid.gen();
-        let window = None;
-        let col = ColumnDef { id, kind, window };
+        let col = ColumnDef {
+            id,
+            kind,
+            window: None,
+            is_aggregation: false,
+        };
 
         new_columns.push(col);
         cid_redirects.insert(*old_cid, id);
@@ -258,6 +277,7 @@ fn is_split_required(transform: &Transform, following: &HashSet<String>) -> bool
 }
 
 /// An input requirement of a transform.
+#[derive(Debug)]
 struct Requirement {
     pub col: CId,
     pub max_complexity: Complexity,
@@ -266,8 +286,22 @@ struct Requirement {
 fn get_requirements(transform: &Transform) -> Vec<Requirement> {
     use Transform::*;
 
+    if let Aggregate { by, compute } = transform {
+        return by
+            .iter()
+            .map(|by| Requirement {
+                col: *by,
+                max_complexity: Complexity::Expr,
+            })
+            .chain(compute.iter().map(|assign| Requirement {
+                col: *assign,
+                max_complexity: Complexity::Aggregation,
+            }))
+            .collect();
+    }
+
     let cids = match transform {
-        Select(cids) | Aggregate { by: cids } => cids.clone(),
+        Select(cids) => cids.clone(),
         Filter(expr) | Join { filter: expr, .. } => {
             CidCollector::collect(expr.clone()).into_iter().collect()
         }
@@ -283,20 +317,18 @@ fn get_requirements(transform: &Transform) -> Vec<Requirement> {
             cids
         }
 
-        From(_) | Compute(_) | Unique => return Vec::new(),
+        From(_) | Compute(_) | Aggregate { .. } | Unique => return Vec::new(),
     };
 
     let max_complexity = match transform {
         Select(_) => Complexity::Windowed,
         Filter(_) => Complexity::Expr,
 
-        Aggregate { .. } => Complexity::Ident,
-
         Sort(_) => Complexity::Ident,
         Take(_) => Complexity::Expr,
         Join { .. } => Complexity::Expr,
 
-        From(_) | Compute(_) | Unique => unreachable!(),
+        From(_) | Compute(_) | Aggregate { .. } | Unique => unreachable!(),
     };
 
     cids.into_iter()
@@ -317,27 +349,15 @@ fn anchor_column(
     max_complexity: Complexity,
     inputs_avail: &HashSet<CId>,
 ) -> HashSet<CId> {
-    let col_def = &context.columns_defs[&cid];
+    let (mat, inputs_required) = Materializer::run(&cid, max_complexity, inputs_avail, context);
 
-    match &col_def.kind {
-        ColumnDefKind::Expr { expr, .. } => {
-            let (mat, inputs) =
-                Materializer::materialize(expr.clone(), max_complexity, inputs_avail, context);
-
-            let col_def = context.columns_defs.get_mut(&cid).unwrap();
-            let (_, expr) = &mut col_def.kind.as_expr_mut().unwrap();
-            **expr = mat;
-
-            inputs
-        }
-        ColumnDefKind::Wildcard | ColumnDefKind::ExternRef(_) => {
-            if inputs_avail.contains(&cid) {
-                HashSet::from([cid])
-            } else {
-                panic!("cannot anchor {:?}. This is probably caused by bad IR", cid)
-            }
-        }
+    if let Some(mat) = mat {
+        let col_def = context.columns_defs.get_mut(&cid).unwrap();
+        let (_, expr) = &mut col_def.kind.as_expr_mut().unwrap();
+        **expr = mat;
     }
+
+    inputs_required
 }
 
 struct Materializer<'a> {
@@ -354,19 +374,21 @@ struct Materializer<'a> {
 enum Complexity {
     /// Only idents
     Ident,
-    /// Everything except windowed expressions
+    /// Everything except aggregation and windowed expressions
     Expr,
-    /// Everything including windowed expressions
+    /// Everything
     Windowed,
+    /// Everything except windowed expressions
+    Aggregation,
 }
 
 impl<'a> Materializer<'a> {
-    fn materialize(
-        expr: Expr,
+    fn run(
+        cid: &CId,
         max_complexity: Complexity,
         inputs_avail: &HashSet<CId>,
         context: &'a mut AnchorContext,
-    ) -> (Expr, HashSet<CId>) {
+    ) -> (Option<Expr>, HashSet<CId>) {
         let mut m = Materializer {
             context,
             max_complexity,
@@ -374,33 +396,52 @@ impl<'a> Materializer<'a> {
             inputs_required: HashSet::new(),
         };
 
-        let expr = m.fold_expr(expr).unwrap();
+        let expr = m.try_materialize(cid).unwrap();
 
         (expr, m.inputs_required)
+    }
+
+    fn try_materialize(&mut self, cid: &CId) -> Result<Option<Expr>> {
+        let def = &self.context.columns_defs[cid];
+
+        log::debug!(".... materializing {cid:?} ({})", def.kind.as_ref());
+
+        match &def.kind {
+            ColumnDefKind::Expr { expr, .. } => {
+                let complexity = infer_complexity(def);
+
+                if complexity > self.max_complexity {
+                    // put-off materialization
+                    log::debug!(".... complexity too high");
+                } else {
+                    log::debug!(".... in-place replacement with {expr:?}");
+                    if complexity == Complexity::Aggregation {
+                        // prevent double aggregation
+                        self.max_complexity = Complexity::Expr
+                    }
+                    // in-place materialization
+                    return Ok(Some(self.fold_expr(expr.clone())?));
+                }
+            }
+
+            // no need to materialize
+            ColumnDefKind::Wildcard | ColumnDefKind::ExternRef(_) => {
+                if !self.inputs_avail.contains(cid) {
+                    panic!("cannot anchor {:?}. This is probably caused by bad IR", cid)
+                }
+            }
+        }
+        self.inputs_required.insert(*cid);
+        Ok(None)
     }
 }
 
 impl<'a> IrFold for Materializer<'a> {
     fn fold_expr(&mut self, mut expr: Expr) -> Result<Expr> {
         if let ExprKind::ColumnRef(cid) = &expr.kind {
-            let def = &self.context.columns_defs[cid];
-            match &def.kind {
-                ColumnDefKind::Expr { expr, .. } => {
-                    let complexity = infer_complexity(def);
-
-                    if complexity > self.max_complexity {
-                        // complexity too high, put off materialization
-                    } else {
-                        // in-place materialization
-                        return self.fold_expr(expr.clone());
-                    }
-                }
-
-                // no need to materialize
-                ColumnDefKind::Wildcard | ColumnDefKind::ExternRef(_) => {}
+            if let Some(value) = self.try_materialize(cid)? {
+                return Ok(value);
             }
-
-            self.inputs_required.insert(*cid);
         }
 
         expr.kind = self.fold_expr_kind(expr.kind)?;
@@ -422,11 +463,12 @@ fn infer_complexity(col_def: &ColumnDef) -> Complexity {
         ColumnDefKind::Expr { expr, .. } => {
             if col_def.window.is_some() {
                 Windowed
+            } else if col_def.is_aggregation {
+                Aggregation
+            } else if let ColumnRef(_) = &expr.kind {
+                Ident
             } else {
-                match &expr.kind {
-                    ColumnRef(_) => Ident,
-                    _ => Expr,
-                }
+                Expr
             }
         }
         ColumnDefKind::Wildcard => Ident,
