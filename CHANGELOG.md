@@ -1,5 +1,19 @@
 # PRQL Changelog
 
+## 0.2.12 — [unreleased]
+
+Features:
+
+Fixes:
+
+Documentation:
+
+Web:
+
+Integrations:
+
+Internal changes:
+
 ## 0.2.11 — 2022-11-20
 
 0.2.11 contains a few helpful fixes.
