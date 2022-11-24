@@ -17,7 +17,7 @@ members = [
 opt-level = "s"
 
 [workspace.package]
-version = "0.2.9"
+version = "0.2.11"
 
 [workspace.metadata.release]
 consolidate-commits = true

@@ -38,8 +38,8 @@ jobs:
           version: "1.7.0"
 
       # Playground setup
-      - uses: jetli/wasm-bindgen-action@v0.1.0
-      - uses: jetli/wasm-pack-action@v0.3.0
+      - uses: jetli/wasm-bindgen-action@v0.2.0
+      - uses: jetli/wasm-pack-action@v0.4.0
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
