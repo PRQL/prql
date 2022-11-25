@@ -390,8 +390,6 @@ impl Lowerer {
                 }
             }
             ast::ExprKind::Literal(literal) => ir::ExprKind::Literal(literal),
-            ast::ExprKind::Pipeline(_) => bail!("Cannot lower AST that has not been resolved"),
-            ast::ExprKind::List(_) => bail!("Cannot lower to IR expr: `{ast:?}`"),
             ast::ExprKind::Range(Range { start, end }) => ir::ExprKind::Range(Range {
                 start: start
                     .map(|x| self.lower_expr(*x))
@@ -412,15 +410,17 @@ impl Lowerer {
                 },
                 expr: Box::new(self.lower_expr(*expr)?),
             },
-            ast::ExprKind::FuncCall(_) => bail!("Cannot lower to IR expr: `{ast:?}`"),
-            ast::ExprKind::Closure(_) => bail!("Cannot lower to IR expr: `{ast:?}`"),
-            ast::ExprKind::TransformCall(_) => bail!("Cannot lower to IR expr: `{ast:?}`"),
             ast::ExprKind::SString(items) => {
                 ir::ExprKind::SString(self.lower_interpolations(items)?)
             }
             ast::ExprKind::FString(items) => {
                 ir::ExprKind::FString(self.lower_interpolations(items)?)
             }
+            ast::ExprKind::FuncCall(_)
+            | ast::ExprKind::Closure(_)
+            | ast::ExprKind::List(_)
+            | ast::ExprKind::Pipeline(_)
+            | ast::ExprKind::TransformCall(_) => bail!("Cannot lower to IR expr: `{ast:?}`"),
         };
 
         Ok(ir::Expr {

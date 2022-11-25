@@ -441,7 +441,6 @@ select `first name`
     }
 
     #[test]
-    #[ignore]
     fn test_window_functions_02() {
         let query = r###"
         from co=cust_order
@@ -487,7 +486,7 @@ select `first name`
           ) AS num_books_last_week
         FROM
           cust_order AS co
-          JOIN order_line AS ol USING(order_id)
+          JOIN order_line AS ol ON co.order_id = ol.order_id
         GROUP BY
           TO_CHAR(co.order_date, '%Y-%m'),
           TO_CHAR(co.order_date, '%Y-%m-%d')
@@ -537,7 +536,6 @@ select `first name`
     }
 
     #[test]
-    #[ignore]
     fn test_window_functions_05() {
         // sort does not leak out of groups
         let query = r###"
@@ -548,7 +546,7 @@ select `first name`
         "###;
         assert_display_snapshot!((compile(query).unwrap()), @r###"
         SELECT
-          daily_orders.*,
+          *,
           RANK() OVER (
             PARTITION BY month
             ORDER BY

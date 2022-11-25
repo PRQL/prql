@@ -11,6 +11,7 @@ use crate::ir::IdGenerator;
 
 use super::context::{Context, Decl, DeclKind, TableColumn};
 use super::module::{Module, NS_FRAME, NS_FRAME_RIGHT, NS_PARAM};
+use super::reporting::debug_call_tree;
 use super::transforms::Flattener;
 use super::type_resolver::{resolve_type, type_of_closure, validate_type};
 
@@ -84,6 +85,10 @@ impl AstFold for Resolver {
     }
 
     fn fold_expr(&mut self, node: Expr) -> Result<Expr> {
+        if node.id.is_some() && !matches!(node.kind, ExprKind::Closure(_)) {
+            return Ok(node);
+        }
+
         let id = self.id.gen();
         let alias = node.alias.clone();
         let span = node.span;
@@ -188,7 +193,7 @@ impl AstFold for Resolver {
                 self.fold_function(*closure, args, named_args, node.span)?
             }
 
-            ExprKind::Pipeline(pipeline) => self.fold_expr(pipeline_to_func_calls(pipeline))?,
+            ExprKind::Pipeline(pipeline) => self.resolve_pipeline(pipeline)?,
 
             ExprKind::Closure(closure) => {
                 self.fold_function(*closure, vec![], HashMap::new(), node.span)?
@@ -220,38 +225,72 @@ impl AstFold for Resolver {
     }
 }
 
-fn pipeline_to_func_calls(Pipeline { mut exprs }: Pipeline) -> Expr {
-    let mut value = exprs.remove(0);
-    for expr in exprs {
-        let span = expr.span;
-
-        value = Expr::from(ExprKind::FuncCall(FuncCall {
-            name: Box::new(expr),
-            args: vec![value],
-            named_args: HashMap::new(),
-        }));
-        value.span = span;
-    }
-    value
-}
-
 fn closure_of_func_def(func_def: &FuncDef, fq_ident: Ident) -> Closure {
     Closure {
         name: Some(fq_ident),
         body: func_def.body.clone(),
         body_ty: func_def.return_ty.clone(),
 
-        args: vec![],
         params: func_def.positional_params.clone(),
-
-        named_args: vec![],
         named_params: func_def.named_params.clone(),
+
+        args: vec![],
 
         env: HashMap::default(),
     }
 }
 
 impl Resolver {
+    fn resolve_pipeline(&mut self, Pipeline { mut exprs }: Pipeline) -> Result<Expr> {
+        let mut value = exprs.remove(0);
+        value = self.fold_expr(value)?;
+
+        let closure_param = if let ExprKind::Closure(closure) = &mut value.kind {
+            let param = "_pip_val";
+            let value = Expr::from(ExprKind::Ident(Ident::from_name(param)));
+            closure.args.push(value);
+            Some(param)
+        } else {
+            None
+        };
+
+        for expr in exprs {
+            let span = expr.span;
+
+            value = Expr::from(ExprKind::FuncCall(FuncCall {
+                name: Box::new(expr),
+                args: vec![value],
+                named_args: HashMap::new(),
+            }));
+            value.span = span;
+        }
+
+        if let Some(closure_param) = closure_param {
+            value = Expr::from(ExprKind::Closure(Box::new(Closure {
+                name: None,
+                body: Box::new(value),
+                body_ty: None,
+
+                args: vec![],
+                params: vec![FuncParam {
+                    name: closure_param.to_string(),
+                    default_value: None,
+                    ty: None,
+                }],
+                named_params: vec![],
+                env: HashMap::new(),
+            })));
+        }
+
+        if log::log_enabled!(log::Level::Debug) {
+            let (v, tree) = debug_call_tree(value);
+            value = v;
+            log::debug!("unpacked pipeline to following call tree: \n{tree}");
+        }
+
+        self.fold_expr(value)
+    }
+
     pub fn resolve_ident(&mut self, ident: &Ident, span: Option<Span>) -> Result<Ident> {
         let res = if ident.path.is_empty() && self.default_namespace.is_some() {
             let defaulted = Ident {
@@ -279,9 +318,17 @@ impl Resolver {
         let closure = self.apply_args_to_closure(closure, args, named_args)?;
         let args_len = closure.args.len();
 
+        log::debug!("{} >= {}", closure.args.len(), closure.params.len());
         let enough_args = closure.args.len() >= closure.params.len();
 
         let mut r = if enough_args {
+            if log::log_enabled!(log::Level::Debug) {
+                let name = closure
+                    .name
+                    .clone()
+                    .unwrap_or_else(|| Ident::from_name("<unnamed>"));
+                log::debug!("resolving args of function {}", name);
+            }
             let closure = self.resolve_function_args(closure)?;
 
             // evaluate
@@ -325,7 +372,6 @@ impl Resolver {
                             name: None,
                             args: vec![],
                             params: missing,
-                            named_args: vec![],
                             named_params: vec![],
                             body: Box::new(Expr::from(ExprKind::Closure(inner_closure))),
                             body_ty: None,
@@ -345,7 +391,6 @@ impl Resolver {
 
             let mut ty = type_of_closure(&closure);
             ty.args = ty.args[args_len..].to_vec();
-            ty.named.clear();
 
             let mut node = Expr::from(ExprKind::Closure(Box::new(closure)));
             node.ty = Some(Ty::Function(ty));
@@ -360,137 +405,114 @@ impl Resolver {
         &mut self,
         mut closure: Closure,
         args: Vec<Expr>,
-        named_args: HashMap<String, Expr>,
+        mut named_args: HashMap<String, Expr>,
     ) -> Result<Closure> {
-        for arg in args {
+        // named arguments are consumed only by the first function
+
+        // named
+        for mut param in closure.named_params.drain(..) {
+            let param_name = param.name.split('.').last().unwrap_or(&param.name);
+            let default = param.default_value.take().unwrap();
+
+            let arg = named_args.remove(param_name).unwrap_or(default);
+
             closure.args.push(arg);
+            closure.params.insert(closure.args.len() - 1, param);
+        }
+        if let Some((name, _)) = named_args.into_iter().next() {
+            // TODO: report all remaining named_args as separate errors
+            anyhow::bail!(
+                "unknown named argument `{name}` to closure {:?}",
+                closure.name
+            )
         }
 
-        // named arguments are consumed only by the first function (non-curry)
-        if !closure.named_args.is_empty() {
-            if !named_args.is_empty() {
-                bail!("function curry cannot accept named arguments");
-            }
-        } else {
-            closure.named_args = closure.named_params.iter().map(|_| None).collect();
-            for (name, arg) in named_args {
-                let (index, _) = closure
-                    .named_params
-                    .iter()
-                    .find_position(|p| p.name.split('.').last() == Some(&name))
-                    .ok_or_else(|| {
-                        anyhow::anyhow!(
-                            "unknown named argument `{name}` to closure {:?}",
-                            closure.name
-                        )
-                    })?;
-
-                closure.named_args[index] = Some(arg);
-            }
-        }
-
+        // positional
+        closure.args.extend(args);
         Ok(closure)
     }
 
     fn resolve_function_args(&mut self, to_resolve: Closure) -> Result<Closure> {
         let mut closure = Closure {
             args: vec![Expr::null(); to_resolve.args.len()],
-            named_args: Vec::with_capacity(to_resolve.named_args.len()),
             ..to_resolve
         };
 
         let func_name = &closure.name;
 
-        {
-            // positional args
+        let (tables, other): (Vec<_>, Vec<_>) = zip(&closure.params, to_resolve.args)
+            .enumerate()
+            .partition(|(_, (param, _))| {
+                let is_table = param
+                    .ty
+                    .as_ref()
+                    .map(|t| matches!(t, Ty::Table(_)))
+                    .unwrap_or_default();
 
-            let (tables, other): (Vec<_>, Vec<_>) = zip(&closure.params, to_resolve.args)
-                .enumerate()
-                .partition(|(_, (param, _))| {
-                    let is_table = param
-                        .ty
-                        .as_ref()
-                        .map(|t| matches!(t, Ty::Table(_)))
-                        .unwrap_or_default();
+                is_table
+            });
+        closure.args = vec![Expr::null(); closure.params.len()];
 
-                    is_table
-                });
-            closure.args = vec![Expr::null(); closure.params.len()];
+        let has_tables = !tables.is_empty();
 
-            let has_tables = !tables.is_empty();
+        // resolve tables
+        if has_tables {
+            self.decls.root_mod.shadow(NS_FRAME);
+            self.decls.root_mod.shadow(NS_FRAME_RIGHT);
 
-            if has_tables {
-                self.decls.root_mod.shadow(NS_FRAME);
-                self.decls.root_mod.shadow(NS_FRAME_RIGHT);
+            for pos in tables.into_iter().with_position() {
+                let is_last = matches!(pos, Position::Last(_) | Position::Only(_));
+                let (index, (param, arg)) = pos.into_inner();
 
-                // resolve tables
-                for pos in tables.into_iter().with_position() {
-                    let is_last = matches!(pos, Position::Last(_) | Position::Only(_));
-                    let (index, (param, arg)) = pos.into_inner();
+                // just fold the argument alone
+                let arg = self.fold_and_type_check(arg, param, func_name)?;
+                log::debug!("resolved arg to {}", arg.kind.as_ref());
 
-                    // just fold the argument alone
-                    let arg = self.fold_and_type_check(arg, param, func_name)?;
-
-                    // add table's frame into scope
-                    if let Some(Ty::Table(frame)) = &arg.ty {
-                        if is_last {
-                            self.decls.root_mod.insert_frame(frame, NS_FRAME);
-                        } else {
-                            self.decls.root_mod.insert_frame(frame, NS_FRAME_RIGHT);
-                        }
+                // add table's frame into scope
+                if let Some(Ty::Table(frame)) = &arg.ty {
+                    if is_last {
+                        self.decls.root_mod.insert_frame(frame, NS_FRAME);
+                    } else {
+                        self.decls.root_mod.insert_frame(frame, NS_FRAME_RIGHT);
                     }
-
-                    closure.args[index] = arg;
                 }
-            }
-
-            // resolve other positional
-            for (index, (param, arg)) in other {
-                let arg = match arg.kind {
-                    // if this is a list, fold one by one
-                    ExprKind::List(items) => {
-                        let mut res = Vec::with_capacity(items.len());
-                        for item in items {
-                            let item = self.fold_and_type_check(item, param, func_name)?;
-
-                            // add aliased columns into scope
-                            if let Some(alias) = item.alias.clone() {
-                                let id = item.id.unwrap();
-                                self.decls.root_mod.insert_frame_col(NS_FRAME, alias, id);
-                            }
-                            res.push(item);
-                        }
-                        Expr {
-                            kind: ExprKind::List(res),
-                            ..arg
-                        }
-                    }
-
-                    // just fold the argument alone
-                    _ => self.fold_and_type_check(arg, param, func_name)?,
-                };
 
                 closure.args[index] = arg;
             }
-
-            if has_tables {
-                self.decls.root_mod.unshadow(NS_FRAME);
-                self.decls.root_mod.unshadow(NS_FRAME_RIGHT);
-            }
         }
 
-        {
-            // named args
-            for (index, arg) in to_resolve.named_args.into_iter().enumerate() {
-                if let Some(arg) = arg {
-                    let param = &closure.named_params[index];
+        // resolve other positional
+        for (index, (param, arg)) in other {
+            let arg = match arg.kind {
+                // if this is a list, fold one by one
+                ExprKind::List(items) => {
+                    let mut res = Vec::with_capacity(items.len());
+                    for item in items {
+                        let item = self.fold_and_type_check(item, param, func_name)?;
 
-                    let arg = self.fold_and_type_check(arg, param, func_name)?;
-                    closure.named_args.push(Some(arg));
-                } else {
-                    closure.named_args.push(None);
+                        // add aliased columns into scope
+                        if let Some(alias) = item.alias.clone() {
+                            let id = item.id.unwrap();
+                            self.decls.root_mod.insert_frame_col(NS_FRAME, alias, id);
+                        }
+                        res.push(item);
+                    }
+                    Expr {
+                        kind: ExprKind::List(res),
+                        ..arg
+                    }
                 }
-            }
+
+                // just fold the argument alone
+                _ => self.fold_and_type_check(arg, param, func_name)?,
+            };
+
+            closure.args[index] = arg;
+        }
+
+        if has_tables {
+            self.decls.root_mod.unshadow(NS_FRAME);
+            self.decls.root_mod.unshadow(NS_FRAME_RIGHT);
         }
 
         Ok(closure)
@@ -566,18 +588,13 @@ impl Resolver {
 fn env_of_closure(closure: Closure) -> (Module, Expr) {
     let mut func_env = Module::default();
 
-    let named = zip(closure.named_params, closure.named_args).map(|(param, arg)| {
-        let value = arg.unwrap_or_else(|| param.default_value.unwrap());
-        (param.name, value)
-    });
-    let positional = zip(closure.params, closure.args).map(|(param, arg)| (param.name, arg));
-
-    for (name, value) in named.chain(positional) {
+    for (param, arg) in zip(closure.params, closure.args) {
         let v = Decl {
-            declared_at: value.id,
-            kind: DeclKind::Expr(Box::new(value)),
+            declared_at: arg.id,
+            kind: DeclKind::Expr(Box::new(arg)),
         };
-        func_env.names.insert(name, v);
+        let param_name = param.name.split('.').last().unwrap();
+        func_env.names.insert(param_name.to_string(), v);
     }
 
     (func_env, *closure.body)

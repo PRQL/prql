@@ -9,12 +9,12 @@ Table:
     - Wildcard:
         input_name: customers
   inputs:
-    - id: 8
+    - id: 4
       name: table_1
       table:
         - default_db
         - table_1
-    - id: 5
+    - id: 8
       name: customers
       table:
         - default_db

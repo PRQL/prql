@@ -1,3 +1,4 @@
+use std::fmt::Write;
 use std::ops::Range;
 
 use anyhow::{Ok, Result};
@@ -166,5 +167,86 @@ impl AstFold for FrameCollector {
         let mut expr = expr;
         expr.kind = self.fold_expr_kind(expr.kind)?;
         Ok(expr)
+    }
+}
+
+pub fn debug_call_tree(expr: Expr) -> (Expr, String) {
+    let mut collector = CallTreeDebugger {
+        indent: 0,
+        out: String::new(),
+        multiline: true,
+    };
+
+    let expr = collector.fold_expr(expr).unwrap();
+    (expr, collector.out)
+}
+
+/// Traverses AST and collects all node.frame
+struct CallTreeDebugger {
+    indent: usize,
+    multiline: bool,
+
+    out: String,
+}
+
+impl CallTreeDebugger {
+    fn write<S: ToString>(&mut self, s: S) {
+        if self.multiline {
+            self.out.write_str(&"  ".repeat(self.indent)).unwrap();
+            self.out.write_str(&s.to_string()).unwrap();
+        } else {
+            self.out.write_str(&s.to_string()).unwrap();
+        }
+    }
+
+    fn writeln<S: ToString>(&mut self, s: S) {
+        if self.multiline {
+            self.write(s.to_string() + "\n");
+        } else {
+            self.write(s);
+        }
+    }
+}
+
+impl AstFold for CallTreeDebugger {
+    fn fold_expr_kind(&mut self, expr_kind: ExprKind) -> Result<ExprKind> {
+        match expr_kind {
+            ExprKind::FuncCall(mut call) => {
+                let multiline = self.multiline;
+                if !multiline {
+                    self.write("(\n");
+                    self.indent += 1;
+                    self.multiline = true;
+                }
+
+                // func name
+                self.write("");
+                self.multiline = false;
+                call.name = Box::new(self.fold_expr(*call.name)?);
+                self.multiline = true;
+                self.out.write_str(":\n").unwrap();
+
+                // args
+                self.indent += 1;
+                call.args = self.fold_exprs(call.args)?;
+                self.indent -= 1;
+
+                if !multiline {
+                    self.indent -= 1;
+                    self.write(")");
+                }
+                self.multiline = multiline;
+
+                Ok(ExprKind::FuncCall(call))
+            }
+            ExprKind::Ident(ref ident) => {
+                self.writeln(ident);
+                Ok(expr_kind)
+            }
+            kind => {
+                self.writeln(format!("<{}>", kind.as_ref()));
+                Ok(kind)
+            }
+        }
     }
 }

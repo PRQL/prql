@@ -17,12 +17,12 @@ Table:
           - emp_salary
         expr_id: 23
   inputs:
-    - id: 11
+    - id: 4
       name: employees
       table:
         - default_db
         - employees
-    - id: 8
+    - id: 11
       name: salaries
       table:
         - default_db

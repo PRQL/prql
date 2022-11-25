@@ -7,7 +7,7 @@ mod transforms;
 mod type_resolver;
 
 pub use self::context::Context;
-pub use reporting::{collect_frames, label_references};
+pub use reporting::{collect_frames, debug_call_tree, label_references};
 
 use crate::ast::frame::{Frame, FrameColumn};
 use crate::ast::Stmt;

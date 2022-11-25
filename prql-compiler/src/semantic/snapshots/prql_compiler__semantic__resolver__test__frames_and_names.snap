@@ -20,7 +20,7 @@ Table:
         name: ~
         expr_id: 14
   inputs:
-    - id: 10
+    - id: 4
       name: orders
       table:
         - default_db

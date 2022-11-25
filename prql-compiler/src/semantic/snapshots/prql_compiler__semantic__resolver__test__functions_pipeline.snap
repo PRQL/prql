@@ -11,7 +11,7 @@ expression: "resolve_derive(r#\"\n            from a\n            derive one = (
           - _frame
           - a
           - foo
-        target_id: 7
+        target_id: 4
         ty: Infer
     - String: )
   ty:

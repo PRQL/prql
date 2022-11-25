@@ -1,5 +1,4 @@
 use std::cmp::Ordering;
-use std::collections::HashMap;
 use std::fmt::{Debug, Display, Formatter, Result, Write};
 
 use enum_as_inner::EnumAsInner;
@@ -50,7 +49,6 @@ pub enum TyLit {
 // Type of a function curry
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct TyFunc {
-    pub named: HashMap<String, Ty>,
     pub args: Vec<Ty>,
     pub return_ty: Box<Ty>,
 }

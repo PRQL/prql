@@ -87,11 +87,6 @@ pub fn type_of_closure(closure: &Closure) -> TyFunc {
             .iter()
             .map(|a| a.ty.clone().unwrap_or(Ty::Infer))
             .collect(),
-        named: closure
-            .named_params
-            .iter()
-            .map(|a| (a.name.clone(), a.ty.clone().unwrap_or(Ty::Infer)))
-            .collect(),
-        return_ty: Box::new(Ty::Infer), // TODO
+        return_ty: Box::new(closure.body_ty.clone().unwrap_or(Ty::Infer)),
     }
 }

@@ -10,7 +10,7 @@ expression: "resolve_derive(r#\"\n            func subtract a b -> a - b\n\n    
         - _frame
         - employees
         - gross_salary
-      target_id: 8
+      target_id: 5
       ty: Infer
     op: Sub
     right:
@@ -19,7 +19,7 @@ expression: "resolve_derive(r#\"\n            func subtract a b -> a - b\n\n    
         - _frame
         - employees
         - tax
-      target_id: 8
+      target_id: 5
       ty: Infer
   ty:
     Literal: Column

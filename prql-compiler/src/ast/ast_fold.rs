@@ -176,24 +176,9 @@ pub fn fold_column_sort<T: ?Sized + AstFold>(
 }
 
 pub fn fold_func_call<T: ?Sized + AstFold>(fold: &mut T, func_call: FuncCall) -> Result<FuncCall> {
-    // alternative way, looks nicer but requires cloning
-    // for item in &mut call.args {
-    //     *item = fold.fold_node(item.clone())?;
-    // }
-
-    // for item in &mut call.named_args.values_mut() {
-    //     let item = item.as_mut();
-    //     *item = fold.fold_node(item.clone())?;
-    // }
-
     Ok(FuncCall {
-        // TODO: generalize? Or this never changes?
-        name: func_call.name,
-        args: func_call
-            .args
-            .into_iter()
-            .map(|item| fold.fold_expr(item))
-            .try_collect()?,
+        name: Box::new(fold.fold_expr(*func_call.name)?),
+        args: fold.fold_exprs(func_call.args)?,
         named_args: func_call
             .named_args
             .into_iter()
@@ -285,11 +270,6 @@ pub fn fold_closure<T: ?Sized + AstFold>(fold: &mut T, closure: Closure) -> Resu
             .args
             .into_iter()
             .map(|item| fold.fold_expr(item))
-            .try_collect()?,
-        named_args: closure
-            .named_args
-            .into_iter()
-            .map(|expr| expr.map(|e| fold.fold_expr(e)).transpose())
             .try_collect()?,
         ..closure
     })

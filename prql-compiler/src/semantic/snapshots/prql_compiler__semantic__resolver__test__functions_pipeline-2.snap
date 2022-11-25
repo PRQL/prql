@@ -19,12 +19,12 @@ expression: "resolve_derive(r#\"\n            func plus_one x -> x + 1\n        
           SString:
             - String: SUM(
             - Expr:
-                id: 21
+                id: 15
                 Ident:
                   - _frame
                   - a
                   - foo
-                target_id: 9
+                target_id: 6
                 ty: Infer
             - String: )
           ty: Infer

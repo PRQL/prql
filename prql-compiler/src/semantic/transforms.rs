@@ -25,36 +25,36 @@ pub fn cast_transform(
 
     let kind = match name.as_str() {
         "std.from" => {
-            let ([source], []) = unpack::<1, 0>(closure)?;
+            let [source] = unpack::<1>(closure);
 
             TransformKind::From(source)
         }
         "std.select" => {
-            let ([assigns, tbl], []) = unpack::<2, 0>(closure)?;
+            let [assigns, tbl] = unpack::<2>(closure);
 
             let assigns = assigns.coerce_into_vec();
             TransformKind::Select { assigns, tbl }
         }
         "std.filter" => {
-            let ([filter, tbl], []) = unpack::<2, 0>(closure)?;
+            let [filter, tbl] = unpack::<2>(closure);
 
             let filter = Box::new(filter);
             TransformKind::Filter { filter, tbl }
         }
         "std.derive" => {
-            let ([assigns, tbl], []) = unpack::<2, 0>(closure)?;
+            let [assigns, tbl] = unpack::<2>(closure);
 
             let assigns = assigns.coerce_into_vec();
             TransformKind::Derive { assigns, tbl }
         }
         "std.aggregate" => {
-            let ([assigns, tbl], []) = unpack::<2, 0>(closure)?;
+            let [assigns, tbl] = unpack::<2>(closure);
 
             let assigns = assigns.coerce_into_vec();
             TransformKind::Aggregate { assigns, tbl }
         }
         "std.sort" => {
-            let ([by, tbl], []) = unpack::<2, 0>(closure)?;
+            let [by, tbl] = unpack::<2>(closure);
 
             let by = by
                 .coerce_into_vec()
@@ -74,7 +74,7 @@ pub fn cast_transform(
             TransformKind::Sort { by, tbl }
         }
         "std.take" => {
-            let ([expr, tbl], []) = unpack::<2, 0>(closure)?;
+            let [expr, tbl] = unpack::<2>(closure);
 
             let range = match expr.kind {
                 ExprKind::Literal(Literal::Integer(n)) => Range::from_ints(None, Some(n)),
@@ -85,9 +85,9 @@ pub fn cast_transform(
             TransformKind::Take { range, tbl }
         }
         "std.join" => {
-            let ([with, filter, tbl], [side]) = unpack::<3, 1>(closure)?;
+            let [side, with, filter, tbl] = unpack::<4>(closure);
 
-            let side = if let Some(side) = side {
+            let side = {
                 let span = side.span;
                 let ident = side.try_cast(ExprKind::into_ident, Some("side"), "ident")?;
                 match ident.to_string().as_str() {
@@ -103,8 +103,6 @@ pub fn cast_transform(
                     })
                     .with_span(span)),
                 }
-            } else {
-                JoinSide::Inner
             };
 
             let filter = Box::new(Expr::collect_and(filter.coerce_into_vec()));
@@ -118,7 +116,7 @@ pub fn cast_transform(
             }
         }
         "std.group" => {
-            let ([by, pipeline, tbl], []) = unpack::<3, 0>(closure)?;
+            let [by, pipeline, tbl] = unpack::<3>(closure);
 
             let by = by.coerce_into_vec();
 
@@ -128,9 +126,9 @@ pub fn cast_transform(
             TransformKind::Group { by, pipeline, tbl }
         }
         "std.window" => {
-            let ([pipeline, tbl], [rows, range, expanding, rolling]) = unpack::<2, 4>(closure)?;
+            let [rows, range, expanding, rolling, pipeline, tbl] = unpack::<6>(closure);
 
-            let expanding = if let Some(expanding) = expanding {
+            let expanding = {
                 let as_bool = expanding.kind.as_literal().and_then(|l| l.as_boolean());
 
                 *as_bool.ok_or_else(|| {
@@ -141,11 +139,9 @@ pub fn cast_transform(
                     })
                     .with_span(expanding.span)
                 })?
-            } else {
-                false
             };
 
-            let rolling = if let Some(rolling) = rolling {
+            let rolling = {
                 let as_int = rolling.kind.as_literal().and_then(|x| x.as_integer());
 
                 *as_int.ok_or_else(|| {
@@ -156,21 +152,11 @@ pub fn cast_transform(
                     })
                     .with_span(rolling.span)
                 })?
-            } else {
-                0
             };
 
-            let rows = if let Some(rows) = rows {
-                Some(rows.try_cast(|r| r.into_range(), Some("parameter `rows`"), "a range")?)
-            } else {
-                None
-            };
+            let rows = rows.try_cast(|r| r.into_range(), Some("parameter `rows`"), "a range")?;
 
-            let range = if let Some(range) = range {
-                Some(range.try_cast(|r| r.into_range(), Some("parameter `range`"), "a range")?)
-            } else {
-                None
-            };
+            let range = range.try_cast(|r| r.into_range(), Some("parameter `range`"), "a range")?;
 
             let (kind, range) = if expanding {
                 (WindowKind::Rows, Range::from_ints(None, Some(0)))
@@ -179,9 +165,9 @@ pub fn cast_transform(
                     WindowKind::Rows,
                     Range::from_ints(Some(-rolling + 1), Some(0)),
                 )
-            } else if let Some(range) = rows {
-                (WindowKind::Rows, range)
-            } else if let Some(range) = range {
+            } else if !rows.is_empty() {
+                (WindowKind::Rows, rows)
+            } else if !range.is_empty() {
                 (WindowKind::Range, range)
             } else {
                 (WindowKind::Rows, Range::unbounded())
@@ -209,6 +195,8 @@ fn fold_by_simulating_eval(
     pipeline: Expr,
     val_type: Ty,
 ) -> Result<Expr, anyhow::Error> {
+    log::debug!("fold by simulating evalaluation");
+
     let param_name = "_tbl";
     let param_id = resolver.id.gen();
 
@@ -253,8 +241,6 @@ fn fold_by_simulating_eval(
             ty: None,
             default_value: None,
         }],
-
-        named_args: vec![],
         named_params: vec![],
 
         env: Default::default(),
@@ -345,16 +331,8 @@ impl TransformCall {
     }
 }
 
-fn unpack<const P: usize, const N: usize>(
-    closure: Closure,
-) -> Result<([Expr; P], [Option<Expr>; N])> {
-    let named = closure
-        .named_args
-        .try_into()
-        .unwrap_or_else(|na| panic!("bad transform cast: {:?} {na:?}", closure.name));
-    let positional = closure.args.try_into().expect("bad transform cast");
-
-    Ok((positional, named))
+fn unpack<const P: usize>(closure: Closure) -> [Expr; P] {
+    closure.args.try_into().expect("bad transform cast")
 }
 
 /// Flattens group and window [TransformCall]s into a single pipeline.
@@ -603,17 +581,17 @@ mod tests {
                               - _frame
                               - c_invoice
                               - amount
-                            target_id: 7
+                            target_id: 4
                             ty: Infer
                         - String: )
                       ty:
                         Literal: Column
                   tbl:
-                    id: 5
+                    id: 2
                     TransformCall:
                       kind:
                         From:
-                          id: 7
+                          id: 4
                           Ident:
                             - default_db
                             - c_invoice
@@ -623,7 +601,7 @@ mod tests {
                                 - Wildcard:
                                     input_name: c_invoice
                               inputs:
-                                - id: 7
+                                - id: 4
                                   name: c_invoice
                                   table:
                                     - default_db
@@ -634,7 +612,7 @@ mod tests {
                           - Wildcard:
                               input_name: c_invoice
                         inputs:
-                          - id: 7
+                          - id: 4
                             name: c_invoice
                             table:
                               - default_db
@@ -645,7 +623,7 @@ mod tests {
                     - _frame
                     - c_invoice
                     - date
-                  target_id: 7
+                  target_id: 4
                   ty: Infer
             ty:
               Table:
@@ -658,7 +636,7 @@ mod tests {
                       name: ~
                       expr_id: 15
                 inputs:
-                  - id: 7
+                  - id: 4
                     name: c_invoice
                     table:
                       - default_db

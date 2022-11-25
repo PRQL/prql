@@ -16,6 +16,7 @@ use super::*;
 /// If it cannot contain nested Exprs, is should be under [ExprKind::Literal].
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Expr {
+    /// Unique identificator of the node. Set exactly once during semantic::resolve.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<usize>,
     #[serde(flatten)]
@@ -38,7 +39,7 @@ pub struct Expr {
     pub alias: Option<String>,
 }
 
-#[derive(Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize)]
+#[derive(Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize, strum::AsRefStr)]
 pub enum ExprKind {
     Ident(Ident),
     Literal(Literal),
@@ -146,8 +147,6 @@ pub struct Closure {
 
     pub args: Vec<Expr>,
     pub params: Vec<FuncParam>,
-
-    pub named_args: Vec<Option<Expr>>,
     pub named_params: Vec<FuncParam>,
 
     pub env: HashMap<String, Expr>,
@@ -193,6 +192,21 @@ impl Range {
         let start = start.map(|x| Box::new(Expr::from(ExprKind::Literal(Literal::Integer(x)))));
         let end = end.map(|x| Box::new(Expr::from(ExprKind::Literal(Literal::Integer(x)))));
         Range { start, end }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        fn as_int(bound: &Option<Box<Expr>>) -> Option<i64> {
+            bound
+                .as_ref()
+                .and_then(|s| s.kind.as_literal())
+                .and_then(|l| l.as_integer().cloned())
+        }
+
+        if let Some((s, e)) = as_int(&self.start).zip(as_int(&self.end)) {
+            s >= e
+        } else {
+            false
+        }
     }
 }
 

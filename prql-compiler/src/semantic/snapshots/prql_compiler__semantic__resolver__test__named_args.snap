@@ -10,7 +10,7 @@ expression: "resolve_derive(r#\"\n            func add x to:1 -> x + to\n\n     
         - _frame
         - foo_table
         - bar
-      target_id: 8
+      target_id: 5
       ty: Infer
     op: Add
     right:
@@ -25,16 +25,16 @@ expression: "resolve_derive(r#\"\n            func add x to:1 -> x + to\n\n     
 - id: 16
   Binary:
     left:
-      id: 20
+      id: 21
       Ident:
         - _frame
         - foo_table
         - bar
-      target_id: 8
+      target_id: 5
       ty: Infer
     op: Add
     right:
-      id: 21
+      id: 22
       Literal:
         Integer: 1
       ty:

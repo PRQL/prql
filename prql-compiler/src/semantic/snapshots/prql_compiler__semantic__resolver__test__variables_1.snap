@@ -10,7 +10,7 @@ expression: "resolve_derive(r#\"\n            from employees\n            derive
         - _frame
         - employees
         - salary
-      target_id: 7
+      target_id: 4
       ty: Infer
     op: Add
     right:
@@ -19,7 +19,7 @@ expression: "resolve_derive(r#\"\n            from employees\n            derive
         - _frame
         - employees
         - payroll_tax
-      target_id: 7
+      target_id: 4
       ty: Infer
   ty:
     Literal: Column
@@ -40,7 +40,7 @@ expression: "resolve_derive(r#\"\n            from employees\n            derive
         - _frame
         - employees
         - benefits_cost
-      target_id: 7
+      target_id: 4
       ty: Infer
   ty:
     Literal: Column
