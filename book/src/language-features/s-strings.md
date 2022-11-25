@@ -34,6 +34,19 @@ join s=salaries side:left [
 ]
 ```
 
+For those who have used python, s-strings are similar to python's f-strings, but
+the result is SQL code, rather than a string literal. For example, a python
+f-string of `f"average{col}"` would produce `"average(salary)"`, with quotes;
+while in PRQL, `s"average{col}"` produces `average(salary)`, without quotes.
+
+```admonish note
+S-strings in user code are intended as an escape-hatch for an unimplemented
+feature. If we often need s-strings to express something, that's a sign we
+should implement it in PRQL or PRQL's stdlib.
+```
+
+### Braces
+
 To use braces in an s-string, use double braces:
 
 ```prql
@@ -43,11 +56,26 @@ derive [
 ]
 ```
 
-For those who have used python, s-strings are similar to python's f-strings, but
-the result is SQL code, rather than a string literal. For example, a python
-f-string of `f"average{col}"` would produce `"average(salary)"`, with quotes;
-while in PRQL, `s"average{col}"` produces `average(salary)`, without quotes.
+### Nesting
 
-S-strings in user code are intended as an escape-hatch for an unimplemented
-feature. If we often need s-strings to express something, that's a sign we
-should implement it in PRQL or PRQL's stdlib.
+The PRQL compiler simply places a literal copy of each variable into the
+resulting string. In this toy example (there's no actual need for an s-string
+here), the `365 / salary + benefits` is likely not what's intended here:
+
+```prql
+from employees
+derive [
+  gross_salary = salary + benefits,
+  daily_rate = s"365 / {gross_salary}"
+]
+```
+
+Instead, we'd need to put the denominator `{gross_salary}` in parentheses:
+
+```prql
+from employees
+derive [
+  gross_salary = salary + benefits,
+  daily_rate = s"365 / ({gross_salary})",
+]
+```
