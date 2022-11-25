@@ -70,7 +70,7 @@ derive [
 ]
 ```
 
-Instead, we'd need to put the denominator `gross_salary` in parentheses:
+Instead, we'd need to put the denominator `{gross_salary}` in parentheses:
 
 ```prql
 from employees
