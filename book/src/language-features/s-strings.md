@@ -51,3 +51,10 @@ while in PRQL, `s"average{col}"` produces `average(salary)`, without quotes.
 S-strings in user code are intended as an escape-hatch for an unimplemented
 feature. If we often need s-strings to express something, that's a sign we
 should implement it in PRQL or PRQL's stdlib.
+
+```admonish note
+The PRQL compiler simply places a literal copy of each variable into the
+resulting string. For example, `s"1/{foo}"` with `foo=bar+baz`, would result in
+`1/bar+baz`. Instead, the s-string would need to be `s"1/({foo})" to get the
+result of `1/(bar+baz)`.
+```
