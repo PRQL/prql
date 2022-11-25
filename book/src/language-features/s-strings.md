@@ -70,13 +70,12 @@ derive [
 ]
 ```
 
-Instead, we'd need to put the denominator in parentheses:
+Instead, we'd need to put the denominator `gross_salary` in parentheses:
 
 ```prql
 from employees
 derive [
   gross_salary = salary + benefits,
-  # (toy example, no actual need for an s-string here)
   daily_rate = s"365 / ({gross_salary})",
 ]
 ```
