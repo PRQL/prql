@@ -134,6 +134,7 @@ pub fn collect_frames(stmts: Vec<Stmt>) -> Vec<(Span, Frame)> {
 
     collector.fold_stmts(stmts).unwrap();
 
+    collector.frames.reverse();
     collector.frames
 }
 
@@ -144,29 +145,19 @@ struct FrameCollector {
 
 impl AstFold for FrameCollector {
     fn fold_expr(&mut self, expr: Expr) -> Result<Expr> {
-        if let ExprKind::TransformCall(tc) = &expr.kind {
-            let span = match tc.kind.as_ref() {
-                TransformKind::From(expr) => expr.span.unwrap(),
-                TransformKind::Derive { tbl, .. }
-                | TransformKind::Select { tbl, .. }
-                | TransformKind::Filter { tbl, .. }
-                | TransformKind::Aggregate { tbl, .. }
-                | TransformKind::Sort { tbl, .. }
-                | TransformKind::Take { tbl, .. }
-                | TransformKind::Join { tbl, .. }
-                | TransformKind::Group { tbl, .. }
-                | TransformKind::Window { tbl, .. } => tbl.span.unwrap(),
-            };
-
-            let frame = expr.ty.clone().and_then(|t| t.into_table().ok());
-            if let Some(frame) = frame {
-                self.frames.push((span, frame));
+        if matches!(expr.kind, ExprKind::TransformCall(_)) {
+            if let Some(span) = expr.span {
+                let frame = expr.ty.as_ref().and_then(|t| t.as_table().cloned());
+                if let Some(frame) = frame {
+                    self.frames.push((span, frame));
+                }
             }
         }
 
-        let mut expr = expr;
-        expr.kind = self.fold_expr_kind(expr.kind)?;
-        Ok(expr)
+        Ok(Expr {
+            kind: self.fold_expr_kind(expr.kind)?,
+            ..expr
+        })
     }
 }
 

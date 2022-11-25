@@ -151,7 +151,7 @@ fn combine_prql_and_frames(source: &str, frames: Vec<(Span, Frame)>) -> String {
     let mut printed_lines = 0;
     let mut result = Vec::new();
     for (span, frame) in frames {
-        let line = source.get_line_range(&Range::from(span)).start;
+        let line = source.get_line_range(&Range::from(span)).end - 1;
 
         while printed_lines < line {
             result.push(lines[printed_lines].chars().collect());
@@ -180,8 +180,7 @@ mod tests {
     use super::*;
 
     #[test]
-    #[ignore]
-    fn prql_layouts_test() {
+    fn layouts() {
         let output = Cli::execute(
             &Cli::Annotate(CommandIO::default()),
             r#"
@@ -195,11 +194,18 @@ sort full
         )
         .unwrap();
         assert_snapshot!(String::from_utf8(output).unwrap().trim(),
-        @"");
+        @r###"
+        from initial_table                              # [initial_table.*]
+        select [f = first_name, l = last_name, gender]  # [f, l, gender]
+        derive full_name = f + " " + l                  # [f, l, gender, full_name]
+        take 23                                         # [f, l, gender, full_name]
+        select [l + " " + f, full = full_name, gender]  # [?, full, gender]
+        sort full                                       # [?, full, gender]
+        "###);
     }
 
     #[test]
-    fn format_test() {
+    fn format() {
         let output = Cli::execute(
             &Cli::Format(CommandIO::default()),
             r#"
