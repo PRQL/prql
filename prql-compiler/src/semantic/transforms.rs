@@ -321,13 +321,6 @@ impl TransformCall {
             Join { tbl, with, .. } => ty_frame_or_default(tbl)? + ty_frame_or_default(with)?,
             Sort { tbl, .. } | Filter { tbl, .. } | Take { tbl, .. } => ty_frame_or_default(tbl)?,
         })
-
-        // if !self.within_group.is_empty() {
-        //     self.apply_group(&mut t)?;
-        // }
-        // if self.within_window.is_some() {
-        //     self.apply_window(&mut t)?;
-        // }
     }
 }
 
