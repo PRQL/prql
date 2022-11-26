@@ -26,7 +26,7 @@ join side:left positions [id==employee_id]
 
 ```prql
 from employees
-join side:full positions [emp_no]
+join side:full positions [~emp_no]
 ```
 
 ```prql

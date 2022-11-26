@@ -136,7 +136,7 @@ impl Display for FuncDef {
             write!(f, " {}", arg.name)?;
         }
         for arg in &self.named_params {
-            write!(f, " {}", arg.name)?;
+            write!(f, " {}:{}", arg.name, arg.default_value.as_ref().unwrap())?;
         }
         write!(f, " -> {}", self.body)
     }

@@ -5,7 +5,8 @@ doesn't yet implement. For example, there's no `version()` function in SQL that
 returns the Postgres version, so if we want to use that, we use an s-string:
 
 ```prql
-derive db_version = s"version()"
+from my_table
+select db_version = s"version()"
 ```
 
 We can embed columns in an s-string using braces. For example, PRQL's standard

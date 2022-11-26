@@ -1,20 +1,19 @@
 ---
 source: book/tests/snapshot.rs
-expression: "Item::Query(parse(&prql).unwrap())"
-input_file: book/tests/prql/semantics/name-resolving-1.prql
+expression: Statements(parse(&prql).unwrap())
+input_file: book/tests/prql/internals/name-resolving-1.prql
 ---
-prql dialect:generic
-
 from employees
 derive [
   first_name,
   dept_id,
 ]
-join d = departments [dept_id]
+join d = departments [~dept_id]
 select [
   first_name,
-  `d.title`,
+  d.title,
   created_at,
 ]
+
 
 

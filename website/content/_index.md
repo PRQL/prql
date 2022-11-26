@@ -230,7 +230,7 @@ showcase_section:
       label: Joins
       prql: |
         from employees
-        join benefits [employee_id]
+        join benefits [~employee_id]
         join side:left p=positions [id==employee_id]
         select [employee_id, role, vision_coverage]
       sql: |

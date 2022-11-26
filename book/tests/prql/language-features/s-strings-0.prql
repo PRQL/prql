@@ -1,1 +1,2 @@
-derive db_version = s"version()"
+from my_table
+select db_version = s"version()"

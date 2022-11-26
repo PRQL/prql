@@ -5,7 +5,7 @@ input_file: book/tests/prql/queries/tables-0.prql
 ---
 WITH table_0 AS (
   SELECT
-    employees.*
+    salary
   FROM
     employees
   ORDER BY
@@ -14,11 +14,11 @@ WITH table_0 AS (
     50
 ), top_50 AS (
   SELECT
-    SUM(salary)
+    SUM(salary) AS total_salary
   FROM
     table_0
 )
 SELECT
-  another_table.*
+  total_salary
 FROM
-  another_table
+  top_50

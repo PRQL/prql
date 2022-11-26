@@ -11,5 +11,5 @@ join er=email_addr_bean_rel [er.bean_id == a.id and er.primary_address == '1']
 join ea=email_addresses [ea.id == er.email_address_id]
 select ea.email_address
 derive prefix = s"regexp_replace(SUBSTRING_INDEX({email_address}, '@', 1), '[.0-9-_:]+', '.')"
-select stub = s"SUBSTRING_INDEX(SUBSTRING_INDEX({prefix}, '.', part), '.', -1)"
+derive stub = s"SUBSTRING_INDEX(SUBSTRING_INDEX({prefix}, '.', part), '.', -1)"
 select [email_address, stub]

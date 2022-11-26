@@ -27,7 +27,6 @@ use std::path::Path;
 use walkdir::WalkDir;
 
 #[test]
-#[ignore]
 fn run_examples() -> Result<()> {
     // TODO: This doesn't delete old prql files — probably we should delete them
     // all first?
@@ -129,6 +128,7 @@ fn run_reference_prql() {
             return;
         }
 
+        println!("{:?}", path);
         let sql = compile(&prql).unwrap_or_else(|e| format!("Failed to compile `{prql}`; {e}"));
         assert_snapshot!(sql);
     });

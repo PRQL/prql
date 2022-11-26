@@ -1,0 +1,12 @@
+---
+source: book/tests/snapshot.rs
+expression: Statements(parse(&prql).unwrap())
+input_file: book/tests/prql/internals/functional-lang-2.prql
+---
+filter age > 50 (
+  from employees
+)
+sort name
+
+
+

@@ -538,7 +538,7 @@ impl Display for Expr {
                 write!(f, "{:}", func_call.name)?;
 
                 for (name, arg) in &func_call.named_args {
-                    write!(f, " {name}: {}", arg)?;
+                    write!(f, " {name}:{}", arg)?;
                 }
                 for arg in &func_call.args {
                     match arg.kind {

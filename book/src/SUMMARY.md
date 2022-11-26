@@ -43,9 +43,8 @@
   - [Rust](./bindings/rust.md)
 - [Internals](./internals/README.md)
   - [Name resolving](./internals/name-resolving.md)
-  - [Functions](./internals/functions.md)
+  - [Functions](./internals/functional-lang.md)
 - [Integrations]()
-
   - [dbt](./integrations/dbt.md)
   - [Jupyter](./integrations/jupyter.md)
   - [Prefect](./integrations/prefect.md)

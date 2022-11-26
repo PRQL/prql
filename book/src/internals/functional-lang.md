@@ -49,16 +49,14 @@ from employees | filter age > 50 | sort name
 
 ... is equivalent to ...
 
-<!-- TODO: these should work! But they currently fail -->
-
-```prql_no_test
+```prql
 filter age > 50 (from employees) | sort name
 ```
 
-... which is the same as:
+... is equivalent to ...
 
-```prql_no_test
-sort name (filter age > 50 (from (employees))
+```prql
+sort name (filter age > 50 (from employees))
 ```
 
 As you can see, the first example with pipeline notation is much easier to comprehend,
