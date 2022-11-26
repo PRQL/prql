@@ -13,7 +13,7 @@ use pest::iterators::Pairs;
 use pest::Parser;
 use pest_derive::Parser;
 
-use super::ast::*;
+use super::ast::pl::*;
 use super::utils::*;
 use crate::error::{Error, Reason, Span};
 
@@ -24,7 +24,7 @@ struct PrqlParser;
 pub(crate) type PestError = pest::error::Error<Rule>;
 pub(crate) type PestRule = Rule;
 
-/// Build an AST from a PRQL query string.
+/// Build PL AST from a PRQL query string.
 pub fn parse(string: &str) -> Result<Vec<Stmt>> {
     let pairs = parse_tree_of_str(string, Rule::statements)?;
 

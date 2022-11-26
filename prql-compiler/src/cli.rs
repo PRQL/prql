@@ -8,10 +8,10 @@ use std::{
     ops::Range,
 };
 
-use crate::ast::Frame;
+use crate::ast::pl::Frame;
 use crate::error::{self, Span};
 use crate::parse;
-use crate::semantic;
+use crate::semantic::{self, reporting::*};
 
 #[derive(Parser)]
 #[clap(name = env!("CARGO_PKG_NAME"), about, version)]
@@ -83,7 +83,7 @@ impl Cli {
                 let (stmts, context) = semantic::resolve_only(stmts, None)?;
 
                 let (references, stmts) =
-                    semantic::label_references(stmts, &context, "".to_string(), source.to_string());
+                    label_references(stmts, &context, "".to_string(), source.to_string());
 
                 [
                     references,
@@ -98,7 +98,7 @@ impl Cli {
                 // resolve
                 let (stmts, _) = semantic::resolve_only(stmts, None)?;
 
-                let frames = semantic::collect_frames(stmts);
+                let frames = collect_frames(stmts);
 
                 // combine with source
                 combine_prql_and_frames(source, frames).as_bytes().to_vec()

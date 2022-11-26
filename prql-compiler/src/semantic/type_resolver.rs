@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 
 use anyhow::Result;
 
-use crate::ast::*;
+use crate::ast::pl::*;
 use crate::error::{Error, Reason};
 
 pub fn resolve_type(node: &Expr) -> Result<Ty> {

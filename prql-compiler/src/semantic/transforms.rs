@@ -2,8 +2,8 @@ use std::collections::HashMap;
 
 use anyhow::{anyhow, bail, Result};
 
-use crate::ast::ast_fold::{fold_column_sorts, fold_transform_kind, AstFold};
-use crate::ast::*;
+use crate::ast::pl::fold::{fold_column_sorts, fold_transform_kind, AstFold};
+use crate::ast::pl::*;
 use crate::error::{Error, Reason};
 
 use super::context::{Decl, DeclKind};
@@ -487,7 +487,7 @@ mod tests {
         tables:
           - id: 0
             name: c_invoice
-            expr:
+            relation:
               ExternRef:
                 - LocalTable: c_invoice
                 - - id: 0
@@ -495,7 +495,7 @@ mod tests {
                   - id: 1
                     kind:
                       ExternRef: invoice_no
-        expr:
+        relation:
           Pipeline:
             - From:
                 source: 0
@@ -664,7 +664,7 @@ mod tests {
         tables:
           - id: 0
             name: invoices
-            expr:
+            relation:
               ExternRef:
                 - LocalTable: invoices
                 - - id: 0
@@ -678,7 +678,7 @@ mod tests {
                   - id: 3
                     kind:
                       ExternRef: num_of_articles
-        expr:
+        relation:
           Pipeline:
             - From:
                 source: 0

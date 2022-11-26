@@ -1,13 +1,11 @@
 use enum_as_inner::EnumAsInner;
 use serde::{Deserialize, Serialize};
 
+use super::super::pl::{BinOp, InterpolateItem, Literal, Range};
 use super::CId;
-use crate::{
-    ast::{BinOp, InterpolateItem, Literal, Range},
-    error::Span,
-};
+use crate::error::Span;
 
-/// Analogous to [crate::ast::Expr], but with stricter.
+/// Analogous to [crate::ast::pl::Expr], but with less kinds.
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Expr {
     pub kind: ExprKind,

@@ -1,3 +1,5 @@
+pub use anyhow::Result;
+
 use ariadne::{Config, Label, Report, ReportKind, Source};
 use serde::{Deserialize, Serialize};
 use std::error::Error as StdError;
@@ -80,6 +82,7 @@ impl Display for Error {
     }
 }
 
+/// Convert error into human-readable message and error location.
 pub fn format_error(
     error: anyhow::Error,
     source_id: &str,

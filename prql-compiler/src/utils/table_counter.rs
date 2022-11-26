@@ -1,4 +1,4 @@
-use super::{IrFold, Transform};
+use crate::ast::rq::{IrFold, Transform};
 
 /// Folder that counts the number of table referenced in a PRQL query.
 #[derive(Debug, Default)]

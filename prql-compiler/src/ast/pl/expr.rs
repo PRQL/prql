@@ -8,7 +8,6 @@ use semver::VersionReq;
 use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Reason, Span};
-use crate::ir::CId;
 
 use super::*;
 
@@ -318,12 +317,6 @@ pub enum WindowKind {
 pub enum TableExternRef {
     LocalTable(String),
     // TODO: add other sources such as files, URLs
-}
-
-#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
-pub enum JoinFilter<T = CId> {
-    On(Vec<T>),
-    Using(Vec<T>),
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]

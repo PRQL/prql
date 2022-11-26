@@ -3,10 +3,10 @@ use core::panic;
 use itertools::Itertools;
 use std::collections::{HashMap, HashSet};
 
-use crate::ast::TableExternRef;
-use crate::ir::{
-    self, fold_transform, CId, ColumnDef, ColumnDefKind, Expr, ExprKind, IrFold, TableDef,
-    TableExpr, TableRef, Transform,
+use crate::ast::pl::TableExternRef;
+use crate::ast::rq::{
+    self, fold_transform, CId, ColumnDecl, ColumnDefKind, Expr, ExprKind, IrFold, Relation,
+    TableDecl, TableRef, Transform,
 };
 
 use super::context::AnchorContext;
@@ -125,7 +125,7 @@ pub fn split_off_back(
 fn extend_wildcards(context: &AnchorContext, mut cols: HashSet<CId>) -> HashSet<CId> {
     let wildcard_tables: HashSet<_> = cols
         .iter()
-        .filter_map(|cid| match context.columns_defs[cid].kind {
+        .filter_map(|cid| match context.columns_decls[cid].kind {
             ColumnDefKind::Wildcard => Some(context.columns_loc[cid]),
             _ => None,
         })
@@ -155,7 +155,7 @@ pub fn anchor_split(
     let mut cid_redirects = HashMap::<CId, CId>::new();
     let mut new_columns = Vec::new();
     for old_cid in cols_at_split {
-        let old_def = ctx.columns_defs.get(old_cid).unwrap();
+        let old_def = ctx.columns_decls.get(old_cid).unwrap();
 
         let kind = match &old_def.kind {
             ColumnDefKind::Wildcard => ColumnDefKind::Wildcard,
@@ -164,7 +164,7 @@ pub fn anchor_split(
         };
 
         let id = ctx.cid.gen();
-        let col = ColumnDef {
+        let col = ColumnDecl {
             id,
             kind,
             window: None,
@@ -176,14 +176,14 @@ pub fn anchor_split(
     }
 
     // define a new table
-    ctx.table_defs.insert(
+    ctx.table_decls.insert(
         new_tid,
-        TableDef {
+        TableDecl {
             id: new_tid,
             name: Some(first_table_name.to_string()),
             // here we should put the pipeline, but because how this function is called,
             // we need to return the pipeline directly, so we just instert dummy expr instead
-            expr: TableExpr::ExternRef(TableExternRef::LocalTable("".to_string()), vec![]),
+            relation: Relation::ExternRef(TableExternRef::LocalTable("".to_string()), vec![]),
         },
     );
 
@@ -212,8 +212,8 @@ pub fn materialize_inputs(pipeline: &[Transform], ctx: &mut AnchorContext) {
         let extern_ref = infer_extern_ref(cid, ctx);
 
         if let Some(extern_ref) = extern_ref {
-            let def = ctx.columns_defs.get_mut(&cid).unwrap();
-            def.kind = extern_ref;
+            let decl = ctx.columns_decls.get_mut(&cid).unwrap();
+            decl.kind = extern_ref;
         } else {
             panic!("cannot infer an name for {cid:?}")
         }
@@ -221,10 +221,10 @@ pub fn materialize_inputs(pipeline: &[Transform], ctx: &mut AnchorContext) {
 }
 
 fn infer_extern_ref(cid: CId, ctx: &AnchorContext) -> Option<ColumnDefKind> {
-    let def = &ctx.columns_defs[&cid];
+    let decl = &ctx.columns_decls[&cid];
 
-    match &def.kind {
-        ColumnDefKind::Wildcard | ColumnDefKind::ExternRef(_) => Some(def.kind.clone()),
+    match &decl.kind {
+        ColumnDefKind::Wildcard | ColumnDefKind::ExternRef(_) => Some(decl.kind.clone()),
         ColumnDefKind::Expr { name, expr } => {
             if let Some(name) = name {
                 Some(ColumnDefKind::ExternRef(name.clone()))
@@ -312,7 +312,7 @@ fn get_requirements(transform: &Transform) -> Vec<Requirement> {
             CidCollector::collect(expr.clone()).into_iter().collect()
         }
         Sort(sorts) => sorts.iter().map(|s| s.column).collect(),
-        Take(ir::Take { range, .. }) => {
+        Take(rq::Take { range, .. }) => {
             let mut cids = Vec::new();
             if let Some(e) = &range.start {
                 cids.extend(CidCollector::collect(e.clone()));
@@ -358,7 +358,7 @@ fn anchor_column(
     let (mat, inputs_required) = Materializer::run(&cid, max_complexity, inputs_avail, context);
 
     if let Some(mat) = mat {
-        let col_def = context.columns_defs.get_mut(&cid).unwrap();
+        let col_def = context.columns_decls.get_mut(&cid).unwrap();
         let (_, expr) = &mut col_def.kind.as_expr_mut().unwrap();
         **expr = mat;
     }
@@ -408,13 +408,13 @@ impl<'a> Materializer<'a> {
     }
 
     fn try_materialize(&mut self, cid: &CId) -> Result<Option<Expr>> {
-        let def = &self.context.columns_defs[cid];
+        let decl = &self.context.columns_decls[cid];
 
-        log::debug!(".... materializing {cid:?} ({})", def.kind.as_ref());
+        log::debug!(".... materializing {cid:?} ({})", decl.kind.as_ref());
 
-        match &def.kind {
+        match &decl.kind {
             ColumnDefKind::Expr { expr, .. } => {
-                let complexity = infer_complexity(def);
+                let complexity = infer_complexity(decl);
 
                 if complexity > self.max_complexity {
                     // put-off materialization
@@ -461,8 +461,8 @@ impl<'a> IrFold for Materializer<'a> {
     }
 }
 
-fn infer_complexity(col_def: &ColumnDef) -> Complexity {
-    use crate::ir::ExprKind::*;
+fn infer_complexity(col_def: &ColumnDecl) -> Complexity {
+    use rq::ExprKind::*;
     use Complexity::*;
 
     match &col_def.kind {
@@ -516,7 +516,7 @@ impl<'a> IrFold for CidRedirector<'a> {
         match transform {
             Transform::Compute(cd) => {
                 let cd = self.fold_column_def(cd)?;
-                self.ctx.columns_defs.insert(cd.id, cd.clone());
+                self.ctx.columns_decls.insert(cd.id, cd.clone());
                 Ok(Transform::Compute(cd))
             }
             _ => fold_transform(self, transform),

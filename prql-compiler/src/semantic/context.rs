@@ -5,7 +5,8 @@ use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fmt::Debug};
 
 use super::module::{Module, NS_DEFAULT_DB, NS_NO_RESOLVE, NS_STD};
-use crate::{ast::*, error::Span};
+use crate::ast::pl::*;
+use crate::error::Span;
 
 /// Context of the pipeline.
 #[derive(Default, Serialize, Deserialize, Clone)]

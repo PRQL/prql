@@ -4,9 +4,7 @@ use enum_as_inner::EnumAsInner;
 use itertools::{Itertools, Position};
 use serde::{Deserialize, Serialize};
 
-use crate::ast::Expr;
-
-use super::Ident;
+use super::{Expr, Ident};
 
 /// Represents the object that is manipulated by the pipeline transforms.
 /// Similar to a view in a database or a data frame.

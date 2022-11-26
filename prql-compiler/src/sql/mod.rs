@@ -1,3 +1,5 @@
+//! Backend for translating RQ into SQL
+
 mod anchor;
 mod codegen;
 mod context;

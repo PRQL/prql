@@ -4,10 +4,9 @@ use std::iter::zip;
 use anyhow::{anyhow, bail, Result};
 use itertools::{Itertools, Position};
 
-use crate::ast::ast_fold::*;
-use crate::ast::*;
+use crate::ast::pl::{fold::*, *};
 use crate::error::{Error, Reason, Span};
-use crate::ir::IdGenerator;
+use crate::utils::IdGenerator;
 
 use super::context::{Context, Decl, DeclKind, TableColumn};
 use super::module::{Module, NS_FRAME, NS_FRAME_RIGHT, NS_PARAM};
@@ -18,11 +17,11 @@ use super::type_resolver::{resolve_type, type_of_closure, validate_type};
 /// Runs semantic analysis on the query, using current state.
 ///
 /// Note that this removes function declarations from AST and saves them as current context.
-pub fn resolve(statements: Vec<Stmt>, context: Context) -> Result<(Vec<Stmt>, Context)> {
+pub fn resolve(stmts: Vec<Stmt>, context: Context) -> Result<(Vec<Stmt>, Context)> {
     let mut resolver = Resolver::new(context);
-    let statements = resolver.fold_stmts(statements)?;
+    let stmts = resolver.fold_stmts(stmts)?;
 
-    Ok((statements, resolver.decls))
+    Ok((stmts, resolver.decls))
 }
 
 /// Can fold (walk) over AST and for each function call or variable find what they are referencing.
@@ -605,7 +604,7 @@ mod test {
     use anyhow::Result;
     use insta::{assert_display_snapshot, assert_yaml_snapshot};
 
-    use crate::ast::{Expr, Ty};
+    use crate::ast::pl::{Expr, Ty};
     use crate::semantic::resolve_only;
     use crate::utils::IntoOnly;
     use crate::{compile, parse};

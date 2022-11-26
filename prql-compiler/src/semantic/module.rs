@@ -4,7 +4,7 @@ use anyhow::{bail, Result};
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 
-use crate::ast::{Expr, Ident};
+use crate::ast::pl::{Expr, Ident};
 
 use super::context::{Decl, DeclKind, TableColumn, TableFrame};
 use super::{Frame, FrameColumn};

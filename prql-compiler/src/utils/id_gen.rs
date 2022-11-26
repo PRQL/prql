@@ -3,8 +3,7 @@ use std::marker::PhantomData;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
-use super::ir_fold::fold_table;
-use super::{CId, ColumnDef, IrFold, Query, TId, TableDef};
+use crate::ast::rq::{fold_table, CId, ColumnDecl, IrFold, Query, TId, TableDecl};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct IdGenerator<T: From<usize>> {
@@ -54,14 +53,14 @@ struct IdLoader {
 }
 
 impl IrFold for IdLoader {
-    fn fold_column_def(&mut self, cd: ColumnDef) -> Result<ColumnDef> {
-        self.cid.skip(cd.id.0);
+    fn fold_column_def(&mut self, cd: ColumnDecl) -> Result<ColumnDecl> {
+        self.cid.skip(cd.id.get());
 
         Ok(cd)
     }
 
-    fn fold_table(&mut self, table: TableDef) -> Result<TableDef> {
-        self.tid.skip(table.id.0);
+    fn fold_table(&mut self, table: TableDecl) -> Result<TableDecl> {
+        self.tid.skip(table.id.get());
 
         fold_table(self, table)
     }

@@ -4,7 +4,7 @@
 use anyhow::Result;
 use itertools::Itertools;
 
-use crate::ast::InterpolateItem;
+use super::super::pl::InterpolateItem;
 
 use super::*;
 
@@ -27,10 +27,10 @@ pub trait IrFold {
     fn fold_transforms(&mut self, transforms: Vec<Transform>) -> Result<Vec<Transform>> {
         fold_transforms(self, transforms)
     }
-    fn fold_table(&mut self, table: TableDef) -> Result<TableDef> {
+    fn fold_table(&mut self, table: TableDecl) -> Result<TableDecl> {
         fold_table(self, table)
     }
-    fn fold_table_expr(&mut self, table_expr: TableExpr) -> Result<TableExpr> {
+    fn fold_table_expr(&mut self, table_expr: Relation) -> Result<Relation> {
         fold_table_expr(self, table_expr)
     }
     fn fold_table_ref(&mut self, table_ref: TableRef) -> Result<TableRef> {
@@ -46,7 +46,7 @@ pub trait IrFold {
     fn fold_expr_kind(&mut self, kind: ExprKind) -> Result<ExprKind> {
         fold_expr_kind(self, kind)
     }
-    fn fold_column_def(&mut self, cd: ColumnDef) -> Result<ColumnDef> {
+    fn fold_column_def(&mut self, cd: ColumnDecl) -> Result<ColumnDecl> {
         fold_column_def(self, cd)
     }
     fn fold_cid(&mut self, cid: CId) -> Result<CId> {
@@ -56,9 +56,9 @@ pub trait IrFold {
 
 fn fold_column_def<F: ?Sized + IrFold>(
     fold: &mut F,
-    cd: ColumnDef,
-) -> Result<ColumnDef, anyhow::Error> {
-    Ok(ColumnDef {
+    cd: ColumnDecl,
+) -> Result<ColumnDecl, anyhow::Error> {
+    Ok(ColumnDecl {
         id: cd.id,
         kind: match cd.kind {
             ColumnDefKind::Wildcard => ColumnDefKind::Wildcard,
@@ -87,23 +87,23 @@ fn fold_window<F: ?Sized + IrFold>(fold: &mut F, w: Window) -> Result<Window> {
     })
 }
 
-pub fn fold_table<F: ?Sized + IrFold>(fold: &mut F, t: TableDef) -> Result<TableDef> {
-    Ok(TableDef {
+pub fn fold_table<F: ?Sized + IrFold>(fold: &mut F, t: TableDecl) -> Result<TableDecl> {
+    Ok(TableDecl {
         id: t.id,
         name: t.name,
-        expr: fold.fold_table_expr(t.expr)?,
+        relation: fold.fold_table_expr(t.relation)?,
     })
 }
 
-pub fn fold_table_expr<F: ?Sized + IrFold>(fold: &mut F, t: TableExpr) -> Result<TableExpr> {
+pub fn fold_table_expr<F: ?Sized + IrFold>(fold: &mut F, t: Relation) -> Result<Relation> {
     Ok(match t {
-        TableExpr::ExternRef(table_ref, defs) => TableExpr::ExternRef(
+        Relation::ExternRef(table_ref, defs) => Relation::ExternRef(
             table_ref,
             defs.into_iter()
                 .map(|d| fold.fold_column_def(d))
                 .try_collect()?,
         ),
-        TableExpr::Pipeline(transforms) => TableExpr::Pipeline(fold.fold_transforms(transforms)?),
+        Relation::Pipeline(transforms) => Relation::Pipeline(fold.fold_transforms(transforms)?),
     })
 }
 
@@ -122,7 +122,7 @@ pub fn fold_table_ref<F: ?Sized + IrFold>(fold: &mut F, table_ref: TableRef) -> 
 pub fn fold_query<F: ?Sized + IrFold>(fold: &mut F, query: Query) -> Result<Query> {
     Ok(Query {
         def: query.def,
-        expr: fold.fold_table_expr(query.expr)?,
+        relation: fold.fold_table_expr(query.relation)?,
         tables: query
             .tables
             .into_iter()

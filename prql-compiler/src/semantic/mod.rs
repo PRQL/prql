@@ -1,26 +1,25 @@
+//! Semantic resolver (name resolution, type checking and lowering to RQ)
+
 mod context;
 mod lowering;
 mod module;
-mod reporting;
+pub mod reporting;
 mod resolver;
 mod transforms;
 mod type_resolver;
 
 pub use self::context::Context;
-pub use reporting::{collect_frames, debug_call_tree, label_references};
 
-use crate::ast::frame::{Frame, FrameColumn};
-use crate::ast::Stmt;
-use crate::ir::Query;
+use crate::ast::pl::frame::{Frame, FrameColumn};
+use crate::ast::pl::Stmt;
+use crate::ast::rq::Query;
 use crate::semantic::module::Module;
 use crate::PRQL_VERSION;
 
 use anyhow::{bail, Result};
 use semver::{Version, VersionReq};
 
-/// Runs semantic analysis on the query, using current state.
-///
-/// Note that this removes function declarations from AST and saves them as current context.
+/// Runs semantic analysis on the query and lowers PL to RQ.
 pub fn resolve(statements: Vec<Stmt>) -> Result<Query> {
     let context = load_std_lib();
 
@@ -35,9 +34,7 @@ pub fn resolve(statements: Vec<Stmt>) -> Result<Query> {
     Ok(query)
 }
 
-/// Runs semantic analysis on the query, using current state.
-///
-/// Note that this removes function declarations from AST and saves them as current context.
+/// Runs semantic analysis on the query.
 pub fn resolve_only(
     statements: Vec<Stmt>,
     context: Option<Context>,
@@ -75,7 +72,7 @@ mod test {
     use insta::assert_yaml_snapshot;
 
     use super::resolve;
-    use crate::{ir::Query, parse};
+    use crate::{ast::rq::Query, parse};
 
     fn parse_and_resolve(query: &str) -> Result<Query> {
         resolve(parse(query)?)
@@ -95,12 +92,12 @@ mod test {
         tables:
           - id: 0
             name: employees
-            expr:
+            relation:
               ExternRef:
                 - LocalTable: employees
                 - - id: 0
                     kind: Wildcard
-        expr:
+        relation:
           Pipeline:
             - From:
                 source: 0
@@ -124,12 +121,12 @@ mod test {
         tables:
           - id: 0
             name: employees
-            expr:
+            relation:
               ExternRef:
                 - LocalTable: employees
                 - - id: 0
                     kind: Wildcard
-        expr:
+        relation:
           Pipeline:
             - From:
                 source: 0

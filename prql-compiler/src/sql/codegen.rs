@@ -1,4 +1,4 @@
-//! Contains functions that compile [crate::ir] nodes into [sqlparser] nodes.
+//! Contains functions that compile [crate::ast::pl] nodes into [sqlparser] nodes.
 
 use anyhow::{bail, Result};
 use itertools::Itertools;
@@ -8,12 +8,12 @@ use sqlparser::ast::{
     Top, UnaryOperator, Value, WindowFrameBound, WindowSpec,
 };
 
-use crate::ast::{
+use crate::ast::pl::{
     BinOp, ColumnSort, Dialect, InterpolateItem, JoinSide, Literal, Range, SortDirection,
     WindowFrame, WindowKind,
 };
+use crate::ast::rq::*;
 use crate::error::{Error, Reason};
-use crate::ir::*;
 use crate::utils::OrMap;
 
 use super::translator::Context;
@@ -151,10 +151,10 @@ pub(super) fn translate_expr_kind(item: ExprKind, ctx: &mut Context) -> Result<s
 
 fn translate_cid(cid: CId, ctx: &mut Context) -> Result<sql_ast::Expr> {
     if ctx.pre_projection {
-        let def = ctx.anchor.columns_defs.get(&cid).unwrap();
+        let decl = ctx.anchor.columns_decls.get(&cid).unwrap();
 
-        if let ColumnDefKind::Expr { expr, .. } = &def.kind {
-            let window = def.window.clone();
+        if let ColumnDefKind::Expr { expr, .. } = &decl.kind {
+            let window = decl.window.clone();
 
             let expr = translate_expr_kind(expr.kind.clone(), ctx)?;
 
@@ -182,10 +182,10 @@ fn translate_cid(cid: CId, ctx: &mut Context) -> Result<sql_ast::Expr> {
 }
 
 pub(super) fn table_factor_of_tid(table_ref: TableRef, ctx: &Context) -> TableFactor {
-    let def = ctx.anchor.table_defs.get(&table_ref.source).unwrap();
+    let decl = ctx.anchor.table_decls.get(&table_ref.source).unwrap();
 
     TableFactor::Table {
-        name: sql_ast::ObjectName(translate_ident(def.name.clone(), None, ctx)),
+        name: sql_ast::ObjectName(translate_ident(decl.name.clone(), None, ctx)),
         alias: table_ref.name.map(|ident| TableAlias {
             name: translate_ident_part(ident, ctx),
             columns: vec![],
@@ -606,7 +606,7 @@ impl SQLExpression for UnaryOperator {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::ast::Range;
+    use crate::ast::pl::Range;
     use insta::assert_yaml_snapshot;
 
     #[test]

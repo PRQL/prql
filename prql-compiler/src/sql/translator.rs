@@ -13,10 +13,10 @@ use itertools::Itertools;
 use sqlformat::{format, FormatOptions, QueryParams};
 use sqlparser::ast::{self as sql_ast, Select, SetExpr, TableWithJoins};
 
-use crate::ast::{DialectHandler, Literal};
-use crate::ir::{CId, Expr, ExprKind, IrFold, Query, TableCounter, TableDef, TableExpr, Transform};
+use crate::ast::pl::{DialectHandler, Literal};
+use crate::ast::rq::{CId, Expr, ExprKind, IrFold, Query, Relation, TableDecl, Transform};
 use crate::sql::anchor::materialize_inputs;
-use crate::utils::{IntoOnly, Pluck};
+use crate::utils::{IntoOnly, Pluck, TableCounter};
 
 use super::anchor;
 use super::codegen::*;
@@ -69,11 +69,11 @@ pub fn translate_query(query: Query) -> Result<sql_ast::Query> {
     };
 
     // extract tables and the pipeline
-    let tables = into_tables(query.expr, query.tables, &mut context)?;
+    let tables = into_tables(query.relation, query.tables, &mut context)?;
 
     let mut atomics = Vec::new();
     for table in tables {
-        let pipeline = if let TableExpr::Pipeline(pipeline) = table.expr {
+        let pipeline = if let Relation::Pipeline(pipeline) = table.relation {
             pipeline
         } else {
             // ref does not need it's own CTE
@@ -122,14 +122,14 @@ pub struct AtomicQuery {
 }
 
 fn into_tables(
-    main_pipeline: TableExpr,
-    tables: Vec<TableDef>,
+    main_pipeline: Relation,
+    tables: Vec<TableDecl>,
     context: &mut Context,
-) -> Result<Vec<TableDef>> {
-    let main = TableDef {
+) -> Result<Vec<TableDecl>> {
+    let main = TableDecl {
         id: context.anchor.tid.gen(),
         name: None,
-        expr: main_pipeline,
+        relation: main_pipeline,
     };
     Ok([tables, vec![main]].concat())
 }
@@ -373,7 +373,7 @@ mod test {
     use insta::assert_snapshot;
 
     use super::*;
-    use crate::{ast::GenericDialect, parse, semantic::resolve};
+    use crate::{ast::pl::GenericDialect, parse, semantic::resolve};
 
     fn parse_and_resolve(prql: &str) -> Result<(Vec<Transform>, Context)> {
         let query = resolve(parse(prql)?)?;
@@ -385,7 +385,7 @@ mod test {
             pre_projection: false,
         };
 
-        let pipeline = query.expr.into_pipeline().unwrap();
+        let pipeline = query.relation.into_pipeline().unwrap();
 
         Ok((pipeline, context))
     }

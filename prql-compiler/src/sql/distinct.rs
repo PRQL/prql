@@ -1,7 +1,7 @@
 use anyhow::Result;
 
-use crate::ast::{BinOp, ColumnSort, InterpolateItem, Literal, Range, WindowFrame, WindowKind};
-use crate::ir::{CId, ColumnDefKind, Expr, ExprKind, IrFold, Take, Transform, Window};
+use crate::ast::pl::{BinOp, ColumnSort, InterpolateItem, Literal, Range, WindowFrame, WindowKind};
+use crate::ast::rq::{CId, ColumnDefKind, Expr, ExprKind, IrFold, Take, Transform, Window};
 
 use super::context::AnchorContext;
 use super::translator::Context;
@@ -82,7 +82,7 @@ impl<'a> TakeConverter<'a> {
         partition: Vec<CId>,
     ) -> Vec<Transform> {
         // declare new column
-        let def = ColumnDefKind::Expr {
+        let decl = ColumnDefKind::Expr {
             name: Some(self.context.gen_column_name()),
             expr: Expr {
                 kind: ExprKind::SString(vec![InterpolateItem::String("ROW_NUMBER()".to_string())]),
@@ -110,17 +110,17 @@ impl<'a> TakeConverter<'a> {
             sort,
         };
 
-        let def = self.context.register_column(def, Some(window), None);
+        let decl = self.context.register_column(decl, Some(window), None);
 
         let col_ref = Box::new(Expr {
-            kind: ExprKind::ColumnRef(def.id),
+            kind: ExprKind::ColumnRef(decl.id),
             span: None,
         });
 
         // add the two transforms
         let range_int = range.clone().try_map(as_int).unwrap();
         vec![
-            Transform::Compute(def),
+            Transform::Compute(decl),
             Transform::Filter(match (range_int.start, range_int.end) {
                 (Some(s), Some(e)) if s == e => Expr {
                     span: None,

@@ -2,43 +2,37 @@ pub mod ast;
 #[cfg(feature = "cli")]
 mod cli;
 mod error;
-mod ir;
 mod parser;
 pub mod semantic;
-mod sql;
+pub mod sql;
 mod utils;
 
-pub use anyhow::Result;
-use ast::Stmt;
 #[cfg(feature = "cli")]
 pub use cli::Cli;
-pub use error::{format_error, FormattedError, SourceLocation};
-use once_cell::sync::Lazy;
+pub use error::{format_error, FormattedError, Result, SourceLocation};
 pub use parser::parse;
-use semver::Version;
 pub use sql::translate;
 
-pub(crate) static PRQL_VERSION: Lazy<Version> =
+use ast::pl::Stmt;
+use once_cell::sync::Lazy;
+use semver::Version;
+
+static PRQL_VERSION: Lazy<Version> =
     Lazy::new(|| Version::parse(env!("CARGO_PKG_VERSION")).expect("Invalid PRQL version number"));
 
 /// Compile a PRQL string into a SQL string.
 ///
 /// This has three stages:
 /// - [parse] — Build an AST from a PRQL query string.
-/// - [resolve] — Finds variable references, validates functions calls, determines frames.
-/// - [translate] — Write a SQL string from a PRQL AST.
+/// - [semantic::resolve] — Finds variable references, validates functions calls, determines frames.
+/// - [sql::translate] — Write a SQL string from a PRQL AST.
 pub fn compile(prql: &str) -> Result<String> {
-    parse(prql).and_then(resolve_and_translate)
-}
-
-pub fn resolve_and_translate(statements: Vec<Stmt>) -> Result<String> {
-    let query = semantic::resolve(statements)?;
-    translate(query)
+    parse(prql).and_then(semantic::resolve).and_then(translate)
 }
 
 /// Format a PRQL query
 pub fn format(prql: &str) -> Result<String> {
-    parse(prql).map(|q| format!("{}", ast::Statements(q)))
+    parse(prql).map(|q| format!("{}", ast::pl::Statements(q)))
 }
 
 /// Compile a PRQL string into a JSON version of the Query.
@@ -49,7 +43,7 @@ pub fn to_json(prql: &str) -> Result<String> {
 /// Convert JSON AST back to PRQL string
 pub fn from_json(json: &str) -> Result<String> {
     let stmts: Vec<Stmt> = serde_json::from_str(json)?;
-    Ok(format!("{}", ast::Statements(stmts)))
+    Ok(format!("{}", ast::pl::Statements(stmts)))
 }
 
 // Simple tests for "this PRQL creates this SQL" go here.

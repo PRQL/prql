@@ -3,13 +3,13 @@ use std::collections::{HashMap, HashSet};
 use anyhow::{bail, Result};
 use itertools::Itertools;
 
-use crate::ast::{Expr, FrameColumn, Ident, InterpolateItem, Range, TableExternRef, WindowFrame};
-use crate::error::{Error, Reason};
-use crate::ir::{
-    CId, ColumnDef, ColumnDefKind, IdGenerator, Query, TId, TableDef, TableExpr, Take, Transform,
+use crate::ast::pl::{
+    self, Expr, FrameColumn, Ident, InterpolateItem, Range, TableExternRef, WindowFrame,
 };
+use crate::ast::rq::{self, CId, ColumnDecl, ColumnDefKind, Query, TId, TableDecl, Transform};
+use crate::error::{Error, Reason};
 use crate::semantic::module::Module;
-use crate::{ast, ir};
+use crate::utils::IdGenerator;
 
 use super::context::{Context, DeclKind, TableColumn, TableFrame};
 
@@ -17,7 +17,7 @@ use super::context::{Context, DeclKind, TableColumn, TableFrame};
 /// - transforms are not nested,
 /// - transforms have correct partition, window and sort set,
 /// - make sure there are no unresolved
-pub fn lower_ast_to_ir(statements: Vec<ast::Stmt>, context: Context) -> Result<Query> {
+pub fn lower_ast_to_ir(statements: Vec<pl::Stmt>, context: Context) -> Result<Query> {
     let mut l = Lowerer::new(context);
 
     // TODO: when extern refs will be resolved to a local instance of a table
@@ -29,19 +29,19 @@ pub fn lower_ast_to_ir(statements: Vec<ast::Stmt>, context: Context) -> Result<Q
 
     for statement in statements {
         match statement.kind {
-            ast::StmtKind::QueryDef(def) => query_def = Some(def),
-            ast::StmtKind::Pipeline(expr) => {
-                let (ir, _) = l.lower_table_expr(*expr)?;
+            pl::StmtKind::QueryDef(def) => query_def = Some(def),
+            pl::StmtKind::Pipeline(expr) => {
+                let (ir, _) = l.lower_relation(*expr)?;
                 main_pipeline = Some(ir);
             }
-            ast::StmtKind::FuncDef(_) | ast::StmtKind::TableDef(_) => {}
+            pl::StmtKind::FuncDef(_) | pl::StmtKind::TableDef(_) => {}
         }
     }
 
     Ok(Query {
         def: query_def.unwrap_or_default(),
         tables,
-        expr: main_pipeline
+        relation: main_pipeline
             .ok_or_else(|| Error::new(Reason::Simple("missing main pipeline".to_string())))?,
     })
 }
@@ -50,10 +50,10 @@ struct Lowerer {
     cid: IdGenerator<CId>,
     tid: IdGenerator<TId>,
 
-    decls: Context,
+    context: Context,
 
     // current window for any new column defs
-    window: Option<ir::Window>,
+    window: Option<rq::Window>,
 
     /// mapping from [Expr].id into [CId]s
     column_mapping: HashMap<usize, CId>,
@@ -75,7 +75,7 @@ type TableColumns = Vec<(String, CId)>;
 impl Lowerer {
     fn new(context: Context) -> Self {
         Lowerer {
-            decls: context,
+            context,
             window: None,
 
             cid: IdGenerator::new(),
@@ -90,7 +90,7 @@ impl Lowerer {
         }
     }
 
-    fn lower_table_ref(&mut self, expr: Expr) -> Result<ir::TableRef> {
+    fn lower_table_ref(&mut self, expr: Expr) -> Result<rq::TableRef> {
         log::debug!(
             "lowering an instance of table {expr} (id={})...",
             expr.id.unwrap()
@@ -112,13 +112,13 @@ impl Lowerer {
             } else {
                 ColumnDefKind::Expr {
                     name: Some(name.clone()),
-                    expr: ir::Expr {
-                        kind: ir::ExprKind::ColumnRef(*cid),
+                    expr: rq::Expr {
+                        kind: rq::ExprKind::ColumnRef(*cid),
                         span: None,
                     },
                 }
             };
-            columns.push(ColumnDef {
+            columns.push(ColumnDecl {
                 id: new_cid,
                 kind,
                 window: None,
@@ -129,7 +129,7 @@ impl Lowerer {
         log::debug!("... columns = {:?}", cids_by_name);
         self.input_mapping.insert(expr.id.unwrap(), cids_by_name);
 
-        Ok(ir::TableRef {
+        Ok(rq::TableRef {
             source: id,
             name: alias,
             columns,
@@ -143,18 +143,18 @@ impl Lowerer {
             .or_insert_with(|| self.tid.gen())
     }
 
-    fn lower_table_expr(&mut self, expr: Expr) -> Result<(TableExpr, TableColumns)> {
+    fn lower_relation(&mut self, expr: Expr) -> Result<(rq::Relation, TableColumns)> {
         let ty = expr.ty.clone();
 
-        let mut transforms = self.lower_transform(expr)?;
+        let mut transforms = self.lower_pipeline(expr)?;
         let cols = self.push_select(ty, &mut transforms)?;
 
-        Ok((TableExpr::Pipeline(transforms), cols))
+        Ok((rq::Relation::Pipeline(transforms), cols))
     }
 
-    fn lower_transform(&mut self, ast: ast::Expr) -> Result<Vec<Transform>> {
+    fn lower_pipeline(&mut self, ast: pl::Expr) -> Result<Vec<Transform>> {
         let mut transform_call = match ast.kind {
-            ast::ExprKind::TransformCall(transform) => transform,
+            pl::ExprKind::TransformCall(transform) => transform,
             _ => {
                 bail!(Error::new(Reason::Expected {
                     who: None,
@@ -170,13 +170,13 @@ impl Lowerer {
 
         // results starts with result of inner table
         if let Some(tbl) = transform_call.kind.tbl_arg_mut().cloned() {
-            let pipeline = self.lower_transform(tbl)?;
+            let pipeline = self.lower_pipeline(tbl)?;
             self.pipeline.extend(pipeline);
         }
 
         // ... and continues with transforms created in this function
 
-        let window = ir::Window {
+        let window = rq::Window {
             frame: WindowFrame {
                 kind: transform_call.frame.kind,
                 range: self.lower_range(transform_call.frame.range)?,
@@ -187,24 +187,24 @@ impl Lowerer {
         self.window = Some(window);
 
         match *transform_call.kind {
-            ast::TransformKind::From(expr) => {
+            pl::TransformKind::From(expr) => {
                 let id = self.lower_table_ref(expr)?;
 
                 self.pipeline.push(Transform::From(id));
             }
-            ast::TransformKind::Derive { assigns, .. } => {
+            pl::TransformKind::Derive { assigns, .. } => {
                 self.declare_as_columns(assigns, false)?;
             }
-            ast::TransformKind::Select { assigns, .. } => {
+            pl::TransformKind::Select { assigns, .. } => {
                 let select = self.declare_as_columns(assigns, false)?;
                 self.pipeline.push(Transform::Select(select));
             }
-            ast::TransformKind::Filter { filter, .. } => {
+            pl::TransformKind::Filter { filter, .. } => {
                 let filter = self.lower_expr(*filter)?;
 
                 self.pipeline.push(Transform::Filter(filter));
             }
-            ast::TransformKind::Aggregate { assigns, .. } => {
+            pl::TransformKind::Aggregate { assigns, .. } => {
                 let window = self.window.take();
 
                 let compute = self.declare_as_columns(assigns, true)?;
@@ -213,24 +213,24 @@ impl Lowerer {
                 self.pipeline
                     .push(Transform::Aggregate { partition, compute });
             }
-            ast::TransformKind::Sort { by, .. } => {
+            pl::TransformKind::Sort { by, .. } => {
                 let sorts = self.lower_sorts(by)?;
                 self.pipeline.push(Transform::Sort(sorts));
             }
-            ast::TransformKind::Take { range, .. } => {
+            pl::TransformKind::Take { range, .. } => {
                 let window = self.window.take().unwrap_or_default();
                 let range = Range {
                     start: range.start.map(|x| self.lower_expr(*x)).transpose()?,
                     end: range.end.map(|x| self.lower_expr(*x)).transpose()?,
                 };
 
-                self.pipeline.push(Transform::Take(Take {
+                self.pipeline.push(Transform::Take(rq::Take {
                     range,
                     partition: window.partition,
                     sort: window.sort,
                 }));
             }
-            ast::TransformKind::Join {
+            pl::TransformKind::Join {
                 side, with, filter, ..
             } => {
                 let with = self.lower_table_ref(*with)?;
@@ -242,7 +242,7 @@ impl Lowerer {
                 };
                 self.pipeline.push(transform);
             }
-            ast::TransformKind::Group { .. } | ast::TransformKind::Window { .. } => unreachable!(
+            pl::TransformKind::Group { .. } | pl::TransformKind::Window { .. } => unreachable!(
                 "transform `{}` cannot be lowered.",
                 (*transform_call.kind).as_ref()
             ),
@@ -252,18 +252,18 @@ impl Lowerer {
         Ok(self.pipeline.drain(..).collect_vec())
     }
 
-    fn lower_range(&mut self, range: ast::Range<Box<ast::Expr>>) -> Result<Range<ir::Expr>> {
+    fn lower_range(&mut self, range: pl::Range<Box<pl::Expr>>) -> Result<Range<rq::Expr>> {
         Ok(Range {
             start: range.start.map(|x| self.lower_expr(*x)).transpose()?,
             end: range.end.map(|x| self.lower_expr(*x)).transpose()?,
         })
     }
 
-    fn lower_sorts(&mut self, by: Vec<ast::ColumnSort>) -> Result<Vec<ast::ColumnSort<CId>>> {
+    fn lower_sorts(&mut self, by: Vec<pl::ColumnSort>) -> Result<Vec<pl::ColumnSort<CId>>> {
         by.into_iter()
-            .map(|ast::ColumnSort { column, direction }| {
+            .map(|pl::ColumnSort { column, direction }| {
                 let column = self.declare_as_column(column, false)?;
-                Ok(ast::ColumnSort { direction, column })
+                Ok(pl::ColumnSort { direction, column })
             })
             .try_collect()
     }
@@ -271,7 +271,7 @@ impl Lowerer {
     /// Append a Select of final table columns derived from frame
     fn push_select(
         &mut self,
-        ty: Option<ast::Ty>,
+        ty: Option<pl::Ty>,
         transforms: &mut Vec<Transform>,
     ) -> Result<TableColumns> {
         let frame = ty.unwrap().into_table().unwrap();
@@ -326,7 +326,7 @@ impl Lowerer {
 
     fn declare_as_columns(
         &mut self,
-        exprs: Vec<ast::Expr>,
+        exprs: Vec<pl::Expr>,
         is_aggregation: bool,
     ) -> Result<Vec<CId>> {
         exprs
@@ -337,9 +337,9 @@ impl Lowerer {
 
     fn declare_as_column(
         &mut self,
-        mut expr_ast: ast::Expr,
+        mut expr_ast: pl::Expr,
         is_aggregation: bool,
-    ) -> Result<ir::CId> {
+    ) -> Result<rq::CId> {
         // copy metadata before lowering
         let has_alias = expr_ast.alias.is_some();
         let needs_window = expr_ast.needs_window;
@@ -355,7 +355,7 @@ impl Lowerer {
         let expr = self.lower_expr(expr_ast)?;
 
         // don't create new ColumnDef if expr is just a ColumnRef
-        if let ir::ExprKind::ColumnRef(cid) = &expr.kind {
+        if let rq::ExprKind::ColumnRef(cid) = &expr.kind {
             if !has_alias && !needs_window {
                 self.column_mapping.insert(id, *cid);
                 return Ok(*cid);
@@ -371,7 +371,7 @@ impl Lowerer {
 
         // construct ColumnDef
         let cid = self.cid.gen();
-        let def = ColumnDef {
+        let decl = ColumnDecl {
             id: cid,
             kind: ColumnDefKind::Expr { name, expr },
             window,
@@ -379,68 +379,68 @@ impl Lowerer {
         };
         self.column_mapping.insert(id, cid);
 
-        self.pipeline.push(Transform::Compute(def));
+        self.pipeline.push(Transform::Compute(decl));
         Ok(cid)
     }
 
-    fn lower_expr(&mut self, ast: ast::Expr) -> Result<ir::Expr> {
+    fn lower_expr(&mut self, ast: pl::Expr) -> Result<rq::Expr> {
         if ast.needs_window {
             let span = ast.span;
             let cid = self.declare_as_column(ast, false)?;
 
-            let kind = ir::ExprKind::ColumnRef(cid);
-            return Ok(ir::Expr { kind, span });
+            let kind = rq::ExprKind::ColumnRef(cid);
+            return Ok(rq::Expr { kind, span });
         }
 
         let kind = match ast.kind {
-            ast::ExprKind::Ident(ident) => {
+            pl::ExprKind::Ident(ident) => {
                 log::debug!("lowering ident {ident} (target {:?})", ast.target_id);
 
                 if let Some(id) = ast.target_id {
                     let cid = self.lookup_cid(id, Some(&ident.name))?;
 
-                    ir::ExprKind::ColumnRef(cid)
+                    rq::ExprKind::ColumnRef(cid)
                 } else {
                     // This is an unresolved ident.
                     // Let's hope that the database engine can resolve it.
-                    ir::ExprKind::SString(vec![InterpolateItem::String(ident.name)])
+                    rq::ExprKind::SString(vec![InterpolateItem::String(ident.name)])
                 }
             }
-            ast::ExprKind::Literal(literal) => ir::ExprKind::Literal(literal),
-            ast::ExprKind::Range(Range { start, end }) => ir::ExprKind::Range(Range {
+            pl::ExprKind::Literal(literal) => rq::ExprKind::Literal(literal),
+            pl::ExprKind::Range(Range { start, end }) => rq::ExprKind::Range(Range {
                 start: start
                     .map(|x| self.lower_expr(*x))
                     .transpose()?
                     .map(Box::new),
                 end: end.map(|x| self.lower_expr(*x)).transpose()?.map(Box::new),
             }),
-            ast::ExprKind::Binary { left, op, right } => ir::ExprKind::Binary {
+            pl::ExprKind::Binary { left, op, right } => rq::ExprKind::Binary {
                 left: Box::new(self.lower_expr(*left)?),
                 op,
                 right: Box::new(self.lower_expr(*right)?),
             },
-            ast::ExprKind::Unary { op, expr } => ir::ExprKind::Unary {
+            pl::ExprKind::Unary { op, expr } => rq::ExprKind::Unary {
                 op: match op {
-                    ast::UnOp::Neg => ir::UnOp::Neg,
-                    ast::UnOp::Not => ir::UnOp::Not,
-                    ast::UnOp::EqSelf => bail!("Cannot lower to IR expr: `{op:?}`"),
+                    pl::UnOp::Neg => rq::UnOp::Neg,
+                    pl::UnOp::Not => rq::UnOp::Not,
+                    pl::UnOp::EqSelf => bail!("Cannot lower to IR expr: `{op:?}`"),
                 },
                 expr: Box::new(self.lower_expr(*expr)?),
             },
-            ast::ExprKind::SString(items) => {
-                ir::ExprKind::SString(self.lower_interpolations(items)?)
+            pl::ExprKind::SString(items) => {
+                rq::ExprKind::SString(self.lower_interpolations(items)?)
             }
-            ast::ExprKind::FString(items) => {
-                ir::ExprKind::FString(self.lower_interpolations(items)?)
+            pl::ExprKind::FString(items) => {
+                rq::ExprKind::FString(self.lower_interpolations(items)?)
             }
-            ast::ExprKind::FuncCall(_)
-            | ast::ExprKind::Closure(_)
-            | ast::ExprKind::List(_)
-            | ast::ExprKind::Pipeline(_)
-            | ast::ExprKind::TransformCall(_) => bail!("Cannot lower to IR expr: `{ast:?}`"),
+            pl::ExprKind::FuncCall(_)
+            | pl::ExprKind::Closure(_)
+            | pl::ExprKind::List(_)
+            | pl::ExprKind::Pipeline(_)
+            | pl::ExprKind::TransformCall(_) => bail!("Cannot lower to IR expr: `{ast:?}`"),
         };
 
-        Ok(ir::Expr {
+        Ok(rq::Expr {
             kind,
             span: ast.span,
         })
@@ -449,7 +449,7 @@ impl Lowerer {
     fn lower_interpolations(
         &mut self,
         items: Vec<InterpolateItem>,
-    ) -> Result<Vec<InterpolateItem<ir::Expr>>> {
+    ) -> Result<Vec<InterpolateItem<rq::Expr>>> {
         items
             .into_iter()
             .map(|i| {
@@ -473,7 +473,7 @@ impl Lowerer {
                     "This table contains unnamed columns, that need to be referenced by name"
                         .to_string()
                 ))
-                .with_span(self.decls.span_map.get(&id).cloned())),
+                .with_span(self.context.span_map.get(&id).cloned())),
             };
             log::trace!("lookup cid of name={name:?} in input {input:?}");
 
@@ -498,10 +498,10 @@ struct TableExtractor {
 }
 
 impl TableExtractor {
-    fn extract(lowerer: &mut Lowerer) -> Result<Vec<TableDef>> {
+    fn extract(lowerer: &mut Lowerer) -> Result<Vec<TableDecl>> {
         let mut te = TableExtractor::default();
 
-        te.extract_from_namespace(&lowerer.decls.root_mod);
+        te.extract_from_namespace(&lowerer.context.root_mod);
 
         // TODO: this sorts tables by names, just to make compiler output stable
         // ideally, they would preserve order in the PRQL query or use toposort
@@ -537,14 +537,14 @@ impl TableExtractor {
     }
 }
 
-fn lower_table(lowerer: &mut Lowerer, table: DeclKind, fq_ident: Ident) -> Result<TableDef> {
+fn lower_table(lowerer: &mut Lowerer, table: DeclKind, fq_ident: Ident) -> Result<TableDecl> {
     let id = lowerer.ensure_table_id(&fq_ident);
 
     let (frame, expr) = table.into_table_def().unwrap();
 
     let (expr, cols) = if let Some(expr) = expr {
         // this is a CTE
-        lowerer.lower_table_expr(*expr)?
+        lowerer.lower_relation(*expr)?
     } else {
         lower_extern_table(lowerer, frame, &fq_ident)
     };
@@ -553,7 +553,11 @@ fn lower_table(lowerer: &mut Lowerer, table: DeclKind, fq_ident: Ident) -> Resul
     log::debug!("lowering table {name:?}, columns = {:?}", cols);
     lowerer.table_columns.insert(id, cols);
 
-    Ok(TableDef { id, name, expr })
+    Ok(TableDecl {
+        id,
+        name,
+        relation: expr,
+    })
 
     // if let Declaration::Column { table, column } = decl {
     //     // yes, this CId could have been generated only if needed
@@ -584,9 +588,9 @@ fn lower_extern_table(
     lowerer: &mut Lowerer,
     frame: TableFrame,
     fq_ident: &Ident,
-) -> (TableExpr, TableColumns) {
+) -> (rq::Relation, TableColumns) {
     let column_defs = (frame.columns.iter())
-        .map(|col| ColumnDef {
+        .map(|col| ColumnDecl {
             id: lowerer.cid.gen(),
             kind: match col {
                 TableColumn::Wildcard => ColumnDefKind::Wildcard,
@@ -605,7 +609,7 @@ fn lower_extern_table(
             ColumnDefKind::Expr { .. } => unreachable!(),
         })
         .collect();
-    let expr = TableExpr::ExternRef(
+    let expr = rq::Relation::ExternRef(
         TableExternRef::LocalTable(fq_ident.name.clone()),
         column_defs,
     );

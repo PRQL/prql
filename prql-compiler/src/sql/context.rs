@@ -5,18 +5,19 @@ use std::collections::{HashMap, HashSet};
 
 use anyhow::Result;
 
-use crate::ir::{
-    fold_table, fold_table_ref, CId, ColumnDef, ColumnDefKind, IdGenerator, IrFold, Query, TId,
-    TableDef, TableRef, Transform, Window,
+use crate::ast::rq::{
+    fold_table, fold_table_ref, CId, ColumnDecl, ColumnDefKind, IrFold, Query, TId, TableDecl,
+    TableRef, Transform, Window,
 };
+use crate::utils::IdGenerator;
 
 #[derive(Default)]
 pub struct AnchorContext {
-    pub(super) columns_defs: HashMap<CId, ColumnDef>,
+    pub(super) columns_decls: HashMap<CId, ColumnDecl>,
 
     pub(super) columns_loc: HashMap<CId, TIId>,
 
-    pub(super) table_defs: HashMap<TId, TableDef>,
+    pub(super) table_decls: HashMap<TId, TableDecl>,
 
     pub(super) table_instances: HashMap<TIId, TableRef>,
 
@@ -60,25 +61,25 @@ impl AnchorContext {
         kind: ColumnDefKind,
         window: Option<Window>,
         tiid: Option<TIId>,
-    ) -> ColumnDef {
-        let def = ColumnDef {
+    ) -> ColumnDecl {
+        let decl = ColumnDecl {
             id: self.cid.gen(),
             kind,
             window,
             is_aggregation: false,
         };
-        self.columns_defs.insert(def.id, def.clone());
+        self.columns_decls.insert(decl.id, decl.clone());
         if let Some(tiid) = tiid {
-            self.columns_loc.insert(def.id, tiid);
+            self.columns_loc.insert(decl.id, tiid);
         }
-        def
+        decl
     }
 
     pub fn register_table_instance(&mut self, table_ref: TableRef) {
         let tiid = self.tiid.gen();
 
         for column in &table_ref.columns {
-            self.columns_defs.insert(column.id, column.clone());
+            self.columns_decls.insert(column.id, column.clone());
             self.columns_loc.insert(column.id, tiid);
         }
 
@@ -86,8 +87,8 @@ impl AnchorContext {
     }
 
     pub fn get_column_name(&self, cid: &CId) -> Option<String> {
-        let def = self.columns_defs.get(cid).unwrap();
-        def.get_name().cloned()
+        let decl = self.columns_decls.get(cid).unwrap();
+        decl.get_name().cloned()
     }
 
     pub fn gen_table_name(&mut self) -> String {
@@ -99,9 +100,9 @@ impl AnchorContext {
     }
 
     pub fn ensure_column_name(&mut self, cid: &CId) -> String {
-        let def = self.columns_defs.get_mut(cid).unwrap();
+        let decl = self.columns_decls.get_mut(cid).unwrap();
 
-        match &mut def.kind {
+        match &mut decl.kind {
             ColumnDefKind::Expr { name, .. } => {
                 if name.is_none() {
                     *name = Some(format!("_expr_{}", self.col_name.gen()));
@@ -126,8 +127,8 @@ impl AnchorContext {
             if let Some(alias) = &table.name {
                 alias.clone()
             } else {
-                let def = &self.table_defs[&table.source];
-                def.name.clone().unwrap()
+                let decl = &self.table_decls[&table.source];
+                decl.name.clone().unwrap()
             }
         });
 
@@ -191,15 +192,15 @@ impl QueryLoader {
 }
 
 impl IrFold for QueryLoader {
-    fn fold_table(&mut self, table: TableDef) -> Result<TableDef> {
+    fn fold_table(&mut self, table: TableDecl) -> Result<TableDecl> {
         let table = fold_table(self, table)?;
 
-        self.context.table_defs.insert(table.id, table.clone());
+        self.context.table_decls.insert(table.id, table.clone());
         Ok(table)
     }
 
-    fn fold_column_def(&mut self, cd: ColumnDef) -> Result<ColumnDef> {
-        self.context.columns_defs.insert(cd.id, cd.clone());
+    fn fold_column_def(&mut self, cd: ColumnDecl) -> Result<ColumnDecl> {
+        self.context.columns_decls.insert(cd.id, cd.clone());
         Ok(cd)
     }
 

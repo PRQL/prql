@@ -7,8 +7,7 @@ use ariadne::{Color, Label, Report, ReportBuilder, ReportKind, Source};
 use super::context::DeclKind;
 use super::module::NS_DEFAULT_DB;
 use super::{Context, Frame};
-use crate::ast::ast_fold::*;
-use crate::ast::*;
+use crate::ast::pl::{fold::*, *};
 use crate::error::Span;
 
 pub fn label_references(
