@@ -21,6 +21,7 @@ use crate::utils::{IntoOnly, Pluck};
 use super::anchor;
 use super::codegen::*;
 use super::context::AnchorContext;
+use super::distinct::preprocess_distinct;
 
 pub(super) struct Context {
     pub dialect: Box<dyn DialectHandler>,
@@ -70,8 +71,21 @@ pub fn translate_query(query: Query) -> Result<sql_ast::Query> {
     // extract tables and the pipeline
     let tables = into_tables(query.expr, query.tables, &mut context)?;
 
-    // split to atomics
-    let mut atomics = split_all_into_atomics(tables, &mut context);
+    let mut atomics = Vec::new();
+    for table in tables {
+        let pipeline = if let TableExpr::Pipeline(pipeline) = table.expr {
+            pipeline
+        } else {
+            // ref does not need it's own CTE
+            continue;
+        };
+
+        // preprocess
+        let pipeline = preprocess_distinct(pipeline, &mut context)?;
+
+        // split to atomics
+        atomics.extend(split_into_atomics(table.name, pipeline, &mut context));
+    }
 
     // take last table
     if atomics.is_empty() {
@@ -188,7 +202,7 @@ fn sql_query_of_atomic_query(
     let aggregate = pipeline.get(aggregate_position);
     let group_by: Vec<CId> = aggregate
         .map(|t| match t {
-            Transform::Aggregate { by, .. } => by.clone(),
+            Transform::Aggregate { partition, .. } => partition.clone(),
             _ => unreachable!(),
         })
         .unwrap_or_default();
@@ -197,7 +211,8 @@ fn sql_query_of_atomic_query(
     context.pre_projection = false;
 
     let takes = pipeline.pluck(|t| t.into_take());
-    let take = range_of_ranges(takes)?;
+    let ranges = takes.into_iter().map(|x| x.range).collect();
+    let take = range_of_ranges(ranges)?;
     let offset = take.start.map(|s| s - 1).unwrap_or(0);
     let limit = take.end.map(|e| e - offset);
 
@@ -258,23 +273,11 @@ fn sql_query_of_atomic_query(
     })
 }
 
-/// Converts a series of tables into a series of atomic tables, by putting the
-/// next pipeline's `from` as the current pipelines's table name.
-fn split_all_into_atomics(tables: Vec<TableDef>, context: &mut Context) -> Vec<AtomicQuery> {
-    tables
-        .into_iter()
-        .flat_map(|t| split_into_atomics(t, context))
-        .collect()
-}
-
-fn split_into_atomics(table: TableDef, context: &mut Context) -> Vec<AtomicQuery> {
-    let mut pipeline = match table.expr {
-        TableExpr::Pipeline(pipeline) => pipeline,
-
-        // ref does not need it's own CTE
-        TableExpr::ExternRef(_, _) => return Vec::new(),
-    };
-
+fn split_into_atomics(
+    table_name: Option<String>,
+    mut pipeline: Vec<Transform>,
+    context: &mut Context,
+) -> Vec<AtomicQuery> {
     materialize_inputs(&pipeline, &mut context.anchor);
 
     let mut output_cols = context.anchor.determine_select_columns(&pipeline);
@@ -335,7 +338,7 @@ fn split_into_atomics(table: TableDef, context: &mut Context) -> Vec<AtomicQuery
         anchor::anchor_split(&mut context.anchor, &prev_name, &last.1, last.0)
     };
     atomics.push(AtomicQuery {
-        name: table.name,
+        name: table_name,
         pipeline: last_pipeline,
     });
 
@@ -372,22 +375,19 @@ mod test {
     use super::*;
     use crate::{ast::GenericDialect, parse, semantic::resolve};
 
-    fn parse_and_resolve(prql: &str) -> Result<(TableDef, Context)> {
+    fn parse_and_resolve(prql: &str) -> Result<(Vec<Transform>, Context)> {
         let query = resolve(parse(prql)?)?;
         let (anchor, query) = AnchorContext::of(query);
-        let mut context = Context {
+        let context = Context {
             dialect: Box::new(GenericDialect {}),
             anchor,
             omit_ident_prefix: false,
             pre_projection: false,
         };
 
-        let table = TableDef {
-            id: context.anchor.tid.gen(),
-            name: None,
-            expr: query.expr,
-        };
-        Ok((table, context))
+        let pipeline = query.expr.into_pipeline().unwrap();
+
+        Ok((pipeline, context))
     }
 
     #[test]
@@ -401,8 +401,8 @@ mod test {
         take 20
         "###;
 
-        let (table, mut context) = parse_and_resolve(prql).unwrap();
-        let queries = split_into_atomics(table, &mut context);
+        let (pipeline, mut context) = parse_and_resolve(prql).unwrap();
+        let queries = split_into_atomics(None, pipeline, &mut context);
         assert_eq!(queries.len(), 1);
 
         // One aggregate, but take at the top
@@ -414,8 +414,8 @@ mod test {
         sort sal
         "###;
 
-        let (table, mut context) = parse_and_resolve(prql).unwrap();
-        let queries = split_into_atomics(table, &mut context);
+        let (pipeline, mut context) = parse_and_resolve(prql).unwrap();
+        let queries = split_into_atomics(None, pipeline, &mut context);
         assert_eq!(queries.len(), 2);
 
         // A take, then two aggregates
@@ -428,8 +428,8 @@ mod test {
         sort sal2
         "###;
 
-        let (table, mut context) = parse_and_resolve(prql).unwrap();
-        let queries = split_into_atomics(table, &mut context);
+        let (pipeline, mut context) = parse_and_resolve(prql).unwrap();
+        let queries = split_into_atomics(None, pipeline, &mut context);
         assert_eq!(queries.len(), 3);
 
         // A take, then a select
@@ -439,8 +439,8 @@ mod test {
         select first_name
         "###;
 
-        let (table, mut context) = parse_and_resolve(prql).unwrap();
-        let queries = split_into_atomics(table, &mut context);
+        let (pipeline, mut context) = parse_and_resolve(prql).unwrap();
+        let queries = split_into_atomics(None, pipeline, &mut context);
         assert_eq!(queries.len(), 1);
     }
 
@@ -454,6 +454,32 @@ mod test {
         group [title] (
             aggregate [avg_salary = average emp_salary]
         )
+        "#;
+
+        let query = resolve(parse(query).unwrap()).unwrap();
+
+        let sql_ast = translate(query).unwrap();
+
+        assert_snapshot!(sql_ast);
+    }
+
+    #[test]
+    #[ignore]
+    fn test_derive_filter() {
+        // I suspect that the anchoring algorithm has a architectural flaw:
+        // it assumes that it can materialize all columns, even if their
+        // Compute is in a prior CTE. The problem is that because anchoring is
+        // computed back-to-front, we don't know where Compute will end up when
+        // materializing following transforms.
+        //
+        // If algorithm is changed to be front-to-back, preprocess_reorder can
+        // be (must be) removed.
+
+        let query = &r#"
+        from employees
+        derive global_rank = rank
+        filter country == "USA"
+        derive rank = rank
         "#;
 
         let query = resolve(parse(query).unwrap()).unwrap();

@@ -521,12 +521,16 @@ mod tests {
             - Select:
                 - 3
             - Take:
-                start: ~
-                end:
-                  kind:
-                    Literal:
-                      Integer: 1
-                  span: ~
+                range:
+                  start: ~
+                  end:
+                    kind:
+                      Literal:
+                        Integer: 1
+                    span: ~
+                partition:
+                  - 3
+                sort: []
             - Select:
                 - 3
         "###);

@@ -5,8 +5,8 @@ use std::collections::{HashMap, HashSet};
 
 use crate::ast::TableExternRef;
 use crate::ir::{
-    fold_transform, CId, ColumnDef, ColumnDefKind, Expr, ExprKind, IrFold, TableDef, TableExpr,
-    TableRef, Transform,
+    self, fold_transform, CId, ColumnDef, ColumnDefKind, Expr, ExprKind, IrFold, TableDef,
+    TableExpr, TableRef, Transform,
 };
 
 use super::context::AnchorContext;
@@ -36,13 +36,12 @@ pub fn split_off_back(
     let mut curr_pipeline_rev = Vec::new();
     while let Some(transform) = pipeline.pop() {
         // stop if split is needed
-        let split = is_split_required(&transform, &following_transforms);
+        let split = is_split_required(&transform, &mut following_transforms);
         if split {
             log::debug!("split required after {}", transform.as_ref());
             pipeline.push(transform);
             break;
         }
-        following_transforms.insert(transform.as_ref().to_string());
 
         // anchor and record all requirements
         let required = get_requirements(&transform);
@@ -86,7 +85,7 @@ pub fn split_off_back(
         let cols = if cols.is_empty() {
             input_tables
                 .iter()
-                .map(|tiid| context.register_column(ColumnDefKind::Wildcard, *tiid))
+                .map(|tiid| context.register_wildcard(*tiid))
                 .collect()
         } else {
             cols
@@ -243,29 +242,27 @@ fn infer_extern_ref(cid: CId, ctx: &AnchorContext) -> Option<ColumnDefKind> {
 /// fit into one SELECT statement.
 ///
 /// `following` contain names of following transforms in the pipeline.
-fn is_split_required(transform: &Transform, following: &HashSet<String>) -> bool {
+fn is_split_required(transform: &Transform, following: &mut HashSet<String>) -> bool {
     // Pipeline must be split when there is a transform that is out of order:
     // - from (max 1x),
     // - join (no limit),
+    // - compute windowed (no limit)
     // - filters (for WHERE)
     // - aggregate (max 1x)
     // - sort (no limit)
     // - filters (for HAVING)
     // - take (no limit)
 
-    // Select and Compute are not affected by the order.
+    // Select is not affected by the order.
+    use Transform::*;
+    let split = match transform {
+        From(_) => following.contains("From"),
+        Join { .. } => following.contains("From"),
+        Aggregate { .. } => following.contains("Join") || following.contains("Aggregate"),
+        Sort(_) => following.contains("Join") || following.contains("Aggregate"),
+        Filter(_) => following.contains("Join") || following.contains("ComputeWindowed"),
 
-    match transform.as_ref() {
-        "From" => following.contains("From"),
-        "Join" => following.contains("From"),
-        "Aggregate" => following.contains("Join") || following.contains("Aggregate"),
-        "Sort" => following.contains("Join") || following.contains("Aggregate"),
-        "Filter" => following.contains("Join"),
-
-        // There can be many takes, but they have to be consecutive
-        // For example `take 100 | sort a | take 10` can't be one CTE.
-        // But this is enforced by other transforms anyway.
-        "Take" => {
+        Take(_) => {
             following.contains("Join")
                 || following.contains("Filter")
                 || following.contains("Aggregate")
@@ -273,7 +270,16 @@ fn is_split_required(transform: &Transform, following: &HashSet<String>) -> bool
         }
 
         _ => false,
+    };
+
+    if let Transform::Compute(cd) = transform {
+        if cd.window.is_some() {
+            following.insert("ComputeWindowed".to_string());
+        }
+    } else {
+        following.insert(transform.as_ref().to_string());
     }
+    split
 }
 
 /// An input requirement of a transform.
@@ -286,8 +292,8 @@ struct Requirement {
 fn get_requirements(transform: &Transform) -> Vec<Requirement> {
     use Transform::*;
 
-    if let Aggregate { by, compute } = transform {
-        return by
+    if let Aggregate { partition, compute } = transform {
+        return partition
             .iter()
             .map(|by| Requirement {
                 col: *by,
@@ -306,7 +312,7 @@ fn get_requirements(transform: &Transform) -> Vec<Requirement> {
             CidCollector::collect(expr.clone()).into_iter().collect()
         }
         Sort(sorts) => sorts.iter().map(|s| s.column).collect(),
-        Take(range) => {
+        Take(ir::Take { range, .. }) => {
             let mut cids = Vec::new();
             if let Some(e) = &range.start {
                 cids.extend(CidCollector::collect(e.clone()));

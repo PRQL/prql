@@ -204,21 +204,19 @@ mod test {
     }
 
     #[test]
-    #[ignore]
     fn test_pipelines() {
         assert_display_snapshot!((compile(r###"
         from employees
         group dept (take 1)
         "###).unwrap()), @r###"
         SELECT
-          DISTINCT employees.*
+          DISTINCT *
         FROM
           employees
         "###);
     }
 
     #[test]
-    #[ignore]
     fn test_rn_ids_are_unique() {
         assert_display_snapshot!((compile(r###"
         from y_orig
@@ -231,26 +229,25 @@ mod test {
         "###).unwrap()), @r###"
         WITH table_0 AS (
           SELECT
-            y_orig.*,
-            ROW_NUMBER() OVER (PARTITION BY y_id) AS _rn_82
+            ROW_NUMBER() OVER (PARTITION BY y_id) AS _expr_0
           FROM
             y_orig
         ),
         table_1 AS (
           SELECT
-            table_0.*,
-            ROW_NUMBER() OVER (PARTITION BY x_id) AS _rn_83
+            *,
+            ROW_NUMBER() OVER (PARTITION BY x_id) AS _expr_1
           FROM
             table_0
           WHERE
-            _rn_82 <= 2
+            _expr_0 <= 2
         )
         SELECT
-          table_1.*
+          *
         FROM
           table_1
         WHERE
-          _rn_83 <= 3
+          _expr_1 <= 3
         "###);
     }
 
@@ -891,7 +888,6 @@ select `first name`
     }
 
     #[test]
-    #[ignore]
     fn test_distinct() {
         // window functions cannot materialize into where statement: CTE is needed
         assert_display_snapshot!((compile(r###"
@@ -947,7 +943,7 @@ select `first name`
         group [first_name, last_name] (take 1)
         "###).unwrap()), @r###"
         SELECT
-          DISTINCT employees.*
+          DISTINCT *
         FROM
           employees
         "###);
@@ -959,17 +955,17 @@ select `first name`
         "###).unwrap()), @r###"
         WITH table_0 AS (
           SELECT
-            employees.*,
-            ROW_NUMBER() OVER (PARTITION BY department) AS _rn_81
+            *,
+            ROW_NUMBER() OVER (PARTITION BY department) AS _expr_0
           FROM
             employees
         )
         SELECT
-          table_0.*
+          *
         FROM
           table_0
         WHERE
-          _rn_81 <= 3
+          _expr_0 <= 3
         "###);
 
         assert_display_snapshot!((compile(r###"
@@ -978,21 +974,21 @@ select `first name`
         "###).unwrap()), @r###"
         WITH table_0 AS (
           SELECT
-            employees.*,
+            *,
             ROW_NUMBER() OVER (
               PARTITION BY department
               ORDER BY
                 salary
-            ) AS _rn_82
+            ) AS _expr_0
           FROM
             employees
         )
         SELECT
-          table_0.*
+          *
         FROM
           table_0
         WHERE
-          _rn_82 BETWEEN 2
+          _expr_0 BETWEEN 2
           AND 3
         "###);
     }

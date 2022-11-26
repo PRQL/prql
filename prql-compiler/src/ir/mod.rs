@@ -45,7 +45,7 @@ pub struct TableRef {
     pub name: Option<String>,
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, EnumAsInner)]
 pub enum TableExpr {
     ExternRef(TableExternRef, Vec<ColumnDef>),
     Pipeline(Vec<Transform>),
@@ -59,17 +59,24 @@ pub enum Transform {
     Select(Vec<CId>),
     Filter(Expr),
     Aggregate {
-        by: Vec<CId>,
+        partition: Vec<CId>,
         compute: Vec<CId>,
     },
     Sort(Vec<ColumnSort<CId>>),
-    Take(Range<Expr>),
+    Take(Take),
     Join {
         side: JoinSide,
         with: TableRef,
         filter: Expr,
     },
     Unique,
+}
+
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+pub struct Take {
+    pub range: Range<Expr>,
+    pub partition: Vec<CId>,
+    pub sort: Vec<ColumnSort<CId>>,
 }
 
 /// Transformation of a table.

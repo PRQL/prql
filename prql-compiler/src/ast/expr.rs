@@ -185,6 +185,20 @@ impl<T> Range<T> {
             end: None,
         }
     }
+
+    pub fn try_map<U, E, F: Fn(T) -> Result<U, E>>(self, f: F) -> Result<Range<U>, E> {
+        Ok(Range {
+            start: self.start.map(&f).transpose()?,
+            end: self.end.map(f).transpose()?,
+        })
+    }
+
+    pub fn map<U, F: Fn(T) -> U>(self, f: F) -> Range<U> {
+        Range {
+            start: self.start.map(&f),
+            end: self.end.map(f),
+        }
+    }
 }
 
 impl Range {

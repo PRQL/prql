@@ -7,7 +7,7 @@ use anyhow::Result;
 
 use crate::ir::{
     fold_table, fold_table_ref, CId, ColumnDef, ColumnDefKind, IdGenerator, IrFold, Query, TId,
-    TableDef, TableRef, Transform,
+    TableDef, TableRef, Transform, Window,
 };
 
 #[derive(Default)]
@@ -20,8 +20,8 @@ pub struct AnchorContext {
 
     pub(super) table_instances: HashMap<TIId, TableRef>,
 
-    next_col_name_id: u16,
-    next_table_name_id: u16,
+    col_name: IdGenerator<usize>,
+    table_name: IdGenerator<usize>,
 
     pub(super) cid: IdGenerator<CId>,
     pub(super) tid: IdGenerator<TId>,
@@ -50,17 +50,28 @@ impl AnchorContext {
         QueryLoader::load(context, query)
     }
 
-    pub fn register_column(&mut self, kind: ColumnDefKind, tiid: TIId) -> CId {
-        let id = self.cid.gen();
+    pub fn register_wildcard(&mut self, tiid: TIId) -> CId {
+        let cd = self.register_column(ColumnDefKind::Wildcard, None, Some(tiid));
+        cd.id
+    }
+
+    pub fn register_column(
+        &mut self,
+        kind: ColumnDefKind,
+        window: Option<Window>,
+        tiid: Option<TIId>,
+    ) -> ColumnDef {
         let def = ColumnDef {
-            id,
+            id: self.cid.gen(),
             kind,
-            window: None,
+            window,
             is_aggregation: false,
         };
-        self.columns_defs.insert(id, def);
-        self.columns_loc.insert(id, tiid);
-        id
+        self.columns_defs.insert(def.id, def.clone());
+        if let Some(tiid) = tiid {
+            self.columns_loc.insert(def.id, tiid);
+        }
+        def
     }
 
     pub fn register_table_instance(&mut self, table_ref: TableRef) {
@@ -80,10 +91,11 @@ impl AnchorContext {
     }
 
     pub fn gen_table_name(&mut self) -> String {
-        let id = self.next_table_name_id;
-        self.next_table_name_id += 1;
+        format!("table_{}", self.table_name.gen())
+    }
 
-        format!("table_{id}")
+    pub fn gen_column_name(&mut self) -> String {
+        format!("_expr_{}", self.col_name.gen())
     }
 
     pub fn ensure_column_name(&mut self, cid: &CId) -> String {
@@ -92,10 +104,7 @@ impl AnchorContext {
         match &mut def.kind {
             ColumnDefKind::Expr { name, .. } => {
                 if name.is_none() {
-                    let id = self.next_col_name_id;
-                    self.next_col_name_id += 1;
-
-                    *name = Some(format!("_expr_{id}"));
+                    *name = Some(format!("_expr_{}", self.col_name.gen()));
                 }
                 name.clone().unwrap()
             }
@@ -134,8 +143,8 @@ impl AnchorContext {
                     columns = table.columns.iter().map(|c| c.id).collect();
                 }
                 Transform::Select(cols) => columns = cols.clone(),
-                Transform::Aggregate { by, compute } => {
-                    columns = [by.clone(), compute.clone()].concat()
+                Transform::Aggregate { partition, compute } => {
+                    columns = [partition.clone(), compute.clone()].concat()
                 }
                 Transform::Join { with: table, .. } => {
                     columns.extend(table.columns.iter().map(|c| c.id));

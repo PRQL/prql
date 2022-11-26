@@ -155,15 +155,19 @@ pub fn fold_transform<T: ?Sized + IrFold>(
         From(tid) => From(fold.fold_table_ref(tid)?),
 
         Compute(assigns) => Compute(fold.fold_column_def(assigns)?),
-        Aggregate { by, compute } => Aggregate {
-            by: fold_cids(fold, by)?,
+        Aggregate { partition, compute } => Aggregate {
+            partition: fold_cids(fold, partition)?,
             compute: fold_cids(fold, compute)?,
         },
 
         Select(ids) => Select(fold_cids(fold, ids)?),
         Filter(i) => Filter(fold.fold_expr(i)?),
         Sort(sorts) => Sort(fold_column_sorts(fold, sorts)?),
-        Take(range) => Take(range),
+        Take(take) => Take(super::Take {
+            partition: fold_cids(fold, take.partition)?,
+            sort: fold_column_sorts(fold, take.sort)?,
+            range: take.range,
+        }),
         Join { side, with, filter } => Join {
             side,
             with: fold.fold_table_ref(with)?,

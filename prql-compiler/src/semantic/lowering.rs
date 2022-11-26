@@ -6,7 +6,7 @@ use itertools::Itertools;
 use crate::ast::{Expr, FrameColumn, Ident, InterpolateItem, Range, TableExternRef, WindowFrame};
 use crate::error::{Error, Reason};
 use crate::ir::{
-    CId, ColumnDef, ColumnDefKind, IdGenerator, Query, TId, TableDef, TableExpr, Transform,
+    CId, ColumnDef, ColumnDefKind, IdGenerator, Query, TId, TableDef, TableExpr, Take, Transform,
 };
 use crate::semantic::module::Module;
 use crate::{ast, ir};
@@ -201,20 +201,25 @@ impl Lowerer {
 
                 let compute = self.declare_as_columns(assigns, &mut transforms, true)?;
 
-                let by = window.unwrap().partition;
-                transforms.push(Transform::Aggregate { by, compute });
+                let partition = window.unwrap().partition;
+                transforms.push(Transform::Aggregate { partition, compute });
             }
             ast::TransformKind::Sort { by, .. } => {
                 let sorts = self.lower_sorts(by, &mut transforms)?;
                 transforms.push(Transform::Sort(sorts));
             }
             ast::TransformKind::Take { range, .. } => {
+                let window = self.window.take().unwrap_or_default();
                 let range = Range {
                     start: range.start.map(|x| self.lower_expr(*x)).transpose()?,
                     end: range.end.map(|x| self.lower_expr(*x)).transpose()?,
                 };
 
-                transforms.push(Transform::Take(range));
+                transforms.push(Transform::Take(Take {
+                    range,
+                    partition: window.partition,
+                    sort: window.sort,
+                }));
             }
             ast::TransformKind::Join {
                 side, with, filter, ..
