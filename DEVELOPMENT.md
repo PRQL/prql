@@ -216,12 +216,11 @@ raise an issue.
 Currently we release in a semi-automated way:
 
 - PR & merge an updated [Changelog](CHANGELOG.md).
-- Run `cargo release version patch` locally to bump the versions, then PR the
-  resulting commit.
+- Run `cargo release version patch && cargo release replace` to bump the
+  versions, then PR the resulting commit.
 - After merging, go to [Draft a new
   release](https://github.com/prql/prql/releases/new), copy the changelog entry
-  into the release notes, select a new tag to be created, and hit the "Publish"
-  button.
+  into the release notes, select a new tag to be created, and hit "Publish".
 - From there, all packages are published automatically based on our [release
   workflow](.github/workflows/release.yaml).
 - Add in the sections for a new Changelog:
