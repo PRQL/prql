@@ -10,7 +10,8 @@ pub fn to_sql(query: &str) -> PyResult<String> {
 
 #[pyfunction]
 pub fn to_json(query: &str) -> PyResult<String> {
-    prql_compiler::to_json(query)
+    prql_compiler::parse(query)
+        .and_then(prql_compiler::pl_to_json)
         .map_err(|err| (PyErr::new::<exceptions::PySyntaxError, _>(err.to_string())))
 }
 #[pymodule]

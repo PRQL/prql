@@ -13,7 +13,7 @@ pub use error::{format_error, FormattedError, Result, SourceLocation};
 pub use parser::parse;
 pub use sql::translate;
 
-use ast::pl::Stmt;
+use ast::{pl::Stmt, rq::Query};
 use once_cell::sync::Lazy;
 use semver::Version;
 
@@ -23,33 +23,38 @@ static PRQL_VERSION: Lazy<Version> =
 /// Compile a PRQL string into a SQL string.
 ///
 /// This has three stages:
-/// - [parse] — Build an AST from a PRQL query string.
-/// - [semantic::resolve] — Finds variable references, validates functions calls, determines frames.
-/// - [sql::translate] — Write a SQL string from a PRQL AST.
+/// - [parse] — Build PL AST from a PRQL string
+/// - [semantic::resolve] — Finds variable references, validates functions calls, determines frames and converts PL to RQ.
+/// - [sql::translate] — Convert RQ AST into an SQL string.
 pub fn compile(prql: &str) -> Result<String> {
     parse(prql).and_then(semantic::resolve).and_then(translate)
 }
 
-/// Format a PRQL query
-pub fn format(prql: &str) -> Result<String> {
-    parse(prql).map(|q| format!("{}", ast::pl::Statements(q)))
+/// Generate PRQL code from PL AST
+pub fn pl_to_prql(pl: Vec<Stmt>) -> Result<String> {
+    Ok(format!("{}", ast::pl::Statements(pl)))
 }
 
-/// Compile a PRQL string into a JSON version of the Query.
-pub fn to_json(prql: &str) -> Result<String> {
-    Ok(serde_json::to_string(&parse(prql).unwrap())?)
+/// Serialize PL AST into JSON
+pub fn pl_to_json(pl: Vec<Stmt>) -> Result<String> {
+    Ok(serde_json::to_string(&pl)?)
 }
 
-/// Convert JSON AST back to PRQL string
-pub fn from_json(json: &str) -> Result<String> {
-    let stmts: Vec<Stmt> = serde_json::from_str(json)?;
-    Ok(format!("{}", ast::pl::Statements(stmts)))
+/// Parse JSON as PL AST
+pub fn json_to_pl(json: &str) -> Result<Vec<Stmt>> {
+    Ok(serde_json::from_str(json)?)
 }
 
+/// Parse JSON as RQ AST
+pub fn json_to_rq(json: &str) -> Result<Query> {
+    Ok(serde_json::from_str(json)?)
+}
 // Simple tests for "this PRQL creates this SQL" go here.
 #[cfg(test)]
 mod test {
-    use super::{compile, from_json, to_json};
+    use crate::{json_to_pl, parse, pl_to_json, pl_to_prql};
+
+    use super::compile;
     use insta::{assert_display_snapshot, assert_snapshot};
 
     #[test]
@@ -85,7 +90,9 @@ mod test {
 
     #[test]
     fn test_to_json() {
-        let json = to_json("from employees | take 10").unwrap();
+        let json = parse("from employees | take 10")
+            .and_then(pl_to_json)
+            .unwrap();
         // Since the AST is so in flux right now just test that the brackets are present
         assert_eq!(json.chars().next().unwrap(), '[');
         assert_eq!(json.chars().nth(json.len() - 1).unwrap(), ']');
@@ -1044,8 +1051,8 @@ select [mng_name, managers.gender, salary_avg, salary_sd]"#;
 
         let sql_from_prql = compile(original_prql).unwrap();
 
-        let json = to_json(original_prql).unwrap();
-        let prql_from_json = from_json(&json).unwrap();
+        let json = parse(original_prql).and_then(pl_to_json).unwrap();
+        let prql_from_json = json_to_pl(&json).and_then(pl_to_prql).unwrap();
         let sql_from_json = compile(&prql_from_json).unwrap();
 
         assert_eq!(sql_from_prql, sql_from_json);

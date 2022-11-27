@@ -8,10 +8,10 @@ use std::{
     ops::Range,
 };
 
-use crate::ast::pl::Frame;
 use crate::error::{self, Span};
 use crate::parse;
 use crate::semantic::{self, reporting::*};
+use crate::{ast::pl::Frame, pl_to_prql};
 
 #[derive(Parser)]
 #[clap(name = env!("CARGO_PKG_NAME"), about, version)]
@@ -77,7 +77,7 @@ impl Cli {
 
                 serde_yaml::to_string(&ast)?.into_bytes()
             }
-            Cli::Format(_) => crate::format(source)?.as_bytes().to_vec(),
+            Cli::Format(_) => parse(source).and_then(pl_to_prql)?.as_bytes().to_vec(),
             Cli::Debug(_) => {
                 let stmts = parse(source)?;
                 let (stmts, context) = semantic::resolve_only(stmts, None)?;
