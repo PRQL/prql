@@ -60,7 +60,7 @@ expression: "parse_tree_of_str(\"[a, b, c,]\", Rule::list)?"
                                                         },
                                                         inner: [
                                                             Pair {
-                                                                rule: ident_part_first,
+                                                                rule: ident_plain,
                                                                 span: Span {
                                                                     str: "a",
                                                                     start: 1,
@@ -129,7 +129,7 @@ expression: "parse_tree_of_str(\"[a, b, c,]\", Rule::list)?"
                                                         },
                                                         inner: [
                                                             Pair {
-                                                                rule: ident_part_first,
+                                                                rule: ident_plain,
                                                                 span: Span {
                                                                     str: "b",
                                                                     start: 4,
@@ -198,7 +198,7 @@ expression: "parse_tree_of_str(\"[a, b, c,]\", Rule::list)?"
                                                         },
                                                         inner: [
                                                             Pair {
-                                                                rule: ident_part_first,
+                                                                rule: ident_plain,
                                                                 span: Span {
                                                                     str: "c",
                                                                     start: 7,

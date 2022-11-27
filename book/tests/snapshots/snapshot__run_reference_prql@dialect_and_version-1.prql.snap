@@ -4,7 +4,7 @@ expression: sql
 input_file: book/tests/prql/queries/dialect_and_version-1.prql
 ---
 SELECT
-  TOP (10) employees.*
+  TOP (10) *
 FROM
   employees
 ORDER BY

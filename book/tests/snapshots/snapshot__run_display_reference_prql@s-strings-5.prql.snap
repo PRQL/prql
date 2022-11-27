@@ -1,0 +1,13 @@
+---
+source: book/tests/snapshot.rs
+expression: Statements(parse(&prql).unwrap())
+input_file: book/tests/prql/language-features/s-strings-5.prql
+---
+from employees
+derive [
+  gross_salary = salary + benefits,
+  daily_rate = s"365 / ({gross_salary})",
+]
+
+
+

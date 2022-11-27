@@ -1,7 +1,9 @@
-mod distinct;
-mod materializer;
-mod translator;
-mod un_group;
+//! Backend for translating RQ into SQL
 
-pub use materializer::{materialize, MaterializedFrame};
+mod anchor;
+mod codegen;
+mod context;
+mod distinct;
+mod translator;
+
 pub use translator::translate;

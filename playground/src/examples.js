@@ -20,7 +20,7 @@ group [title, country_code] (  # For each group use a nested pipeline
 sort sum_gross_cost
 filter ct > 200
 take 20
-join countries side:left [country_code]
+join countries side:left [~country_code]
 derive [
   always_true = true,
   db_version = s"version()",    # An S-string, which transpiles directly into SQL
@@ -41,7 +41,7 @@ table average_salaries = (
 )
 
 from newest_employees
-join average_salaries [country]
+join average_salaries [~country]
 select [name, salary, average_country_salary]
 `,
 
@@ -49,12 +49,12 @@ select [name, salary, average_country_salary]
 group [emp_no] (
   aggregate [emp_salary = average salary]
 )
-join t=titles [emp_no]
-join dept_emp side:left [emp_no]
+join t=titles [~emp_no]
+join dept_emp side:left [~emp_no]
 group [dept_emp.dept_no, t.title] (
   aggregate [avg_salary = average emp_salary]
 )
-join departments [dept_no]
+join departments [~dept_no]
 select [dept_name, title, avg_salary]
 `,
 };

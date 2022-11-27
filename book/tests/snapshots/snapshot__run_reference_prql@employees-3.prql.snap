@@ -5,9 +5,9 @@ input_file: book/tests/prql/examples/employees-3.prql
 ---
 WITH table_0 AS (
   SELECT
-    de.emp_no,
     de.dept_no,
-    AVG(s.salary) AS salary
+    AVG(s.salary) AS salary,
+    de.emp_no
   FROM
     dept_emp AS de
     LEFT JOIN salaries AS s ON s.emp_no = de.emp_no
@@ -23,5 +23,5 @@ SELECT
   titles.title
 FROM
   table_0
-  JOIN employees USING(emp_no)
-  JOIN titles USING(emp_no)
+  JOIN employees ON table_0.emp_no = employees.emp_no
+  JOIN titles ON table_0.emp_no = titles.emp_no

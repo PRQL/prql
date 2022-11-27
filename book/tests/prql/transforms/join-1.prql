@@ -1,2 +1,2 @@
 from employees
-join side:full positions [emp_no]
+join side:full positions [~emp_no]

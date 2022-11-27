@@ -1,0 +1,30 @@
+---
+source: prql-compiler/src/semantic/resolver.rs
+expression: "resolve_type(r#\"\n            from employees\n            join salaries [~emp_no]\n            group [emp_no, gender] (\n                aggregate [\n                    emp_salary = average salary\n                ]\n            )\n            \"#).unwrap()"
+---
+Table:
+  columns:
+    - Single:
+        name:
+          - emp_no
+        expr_id: 15
+    - Single:
+        name:
+          - gender
+        expr_id: 16
+    - Single:
+        name:
+          - emp_salary
+        expr_id: 23
+  inputs:
+    - id: 4
+      name: employees
+      table:
+        - default_db
+        - employees
+    - id: 11
+      name: salaries
+      table:
+        - default_db
+        - salaries
+

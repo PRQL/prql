@@ -28,7 +28,7 @@ expression: "parse_tree_of_str(r#\"    filter country == \"USA\"\"#, Rule::pipel
                         },
                         inner: [
                             Pair {
-                                rule: ident_part_first,
+                                rule: ident_plain,
                                 span: Span {
                                     str: "filter",
                                     start: 4,
@@ -87,7 +87,7 @@ expression: "parse_tree_of_str(r#\"    filter country == \"USA\"\"#, Rule::pipel
                                                                 },
                                                                 inner: [
                                                                     Pair {
-                                                                        rule: ident_part_first,
+                                                                        rule: ident_plain,
                                                                         span: Span {
                                                                             str: "country",
                                                                             start: 11,

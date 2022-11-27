@@ -6,7 +6,7 @@ public class PrqlCompilerTest {
     @Test
     public void compile() {
         String sql = "SELECT\n" +
-                "  table.*\n" +
+                "  *\n" +
                 "FROM\n" +
                 "  table";
         assert sql.equalsIgnoreCase(PrqlCompiler.toSql("from table"));

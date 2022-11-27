@@ -1,6 +1,6 @@
 # PRQL Changelog
 
-## 0.2.10 — [unreleased]
+## 0.2.12 — [unreleased]
 
 Features:
 
@@ -13,6 +13,37 @@ Web:
 Integrations:
 
 Internal changes:
+
+## 0.2.11 — 2022-11-20
+
+0.2.11 contains a few helpful fixes.
+
+Work continues on our `semantic` refactor — look out for 0.3.0 soon! Many thanks
+to @aljazerzen for his continued contributions to this.
+
+Note: 0.2.10 was skipped due to this maintainer's inability to read his own docs
+on bumping versions...
+
+Features:
+
+- Detect when compiler version is behind query version (@MarinPostma, #1058)
+- Add `__version__` to prql-python package (@max-sixty, #1034)
+
+Fixes:
+
+- Fix nesting of expressions with equal binding strength and left associativity,
+  such as `a - (b - c)` (@max-sixty, #1136)
+- Retain floats without significant digits as floats (@max-sixty, #1141)
+
+Documentation:
+
+- Add documentation of `prqlr` bindings (@eitsupi, #1091)
+- Add a 'Why PRQL' section to the website (@max-sixty, #1098)
+- Add @snth to core-devs (@max-sixty, #1050)
+
+Internal changes:
+
+- Use workspace versioning (@max-sixty, #1065)
 
 ## 0.2.9 — 2022-10-14
 

@@ -1,11 +1,14 @@
 ---
 source: book/tests/snapshot.rs
-expression: "Item::Query(parse(&prql).unwrap())"
+expression: Statements(parse(&prql).unwrap())
 input_file: book/tests/prql/queries/syntax-7.prql
 ---
 prql dialect:mysql
 
+
+
 from employees
 select `first name`
+
 
 

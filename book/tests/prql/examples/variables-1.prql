@@ -4,7 +4,7 @@ group [emp_no] (
     emp_salary = average salary     # average salary resolves to "AVG(salary)" (from stdlib)
   ]
 )
-join titles [emp_no]
+join titles [~emp_no]
 group [title] (
   aggregate [
     avg_salary = average emp_salary

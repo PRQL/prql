@@ -1,226 +1,162 @@
+use std::collections::HashMap;
+
 use anyhow::{anyhow, bail, Result};
-use itertools::Itertools;
 
-use crate::ast::*;
-use crate::error::{Error, Reason, Span, WithErrorInfo};
+use crate::ast::pl::fold::{fold_column_sorts, fold_transform_kind, AstFold};
+use crate::ast::pl::*;
+use crate::error::{Error, Reason};
 
-pub fn cast_transform(func_call: FuncCall, span: Option<Span>) -> Result<Transform> {
-    Ok(match func_call.name.as_str() {
-        "from" => {
-            let ([with], []) = unpack(func_call, [])?;
+use super::context::{Decl, DeclKind};
+use super::module::{Module, NS_PARAM};
+use super::resolver::Resolver;
+use super::Frame;
 
-            let (name, expr) = with.into_name_and_expr();
+/// try to convert function call with enough args into transform
+pub fn cast_transform(
+    resolver: &mut Resolver,
+    closure: Closure,
+) -> Result<Result<TransformCall, Closure>> {
+    let name = closure.name.as_ref().filter(|n| !n.name.contains('.'));
+    let name = if let Some(name) = name {
+        name.to_string()
+    } else {
+        return Ok(Err(closure));
+    };
 
-            let table_ref = TableRef {
-                name: expr.unwrap(Item::into_ident, "ident").with_help(
-                    "`from` does not support inline expressions. You can only pass a table name.",
-                )?,
-                alias: name,
-                declared_at: None,
-            };
+    let kind = match name.as_str() {
+        "std.from" => {
+            let [source] = unpack::<1>(closure);
 
-            Transform::From(table_ref)
+            TransformKind::From(source)
         }
-        "select" => {
-            let ([assigns], []) = unpack(func_call, [])?;
+        "std.select" => {
+            let [assigns, tbl] = unpack::<2>(closure);
 
-            Transform::Select(assigns.coerce_to_vec())
+            let assigns = assigns.coerce_into_vec();
+            TransformKind::Select { assigns, tbl }
         }
-        "filter" => {
-            let ([filter], []) = unpack(func_call, [])?;
+        "std.filter" => {
+            let [filter, tbl] = unpack::<2>(closure);
 
-            Transform::Filter(Box::new(filter))
+            let filter = Box::new(filter);
+            TransformKind::Filter { filter, tbl }
         }
-        "derive" => {
-            let ([assigns], []) = unpack(func_call, [])?;
+        "std.derive" => {
+            let [assigns, tbl] = unpack::<2>(closure);
 
-            Transform::Derive(assigns.coerce_to_vec())
+            let assigns = assigns.coerce_into_vec();
+            TransformKind::Derive { assigns, tbl }
         }
-        "aggregate" => {
-            let ([assigns], []) = unpack(func_call, [])?;
+        "std.aggregate" => {
+            let [assigns, tbl] = unpack::<2>(closure);
 
-            Transform::Aggregate {
-                assigns: assigns.coerce_to_vec(),
-                by: vec![],
-            }
+            let assigns = assigns.coerce_into_vec();
+            TransformKind::Aggregate { assigns, tbl }
         }
-        "sort" => {
-            let ([by], []) = unpack(func_call, [])?;
+        "std.sort" => {
+            let [by, tbl] = unpack::<2>(closure);
 
             let by = by
-                .coerce_to_vec()
+                .coerce_into_vec()
                 .into_iter()
                 .map(|node| {
-                    let (column, direction) = match &node.item {
-                        Item::Ident(_) => (node.clone(), SortDirection::default()),
-                        Item::Unary { op, expr: a }
-                            if matches!((op, &a.item), (UnOp::Neg, Item::Ident(_))) =>
-                        {
-                            (*a.clone(), SortDirection::Desc)
+                    let (column, direction) = match node.kind {
+                        ExprKind::Unary { op, expr } if matches!(op, UnOp::Neg) => {
+                            (*expr, SortDirection::Desc)
                         }
-                        _ => {
-                            return Err(Error::new(Reason::Expected {
-                                who: Some("sort".to_string()),
-                                expected: "column name, optionally prefixed with + or -"
-                                    .to_string(),
-                                found: node.item.to_string(),
-                            })
-                            .with_span(node.span));
-                        }
+                        _ => (node, SortDirection::default()),
                     };
 
-                    if matches!(column.item, Item::Ident(_)) {
-                        Ok(ColumnSort { direction, column })
-                    } else {
-                        Err(Error::new(Reason::Expected {
-                            who: Some("sort".to_string()),
-                            expected: "column name".to_string(),
-                            found: format!("`{}`", column.item),
-                        })
-                        .with_help("you can introduce a new column with `derive`")
-                        .with_span(column.span))
-                    }
+                    ColumnSort { direction, column }
                 })
-                .try_collect()?;
+                .collect();
 
-            Transform::Sort(by)
+            TransformKind::Sort { by, tbl }
         }
-        "take" => {
-            let ([expr], []) = unpack(func_call, [])?;
+        "std.take" => {
+            let [expr, tbl] = unpack::<2>(closure);
 
-            let range = match expr.discard_name()?.item {
-                Item::Literal(Literal::Integer(n)) => Range::from_ints(None, Some(n)),
-                Item::Range(range) => range,
-                _ => unimplemented!(),
+            let range = match expr.kind {
+                ExprKind::Literal(Literal::Integer(n)) => Range::from_ints(None, Some(n)),
+                ExprKind::Range(range) => range,
+                _ => unimplemented!("`take` range: {expr}"),
             };
-            Transform::Take {
-                range,
-                by: vec![],
-                sort: vec![],
-            }
-        }
-        "join" => {
-            let ([with, filter], [side]) = unpack(func_call, ["side"])?;
 
-            let side = if let Some(side) = side {
+            TransformKind::Take { range, tbl }
+        }
+        "std.join" => {
+            let [side, with, filter, tbl] = unpack::<4>(closure);
+
+            let side = {
                 let span = side.span;
-                let ident = side.unwrap(Item::into_ident, "ident")?;
-                match ident.as_str() {
+                let ident = side.try_cast(ExprKind::into_ident, Some("side"), "ident")?;
+                match ident.to_string().as_str() {
                     "inner" => JoinSide::Inner,
                     "left" => JoinSide::Left,
                     "right" => JoinSide::Right,
                     "full" => JoinSide::Full,
 
                     found => bail!(Error::new(Reason::Expected {
-                        who: Some("side".to_string()),
+                        who: Some("`side`".to_string()),
                         expected: "inner, left, right or full".to_string(),
                         found: found.to_string()
                     })
                     .with_span(span)),
                 }
-            } else {
-                JoinSide::Inner
             };
 
-            let (with_alias, with) = with.into_name_and_expr();
-            let with = TableRef {
-                name: with.unwrap(Item::into_ident, "ident").with_help(
-                    "`join` does not support inline expressions. You can only pass a table name.",
-                )?,
-                alias: with_alias,
-                declared_at: None,
-            };
+            let filter = Box::new(Expr::collect_and(filter.coerce_into_vec()));
 
-            let filter = filter.discard_name()?.coerce_to_vec();
-            let use_using = (filter.iter().map(|x| &x.item)).all(|x| matches!(x, Item::Ident(_)));
-
-            let filter = if use_using {
-                JoinFilter::Using(filter)
-            } else {
-                JoinFilter::On(filter)
-            };
-
-            Transform::Join { side, with, filter }
+            let with = Box::new(with);
+            TransformKind::Join {
+                side,
+                with,
+                filter,
+                tbl,
+            }
         }
-        "group" => {
-            let ([by, pipeline], []) = unpack(func_call, [])?;
+        "std.group" => {
+            let [by, pipeline, tbl] = unpack::<3>(closure);
 
-            let by = by
-                .coerce_to_vec()
-                .into_iter()
-                // check that they are only idents
-                .map(|n| match n.item {
-                    Item::Ident(_) => Ok(n),
-                    _ => Err(Error::new(Reason::Simple(
-                        "`group` expects only idents for the `by` argument".to_string(),
-                    ))
-                    .with_span(n.span)),
-                })
-                .try_collect()?;
+            let by = by.coerce_into_vec();
 
-            let pipeline = Box::new(Item::Pipeline(pipeline.coerce_to_pipeline()).into());
+            let pipeline = fold_by_simulating_eval(resolver, pipeline, tbl.ty.clone().unwrap())?;
 
-            Transform::Group { by, pipeline }
+            let pipeline = Box::new(pipeline);
+            TransformKind::Group { by, pipeline, tbl }
         }
-        "window" => {
-            let ([pipeline], [rows, range, expanding, rolling]) =
-                unpack(func_call, ["rows", "range", "expanding", "rolling"])?;
+        "std.window" => {
+            let [rows, range, expanding, rolling, pipeline, tbl] = unpack::<6>(closure);
 
-            let expanding = if let Some(expanding) = expanding {
-                let as_bool = expanding.item.as_literal().and_then(|l| l.as_boolean());
+            let expanding = {
+                let as_bool = expanding.kind.as_literal().and_then(|l| l.as_boolean());
 
                 *as_bool.ok_or_else(|| {
                     Error::new(Reason::Expected {
                         who: Some("parameter `expanding`".to_string()),
                         expected: "a boolean".to_string(),
-                        found: format!("{}", expanding.item),
+                        found: format!("{expanding}"),
                     })
                     .with_span(expanding.span)
                 })?
-            } else {
-                false
             };
 
-            let rolling = if let Some(rolling) = rolling {
-                let as_int = rolling.item.as_literal().and_then(|x| x.as_integer());
+            let rolling = {
+                let as_int = rolling.kind.as_literal().and_then(|x| x.as_integer());
 
                 *as_int.ok_or_else(|| {
                     Error::new(Reason::Expected {
                         who: Some("parameter `rolling`".to_string()),
                         expected: "a number".to_string(),
-                        found: format!("{}", rolling.item),
+                        found: format!("{rolling}"),
                     })
                     .with_span(rolling.span)
                 })?
-            } else {
-                0
             };
 
-            let rows = if let Some(rows) = rows {
-                Some(rows.item.into_range().map_err(|x| {
-                    Error::new(Reason::Expected {
-                        who: Some("parameter `rows`".to_string()),
-                        expected: "a range".to_string(),
-                        found: format!("{}", x),
-                    })
-                    .with_span(rows.span)
-                })?)
-            } else {
-                None
-            };
+            let rows = rows.try_cast(|r| r.into_range(), Some("parameter `rows`"), "a range")?;
 
-            let range = if let Some(range) = range {
-                Some(range.item.into_range().map_err(|x| {
-                    Error::new(Reason::Expected {
-                        who: Some("parameter `range`".to_string()),
-                        expected: "a range".to_string(),
-                        found: format!("{}", x),
-                    })
-                    .with_span(range.span)
-                })?)
-            } else {
-                None
-            };
+            let range = range.try_cast(|r| r.into_range(), Some("parameter `range`"), "a range")?;
 
             let (kind, range) = if expanding {
                 (WindowKind::Rows, Range::from_ints(None, Some(0)))
@@ -229,70 +165,308 @@ pub fn cast_transform(func_call: FuncCall, span: Option<Span>) -> Result<Transfo
                     WindowKind::Rows,
                     Range::from_ints(Some(-rolling + 1), Some(0)),
                 )
-            } else if let Some(range) = rows {
-                (WindowKind::Rows, range)
-            } else if let Some(range) = range {
+            } else if !rows.is_empty() {
+                (WindowKind::Rows, rows)
+            } else if !range.is_empty() {
                 (WindowKind::Range, range)
             } else {
                 (WindowKind::Rows, Range::unbounded())
             };
-            Transform::Window {
-                range,
+
+            let pipeline = fold_by_simulating_eval(resolver, pipeline, tbl.ty.clone().unwrap())?;
+
+            TransformKind::Window {
                 kind,
-                pipeline: Box::new(Item::Pipeline(pipeline.coerce_to_pipeline()).into()),
+                range,
+                pipeline: Box::new(pipeline),
+                tbl,
             }
         }
-        unknown => bail!(Error::new(Reason::Expected {
-            who: None,
-            expected: "a known transform".to_string(),
-            found: format!("`{unknown}`")
-        })
-        .with_span(span)
-        .with_help("use one of: from, select, derive, filter, aggregate, group, join, sort, take")),
-    })
+        _ => return Ok(Err(closure)),
+    };
+
+    Ok(Ok(TransformCall::from(kind)))
 }
 
-fn unpack<const P: usize, const N: usize>(
-    mut func_call: FuncCall,
-    expected: [&str; N],
-) -> Result<([Node; P], [Option<Node>; N])> {
-    // named
-    const NONE: Option<Node> = None;
-    let mut named = [NONE; N];
+/// Simulate evaluation of the inner pipeline of group or window
+// Creates a dummy node that acts as value that pipeline can be resolved upon.
+fn fold_by_simulating_eval(
+    resolver: &mut Resolver,
+    pipeline: Expr,
+    val_type: Ty,
+) -> Result<Expr, anyhow::Error> {
+    log::debug!("fold by simulating evalaluation");
 
-    for (i, e) in expected.into_iter().enumerate() {
-        if let Some(val) = func_call.named_args.remove(e) {
-            named[i] = Some(*val);
+    let param_name = "_tbl";
+    let param_id = resolver.id.gen();
+
+    // resolver will not resolve a function call if any arguments are missing
+    // but would instead return a closure to be resolved later.
+    // because the pipeline of group is a function that takes a table chunk
+    // and applies the transforms to it, it would not get resolved.
+    // thats why we trick the resolver with a dummy node that acts as table
+    // chunk and instruct resolver to apply the transform on that.
+
+    let mut dummy = Expr::from(ExprKind::Ident(Ident::from_name(param_name)));
+    dummy.ty = Some(val_type);
+
+    let pipeline = Expr::from(ExprKind::FuncCall(FuncCall {
+        name: Box::new(pipeline),
+        args: vec![dummy],
+        named_args: Default::default(),
+    }));
+
+    let env = Module::singleton(param_name, Decl::from(DeclKind::Column(param_id)));
+    resolver.decls.root_mod.stack_push(NS_PARAM, env);
+
+    let pipeline = resolver.fold_expr(pipeline)?;
+
+    resolver.decls.root_mod.stack_pop(NS_PARAM).unwrap();
+
+    // now, we need wrap the result into a closure and replace
+    // the dummy node with closure's parameter.
+
+    // extract reference to the dummy node
+    // let mut tbl_node = extract_ref_to_first(&mut pipeline);
+    // *tbl_node = Expr::from(ExprKind::Ident("x".to_string()));
+
+    let pipeline = Expr::from(ExprKind::Closure(Box::new(Closure {
+        name: None,
+        body: Box::new(pipeline),
+        body_ty: None,
+
+        args: vec![],
+        params: vec![FuncParam {
+            name: param_id.to_string(),
+            ty: None,
+            default_value: None,
+        }],
+        named_params: vec![],
+
+        env: Default::default(),
+    })));
+    Ok(pipeline)
+}
+
+impl TransformCall {
+    pub fn infer_type(&self) -> Result<Frame> {
+        use TransformKind::*;
+
+        fn ty_frame_or_default(expr: &Expr) -> Result<Frame> {
+            expr.ty
+                .as_ref()
+                .and_then(|t| t.as_table())
+                .cloned()
+                .ok_or_else(|| anyhow!("expected {expr:?} to have table type"))
         }
+
+        Ok(match self.kind.as_ref() {
+            From(tbl) => ty_frame_or_default(tbl)?,
+
+            Select { assigns, tbl } => {
+                let mut frame = ty_frame_or_default(tbl)?;
+
+                frame.columns.clear();
+                frame.apply_assigns(assigns);
+                frame
+            }
+            Derive { assigns, tbl } => {
+                let mut frame = ty_frame_or_default(tbl)?;
+
+                frame.apply_assigns(assigns);
+                frame
+            }
+            Group { pipeline, by, .. } => {
+                // pipeline's body is resolved, just use its type
+                let Closure { body, .. } = pipeline.kind.as_closure().unwrap().as_ref();
+
+                let mut frame = body.ty.clone().unwrap().into_table().unwrap();
+
+                // prepend aggregate with `by` columns
+                if let ExprKind::TransformCall(TransformCall { kind, .. }) = &body.as_ref().kind {
+                    if let TransformKind::Aggregate { .. } = kind.as_ref() {
+                        let aggregate_columns = frame.columns;
+                        frame.columns = Vec::new();
+                        for b in by {
+                            log::debug!("group by {b}");
+
+                            let id = b.id.unwrap();
+                            let name = b.alias.clone().or_else(|| match &b.kind {
+                                ExprKind::Ident(ident) => Some(ident.name.clone()),
+                                _ => None,
+                            });
+
+                            frame.push_column(name, id);
+                        }
+
+                        frame.columns.extend(aggregate_columns);
+                    }
+                }
+
+                frame
+            }
+            Window { pipeline, .. } => {
+                // pipeline's body is resolved, just use its type
+                let Closure { body, .. } = pipeline.kind.as_closure().unwrap().as_ref();
+
+                body.ty.clone().unwrap().into_table().unwrap()
+            }
+            Aggregate { assigns, tbl } => {
+                let mut frame = ty_frame_or_default(tbl)?;
+                frame.columns.clear();
+
+                frame.apply_assigns(assigns);
+                frame
+            }
+            Join { tbl, with, .. } => ty_frame_or_default(tbl)? + ty_frame_or_default(with)?,
+            Sort { tbl, .. } | Filter { tbl, .. } | Take { tbl, .. } => ty_frame_or_default(tbl)?,
+        })
+    }
+}
+
+fn unpack<const P: usize>(closure: Closure) -> [Expr; P] {
+    closure.args.try_into().expect("bad transform cast")
+}
+
+/// Flattens group and window [TransformCall]s into a single pipeline.
+/// Sets partition, window and sort of [TransformCall].
+#[derive(Default)]
+pub struct Flattener {
+    /// Sort affects downstream transforms in a pipeline.
+    /// Because transform pipelines are represented by nested [TransformCall]s,
+    /// affected transforms are all ancestor nodes of sort [TransformCall].
+    /// This means that this field has to be set after folding inner table,
+    /// so it's passed to parent call of `fold_transform_call`
+    sort: Vec<ColumnSort>,
+
+    sort_undone: bool,
+
+    /// Group affects transforms in it's inner pipeline.
+    /// This means that this field has to be set before folding inner pipeline,
+    /// and unset after the folding.
+    partition: Vec<Expr>,
+
+    /// Window affects transforms in it's inner pipeline.
+    /// This means that this field has to be set before folding inner pipeline,
+    /// and unset after the folding.
+    window: WindowFrame,
+
+    /// Window and group contain Closures in their inner pipelines.
+    /// These closures have form similar to this function:
+    /// ```
+    /// func closure tbl_chunk -> (derive ... (sort ... (tbl_chunk)))
+    /// ```
+    /// To flatten a window or group, we need to replace group/window transform
+    /// with their closure's body and replace `tbl_chunk` with pipeline
+    /// preceding the group/window transform.
+    ///
+    /// That's what `replace_map` is for.
+    replace_map: HashMap<usize, Expr>,
+}
+
+impl Flattener {
+    pub fn fold(expr: Expr) -> Expr {
+        let mut f = Flattener::default();
+        f.fold_expr(expr).unwrap()
+    }
+}
+
+impl AstFold for Flattener {
+    fn fold_transform_call(&mut self, t: TransformCall) -> Result<TransformCall> {
+        log::debug!("flattening {}", (*t.kind).as_ref());
+
+        let kind = match *t.kind {
+            TransformKind::Sort { by, tbl } => {
+                // fold
+                let by = fold_column_sorts(self, by)?;
+                let tbl = self.fold_expr(tbl)?;
+
+                self.sort = by.clone();
+
+                if self.sort_undone {
+                    return Ok(tbl.kind.into_transform_call().unwrap());
+                } else {
+                    TransformKind::Sort { by, tbl }
+                }
+            }
+            TransformKind::Group { by, pipeline, tbl } => {
+                let sort_undone = self.sort_undone;
+                self.sort_undone = true;
+
+                let tbl = self.fold_expr(tbl)?;
+
+                let pipeline = pipeline.kind.into_closure().unwrap();
+
+                let table_param = &pipeline.params[0];
+                let param_id = table_param.name.parse::<usize>().unwrap();
+
+                self.replace_map.insert(param_id, tbl);
+                self.partition = by;
+                self.sort.clear();
+
+                let expr = self.fold_expr(*pipeline.body)?;
+
+                self.replace_map.remove(&param_id);
+                self.partition.clear();
+                self.sort.clear();
+                self.sort_undone = sort_undone;
+
+                return Ok(expr.kind.into_transform_call().unwrap());
+            }
+            TransformKind::Window {
+                kind,
+                range,
+                pipeline,
+                tbl,
+            } => {
+                let tbl = self.fold_expr(tbl)?;
+                let pipeline = pipeline.kind.into_closure().unwrap();
+
+                let table_param = &pipeline.params[0];
+                let param_id = table_param.name.parse::<usize>().unwrap();
+
+                self.replace_map.insert(param_id, tbl);
+                self.window = WindowFrame { kind, range };
+
+                let expr = self.fold_expr(*pipeline.body)?;
+
+                self.window = WindowFrame::default();
+                self.replace_map.remove(&param_id);
+
+                return Ok(expr.kind.into_transform_call().unwrap());
+            }
+            kind => fold_transform_kind(self, kind)?,
+        };
+
+        Ok(TransformCall {
+            kind: Box::new(kind),
+            partition: self.partition.clone(),
+            frame: self.window.clone(),
+            sort: self.sort.clone(),
+        })
     }
 
-    // positional
-    let positional =
-        (func_call.args.try_into()).map_err(|_| anyhow!("bad `{}` definition", func_call.name))?;
+    fn fold_expr(&mut self, mut expr: Expr) -> Result<Expr> {
+        if let Some(target) = &expr.target_id {
+            if let Some(replacement) = self.replace_map.remove(target) {
+                return Ok(replacement);
+            }
+        }
 
-    Ok((positional, named))
+        expr.kind = self.fold_expr_kind(expr.kind)?;
+        Ok(expr)
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use insta::assert_yaml_snapshot;
 
-    use crate::semantic::load_std_lib;
-    use crate::{parse, semantic::resolve};
-
-    #[test]
-    fn test_simple_casts() {
-        let query = parse(r#"filter upper country = "USA""#).unwrap();
-        assert!(resolve(query, None).is_err());
-
-        let query = parse(r#"take"#).unwrap();
-        assert!(resolve(query, None).is_err());
-    }
+    use crate::parse;
+    use crate::semantic::{resolve, resolve_only};
 
     #[test]
     fn test_aggregate_positional_arg() {
-        let context = Some(load_std_lib());
-
         // distinct query #292
         let query = parse(
             "
@@ -304,36 +478,54 @@ mod tests {
         ",
         )
         .unwrap();
-        let (result, _) = resolve(query, context.clone()).unwrap();
+        let result = resolve(query).unwrap();
         assert_yaml_snapshot!(result, @r###"
         ---
-        - Pipeline:
-            nodes:
-              - Transform:
-                  From:
-                    name: c_invoice
-                    alias: ~
-                    declared_at: 79
-              - Transform:
-                  Select:
-                    - Ident: invoice_no
-              - Transform:
-                  Group:
-                    by:
-                      - Ident: invoice_no
-                    pipeline:
-                      Pipeline:
-                        nodes:
-                          - Transform:
-                              Take:
-                                range:
-                                  start: ~
-                                  end:
-                                    Literal:
-                                      Integer: 1
-                                by:
-                                  - Ident: "<ref>"
-                                sort: []
+        def:
+          version: ~
+          dialect: Generic
+        tables:
+          - id: 0
+            name: c_invoice
+            relation:
+              ExternRef:
+                - LocalTable: c_invoice
+                - - id: 0
+                    kind: Wildcard
+                  - id: 1
+                    kind:
+                      ExternRef: invoice_no
+        relation:
+          Pipeline:
+            - From:
+                source: 0
+                columns:
+                  - id: 2
+                    kind: Wildcard
+                  - id: 3
+                    kind:
+                      Expr:
+                        name: invoice_no
+                        expr:
+                          kind:
+                            ColumnRef: 1
+                          span: ~
+                name: ~
+            - Select:
+                - 3
+            - Take:
+                range:
+                  start: ~
+                  end:
+                    kind:
+                      Literal:
+                        Integer: 1
+                    span: ~
+                partition:
+                  - 3
+                sort: []
+            - Select:
+                - 3
         "###);
 
         // oops, two arguments #339
@@ -344,7 +536,7 @@ mod tests {
         ",
         )
         .unwrap();
-        let result = resolve(query, context.clone());
+        let result = resolve(query);
         assert!(result.is_err());
 
         // oops, two arguments
@@ -355,7 +547,7 @@ mod tests {
         ",
         )
         .unwrap();
-        let result = resolve(query, context.clone());
+        let result = resolve(query);
         assert!(result.is_err());
 
         // correct function call
@@ -368,36 +560,89 @@ mod tests {
         ",
         )
         .unwrap();
-        let (result, _) = resolve(query, context).unwrap();
+        let (result, _) = resolve_only(query, None).unwrap();
         assert_yaml_snapshot!(result, @r###"
         ---
         - Pipeline:
-            nodes:
-              - Transform:
-                  From:
+            id: 1
+            TransformCall:
+              kind:
+                Aggregate:
+                  assigns:
+                    - id: 15
+                      SString:
+                        - String: AVG(
+                        - Expr:
+                            id: 19
+                            Ident:
+                              - _frame
+                              - c_invoice
+                              - amount
+                            target_id: 4
+                            ty: Infer
+                        - String: )
+                      ty:
+                        Literal: Column
+                  tbl:
+                    id: 2
+                    TransformCall:
+                      kind:
+                        From:
+                          id: 4
+                          Ident:
+                            - default_db
+                            - c_invoice
+                          ty:
+                            Table:
+                              columns:
+                                - Wildcard:
+                                    input_name: c_invoice
+                              inputs:
+                                - id: 4
+                                  name: c_invoice
+                                  table:
+                                    - default_db
+                                    - c_invoice
+                    ty:
+                      Table:
+                        columns:
+                          - Wildcard:
+                              input_name: c_invoice
+                        inputs:
+                          - id: 4
+                            name: c_invoice
+                            table:
+                              - default_db
+                              - c_invoice
+              partition:
+                - id: 8
+                  Ident:
+                    - _frame
+                    - c_invoice
+                    - date
+                  target_id: 4
+                  ty: Infer
+            ty:
+              Table:
+                columns:
+                  - Single:
+                      name:
+                        - date
+                      expr_id: 8
+                  - Single:
+                      name: ~
+                      expr_id: 15
+                inputs:
+                  - id: 4
                     name: c_invoice
-                    alias: ~
-                    declared_at: 79
-              - Transform:
-                  Group:
-                    by:
-                      - Ident: date
-                    pipeline:
-                      Pipeline:
-                        nodes:
-                          - Transform:
-                              Aggregate:
-                                assigns:
-                                  - Ident: "<unnamed>"
-                                by:
-                                  - Ident: "<ref>"
+                    table:
+                      - default_db
+                      - c_invoice
         "###);
     }
 
     #[test]
     fn test_transform_sort() {
-        let context = Some(load_std_lib());
-
         let query = parse(
             "
         from invoices
@@ -410,47 +655,82 @@ mod tests {
         )
         .unwrap();
 
-        let (result, _) = resolve(query, context).unwrap();
+        let result = resolve(query).unwrap();
         assert_yaml_snapshot!(result, @r###"
         ---
-        - Pipeline:
-            nodes:
-              - Transform:
-                  From:
-                    name: invoices
-                    alias: ~
-                    declared_at: 79
-              - Transform:
-                  Sort:
-                    - direction: Asc
-                      column:
-                        Ident: issued_at
-                    - direction: Desc
-                      column:
-                        Ident: amount
-                    - direction: Asc
-                      column:
-                        Ident: num_of_articles
-              - Transform:
-                  Sort:
-                    - direction: Asc
-                      column:
-                        Ident: issued_at
-              - Transform:
-                  Sort:
-                    - direction: Desc
-                      column:
-                        Ident: issued_at
-              - Transform:
-                  Sort:
-                    - direction: Asc
-                      column:
-                        Ident: issued_at
-              - Transform:
-                  Sort:
-                    - direction: Desc
-                      column:
-                        Ident: issued_at
+        def:
+          version: ~
+          dialect: Generic
+        tables:
+          - id: 0
+            name: invoices
+            relation:
+              ExternRef:
+                - LocalTable: invoices
+                - - id: 0
+                    kind: Wildcard
+                  - id: 1
+                    kind:
+                      ExternRef: issued_at
+                  - id: 2
+                    kind:
+                      ExternRef: amount
+                  - id: 3
+                    kind:
+                      ExternRef: num_of_articles
+        relation:
+          Pipeline:
+            - From:
+                source: 0
+                columns:
+                  - id: 4
+                    kind: Wildcard
+                  - id: 5
+                    kind:
+                      Expr:
+                        name: issued_at
+                        expr:
+                          kind:
+                            ColumnRef: 1
+                          span: ~
+                  - id: 6
+                    kind:
+                      Expr:
+                        name: amount
+                        expr:
+                          kind:
+                            ColumnRef: 2
+                          span: ~
+                  - id: 7
+                    kind:
+                      Expr:
+                        name: num_of_articles
+                        expr:
+                          kind:
+                            ColumnRef: 3
+                          span: ~
+                name: ~
+            - Sort:
+                - direction: Asc
+                  column: 5
+                - direction: Desc
+                  column: 6
+                - direction: Asc
+                  column: 7
+            - Sort:
+                - direction: Asc
+                  column: 5
+            - Sort:
+                - direction: Desc
+                  column: 5
+            - Sort:
+                - direction: Asc
+                  column: 5
+            - Sort:
+                - direction: Desc
+                  column: 5
+            - Select:
+                - 4
         "###);
     }
 }

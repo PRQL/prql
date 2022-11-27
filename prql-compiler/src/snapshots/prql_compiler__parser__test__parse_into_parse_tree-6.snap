@@ -20,7 +20,7 @@ expression: "parse_tree_of_str(r#\"[\n  gross_salary = salary + payroll_tax,\n  
                 },
                 inner: [
                     Pair {
-                        rule: ident,
+                        rule: ident_part,
                         span: Span {
                             str: "gross_salary",
                             start: 4,
@@ -28,7 +28,7 @@ expression: "parse_tree_of_str(r#\"[\n  gross_salary = salary + payroll_tax,\n  
                         },
                         inner: [
                             Pair {
-                                rule: ident_part_first,
+                                rule: ident_plain,
                                 span: Span {
                                     str: "gross_salary",
                                     start: 4,
@@ -87,7 +87,7 @@ expression: "parse_tree_of_str(r#\"[\n  gross_salary = salary + payroll_tax,\n  
                                                                 },
                                                                 inner: [
                                                                     Pair {
-                                                                        rule: ident_part_first,
+                                                                        rule: ident_plain,
                                                                         span: Span {
                                                                             str: "salary",
                                                                             start: 19,
@@ -133,7 +133,7 @@ expression: "parse_tree_of_str(r#\"[\n  gross_salary = salary + payroll_tax,\n  
                                                                         },
                                                                         inner: [
                                                                             Pair {
-                                                                                rule: ident_part_first,
+                                                                                rule: ident_plain,
                                                                                 span: Span {
                                                                                     str: "payroll_tax",
                                                                                     start: 28,
@@ -166,7 +166,7 @@ expression: "parse_tree_of_str(r#\"[\n  gross_salary = salary + payroll_tax,\n  
                 },
                 inner: [
                     Pair {
-                        rule: ident,
+                        rule: ident_part,
                         span: Span {
                             str: "gross_cost",
                             start: 43,
@@ -174,7 +174,7 @@ expression: "parse_tree_of_str(r#\"[\n  gross_salary = salary + payroll_tax,\n  
                         },
                         inner: [
                             Pair {
-                                rule: ident_part_first,
+                                rule: ident_plain,
                                 span: Span {
                                     str: "gross_cost",
                                     start: 43,
@@ -233,7 +233,7 @@ expression: "parse_tree_of_str(r#\"[\n  gross_salary = salary + payroll_tax,\n  
                                                                 },
                                                                 inner: [
                                                                     Pair {
-                                                                        rule: ident_part_first,
+                                                                        rule: ident_plain,
                                                                         span: Span {
                                                                             str: "gross_salary",
                                                                             start: 58,
@@ -279,7 +279,7 @@ expression: "parse_tree_of_str(r#\"[\n  gross_salary = salary + payroll_tax,\n  
                                                                         },
                                                                         inner: [
                                                                             Pair {
-                                                                                rule: ident_part_first,
+                                                                                rule: ident_plain,
                                                                                 span: Span {
                                                                                     str: "benefits_cost",
                                                                                     start: 73,
