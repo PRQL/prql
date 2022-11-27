@@ -117,11 +117,11 @@ pub(super) fn translate_expr_kind(item: ExprKind, ctx: &mut Context) -> Result<s
                 value,
             },
             Literal::Time(value) => sql_ast::Expr::TypedString {
-                data_type: sql_ast::DataType::Time(sql_ast::TimezoneInfo::None),
+                data_type: sql_ast::DataType::Time(None, sql_ast::TimezoneInfo::None),
                 value,
             },
             Literal::Timestamp(value) => sql_ast::Expr::TypedString {
-                data_type: sql_ast::DataType::Timestamp(sql_ast::TimezoneInfo::None),
+                data_type: sql_ast::DataType::Timestamp(None, sql_ast::TimezoneInfo::None),
                 value,
             },
             Literal::ValueAndUnit(vau) => {
@@ -352,8 +352,12 @@ fn try_into_window_frame(frame: WindowFrame<Expr>) -> Result<sql_ast::WindowFram
         let as_int = bound.kind.into_literal()?.into_integer()?;
         Ok(match as_int {
             0 => WindowFrameBound::CurrentRow,
-            1.. => WindowFrameBound::Following(Some(as_int as u64)),
-            _ => WindowFrameBound::Preceding(Some((-as_int) as u64)),
+            1.. => WindowFrameBound::Following(Some(Box::new(sql_ast::Expr::Value(
+                sql_ast::Value::Number(as_int.to_string(), false),
+            )))),
+            _ => WindowFrameBound::Preceding(Some(Box::new(sql_ast::Expr::Value(
+                sql_ast::Value::Number((-as_int).to_string(), false),
+            )))),
         })
     }
 
