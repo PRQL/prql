@@ -5,8 +5,8 @@ input_file: book/tests/prql/examples/variables-1.prql
 ---
 WITH table_0 AS (
   SELECT
-    emp_no,
-    AVG(salary) AS emp_salary
+    AVG(salary) AS emp_salary,
+    emp_no
   FROM
     employees
   GROUP BY
@@ -17,7 +17,7 @@ SELECT
   AVG(table_0.emp_salary) / 1000 * 1000 AS salary
 FROM
   table_0
-  JOIN titles USING(emp_no)
+  JOIN titles ON table_0.emp_no = titles.emp_no
 GROUP BY
   titles.title
 LIMIT

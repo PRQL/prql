@@ -5,8 +5,7 @@ input_file: book/tests/prql/transforms/join-1.prql
 ---
 SELECT
   employees.*,
-  positions.*,
-  emp_no
+  positions.*
 FROM
   employees FULL
-  JOIN positions USING(emp_no)
+  JOIN positions ON employees.emp_no = positions.emp_no

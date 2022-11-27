@@ -7,10 +7,10 @@ table top_50 = (
   from employees
   sort salary
   take 50
-  aggregate (sum salary)
+  aggregate [total_salary = sum salary]
 )
 
-from another_table      # Starts a new pipeline
+from top_50      # Starts a new pipeline
 ```
 
 In PRQL `table`s are far less common than CTEs are in SQL, since a linear

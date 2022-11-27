@@ -35,6 +35,8 @@ strum = {version = "0.24.0", features = ["std", "derive"]}# for converting enum 
 strum_macros = "0.24.0"
 semver = { version = "1.0.14", features = ["serde"] }
 once_cell = "1.15.0"
+log = "0.4.17"
+env_logger = {version="0.9.1", features = ["termcolor"]}
 
 [dependencies.clap]
 features = ["derive"]

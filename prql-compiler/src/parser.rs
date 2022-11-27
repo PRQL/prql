@@ -12,12 +12,10 @@ use pest::iterators::Pair;
 use pest::iterators::Pairs;
 use pest::Parser;
 use pest_derive::Parser;
-use semver::{Version, VersionReq};
 
-use super::ast::*;
+use super::ast::pl::*;
 use super::utils::*;
 use crate::error::{Error, Reason, Span};
-use crate::PRQL_VERSION;
 
 #[derive(Parser)]
 #[grammar = "prql.pest"]
@@ -26,32 +24,11 @@ struct PrqlParser;
 pub(crate) type PestError = pest::error::Error<Rule>;
 pub(crate) type PestRule = Rule;
 
-/// Build an AST from a PRQL query string.
-pub fn parse(string: &str) -> Result<Query> {
-    let ast = ast_of_string(string, Rule::query)?;
+/// Build PL AST from a PRQL query string.
+pub fn parse(string: &str) -> Result<Vec<Stmt>> {
+    let pairs = parse_tree_of_str(string, Rule::statements)?;
 
-    let query = ast.item.into_query().unwrap();
-
-    if let Some(ref version) = query.version {
-        check_query_version(version, &PRQL_VERSION)?;
-    }
-
-    Ok(query)
-}
-
-fn check_query_version(query_version: &VersionReq, prql_version: &Version) -> Result<()> {
-    if !query_version.matches(prql_version) {
-        bail!("This query uses a version of PRQL that is not supported by your prql-compiler. You may want to upgrade the compiler.");
-    }
-
-    Ok(())
-}
-
-/// Parse a string into an AST. Unlike [parse], this can start from any rule.
-fn ast_of_string(string: &str, rule: Rule) -> Result<Node> {
-    let pairs = parse_tree_of_str(string, rule)?;
-
-    ast_of_parse_pairs(pairs)?.into_only()
+    stmts_of_parse_pairs(pairs)
 }
 
 /// Parse a string into a parse tree / concrete syntax tree, made up of pest Pairs.
@@ -59,48 +36,40 @@ fn parse_tree_of_str(source: &str, rule: Rule) -> Result<Pairs<Rule>> {
     Ok(PrqlParser::parse(rule, source)?)
 }
 
-/// Parses a parse tree of pest Pairs into an AST.
-fn ast_of_parse_pairs(pairs: Pairs<Rule>) -> Result<Vec<Node>> {
+/// Parses a parse tree of pest Pairs into a list of statements.
+fn stmts_of_parse_pairs(pairs: Pairs<Rule>) -> Result<Vec<Stmt>> {
     pairs
-        .map(ast_of_parse_pair)
-        .filter_map(|n| n.transpose())
+        .filter(|p| !matches!(p.as_rule(), Rule::EOI))
+        .map(stmt_of_parse_pair)
         .collect()
 }
 
-fn ast_of_parse_pair(pair: Pair<Rule>) -> Result<Option<Node>> {
+fn stmt_of_parse_pair(pair: Pair<Rule>) -> Result<Stmt> {
     let span = pair.as_span();
     let rule = pair.as_rule();
 
-    let item = match rule {
-        Rule::query => {
-            let mut parsed = ast_of_parse_pairs(pair.into_inner())?;
-            // this is [query, ...]
-
-            let mut query = parsed.remove(0).item.into_query()?;
-
-            query.nodes = parsed;
-
-            Item::Query(query)
+    let kind = match rule {
+        Rule::pipeline_stmt => {
+            let pipeline = expr_of_parse_pair(pair.into_inner().next().unwrap())?;
+            StmtKind::Pipeline(Box::new(pipeline))
         }
         Rule::query_def => {
-            let parsed = ast_of_parse_pairs(pair.into_inner())?;
-
-            let mut params: HashMap<_, _> = parsed
-                .into_iter()
-                .map(|x| x.item.into_named_arg().map(|n| (n.name, n.expr)))
+            let mut params: HashMap<_, _> = pair
+                .into_inner()
+                .map(|x| parse_named(x.into_inner()))
                 .try_collect()?;
 
             let version = params
                 .remove("version")
-                .map(|v| v.unwrap(|i| i.parse_version(), "semver version number string"))
+                .map(|v| v.try_cast(|i| i.parse_version(), None, "semver version number string"))
                 .transpose()?;
 
             let dialect = if let Some(node) = params.remove("dialect") {
                 let span = node.span;
-                let dialect = node.unwrap(|i| i.into_ident(), "string")?;
-                Dialect::from_str(&dialect).map_err(|_| {
+                let dialect = node.try_cast(|i| i.into_ident(), None, "string")?;
+                Dialect::from_str(&dialect.to_string()).map_err(|_| {
                     Error::new(Reason::NotFound {
-                        name: dialect,
+                        name: format!("{dialect:?}"),
                         namespace: "dialect".to_string(),
                     })
                     .with_span(span)
@@ -109,41 +78,109 @@ fn ast_of_parse_pair(pair: Pair<Rule>) -> Result<Option<Node>> {
                 Dialect::default()
             };
 
-            Item::Query(Query {
-                nodes: vec![],
-                version,
-                dialect,
+            StmtKind::QueryDef(QueryDef { version, dialect })
+        }
+        Rule::func_def => {
+            let mut pairs = pair.into_inner();
+            let name = pairs.next().unwrap();
+            let params = pairs.next().unwrap();
+            let body = pairs.next().unwrap();
+
+            let (name, return_type, _) = parse_typed_ident(name)?;
+
+            let params: Vec<_> = params
+                .into_inner()
+                .into_iter()
+                .map(parse_typed_ident)
+                .try_collect()?;
+
+            let mut positional_params = vec![];
+            let mut named_params = vec![];
+            for (name, ty, default_value) in params {
+                let param = FuncParam {
+                    name,
+                    ty,
+                    default_value,
+                };
+                if param.default_value.is_some() {
+                    named_params.push(param)
+                } else {
+                    positional_params.push(param)
+                }
+            }
+
+            StmtKind::FuncDef(FuncDef {
+                name,
+                positional_params,
+                named_params,
+                body: Box::from(expr_of_parse_pair(body)?),
+                return_ty: return_type,
             })
         }
-        Rule::list => Item::List(ast_of_parse_pairs(pair.into_inner())?),
+        Rule::table_def => {
+            let mut pairs = pair.into_inner();
+
+            let name = parse_ident_part(pairs.next().unwrap());
+            let pipeline = expr_of_parse_pair(pairs.next().unwrap())?;
+
+            StmtKind::TableDef(TableDef {
+                name,
+                value: Box::new(pipeline),
+            })
+        }
+        _ => unreachable!("{pair}"),
+    };
+    let mut stmt = Stmt::from(kind);
+    stmt.span = Some(Span {
+        start: span.start(),
+        end: span.end(),
+    });
+    Ok(stmt)
+}
+
+/// Parses a parse tree of pest Pairs into an AST.
+fn exprs_of_parse_pairs(pairs: Pairs<Rule>) -> Result<Vec<Expr>> {
+    pairs
+        .filter(|p| !matches!(p.as_rule(), Rule::EOI))
+        .map(expr_of_parse_pair)
+        .collect()
+}
+
+fn expr_of_parse_pair(pair: Pair<Rule>) -> Result<Expr> {
+    let span = pair.as_span();
+    let rule = pair.as_rule();
+    let mut alias = None;
+
+    let kind = match rule {
+        Rule::list => ExprKind::List(exprs_of_parse_pairs(pair.into_inner())?),
         Rule::expr_mul | Rule::expr_add | Rule::expr_compare | Rule::expr => {
             let mut pairs = pair.into_inner();
 
-            let mut expr = ast_of_parse_pair(pairs.next().unwrap())?.unwrap();
+            let mut expr = expr_of_parse_pair(pairs.next().unwrap())?;
             if let Some(op) = pairs.next() {
                 let op = BinOp::from_str(op.as_str())?;
 
-                expr = Node::from(Item::Binary {
+                expr = Expr::from(ExprKind::Binary {
                     op,
                     left: Box::new(expr),
-                    right: Box::new(ast_of_parse_pair(pairs.next().unwrap())?.unwrap()),
+                    right: Box::new(expr_of_parse_pair(pairs.next().unwrap())?),
                 });
             }
 
-            expr.item
+            expr.kind
         }
         Rule::expr_unary => {
             let mut pairs = pair.into_inner();
 
             let op = pairs.next().unwrap();
 
-            let a = ast_of_parse_pair(pairs.next().unwrap())?.unwrap();
+            let a = expr_of_parse_pair(pairs.next().unwrap())?;
             match UnOp::from_str(op.as_str()) {
-                Ok(op) => Item::Unary {
+                Ok(op) => ExprKind::Unary {
                     op,
                     expr: Box::new(a),
                 },
-                Err(_) => a.item, // `+column` is the same as `column`
+                Err(_) => a.kind, // `+column` is the same as `column`
             }
         }
 
@@ -155,11 +192,11 @@ fn ast_of_parse_pair(pair: Pair<Rule>) -> Result<Option<Node>> {
             let pairs = pair.into_inner();
             // If there's no coalescing, just return the single expression.
             if pairs.clone().count() == 1 {
-                ast_of_parse_pairs(pairs)?.into_only()?.item
+                exprs_of_parse_pairs(pairs)?.into_only()?.kind
             } else {
-                let parsed = ast_of_parse_pairs(pairs)?;
-                Item::FuncCall(FuncCall {
-                    name: "coalesce".to_string(),
+                let parsed = exprs_of_parse_pairs(pairs)?;
+                ExprKind::FuncCall(FuncCall {
+                    name: Box::new(ExprKind::Ident(Ident::from_name("coalesce")).into()),
                     args: vec![parsed[0].clone(), parsed[2].clone()],
                     named_args: HashMap::new(),
                 })
@@ -168,79 +205,51 @@ fn ast_of_parse_pair(pair: Pair<Rule>) -> Result<Option<Node>> {
         // This makes the previous parsing a bit easier, but is hacky;
         // ideally find a better way (but it doesn't seem that easy to
         // parse parts of a Pairs).
-        Rule::operator_coalesce => Item::Ident("-".to_string()),
+        Rule::operator_coalesce => ExprKind::Ident(Ident::from_name("-")),
 
         Rule::assign_call | Rule::assign => {
-            let mut items = ast_of_parse_pairs(pair.into_inner())?;
-            Item::Assign(named_expr_of_nodes(&mut items)?)
-        }
-        Rule::named_arg => {
-            let mut items = ast_of_parse_pairs(pair.into_inner())?;
-            Item::NamedArg(named_expr_of_nodes(&mut items)?)
-        }
-        Rule::func_def => {
-            let mut pairs = pair.into_inner();
-            let name = pairs.next().unwrap();
-            let params = pairs.next().unwrap();
-            let body = pairs.next().unwrap();
-
-            let (name, return_type) = parse_typed(name)?;
-            let name = name.item.into_ident()?;
-
-            let params: Vec<_> = params
-                .into_inner()
-                .into_iter()
-                .map(parse_typed)
-                .try_collect()?;
-
-            let positional_params = params
-                .iter()
-                .filter(|x| matches!(x.0.item, Item::Ident(_)))
-                .cloned()
-                .collect();
-            let named_params = params
-                .iter()
-                .filter(|x| matches!(x.0.item, Item::NamedArg(_)))
-                .cloned()
-                .collect();
-
-            Item::FuncDef(FuncDef {
-                name,
-                positional_params,
-                named_params,
-                body: Box::from(ast_of_parse_pair(body)?.unwrap()),
-                return_type,
-            })
+            let (a, expr) = parse_named(pair.into_inner())?;
+            alias = Some(a);
+            expr.kind
         }
         Rule::func_call => {
-            let mut items = ast_of_parse_pairs(pair.into_inner())?;
+            let mut pairs = pair.into_inner();
 
-            let name = items.remove(0).item.into_ident()?;
+            let name = expr_of_parse_pair(pairs.next().unwrap())?;
 
-            Item::FuncCall(FuncCall {
-                name,
-                args: items,
-                named_args: HashMap::new(),
-            })
-        }
-        Rule::table => {
-            let parsed = ast_of_parse_pairs(pair.into_inner())?;
-            let [name, pipeline]: [Node; 2] = parsed
-                .try_into()
-                .map_err(|e| anyhow!("Expected two items; {e:?}"))?;
-            Item::Table(Table {
-                id: None,
-                name: name.item.into_ident()?,
-                pipeline: Box::new(pipeline),
+            let mut named = HashMap::new();
+            let mut positional = Vec::new();
+            for arg in pairs {
+                match arg.as_rule() {
+                    Rule::named_arg => {
+                        let (a, expr) = parse_named(arg.into_inner())?;
+                        named.insert(a, expr);
+                    }
+                    _ => {
+                        positional.push(expr_of_parse_pair(arg)?);
+                    }
+                }
+            }
+
+            ExprKind::FuncCall(FuncCall {
+                name: Box::new(name),
+                args: positional,
+                named_args: named,
             })
         }
         Rule::jinja => {
             let inner = pair.as_str();
-            Item::Ident(inner.to_string())
+            ExprKind::Ident(Ident::from_name(inner))
         }
         Rule::ident => {
             let inner = pair.clone().into_inner();
-            Item::Ident(inner.into_iter().map(|x| x.as_str().to_string()).collect())
+            let mut parts = inner
+                .into_iter()
+                .map(|x| x.as_str().to_string())
+                .collect::<Vec<String>>();
+            let name = parts.pop().unwrap();
+
+            ExprKind::Ident(Ident { path: parts, name })
         }
 
         Rule::number => {
@@ -253,34 +262,41 @@ fn ast_of_parse_pair(pair: Pair<Rule>) -> Result<Option<Node>> {
             } else {
                 bail!("cannot parse {str} as number")
             };
-            Item::Literal(lit)
+            ExprKind::Literal(lit)
         }
-        Rule::null => Item::Literal(Literal::Null),
-        Rule::boolean => Item::Literal(Literal::Boolean(pair.as_str() == "true")),
+        Rule::null => ExprKind::Literal(Literal::Null),
+        Rule::boolean => ExprKind::Literal(Literal::Boolean(pair.as_str() == "true")),
         Rule::string => {
             // Takes the string_inner, without the quotes
             let inner = pair.into_inner().into_only();
             let inner = inner.map(|x| x.as_str().to_string()).unwrap_or_default();
-            Item::Literal(Literal::String(inner))
+            ExprKind::Literal(Literal::String(inner))
         }
-        Rule::s_string => Item::SString(ast_of_interpolate_items(pair)?),
-        Rule::f_string => Item::FString(ast_of_interpolate_items(pair)?),
+        Rule::s_string => ExprKind::SString(ast_of_interpolate_items(pair)?),
+        Rule::f_string => ExprKind::FString(ast_of_interpolate_items(pair)?),
         Rule::pipeline => {
-            let mut nodes = ast_of_parse_pairs(pair.into_inner())?;
+            let mut nodes = exprs_of_parse_pairs(pair.into_inner())?;
             match nodes.len() {
-                0 => return Ok(None),
-                1 => nodes.remove(0).item,
-                _ => Item::Pipeline(Pipeline { nodes }),
+                0 => unreachable!(),
+                1 => nodes.remove(0).kind,
+                _ => ExprKind::Pipeline(Pipeline { exprs: nodes }),
+            }
+        }
+        Rule::nested_pipeline => {
+            if let Some(pipeline) = pair.into_inner().next() {
+                expr_of_parse_pair(pipeline)?.kind
+            } else {
+                ExprKind::Literal(Literal::Null)
             }
         }
         Rule::range => {
-            let [start, end]: [Option<Box<Node>>; 2] = pair
+            let [start, end]: [Option<Box<Expr>>; 2] = pair
                 .into_inner()
                 // Iterate over `start` & `end` (separator is not a term).
                 .into_iter()
                 .map(|x| {
                     // Parse & Box each one.
-                    ast_of_parse_pairs(x.into_inner())
+                    exprs_of_parse_pairs(x.into_inner())
                         .and_then(|x| x.into_only())
                         .map(Box::new)
                         .ok()
@@ -288,25 +304,25 @@ fn ast_of_parse_pair(pair: Pair<Rule>) -> Result<Option<Node>> {
                 .collect::<Vec<_>>()
                 .try_into()
                 .map_err(|e| anyhow!("Expected start, separator, end; {e:?}"))?;
-            Item::Range(Range { start, end })
+            ExprKind::Range(Range { start, end })
         }
 
-        Rule::interval => {
+        Rule::value_and_unit => {
             let pairs: Vec<_> = pair.into_inner().into_iter().collect();
             let [n, unit]: [Pair<Rule>; 2] = pairs
                 .try_into()
                 .map_err(|e| anyhow!("Expected two items; {e:?}"))?;
 
-            Item::Interval(Interval {
+            ExprKind::Literal(Literal::ValueAndUnit(ValueAndUnit {
                 n: n.as_str().parse()?,
                 unit: unit.as_str().to_owned(),
-            })
+            }))
         }
 
         Rule::date | Rule::time | Rule::timestamp => {
             let inner = pair.into_inner().into_only()?.as_str().to_string();
 
-            Item::Literal(match rule {
+            ExprKind::Literal(match rule {
                 Rule::date => Literal::Date(inner),
                 Rule::time => Literal::Time(inner),
                 Rule::timestamp => Literal::Timestamp(inner),
@@ -314,72 +330,78 @@ fn ast_of_parse_pair(pair: Pair<Rule>) -> Result<Option<Node>> {
             })
         }
 
-        Rule::type_def => {
-            let mut types: Vec<_> = pair
-                .into_inner()
-                .into_iter()
-                .map(|pair| -> Result<Ty> {
-                    let mut parts: Vec<_> = pair.into_inner().into_iter().collect();
-                    let name = &parts.remove(0).as_str();
-                    let typ = match TyLit::from_str(name) {
-                        Ok(t) => Ty::from(t),
-                        Err(_) => Ty::Named(name.to_string()),
-                    };
-
-                    let param = parts
-                        .pop()
-                        .map(|p| ast_of_parse_pairs(p.into_inner()))
-                        .transpose()?
-                        .map(|p| p.into_only())
-                        .transpose()?;
-
-                    Ok(if let Some(param) = param {
-                        Ty::Parameterized(Box::new(typ), Box::new(param))
-                    } else {
-                        typ
-                    })
-                })
-                .try_collect()?;
-
-            let typ = if types.len() > 1 {
-                Ty::AnyOf(types)
-            } else {
-                types.remove(0)
-            };
-
-            Item::Type(typ)
-        }
-
-        Rule::EOI => return Ok(None),
-
         _ => unreachable!("{pair}"),
     };
-    let mut node = Node::from(item);
-    node.span = Some(Span {
-        start: span.start(),
-        end: span.end(),
-    });
-    Ok(Some(node))
+    Ok(Expr {
+        span: Some(Span {
+            start: span.start(),
+            end: span.end(),
+        }),
+        alias,
+        ..Expr::from(kind)
+    })
 }
 
-fn parse_typed(pair: Pair<Rule>) -> Result<(Node, Option<Ty>)> {
+fn type_of_parse_pair(pair: Pair<Rule>) -> Result<Ty> {
+    let any_of_terms: Vec<_> = pair
+        .into_inner()
+        .into_iter()
+        .map(|pair| -> Result<Ty> {
+            let mut pairs = pair.into_inner();
+            let name = parse_ident_part(pairs.next().unwrap());
+            let typ = match TyLit::from_str(&name) {
+                Ok(t) => Ty::from(t),
+                Err(_) if name == "table" => Ty::Table(Frame::default()),
+                Err(_) => {
+                    eprintln!("named type: {}", name);
+                    Ty::Named(name.to_string())
+                }
+            };
+
+            let param = pairs.next().map(type_of_parse_pair).transpose()?;
+
+            Ok(if let Some(param) = param {
+                Ty::Parameterized(Box::new(typ), Box::new(param))
+            } else {
+                typ
+            })
+        })
+        .try_collect()?;
+
+    // is there only a single element?
+    Ok(match <[_; 1]>::try_from(any_of_terms) {
+        Ok([only]) => only,
+        Err(many) => Ty::AnyOf(many),
+    })
+}
+
+fn parse_typed_ident(pair: Pair<Rule>) -> Result<(String, Option<Ty>, Option<Expr>)> {
     let mut pairs = pair.into_inner();
 
-    let node = ast_of_parse_pair(pairs.next().unwrap())?.unwrap();
+    let name = parse_ident_part(pairs.next().unwrap());
 
-    let ty = pairs.next();
-    let ty = ty.map(ast_of_parse_pair).transpose()?.flatten();
-    let ty = ty.map(|t| t.item.into_type()).transpose()?;
-    Ok((node, ty))
+    let mut ty = None;
+    let mut default = None;
+    for pair in pairs {
+        if matches!(pair.as_rule(), Rule::type_def) {
+            ty = Some(type_of_parse_pair(pair)?);
+        } else {
+            default = Some(expr_of_parse_pair(pair)?);
+        }
+    }
+
+    Ok((name, ty, default))
 }
 
-fn named_expr_of_nodes(items: &mut Vec<Node>) -> Result<NamedExpr, anyhow::Error> {
-    let (ident, expr) = items.drain(..).collect_tuple().unwrap();
-    let ne = NamedExpr {
-        name: ident.item.into_ident()?,
-        expr: Box::new(expr),
-    };
-    Ok(ne)
+fn parse_named(mut pairs: Pairs<Rule>) -> Result<(String, Expr)> {
+    let alias = parse_ident_part(pairs.next().unwrap());
+    let expr = expr_of_parse_pair(pairs.next().unwrap())?;
+
+    Ok((alias, expr))
+}
+
+fn parse_ident_part(pair: Pair<Rule>) -> String {
+    pair.into_inner().next().unwrap().as_str().to_string()
 }
 
 fn ast_of_interpolate_items(pair: Pair<Rule>) -> Result<Vec<InterpolateItem>> {
@@ -392,7 +414,7 @@ fn ast_of_interpolate_items(pair: Pair<Rule>) -> Result<Vec<InterpolateItem>> {
                 | Rule::interpolate_double_bracket_literal => {
                     InterpolateItem::String(x.as_str().to_string())
                 }
-                _ => InterpolateItem::Expr(Box::new(ast_of_parse_pair(x)?.unwrap())),
+                _ => InterpolateItem::Expr(Box::new(expr_of_parse_pair(x)?)),
             })
         })
         .collect::<Result<_>>()
@@ -404,34 +426,51 @@ mod test {
     use super::*;
     use insta::{assert_debug_snapshot, assert_yaml_snapshot};
 
+    fn stmts_of_string(string: &str) -> Result<Vec<Stmt>> {
+        let pairs = parse_tree_of_str(string, Rule::statements)?;
+
+        stmts_of_parse_pairs(pairs)
+    }
+
+    fn expr_of_string(string: &str, rule: Rule) -> Result<Expr> {
+        let mut pairs = parse_tree_of_str(string, rule)?;
+
+        expr_of_parse_pair(pairs.next().unwrap())
+    }
+
     #[test]
     fn test_parse_take() -> Result<()> {
-        parse_tree_of_str("take 10", Rule::query)?;
+        parse_tree_of_str("take 10", Rule::statements)?;
 
-        assert_yaml_snapshot!(ast_of_string(r#"take 10"#, Rule::expr_call)?, @r###"
+        assert_yaml_snapshot!(stmts_of_string(r#"take 10"#)?, @r###"
         ---
-        FuncCall:
-          name: take
-          args:
-            - Literal:
-                Integer: 10
-          named_args: {}
+        - Pipeline:
+            FuncCall:
+              name:
+                Ident:
+                  - take
+              args:
+                - Literal:
+                    Integer: 10
+              named_args: {}
         "###);
 
-        // Currently this parses but doesn't translate.
-        assert_yaml_snapshot!(ast_of_string(r#"take 1..10"#, Rule::expr_call)?, @r###"
+        assert_yaml_snapshot!(stmts_of_string(r#"take 1..10"#)?, @r###"
         ---
-        FuncCall:
-          name: take
-          args:
-            - Range:
-                start:
-                  Literal:
-                    Integer: 1
-                end:
-                  Literal:
-                    Integer: 10
-          named_args: {}
+        - Pipeline:
+            FuncCall:
+              name:
+                Ident:
+                  - take
+              args:
+                - Range:
+                    start:
+                      Literal:
+                        Integer: 1
+                    end:
+                      Literal:
+                        Integer: 10
+              named_args: {}
         "###);
 
         Ok(())
@@ -500,35 +539,35 @@ mod test {
 
     #[test]
     fn test_parse_string() -> Result<()> {
-        let double_quoted_ast = ast_of_string(r#"" U S A ""#, Rule::string)?;
+        let double_quoted_ast = expr_of_string(r#"" U S A ""#, Rule::string)?;
         assert_yaml_snapshot!(double_quoted_ast, @r###"
         ---
         Literal:
           String: " U S A "
         "###);
 
-        let single_quoted_ast = ast_of_string(r#"' U S A '"#, Rule::string)?;
+        let single_quoted_ast = expr_of_string(r#"' U S A '"#, Rule::string)?;
         assert_eq!(single_quoted_ast, double_quoted_ast);
 
         // Single quotes within double quotes should produce a string containing
         // the single quotes (and vice versa).
-        assert_yaml_snapshot!(ast_of_string(r#""' U S A '""#, Rule::string)? , @r###"
+        assert_yaml_snapshot!(expr_of_string(r#""' U S A '""#, Rule::string)? , @r###"
         ---
         Literal:
           String: "' U S A '"
         "###);
-        assert_yaml_snapshot!(ast_of_string(r#"'" U S A "'"#, Rule::string)? , @r###"
+        assert_yaml_snapshot!(expr_of_string(r#"'" U S A "'"#, Rule::string)? , @r###"
         ---
         Literal:
           String: "\" U S A \""
         "###);
 
-        assert!(ast_of_string(r#"" U S A"#, Rule::string).is_err());
-        assert!(ast_of_string(r#"" U S A '"#, Rule::string).is_err());
+        assert!(expr_of_string(r#"" U S A"#, Rule::string).is_err());
+        assert!(expr_of_string(r#"" U S A '"#, Rule::string).is_err());
 
         // Escapes get passed through (the insta snapshot has them escaped I
         // think, which isn't that clear, so repeated below).
-        let escaped_string = ast_of_string(r#"" \U S A ""#, Rule::string)?;
+        let escaped_string = expr_of_string(r#"" \U S A ""#, Rule::string)?;
         assert_yaml_snapshot!(escaped_string, @r###"
         ---
         Literal:
@@ -536,7 +575,7 @@ mod test {
         "###);
         assert_eq!(
             escaped_string
-                .item
+                .kind
                 .as_literal()
                 .unwrap()
                 .as_string()
@@ -549,7 +588,7 @@ mod test {
         // should arguably encourage multiline-strings. (Though no objection if
         // someone wants to implement it, this test is recording current
         // behavior rather than maintaining a contract).
-        let escaped_quotes = ast_of_string(r#"" Canada \""#, Rule::string)?;
+        let escaped_quotes = expr_of_string(r#"" Canada \""#, Rule::string)?;
         assert_yaml_snapshot!(escaped_quotes, @r###"
         ---
         Literal:
@@ -557,7 +596,7 @@ mod test {
         "###);
         assert_eq!(
             escaped_quotes
-                .item
+                .kind
                 .as_literal()
                 .unwrap()
                 .as_string()
@@ -565,7 +604,7 @@ mod test {
             r#" Canada \"#
         );
 
-        let multi_double = ast_of_string(
+        let multi_double = expr_of_string(
             r#""""
 ''
 Canada
@@ -580,7 +619,7 @@ Canada
           String: "\n''\nCanada\n\"\n\n"
         "###);
 
-        let multi_single = ast_of_string(
+        let multi_single = expr_of_string(
             r#"'''
 Canada
 "
@@ -596,7 +635,7 @@ Canada
         "###);
 
         assert_yaml_snapshot!(
-          ast_of_string("''", Rule::string).unwrap(),
+          expr_of_string("''", Rule::string).unwrap(),
           @r###"
         ---
         Literal:
@@ -608,15 +647,16 @@ Canada
 
     #[test]
     fn test_parse_s_string() -> Result<()> {
-        assert_yaml_snapshot!(ast_of_string(r#"s"SUM({col})""#, Rule::expr_call)?, @r###"
+        assert_yaml_snapshot!(expr_of_string(r#"s"SUM({col})""#, Rule::expr_call)?, @r###"
         ---
         SString:
           - String: SUM(
           - Expr:
-              Ident: col
+              Ident:
+                - col
           - String: )
         "###);
-        assert_yaml_snapshot!(ast_of_string(r#"s"SUM({2 + 2})""#, Rule::expr_call)?, @r###"
+        assert_yaml_snapshot!(expr_of_string(r#"s"SUM({2 + 2})""#, Rule::expr_call)?, @r###"
         ---
         SString:
           - String: SUM(
@@ -637,7 +677,7 @@ Canada
     #[test]
     fn test_parse_s_string_brackets() -> Result<()> {
         // For crystal variables
-        assert_yaml_snapshot!(ast_of_string(r#"s"{{?crystal_var}}""#, Rule::expr_call)?, @r###"
+        assert_yaml_snapshot!(expr_of_string(r#"s"{{?crystal_var}}""#, Rule::expr_call)?, @r###"
         ---
         SString:
           - String: "{?crystal_var}"
@@ -648,38 +688,43 @@ Canada
 
     #[test]
     fn test_parse_jinja() -> Result<()> {
-        assert_yaml_snapshot!(ast_of_string(r#"
+        assert_yaml_snapshot!(stmts_of_string(r#"
         from {{ ref('stg_orders') }}
         aggregate (sum order_id)
-        "#, Rule::query)?, @r###"
+        "#)?, @r###"
         ---
-        Query:
-          version: ~
-          dialect: Generic
-          nodes:
-            - Pipeline:
-                nodes:
-                  - FuncCall:
-                      name: from
-                      args:
-                        - Ident: "{{ ref('stg_orders') }}"
-                      named_args: {}
-                  - FuncCall:
-                      name: aggregate
-                      args:
-                        - FuncCall:
-                            name: sum
-                            args:
-                              - Ident: order_id
-                            named_args: {}
-                      named_args: {}
+        - Pipeline:
+            Pipeline:
+              exprs:
+                - FuncCall:
+                    name:
+                      Ident:
+                        - from
+                    args:
+                      - Ident:
+                          - "{{ ref('stg_orders') }}"
+                    named_args: {}
+                - FuncCall:
+                    name:
+                      Ident:
+                        - aggregate
+                    args:
+                      - FuncCall:
+                          name:
+                            Ident:
+                              - sum
+                          args:
+                            - Ident:
+                                - order_id
+                          named_args: {}
+                    named_args: {}
         "###);
         Ok(())
     }
 
     #[test]
     fn test_parse_list() {
-        assert_yaml_snapshot!(ast_of_string(r#"[1 + 1, 2]"#, Rule::list).unwrap(), @r###"
+        assert_yaml_snapshot!(expr_of_string(r#"[1 + 1, 2]"#, Rule::list).unwrap(), @r###"
         ---
         List:
           - Binary:
@@ -693,7 +738,7 @@ Canada
           - Literal:
               Integer: 2
         "###);
-        assert_yaml_snapshot!(ast_of_string(r#"[1 + (f 1), 2]"#, Rule::list).unwrap(), @r###"
+        assert_yaml_snapshot!(expr_of_string(r#"[1 + (f 1), 2]"#, Rule::list).unwrap(), @r###"
         ---
         List:
           - Binary:
@@ -703,7 +748,9 @@ Canada
               op: Add
               right:
                 FuncCall:
-                  name: f
+                  name:
+                    Ident:
+                      - f
                   args:
                     - Literal:
                         Integer: 1
@@ -712,7 +759,7 @@ Canada
               Integer: 2
         "###);
         // Line breaks
-        assert_yaml_snapshot!(ast_of_string(
+        assert_yaml_snapshot!(expr_of_string(
             r#"[1,
 
                 2]"#,
@@ -725,66 +772,77 @@ Canada
               Integer: 2
         "###);
         // Function call in a list
-        let ab = ast_of_string(r#"[a b]"#, Rule::list).unwrap();
-        let a_comma_b = ast_of_string(r#"[a, b]"#, Rule::list).unwrap();
+        let ab = expr_of_string(r#"[a b]"#, Rule::list).unwrap();
+        let a_comma_b = expr_of_string(r#"[a, b]"#, Rule::list).unwrap();
         assert_yaml_snapshot!(ab, @r###"
         ---
         List:
           - FuncCall:
-              name: a
+              name:
+                Ident:
+                  - a
               args:
-                - Ident: b
+                - Ident:
+                    - b
               named_args: {}
         "###);
         assert_yaml_snapshot!(a_comma_b, @r###"
         ---
         List:
-          - Ident: a
-          - Ident: b
+          - Ident:
+              - a
+          - Ident:
+              - b
         "###);
         assert_ne!(ab, a_comma_b);
 
-        assert_yaml_snapshot!(ast_of_string(r#"[amount, +amount, -amount]"#, Rule::list).unwrap(), @r###"
+        assert_yaml_snapshot!(expr_of_string(r#"[amount, +amount, -amount]"#, Rule::list).unwrap(), @r###"
         ---
         List:
-          - Ident: amount
-          - Ident: amount
+          - Ident:
+              - amount
+          - Ident:
+              - amount
           - Unary:
               op: Neg
               expr:
-                Ident: amount
+                Ident:
+                  - amount
         "###);
         // Operators in list items
-        assert_yaml_snapshot!(ast_of_string(r#"[amount, +amount, -amount]"#, Rule::list).unwrap(), @r###"
+        assert_yaml_snapshot!(expr_of_string(r#"[amount, +amount, -amount]"#, Rule::list).unwrap(), @r###"
         ---
         List:
-          - Ident: amount
-          - Ident: amount
+          - Ident:
+              - amount
+          - Ident:
+              - amount
           - Unary:
               op: Neg
               expr:
-                Ident: amount
+                Ident:
+                  - amount
         "###);
     }
 
     #[test]
     fn test_parse_number() -> Result<()> {
-        assert_yaml_snapshot!(ast_of_string(r#"23"#, Rule::number)?, @r###"
+        assert_yaml_snapshot!(expr_of_string(r#"23"#, Rule::number)?, @r###"
         ---
         Literal:
           Integer: 23
         "###);
-        assert_yaml_snapshot!(ast_of_string(r#"23.6"#, Rule::number)?, @r###"
+        assert_yaml_snapshot!(expr_of_string(r#"23.6"#, Rule::number)?, @r###"
         ---
         Literal:
           Float: 23.6
         "###);
-        assert_yaml_snapshot!(ast_of_string(r#"23.0"#, Rule::number)?, @r###"
+        assert_yaml_snapshot!(expr_of_string(r#"23.0"#, Rule::number)?, @r###"
         ---
         Literal:
           Float: 23
         "###);
-        assert_yaml_snapshot!(ast_of_string(r#"2 + 2"#, Rule::expr)?, @r###"
+        assert_yaml_snapshot!(expr_of_string(r#"2 + 2"#, Rule::expr_add)?, @r###"
         ---
         Binary:
           left:
@@ -801,132 +859,150 @@ Canada
     #[test]
     fn test_parse_filter() {
         assert_yaml_snapshot!(
-            ast_of_string(r#"filter country == "USA""#, Rule::query).unwrap(), @r###"
+            stmts_of_string(r#"filter country == "USA""#).unwrap(), @r###"
         ---
-        Query:
-          version: ~
-          dialect: Generic
-          nodes:
-            - FuncCall:
-                name: filter
-                args:
-                  - Binary:
-                      left:
-                        Ident: country
-                      op: Eq
-                      right:
-                        Literal:
-                          String: USA
-                named_args: {}
+        - Pipeline:
+            FuncCall:
+              name:
+                Ident:
+                  - filter
+              args:
+                - Binary:
+                    left:
+                      Ident:
+                        - country
+                    op: Eq
+                    right:
+                      Literal:
+                        String: USA
+              named_args: {}
         "###);
 
         assert_yaml_snapshot!(
-            ast_of_string(r#"filter (upper country) == "USA""#, Rule::query).unwrap(), @r###"
+            stmts_of_string(r#"filter (upper country) == "USA""#).unwrap(), @r###"
         ---
-        Query:
-          version: ~
-          dialect: Generic
-          nodes:
-            - FuncCall:
-                name: filter
-                args:
-                  - Binary:
-                      left:
-                        FuncCall:
-                          name: upper
-                          args:
-                            - Ident: country
-                          named_args: {}
-                      op: Eq
-                      right:
-                        Literal:
-                          String: USA
-                named_args: {}
+        - Pipeline:
+            FuncCall:
+              name:
+                Ident:
+                  - filter
+              args:
+                - Binary:
+                    left:
+                      FuncCall:
+                        name:
+                          Ident:
+                            - upper
+                        args:
+                          - Ident:
+                              - country
+                        named_args: {}
+                    op: Eq
+                    right:
+                      Literal:
+                        String: USA
+              named_args: {}
         "###
         );
     }
 
     #[test]
     fn test_parse_aggregate() {
-        let aggregate = ast_of_string(
+        let aggregate = stmts_of_string(
             r"group [title] (
-            aggregate [sum salary, count]
-        )",
-            Rule::pipeline,
+                aggregate [sum salary, count]
+              )",
         )
         .unwrap();
         assert_yaml_snapshot!(
             aggregate, @r###"
         ---
-        FuncCall:
-          name: group
-          args:
-            - List:
-                - Ident: title
-            - FuncCall:
-                name: aggregate
-                args:
-                  - List:
-                      - FuncCall:
-                          name: sum
-                          args:
-                            - Ident: salary
-                          named_args: {}
-                      - Ident: count
-                named_args: {}
-          named_args: {}
+        - Pipeline:
+            FuncCall:
+              name:
+                Ident:
+                  - group
+              args:
+                - List:
+                    - Ident:
+                        - title
+                - FuncCall:
+                    name:
+                      Ident:
+                        - aggregate
+                    args:
+                      - List:
+                          - FuncCall:
+                              name:
+                                Ident:
+                                  - sum
+                              args:
+                                - Ident:
+                                    - salary
+                              named_args: {}
+                          - Ident:
+                              - count
+                    named_args: {}
+              named_args: {}
         "###);
-        let aggregate = ast_of_string(
+        let aggregate = stmts_of_string(
             r"group [title] (
-            aggregate [sum salary]
-        )",
-            Rule::pipeline,
+                aggregate [sum salary]
+              )",
         )
         .unwrap();
         assert_yaml_snapshot!(
             aggregate, @r###"
         ---
-        FuncCall:
-          name: group
-          args:
-            - List:
-                - Ident: title
-            - FuncCall:
-                name: aggregate
-                args:
-                  - List:
-                      - FuncCall:
-                          name: sum
-                          args:
-                            - Ident: salary
-                          named_args: {}
-                named_args: {}
-          named_args: {}
+        - Pipeline:
+            FuncCall:
+              name:
+                Ident:
+                  - group
+              args:
+                - List:
+                    - Ident:
+                        - title
+                - FuncCall:
+                    name:
+                      Ident:
+                        - aggregate
+                    args:
+                      - List:
+                          - FuncCall:
+                              name:
+                                Ident:
+                                  - sum
+                              args:
+                                - Ident:
+                                    - salary
+                              named_args: {}
+                    named_args: {}
+              named_args: {}
         "###);
     }
 
     #[test]
     fn test_parse_derive() -> Result<()> {
         assert_yaml_snapshot!(
-            ast_of_string(r#"derive [x = 5, y = (-x)]"#, Rule::func_call)?
+            expr_of_string(r#"derive [x = 5, y = (-x)]"#, Rule::func_call)?
         , @r###"
         ---
         FuncCall:
-          name: derive
+          name:
+            Ident:
+              - derive
           args:
             - List:
-                - Assign:
-                    name: x
+                - Literal:
+                    Integer: 5
+                  alias: x
+                - Unary:
+                    op: Neg
                     expr:
-                      Literal:
-                        Integer: 5
-                - Assign:
-                    name: y
-                    expr:
-                      Unary:
-                        op: Neg
-                        expr:
-                          Ident: x
+                      Ident:
+                        - x
+                  alias: y
           named_args: {}
         "###);
 
@@ -936,26 +1012,33 @@ Canada
     #[test]
     fn test_parse_select() -> Result<()> {
         assert_yaml_snapshot!(
-            ast_of_string(r#"select x"#, Rule::func_call)?
+            expr_of_string(r#"select x"#, Rule::func_call)?
         , @r###"
         ---
         FuncCall:
-          name: select
+          name:
+            Ident:
+              - select
           args:
-            - Ident: x
+            - Ident:
+                - x
           named_args: {}
         "###);
 
         assert_yaml_snapshot!(
-            ast_of_string(r#"select [x, y]"#, Rule::func_call)?
+            expr_of_string(r#"select [x, y]"#, Rule::func_call)?
         , @r###"
         ---
         FuncCall:
-          name: select
+          name:
+            Ident:
+              - select
           args:
             - List:
-                - Ident: x
-                - Ident: y
+                - Ident:
+                    - x
+                - Ident:
+                    - y
           named_args: {}
         "###);
 
@@ -965,18 +1048,19 @@ Canada
     #[test]
     fn test_parse_expr() -> Result<()> {
         assert_yaml_snapshot!(
-            ast_of_string(r#"country == "USA""#, Rule::expr)?
+            expr_of_string(r#"country == "USA""#, Rule::expr)?
         , @r###"
         ---
         Binary:
           left:
-            Ident: country
+            Ident:
+              - country
           op: Eq
           right:
             Literal:
               String: USA
         "###);
-        assert_yaml_snapshot!(ast_of_string(
+        assert_yaml_snapshot!(expr_of_string(
                 r#"[
   gross_salary = salary + payroll_tax,
   gross_cost   = gross_salary + benefits_cost,
@@ -984,59 +1068,60 @@ Canada
         Rule::list)?, @r###"
         ---
         List:
-          - Assign:
-              name: gross_salary
-              expr:
-                Binary:
-                  left:
-                    Ident: salary
-                  op: Add
-                  right:
-                    Ident: payroll_tax
-          - Assign:
-              name: gross_cost
-              expr:
-                Binary:
-                  left:
-                    Ident: gross_salary
-                  op: Add
-                  right:
-                    Ident: benefits_cost
+          - Binary:
+              left:
+                Ident:
+                  - salary
+              op: Add
+              right:
+                Ident:
+                  - payroll_tax
+            alias: gross_salary
+          - Binary:
+              left:
+                Ident:
+                  - gross_salary
+              op: Add
+              right:
+                Ident:
+                  - benefits_cost
+            alias: gross_cost
         "###);
         assert_yaml_snapshot!(
-            ast_of_string(
+            expr_of_string(
                 "gross_salary = (salary + payroll_tax) * (1 + tax_rate)",
                 Rule::assign,
             )?,
             @r###"
         ---
-        Assign:
-          name: gross_salary
-          expr:
+        Binary:
+          left:
             Binary:
               left:
-                Binary:
-                  left:
-                    Ident: salary
-                  op: Add
-                  right:
-                    Ident: payroll_tax
-              op: Mul
+                Ident:
+                  - salary
+              op: Add
               right:
-                Binary:
-                  left:
-                    Literal:
-                      Integer: 1
-                  op: Add
-                  right:
-                    Ident: tax_rate
+                Ident:
+                  - payroll_tax
+          op: Mul
+          right:
+            Binary:
+              left:
+                Literal:
+                  Integer: 1
+              op: Add
+              right:
+                Ident:
+                  - tax_rate
+        alias: gross_salary
         "###);
         Ok(())
     }
 
     #[test]
     fn test_parse_query() -> Result<()> {
-        assert_yaml_snapshot!(ast_of_string(
+        assert_yaml_snapshot!(stmts_of_string(
             r#"
 from employees
 filter country == "USA"                        # Each line transforms the previous result.
@@ -1059,143 +1144,154 @@ sort sum_gross_cost
 filter ct > 200
 take 20
     "#
-            .trim(),
-            Rule::query,
+            .trim()
         )?);
         Ok(())
     }
 
     #[test]
     fn test_parse_function() -> Result<()> {
-        assert_yaml_snapshot!(ast_of_string("func plus_one x ->  x + 1", Rule::func_def)?, @r###"
+        assert_yaml_snapshot!(stmts_of_string("func plus_one x ->  x + 1")?, @r###"
         ---
-        FuncDef:
-          name: plus_one
-          positional_params:
-            - - Ident: x
-              - ~
-          named_params: []
-          body:
-            Binary:
-              left:
-                Ident: x
-              op: Add
-              right:
-                Literal:
-                  Integer: 1
-          return_type: ~
+        - FuncDef:
+            name: plus_one
+            positional_params:
+              - name: x
+                default_value: ~
+            named_params: []
+            body:
+              Binary:
+                left:
+                  Ident:
+                    - x
+                op: Add
+                right:
+                  Literal:
+                    Integer: 1
+            return_ty: ~
         "###);
-        assert_yaml_snapshot!(ast_of_string(
-            "func identity x ->  x", Rule::func_def
-        )?
+        assert_yaml_snapshot!(stmts_of_string("func identity x ->  x")?
         , @r###"
         ---
-        FuncDef:
-          name: identity
-          positional_params:
-            - - Ident: x
-              - ~
-          named_params: []
-          body:
-            Ident: x
-          return_type: ~
+        - FuncDef:
+            name: identity
+            positional_params:
+              - name: x
+                default_value: ~
+            named_params: []
+            body:
+              Ident:
+                - x
+            return_ty: ~
         "###);
-        assert_yaml_snapshot!(ast_of_string(
-            "func plus_one x ->  (x + 1)", Rule::func_def
-        )?
+        assert_yaml_snapshot!(stmts_of_string("func plus_one x ->  (x + 1)")?
         , @r###"
         ---
-        FuncDef:
-          name: plus_one
-          positional_params:
-            - - Ident: x
-              - ~
-          named_params: []
-          body:
-            Binary:
-              left:
-                Ident: x
-              op: Add
-              right:
-                Literal:
-                  Integer: 1
-          return_type: ~
+        - FuncDef:
+            name: plus_one
+            positional_params:
+              - name: x
+                default_value: ~
+            named_params: []
+            body:
+              Binary:
+                left:
+                  Ident:
+                    - x
+                op: Add
+                right:
+                  Literal:
+                    Integer: 1
+            return_ty: ~
         "###);
-        assert_yaml_snapshot!(ast_of_string(
-            "func plus_one x ->  x + 1", Rule::func_def
-        )?
+        assert_yaml_snapshot!(stmts_of_string("func plus_one x ->  x + 1")?
         , @r###"
         ---
-        FuncDef:
-          name: plus_one
-          positional_params:
-            - - Ident: x
-              - ~
-          named_params: []
-          body:
-            Binary:
-              left:
-                Ident: x
-              op: Add
-              right:
-                Literal:
-                  Integer: 1
-          return_type: ~
+        - FuncDef:
+            name: plus_one
+            positional_params:
+              - name: x
+                default_value: ~
+            named_params: []
+            body:
+              Binary:
+                left:
+                  Ident:
+                    - x
+                op: Add
+                right:
+                  Literal:
+                    Integer: 1
+            return_ty: ~
         "###);
-        // An example to show that we can't delayer the tree, despite there
-        // being lots of layers.
-        assert_yaml_snapshot!(ast_of_string(
-            "func foo x ->  (foo bar + 1) (plax) - baz", Rule::func_def
-        )?
+        assert_yaml_snapshot!(stmts_of_string("func foo x -> some_func (foo bar + 1) (plax) - baz")?
         , @r###"
         ---
-        FuncDef:
-          name: foo
-          positional_params:
-            - - Ident: x
-              - ~
-          named_params: []
-          body:
-            FuncCall:
-              name: foo
-              args:
-                - Binary:
-                    left:
-                      Ident: bar
-                    op: Add
-                    right:
-                      Literal:
-                        Integer: 1
-              named_args: {}
-          return_type: ~
+        - FuncDef:
+            name: foo
+            positional_params:
+              - name: x
+                default_value: ~
+            named_params: []
+            body:
+              FuncCall:
+                name:
+                  Ident:
+                    - some_func
+                args:
+                  - FuncCall:
+                      name:
+                        Ident:
+                          - foo
+                      args:
+                        - Binary:
+                            left:
+                              Ident:
+                                - bar
+                            op: Add
+                            right:
+                              Literal:
+                                Integer: 1
+                      named_args: {}
+                  - Binary:
+                      left:
+                        Ident:
+                          - plax
+                      op: Sub
+                      right:
+                        Ident:
+                          - baz
+                named_args: {}
+            return_ty: ~
         "###);
 
-        assert_yaml_snapshot!(ast_of_string("func return_constant ->  42", Rule::func_def)?, @r###"
+        assert_yaml_snapshot!(stmts_of_string("func return_constant ->  42")?, @r###"
         ---
-        FuncDef:
-          name: return_constant
-          positional_params: []
-          named_params: []
-          body:
-            Literal:
-              Integer: 42
-          return_type: ~
+        - FuncDef:
+            name: return_constant
+            positional_params: []
+            named_params: []
+            body:
+              Literal:
+                Integer: 42
+            return_ty: ~
         "###);
-        assert_yaml_snapshot!(ast_of_string(r#"func count X ->  s"SUM({X})""#, Rule::func_def)?, @r###"
+        assert_yaml_snapshot!(stmts_of_string(r#"func count X ->  s"SUM({X})""#)?, @r###"
         ---
-        FuncDef:
-          name: count
-          positional_params:
-            - - Ident: X
-              - ~
-          named_params: []
-          body:
-            SString:
-              - String: SUM(
-              - Expr:
-                  Ident: X
-              - String: )
-          return_type: ~
+        - FuncDef:
+            name: count
+            positional_params:
+              - name: X
+                default_value: ~
+            named_params: []
+            body:
+              SString:
+                - String: SUM(
+                - Expr:
+                    Ident:
+                      - X
+                - String: )
+            return_ty: ~
         "###);
 
         /* TODO: Does not yet parse because `window` not yet implemented.
@@ -1215,27 +1311,28 @@ take 20
             ));
             */
 
-        assert_yaml_snapshot!(ast_of_string(r#"func add x to:a ->  x + to"#, Rule::func_def)?, @r###"
+        assert_yaml_snapshot!(stmts_of_string(r#"func add x to:a ->  x + to"#)?, @r###"
         ---
-        FuncDef:
-          name: add
-          positional_params:
-            - - Ident: x
-              - ~
-          named_params:
-            - - NamedArg:
-                  name: to
-                  expr:
-                    Ident: a
-              - ~
-          body:
-            Binary:
-              left:
-                Ident: x
-              op: Add
-              right:
-                Ident: to
-          return_type: ~
+        - FuncDef:
+            name: add
+            positional_params:
+              - name: x
+                default_value: ~
+            named_params:
+              - name: to
+                default_value:
+                  Ident:
+                    - a
+            body:
+              Binary:
+                left:
+                  Ident:
+                    - x
+                op: Add
+                right:
+                  Ident:
+                    - to
+            return_ty: ~
         "###);
 
         Ok(())
@@ -1244,21 +1341,23 @@ take 20
     #[test]
     fn test_parse_func_call() {
         // Function without argument
-        let ast = ast_of_string(r#"count"#, Rule::expr).unwrap();
-        let ident = ast.item.into_ident().unwrap();
+        let ast = expr_of_string(r#"count"#, Rule::expr).unwrap();
+        let ident = ast.kind.into_ident().unwrap();
         assert_yaml_snapshot!(
             ident, @r###"
         ---
-        count
+        - count
         "###);
 
         // A non-friendly option for #154
-        let ast = ast_of_string(r#"count s'*'"#, Rule::expr_call).unwrap();
-        let func_call: FuncCall = ast.item.into_func_call().unwrap();
+        let ast = expr_of_string(r#"count s'*'"#, Rule::expr_call).unwrap();
+        let func_call: FuncCall = ast.kind.into_func_call().unwrap();
         assert_yaml_snapshot!(
             func_call, @r###"
         ---
-        name: count
+        name:
+          Ident:
+            - count
         args:
           - SString:
               - String: "*"
@@ -1267,84 +1366,96 @@ take 20
 
         assert_yaml_snapshot!(parse(r#"from mytable | select [a and b + c or (d e) and f]"#).unwrap(), @r###"
         ---
-        version: ~
-        dialect: Generic
-        nodes:
-          - Pipeline:
-              nodes:
+        - Pipeline:
+            Pipeline:
+              exprs:
                 - FuncCall:
-                    name: from
+                    name:
+                      Ident:
+                        - from
                     args:
-                      - Ident: mytable
+                      - Ident:
+                          - mytable
                     named_args: {}
                 - FuncCall:
-                    name: select
+                    name:
+                      Ident:
+                        - select
                     args:
                       - List:
                           - Binary:
                               left:
-                                Ident: a
+                                Ident:
+                                  - a
                               op: And
                               right:
                                 Binary:
                                   left:
                                     Binary:
                                       left:
-                                        Ident: b
+                                        Ident:
+                                          - b
                                       op: Add
                                       right:
-                                        Ident: c
+                                        Ident:
+                                          - c
                                   op: Or
                                   right:
                                     Binary:
                                       left:
                                         FuncCall:
-                                          name: d
+                                          name:
+                                            Ident:
+                                              - d
                                           args:
-                                            - Ident: e
+                                            - Ident:
+                                                - e
                                           named_args: {}
                                       op: And
                                       right:
-                                        Ident: f
+                                        Ident:
+                                          - f
                     named_args: {}
         "###);
 
-        let ast = ast_of_string(r#"add bar to=3"#, Rule::expr_call).unwrap();
+        let ast = expr_of_string(r#"add bar to=3"#, Rule::expr_call).unwrap();
         assert_yaml_snapshot!(
             ast, @r###"
         ---
         FuncCall:
-          name: add
+          name:
+            Ident:
+              - add
           args:
-            - Ident: bar
-            - Assign:
-                name: to
-                expr:
-                  Literal:
-                    Integer: 3
+            - Ident:
+                - bar
+            - Literal:
+                Integer: 3
+              alias: to
           named_args: {}
         "###);
     }
 
     #[test]
     fn test_parse_table() -> Result<()> {
-        assert_yaml_snapshot!(ast_of_string(
-            "table newest_employees = (from employees)",
-            Rule::table
+        assert_yaml_snapshot!(stmts_of_string(
+            "table newest_employees = (from employees)"
         )?, @r###"
         ---
-        Table:
-          name: newest_employees
-          pipeline:
-            FuncCall:
-              name: from
-              args:
-                - Ident: employees
-              named_args: {}
-          id: ~
+        - TableDef:
+            name: newest_employees
+            value:
+              FuncCall:
+                name:
+                  Ident:
+                    - from
+                args:
+                  - Ident:
+                      - employees
+                named_args: {}
         "###);
 
-        assert_yaml_snapshot!(ast_of_string(
+        assert_yaml_snapshot!(stmts_of_string(
             r#"
         table newest_employees = (
           from employees
@@ -1355,56 +1466,69 @@ take 20
           )
           sort tenure
           take 50
-        )"#.trim(), Rule::table)?,
+        )"#.trim())?,
          @r###"
         ---
-        Table:
-          name: newest_employees
-          pipeline:
-            Pipeline:
-              nodes:
-                - FuncCall:
-                    name: from
-                    args:
-                      - Ident: employees
-                    named_args: {}
-                - FuncCall:
-                    name: group
-                    args:
-                      - Ident: country
-                      - FuncCall:
-                          name: aggregate
-                          args:
-                            - List:
-                                - Assign:
-                                    name: average_country_salary
-                                    expr:
-                                      FuncCall:
-                                        name: average
-                                        args:
-                                          - Ident: salary
-                                        named_args: {}
-                          named_args: {}
-                    named_args: {}
-                - FuncCall:
-                    name: sort
-                    args:
-                      - Ident: tenure
-                    named_args: {}
-                - FuncCall:
-                    name: take
-                    args:
-                      - Literal:
-                          Integer: 50
-                    named_args: {}
-          id: ~
+        - TableDef:
+            name: newest_employees
+            value:
+              Pipeline:
+                exprs:
+                  - FuncCall:
+                      name:
+                        Ident:
+                          - from
+                      args:
+                        - Ident:
+                            - employees
+                      named_args: {}
+                  - FuncCall:
+                      name:
+                        Ident:
+                          - group
+                      args:
+                        - Ident:
+                            - country
+                        - FuncCall:
+                            name:
+                              Ident:
+                                - aggregate
+                            args:
+                              - List:
+                                  - FuncCall:
+                                      name:
+                                        Ident:
+                                          - average
+                                      args:
+                                        - Ident:
+                                            - salary
+                                      named_args: {}
+                                    alias: average_country_salary
+                            named_args: {}
+                      named_args: {}
+                  - FuncCall:
+                      name:
+                        Ident:
+                          - sort
+                      args:
+                        - Ident:
+                            - tenure
+                      named_args: {}
+                  - FuncCall:
+                      name:
+                        Ident:
+                          - take
+                      args:
+                        - Literal:
+                            Integer: 50
+                      named_args: {}
         "###);
         Ok(())
     }
 
     #[test]
     fn test_parse_table_with_newlines() -> Result<()> {
-        assert_yaml_snapshot!(ast_of_string(
+        assert_yaml_snapshot!(stmts_of_string(
           "table x = (
 
             from x_table
@@ -1413,29 +1537,40 @@ take 20
 
           )
 
-          from x",
-          Rule::table
+          from x"
         )?, @r###"
         ---
-        Table:
-          name: x
-          pipeline:
-            Pipeline:
-              nodes:
-                - FuncCall:
-                    name: from
-                    args:
-                      - Ident: x_table
-                    named_args: {}
-                - FuncCall:
-                    name: select
-                    args:
-                      - Assign:
-                          name: only_in_x
-                          expr:
-                            Ident: foo
-                    named_args: {}
-          id: ~
+        - TableDef:
+            name: x
+            value:
+              Pipeline:
+                exprs:
+                  - FuncCall:
+                      name:
+                        Ident:
+                          - from
+                      args:
+                        - Ident:
+                            - x_table
+                      named_args: {}
+                  - FuncCall:
+                      name:
+                        Ident:
+                          - select
+                      args:
+                        - Ident:
+                            - foo
+                          alias: only_in_x
+                      named_args: {}
+        - Pipeline:
+            FuncCall:
+              name:
+                Ident:
+                  - from
+              args:
+                - Ident:
+                    - x
+              named_args: {}
         "###);
 
         Ok(())
@@ -1443,41 +1578,43 @@ take 20
 
     #[test]
     fn test_inline_pipeline() {
-        assert_yaml_snapshot!(ast_of_string("(salary | percentile 50)", Rule::nested_pipeline).unwrap(), @r###"
+        assert_yaml_snapshot!(expr_of_string("(salary | percentile 50)", Rule::nested_pipeline).unwrap(), @r###"
         ---
         Pipeline:
-          nodes:
-            - Ident: salary
+          exprs:
+            - Ident:
+                - salary
             - FuncCall:
-                name: percentile
+                name:
+                  Ident:
+                    - percentile
                 args:
                   - Literal:
                       Integer: 50
                 named_args: {}
         "###);
-        assert_yaml_snapshot!(ast_of_string("func median x -> (x | percentile 50)", Rule::query).unwrap(), @r###"
+        assert_yaml_snapshot!(stmts_of_string("func median x -> (x | percentile 50)").unwrap(), @r###"
         ---
-        Query:
-          version: ~
-          dialect: Generic
-          nodes:
-            - FuncDef:
-                name: median
-                positional_params:
-                  - - Ident: x
-                    - ~
-                named_params: []
-                body:
-                  Pipeline:
-                    nodes:
-                      - Ident: x
-                      - FuncCall:
-                          name: percentile
-                          args:
-                            - Literal:
-                                Integer: 50
-                          named_args: {}
-                return_type: ~
+        - FuncDef:
+            name: median
+            positional_params:
+              - name: x
+                default_value: ~
+            named_params: []
+            body:
+              Pipeline:
+                exprs:
+                  - Ident:
+                      - x
+                  - FuncCall:
+                      name:
+                        Ident:
+                          - percentile
+                      args:
+                        - Literal:
+                            Integer: 50
+                      named_args: {}
+            return_ty: ~
         "###);
     }
 
@@ -1491,32 +1628,40 @@ take 20
         ]
         "#)?, @r###"
         ---
-        version: ~
-        dialect: Generic
-        nodes:
-          - Pipeline:
-              nodes:
+        - Pipeline:
+            Pipeline:
+              exprs:
                 - FuncCall:
-                    name: from
+                    name:
+                      Ident:
+                        - from
                     args:
-                      - Ident: mytable
+                      - Ident:
+                          - mytable
                     named_args: {}
                 - FuncCall:
-                    name: filter
+                    name:
+                      Ident:
+                        - filter
                     args:
                       - List:
                           - Binary:
                               left:
-                                Ident: first_name
+                                Ident:
+                                  - first_name
                               op: Eq
                               right:
-                                Ident: $1
+                                Ident:
+                                  - $1
                           - Binary:
                               left:
-                                Ident: last_name
+                                Ident:
+                                  - last_name
                               op: Eq
                               right:
-                                Ident: $2.name
+                                Ident:
+                                  - $2
+                                  - name
                     named_args: {}
         "###);
         Ok(())
@@ -1527,7 +1672,7 @@ take 20
         // #284
 
         let prql = "from c_invoice
-join doc:c_doctype [c_invoice_id]
+join doc:c_doctype [~c_invoice_id]
 select [
 \tinvoice_no,
 \tdocstatus
@@ -1540,7 +1685,7 @@ select [
     #[test]
     fn test_parse_backticks() -> Result<()> {
         let prql = "
-from `a`
+from `a.b`
 aggregate [max c]
 join `my-proj.dataset.table`
 join `my-proj`.`dataset`.`table`
@@ -1548,35 +1693,49 @@ join `my-proj`.`dataset`.`table`
 
         assert_yaml_snapshot!(parse(prql)?, @r###"
         ---
-        version: ~
-        dialect: Generic
-        nodes:
-          - Pipeline:
-              nodes:
+        - Pipeline:
+            Pipeline:
+              exprs:
                 - FuncCall:
-                    name: from
+                    name:
+                      Ident:
+                        - from
                     args:
-                      - Ident: a
+                      - Ident:
+                          - a.b
                     named_args: {}
                 - FuncCall:
-                    name: aggregate
+                    name:
+                      Ident:
+                        - aggregate
                     args:
                       - List:
                           - FuncCall:
-                              name: max
+                              name:
+                                Ident:
+                                  - max
                               args:
-                                - Ident: c
+                                - Ident:
+                                    - c
                               named_args: {}
                     named_args: {}
                 - FuncCall:
-                    name: join
+                    name:
+                      Ident:
+                        - join
                     args:
-                      - Ident: my-proj.dataset.table
+                      - Ident:
+                          - my-proj.dataset.table
                     named_args: {}
                 - FuncCall:
-                    name: join
+                    name:
+                      Ident:
+                        - join
                     args:
-                      - Ident: my-proj.dataset.table
+                      - Ident:
+                          - my-proj
+                          - dataset
+                          - table
                     named_args: {}
         "###);
 
@@ -1594,54 +1753,72 @@ join `my-proj`.`dataset`.`table`
         sort [issued_at, -amount, +num_of_articles]
         ").unwrap(), @r###"
         ---
-        version: ~
-        dialect: Generic
-        nodes:
-          - Pipeline:
-              nodes:
+        - Pipeline:
+            Pipeline:
+              exprs:
                 - FuncCall:
-                    name: from
+                    name:
+                      Ident:
+                        - from
                     args:
-                      - Ident: invoices
+                      - Ident:
+                          - invoices
                     named_args: {}
                 - FuncCall:
-                    name: sort
+                    name:
+                      Ident:
+                        - sort
                     args:
-                      - Ident: issued_at
+                      - Ident:
+                          - issued_at
                     named_args: {}
                 - FuncCall:
-                    name: sort
+                    name:
+                      Ident:
+                        - sort
                     args:
                       - Unary:
                           op: Neg
                           expr:
-                            Ident: issued_at
+                            Ident:
+                              - issued_at
                     named_args: {}
                 - FuncCall:
-                    name: sort
+                    name:
+                      Ident:
+                        - sort
                     args:
                       - List:
-                          - Ident: issued_at
+                          - Ident:
+                              - issued_at
                     named_args: {}
                 - FuncCall:
-                    name: sort
+                    name:
+                      Ident:
+                        - sort
                     args:
                       - List:
                           - Unary:
                               op: Neg
                               expr:
-                                Ident: issued_at
+                                Ident:
+                                  - issued_at
                     named_args: {}
                 - FuncCall:
-                    name: sort
+                    name:
+                      Ident:
+                        - sort
                     args:
                       - List:
-                          - Ident: issued_at
+                          - Ident:
+                              - issued_at
                           - Unary:
                               op: Neg
                               expr:
-                                Ident: amount
-                          - Ident: num_of_articles
+                                Ident:
+                                  - amount
+                          - Ident:
+                              - num_of_articles
                     named_args: {}
         "###);
 
@@ -1663,24 +1840,30 @@ join `my-proj`.`dataset`.`table`
         ]
         ").unwrap(), @r###"
         ---
-        version: ~
-        dialect: Generic
-        nodes:
-          - Pipeline:
-              nodes:
+        - Pipeline:
+            Pipeline:
+              exprs:
                 - FuncCall:
-                    name: from
+                    name:
+                      Ident:
+                        - from
                     args:
-                      - Ident: employees
+                      - Ident:
+                          - employees
                     named_args: {}
                 - FuncCall:
-                    name: filter
+                    name:
+                      Ident:
+                        - filter
                     args:
                       - Pipeline:
-                          nodes:
-                            - Ident: age
+                          exprs:
+                            - Ident:
+                                - age
                             - FuncCall:
-                                name: between
+                                name:
+                                  Ident:
+                                    - between
                                 args:
                                   - Range:
                                       start:
@@ -1692,59 +1875,49 @@ join `my-proj`.`dataset`.`table`
                                 named_args: {}
                     named_args: {}
                 - FuncCall:
-                    name: derive
+                    name:
+                      Ident:
+                        - derive
                     args:
                       - List:
-                          - Assign:
-                              name: greater_than_ten
-                              expr:
-                                Range:
-                                  start:
-                                    Literal:
-                                      Integer: 11
-                                  end: ~
-                          - Assign:
-                              name: less_than_ten
-                              expr:
-                                Range:
-                                  start: ~
-                                  end:
-                                    Literal:
-                                      Integer: 9
-                          - Assign:
-                              name: negative
-                              expr:
-                                Range:
-                                  start:
-                                    Literal:
-                                      Integer: -5
-                                  end: ~
-                          - Assign:
-                              name: more_negative
-                              expr:
-                                Range:
-                                  start:
-                                    Literal:
-                                      Integer: -10
-                                  end: ~
-                          - Assign:
-                              name: dates_open
-                              expr:
-                                Range:
-                                  start:
-                                    Literal:
-                                      Date: 2020-01-01
-                                  end: ~
-                          - Assign:
-                              name: dates
-                              expr:
-                                Range:
-                                  start:
-                                    Literal:
-                                      Date: 2020-01-01
-                                  end:
-                                    Literal:
-                                      Date: 2021-01-01
+                          - Range:
+                              start:
+                                Literal:
+                                  Integer: 11
+                              end: ~
+                            alias: greater_than_ten
+                          - Range:
+                              start: ~
+                              end:
+                                Literal:
+                                  Integer: 9
+                            alias: less_than_ten
+                          - Range:
+                              start:
+                                Literal:
+                                  Integer: -5
+                              end: ~
+                            alias: negative
+                          - Range:
+                              start:
+                                Literal:
+                                  Integer: -10
+                              end: ~
+                            alias: more_negative
+                          - Range:
+                              start:
+                                Literal:
+                                  Date: 2020-01-01
+                              end: ~
+                            alias: dates_open
+                          - Range:
+                              start:
+                                Literal:
+                                  Date: 2020-01-01
+                              end:
+                                Literal:
+                                  Date: 2021-01-01
+                            alias: dates
                     named_args: {}
         "###);
     }
@@ -1756,31 +1929,34 @@ join `my-proj`.`dataset`.`table`
         derive [age_plus_two_years = (age + 2years)]
         ").unwrap(), @r###"
         ---
-        version: ~
-        dialect: Generic
-        nodes:
-          - Pipeline:
-              nodes:
+        - Pipeline:
+            Pipeline:
+              exprs:
                 - FuncCall:
-                    name: from
+                    name:
+                      Ident:
+                        - from
                     args:
-                      - Ident: employees
+                      - Ident:
+                          - employees
                     named_args: {}
                 - FuncCall:
-                    name: derive
+                    name:
+                      Ident:
+                        - derive
                     args:
                       - List:
-                          - Assign:
-                              name: age_plus_two_years
-                              expr:
-                                Binary:
-                                  left:
-                                    Ident: age
-                                  op: Add
-                                  right:
-                                    Interval:
-                                      n: 2
-                                      unit: years
+                          - Binary:
+                              left:
+                                Ident:
+                                  - age
+                              op: Add
+                              right:
+                                Literal:
+                                  ValueAndUnit:
+                                    n: 2
+                                    unit: years
+                            alias: age_plus_two_years
                     named_args: {}
         "###);
 
@@ -1793,28 +1969,22 @@ join `my-proj`.`dataset`.`table`
         ]
         ").unwrap(), @r###"
         ---
-        version: ~
-        dialect: Generic
-        nodes:
-          - FuncCall:
-              name: derive
+        - Pipeline:
+            FuncCall:
+              name:
+                Ident:
+                  - derive
               args:
                 - List:
-                    - Assign:
-                        name: date
-                        expr:
-                          Literal:
-                            Date: 2011-02-01
-                    - Assign:
-                        name: timestamp
-                        expr:
-                          Literal:
-                            Timestamp: "2011-02-01T10:00"
-                    - Assign:
-                        name: time
-                        expr:
-                          Literal:
-                            Time: "14:00"
+                    - Literal:
+                        Date: 2011-02-01
+                      alias: date
+                    - Literal:
+                        Timestamp: "2011-02-01T10:00"
+                      alias: timestamp
+                    - Literal:
+                        Time: "14:00"
+                      alias: time
               named_args: {}
         "###);
 
@@ -1829,77 +1999,17 @@ join `my-proj`.`dataset`.`table`
         derive x = r#"r-string test"#
         "###).unwrap(), @r###"
         ---
-        version: ~
-        dialect: Generic
-        nodes:
-          - FuncCall:
-              name: derive
+        - Pipeline:
+            FuncCall:
+              name:
+                Ident:
+                  - derive
               args:
-                - Assign:
-                    name: x
-                    expr:
-                      Ident: r
+                - Ident:
+                    - r
+                  alias: x
               named_args: {}
         "### )
-    }
-
-    #[test]
-    fn test_header() {
-        assert_yaml_snapshot!(parse(r###"
-        prql dialect:mssql version:"0"
-
-        from employees
-        "###).unwrap(), @r###"
-        ---
-        version: ^0
-        dialect: MsSql
-        nodes:
-          - FuncCall:
-              name: from
-              args:
-                - Ident: employees
-              named_args: {}
-        "### );
-
-        assert_yaml_snapshot!(parse(r###"
-        prql dialect:bigquery version:"0.2"
-
-        from employees
-        "###).unwrap(), @r###"
-        ---
-        version: ^0.2
-        dialect: BigQuery
-        nodes:
-          - FuncCall:
-              name: from
-              args:
-                - Ident: employees
-              named_args: {}
-        "### );
-
-        assert!(parse(
-            r###"
-        prql dialect:bigquery version:foo
-        from employees
-        "###,
-        )
-        .is_err());
-
-        assert!(parse(
-            r###"
-        prql dialect:bigquery version:"25"
-        from employees
-        "###,
-        )
-        .is_err());
-
-        assert!(parse(
-            r###"
-        prql dialect:yah version:foo
-        from employees
-        "###,
-        )
-        .is_err());
     }
 
     #[test]
@@ -1909,29 +2019,33 @@ join `my-proj`.`dataset`.`table`
         derive amount = amount ?? 0
         "###).unwrap(), @r###"
         ---
-        version: ~
-        dialect: Generic
-        nodes:
-          - Pipeline:
-              nodes:
+        - Pipeline:
+            Pipeline:
+              exprs:
                 - FuncCall:
-                    name: from
+                    name:
+                      Ident:
+                        - from
                     args:
-                      - Ident: employees
+                      - Ident:
+                          - employees
                     named_args: {}
                 - FuncCall:
-                    name: derive
+                    name:
+                      Ident:
+                        - derive
                     args:
-                      - Assign:
-                          name: amount
-                          expr:
-                            FuncCall:
-                              name: coalesce
-                              args:
-                                - Ident: amount
-                                - Literal:
-                                    Integer: 0
-                              named_args: {}
+                      - FuncCall:
+                          name:
+                            Ident:
+                              - coalesce
+                          args:
+                            - Ident:
+                                - amount
+                            - Literal:
+                                Integer: 0
+                          named_args: {}
+                        alias: amount
                     named_args: {}
         "### )
     }
@@ -1942,17 +2056,15 @@ join `my-proj`.`dataset`.`table`
         derive x = true
         "###).unwrap(), @r###"
         ---
-        version: ~
-        dialect: Generic
-        nodes:
-          - FuncCall:
-              name: derive
+        - Pipeline:
+            FuncCall:
+              name:
+                Ident:
+                  - derive
               args:
-                - Assign:
-                    name: x
-                    expr:
-                      Literal:
-                        Boolean: true
+                - Literal:
+                    Boolean: true
+                  alias: x
               named_args: {}
         "###)
     }
@@ -1961,43 +2073,59 @@ join `my-proj`.`dataset`.`table`
     fn test_parse_allowed_idents() {
         assert_yaml_snapshot!(parse(r###"
         from employees
-        join _salary [employee_id] # table with leading underscore
+        join _salary [~employee_id] # table with leading underscore
         filter first_name == $1
         select [_employees._underscored_column]
         "###).unwrap(), @r###"
         ---
-        version: ~
-        dialect: Generic
-        nodes:
-          - Pipeline:
-              nodes:
+        - Pipeline:
+            Pipeline:
+              exprs:
                 - FuncCall:
-                    name: from
+                    name:
+                      Ident:
+                        - from
                     args:
-                      - Ident: employees
+                      - Ident:
+                          - employees
                     named_args: {}
                 - FuncCall:
-                    name: join
+                    name:
+                      Ident:
+                        - join
                     args:
-                      - Ident: _salary
+                      - Ident:
+                          - _salary
                       - List:
-                          - Ident: employee_id
+                          - Unary:
+                              op: EqSelf
+                              expr:
+                                Ident:
+                                  - employee_id
                     named_args: {}
                 - FuncCall:
-                    name: filter
+                    name:
+                      Ident:
+                        - filter
                     args:
                       - Binary:
                           left:
-                            Ident: first_name
+                            Ident:
+                              - first_name
                           op: Eq
                           right:
-                            Ident: $1
+                            Ident:
+                              - $1
                     named_args: {}
                 - FuncCall:
-                    name: select
+                    name:
+                      Ident:
+                        - select
                     args:
                       - List:
-                          - Ident: _employees._underscored_column
+                          - Ident:
+                              - _employees
+                              - _underscored_column
                     named_args: {}
         "###)
     }
@@ -2012,99 +2140,73 @@ join `my-proj`.`dataset`.`table`
         filter num_eyes < 2
         "###).unwrap(), @r###"
         ---
-        version: ~
-        dialect: Generic
-        nodes:
-          - Pipeline:
-              nodes:
+        - Pipeline:
+            Pipeline:
+              exprs:
                 - FuncCall:
-                    name: from
+                    name:
+                      Ident:
+                        - from
                     args:
-                      - Ident: people
+                      - Ident:
+                          - people
                     named_args: {}
                 - FuncCall:
-                    name: filter
+                    name:
+                      Ident:
+                        - filter
                     args:
                       - Binary:
                           left:
-                            Ident: age
+                            Ident:
+                              - age
                           op: Gte
                           right:
                             Literal:
                               Integer: 100
                     named_args: {}
                 - FuncCall:
-                    name: filter
+                    name:
+                      Ident:
+                        - filter
                     args:
                       - Binary:
                           left:
-                            Ident: num_grandchildren
+                            Ident:
+                              - num_grandchildren
                           op: Lte
                           right:
                             Literal:
                               Integer: 10
                     named_args: {}
                 - FuncCall:
-                    name: filter
+                    name:
+                      Ident:
+                        - filter
                     args:
                       - Binary:
                           left:
-                            Ident: salary
+                            Ident:
+                              - salary
                           op: Gt
                           right:
                             Literal:
                               Integer: 0
                     named_args: {}
                 - FuncCall:
-                    name: filter
+                    name:
+                      Ident:
+                        - filter
                     args:
                       - Binary:
                           left:
-                            Ident: num_eyes
+                            Ident:
+                              - num_eyes
                           op: Lt
                           right:
                             Literal:
                               Integer: 2
                     named_args: {}
         "###)
-    }
-
-    #[test]
-    fn check_valid_version() {
-        let stmt = format!(
-            r#"
-        prql version:"{}"
-        "#,
-            env!("CARGO_PKG_VERSION_MAJOR")
-        );
-        assert!(parse(&stmt).is_ok());
-
-        let stmt = format!(
-            r#"
-            prql version:"{}.{}"
-            "#,
-            env!("CARGO_PKG_VERSION_MAJOR"),
-            env!("CARGO_PKG_VERSION_MINOR")
-        );
-        assert!(parse(&stmt).is_ok());
-
-        let stmt = format!(
-            r#"
-            prql version:"{}.{}.{}"
-            "#,
-            env!("CARGO_PKG_VERSION_MAJOR"),
-            env!("CARGO_PKG_VERSION_MINOR"),
-            env!("CARGO_PKG_VERSION_PATCH"),
-        );
-        assert!(parse(&stmt).is_ok());
-    }
-
-    #[test]
-    fn check_invalid_version() {
-        let stmt = format!(
-            "prql version:{}\n",
-            env!("CARGO_PKG_VERSION_MAJOR").parse::<usize>().unwrap() + 1
-        );
-        assert!(parse(&stmt).is_err());
     }
 }

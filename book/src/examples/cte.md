@@ -13,6 +13,6 @@ table average_salaries = (
 )
 
 from newest_employees
-join average_salaries [country]
+join average_salaries [~country]
 select [name, salary, average_country_salary]
 ```

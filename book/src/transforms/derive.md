@@ -20,10 +20,3 @@ derive [
   gross_cost = gross_salary + benefits_cost
 ]
 ```
-
-`derive` generally computes a column from existing columns, but can also take a
-literal in which case it can begin a pipeline without a `from`:
-
-```prql
-derive x = 5
-```

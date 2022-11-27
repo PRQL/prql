@@ -1,132 +1,169 @@
 ---
 source: prql-compiler/src/parser.rs
-expression: "ast_of_string(r#\"\nfrom employees\nfilter country == \"USA\"                        # Each line transforms the previous result.\nderive [                                      # This adds columns / variables.\n  gross_salary = salary + payroll_tax,\n  gross_cost =   gross_salary + benefits_cost # Variables can use other variables.\n]\nfilter gross_cost > 0\ngroup [title, country] (\naggregate [               # `by` are the columns to group by.\n                   average salary,            # These are aggregation calcs run on each group.\n                   sum salary,\n                   average gross_salary,\n                   sum gross_salary,\n                   average gross_cost,\n  sum_gross_cost = sum gross_cost,\n  ct             = count,\n] )\nsort sum_gross_cost\nfilter ct > 200\ntake 20\n    \"#.trim(),\n              Rule::query)?"
+expression: "stmts_of_string(r#\"\nfrom employees\nfilter country == \"USA\"                        # Each line transforms the previous result.\nderive [                                      # This adds columns / variables.\n  gross_salary = salary + payroll_tax,\n  gross_cost =   gross_salary + benefits_cost # Variables can use other variables.\n]\nfilter gross_cost > 0\ngroup [title, country] (\naggregate [               # `by` are the columns to group by.\n                   average salary,            # These are aggregation calcs run on each group.\n                   sum salary,\n                   average gross_salary,\n                   sum gross_salary,\n                   average gross_cost,\n  sum_gross_cost = sum gross_cost,\n  ct             = count,\n] )\nsort sum_gross_cost\nfilter ct > 200\ntake 20\n    \"#.trim())?"
 ---
-Query:
-  version: ~
-  dialect: Generic
-  nodes:
-    - Pipeline:
-        nodes:
-          - FuncCall:
-              name: from
-              args:
-                - Ident: employees
-              named_args: {}
-          - FuncCall:
-              name: filter
-              args:
-                - Binary:
-                    left:
-                      Ident: country
-                    op: Eq
-                    right:
-                      Literal:
-                        String: USA
-              named_args: {}
-          - FuncCall:
-              name: derive
-              args:
-                - List:
-                    - Assign:
-                        name: gross_salary
-                        expr:
-                          Binary:
-                            left:
-                              Ident: salary
-                            op: Add
-                            right:
-                              Ident: payroll_tax
-                    - Assign:
-                        name: gross_cost
-                        expr:
-                          Binary:
-                            left:
-                              Ident: gross_salary
-                            op: Add
-                            right:
-                              Ident: benefits_cost
-              named_args: {}
-          - FuncCall:
-              name: filter
-              args:
-                - Binary:
-                    left:
-                      Ident: gross_cost
-                    op: Gt
-                    right:
-                      Literal:
-                        Integer: 0
-              named_args: {}
-          - FuncCall:
-              name: group
-              args:
-                - List:
-                    - Ident: title
-                    - Ident: country
-                - FuncCall:
-                    name: aggregate
-                    args:
-                      - List:
-                          - FuncCall:
-                              name: average
-                              args:
-                                - Ident: salary
-                              named_args: {}
-                          - FuncCall:
-                              name: sum
-                              args:
-                                - Ident: salary
-                              named_args: {}
-                          - FuncCall:
-                              name: average
-                              args:
-                                - Ident: gross_salary
-                              named_args: {}
-                          - FuncCall:
-                              name: sum
-                              args:
-                                - Ident: gross_salary
-                              named_args: {}
-                          - FuncCall:
-                              name: average
-                              args:
-                                - Ident: gross_cost
-                              named_args: {}
-                          - Assign:
-                              name: sum_gross_cost
-                              expr:
-                                FuncCall:
-                                  name: sum
-                                  args:
-                                    - Ident: gross_cost
-                                  named_args: {}
-                          - Assign:
-                              name: ct
-                              expr:
-                                Ident: count
-                    named_args: {}
-              named_args: {}
-          - FuncCall:
-              name: sort
-              args:
-                - Ident: sum_gross_cost
-              named_args: {}
-          - FuncCall:
-              name: filter
-              args:
-                - Binary:
-                    left:
-                      Ident: ct
-                    op: Gt
-                    right:
-                      Literal:
-                        Integer: 200
-              named_args: {}
-          - FuncCall:
-              name: take
-              args:
-                - Literal:
-                    Integer: 20
-              named_args: {}
+- Pipeline:
+    Pipeline:
+      exprs:
+        - FuncCall:
+            name:
+              Ident:
+                - from
+            args:
+              - Ident:
+                  - employees
+            named_args: {}
+        - FuncCall:
+            name:
+              Ident:
+                - filter
+            args:
+              - Binary:
+                  left:
+                    Ident:
+                      - country
+                  op: Eq
+                  right:
+                    Literal:
+                      String: USA
+            named_args: {}
+        - FuncCall:
+            name:
+              Ident:
+                - derive
+            args:
+              - List:
+                  - Binary:
+                      left:
+                        Ident:
+                          - salary
+                      op: Add
+                      right:
+                        Ident:
+                          - payroll_tax
+                    alias: gross_salary
+                  - Binary:
+                      left:
+                        Ident:
+                          - gross_salary
+                      op: Add
+                      right:
+                        Ident:
+                          - benefits_cost
+                    alias: gross_cost
+            named_args: {}
+        - FuncCall:
+            name:
+              Ident:
+                - filter
+            args:
+              - Binary:
+                  left:
+                    Ident:
+                      - gross_cost
+                  op: Gt
+                  right:
+                    Literal:
+                      Integer: 0
+            named_args: {}
+        - FuncCall:
+            name:
+              Ident:
+                - group
+            args:
+              - List:
+                  - Ident:
+                      - title
+                  - Ident:
+                      - country
+              - FuncCall:
+                  name:
+                    Ident:
+                      - aggregate
+                  args:
+                    - List:
+                        - FuncCall:
+                            name:
+                              Ident:
+                                - average
+                            args:
+                              - Ident:
+                                  - salary
+                            named_args: {}
+                        - FuncCall:
+                            name:
+                              Ident:
+                                - sum
+                            args:
+                              - Ident:
+                                  - salary
+                            named_args: {}
+                        - FuncCall:
+                            name:
+                              Ident:
+                                - average
+                            args:
+                              - Ident:
+                                  - gross_salary
+                            named_args: {}
+                        - FuncCall:
+                            name:
+                              Ident:
+                                - sum
+                            args:
+                              - Ident:
+                                  - gross_salary
+                            named_args: {}
+                        - FuncCall:
+                            name:
+                              Ident:
+                                - average
+                            args:
+                              - Ident:
+                                  - gross_cost
+                            named_args: {}
+                        - FuncCall:
+                            name:
+                              Ident:
+                                - sum
+                            args:
+                              - Ident:
+                                  - gross_cost
+                            named_args: {}
+                          alias: sum_gross_cost
+                        - Ident:
+                            - count
+                          alias: ct
+                  named_args: {}
+            named_args: {}
+        - FuncCall:
+            name:
+              Ident:
+                - sort
+            args:
+              - Ident:
+                  - sum_gross_cost
+            named_args: {}
+        - FuncCall:
+            name:
+              Ident:
+                - filter
+            args:
+              - Binary:
+                  left:
+                    Ident:
+                      - ct
+                  op: Gt
+                  right:
+                    Literal:
+                      Integer: 200
+            named_args: {}
+        - FuncCall:
+            name:
+              Ident:
+                - take
+            args:
+              - Literal:
+                  Integer: 20
+            named_args: {}
 

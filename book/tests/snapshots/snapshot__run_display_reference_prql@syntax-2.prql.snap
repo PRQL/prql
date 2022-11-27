@@ -1,10 +1,9 @@
 ---
 source: book/tests/snapshot.rs
-expression: "Item::Query(parse(&prql).unwrap())"
+expression: Statements(parse(&prql).unwrap())
 input_file: book/tests/prql/queries/syntax-2.prql
 ---
-prql dialect:generic
-
+from numbers
 derive [
   x = 1,
   y = 2,
@@ -17,5 +16,6 @@ derive [
   c = a,
   d = b,
 ]
+
 
 

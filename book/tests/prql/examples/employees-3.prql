@@ -6,6 +6,6 @@ join s=salaries side:left [
 group [de.emp_no, de.dept_no] (
   aggregate salary = (average s.salary)
 )
-join employees [emp_no]
-join titles [emp_no]
+join employees [~emp_no]
+join titles [~emp_no]
 select [dept_no, salary, employees.gender, titles.title]

@@ -5,8 +5,8 @@ input_file: book/tests/prql/examples/employees-0.prql
 ---
 WITH table_0 AS (
   SELECT
-    emp_no,
-    AVG(salary) AS emp_salary
+    AVG(salary) AS emp_salary,
+    emp_no
   FROM
     salaries
   GROUP BY
@@ -14,13 +14,13 @@ WITH table_0 AS (
 ),
 table_1 AS (
   SELECT
-    dept_emp.dept_no,
     t.title,
-    AVG(table_0.emp_salary) AS avg_salary
+    AVG(table_0.emp_salary) AS avg_salary,
+    dept_emp.dept_no
   FROM
     table_0
-    JOIN titles AS t USING(emp_no)
-    LEFT JOIN dept_emp USING(emp_no)
+    JOIN titles AS t ON table_0.emp_no = t.emp_no
+    LEFT JOIN dept_emp ON table_0.emp_no = dept_emp.emp_no
   GROUP BY
     dept_emp.dept_no,
     t.title
@@ -31,4 +31,4 @@ SELECT
   table_1.avg_salary
 FROM
   table_1
-  JOIN departments USING(dept_no)
+  JOIN departments ON table_1.dept_no = departments.dept_no

@@ -1,0 +1,48 @@
+---
+source: prql-compiler/src/semantic/resolver.rs
+expression: "resolve_derive(r#\"\n            from employees\n            derive [\n                gross_salary = salary + payroll_tax,\n                gross_cost =   gross_salary + benefits_cost\n            ]\n            \"#).unwrap()"
+---
+- id: 8
+  Binary:
+    left:
+      id: 9
+      Ident:
+        - _frame
+        - employees
+        - salary
+      target_id: 4
+      ty: Infer
+    op: Add
+    right:
+      id: 10
+      Ident:
+        - _frame
+        - employees
+        - payroll_tax
+      target_id: 4
+      ty: Infer
+  ty:
+    Literal: Column
+  alias: gross_salary
+- id: 11
+  Binary:
+    left:
+      id: 12
+      Ident:
+        - _frame
+        - gross_salary
+      target_id: 8
+      ty: Infer
+    op: Add
+    right:
+      id: 13
+      Ident:
+        - _frame
+        - employees
+        - benefits_cost
+      target_id: 4
+      ty: Infer
+  ty:
+    Literal: Column
+  alias: gross_cost
+

@@ -5,28 +5,28 @@ input_file: book/tests/prql/examples/employees-1.prql
 ---
 WITH table_0 AS (
   SELECT
-    emp_no,
-    gender,
-    AVG(salary) AS emp_salary
+    e.gender,
+    AVG(salary) AS emp_salary,
+    e.emp_no
   FROM
-    employees
-    JOIN salaries USING(emp_no)
+    employees AS e
+    JOIN salaries ON e.emp_no = salaries.emp_no
   GROUP BY
-    emp_no,
-    gender
+    e.emp_no,
+    e.gender
 ),
 table_1 AS (
   SELECT
-    de.dept_no,
-    de.gender,
+    table_0.gender,
     AVG(table_0.emp_salary) AS salary_avg,
-    STDDEV(table_0.emp_salary) AS salary_sd
+    STDDEV(table_0.emp_salary) AS salary_sd,
+    de.dept_no
   FROM
     table_0
-    LEFT JOIN dept_emp AS de USING(emp_no)
+    LEFT JOIN dept_emp AS de ON table_0.emp_no = de.emp_no
   GROUP BY
     de.dept_no,
-    de.gender
+    table_0.gender
 )
 SELECT
   departments.dept_name,
@@ -35,4 +35,4 @@ SELECT
   table_1.salary_sd
 FROM
   table_1
-  JOIN departments USING(dept_no)
+  JOIN departments ON table_1.dept_no = departments.dept_no

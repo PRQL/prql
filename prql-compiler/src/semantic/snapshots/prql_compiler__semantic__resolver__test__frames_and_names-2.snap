@@ -1,0 +1,22 @@
+---
+source: prql-compiler/src/semantic/resolver.rs
+expression: "resolve_type(r#\"\n            from table_1\n            join customers [~customer_no]\n            \"#).unwrap()"
+---
+Table:
+  columns:
+    - Wildcard:
+        input_name: table_1
+    - Wildcard:
+        input_name: customers
+  inputs:
+    - id: 4
+      name: table_1
+      table:
+        - default_db
+        - table_1
+    - id: 8
+      name: customers
+      table:
+        - default_db
+        - customers
+

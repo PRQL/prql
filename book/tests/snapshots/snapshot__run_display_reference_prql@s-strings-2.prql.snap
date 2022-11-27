@@ -1,16 +1,15 @@
 ---
 source: book/tests/snapshot.rs
-expression: "Item::Query(parse(&prql).unwrap())"
+expression: Statements(parse(&prql).unwrap())
 input_file: book/tests/prql/language-features/s-strings-2.prql
 ---
-prql dialect:generic
-
 from de = dept_emp
-join s = salaries side:left [
-  `s.emp_no` == `de.emp_no`,
-  s"({`s.from_date`}, {`s.to_date`})
+join side:left s = salaries [
+  s.emp_no == de.emp_no,
+  s"({s.from_date}, {s.to_date})
   OVERLAPS
-  ({`de.from_date`}, {`de.to_date`})",
+  ({de.from_date}, {de.to_date})",
 ]
+
 
 

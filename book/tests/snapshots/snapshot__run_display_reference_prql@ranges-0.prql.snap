@@ -1,10 +1,8 @@
 ---
 source: book/tests/snapshot.rs
-expression: "Item::Query(parse(&prql).unwrap())"
+expression: Statements(parse(&prql).unwrap())
 input_file: book/tests/prql/language-features/ranges-0.prql
 ---
-prql dialect:generic
-
 from events
 filter (
   date
@@ -14,5 +12,6 @@ filter (
   magnitude
   in 50..100
 )
+
 
 

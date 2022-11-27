@@ -5,13 +5,13 @@ input_file: book/tests/prql/examples/misc-0.prql
 ---
 WITH parts AS (
   SELECT
-    seq_1_to_5.*
+    *
   FROM
     seq_1_to_5
 ),
 table_0 AS (
   SELECT
-    pl.*
+    related_id
   FROM
     prospect_lists_prospects AS pl
   WHERE

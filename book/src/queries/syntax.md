@@ -62,6 +62,7 @@ Lists are represented with `[]`, and can span multiple lines. A final trailing
 comma is optional.
 
 ```prql
+from numbers
 derive [x = 1, y = 2]
 derive [
   a = x,
@@ -139,5 +140,5 @@ identifiers) in the `SELECT` statement:
 ```prql
 prql dialect:bigquery
 from `project-foo.dataset.table`
-join `project-bar.dataset.table` [col_bax]
+join `project-bar.dataset.table` [~col_bax]
 ```

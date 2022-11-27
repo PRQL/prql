@@ -29,12 +29,12 @@ from salaries
 group [emp_no] (
   aggregate [emp_salary = average salary]
 )
-join t=titles [emp_no]
-join dept_emp side:left [emp_no]
+join t=titles [~emp_no]
+join dept_emp side:left [~emp_no]
 group [dept_emp.dept_no, t.title] (
   aggregate [avg_salary = average emp_salary]
 )
-join departments [dept_no]
+join departments [~dept_no]
 select [dept_name, title, avg_salary]
 ```
 
@@ -43,21 +43,21 @@ select [dept_name, title, avg_salary]
 > Estimate distribution of salaries and gender for each department departments.
 
 ```prql
-from employees
-join salaries [emp_no]
-group [emp_no, gender] (
+from e=employees
+join salaries [~emp_no]
+group [e.emp_no, e.gender] (
   aggregate [
     emp_salary = average salary
   ]
 )
-join de=dept_emp [emp_no] side:left
+join de=dept_emp [~emp_no] side:left
 group [de.dept_no, gender] (
   aggregate [
     salary_avg = average emp_salary,
     salary_sd = stddev emp_salary,
   ]
 )
-join departments [dept_no]
+join departments [~dept_no]
 select [dept_name, gender, salary_avg, salary_sd]
 ```
 
@@ -66,14 +66,14 @@ select [dept_name, gender, salary_avg, salary_sd]
 > Estimate distribution of salaries and gender for each manager.
 
 ```prql
-from employees
-join salaries [emp_no]
-group [emp_no, gender] (
+from e=employees
+join salaries [~emp_no]
+group [e.emp_no, e.gender] (
   aggregate [
     emp_salary = average salary
   ]
 )
-join de=dept_emp [emp_no]
+join de=dept_emp [~emp_no]
 join dm=dept_manager [
   (dm.dept_no == de.dept_no) and s"(de.from_date, de.to_date) OVERLAPS (dm.from_date, dm.to_date)"
 ]
@@ -83,8 +83,8 @@ group [dm.emp_no, gender] (
     salary_sd = stddev emp_salary
   ]
 )
-derive mng_no = dm.emp_no
-join managers=employees [emp_no]
+derive mng_no = emp_no
+join managers=employees [~emp_no]
 derive mng_name = s"managers.first_name || ' ' || managers.last_name"
 select [mng_name, managers.gender, salary_avg, salary_sd]
 ```
@@ -102,7 +102,7 @@ join s=salaries side:left [
 group [de.emp_no, de.dept_no] (
   aggregate salary = (average s.salary)
 )
-join employees [emp_no]
-join titles [emp_no]
+join employees [~emp_no]
+join titles [~emp_no]
 select [dept_no, salary, employees.gender, titles.title]
 ```

@@ -2,7 +2,7 @@
 #![allow(clippy::drop_non_drop)]
 mod utils;
 
-use prql_compiler::{format_error, FormattedError};
+use prql_compiler::{format_error, pl_to_json, pl_to_prql, translate, FormattedError};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
@@ -96,13 +96,25 @@ pub fn to_sql(s: &str) -> Option<String> {
 
 #[wasm_bindgen]
 pub fn to_json(s: &str) -> Option<String> {
-    let result = prql_compiler::to_json(s).map_err(|e| format_error(e, "", s, false));
+    let result = prql_compiler::parse(s)
+        .and_then(pl_to_json)
+        .map_err(|e| format_error(e, "", s, false));
     return_or_throw_error(result)
 }
 
 #[wasm_bindgen]
 pub fn from_json(s: &str) -> Option<String> {
-    let result = prql_compiler::from_json(s).map_err(|e| format_error(e, "", s, false));
+    let result = prql_compiler::json_to_pl(s)
+        .and_then(pl_to_prql)
+        .map_err(|e| format_error(e, "", s, false));
+    return_or_throw_error(result)
+}
+
+#[wasm_bindgen]
+pub fn json_to_rq_to_sql(s: &str) -> Option<String> {
+    let result = prql_compiler::json_to_rq(s)
+        .and_then(translate)
+        .map_err(|e| format_error(e, "", s, false));
     return_or_throw_error(result)
 }
 

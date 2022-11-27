@@ -3,26 +3,31 @@
 Strings in PRQL can use either single or double quotes:
 
 ```prql
-derive x = "hello world"
+from my_table
+select x = "hello world"
 ```
 
 ```prql
-derive x = 'hello world'
+from my_table
+select x = 'hello world'
 ```
 
 To quote a string containing quotes, either use the "other" type of quote, or
 use three-or-more quotes, and close with the same number.
 
 ```prql
-derive x = '"hello world"'
+from my_table
+select x = '"hello world"'
 ```
 
 ```prql
-derive x = """I said "hello world"!"""
+from my_table
+select x = """I said "hello world"!"""
 ```
 
 ```prql
-derive x = """""I said """hello world"""!"""""
+from my_table
+select x = """""I said """hello world"""!"""""
 ```
 
 ```admonish note

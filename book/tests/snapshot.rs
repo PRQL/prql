@@ -19,7 +19,7 @@ use anyhow::{bail, Result};
 use globset::Glob;
 use insta::{assert_display_snapshot, assert_snapshot, glob};
 use log::warn;
-use prql_compiler::ast::Item;
+use prql_compiler::ast::pl::Statements;
 use prql_compiler::*;
 use pulldown_cmark::{CodeBlockKind, Event, Parser, Tag};
 use std::fs;
@@ -38,8 +38,8 @@ fn run_examples() -> Result<()> {
     // writing on Windows. ref https://github.com/prql/prql/issues/356
     #[cfg(not(target_family = "windows"))]
     write_reference_prql()?;
-    run_reference_prql()?;
-    run_display_reference_prql()?;
+    run_reference_prql();
+    run_display_reference_prql();
 
     Ok(())
 }
@@ -120,7 +120,7 @@ fn write_reference_prql() -> Result<()> {
 }
 
 /// Snapshot the output of each example.
-fn run_reference_prql() -> Result<()> {
+fn run_reference_prql() {
     glob!("prql/**/*.prql", |path| {
         let prql = fs::read_to_string(path).unwrap();
 
@@ -128,14 +128,14 @@ fn run_reference_prql() -> Result<()> {
             return;
         }
 
+        println!("{:?}", path);
         let sql = compile(&prql).unwrap_or_else(|e| format!("Failed to compile `{prql}`; {e}"));
         assert_snapshot!(sql);
     });
-    Ok(())
 }
 
 /// Snapshot the display trait output of each example.
-fn run_display_reference_prql() -> Result<()> {
+fn run_display_reference_prql() {
     glob!("prql/**/*.prql", |path| {
         let prql = fs::read_to_string(path).unwrap();
 
@@ -143,7 +143,6 @@ fn run_display_reference_prql() -> Result<()> {
             return;
         }
 
-        assert_display_snapshot!(Item::Query(parse(&prql).unwrap()));
+        assert_display_snapshot!(Statements(parse(&prql).unwrap()));
     });
-    Ok(())
 }

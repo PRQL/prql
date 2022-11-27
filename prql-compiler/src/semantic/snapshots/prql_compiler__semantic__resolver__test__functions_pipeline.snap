@@ -1,0 +1,20 @@
+---
+source: prql-compiler/src/semantic/resolver.rs
+expression: "resolve_derive(r#\"\n            from a\n            derive one = (foo | sum)\n            \"#).unwrap()"
+---
+- id: 8
+  SString:
+    - String: SUM(
+    - Expr:
+        id: 13
+        Ident:
+          - _frame
+          - a
+          - foo
+        target_id: 4
+        ty: Infer
+    - String: )
+  ty:
+    Literal: Column
+  alias: one
+
