@@ -24,39 +24,60 @@ pub fn split_off_back(
         return (None, Vec::new());
     }
 
+    log::debug!("traversing pipeline to obtain columns: {output_cols:?}");
+
     let mut following_transforms: HashSet<String> = HashSet::new();
 
-    let (input_tables, input_columns) = context.collect_pipeline_inputs(&pipeline);
-    let inputs_avail = extend_wildcards(context, input_columns);
-    let mut inputs_required = Vec::new();
-
-    log::debug!("traversing pipeline to obtain columns: {output_cols:?}");
+    let mut inputs_required = with_max_complexity(&output_cols, Complexity::highest());
+    let mut inputs_avail = HashSet::new();
 
     // iterate backwards
     let mut curr_pipeline_rev = Vec::new();
-    while let Some(transform) = pipeline.pop() {
+    'pipeline: while let Some(transform) = pipeline.pop() {
         // stop if split is needed
         let split = is_split_required(&transform, &mut following_transforms);
         if split {
             log::debug!("split required after {}", transform.as_ref());
+            log::debug!(".. following={:?}", following_transforms);
             pipeline.push(transform);
             break;
         }
 
         // anchor and record all requirements
-        let required = get_requirements(&transform);
-        log::debug!("transform {} requires:", transform.as_ref());
-        for r in required {
-            log::debug!(".. {r:?}");
+        let required = get_requirements(&transform, &following_transforms);
+        log::debug!("transform {} requires {:?}", transform.as_ref(), required);
+        inputs_required.extend(required);
 
-            let r_inputs = anchor_column(context, r.col, r.max_complexity, &inputs_avail);
-            log::debug!(".... still need inputs={r_inputs:?}");
+        match &transform {
+            Transform::Compute(decl) => {
+                if can_materialize(decl, &inputs_required) {
+                    log::debug!("materializing {:?}", decl.id);
 
-            if !r_inputs.contains(&r.col) {
-                // requirment was satisfied
-                inputs_required.retain(|i| *i != r.col);
+                    // materialize
+                    let col_def = context.columns_decls.get_mut(&decl.id).unwrap();
+                    col_def.kind = decl.kind.clone();
+
+                    inputs_avail.insert(decl.id);
+                } else {
+                    pipeline.push(transform);
+                    break;
+                }
             }
-            inputs_required.extend(r_inputs);
+            Transform::Aggregate { compute, .. } => {
+                for cid in compute {
+                    let decl = &context.columns_decls[cid];
+                    if !can_materialize(decl, &inputs_required) {
+                        pipeline.push(transform);
+                        break 'pipeline;
+                    }
+                }
+            }
+            Transform::From(with) | Transform::Join { with, .. } => {
+                for decl in &with.columns {
+                    inputs_avail.insert(decl.id);
+                }
+            }
+            _ => (),
         }
 
         // push into current pipeline
@@ -65,15 +86,33 @@ pub fn split_off_back(
         }
     }
 
+    log::debug!("splitting:");
+    log::debug!(".. avail={inputs_avail:?}");
+    let required = inputs_required
+        .into_iter()
+        .map(|r| r.col)
+        .unique()
+        .collect_vec();
+
+    log::debug!(".. required={required:?}");
+    let missing = required
+        .into_iter()
+        .filter(|i| !inputs_avail.contains(i))
+        .collect_vec();
+    log::debug!(".. missing={missing:?}");
+
     // prevent finishing if there are still missing requirements
-    let inputs_required = inputs_required.into_iter().unique().collect_vec();
-    let has_all_inputs = inputs_required.iter().all(|c| inputs_avail.contains(c));
-    if !has_all_inputs && pipeline.is_empty() {
-        // push From back to the remaining pipeline
-        let from = curr_pipeline_rev.pop().unwrap();
-        from.as_from().unwrap();
-        pipeline.push(from);
-    }
+    // if !missing.is_empty() && pipeline.is_empty() {
+    // push From back to the remaining pipeline
+    //     let transfrom = curr_pipeline_rev.pop().unwrap();
+
+    //     let from = transfrom.as_from().unwrap();
+    //     for decl in &from.columns {
+    //         inputs_avail.remove(&decl.id);
+    //     }
+
+    //     pipeline.push(transfrom);
+    // }
 
     // figure out SELECT columns
     {
@@ -83,6 +122,8 @@ pub fn split_off_back(
         // requirements, which would result in empty SELECTs.
         // As a workaround, let's just fallback to a wildcard.
         let cols = if cols.is_empty() {
+            let (input_tables, _) = context.collect_pipeline_inputs(&pipeline);
+
             input_tables
                 .iter()
                 .map(|tiid| context.register_wildcard(*tiid))
@@ -97,46 +138,33 @@ pub fn split_off_back(
     let remaining_pipeline = if pipeline.is_empty() {
         None
     } else {
-        if log::log_enabled!(log::Level::Debug) {
-            log::debug!("splitting:");
-            log::debug!(".. avail={inputs_avail:?}");
-            log::debug!(".. required={inputs_required:?}");
-            let missing = inputs_required
-                .iter()
-                .filter(|c| !inputs_avail.contains(c))
-                .collect_vec();
-            log::debug!(".. missing={missing:?}");
-        }
-
         // drop inputs that were satisfied in current pipeline
-        let (_, inputs_in_curr) = context.collect_pipeline_inputs(&curr_pipeline_rev);
-        let inputs_remaining = inputs_required
-            .into_iter()
-            .filter(|i| !inputs_in_curr.contains(i))
-            .collect();
 
-        Some((pipeline, inputs_remaining))
+        Some((pipeline, missing))
     };
 
     curr_pipeline_rev.reverse();
     (remaining_pipeline, curr_pipeline_rev)
 }
 
-fn extend_wildcards(context: &AnchorContext, mut cols: HashSet<CId>) -> HashSet<CId> {
-    let wildcard_tables: HashSet<_> = cols
-        .iter()
-        .filter_map(|cid| match context.columns_decls[cid].kind {
-            ColumnDefKind::Wildcard => Some(context.columns_loc[cid]),
-            _ => None,
-        })
-        .collect();
+fn can_materialize(decl: &ColumnDecl, inputs_required: &[Requirement]) -> bool {
+    let complexity = infer_complexity(decl);
 
-    for (cid, tid) in &context.columns_loc {
-        if wildcard_tables.contains(tid) {
-            cols.insert(*cid);
-        }
+    let required_max = inputs_required
+        .iter()
+        .filter(|r| r.col == decl.id)
+        .fold(Complexity::highest(), |c, r| {
+            Complexity::min(c, r.max_complexity)
+        });
+
+    let can = complexity <= required_max;
+    if !can {
+        log::debug!(
+            "{:?} has complexity {complexity:?}, but is required to have max={required_max:?}",
+            decl.id
+        );
     }
-    cols
+    can
 }
 
 /// Applies adjustments to second part of a pipeline when it's split:
@@ -150,6 +178,8 @@ pub fn anchor_split(
     second_pipeline: Vec<Transform>,
 ) -> Vec<Transform> {
     let new_tid = ctx.tid.gen();
+
+    log::debug!("split pipeline, first pipeline output: {cols_at_split:?}");
 
     // define columns of the new CTE
     let mut cid_redirects = HashMap::<CId, CId>::new();
@@ -246,24 +276,49 @@ fn is_split_required(transform: &Transform, following: &mut HashSet<String>) -> 
     // Pipeline must be split when there is a transform that is out of order:
     // - from (max 1x),
     // - join (no limit),
-    // - compute windowed (no limit)
     // - filters (for WHERE)
     // - aggregate (max 1x)
-    // - sort (no limit)
     // - filters (for HAVING)
+    // - compute (no limit)
+    // - sort (no limit)
     // - take (no limit)
-
+    //
     // Select is not affected by the order.
     use Transform::*;
+
+    // Compute for aggregation does not count as a real compute,
+    // because it's done within the aggregation
+    if let Compute(decl) = transform {
+        if decl.is_aggregation {
+            return false;
+        }
+    }
+
     let split = match transform {
         From(_) => following.contains("From"),
         Join { .. } => following.contains("From"),
-        Aggregate { .. } => following.contains("Join") || following.contains("Aggregate"),
-        Sort(_) => following.contains("Join") || following.contains("Aggregate"),
-        Filter(_) => following.contains("Join") || following.contains("ComputeWindowed"),
-
+        Aggregate { .. } => {
+            following.contains("From")
+                || following.contains("Join")
+                || following.contains("Aggregate")
+        }
+        Filter(_) => following.contains("From") || following.contains("Join"),
+        Compute(_) => {
+            following.contains("From")
+                || following.contains("Join")
+                // || following.contains("Aggregate")
+                || following.contains("Filter")
+        }
+        Sort(_) => {
+            following.contains("From")
+                || following.contains("Join")
+                || following.contains("Compute")
+                || following.contains("Aggregate")
+        }
         Take(_) => {
-            following.contains("Join")
+            following.contains("From")
+                || following.contains("Join")
+                || following.contains("Compute")
                 || following.contains("Filter")
                 || following.contains("Aggregate")
                 || following.contains("Sort")
@@ -272,45 +327,51 @@ fn is_split_required(transform: &Transform, following: &mut HashSet<String>) -> 
         _ => false,
     };
 
-    if let Transform::Compute(cd) = transform {
-        if cd.window.is_some() {
-            following.insert("ComputeWindowed".to_string());
-        }
-    } else {
+    if !split {
         following.insert(transform.as_ref().to_string());
     }
     split
 }
 
 /// An input requirement of a transform.
-#[derive(Debug)]
 struct Requirement {
     pub col: CId,
     pub max_complexity: Complexity,
 }
 
-fn get_requirements(transform: &Transform) -> Vec<Requirement> {
+fn with_max_complexity(cids: &[CId], max_complexity: Complexity) -> Vec<Requirement> {
+    cids.iter()
+        .map(|cid| Requirement {
+            col: *cid,
+            max_complexity,
+        })
+        .collect()
+}
+
+impl std::fmt::Debug for Requirement {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Debug::fmt(&self.col, f)?;
+        f.write_str("-as-")?;
+        std::fmt::Debug::fmt(&self.max_complexity, f)
+    }
+}
+
+fn get_requirements(transform: &Transform, following: &HashSet<String>) -> Vec<Requirement> {
     use Transform::*;
 
     if let Aggregate { partition, compute } = transform {
-        return partition
-            .iter()
-            .map(|by| Requirement {
-                col: *by,
-                max_complexity: Complexity::Expr,
-            })
-            .chain(compute.iter().map(|assign| Requirement {
-                col: *assign,
-                max_complexity: Complexity::Aggregation,
-            }))
-            .collect();
+        let mut r = Vec::new();
+        r.extend(with_max_complexity(partition, Complexity::Plain));
+        r.extend(with_max_complexity(compute, Complexity::Aggregation));
+        return r;
     }
 
     let cids = match transform {
-        Select(cids) => cids.clone(),
-        Filter(expr) | Join { filter: expr, .. } => {
-            CidCollector::collect(expr.clone()).into_iter().collect()
-        }
+        Compute(cd) => match &cd.kind {
+            ColumnDefKind::Expr { expr, .. } => CidCollector::collect(expr.clone()),
+            ColumnDefKind::ExternRef(_) | ColumnDefKind::Wildcard => return Vec::new(),
+        },
+        Filter(expr) | Join { filter: expr, .. } => CidCollector::collect(expr.clone()),
         Sort(sorts) => sorts.iter().map(|s| s.column).collect(),
         Take(rq::Take { range, .. }) => {
             let mut cids = Vec::new();
@@ -323,162 +384,61 @@ fn get_requirements(transform: &Transform) -> Vec<Requirement> {
             cids
         }
 
-        From(_) | Compute(_) | Aggregate { .. } | Unique => return Vec::new(),
+        Select(_) | From(_) | Aggregate { .. } | Unique => return Vec::new(),
     };
 
     let max_complexity = match transform {
-        Select(_) => Complexity::Windowed,
-        Filter(_) => Complexity::Expr,
+        Compute(decl) => {
+            if infer_complexity(decl) == Complexity::Plain {
+                Complexity::Aggregation
+            } else {
+                Complexity::Plain
+            }
+        }
+        Filter(_) => {
+            if !following.contains("Aggregate") {
+                Complexity::Aggregation
+            } else {
+                Complexity::Plain
+            }
+        }
+        // ORDER BY uses aliased columns, so the columns can have high complexity
+        Sort(_) => Complexity::Aggregation,
+        Take(_) => Complexity::Plain,
+        Join { .. } => Complexity::Plain,
 
-        Sort(_) => Complexity::Ident,
-        Take(_) => Complexity::Expr,
-        Join { .. } => Complexity::Expr,
-
-        From(_) | Compute(_) | Aggregate { .. } | Unique => unreachable!(),
+        _ => unreachable!(),
     };
 
-    cids.into_iter()
-        .map(|cid| Requirement {
-            col: cid,
-            max_complexity,
-        })
-        .collect()
-}
-
-/// Recursively inline column references that can materialize with
-/// given complexity.
-///
-/// Returns column references that were not materialized.
-fn anchor_column(
-    context: &mut AnchorContext,
-    cid: CId,
-    max_complexity: Complexity,
-    inputs_avail: &HashSet<CId>,
-) -> HashSet<CId> {
-    let (mat, inputs_required) = Materializer::run(&cid, max_complexity, inputs_avail, context);
-
-    if let Some(mat) = mat {
-        let col_def = context.columns_decls.get_mut(&cid).unwrap();
-        let (_, expr) = &mut col_def.kind.as_expr_mut().unwrap();
-        **expr = mat;
-    }
-
-    inputs_required
-}
-
-struct Materializer<'a> {
-    context: &'a mut AnchorContext,
-
-    max_complexity: Complexity,
-    inputs_avail: &'a HashSet<CId>,
-
-    inputs_required: HashSet<CId>,
+    with_max_complexity(&cids, max_complexity)
 }
 
 /// Complexity of a column expressions.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-enum Complexity {
-    /// Only idents
-    Ident,
-    /// Everything except aggregation and windowed expressions
-    Expr,
-    /// Everything
+pub enum Complexity {
+    /// Non-aggregated and non-windowed expressions
+    Plain,
+    /// Non-aggregated expressions
     Windowed,
-    /// Everything except windowed expressions
+    /// Everything
     Aggregation,
 }
 
-impl<'a> Materializer<'a> {
-    fn run(
-        cid: &CId,
-        max_complexity: Complexity,
-        inputs_avail: &HashSet<CId>,
-        context: &'a mut AnchorContext,
-    ) -> (Option<Expr>, HashSet<CId>) {
-        let mut m = Materializer {
-            context,
-            max_complexity,
-            inputs_avail,
-            inputs_required: HashSet::new(),
-        };
-
-        let expr = m.try_materialize(cid).unwrap();
-
-        (expr, m.inputs_required)
-    }
-
-    fn try_materialize(&mut self, cid: &CId) -> Result<Option<Expr>> {
-        let decl = &self.context.columns_decls[cid];
-
-        log::debug!(".... materializing {cid:?} ({})", decl.kind.as_ref());
-
-        match &decl.kind {
-            ColumnDefKind::Expr { expr, .. } => {
-                let complexity = infer_complexity(decl);
-
-                if complexity > self.max_complexity {
-                    // put-off materialization
-                    log::debug!(".... complexity too high");
-                } else {
-                    log::debug!(".... in-place replacement with {expr:?}");
-                    if complexity == Complexity::Aggregation {
-                        // prevent double aggregation
-                        self.max_complexity = Complexity::Expr
-                    }
-                    // in-place materialization
-                    return Ok(Some(self.fold_expr(expr.clone())?));
-                }
-            }
-
-            // no need to materialize
-            ColumnDefKind::Wildcard | ColumnDefKind::ExternRef(_) => {
-                if !self.inputs_avail.contains(cid) {
-                    panic!("cannot anchor {:?}. This is probably caused by bad IR", cid)
-                }
-            }
-        }
-        self.inputs_required.insert(*cid);
-        Ok(None)
+impl Complexity {
+    const fn highest() -> Self {
+        Self::Aggregation
     }
 }
 
-impl<'a> IrFold for Materializer<'a> {
-    fn fold_expr(&mut self, mut expr: Expr) -> Result<Expr> {
-        if let ExprKind::ColumnRef(cid) = &expr.kind {
-            if let Some(value) = self.try_materialize(cid)? {
-                return Ok(value);
-            }
-        }
-
-        expr.kind = self.fold_expr_kind(expr.kind)?;
-        Ok(expr)
-    }
-
-    fn fold_cid(&mut self, cid: CId) -> Result<CId> {
-        // just a check that everything is folded as it should be
-        assert!(self.inputs_avail.contains(&cid) || self.inputs_required.contains(&cid));
-        Ok(cid)
-    }
-}
-
-fn infer_complexity(col_def: &ColumnDecl) -> Complexity {
-    use rq::ExprKind::*;
+pub fn infer_complexity(decl: &ColumnDecl) -> Complexity {
     use Complexity::*;
 
-    match &col_def.kind {
-        ColumnDefKind::Expr { expr, .. } => {
-            if col_def.window.is_some() {
-                Windowed
-            } else if col_def.is_aggregation {
-                Aggregation
-            } else if let ColumnRef(_) = &expr.kind {
-                Ident
-            } else {
-                Expr
-            }
-        }
-        ColumnDefKind::Wildcard => Ident,
-        ColumnDefKind::ExternRef(_) => Ident,
+    if decl.window.is_some() {
+        Windowed
+    } else if decl.is_aggregation {
+        Aggregation
+    } else {
+        Plain
     }
 }
 
@@ -488,10 +448,10 @@ pub struct CidCollector {
 }
 
 impl CidCollector {
-    pub fn collect(expr: Expr) -> HashSet<CId> {
+    pub fn collect(expr: Expr) -> Vec<CId> {
         let mut collector = CidCollector::default();
         collector.fold_expr(expr).unwrap();
-        collector.cids
+        collector.cids.into_iter().collect_vec()
     }
 }
 

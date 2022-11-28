@@ -230,6 +230,7 @@ mod test {
         "###).unwrap()), @r###"
         WITH table_0 AS (
           SELECT
+            *,
             ROW_NUMBER() OVER (PARTITION BY y_id) AS _expr_0
           FROM
             y_orig
@@ -465,29 +466,39 @@ select `first name`
         "###;
 
         assert_display_snapshot!((compile(query).unwrap()), @r###"
+        WITH table_0 AS (
+          SELECT
+            TO_CHAR(co.order_date, '%Y-%m') AS order_month,
+            TO_CHAR(co.order_date, '%Y-%m-%d') AS order_day,
+            COUNT(DISTINCT co.order_id) AS num_orders,
+            COUNT(ol.book_id) AS num_books,
+            SUM(ol.price) AS total_price
+          FROM
+            cust_order AS co
+            JOIN order_line AS ol ON co.order_id = ol.order_id
+          GROUP BY
+            TO_CHAR(co.order_date, '%Y-%m'),
+            TO_CHAR(co.order_date, '%Y-%m-%d')
+        )
         SELECT
-          TO_CHAR(co.order_date, '%Y-%m') AS order_month,
-          TO_CHAR(co.order_date, '%Y-%m-%d') AS order_day,
-          COUNT(DISTINCT co.order_id) AS num_orders,
-          COUNT(ol.book_id) AS num_books,
-          SUM(ol.price) AS total_price,
-          SUM(COUNT(ol.book_id)) OVER (
-            PARTITION BY TO_CHAR(co.order_date, '%Y-%m')
+          order_month,
+          order_day,
+          num_orders,
+          num_books,
+          total_price,
+          SUM(num_books) OVER (
+            PARTITION BY order_month
             ORDER BY
-              TO_CHAR(co.order_date, '%Y-%m-%d') ROWS BETWEEN UNBOUNDED PRECEDING
+              order_day ROWS BETWEEN UNBOUNDED PRECEDING
               AND CURRENT ROW
           ) AS running_total_num_books,
-          LAG(COUNT(ol.book_id), 7) OVER (
+          LAG(num_books, 7) OVER (
             ORDER BY
-              TO_CHAR(co.order_date, '%Y-%m-%d') ROWS BETWEEN UNBOUNDED PRECEDING
+              order_day ROWS BETWEEN UNBOUNDED PRECEDING
               AND UNBOUNDED FOLLOWING
           ) AS num_books_last_week
         FROM
-          cust_order AS co
-          JOIN order_line AS ol ON co.order_id = ol.order_id
-        GROUP BY
-          TO_CHAR(co.order_date, '%Y-%m'),
-          TO_CHAR(co.order_date, '%Y-%m-%d')
+          table_0
         ORDER BY
           order_day
         "###);
@@ -1300,6 +1311,34 @@ take 20
         ORDER BY
           sum_gross_cost
         "###);
+
+        // A aggregate, then sort and filter
+        let query = r###"
+            from employees
+            group [title, country] (
+                aggregate [
+                    sum_gross_cost = average salary
+                ]
+            )
+            sort sum_gross_cost
+            filter sum_gross_cost > 0
+        "###;
+
+        assert_display_snapshot!((compile(query).unwrap()), @r###"
+        SELECT
+          title,
+          country,
+          AVG(salary) AS sum_gross_cost
+        FROM
+          employees
+        GROUP BY
+          title,
+          country
+        HAVING
+          AVG(salary) > 0
+        ORDER BY
+          sum_gross_cost
+        "###);
     }
 
     #[test]
@@ -1359,7 +1398,8 @@ take 20
         WITH table_0 AS (
           SELECT
             employees.emp_no,
-            d.name
+            d.name,
+            employees.emp_no
           FROM
             employees
             JOIN department AS d ON employees.dept_no = d.dept_no
