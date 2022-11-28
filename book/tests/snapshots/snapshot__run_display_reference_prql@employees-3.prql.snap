@@ -16,8 +16,8 @@ group [
   salary = average s.salary
 )
 )
-join employees [~emp_no]
-join titles [~emp_no]
+join employees [==emp_no]
+join titles [==emp_no]
 select [
   dept_no,
   salary,

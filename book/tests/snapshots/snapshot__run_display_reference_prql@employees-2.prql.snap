@@ -4,14 +4,14 @@ expression: Statements(parse(&prql).unwrap())
 input_file: book/tests/prql/examples/employees-2.prql
 ---
 from e = employees
-join salaries [~emp_no]
+join salaries [==emp_no]
 group [
   e.emp_no,
   e.gender,
 ] (
   aggregate [emp_salary = average salary]
 )
-join de = dept_emp [~emp_no]
+join de = dept_emp [==emp_no]
 join dm = dept_manager [dm.dept_no == de.dept_no and s"(de.from_date, de.to_date) OVERLAPS (dm.from_date, dm.to_date)"]
 group [
   dm.emp_no,
@@ -23,7 +23,7 @@ group [
 ]
 )
 derive mng_no = emp_no
-join managers = employees [~emp_no]
+join managers = employees [==emp_no]
 derive mng_name = s"managers.first_name || ' ' || managers.last_name"
 select [
   mng_name,

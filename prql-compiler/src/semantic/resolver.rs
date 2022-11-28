@@ -745,7 +745,7 @@ mod test {
         assert_yaml_snapshot!(resolve_type(
             r#"
             from table_1
-            join customers [~customer_no]
+            join customers [==customer_no]
             "#
         )
         .unwrap());
@@ -753,7 +753,7 @@ mod test {
         assert_yaml_snapshot!(resolve_type(
             r#"
             from employees
-            join salaries [~emp_no]
+            join salaries [==emp_no]
             group [emp_no, gender] (
                 aggregate [
                     emp_salary = average salary

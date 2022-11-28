@@ -148,7 +148,7 @@ func lag_day x -> group sec_id (                      # `group` is used for wind
 func ret x -> x / (x | lag_day) - 1 + dividend_return
 
 from prices
-join interest_rates [~date]
+join interest_rates [==date]
 select [                                              # `select` only includes unnamed columns, unlike `derive`
   return_total =      prices_adj   | ret | if_valid   # `|` can be used rather than newlines
   return_usd =        prices_usd   | ret | if_valid

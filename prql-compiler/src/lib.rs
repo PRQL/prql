@@ -262,7 +262,7 @@ table UPPER = (
   from lower
 )
 from UPPER
-join `some_schema.tablename` [~id]
+join `some_schema.tablename` [==id]
         "###).unwrap()), @r###"
         WITH "UPPER" AS (
           SELECT
@@ -282,7 +282,7 @@ join `some_schema.tablename` [~id]
         assert_display_snapshot!((compile(r###"
 prql dialect:bigquery
 from `db.schema.table`
-join `db.schema.table2` [~id]
+join `db.schema.table2` [==id]
 join c = `db.schema.t-able` [`db.schema.table`.id == c.id]
         "###).unwrap()), @r###"
         SELECT
@@ -443,7 +443,7 @@ select `first name`
     fn test_window_functions_02() {
         let query = r###"
         from co=cust_order
-        join ol=order_line [~order_id]
+        join ol=order_line [==order_id]
         derive [
             order_month = s"TO_CHAR({co.order_date}, '%Y-%m')",
             order_day = s"TO_CHAR({co.order_date}, '%Y-%m-%d')",
@@ -1022,7 +1022,7 @@ select `first name`
     fn test_join() {
         assert_display_snapshot!((compile(r###"
         from x
-        join y [~id]
+        join y [==id]
         "###).unwrap()), @r###"
         SELECT
           x.*,
@@ -1032,20 +1032,20 @@ select `first name`
           JOIN y ON x.id = y.id
         "###);
 
-        compile("from x | join y [~x.id]").unwrap_err();
+        compile("from x | join y [==x.id]").unwrap_err();
     }
 
     #[test]
     fn test_from_json() {
         // Test that the SQL generated from the JSON of the PRQL is the same as the raw PRQL
         let original_prql = r#"from employees
-join salaries [~emp_no]
+join salaries [==emp_no]
 group [emp_no, gender] (
   aggregate [
     emp_salary = average salary
   ]
 )
-join de=dept_emp [~emp_no]
+join de=dept_emp [==emp_no]
 join dm=dept_manager [
   (dm.dept_no == de.dept_no) and s"(de.from_date, de.to_date) OVERLAPS (dm.from_date, dm.to_date)"
 ]
@@ -1056,7 +1056,7 @@ group [dm.emp_no, gender] (
   ]
 )
 derive mng_no = emp_no
-join managers=employees [~emp_no]
+join managers=employees [==emp_no]
 derive mng_name = s"managers.first_name || ' ' || managers.last_name"
 select [mng_name, managers.gender, salary_avg, salary_sd]"#;
 
@@ -1220,7 +1220,7 @@ take 20
             )
         )
         from newest_employees
-        join average_salaries [~country]
+        join average_salaries [==country]
         select [name, salary, average_country_salary]
         "#;
         let sql = compile(query).unwrap();
@@ -1352,7 +1352,7 @@ take 20
             group country (aggregate [s"count(*)"])
         )
         from a
-        join b [~country]
+        join b [==country]
         select [name, salary, average_country_salary]
 "###;
 
@@ -1387,10 +1387,10 @@ take 20
     fn test_table_names_between_splits() {
         let prql = r###"
         from employees
-        join d=department [~dept_no]
+        join d=department [==dept_no]
         take 10
         derive emp_no = employees.emp_no
-        join s=salaries [~emp_no]
+        join s=salaries [==emp_no]
         select [employees.emp_no, d.name, s.salary]
         "###;
         let result = compile(prql).unwrap();
@@ -1418,7 +1418,7 @@ take 20
         let prql = r###"
         from e=employees
         take 10
-        join salaries [~emp_no]
+        join salaries [==emp_no]
         select [e.*, salary]
         "###;
         let result = compile(prql).unwrap();
