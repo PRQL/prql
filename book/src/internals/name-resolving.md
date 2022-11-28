@@ -65,7 +65,7 @@ Because of this, we have to use table prefixes for all column names.
 ```prql
 from employees
 derive [first_name, dept_id]
-join d=departments [~dept_id]
+join d=departments [==dept_id]
 select [first_name, d.title, created_at]
 ```
 

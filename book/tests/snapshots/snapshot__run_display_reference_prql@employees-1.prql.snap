@@ -4,14 +4,14 @@ expression: Statements(parse(&prql).unwrap())
 input_file: book/tests/prql/examples/employees-1.prql
 ---
 from e = employees
-join salaries [~emp_no]
+join salaries [==emp_no]
 group [
   e.emp_no,
   e.gender,
 ] (
   aggregate [emp_salary = average salary]
 )
-join side:left de = dept_emp [~emp_no]
+join side:left de = dept_emp [==emp_no]
 group [
   de.dept_no,
   gender,
@@ -21,7 +21,7 @@ group [
   salary_sd = stddev emp_salary,
 ]
 )
-join departments [~dept_no]
+join departments [==dept_no]
 select [
   dept_name,
   gender,

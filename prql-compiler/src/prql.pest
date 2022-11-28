@@ -100,7 +100,7 @@ range = ${ range_edge ~ ".." ~ range_edge }
 range_edge = ${ literal? }
 
 operator = _{ operator_unary | operator_mul | operator_add | operator_compare | operator_logical | operator_coalesce }
-operator_unary = ${ "-" | "+" | "!" | "~" }
+operator_unary = ${ "-" | "+" | "!" | "==" }
 operator_mul = ${ "*" | "/" | "%" }
 operator_add = ${ "+" | "-" }
 operator_compare = ${ "==" | "!=" | ">=" | "<=" | ">" | "<" }

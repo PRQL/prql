@@ -1672,7 +1672,7 @@ take 20
         // #284
 
         let prql = "from c_invoice
-join doc:c_doctype [~c_invoice_id]
+join doc:c_doctype [==c_invoice_id]
 select [
 \tinvoice_no,
 \tdocstatus
@@ -2073,7 +2073,7 @@ join `my-proj`.`dataset`.`table`
     fn test_parse_allowed_idents() {
         assert_yaml_snapshot!(parse(r###"
         from employees
-        join _salary [~employee_id] # table with leading underscore
+        join _salary [==employee_id] # table with leading underscore
         filter first_name == $1
         select [_employees._underscored_column]
         "###).unwrap(), @r###"
