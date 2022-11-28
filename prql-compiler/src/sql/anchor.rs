@@ -475,7 +475,7 @@ impl<'a> IrFold for CidRedirector<'a> {
     fn fold_transform(&mut self, transform: Transform) -> Result<Transform> {
         match transform {
             Transform::Compute(cd) => {
-                let cd = self.fold_column_def(cd)?;
+                let cd = self.fold_column_decl(cd)?;
                 self.ctx.columns_decls.insert(cd.id, cd.clone());
                 Ok(Transform::Compute(cd))
             }
