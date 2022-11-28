@@ -47,6 +47,7 @@ tasks:
       # default?!)
       - cargo install --locked
         cargo-audit
+        cargo-insta
         cargo-release
         default-target
         mdbook
@@ -54,8 +55,6 @@ tasks:
         mdbook-toc
         wasm-bindgen-cli
         wasm-pack
-        # https://github.com/mitsuhiko/insta/issues/301
-      - cargo install cargo-insta --version=1.21.0
 
   install-maturin:
     desc: Install maturin
