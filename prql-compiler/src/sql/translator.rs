@@ -488,4 +488,30 @@ mod test {
 
         assert_snapshot!(sql_ast);
     }
+
+    #[test]
+    #[ignore]
+    fn test_filter_windowed() {
+        // #806
+        let query = &r#"
+        from tbl1
+        filter (average bar) > 3
+        "#;
+
+        assert_snapshot!(crate::compile(query).unwrap(), @r###"
+        WITH table_0 AS (
+          SELECT
+            *,
+            AVG(bar) OVER () AS _expr_0
+          FROM
+            tbl1
+        )
+        SELECT
+          *
+        FROM
+          table_0
+        WHERE
+          _expr_0 > 3
+        "###);
+    }
 }

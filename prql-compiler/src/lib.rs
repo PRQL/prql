@@ -325,7 +325,6 @@ select `first name`
     }
 
     #[test]
-    #[ignore]
     fn test_numbers() {
         let query = r###"
         from numbers
@@ -341,7 +340,8 @@ select `first name`
           5 AS x,
           5.0 AS y,
           5.0 AS z
-        FROM numbers
+        FROM
+          numbers
         "###);
     }
 
@@ -1592,6 +1592,66 @@ join y [foo == only_in_x]
         FROM
           x
           JOIN y ON y.foo = x.only_in_x
+        "###
+        );
+    }
+
+    #[test]
+    fn test_double_aggregate() {
+        // #941
+        let query = r###"
+        from numbers
+        group [type] (
+            aggregate [
+                total_amt = sum amount,
+            ]
+            aggregate [
+                max amount
+            ]
+        )
+        "###;
+
+        compile(query).unwrap_err();
+
+        let query = r###"
+        from numbers
+        group [type] (
+            aggregate [
+                total_amt = sum amount,
+                max amount
+            ]
+        )
+        "###;
+
+        assert_display_snapshot!(compile(query).unwrap(),
+            @r###"
+        SELECT
+          type,
+          SUM(amount) AS total_amt,
+          MAX(amount)
+        FROM
+          numbers
+        GROUP BY
+          type
+        "###
+        );
+    }
+
+    #[test]
+    fn test_casting() {
+        assert_display_snapshot!(compile(r###"
+        from x
+        select [a]
+        derive [
+            c = (a | as int) / 10
+        ]
+        "###).unwrap(),
+            @r###"
+        SELECT
+          a,
+          CAST(a AS int) / 10 AS c
+        FROM
+          x
         "###
         );
     }
