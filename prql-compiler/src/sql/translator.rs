@@ -8,7 +8,7 @@
 // going to be isomorphically mapping everything back from SQL to PRQL. But it
 // does mean we should continue to iterate on this file and refactor things when
 // necessary.
-use anyhow::{anyhow, bail, Result};
+use anyhow::{anyhow, Result};
 use itertools::Itertools;
 use sqlformat::{format, FormatOptions, QueryParams};
 use sqlparser::ast::{self as sql_ast, Select, SetExpr, TableWithJoins};
@@ -73,25 +73,30 @@ pub fn translate_query(query: Query) -> Result<sql_ast::Query> {
 
     let mut atomics = Vec::new();
     for table in tables {
-        let pipeline = if let Relation::Pipeline(pipeline) = table.relation {
-            pipeline
-        } else {
-            // ref does not need it's own CTE
-            continue;
-        };
+        let name = table
+            .name
+            .unwrap_or_else(|| context.anchor.gen_table_name());
 
-        // preprocess
-        let pipeline = preprocess_reorder(pipeline);
-        let pipeline = preprocess_distinct(pipeline, &mut context)?;
+        match table.relation {
+            Relation::Pipeline(pipeline) => {
+                // preprocess
+                let pipeline = preprocess_reorder(pipeline);
+                let pipeline = preprocess_distinct(pipeline, &mut context)?;
 
-        // split to atomics
-        atomics.extend(split_into_atomics(table.name, pipeline, &mut context));
+                // split to atomics
+                atomics.extend(split_into_atomics(name, pipeline, &mut context));
+            }
+            Relation::Literal(_, _) => atomics.push(AtomicQuery {
+                name,
+                relation: table.relation,
+            }),
+            Relation::ExternRef(_, _) => {
+                // ref does not need it's own CTE
+            }
+        }
     }
 
     // take last table
-    if atomics.is_empty() {
-        bail!("No tables?");
-    }
     let main_query = atomics.remove(atomics.len() - 1);
     let ctes = atomics;
 
@@ -102,7 +107,7 @@ pub fn translate_query(query: Query) -> Result<sql_ast::Query> {
         .try_collect()?;
 
     // convert main query
-    let mut main_query = sql_query_of_atomic_query(main_query.pipeline, &mut context)?;
+    let mut main_query = sql_query_of_relation(main_query.relation, &mut context)?;
 
     // attach CTEs
     if !ctes.is_empty() {
@@ -119,7 +124,7 @@ pub fn translate_query(query: Query) -> Result<sql_ast::Query> {
 #[derive(Debug)]
 pub struct AtomicQuery {
     name: String,
-    pipeline: Vec<Transform>,
+    relation: Relation,
 }
 
 fn into_tables(
@@ -142,12 +147,20 @@ fn table_to_sql_cte(table: AtomicQuery, context: &mut Context) -> Result<sql_ast
     };
     Ok(sql_ast::Cte {
         alias,
-        query: Box::new(sql_query_of_atomic_query(table.pipeline, context)?),
+        query: Box::new(sql_query_of_relation(table.relation, context)?),
         from: None,
     })
 }
 
-fn sql_query_of_atomic_query(
+fn sql_query_of_relation(relation: Relation, context: &mut Context) -> Result<sql_ast::Query> {
+    match relation {
+        Relation::ExternRef(_, _) => unreachable!(),
+        Relation::Pipeline(pipeline) => sql_query_of_pipeline(pipeline, context),
+        Relation::Literal(_, _) => todo!(),
+    }
+}
+
+fn sql_query_of_pipeline(
     pipeline: Vec<Transform>,
     context: &mut Context,
 ) -> Result<sql_ast::Query> {
@@ -275,7 +288,7 @@ fn sql_query_of_atomic_query(
 }
 
 fn split_into_atomics(
-    table_name: Option<String>,
+    name: String,
     mut pipeline: Vec<Transform>,
     context: &mut Context,
 ) -> Vec<AtomicQuery> {
@@ -319,7 +332,7 @@ fn split_into_atomics(
         let first_name = context.anchor.gen_table_name();
         atomics.push(AtomicQuery {
             name: first_name.clone(),
-            pipeline: first.0,
+            relation: Relation::Pipeline(first.0),
         });
 
         let mut prev_name = first_name;
@@ -330,7 +343,7 @@ fn split_into_atomics(
 
             atomics.push(AtomicQuery {
                 name: name.clone(),
-                pipeline,
+                relation: Relation::Pipeline(pipeline),
             });
 
             prev_name = name;
@@ -339,8 +352,8 @@ fn split_into_atomics(
         anchor::anchor_split(&mut context.anchor, &prev_name, &last.1, last.0)
     };
     atomics.push(AtomicQuery {
-        name: table_name.unwrap_or_else(|| context.anchor.gen_table_name()),
-        pipeline: last_pipeline,
+        name,
+        relation: Relation::Pipeline(last_pipeline),
     });
 
     atomics
@@ -394,7 +407,7 @@ mod test {
         "###;
 
         let (pipeline, mut context) = parse_and_resolve(prql).unwrap();
-        let queries = split_into_atomics(None, pipeline, &mut context);
+        let queries = split_into_atomics("".to_string(), pipeline, &mut context);
         assert_eq!(queries.len(), 1);
 
         // One aggregate, but take at the top
@@ -407,7 +420,7 @@ mod test {
         "###;
 
         let (pipeline, mut context) = parse_and_resolve(prql).unwrap();
-        let queries = split_into_atomics(None, pipeline, &mut context);
+        let queries = split_into_atomics("".to_string(), pipeline, &mut context);
         assert_eq!(queries.len(), 2);
 
         // A take, then two aggregates
@@ -421,7 +434,7 @@ mod test {
         "###;
 
         let (pipeline, mut context) = parse_and_resolve(prql).unwrap();
-        let queries = split_into_atomics(None, pipeline, &mut context);
+        let queries = split_into_atomics("".to_string(), pipeline, &mut context);
         assert_eq!(queries.len(), 3);
 
         // A take, then a select
@@ -432,7 +445,7 @@ mod test {
         "###;
 
         let (pipeline, mut context) = parse_and_resolve(prql).unwrap();
-        let queries = split_into_atomics(None, pipeline, &mut context);
+        let queries = split_into_atomics("".to_string(), pipeline, &mut context);
         assert_eq!(queries.len(), 1);
     }
 
@@ -519,6 +532,245 @@ mod test {
           table_0
         WHERE
           _expr_0 > 3
+        "###);
+    }
+
+    #[test]
+    fn test_relation_literal() {
+        let rq = &r#"
+        {
+            "def": {
+              "version": null,
+              "dialect": "Generic"
+            },
+            "tables": [
+              {
+                "id": 0,
+                "name": "sample_table",
+                "relation": {
+                  "Literal": [
+                    {
+                      "columns": ["a", "b", "c"],
+                      "rows": [
+                        ["3", "a", "false"],
+                        ["5", "c", "true"],
+                        ["1", "b", "true"],
+                        ["2", "a", "false"]
+                      ]
+                    },
+                    [
+                      {
+                        "id": 0,
+                        "kind": "Wildcard"
+                      },
+                      {
+                        "id": 1,
+                        "kind": {
+                          "ExternRef": "a"
+                        }
+                      },
+                      {
+                        "id": 2,
+                        "kind": {
+                          "ExternRef": "b"
+                        }
+                      },
+                      {
+                        "id": 3,
+                        "kind": {
+                          "ExternRef": "c"
+                        }
+                      }
+                    ]
+                  ]
+                }
+              }
+            ],
+            "relation": {
+              "Pipeline": [
+                {
+                  "From": {
+                    "source": 0,
+                    "columns": [
+                      {
+                        "id": 4,
+                        "kind": "Wildcard"
+                      },
+                      {
+                        "id": 5,
+                        "kind": {
+                          "Expr": {
+                            "name": "a",
+                            "expr": {
+                              "kind": {
+                                "ColumnRef": 1
+                              },
+                              "span": null
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "id": 6,
+                        "kind": {
+                          "Expr": {
+                            "name": "b",
+                            "expr": {
+                              "kind": {
+                                "ColumnRef": 2
+                              },
+                              "span": null
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "id": 7,
+                        "kind": {
+                          "Expr": {
+                            "name": "c",
+                            "expr": {
+                              "kind": {
+                                "ColumnRef": 3
+                              },
+                              "span": null
+                            }
+                          }
+                        }
+                      }
+                    ],
+                    "name": null
+                  }
+                },
+                {
+                  "Compute": {
+                    "id": 8,
+                    "kind": {
+                      "Expr": {
+                        "name": "full_name",
+                        "expr": {
+                          "kind": {
+                            "FString": [
+                              {
+                                "Expr": {
+                                  "kind": {
+                                    "ColumnRef": 5
+                                  },
+                                  "span": {
+                                    "start": 37,
+                                    "end": 41
+                                  }
+                                }
+                              },
+                              {
+                                "String": " "
+                              },
+                              {
+                                "Expr": {
+                                  "kind": {
+                                    "ColumnRef": 6
+                                  },
+                                  "span": {
+                                    "start": 44,
+                                    "end": 51
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "span": {
+                            "start": 22,
+                            "end": 53
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "Filter": {
+                    "kind": {
+                      "Binary": {
+                        "left": {
+                          "kind": {
+                            "ColumnRef": 7
+                          },
+                          "span": {
+                            "start": 61,
+                            "end": 65
+                          }
+                        },
+                        "op": "Gt",
+                        "right": {
+                          "kind": {
+                            "Literal": {
+                              "Integer": 2
+                            }
+                          },
+                          "span": {
+                            "start": 67,
+                            "end": 68
+                          }
+                        }
+                      }
+                    },
+                    "span": {
+                      "start": 61,
+                      "end": 68
+                    }
+                  }
+                },
+                {
+                  "Select": [
+                    4,
+                    8
+                  ]
+                }
+              ]
+            }
+          }
+        "#;
+
+        assert_snapshot!(crate::json_to_rq(rq).and_then(translate).unwrap(), @r###"
+        WITH sample_table AS (
+          SELECT
+            3 AS a,
+            a AS b,
+            false AS c
+          UNION
+          ALL
+          SELECT
+            5 AS a,
+            c AS b,
+            true AS c
+          UNION
+          ALL
+          SELECT
+            1 AS a,
+            b AS b,
+            true AS c
+          UNION
+          ALL
+          SELECT
+            2 AS a,
+            a AS b,
+            false AS c
+        ),
+        table_0 AS (
+          SELECT
+            *,
+            CONCAT(a, ' ', b) AS full_name,
+            c
+          FROM
+            sample_table
+        )
+        SELECT
+          *,
+          full_name
+        FROM
+          table_0
+        WHERE
+          c > 2
         "###);
     }
 }

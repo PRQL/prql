@@ -111,6 +111,7 @@ pub fn fold_table_expr<F: ?Sized + IrFold>(fold: &mut F, t: Relation) -> Result<
             Relation::ExternRef(table_ref, fold_column_decls(fold, decls)?)
         }
         Relation::Pipeline(transforms) => Relation::Pipeline(fold.fold_transforms(transforms)?),
+        Relation::Literal(lit, decls) => Relation::Literal(lit, fold_column_decls(fold, decls)?),
     })
 }
 
