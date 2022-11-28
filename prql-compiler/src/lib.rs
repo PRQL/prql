@@ -20,6 +20,18 @@ use semver::Version;
 static PRQL_VERSION: Lazy<Version> =
     Lazy::new(|| Version::parse(env!("CARGO_PKG_VERSION")).expect("Invalid PRQL version number"));
 
+// TODO: possibly collapse this with other functions. Deliberately not `pub` atm.
+fn compile_with_formatted_error(prql: &str) -> Result<String, FormattedError> {
+    let res = compile(prql);
+    match res {
+        Ok(buf) => Ok(buf),
+        // TODO: should this info be a method on our standard `Error` type; e.g.
+        // we can call `error.formatted`? Could it already have the `source` &
+        // `source_id` or does that need to be passed in separately?
+        Err(e) => Err(error::format_error(e, "", prql, false)),
+    }
+}
+
 /// Compile a PRQL string into a SQL string.
 ///
 /// This has three stages:
@@ -52,7 +64,7 @@ pub fn json_to_rq(json: &str) -> Result<Query> {
 // Simple tests for "this PRQL creates this SQL" go here.
 #[cfg(test)]
 mod test {
-    use crate::{json_to_pl, parse, pl_to_json, pl_to_prql};
+    use crate::{compile_with_formatted_error, json_to_pl, parse, pl_to_json, pl_to_prql};
 
     use super::compile;
     use insta::{assert_display_snapshot, assert_snapshot};
@@ -1692,6 +1704,26 @@ join y [foo == only_in_x]
           CAST(a AS int) / 10 AS c
         FROM
           x
+        "###
+        );
+    }
+
+    #[test]
+    /// Start testing some error messages. This can hopefully be expanded significantly.
+    fn test_errors() {
+        assert_display_snapshot!(compile_with_formatted_error(r###"
+        from x
+        select a
+        select b
+        "###).unwrap_err().message,
+            @r###"
+        Error: 
+           ╭─[:4:16]
+           │
+         4 │         select b
+           ·                ┬  
+           ·                ╰── Unknown name b
+        ───╯
         "###
         );
     }
