@@ -21,7 +21,7 @@ use crate::utils::{IntoOnly, Pluck, TableCounter};
 use super::anchor;
 use super::codegen::*;
 use super::context::AnchorContext;
-use super::distinct::preprocess_distinct;
+use super::distinct::{preprocess_distinct, preprocess_reorder};
 
 pub(super) struct Context {
     pub dialect: Box<dyn DialectHandler>,
@@ -81,6 +81,7 @@ pub fn translate_query(query: Query) -> Result<sql_ast::Query> {
         };
 
         // preprocess
+        let pipeline = preprocess_reorder(pipeline);
         let pipeline = preprocess_distinct(pipeline, &mut context)?;
 
         // split to atomics
@@ -387,7 +388,7 @@ mod test {
 
         let pipeline = query.relation.into_pipeline().unwrap();
 
-        Ok((pipeline, context))
+        Ok((preprocess_reorder(pipeline), context))
     }
 
     #[test]
@@ -464,7 +465,6 @@ mod test {
     }
 
     #[test]
-    #[ignore]
     fn test_derive_filter() {
         // I suspect that the anchoring algorithm has a architectural flaw:
         // it assumes that it can materialize all columns, even if their
@@ -486,6 +486,48 @@ mod test {
 
         let sql_ast = translate(query).unwrap();
 
-        assert_snapshot!(sql_ast);
+        assert_snapshot!(sql_ast, @r###"
+        WITH table_0 AS (
+          SELECT
+            *,
+            RANK() OVER () AS global_rank,
+            country
+          FROM
+            employees
+        )
+        SELECT
+          *,
+          global_rank,
+          RANK() OVER () AS rank
+        FROM
+          table_0
+        WHERE
+          country = 'USA'
+        "###);
+    }
+
+    #[test]
+    fn test_filter_windowed() {
+        // #806
+        let query = &r#"
+        from tbl1
+        filter (average bar) > 3
+        "#;
+
+        assert_snapshot!(crate::compile(query).unwrap(), @r###"
+        WITH table_0 AS (
+          SELECT
+            *,
+            AVG(bar) OVER () AS _expr_0
+          FROM
+            tbl1
+        )
+        SELECT
+          *
+        FROM
+          table_0
+        WHERE
+          _expr_0 > 3
+        "###);
     }
 }

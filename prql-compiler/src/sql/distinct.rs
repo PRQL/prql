@@ -1,8 +1,11 @@
+use std::cmp::Ordering;
+
 use anyhow::Result;
 
 use crate::ast::pl::{BinOp, ColumnSort, InterpolateItem, Literal, Range, WindowFrame, WindowKind};
 use crate::ast::rq::{CId, ColumnDefKind, Expr, ExprKind, IrFold, Take, Transform, Window};
 
+use super::anchor::{infer_complexity, Complexity};
 use super::context::AnchorContext;
 use super::translator::Context;
 
@@ -164,4 +167,40 @@ impl<'a> TakeConverter<'a> {
             }),
         ]
     }
+}
+
+/// Pull Compose transforms in front of other transforms if possible.
+/// Position of Compose is important for two reasons:
+/// - when splitting pipelines, they provide information in which pipeline the
+///   column is computed and subsquently, with which table name should be used
+///   for name materialization.
+/// - the transform order in SQL requires Computes to be before Filter. This
+///   can be circumvented by materializing the column earlier in the pipeline,
+///   which is done in this function.
+pub(super) fn preprocess_reorder(mut pipeline: Vec<Transform>) -> Vec<Transform> {
+    // reorder Compose
+    pipeline.sort_by(|a, b| match (a, b) {
+        // don't reorder with From or Join or itself
+        (
+            Transform::From(_) | Transform::Join { .. } | Transform::Compute(_),
+            Transform::From(_) | Transform::Join { .. } | Transform::Compute(_),
+        ) => Ordering::Equal,
+
+        // reorder always
+        (Transform::Sort(_), Transform::Compute(_)) => Ordering::Greater,
+        (Transform::Compute(_), Transform::Sort(_)) => Ordering::Less,
+
+        // reorder with other exprs if col decl is plain
+        (_, Transform::Compute(decl)) if infer_complexity(decl) == Complexity::Plain => {
+            Ordering::Greater
+        }
+        (Transform::Compute(decl), _) if infer_complexity(decl) == Complexity::Plain => {
+            Ordering::Less
+        }
+
+        // don't reorder by default
+        _ => Ordering::Equal,
+    });
+
+    pipeline
 }
