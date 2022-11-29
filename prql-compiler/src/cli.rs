@@ -8,7 +8,7 @@ use std::{
     ops::Range,
 };
 
-use crate::error::{self, Span};
+use crate::error::{IntoErrorMessage, Span};
 use crate::parse;
 use crate::semantic::{self, reporting::*};
 use crate::{ast::pl::Frame, pl_to_prql};
@@ -61,7 +61,7 @@ impl Cli {
             Err(e) => {
                 print!(
                     "{:}",
-                    error::format_error(e, &source_id, &source, true).message
+                    e.into_error_message(&source_id, &source, true).message
                 );
                 std::process::exit(1)
             }

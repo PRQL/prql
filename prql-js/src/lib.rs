@@ -2,7 +2,7 @@
 #![allow(clippy::drop_non_drop)]
 mod utils;
 
-use prql_compiler::{format_error, pl_to_json, pl_to_prql, translate, FormattedError};
+use prql_compiler::{pl_to_json, pl_to_prql, translate, ErrorMessage, IntoErrorMessage};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
@@ -15,7 +15,7 @@ pub fn compile(s: &str) -> CompileResult {
     match result {
         Ok(sql) => r.sql = Some(sql),
         Err(e) => {
-            let error = format_error(e, "", s, false);
+            let error = e.into_error_message("", s, false);
 
             r.error = Some(CompileError {
                 line: error.line,
@@ -78,6 +78,7 @@ impl CompileError {
     }
 }
 
+// TODO: to what extent should this be unified with the SourecLocation in error.rs?
 #[wasm_bindgen]
 #[derive(Clone)]
 pub struct SourceLocation {
@@ -90,7 +91,7 @@ pub struct SourceLocation {
 
 #[wasm_bindgen]
 pub fn to_sql(s: &str) -> Option<String> {
-    let result = prql_compiler::compile(s).map_err(|e| format_error(e, "", s, false));
+    let result = prql_compiler::compile(s).map_err(|e| e.into_error_message("", s, false));
     return_or_throw_error(result)
 }
 
@@ -98,7 +99,7 @@ pub fn to_sql(s: &str) -> Option<String> {
 pub fn to_json(s: &str) -> Option<String> {
     let result = prql_compiler::parse(s)
         .and_then(pl_to_json)
-        .map_err(|e| format_error(e, "", s, false));
+        .map_err(|e| e.into_error_message("", s, false));
     return_or_throw_error(result)
 }
 
@@ -106,7 +107,7 @@ pub fn to_json(s: &str) -> Option<String> {
 pub fn from_json(s: &str) -> Option<String> {
     let result = prql_compiler::json_to_pl(s)
         .and_then(pl_to_prql)
-        .map_err(|e| format_error(e, "", s, false));
+        .map_err(|e| e.into_error_message("", s, false));
     return_or_throw_error(result)
 }
 
@@ -114,11 +115,11 @@ pub fn from_json(s: &str) -> Option<String> {
 pub fn json_to_rq_to_sql(s: &str) -> Option<String> {
     let result = prql_compiler::json_to_rq(s)
         .and_then(translate)
-        .map_err(|e| format_error(e, "", s, false));
+        .map_err(|e| e.into_error_message("", s, false));
     return_or_throw_error(result)
 }
 
-fn return_or_throw_error(result: Result<String, FormattedError>) -> Option<String> {
+fn return_or_throw_error(result: Result<String, ErrorMessage>) -> Option<String> {
     match result {
         Ok(sql) => Some(sql),
         Err(e) => {

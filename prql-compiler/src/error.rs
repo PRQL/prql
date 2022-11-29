@@ -7,6 +7,7 @@ use std::fmt::{self, Debug, Display, Formatter, Write};
 use std::ops::{Add, Range};
 
 use crate::parser::PestError;
+
 #[derive(Clone, PartialEq, Eq, Copy, Serialize, Deserialize)]
 pub struct Span {
     pub start: usize,
@@ -66,10 +67,16 @@ impl Error {
     }
 }
 
-pub struct FormattedError {
+pub struct ErrorMessage {
     pub message: String,
     pub line: String,
     pub location: Option<SourceLocation>,
+}
+
+impl Display for ErrorMessage {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.message)
+    }
 }
 
 // Needed for anyhow
@@ -82,109 +89,116 @@ impl Display for Error {
     }
 }
 
-/// Convert error into human-readable message and error location.
-pub fn format_error(
-    error: anyhow::Error,
-    source_id: &str,
-    source: &str,
-    color: bool,
-) -> FormattedError {
-    let source = Source::from(source);
-    let location = location(&error, &source);
-
-    let (line, output) = error_message_and_output(error, source_id, source, color);
-
-    FormattedError {
-        message: output,
-        line,
-        location,
-    }
+pub trait IntoErrorMessage {
+    fn into_error_message(self, source_id: &str, source: &str, color: bool) -> ErrorMessage;
+    fn to_location(&self, source: &Source) -> Option<SourceLocation>;
+    fn into_error_message_and_output(
+        self,
+        source_id: &str,
+        source: Source,
+        color: bool,
+    ) -> (String, String);
 }
 
-fn location(error: &anyhow::Error, source: &Source) -> Option<SourceLocation> {
-    let span = if let Some(error) = error.downcast_ref::<Error>() {
-        if let Some(span) = error.span {
-            Range::from(span)
+impl IntoErrorMessage for anyhow::Error {
+    /// Convert error into human-readable message and error location.
+    fn into_error_message(self, source_id: &str, source: &str, color: bool) -> ErrorMessage {
+        let source = Source::from(source);
+        let location = self.to_location(&source);
+
+        let (line, output) = self.into_error_message_and_output(source_id, source, color);
+
+        ErrorMessage {
+            message: output,
+            line,
+            location,
+        }
+    }
+    fn to_location(&self, source: &Source) -> Option<SourceLocation> {
+        let span = if let Some(error) = self.downcast_ref::<Error>() {
+            if let Some(span) = error.span {
+                Range::from(span)
+            } else {
+                return None;
+            }
+        } else if let Some(error) = self.downcast_ref::<PestError>() {
+            pest::as_range(error)
         } else {
             return None;
-        }
-    } else if let Some(error) = error.downcast_ref::<PestError>() {
-        pest::as_range(error)
-    } else {
-        return None;
-    };
+        };
 
-    let start = source.get_offset_line(span.start)?;
-    let end = source.get_offset_line(span.end)?;
+        let start = source.get_offset_line(span.start)?;
+        let end = source.get_offset_line(span.end)?;
 
-    Some(SourceLocation {
-        start: (start.1, start.2),
-        end: (end.1, end.2),
-    })
-}
+        Some(SourceLocation {
+            start: (start.1, start.2),
+            end: (end.1, end.2),
+        })
+    }
+    // TODO: should we consolidate between `into_error_message` and `into_error_message_and_output`?
+    fn into_error_message_and_output(
+        self,
+        source_id: &str,
+        source: Source,
+        color: bool,
+    ) -> (String, String) {
+        let config = Config::default().with_color(color);
 
-fn error_message_and_output(
-    error: anyhow::Error,
-    source_id: &str,
-    source: Source,
-    color: bool,
-) -> (String, String) {
-    let config = Config::default().with_color(color);
+        if let Some(error) = self.downcast_ref::<Error>() {
+            let message = error.reason.message();
 
-    if let Some(error) = error.downcast_ref::<Error>() {
-        let message = error.reason.message();
+            if let Some(span) = error.span {
+                let span = Range::from(span);
 
-        if let Some(span) = error.span {
-            let span = Range::from(span);
+                let mut report = Report::build(ReportKind::Error, source_id, span.start)
+                    .with_config(config)
+                    .with_message("")
+                    .with_label(Label::new((source_id, span)).with_message(&message));
 
-            let mut report = Report::build(ReportKind::Error, source_id, span.start)
-                .with_config(config)
-                .with_message("")
-                .with_label(Label::new((source_id, span)).with_message(&message));
+                if let Some(help) = &error.help {
+                    report.set_help(help);
+                }
 
-            if let Some(help) = &error.help {
-                report.set_help(help);
+                let mut out = Vec::new();
+                report
+                    .finish()
+                    .write((source_id, source), &mut out)
+                    .unwrap();
+
+                let output = String::from_utf8(out).unwrap();
+                return (message, output);
+            } else {
+                let mut out = format!("Error: {message}");
+
+                if let Some(help) = &error.help {
+                    out = format!("{out}\n  help: {help}");
+                }
+
+                return (message, out);
             }
+        }
 
+        if let Some(error) = self.downcast_ref::<PestError>() {
+            let span = pest::as_range(error);
             let mut out = Vec::new();
-            report
+
+            let message = pest::as_message(error);
+            Report::build(ReportKind::Error, source_id, span.start)
+                .with_config(config)
+                .with_message("during parsing")
+                .with_label(Label::new((source_id, span)).with_message(&message))
                 .finish()
                 .write((source_id, source), &mut out)
                 .unwrap();
 
-            let output = String::from_utf8(out).unwrap();
-            return (message, output);
-        } else {
-            let mut out = format!("Error: {message}");
-
-            if let Some(help) = &error.help {
-                out = format!("{out}\n  help: {help}");
-            }
-
-            return (message, out);
+            return (message, String::from_utf8(out).unwrap());
         }
+
+        // default to basic Display
+        let mut message = String::new();
+        write!(&mut message, "{:#?}", self).unwrap();
+        (message.clone(), message)
     }
-
-    if let Some(error) = error.downcast_ref::<PestError>() {
-        let span = pest::as_range(error);
-        let mut out = Vec::new();
-
-        let message = pest::as_message(error);
-        Report::build(ReportKind::Error, source_id, span.start)
-            .with_config(config)
-            .with_message("during parsing")
-            .with_label(Label::new((source_id, span)).with_message(&message))
-            .finish()
-            .write((source_id, source), &mut out)
-            .unwrap();
-
-        return (message, String::from_utf8(out).unwrap());
-    }
-
-    // default to basic Display
-    let mut message = String::new();
-    write!(&mut message, "{:#?}", error).unwrap();
-    (message.clone(), message)
 }
 
 impl Reason {
