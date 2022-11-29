@@ -1,10 +1,12 @@
 mod id_gen;
 mod only;
 mod table_counter;
+mod toposort;
 
 pub use id_gen::IdGenerator;
 pub use only::*;
 pub use table_counter::TableCounter;
+pub use toposort::toposort;
 
 use anyhow::Result;
 

@@ -4,7 +4,7 @@ use std::ops::Range;
 use anyhow::{Ok, Result};
 use ariadne::{Color, Label, Report, ReportBuilder, ReportKind, Source};
 
-use super::context::DeclKind;
+use super::context::{DeclKind, TableDecl};
 use super::module::NS_DEFAULT_DB;
 use super::{Context, Frame};
 use crate::ast::pl::{fold::*, *};
@@ -52,9 +52,9 @@ impl<'a> Labeler<'a> {
             let default_db = default_db.clone().kind.into_module().unwrap();
 
             for (_, decl) in default_db.names.into_iter() {
-                if let DeclKind::TableDef {
+                if let DeclKind::TableDecl(TableDecl {
                     expr: Some(expr), ..
-                } = decl.kind
+                }) = decl.kind
                 {
                     self.fold_expr(*expr).unwrap();
                 }
@@ -87,7 +87,7 @@ impl<'a> AstFold for Labeler<'a> {
                     let color = match &decl.kind {
                         DeclKind::Expr(_) => Color::Blue,
                         DeclKind::Column { .. } => Color::Yellow,
-                        DeclKind::TableDef { .. } => Color::Red,
+                        DeclKind::TableDecl { .. } => Color::Red,
                         DeclKind::FuncDef(_) => Color::Magenta,
                         DeclKind::Module(_) => Color::Cyan,
                         DeclKind::LayeredModules(_) => Color::Cyan,
@@ -101,7 +101,7 @@ impl<'a> AstFold for Labeler<'a> {
                         .unwrap_or_default();
 
                     let decl = match &decl.kind {
-                        DeclKind::TableDef { frame, .. } => format!("table {frame}"),
+                        DeclKind::TableDecl(TableDecl { frame, .. }) => format!("table {frame}"),
                         _ => decl.to_string(),
                     };
 

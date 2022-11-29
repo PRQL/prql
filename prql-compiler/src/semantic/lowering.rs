@@ -1,17 +1,19 @@
+use std::collections::hash_map::RandomState;
 use std::collections::{HashMap, HashSet};
 
 use anyhow::{bail, Result};
 use itertools::Itertools;
 
+use crate::ast::pl::fold::AstFold;
 use crate::ast::pl::{
-    self, Expr, FrameColumn, Ident, InterpolateItem, Range, TableExternRef, WindowFrame,
+    self, Expr, FrameColumn, Ident, InterpolateItem, Range, TableExternRef, Ty, WindowFrame,
 };
 use crate::ast::rq::{self, CId, ColumnDecl, ColumnDefKind, Query, TId, TableDecl, Transform};
 use crate::error::{Error, Reason};
 use crate::semantic::module::Module;
-use crate::utils::IdGenerator;
+use crate::utils::{toposort, IdGenerator};
 
-use super::context::{Context, DeclKind, TableColumn, TableFrame};
+use super::context::{self, Context, DeclKind, TableColumn, TableFrame};
 
 /// Convert AST into IR and make sure that:
 /// - transforms are not nested,
@@ -493,8 +495,7 @@ impl Lowerer {
 struct TableExtractor {
     path: Vec<String>,
 
-    tables_extern: Vec<(Ident, DeclKind)>,
-    tables_pipeline: Vec<(Ident, DeclKind)>,
+    tables: Vec<(Ident, context::TableDecl)>,
 }
 
 impl TableExtractor {
@@ -503,12 +504,9 @@ impl TableExtractor {
 
         te.extract_from_namespace(&lowerer.context.root_mod);
 
-        // TODO: this sorts tables by names, just to make compiler output stable
-        // ideally, they would preserve order in the PRQL query or use toposort
-        te.tables_pipeline.sort_by_key(|(i, _)| i.name.clone());
+        let tables = toposort_tables(te.tables);
 
-        (te.tables_extern.into_iter())
-            .chain(te.tables_pipeline)
+        (tables.into_iter())
             .map(|(fq_ident, table)| lower_table(lowerer, table, fq_ident))
             .try_collect()
     }
@@ -521,14 +519,9 @@ impl TableExtractor {
                 DeclKind::Module(ns) => {
                     self.extract_from_namespace(ns);
                 }
-                DeclKind::TableDef { expr, .. } => {
+                DeclKind::TableDecl(table) => {
                     let fq_ident = Ident::from_path(self.path.clone());
-                    let table = (fq_ident, entry.kind.clone());
-                    if expr.is_none() {
-                        self.tables_extern.push(table);
-                    } else {
-                        self.tables_pipeline.push(table);
-                    }
+                    self.tables.push((fq_ident, table.clone()));
                 }
                 _ => {}
             }
@@ -537,10 +530,14 @@ impl TableExtractor {
     }
 }
 
-fn lower_table(lowerer: &mut Lowerer, table: DeclKind, fq_ident: Ident) -> Result<TableDecl> {
+fn lower_table(
+    lowerer: &mut Lowerer,
+    table: context::TableDecl,
+    fq_ident: Ident,
+) -> Result<TableDecl> {
     let id = lowerer.ensure_table_id(&fq_ident);
 
-    let (frame, expr) = table.into_table_def().unwrap();
+    let context::TableDecl { frame, expr } = table;
 
     let (expr, cols) = if let Some(expr) = expr {
         // this is a CTE
@@ -558,30 +555,6 @@ fn lower_table(lowerer: &mut Lowerer, table: DeclKind, fq_ident: Ident) -> Resul
         name,
         relation: expr,
     })
-
-    // if let Declaration::Column { table, column } = decl {
-    //     // yes, this CId could have been generated only if needed
-    //     // but I don't want to bother with lowerer mut borrow
-    //     let new_cid = self.lowerer.cid.gen();
-    //     let kind = ColumnDefKind::ExternRef(column.clone());
-    //     let col_def = ColumnDef {
-    //         id: new_cid,
-    //         kind,
-    //         window: None,
-    //     };
-
-    //     let (_, cols) = self.lowerer.extern_table_entry(table);
-    //     let existing = cols.iter().find_map(|cd| match &cd.kind {
-    //         ColumnDefKind::ExternRef(name) if *name == column => Some(cd.id),
-    //         _ => None,
-    //     });
-    //     if let Some(existing) = existing {
-    //         self.lowerer.column_mapping.insert(id, existing);
-    //     } else {
-    //         cols.push(col_def);
-    //         self.lowerer.column_mapping.insert(id, new_cid);
-    //     }
-    // }
 }
 
 fn lower_extern_table(
@@ -614,4 +587,57 @@ fn lower_extern_table(
         column_defs,
     );
     (expr, cols)
+}
+
+fn toposort_tables(tables: Vec<(Ident, context::TableDecl)>) -> Vec<(Ident, context::TableDecl)> {
+    let tables: HashMap<_, _, RandomState> = HashMap::from_iter(tables);
+
+    let mut dependencies: Vec<(Ident, Vec<Ident>)> = tables
+        .iter()
+        .map(|(ident, table)| {
+            let deps = (table.expr.clone())
+                .map(|e| TableDepsCollector::collect(*e))
+                .unwrap_or_default();
+            (ident.clone(), deps)
+        })
+        .collect();
+    dependencies.sort_by(|a, b| a.0.cmp(&b.0));
+
+    let sort = toposort(&dependencies).unwrap();
+
+    let mut tables = tables;
+    sort.into_iter()
+        .map(|ident| tables.remove_entry(ident).unwrap())
+        .collect_vec()
+}
+
+#[derive(Default)]
+struct TableDepsCollector {
+    deps: Vec<Ident>,
+}
+
+impl TableDepsCollector {
+    fn collect(expr: pl::Expr) -> Vec<Ident> {
+        let mut c = TableDepsCollector::default();
+        c.fold_expr(expr).unwrap();
+        c.deps
+    }
+}
+
+impl AstFold for TableDepsCollector {
+    fn fold_expr(&mut self, mut expr: Expr) -> Result<Expr> {
+        expr.kind = match expr.kind {
+            pl::ExprKind::Ident(ref ident) => {
+                if let Some(Ty::Table(_)) = &expr.ty {
+                    self.deps.push(ident.clone());
+                }
+                expr.kind
+            }
+            pl::ExprKind::TransformCall(tc) => {
+                pl::ExprKind::TransformCall(self.fold_transform_call(tc)?)
+            }
+            _ => expr.kind,
+        };
+        Ok(expr)
+    }
 }
