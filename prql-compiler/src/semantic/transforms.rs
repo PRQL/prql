@@ -518,7 +518,7 @@ mod tests {
                           kind:
                             ColumnRef: 1
                           span: ~
-                name: ~
+                name: c_invoice
             - Select:
                 - 3
             - Take:
@@ -702,7 +702,7 @@ mod tests {
                           kind:
                             ColumnRef: 3
                           span: ~
-                name: ~
+                name: invoices
             - Sort:
                 - direction: Asc
                   column: 5
