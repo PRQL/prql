@@ -1398,8 +1398,7 @@ take 20
         WITH table_0 AS (
           SELECT
             employees.emp_no,
-            d.name,
-            employees.emp_no
+            d.name
           FROM
             employees
             JOIN department AS d ON employees.dept_no = d.dept_no
@@ -1729,6 +1728,53 @@ join y [foo == only_in_x]
         FROM
           b
         "###
+        );
+    }
+
+    #[test]
+    fn test_filter_and_select_unchanged_alias() {
+        // #1185
+
+        assert_display_snapshot!(compile(r###"
+        from account
+        filter account.name != null
+        select [name = account.name]
+        "###).unwrap(),
+            @r###"
+            SELECT
+              name
+            FROM
+              account
+            WHERE
+              name IS NOT NULL
+            "###
+        );
+    }
+
+    #[test]
+    fn test_filter_and_select_changed_alias() {
+        // #1185
+
+        assert_display_snapshot!(compile(r###"
+        from account
+        filter account.name != null
+        select [renamed_name = account.name]
+        "###).unwrap(),
+            @r###"
+            WITH table_0 AS (
+              SELECT
+                name AS renamed_name,
+                name
+              FROM
+                account
+            )
+            SELECT
+              renamed_name
+            FROM
+              table_0
+            WHERE
+              name IS NOT NULL
+            "###
         );
     }
 }
