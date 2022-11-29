@@ -343,7 +343,8 @@ impl Lowerer {
         is_aggregation: bool,
     ) -> Result<rq::CId> {
         // copy metadata before lowering
-        let has_alias = expr_ast.alias.is_some();
+        let alias = expr_ast.alias.clone();
+        let has_alias = alias.is_some();
         let needs_window = expr_ast.needs_window;
         expr_ast.needs_window = false;
         let name = if let Some(alias) = expr_ast.alias.clone() {
@@ -351,14 +352,19 @@ impl Lowerer {
         } else {
             expr_ast.kind.as_ident().map(|x| x.name.clone())
         };
+        let alias_for = if has_alias {
+            expr_ast.kind.as_ident().map(|x| x.name.clone())
+        } else {
+            None
+        };
         let id = expr_ast.id.unwrap();
 
         // lower
         let expr = self.lower_expr(expr_ast)?;
 
-        // don't create new ColumnDef if expr is just a ColumnRef
+        // don't create new ColumnDef if expr is just a ColumnRef with no renaming
         if let rq::ExprKind::ColumnRef(cid) = &expr.kind {
-            if !has_alias && !needs_window {
+            if !needs_window && (!has_alias || alias == alias_for) {
                 self.column_mapping.insert(id, *cid);
                 return Ok(*cid);
             }
