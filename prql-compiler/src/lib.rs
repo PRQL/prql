@@ -1718,11 +1718,11 @@ join y [foo == only_in_x]
         select b
         "###).unwrap_err().message,
             @r###"
-        Error: 
+        Error:
            ╭─[:4:16]
            │
          4 │         select b
-           ·                ┬  
+           ·                ┬
            ·                ╰── Unknown name b
         ───╯
         "###
