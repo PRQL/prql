@@ -90,7 +90,7 @@ mod tests {
         ];
         let order = toposort(&dependencies).unwrap();
 
-        let order = order.into_iter().map(|s| *s).collect_vec();
+        let order = order.into_iter().copied().collect_vec();
         assert_eq!(order, vec!["c", "b", "a", "d"]);
     }
 
@@ -104,7 +104,7 @@ mod tests {
         ];
         let order = toposort(&dependencies).unwrap();
 
-        let order = order.into_iter().map(|s| *s).collect_vec();
+        let order = order.into_iter().copied().collect_vec();
         assert_eq!(order, vec!["a", "b", "c", "d"]);
     }
 
@@ -132,7 +132,7 @@ mod tests {
 
         let order = toposort(&dependencies).unwrap();
 
-        let order = order.into_iter().map(|s| *s).collect_vec();
+        let order = order.into_iter().copied().collect_vec();
         assert_eq!(order, vec!["b", "a", "c", "d"]);
     }
 }
