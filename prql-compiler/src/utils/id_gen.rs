@@ -53,7 +53,7 @@ struct IdLoader {
 }
 
 impl IrFold for IdLoader {
-    fn fold_column_def(&mut self, cd: ColumnDecl) -> Result<ColumnDecl> {
+    fn fold_column_decl(&mut self, cd: ColumnDecl) -> Result<ColumnDecl> {
         self.cid.skip(cd.id.get());
 
         Ok(cd)

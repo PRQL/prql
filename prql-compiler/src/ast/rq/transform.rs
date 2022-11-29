@@ -49,11 +49,11 @@ pub struct ColumnDecl {
     pub kind: ColumnDefKind,
 
     /// Paramaters for window functions (or expressions).
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none", default)]
     pub window: Option<Window>,
 
     /// Must be set exactly on columns used in [Transform::Aggregate].
-    #[serde(skip_serializing)]
+    #[serde(skip_serializing_if = "is_false", default)]
     pub is_aggregation: bool,
 }
 
@@ -78,4 +78,8 @@ impl ColumnDecl {
             _ => None,
         }
     }
+}
+
+fn is_false(b: &bool) -> bool {
+    !b
 }

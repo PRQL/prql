@@ -46,15 +46,15 @@ pub trait IrFold {
     fn fold_expr_kind(&mut self, kind: ExprKind) -> Result<ExprKind> {
         fold_expr_kind(self, kind)
     }
-    fn fold_column_def(&mut self, cd: ColumnDecl) -> Result<ColumnDecl> {
-        fold_column_def(self, cd)
+    fn fold_column_decl(&mut self, cd: ColumnDecl) -> Result<ColumnDecl> {
+        fold_column_decl(self, cd)
     }
     fn fold_cid(&mut self, cid: CId) -> Result<CId> {
         Ok(cid)
     }
 }
 
-fn fold_column_def<F: ?Sized + IrFold>(
+fn fold_column_decl<F: ?Sized + IrFold>(
     fold: &mut F,
     cd: ColumnDecl,
 ) -> Result<ColumnDecl, anyhow::Error> {
@@ -71,6 +71,16 @@ fn fold_column_def<F: ?Sized + IrFold>(
         window: cd.window.map(|w| fold_window(fold, w)).transpose()?,
         is_aggregation: cd.is_aggregation,
     })
+}
+
+fn fold_column_decls<F: ?Sized + IrFold>(
+    fold: &mut F,
+    decls: Vec<ColumnDecl>,
+) -> Result<Vec<ColumnDecl>> {
+    decls
+        .into_iter()
+        .map(|c| fold.fold_column_decl(c))
+        .try_collect()
 }
 
 fn fold_window<F: ?Sized + IrFold>(fold: &mut F, w: Window) -> Result<Window> {
@@ -97,12 +107,9 @@ pub fn fold_table<F: ?Sized + IrFold>(fold: &mut F, t: TableDecl) -> Result<Tabl
 
 pub fn fold_table_expr<F: ?Sized + IrFold>(fold: &mut F, t: Relation) -> Result<Relation> {
     Ok(match t {
-        Relation::ExternRef(table_ref, defs) => Relation::ExternRef(
-            table_ref,
-            defs.into_iter()
-                .map(|d| fold.fold_column_def(d))
-                .try_collect()?,
-        ),
+        Relation::ExternRef(table_ref, decls) => {
+            Relation::ExternRef(table_ref, fold_column_decls(fold, decls)?)
+        }
         Relation::Pipeline(transforms) => Relation::Pipeline(fold.fold_transforms(transforms)?),
     })
 }
@@ -111,11 +118,7 @@ pub fn fold_table_ref<F: ?Sized + IrFold>(fold: &mut F, table_ref: TableRef) -> 
     Ok(TableRef {
         name: table_ref.name,
         source: table_ref.source,
-        columns: table_ref
-            .columns
-            .into_iter()
-            .map(|c| fold.fold_column_def(c))
-            .try_collect()?,
+        columns: fold_column_decls(fold, table_ref.columns)?,
     })
 }
 
@@ -154,7 +157,7 @@ pub fn fold_transform<T: ?Sized + IrFold>(
     transform = match transform {
         From(tid) => From(fold.fold_table_ref(tid)?),
 
-        Compute(assigns) => Compute(fold.fold_column_def(assigns)?),
+        Compute(assigns) => Compute(fold.fold_column_decl(assigns)?),
         Aggregate { partition, compute } => Aggregate {
             partition: fold_cids(fold, partition)?,
             compute: fold_cids(fold, compute)?,
