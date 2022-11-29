@@ -4,7 +4,7 @@ use serde::{self, ser::SerializeSeq, Deserialize, Deserializer, Serialize, Seria
 
 /// A name. Generally columns, tables, functions, variables.
 /// This is glorified way of writing a "vec with at least one element".
-#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
 pub struct Ident {
     pub path: Vec<String>,
     pub name: String,

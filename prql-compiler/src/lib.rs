@@ -1695,4 +1695,40 @@ join y [foo == only_in_x]
         "###
         );
     }
+
+    #[test]
+    fn test_toposort() {
+        // #1183
+
+        assert_display_snapshot!(compile(r###"
+        table b = (
+            from somesource
+        )
+
+        table a = (
+            from b
+        )
+
+        from b
+        "###).unwrap(),
+            @r###"
+        WITH b AS (
+          SELECT
+            *
+          FROM
+            somesource
+        ),
+        a AS (
+          SELECT
+            *
+          FROM
+            b
+        )
+        SELECT
+          *
+        FROM
+          b
+        "###
+        );
+    }
 }

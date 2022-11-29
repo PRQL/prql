@@ -6,6 +6,7 @@ use itertools::{Itertools, Position};
 
 use crate::ast::pl::{fold::*, *};
 use crate::error::{Error, Reason, Span};
+use crate::semantic::context::TableDecl;
 use crate::utils::IdGenerator;
 
 use super::context::{Context, Decl, DeclKind, TableColumn};
@@ -124,7 +125,7 @@ impl AstFold for Resolver {
                         ..node
                     },
 
-                    DeclKind::TableDef { frame, .. } => {
+                    DeclKind::TableDecl(TableDecl { frame, .. }) => {
                         let alias = node.alias.unwrap_or_else(|| ident.name.clone());
 
                         let instance_frame = Frame {

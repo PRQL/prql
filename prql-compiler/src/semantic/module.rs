@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::ast::pl::{Expr, Ident};
 
-use super::context::{Decl, DeclKind, TableColumn, TableFrame};
+use super::context::{Decl, DeclKind, TableColumn, TableDecl, TableFrame};
 use super::{Frame, FrameColumn};
 
 pub const NS_STD: &str = "std";
@@ -48,12 +48,14 @@ impl Module {
                     Decl::from(DeclKind::Module(Module {
                         names: HashMap::from([(
                             "*".to_string(),
-                            Decl::from(DeclKind::Wildcard(Box::new(DeclKind::TableDef {
-                                frame: TableFrame {
-                                    columns: vec![TableColumn::Wildcard],
+                            Decl::from(DeclKind::Wildcard(Box::new(DeclKind::TableDecl(
+                                TableDecl {
+                                    frame: TableFrame {
+                                        columns: vec![TableColumn::Wildcard],
+                                    },
+                                    expr: None,
                                 },
-                                expr: None,
-                            }))),
+                            )))),
                         )]),
                         instance_of_table: None,
                         shadowed: None,
