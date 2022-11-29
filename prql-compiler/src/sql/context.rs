@@ -199,7 +199,7 @@ impl IrFold for QueryLoader {
         Ok(table)
     }
 
-    fn fold_column_def(&mut self, cd: ColumnDecl) -> Result<ColumnDecl> {
+    fn fold_column_decl(&mut self, cd: ColumnDecl) -> Result<ColumnDecl> {
         self.context.columns_decls.insert(cd.id, cd.clone());
         Ok(cd)
     }
