@@ -30,8 +30,8 @@ We've had to make some modest breaking changes for 0.3:
   +join positions [==id]
   ```
 
-  This is required because the existing approach is ambiguous to the compiler —
-  `id` could be a boolean column.
+  The existing approach is ambiguous to the compiler — `id` could be a boolean
+  column.
 
 - The complier is stricter about table names; specifically table names which
   contain periods need to be surrounded by backticks. This is rare.
@@ -134,11 +134,11 @@ fix rather than a breaking change in semantic versioning.
 - Split `DEVELOPMENT.md` from `CONTRIBUTING.md` (@richb-hanover, #1010)
 - Make s-strings more prominent in website intro (@max-sixty, #982)
 
-_Web_:
+**Web**:
 
 - Add GitHub star count to website (@max-sixty, #990)
 
-_Integrations_:
+**Integrations**:
 
 - Expose a shortened error message, in particular for the VSCode extension
   (@aljazerzen, #1005)
@@ -172,7 +172,7 @@ including a live output panel.
 - Add reference to EdgeDB's blog post in our FAQ (@max-sixty, #922)
 - Fix typos (@kianmeng, #943)
 
-_Integrations_:
+**Integrations**:
 
 - Add `prql-lib`, enabling language bindings with `go` (@sigxcpu76, #923)
 - Fix line numbers in JS exceptions (@charlie-sanders, #929)
