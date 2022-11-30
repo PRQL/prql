@@ -2,14 +2,14 @@
 
 ## 0.3.0 — 2022-11-29
 
-🎉 0.3.0 is the biggest ever change in PRQL's compiler 🎉. It rewrites much of
+🎉 0.3.0 is the biggest ever change in PRQL's compiler, rewriting much of
 the internals: the compiler now has a semantic understanding of expressions,
-including resolving names & building a DAG of column lineage.
+including resolving names & building a DAG of column lineage 🎉.
 
 While the immediate changes to the language are modest — some long-running bugs
-are fixed — this unlocks beginning developing many of the broad features we've
-had ambitions for, such as type-checking & auto-complete. And it simplifies
-building our next language features, such as match-case expressions, unions &
+are fixed — this unlocks the development of many of the project's long-term
+priorities, such as type-checking & auto-complete. And it simplifies the
+building of our next language features, such as match-case expressions, unions &
 table expressions.
 
 @aljazerzen has (mostly single-handedly) done this work over the past few
