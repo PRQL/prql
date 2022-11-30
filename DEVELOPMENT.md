@@ -228,17 +228,17 @@ Currently we release in a semi-automated way:
   ```md
   ## 0.3.X — [unreleased]
 
-  *Features*:
+  _Features_:
 
-  *Fixes*:
+  _Fixes_:
 
-  *Documentation*:
+  _Documentation_:
 
-  *Web*:
+  _Web_:
 
-  *Integrations*:
+  _Integrations_:
 
-  *Internal changes*:
+  _Internal changes_:
   ```
 
 We may make this more automated in future; e.g. automatic changelog creation.
