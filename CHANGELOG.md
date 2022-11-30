@@ -33,8 +33,12 @@ We've had to make some modest breaking changes for 0.3:
   The existing approach is ambiguous to the compiler — `id` could be a boolean
   column.
 
-- The complier is stricter about table names; specifically table names which
-  contain periods need to be surrounded by backticks. This is rare.
+- _Table references containing periods must be surrounded by backticks_. For example, when referencing a schema name:
+
+    ```diff
+    -from public.sometable
+    +from `public.sometable`
+    ```
 
 **Features**:
 
