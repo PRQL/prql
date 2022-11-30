@@ -19,8 +19,7 @@ months. The project owes him immense appreciation.
 
 We've had to make some modest breaking changes for 0.3:
 
-- _Pipelines must start with `from`_. For example, a pipeline with only `derive
-  foo = 5`, with no `from` transform, is no longer valid. Depending on demand
+- _Pipelines must start with `from`_. For example, a pipeline with only `derive foo = 5`, with no `from` transform, is no longer valid. Depending on demand
   for this feature, it would be possible to add this back.
 
 - _Shared column names now require `==` in a join_. For example:
