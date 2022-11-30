@@ -35,10 +35,10 @@ We've had to make some modest breaking changes for 0.3:
 
 - _Table references containing periods must be surrounded by backticks_. For example, when referencing a schema name:
 
-    ```diff
-    -from public.sometable
-    +from `public.sometable`
-    ```
+  ```diff
+  -from public.sometable
+  +from `public.sometable`
+  ```
 
 **Features**:
 
