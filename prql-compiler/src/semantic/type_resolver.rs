@@ -29,6 +29,8 @@ pub fn resolve_type(node: &Expr) -> Result<Ty> {
         ExprKind::FString(_) => TyLit::String.into(),
         ExprKind::Range(_) => Ty::Infer, // TODO
 
+        ExprKind::TransformCall(call) => Ty::Table(call.infer_type()?),
+
         _ => Ty::Infer,
     })
 }

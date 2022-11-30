@@ -226,6 +226,8 @@ impl Range {
 /// FuncCall with better typing. Returns the modified table.
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct TransformCall {
+    pub input: Box<Expr>,
+
     pub kind: Box<TransformKind>,
 
     /// Grouping of values in columns
@@ -243,68 +245,38 @@ pub struct TransformCall {
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize, strum::AsRefStr, EnumAsInner)]
 pub enum TransformKind {
-    From(Expr),
     Derive {
         assigns: Vec<Expr>,
-        tbl: Expr,
     },
     Select {
         assigns: Vec<Expr>,
-        tbl: Expr,
     },
     Filter {
         filter: Box<Expr>,
-        tbl: Expr,
     },
     Aggregate {
         assigns: Vec<Expr>,
-        tbl: Expr,
     },
     Sort {
         by: Vec<ColumnSort<Expr>>,
-        tbl: Expr,
     },
     Take {
         range: Range,
-        tbl: Expr,
     },
     Join {
         side: JoinSide,
         with: Box<Expr>,
         filter: Box<Expr>,
-        tbl: Expr,
     },
-
     Group {
         by: Vec<Expr>,
         pipeline: Box<Expr>,
-        tbl: Expr,
     },
-
     Window {
         kind: WindowKind,
         range: Range,
         pipeline: Box<Expr>,
-        tbl: Expr,
     },
-}
-
-impl TransformKind {
-    pub fn tbl_arg_mut(&mut self) -> Option<&mut Expr> {
-        use TransformKind::*;
-        match self {
-            From(_) => None,
-            Derive { tbl, .. }
-            | Select { tbl, .. }
-            | Filter { tbl, .. }
-            | Aggregate { tbl, .. }
-            | Sort { tbl, .. }
-            | Take { tbl, .. }
-            | Join { tbl, .. }
-            | Group { tbl, .. }
-            | Window { tbl, .. } => Some(tbl),
-        }
-    }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
@@ -403,17 +375,6 @@ impl From<ExprKind> for Expr {
 impl From<Vec<Expr>> for Pipeline {
     fn from(nodes: Vec<Expr>) -> Self {
         Pipeline { exprs: nodes }
-    }
-}
-
-impl From<TransformKind> for TransformCall {
-    fn from(kind: TransformKind) -> Self {
-        TransformCall {
-            kind: Box::new(kind),
-            partition: Vec::new(),
-            frame: WindowFrame::default(),
-            sort: Vec::new(),
-        }
     }
 }
 

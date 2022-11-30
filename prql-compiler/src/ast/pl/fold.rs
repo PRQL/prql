@@ -193,6 +193,7 @@ pub fn fold_transform_call<T: ?Sized + AstFold>(
 ) -> Result<TransformCall> {
     Ok(TransformCall {
         kind: Box::new(fold_transform_kind(fold, *t.kind)?),
+        input: Box::new(fold.fold_expr(*t.input)?),
         partition: fold.fold_exprs(t.partition)?,
         frame: fold.fold_window(t.frame)?,
         sort: fold_column_sorts(fold, t.sort)?,
@@ -205,47 +206,33 @@ pub fn fold_transform_kind<T: ?Sized + AstFold>(
 ) -> Result<TransformKind> {
     use TransformKind::*;
     Ok(match t {
-        From(expr) => From(fold.fold_expr(expr)?),
-        Derive { assigns, tbl } => Derive {
+        Derive { assigns } => Derive {
             assigns: fold.fold_exprs(assigns)?,
-            tbl: fold.fold_expr(tbl)?,
         },
-        Select { assigns, tbl } => Select {
+        Select { assigns } => Select {
             assigns: fold.fold_exprs(assigns)?,
-            tbl: fold.fold_expr(tbl)?,
         },
-        Filter { filter, tbl } => Filter {
+        Filter { filter } => Filter {
             filter: Box::new(fold.fold_expr(*filter)?),
-            tbl: fold.fold_expr(tbl)?,
         },
-        Aggregate { assigns, tbl } => Aggregate {
+        Aggregate { assigns } => Aggregate {
             assigns: fold.fold_exprs(assigns)?,
-            tbl: fold.fold_expr(tbl)?,
         },
-        Sort { by, tbl } => Sort {
+        Sort { by } => Sort {
             by: by
                 .into_iter()
                 .map(|s| fold_column_sort(fold, s))
                 .try_collect()?,
-            tbl: fold.fold_expr(tbl)?,
         },
-        Take { range, tbl } => Take {
+        Take { range } => Take {
             range: fold_range(fold, range)?,
-            tbl: fold.fold_expr(tbl)?,
         },
-        Join {
-            side,
-            with,
-            filter,
-            tbl,
-        } => Join {
-            tbl: fold.fold_expr(tbl)?,
+        Join { side, with, filter } => Join {
             side,
             with: Box::new(fold.fold_expr(*with)?),
             filter: Box::new(fold.fold_expr(*filter)?),
         },
-        Group { by, pipeline, tbl } => Group {
-            tbl: fold.fold_expr(tbl)?,
+        Group { by, pipeline } => Group {
             by: fold.fold_exprs(by)?,
             pipeline: Box::new(fold.fold_expr(*pipeline)?),
         },
@@ -253,9 +240,7 @@ pub fn fold_transform_kind<T: ?Sized + AstFold>(
             kind,
             range,
             pipeline,
-            tbl,
         } => Window {
-            tbl: fold.fold_expr(tbl)?,
             kind,
             range: fold_range(fold, range)?,
             pipeline: Box::new(fold.fold_expr(*pipeline)?),

@@ -2,24 +2,24 @@
 source: prql-compiler/src/semantic/resolver.rs
 expression: "resolve_derive(r#\"\n            func plus_one x -> x + 1\n            func plus x y -> x + y\n\n            from a\n            derive [b = (sum foo | plus_one | plus 2)]\n            \"#).unwrap()"
 ---
-- id: 10
+- id: 25
   Binary:
     left:
-      id: 26
+      id: 19
       Literal:
         Integer: 2
       ty:
         Literal: Integer
     op: Add
     right:
-      id: 27
+      id: 22
       Binary:
         left:
-          id: 23
+          id: 14
           SString:
             - String: SUM(
             - Expr:
-                id: 15
+                id: 13
                 Ident:
                   - _frame
                   - a

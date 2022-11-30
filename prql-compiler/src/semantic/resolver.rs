@@ -66,16 +66,24 @@ impl AstFold for Resolver {
                 }
                 StmtKind::TableDef(table_def) => {
                     let table_def = self.fold_table(table_def)?;
-                    let table_def = TableDef {
+                    let mut table_def = TableDef {
                         value: Box::new(Flattener::fold(*table_def.value)),
                         ..table_def
                     };
+
+                    // validate type
+                    let expeceted = Ty::Table(Frame::default());
+                    let assumed_ty = validate_type(&table_def.value, &expeceted, || {
+                        Some(format!("table {}", table_def.name))
+                    })?;
+                    table_def.value.ty = Some(assumed_ty);
+
                     self.decls.declare_table(table_def, stmt.id);
                     continue;
                 }
                 StmtKind::Pipeline(expr) => {
-                    let x = Flattener::fold(self.fold_expr(*expr)?);
-                    StmtKind::Pipeline(Box::new(x))
+                    let expr = Flattener::fold(self.fold_expr(*expr)?);
+                    StmtKind::Pipeline(Box::new(expr))
                 }
             };
 
@@ -212,12 +220,10 @@ impl AstFold for Resolver {
                 ..node
             },
         };
-        r.id = Some(id);
-        r.alias = alias;
+        r.id = r.id.or(Some(id));
+        r.alias = r.alias.or(alias);
+        r.span = r.span.or(span);
 
-        if r.span.is_none() {
-            r.span = span;
-        }
         if r.ty.is_none() {
             r.ty = Some(resolve_type(&r)?);
         }
@@ -333,17 +339,11 @@ impl Resolver {
 
             // evaluate
             match super::transforms::cast_transform(self, closure)? {
-                Ok(transform) => {
-                    // this function call is a transform, append it to the pipeline
+                // this function call is a transform
+                Ok(transform) => transform,
 
-                    let ty = Ty::Table(transform.infer_type()?);
-                    let mut expr = Expr::from(ExprKind::TransformCall(transform));
-                    expr.ty = Some(ty);
-                    expr.span = span;
-                    expr
-                }
+                // this function call is not a transform, proceed with materialization
                 Err(closure) => {
-                    // this function call is not a transform, proceed with materialization
                     let needs_window = Some(Ty::column()) <= closure.body_ty;
 
                     let (func_env, body) = env_of_closure(closure);
@@ -623,8 +623,7 @@ mod test {
     fn resolve_derive(query: &str) -> Result<Vec<Expr>> {
         let expr = parse_and_resolve(query)?;
         let derive = expr.kind.into_transform_call()?;
-        let (assigns, _) = derive.kind.into_derive()?;
-        Ok(assigns)
+        Ok(derive.kind.into_derive()?)
     }
 
     #[test]

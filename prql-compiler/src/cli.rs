@@ -195,7 +195,7 @@ sort full
         .unwrap();
         assert_snapshot!(String::from_utf8(output).unwrap().trim(),
         @r###"
-        from initial_table                              # [initial_table.*]
+        from initial_table
         select [f = first_name, l = last_name, gender]  # [f, l, gender]
         derive full_name = f + " " + l                  # [f, l, gender, full_name]
         take 23                                         # [f, l, gender, full_name]
