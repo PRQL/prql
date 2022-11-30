@@ -3,7 +3,7 @@ source: book/tests/snapshot.rs
 expression: sql
 input_file: book/tests/prql/examples/variables-0.prql
 ---
-WITH table_0 AS (
+WITH table_1 AS (
   SELECT
     title,
     country,
@@ -24,7 +24,7 @@ SELECT
   SUM(gross_cost) AS sum_gross_cost,
   COUNT(*) AS ct
 FROM
-  table_0
+  table_1
 WHERE
   country = 'USA'
   AND gross_cost > 0

@@ -141,6 +141,44 @@ impl Lowerer {
                 self.column_redirects.extend(redirects);
                 table_ref
             }
+            ExprKind::SString(items) => {
+                if items.iter().any(|i| matches!(i, InterpolateItem::Expr(_))) {
+                    bail!(Error::new(Reason::Simple(
+                        "table s-strings cannot contain interpolations".to_string(),
+                    ))
+                    .with_help("are you missing `from` statement?")
+                    .with_span(expr.span))
+                }
+
+                let id = expr.id.unwrap();
+
+                // create a new table
+                let tid = self.tid.gen();
+
+                let wildcard = ColumnDecl {
+                    id: self.cid.gen(),
+                    kind: ColumnDefKind::Wildcard,
+                    window: None,
+                    is_aggregation: false,
+                };
+                let cols: TableColumns = vec![("*".to_string(), wildcard.id)];
+
+                let items = self.lower_interpolations(items)?;
+                let relation = rq::Relation::SString(items, vec![wildcard]);
+
+                log::debug!("lowering sstring table, columns = {:?}", cols);
+                self.table_columns.insert(tid, cols);
+                self.table_buffer.push(TableDecl {
+                    id: tid,
+                    name: None,
+                    relation,
+                });
+
+                // return an instance of this new table
+                let (table_ref, redirects) = self.create_a_table_instance(id, None, tid);
+                self.column_redirects.extend(redirects);
+                table_ref
+            }
             _ => {
                 bail!(Error::new(Reason::Expected {
                     who: None,
@@ -327,7 +365,7 @@ impl Lowerer {
         ty: Option<pl::Ty>,
         transforms: &mut Vec<Transform>,
     ) -> Result<TableColumns> {
-        let frame = ty.unwrap().into_table().unwrap();
+        let frame = ty.unwrap().into_table().unwrap_or_default();
 
         log::debug!("push_select of a frame: {:?}", frame);
 

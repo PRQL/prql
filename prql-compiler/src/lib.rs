@@ -228,26 +228,26 @@ mod test {
           take 3
         )
         "###).unwrap()), @r###"
-        WITH table_0 AS (
+        WITH table_1 AS (
           SELECT
             *,
             ROW_NUMBER() OVER (PARTITION BY y_id) AS _expr_0
           FROM
             y_orig
         ),
-        table_1 AS (
+        table_2 AS (
           SELECT
             *,
             ROW_NUMBER() OVER (PARTITION BY x_id) AS _expr_1
           FROM
-            table_0
+            table_1
           WHERE
             _expr_0 <= 2
         )
         SELECT
           *
         FROM
-          table_1
+          table_2
         WHERE
           _expr_1 <= 3
         "###);
@@ -466,7 +466,7 @@ select `first name`
         "###;
 
         assert_display_snapshot!((compile(query).unwrap()), @r###"
-        WITH table_0 AS (
+        WITH table_1 AS (
           SELECT
             TO_CHAR(co.order_date, '%Y-%m') AS order_month,
             TO_CHAR(co.order_date, '%Y-%m-%d') AS order_day,
@@ -498,7 +498,7 @@ select `first name`
               AND UNBOUNDED FOLLOWING
           ) AS num_books_last_week
         FROM
-          table_0
+          table_1
         ORDER BY
           order_day
         "###);
@@ -879,7 +879,7 @@ select `first name`
         sort name
         take 1..5
         "###).unwrap()), @r###"
-        WITH table_0 AS (
+        WITH table_1 AS (
           SELECT
             *,
             name
@@ -891,7 +891,7 @@ select `first name`
         SELECT
           *
         FROM
-          table_0
+          table_1
         ORDER BY
           name
         LIMIT
@@ -907,7 +907,7 @@ select `first name`
         derive rn = row_number
         filter rn > 2
         "###).unwrap()), @r###"
-        WITH table_0 AS (
+        WITH table_1 AS (
           SELECT
             *,
             ROW_NUMBER() OVER () AS rn
@@ -918,7 +918,7 @@ select `first name`
           *,
           rn
         FROM
-          table_0
+          table_1
         WHERE
           rn > 2
         "###);
@@ -965,7 +965,7 @@ select `first name`
         from employees
         group department (take 3)
         "###).unwrap()), @r###"
-        WITH table_0 AS (
+        WITH table_1 AS (
           SELECT
             *,
             ROW_NUMBER() OVER (PARTITION BY department) AS _expr_0
@@ -975,7 +975,7 @@ select `first name`
         SELECT
           *
         FROM
-          table_0
+          table_1
         WHERE
           _expr_0 <= 3
         "###);
@@ -984,7 +984,7 @@ select `first name`
         from employees
         group department (sort salary | take 2..3)
         "###).unwrap()), @r###"
-        WITH table_0 AS (
+        WITH table_1 AS (
           SELECT
             *,
             ROW_NUMBER() OVER (
@@ -998,7 +998,7 @@ select `first name`
         SELECT
           *
         FROM
-          table_0
+          table_1
         WHERE
           _expr_0 BETWEEN 2
           AND 3
@@ -1277,7 +1277,7 @@ take 20
         "###;
 
         assert_display_snapshot!((compile(query).unwrap()), @r###"
-        WITH table_0 AS (
+        WITH table_1 AS (
           SELECT
             title,
             country,
@@ -1286,13 +1286,13 @@ take 20
             employees
           LIMIT
             20
-        ), table_1 AS (
+        ), table_2 AS (
           SELECT
             title,
             country,
             AVG(salary) AS salary
           FROM
-            table_0
+            table_1
           WHERE
             country = 'USA'
           GROUP BY
@@ -1304,7 +1304,7 @@ take 20
           country,
           AVG(salary) AS sum_gross_cost
         FROM
-          table_1
+          table_2
         GROUP BY
           title,
           country
@@ -1395,7 +1395,7 @@ take 20
         "###;
         let result = compile(prql).unwrap();
         assert_display_snapshot!(result, @r###"
-        WITH table_0 AS (
+        WITH table_1 AS (
           SELECT
             employees.emp_no,
             d.name
@@ -1406,12 +1406,12 @@ take 20
             10
         )
         SELECT
-          table_0.emp_no,
-          table_0.name,
+          table_1.emp_no,
+          table_1.name,
           s.salary
         FROM
-          table_0
-          JOIN salaries AS s ON table_0.emp_no = s.emp_no
+          table_1
+          JOIN salaries AS s ON table_1.emp_no = s.emp_no
         "###);
 
         let prql = r###"
@@ -1422,7 +1422,7 @@ take 20
         "###;
         let result = compile(prql).unwrap();
         assert_display_snapshot!(result, @r###"
-        WITH table_0 AS (
+        WITH table_1 AS (
           SELECT
             *,
             emp_no
@@ -1432,11 +1432,11 @@ take 20
             10
         )
         SELECT
-          table_0.*,
+          table_1.*,
           salary
         FROM
-          table_0
-          JOIN salaries ON table_0.emp_no = salaries.emp_no
+          table_1
+          JOIN salaries ON table_1.emp_no = salaries.emp_no
         "###);
     }
 
@@ -1793,20 +1793,72 @@ join y [foo == only_in_x]
         select [renamed_name = account.name]
         "###).unwrap(),
             @r###"
-            WITH table_0 AS (
-              SELECT
-                name AS renamed_name,
-                name
-              FROM
-                account
-            )
-            SELECT
-              renamed_name
-            FROM
-              table_0
-            WHERE
-              name IS NOT NULL
-            "###
+        WITH table_1 AS (
+          SELECT
+            name AS renamed_name,
+            name
+          FROM
+            account
+        )
+        SELECT
+          renamed_name
+        FROM
+          table_1
+        WHERE
+          name IS NOT NULL
+        "###
+        );
+    }
+
+    #[test]
+    fn test_table_s_string() {
+        assert_display_snapshot!(compile(r###"
+        s"SELECT DISTINCT ON first_name, age FROM employees ORDER BY age ASC"
+        "###).unwrap(),
+            @r###"
+        WITH table_1 AS (
+          SELECT
+            DISTINCT ON first_name,
+            age
+          FROM
+            employees
+          ORDER BY
+            age ASC
+        )
+        SELECT
+        FROM
+          table_1 AS table_0
+        "###
+        );
+
+        assert_display_snapshot!(compile(r###"
+        from s"SELECT DISTINCT ON first_name, id, age FROM employees ORDER BY age ASC"
+        join s = s"SELECT * FROM salaries" [==id]
+        "###).unwrap(),
+            @r###"
+        WITH table_2 AS (
+          SELECT
+            DISTINCT ON first_name,
+            id,
+            age
+          FROM
+            employees
+          ORDER BY
+            age ASC
+        ),
+        table_3 AS (
+          SELECT
+            *
+          FROM
+            salaries
+        )
+        SELECT
+          table_0.*,
+          table_1.*
+        FROM
+          table_2 AS table_0
+          JOIN table_3 AS table_1 ON table_0.* = table_1.*
+        "###
         );
     }
 }

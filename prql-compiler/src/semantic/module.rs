@@ -214,7 +214,7 @@ impl Module {
 
                         let input = frame.find_input(input_name).unwrap();
                         let sub_ns = Decl::from(DeclKind::Module(Module {
-                            instance_of_table: Some(input.table.clone()),
+                            instance_of_table: input.table.clone(),
                             ..Default::default()
                         }));
 
