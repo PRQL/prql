@@ -19,7 +19,7 @@ group [dm.emp_no, gender] (
     salary_sd = stddev emp_salary
   ]
 )
-derive mng_no = dm.emp_no
+derive mng_no = emp_no
 join managers=employees [==emp_no]
 derive mng_name = s"managers.first_name || ' ' || managers.last_name"
 select [mng_name, managers.gender, salary_avg, salary_sd]`;
