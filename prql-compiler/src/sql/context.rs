@@ -75,12 +75,16 @@ impl AnchorContext {
         decl
     }
 
-    pub fn register_table_instance(&mut self, table_ref: TableRef) {
+    pub fn register_table_instance(&mut self, mut table_ref: TableRef) {
         let tiid = self.tiid.gen();
 
         for column in &table_ref.columns {
             self.columns_decls.insert(column.id, column.clone());
             self.columns_loc.insert(column.id, tiid);
+        }
+
+        if table_ref.name.is_none() {
+            table_ref.name = Some(self.gen_table_name())
         }
 
         self.table_instances.insert(tiid, table_ref);
@@ -124,12 +128,7 @@ impl AnchorContext {
         let table_name = self.columns_loc.get(cid).map(|tiid| {
             let table = self.table_instances.get(tiid).unwrap();
 
-            if let Some(alias) = &table.name {
-                alias.clone()
-            } else {
-                let decl = &self.table_decls[&table.source];
-                decl.name.clone().unwrap()
-            }
+            table.name.clone().unwrap()
         });
 
         (table_name, col_name)
@@ -193,7 +192,11 @@ impl QueryLoader {
 
 impl IrFold for QueryLoader {
     fn fold_table(&mut self, table: TableDecl) -> Result<TableDecl> {
-        let table = fold_table(self, table)?;
+        let mut table = fold_table(self, table)?;
+
+        if table.name.is_none() {
+            table.name = Some(self.context.gen_table_name());
+        }
 
         self.context.table_decls.insert(table.id, table.clone());
         Ok(table)
@@ -204,8 +207,12 @@ impl IrFold for QueryLoader {
         Ok(cd)
     }
 
-    fn fold_table_ref(&mut self, table_ref: TableRef) -> Result<TableRef> {
+    fn fold_table_ref(&mut self, mut table_ref: TableRef) -> Result<TableRef> {
         let tiid = self.context.tiid.gen();
+
+        if table_ref.name.is_none() {
+            table_ref.name = Some(self.context.gen_table_name());
+        }
 
         // store
         self.context.table_instances.insert(tiid, table_ref.clone());

@@ -118,7 +118,7 @@ pub fn translate_query(query: Query) -> Result<sql_ast::Query> {
 /// A query that can be expressed with one SELECT statement
 #[derive(Debug)]
 pub struct AtomicQuery {
-    name: Option<String>,
+    name: String,
     pipeline: Vec<Transform>,
 }
 
@@ -137,7 +137,7 @@ fn into_tables(
 
 fn table_to_sql_cte(table: AtomicQuery, context: &mut Context) -> Result<sql_ast::Cte> {
     let alias = sql_ast::TableAlias {
-        name: translate_ident_part(table.name.unwrap(), context),
+        name: translate_ident_part(table.name, context),
         columns: vec![],
     };
     Ok(sql_ast::Cte {
@@ -318,7 +318,7 @@ fn split_into_atomics(
 
         let first_name = context.anchor.gen_table_name();
         atomics.push(AtomicQuery {
-            name: Some(first_name.clone()),
+            name: first_name.clone(),
             pipeline: first.0,
         });
 
@@ -329,7 +329,7 @@ fn split_into_atomics(
                 anchor::anchor_split(&mut context.anchor, &prev_name, &cols_before, pipeline);
 
             atomics.push(AtomicQuery {
-                name: Some(name.clone()),
+                name: name.clone(),
                 pipeline,
             });
 
@@ -339,7 +339,7 @@ fn split_into_atomics(
         anchor::anchor_split(&mut context.anchor, &prev_name, &last.1, last.0)
     };
     atomics.push(AtomicQuery {
-        name: table_name,
+        name: table_name.unwrap_or_else(|| context.anchor.gen_table_name()),
         pipeline: last_pipeline,
     });
 
@@ -358,15 +358,6 @@ fn filter_of_pipeline(
         })
         .collect();
     filter_of_filters(filters, context)
-}
-
-impl From<Vec<Transform>> for AtomicQuery {
-    fn from(pipeline: Vec<Transform>) -> Self {
-        AtomicQuery {
-            name: None,
-            pipeline,
-        }
-    }
 }
 
 #[cfg(test)]

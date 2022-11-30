@@ -151,7 +151,8 @@ pub(super) fn translate_expr_kind(item: ExprKind, ctx: &mut Context) -> Result<s
 
 fn translate_cid(cid: CId, ctx: &mut Context) -> Result<sql_ast::Expr> {
     if ctx.pre_projection {
-        let decl = ctx.anchor.columns_decls.get(&cid).unwrap();
+        log::debug!("translating {cid:?}");
+        let decl = ctx.anchor.columns_decls.get(&cid).expect("bad RQ ids");
 
         if let ColumnDefKind::Expr { expr, .. } = &decl.kind {
             let window = decl.window.clone();
@@ -184,12 +185,17 @@ fn translate_cid(cid: CId, ctx: &mut Context) -> Result<sql_ast::Expr> {
 pub(super) fn table_factor_of_tid(table_ref: TableRef, ctx: &Context) -> TableFactor {
     let decl = ctx.anchor.table_decls.get(&table_ref.source).unwrap();
 
+    let relation_name = decl.name.clone().unwrap();
     TableFactor::Table {
-        name: sql_ast::ObjectName(translate_ident(decl.name.clone(), None, ctx)),
-        alias: table_ref.name.map(|ident| TableAlias {
-            name: translate_ident_part(ident, ctx),
-            columns: vec![],
-        }),
+        name: sql_ast::ObjectName(translate_ident(Some(relation_name), None, ctx)),
+        alias: if decl.name == table_ref.name {
+            None
+        } else {
+            table_ref.name.map(|ident| TableAlias {
+                name: translate_ident_part(ident, ctx),
+                columns: vec![],
+            })
+        },
         args: None,
         with_hints: vec![],
     }

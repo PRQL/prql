@@ -104,7 +104,7 @@ mod test {
                 columns:
                   - id: 1
                     kind: Wildcard
-                name: ~
+                name: employees
             - Select:
                 - 1
         "### );
@@ -133,7 +133,7 @@ mod test {
                 columns:
                   - id: 1
                     kind: Wildcard
-                name: ~
+                name: employees
             - Select:
                 - 1
         "### );

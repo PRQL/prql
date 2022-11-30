@@ -1732,6 +1732,38 @@ join y [foo == only_in_x]
     }
 
     #[test]
+    fn test_inline_tables() {
+        assert_display_snapshot!(compile(r###"
+        (
+            from employees
+            select [emp_id, name, surname, type, amount]
+        )
+        join s = (from salaries | select [emp_id, salary]) [==emp_id]
+        "###).unwrap(),
+            @r###"
+        WITH table_1 AS (
+          SELECT
+            emp_id,
+            salary
+          FROM
+            salaries
+        )
+        SELECT
+          employees.emp_id,
+          employees.name,
+          employees.surname,
+          employees.type,
+          employees.amount,
+          table_0.emp_id,
+          table_0.salary
+        FROM
+          employees
+          JOIN table_1 AS table_0 ON employees.emp_id = table_0.emp_id
+        "###
+        );
+    }
+
+    #[test]
     fn test_filter_and_select_unchanged_alias() {
         // #1185
 

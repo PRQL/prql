@@ -220,7 +220,7 @@ pub fn anchor_split(
     // define instance of that table
     let table_ref = TableRef {
         source: new_tid,
-        name: None,
+        name: Some(first_table_name.to_string()),
         columns: new_columns,
     };
     ctx.register_table_instance(table_ref.clone());

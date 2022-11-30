@@ -201,7 +201,12 @@ impl AstFold for Resolver {
                 self.fold_function(*closure, args, named_args, node.span)?
             }
 
-            ExprKind::Pipeline(pipeline) => self.resolve_pipeline(pipeline)?,
+            ExprKind::Pipeline(pipeline) => {
+                let default_namespace = self.default_namespace.take();
+                let res = self.resolve_pipeline(pipeline)?;
+                self.default_namespace = default_namespace;
+                res
+            }
 
             ExprKind::Closure(closure) => {
                 self.fold_function(*closure, vec![], HashMap::new(), node.span)?
