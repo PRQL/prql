@@ -19,11 +19,10 @@ months. The project owes him immense appreciation.
 
 We've had to make some modest breaking changes for 0.3:
 
-- *Pipelines must start with `from`*. For example, a pipeline with only `derive
-  foo = 5`, with no `from` transform, is no longer valid. Depending on demand
+- _Pipelines must start with `from`_. For example, a pipeline with only `derive foo = 5`, with no `from` transform, is no longer valid. Depending on demand
   for this feature, it would be possible to add this back.
 
-- *Shared column names now require `==` in a join*. For example:
+- _Shared column names now require `==` in a join_. For example:
 
   ```diff
   from employees
@@ -135,11 +134,11 @@ fix rather than a breaking change in semantic versioning.
 - Split `DEVELOPMENT.md` from `CONTRIBUTING.md` (@richb-hanover, #1010)
 - Make s-strings more prominent in website intro (@max-sixty, #982)
 
-*Web*:
+_Web_:
 
 - Add GitHub star count to website (@max-sixty, #990)
 
-*Integrations*:
+_Integrations_:
 
 - Expose a shortened error message, in particular for the VSCode extension
   (@aljazerzen, #1005)
@@ -173,7 +172,7 @@ including a live output panel.
 - Add reference to EdgeDB's blog post in our FAQ (@max-sixty, #922)
 - Fix typos (@kianmeng, #943)
 
-*Integrations*:
+_Integrations_:
 
 - Add `prql-lib`, enabling language bindings with `go` (@sigxcpu76, #923)
 - Fix line numbers in JS exceptions (@charlie-sanders, #929)
