@@ -1,18 +1,74 @@
 # PRQL Changelog
 
-## 0.2.12 — [unreleased]
+## 0.3.0 — 2022-11-29
 
-Features:
+🎉 0.3.0 is the biggest ever change in PRQL's compiler 🎉. It rewrites much of
+the internals: the compiler now has a semantic understanding of expressions,
+including resolving names & building a DAG of column lineage.
 
-Fixes:
+While the immediate changes to the language are modest — some long-running bugs
+are fixed — this unlocks developing many of the bigger features we've had
+ambitions for, such as type-checking & auto-complete. And It simplifies build
+our next immediate language features, such as match-case expressions, unions &
+table expressions.
 
-Documentation:
+@aljazerzen has (mostly single-handedly) done this work over the past few
+months. The project owes him immense appreciation.
 
-Web:
+*Breaking changes*:
 
-Integrations:
+We've had to make some modest breaking changes for 0.3:
 
-Internal changes:
+- *Pipelines must start with `from`*. For example, a pipeline with only `derive
+  foo = 5`, with no `from` transform, is no longer valid. Depending on demand
+  for this feature, it would be possible to add this back.
+
+- *Shared column names now require `==` in a join*. For example:
+
+  ```diff
+  from employees
+  -join positions [id]
+  +join positions [==id]
+  ```
+
+  This is required because the existing approach is ambiguous to the compiler —
+  `id` could be a boolean column.
+
+- The complier is stricter about table names; specifically table names which
+  contain periods need to be surrounded by backticks. This is rare.
+
+*Features*:
+
+- Change self equality op to `==` (#1176, @aljazerzen)
+- Add logging (@aljazerzen)
+- Add clickhouse dialect (#1090, @max-sixty)
+- Allow namespaces & tables to contain `.` (#1079, @aljazerzen)
+
+*Fixes*:
+
+- Deduplicate column appearing in `SELECT` multiple times (#1186, @aljazerzen)
+- Fix uppercase table names (#1184, @aljazerzen)
+- Omit table name when only one ident in SELECT (#1094, @aljazerzen)
+
+*Documentation*:
+
+- Add chapter on semantics' internals (@aljazerzen, #1028)
+- Add note about nesting variables in s-strings (@max-sixty, #1163)
+
+*Internal changes*:
+
+- Flatten group and window (#1120, @aljazerzen)
+- Split ast into expr and stmt (@aljazerzen)
+- Refactor associativity (#1156, @aljazerzen)
+- Rename Ident constructor to `from_name` (#1084, @aljazerzen)
+- Refactor rq folding (#1177, @aljazerzen)
+- Add tests for reported bugs fixes in semantic (#1174, @aljazerzen)
+- Bump duckdb from 0.5.0 to 0.6.0 (#1132)
+- Bump once_cell from 1.15.0 to 1.16.0 (#1101)
+- Bump pest from 2.4.0 to 2.5.0 (#1161)
+- Bump pest_derive from 2.4.0 to 2.5.0 (#1179)
+- Bump sqlparser from 0.25.0 to 0.27.0 (#1131)
+- Bump trash from 2.1.5 to 3.0.0 (#1178)
 
 ## 0.2.11 — 2022-11-20
 
@@ -24,24 +80,24 @@ to @aljazerzen for his continued contributions to this.
 Note: 0.2.10 was skipped due to this maintainer's inability to read his own docs
 on bumping versions...
 
-Features:
+*Features*:
 
 - Detect when compiler version is behind query version (@MarinPostma, #1058)
 - Add `__version__` to prql-python package (@max-sixty, #1034)
 
-Fixes:
+*Fixes*:
 
 - Fix nesting of expressions with equal binding strength and left associativity,
   such as `a - (b - c)` (@max-sixty, #1136)
 - Retain floats without significant digits as floats (@max-sixty, #1141)
 
-Documentation:
+*Documentation*:
 
 - Add documentation of `prqlr` bindings (@eitsupi, #1091)
 - Add a 'Why PRQL' section to the website (@max-sixty, #1098)
 - Add @snth to core-devs (@max-sixty, #1050)
 
-Internal changes:
+*Internal changes*:
 
 - Use workspace versioning (@max-sixty, #1065)
 
@@ -49,7 +105,7 @@ Internal changes:
 
 0.2.9 is a small release containing a bug fix for empty strings.
 
-Fixes:
+*Fixes*:
 
 - Fix parsing of empty strings (@aljazerzen, #1024)
 
@@ -60,7 +116,7 @@ improvements, and lots of internal changes. Note that one of the fixes causes
 the behavior of `round` and `cast` to change slightly — though it's handled as a
 fix rather than a breaking change in semantic versioning.
 
-Fixes:
+*Fixes*:
 
 - Change order of the `round` & `cast` function parameters to have the column
   last; for example `round 2 foo_col` /
@@ -74,21 +130,21 @@ Fixes:
   ]
   ```
 
-Documentation:
+*Documentation*:
 
 - Split `DEVELOPMENT.md` from `CONTRIBUTING.md` (@richb-hanover, #1010)
 - Make s-strings more prominent in website intro (@max-sixty, #982)
 
-Web:
+*Web*:
 
 - Add GitHub star count to website (@max-sixty, #990)
 
-Integrations:
+*Integrations*:
 
 - Expose a shortened error message, in particular for the VSCode extension
   (@aljazerzen, #1005)
 
-Internal changes:
+*Internal changes*:
 
 - Specify 1.60.0 as minimum rust version (@max-sixty, #1011)
 - Remove old `wee-alloc` code (@max-sixty, #1013)
@@ -107,28 +163,28 @@ We also have new features in the [VSCode
 extension](https://github.com/prql/prql-code), courtesy of @jiripospisil,
 including a live output panel.
 
-Fixes:
+*Fixes*:
 
 - `range_of_ranges` checks the Range end is smaller than its start (@shuozeli, #946)
 
-Documentation:
+*Documentation*:
 
 - Improve various docs (@max-sixty, #974, #971, #972, #970, #925)
 - Add reference to EdgeDB's blog post in our FAQ (@max-sixty, #922)
 - Fix typos (@kianmeng, #943)
 
-Integrations:
+*Integrations*:
 
 - Add `prql-lib`, enabling language bindings with `go` (@sigxcpu76, #923)
 - Fix line numbers in JS exceptions (@charlie-sanders, #929)
 
-Internal changes:
+*Internal changes*:
 
 - Lock the version of the rust-toolchain, with auto-updates (@max-sixty, #926, #927)
 
 ## 0.2.6 — 2022-08-05
 
-Fixes:
+*Fixes*:
 
 - Adjust `fmt` to only escape names when needed (@aljazerzen, #907)
 - Fix quoting on upper case `table` names (@max-sixty, #893)
@@ -136,12 +192,12 @@ Fixes:
 - Fix parse error on newlines in a `table` (@sebastiantoh 🆕, #902)
 - Fix quoting of upper case table names (@max-sixty, #893)
 
-Documentation:
+*Documentation*:
 
 - Add docs on [Architecture](prql-compiler/ARCHITECTURE.md) (@aljazerzen, #904)
 - Add Changelog (@max-sixty, #890 #891)
 
-Internal changes:
+*Internal changes*:
 
 - Start trial using Conventional Commits (@max-sixty, #889)
 - Add crates.io release workflow, docs (@max-sixty, #887)
