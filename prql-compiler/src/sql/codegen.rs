@@ -74,16 +74,8 @@ pub(super) fn translate_expr_kind(item: ExprKind, ctx: &mut Context) -> Result<s
         // then convert to sql_ast::Expr. We can't use the `Item::sql_ast::Expr` code above
         // since we don't want to intersperse with spaces.
         ExprKind::SString(s_string_items) => {
-            let string = s_string_items
-                .into_iter()
-                .map(|s_string_item| match s_string_item {
-                    InterpolateItem::String(string) => Ok(string),
-                    InterpolateItem::Expr(node) => {
-                        translate_expr_kind(node.kind, ctx).map(|expr| expr.to_string())
-                    }
-                })
-                .collect::<Result<Vec<String>>>()?
-                .join("");
+            let string = translate_sstring(s_string_items, ctx)?;
+
             sql_ast::Expr::Identifier(sql_ast::Ident::new(string))
         }
         ExprKind::FString(f_string_items) => {
@@ -198,6 +190,61 @@ pub(super) fn table_factor_of_tid(table_ref: TableRef, ctx: &Context) -> TableFa
         },
         args: None,
         with_hints: vec![],
+    }
+}
+
+pub(super) fn translate_sstring(
+    items: Vec<InterpolateItem<Expr>>,
+    ctx: &mut Context,
+) -> Result<String> {
+    Ok(items
+        .into_iter()
+        .map(|s_string_item| match s_string_item {
+            InterpolateItem::String(string) => Ok(string),
+            InterpolateItem::Expr(node) => {
+                translate_expr_kind(node.kind, ctx).map(|expr| expr.to_string())
+            }
+        })
+        .collect::<Result<Vec<String>>>()?
+        .join(""))
+}
+
+pub(super) fn translate_query_sstring(
+    items: Vec<crate::ast::pl::InterpolateItem<Expr>>,
+    context: &mut Context,
+) -> Result<sql_ast::Query> {
+    let string = translate_sstring(items, context)?;
+    if let Some(string) = string.strip_prefix("SELECT ") {
+        Ok(sql_ast::Query {
+            body: Box::new(sql_ast::SetExpr::Select(Box::new(sql_ast::Select {
+                projection: vec![sql_ast::SelectItem::UnnamedExpr(sql_ast::Expr::Identifier(
+                    sql_ast::Ident::new(string),
+                ))],
+                distinct: false,
+                top: None,
+                into: None,
+                from: Vec::new(),
+                lateral_views: Vec::new(),
+                selection: None,
+                group_by: Vec::new(),
+                cluster_by: Vec::new(),
+                distribute_by: Vec::new(),
+                sort_by: Vec::new(),
+                having: None,
+                qualify: None,
+            }))),
+            with: None,
+            order_by: Vec::new(),
+            limit: None,
+            offset: None,
+            fetch: None,
+            lock: None,
+        })
+    } else {
+        bail!(Error::new(Reason::Simple(
+            "s-strings representing a table must start with `SELECT `".to_string()
+        ))
+        .with_help("this is a limitation by current compiler implementation"))
     }
 }
 

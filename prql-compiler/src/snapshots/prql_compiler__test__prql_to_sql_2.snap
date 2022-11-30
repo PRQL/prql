@@ -2,7 +2,7 @@
 source: prql-compiler/src/lib.rs
 expression: sql
 ---
-WITH table_0 AS (
+WITH table_1 AS (
   SELECT
     title,
     country,
@@ -23,7 +23,7 @@ SELECT
   SUM(gross_cost) AS sum_gross_cost,
   COUNT(*) AS ct
 FROM
-  table_0
+  table_1
 WHERE
   country = 'USA'
   AND gross_cost > 0

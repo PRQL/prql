@@ -71,6 +71,7 @@ pub fn translate_query(query: Query) -> Result<sql_ast::Query> {
     // extract tables and the pipeline
     let tables = into_tables(query.relation, query.tables, &mut context)?;
 
+    // preprocess & split into atomics
     let mut atomics = Vec::new();
     for table in tables {
         let name = table
@@ -86,7 +87,7 @@ pub fn translate_query(query: Query) -> Result<sql_ast::Query> {
                 // split to atomics
                 atomics.extend(split_into_atomics(name, pipeline, &mut context));
             }
-            Relation::Literal(_, _) => atomics.push(AtomicQuery {
+            Relation::Literal(_, _) | Relation::SString(_, _) => atomics.push(AtomicQuery {
                 name,
                 relation: table.relation,
             }),
@@ -157,6 +158,7 @@ fn sql_query_of_relation(relation: Relation, context: &mut Context) -> Result<sq
         Relation::ExternRef(_, _) => unreachable!(),
         Relation::Pipeline(pipeline) => sql_query_of_pipeline(pipeline, context),
         Relation::Literal(_, _) => todo!(),
+        Relation::SString(items, _) => translate_query_sstring(items, context),
     }
 }
 
@@ -491,7 +493,7 @@ mod test {
         let sql_ast = translate(query).unwrap();
 
         assert_snapshot!(sql_ast, @r###"
-        WITH table_0 AS (
+        WITH table_1 AS (
           SELECT
             *,
             RANK() OVER () AS global_rank,
@@ -504,7 +506,7 @@ mod test {
           global_rank,
           RANK() OVER () AS rank
         FROM
-          table_0
+          table_1
         WHERE
           country = 'USA'
         "###);
@@ -519,7 +521,7 @@ mod test {
         "#;
 
         assert_snapshot!(crate::compile(query).unwrap(), @r###"
-        WITH table_0 AS (
+        WITH table_1 AS (
           SELECT
             *,
             AVG(bar) OVER () AS _expr_0
@@ -529,248 +531,9 @@ mod test {
         SELECT
           *
         FROM
-          table_0
+          table_1
         WHERE
           _expr_0 > 3
-        "###);
-    }
-
-    #[test]
-    fn test_relation_literal() {
-        let rq = &r#"
-        {
-            "def": {
-              "version": null,
-              "dialect": "Generic"
-            },
-            "tables": [
-              {
-                "id": 0,
-                "name": "sample_table",
-                "relation": {
-                  "Literal": [
-                    {
-                      "columns": ["a", "b", "c"],
-                      "rows": [
-                        ["3", "a", "false"],
-                        ["5", "c", "true"],
-                        ["1", "b", "true"],
-                        ["2", "a", "false"]
-                      ]
-                    },
-                    [
-                      {
-                        "id": 0,
-                        "kind": "Wildcard"
-                      },
-                      {
-                        "id": 1,
-                        "kind": {
-                          "ExternRef": "a"
-                        }
-                      },
-                      {
-                        "id": 2,
-                        "kind": {
-                          "ExternRef": "b"
-                        }
-                      },
-                      {
-                        "id": 3,
-                        "kind": {
-                          "ExternRef": "c"
-                        }
-                      }
-                    ]
-                  ]
-                }
-              }
-            ],
-            "relation": {
-              "Pipeline": [
-                {
-                  "From": {
-                    "source": 0,
-                    "columns": [
-                      {
-                        "id": 4,
-                        "kind": "Wildcard"
-                      },
-                      {
-                        "id": 5,
-                        "kind": {
-                          "Expr": {
-                            "name": "a",
-                            "expr": {
-                              "kind": {
-                                "ColumnRef": 1
-                              },
-                              "span": null
-                            }
-                          }
-                        }
-                      },
-                      {
-                        "id": 6,
-                        "kind": {
-                          "Expr": {
-                            "name": "b",
-                            "expr": {
-                              "kind": {
-                                "ColumnRef": 2
-                              },
-                              "span": null
-                            }
-                          }
-                        }
-                      },
-                      {
-                        "id": 7,
-                        "kind": {
-                          "Expr": {
-                            "name": "c",
-                            "expr": {
-                              "kind": {
-                                "ColumnRef": 3
-                              },
-                              "span": null
-                            }
-                          }
-                        }
-                      }
-                    ],
-                    "name": null
-                  }
-                },
-                {
-                  "Compute": {
-                    "id": 8,
-                    "kind": {
-                      "Expr": {
-                        "name": "full_name",
-                        "expr": {
-                          "kind": {
-                            "FString": [
-                              {
-                                "Expr": {
-                                  "kind": {
-                                    "ColumnRef": 5
-                                  },
-                                  "span": {
-                                    "start": 37,
-                                    "end": 41
-                                  }
-                                }
-                              },
-                              {
-                                "String": " "
-                              },
-                              {
-                                "Expr": {
-                                  "kind": {
-                                    "ColumnRef": 6
-                                  },
-                                  "span": {
-                                    "start": 44,
-                                    "end": 51
-                                  }
-                                }
-                              }
-                            ]
-                          },
-                          "span": {
-                            "start": 22,
-                            "end": 53
-                          }
-                        }
-                      }
-                    }
-                  }
-                },
-                {
-                  "Filter": {
-                    "kind": {
-                      "Binary": {
-                        "left": {
-                          "kind": {
-                            "ColumnRef": 7
-                          },
-                          "span": {
-                            "start": 61,
-                            "end": 65
-                          }
-                        },
-                        "op": "Gt",
-                        "right": {
-                          "kind": {
-                            "Literal": {
-                              "Integer": 2
-                            }
-                          },
-                          "span": {
-                            "start": 67,
-                            "end": 68
-                          }
-                        }
-                      }
-                    },
-                    "span": {
-                      "start": 61,
-                      "end": 68
-                    }
-                  }
-                },
-                {
-                  "Select": [
-                    4,
-                    8
-                  ]
-                }
-              ]
-            }
-          }
-        "#;
-
-        assert_snapshot!(crate::json_to_rq(rq).and_then(translate).unwrap(), @r###"
-        WITH sample_table AS (
-          SELECT
-            3 AS a,
-            a AS b,
-            false AS c
-          UNION
-          ALL
-          SELECT
-            5 AS a,
-            c AS b,
-            true AS c
-          UNION
-          ALL
-          SELECT
-            1 AS a,
-            b AS b,
-            true AS c
-          UNION
-          ALL
-          SELECT
-            2 AS a,
-            a AS b,
-            false AS c
-        ),
-        table_0 AS (
-          SELECT
-            *,
-            CONCAT(a, ' ', b) AS full_name,
-            c
-          FROM
-            sample_table
-        )
-        SELECT
-          *,
-          full_name
-        FROM
-          table_0
-        WHERE
-          c > 2
         "###);
     }
 }

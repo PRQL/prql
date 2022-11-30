@@ -211,8 +211,9 @@ impl Context {
                         let input_name = wildcard_inputs.into_iter().next().unwrap();
 
                         let input = frame.find_input(input_name).unwrap();
-                        let table_ident = input.table.clone();
-                        self.infer_table_column(&table_ident, col_name)?;
+                        if let Some(table_ident) = input.table.clone() {
+                            self.infer_table_column(&table_ident, col_name)?;
+                        }
                     }
                     _ => {
                         return Err(format!("Cannot infer where {table_ident}.{col_name} is from. It could be any of {wildcard_inputs:?}"))

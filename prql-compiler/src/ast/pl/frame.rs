@@ -24,7 +24,9 @@ pub struct FrameInput {
     pub name: String,
 
     /// fully qualified name of table that provides the data for this frame
-    pub table: Ident,
+    ///
+    /// `None` means this is a literal and doesn't need a table to refer to
+    pub table: Option<Ident>,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize, EnumAsInner)]

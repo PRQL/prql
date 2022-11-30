@@ -2,7 +2,7 @@
 source: prql-compiler/src/sql/translator.rs
 expression: sql_ast
 ---
-WITH table_0 AS (
+WITH table_1 AS (
   SELECT
     title,
     AVG(salary) AS emp_salary
@@ -16,6 +16,6 @@ SELECT
   title,
   AVG(emp_salary) AS avg_salary
 FROM
-  table_0
+  table_1
 GROUP BY
   title
