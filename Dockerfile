@@ -17,7 +17,7 @@
 
 # See USING_DOCKER.md for instructions for various tasks
 
-FROM rust:1.63.0-slim-buster
+FROM rust:1.64.0-slim-buster
 
 # ========= Install essential apt packages =========
 RUN apt-get -yq update \
