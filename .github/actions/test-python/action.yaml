@@ -1,4 +1,5 @@
 name: Test Python
+description: ""
 
 runs:
   using: composite

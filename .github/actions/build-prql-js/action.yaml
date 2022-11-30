@@ -1,0 +1,33 @@
+name: build-prql-js
+description: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Make dist folder
+      run: mkdir dist
+      shell: bash
+
+    - name: Install wasm-pack
+      uses: jetli/wasm-pack-action@v0.4.0
+      with:
+        version: "latest"
+
+    - name: Run wasm-pack for node
+      run: wasm-pack build --target nodejs --release --out-dir dist/node
+      shell: bash
+      working-directory: prql-js/
+    - name: Run wasm-pack for web
+      run: wasm-pack build --target no-modules --release --out-dir dist/web
+      shell: bash
+      working-directory: prql-js/
+    - name: Run wasm-pack for bundler
+      run: wasm-pack build --target bundler --release --out-dir dist/bundler
+      shell: bash
+      working-directory: prql-js/
+
+    - name: Setup Node
+      uses: actions/setup-node@v3
+      with:
+        node-version: "18.x"
+        registry-url: "https://registry.npmjs.org"
