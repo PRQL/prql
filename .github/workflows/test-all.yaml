@@ -56,6 +56,24 @@ jobs:
       - working-directory: prql-java/java/
         run: ./mvnw test
 
+  test-js:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+    steps:
+      # These are copy & pasted into test-js.yaml
+      # This does the rust setup (and more, but we don't run this on every
+      # commit, so it's not terrible to be a bit wasteful)
+      - uses: ./.github/actions/test-rust
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18.x"
+          registry-url: "https://registry.npmjs.org"
+      - run: npm i && npm run test
+        working-directory: prql-js/tests/
+
   measure-code-cov:
     runs-on: ubuntu-latest
     # Currently this runs `cargo clean` which makes the run taking 4 min. TODO:

@@ -1,0 +1,35 @@
+name: test-python
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    paths:
+      - "prql-js/**"
+      - ".github/workflows/test-js.yaml"
+  workflow_call:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v3
+        # This does the rust setup (and more, but we don't run this on every
+        # commit, so it's not terrible to be a bit wasteful)
+      - uses: ./.github/actions/test-rust
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18.x"
+          registry-url: "https://registry.npmjs.org"
+      - run: npm i && npm run test
+        working-directory: prql-js/tests/

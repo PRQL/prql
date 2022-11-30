@@ -78,10 +78,6 @@ jobs:
           node-version: "18.x"
           registry-url: "https://registry.npmjs.org"
 
-      - name: Run prql tests for node
-        run: npm i && npm run test
-        working-directory: prql-js/tests/
-
       - name: Publish package on npm
         run: npm publish
         working-directory: prql-js/
