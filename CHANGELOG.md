@@ -15,14 +15,15 @@ table expressions.
 @aljazerzen has (mostly single-handedly) done this work over the past few
 months. The project owes him immense appreciation.
 
-_Breaking changes_:
+**Breaking changes**:
 
 We've had to make some modest breaking changes for 0.3:
 
-- _Pipelines must start with `from`_. For example, a pipeline with only `derive foo = 5`, with no `from` transform, is no longer valid. Depending on demand
+- *Pipelines must start with `from`*. For example, a pipeline with only `derive
+  foo = 5`, with no `from` transform, is no longer valid. Depending on demand
   for this feature, it would be possible to add this back.
 
-- _Shared column names now require `==` in a join_. For example:
+- *Shared column names now require `==` in a join*. For example:
 
   ```diff
   from employees
@@ -36,25 +37,25 @@ We've had to make some modest breaking changes for 0.3:
 - The complier is stricter about table names; specifically table names which
   contain periods need to be surrounded by backticks. This is rare.
 
-_Features_:
+**Features**:
 
 - Change self equality op to `==` (#1176, @aljazerzen)
 - Add logging (@aljazerzen)
 - Add clickhouse dialect (#1090, @max-sixty)
 - Allow namespaces & tables to contain `.` (#1079, @aljazerzen)
 
-_Fixes_:
+**Fixes**:
 
 - Deduplicate column appearing in `SELECT` multiple times (#1186, @aljazerzen)
 - Fix uppercase table names (#1184, @aljazerzen)
 - Omit table name when only one ident in SELECT (#1094, @aljazerzen)
 
-_Documentation_:
+**Documentation**:
 
 - Add chapter on semantics' internals (@aljazerzen, #1028)
 - Add note about nesting variables in s-strings (@max-sixty, #1163)
 
-_Internal changes_:
+**Internal changes**:
 
 - Flatten group and window (#1120, @aljazerzen)
 - Split ast into expr and stmt (@aljazerzen)
@@ -79,24 +80,24 @@ to @aljazerzen for his continued contributions to this.
 Note: 0.2.10 was skipped due to this maintainer's inability to read his own docs
 on bumping versions...
 
-_Features_:
+**Features**:
 
 - Detect when compiler version is behind query version (@MarinPostma, #1058)
 - Add `__version__` to prql-python package (@max-sixty, #1034)
 
-_Fixes_:
+**Fixes**:
 
 - Fix nesting of expressions with equal binding strength and left associativity,
   such as `a - (b - c)` (@max-sixty, #1136)
 - Retain floats without significant digits as floats (@max-sixty, #1141)
 
-_Documentation_:
+**Documentation**:
 
 - Add documentation of `prqlr` bindings (@eitsupi, #1091)
 - Add a 'Why PRQL' section to the website (@max-sixty, #1098)
 - Add @snth to core-devs (@max-sixty, #1050)
 
-_Internal changes_:
+**Internal changes**:
 
 - Use workspace versioning (@max-sixty, #1065)
 
@@ -104,7 +105,7 @@ _Internal changes_:
 
 0.2.9 is a small release containing a bug fix for empty strings.
 
-_Fixes_:
+**Fixes**:
 
 - Fix parsing of empty strings (@aljazerzen, #1024)
 
@@ -115,7 +116,7 @@ improvements, and lots of internal changes. Note that one of the fixes causes
 the behavior of `round` and `cast` to change slightly — though it's handled as a
 fix rather than a breaking change in semantic versioning.
 
-_Fixes_:
+**Fixes**:
 
 - Change order of the `round` & `cast` function parameters to have the column
   last; for example `round 2 foo_col` /
@@ -129,21 +130,21 @@ _Fixes_:
   ]
   ```
 
-_Documentation_:
+**Documentation**:
 
 - Split `DEVELOPMENT.md` from `CONTRIBUTING.md` (@richb-hanover, #1010)
 - Make s-strings more prominent in website intro (@max-sixty, #982)
 
-_Web_:
+*Web*:
 
 - Add GitHub star count to website (@max-sixty, #990)
 
-_Integrations_:
+*Integrations*:
 
 - Expose a shortened error message, in particular for the VSCode extension
   (@aljazerzen, #1005)
 
-_Internal changes_:
+**Internal changes**:
 
 - Specify 1.60.0 as minimum rust version (@max-sixty, #1011)
 - Remove old `wee-alloc` code (@max-sixty, #1013)
@@ -162,28 +163,28 @@ We also have new features in the [VSCode
 extension](https://github.com/prql/prql-code), courtesy of @jiripospisil,
 including a live output panel.
 
-_Fixes_:
+**Fixes**:
 
 - `range_of_ranges` checks the Range end is smaller than its start (@shuozeli, #946)
 
-_Documentation_:
+**Documentation**:
 
 - Improve various docs (@max-sixty, #974, #971, #972, #970, #925)
 - Add reference to EdgeDB's blog post in our FAQ (@max-sixty, #922)
 - Fix typos (@kianmeng, #943)
 
-_Integrations_:
+*Integrations*:
 
 - Add `prql-lib`, enabling language bindings with `go` (@sigxcpu76, #923)
 - Fix line numbers in JS exceptions (@charlie-sanders, #929)
 
-_Internal changes_:
+**Internal changes**:
 
 - Lock the version of the rust-toolchain, with auto-updates (@max-sixty, #926, #927)
 
 ## 0.2.6 — 2022-08-05
 
-_Fixes_:
+**Fixes**:
 
 - Adjust `fmt` to only escape names when needed (@aljazerzen, #907)
 - Fix quoting on upper case `table` names (@max-sixty, #893)
@@ -191,12 +192,12 @@ _Fixes_:
 - Fix parse error on newlines in a `table` (@sebastiantoh 🆕, #902)
 - Fix quoting of upper case table names (@max-sixty, #893)
 
-_Documentation_:
+**Documentation**:
 
 - Add docs on [Architecture](prql-compiler/ARCHITECTURE.md) (@aljazerzen, #904)
 - Add Changelog (@max-sixty, #890 #891)
 
-_Internal changes_:
+**Internal changes**:
 
 - Start trial using Conventional Commits (@max-sixty, #889)
 - Add crates.io release workflow, docs (@max-sixty, #887)
