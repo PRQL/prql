@@ -1,4 +1,8 @@
 {
+  "dependencies": {
+    "chai": "^4.3.6",
+    "mocha": "^10.0.0"
+  },
   "description": "Javascript tests for prql-js",
   "files": [
     "package.json"
@@ -12,9 +16,5 @@
   "scripts": {
     "test": "mocha ."
   },
-  "version": "0.2.2",
-  "dependencies": {
-    "chai": "^4.3.6",
-    "mocha": "^10.0.0"
-  }
+  "version": "0.3.0"
 }
