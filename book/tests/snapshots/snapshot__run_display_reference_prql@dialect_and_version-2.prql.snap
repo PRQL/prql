@@ -3,7 +3,7 @@ source: book/tests/snapshot.rs
 expression: Statements(parse(&prql).unwrap())
 input_file: book/tests/prql/queries/dialect_and_version-2.prql
 ---
-prql dialect:generic version:^0.2
+prql dialect:generic version:^0.3
 
 
 
