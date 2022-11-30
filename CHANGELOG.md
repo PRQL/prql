@@ -1,5 +1,10 @@
 # PRQL Changelog
 
+## 0.3.1 - Unreleased
+
+- Update Github Actions and Workflows to current version numbers
+  (and avoid using Node12 anymore)
+
 ## 0.3.0 — 2022-11-29
 
 🎉 0.3.0 is the biggest ever change in PRQL's compiler, rewriting much of
