@@ -24,6 +24,6 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
-      - uses: ./.github/actions/setup-prql-js
+      - uses: ./.github/actions/build-prql-js
       - run: npm i && npm run test
         working-directory: prql-js/tests/
