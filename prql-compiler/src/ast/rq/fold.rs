@@ -61,9 +61,9 @@ fn fold_column_decl<F: ?Sized + IrFold>(
     Ok(ColumnDecl {
         id: cd.id,
         kind: match cd.kind {
-            ColumnDefKind::Wildcard => ColumnDefKind::Wildcard,
-            ColumnDefKind::ExternRef(name) => ColumnDefKind::ExternRef(name),
-            ColumnDefKind::Expr { name, expr } => ColumnDefKind::Expr {
+            ColumnDeclKind::Wildcard => ColumnDeclKind::Wildcard,
+            ColumnDeclKind::ExternRef(name) => ColumnDeclKind::ExternRef(name),
+            ColumnDeclKind::Expr { name, expr } => ColumnDeclKind::Expr {
                 name,
                 expr: fold.fold_expr(expr)?,
             },

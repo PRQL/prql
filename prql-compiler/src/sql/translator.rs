@@ -85,7 +85,7 @@ pub fn translate_query(query: Query) -> Result<sql_ast::Query> {
                 let pipeline = preprocess_reorder(pipeline);
 
                 // split to atomics
-                atomics.extend(split_into_atomics(name, pipeline, &mut context));
+                atomics.extend(split_into_atomics(name, pipeline, &mut context.anchor));
             }
             Relation::Literal(_, _) | Relation::SString(_, _) => atomics.push(AtomicQuery {
                 name,
@@ -292,18 +292,17 @@ fn sql_query_of_pipeline(
 fn split_into_atomics(
     name: String,
     mut pipeline: Vec<Transform>,
-    context: &mut Context,
+    context: &mut AnchorContext,
 ) -> Vec<AtomicQuery> {
-    materialize_inputs(&pipeline, &mut context.anchor);
+    materialize_inputs(&pipeline, context);
 
-    let output_cols = context.anchor.determine_select_columns(&pipeline);
+    let output_cols = context.determine_select_columns(&pipeline);
     let mut required_cols = output_cols.clone();
 
     // split pipeline, back to front
     let mut parts_rev = Vec::new();
     loop {
-        let (preceding, split) =
-            anchor::split_off_back(&mut context.anchor, required_cols.clone(), pipeline);
+        let (preceding, split) = anchor::split_off_back(context, required_cols, pipeline);
 
         if let Some((preceding, cols_at_split)) = preceding {
             log::debug!(
@@ -342,7 +341,7 @@ fn split_into_atomics(
         // this code chunk is bloated but I cannot find a more concise alternative
         let first = parts.remove(0);
 
-        let first_name = context.anchor.gen_table_name();
+        let first_name = context.gen_table_name();
         atomics.push(AtomicQuery {
             name: first_name.clone(),
             relation: Relation::Pipeline(first.0),
@@ -350,9 +349,8 @@ fn split_into_atomics(
 
         let mut prev_name = first_name;
         for (pipeline, cols_before) in parts.into_iter() {
-            let name = context.anchor.gen_table_name();
-            let pipeline =
-                anchor::anchor_split(&mut context.anchor, &prev_name, &cols_before, pipeline);
+            let name = context.gen_table_name();
+            let pipeline = anchor::anchor_split(context, &prev_name, &cols_before, pipeline);
 
             atomics.push(AtomicQuery {
                 name: name.clone(),
@@ -362,7 +360,7 @@ fn split_into_atomics(
             prev_name = name;
         }
 
-        anchor::anchor_split(&mut context.anchor, &prev_name, &last.1, last.0)
+        anchor::anchor_split(context, &prev_name, &last.1, last.0)
     };
     atomics.push(AtomicQuery {
         name,
@@ -420,7 +418,7 @@ mod test {
         "###;
 
         let (pipeline, mut context) = parse_and_resolve(prql).unwrap();
-        let queries = split_into_atomics("".to_string(), pipeline, &mut context);
+        let queries = split_into_atomics("".to_string(), pipeline, &mut context.anchor);
         assert_eq!(queries.len(), 1);
 
         // One aggregate, but take at the top
@@ -433,7 +431,7 @@ mod test {
         "###;
 
         let (pipeline, mut context) = parse_and_resolve(prql).unwrap();
-        let queries = split_into_atomics("".to_string(), pipeline, &mut context);
+        let queries = split_into_atomics("".to_string(), pipeline, &mut context.anchor);
         assert_eq!(queries.len(), 2);
 
         // A take, then two aggregates
@@ -447,7 +445,7 @@ mod test {
         "###;
 
         let (pipeline, mut context) = parse_and_resolve(prql).unwrap();
-        let queries = split_into_atomics("".to_string(), pipeline, &mut context);
+        let queries = split_into_atomics("".to_string(), pipeline, &mut context.anchor);
         assert_eq!(queries.len(), 3);
 
         // A take, then a select
@@ -458,7 +456,7 @@ mod test {
         "###;
 
         let (pipeline, mut context) = parse_and_resolve(prql).unwrap();
-        let queries = split_into_atomics("".to_string(), pipeline, &mut context);
+        let queries = split_into_atomics("".to_string(), pipeline, &mut context.anchor);
         assert_eq!(queries.len(), 1);
     }
 
@@ -507,8 +505,7 @@ mod test {
         WITH table_1 AS (
           SELECT
             *,
-            RANK() OVER () AS global_rank,
-            country
+            RANK() OVER () AS global_rank
           FROM
             employees
         )

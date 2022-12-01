@@ -3,7 +3,7 @@ use std::cmp::Ordering;
 use anyhow::Result;
 
 use crate::ast::pl::{BinOp, ColumnSort, InterpolateItem, Literal, Range, WindowFrame, WindowKind};
-use crate::ast::rq::{CId, ColumnDefKind, Expr, ExprKind, IrFold, Take, Transform, Window};
+use crate::ast::rq::{CId, ColumnDeclKind, Expr, ExprKind, IrFold, Take, Transform, Window};
 
 use super::anchor::{infer_complexity, Complexity};
 use super::context::AnchorContext;
@@ -85,7 +85,7 @@ impl<'a> TakeConverter<'a> {
         partition: Vec<CId>,
     ) -> Vec<Transform> {
         // declare new column
-        let decl = ColumnDefKind::Expr {
+        let decl = ColumnDeclKind::Expr {
             name: Some(self.context.gen_column_name()),
             expr: Expr {
                 kind: ExprKind::SString(vec![InterpolateItem::String("ROW_NUMBER()".to_string())]),

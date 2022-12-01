@@ -7,7 +7,7 @@ use anyhow::Result;
 use itertools::Itertools;
 
 use crate::ast::rq::{
-    fold_table, fold_table_ref, CId, ColumnDecl, ColumnDefKind, IrFold, Query, TId, TableDecl,
+    fold_table, fold_table_ref, CId, ColumnDecl, ColumnDeclKind, IrFold, Query, TId, TableDecl,
     TableRef, Transform, Window,
 };
 use crate::utils::IdGenerator;
@@ -53,13 +53,13 @@ impl AnchorContext {
     }
 
     pub fn register_wildcard(&mut self, tiid: TIId) -> CId {
-        let cd = self.register_column(ColumnDefKind::Wildcard, None, Some(tiid));
+        let cd = self.register_column(ColumnDeclKind::Wildcard, None, Some(tiid));
         cd.id
     }
 
     pub fn register_column(
         &mut self,
-        kind: ColumnDefKind,
+        kind: ColumnDeclKind,
         window: Option<Window>,
         tiid: Option<TIId>,
     ) -> ColumnDecl {
@@ -108,14 +108,14 @@ impl AnchorContext {
         let decl = self.columns_decls.get_mut(cid).unwrap();
 
         match &mut decl.kind {
-            ColumnDefKind::Expr { name, .. } => {
+            ColumnDeclKind::Expr { name, .. } => {
                 if name.is_none() {
                     *name = Some(format!("_expr_{}", self.col_name.gen()));
                 }
                 name.clone().unwrap()
             }
-            ColumnDefKind::Wildcard => "*".to_string(),
-            ColumnDefKind::ExternRef(name) => name.clone(),
+            ColumnDeclKind::Wildcard => "*".to_string(),
+            ColumnDeclKind::ExternRef(name) => name.clone(),
         }
     }
 

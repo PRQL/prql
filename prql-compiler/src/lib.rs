@@ -313,23 +313,14 @@ select `first name`
         sort [issued_at, -amount, +num_of_articles]
         "###
         ).unwrap()), @r###"
-        WITH table_1 AS (
-          SELECT
-            *,
-            issued_at,
-            amount,
-            num_of_articles
-          FROM
-            invoices
-          ORDER BY
-            issued_at,
-            amount DESC,
-            num_of_articles
-        )
         SELECT
           *
         FROM
-          table_1
+          invoices
+        ORDER BY
+          issued_at,
+          amount DESC,
+          num_of_articles
         "###);
 
         assert_display_snapshot!((compile(r###"
@@ -683,25 +674,17 @@ select `first name`
             derive [next_four_days = sum b]
         )
         "###).unwrap()), @r###"
-        WITH table_1 AS (
-          SELECT
-            *,
-            SUM(b) OVER (
-              ORDER BY
-                day RANGE BETWEEN 4 PRECEDING
-                AND 4 FOLLOWING
-            ) AS next_four_days,
-            day
-          FROM
-            foo
-          ORDER BY
-            day
-        )
         SELECT
           *,
-          next_four_days
+          SUM(b) OVER (
+            ORDER BY
+              day RANGE BETWEEN 4 PRECEDING
+              AND 4 FOLLOWING
+          ) AS next_four_days
         FROM
-          table_1
+          foo
+        ORDER BY
+          day
         "###);
 
         // TODO: add test for preceding
@@ -919,28 +902,20 @@ select `first name`
         "###).unwrap()), @r###"
         WITH table_1 AS (
           SELECT
-            *,
-            name
+            *
           FROM
             employees
           LIMIT
             10 OFFSET 10
-        ),
-        table_2 AS (
-          SELECT
-            *,
-            name
-          FROM
-            table_1
-          ORDER BY
-            name
-          LIMIT
-            5
         )
         SELECT
           *
         FROM
-          table_2
+          table_1
+        ORDER BY
+          name
+        LIMIT
+          5
         "###);
     }
 
@@ -1280,21 +1255,15 @@ take 20
           GROUP BY
             country
         ),
-        table_0 AS (
+        newest_employees AS (
           SELECT
-            *,
-            tenure
+            *
           FROM
             employees
           ORDER BY
             tenure
           LIMIT
             50
-        ), newest_employees AS (
-          SELECT
-            *
-          FROM
-            table_0
         )
         SELECT
           newest_employees.name,
@@ -1475,8 +1444,7 @@ take 20
         assert_display_snapshot!(result, @r###"
         WITH table_1 AS (
           SELECT
-            *,
-            emp_no
+            *
           FROM
             employees AS e
           LIMIT

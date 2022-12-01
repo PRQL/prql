@@ -9,7 +9,7 @@ use crate::ast::pl::{
     self, Expr, ExprKind, FrameColumn, Ident, InterpolateItem, Range, TableExternRef, Ty,
     WindowFrame,
 };
-use crate::ast::rq::{self, CId, ColumnDecl, ColumnDefKind, Query, TId, TableDecl, Transform};
+use crate::ast::rq::{self, CId, ColumnDecl, ColumnDeclKind, Query, TId, TableDecl, Transform};
 use crate::error::{Error, Reason};
 use crate::semantic::module::Module;
 use crate::utils::{toposort, IdGenerator};
@@ -157,7 +157,7 @@ impl Lowerer {
 
                 let wildcard = ColumnDecl {
                     id: self.cid.gen(),
-                    kind: ColumnDefKind::Wildcard,
+                    kind: ColumnDeclKind::Wildcard,
                     window: None,
                     is_aggregation: false,
                 };
@@ -207,9 +207,9 @@ impl Lowerer {
             cids_by_name.insert(name.clone(), local_cid);
 
             let kind = if name == "*" {
-                ColumnDefKind::Wildcard
+                ColumnDeclKind::Wildcard
             } else {
-                ColumnDefKind::Expr {
+                ColumnDeclKind::Expr {
                     name: Some(name.clone()),
                     expr: rq::Expr {
                         kind: rq::ExprKind::ColumnRef(*table_cid),
@@ -476,7 +476,7 @@ impl Lowerer {
         let cid = self.cid.gen();
         let decl = ColumnDecl {
             id: cid,
-            kind: ColumnDefKind::Expr { name, expr },
+            kind: ColumnDeclKind::Expr { name, expr },
             window,
             is_aggregation,
         };
@@ -669,8 +669,8 @@ fn lower_extern_table(
         .map(|col| ColumnDecl {
             id: lowerer.cid.gen(),
             kind: match col {
-                TableColumn::Wildcard => ColumnDefKind::Wildcard,
-                TableColumn::Single(name) => ColumnDefKind::ExternRef(name.clone().unwrap()),
+                TableColumn::Wildcard => ColumnDeclKind::Wildcard,
+                TableColumn::Single(name) => ColumnDeclKind::ExternRef(name.clone().unwrap()),
             },
             window: None,
             is_aggregation: false,
@@ -680,9 +680,9 @@ fn lower_extern_table(
     let cols = column_defs
         .iter()
         .map(|cd| match &cd.kind {
-            ColumnDefKind::Wildcard => ("*".to_string(), cd.id),
-            ColumnDefKind::ExternRef(name) => (name.clone(), cd.id),
-            ColumnDefKind::Expr { .. } => unreachable!(),
+            ColumnDeclKind::Wildcard => ("*".to_string(), cd.id),
+            ColumnDeclKind::ExternRef(name) => (name.clone(), cd.id),
+            ColumnDeclKind::Expr { .. } => unreachable!(),
         })
         .collect();
     let expr = rq::Relation::ExternRef(

@@ -5,7 +5,7 @@ use std::collections::{HashMap, HashSet};
 
 use crate::ast::pl::TableExternRef;
 use crate::ast::rq::{
-    self, fold_transform, CId, ColumnDecl, ColumnDefKind, Expr, ExprKind, IrFold, Relation,
+    self, fold_transform, CId, ColumnDecl, ColumnDeclKind, Expr, ExprKind, IrFold, Relation,
     TableDecl, TableRef, Transform,
 };
 
@@ -16,19 +16,19 @@ type RemainingPipeline = (Vec<Transform>, Vec<CId>);
 /// Splits pipeline into two parts, such that the second part contains
 /// maximum number of transforms while "fitting" into a SELECT query.
 pub fn split_off_back(
-    context: &mut AnchorContext,
-    output_cols: Vec<CId>,
+    ctx: &mut AnchorContext,
+    output: Vec<CId>,
     mut pipeline: Vec<Transform>,
 ) -> (Option<RemainingPipeline>, Vec<Transform>) {
     if pipeline.is_empty() {
         return (None, Vec::new());
     }
 
-    log::debug!("traversing pipeline to obtain columns: {output_cols:?}");
+    log::debug!("traversing pipeline to obtain columns: {output:?}");
 
     let mut following_transforms: HashSet<String> = HashSet::new();
 
-    let mut inputs_required = into_requirements(output_cols, Complexity::highest(), true);
+    let mut inputs_required = into_requirements(output, Complexity::highest(), true);
     let mut inputs_avail = HashSet::new();
 
     // iterate backwards
@@ -54,7 +54,7 @@ pub fn split_off_back(
                     log::debug!("materializing {:?}", decl.id);
 
                     // materialize
-                    let col_def = context.columns_decls.get_mut(&decl.id).unwrap();
+                    let col_def = ctx.columns_decls.get_mut(&decl.id).unwrap();
                     col_def.kind = decl.kind.clone();
 
                     inputs_avail.insert(decl.id);
@@ -65,7 +65,7 @@ pub fn split_off_back(
             }
             Transform::Aggregate { compute, .. } => {
                 for cid in compute {
-                    let decl = &context.columns_decls[cid];
+                    let decl = &ctx.columns_decls[cid];
                     if !can_materialize(decl, &inputs_required) {
                         pipeline.push(transform);
                         break 'pipeline;
@@ -115,15 +115,17 @@ pub fn split_off_back(
         // requirements, which would result in empty SELECTs.
         // As a workaround, let's just fallback to a wildcard.
         let selected = if selected.is_empty() {
-            let (input_tables, _) = context.collect_pipeline_inputs(&pipeline);
+            let (input_tables, _) = ctx.collect_pipeline_inputs(&pipeline);
 
             input_tables
                 .iter()
-                .map(|tiid| context.register_wildcard(*tiid))
+                .map(|tiid| ctx.register_wildcard(*tiid))
                 .collect()
         } else {
             selected
         };
+
+        let selected = compress_wildcards(ctx, selected);
 
         curr_pipeline_rev.push(Transform::Select(selected));
     }
@@ -160,6 +162,20 @@ fn can_materialize(decl: &ColumnDecl, inputs_required: &[Requirement]) -> bool {
     can
 }
 
+fn compress_wildcards(ctx: &AnchorContext, cols: Vec<CId>) -> Vec<CId> {
+    let mut in_wildcard: HashSet<_> = HashSet::new();
+    for col in &cols {
+        if ctx.columns_decls[col].kind.is_wildcard() {
+            if let Some(tiid) = ctx.columns_loc.get(col) {
+                in_wildcard.extend(ctx.table_instances[tiid].columns.iter().map(|c| c.id));
+            }
+        }
+    }
+    cols.into_iter()
+        .filter(|c| !in_wildcard.contains(c) || ctx.columns_decls[c].kind.is_wildcard())
+        .collect_vec()
+}
+
 /// Applies adjustments to second part of a pipeline when it's split:
 /// - prepend pipeline with From
 /// - redefine columns materialized in preceding pipeline
@@ -181,9 +197,11 @@ pub fn anchor_split(
         let old_def = ctx.columns_decls.get(old_cid).unwrap();
 
         let kind = match &old_def.kind {
-            ColumnDefKind::Wildcard => ColumnDefKind::Wildcard,
-            ColumnDefKind::ExternRef(name) => ColumnDefKind::ExternRef(name.clone()),
-            ColumnDefKind::Expr { .. } => ColumnDefKind::ExternRef(ctx.ensure_column_name(old_cid)),
+            ColumnDeclKind::Wildcard => ColumnDeclKind::Wildcard,
+            ColumnDeclKind::ExternRef(name) => ColumnDeclKind::ExternRef(name.clone()),
+            ColumnDeclKind::Expr { .. } => {
+                ColumnDeclKind::ExternRef(ctx.ensure_column_name(old_cid))
+            }
         };
 
         let id = ctx.cid.gen();
@@ -243,14 +261,14 @@ pub fn materialize_inputs(pipeline: &[Transform], ctx: &mut AnchorContext) {
     }
 }
 
-fn infer_extern_ref(cid: CId, ctx: &AnchorContext) -> Option<ColumnDefKind> {
+fn infer_extern_ref(cid: CId, ctx: &AnchorContext) -> Option<ColumnDeclKind> {
     let decl = &ctx.columns_decls[&cid];
 
     match &decl.kind {
-        ColumnDefKind::Wildcard | ColumnDefKind::ExternRef(_) => Some(decl.kind.clone()),
-        ColumnDefKind::Expr { name, expr } => {
+        ColumnDeclKind::Wildcard | ColumnDeclKind::ExternRef(_) => Some(decl.kind.clone()),
+        ColumnDeclKind::Expr { name, expr } => {
             if let Some(name) = name {
-                Some(ColumnDefKind::ExternRef(name.clone()))
+                Some(ColumnDeclKind::ExternRef(name.clone()))
             } else {
                 match &expr.kind {
                     ExprKind::ColumnRef(cid) => infer_extern_ref(*cid, ctx),
@@ -379,8 +397,8 @@ fn get_requirements(transform: &Transform, following: &HashSet<String>) -> Vec<R
 
     let cids = match transform {
         Compute(cd) => match &cd.kind {
-            ColumnDefKind::Expr { expr, .. } => CidCollector::collect(expr.clone()),
-            ColumnDefKind::ExternRef(_) | ColumnDefKind::Wildcard => return Vec::new(),
+            ColumnDeclKind::Expr { expr, .. } => CidCollector::collect(expr.clone()),
+            ColumnDeclKind::ExternRef(_) | ColumnDeclKind::Wildcard => return Vec::new(),
         },
         Filter(expr) | Join { filter: expr, .. } => CidCollector::collect(expr.clone()),
         Sort(sorts) => sorts.iter().map(|s| s.column).collect(),
