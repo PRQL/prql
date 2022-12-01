@@ -35,7 +35,7 @@ pub enum DeclKind {
     TableDecl(TableDecl),
 
     InstanceOf(Ident),
-    
+
     Column(usize),
 
     /// Contains a default value to be created in parent namespace matched.
