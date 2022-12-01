@@ -47,7 +47,7 @@ jobs:
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
       - uses: peaceiris/actions-mdbook@v1
-      - uses: baptiste0928/cargo-install@v1
+      - uses: baptiste0928/cargo-install@next
         with:
           crate: mdbook-admonish
           version: "1.7.0"
