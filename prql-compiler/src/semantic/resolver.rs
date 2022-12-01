@@ -172,6 +172,14 @@ impl AstFold for Resolver {
 
                     DeclKind::Expr(expr) => expr.as_ref().clone(),
 
+                    DeclKind::InstanceOf(_) => {
+                        bail!(Error::new(Reason::Simple(
+                            "table instance cannot be referenced directly".to_string(),
+                        ))
+                        .with_span(span)
+                        .with_help("did you forget to specify the column name?"));
+                    }
+
                     DeclKind::NoResolve => Expr {
                         kind: ExprKind::Ident(ident),
                         ..node
