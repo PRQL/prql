@@ -11,6 +11,7 @@ on:
     paths:
       - "prql-python/**"
       - ".github/workflows/test-python.yaml"
+      - ".github/actions/test-python/**"
   workflow_call:
 
 concurrency:
