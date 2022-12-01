@@ -4,7 +4,7 @@ use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fmt::Debug};
 
-use super::module::{Module, NS_DEFAULT_DB, NS_NO_RESOLVE, NS_STD, NS_SELF};
+use super::module::{Module, NS_DEFAULT_DB, NS_NO_RESOLVE, NS_SELF, NS_STD};
 use crate::ast::pl::*;
 use crate::error::Span;
 
