@@ -311,7 +311,7 @@ select `first name`
         assert_display_snapshot!((compile(r###"
         from invoices
         sort [issued_at, -amount, +num_of_articles]
-        "###    
+        "###
         ).unwrap()), @r###"
         WITH table_1 AS (
           SELECT
@@ -337,7 +337,7 @@ select `first name`
         derive somefield = "something"
         sort [somefield]
         select [renamed = somefield]
-        "###    
+        "###
         ).unwrap()), @r###"
         WITH table_1 AS (
           SELECT
