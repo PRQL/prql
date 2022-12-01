@@ -122,7 +122,7 @@ impl Context {
                 // ambiguous
                 _ => {
                     let decls = decls.into_iter().map(|d| d.to_string()).join(", ");
-                    return Err(format!("Ambiguous reference. Could be from any of {decls}"));
+                    return Err(format!("Ambiguous name. Could be from any of {decls}"));
                 }
             }
         }
@@ -166,7 +166,7 @@ impl Context {
             // ambiguous
             _ => {
                 let decls = decls.into_iter().map(|d| d.to_string()).join(", ");
-                return Err(format!("Ambiguous reference. Could be from any of {decls}"));
+                Err(format!("Ambiguous name. Could be from any of {decls}"))
             }
         }
     }
