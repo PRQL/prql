@@ -32,7 +32,7 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
-      - uses: ./.github/actions/build-wheel
+      - uses: ./.github/actions/build-prql-python
 
   publish-prql-python:
     runs-on: ubuntu-latest
