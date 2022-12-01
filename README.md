@@ -72,7 +72,7 @@ PRQL now has a semantic understanding of expressions and
 fixes a number of lingering bugs.
 It also unlocks development of longer-term priorities.
 The [CHANGELOG.md](./CHANGELOG.md) gives more information.
- 
+
 PRQL still has some minor bugs and some missing features, and probably is only
 ready to rolled out to non-technical teams for fairly simple queries. We're
 exploring where to focus further development; we welcome use-cases. Here's our
