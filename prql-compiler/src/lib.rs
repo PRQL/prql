@@ -1073,11 +1073,11 @@ select `first name`
     #[test]
     fn test_from_json() {
         // Test that the SQL generated from the JSON of the PRQL is the same as the raw PRQL
-        let original_prql = r#"from employees
+        let original_prql = r#"from e=employees
 join salaries [==emp_no]
-group [emp_no, gender] (
+group [e.emp_no, e.gender] (
   aggregate [
-    emp_salary = average salary
+    emp_salary = average salaries.salary
   ]
 )
 join de=dept_emp [==emp_no]
@@ -1453,7 +1453,7 @@ take 20
         from e=employees
         take 10
         join salaries [==emp_no]
-        select [e.*, salary]
+        select [e.*, salaries.salary]
         "###;
         let result = compile(prql).unwrap();
         assert_display_snapshot!(result, @r###"
@@ -1467,7 +1467,7 @@ take 20
         )
         SELECT
           table_1.*,
-          salary
+          salaries.salary
         FROM
           table_1
           JOIN salaries ON table_1.emp_no = salaries.emp_no
@@ -1482,7 +1482,7 @@ take 20
             join salaries side:left [salaries.emp_no == e.emp_no]
             group [e.emp_no] (
                 aggregate [
-                    emp_salary = average salary
+                    emp_salary = average salaries.salary
                 ]
             )
             select [emp_no, emp_salary]
@@ -1491,7 +1491,7 @@ take 20
         assert_display_snapshot!((compile(query).unwrap()), @r###"
         SELECT
           e.emp_no,
-          AVG(salary) AS emp_salary
+          AVG(salaries.salary) AS emp_salary
         FROM
           employees AS e
           LEFT JOIN salaries ON salaries.emp_no = e.emp_no

@@ -765,11 +765,11 @@ mod test {
 
         assert_yaml_snapshot!(resolve_type(
             r#"
-            from employees
+            from e = employees
             join salaries [==emp_no]
-            group [emp_no, gender] (
+            group [e.emp_no, e.gender] (
                 aggregate [
-                    emp_salary = average salary
+                    emp_salary = average salaries.salary
                 ]
             )
             "#

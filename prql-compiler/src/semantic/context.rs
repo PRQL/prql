@@ -4,7 +4,7 @@ use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fmt::Debug};
 
-use super::module::{Module, NS_DEFAULT_DB, NS_NO_RESOLVE, NS_SELF, NS_STD};
+use super::module::{Module, NS_DEFAULT_DB, NS_SELF, NS_STD};
 use crate::ast::pl::*;
 use crate::error::Span;
 
@@ -163,20 +163,10 @@ impl Context {
                 Ok(module_ident + Ident::from_name(ident.name.clone()))
             }
 
-            // don't report ambiguous variable, database may be able to resolve them
+            // ambiguous
             _ => {
-                // insert default
-                let ident = NS_NO_RESOLVE.to_string();
-                self.root_mod
-                    .names
-                    .insert(ident, Decl::from(DeclKind::NoResolve));
-
-                log::debug!(
-                    "... could either of {:?}",
-                    decls.iter().map(|x| x.to_string()).collect_vec()
-                );
-
-                Ok(Ident::from_name(NS_NO_RESOLVE))
+                let decls = decls.into_iter().map(|d| d.to_string()).join(", ");
+                return Err(format!("Ambiguous reference. Could be from any of {decls}"));
             }
         }
     }

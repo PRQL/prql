@@ -38,14 +38,6 @@ For each ident we want to resolve, we search the scope's items in order. One of 
   but the ident did not specify a namespace, so we can match a namespace that contains a `*` wildcard.
   If there's a single namespace, the matched namespace is also updated to contain this new variable name.
 
-  In the case that there are multiple namespaces with a wildcard,
-  we don't match with neither of the namespaces, but match as `*.*` name.
-  This is a special feature that allows a column name which may reside in two different tables
-  not to be associated with any of them.
-  Instead, it is translated into the column name only, so database can determine which table it belongs to.
-  Note that this may lead to PRQL passing on ambigous queries to the database, instead of resulting error early.
-  <!-- TODO @max-sixty to add a reference to roadmap about db cohesion? -->
-
 - Otherwise, the nothing is matched and an error is raised.
 
 ## Translating to SQL
@@ -66,12 +58,8 @@ Because of this, we have to use table prefixes for all column names.
 from employees
 derive [first_name, dept_id]
 join d=departments [==dept_id]
-select [first_name, d.title, created_at]
+select [first_name, d.title]
 ```
 
 As you can see, `employees.first_name` now needs table prefix, to prevent conficts with potential column with the same name in `departments` table.
 Similarly, `d.title` needs the table prefix.
-
-But `created_at` has triggered the special rule and matched `*.*`,
-because it may reside in any of the two tables.
-This means that PRQL does not associate it with any table and the column is translated as is.

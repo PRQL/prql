@@ -9,7 +9,7 @@ group [
   e.emp_no,
   e.gender,
 ] (
-  aggregate [emp_salary = average salary]
+  aggregate [emp_salary = average salaries.salary]
 )
 join side:left de = dept_emp [==emp_no]
 group [

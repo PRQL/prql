@@ -4,7 +4,7 @@ expression: Statements(parse(&prql).unwrap())
 input_file: book/tests/prql/transforms/join-1.prql
 ---
 from employees
-join side:left p = positions [id == employee_id]
+join side:left p = positions [employees.id == p.employee_id]
 
 
 
