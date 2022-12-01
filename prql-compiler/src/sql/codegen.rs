@@ -146,7 +146,7 @@ fn translate_cid(cid: CId, ctx: &mut Context) -> Result<sql_ast::Expr> {
         log::debug!("translating {cid:?}");
         let decl = ctx.anchor.columns_decls.get(&cid).expect("bad RQ ids");
 
-        if let ColumnDefKind::Expr { expr, .. } = &decl.kind {
+        if let ColumnDeclKind::Expr { expr, .. } = &decl.kind {
             let window = decl.window.clone();
 
             let expr = translate_expr_kind(expr.kind.clone(), ctx)?;

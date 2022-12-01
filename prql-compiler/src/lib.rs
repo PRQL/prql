@@ -308,12 +308,11 @@ select `first name`
 
     #[test]
     fn test_sorts() {
-        let query = r###"
+        assert_display_snapshot!((compile(r###"
         from invoices
         sort [issued_at, -amount, +num_of_articles]
-        "###;
-
-        assert_display_snapshot!((compile(query).unwrap()), @r###"
+        "###
+        ).unwrap()), @r###"
         SELECT
           *
         FROM
@@ -322,6 +321,28 @@ select `first name`
           issued_at,
           amount DESC,
           num_of_articles
+        "###);
+
+        assert_display_snapshot!((compile(r###"
+        from x
+        derive somefield = "something"
+        sort [somefield]
+        select [renamed = somefield]
+        "###
+        ).unwrap()), @r###"
+        WITH table_1 AS (
+          SELECT
+            'something' AS renamed,
+            'something' AS somefield
+          FROM
+            x
+          ORDER BY
+            somefield
+        )
+        SELECT
+          renamed
+        FROM
+          table_1
         "###);
     }
 
@@ -881,8 +902,7 @@ select `first name`
         "###).unwrap()), @r###"
         WITH table_1 AS (
           SELECT
-            *,
-            name
+            *
           FROM
             employees
           LIMIT
@@ -1424,8 +1444,7 @@ take 20
         assert_display_snapshot!(result, @r###"
         WITH table_1 AS (
           SELECT
-            *,
-            emp_no
+            *
           FROM
             employees AS e
           LIMIT

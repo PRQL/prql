@@ -4,9 +4,10 @@
 use std::collections::{HashMap, HashSet};
 
 use anyhow::Result;
+use itertools::Itertools;
 
 use crate::ast::rq::{
-    fold_table, fold_table_ref, CId, ColumnDecl, ColumnDefKind, IrFold, Query, TId, TableDecl,
+    fold_table, fold_table_ref, CId, ColumnDecl, ColumnDeclKind, IrFold, Query, TId, TableDecl,
     TableRef, Transform, Window,
 };
 use crate::utils::IdGenerator;
@@ -52,13 +53,13 @@ impl AnchorContext {
     }
 
     pub fn register_wildcard(&mut self, tiid: TIId) -> CId {
-        let cd = self.register_column(ColumnDefKind::Wildcard, None, Some(tiid));
+        let cd = self.register_column(ColumnDeclKind::Wildcard, None, Some(tiid));
         cd.id
     }
 
     pub fn register_column(
         &mut self,
-        kind: ColumnDefKind,
+        kind: ColumnDeclKind,
         window: Option<Window>,
         tiid: Option<TIId>,
     ) -> ColumnDecl {
@@ -107,14 +108,14 @@ impl AnchorContext {
         let decl = self.columns_decls.get_mut(cid).unwrap();
 
         match &mut decl.kind {
-            ColumnDefKind::Expr { name, .. } => {
+            ColumnDeclKind::Expr { name, .. } => {
                 if name.is_none() {
                     *name = Some(format!("_expr_{}", self.col_name.gen()));
                 }
                 name.clone().unwrap()
             }
-            ColumnDefKind::Wildcard => "*".to_string(),
-            ColumnDefKind::ExternRef(name) => name.clone(),
+            ColumnDeclKind::Wildcard => "*".to_string(),
+            ColumnDeclKind::ExternRef(name) => name.clone(),
         }
     }
 
@@ -135,25 +136,23 @@ impl AnchorContext {
     }
 
     pub fn determine_select_columns(&self, pipeline: &[Transform]) -> Vec<CId> {
-        let mut columns = Vec::new();
-
-        for transform in pipeline {
-            match transform {
-                Transform::From(table) => {
-                    columns = table.columns.iter().map(|c| c.id).collect();
-                }
-                Transform::Select(cols) => columns = cols.clone(),
+        if let Some((last, remaning)) = pipeline.split_last() {
+            match last {
+                Transform::From(table) => table.columns.iter().map(|c| c.id).collect(),
+                Transform::Join { with: table, .. } => [
+                    self.determine_select_columns(remaning),
+                    table.columns.iter().map(|c| c.id).collect_vec(),
+                ]
+                .concat(),
+                Transform::Select(cols) => cols.clone(),
                 Transform::Aggregate { partition, compute } => {
-                    columns = [partition.clone(), compute.clone()].concat()
+                    [partition.clone(), compute.clone()].concat()
                 }
-                Transform::Join { with: table, .. } => {
-                    columns.extend(table.columns.iter().map(|c| c.id));
-                }
-                _ => {}
+                _ => self.determine_select_columns(remaning),
             }
+        } else {
+            Vec::new()
         }
-
-        columns
     }
 
     /// Returns a set of all columns of all tables in a pipeline
