@@ -28,7 +28,7 @@ pub fn split_off_back(
 
     let mut following_transforms: HashSet<String> = HashSet::new();
 
-    let mut inputs_required = with_max_complexity(&output_cols, Complexity::highest());
+    let mut inputs_required = into_requirements(output_cols, Complexity::highest(), true);
     let mut inputs_avail = HashSet::new();
 
     // iterate backwards
@@ -86,6 +86,12 @@ pub fn split_off_back(
         }
     }
 
+    let selected = inputs_required
+        .iter()
+        .filter(|r| r.selected)
+        .map(|r| r.col)
+        .collect_vec();
+
     log::debug!("splitting:");
     log::debug!(".. avail={inputs_avail:?}");
     let required = inputs_required
@@ -101,27 +107,14 @@ pub fn split_off_back(
         .collect_vec();
     log::debug!(".. missing={missing:?}");
 
-    // prevent finishing if there are still missing requirements
-    // if !missing.is_empty() && pipeline.is_empty() {
-    // push From back to the remaining pipeline
-    //     let transfrom = curr_pipeline_rev.pop().unwrap();
-
-    //     let from = transfrom.as_from().unwrap();
-    //     for decl in &from.columns {
-    //         inputs_avail.remove(&decl.id);
-    //     }
-
-    //     pipeline.push(transfrom);
-    // }
-
     // figure out SELECT columns
     {
-        let cols: Vec<_> = output_cols.into_iter().unique().collect();
+        let selected: Vec<_> = selected.into_iter().unique().collect();
 
         // Because of s-strings, sometimes, transforms will not have any
         // requirements, which would result in empty SELECTs.
         // As a workaround, let's just fallback to a wildcard.
-        let cols = if cols.is_empty() {
+        let selected = if selected.is_empty() {
             let (input_tables, _) = context.collect_pipeline_inputs(&pipeline);
 
             input_tables
@@ -129,10 +122,10 @@ pub fn split_off_back(
                 .map(|tiid| context.register_wildcard(*tiid))
                 .collect()
         } else {
-            cols
+            selected
         };
 
-        curr_pipeline_rev.push(Transform::Select(cols));
+        curr_pipeline_rev.push(Transform::Select(selected));
     }
 
     let remaining_pipeline = if pipeline.is_empty() {
@@ -336,14 +329,24 @@ fn is_split_required(transform: &Transform, following: &mut HashSet<String>) -> 
 /// An input requirement of a transform.
 struct Requirement {
     pub col: CId,
+
+    /// Maxium complexity with which this column can be expressed in this transform
     pub max_complexity: Complexity,
+
+    /// True iff this column needs to be SELECTed so I can be referenced in this transform
+    pub selected: bool,
 }
 
-fn with_max_complexity(cids: &[CId], max_complexity: Complexity) -> Vec<Requirement> {
-    cids.iter()
-        .map(|cid| Requirement {
-            col: *cid,
+fn into_requirements(
+    cids: Vec<CId>,
+    max_complexity: Complexity,
+    selected: bool,
+) -> Vec<Requirement> {
+    cids.into_iter()
+        .map(|col| Requirement {
+            col,
             max_complexity,
+            selected,
         })
         .collect()
 }
@@ -361,8 +364,16 @@ fn get_requirements(transform: &Transform, following: &HashSet<String>) -> Vec<R
 
     if let Aggregate { partition, compute } = transform {
         let mut r = Vec::new();
-        r.extend(with_max_complexity(partition, Complexity::Plain));
-        r.extend(with_max_complexity(compute, Complexity::Aggregation));
+        r.extend(into_requirements(
+            partition.clone(),
+            Complexity::Plain,
+            false,
+        ));
+        r.extend(into_requirements(
+            compute.clone(),
+            Complexity::Aggregation,
+            false,
+        ));
         return r;
     }
 
@@ -387,30 +398,32 @@ fn get_requirements(transform: &Transform, following: &HashSet<String>) -> Vec<R
         Select(_) | From(_) | Aggregate { .. } | Unique => return Vec::new(),
     };
 
-    let max_complexity = match transform {
-        Compute(decl) => {
+    let (max_complexity, selected) = match transform {
+        Compute(decl) => (
             if infer_complexity(decl) == Complexity::Plain {
                 Complexity::Aggregation
             } else {
                 Complexity::Plain
-            }
-        }
-        Filter(_) => {
+            },
+            false,
+        ),
+        Filter(_) => (
             if !following.contains("Aggregate") {
                 Complexity::Aggregation
             } else {
                 Complexity::Plain
-            }
-        }
+            },
+            false,
+        ),
         // ORDER BY uses aliased columns, so the columns can have high complexity
-        Sort(_) => Complexity::Aggregation,
-        Take(_) => Complexity::Plain,
-        Join { .. } => Complexity::Plain,
+        Sort(_) => (Complexity::Aggregation, true),
+        Take(_) => (Complexity::Plain, false),
+        Join { .. } => (Complexity::Plain, false),
 
         _ => unreachable!(),
     };
 
-    with_max_complexity(&cids, max_complexity)
+    into_requirements(cids, max_complexity, selected)
 }
 
 /// Complexity of a column expressions.

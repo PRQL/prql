@@ -308,20 +308,50 @@ select `first name`
 
     #[test]
     fn test_sorts() {
-        let query = r###"
+        assert_display_snapshot!((compile(r###"
         from invoices
         sort [issued_at, -amount, +num_of_articles]
-        "###;
-
-        assert_display_snapshot!((compile(query).unwrap()), @r###"
+        "###    
+        ).unwrap()), @r###"
+        WITH table_1 AS (
+          SELECT
+            *,
+            issued_at,
+            amount,
+            num_of_articles
+          FROM
+            invoices
+          ORDER BY
+            issued_at,
+            amount DESC,
+            num_of_articles
+        )
         SELECT
           *
         FROM
-          invoices
-        ORDER BY
-          issued_at,
-          amount DESC,
-          num_of_articles
+          table_1
+        "###);
+
+        assert_display_snapshot!((compile(r###"
+        from x
+        derive somefield = "something"
+        sort [somefield]
+        select [renamed = somefield]
+        "###    
+        ).unwrap()), @r###"
+        WITH table_1 AS (
+          SELECT
+            'something' AS renamed,
+            'something' AS somefield
+          FROM
+            x
+          ORDER BY
+            somefield
+        )
+        SELECT
+          renamed
+        FROM
+          table_1
         "###);
     }
 
@@ -653,17 +683,25 @@ select `first name`
             derive [next_four_days = sum b]
         )
         "###).unwrap()), @r###"
+        WITH table_1 AS (
+          SELECT
+            *,
+            SUM(b) OVER (
+              ORDER BY
+                day RANGE BETWEEN 4 PRECEDING
+                AND 4 FOLLOWING
+            ) AS next_four_days,
+            day
+          FROM
+            foo
+          ORDER BY
+            day
+        )
         SELECT
           *,
-          SUM(b) OVER (
-            ORDER BY
-              day RANGE BETWEEN 4 PRECEDING
-              AND 4 FOLLOWING
-          ) AS next_four_days
+          next_four_days
         FROM
-          foo
-        ORDER BY
-          day
+          table_1
         "###);
 
         // TODO: add test for preceding
@@ -887,15 +925,22 @@ select `first name`
             employees
           LIMIT
             10 OFFSET 10
+        ),
+        table_2 AS (
+          SELECT
+            *,
+            name
+          FROM
+            table_1
+          ORDER BY
+            name
+          LIMIT
+            5
         )
         SELECT
           *
         FROM
-          table_1
-        ORDER BY
-          name
-        LIMIT
-          5
+          table_2
         "###);
     }
 
@@ -1235,15 +1280,21 @@ take 20
           GROUP BY
             country
         ),
-        newest_employees AS (
+        table_0 AS (
           SELECT
-            *
+            *,
+            tenure
           FROM
             employees
           ORDER BY
             tenure
           LIMIT
             50
+        ), newest_employees AS (
+          SELECT
+            *
+          FROM
+            table_0
         )
         SELECT
           newest_employees.name,

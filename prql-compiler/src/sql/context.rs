@@ -4,6 +4,7 @@
 use std::collections::{HashMap, HashSet};
 
 use anyhow::Result;
+use itertools::Itertools;
 
 use crate::ast::rq::{
     fold_table, fold_table_ref, CId, ColumnDecl, ColumnDefKind, IrFold, Query, TId, TableDecl,
@@ -135,25 +136,23 @@ impl AnchorContext {
     }
 
     pub fn determine_select_columns(&self, pipeline: &[Transform]) -> Vec<CId> {
-        let mut columns = Vec::new();
-
-        for transform in pipeline {
-            match transform {
-                Transform::From(table) => {
-                    columns = table.columns.iter().map(|c| c.id).collect();
-                }
-                Transform::Select(cols) => columns = cols.clone(),
+        if let Some((last, remaning)) = pipeline.split_last() {
+            match last {
+                Transform::From(table) => table.columns.iter().map(|c| c.id).collect(),
+                Transform::Join { with: table, .. } => [
+                    self.determine_select_columns(remaning),
+                    table.columns.iter().map(|c| c.id).collect_vec(),
+                ]
+                .concat(),
+                Transform::Select(cols) => cols.clone(),
                 Transform::Aggregate { partition, compute } => {
-                    columns = [partition.clone(), compute.clone()].concat()
+                    [partition.clone(), compute.clone()].concat()
                 }
-                Transform::Join { with: table, .. } => {
-                    columns.extend(table.columns.iter().map(|c| c.id));
-                }
-                _ => {}
+                _ => self.determine_select_columns(remaning),
             }
+        } else {
+            Vec::new()
         }
-
-        columns
     }
 
     /// Returns a set of all columns of all tables in a pipeline

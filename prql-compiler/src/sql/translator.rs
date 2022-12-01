@@ -81,8 +81,8 @@ pub fn translate_query(query: Query) -> Result<sql_ast::Query> {
         match table.relation {
             Relation::Pipeline(pipeline) => {
                 // preprocess
-                let pipeline = preprocess_reorder(pipeline);
                 let pipeline = preprocess_distinct(pipeline, &mut context)?;
+                let pipeline = preprocess_reorder(pipeline);
 
                 // split to atomics
                 atomics.extend(split_into_atomics(name, pipeline, &mut context));
@@ -296,13 +296,14 @@ fn split_into_atomics(
 ) -> Vec<AtomicQuery> {
     materialize_inputs(&pipeline, &mut context.anchor);
 
-    let mut output_cols = context.anchor.determine_select_columns(&pipeline);
+    let output_cols = context.anchor.determine_select_columns(&pipeline);
+    let mut required_cols = output_cols.clone();
 
     // split pipeline, back to front
     let mut parts_rev = Vec::new();
     loop {
         let (preceding, split) =
-            anchor::split_off_back(&mut context.anchor, output_cols.clone(), pipeline);
+            anchor::split_off_back(&mut context.anchor, required_cols.clone(), pipeline);
 
         if let Some((preceding, cols_at_split)) = preceding {
             log::debug!(
@@ -312,7 +313,7 @@ fn split_into_atomics(
             parts_rev.push((split, cols_at_split.clone()));
 
             pipeline = preceding;
-            output_cols = cols_at_split;
+            required_cols = cols_at_split;
         } else {
             parts_rev.push((split, Vec::new()));
             break;
@@ -320,6 +321,16 @@ fn split_into_atomics(
     }
     parts_rev.reverse();
     let mut parts = parts_rev;
+
+    // sometimes, additional columns will be added into select, which have to
+    // be filtered out here, using additional CTE
+    if let Some((pipeline, _)) = parts.last() {
+        let select_cols = pipeline.first().unwrap().as_select().unwrap();
+
+        if select_cols != &output_cols {
+            parts.push((vec![Transform::Select(output_cols)], select_cols.clone()));
+        }
+    }
 
     // add names to pipelines, anchor, front to back
     let mut atomics = Vec::with_capacity(parts.len());
