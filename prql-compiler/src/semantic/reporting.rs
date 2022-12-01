@@ -87,6 +87,7 @@ impl<'a> AstFold for Labeler<'a> {
                     let color = match &decl.kind {
                         DeclKind::Expr(_) => Color::Blue,
                         DeclKind::Column { .. } => Color::Yellow,
+                        DeclKind::InstanceOf(_) => Color::Yellow,
                         DeclKind::TableDecl { .. } => Color::Red,
                         DeclKind::FuncDef(_) => Color::Magenta,
                         DeclKind::Module(_) => Color::Cyan,

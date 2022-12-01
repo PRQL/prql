@@ -1861,4 +1861,23 @@ join y [foo == only_in_x]
         "###
         );
     }
+
+    #[test]
+    fn test_direct_table_references() {
+        compile(
+            r###"
+        from x
+        select s"{x}.field"
+        "###,
+        )
+        .unwrap_err();
+
+        compile(
+            r###"
+        from x
+        select x
+        "###,
+        )
+        .unwrap_err();
+    }
 }

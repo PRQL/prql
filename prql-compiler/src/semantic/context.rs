@@ -4,7 +4,7 @@ use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fmt::Debug};
 
-use super::module::{Module, NS_DEFAULT_DB, NS_NO_RESOLVE, NS_STD};
+use super::module::{Module, NS_DEFAULT_DB, NS_NO_RESOLVE, NS_STD, NS_SELF};
 use crate::ast::pl::*;
 use crate::error::Span;
 
@@ -34,6 +34,8 @@ pub enum DeclKind {
 
     TableDecl(TableDecl),
 
+    InstanceOf(Ident),
+    
     Column(usize),
 
     /// Contains a default value to be created in parent namespace matched.
@@ -151,9 +153,11 @@ impl Context {
                     .insert(ident.name.clone(), Decl::from(*wildcard_default));
 
                 // table columns
-                if let Some(table_ident) = module.instance_of_table.clone() {
-                    log::debug!("infering {ident} to be from table {table_ident}");
-                    self.infer_table_column(&table_ident, &ident.name)?;
+                if let Some(decl) = module.names.get(NS_SELF).cloned() {
+                    if let DeclKind::InstanceOf(table_ident) = decl.kind {
+                        log::debug!("infering {ident} to be from table {table_ident}");
+                        self.infer_table_column(&table_ident, &ident.name)?;
+                    }
                 }
 
                 Ok(module_ident + Ident::from_name(ident.name.clone()))
@@ -259,6 +263,7 @@ impl std::fmt::Display for DeclKind {
             Self::Module(arg0) => f.debug_tuple("Module").field(arg0).finish(),
             Self::LayeredModules(arg0) => f.debug_tuple("LayeredModules").field(arg0).finish(),
             Self::TableDecl(TableDecl { frame, expr }) => write!(f, "TableDef: {frame} {expr:?}"),
+            Self::InstanceOf(arg0) => write!(f, "InstanceOf: {arg0}"),
             Self::Column(arg0) => write!(f, "Column (target {arg0})"),
             Self::Wildcard(arg0) => write!(f, "Wildcard (default: {arg0})"),
             Self::FuncDef(arg0) => write!(f, "FuncDef: {arg0}"),
