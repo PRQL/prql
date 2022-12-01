@@ -61,7 +61,7 @@ For more on the language, more examples & comparisons with SQL, visit
 To experiment with PRQL in the browser, check out
 [PRQL Playground][prql playground].
 
-## Current status — November 2022
+## Current status — December 2022
 
 PRQL is being actively developed by a growing community. It's ready to use by
 the intrepid, either as part of one of our supported extensions, or within your
