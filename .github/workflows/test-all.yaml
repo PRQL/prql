@@ -96,6 +96,4 @@ jobs:
       - uses: actions/checkout@v3
       - name: Build Docker image
         run: docker build -t prql .
-      # In the future, do this if needed
-      # - name: Run tests inside the container
-      #   run: docker run samplepy poetry run pytest
+      # TODO: run tests as well as building
