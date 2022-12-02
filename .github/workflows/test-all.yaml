@@ -56,6 +56,19 @@ jobs:
       - working-directory: prql-java/java/
         run: ./mvnw test
 
+  test-js:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+    steps:
+      # This is copy & pasted into test-js.yaml
+      - name: 📂 Checkout code
+        uses: actions/checkout@v3
+      - uses: ./.github/actions/build-prql-js
+      - run: npm i && npm run test
+        working-directory: prql-js/tests/
+
   measure-code-cov:
     runs-on: ubuntu-latest
     # Currently this runs `cargo clean` which makes the run taking 4 min. TODO:
