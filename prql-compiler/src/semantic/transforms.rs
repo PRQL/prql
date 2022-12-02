@@ -12,10 +12,7 @@ use super::resolver::Resolver;
 use super::Frame;
 
 /// try to convert function call with enough args into transform
-pub fn cast_transform(
-    resolver: &mut Resolver,
-    closure: Closure,
-) -> Result<Result<TransformCall, Closure>> {
+pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Result<Expr, Closure>> {
     let name = closure.name.as_ref().filter(|n| !n.name.contains('.'));
     let name = if let Some(name) = name {
         name.to_string()
@@ -23,35 +20,35 @@ pub fn cast_transform(
         return Ok(Err(closure));
     };
 
-    let kind = match name.as_str() {
+    let (kind, input) = match name.as_str() {
         "std.from" => {
             let [source] = unpack::<1>(closure);
 
-            TransformKind::From(source)
+            return Ok(Ok(source));
         }
         "std.select" => {
             let [assigns, tbl] = unpack::<2>(closure);
 
             let assigns = assigns.coerce_into_vec();
-            TransformKind::Select { assigns, tbl }
+            (TransformKind::Select { assigns }, tbl)
         }
         "std.filter" => {
             let [filter, tbl] = unpack::<2>(closure);
 
             let filter = Box::new(filter);
-            TransformKind::Filter { filter, tbl }
+            (TransformKind::Filter { filter }, tbl)
         }
         "std.derive" => {
             let [assigns, tbl] = unpack::<2>(closure);
 
             let assigns = assigns.coerce_into_vec();
-            TransformKind::Derive { assigns, tbl }
+            (TransformKind::Derive { assigns }, tbl)
         }
         "std.aggregate" => {
             let [assigns, tbl] = unpack::<2>(closure);
 
             let assigns = assigns.coerce_into_vec();
-            TransformKind::Aggregate { assigns, tbl }
+            (TransformKind::Aggregate { assigns }, tbl)
         }
         "std.sort" => {
             let [by, tbl] = unpack::<2>(closure);
@@ -71,7 +68,7 @@ pub fn cast_transform(
                 })
                 .collect();
 
-            TransformKind::Sort { by, tbl }
+            (TransformKind::Sort { by }, tbl)
         }
         "std.take" => {
             let [expr, tbl] = unpack::<2>(closure);
@@ -82,7 +79,7 @@ pub fn cast_transform(
                 _ => unimplemented!("`take` range: {expr}"),
             };
 
-            TransformKind::Take { range, tbl }
+            (TransformKind::Take { range }, tbl)
         }
         "std.join" => {
             let [side, with, filter, tbl] = unpack::<4>(closure);
@@ -108,12 +105,7 @@ pub fn cast_transform(
             let filter = Box::new(Expr::collect_and(filter.coerce_into_vec()));
 
             let with = Box::new(with);
-            TransformKind::Join {
-                side,
-                with,
-                filter,
-                tbl,
-            }
+            (TransformKind::Join { side, with, filter }, tbl)
         }
         "std.group" => {
             let [by, pipeline, tbl] = unpack::<3>(closure);
@@ -123,7 +115,7 @@ pub fn cast_transform(
             let pipeline = fold_by_simulating_eval(resolver, pipeline, tbl.ty.clone().unwrap())?;
 
             let pipeline = Box::new(pipeline);
-            TransformKind::Group { by, pipeline, tbl }
+            (TransformKind::Group { by, pipeline }, tbl)
         }
         "std.window" => {
             let [rows, range, expanding, rolling, pipeline, tbl] = unpack::<6>(closure);
@@ -175,17 +167,24 @@ pub fn cast_transform(
 
             let pipeline = fold_by_simulating_eval(resolver, pipeline, tbl.ty.clone().unwrap())?;
 
-            TransformKind::Window {
+            let transform_kind = TransformKind::Window {
                 kind,
                 range,
                 pipeline: Box::new(pipeline),
-                tbl,
-            }
+            };
+            (transform_kind, tbl)
         }
         _ => return Ok(Err(closure)),
     };
 
-    Ok(Ok(TransformCall::from(kind)))
+    let transform_call = TransformCall {
+        kind: Box::new(kind),
+        input: Box::new(input),
+        partition: Vec::new(),
+        frame: WindowFrame::default(),
+        sort: Vec::new(),
+    };
+    Ok(Ok(Expr::from(ExprKind::TransformCall(transform_call))))
 }
 
 /// Simulate evaluation of the inner pipeline of group or window
@@ -261,17 +260,15 @@ impl TransformCall {
         }
 
         Ok(match self.kind.as_ref() {
-            From(tbl) => ty_frame_or_default(tbl)?,
-
-            Select { assigns, tbl } => {
-                let mut frame = ty_frame_or_default(tbl)?;
+            Select { assigns } => {
+                let mut frame = ty_frame_or_default(&self.input)?;
 
                 frame.columns.clear();
                 frame.apply_assigns(assigns);
                 frame
             }
-            Derive { assigns, tbl } => {
-                let mut frame = ty_frame_or_default(tbl)?;
+            Derive { assigns } => {
+                let mut frame = ty_frame_or_default(&self.input)?;
 
                 frame.apply_assigns(assigns);
                 frame
@@ -282,13 +279,15 @@ impl TransformCall {
 
                 let mut frame = body.ty.clone().unwrap().into_table().unwrap();
 
+                log::debug!("infering type of group with pipeline: {body}");
+
                 // prepend aggregate with `by` columns
                 if let ExprKind::TransformCall(TransformCall { kind, .. }) = &body.as_ref().kind {
                     if let TransformKind::Aggregate { .. } = kind.as_ref() {
                         let aggregate_columns = frame.columns;
                         frame.columns = Vec::new();
                         for b in by {
-                            log::debug!("group by {b}");
+                            log::debug!(".. group by {b}");
 
                             let id = b.id.unwrap();
                             let name = b.alias.clone().or_else(|| match &b.kind {
@@ -303,6 +302,8 @@ impl TransformCall {
                     }
                 }
 
+                log::debug!(".. type={frame}");
+
                 frame
             }
             Window { pipeline, .. } => {
@@ -311,15 +312,15 @@ impl TransformCall {
 
                 body.ty.clone().unwrap().into_table().unwrap()
             }
-            Aggregate { assigns, tbl } => {
-                let mut frame = ty_frame_or_default(tbl)?;
+            Aggregate { assigns } => {
+                let mut frame = ty_frame_or_default(&self.input)?;
                 frame.columns.clear();
 
                 frame.apply_assigns(assigns);
                 frame
             }
-            Join { tbl, with, .. } => ty_frame_or_default(tbl)? + ty_frame_or_default(with)?,
-            Sort { tbl, .. } | Filter { tbl, .. } | Take { tbl, .. } => ty_frame_or_default(tbl)?,
+            Join { with, .. } => ty_frame_or_default(&self.input)? + ty_frame_or_default(with)?,
+            Sort { .. } | Filter { .. } | Take { .. } => ty_frame_or_default(&self.input)?,
         })
     }
 }
@@ -372,80 +373,6 @@ impl Flattener {
 }
 
 impl AstFold for Flattener {
-    fn fold_transform_call(&mut self, t: TransformCall) -> Result<TransformCall> {
-        log::debug!("flattening {}", (*t.kind).as_ref());
-
-        let kind = match *t.kind {
-            TransformKind::Sort { by, tbl } => {
-                // fold
-                let by = fold_column_sorts(self, by)?;
-                let tbl = self.fold_expr(tbl)?;
-
-                self.sort = by.clone();
-
-                if self.sort_undone {
-                    return Ok(tbl.kind.into_transform_call().unwrap());
-                } else {
-                    TransformKind::Sort { by, tbl }
-                }
-            }
-            TransformKind::Group { by, pipeline, tbl } => {
-                let sort_undone = self.sort_undone;
-                self.sort_undone = true;
-
-                let tbl = self.fold_expr(tbl)?;
-
-                let pipeline = pipeline.kind.into_closure().unwrap();
-
-                let table_param = &pipeline.params[0];
-                let param_id = table_param.name.parse::<usize>().unwrap();
-
-                self.replace_map.insert(param_id, tbl);
-                self.partition = by;
-                self.sort.clear();
-
-                let expr = self.fold_expr(*pipeline.body)?;
-
-                self.replace_map.remove(&param_id);
-                self.partition.clear();
-                self.sort.clear();
-                self.sort_undone = sort_undone;
-
-                return Ok(expr.kind.into_transform_call().unwrap());
-            }
-            TransformKind::Window {
-                kind,
-                range,
-                pipeline,
-                tbl,
-            } => {
-                let tbl = self.fold_expr(tbl)?;
-                let pipeline = pipeline.kind.into_closure().unwrap();
-
-                let table_param = &pipeline.params[0];
-                let param_id = table_param.name.parse::<usize>().unwrap();
-
-                self.replace_map.insert(param_id, tbl);
-                self.window = WindowFrame { kind, range };
-
-                let expr = self.fold_expr(*pipeline.body)?;
-
-                self.window = WindowFrame::default();
-                self.replace_map.remove(&param_id);
-
-                return Ok(expr.kind.into_transform_call().unwrap());
-            }
-            kind => fold_transform_kind(self, kind)?,
-        };
-
-        Ok(TransformCall {
-            kind: Box::new(kind),
-            partition: self.partition.clone(),
-            frame: self.window.clone(),
-            sort: self.sort.clone(),
-        })
-    }
-
     fn fold_expr(&mut self, mut expr: Expr) -> Result<Expr> {
         if let Some(target) = &expr.target_id {
             if let Some(replacement) = self.replace_map.remove(target) {
@@ -453,7 +380,88 @@ impl AstFold for Flattener {
             }
         }
 
-        expr.kind = self.fold_expr_kind(expr.kind)?;
+        expr.kind = match expr.kind {
+            ExprKind::TransformCall(t) => {
+                log::debug!("flattening {}", (*t.kind).as_ref());
+
+                let (input, kind) = match *t.kind {
+                    TransformKind::Sort { by } => {
+                        // fold
+                        let by = fold_column_sorts(self, by)?;
+                        let input = self.fold_expr(*t.input)?;
+
+                        self.sort = by.clone();
+
+                        if self.sort_undone {
+                            return Ok(input);
+                        } else {
+                            (input, TransformKind::Sort { by })
+                        }
+                    }
+                    TransformKind::Group { by, pipeline } => {
+                        let sort_undone = self.sort_undone;
+                        self.sort_undone = true;
+
+                        let input = self.fold_expr(*t.input)?;
+
+                        let pipeline = pipeline.kind.into_closure().unwrap();
+
+                        let table_param = &pipeline.params[0];
+                        let param_id = table_param.name.parse::<usize>().unwrap();
+
+                        self.replace_map.insert(param_id, input);
+                        self.partition = by;
+                        self.sort.clear();
+
+                        let pipeline = self.fold_expr(*pipeline.body)?;
+
+                        self.replace_map.remove(&param_id);
+                        self.partition.clear();
+                        self.sort.clear();
+                        self.sort_undone = sort_undone;
+
+                        return Ok(Expr {
+                            ty: expr.ty,
+                            ..pipeline
+                        });
+                    }
+                    TransformKind::Window {
+                        kind,
+                        range,
+                        pipeline,
+                    } => {
+                        let tbl = self.fold_expr(*t.input)?;
+                        let pipeline = pipeline.kind.into_closure().unwrap();
+
+                        let table_param = &pipeline.params[0];
+                        let param_id = table_param.name.parse::<usize>().unwrap();
+
+                        self.replace_map.insert(param_id, tbl);
+                        self.window = WindowFrame { kind, range };
+
+                        let pipeline = self.fold_expr(*pipeline.body)?;
+
+                        self.window = WindowFrame::default();
+                        self.replace_map.remove(&param_id);
+
+                        return Ok(Expr {
+                            ty: expr.ty,
+                            ..pipeline
+                        });
+                    }
+                    kind => (self.fold_expr(*t.input)?, fold_transform_kind(self, kind)?),
+                };
+
+                ExprKind::TransformCall(TransformCall {
+                    input: Box::new(input),
+                    kind: Box::new(kind),
+                    partition: self.partition.clone(),
+                    frame: self.window.clone(),
+                    sort: self.sort.clone(),
+                })
+            }
+            kind => self.fold_expr_kind(kind)?,
+        };
         Ok(expr)
     }
 }
@@ -510,7 +518,7 @@ mod tests {
                           kind:
                             ColumnRef: 1
                           span: ~
-                name: ~
+                name: c_invoice
             - Select:
                 - 3
             - Take:
@@ -564,16 +572,32 @@ mod tests {
         assert_yaml_snapshot!(result, @r###"
         ---
         - Pipeline:
-            id: 1
+            id: 12
             TransformCall:
+              input:
+                id: 4
+                Ident:
+                  - default_db
+                  - c_invoice
+                ty:
+                  Table:
+                    columns:
+                      - Wildcard:
+                          input_name: c_invoice
+                    inputs:
+                      - id: 4
+                        name: c_invoice
+                        table:
+                          - default_db
+                          - c_invoice
               kind:
                 Aggregate:
                   assigns:
-                    - id: 15
+                    - id: 18
                       SString:
                         - String: AVG(
                         - Expr:
-                            id: 19
+                            id: 17
                             Ident:
                               - _frame
                               - c_invoice
@@ -583,37 +607,6 @@ mod tests {
                         - String: )
                       ty:
                         Literal: Column
-                  tbl:
-                    id: 2
-                    TransformCall:
-                      kind:
-                        From:
-                          id: 4
-                          Ident:
-                            - default_db
-                            - c_invoice
-                          ty:
-                            Table:
-                              columns:
-                                - Wildcard:
-                                    input_name: c_invoice
-                              inputs:
-                                - id: 4
-                                  name: c_invoice
-                                  table:
-                                    - default_db
-                                    - c_invoice
-                    ty:
-                      Table:
-                        columns:
-                          - Wildcard:
-                              input_name: c_invoice
-                        inputs:
-                          - id: 4
-                            name: c_invoice
-                            table:
-                              - default_db
-                              - c_invoice
               partition:
                 - id: 8
                   Ident:
@@ -631,7 +624,7 @@ mod tests {
                       expr_id: 8
                   - Single:
                       name: ~
-                      expr_id: 15
+                      expr_id: 18
                 inputs:
                   - id: 4
                     name: c_invoice
@@ -709,7 +702,7 @@ mod tests {
                           kind:
                             ColumnRef: 3
                           span: ~
-                name: ~
+                name: invoices
             - Sort:
                 - direction: Asc
                   column: 5

@@ -3,7 +3,7 @@ source: book/tests/snapshot.rs
 expression: sql
 input_file: book/tests/prql/examples/employees-0.prql
 ---
-WITH table_0 AS (
+WITH table_1 AS (
   SELECT
     AVG(salary) AS emp_salary,
     emp_no
@@ -12,23 +12,23 @@ WITH table_0 AS (
   GROUP BY
     emp_no
 ),
-table_1 AS (
+table_2 AS (
   SELECT
     t.title,
-    AVG(table_0.emp_salary) AS avg_salary,
+    AVG(table_1.emp_salary) AS avg_salary,
     dept_emp.dept_no
   FROM
-    table_0
-    JOIN titles AS t ON table_0.emp_no = t.emp_no
-    LEFT JOIN dept_emp ON table_0.emp_no = dept_emp.emp_no
+    table_1
+    JOIN titles AS t ON table_1.emp_no = t.emp_no
+    LEFT JOIN dept_emp ON table_1.emp_no = dept_emp.emp_no
   GROUP BY
     dept_emp.dept_no,
     t.title
 )
 SELECT
   departments.dept_name,
-  table_1.title,
-  table_1.avg_salary
+  table_2.title,
+  table_2.avg_salary
 FROM
-  table_1
-  JOIN departments ON table_1.dept_no = departments.dept_no
+  table_2
+  JOIN departments ON table_2.dept_no = departments.dept_no

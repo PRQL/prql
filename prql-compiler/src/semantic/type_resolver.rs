@@ -25,9 +25,11 @@ pub fn resolve_type(node: &Expr) -> Result<Ty> {
 
         ExprKind::Ident(_) | ExprKind::Pipeline(_) | ExprKind::FuncCall(_) => Ty::Infer,
 
-        ExprKind::SString(_) => Ty::Infer, // TODO
+        ExprKind::SString(_) => Ty::Infer,
         ExprKind::FString(_) => TyLit::String.into(),
         ExprKind::Range(_) => Ty::Infer, // TODO
+
+        ExprKind::TransformCall(call) => Ty::Table(call.infer_type()?),
 
         _ => Ty::Infer,
     })
@@ -62,7 +64,22 @@ where
         return Ok(found_ty);
     }
     if let Ty::Infer = found_ty {
-        return Ok(expected.clone());
+        return Ok(if let Ty::Table(_) = expected {
+            // infered tables are needed for table s-strings
+            // override the empty frame with frame of a table literal
+
+            let input_name = format!("_literal_{}", found.id.unwrap());
+            Ty::Table(Frame {
+                inputs: vec![FrameInput {
+                    id: found.id.unwrap(),
+                    name: input_name.clone(),
+                    table: None,
+                }],
+                columns: vec![FrameColumn::Wildcard { input_name }],
+            })
+        } else {
+            expected.clone()
+        });
     }
 
     let expected_is_above = matches!(

@@ -9,7 +9,9 @@ on:
 jobs:
   publish-gh-pages:
     runs-on: ubuntu-latest
-    # Docs at https://github.com/actions/deploy-pages
+
+    # Skip running workflow on forks
+    if: github.repository_owner == 'prql'
 
     # Grant GITHUB_TOKEN the permissions required to make a Pages deployment
     permissions:
@@ -32,7 +34,7 @@ jobs:
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
       - uses: peaceiris/actions-mdbook@v1
-      - uses: baptiste0928/cargo-install@v1
+      - uses: baptiste0928/cargo-install@next
         with:
           crate: mdbook-admonish
           version: "1.7.0"

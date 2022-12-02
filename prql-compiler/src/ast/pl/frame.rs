@@ -24,7 +24,9 @@ pub struct FrameInput {
     pub name: String,
 
     /// fully qualified name of table that provides the data for this frame
-    pub table: Ident,
+    ///
+    /// `None` means this is a literal and doesn't need a table to refer to
+    pub table: Option<Ident>,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize, EnumAsInner)]
@@ -92,7 +94,8 @@ impl Display for Frame {
 
 impl Debug for Frame {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        display_frame(self, f, true)
+        display_frame(self, f, true)?;
+        std::fmt::Debug::fmt(&self.inputs, f)
     }
 }
 

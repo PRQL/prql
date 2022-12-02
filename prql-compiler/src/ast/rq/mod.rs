@@ -15,8 +15,8 @@ pub use transform::*;
 use enum_as_inner::EnumAsInner;
 use serde::{Deserialize, Serialize};
 
-use super::pl::TableExternRef;
 use super::pl::{ColumnSort, QueryDef, Range, WindowFrame};
+use super::pl::{InterpolateItem, TableExternRef};
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Query {
@@ -30,6 +30,8 @@ pub struct Query {
 pub enum Relation {
     ExternRef(TableExternRef, Vec<ColumnDecl>),
     Pipeline(Vec<Transform>),
+    Literal(RelationLiteral, Vec<ColumnDecl>),
+    SString(Vec<InterpolateItem<Expr>>, Vec<ColumnDecl>),
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
@@ -53,4 +55,14 @@ pub struct TableRef {
 
     /// Given name of this table (table alias)
     pub name: Option<String>,
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
+pub struct RelationLiteral {
+    /// Column names
+    pub columns: Vec<String>,
+    /// Row-oriented data
+    // TODO: this should be generic, so it can contain any type (but at least
+    // numbers)
+    pub rows: Vec<Vec<String>>,
 }

@@ -15,7 +15,7 @@ Table:
     - Single:
         name:
           - emp_salary
-        expr_id: 23
+        expr_id: 26
   inputs:
     - id: 4
       name: employees

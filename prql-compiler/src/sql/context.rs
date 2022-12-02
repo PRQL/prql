@@ -4,9 +4,10 @@
 use std::collections::{HashMap, HashSet};
 
 use anyhow::Result;
+use itertools::Itertools;
 
 use crate::ast::rq::{
-    fold_table, fold_table_ref, CId, ColumnDecl, ColumnDefKind, IrFold, Query, TId, TableDecl,
+    fold_table, fold_table_ref, CId, ColumnDecl, ColumnDeclKind, IrFold, Query, TId, TableDecl,
     TableRef, Transform, Window,
 };
 use crate::utils::IdGenerator;
@@ -52,13 +53,13 @@ impl AnchorContext {
     }
 
     pub fn register_wildcard(&mut self, tiid: TIId) -> CId {
-        let cd = self.register_column(ColumnDefKind::Wildcard, None, Some(tiid));
+        let cd = self.register_column(ColumnDeclKind::Wildcard, None, Some(tiid));
         cd.id
     }
 
     pub fn register_column(
         &mut self,
-        kind: ColumnDefKind,
+        kind: ColumnDeclKind,
         window: Option<Window>,
         tiid: Option<TIId>,
     ) -> ColumnDecl {
@@ -75,12 +76,16 @@ impl AnchorContext {
         decl
     }
 
-    pub fn register_table_instance(&mut self, table_ref: TableRef) {
+    pub fn register_table_instance(&mut self, mut table_ref: TableRef) {
         let tiid = self.tiid.gen();
 
         for column in &table_ref.columns {
             self.columns_decls.insert(column.id, column.clone());
             self.columns_loc.insert(column.id, tiid);
+        }
+
+        if table_ref.name.is_none() {
+            table_ref.name = Some(self.gen_table_name())
         }
 
         self.table_instances.insert(tiid, table_ref);
@@ -103,14 +108,14 @@ impl AnchorContext {
         let decl = self.columns_decls.get_mut(cid).unwrap();
 
         match &mut decl.kind {
-            ColumnDefKind::Expr { name, .. } => {
+            ColumnDeclKind::Expr { name, .. } => {
                 if name.is_none() {
                     *name = Some(format!("_expr_{}", self.col_name.gen()));
                 }
                 name.clone().unwrap()
             }
-            ColumnDefKind::Wildcard => "*".to_string(),
-            ColumnDefKind::ExternRef(name) => name.clone(),
+            ColumnDeclKind::Wildcard => "*".to_string(),
+            ColumnDeclKind::ExternRef(name) => name.clone(),
         }
     }
 
@@ -124,37 +129,30 @@ impl AnchorContext {
         let table_name = self.columns_loc.get(cid).map(|tiid| {
             let table = self.table_instances.get(tiid).unwrap();
 
-            if let Some(alias) = &table.name {
-                alias.clone()
-            } else {
-                let decl = &self.table_decls[&table.source];
-                decl.name.clone().unwrap()
-            }
+            table.name.clone().unwrap()
         });
 
         (table_name, col_name)
     }
 
     pub fn determine_select_columns(&self, pipeline: &[Transform]) -> Vec<CId> {
-        let mut columns = Vec::new();
-
-        for transform in pipeline {
-            match transform {
-                Transform::From(table) => {
-                    columns = table.columns.iter().map(|c| c.id).collect();
-                }
-                Transform::Select(cols) => columns = cols.clone(),
+        if let Some((last, remaning)) = pipeline.split_last() {
+            match last {
+                Transform::From(table) => table.columns.iter().map(|c| c.id).collect(),
+                Transform::Join { with: table, .. } => [
+                    self.determine_select_columns(remaning),
+                    table.columns.iter().map(|c| c.id).collect_vec(),
+                ]
+                .concat(),
+                Transform::Select(cols) => cols.clone(),
                 Transform::Aggregate { partition, compute } => {
-                    columns = [partition.clone(), compute.clone()].concat()
+                    [partition.clone(), compute.clone()].concat()
                 }
-                Transform::Join { with: table, .. } => {
-                    columns.extend(table.columns.iter().map(|c| c.id));
-                }
-                _ => {}
+                _ => self.determine_select_columns(remaning),
             }
+        } else {
+            Vec::new()
         }
-
-        columns
     }
 
     /// Returns a set of all columns of all tables in a pipeline
@@ -193,7 +191,11 @@ impl QueryLoader {
 
 impl IrFold for QueryLoader {
     fn fold_table(&mut self, table: TableDecl) -> Result<TableDecl> {
-        let table = fold_table(self, table)?;
+        let mut table = fold_table(self, table)?;
+
+        if table.name.is_none() {
+            table.name = Some(self.context.gen_table_name());
+        }
 
         self.context.table_decls.insert(table.id, table.clone());
         Ok(table)
@@ -204,8 +206,12 @@ impl IrFold for QueryLoader {
         Ok(cd)
     }
 
-    fn fold_table_ref(&mut self, table_ref: TableRef) -> Result<TableRef> {
+    fn fold_table_ref(&mut self, mut table_ref: TableRef) -> Result<TableRef> {
         let tiid = self.context.tiid.gen();
+
+        if table_ref.name.is_none() {
+            table_ref.name = Some(self.context.gen_table_name());
+        }
 
         // store
         self.context.table_instances.insert(tiid, table_ref.clone());

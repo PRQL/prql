@@ -46,7 +46,7 @@ pub struct Window {
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct ColumnDecl {
     pub id: CId,
-    pub kind: ColumnDefKind,
+    pub kind: ColumnDeclKind,
 
     /// Paramaters for window functions (or expressions).
     #[serde(skip_serializing_if = "Option::is_none", default)]
@@ -59,7 +59,7 @@ pub struct ColumnDecl {
 
 /// Column declaration kind.
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize, strum::AsRefStr, EnumAsInner)]
-pub enum ColumnDefKind {
+pub enum ColumnDeclKind {
     /// A column that is out of scope of this query, referenced by name.
     /// Can only be used in [Relation::ExternRef].
     ExternRef(String),
@@ -74,7 +74,7 @@ pub enum ColumnDefKind {
 impl ColumnDecl {
     pub fn get_name(&self) -> Option<&String> {
         match &self.kind {
-            ColumnDefKind::Expr { name, .. } => name.as_ref(),
+            ColumnDeclKind::Expr { name, .. } => name.as_ref(),
             _ => None,
         }
     }

@@ -104,19 +104,19 @@ mod test {
                 columns:
                   - id: 1
                     kind: Wildcard
-                name: ~
+                name: employees
             - Select:
                 - 1
         "### );
 
         assert_yaml_snapshot!(parse_and_resolve(r###"
-        prql dialect:bigquery version:"0.2"
+        prql dialect:bigquery version:"0.3"
 
         from employees
         "###).unwrap(), @r###"
         ---
         def:
-          version: ^0.2
+          version: ^0.3
           dialect: BigQuery
         tables:
           - id: 0
@@ -133,7 +133,7 @@ mod test {
                 columns:
                   - id: 1
                     kind: Wildcard
-                name: ~
+                name: employees
             - Select:
                 - 1
         "### );
