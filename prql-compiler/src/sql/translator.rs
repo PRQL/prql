@@ -21,7 +21,7 @@ use crate::utils::{IntoOnly, Pluck, TableCounter};
 use super::anchor;
 use super::codegen::*;
 use super::context::AnchorContext;
-use super::distinct::{preprocess_distinct, preprocess_reorder};
+use super::preprocess::{preprocess_distinct, preprocess_reorder};
 
 pub(super) struct Context {
     pub dialect: Box<dyn DialectHandler>,

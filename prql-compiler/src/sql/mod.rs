@@ -3,7 +3,7 @@
 mod anchor;
 mod codegen;
 mod context;
-mod distinct;
+mod preprocess;
 mod translator;
 
 pub use translator::translate;
