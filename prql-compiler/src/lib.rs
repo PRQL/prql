@@ -20,18 +20,6 @@ use semver::Version;
 static PRQL_VERSION: Lazy<Version> =
     Lazy::new(|| Version::parse(env!("CARGO_PKG_VERSION")).expect("Invalid PRQL version number"));
 
-// TODO: possibly collapse this with other functions. Deliberately not `pub` atm.
-fn compile_with_formatted_error(prql: &str) -> Result<String, FormattedError> {
-    let res = compile(prql);
-    match res {
-        Ok(buf) => Ok(buf),
-        // TODO: should this info be a method on our standard `Error` type; e.g.
-        // we can call `error.formatted`? Could it already have the `source` &
-        // `source_id` or does that need to be passed in separately?
-        Err(e) => Err(error::format_error(e, "", prql, false)),
-    }
-}
-
 /// Compile a PRQL string into a SQL string.
 ///
 /// This has three stages:
@@ -61,6 +49,21 @@ pub fn json_to_pl(json: &str) -> Result<Vec<Stmt>> {
 pub fn json_to_rq(json: &str) -> Result<Query> {
     Ok(serde_json::from_str(json)?)
 }
+
+// TODO: possibly collapse this with other functions. Deliberately not `pub`
+// atm.
+#[allow(dead_code)]
+fn compile_with_formatted_error(prql: &str) -> Result<String, FormattedError> {
+    let res = compile(prql);
+    match res {
+        Ok(buf) => Ok(buf),
+        // TODO: should this info be a method on our standard `Error` type; e.g.
+        // we can call `error.formatted`? Could it already have the `source` &
+        // `source_id` or does that need to be passed in separately?
+        Err(e) => Err(error::format_error(e, "", prql, false)),
+    }
+}
+
 // Simple tests for "this PRQL creates this SQL" go here.
 #[cfg(test)]
 mod test {
