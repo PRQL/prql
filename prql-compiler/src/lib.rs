@@ -1733,14 +1733,14 @@ join y [foo == only_in_x]
         from x
         select a
         select b
-        "###).unwrap_err().message,
+        "###).unwrap_err().message.split('\n').map(str::trim).collect::<Vec<_>>().join("\n"),
             @r###"
-        Error: 
-           ╭─[:4:16]
-           │
-         4 │         select b
-           ·                ┬  
-           ·                ╰── Unknown name b
+        Error:
+        ╭─[:4:16]
+        │
+        4 │         select b
+        ·                ┬
+        ·                ╰── Unknown name b
         ───╯
         "###
         );
