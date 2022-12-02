@@ -12,6 +12,8 @@ WITH table_1 AS (
     salary
   FROM
     employees
+  WHERE
+    country = 'USA'
 )
 SELECT
   title,
@@ -26,8 +28,7 @@ SELECT
 FROM
   table_1
 WHERE
-  country = 'USA'
-  AND gross_cost > 0
+  gross_cost > 0
 GROUP BY
   title,
   country

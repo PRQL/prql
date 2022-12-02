@@ -1839,26 +1839,34 @@ join y [foo == only_in_x]
     #[test]
     fn test_filter_and_select_changed_alias() {
         // #1185
-
         assert_display_snapshot!(compile(r###"
         from account
         filter account.name != null
         select [renamed_name = account.name]
         "###).unwrap(),
             @r###"
-        WITH table_1 AS (
-          SELECT
-            name AS renamed_name,
-            name
-          FROM
-            account
-        )
         SELECT
-          renamed_name
+          name AS renamed_name
         FROM
-          table_1
+          account
         WHERE
           name IS NOT NULL
+        "###
+        );
+
+        // #1207
+        assert_display_snapshot!(compile(r###"
+        from x
+        filter name != "Bob"
+        select name = name ?? "Default"
+        "###).unwrap(),
+            @r###"
+        SELECT
+          COALESCE(name, 'Default') AS name
+        FROM
+          x
+        WHERE
+          name <> 'Bob'
         "###
         );
     }
