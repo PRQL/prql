@@ -2,8 +2,24 @@
 
 ## 0.3.1 - Unreleased
 
+0.3.1 brings a couple of small improvements and fixes.
+
+**Features**:
+- Support for using s-strings for `from` (#1197, @aljazerzen)
+  ```
+  from s"SELECT * FROM employees WHERE foo > 5"
+  ```
+- Helpful error message when referencing a table in an s-string (#1203, @aljazerzen)
+
+
+**Fixes**:
+- Multiple columns with same name created (#1211, @aljazerzen)
+- Renaming via select breaks preceding sorting (#1204, @aljazerzen)
+- Same column gets selected multiple times (#1186, @mklopets)
+
+**Internal**:
 - Update Github Actions and Workflows to current version numbers
-  (and avoid using Node12 anymore)
+  (and avoid using Node 12)
 
 ## 0.3.0 — 2022-11-29
 
