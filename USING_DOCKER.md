@@ -82,7 +82,8 @@ npm install # first time only
 npm start
 ```
 
-**Language Book:** Use the command above, then enter:
+**Language Book:** Use the command above, then enter these commands.
+(The first time you run this, the container will compile many files.)
 
 ```bash
 cd book
