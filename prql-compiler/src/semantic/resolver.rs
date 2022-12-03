@@ -127,6 +127,11 @@ impl AstFold for Resolver {
                         }
                     }
 
+                    DeclKind::Wildcard(_) => Expr {
+                        kind: ExprKind::Ident(fq_ident),
+                        target_id: entry.declared_at,
+                        ..node
+                    },
                     DeclKind::Column(target_id) => Expr {
                         kind: ExprKind::Ident(fq_ident),
                         target_id: Some(*target_id),

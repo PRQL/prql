@@ -225,7 +225,10 @@ impl Module {
                             };
                             sub_ns.names.insert(NS_SELF.to_string(), self_decl);
                         }
-                        let sub_ns = Decl::from(DeclKind::Module(sub_ns));
+                        let sub_ns = Decl {
+                            declared_at: Some(input.id),
+                            kind: DeclKind::Module(sub_ns),
+                        };
 
                         namespace.names.entry(input_name.clone()).or_insert(sub_ns)
                     }
@@ -240,8 +243,10 @@ impl Module {
                 FrameColumn::Wildcard { input_name } => {
                     let input = frame.inputs.iter().find(|i| &i.name == input_name).unwrap();
 
-                    let entry = DeclKind::Wildcard(Box::new(DeclKind::Column(input.id)));
-                    ns.names.insert("*".to_string(), entry.into());
+                    let kind = DeclKind::Wildcard(Box::new(DeclKind::Column(input.id)));
+                    let declared_at = Some(input.id);
+                    let entry = Decl { kind, declared_at };
+                    ns.names.insert("*".to_string(), entry);
                 }
                 FrameColumn::Single {
                     name: Some(name),

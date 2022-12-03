@@ -3,10 +3,10 @@ use std::cmp::Ordering;
 use anyhow::Result;
 
 use crate::ast::pl::{BinOp, ColumnSort, InterpolateItem, Literal, Range, WindowFrame, WindowKind};
-use crate::ast::rq::{CId, ColumnDeclKind, Expr, ExprKind, IrFold, Take, Transform, Window};
+use crate::ast::rq::{CId, Compute, Expr, ExprKind, IrFold, Take, Transform, Window};
 
 use super::anchor::{infer_complexity, Complexity};
-use super::context::AnchorContext;
+use super::context::{AnchorContext, ColumnDecl};
 use super::translator::Context;
 
 pub(super) fn preprocess_distinct(
@@ -85,12 +85,9 @@ impl<'a> TakeConverter<'a> {
         partition: Vec<CId>,
     ) -> Vec<Transform> {
         // declare new column
-        let decl = ColumnDeclKind::Expr {
-            name: Some(self.context.gen_column_name()),
-            expr: Expr {
-                kind: ExprKind::SString(vec![InterpolateItem::String("ROW_NUMBER()".to_string())]),
-                span: None,
-            },
+        let expr = Expr {
+            kind: ExprKind::SString(vec![InterpolateItem::String("ROW_NUMBER()".to_string())]),
+            span: None,
         };
 
         let is_unsorted = sort.is_empty();
@@ -113,17 +110,26 @@ impl<'a> TakeConverter<'a> {
             sort,
         };
 
-        let decl = self.context.register_column(decl, Some(window), None);
+        let compute = Compute {
+            id: self.context.cid.gen(),
+            expr,
+            window: Some(window),
+            is_aggregation: false,
+        };
+
+        self.context
+            .column_decls
+            .insert(compute.id, ColumnDecl::Compute(compute.clone()));
 
         let col_ref = Box::new(Expr {
-            kind: ExprKind::ColumnRef(decl.id),
+            kind: ExprKind::ColumnRef(compute.id),
             span: None,
         });
 
         // add the two transforms
         let range_int = range.clone().try_map(as_int).unwrap();
         vec![
-            Transform::Compute(decl),
+            Transform::Compute(compute),
             Transform::Filter(match (range_int.start, range_int.end) {
                 (Some(s), Some(e)) if s == e => Expr {
                     span: None,

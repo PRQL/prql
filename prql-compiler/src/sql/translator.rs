@@ -14,8 +14,9 @@ use sqlformat::{format, FormatOptions, QueryParams};
 use sqlparser::ast::{self as sql_ast, Select, SetExpr, TableWithJoins};
 
 use crate::ast::pl::{DialectHandler, Literal};
-use crate::ast::rq::{CId, Expr, ExprKind, IrFold, Query, Relation, TableDecl, Transform};
-use crate::sql::anchor::materialize_inputs;
+use crate::ast::rq::{
+    CId, Expr, ExprKind, IrFold, Query, Relation, RelationKind, TableDecl, Transform,
+};
 use crate::utils::{IntoOnly, Pluck, TableCounter};
 
 use super::anchor;
@@ -78,8 +79,8 @@ pub fn translate_query(query: Query) -> Result<sql_ast::Query> {
             .name
             .unwrap_or_else(|| context.anchor.gen_table_name());
 
-        match table.relation {
-            Relation::Pipeline(pipeline) => {
+        match table.relation.kind {
+            RelationKind::Pipeline(pipeline) => {
                 // preprocess
                 let pipeline = preprocess_distinct(pipeline, &mut context)?;
                 let pipeline = preprocess_reorder(pipeline);
@@ -87,11 +88,11 @@ pub fn translate_query(query: Query) -> Result<sql_ast::Query> {
                 // split to atomics
                 atomics.extend(split_into_atomics(name, pipeline, &mut context.anchor));
             }
-            Relation::Literal(_, _) | Relation::SString(_, _) => atomics.push(AtomicQuery {
+            RelationKind::Literal(_) | RelationKind::SString(_) => atomics.push(AtomicQuery {
                 name,
-                relation: table.relation,
+                relation: table.relation.kind,
             }),
-            Relation::ExternRef(_, _) => {
+            RelationKind::ExternRef(_) => {
                 // ref does not need it's own CTE
             }
         }
@@ -125,7 +126,7 @@ pub fn translate_query(query: Query) -> Result<sql_ast::Query> {
 #[derive(Debug)]
 pub struct AtomicQuery {
     name: String,
-    relation: Relation,
+    relation: RelationKind,
 }
 
 fn into_tables(
@@ -153,12 +154,12 @@ fn table_to_sql_cte(table: AtomicQuery, context: &mut Context) -> Result<sql_ast
     })
 }
 
-fn sql_query_of_relation(relation: Relation, context: &mut Context) -> Result<sql_ast::Query> {
+fn sql_query_of_relation(relation: RelationKind, context: &mut Context) -> Result<sql_ast::Query> {
     match relation {
-        Relation::ExternRef(_, _) => unreachable!(),
-        Relation::Pipeline(pipeline) => sql_query_of_pipeline(pipeline, context),
-        Relation::Literal(_, _) => todo!(),
-        Relation::SString(items, _) => translate_query_sstring(items, context),
+        RelationKind::ExternRef(_) => unreachable!(),
+        RelationKind::Pipeline(pipeline) => sql_query_of_pipeline(pipeline, context),
+        RelationKind::Literal(_) => todo!(),
+        RelationKind::SString(items) => translate_query_sstring(items, context),
     }
 }
 
@@ -294,8 +295,6 @@ fn split_into_atomics(
     mut pipeline: Vec<Transform>,
     context: &mut AnchorContext,
 ) -> Vec<AtomicQuery> {
-    materialize_inputs(&pipeline, context);
-
     let output_cols = context.determine_select_columns(&pipeline);
     let mut required_cols = output_cols.clone();
 
@@ -326,7 +325,7 @@ fn split_into_atomics(
     if let Some((pipeline, _)) = parts.last() {
         let select_cols = pipeline.first().unwrap().as_select().unwrap();
 
-        if select_cols != &output_cols {
+        if select_cols.iter().any(|c| !output_cols.contains(c)) {
             parts.push((vec![Transform::Select(output_cols)], select_cols.clone()));
         }
     }
@@ -344,7 +343,7 @@ fn split_into_atomics(
         let first_name = context.gen_table_name();
         atomics.push(AtomicQuery {
             name: first_name.clone(),
-            relation: Relation::Pipeline(first.0),
+            relation: RelationKind::Pipeline(first.0),
         });
 
         let mut prev_name = first_name;
@@ -354,7 +353,7 @@ fn split_into_atomics(
 
             atomics.push(AtomicQuery {
                 name: name.clone(),
-                relation: Relation::Pipeline(pipeline),
+                relation: RelationKind::Pipeline(pipeline),
             });
 
             prev_name = name;
@@ -364,7 +363,7 @@ fn split_into_atomics(
     };
     atomics.push(AtomicQuery {
         name,
-        relation: Relation::Pipeline(last_pipeline),
+        relation: RelationKind::Pipeline(last_pipeline),
     });
 
     atomics
@@ -401,7 +400,7 @@ mod test {
             pre_projection: false,
         };
 
-        let pipeline = query.relation.into_pipeline().unwrap();
+        let pipeline = query.relation.kind.into_pipeline().unwrap();
 
         Ok((preprocess_reorder(pipeline), context))
     }

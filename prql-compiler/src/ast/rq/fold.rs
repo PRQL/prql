@@ -30,8 +30,11 @@ pub trait IrFold {
     fn fold_table(&mut self, table: TableDecl) -> Result<TableDecl> {
         fold_table(self, table)
     }
-    fn fold_table_expr(&mut self, table_expr: Relation) -> Result<Relation> {
-        fold_table_expr(self, table_expr)
+    fn fold_relation(&mut self, relation: Relation) -> Result<Relation> {
+        fold_relation(self, relation)
+    }
+    fn fold_relation_kind(&mut self, rel_kind: RelationKind) -> Result<RelationKind> {
+        fold_relation_kind(self, rel_kind)
     }
     fn fold_table_ref(&mut self, table_ref: TableRef) -> Result<TableRef> {
         fold_table_ref(self, table_ref)
@@ -46,41 +49,27 @@ pub trait IrFold {
     fn fold_expr_kind(&mut self, kind: ExprKind) -> Result<ExprKind> {
         fold_expr_kind(self, kind)
     }
-    fn fold_column_decl(&mut self, cd: ColumnDecl) -> Result<ColumnDecl> {
-        fold_column_decl(self, cd)
+    fn fold_relation_column(&mut self, col: RelationColumn) -> Result<RelationColumn> {
+        Ok(col)
     }
     fn fold_cid(&mut self, cid: CId) -> Result<CId> {
         Ok(cid)
     }
+    fn fold_compute(&mut self, compute: Compute) -> Result<Compute> {
+        fold_compute(self, compute)
+    }
 }
 
-fn fold_column_decl<F: ?Sized + IrFold>(
+fn fold_compute<F: ?Sized + IrFold>(
     fold: &mut F,
-    cd: ColumnDecl,
-) -> Result<ColumnDecl, anyhow::Error> {
-    Ok(ColumnDecl {
-        id: cd.id,
-        kind: match cd.kind {
-            ColumnDeclKind::Wildcard => ColumnDeclKind::Wildcard,
-            ColumnDeclKind::ExternRef(name) => ColumnDeclKind::ExternRef(name),
-            ColumnDeclKind::Expr { name, expr } => ColumnDeclKind::Expr {
-                name,
-                expr: fold.fold_expr(expr)?,
-            },
-        },
-        window: cd.window.map(|w| fold_window(fold, w)).transpose()?,
-        is_aggregation: cd.is_aggregation,
+    compute: Compute,
+) -> Result<Compute, anyhow::Error> {
+    Ok(Compute {
+        id: fold.fold_cid(compute.id)?,
+        expr: fold.fold_expr(compute.expr)?,
+        window: compute.window.map(|w| fold_window(fold, w)).transpose()?,
+        is_aggregation: compute.is_aggregation,
     })
-}
-
-fn fold_column_decls<F: ?Sized + IrFold>(
-    fold: &mut F,
-    decls: Vec<ColumnDecl>,
-) -> Result<Vec<ColumnDecl>> {
-    decls
-        .into_iter()
-        .map(|c| fold.fold_column_decl(c))
-        .try_collect()
 }
 
 fn fold_window<F: ?Sized + IrFold>(fold: &mut F, w: Window) -> Result<Window> {
@@ -101,21 +90,31 @@ pub fn fold_table<F: ?Sized + IrFold>(fold: &mut F, t: TableDecl) -> Result<Tabl
     Ok(TableDecl {
         id: t.id,
         name: t.name,
-        relation: fold.fold_table_expr(t.relation)?,
+        relation: fold.fold_relation(t.relation)?,
     })
 }
 
-pub fn fold_table_expr<F: ?Sized + IrFold>(fold: &mut F, t: Relation) -> Result<Relation> {
-    Ok(match t {
-        Relation::ExternRef(table_ref, decls) => {
-            Relation::ExternRef(table_ref, fold_column_decls(fold, decls)?)
+pub fn fold_relation<F: ?Sized + IrFold>(
+    fold: &mut F,
+    relation: Relation,
+) -> Result<Relation, anyhow::Error> {
+    Ok(Relation {
+        kind: fold.fold_relation_kind(relation.kind)?,
+        columns: relation.columns,
+    })
+}
+
+pub fn fold_relation_kind<F: ?Sized + IrFold>(
+    fold: &mut F,
+    rel: RelationKind,
+) -> Result<RelationKind> {
+    Ok(match rel {
+        RelationKind::ExternRef(table_ref) => RelationKind::ExternRef(table_ref),
+        RelationKind::Pipeline(transforms) => {
+            RelationKind::Pipeline(fold.fold_transforms(transforms)?)
         }
-        Relation::Pipeline(transforms) => Relation::Pipeline(fold.fold_transforms(transforms)?),
-        Relation::Literal(lit, decls) => Relation::Literal(lit, fold_column_decls(fold, decls)?),
-        Relation::SString(items, decls) => Relation::SString(
-            fold_interpolate_items(fold, items)?,
-            fold_column_decls(fold, decls)?,
-        ),
+        RelationKind::Literal(lit) => RelationKind::Literal(lit),
+        RelationKind::SString(items) => RelationKind::SString(fold_interpolate_items(fold, items)?),
     })
 }
 
@@ -123,14 +122,20 @@ pub fn fold_table_ref<F: ?Sized + IrFold>(fold: &mut F, table_ref: TableRef) -> 
     Ok(TableRef {
         name: table_ref.name,
         source: table_ref.source,
-        columns: fold_column_decls(fold, table_ref.columns)?,
+        columns: table_ref
+            .columns
+            .into_iter()
+            .map(|(col, cid)| -> Result<_> {
+                Ok((fold.fold_relation_column(col)?, fold.fold_cid(cid)?))
+            })
+            .try_collect()?,
     })
 }
 
 pub fn fold_query<F: ?Sized + IrFold>(fold: &mut F, query: Query) -> Result<Query> {
     Ok(Query {
         def: query.def,
-        relation: fold.fold_table_expr(query.relation)?,
+        relation: fold.fold_relation(query.relation)?,
         tables: query
             .tables
             .into_iter()
@@ -162,7 +167,7 @@ pub fn fold_transform<T: ?Sized + IrFold>(
     transform = match transform {
         From(tid) => From(fold.fold_table_ref(tid)?),
 
-        Compute(assigns) => Compute(fold.fold_column_decl(assigns)?),
+        Compute(compute) => Compute(fold.fold_compute(compute)?),
         Aggregate { partition, compute } => Aggregate {
             partition: fold_cids(fold, partition)?,
             compute: fold_cids(fold, compute)?,

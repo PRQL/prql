@@ -26,12 +26,26 @@ pub struct Query {
     pub relation: Relation,
 }
 
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+pub struct Relation {
+    pub kind: RelationKind,
+
+    pub columns: Vec<RelationColumn>
+}
+
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize, EnumAsInner)]
-pub enum Relation {
-    ExternRef(TableExternRef, Vec<ColumnDecl>),
+pub enum RelationKind {
+    ExternRef(TableExternRef),
     Pipeline(Vec<Transform>),
-    Literal(RelationLiteral, Vec<ColumnDecl>),
-    SString(Vec<InterpolateItem<Expr>>, Vec<ColumnDecl>),
+    Literal(RelationLiteral),
+    SString(Vec<InterpolateItem<Expr>>),
+}
+
+
+#[derive(Debug, PartialEq, Clone, Eq, Hash, Serialize, Deserialize)]
+pub enum RelationColumn {
+    Wildcard,
+    Single(Option<String>)
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
@@ -51,7 +65,7 @@ pub struct TableRef {
 
     // new column definitions are required because there may be multiple instances
     // of this table in the same query
-    pub columns: Vec<ColumnDecl>,
+    pub columns: Vec<(RelationColumn, CId)>,
 
     /// Given name of this table (table alias)
     pub name: Option<String>,

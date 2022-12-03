@@ -10,7 +10,7 @@ use super::*;
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize, strum::AsRefStr, EnumAsInner)]
 pub enum Transform {
     From(TableRef),
-    Compute(ColumnDecl),
+    Compute(Compute),
     Select(Vec<CId>),
     Filter(Expr),
     Aggregate {
@@ -34,19 +34,10 @@ pub struct Take {
     pub sort: Vec<ColumnSort<CId>>,
 }
 
-/// Transformation of a table.
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, Default)]
-pub struct Window {
-    pub frame: WindowFrame<Expr>,
-    pub partition: Vec<CId>,
-    pub sort: Vec<ColumnSort<CId>>,
-}
-
-/// Column declaration.
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub struct ColumnDecl {
+pub struct Compute {
     pub id: CId,
-    pub kind: ColumnDeclKind,
+    pub expr: Expr,
 
     /// Paramaters for window functions (or expressions).
     #[serde(skip_serializing_if = "Option::is_none", default)]
@@ -57,27 +48,12 @@ pub struct ColumnDecl {
     pub is_aggregation: bool,
 }
 
-/// Column declaration kind.
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, strum::AsRefStr, EnumAsInner)]
-pub enum ColumnDeclKind {
-    /// A column that is out of scope of this query, referenced by name.
-    /// Can only be used in [Relation::ExternRef].
-    ExternRef(String),
-    /// All columns of the relation.
-    /// Can only be used in [Relation::ExternRef].
-    Wildcard,
-    /// A column computed using an expression.
-    /// Can only be used in [Transform::Compute].
-    Expr { name: Option<String>, expr: Expr },
-}
-
-impl ColumnDecl {
-    pub fn get_name(&self) -> Option<&String> {
-        match &self.kind {
-            ColumnDeclKind::Expr { name, .. } => name.as_ref(),
-            _ => None,
-        }
-    }
+/// Transformation of a table.
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, Default)]
+pub struct Window {
+    pub frame: WindowFrame<Expr>,
+    pub partition: Vec<CId>,
+    pub sort: Vec<ColumnSort<CId>>,
 }
 
 fn is_false(b: &bool) -> bool {

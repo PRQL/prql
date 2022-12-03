@@ -4,19 +4,19 @@
 use std::collections::{HashMap, HashSet};
 
 use anyhow::Result;
+use enum_as_inner::EnumAsInner;
 use itertools::Itertools;
 
 use crate::ast::rq::{
-    fold_table, fold_table_ref, CId, ColumnDecl, ColumnDeclKind, IrFold, Query, TId, TableDecl,
-    TableRef, Transform, Window,
+    fold_relation, fold_table, CId, Compute, IrFold, Query, Relation, RelationColumn, RelationKind,
+    TId, TableDecl, TableRef, Transform,
 };
 use crate::utils::IdGenerator;
 
 #[derive(Default)]
 pub struct AnchorContext {
-    pub(super) columns_decls: HashMap<CId, ColumnDecl>,
-
-    pub(super) columns_loc: HashMap<CId, TIId>,
+    pub(super) column_decls: HashMap<CId, ColumnDecl>,
+    pub(super) column_names: HashMap<CId, Option<String>>,
 
     pub(super) table_decls: HashMap<TId, TableDecl>,
 
@@ -39,6 +39,13 @@ impl From<usize> for TIId {
     }
 }
 
+/// Column declaration.
+#[derive(Debug, PartialEq, Clone, strum::AsRefStr, EnumAsInner)]
+pub enum ColumnDecl {
+    RelationColumn(TIId, CId, RelationColumn),
+    Compute(Compute),
+}
+
 impl AnchorContext {
     pub fn of(query: Query) -> (Self, Query) {
         let (cid, tid, query) = IdGenerator::load(query);
@@ -53,35 +60,18 @@ impl AnchorContext {
     }
 
     pub fn register_wildcard(&mut self, tiid: TIId) -> CId {
-        let cd = self.register_column(ColumnDeclKind::Wildcard, None, Some(tiid));
-        cd.id
+        let id = self.cid.gen();
+        let kind = ColumnDecl::RelationColumn(tiid, id, RelationColumn::Wildcard);
+        self.column_decls.insert(id, kind);
+        id
     }
 
-    pub fn register_column(
-        &mut self,
-        kind: ColumnDeclKind,
-        window: Option<Window>,
-        tiid: Option<TIId>,
-    ) -> ColumnDecl {
-        let decl = ColumnDecl {
-            id: self.cid.gen(),
-            kind,
-            window,
-            is_aggregation: false,
-        };
-        self.columns_decls.insert(decl.id, decl.clone());
-        if let Some(tiid) = tiid {
-            self.columns_loc.insert(decl.id, tiid);
-        }
-        decl
-    }
-
-    pub fn register_table_instance(&mut self, mut table_ref: TableRef) {
+    pub fn create_table_instance(&mut self, mut table_ref: TableRef) {
         let tiid = self.tiid.gen();
 
-        for column in &table_ref.columns {
-            self.columns_decls.insert(column.id, column.clone());
-            self.columns_loc.insert(column.id, tiid);
+        for (col, cid) in &table_ref.columns {
+            let def = ColumnDecl::RelationColumn(tiid, *cid, col.clone());
+            self.column_decls.insert(*cid, def);
         }
 
         if table_ref.name.is_none() {
@@ -91,57 +81,30 @@ impl AnchorContext {
         self.table_instances.insert(tiid, table_ref);
     }
 
-    pub fn get_column_name(&self, cid: &CId) -> Option<String> {
-        let decl = self.columns_decls.get(cid).unwrap();
-        decl.get_name().cloned()
-    }
-
     pub fn gen_table_name(&mut self) -> String {
         format!("table_{}", self.table_name.gen())
     }
 
-    pub fn gen_column_name(&mut self) -> String {
-        format!("_expr_{}", self.col_name.gen())
-    }
-
-    pub fn ensure_column_name(&mut self, cid: &CId) -> String {
-        let decl = self.columns_decls.get_mut(cid).unwrap();
-
-        match &mut decl.kind {
-            ColumnDeclKind::Expr { name, .. } => {
-                if name.is_none() {
-                    *name = Some(format!("_expr_{}", self.col_name.gen()));
-                }
-                name.clone().unwrap()
-            }
-            ColumnDeclKind::Wildcard => "*".to_string(),
-            ColumnDeclKind::ExternRef(name) => name.clone(),
+    pub(crate) fn get_column_name(&mut self, cid: CId) -> Option<&String> {
+        if self.column_decls[&cid].as_compute().is_none() {
+            return None;
         }
-    }
 
-    pub fn materialize_name(&mut self, cid: &CId) -> (Option<String>, String) {
-        // TODO: figure out which columns need name and call ensure_column_name in advance
-        // let col_name = self
-        //     .get_column_name(cid)
-        //     .expect("a column is referred by name, but it doesn't have one");
-        let col_name = self.ensure_column_name(cid);
+        let name = self.column_names.entry(cid);
+        let col_name_gen = &mut self.col_name;
 
-        let table_name = self.columns_loc.get(cid).map(|tiid| {
-            let table = self.table_instances.get(tiid).unwrap();
+        let name = name.or_insert_with(|| Some(format!("_expr_{}", col_name_gen.gen())));
 
-            table.name.clone().unwrap()
-        });
-
-        (table_name, col_name)
+        name.as_ref()
     }
 
     pub fn determine_select_columns(&self, pipeline: &[Transform]) -> Vec<CId> {
         if let Some((last, remaning)) = pipeline.split_last() {
             match last {
-                Transform::From(table) => table.columns.iter().map(|c| c.id).collect(),
+                Transform::From(table) => table.columns.iter().map(|(_, cid)| *cid).collect(),
                 Transform::Join { with: table, .. } => [
                     self.determine_select_columns(remaning),
-                    table.columns.iter().map(|c| c.id).collect_vec(),
+                    table.columns.iter().map(|(_, cid)| *cid).collect_vec(),
                 ]
                 .concat(),
                 Transform::Select(cols) => cols.clone(),
@@ -163,13 +126,13 @@ impl AnchorContext {
             if let Transform::From(table) | Transform::Join { with: table, .. } = t {
                 // a hack to get TIId of a TableRef
                 // (ideally, TIId would be saved in TableRef)
-                if let Some(column) = table.columns.first() {
-                    tables.push(self.columns_loc[&column.id]);
+                if let Some((_, cid)) = table.columns.first() {
+                    tables.push(*self.column_decls[cid].as_relation_column().unwrap().0);
                 } else {
                     panic!("table without columns?")
                 }
 
-                columns.extend(table.columns.iter().map(|c| c.id));
+                columns.extend(table.columns.iter().map(|(_, cid)| cid));
             }
         }
         (tables, columns)
@@ -201,9 +164,11 @@ impl IrFold for QueryLoader {
         Ok(table)
     }
 
-    fn fold_column_decl(&mut self, cd: ColumnDecl) -> Result<ColumnDecl> {
-        self.context.columns_decls.insert(cd.id, cd.clone());
-        Ok(cd)
+    fn fold_compute(&mut self, compute: Compute) -> Result<Compute> {
+        self.context
+            .column_decls
+            .insert(compute.id, ColumnDecl::Compute(compute.clone()));
+        Ok(compute)
     }
 
     fn fold_table_ref(&mut self, mut table_ref: TableRef) -> Result<TableRef> {
@@ -216,11 +181,32 @@ impl IrFold for QueryLoader {
         // store
         self.context.table_instances.insert(tiid, table_ref.clone());
 
-        // store column locations
-        for col in &table_ref.columns {
-            self.context.columns_loc.insert(col.id, tiid);
+        for (col, cid) in &table_ref.columns {
+            self.context
+                .column_decls
+                .insert(*cid, ColumnDecl::RelationColumn(tiid, *cid, col.clone()));
         }
 
-        fold_table_ref(self, table_ref)
+        Ok(table_ref)
+    }
+
+    fn fold_relation(&mut self, relation: Relation) -> Result<Relation> {
+        let relation = fold_relation(self, relation)?;
+
+        // load names for computed columns
+        if let RelationKind::Pipeline(pipeline) = &relation.kind {
+            let cids = self.context.determine_select_columns(pipeline);
+
+            for (cid, col) in std::iter::zip(cids, &relation.columns) {
+                let name = if let RelationColumn::Single(name) = col.clone() {
+                    name
+                } else {
+                    None
+                };
+                self.context.column_names.insert(cid, name);
+            }
+        }
+
+        Ok(relation)
     }
 }

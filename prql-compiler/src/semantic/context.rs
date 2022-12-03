@@ -2,6 +2,7 @@ use anyhow::Result;
 use enum_as_inner::EnumAsInner;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
 use std::{collections::HashMap, fmt::Debug};
 
 use super::module::{Module, NS_DEFAULT_DB, NS_SELF, NS_STD};
@@ -109,29 +110,31 @@ impl Context {
 
     pub fn resolve_ident(&mut self, ident: &Ident) -> Result<Ident, String> {
         // lookup the name
-        if ident.name != "*" {
-            let decls = self.root_mod.lookup(ident);
+        let decls = self.root_mod.lookup(ident);
 
-            match decls.len() {
-                // no match: try match *
-                0 => {}
+        match decls.len() {
+            // no match: try match *
+            0 => {}
 
-                // single match, great!
-                1 => return Ok(decls.into_iter().next().unwrap()),
+            // single match, great!
+            1 => return Ok(decls.into_iter().next().unwrap()),
 
-                // ambiguous
-                _ => {
-                    let decls = decls.into_iter().map(|d| d.to_string()).join(", ");
-                    return Err(format!("Ambiguous name. Could be from any of {decls}"));
-                }
+            // ambiguous
+            _ => {
+                let decls = decls.into_iter().map(|d| d.to_string()).join(", ");
+                return Err(format!("Ambiguous name. Could be from any of {decls}"));
             }
         }
 
         // this variable can be from a namespace that we don't know all columns of
-        let decls = self.root_mod.lookup(&Ident {
-            path: ident.path.clone(),
-            name: "*".to_string(),
-        });
+        let decls = if ident.name != "*" {
+            self.root_mod.lookup(&Ident {
+                path: ident.path.clone(),
+                name: "*".to_string(),
+            })
+        } else {
+            HashSet::new()
+        };
 
         match decls.len() {
             0 => Err(format!("Unknown name {ident}")),
