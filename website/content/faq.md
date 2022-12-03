@@ -2,7 +2,7 @@
 title: "FAQ"
 ---
 
-## Cool story Hansel, but what can I actually do with PRQL now?
+{{< faq "Cool story Hansel, but what can I actually do with PRQL now?" >}}
 
 We're still early, and the opportunities for using PRQL are focused on two
 integrations:
@@ -19,7 +19,9 @@ integrations:
 Beyond these two integrations, it's very easy to add PRQL to your own apps with
 our [bindings](/#bindings) for Rust, Python & JS.
 
-## Something here reminds me of another project, did you take the idea from them?
+{{</ faq >}}
+
+{{< faq "Something here reminds me of another project, did you take the idea from them?" >}}
 
 Yes, probably. We're standing on the shoulders of giants:
 
@@ -65,7 +67,9 @@ And there are many projects similar to PRQL:
 
 > If any of these descriptions can be improved, please feel free to PR changes.
 
-## How is PRQL different from all the projects that SQL has defeated?
+{{</ faq >}}
+
+{{< faq "How is PRQL different from all the projects that SQL has defeated?" >}}
 
 Many languages have attempted to replace SQL, and yet SQL has massively _grown_
 in usage and importance in the past decade. There are lots
@@ -96,7 +100,9 @@ is questionable logic, "`n` languages have tried and failed so therefore SQL
 cannot be improved." suffers a similar fallacy. SQL isn't bad because it's old.
 It's bad because — in some cases — it's bad.
 
-## Which databases does PRQL work with?
+{{</ faq >}}
+
+{{< faq "Which databases does PRQL work with?" >}}
 
 PRQL compiles to SQL, so it's compatible with any database that accepts SQL.
 
@@ -106,7 +112,9 @@ docs](https://prql-lang.org/book/queries/dialect_and_version.html) for more
 info; note that there is currently very limited implementation of this, and most
 dialects' implementation are identical to a generic implementation.
 
-## What's going on with this `aggregate` function? What's wrong with `SELECT` & `GROUP BY`?
+{{</ faq >}}
+
+{{< faq "What's going on with this `aggregate` function? What's wrong with `SELECT` & `GROUP BY`?" >}}
 
 SQL uses `SELECT` for all of these:
 
