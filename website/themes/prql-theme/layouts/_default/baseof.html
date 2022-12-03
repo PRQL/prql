@@ -10,7 +10,9 @@
     <div class="d-flex flex-column flex-grow-1 overflow-scroll">
       {{- block "main" . }}{{- end }}
 
-      {{ partial "footer.html" . }}
+      {{- block "footer" . }}
+        {{ partial "footer.html" . }}
+      {{- end }}
     </div>
 
     <a

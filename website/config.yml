@@ -12,11 +12,11 @@ menu:
     # TODO: Can we use the info from pages directly? https://gohugo.io/templates/menu-templates/#menu-entries-from-the-pages-front-matter
     - identifier: Book
       name: Book
-      url: "https://prql-lang.org/book/"
+      url: /book_integrated/
       weight: 1
     - identifier: Playground
       name: Playground
-      url: "https://prql-lang.org/playground/"
+      url: /playground_integrated/
       weight: 2
     - identifier: Roadmap
       name: Roadmap

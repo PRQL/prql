@@ -730,3 +730,16 @@ details.faq[open] summary h2:before {
 .list .post-item > a {
   font-family: var(--title-font);
 }
+
+/*--------------------------------------------------------------
+# "Full screen" iframe views for book, playground etc
+--------------------------------------------------------------*/
+.big-iframe {
+  padding-top: 80px; /* This is for the header */
+}
+.big-iframe iframe {
+  height: calc(100vh - 80px); /* This is for the header */
+  width: 100vw;
+  display: block;
+  border: none;
+}
