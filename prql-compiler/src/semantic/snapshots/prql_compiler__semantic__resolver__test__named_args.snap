@@ -2,10 +2,10 @@
 source: prql-compiler/src/semantic/resolver.rs
 expression: "resolve_derive(r#\"\n            func add x to:1 -> x + to\n\n            from foo_table\n            derive [\n                added = add bar to:3,\n                added_default = add bar\n            ]\n            \"#).unwrap()"
 ---
-- id: 9
+- id: 13
   Binary:
     left:
-      id: 14
+      id: 12
       Ident:
         - _frame
         - foo_table
@@ -14,7 +14,7 @@ expression: "resolve_derive(r#\"\n            func add x to:1 -> x + to\n\n     
       ty: Infer
     op: Add
     right:
-      id: 15
+      id: 11
       Literal:
         Integer: 3
       ty:
@@ -22,10 +22,10 @@ expression: "resolve_derive(r#\"\n            func add x to:1 -> x + to\n\n     
   ty:
     Literal: Column
   alias: added
-- id: 16
+- id: 20
   Binary:
     left:
-      id: 21
+      id: 19
       Ident:
         - _frame
         - foo_table
@@ -34,7 +34,7 @@ expression: "resolve_derive(r#\"\n            func add x to:1 -> x + to\n\n     
       ty: Infer
     op: Add
     right:
-      id: 22
+      id: 18
       Literal:
         Integer: 1
       ty:

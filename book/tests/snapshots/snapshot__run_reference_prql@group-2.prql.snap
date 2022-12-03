@@ -3,7 +3,7 @@ source: book/tests/snapshot.rs
 expression: sql
 input_file: book/tests/prql/transforms/group-2.prql
 ---
-WITH table_0 AS (
+WITH table_1 AS (
   SELECT
     *,
     ROW_NUMBER() OVER (
@@ -17,6 +17,6 @@ WITH table_0 AS (
 SELECT
   *
 FROM
-  table_0
+  table_1
 WHERE
   _expr_0 <= 1

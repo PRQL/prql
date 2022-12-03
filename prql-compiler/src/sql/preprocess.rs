@@ -3,7 +3,7 @@ use std::cmp::Ordering;
 use anyhow::Result;
 
 use crate::ast::pl::{BinOp, ColumnSort, InterpolateItem, Literal, Range, WindowFrame, WindowKind};
-use crate::ast::rq::{CId, ColumnDefKind, Expr, ExprKind, IrFold, Take, Transform, Window};
+use crate::ast::rq::{CId, ColumnDeclKind, Expr, ExprKind, IrFold, Take, Transform, Window};
 
 use super::anchor::{infer_complexity, Complexity};
 use super::context::AnchorContext;
@@ -85,7 +85,7 @@ impl<'a> TakeConverter<'a> {
         partition: Vec<CId>,
     ) -> Vec<Transform> {
         // declare new column
-        let decl = ColumnDefKind::Expr {
+        let decl = ColumnDeclKind::Expr {
             name: Some(self.context.gen_column_name()),
             expr: Expr {
                 kind: ExprKind::SString(vec![InterpolateItem::String("ROW_NUMBER()".to_string())]),
@@ -190,11 +190,15 @@ pub(super) fn preprocess_reorder(mut pipeline: Vec<Transform>) -> Vec<Transform>
         (Transform::Sort(_), Transform::Compute(_)) => Ordering::Greater,
         (Transform::Compute(_), Transform::Sort(_)) => Ordering::Less,
 
-        // reorder with other exprs if col decl is plain
-        (_, Transform::Compute(decl)) if infer_complexity(decl) == Complexity::Plain => {
+        // reorder if col decl is plain
+        (Transform::Take(_), Transform::Compute(decl))
+            if infer_complexity(decl) == Complexity::Plain =>
+        {
             Ordering::Greater
         }
-        (Transform::Compute(decl), _) if infer_complexity(decl) == Complexity::Plain => {
+        (Transform::Compute(decl), Transform::Take(_))
+            if infer_complexity(decl) == Complexity::Plain =>
+        {
             Ordering::Less
         }
 

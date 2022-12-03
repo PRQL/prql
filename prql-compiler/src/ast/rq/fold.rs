@@ -61,9 +61,9 @@ fn fold_column_decl<F: ?Sized + IrFold>(
     Ok(ColumnDecl {
         id: cd.id,
         kind: match cd.kind {
-            ColumnDefKind::Wildcard => ColumnDefKind::Wildcard,
-            ColumnDefKind::ExternRef(name) => ColumnDefKind::ExternRef(name),
-            ColumnDefKind::Expr { name, expr } => ColumnDefKind::Expr {
+            ColumnDeclKind::Wildcard => ColumnDeclKind::Wildcard,
+            ColumnDeclKind::ExternRef(name) => ColumnDeclKind::ExternRef(name),
+            ColumnDeclKind::Expr { name, expr } => ColumnDeclKind::Expr {
                 name,
                 expr: fold.fold_expr(expr)?,
             },
@@ -111,6 +111,11 @@ pub fn fold_table_expr<F: ?Sized + IrFold>(fold: &mut F, t: Relation) -> Result<
             Relation::ExternRef(table_ref, fold_column_decls(fold, decls)?)
         }
         Relation::Pipeline(transforms) => Relation::Pipeline(fold.fold_transforms(transforms)?),
+        Relation::Literal(lit, decls) => Relation::Literal(lit, fold_column_decls(fold, decls)?),
+        Relation::SString(items, decls) => Relation::SString(
+            fold_interpolate_items(fold, items)?,
+            fold_column_decls(fold, decls)?,
+        ),
     })
 }
 

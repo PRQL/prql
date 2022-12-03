@@ -9,7 +9,7 @@ WITH parts AS (
   FROM
     seq_1_to_5
 ),
-table_0 AS (
+table_1 AS (
   SELECT
     related_id
   FROM
@@ -33,8 +33,8 @@ SELECT
     -1
   ) AS stub
 FROM
-  table_0
-  JOIN accounts AS a ON a.id = table_0.related_id
+  table_1
+  JOIN accounts AS a ON a.id = table_1.related_id
   JOIN email_addr_bean_rel AS er ON er.bean_id = a.id
   AND er.primary_address = '1'
   JOIN email_addresses AS ea ON ea.id = er.email_address_id

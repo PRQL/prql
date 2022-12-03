@@ -15,29 +15,29 @@ runs:
         # Without inputs.target, it seems to select linux x64 in the wasm32
         # tests, though in the docs it says it uses the target as the key?
         key: ${{ inputs.target_option }}
-    - uses: jetli/wasm-bindgen-action@v0.1.0
+    - uses: jetli/wasm-bindgen-action@v0.2.0
       if: inputs.target_option == '--target=wasm32-unknown-unknown'
     - name: 📎 Clippy
-      uses: actions-rs/cargo@v1
+      uses: richb-hanover/cargo@v1.1.0
       with:
         command: clippy
         # Note that `--all-targets` doesn't refer to targets like
         # `wasm32-unknown-unknown`; it refers to lib / bin / tests etc.
         args: --all-targets ${{ inputs.target_option }} -- -D warnings
     - name: ⌨️ Fmt
-      uses: actions-rs/cargo@v1
+      uses: richb-hanover/cargo@v1.1.0
       with:
         command: fmt
         args: --all --check
       # We split up the test compilation as recommended in
       # https://matklad.github.io/2021/09/04/fast-rust-builds.html
     - name: 🏭 Compile
-      uses: actions-rs/cargo@v1
+      uses: richb-hanover/cargo@v1.1.0
       with:
         command: test
         args: ${{ inputs.target_option }} --no-run --locked
     - name: 📋 Test
-      uses: actions-rs/cargo@v1
+      uses: richb-hanover/cargo@v1.1.0
       with:
         command: test
         args: ${{ inputs.target_option }}

@@ -4,7 +4,7 @@ use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fmt::Debug};
 
-use super::module::{Module, NS_DEFAULT_DB, NS_NO_RESOLVE, NS_STD};
+use super::module::{Module, NS_DEFAULT_DB, NS_NO_RESOLVE, NS_SELF, NS_STD};
 use crate::ast::pl::*;
 use crate::error::Span;
 
@@ -32,14 +32,9 @@ pub enum DeclKind {
     /// Nested namespaces that do lookup in layers from top to bottom, stoping at first match.
     LayeredModules(Vec<Module>),
 
-    TableDef {
-        /// Columns layout
-        frame: TableFrame,
+    TableDecl(TableDecl),
 
-        /// None means that this is an extern table (actual table in database)
-        /// Some means a CTE
-        expr: Option<Box<Expr>>,
-    },
+    InstanceOf(Ident),
 
     Column(usize),
 
@@ -51,6 +46,16 @@ pub enum DeclKind {
     Expr(Box<Expr>),
 
     NoResolve,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct TableDecl {
+    /// Columns layout
+    pub frame: TableFrame,
+
+    /// None means that this is an extern table (actual table in database)
+    /// Some means a CTE
+    pub expr: Option<Box<Expr>>,
 }
 
 #[derive(Clone, Default, Eq, Debug, PartialEq, Serialize, Deserialize)]
@@ -96,7 +101,7 @@ impl Context {
         let expr = Some(table_def.value);
         let decl = Decl {
             declared_at: id,
-            kind: DeclKind::TableDef { frame, expr },
+            kind: DeclKind::TableDecl(TableDecl { frame, expr }),
         };
 
         self.root_mod.insert(ident, decl).unwrap();
@@ -148,9 +153,11 @@ impl Context {
                     .insert(ident.name.clone(), Decl::from(*wildcard_default));
 
                 // table columns
-                if let Some(table_ident) = module.instance_of_table.clone() {
-                    log::debug!("infering {ident} to be from table {table_ident}");
-                    self.infer_table_column(&table_ident, &ident.name)?;
+                if let Some(decl) = module.names.get(NS_SELF).cloned() {
+                    if let DeclKind::InstanceOf(table_ident) = decl.kind {
+                        log::debug!("infering {ident} to be from table {table_ident}");
+                        self.infer_table_column(&table_ident, &ident.name)?;
+                    }
                 }
 
                 Ok(module_ident + Ident::from_name(ident.name.clone()))
@@ -176,17 +183,15 @@ impl Context {
 
     fn infer_table_column(&mut self, table_ident: &Ident, col_name: &str) -> Result<(), String> {
         let table = self.root_mod.get_mut(table_ident).unwrap();
-        let (frame, expr) = table.kind.as_table_def_mut().unwrap();
+        let table_decl = table.kind.as_table_decl_mut().unwrap();
 
-        let has_wildcard = frame
-            .columns
-            .iter()
-            .any(|c| matches!(c, TableColumn::Wildcard));
+        let has_wildcard =
+            (table_decl.frame.columns.iter()).any(|c| matches!(c, TableColumn::Wildcard));
         if !has_wildcard {
             return Err(format!("Table {table_ident:?} does not have wildcard."));
         }
 
-        let exists = frame.columns.iter().any(|c| match c {
+        let exists = table_decl.frame.columns.iter().any(|c| match c {
             TableColumn::Single(Some(n)) => n == col_name,
             _ => false,
         });
@@ -195,10 +200,10 @@ impl Context {
         }
 
         let col = TableColumn::Single(Some(col_name.to_string()));
-        frame.columns.push(col);
+        table_decl.frame.columns.push(col);
 
         // also add into input tables of this table expression
-        if let Some(expr) = &expr {
+        if let Some(expr) = &table_decl.expr {
             if let Some(Ty::Table(frame)) = expr.ty.as_ref() {
                 let wildcard_inputs = (frame.columns.iter())
                     .filter_map(|c| c.as_wildcard())
@@ -210,8 +215,9 @@ impl Context {
                         let input_name = wildcard_inputs.into_iter().next().unwrap();
 
                         let input = frame.find_input(input_name).unwrap();
-                        let table_ident = input.table.clone();
-                        self.infer_table_column(&table_ident, col_name)?;
+                        if let Some(table_ident) = input.table.clone() {
+                            self.infer_table_column(&table_ident, col_name)?;
+                        }
                     }
                     _ => {
                         return Err(format!("Cannot infer where {table_ident}.{col_name} is from. It could be any of {wildcard_inputs:?}"))
@@ -256,7 +262,8 @@ impl std::fmt::Display for DeclKind {
         match self {
             Self::Module(arg0) => f.debug_tuple("Module").field(arg0).finish(),
             Self::LayeredModules(arg0) => f.debug_tuple("LayeredModules").field(arg0).finish(),
-            Self::TableDef { frame, expr } => write!(f, "TableDef: {frame} {expr:?}"),
+            Self::TableDecl(TableDecl { frame, expr }) => write!(f, "TableDef: {frame} {expr:?}"),
+            Self::InstanceOf(arg0) => write!(f, "InstanceOf: {arg0}"),
             Self::Column(arg0) => write!(f, "Column (target {arg0})"),
             Self::Wildcard(arg0) => write!(f, "Wildcard (default: {arg0})"),
             Self::FuncDef(arg0) => write!(f, "FuncDef: {arg0}"),

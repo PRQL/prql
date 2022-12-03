@@ -6,9 +6,8 @@ on:
       - main
   pull_request:
     paths:
-      - "prql-python/**"
-      - ".github/workflows/test-python.yaml"
-      - ".github/actions/test-python/**"
+      - "prql-js/**"
+      - ".github/workflows/test-js.yaml"
   workflow_call:
 
 concurrency:
@@ -17,6 +16,7 @@ concurrency:
 
 jobs:
   test:
+    # This is copy & pasted into test-all.yaml
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -24,4 +24,6 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
-      - uses: ./.github/actions/test-python
+      - uses: ./.github/actions/build-prql-js
+      - run: npm i && npm run test
+        working-directory: prql-js/tests/

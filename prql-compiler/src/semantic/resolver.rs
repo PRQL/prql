@@ -6,6 +6,7 @@ use itertools::{Itertools, Position};
 
 use crate::ast::pl::{fold::*, *};
 use crate::error::{Error, Reason, Span};
+use crate::semantic::context::TableDecl;
 use crate::utils::IdGenerator;
 
 use super::context::{Context, Decl, DeclKind, TableColumn};
@@ -65,16 +66,24 @@ impl AstFold for Resolver {
                 }
                 StmtKind::TableDef(table_def) => {
                     let table_def = self.fold_table(table_def)?;
-                    let table_def = TableDef {
+                    let mut table_def = TableDef {
                         value: Box::new(Flattener::fold(*table_def.value)),
                         ..table_def
                     };
+
+                    // validate type
+                    let expeceted = Ty::Table(Frame::default());
+                    let assumed_ty = validate_type(&table_def.value, &expeceted, || {
+                        Some(format!("table {}", table_def.name))
+                    })?;
+                    table_def.value.ty = Some(assumed_ty);
+
                     self.decls.declare_table(table_def, stmt.id);
                     continue;
                 }
                 StmtKind::Pipeline(expr) => {
-                    let x = Flattener::fold(self.fold_expr(*expr)?);
-                    StmtKind::Pipeline(Box::new(x))
+                    let expr = Flattener::fold(self.fold_expr(*expr)?);
+                    StmtKind::Pipeline(Box::new(expr))
                 }
             };
 
@@ -124,14 +133,14 @@ impl AstFold for Resolver {
                         ..node
                     },
 
-                    DeclKind::TableDef { frame, .. } => {
+                    DeclKind::TableDecl(TableDecl { frame, .. }) => {
                         let alias = node.alias.unwrap_or_else(|| ident.name.clone());
 
                         let instance_frame = Frame {
                             inputs: vec![FrameInput {
                                 id,
                                 name: alias.clone(),
-                                table: fq_ident.clone(),
+                                table: Some(fq_ident.clone()),
                             }],
                             columns: frame
                                 .columns
@@ -163,6 +172,14 @@ impl AstFold for Resolver {
 
                     DeclKind::Expr(expr) => expr.as_ref().clone(),
 
+                    DeclKind::InstanceOf(_) => {
+                        bail!(Error::new(Reason::Simple(
+                            "table instance cannot be referenced directly".to_string(),
+                        ))
+                        .with_span(span)
+                        .with_help("did you forget to specify the column name?"));
+                    }
+
                     DeclKind::NoResolve => Expr {
                         kind: ExprKind::Ident(ident),
                         ..node
@@ -192,7 +209,12 @@ impl AstFold for Resolver {
                 self.fold_function(*closure, args, named_args, node.span)?
             }
 
-            ExprKind::Pipeline(pipeline) => self.resolve_pipeline(pipeline)?,
+            ExprKind::Pipeline(pipeline) => {
+                let default_namespace = self.default_namespace.take();
+                let res = self.resolve_pipeline(pipeline)?;
+                self.default_namespace = default_namespace;
+                res
+            }
 
             ExprKind::Closure(closure) => {
                 self.fold_function(*closure, vec![], HashMap::new(), node.span)?
@@ -211,12 +233,10 @@ impl AstFold for Resolver {
                 ..node
             },
         };
-        r.id = Some(id);
-        r.alias = alias;
+        r.id = r.id.or(Some(id));
+        r.alias = r.alias.or(alias);
+        r.span = r.span.or(span);
 
-        if r.span.is_none() {
-            r.span = span;
-        }
         if r.ty.is_none() {
             r.ty = Some(resolve_type(&r)?);
         }
@@ -332,17 +352,11 @@ impl Resolver {
 
             // evaluate
             match super::transforms::cast_transform(self, closure)? {
-                Ok(transform) => {
-                    // this function call is a transform, append it to the pipeline
+                // this function call is a transform
+                Ok(transform) => transform,
 
-                    let ty = Ty::Table(transform.infer_type()?);
-                    let mut expr = Expr::from(ExprKind::TransformCall(transform));
-                    expr.ty = Some(ty);
-                    expr.span = span;
-                    expr
-                }
+                // this function call is not a transform, proceed with materialization
                 Err(closure) => {
-                    // this function call is not a transform, proceed with materialization
                     let needs_window = Some(Ty::column()) <= closure.body_ty;
 
                     let (func_env, body) = env_of_closure(closure);
@@ -622,8 +636,7 @@ mod test {
     fn resolve_derive(query: &str) -> Result<Vec<Expr>> {
         let expr = parse_and_resolve(query)?;
         let derive = expr.kind.into_transform_call()?;
-        let (assigns, _) = derive.kind.into_derive()?;
-        Ok(assigns)
+        Ok(derive.kind.into_derive()?)
     }
 
     #[test]

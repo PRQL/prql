@@ -1,0 +1,7 @@
+---
+source: prql-compiler/tests/integration/main.rs
+expression: "duckdb::query_csv(&duckdb_conn, &sql)"
+input_file: prql-compiler/tests/integration/queries/genre_counts.prql
+---
+a
+-25

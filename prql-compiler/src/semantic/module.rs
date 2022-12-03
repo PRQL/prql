@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::ast::pl::{Expr, Ident};
 
-use super::context::{Decl, DeclKind, TableColumn, TableFrame};
+use super::context::{Decl, DeclKind, TableColumn, TableDecl, TableFrame};
 use super::{Frame, FrameColumn};
 
 pub const NS_STD: &str = "std";
@@ -15,14 +15,12 @@ pub const NS_FRAME_RIGHT: &str = "_right";
 pub const NS_PARAM: &str = "_param";
 pub const NS_DEFAULT_DB: &str = "default_db";
 pub const NS_NO_RESOLVE: &str = "_no_resolve";
+pub const NS_SELF: &str = "_self";
 
 #[derive(Default, Serialize, Deserialize, Clone)]
 pub struct Module {
     /// Names declared in this module. This is the important thing.
     pub(super) names: HashMap<String, Decl>,
-
-    /// FQ ident of table that this module represents.
-    pub instance_of_table: Option<Ident>,
 
     /// List of relative paths to include in search path when doing lookup in
     /// this module.
@@ -48,21 +46,21 @@ impl Module {
                     Decl::from(DeclKind::Module(Module {
                         names: HashMap::from([(
                             "*".to_string(),
-                            Decl::from(DeclKind::Wildcard(Box::new(DeclKind::TableDef {
-                                frame: TableFrame {
-                                    columns: vec![TableColumn::Wildcard],
+                            Decl::from(DeclKind::Wildcard(Box::new(DeclKind::TableDecl(
+                                TableDecl {
+                                    frame: TableFrame {
+                                        columns: vec![TableColumn::Wildcard],
+                                    },
+                                    expr: None,
                                 },
-                                expr: None,
-                            }))),
+                            )))),
                         )]),
-                        instance_of_table: None,
                         shadowed: None,
                         redirects: vec![],
                     })),
                 ),
                 (NS_STD.to_string(), Decl::from(DeclKind::default())),
             ]),
-            instance_of_table: None,
             shadowed: None,
             redirects: vec![
                 Ident::from_name(NS_FRAME),
@@ -146,11 +144,11 @@ impl Module {
     }
 
     pub fn lookup(&self, ident: &Ident) -> HashSet<Ident> {
-        fn lookup_in(namespace: &Module, ident: Ident) -> HashSet<Ident> {
+        fn lookup_in(module: &Module, ident: Ident) -> HashSet<Ident> {
             let (prefix, ident) = ident.pop_front();
 
             if let Some(ident) = ident {
-                if let Some(entry) = namespace.names.get(&prefix) {
+                if let Some(entry) = module.names.get(&prefix) {
                     let redirected = match &entry.kind {
                         DeclKind::Module(ns) => ns.lookup(&ident),
                         DeclKind::LayeredModules(stack) => {
@@ -172,7 +170,16 @@ impl Module {
                         .map(|i| Ident::from_name(&prefix) + i)
                         .collect();
                 }
-            } else if namespace.names.get(&prefix).is_some() {
+            } else if let Some(decl) = module.names.get(&prefix) {
+                if let DeclKind::Module(inner) = &decl.kind {
+                    if inner.names.contains_key(NS_SELF) {
+                        return HashSet::from([Ident::from_path(vec![
+                            prefix,
+                            NS_SELF.to_string(),
+                        ])]);
+                    }
+                }
+
                 return HashSet::from([Ident::from_name(prefix)]);
             }
             HashSet::new()
@@ -211,10 +218,15 @@ impl Module {
                         namespace.redirects.push(Ident::from_name(input_name));
 
                         let input = frame.find_input(input_name).unwrap();
-                        let sub_ns = Decl::from(DeclKind::Module(Module {
-                            instance_of_table: Some(input.table.clone()),
-                            ..Default::default()
-                        }));
+                        let mut sub_ns = Module::default();
+                        if let Some(fq_table) = input.table.clone() {
+                            let self_decl = Decl {
+                                declared_at: Some(input.id),
+                                kind: DeclKind::InstanceOf(fq_table),
+                            };
+                            sub_ns.names.insert(NS_SELF.to_string(), self_decl);
+                        }
+                        let sub_ns = Decl::from(DeclKind::Module(sub_ns));
 
                         namespace.names.entry(input_name.clone()).or_insert(sub_ns)
                     }
@@ -298,9 +310,6 @@ impl std::fmt::Debug for Module {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut ds = f.debug_struct("Namespace");
 
-        if let Some(f) = &self.instance_of_table {
-            ds.field("instance_of_table", f);
-        }
         if !self.redirects.is_empty() {
             let aliases = self.redirects.iter().map(|x| x.to_string()).collect_vec();
             ds.field("aliases", &aliases);

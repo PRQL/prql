@@ -8,7 +8,7 @@
 // going to be isomorphically mapping everything back from SQL to PRQL. But it
 // does mean we should continue to iterate on this file and refactor things when
 // necessary.
-use anyhow::{anyhow, bail, Result};
+use anyhow::{anyhow, Result};
 use itertools::Itertools;
 use sqlformat::{format, FormatOptions, QueryParams};
 use sqlparser::ast::{self as sql_ast, Select, SetExpr, TableWithJoins};
@@ -21,7 +21,7 @@ use crate::utils::{IntoOnly, Pluck, TableCounter};
 use super::anchor;
 use super::codegen::*;
 use super::context::AnchorContext;
-use super::distinct::{preprocess_distinct, preprocess_reorder};
+use super::preprocess::{preprocess_distinct, preprocess_reorder};
 
 pub(super) struct Context {
     pub dialect: Box<dyn DialectHandler>,
@@ -71,27 +71,33 @@ pub fn translate_query(query: Query) -> Result<sql_ast::Query> {
     // extract tables and the pipeline
     let tables = into_tables(query.relation, query.tables, &mut context)?;
 
+    // preprocess & split into atomics
     let mut atomics = Vec::new();
     for table in tables {
-        let pipeline = if let Relation::Pipeline(pipeline) = table.relation {
-            pipeline
-        } else {
-            // ref does not need it's own CTE
-            continue;
-        };
+        let name = table
+            .name
+            .unwrap_or_else(|| context.anchor.gen_table_name());
 
-        // preprocess
-        let pipeline = preprocess_reorder(pipeline);
-        let pipeline = preprocess_distinct(pipeline, &mut context)?;
+        match table.relation {
+            Relation::Pipeline(pipeline) => {
+                // preprocess
+                let pipeline = preprocess_distinct(pipeline, &mut context)?;
+                let pipeline = preprocess_reorder(pipeline);
 
-        // split to atomics
-        atomics.extend(split_into_atomics(table.name, pipeline, &mut context));
+                // split to atomics
+                atomics.extend(split_into_atomics(name, pipeline, &mut context.anchor));
+            }
+            Relation::Literal(_, _) | Relation::SString(_, _) => atomics.push(AtomicQuery {
+                name,
+                relation: table.relation,
+            }),
+            Relation::ExternRef(_, _) => {
+                // ref does not need it's own CTE
+            }
+        }
     }
 
     // take last table
-    if atomics.is_empty() {
-        bail!("No tables?");
-    }
     let main_query = atomics.remove(atomics.len() - 1);
     let ctes = atomics;
 
@@ -102,7 +108,7 @@ pub fn translate_query(query: Query) -> Result<sql_ast::Query> {
         .try_collect()?;
 
     // convert main query
-    let mut main_query = sql_query_of_atomic_query(main_query.pipeline, &mut context)?;
+    let mut main_query = sql_query_of_relation(main_query.relation, &mut context)?;
 
     // attach CTEs
     if !ctes.is_empty() {
@@ -118,8 +124,8 @@ pub fn translate_query(query: Query) -> Result<sql_ast::Query> {
 /// A query that can be expressed with one SELECT statement
 #[derive(Debug)]
 pub struct AtomicQuery {
-    name: Option<String>,
-    pipeline: Vec<Transform>,
+    name: String,
+    relation: Relation,
 }
 
 fn into_tables(
@@ -137,17 +143,26 @@ fn into_tables(
 
 fn table_to_sql_cte(table: AtomicQuery, context: &mut Context) -> Result<sql_ast::Cte> {
     let alias = sql_ast::TableAlias {
-        name: translate_ident_part(table.name.unwrap(), context),
+        name: translate_ident_part(table.name, context),
         columns: vec![],
     };
     Ok(sql_ast::Cte {
         alias,
-        query: Box::new(sql_query_of_atomic_query(table.pipeline, context)?),
+        query: Box::new(sql_query_of_relation(table.relation, context)?),
         from: None,
     })
 }
 
-fn sql_query_of_atomic_query(
+fn sql_query_of_relation(relation: Relation, context: &mut Context) -> Result<sql_ast::Query> {
+    match relation {
+        Relation::ExternRef(_, _) => unreachable!(),
+        Relation::Pipeline(pipeline) => sql_query_of_pipeline(pipeline, context),
+        Relation::Literal(_, _) => todo!(),
+        Relation::SString(items, _) => translate_query_sstring(items, context),
+    }
+}
+
+fn sql_query_of_pipeline(
     pipeline: Vec<Transform>,
     context: &mut Context,
 ) -> Result<sql_ast::Query> {
@@ -275,19 +290,19 @@ fn sql_query_of_atomic_query(
 }
 
 fn split_into_atomics(
-    table_name: Option<String>,
+    name: String,
     mut pipeline: Vec<Transform>,
-    context: &mut Context,
+    context: &mut AnchorContext,
 ) -> Vec<AtomicQuery> {
-    materialize_inputs(&pipeline, &mut context.anchor);
+    materialize_inputs(&pipeline, context);
 
-    let mut output_cols = context.anchor.determine_select_columns(&pipeline);
+    let output_cols = context.determine_select_columns(&pipeline);
+    let mut required_cols = output_cols.clone();
 
     // split pipeline, back to front
     let mut parts_rev = Vec::new();
     loop {
-        let (preceding, split) =
-            anchor::split_off_back(&mut context.anchor, output_cols.clone(), pipeline);
+        let (preceding, split) = anchor::split_off_back(context, required_cols, pipeline);
 
         if let Some((preceding, cols_at_split)) = preceding {
             log::debug!(
@@ -297,7 +312,7 @@ fn split_into_atomics(
             parts_rev.push((split, cols_at_split.clone()));
 
             pipeline = preceding;
-            output_cols = cols_at_split;
+            required_cols = cols_at_split;
         } else {
             parts_rev.push((split, Vec::new()));
             break;
@@ -305,6 +320,16 @@ fn split_into_atomics(
     }
     parts_rev.reverse();
     let mut parts = parts_rev;
+
+    // sometimes, additional columns will be added into select, which have to
+    // be filtered out here, using additional CTE
+    if let Some((pipeline, _)) = parts.last() {
+        let select_cols = pipeline.first().unwrap().as_select().unwrap();
+
+        if select_cols != &output_cols {
+            parts.push((vec![Transform::Select(output_cols)], select_cols.clone()));
+        }
+    }
 
     // add names to pipelines, anchor, front to back
     let mut atomics = Vec::with_capacity(parts.len());
@@ -316,31 +341,30 @@ fn split_into_atomics(
         // this code chunk is bloated but I cannot find a more concise alternative
         let first = parts.remove(0);
 
-        let first_name = context.anchor.gen_table_name();
+        let first_name = context.gen_table_name();
         atomics.push(AtomicQuery {
-            name: Some(first_name.clone()),
-            pipeline: first.0,
+            name: first_name.clone(),
+            relation: Relation::Pipeline(first.0),
         });
 
         let mut prev_name = first_name;
         for (pipeline, cols_before) in parts.into_iter() {
-            let name = context.anchor.gen_table_name();
-            let pipeline =
-                anchor::anchor_split(&mut context.anchor, &prev_name, &cols_before, pipeline);
+            let name = context.gen_table_name();
+            let pipeline = anchor::anchor_split(context, &prev_name, &cols_before, pipeline);
 
             atomics.push(AtomicQuery {
-                name: Some(name.clone()),
-                pipeline,
+                name: name.clone(),
+                relation: Relation::Pipeline(pipeline),
             });
 
             prev_name = name;
         }
 
-        anchor::anchor_split(&mut context.anchor, &prev_name, &last.1, last.0)
+        anchor::anchor_split(context, &prev_name, &last.1, last.0)
     };
     atomics.push(AtomicQuery {
-        name: table_name,
-        pipeline: last_pipeline,
+        name,
+        relation: Relation::Pipeline(last_pipeline),
     });
 
     atomics
@@ -358,15 +382,6 @@ fn filter_of_pipeline(
         })
         .collect();
     filter_of_filters(filters, context)
-}
-
-impl From<Vec<Transform>> for AtomicQuery {
-    fn from(pipeline: Vec<Transform>) -> Self {
-        AtomicQuery {
-            name: None,
-            pipeline,
-        }
-    }
 }
 
 #[cfg(test)]
@@ -403,7 +418,7 @@ mod test {
         "###;
 
         let (pipeline, mut context) = parse_and_resolve(prql).unwrap();
-        let queries = split_into_atomics(None, pipeline, &mut context);
+        let queries = split_into_atomics("".to_string(), pipeline, &mut context.anchor);
         assert_eq!(queries.len(), 1);
 
         // One aggregate, but take at the top
@@ -416,7 +431,7 @@ mod test {
         "###;
 
         let (pipeline, mut context) = parse_and_resolve(prql).unwrap();
-        let queries = split_into_atomics(None, pipeline, &mut context);
+        let queries = split_into_atomics("".to_string(), pipeline, &mut context.anchor);
         assert_eq!(queries.len(), 2);
 
         // A take, then two aggregates
@@ -430,7 +445,7 @@ mod test {
         "###;
 
         let (pipeline, mut context) = parse_and_resolve(prql).unwrap();
-        let queries = split_into_atomics(None, pipeline, &mut context);
+        let queries = split_into_atomics("".to_string(), pipeline, &mut context.anchor);
         assert_eq!(queries.len(), 3);
 
         // A take, then a select
@@ -441,7 +456,7 @@ mod test {
         "###;
 
         let (pipeline, mut context) = parse_and_resolve(prql).unwrap();
-        let queries = split_into_atomics(None, pipeline, &mut context);
+        let queries = split_into_atomics("".to_string(), pipeline, &mut context.anchor);
         assert_eq!(queries.len(), 1);
     }
 
@@ -487,11 +502,10 @@ mod test {
         let sql_ast = translate(query).unwrap();
 
         assert_snapshot!(sql_ast, @r###"
-        WITH table_0 AS (
+        WITH table_1 AS (
           SELECT
             *,
-            RANK() OVER () AS global_rank,
-            country
+            RANK() OVER () AS global_rank
           FROM
             employees
         )
@@ -500,7 +514,7 @@ mod test {
           global_rank,
           RANK() OVER () AS rank
         FROM
-          table_0
+          table_1
         WHERE
           country = 'USA'
         "###);
@@ -515,7 +529,7 @@ mod test {
         "#;
 
         assert_snapshot!(crate::compile(query).unwrap(), @r###"
-        WITH table_0 AS (
+        WITH table_1 AS (
           SELECT
             *,
             AVG(bar) OVER () AS _expr_0
@@ -525,7 +539,7 @@ mod test {
         SELECT
           *
         FROM
-          table_0
+          table_1
         WHERE
           _expr_0 > 3
         "###);

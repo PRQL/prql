@@ -14,7 +14,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           requireScope: false
-          disallowScopes:
           ignoreLabels: |
             bot
             pr-ignore-pull-request-check
