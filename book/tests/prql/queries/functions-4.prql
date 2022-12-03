@@ -1,4 +1,4 @@
-func celsius_of_fahrenheit temp -> (temp - 32) * 3
+func celsius_of_fahrenheit temp -> (temp - 32) / 1.8
 func interp lower:0 higher x -> (x - lower) / (higher - lower)
 
 from kettles

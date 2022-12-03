@@ -17,7 +17,7 @@ Functions have two types of parameters:
 So this function is named `celsius_of_fahrenheit` and has one parameter `temp`:
 
 ```prql
-func celsius_of_fahrenheit temp -> (temp - 32) * 3
+func celsius_of_fahrenheit temp -> (temp - 32) / 1.8
 
 from cities
 derive temp_c = (celsius_of_fahrenheit temp_f)
@@ -59,7 +59,7 @@ derive [
 and
 
 ```prql
-func celsius_of_fahrenheit temp -> (temp - 32) * 3
+func celsius_of_fahrenheit temp -> (temp - 32) / 1.8
 
 from cities
 derive temp_c = (temp_f | celsius_of_fahrenheit)
@@ -68,7 +68,7 @@ derive temp_c = (temp_f | celsius_of_fahrenheit)
 We can combine a chain of functions, which makes logic more readable:
 
 ```prql
-func celsius_of_fahrenheit temp -> (temp - 32) * 3
+func celsius_of_fahrenheit temp -> (temp - 32) / 1.8
 func interp lower:0 higher x -> (x - lower) / (higher - lower)
 
 from kettles
