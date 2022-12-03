@@ -2,6 +2,8 @@
 title: "FAQ"
 ---
 
+Here are some of the most common questions we hear. Have something else you'd like to ask? Pop by our [Discord](https://discord.com/invite/eQcfaCmsNc) and ask away!
+
 {{< faq "Cool story Hansel, but what can I actually do with PRQL now?" >}}
 
 We're still early, and the opportunities for using PRQL are focused on two
