@@ -92,6 +92,12 @@ pub fn split_off_back(
         .map(|r| r.col)
         .collect_vec();
 
+    for r in &inputs_required {
+        if r.max_complexity == Complexity::Plain {
+            ctx.get_column_name(r.col);
+        }
+    }
+
     log::debug!("finished table:");
     log::debug!(".. avail={inputs_avail:?}");
     let required = inputs_required
@@ -206,8 +212,13 @@ pub fn anchor_split(
         let old_def = ctx.column_decls.get(old_cid).unwrap();
 
         let col = match old_def {
-            ColumnDecl::RelationColumn(_, _, col) => col.clone(),
-            ColumnDecl::Compute(_) => RelationColumn::Single(None),
+            ColumnDecl::RelationColumn(_, _, col) => {
+                match col {
+                    RelationColumn::Wildcard | RelationColumn::Single(Some(_)) => col.clone(),
+                    RelationColumn::Single(None) => RelationColumn::Single(Some(ctx.col_name.gen()))
+                }
+            },
+            ColumnDecl::Compute(_) => RelationColumn::Single(ctx.get_column_name(*old_cid).cloned()),
         };
         let new_cid = ctx.cid.gen();
 

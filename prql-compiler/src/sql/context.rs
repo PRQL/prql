@@ -93,7 +93,7 @@ impl AnchorContext {
         let name = self.column_names.entry(cid);
         let col_name_gen = &mut self.col_name;
 
-        let name = name.or_insert_with(|| Some(format!("_expr_{}", col_name_gen.gen())));
+        let name = name.or_insert_with(|| Some(col_name_gen.gen()));
 
         name.as_ref()
     }

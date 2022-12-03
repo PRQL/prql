@@ -350,11 +350,11 @@ select `first name`
         WITH table_1 AS (
           SELECT
             'something' AS renamed,
-            'something' AS somefield
+            'something' AS _expr_0
           FROM
             x
           ORDER BY
-            somefield
+            _expr_0
         )
         SELECT
           renamed
@@ -1327,7 +1327,7 @@ take 20
           SELECT
             title,
             country,
-            AVG(salary) AS salary
+            AVG(salary) AS _expr_0
           FROM
             table_1
           WHERE
@@ -1339,7 +1339,7 @@ take 20
         SELECT
           title,
           country,
-          AVG(salary) AS sum_gross_cost
+          AVG(_expr_0) AS sum_gross_cost
         FROM
           table_2
         GROUP BY

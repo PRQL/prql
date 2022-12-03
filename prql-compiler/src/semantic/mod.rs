@@ -126,20 +126,24 @@ mod test {
           - id: 0
             name: employees
             relation:
-              ExternRef:
-                - LocalTable: employees
-                - - id: 0
-                    kind: Wildcard
+              kind:
+                ExternRef:
+                  LocalTable: employees
+              columns:
+                - Wildcard
         relation:
-          Pipeline:
-            - From:
-                source: 0
-                columns:
-                  - id: 1
-                    kind: Wildcard
-                name: employees
-            - Select:
-                - 1
+          kind:
+            Pipeline:
+              - From:
+                  source: 0
+                  columns:
+                    - - Wildcard
+                      - 0
+                  name: employees
+              - Select:
+                  - 0
+          columns:
+            - Wildcard
         "### );
 
         assert!(parse_and_resolve(

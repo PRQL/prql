@@ -92,6 +92,8 @@ pub fn translate_query(query: Query) -> Result<sql_ast::Query> {
         }
     }
 
+    dbg!(&atomics);
+
     // take last table
     let main_query = atomics.remove(atomics.len() - 1);
     let ctes = atomics;
