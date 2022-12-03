@@ -1,5 +1,5 @@
 use proc_macro::{Literal, TokenStream, TokenTree};
-use prql_compiler::{compile, format_error};
+use prql_compiler::{compile, IntoErrorMessage};
 use syn::{Expr, ExprLit, Lit};
 
 #[proc_macro]
@@ -17,7 +17,7 @@ pub fn prql(input: TokenStream) -> TokenStream {
     let sql_string = match compile(&prql_string) {
         Ok(r) => r,
         Err(err) => {
-            let err = format_error(err, "<prql_macro>", &prql_string, true);
+            let err = err.into_error_message("<prql_macro>", &prql_string, true);
             panic!("{}", err.message);
         }
     };
