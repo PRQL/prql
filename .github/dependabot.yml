@@ -28,3 +28,40 @@ updates:
           - version-update:semver-patch
     commit-message:
       prefix: "chore: "
+
+  # For actions (rather than workflows), we need to list each directory, ref
+  # https://github.com/dependabot/dependabot-core/issues/5137, from https://github.com/dependabot/dependabot-core/issues/4178#issuecomment-1118492006
+  - directory: ".github/actions/build-prql-js"
+    commit-message:
+      prefix: "chore: "
+    package-ecosystem: "github-actions"
+    schedule:
+      interval: "daily"
+
+  - directory: ".github/actions/build-prql-python"
+    commit-message:
+      prefix: "chore: "
+    package-ecosystem: "github-actions"
+    schedule:
+      interval: "daily"
+
+  - directory: ".github/actions/test-python"
+    commit-message:
+      prefix: "chore: "
+    package-ecosystem: "github-actions"
+    schedule:
+      interval: "daily"
+
+  - directory: ".github/actions/test-rust"
+    commit-message:
+      prefix: "chore: "
+    package-ecosystem: "github-actions"
+    schedule:
+      interval: "daily"
+
+  - directory: ".github/actions/time-compilation"
+    commit-message:
+      prefix: "chore: "
+    package-ecosystem: "github-actions"
+    schedule:
+      interval: "daily"
