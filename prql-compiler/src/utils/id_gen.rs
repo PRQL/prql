@@ -1,11 +1,10 @@
 use std::marker::PhantomData;
 
 use anyhow::Result;
-use serde::{Deserialize, Serialize};
 
 use crate::ast::rq::{fold_table, CId, IrFold, Query, TId, TableDecl};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct IdGenerator<T: From<usize>> {
     next_id: usize,
     phantom: PhantomData<T>,
@@ -63,5 +62,24 @@ impl IrFold for IdLoader {
         self.tid.skip(table.id.get());
 
         fold_table(self, table)
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct NameGenerator {
+    prefix: &'static str,
+    id: IdGenerator<usize>,
+}
+
+impl NameGenerator {
+    pub fn new(prefix: &'static str) -> Self {
+        NameGenerator {
+            prefix,
+            id: IdGenerator::new(),
+        }
+    }
+
+    pub fn gen(&mut self) -> String {
+        format!("{}{}", self.prefix, self.id.gen())
     }
 }

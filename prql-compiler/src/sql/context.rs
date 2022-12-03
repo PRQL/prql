@@ -11,7 +11,7 @@ use crate::ast::rq::{
     fold_relation, fold_table, CId, Compute, IrFold, Query, Relation, RelationColumn, RelationKind,
     TId, TableDecl, TableRef, Transform,
 };
-use crate::utils::IdGenerator;
+use crate::utils::{IdGenerator, NameGenerator};
 
 #[derive(Default)]
 pub struct AnchorContext {
@@ -22,8 +22,10 @@ pub struct AnchorContext {
 
     pub(super) table_instances: HashMap<TIId, TableRef>,
 
-    col_name: IdGenerator<usize>,
-    table_name: IdGenerator<usize>,
+    pub(super) col_name: NameGenerator,
+    pub(super) table_name: NameGenerator,
+
+    pub(super) used_col_names: HashMap<String, CId>,
 
     pub(super) cid: IdGenerator<CId>,
     pub(super) tid: IdGenerator<TId>,
@@ -54,6 +56,8 @@ impl AnchorContext {
             cid,
             tid,
             tiid: IdGenerator::new(),
+            col_name: NameGenerator::new("_expr_"),
+            table_name: NameGenerator::new("table_"),
             ..Default::default()
         };
         QueryLoader::load(context, query)
@@ -75,14 +79,10 @@ impl AnchorContext {
         }
 
         if table_ref.name.is_none() {
-            table_ref.name = Some(self.gen_table_name())
+            table_ref.name = Some(self.table_name.gen())
         }
 
         self.table_instances.insert(tiid, table_ref);
-    }
-
-    pub fn gen_table_name(&mut self) -> String {
-        format!("table_{}", self.table_name.gen())
     }
 
     pub(crate) fn get_column_name(&mut self, cid: CId) -> Option<&String> {
@@ -157,7 +157,7 @@ impl IrFold for QueryLoader {
         let mut table = fold_table(self, table)?;
 
         if table.name.is_none() {
-            table.name = Some(self.context.gen_table_name());
+            table.name = Some(self.context.table_name.gen());
         }
 
         self.context.table_decls.insert(table.id, table.clone());
@@ -175,7 +175,7 @@ impl IrFold for QueryLoader {
         let tiid = self.context.tiid.gen();
 
         if table_ref.name.is_none() {
-            table_ref.name = Some(self.context.gen_table_name());
+            table_ref.name = Some(self.context.table_name.gen());
         }
 
         // store

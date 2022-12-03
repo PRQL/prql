@@ -2,12 +2,6 @@
 //! then to a String. We use sqlparser because it's trivial to create the string
 //! once it's in their AST (it's just `.to_string()`). It also lets us support a
 //! few dialects of SQL immediately.
-// The average code quality here is low — we're basically plugging in test
-// cases and fixing what breaks, with some occasional refactors. I'm not sure
-// that's a terrible approach — the SQL spec is huge, so we're not reasonably
-// going to be isomorphically mapping everything back from SQL to PRQL. But it
-// does mean we should continue to iterate on this file and refactor things when
-// necessary.
 use anyhow::{anyhow, Result};
 use itertools::Itertools;
 use sqlformat::{format, FormatOptions, QueryParams};
@@ -77,7 +71,7 @@ pub fn translate_query(query: Query) -> Result<sql_ast::Query> {
     for table in tables {
         let name = table
             .name
-            .unwrap_or_else(|| context.anchor.gen_table_name());
+            .unwrap_or_else(|| context.anchor.table_name.gen());
 
         match table.relation.kind {
             RelationKind::Pipeline(pipeline) => {
@@ -295,6 +289,8 @@ fn split_into_atomics(
     mut pipeline: Vec<Transform>,
     context: &mut AnchorContext,
 ) -> Vec<AtomicQuery> {
+    context.used_col_names.clear();
+
     let output_cols = context.determine_select_columns(&pipeline);
     let mut required_cols = output_cols.clone();
 
@@ -340,7 +336,7 @@ fn split_into_atomics(
         // this code chunk is bloated but I cannot find a more concise alternative
         let first = parts.remove(0);
 
-        let first_name = context.gen_table_name();
+        let first_name = context.table_name.gen();
         atomics.push(AtomicQuery {
             name: first_name.clone(),
             relation: RelationKind::Pipeline(first.0),
@@ -348,7 +344,7 @@ fn split_into_atomics(
 
         let mut prev_name = first_name;
         for (pipeline, cols_before) in parts.into_iter() {
-            let name = context.gen_table_name();
+            let name = context.table_name.gen();
             let pipeline = anchor::anchor_split(context, &prev_name, &cols_before, pipeline);
 
             atomics.push(AtomicQuery {
