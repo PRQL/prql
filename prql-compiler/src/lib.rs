@@ -51,7 +51,9 @@ pub fn json_to_rq(json: &str) -> Result<Query> {
 }
 
 // TODO: possibly collapse this with other functions. Deliberately not `pub`
-// atm.
+// currently. Ref discussion at https://github.com/prql/prql/pull/1182. Note
+// that the error message this produces doesn't have the file name /
+// `source_id`, because we don't know that at this point.
 #[allow(dead_code)]
 fn compile_to_error_message(prql: &str) -> Result<String, ErrorMessage> {
     let res = compile(prql);
@@ -1734,15 +1736,16 @@ join y [foo == only_in_x]
         from x
         select a
         select b
-        "###).unwrap_err().message,
+        "###).unwrap_err(),
             @r###"
         Error:
-           ╭─[:4:16]
-           │
-         4 │         select b
-           ·                ┬
-           ·                ╰── Unknown name b
-           "###);
+        ╭─[:4:16]
+        │
+        4 │         select b
+        ·                ┬
+        ·                ╰── Unknown name b
+        ───╯
+        "###);
     }
 
     #[test]

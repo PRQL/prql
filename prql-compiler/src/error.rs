@@ -21,7 +21,7 @@ pub struct Error {
     pub help: Option<String>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct SourceLocation {
     /// Line and column
     pub start: (usize, usize),
@@ -67,6 +67,7 @@ impl Error {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct ErrorMessage {
     pub message: String,
     pub line: String,
@@ -75,7 +76,14 @@ pub struct ErrorMessage {
 
 impl Display for ErrorMessage {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.message)
+        // https://github.com/zesterer/ariadne/issues/52
+        let message_without_trailing_spaces = &self
+            .message
+            .split('\n')
+            .map(str::trim)
+            .collect::<Vec<_>>()
+            .join("\n");
+        f.write_str(message_without_trailing_spaces)
     }
 }
 
