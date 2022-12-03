@@ -1,6 +1,6 @@
 # PRQL Changelog
 
-## 0.3.1 - Unreleased
+## 0.3.1 - 2022-12-03
 
 0.3.1 brings a couple of small improvements and fixes.
 
