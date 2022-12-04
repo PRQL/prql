@@ -177,7 +177,7 @@ fn translate_cid(cid: CId, ctx: &mut Context) -> Result<sql_ast::Expr> {
                 RelationColumn::Wildcard => "*".to_string(),
                 RelationColumn::Single(name) => name.clone().unwrap(),
             };
-            let t = &ctx.anchor.table_instances[&*tiid];
+            let t = &ctx.anchor.table_instances[tiid];
 
             translate_ident(Some(t.name.clone().unwrap()), Some(col), ctx)
         }

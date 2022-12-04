@@ -30,7 +30,7 @@ pub struct Query {
 pub struct Relation {
     pub kind: RelationKind,
 
-    pub columns: Vec<RelationColumn>
+    pub columns: Vec<RelationColumn>,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize, EnumAsInner)]
@@ -41,11 +41,10 @@ pub enum RelationKind {
     SString(Vec<InterpolateItem<Expr>>),
 }
 
-
 #[derive(Debug, PartialEq, Clone, Eq, Hash, Serialize, Deserialize)]
 pub enum RelationColumn {
     Wildcard,
-    Single(Option<String>)
+    Single(Option<String>),
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
@@ -58,7 +57,7 @@ pub struct TableDecl {
     pub relation: Relation,
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub struct TableRef {
     // referenced table
     pub source: TId,

@@ -54,17 +54,14 @@ struct Lowerer {
 
     context: Context,
 
-    // current window for any new column defs
-    window: Option<rq::Window>,
-
     /// describes what has certain id has been lowered to
     node_mapping: HashMap<usize, LoweredTarget>,
 
-    // used when a pipeline is rewritten (split) during lowering
-    column_redirects: HashMap<CId, CId>,
-
     /// mapping from [Ident] of [crate::ast::TableDef] into [TId]s
     table_mapping: HashMap<Ident, TId>,
+
+    // current window for any new column defs
+    window: Option<rq::Window>,
 
     /// A buffer to be added into current pipeline
     pipeline: Vec<Transform>,
@@ -87,15 +84,14 @@ impl Lowerer {
     fn new(context: Context) -> Self {
         Lowerer {
             context,
-            window: None,
 
             cid: IdGenerator::new(),
             tid: IdGenerator::new(),
 
             node_mapping: HashMap::new(),
-            column_redirects: HashMap::new(),
             table_mapping: HashMap::new(),
 
+            window: None,
             pipeline: Vec::new(),
             table_buffer: Vec::new(),
         }
@@ -107,14 +103,13 @@ impl Lowerer {
             ExprKind::Ident(fq_table_name) => {
                 // ident that refer to table: create an instance of the table
                 let id = expr.id.unwrap();
-                let tid = self.ensure_table_id(&fq_table_name);
+                let tid = *self.table_mapping.get(&fq_table_name).unwrap();
 
                 log::debug!("lowering an instance of table {fq_table_name} (id={id})...");
 
                 let name = expr.alias.clone().or(Some(fq_table_name.name));
 
-                let table_ref = self.create_a_table_instance(id, name, tid);
-                table_ref
+                self.create_a_table_instance(id, name, tid)
             }
             ExprKind::TransformCall(_) => {
                 // pipeline that has to be pulled out into a table
@@ -138,9 +133,8 @@ impl Lowerer {
                 // return an instance of this new table
                 let table_ref = self.create_a_table_instance(id, None, tid);
 
-                for (old, (_, new)) in zip(cids, &table_ref.columns) {
-                    self.column_redirects.insert(old, *new);
-                }
+                let redirects = zip(cids, table_ref.columns.iter().map(|(_, c)| *c)).collect();
+                self.redirect_mappings(redirects);
 
                 table_ref
             }
@@ -174,8 +168,7 @@ impl Lowerer {
                 });
 
                 // return an instance of this new table
-                let table_ref = self.create_a_table_instance(id, None, tid);
-                table_ref
+                self.create_a_table_instance(id, None, tid)
             }
             _ => {
                 bail!(Error::new(Reason::Expected {
@@ -189,6 +182,25 @@ impl Lowerer {
         })
     }
 
+    fn redirect_mappings(&mut self, redirects: HashMap<CId, CId>) {
+        for target in self.node_mapping.values_mut() {
+            match target {
+                LoweredTarget::Compute(cid) => {
+                    if let Some(new) = redirects.get(cid) {
+                        *cid = *new;
+                    }
+                }
+                LoweredTarget::Input(mapping) => {
+                    for (cid, _) in mapping.values_mut() {
+                        if let Some(new) = redirects.get(cid) {
+                            *cid = *new;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     fn create_a_table_instance(
         &mut self,
         id: usize,
@@ -196,7 +208,7 @@ impl Lowerer {
         tid: TId,
     ) -> rq::TableRef {
         // create instance columns from table columns
-        let table = self.table_buffer.iter().find(|t| t.id == *(&tid)).unwrap();
+        let table = self.table_buffer.iter().find(|t| t.id == tid).unwrap();
 
         let mut columns = Vec::new();
         for col in &table.relation.columns {
@@ -217,13 +229,6 @@ impl Lowerer {
             name,
             columns,
         }
-    }
-
-    fn ensure_table_id(&mut self, fq_ident: &Ident) -> TId {
-        *self
-            .table_mapping
-            .entry(fq_ident.clone())
-            .or_insert_with(|| self.tid.gen())
     }
 
     fn lower_relation(&mut self, expr: Expr) -> Result<rq::Relation> {
@@ -370,7 +375,7 @@ impl Lowerer {
                     columns.push((RelationColumn::Single(name), cid));
                 }
                 FrameColumn::Wildcard { input_name } => {
-                    let input = frame.find_input(&input_name).unwrap();
+                    let input = frame.find_input(input_name).unwrap();
 
                     match &self.node_mapping[&input.id] {
                         LoweredTarget::Compute(_cid) => unreachable!(),
@@ -379,8 +384,6 @@ impl Lowerer {
                             input_cols.sort_by_key(|e| e.1 .1);
 
                             for (col, (cid, _)) in input_cols {
-                                let cid = self.column_redirects.get(cid).unwrap_or(cid);
-
                                 columns.push((col.clone(), *cid));
                             }
                         }
@@ -560,13 +563,14 @@ impl Lowerer {
                 if let Some((cid, _)) = input_columns.get(&name) {
                     *cid
                 } else {
-                    panic!("cannot find cid by id={id} and name={name:?}");
+                    input_columns.get(&RelationColumn::Wildcard).unwrap().0
+                    // panic!("cannot find cid by id={id} and name={name:?}");
                 }
             }
             None => panic!("cannot find cid by id={id}"),
         };
 
-        Ok(self.column_redirects.get(&cid).cloned().unwrap_or(cid))
+        Ok(cid)
     }
 }
 
@@ -612,7 +616,10 @@ impl TableExtractor {
 }
 
 fn lower_table(lowerer: &mut Lowerer, table: context::TableDecl, fq_ident: Ident) -> Result<()> {
-    let id = lowerer.ensure_table_id(&fq_ident);
+    let id = *lowerer
+        .table_mapping
+        .entry(fq_ident.clone())
+        .or_insert_with(|| lowerer.tid.gen());
 
     let context::TableDecl { frame, expr } = table;
 
@@ -622,7 +629,7 @@ fn lower_table(lowerer: &mut Lowerer, table: context::TableDecl, fq_ident: Ident
     } else {
         relation_from_extern_ref(frame, fq_ident.name.clone())
     };
-    let name = Some(fq_ident.name.clone());
+    let name = Some(fq_ident.name);
 
     log::debug!("lowering table {name:?}, columns = {:?}", relation.columns);
 

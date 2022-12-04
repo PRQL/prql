@@ -86,9 +86,7 @@ impl AnchorContext {
     }
 
     pub(crate) fn get_column_name(&mut self, cid: CId) -> Option<&String> {
-        if self.column_decls[&cid].as_compute().is_none() {
-            return None;
-        }
+        self.column_decls[&cid].as_compute()?;
 
         let name = self.column_names.entry(cid);
         let col_name_gen = &mut self.col_name;

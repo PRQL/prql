@@ -48,7 +48,7 @@ pub fn split_off_back(
 
         match &transform {
             Transform::Compute(compute) => {
-                if can_materialize(&compute, &inputs_required) {
+                if can_materialize(compute, &inputs_required) {
                     log::debug!("materializing {:?}", compute.id);
 
                     // materialize
@@ -212,13 +212,13 @@ pub fn anchor_split(
         let old_def = ctx.column_decls.get(old_cid).unwrap();
 
         let col = match old_def {
-            ColumnDecl::RelationColumn(_, _, col) => {
-                match col {
-                    RelationColumn::Wildcard | RelationColumn::Single(Some(_)) => col.clone(),
-                    RelationColumn::Single(None) => RelationColumn::Single(Some(ctx.col_name.gen()))
-                }
+            ColumnDecl::RelationColumn(_, _, col) => match col {
+                RelationColumn::Wildcard | RelationColumn::Single(Some(_)) => col.clone(),
+                RelationColumn::Single(None) => RelationColumn::Single(Some(ctx.col_name.gen())),
             },
-            ColumnDecl::Compute(_) => RelationColumn::Single(ctx.get_column_name(*old_cid).cloned()),
+            ColumnDecl::Compute(_) => {
+                RelationColumn::Single(ctx.get_column_name(*old_cid).cloned())
+            }
         };
         let new_cid = ctx.cid.gen();
 
