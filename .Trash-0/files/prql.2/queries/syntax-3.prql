@@ -1,0 +1,2 @@
+from employees
+select [first_name]

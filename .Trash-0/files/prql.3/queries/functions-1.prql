@@ -1,0 +1,7 @@
+func interp lower:0 higher x -> (x - lower) / (higher - lower)
+
+from students
+derive [
+  sat_proportion_1 = (interp 1600 sat_score),
+  sat_proportion_2 = (interp lower:0 1600 sat_score),
+]

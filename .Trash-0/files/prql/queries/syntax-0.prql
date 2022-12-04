@@ -1,0 +1,3 @@
+from employees
+filter department == "Product"
+select [first_name, last_name]

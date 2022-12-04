@@ -1,0 +1,5 @@
+from employees
+derive [
+  gross_salary = salary + payroll_tax,
+  gross_cost = gross_salary + benefits_cost
+]

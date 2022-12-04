@@ -5,6 +5,6 @@ input_file: book/tests/prql/queries/functions-3.prql
 ---
 SELECT
   *,
-  (temp_f - 32) * 3 AS temp_c
+  (temp_f - 32) / 1.8 AS temp_c
 FROM
   cities
