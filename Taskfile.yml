@@ -47,6 +47,7 @@ tasks:
       # default?!)
       - cargo install --locked
         cargo-audit
+        cargo-insta
         cargo-release
         default-target
         mdbook
@@ -54,8 +55,6 @@ tasks:
         mdbook-toc
         wasm-bindgen-cli
         wasm-pack
-        # https://github.com/mitsuhiko/insta/issues/301
-      - cargo install cargo-insta --version=1.21.0
 
   install-maturin:
     desc: Install maturin
@@ -162,11 +161,11 @@ tasks:
       # examples in the documentation (inc. tested), b) not rely on falliable
       # tests to extract them, which include compiling prql-compiler, c) not
       # fail other compilation steps if they can't be extracted.
-      - cargo insta test --accept -- -p mdbook-prql run_examples
+      - cargo insta test --accept -p mdbook-prql -- run_examples
       - task: build-all
       # Only delete unreferenced snapshots on the default target — lots are excluded under wasm.
-      - cargo insta test --accept --delete-unreferenced-snapshots -- --target={{.default_target}}
-      - cargo insta test --accept -- --target=wasm32-unknown-unknown
+      - cargo insta test --accept --target={{.default_target}} --delete-unreferenced-snapshots
+      - cargo insta test --accept --target=wasm32-unknown-unknown
       - pre-commit run -a
 
   build-web:
