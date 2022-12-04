@@ -1,3 +1,0 @@
-prql dialect:bigquery
-from `project-foo.dataset.table`
-join `project-bar.dataset.table` [==col_bax]

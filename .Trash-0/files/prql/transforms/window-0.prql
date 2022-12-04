@@ -1,7 +1,0 @@
-from employees
-group employee_id (
-  sort month
-  window rolling:12 (
-    derive [trail_12_m_comp = sum paycheck]
-  )
-)

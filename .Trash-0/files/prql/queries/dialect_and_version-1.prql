@@ -1,5 +1,0 @@
-prql dialect:mssql
-
-from employees
-sort age
-take 10

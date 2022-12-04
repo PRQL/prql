@@ -1,3 +1,0 @@
-prql dialect:postgres
-from employees
-select `first name`

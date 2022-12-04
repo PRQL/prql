@@ -1,2 +1,0 @@
-from e = employees
-select e.first_name

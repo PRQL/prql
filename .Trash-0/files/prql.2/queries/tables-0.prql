@@ -1,8 +1,0 @@
-table top_50 = (
-  from employees
-  sort salary
-  take 50
-  aggregate [total_salary = sum salary]
-)
-
-from top_50      # Starts a new pipeline

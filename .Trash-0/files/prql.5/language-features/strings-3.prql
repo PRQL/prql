@@ -1,2 +1,0 @@
-from my_table
-select x = """I said "hello world"!"""

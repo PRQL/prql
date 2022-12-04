@@ -1,3 +1,0 @@
-prql dialect:mysql
-from employees
-select `first name`
