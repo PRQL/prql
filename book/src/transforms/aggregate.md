@@ -11,6 +11,10 @@ When applied:
 aggregate [{expression or assign operations}]
 ```
 
+```admonish note
+Currenty, all declared aggregation functions are `min`, `max`, `count`, `average`, `stddev`, `avg`, `sum` and `count_distinct`. We are in the process of filling out [std lib](../stdlib.html).
+```
+
 ## Examples
 
 ```prql
@@ -30,3 +34,14 @@ group [title, country] (
   ]
 )
 ```
+
+## Aggregate is required
+
+Unlike in SQL, using an aggregation function in `derive` or `select` (or any other transform except `aggregate`) will not trigger aggreagtion. By default, PRQL will interprete such attempts functions as window functions:
+
+```prql
+from employees
+derive [avg_sal = average salary]
+```
+
+This insures that `derive` does not manipuate number of rows, but only ever adds a column. For more information, see [window transform](./window.html).
