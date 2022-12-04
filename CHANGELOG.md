@@ -21,7 +21,7 @@
 **Internal**:
 
 - Update Github Actions and Workflows to current version numbers
-  (and avoid using Node 12) (#1201, @richb-hanover)
+  (and avoid using Node 12)
 
 ## 0.3.0 — 2022-11-29
 
