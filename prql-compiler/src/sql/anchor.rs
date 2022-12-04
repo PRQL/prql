@@ -482,9 +482,7 @@ impl<'a> IrFold for CidRedirector<'a> {
         match transform {
             Transform::Compute(compute) => {
                 let compute = self.fold_compute(compute)?;
-                self.ctx
-                    .column_decls
-                    .insert(compute.id, ColumnDecl::Compute(compute.clone()));
+                self.ctx.register_compute(compute.clone());
                 Ok(Transform::Compute(compute))
             }
             _ => fold_transform(self, transform),

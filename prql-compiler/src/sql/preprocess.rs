@@ -6,7 +6,7 @@ use crate::ast::pl::{BinOp, ColumnSort, InterpolateItem, Literal, Range, WindowF
 use crate::ast::rq::{CId, Compute, Expr, ExprKind, IrFold, Take, Transform, Window};
 
 use super::anchor::{infer_complexity, Complexity};
-use super::context::{AnchorContext, ColumnDecl};
+use super::context::AnchorContext;
 use super::translator::Context;
 
 pub(super) fn preprocess_distinct(
@@ -117,9 +117,7 @@ impl<'a> TakeConverter<'a> {
             is_aggregation: false,
         };
 
-        self.context
-            .column_decls
-            .insert(compute.id, ColumnDecl::Compute(compute.clone()));
+        self.context.register_compute(compute.clone());
 
         let col_ref = Box::new(Expr {
             kind: ExprKind::ColumnRef(compute.id),

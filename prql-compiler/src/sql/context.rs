@@ -45,7 +45,7 @@ impl From<usize> for TIId {
 #[derive(Debug, PartialEq, Clone, strum::AsRefStr, EnumAsInner)]
 pub enum ColumnDecl {
     RelationColumn(TIId, CId, RelationColumn),
-    Compute(Compute),
+    Compute(Box<Compute>),
 }
 
 impl AnchorContext {
@@ -68,6 +68,12 @@ impl AnchorContext {
         let kind = ColumnDecl::RelationColumn(tiid, id, RelationColumn::Wildcard);
         self.column_decls.insert(id, kind);
         id
+    }
+
+    pub fn register_compute(&mut self, compute: Compute) {
+        let id = compute.id;
+        let decl = ColumnDecl::Compute(Box::new(compute));
+        self.column_decls.insert(id, decl);
     }
 
     pub fn create_table_instance(&mut self, mut table_ref: TableRef) {
@@ -163,9 +169,7 @@ impl IrFold for QueryLoader {
     }
 
     fn fold_compute(&mut self, compute: Compute) -> Result<Compute> {
-        self.context
-            .column_decls
-            .insert(compute.id, ColumnDecl::Compute(compute.clone()));
+        self.context.register_compute(compute.clone());
         Ok(compute)
     }
 
