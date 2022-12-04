@@ -65,3 +65,30 @@ group [order_month] (
   )
 )
 ```
+
+## Windowing by default
+
+If you use window functions without `window` transform, they will be applied to the whole table. Unlike in SQL, they will remain window functions and will not trigger aggregation.
+
+```prql
+from employees
+sort age
+derive rnk = rank
+```
+
+You can also only apply `group`:
+```prql
+from employees
+group department (
+  sort age
+  derive rnk = rank
+)
+```
+
+## Window functions as first class citizens
+
+There is no limitaions where windowed expressions can be used:
+```prql
+from employees
+filter salary < (average salary)
+```
