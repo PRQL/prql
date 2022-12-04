@@ -1,0 +1,11 @@
+---
+source: book/tests/snapshot.rs
+expression: Statements(parse(&prql).unwrap())
+input_file: book/tests/prql/transforms/window-2.prql
+---
+from employees
+sort age
+derive rnk = rank
+
+
+
