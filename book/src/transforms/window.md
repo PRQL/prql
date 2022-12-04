@@ -77,6 +77,7 @@ derive rnk = rank
 ```
 
 You can also only apply `group`:
+
 ```prql
 from employees
 group department (
@@ -88,6 +89,7 @@ group department (
 ## Window functions as first class citizens
 
 There is no limitaions where windowed expressions can be used:
+
 ```prql
 from employees
 filter salary < (average salary)
