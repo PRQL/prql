@@ -72,7 +72,7 @@ the command(s) below.
 
 _(The first time you run a component, it may take some
 time to install additional files.
-Once they're built, start up is quick..)_
+Once they're built, start up is quick.)_
 
 **Playground:** Use the command above, then enter:
 
