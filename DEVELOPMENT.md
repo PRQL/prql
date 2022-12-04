@@ -220,9 +220,9 @@ Currently we release in a semi-automated way:
   versions, then PR the resulting commit.
 - After merging, go to [Draft a new
   release](https://github.com/prql/prql/releases/new), copy the changelog entry
-  into the release notes, select a new tag to be created, and hit "Publish".
-- From there, all packages are published automatically based on our [release
-  workflow](.github/workflows/release.yaml).
+  into the release notes, enter the tag to be created, and hit "Publish".
+- From there, both the tag and release is created and all packages are published
+  automatically based on our [release workflow](.github/workflows/release.yaml).
 - Add in the sections for a new Changelog:
 
   ```md
