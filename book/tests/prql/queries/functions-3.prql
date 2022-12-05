@@ -1,4 +1,4 @@
-func celsius_of_fahrenheit temp -> (temp - 32) / 1.8
+func fahrenheit_to_celsius temp -> (temp - 32) / 1.8
 
 from cities
-derive temp_c = (temp_f | celsius_of_fahrenheit)
+derive temp_c = (temp_f | fahrenheit_to_celsius)
