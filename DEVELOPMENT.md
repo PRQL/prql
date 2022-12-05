@@ -143,7 +143,7 @@ Our tests:
 [^2]: For example, this is a command I frequently run:
 
     ```sh
-    RUST_BACKTRACE=1 watchexec -e rs,toml,pest,md -cr --ignore='target/**' -- cargo insta test --accept -- -p prql-compiler --lib
+    RUST_BACKTRACE=1 watchexec -e rs,toml,pest,md -cr --ignore='target/**' -- cargo insta test --accept -p prql-compiler --lib
     ```
 
     Breaking this down:
