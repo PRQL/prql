@@ -1,0 +1,10 @@
+---
+source: book/tests/snapshot.rs
+expression: Statements(parse(&prql).unwrap())
+input_file: book/tests/prql/transforms/aggregate-2.prql
+---
+from employees
+derive [avg_sal = average salary]
+
+
+
