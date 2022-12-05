@@ -103,11 +103,11 @@ impl AnchorContext {
     }
 
     pub fn determine_select_columns(&self, pipeline: &[Transform]) -> Vec<CId> {
-        if let Some((last, remaning)) = pipeline.split_last() {
+        if let Some((last, remaining)) = pipeline.split_last() {
             match last {
                 Transform::From(table) => table.columns.iter().map(|(_, cid)| *cid).collect(),
                 Transform::Join { with: table, .. } => [
-                    self.determine_select_columns(remaning),
+                    self.determine_select_columns(remaining),
                     table.columns.iter().map(|(_, cid)| *cid).collect_vec(),
                 ]
                 .concat(),
@@ -115,7 +115,7 @@ impl AnchorContext {
                 Transform::Aggregate { partition, compute } => {
                     [partition.clone(), compute.clone()].concat()
                 }
-                _ => self.determine_select_columns(remaning),
+                _ => self.determine_select_columns(remaining),
             }
         } else {
             Vec::new()

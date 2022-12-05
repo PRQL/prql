@@ -5,11 +5,12 @@ use anyhow::{anyhow, bail, Result};
 use itertools::{Itertools, Position};
 
 use crate::ast::pl::{fold::*, *};
+use crate::ast::rq::RelationColumn;
 use crate::error::{Error, Reason, Span};
 use crate::semantic::context::TableDecl;
 use crate::utils::IdGenerator;
 
-use super::context::{Context, Decl, DeclKind, TableColumn};
+use super::context::{Context, Decl, DeclKind};
 use super::module::{Module, NS_FRAME, NS_FRAME_RIGHT, NS_PARAM};
 use super::reporting::debug_call_tree;
 use super::transforms::Flattener;
@@ -138,7 +139,7 @@ impl AstFold for Resolver {
                         ..node
                     },
 
-                    DeclKind::TableDecl(TableDecl { frame, .. }) => {
+                    DeclKind::TableDecl(TableDecl { columns, .. }) => {
                         let alias = node.alias.unwrap_or_else(|| ident.name.clone());
 
                         let instance_frame = Frame {
@@ -147,14 +148,13 @@ impl AstFold for Resolver {
                                 name: alias.clone(),
                                 table: Some(fq_ident.clone()),
                             }],
-                            columns: frame
-                                .columns
+                            columns: columns
                                 .iter()
                                 .map(|col| match col {
-                                    TableColumn::Wildcard => FrameColumn::Wildcard {
+                                    RelationColumn::Wildcard => FrameColumn::Wildcard {
                                         input_name: alias.clone(),
                                     },
-                                    TableColumn::Single(name) => FrameColumn::Single {
+                                    RelationColumn::Single(name) => FrameColumn::Single {
                                         name: name.clone().map(|name| Ident {
                                             name,
                                             path: vec![alias.clone()],

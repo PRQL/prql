@@ -5,8 +5,9 @@ use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 
 use crate::ast::pl::{Expr, Ident};
+use crate::ast::rq::RelationColumn;
 
-use super::context::{Decl, DeclKind, TableColumn, TableDecl, TableFrame};
+use super::context::{Decl, DeclKind, TableDecl};
 use super::{Frame, FrameColumn};
 
 pub const NS_STD: &str = "std";
@@ -47,9 +48,7 @@ impl Module {
                             "*".to_string(),
                             Decl::from(DeclKind::Wildcard(Box::new(DeclKind::TableDecl(
                                 TableDecl {
-                                    frame: TableFrame {
-                                        columns: vec![TableColumn::Wildcard],
-                                    },
+                                    columns: vec![RelationColumn::Wildcard],
                                     expr: None,
                                 },
                             )))),

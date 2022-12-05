@@ -15,7 +15,7 @@ use crate::error::{Error, Reason};
 use crate::semantic::module::Module;
 use crate::utils::{toposort, IdGenerator};
 
-use super::context::{self, Context, DeclKind, TableColumn, TableFrame};
+use super::context::{self, Context, DeclKind};
 
 /// Convert AST into IR and make sure that:
 /// - transforms are not nested,
@@ -621,13 +621,13 @@ fn lower_table(lowerer: &mut Lowerer, table: context::TableDecl, fq_ident: Ident
         .entry(fq_ident.clone())
         .or_insert_with(|| lowerer.tid.gen());
 
-    let context::TableDecl { frame, expr } = table;
+    let context::TableDecl { columns, expr } = table;
 
     let relation = if let Some(expr) = expr {
         // this is a CTE
         lowerer.lower_relation(*expr)?
     } else {
-        relation_from_extern_ref(frame, fq_ident.name.clone())
+        relation_from_extern_ref(columns, fq_ident.name.clone())
     };
     let name = Some(fq_ident.name);
 
@@ -638,14 +638,7 @@ fn lower_table(lowerer: &mut Lowerer, table: context::TableDecl, fq_ident: Ident
     Ok(())
 }
 
-fn relation_from_extern_ref(frame: TableFrame, table_name: String) -> rq::Relation {
-    let mut columns = (frame.columns.into_iter())
-        .map(|col| match col {
-            TableColumn::Wildcard => RelationColumn::Wildcard,
-            TableColumn::Single(name) => RelationColumn::Single(name),
-        })
-        .collect_vec();
-
+fn relation_from_extern_ref(mut columns: Vec<RelationColumn>, table_name: String) -> rq::Relation {
     // put wildcards last
     columns.sort_by_key(|a| matches!(a, RelationColumn::Wildcard));
 
