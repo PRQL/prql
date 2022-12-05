@@ -26,7 +26,7 @@ pub fn split_off_back(
 
     let mut following_transforms: HashSet<String> = HashSet::new();
 
-    let mut inputs_required = into_requirements(output, Complexity::highest(), true);
+    let mut inputs_required = into_requirements(output.clone(), Complexity::highest(), true);
     let mut inputs_avail = HashSet::new();
 
     // iterate backwards
@@ -115,12 +115,18 @@ pub fn split_off_back(
 
     // figure out SELECT columns
     {
-        let selected: Vec<_> = selected.into_iter().unique().collect();
+        // output cols must preserve duplicates, but selected inputs has to be deduplicated
+        let mut output = output;
+        for c in selected {
+            if !output.contains(&c) {
+                output.push(c);
+            }
+        }
 
         // Because of s-strings, sometimes, transforms will not have any
         // requirements, which would result in empty SELECTs.
         // As a workaround, let's just fallback to a wildcard.
-        let selected = if selected.is_empty() {
+        let output = if output.is_empty() {
             let (input_tables, _) = ctx.collect_pipeline_inputs(&pipeline);
 
             input_tables
@@ -128,12 +134,12 @@ pub fn split_off_back(
                 .map(|tiid| ctx.register_wildcard(*tiid))
                 .collect()
         } else {
-            selected
+            output
         };
 
-        let selected = compress_wildcards(ctx, selected);
+        let output = compress_wildcards(ctx, output);
 
-        curr_pipeline_rev.push(Transform::Select(selected));
+        curr_pipeline_rev.push(Transform::Select(output));
     }
 
     let remaining_pipeline = if pipeline.is_empty() {

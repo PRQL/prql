@@ -210,10 +210,15 @@ impl Lowerer {
         // create instance columns from table columns
         let table = self.table_buffer.iter().find(|t| t.id == tid).unwrap();
 
-        let mut columns = Vec::new();
-        for col in &table.relation.columns {
-            columns.push((col.clone(), self.cid.gen()));
-        }
+        let inferred_cols = self.context.inferred_columns.get(&id);
+
+        let columns = (table.relation.columns.iter())
+            .cloned()
+            .chain(inferred_cols.cloned().unwrap_or_default())
+            .unique()
+            .map(|col| (col, self.cid.gen()))
+            .collect_vec();
+
         log::debug!("... columns = {:?}", columns);
 
         let input_cids: HashMap<_, _> = columns
@@ -563,8 +568,7 @@ impl Lowerer {
                 if let Some((cid, _)) = input_columns.get(&name) {
                     *cid
                 } else {
-                    input_columns.get(&RelationColumn::Wildcard).unwrap().0
-                    // panic!("cannot find cid by id={id} and name={name:?}");
+                    panic!("cannot find cid by id={id} and name={name:?}");
                 }
             }
             None => panic!("cannot find cid by id={id}"),

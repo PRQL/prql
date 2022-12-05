@@ -17,6 +17,8 @@ pub struct Context {
     pub(crate) root_mod: Module,
 
     pub(crate) span_map: HashMap<usize, Span>,
+
+    pub(crate) inferred_columns: HashMap<usize, Vec<RelationColumn>>,
 }
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
@@ -31,7 +33,7 @@ pub enum DeclKind {
     /// A nested namespace
     Module(Module),
 
-    /// Nested namespaces that do lookup in layers from top to bottom, stoping at first match.
+    /// Nested namespaces that do lookup in layers from top to bottom, stopping at first match.
     LayeredModules(Vec<Module>),
 
     TableDecl(TableDecl),
@@ -139,6 +141,7 @@ impl Context {
 
                 let wildcard = self.root_mod.get(&wildcard_ident).unwrap();
                 let wildcard_default = wildcard.kind.as_wildcard().cloned().unwrap();
+                let input_id = wildcard.declared_at;
 
                 let module_ident = wildcard_ident.pop().unwrap();
                 let module = self.root_mod.get_mut(&module_ident).unwrap();
@@ -154,6 +157,21 @@ impl Context {
                     if let DeclKind::InstanceOf(table_ident) = decl.kind {
                         log::debug!("inferring {ident} to be from table {table_ident}");
                         self.infer_table_column(&table_ident, &ident.name)?;
+                    }
+                }
+
+                // for inline expressions with wildcards (s-strings), we cannot store inferred columns
+                // in global namespace, but still need the information for lowering.
+                // as a workaround, we store it in context directly.
+                if let Some(input_id) = input_id {
+                    let inferred = self.inferred_columns.entry(input_id).or_default();
+
+                    let exists = inferred.iter().any(|c| match c {
+                        RelationColumn::Single(Some(name)) => name == &ident.name,
+                        _ => false,
+                    });
+                    if !exists {
+                        inferred.push(RelationColumn::Single(Some(ident.name.clone())));
                     }
                 }
 

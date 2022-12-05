@@ -61,9 +61,20 @@ impl Default for SortDirection {
 }
 
 impl Frame {
-    pub fn push_column(&mut self, name: Option<String>, id: usize) {
+    pub fn push_column(&mut self, col_name: Option<String>, id: usize) {
+        // remove names from columns with the same name
+        if col_name.is_some() {
+            for c in &mut self.columns {
+                if let FrameColumn::Single { name, .. } = c {
+                    if name.as_ref().map(|i| &i.name) == col_name.as_ref() {
+                        *name = None;
+                    }
+                }
+            }
+        }
+
         self.columns.push(FrameColumn::Single {
-            name: name.map(Ident::from_name),
+            name: col_name.map(Ident::from_name),
             expr_id: id,
         });
     }
