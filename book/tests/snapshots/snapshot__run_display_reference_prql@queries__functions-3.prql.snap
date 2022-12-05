@@ -3,7 +3,7 @@ source: book/tests/snapshot.rs
 expression: Statements(parse(&prql).unwrap())
 input_file: book/tests/prql/queries/functions-3.prql
 ---
-func fahrenheit_to_celsius temp -> (temp - 32) / 1.8
+func fahrenheit_to_celsius temp -> temp - 32 / 1.8
 
 
 
