@@ -3,7 +3,7 @@ source: book/tests/snapshot.rs
 expression: Statements(parse(&prql).unwrap())
 input_file: book/tests/prql/queries/functions-4.prql
 ---
-func celsius_of_fahrenheit temp -> temp - 32 * 3
+func fahrenheit_to_celsius temp -> temp - 32 / 1.8
 
 
 
@@ -14,7 +14,7 @@ func interp higher x lower:0 -> x - lower / higher - lower
 from kettles
 derive boiling_proportion = (
   temp_c
-  celsius_of_fahrenheit
+  fahrenheit_to_celsius
   interp 100
 )
 

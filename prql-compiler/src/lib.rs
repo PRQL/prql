@@ -121,10 +121,10 @@ mod test {
           n = a + b,
           r = a/n,
         ]
-        select temp_c = (temp - 32) * 3
+        select temp_c = (temp - 32) / 1.8
         "###).unwrap()), @r###"
         SELECT
-          (temp - 32) * 3 AS temp_c
+          (temp - 32) / 1.8 AS temp_c
         FROM
           x
         "###);
