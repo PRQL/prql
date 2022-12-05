@@ -1,0 +1,16 @@
+---
+source: book/tests/snapshot.rs
+expression: sql
+input_file: book/tests/prql/transforms/window-2.prql
+---
+SELECT
+  *,
+  RANK() OVER (
+    ORDER BY
+      age ROWS BETWEEN UNBOUNDED PRECEDING
+      AND UNBOUNDED FOLLOWING
+  ) AS rnk
+FROM
+  employees
+ORDER BY
+  age

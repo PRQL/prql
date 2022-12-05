@@ -583,7 +583,7 @@ section {
 
 article {
   padding: 4rem 0;
-  font-size: 1.2em;
+  font-size: 1.1em;
 }
 
 article h1 {
@@ -637,4 +637,32 @@ article h2 {
 
 #footer .copyright p {
   display: flex;
+}
+
+/*--------------------------------------------------------------
+# FAQ sections
+--------------------------------------------------------------*/
+details.faq h2 {
+  display: inline-flex;
+  align-items: center;
+  margin-bottom: 0;
+  font-size: 26px;
+  white-space: pre-wrap;
+}
+details.faq[open] summary h2 {
+  margin-bottom: 1rem;
+}
+details.faq summary::-webkit-details-marker {
+  display: none;
+}
+details.faq summary {
+  list-style: none;
+}
+details.faq summary h2::before {
+  content: "►";
+  font-size: 16px;
+  margin-right: 5px;
+}
+details.faq[open] summary h2:before {
+  content: "▼";
 }

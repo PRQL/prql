@@ -33,7 +33,7 @@ Currently the compiler is not sufficiently friendly, despite significant recent 
 We'd like to make error messages better and sand off sharp corners.
 
 Both bug reports of unfriendliness, and code contributions to improve them are welcome; there's a
-[friendliness label.](https://github.com/prql/prql/issues?q=is%3Aissue+label%3Afriendlienss+is%3Aopen)
+[friendliness label.](https://github.com/prql/prql/issues?q=is%3Aissue+label%3Afriendliness+is%3Aopen)
 
 ## Standard library
 
