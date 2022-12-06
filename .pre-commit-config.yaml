@@ -24,7 +24,7 @@ repos:
     hooks:
       - id: markdown-link-check
         files: \.md$
-        args: ["--config=.markdown-link-check.json"]
+        args: ["--config=.github/.markdown-link-check.json"]
 ci:
   # Currently network access isn't supported
   skip: [fmt, clippy, markdown-link-check]

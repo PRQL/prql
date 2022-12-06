@@ -77,7 +77,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: gaurav-nelson/github-action-markdown-link-check@v1
         with:
-          config-file: .markdown-link-check.json
+          config-file: .github/.markdown-link-check.json
           base-branch: main
           # We also run without this in the cron workflow (maybe there's a
           # better way of organizing these so we DRY)
