@@ -3,9 +3,9 @@ const expect = require("chai").expect;
 const prql = require("../dist/node");
 const employee_prql = `from employees
 join salaries [==emp_no]
-group [emp_no, gender] (
+group [employees.emp_no, employees.gender] (
   aggregate [
-    emp_salary = average salary
+    emp_salary = average salaries.salary
   ]
 )
 join de=dept_emp [==emp_no]

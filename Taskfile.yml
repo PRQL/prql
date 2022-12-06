@@ -178,6 +178,13 @@ tasks:
       - cd playground && npm ci
       - cd playground && npm run build
       - rsync -ai --checksum --delete playground/build/ website/public/playground/
+
+  test-prql-js:
+    # These are mostly copied from the tasks in `test-all.yaml`
+    dir: prql-js
+    cmds:
+      - wasm-pack build --target nodejs --release --out-dir dist/node
+      - cd tests && npm i && npm run test
 # The next three tasks are not used for either:
 #  - the Dockerfile (installing brew takes forever)
 #    so the Dockerfile simply installs hugo & nodejs directly
