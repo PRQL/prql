@@ -47,7 +47,7 @@ from e=employees
 join salaries [==emp_no]
 group [e.emp_no, e.gender] (
   aggregate [
-    emp_salary = average salary
+    emp_salary = average salaries.salary
   ]
 )
 join de=dept_emp [==emp_no] side:left
@@ -70,7 +70,7 @@ from e=employees
 join salaries [==emp_no]
 group [e.emp_no, e.gender] (
   aggregate [
-    emp_salary = average salary
+    emp_salary = average salaries.salary
   ]
 )
 join de=dept_emp [==emp_no]

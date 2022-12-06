@@ -19,12 +19,12 @@ join side:{inner|left|right|full} {table} {[conditions]}
 
 ```prql
 from employees
-join side:left positions [id==employee_id]
+join side:left positions [employees.id==positions.employee_id]
 ```
 
 ```prql
 from employees
-join side:left p=positions [id==employee_id]
+join side:left p=positions [employees.id==p.employee_id]
 ```
 
 ## Self equality operator

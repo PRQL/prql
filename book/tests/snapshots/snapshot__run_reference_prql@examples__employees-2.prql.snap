@@ -6,7 +6,7 @@ input_file: book/tests/prql/examples/employees-2.prql
 WITH table_1 AS (
   SELECT
     e.gender,
-    AVG(salary) AS emp_salary,
+    AVG(salaries.salary) AS emp_salary,
     e.emp_no
   FROM
     employees AS e

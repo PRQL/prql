@@ -12,7 +12,6 @@ join d = departments [==dept_id]
 select [
   first_name,
   d.title,
-  created_at,
 ]
 
 

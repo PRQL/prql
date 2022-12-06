@@ -5,8 +5,7 @@ input_file: book/tests/prql/internals/name-resolving-1.prql
 ---
 SELECT
   employees.first_name,
-  d.title,
-  created_at
+  d.title
 FROM
   employees
   JOIN departments AS d ON employees.dept_id = d.dept_id

@@ -8,4 +8,4 @@ SELECT
   p.*
 FROM
   employees
-  LEFT JOIN positions AS p ON id = employee_id
+  LEFT JOIN positions AS p ON employees.id = p.employee_id

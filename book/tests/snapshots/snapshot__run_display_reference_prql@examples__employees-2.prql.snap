@@ -9,7 +9,7 @@ group [
   e.emp_no,
   e.gender,
 ] (
-  aggregate [emp_salary = average salary]
+  aggregate [emp_salary = average salaries.salary]
 )
 join de = dept_emp [==emp_no]
 join dm = dept_manager [dm.dept_no == de.dept_no and s"(de.from_date, de.to_date) OVERLAPS (dm.from_date, dm.to_date)"]

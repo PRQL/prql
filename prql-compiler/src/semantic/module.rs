@@ -14,7 +14,6 @@ pub const NS_FRAME: &str = "_frame";
 pub const NS_FRAME_RIGHT: &str = "_right";
 pub const NS_PARAM: &str = "_param";
 pub const NS_DEFAULT_DB: &str = "default_db";
-pub const NS_NO_RESOLVE: &str = "_no_resolve";
 pub const NS_SELF: &str = "_self";
 
 #[derive(Default, Serialize, Deserialize, Clone)]
