@@ -12,3 +12,5 @@ target
 
 # Appears when using Docker container
 .Trash-0
+
+**/node_modules/
