@@ -1895,7 +1895,9 @@ join y [foo == only_in_x]
         );
 
         assert_display_snapshot!(compile(r###"
-        from s"SELECT DISTINCT ON first_name, id, age FROM employees ORDER BY age ASC"
+        from s"""
+          SELECT DISTINCT ON first_name, id, age FROM employees ORDER BY age ASC
+        """
         join s = s"SELECT * FROM salaries" [==id]
         "###).unwrap(),
             @r###"
