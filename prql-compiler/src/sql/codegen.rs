@@ -219,7 +219,7 @@ pub(super) fn translate_query_sstring(
     context: &mut Context,
 ) -> Result<sql_ast::Query> {
     let string = translate_sstring(items, context)?;
-    if let Some(string) = string.strip_prefix("SELECT ") {
+    if let Some(string) = string.trim().strip_prefix("SELECT ") {
         Ok(sql_ast::Query {
             body: Box::new(sql_ast::SetExpr::Select(Box::new(sql_ast::Select {
                 projection: vec![sql_ast::SelectItem::UnnamedExpr(sql_ast::Expr::Identifier(
