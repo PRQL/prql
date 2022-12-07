@@ -46,9 +46,9 @@ feature. If we often need s-strings to express something, that's a sign we
 should implement it in PRQL or PRQL's stdlib.
 ```
 
-### Braces
+## Braces
 
-To use braces in an s-string, use double braces:
+To output braces from an s-string, use double braces:
 
 ```prql
 from employees
@@ -57,11 +57,13 @@ derive [
 ]
 ```
 
-### Nesting
+## Precedence
 
 The PRQL compiler simply places a literal copy of each variable into the
-resulting string. In this toy example (there's no actual need for an s-string
-here), the `365 / salary + benefits` is likely not what's intended here:
+resulting string, which means we may get surprising behavior when the variable
+is a full expression and we .
+
+In this toy example, the `365 / salary + benefits` gets precedence wrong:
 
 ```prql
 from employees
