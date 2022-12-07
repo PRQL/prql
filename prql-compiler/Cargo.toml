@@ -37,6 +37,7 @@ semver = { version = "1.0.14", features = ["serde"] }
 once_cell = "1.16.0"
 log = "0.4.17"
 env_logger = {version="0.9.1", features = ["termcolor"]}
+lazy_static = "1.4.0"
 
 [dependencies.clap]
 features = ["derive"]
