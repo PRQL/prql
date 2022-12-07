@@ -2033,6 +2033,7 @@ dependencies = [
  "globset",
  "insta",
  "itertools",
+ "lazy_static",
  "log",
  "once_cell",
  "pest",

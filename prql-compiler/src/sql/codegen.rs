@@ -2,11 +2,16 @@
 
 use anyhow::{bail, Result};
 use itertools::Itertools;
+use lazy_static::lazy_static;
 use sqlparser::ast::{
     self as sql_ast, BinaryOperator, DateTimeField, Function, FunctionArg, FunctionArgExpr, Join,
     JoinConstraint, JoinOperator, ObjectName, OrderByExpr, SelectItem, TableAlias, TableFactor,
     Top, UnaryOperator, Value, WindowFrameBound, WindowSpec,
 };
+use sqlparser::keywords::{
+    Keyword, ALL_KEYWORDS, ALL_KEYWORDS_INDEX, RESERVED_FOR_COLUMN_ALIAS, RESERVED_FOR_TABLE_ALIAS,
+};
+use std::collections::HashSet;
 
 use crate::ast::pl::{
     BinOp, ColumnSort, Dialect, InterpolateItem, JoinSide, Literal, Range, SortDirection,
@@ -519,6 +524,30 @@ pub(super) fn translate_ident(
         .collect()
 }
 
+fn is_keyword(ident: &str) -> bool {
+    lazy_static! {
+        /// Keywords which we want to quote when translating to SQL. Currently we're
+        /// being fairly permissive (over-quoting is not a concern), though we don't
+        /// use `ALL_KEYWORDS`, which is quite broad, including words like `temp`
+        /// and `lower`.
+        static ref PRQL_KEYWORDS: HashSet<&'static Keyword> = {
+            let mut m = HashSet::new();
+            m.extend(RESERVED_FOR_COLUMN_ALIAS);
+            m.extend(RESERVED_FOR_TABLE_ALIAS);
+            m
+        };
+    }
+
+    // Search for the ident in `ALL_KEYWORDS`, and then look it up in
+    // `ALL_KEYWORDS_INDEX`. There doesn't seem to a simpler
+    // `Keyword::from_string` function.
+    let keyword = ALL_KEYWORDS
+        .binary_search(&ident.to_ascii_uppercase().as_str())
+        .map_or(Keyword::NoKeyword, |x| ALL_KEYWORDS_INDEX[x]);
+
+    PRQL_KEYWORDS.contains(&keyword)
+}
+
 pub(super) fn translate_ident_part(ident: String, ctx: &Context) -> sql_ast::Ident {
     let is_jinja = ident.starts_with("{{") && ident.ends_with("}}");
 
@@ -537,6 +566,7 @@ pub(super) fn translate_ident_part(ident: String, ctx: &Context) -> sql_ast::Ide
         && (ident.is_empty()
             || ident.starts_with(starting_forbidden)
             || (ident.chars().count() > 1 && ident.contains(subsequent_forbidden)))
+        || is_keyword(&ident)
     {
         sql_ast::Ident::with_quote(ctx.dialect.ident_quote(), ident)
     } else {

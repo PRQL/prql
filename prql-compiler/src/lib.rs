@@ -278,6 +278,7 @@ table UPPER = (
 )
 from UPPER
 join `some_schema.tablename` [==id]
+derive `from` = 5
         "###).unwrap()), @r###"
         WITH "UPPER" AS (
           SELECT
@@ -287,7 +288,8 @@ join `some_schema.tablename` [==id]
         )
         SELECT
           "UPPER".*,
-          some_schema.tablename.*
+          some_schema.tablename.*,
+          5 AS "from"
         FROM
           "UPPER"
           JOIN some_schema.tablename ON "UPPER".id = some_schema.tablename.id
