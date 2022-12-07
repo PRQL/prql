@@ -289,8 +289,7 @@ derive `from` = 5
         SELECT
           "UPPER".*,
           some_schema.tablename.*,
-          5 AS
-        from
+          5 AS "from"
         FROM
           "UPPER"
           JOIN some_schema.tablename ON "UPPER".id = some_schema.tablename.id
