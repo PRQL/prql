@@ -524,20 +524,20 @@ pub(super) fn translate_ident(
         .collect()
 }
 
-lazy_static! {
-    /// Keywords which we want to quote when translating to SQL. Currently we're
-    /// being fairly permissive (over-quoting is not a concern), though we don't
-    /// use `ALL_KEYWORDS`, which is quite broad, including words like `temp`
-    /// and `lower`.
-    static ref PRQL_KEYWORDS: HashSet<&'static Keyword> = {
-        let mut m = HashSet::new();
-        m.extend(RESERVED_FOR_COLUMN_ALIAS);
-        m.extend(RESERVED_FOR_TABLE_ALIAS);
-        m
-    };
-}
-
 fn is_keyword(ident: &str) -> bool {
+    lazy_static! {
+        /// Keywords which we want to quote when translating to SQL. Currently we're
+        /// being fairly permissive (over-quoting is not a concern), though we don't
+        /// use `ALL_KEYWORDS`, which is quite broad, including words like `temp`
+        /// and `lower`.
+        static ref PRQL_KEYWORDS: HashSet<&'static Keyword> = {
+            let mut m = HashSet::new();
+            m.extend(RESERVED_FOR_COLUMN_ALIAS);
+            m.extend(RESERVED_FOR_TABLE_ALIAS);
+            m
+        };
+    }
+
     // Search for the ident in `ALL_KEYWORDS`, and then look it up in
     // `ALL_KEYWORDS_INDEX`. There doesn't seem to a simpler
     // `Keyword::from_string` function.
