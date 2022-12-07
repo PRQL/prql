@@ -19,6 +19,8 @@ vars:
     mitsuhiko.insta
     prql-lang.prql-vscode
     rust-lang.rust-analyzer
+  default_target:
+    sh: default-target
 
 tasks:
   # main installer is "setup-dev" which calls other tasks
@@ -136,8 +138,6 @@ tasks:
   build-all:
     desc: Build everything. Running this isn't required when developing; it's for caching or as a reference.
     vars:
-      default_target:
-        sh: default-target
       targets: |
         {{ .default_target }}
         wasm32-unknown-unknown
@@ -152,9 +152,13 @@ tasks:
 
   test-all:
     desc: Test everything, resetting snapshots. Running this isn't required when developing; it's for caching or as a reference.
-    vars:
-      default_target:
-        sh: default-target
+    cmds:
+      - task: test-rust
+      - task: build-all
+      - pre-commit run -a
+
+  test-rust:
+    desc: Test all rust code, resetting snapshots.
     cmds:
       # We run this `run_examples` first for the reasons given in
       # `parser::test_parse_pipeline_parse_tree`. Ideally we would a) retain
@@ -162,11 +166,9 @@ tasks:
       # tests to extract them, which include compiling prql-compiler, c) not
       # fail other compilation steps if they can't be extracted.
       - cargo insta test --accept -p mdbook-prql -- run_examples
-      - task: build-all
       # Only delete unreferenced snapshots on the default target — lots are excluded under wasm.
       - cargo insta test --accept --target={{.default_target}} --delete-unreferenced-snapshots
       - cargo insta test --accept --target=wasm32-unknown-unknown
-      - pre-commit run -a
 
   build-web:
     desc: Build the website
