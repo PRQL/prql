@@ -562,7 +562,7 @@ pub(super) fn translate_ident_part(ident: String, ctx: &Context) -> sql_ast::Ide
 
     let is_bare = dbg!(VALID_BARE_IDENT.is_match(&ident));
 
-    if is_jinja || is_match && !is_keyword(&ident) {
+    if is_jinja || is_bare && !is_keyword(&ident) {
         sql_ast::Ident::new(ident)
     } else {
         sql_ast::Ident::with_quote(ctx.dialect.ident_quote(), ident)
