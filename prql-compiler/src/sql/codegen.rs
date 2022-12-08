@@ -3,6 +3,7 @@
 use anyhow::{bail, Result};
 use itertools::Itertools;
 use lazy_static::lazy_static;
+use regex::Regex;
 use sqlparser::ast::{
     self as sql_ast, BinaryOperator, DateTimeField, Function, FunctionArg, FunctionArgExpr, Join,
     JoinConstraint, JoinOperator, ObjectName, OrderByExpr, SelectItem, TableAlias, TableFactor,
@@ -549,28 +550,22 @@ fn is_keyword(ident: &str) -> bool {
 }
 
 pub(super) fn translate_ident_part(ident: String, ctx: &Context) -> sql_ast::Ident {
+    // We'll remove this when we get the new dbt plugin working (so no need to
+    // integrate into the regex)
     let is_jinja = ident.starts_with("{{") && ident.ends_with("}}");
-
-    // TODO: can probably represent these with a single regex
-    fn starting_forbidden(c: char) -> bool {
-        !(('a'..='z').contains(&c) || matches!(c, '_' | '$'))
-    }
-    fn subsequent_forbidden(c: char) -> bool {
-        !(('a'..='z').contains(&c) || ('0'..='9').contains(&c) || matches!(c, '_' | '$'))
+    lazy_static! {
+        // One of:
+        // - `*`
+        // - An ident starting with `a-z_\$` and containing other characters `a-z0-9_\$`
+        static ref VALID_BARE_IDENT: Regex = Regex::new(r"^((\*)|(^[a-z_\$][a-z0-9_\$]*))$").unwrap();
     }
 
-    let is_asterisk = ident == "*";
+    let is_bare = dbg!(VALID_BARE_IDENT.is_match(&ident));
 
-    if !is_asterisk
-        && !is_jinja
-        && (ident.is_empty()
-            || ident.starts_with(starting_forbidden)
-            || (ident.chars().count() > 1 && ident.contains(subsequent_forbidden)))
-        || is_keyword(&ident)
-    {
-        sql_ast::Ident::with_quote(ctx.dialect.ident_quote(), ident)
-    } else {
+    if is_jinja || is_bare && !is_keyword(&ident) {
         sql_ast::Ident::new(ident)
+    } else {
+        sql_ast::Ident::with_quote(ctx.dialect.ident_quote(), ident)
     }
 }
 

@@ -2041,6 +2041,7 @@ dependencies = [
  "postgres",
  "pulldown-cmark",
  "pulldown-cmark-to-cmark",
+ "regex",
  "rusqlite",
  "semver",
  "serde",
