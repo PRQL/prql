@@ -560,7 +560,7 @@ pub(super) fn translate_ident_part(ident: String, ctx: &Context) -> sql_ast::Ide
         static ref VALID_BARE_IDENT: Regex = Regex::new(r"^((\*)|(^[a-z_\$][a-z0-9_\$]*))$").unwrap();
     }
 
-    let is_match = dbg!(VALID_BARE_IDENT.is_match(&ident));
+    let is_bare = dbg!(VALID_BARE_IDENT.is_match(&ident));
 
     if is_jinja || is_match && !is_keyword(&ident) {
         sql_ast::Ident::new(ident)
