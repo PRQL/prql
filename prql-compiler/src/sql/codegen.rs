@@ -557,6 +557,9 @@ pub(super) fn translate_ident_part(ident: String, ctx: &Context) -> sql_ast::Ide
         // One of:
         // - `*`
         // - An ident starting with `a-z_\$` and containing other characters `a-z0-9_\$`
+        //
+        // We could replace this with pomsky (regex<>pomsky : sql<>prql)
+        // ^ ('*' | [ascii_lower '_$'] [ascii_lower ascii_digit '_$']* ) $
         static ref VALID_BARE_IDENT: Regex = Regex::new(r"^((\*)|(^[a-z_\$][a-z0-9_\$]*))$").unwrap();
     }
 
