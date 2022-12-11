@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Nox session configuration."""
 import os
 from pathlib import Path
