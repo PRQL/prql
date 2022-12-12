@@ -14,7 +14,7 @@ A summary of PRQL syntax
 | `=`             | Assigns & Aliases       | `from e = employees` <br> `derive total = (sum salary)` |
 | `:`             | Named args & Parameters | `interp lower:0 1600 sat_score`                         |
 | `[]`            | List                    | `select [id, amount]`                                   |
-| `()`            | Precedence              | `derive fahrenheit = (celsius - 32) * 1.8`              |
+| `()`            | Precedence              | `derive fahrenheit = (celsius - 32) / 1.8`              |
 | `''` & `""`     | Strings                 | `derive name = "Mary"`                                  |
 | `` ` ` ``       | Quoted identifiers      | `` select `first name`  ``                              |
 | `#`             | Comment                 | `# A comment`                                           |
