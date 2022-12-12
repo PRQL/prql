@@ -42,23 +42,23 @@ RUN apt-get -yq update \
 # ========= Install task =========
 RUN sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b /usr/local/bin
 
-# ========= Set up workdir & copy the taskfile =========
-WORKDIR /app
-COPY Taskfile.yml .
-
-# ========= Install cargo-tools =========
-RUN task install-cargo-tools
-
 # ========= Install Node 16.x =========
 RUN curl -sL https://deb.nodesource.com/setup_16.x | bash -
 RUN apt install -y nodejs
-
-# ========= Install remaining development tools using task =========
-RUN task install-npm-dependencies
 
 # ========= Install hugo =========
 RUN curl -L https://github.com/gohugoio/hugo/releases/download/v0.91.2/hugo_0.91.2_Linux-64bit.deb -o hugo.deb \
   && apt install ./hugo.deb \
   && rm hugo.deb
+
+# ========= Set up workdir & copy the taskfile =========
+WORKDIR /src
+COPY Taskfile.yml .
+
+# ========= Install cargo-tools =========
+RUN task install-cargo-tools
+
+# ========= Install remaining development tools using task =========
+RUN task install-npm-dependencies
 
 ENTRYPOINT ["/bin/bash"]

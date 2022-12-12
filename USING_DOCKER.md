@@ -55,10 +55,10 @@ Finally, start up the Docker container with:
 
 ```bash
 cd <top-level-PRQL-directory>
-docker run -it -v $(pwd)/:/app -p 3000:3000 prql
+docker run -it -v $(pwd)/:/src -p 3000:3000 prql
 ```
 
-- You'll see a `root@xxxxxxxxx:/app/#` prompt
+- You'll see a `root@xxxxxxxxx:/src/#` prompt
 - Enter the commands below for the component you're working on
 - Ctrl-C to exit that component
 - Enter 'exit' to close down the Docker machine
