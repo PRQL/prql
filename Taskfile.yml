@@ -19,8 +19,6 @@ vars:
     mitsuhiko.insta
     prql-lang.prql-vscode
     rust-lang.rust-analyzer
-  default_target:
-    sh: default-target
 
 tasks:
   # main installer is "setup-dev" which calls other tasks
@@ -57,6 +55,9 @@ tasks:
         mdbook-toc
         wasm-bindgen-cli
         wasm-pack
+      - cmd: |
+          [ "$(which default-target)" ] || echo "Can't find a binary that cargo installed. Is the cargo bin path (generally at ~/.cargo/bin) on the $PATH?"
+        silent: true
 
   install-maturin:
     desc: Install maturin
@@ -138,6 +139,8 @@ tasks:
   build-all:
     desc: Build everything. Running this isn't required when developing; it's for caching or as a reference.
     vars:
+      default_target:
+        sh: default-target
       targets: |
         {{ .default_target }}
         wasm32-unknown-unknown
@@ -159,6 +162,9 @@ tasks:
 
   test-rust:
     desc: Test all rust code, resetting snapshots.
+    vars:
+      default_target:
+        sh: default-target
     cmds:
       # We run this `run_examples` first for the reasons given in
       # `parser::test_parse_pipeline_parse_tree`. Ideally we would a) retain
