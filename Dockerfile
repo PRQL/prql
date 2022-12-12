@@ -18,6 +18,8 @@
 # See USING_DOCKER.md for instructions for various tasks
 
 FROM rust:1.64.0-slim-buster
+# Surprising this isn't aready in the rust image
+ENV PATH="/root/.cargo/bin:${PATH}"
 
 # ========= Install essential apt packages =========
 RUN apt-get -yq update \
@@ -46,7 +48,6 @@ COPY Taskfile.yml .
 
 # ========= Install cargo-tools =========
 RUN task install-cargo-tools
-ENV PATH="/root/.cargo/bin:${PATH}"
 
 # ========= Install Node 16.x =========
 RUN curl -sL https://deb.nodesource.com/setup_16.x | bash -
