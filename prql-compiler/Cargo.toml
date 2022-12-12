@@ -57,7 +57,7 @@ version = "1.0.137"
 cfg-if = "1.0"
 chrono = "0.4"
 globset = "0.4.8"
-insta = {version = "1.21.0", features = ["colors", "glob", "yaml"]}
+insta = {version = "1.23.0", features = ["colors", "glob", "yaml"]}
 pulldown-cmark = "0.9.1"
 pulldown-cmark-to-cmark = "10.0.1"
 similar = "2.2.0"
