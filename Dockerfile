@@ -46,6 +46,7 @@ COPY Taskfile.yml .
 
 # ========= Install cargo-tools =========
 RUN task install-cargo-tools
+ENV PATH="/root/.cargo/bin:${PATH}"
 
 # ========= Install Node 16.x =========
 RUN curl -sL https://deb.nodesource.com/setup_16.x | bash -

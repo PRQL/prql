@@ -57,6 +57,9 @@ tasks:
         mdbook-toc
         wasm-bindgen-cli
         wasm-pack
+      - cmd: |
+          [ "$(which default-target)" ] || echo "Can't find a binary that cargo installed. Is the cargo bin path (generally at ~/.cargo/bin) on the $PATH?"
+        silent: true
 
   install-maturin:
     desc: Install maturin
