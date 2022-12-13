@@ -111,11 +111,10 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
-      # This both builds and caches the build in a local
+      # This both builds and caches the build in GHA
       - name: Build
         uses: docker/build-push-action@v3
         with:
-          context: .
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
