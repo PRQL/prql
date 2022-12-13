@@ -61,5 +61,5 @@ join d=departments [==dept_id]
 select [first_name, d.title]
 ```
 
-As you can see, `employees.first_name` now needs table prefix, to prevent conficts with potential column with the same name in `departments` table.
+As you can see, `employees.first_name` now needs table prefix, to prevent conflicts with potential column with the same name in `departments` table.
 Similarly, `d.title` needs the table prefix.
