@@ -69,10 +69,10 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           tags: prql:latest
-          # # FIXME: re-enable, commenting out for testing
-          # # Use the GHA cache
-          # cache-from: type=gha
-          # cache-to: type=gha,mode=max
+          # Use the GHA cache
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       # Not sure this is canonical; sourced from
       # https://aschmelyun.com/blog/using-docker-run-inside-of-github-actions/
