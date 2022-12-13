@@ -9,8 +9,7 @@ environment](../DEVELOPMENT.md#development-environment), and then run[^1]:
 task run-playground
 ```
 
-[^1]:
-    ...which is equivalent to:
+[^1]: ...which is equivalent to:
 
     ```sh
     cd playground

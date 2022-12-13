@@ -23,8 +23,7 @@ And then to build & serve locally[^1]:
 task run-book
 ```
 
-[^1]:
-    ...which is equivalent to:
+[^1]: ...which is equivalent to:
 
     ```sh
     cd book
