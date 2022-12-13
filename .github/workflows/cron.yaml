@@ -68,7 +68,7 @@ jobs:
       - name: Build
         uses: docker/build-push-action@v3
         with:
-          tags: prql
+          tags: prql:latest
           # Use the GHA cache
           cache-from: type=gha
           cache-to: type=gha,mode=max
