@@ -116,10 +116,7 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           context: .
-          push: true
-          tags: prql
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
       - run: docker run prql -v $(pwd)/:/src -- task test-all
-      # TODO: run build & test as well as just building the base image
