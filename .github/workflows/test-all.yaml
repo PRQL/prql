@@ -102,6 +102,7 @@ jobs:
           use_cache: true
 
   build-docker:
+    # Note that we only build the image here; we then run tests in `cron.yaml`
     runs-on: ubuntu-latest
     steps:
       - name: 📂 Checkout code
@@ -114,7 +115,6 @@ jobs:
         with:
           tags: prql:latest
           # Use the GHA cache
+          load: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
-      # Note that we only build the image here; we then run tests in `cron.yaml`
