@@ -17,12 +17,18 @@ task setup-dev
 cargo install --locked mdbook
 ```
 
-And then to build & serve locally:
+And then to build & serve locally[^1]:
 
 ```sh
-cd book
-mdbook serve
+task run-book
 ```
+
+[^1]: ...which is equivalent to:
+
+    ```sh
+    cd book
+    mdbook serve
+    ```
 
 ## Preprocessors
 

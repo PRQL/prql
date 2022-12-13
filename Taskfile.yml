@@ -193,6 +193,17 @@ tasks:
     cmds:
       - wasm-pack build --target nodejs --release --out-dir dist/node
       - cd tests && npm i && npm run test
+
+  run-book:
+    dir: book
+    cmds:
+      - mdbook serve
+
+  run-playground:
+    dir: playground
+    cmds:
+      - npm install
+      - npm start
 # The next three tasks are not used for either:
 #  - the Dockerfile (installing brew takes forever)
 #    so the Dockerfile simply installs hugo & nodejs directly
