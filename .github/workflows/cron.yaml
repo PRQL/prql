@@ -74,10 +74,9 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # Not sure this is canonical; sourced from
       # https://aschmelyun.com/blog/using-docker-run-inside-of-github-actions/
-      # (docker run can't find the image; possibly because we don't push it?)
-      - uses: addnab/docker-run-action@v3
+      - name: Test
+        uses: addnab/docker-run-action@v3
         with:
           image: prql:latest
           options: -v $(pwd)/:/src
