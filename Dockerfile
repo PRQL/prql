@@ -60,7 +60,7 @@ RUN task install-cargo-tools
 RUN task install-npm-dependencies
 
 # TODO: we could consider building the dependencies here, to take advantage of
-# Docker's. It's possible but not completely trivial:
+# Docker's caching. It's possible but not completely trivial:
 # https://stackoverflow.com/a/60590697/3064736
 
 ENTRYPOINT ["/bin/bash"]
