@@ -79,5 +79,5 @@ jobs:
         uses: addnab/docker-run-action@v3
         with:
           image: prql:latest
-          options: -v $(pwd)/:/src
+          options: -v ${{ github.workspace }}/:/src
           run: task test-all
