@@ -24,7 +24,9 @@ A summary of PRQL syntax
 | `->`            | [Function definitions](./functions.md)                | `func add a b -> a + b`                                 |
 | `+`/`-`         | [Sort order](../transforms/sort.md)                   | `sort [-amount, +date]`                                 |
 | `??`            | [Coalesce](../language-features/coalesce.md)          | `amount ?? 0`                                           |
-| `<type>`        | Annotations                                           | _Are these available?_ _Maybe link to ../language-features/dates_and_times.md_ `@2021-01-01<datetime>` |
+<!--
+| `<type>`        | Annotations                                           |  `@2021-01-01<datetime>`                                |
+-->
 <!-- prettier-ignore-end -->
 
 <!-- markdownlint-enable MD033 -->
