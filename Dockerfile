@@ -45,11 +45,8 @@ RUN apt-get -yq update \
 RUN /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 ENV PATH="/home/linuxbrew/.linuxbrew/bin:${PATH}"
 
-# ========= Install dependencies =========
-RUN brew install \
-  go-task/tap/go-task \
-  hugo \
-  node
+# ========= Install task =========
+RUN brew install go-task/tap/go-task
 
 # ========= Set up workdir & copy the taskfile =========
 WORKDIR /src
