@@ -9,7 +9,7 @@
 # Invoke with:
 #
 # cd <top-level-PRQL-directory>
-# docker run -it -v $(pwd)/:/app -p 3000:3000 prql
+# docker run -it -v $(pwd)/:/src -p 3000:3000 prql
 # You'll see a root@xxxxxxxxx:/app/# prompt
 # Enter the commands for the various tasks
 # Ctl-C to exit that task
@@ -63,4 +63,3 @@ RUN task install-npm-dependencies
 # Docker's caching. It's possible but not completely trivial:
 # https://stackoverflow.com/a/60590697/3064736
 
-ENTRYPOINT ["/bin/bash"]
