@@ -8,23 +8,23 @@ A summary of PRQL syntax
 
 <!-- I can't seem to get "Quoted identifies" to work without a space between the backticks. VSCode will preview ` `` ` correctly, but not mdbook -->
 <!-- prettier-ignore-start -->
-| Syntax          | Usage                                                        | Example                                                 |
-| --------------- | ------------------------------------------------------------ | ------------------------------------------------------- |
-| <code>\|</code> | [Pipelines](/queries/pipelines.md)                           | <code>from employees \| select first_name</code>        |
-| `=`             | Assigns & Aliases                                            | `from e = employees` <br> `derive total = (sum salary)` |
-| `:`             | [Named args & Parameters](/queries/functions.md)             | `interp lower:0 1600 sat_score`                         |
-| `[]`            | [Lists](/queries/syntax.md#lists)                            | `select [id, amount]`                                   |
-| `()`            | [Precedence and Parentheses](/queries/syntax.md#parentheses) | `derive fahrenheit = celsius * 1.8 + 32`                |
-| `''`, `""` or `"""..."""` | [Strings](../language-features/strings.md)         | `derive name = "Mary"` _or_ <br> ``derive quotes = """`"'"""`` |
-| `` ` ` ``       | [Quoted identifiers](/queries/syntax.md#quoted-identifiers)  | `` select `first name`  ``                              |
-| `#`             | [Comments](/queries/syntax.md#comments)                      | `# A comment`                                           |
-| `@`             | [Dates & Times](../language-features/dates_and_times.md#dates--times) | `@2021-01-01`                                  |
-| `==`            | Comparisons                                                  | `filter [a == b, c != d, e > f]`                        |
+| Syntax          | Usage                                                 | Example                                                 |
+| --------------- | ----------------------------------------------------- | ------------------------------------------------------- |
+| <code>\|</code> | [Pipelines](./pipelines.md)                           | <code>from employees \| select first_name</code>        |
+| `=`             | Assigns & Aliases                                     | `from e = employees` <br> `derive total = (sum salary)` |
+| `:`             | [Named args & Parameters](./functions.md)             | `interp lower:0 1600 sat_score`                         |
+| `[]`            | [Lists](./syntax.md#lists)                            | `select [id, amount]`                                   |
+| `()`            | [Precedence and Parentheses](./syntax.md#parentheses) | `derive fahrenheit = celsius * 1.8 + 32`                |
+| `''`, `""` or `"""..."""` | [Strings](../language-features/strings.md)  | `derive name = "Mary"` _or_ <br> ``derive quotes = """`"'"""`` |
+| `` ` ` ``       | [Quoted identifiers](./syntax.md#quoted-identifiers)  | `` select `first name`  ``                              |
+| `#`             | [Comments](./syntax.md#comments)                      | `# A comment`                                           |
+| `@`             | [Dates & Times](../language-features/dates_and_times.md#dates--times) | `@2021-01-01`                           |
+| `==`            | Comparisons                                           | `filter [a == b, c != d, e > f]`                        |
 | `==`            | [Self-equality in join](../transforms/join.md#self-equality-operator) | `join s=salaries [s.emp_id == e.id]` _or_  <br> `join s=salaries [==id]` |
-| `->`            | [Function definitions](/queries/functions.md)                | `func add a b -> a + b`                                 |
-| `+`/`-`         | [Sort order](../transforms/sort.md)                          | `sort [-amount, +date]`                                 |
-| `??`            | [Coalesce](../language-features/coalesce.md)                 | `amount ?? 0`                                           |
-| `<type>`        | Annotations                                                  | _Are\_these\_available?_ _Maybe link to ../language-features/dates_and_times.md_ `@2021-01-01<datetime>` |
+| `->`            | [Function definitions](./functions.md)                | `func add a b -> a + b`                                 |
+| `+`/`-`         | [Sort order](../transforms/sort.md)                   | `sort [-amount, +date]`                                 |
+| `??`            | [Coalesce](../language-features/coalesce.md)          | `amount ?? 0`                                           |
+| `<type>`        | Annotations                                           | _Are these available?_ _Maybe link to ../language-features/dates_and_times.md_ `@2021-01-01<datetime>` |
 <!-- prettier-ignore-end -->
 
 <!-- markdownlint-enable MD033 -->
