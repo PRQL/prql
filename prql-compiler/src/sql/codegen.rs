@@ -485,31 +485,6 @@ pub(super) fn translate_column_sort(
     })
 }
 
-pub(super) fn filter_of_filters(
-    conditions: Vec<Expr>,
-    ctx: &mut Context,
-) -> Result<Option<sql_ast::Expr>> {
-    let mut condition = None;
-    for filter in conditions {
-        if let Some(left) = condition {
-            condition = Some(Expr {
-                kind: ExprKind::Binary {
-                    op: BinOp::And,
-                    left: Box::new(left),
-                    right: Box::new(filter),
-                },
-                span: None,
-            })
-        } else {
-            condition = Some(filter)
-        }
-    }
-
-    condition
-        .map(|n| translate_expr_kind(n.kind, ctx))
-        .transpose()
-}
-
 pub(super) fn translate_join(
     (side, with, filter): (JoinSide, TableRef, Expr),
     ctx: &mut Context,
