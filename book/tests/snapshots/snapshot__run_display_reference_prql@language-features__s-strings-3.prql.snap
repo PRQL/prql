@@ -3,8 +3,8 @@ source: book/tests/snapshot.rs
 expression: Statements(parse(&prql).unwrap())
 input_file: book/tests/prql/language-features/s-strings-3.prql
 ---
-from employees
-derive [has_valid_title = s"regexp_contains(title, '([a-z0-9]*-){2,}')"]
+from s"SELECT DISTINCT ON first_name, id, age FROM employees ORDER BY age ASC"
+join s = s"SELECT * FROM salaries" [==id]
 
 
 

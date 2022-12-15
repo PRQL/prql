@@ -40,6 +40,13 @@ the result is SQL code, rather than a string literal. For example, a python
 f-string of `f"average{col}"` would produce `"average(salary)"`, with quotes;
 while in PRQL, `s"average{col}"` produces `average(salary)`, without quotes.
 
+We can also use s-strings to produce a full table:
+
+```prql
+from s"SELECT DISTINCT ON first_name, id, age FROM employees ORDER BY age ASC"
+join s = s"SELECT * FROM salaries" [==id]
+```
+
 ```admonish note
 S-strings in user code are intended as an escape-hatch for an unimplemented
 feature. If we often need s-strings to express something, that's a sign we
