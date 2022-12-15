@@ -50,11 +50,6 @@ pub fn split_off_back(
             Transform::Compute(compute) => {
                 if can_materialize(compute, &inputs_required) {
                     log::debug!("materializing {:?}", compute.id);
-
-                    // materialize
-                    // let col_def = ctx.columns_decls.get_mut(&decl.id).unwrap();
-                    // col_def.kind = decl.kind.clone();
-
                     inputs_avail.insert(compute.id);
                 } else {
                     pipeline.push(transform);
