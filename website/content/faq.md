@@ -184,3 +184,9 @@ PRQL:
 > etc."
 
 For more detail, check out the docs in the [PRQL Book](https://prql-lang.org/book).
+
+{{< faq "Is it "PRQL" or "prql" or "Prql"? >}}
+
+Currently we're trying to standardize on `PRQL` for the language and `prql` for
+the project. So "PRQL queries will become clearer as we develop prql further".
+But this isn't fixed; feedback welcome.
