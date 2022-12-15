@@ -1950,6 +1950,26 @@ join y [foo == only_in_x]
           country = 'USA'
         "###
         );
+
+        assert_display_snapshot!(compile(r###"
+        from e=s"""SELECT * FROM employees"""
+        filter e.country == "USA"
+        "###).unwrap(),
+            @r###"
+        WITH table_1 AS (
+          SELECT
+            *
+          FROM
+            employees
+        )
+        SELECT
+          *
+        FROM
+          table_1 AS table_0
+        WHERE
+          country = 'USA'
+        "###
+        );
     }
 
     #[test]
