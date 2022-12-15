@@ -14,12 +14,12 @@ A summary of PRQL syntax
 | `=`             | Assigns & Aliases                                     | `from e = employees` <br> `derive total = (sum salary)` |
 | `:`             | [Named args & Parameters](./functions.md)             | `interp lower:0 1600 sat_score`                         |
 | `[]`            | [Lists](./syntax.md#lists)                            | `select [id, amount]`                                   |
-| `()`            | [Precedence and Parentheses](./syntax.md#parentheses) | `derive fahrenheit = celsius * 1.8 + 32`                |
-| `''`, `""` or `"""..."""` | [Strings](../language-features/strings.md)  | `derive name = "Mary"` _or_ <br> ``derive quotes = """`"'"""`` |
+| `()`            | [Precedence](./syntax.md#parentheses) | `derive celsius = (fahrenheit - 32) / 1.8`                |
+| `''` & `""`  | [Strings](../language-features/strings.md)  | `derive name = 'Mary'` _or_ <br> ``derive quotes = """ quote:" """`` |
 | `` ` ` ``       | [Quoted identifiers](./syntax.md#quoted-identifiers)  | `` select `first name`  ``                              |
 | `#`             | [Comments](./syntax.md#comments)                      | `# A comment`                                           |
 | `@`             | [Dates & Times](../language-features/dates_and_times.md#dates--times) | `@2021-01-01`                           |
-| `==`            | Comparisons                                           | `filter [a == b, c != d, e > f]`                        |
+| `==`            | Equality | `filter [a == b, c != d, e > f]`                        |
 | `==`            | [Self-equality in join](../transforms/join.md#self-equality-operator) | `join s=salaries [s.emp_id == e.id]` _or_  <br> `join s=salaries [==id]` |
 | `->`            | [Function definitions](./functions.md)                | `func add a b -> a + b`                                 |
 | `+`/`-`         | [Sort order](../transforms/sort.md)                   | `sort [-amount, +date]`                                 |
