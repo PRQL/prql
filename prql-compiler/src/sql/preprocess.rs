@@ -41,7 +41,7 @@ impl<'a> IrFold for TakeConverter<'a> {
                     let range_int = range
                         .clone()
                         .try_map(as_int)
-                        .map_err(|_| anyhow::anyhow!("Invaid take arguments"))?;
+                        .map_err(|_| anyhow::anyhow!("Invalid take arguments"))?;
 
                     let take_only_first =
                         range_int.start.unwrap_or(1) == 1 && matches!(range_int.end, Some(1));

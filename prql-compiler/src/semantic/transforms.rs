@@ -1,10 +1,11 @@
 use std::collections::HashMap;
 
 use anyhow::{anyhow, bail, Result};
+use std::iter::zip;
 
 use crate::ast::pl::fold::{fold_column_sorts, fold_transform_kind, AstFold};
 use crate::ast::pl::*;
-use crate::error::{Error, Reason};
+use crate::error::{Error, Reason, WithErrorInfo};
 
 use super::context::{Decl, DeclKind};
 use super::module::{Module, NS_PARAM};
@@ -174,10 +175,10 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
             };
             (transform_kind, tbl)
         }
-        "std.union" => {
-            let [second, first] = unpack::<2>(closure);
+        "std.concat" => {
+            let [bottom, top] = unpack::<2>(closure);
 
-            todo!()
+            (TransformKind::Concat(Box::new(bottom)), top)
         }
         _ => return Ok(Err(closure)),
     };
@@ -199,7 +200,7 @@ fn fold_by_simulating_eval(
     pipeline: Expr,
     val_type: Ty,
 ) -> Result<Expr, anyhow::Error> {
-    log::debug!("fold by simulating evalaluation");
+    log::debug!("fold by simulating evaluation");
 
     let param_name = "_tbl";
     let param_id = resolver.id.gen();
@@ -316,10 +317,75 @@ impl TransformCall {
                 frame.apply_assigns(assigns);
                 frame
             }
-            Join { with, .. } => ty_frame_or_default(&self.input)? + ty_frame_or_default(with)?,
+            Join { with, .. } => {
+                let left = ty_frame_or_default(&self.input)?;
+                let right = ty_frame_or_default(with)?;
+                join(left, right)
+            }
+            Concat(bottom) => {
+                let top = ty_frame_or_default(&self.input)?;
+                let bottom = ty_frame_or_default(bottom)?;
+                concat(top, bottom)?
+            }
             Sort { .. } | Filter { .. } | Take { .. } => ty_frame_or_default(&self.input)?,
         })
     }
+}
+
+fn join(mut lhs: Frame, rhs: Frame) -> Frame {
+    lhs.columns.extend(rhs.columns);
+    lhs.inputs.extend(rhs.inputs);
+    lhs
+}
+
+fn concat(mut top: Frame, bottom: Frame) -> Result<Frame, Error> {
+    if top.columns.len() != bottom.columns.len() {
+        return Err(Error::new(Reason::Simple(
+            "cannot concat two relations with non-matching number of columns.".to_string(),
+        )))
+        .with_help(format!(
+            "top has {} columns, but bottom has {}",
+            top.columns.len(),
+            bottom.columns.len()
+        ));
+    }
+
+    // TODO: I'm not sure what to use as input_name and expr_id...
+    let mut columns = Vec::with_capacity(top.columns.len());
+    for (t, b) in zip(top.columns, bottom.columns) {
+        columns.push(match (t, b) {
+            (FrameColumn::Wildcard { input_name }, FrameColumn::Wildcard { .. }) => {
+                FrameColumn::Wildcard { input_name }
+            }
+            (
+                FrameColumn::Single {
+                    name: name_t,
+                    expr_id,
+                },
+                FrameColumn::Single { name: name_b, .. },
+            ) => match (name_t, name_b) {
+                (None, None) => {
+                    let name = None;
+                    FrameColumn::Single { name, expr_id }
+                }
+                (None, Some(name)) | (Some(name), _) => {
+                    let name = Some(name);
+                    FrameColumn::Single { name, expr_id }
+                }
+            },
+            (t, b) => {
+                return Err(Error::new(Reason::Simple(format!(
+                    "cannot match columns `{t:?}` and `{b:?}`"
+                )))
+                .with_help(
+                    "make sure that top and bottom relations of concat has the same column layout",
+                ))
+            }
+        });
+    }
+
+    top.columns = columns;
+    Ok(top)
 }
 
 fn unpack<const P: usize>(closure: Closure) -> [Expr; P] {

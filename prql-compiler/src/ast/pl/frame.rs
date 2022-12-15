@@ -153,13 +153,3 @@ fn display_frame_column(
     }
     Ok(())
 }
-
-impl std::ops::Add<Frame> for Frame {
-    type Output = Frame;
-
-    fn add(mut self, rhs: Frame) -> Frame {
-        self.columns.extend(rhs.columns);
-        self.inputs.extend(rhs.inputs);
-        self
-    }
-}

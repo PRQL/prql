@@ -233,18 +233,79 @@ mod test {
     }
 
     #[test]
-    fn test_union() -> Result<()> {
+    fn test_concat() {
         assert_display_snapshot!(compile(r###"
         from employees
-        union all managers
-        "###)?, @r###"
+        concat managers
+        "###).unwrap(), @r###"
+        (
+          SELECT
+            *
+          FROM
+            employees
+        )
+        UNION
+        ALL
         SELECT
-          employees.*
+          *
         FROM
-          employees
+          managers
         "###);
 
-        Ok(())
+        assert_display_snapshot!(compile(r###"
+        from employees
+        derive [name, cost = salary]
+        take 3
+        concat (
+            from employees
+            derive [name, cost = salary + bonuses]
+            take 10
+        )
+        "###).unwrap(), @r###"
+        WITH table_1 AS (
+          SELECT
+            *,
+            name,
+            salary + bonuses AS cost
+          FROM
+            employees
+          LIMIT
+            10
+        ) (
+          SELECT
+            *,
+            name,
+            salary AS cost
+          FROM
+            employees
+          LIMIT
+            3
+        )
+        UNION
+        ALL
+        SELECT
+          *
+        FROM
+          table_1 AS table_0
+        "###);
+
+        assert_display_snapshot!(compile(r###"
+        from employees
+        union managers
+        "###).unwrap(), @r###"
+        (
+          SELECT
+            *
+          FROM
+            employees
+        )
+        UNION
+        DISTINCT
+        SELECT
+          *
+        FROM
+          managers
+        "###);
     }
 
     #[test]

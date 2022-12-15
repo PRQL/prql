@@ -243,6 +243,9 @@ fn is_split_required(transform: &Transform, following: &mut HashSet<String>) -> 
     // - compute (no limit)
     // - sort (no limit)
     // - take (no limit)
+    // - unique (for DISTINCT)
+    // - concat (max 1)
+    // - unique (for UNION)
     //
     // Select is not affected by the order.
     use Transform::*;
@@ -255,36 +258,38 @@ fn is_split_required(transform: &Transform, following: &mut HashSet<String>) -> 
         }
     }
 
-    let split = match transform {
-        From(_) => following.contains("From"),
-        Join { .. } => following.contains("From"),
-        Aggregate { .. } => {
-            following.contains("From")
-                || following.contains("Join")
-                || following.contains("Aggregate")
+    fn contains_any<const C: usize>(set: &HashSet<String>, elements: [&'static str; C]) -> bool {
+        for t in elements {
+            if set.contains(t) {
+                return true;
+            }
         }
-        Filter(_) => following.contains("From") || following.contains("Join"),
-        Compute(_) => {
-            following.contains("From")
-                || following.contains("Join")
-                // || following.contains("Aggregate")
-                || following.contains("Filter")
-        }
-        Sort(_) => {
-            following.contains("From")
-                || following.contains("Join")
-                || following.contains("Compute")
-                || following.contains("Aggregate")
-        }
-        Take(_) => {
-            following.contains("From")
-                || following.contains("Join")
-                || following.contains("Compute")
-                || following.contains("Filter")
-                || following.contains("Aggregate")
-                || following.contains("Sort")
-        }
+        false
+    }
 
+    let split = match transform {
+        From(_) => contains_any(following, ["From"]),
+        Join { .. } => contains_any(following, ["From"]),
+        Aggregate { .. } => contains_any(following, ["From", "Join", "Aggregate"]),
+        Filter(_) => contains_any(following, ["From", "Join"]),
+        Compute(_) => contains_any(following, ["From", "Join", /* "Aggregate" */ "Filter"]),
+        Sort(_) => contains_any(following, ["From", "Join", "Compute", "Aggregate"]),
+        Take(_) => contains_any(
+            following,
+            ["From", "Join", "Compute", "Filter", "Aggregate", "Sort"],
+        ),
+        Concat(_) | Unique => contains_any(
+            following,
+            [
+                "From",
+                "Join",
+                "Compute",
+                "Filter",
+                "Aggregate",
+                "Sort",
+                "Take",
+            ],
+        ),
         _ => false,
     };
 
@@ -360,7 +365,7 @@ pub fn get_requirements(transform: &Transform, following: &HashSet<String>) -> V
             cids
         }
 
-        Select(_) | From(_) | Aggregate { .. } | Unique => return Vec::new(),
+        Select(_) | From(_) | Concat(_) | Aggregate { .. } | Unique => return Vec::new(),
     };
 
     let (max_complexity, selected) = match transform {

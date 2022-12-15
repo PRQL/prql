@@ -331,6 +331,12 @@ impl Lowerer {
                 };
                 self.pipeline.push(transform);
             }
+            pl::TransformKind::Concat(bottom) => {
+                let bottom = self.lower_table_ref(*bottom)?;
+
+                let transform = Transform::Concat(bottom);
+                self.pipeline.push(transform);
+            }
             pl::TransformKind::Group { .. } | pl::TransformKind::Window { .. } => unreachable!(
                 "transform `{}` cannot be lowered.",
                 (*transform_call.kind).as_ref()
