@@ -197,7 +197,7 @@ tasks:
   run-book:
     dir: book
     cmds:
-      - mdbook serve
+      - mdbook serve --port=3000
 
   run-playground:
     dir: playground
