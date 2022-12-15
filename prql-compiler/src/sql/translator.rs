@@ -11,7 +11,7 @@ use sqlparser::ast::{self as sql_ast, Select, SelectItem, SetExpr, TableWithJoin
 
 use crate::ast::pl::{BinOp, DialectHandler, Literal};
 use crate::ast::rq::{
-    CId, Expr, ExprKind, IrFold, Query, Relation, RelationColumn, RelationKind, TableDecl,
+    CId, Expr, ExprKind, Query, Relation, RelationColumn, RelationKind, RqFold, TableDecl,
     Transform,
 };
 use crate::sql::context::ColumnDecl;

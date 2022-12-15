@@ -9,7 +9,7 @@ use enum_as_inner::EnumAsInner;
 use itertools::Itertools;
 
 use crate::ast::rq::{
-    fold_table, CId, Compute, IrFold, Query, RelationColumn, TId, TableDecl, TableRef, Transform,
+    fold_table, CId, Compute, Query, RelationColumn, RqFold, TId, TableDecl, TableRef, Transform,
 };
 use crate::utils::{IdGenerator, NameGenerator};
 
@@ -173,7 +173,7 @@ impl QueryLoader {
     }
 }
 
-impl IrFold for QueryLoader {
+impl RqFold for QueryLoader {
     fn fold_table(&mut self, table: TableDecl) -> Result<TableDecl> {
         let mut table = fold_table(self, table)?;
 

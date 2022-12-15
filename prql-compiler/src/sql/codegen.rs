@@ -145,6 +145,43 @@ pub(super) fn translate_expr_kind(item: ExprKind, ctx: &mut Context) -> Result<s
                 }
             }
         },
+        ExprKind::Switch(mut cases) => {
+            let default = cases
+                .last()
+                .filter(|last| {
+                    matches!(
+                        last.condition.kind,
+                        ExprKind::Literal(Literal::Boolean(true))
+                    )
+                })
+                .map(|def| translate_expr_kind(def.value.kind.clone(), ctx))
+                .transpose()?;
+
+            if default.is_some() {
+                cases.pop();
+            }
+
+            let else_result = default
+                .or(Some(sql_ast::Expr::Value(Value::Null)))
+                .map(Box::new);
+
+            let cases: Vec<_> = cases
+                .into_iter()
+                .map(|case| -> Result<_> {
+                    let cond = translate_expr_kind(case.condition.kind, ctx)?;
+                    let value = translate_expr_kind(case.value.kind, ctx)?;
+                    Ok((cond, value))
+                })
+                .try_collect()?;
+            let (conditions, results) = cases.into_iter().unzip();
+
+            sql_ast::Expr::Case {
+                operand: None,
+                conditions,
+                results,
+                else_result,
+            }
+        }
     })
 }
 

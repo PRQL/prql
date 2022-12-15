@@ -7,8 +7,8 @@ use itertools::Itertools;
 
 use crate::ast::pl::fold::AstFold;
 use crate::ast::pl::{
-    self, Expr, ExprKind, FrameColumn, Ident, InterpolateItem, Range, TableExternRef, Ty,
-    WindowFrame,
+    self, Expr, ExprKind, FrameColumn, Ident, InterpolateItem, Range, SwitchCase, TableExternRef,
+    Ty, WindowFrame,
 };
 use crate::ast::rq::{self, CId, Query, RelationColumn, TId, TableDecl, Transform};
 use crate::error::{Error, Reason};
@@ -521,6 +521,17 @@ impl Lowerer {
             pl::ExprKind::FString(items) => {
                 rq::ExprKind::FString(self.lower_interpolations(items)?)
             }
+            pl::ExprKind::Switch(cases) => rq::ExprKind::Switch(
+                cases
+                    .into_iter()
+                    .map(|case| -> Result<_> {
+                        Ok(SwitchCase {
+                            condition: self.lower_expr(case.condition)?,
+                            value: self.lower_expr(case.value)?,
+                        })
+                    })
+                    .try_collect()?,
+            ),
             pl::ExprKind::FuncCall(_)
             | pl::ExprKind::Closure(_)
             | pl::ExprKind::List(_)
