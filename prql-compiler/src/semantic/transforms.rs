@@ -174,6 +174,11 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
             };
             (transform_kind, tbl)
         }
+        "std.union" => {
+            let [second, first] = unpack::<2>(closure);
+
+            todo!()
+        }
         _ => return Ok(Err(closure)),
     };
 

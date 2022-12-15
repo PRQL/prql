@@ -233,6 +233,21 @@ mod test {
     }
 
     #[test]
+    fn test_union() -> Result<()> {
+        assert_display_snapshot!(compile(r###"
+        from employees
+        union all managers
+        "###)?, @r###"
+        SELECT
+          employees.*
+        FROM
+          employees
+        "###);
+
+        Ok(())
+    }
+
+    #[test]
     fn test_rn_ids_are_unique() {
         assert_display_snapshot!((compile(r###"
         from y_orig
