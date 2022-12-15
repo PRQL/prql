@@ -1,39 +1,31 @@
 # Using the Dockerfile
 
-The `Dockerfile` in this repo builds a Docker container
-that has current versions of all the development tools.
-Using Docker means you do not have to concern
-yourself that these tools will conflict with
-other software on your computer.
+The `Dockerfile` in this repo builds a Docker image that has current versions of
+our rust development tools. This can be the lowest-effort way of setting up a
+rust environment for those that don't have one already.
 
 ## Development cycle
 
 The developer loop when using Docker is substantially the same as
 if the tools had been installed directly.
 
-All the source files live in the `prql` directory on your machine.
-As you edit the source, the tools (wrapped in the Docker container)
-watch those directories and re-run
-so you can see your results instantly.
+All the source files live in the `prql` directory on the host. As the source
+changes, the tools (running in the Docker container) can watch those directories
+and re-run so results are instantly visible.
 
-When you exit the Docker container (say, at the end of the development
-session), the `prql` directory on the local machine contains the
-latest files.
-You can use `git` to pull or to push the `prql` repo as normal.
+When the Docker container exits (say, at the end of the development session),
+the `prql` directory on the local machine contains the latest files. Use `git`
+to pull or to push the `prql` repo from the host as normal.
 
-To do all this, build the Docker container and start it
-as described in the **Installation** section.
-Then read the separate steps in **Running components under Docker**
-for each component you wish to work on.
+To do all this, build the Docker image and start a container as described in the
+**Installation** section.
 
 ## Installation
 
-First install Docker on your computer,
-using one of the many guides on the internet.
+Once Docker is installed, build the Docker image with the following commands.
 
-Next build the Docker container with the following commands.
-_(It will take some time while Docker pulls in all the
-necessary developer tools.)_
+> Note: It will take some time while Docker pulls in all the necessary developer
+> tools.
 
 ```bash
 cd <top-level-PRQL-directory>
@@ -47,8 +39,8 @@ You can also configure `git` to run `pre-commit` automatically
 for each commit with the second (one-time) command below.
 
 ```bash
-pre-commit run -a                  # Run checks manually
-pre-commit install --install-hooks # (one time) install the git hooks
+pre-commit run -a   # Run checks manually
+pre-commit install  # (one time) install the git hooks
 ```
 
 Finally, start up the Docker container with:
@@ -58,15 +50,16 @@ cd <top-level-PRQL-directory>
 docker run -it -v $(pwd)/:/src -p 3000:3000 prql
 ```
 
-- You'll see a `root@xxxxxxxxx:/src/#` prompt
-- Enter the commands below for the component you're working on
-- Ctrl-C to exit that component
-- Enter 'exit' to close down the Docker machine
+- There'll be a `root@xxxxxxxxx:/src/#` prompt
+- Enter a command to run or test code
+- Ctrl-C to stop that command
+- Enter `exit` to stop the container
 
-## Running components under Docker
+## Running code with Docker
 
-Currently Docker only supports running rust dependencies, though adding `hugo` &
-`nodejs` such that the playground can run would be a welcome contribution.
+Currently our Docker image only supports running rust dependencies, though
+adding `hugo` & `nodejs` such that the playground can run would be a welcome
+contribution.
 
 Use the `docker run...` command above, then enter the relevant commands; for
 example `cargo insta test --accept` or `task run book` — more details of the
@@ -101,15 +94,12 @@ cd website
 hugo server --bind 0.0.0.0 -p 3000
 ``` -->
 
-**prql-compiler:** Use the command above,
-`cd prql-compiler` then read the **Usage** section of the
-[README.md](./prql-compiler/README.md)
-
 ## Developing the Dockerfile
 
 When making updates to the Dockerfile, we have automated testing that the
-Dockerfile builds on each merge, in
+Dockerfile builds on each merge in
 [**`test-all.yaml`**](.github/workflows/test-all.yaml), and automated testing
-that the rust tests pass, in [**`cron.yaml`**](.github/workflows/cron.yaml).
+that the confirms all rust tests pass, in
+[**`cron.yaml`**](.github/workflows/cron.yaml).
 
 Add a label to the PR `pr-test-all` or `pr-cron` to run these tests on a PR.
