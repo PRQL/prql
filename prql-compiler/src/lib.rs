@@ -233,6 +233,114 @@ mod test {
     }
 
     #[test]
+    fn test_concat() {
+        assert_display_snapshot!(compile(r###"
+        from employees
+        concat managers
+        "###).unwrap(), @r###"
+        (
+          SELECT
+            *
+          FROM
+            employees
+        )
+        UNION
+        ALL
+        SELECT
+          *
+        FROM
+          managers
+        "###);
+
+        assert_display_snapshot!(compile(r###"
+        from employees
+        derive [name, cost = salary]
+        take 3
+        concat (
+            from employees
+            derive [name, cost = salary + bonuses]
+            take 10
+        )
+        "###).unwrap(), @r###"
+        WITH table_1 AS (
+          SELECT
+            *,
+            name,
+            salary + bonuses AS cost
+          FROM
+            employees
+          LIMIT
+            10
+        ) (
+          SELECT
+            *,
+            name,
+            salary AS cost
+          FROM
+            employees
+          LIMIT
+            3
+        )
+        UNION
+        ALL
+        SELECT
+          *
+        FROM
+          table_1 AS table_0
+        "###);
+
+        assert_display_snapshot!(compile(r###"
+        from employees
+        union managers
+        "###).unwrap(), @r###"
+        (
+          SELECT
+            *
+          FROM
+            employees
+        )
+        UNION
+        DISTINCT
+        SELECT
+          *
+        FROM
+          managers
+        "###);
+
+        assert_display_snapshot!(compile(r###"
+        from employees
+        concat managers
+        union all_employees_of_some_other_company
+        "###).unwrap(), @r###"
+        WITH table_1 AS (
+          (
+            SELECT
+              *
+            FROM
+              employees
+          )
+          UNION
+          ALL
+          SELECT
+            *
+          FROM
+            managers
+        ) (
+          SELECT
+            *
+          FROM
+            table_1
+        )
+        UNION
+        DISTINCT
+        SELECT
+          *
+        FROM
+          all_employees_of_some_other_company
+        "###);
+    }
+
+    #[test]
     fn test_rn_ids_are_unique() {
         assert_display_snapshot!((compile(r###"
         from y_orig

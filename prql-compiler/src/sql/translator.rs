@@ -7,7 +7,7 @@ use std::collections::HashSet;
 use anyhow::{anyhow, Result};
 use itertools::Itertools;
 use sqlformat::{format, FormatOptions, QueryParams};
-use sqlparser::ast::{self as sql_ast, Select, SetExpr, TableWithJoins};
+use sqlparser::ast::{self as sql_ast, Select, SelectItem, SetExpr, TableWithJoins};
 
 use crate::ast::pl::{BinOp, DialectHandler, Literal};
 use crate::ast::rq::{
@@ -15,7 +15,7 @@ use crate::ast::rq::{
     Transform,
 };
 use crate::sql::context::ColumnDecl;
-use crate::utils::{IntoOnly, Pluck, TableCounter};
+use crate::utils::{BreakUp, IntoOnly, Pluck, TableCounter};
 
 use super::anchor::{self, get_requirements};
 use super::codegen::*;
@@ -174,10 +174,21 @@ fn sql_query_of_pipeline(
     context: &mut Context,
 ) -> Result<sql_ast::Query> {
     let mut counter = TableCounter::default();
-    let mut pipeline = counter.fold_transforms(pipeline)?;
+    let pipeline = counter.fold_transforms(pipeline)?;
     context.omit_ident_prefix = counter.count() == 1;
     log::debug!("atomic query contains {} tables", counter.count());
 
+    let (before_concat, after_concat) = pipeline.break_up(|t| matches!(t, Transform::Concat(_)));
+
+    let select = sql_select_query_of_pipeline(before_concat, context)?;
+
+    sql_union_of_pipeline(select, after_concat, context)
+}
+
+fn sql_select_query_of_pipeline(
+    mut pipeline: Vec<Transform>,
+    context: &mut Context,
+) -> Result<sql_ast::Query> {
     context.pre_projection = true;
 
     let projection = pipeline
@@ -211,30 +222,25 @@ fn sql_query_of_pipeline(
         }
     }
 
+    let sorts = pipeline.pluck(|t| t.into_sort());
+    let takes = pipeline.pluck(|t| t.into_take());
+    let unique = pipeline.iter().any(|t| matches!(t, Transform::Unique));
+
     // Split the pipeline into before & after the aggregate
-    let aggregate_position = pipeline
-        .iter()
-        .position(|t| matches!(t, Transform::Aggregate { .. }))
-        .unwrap_or(pipeline.len());
-    let (before, after) = pipeline.split_at(aggregate_position);
+    let (mut before_agg, mut after_agg) =
+        pipeline.break_up(|t| matches!(t, Transform::Aggregate { .. } | Transform::Concat(_)));
 
     // WHERE and HAVING
-    let where_ = filter_of_pipeline(before, context)?;
-    let having = filter_of_pipeline(after, context)?;
+    let where_ = filter_of_conditions(before_agg.pluck(|t| t.into_filter()), context)?;
+    let having = filter_of_conditions(after_agg.pluck(|t| t.into_filter()), context)?;
 
     // GROUP BY
-    let aggregate = pipeline.get(aggregate_position);
-    let group_by: Vec<CId> = aggregate
-        .map(|t| match t {
-            Transform::Aggregate { partition, .. } => partition.clone(),
-            _ => unreachable!(),
-        })
-        .unwrap_or_default();
+    let aggregate = after_agg.pluck(|t| t.into_aggregate()).into_iter().next();
+    let group_by: Vec<CId> = aggregate.map(|(part, _)| part).unwrap_or_default();
     let group_by = try_into_exprs(group_by, context)?;
 
     context.pre_projection = false;
 
-    let takes = pipeline.pluck(|t| t.into_take());
     let ranges = takes.into_iter().map(|x| x.range).collect();
     let take = range_of_ranges(ranges)?;
     let offset = take.start.map(|s| s - 1).unwrap_or(0);
@@ -250,8 +256,7 @@ fn sql_query_of_pipeline(
     };
 
     // Use sorting from the frame
-    let order_by = pipeline
-        .pluck(|t| t.into_sort())
+    let order_by = sorts
         .last()
         .map(|sorts| {
             sorts
@@ -262,11 +267,9 @@ fn sql_query_of_pipeline(
         .transpose()?
         .unwrap_or_default();
 
-    let distinct = pipeline.iter().any(|t| matches!(t, Transform::Unique));
-
     Ok(sql_ast::Query {
         body: Box::new(SetExpr::Select(Box::new(Select {
-            distinct,
+            distinct: unique,
             top: if context.dialect.use_top() {
                 limit.map(|l| top_of_i64(l, context))
             } else {
@@ -292,6 +295,62 @@ fn sql_query_of_pipeline(
             limit.map(expr_of_i64)
         },
         offset,
+        fetch: None,
+        lock: None,
+    })
+}
+
+fn sql_union_of_pipeline(
+    top: sql_ast::Query,
+    mut pipeline: Vec<Transform>,
+    context: &mut Context,
+) -> Result<sql_ast::Query, anyhow::Error> {
+    // union
+    let concat = pipeline.pluck(|t| t.into_concat()).into_iter().next();
+    let unique = pipeline.iter().any(|t| matches!(t, Transform::Unique));
+
+    let bottom = if let Some(bottom) = concat {
+        bottom
+    } else {
+        return Ok(top);
+    };
+
+    let from = TableWithJoins {
+        relation: table_factor_of_tid(bottom, context),
+        joins: vec![],
+    };
+
+    Ok(sql_ast::Query {
+        with: None,
+        body: Box::new(SetExpr::SetOperation {
+            left: Box::new(SetExpr::Query(Box::new(top))),
+            right: Box::new(SetExpr::Select(Box::new(Select {
+                distinct: false,
+                top: None,
+                projection: vec![SelectItem::Wildcard(
+                    sql_ast::WildcardAdditionalOptions::default(),
+                )],
+                into: None,
+                from: vec![from],
+                lateral_views: vec![],
+                selection: None,
+                group_by: vec![],
+                cluster_by: vec![],
+                distribute_by: vec![],
+                sort_by: vec![],
+                having: None,
+                qualify: None,
+            }))),
+            set_quantifier: if unique {
+                sql_ast::SetQuantifier::Distinct
+            } else {
+                sql_ast::SetQuantifier::All
+            },
+            op: sql_ast::SetOperator::Union,
+        }),
+        order_by: vec![],
+        limit: None,
+        offset: None,
         fetch: None,
         lock: None,
     })
@@ -462,20 +521,12 @@ pub fn translate_wildcards(ctx: &AnchorContext, cols: Vec<CId>) -> Vec<CId> {
     output
 }
 
-fn filter_of_pipeline(
-    pipeline: &[Transform],
-    context: &mut Context,
-) -> Result<Option<sql_ast::Expr>> {
-    let filters = pipeline
-        .iter()
-        .filter_map(|t| match &t {
-            Transform::Filter(filter) => Some(filter.clone()),
-            _ => None,
-        })
-        .collect();
-    all(filters)
-        .map(|x| translate_expr_kind(x.kind, context))
-        .transpose()
+fn filter_of_conditions(exprs: Vec<Expr>, context: &mut Context) -> Result<Option<sql_ast::Expr>> {
+    Ok(if let Some(cond) = all(exprs) {
+        Some(translate_expr_kind(cond.kind, context)?)
+    } else {
+        None
+    })
 }
 
 fn all(mut exprs: Vec<Expr>) -> Option<Expr> {

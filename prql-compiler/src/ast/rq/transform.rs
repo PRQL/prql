@@ -24,6 +24,7 @@ pub enum Transform {
         with: TableRef,
         filter: Expr,
     },
+    Concat(TableRef),
     Unique,
 }
 
@@ -39,7 +40,7 @@ pub struct Compute {
     pub id: CId,
     pub expr: Expr,
 
-    /// Paramaters for window functions (or expressions).
+    /// Parameters for window functions (or expressions).
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub window: Option<Window>,
 
