@@ -279,24 +279,16 @@ impl TransformCall {
 
                 let mut frame = body.ty.clone().unwrap().into_table().unwrap();
 
-                log::debug!("infering type of group with pipeline: {body}");
+                log::debug!("inferring type of group with pipeline: {body}");
 
                 // prepend aggregate with `by` columns
                 if let ExprKind::TransformCall(TransformCall { kind, .. }) = &body.as_ref().kind {
                     if let TransformKind::Aggregate { .. } = kind.as_ref() {
                         let aggregate_columns = frame.columns;
                         frame.columns = Vec::new();
-                        for b in by {
-                            log::debug!(".. group by {b}");
 
-                            let id = b.id.unwrap();
-                            let name = b.alias.clone().or_else(|| match &b.kind {
-                                ExprKind::Ident(ident) => Some(ident.name.clone()),
-                                _ => None,
-                            });
-
-                            frame.push_column(name, id);
-                        }
+                        log::debug!(".. group by {by:?}");
+                        frame.apply_assigns(by);
 
                         frame.columns.extend(aggregate_columns);
                     }

@@ -87,21 +87,16 @@ pub fn split_off_back(
         .map(|r| r.col)
         .collect_vec();
 
-    for r in &inputs_required {
-        if r.max_complexity == Complexity::Plain {
-            ctx.get_column_name(r.col);
-        }
-    }
-
     log::debug!("finished table:");
     log::debug!(".. avail={inputs_avail:?}");
+
     let required = inputs_required
         .into_iter()
         .map(|r| r.col)
         .unique()
         .collect_vec();
-
     log::debug!(".. required={required:?}");
+
     let missing = required
         .into_iter()
         .filter(|i| !inputs_avail.contains(i))
@@ -131,8 +126,6 @@ pub fn split_off_back(
         } else {
             output
         };
-
-        let output = compress_wildcards(ctx, output);
 
         curr_pipeline_rev.push(Transform::Select(output));
     }
@@ -169,29 +162,6 @@ fn can_materialize(compute: &Compute, inputs_required: &[Requirement]) -> bool {
     can
 }
 
-fn compress_wildcards(ctx: &AnchorContext, cols: Vec<CId>) -> Vec<CId> {
-    let mut wildcarded = HashSet::new();
-    let mut wildcards = Vec::new();
-    let mut in_wildcard = HashSet::new();
-    for cid in &cols {
-        if let ColumnDecl::RelationColumn(tiid, _, col) = &ctx.column_decls[cid] {
-            if matches!(col, RelationColumn::Wildcard) {
-                if !wildcarded.contains(tiid) {
-                    wildcarded.insert(*tiid);
-                    wildcards.push(*cid);
-                }
-
-                let table_ref = &ctx.table_instances[tiid];
-                in_wildcard.extend(table_ref.columns.iter().map(|(_, cid)| *cid));
-            }
-        }
-    }
-    wildcards
-        .into_iter()
-        .chain(cols.into_iter().filter(|c| !in_wildcard.contains(c)))
-        .collect_vec()
-}
-
 /// Applies adjustments to second part of a pipeline when it's split:
 /// - prepend pipeline with From
 /// - redefine columns materialized in preceding pipeline
@@ -210,18 +180,19 @@ pub fn anchor_split(
     let mut cid_redirects = HashMap::<CId, CId>::new();
     let mut new_columns = Vec::new();
     for old_cid in cols_at_split {
+        let new_cid = ctx.cid.gen();
+
+        let old_name = ctx.ensure_column_name(*old_cid).cloned();
+        if let Some(name) = old_name.clone() {
+            ctx.column_names.insert(new_cid, name);
+        }
+
         let old_def = ctx.column_decls.get(old_cid).unwrap();
 
         let col = match old_def {
-            ColumnDecl::RelationColumn(_, _, col) => match col {
-                RelationColumn::Wildcard | RelationColumn::Single(Some(_)) => col.clone(),
-                RelationColumn::Single(None) => RelationColumn::Single(Some(ctx.col_name.gen())),
-            },
-            ColumnDecl::Compute(_) => {
-                RelationColumn::Single(ctx.get_column_name(*old_cid).cloned())
-            }
+            ColumnDecl::RelationColumn(_, _, RelationColumn::Wildcard) => RelationColumn::Wildcard,
+            _ => RelationColumn::Single(old_name),
         };
-        let new_cid = ctx.cid.gen();
 
         new_columns.push((col, new_cid));
         cid_redirects.insert(*old_cid, new_cid);
@@ -324,7 +295,7 @@ fn is_split_required(transform: &Transform, following: &mut HashSet<String>) -> 
 }
 
 /// An input requirement of a transform.
-struct Requirement {
+pub struct Requirement {
     pub col: CId,
 
     /// Maxium complexity with which this column can be expressed in this transform
@@ -356,7 +327,7 @@ impl std::fmt::Debug for Requirement {
     }
 }
 
-fn get_requirements(transform: &Transform, following: &HashSet<String>) -> Vec<Requirement> {
+pub fn get_requirements(transform: &Transform, following: &HashSet<String>) -> Vec<Requirement> {
     use Transform::*;
 
     if let Aggregate { partition, compute } = transform {

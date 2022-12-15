@@ -2,6 +2,8 @@
 //! then to a String. We use sqlparser because it's trivial to create the string
 //! once it's in their AST (it's just `.to_string()`). It also lets us support a
 //! few dialects of SQL immediately.
+use std::collections::HashSet;
+
 use anyhow::{anyhow, Result};
 use itertools::Itertools;
 use sqlformat::{format, FormatOptions, QueryParams};
@@ -9,11 +11,13 @@ use sqlparser::ast::{self as sql_ast, Select, SetExpr, TableWithJoins};
 
 use crate::ast::pl::{DialectHandler, Literal};
 use crate::ast::rq::{
-    CId, Expr, ExprKind, IrFold, Query, Relation, RelationKind, TableDecl, Transform,
+    CId, Expr, ExprKind, IrFold, Query, Relation, RelationColumn, RelationKind, TableDecl,
+    Transform,
 };
+use crate::sql::context::ColumnDecl;
 use crate::utils::{IntoOnly, Pluck, TableCounter};
 
-use super::anchor;
+use super::anchor::{self, get_requirements};
 use super::codegen::*;
 use super::context::AnchorContext;
 use super::preprocess::{preprocess_distinct, preprocess_reorder};
@@ -79,8 +83,16 @@ pub fn translate_query(query: Query) -> Result<sql_ast::Query> {
                 let pipeline = preprocess_distinct(pipeline, &mut context)?;
                 let pipeline = preprocess_reorder(pipeline);
 
+                // load names of output columns
+                context.anchor.load_names(&pipeline, table.relation.columns);
+
                 // split to atomics
-                atomics.extend(split_into_atomics(name, pipeline, &mut context.anchor));
+                let ats = split_into_atomics(name, pipeline, &mut context.anchor);
+
+                // ensure names for all columns that need it
+                ensure_names(&ats, &mut context.anchor);
+
+                atomics.extend(ats);
             }
             RelationKind::Literal(_) | RelationKind::SString(_) => atomics.push(AtomicQuery {
                 name,
@@ -170,7 +182,8 @@ fn sql_query_of_pipeline(
 
     let projection = pipeline
         .pluck(|t| t.into_select())
-        .into_only()
+        .into_only() // expect only one select
+        .map(|cols| translate_wildcards(&context.anchor, cols))
         .unwrap_or_default()
         .into_iter()
         .map(|id| translate_select_item(id, context))
@@ -287,17 +300,16 @@ fn sql_query_of_pipeline(
 fn split_into_atomics(
     name: String,
     mut pipeline: Vec<Transform>,
-    context: &mut AnchorContext,
+    ctx: &mut AnchorContext,
 ) -> Vec<AtomicQuery> {
-    context.used_col_names.clear();
+    let outputs_cid = ctx.determine_select_columns(&pipeline);
 
-    let output_cols = context.determine_select_columns(&pipeline);
-    let mut required_cols = output_cols.clone();
+    let mut required_cols = outputs_cid.clone();
 
     // split pipeline, back to front
     let mut parts_rev = Vec::new();
     loop {
-        let (preceding, split) = anchor::split_off_back(context, required_cols, pipeline);
+        let (preceding, split) = anchor::split_off_back(ctx, required_cols, pipeline);
 
         if let Some((preceding, cols_at_split)) = preceding {
             log::debug!(
@@ -321,8 +333,8 @@ fn split_into_atomics(
     if let Some((pipeline, _)) = parts.last() {
         let select_cols = pipeline.first().unwrap().as_select().unwrap();
 
-        if select_cols.iter().any(|c| !output_cols.contains(c)) {
-            parts.push((vec![Transform::Select(output_cols)], select_cols.clone()));
+        if select_cols.iter().any(|c| !outputs_cid.contains(c)) {
+            parts.push((vec![Transform::Select(outputs_cid)], select_cols.clone()));
         }
     }
 
@@ -336,7 +348,7 @@ fn split_into_atomics(
         // this code chunk is bloated but I cannot find a more concise alternative
         let first = parts.remove(0);
 
-        let first_name = context.table_name.gen();
+        let first_name = ctx.table_name.gen();
         atomics.push(AtomicQuery {
             name: first_name.clone(),
             relation: RelationKind::Pipeline(first.0),
@@ -344,8 +356,8 @@ fn split_into_atomics(
 
         let mut prev_name = first_name;
         for (pipeline, cols_before) in parts.into_iter() {
-            let name = context.table_name.gen();
-            let pipeline = anchor::anchor_split(context, &prev_name, &cols_before, pipeline);
+            let name = ctx.table_name.gen();
+            let pipeline = anchor::anchor_split(ctx, &prev_name, &cols_before, pipeline);
 
             atomics.push(AtomicQuery {
                 name: name.clone(),
@@ -355,7 +367,7 @@ fn split_into_atomics(
             prev_name = name;
         }
 
-        anchor::anchor_split(context, &prev_name, &last.1, last.0)
+        anchor::anchor_split(ctx, &prev_name, &last.1, last.0)
     };
     atomics.push(AtomicQuery {
         name,
@@ -363,6 +375,91 @@ fn split_into_atomics(
     });
 
     atomics
+}
+
+fn ensure_names(atomics: &[AtomicQuery], ctx: &mut AnchorContext) {
+    // ensure column names for columns that need it
+    for a in atomics {
+        let empty = HashSet::new();
+        for t in a.relation.as_pipeline().unwrap() {
+            match t {
+                Transform::Sort(_) => {
+                    for r in get_requirements(t, &empty) {
+                        ctx.ensure_column_name(r.col);
+                    }
+                }
+                Transform::Select(cids) => {
+                    for cid in cids {
+                        let _decl = &ctx.column_decls[cid];
+                        //let name = match decl {
+                        //    ColumnDecl::RelationColumn(_, _, _) => todo!(),
+                        //    ColumnDecl::Compute(_) => ctx.column_names[..],
+                        //};
+                    }
+                }
+                _ => (),
+            }
+        }
+    }
+}
+
+/// Convert RQ wildcards to SQL stars.
+/// Note that they don't have the same semantics:
+/// - wildcard means "other columns that we don't have the knowledge of"
+/// - star means "all columns of the table"
+///
+pub fn translate_wildcards(ctx: &AnchorContext, cols: Vec<CId>) -> Vec<CId> {
+    // When compiling:
+    // from employees | group department (take 3)
+    // Row number will be computed in a CTE that also contains a star.
+    // In the main query, star will also include row number, which was not
+    // requested.
+    // This function emits a warning when this happens.
+    fn warn_not_empty(in_star: &HashSet<CId>) {
+        // TODO: eventually this should throw an error
+        //   I don't want to do this now, because we have no way around it.
+        //   One way would be to use * EXCLUDE in DuckDB dialect
+        //   Another would be to ask the user to add table definitions.
+        if log::log_enabled!(log::Level::Warn) && !in_star.is_empty() {
+            let in_star = in_star.iter().map(|c| format!("{c:?}")).collect_vec();
+            let in_star = in_star.join(", ");
+
+            log::warn!("Columns {in_star} will be included with *, but were not requested.")
+        }
+    }
+
+    let mut output = Vec::new();
+    let mut in_star = HashSet::new();
+    for cid in cols {
+        if let ColumnDecl::RelationColumn(tiid, _, col) = &ctx.column_decls[&cid] {
+            if matches!(col, RelationColumn::Wildcard) {
+                warn_not_empty(&in_star);
+                in_star.clear();
+
+                let table_ref = &ctx.table_instances[tiid];
+                in_star.extend(table_ref.columns.iter().filter_map(|c| match c {
+                    (RelationColumn::Wildcard, _) => None,
+                    (_, cid) => Some(*cid),
+                }));
+
+                // remove preceding cols that will be included with this star
+                while let Some(prev) = output.pop() {
+                    if !in_star.remove(&prev) {
+                        output.push(prev);
+                        break;
+                    }
+                }
+            }
+        }
+
+        // don't use cols that have been included by preceding star
+        if !in_star.remove(&cid) {
+            output.push(cid);
+        }
+    }
+
+    warn_not_empty(&in_star);
+    output
 }
 
 fn filter_of_pipeline(
@@ -506,7 +603,6 @@ mod test {
         )
         SELECT
           *,
-          global_rank,
           RANK() OVER () AS rank
         FROM
           table_1

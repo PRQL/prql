@@ -150,44 +150,59 @@ pub(super) fn translate_expr_kind(item: ExprKind, ctx: &mut Context) -> Result<s
 
 fn translate_cid(cid: CId, ctx: &mut Context) -> Result<sql_ast::Expr> {
     if ctx.pre_projection {
-        log::debug!("translating {cid:?}");
+        log::debug!("translating {cid:?} pre projection");
         let decl = ctx.anchor.column_decls.get(&cid).expect("bad RQ ids");
 
-        if let ColumnDecl::Compute(compute) = decl {
-            let window = compute.window.clone();
+        Ok(match decl {
+            ColumnDecl::Compute(compute) => {
+                let window = compute.window.clone();
 
-            let expr = translate_expr_kind(compute.expr.kind.clone(), ctx)?;
+                let expr = translate_expr_kind(compute.expr.kind.clone(), ctx)?;
 
-            return if let Some(window) = window {
-                translate_windowed(expr, window, ctx)
-            } else {
-                Ok(expr)
-            };
-        }
-    }
+                if let Some(window) = window {
+                    translate_windowed(expr, window, ctx)?
+                } else {
+                    expr
+                }
+            }
+            ColumnDecl::RelationColumn(tiid, _, col) => {
+                let column = match col.clone() {
+                    RelationColumn::Wildcard => "*".to_string(),
+                    RelationColumn::Single(name) => name.unwrap(),
+                };
+                let t = &ctx.anchor.table_instances[tiid];
 
-    // translate into ident
-    let ident = match &ctx.anchor.column_decls[&cid] {
-        ColumnDecl::Compute(_) => {
-            let name = ctx.anchor.get_column_name(cid).unwrap().clone();
-            translate_ident(None, Some(name), ctx)
-        }
-        ColumnDecl::RelationColumn(tiid, _, col) => {
-            let col = match col {
-                RelationColumn::Wildcard => "*".to_string(),
-                RelationColumn::Single(name) => name.clone().unwrap(),
-            };
+                let ident = translate_ident(t.name.clone(), Some(column), ctx);
+                sql_ast::Expr::CompoundIdentifier(ident)
+            }
+        })
+    } else {
+        // translate into ident
+        let column_decl = &&ctx.anchor.column_decls[&cid];
+
+        let table_name = if let ColumnDecl::RelationColumn(tiid, _, _) = column_decl {
             let t = &ctx.anchor.table_instances[tiid];
+            Some(t.name.clone().unwrap())
+        } else {
+            None
+        };
 
-            translate_ident(Some(t.name.clone().unwrap()), Some(col), ctx)
-        }
-    };
+        let column = match &column_decl {
+            ColumnDecl::RelationColumn(_, _, RelationColumn::Wildcard) => "*".to_string(),
 
-    let proj = if ctx.pre_projection { "pre" } else { "post" };
-    log::debug!("translating {cid:?} {proj} projection: {ident:?}");
+            _ => {
+                let name = ctx.anchor.column_names.get(&cid).cloned();
+                name.expect("a name of this column to be set before generating SQL")
+            }
+        };
 
-    let ident = sql_ast::Expr::CompoundIdentifier(ident);
-    Ok(ident)
+        let ident = translate_ident(table_name, Some(column), ctx);
+
+        log::debug!("translating {cid:?} post projection: {ident:?}");
+
+        let ident = sql_ast::Expr::CompoundIdentifier(ident);
+        Ok(ident)
+    }
 }
 
 pub(super) fn table_factor_of_tid(table_ref: TableRef, ctx: &Context) -> TableFactor {
@@ -329,18 +344,25 @@ pub(super) fn translate_select_item(cid: CId, ctx: &mut Context) -> Result<Selec
     let expr = translate_cid(cid, ctx)?;
 
     let inferred_name = match &expr {
-        sql_ast::Expr::Identifier(name) => Some(&name.value),
+        // sql_ast::Expr::Identifier is used for s-strings
         sql_ast::Expr::CompoundIdentifier(parts) => parts.last().map(|p| &p.value),
         _ => None,
-    };
+    }
+    .filter(|n| *n != "*");
 
-    if let Some(alias) = ctx.anchor.get_column_name(cid) {
-        if Some(alias) != inferred_name {
-            return Ok(SelectItem::ExprWithAlias {
-                alias: translate_ident_part(alias.clone(), ctx),
-                expr,
-            });
-        }
+    let expected = ctx.anchor.column_names.get(&cid);
+
+    if inferred_name != expected {
+        // use expected name
+        let ident = expected.cloned().unwrap_or_else(|| {
+            // or use something that will not clash with other names
+            ctx.anchor.col_name.gen()
+        });
+
+        return Ok(SelectItem::ExprWithAlias {
+            alias: translate_ident_part(ident, ctx),
+            expr,
+        });
     }
 
     Ok(SelectItem::UnnamedExpr(expr))
