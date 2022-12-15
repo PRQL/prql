@@ -65,16 +65,20 @@ docker run -it -v $(pwd)/:/src -p 3000:3000 prql
 
 ## Running components under Docker
 
-The following commands come from the `README.md`
-file in each of the component directories.
-Use the `docker run...` command above, then enter
-the command(s) below.
+Currently Docker only supports running rust dependencies, though adding `hugo` &
+`nodejs` such that the playground can run would be a welcome contribution.
 
-_(The first time you run a component, it may take some
-time to install additional files.
-Once they're built, start up is quick.)_
+Use the `docker run...` command above, then enter the relevant commands; for
+example `cargo insta test --accept` or `task run book` — more details of the
+commands are in each component's `README.md` file or
+[**`DEVELOPMENT.md`**](DEVELOPMENT.md).
 
-**Playground:** Use the command above, then enter:
+> Note: The first time you run a component, it may take some time to install
+> additional files. Once they're built, start up is quick.
+
+<!-- Currently these aren't supported in docker — see notes in Dockerfile -->
+
+<!-- **Playground:** Use the command above, then enter:
 
 ```bash
 cd playground
@@ -95,46 +99,17 @@ mdbook serve -n 0.0.0.0 -p 3000
 ```bash
 cd website
 hugo server --bind 0.0.0.0 -p 3000
-```
+``` -->
 
 **prql-compiler:** Use the command above,
 `cd prql-compiler` then read the **Usage** section of the
 [README.md](./prql-compiler/README.md)
 
-**prql-java:** Use the command above,
-`cd prql-java` then read the **Usage** section of the [README.md](./prql-java/README.md)
+## Developing the Dockerfile
 
-**prql-js:** Use the command above,
-`cd prql-js` then read the **Usage** section of the [README.md](./prql-js/README.md)
+When making updates to the Dockerfile, we have automated testing that the
+Dockerfile builds on each merge, in
+[**`test-all.yaml`**](.github/workflows/test-all.yaml), and automated testing
+that the rust tests pass, in [**`cron.yaml`**](.github/workflows/cron.yaml).
 
-**prql-lib:** Use the command above,
-`cd prql-lib` then read the **Usage** section of the [README.md](./prql-lib/README.md)
-
-**prql-macros:** Use the command above,
-`cd prql-macros` then read the **Usage** section of the [README.md](./prql-macros/README.md)
-
-**prql-python:** Use the command above,
-`cd prql-python` then read the **Usage** section of the [README.md](./prql-python/README.md)
-
-## Manual testing for Dockerfile
-
-While the Dockerfile is under development, use these minimal tests
-before committing new code.
-
-1. **Check the Taskfile.yml** Run these commands to ensure that the
-   `Taskfile.yml` still builds the "normal" environment:
-
-   ```bash
-   cd <directory-with-prql>
-   cargo test
-   task setup-dev
-   ```
-
-1. **Build the Docker container** as described above.
-
-1. **Quick tests for the Docker container**
-   Start the container (as described above),
-   then check the various components (also, as described above)
-
-1. **Examine the Github actions/workflows** for errors in
-   your own repo before pushing to the main `prql/prql` repo.
+Add a label to the PR `pr-test-all` or `pr-cron` to run these tests on a PR.
