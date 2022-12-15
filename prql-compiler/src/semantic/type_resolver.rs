@@ -30,6 +30,7 @@ pub fn resolve_type(node: &Expr) -> Result<Ty> {
         ExprKind::Range(_) => Ty::Infer, // TODO
 
         ExprKind::TransformCall(call) => Ty::Table(call.infer_type()?),
+        ExprKind::List(_) => Ty::Literal(TyLit::List),
 
         _ => Ty::Infer,
     })

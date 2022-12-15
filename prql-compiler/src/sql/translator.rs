@@ -9,7 +9,7 @@ use itertools::Itertools;
 use sqlformat::{format, FormatOptions, QueryParams};
 use sqlparser::ast::{self as sql_ast, Select, SetExpr, TableWithJoins};
 
-use crate::ast::pl::{DialectHandler, Literal};
+use crate::ast::pl::{BinOp, DialectHandler, Literal};
 use crate::ast::rq::{
     CId, Expr, ExprKind, IrFold, Query, Relation, RelationColumn, RelationKind, TableDecl,
     Transform,
@@ -466,14 +466,31 @@ fn filter_of_pipeline(
     pipeline: &[Transform],
     context: &mut Context,
 ) -> Result<Option<sql_ast::Expr>> {
-    let filters: Vec<Expr> = pipeline
+    let filters = pipeline
         .iter()
         .filter_map(|t| match &t {
             Transform::Filter(filter) => Some(filter.clone()),
             _ => None,
         })
         .collect();
-    filter_of_filters(filters, context)
+    all(filters)
+        .map(|x| translate_expr_kind(x.kind, context))
+        .transpose()
+}
+
+fn all(mut exprs: Vec<Expr>) -> Option<Expr> {
+    let mut condition = exprs.pop()?;
+    while let Some(expr) = exprs.pop() {
+        condition = Expr {
+            kind: ExprKind::Binary {
+                op: BinOp::And,
+                left: Box::new(expr),
+                right: Box::new(condition),
+            },
+            span: None,
+        };
+    }
+    Some(condition)
 }
 
 #[cfg(test)]
