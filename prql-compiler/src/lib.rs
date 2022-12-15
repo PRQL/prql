@@ -1930,6 +1930,26 @@ join y [foo == only_in_x]
           JOIN table_3 AS table_1 ON table_0.id = table_1.id
         "###
         );
+        
+        assert_display_snapshot!(compile(r###"
+        from s"""SELECT * FROM employees"""
+        filter country == "USA"
+        "###).unwrap(),
+            @r###"
+        WITH table_1 AS (
+          SELECT
+            *
+          FROM
+            employees
+        )
+        SELECT
+          *
+        FROM
+          table_1 AS table_0
+        WHERE
+          country = 'USA'
+        "###
+        );
     }
 
     #[test]
@@ -2016,23 +2036,31 @@ join y [foo == only_in_x]
           table_1.*
         "###
         );
+    }
 
+    #[test]
+    fn test_output_column_deduplication() {
+        // #1249
         assert_display_snapshot!(compile(
             r###"
-        from x
-        select a
-        derive a
-        derive a = a + 1
-        derive a = a + 2
-        "###).unwrap(),
+        from report
+        derive r = s"RANK() OVER ()"
+        filter r == 1
+            "###).unwrap(),
             @r###"
+        WITH table_1 AS (
+          SELECT
+            *,
+            RANK() OVER () AS r
+          FROM
+            report
+        )
         SELECT
-          a AS _expr_0,
-          a AS _expr_1,
-          a + 1,
-          a + 1 + 2 AS a
+          *
         FROM
-          x
+          table_1
+        WHERE
+          r = 1
         "###
         );
     }
