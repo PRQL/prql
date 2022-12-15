@@ -13,7 +13,7 @@ A summary of PRQL syntax
 | Syntax          | Usage                                                                   | Example                                                 |
 | --------------- | ----------------------------------------------------------------------- | ------------------------------------------------------- |
 | <code>\|</code> | [Pipelines](./pipelines.md)                                             | <code>from employees \| select first_name</code>        |
-| `=`             | [Assigns](../transforms/select.md) & [Aliases](../transforms/join.md)                              | `from e = employees` <br> `derive total = (sum salary)` |
+| `=`             | [Assigns](../transforms/select.md) & [Aliases](../transforms/join.md)   | `from e = employees` <br> `derive total = (sum salary)` |
 | `:`             | [Named args & Parameters](./functions.md)                               | `interp lower:0 1600 sat_score`                         |
 | `[]`            | [Lists](./syntax.md#lists)                                              | `select [id, amount]`                                   |
 | `()`            | [Precedence](./syntax.md#parentheses)                                   | `derive celsius = (fahrenheit - 32) / 1.8`              |
