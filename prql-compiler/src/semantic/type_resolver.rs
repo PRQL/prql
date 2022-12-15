@@ -30,6 +30,7 @@ pub fn resolve_type(node: &Expr) -> Result<Ty> {
         ExprKind::Range(_) => Ty::Infer, // TODO
 
         ExprKind::TransformCall(call) => Ty::Table(call.infer_type()?),
+        ExprKind::List(_) => Ty::Literal(TyLit::List),
 
         _ => Ty::Infer,
     })
@@ -65,10 +66,13 @@ where
     }
     if let Ty::Infer = found_ty {
         return Ok(if let Ty::Table(_) = expected {
-            // infered tables are needed for table s-strings
+            // inferred tables are needed for table s-strings
             // override the empty frame with frame of a table literal
 
-            let input_name = format!("_literal_{}", found.id.unwrap());
+            let input_name = (found.alias)
+                .clone()
+                .unwrap_or_else(|| format!("_literal_{}", found.id.unwrap()));
+
             Ty::Table(Frame {
                 inputs: vec![FrameInput {
                     id: found.id.unwrap(),

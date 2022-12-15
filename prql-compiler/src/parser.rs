@@ -330,6 +330,23 @@ fn expr_of_parse_pair(pair: Pair<Rule>) -> Result<Expr> {
             })
         }
 
+        Rule::switch => {
+            let cases = pair
+                .into_inner()
+                .map(|pair| -> Result<_> {
+                    let [condition, value]: [Expr; 2] = pair
+                        .into_inner()
+                        .map(expr_of_parse_pair)
+                        .collect::<Result<Vec<_>>>()?
+                        .try_into()
+                        .unwrap();
+                    Ok(SwitchCase { condition, value })
+                })
+                .try_collect()?;
+
+            ExprKind::Switch(cases)
+        }
+
         _ => unreachable!("{pair}"),
     };
     Ok(Expr {

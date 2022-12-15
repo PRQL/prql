@@ -1,7 +1,7 @@
 use enum_as_inner::EnumAsInner;
 use serde::{Deserialize, Serialize};
 
-use super::super::pl::{BinOp, InterpolateItem, Literal, Range};
+use super::super::pl::{BinOp, InterpolateItem, Literal, Range, SwitchCase};
 use super::CId;
 use crate::error::Span;
 
@@ -28,6 +28,7 @@ pub enum ExprKind {
     },
     SString(Vec<InterpolateItem<Expr>>),
     FString(Vec<InterpolateItem<Expr>>),
+    Switch(Vec<SwitchCase<Expr>>),
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]

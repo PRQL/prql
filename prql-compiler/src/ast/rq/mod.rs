@@ -26,32 +26,53 @@ pub struct Query {
     pub relation: Relation,
 }
 
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+pub struct Relation {
+    pub kind: RelationKind,
+
+    /// Column definitions.
+    /// This is the interface of the table that can be referenced from other tables.
+    pub columns: Vec<RelationColumn>,
+}
+
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize, EnumAsInner)]
-pub enum Relation {
-    ExternRef(TableExternRef, Vec<ColumnDecl>),
+pub enum RelationKind {
+    ExternRef(TableExternRef),
     Pipeline(Vec<Transform>),
-    Literal(RelationLiteral, Vec<ColumnDecl>),
-    SString(Vec<InterpolateItem<Expr>>, Vec<ColumnDecl>),
+    Literal(RelationLiteral),
+    SString(Vec<InterpolateItem<Expr>>),
+}
+
+#[derive(Debug, PartialEq, Clone, Eq, Hash, Serialize, Deserialize)]
+pub enum RelationColumn {
+    /// Description of a single column that may have a name.
+    /// Unnamed columns cannot be referenced.
+    Single(Option<String>),
+
+    /// Means "and other unmentioned columns". Does not mean "all columns".
+    Wildcard,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct TableDecl {
+    /// An id for this table, unique within all tables in this query.
     pub id: TId,
 
     /// Given name of this table (name of the CTE)
     pub name: Option<String>,
 
+    /// Table's contents.
     pub relation: Relation,
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub struct TableRef {
-    // referenced table
+    // Referenced table
     pub source: TId,
 
-    // new column definitions are required because there may be multiple instances
+    // New column definitions are required because there may be multiple instances
     // of this table in the same query
-    pub columns: Vec<ColumnDecl>,
+    pub columns: Vec<(RelationColumn, CId)>,
 
     /// Given name of this table (table alias)
     pub name: Option<String>,

@@ -169,18 +169,16 @@ Our tests:
     — note that only the initial line of each test is written by us; the remainder
     is filled in by insta.
 
-- **[Integration
-  tests](https://github.com/prql/prql/blob/main/prql-compiler/tests/integration/README.md)**
+- **[Integration tests](book/src/integrations/README.md)**
   — these run tests against real databases, to ensure we're producing correct
   SQL.
 
-- **[Examples](https://github.com/prql/prql/blob/main/book/tests/snapshot.rs)**
+- **[Examples](book/tests/snapshot.rs)**
   — we compile all examples in the PRQL Book, to test that they produce the SQL
   we expect, and that changes to our code don't cause any unexpected
   regressions.
 
-- **[GitHub Actions on every
-  commit](https://github.com/prql/prql/blob/main/.github/workflows/pull-request.yaml)**
+- **[GitHub Actions on every commit](.github/workflows/pull-request.yaml)**
   — we run tests on `prql-compiler` for standard & wasm targets, and the
   examples in the book on every pull request every time a commit is pushed.
   These are designed to run in under two minutes, and we should be reassessing
@@ -189,13 +187,11 @@ Our tests:
 
   All tests up to this point can be run with `task test-all` locally.
 
-- **[GitHub Actions on specific
-  changes](https://github.com/prql/prql/blob/main/.github/workflows/test-all.yaml)**
+- **[GitHub Actions on specific changes](.github/workflows/)**
   — we run additional tests on pull requests when we identify changes to some
   paths, such as bindings to other languages.
 
-- **[GitHub Actions on
-  merge](https://github.com/prql/prql/tree/main/.github/workflows)** — we run
+- **[GitHub Actions on merge](.github/workflows/test-all.yaml)** — we run
   many more tests on every merge to main. This includes testing across OSs, all
   our language bindings, our `task` tasks, a measure of test code coverage, and
   some performance benchmarks.
@@ -205,6 +201,13 @@ Our tests:
 
   If these tests fail after merging, we revert the merged commit before fixing
   the test and then re-reverting.
+
+- **[GitHub Actions nightly](.github/workflows/cron.yaml)** — we run tests that
+  take a long time or are unrelated to code changes, such as security checks, or
+  expensive timing benchmarks, every night.
+
+  We can run these tests before a merge by adding a label `pr-cron` to the
+  PR.
 
 The goal of our tests is to allow us to make changes quickly. If you find
 they're making it more difficult for you to make changes, or there are missing

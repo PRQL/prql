@@ -5,7 +5,7 @@ expression: sql_ast
 WITH table_1 AS (
   SELECT
     title,
-    AVG(salary) AS emp_salary
+    AVG(salary) AS _expr_0
   FROM
     employees
   GROUP BY
@@ -14,7 +14,7 @@ WITH table_1 AS (
 )
 SELECT
   title,
-  AVG(emp_salary) AS avg_salary
+  AVG(_expr_0) AS avg_salary
 FROM
   table_1
 GROUP BY

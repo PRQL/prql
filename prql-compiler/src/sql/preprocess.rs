@@ -3,7 +3,7 @@ use std::cmp::Ordering;
 use anyhow::Result;
 
 use crate::ast::pl::{BinOp, ColumnSort, InterpolateItem, Literal, Range, WindowFrame, WindowKind};
-use crate::ast::rq::{CId, ColumnDeclKind, Expr, ExprKind, IrFold, Take, Transform, Window};
+use crate::ast::rq::{CId, Compute, Expr, ExprKind, RqFold, Take, Transform, Window};
 
 use super::anchor::{infer_complexity, Complexity};
 use super::context::AnchorContext;
@@ -23,7 +23,7 @@ struct TakeConverter<'a> {
     context: &'a mut AnchorContext,
 }
 
-impl<'a> IrFold for TakeConverter<'a> {
+impl<'a> RqFold for TakeConverter<'a> {
     fn fold_transforms(&mut self, transforms: Vec<Transform>) -> Result<Vec<Transform>> {
         let mut res = Vec::new();
 
@@ -41,7 +41,7 @@ impl<'a> IrFold for TakeConverter<'a> {
                     let range_int = range
                         .clone()
                         .try_map(as_int)
-                        .map_err(|_| anyhow::anyhow!("Invaid take arguments"))?;
+                        .map_err(|_| anyhow::anyhow!("Invalid take arguments"))?;
 
                     let take_only_first =
                         range_int.start.unwrap_or(1) == 1 && matches!(range_int.end, Some(1));
@@ -85,12 +85,9 @@ impl<'a> TakeConverter<'a> {
         partition: Vec<CId>,
     ) -> Vec<Transform> {
         // declare new column
-        let decl = ColumnDeclKind::Expr {
-            name: Some(self.context.gen_column_name()),
-            expr: Expr {
-                kind: ExprKind::SString(vec![InterpolateItem::String("ROW_NUMBER()".to_string())]),
-                span: None,
-            },
+        let expr = Expr {
+            kind: ExprKind::SString(vec![InterpolateItem::String("ROW_NUMBER()".to_string())]),
+            span: None,
         };
 
         let is_unsorted = sort.is_empty();
@@ -113,17 +110,24 @@ impl<'a> TakeConverter<'a> {
             sort,
         };
 
-        let decl = self.context.register_column(decl, Some(window), None);
+        let compute = Compute {
+            id: self.context.cid.gen(),
+            expr,
+            window: Some(window),
+            is_aggregation: false,
+        };
+
+        self.context.register_compute(compute.clone());
 
         let col_ref = Box::new(Expr {
-            kind: ExprKind::ColumnRef(decl.id),
+            kind: ExprKind::ColumnRef(compute.id),
             span: None,
         });
 
         // add the two transforms
         let range_int = range.clone().try_map(as_int).unwrap();
         vec![
-            Transform::Compute(decl),
+            Transform::Compute(compute),
             Transform::Filter(match (range_int.start, range_int.end) {
                 (Some(s), Some(e)) if s == e => Expr {
                     span: None,

@@ -5,7 +5,7 @@ input_file: book/tests/prql/examples/employees-0.prql
 ---
 WITH table_1 AS (
   SELECT
-    AVG(salary) AS emp_salary,
+    AVG(salary) AS _expr_0,
     emp_no
   FROM
     salaries
@@ -15,7 +15,7 @@ WITH table_1 AS (
 table_2 AS (
   SELECT
     t.title,
-    AVG(table_1.emp_salary) AS avg_salary,
+    AVG(table_1._expr_0) AS avg_salary,
     dept_emp.dept_no
   FROM
     table_1

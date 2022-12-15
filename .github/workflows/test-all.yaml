@@ -101,12 +101,20 @@ jobs:
         with:
           use_cache: true
 
-  # workflow to test whether we can build the Dockerfile
-  # from https://stackoverflow.com/questions/67134410/how-to-test-my-dockerfile-for-my-python-project-using-github-actions
   build-docker:
+    # Note that we only build the image here; we then run tests in `cron.yaml`
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - name: Build Docker image
-        run: docker build -t prql .
-      # TODO: run tests as well as building
+      - name: 📂 Checkout code
+        uses: actions/checkout@v3
+
+      - uses: docker/setup-buildx-action@v2
+
+      - name: Build
+        uses: docker/build-push-action@v3
+        with:
+          tags: prql:latest
+          # Use the GHA cache
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

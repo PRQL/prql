@@ -7,8 +7,8 @@ WITH table_1 AS (
   SELECT
     title,
     country,
-    salary + COALESCE(tax, 0) + benefits_cost AS gross_cost,
-    salary + COALESCE(tax, 0) AS gross_salary
+    salary + COALESCE(tax, 0) + benefits_cost AS _expr_0,
+    salary + COALESCE(tax, 0) AS _expr_1
   FROM
     employees
   WHERE
@@ -17,19 +17,19 @@ WITH table_1 AS (
 SELECT
   title,
   country,
-  AVG(gross_salary),
-  SUM(gross_cost) AS sum_gross_cost,
+  AVG(_expr_1),
+  SUM(_expr_0) AS sum_gross_cost,
   CONCAT(title, '_', country) AS id,
   LEFT(country, 2) AS country_code
 FROM
   table_1
 WHERE
-  gross_cost > 0
+  _expr_0 > 0
 GROUP BY
   title,
   country
 HAVING
-  SUM(gross_cost) > 100000
+  SUM(_expr_0) > 100000
 ORDER BY
   sum_gross_cost,
   country DESC

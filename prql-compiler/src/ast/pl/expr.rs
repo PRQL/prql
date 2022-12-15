@@ -59,6 +59,7 @@ pub enum ExprKind {
     TransformCall(TransformCall),
     SString(Vec<InterpolateItem>),
     FString(Vec<InterpolateItem>),
+    Switch(Vec<SwitchCase>),
 }
 
 impl ExprKind {
@@ -69,8 +70,6 @@ impl ExprKind {
         }
     }
 }
-
-mod modname {}
 
 #[derive(
     Debug, PartialEq, Eq, Clone, Serialize, Deserialize, strum::Display, strum::EnumString,
@@ -223,6 +222,12 @@ impl Range {
     }
 }
 
+#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
+pub struct SwitchCase<T = Expr> {
+    pub condition: T,
+    pub value: T,
+}
+
 /// FuncCall with better typing. Returns the modified table.
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct TransformCall {
@@ -277,6 +282,7 @@ pub enum TransformKind {
         range: Range,
         pipeline: Box<Expr>,
     },
+    Concat(Box<Expr>),
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
@@ -457,7 +463,7 @@ impl Display for Expr {
                     write!(f, "[{}]", nodes[0])?;
                 } else {
                     f.write_str("[\n")?;
-                    for li in nodes.iter() {
+                    for li in nodes {
                         writeln!(f, "  {},", li)?;
                     }
                     f.write_str("]")?;
@@ -528,6 +534,13 @@ impl Display for Expr {
             }
             ExprKind::Literal(literal) => {
                 write!(f, "{}", literal)?;
+            }
+            ExprKind::Switch(cases) => {
+                f.write_str("[\n")?;
+                for case in cases {
+                    writeln!(f, "  {} => {}", case.condition, case.value)?;
+                }
+                f.write_str("]")?;
             }
         }
 

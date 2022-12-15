@@ -3,7 +3,8 @@ mod only;
 mod table_counter;
 mod toposort;
 
-pub use id_gen::IdGenerator;
+pub use id_gen::{IdGenerator, NameGenerator};
+use itertools::Itertools;
 pub use only::*;
 pub use table_counter::TableCounter;
 pub use toposort::toposort;
@@ -61,5 +62,26 @@ impl<T> Pluck<T> for Vec<T> {
 
         self.extend(not_matched);
         matched
+    }
+}
+
+/// Breaks up a [Vec] into two parts at the position of first matching element.
+/// Matching element is placed into the second part.
+///
+/// Zero clones.
+pub trait BreakUp<T> {
+    fn break_up<F>(self, f: F) -> (Vec<T>, Vec<T>)
+    where
+        F: FnMut(&T) -> bool;
+}
+
+impl<T> BreakUp<T> for Vec<T> {
+    fn break_up<F>(mut self, f: F) -> (Vec<T>, Vec<T>)
+    where
+        F: FnMut(&T) -> bool,
+    {
+        let position = self.iter().position(f).unwrap_or(self.len());
+        let after = self.drain(position..).collect_vec();
+        (self, after)
     }
 }

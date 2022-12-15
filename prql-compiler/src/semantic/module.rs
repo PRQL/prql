@@ -5,8 +5,9 @@ use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 
 use crate::ast::pl::{Expr, Ident};
+use crate::ast::rq::RelationColumn;
 
-use super::context::{Decl, DeclKind, TableColumn, TableDecl, TableFrame};
+use super::context::{Decl, DeclKind, TableDecl};
 use super::{Frame, FrameColumn};
 
 pub const NS_STD: &str = "std";
@@ -47,9 +48,7 @@ impl Module {
                             "*".to_string(),
                             Decl::from(DeclKind::Wildcard(Box::new(DeclKind::TableDecl(
                                 TableDecl {
-                                    frame: TableFrame {
-                                        columns: vec![TableColumn::Wildcard],
-                                    },
+                                    columns: vec![RelationColumn::Wildcard],
                                     expr: None,
                                 },
                             )))),
@@ -225,7 +224,10 @@ impl Module {
                             };
                             sub_ns.names.insert(NS_SELF.to_string(), self_decl);
                         }
-                        let sub_ns = Decl::from(DeclKind::Module(sub_ns));
+                        let sub_ns = Decl {
+                            declared_at: Some(input.id),
+                            kind: DeclKind::Module(sub_ns),
+                        };
 
                         namespace.names.entry(input_name.clone()).or_insert(sub_ns)
                     }
@@ -240,8 +242,10 @@ impl Module {
                 FrameColumn::Wildcard { input_name } => {
                     let input = frame.inputs.iter().find(|i| &i.name == input_name).unwrap();
 
-                    let entry = DeclKind::Wildcard(Box::new(DeclKind::Column(input.id)));
-                    ns.names.insert("*".to_string(), entry.into());
+                    let kind = DeclKind::Wildcard(Box::new(DeclKind::Column(input.id)));
+                    let declared_at = Some(input.id);
+                    let entry = Decl { kind, declared_at };
+                    ns.names.insert("*".to_string(), entry);
                 }
                 FrameColumn::Single {
                     name: Some(name),

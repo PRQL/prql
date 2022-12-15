@@ -64,13 +64,30 @@ formatting = function (hljs) {
         end: '"',
         relevance: 10,
       },
-
       {
         // normal string
         scope: "string",
-        begin: '"',
-        end: '"',
         relevance: 10,
+        variants: [
+          // TODO: is there a way of encoding the actual rule here? Otherwise
+          // we're just adding the variants we use...
+          {
+            begin: '"""""',
+            end: '"""""',
+          },
+          {
+            begin: '"""',
+            end: '"""',
+          },
+          {
+            begin: '"',
+            end: '"',
+          },
+          {
+            begin: "'",
+            end: "'",
+          },
+        ],
       },
       {
         // number

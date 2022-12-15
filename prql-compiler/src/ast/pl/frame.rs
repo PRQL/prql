@@ -61,23 +61,43 @@ impl Default for SortDirection {
 }
 
 impl Frame {
-    pub fn push_column(&mut self, name: Option<String>, id: usize) {
+    pub fn apply_assign(&mut self, expr: &Expr) {
+        let id = expr.id.unwrap();
+
+        if let Some(ident) = &expr.kind.as_ident() {
+            if ident.name == "*" {
+                self.columns.push(FrameColumn::Wildcard {
+                    input_name: ident.path.last().cloned().unwrap(),
+                });
+                return;
+            }
+        }
+
+        let col_name = expr
+            .alias
+            .clone()
+            .or_else(|| expr.kind.as_ident().cloned().map(|x| x.name));
+
+        // remove names from columns with the same name
+        if col_name.is_some() {
+            for c in &mut self.columns {
+                if let FrameColumn::Single { name, .. } = c {
+                    if name.as_ref().map(|i| &i.name) == col_name.as_ref() {
+                        *name = None;
+                    }
+                }
+            }
+        }
+
         self.columns.push(FrameColumn::Single {
-            name: name.map(Ident::from_name),
+            name: col_name.map(Ident::from_name),
             expr_id: id,
         });
     }
 
     pub fn apply_assigns(&mut self, assigns: &[Expr]) {
         for expr in assigns {
-            let id = expr.id.unwrap();
-
-            let name = expr
-                .alias
-                .clone()
-                .or_else(|| expr.kind.as_ident().cloned().map(|x| x.name));
-
-            self.push_column(name, id);
+            self.apply_assign(expr);
         }
     }
 
@@ -132,14 +152,4 @@ fn display_frame_column(
         }
     }
     Ok(())
-}
-
-impl std::ops::Add<Frame> for Frame {
-    type Output = Frame;
-
-    fn add(mut self, rhs: Frame) -> Frame {
-        self.columns.extend(rhs.columns);
-        self.inputs.extend(rhs.inputs);
-        self
-    }
 }

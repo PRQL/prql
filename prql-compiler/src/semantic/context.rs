@@ -2,10 +2,12 @@ use anyhow::Result;
 use enum_as_inner::EnumAsInner;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
 use std::{collections::HashMap, fmt::Debug};
 
 use super::module::{Module, NS_DEFAULT_DB, NS_SELF, NS_STD};
 use crate::ast::pl::*;
+use crate::ast::rq::RelationColumn;
 use crate::error::Span;
 
 /// Context of the pipeline.
@@ -15,6 +17,8 @@ pub struct Context {
     pub(crate) root_mod: Module,
 
     pub(crate) span_map: HashMap<usize, Span>,
+
+    pub(crate) inferred_columns: HashMap<usize, Vec<RelationColumn>>,
 }
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
@@ -29,7 +33,7 @@ pub enum DeclKind {
     /// A nested namespace
     Module(Module),
 
-    /// Nested namespaces that do lookup in layers from top to bottom, stoping at first match.
+    /// Nested namespaces that do lookup in layers from top to bottom, stopping at first match.
     LayeredModules(Vec<Module>),
 
     TableDecl(TableDecl),
@@ -51,16 +55,11 @@ pub enum DeclKind {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct TableDecl {
     /// Columns layout
-    pub frame: TableFrame,
+    pub columns: Vec<RelationColumn>,
 
     /// None means that this is an extern table (actual table in database)
     /// Some means a CTE
     pub expr: Option<Box<Expr>>,
-}
-
-#[derive(Clone, Default, Eq, Debug, PartialEq, Serialize, Deserialize)]
-pub struct TableFrame {
-    pub columns: Vec<TableColumn>,
 }
 
 #[derive(Clone, Eq, Debug, PartialEq, Serialize, Deserialize)]
@@ -89,19 +88,17 @@ impl Context {
         let ident = Ident { name, path };
 
         let frame = table_def.value.ty.clone().unwrap().into_table().unwrap();
-        let frame = TableFrame {
-            columns: (frame.columns.into_iter())
-                .map(|col| match col {
-                    FrameColumn::Wildcard { .. } => TableColumn::Wildcard,
-                    FrameColumn::Single { name, .. } => TableColumn::Single(name.map(|n| n.name)),
-                })
-                .collect(),
-        };
+        let columns = (frame.columns.into_iter())
+            .map(|col| match col {
+                FrameColumn::Wildcard { .. } => RelationColumn::Wildcard,
+                FrameColumn::Single { name, .. } => RelationColumn::Single(name.map(|n| n.name)),
+            })
+            .collect();
 
         let expr = Some(table_def.value);
         let decl = Decl {
             declared_at: id,
-            kind: DeclKind::TableDecl(TableDecl { frame, expr }),
+            kind: DeclKind::TableDecl(TableDecl { columns, expr }),
         };
 
         self.root_mod.insert(ident, decl).unwrap();
@@ -109,29 +106,31 @@ impl Context {
 
     pub fn resolve_ident(&mut self, ident: &Ident) -> Result<Ident, String> {
         // lookup the name
-        if ident.name != "*" {
-            let decls = self.root_mod.lookup(ident);
+        let decls = self.root_mod.lookup(ident);
 
-            match decls.len() {
-                // no match: try match *
-                0 => {}
+        match decls.len() {
+            // no match: try match *
+            0 => {}
 
-                // single match, great!
-                1 => return Ok(decls.into_iter().next().unwrap()),
+            // single match, great!
+            1 => return Ok(decls.into_iter().next().unwrap()),
 
-                // ambiguous
-                _ => {
-                    let decls = decls.into_iter().map(|d| d.to_string()).join(", ");
-                    return Err(format!("Ambiguous name. Could be from any of {decls}"));
-                }
+            // ambiguous
+            _ => {
+                let decls = decls.into_iter().map(|d| d.to_string()).join(", ");
+                return Err(format!("Ambiguous name. Could be from any of {decls}"));
             }
         }
 
         // this variable can be from a namespace that we don't know all columns of
-        let decls = self.root_mod.lookup(&Ident {
-            path: ident.path.clone(),
-            name: "*".to_string(),
-        });
+        let decls = if ident.name != "*" {
+            self.root_mod.lookup(&Ident {
+                path: ident.path.clone(),
+                name: "*".to_string(),
+            })
+        } else {
+            HashSet::new()
+        };
 
         match decls.len() {
             0 => Err(format!("Unknown name {ident}")),
@@ -142,6 +141,7 @@ impl Context {
 
                 let wildcard = self.root_mod.get(&wildcard_ident).unwrap();
                 let wildcard_default = wildcard.kind.as_wildcard().cloned().unwrap();
+                let input_id = wildcard.declared_at;
 
                 let module_ident = wildcard_ident.pop().unwrap();
                 let module = self.root_mod.get_mut(&module_ident).unwrap();
@@ -152,11 +152,26 @@ impl Context {
                     .names
                     .insert(ident.name.clone(), Decl::from(*wildcard_default));
 
-                // table columns
+                // infer table columns
                 if let Some(decl) = module.names.get(NS_SELF).cloned() {
                     if let DeclKind::InstanceOf(table_ident) = decl.kind {
-                        log::debug!("infering {ident} to be from table {table_ident}");
+                        log::debug!("inferring {ident} to be from table {table_ident}");
                         self.infer_table_column(&table_ident, &ident.name)?;
+                    }
+                }
+
+                // for inline expressions with wildcards (s-strings), we cannot store inferred columns
+                // in global namespace, but still need the information for lowering.
+                // as a workaround, we store it in context directly.
+                if let Some(input_id) = input_id {
+                    let inferred = self.inferred_columns.entry(input_id).or_default();
+
+                    let exists = inferred.iter().any(|c| match c {
+                        RelationColumn::Single(Some(name)) => name == &ident.name,
+                        _ => false,
+                    });
+                    if !exists {
+                        inferred.push(RelationColumn::Single(Some(ident.name.clone())));
                     }
                 }
 
@@ -176,21 +191,21 @@ impl Context {
         let table_decl = table.kind.as_table_decl_mut().unwrap();
 
         let has_wildcard =
-            (table_decl.frame.columns.iter()).any(|c| matches!(c, TableColumn::Wildcard));
+            (table_decl.columns.iter()).any(|c| matches!(c, RelationColumn::Wildcard));
         if !has_wildcard {
             return Err(format!("Table {table_ident:?} does not have wildcard."));
         }
 
-        let exists = table_decl.frame.columns.iter().any(|c| match c {
-            TableColumn::Single(Some(n)) => n == col_name,
+        let exists = table_decl.columns.iter().any(|c| match c {
+            RelationColumn::Single(Some(n)) => n == col_name,
             _ => false,
         });
         if exists {
             return Ok(());
         }
 
-        let col = TableColumn::Single(Some(col_name.to_string()));
-        table_decl.frame.columns.push(col);
+        let col = RelationColumn::Single(Some(col_name.to_string()));
+        table_decl.columns.push(col);
 
         // also add into input tables of this table expression
         if let Some(expr) = &table_decl.expr {
@@ -252,7 +267,9 @@ impl std::fmt::Display for DeclKind {
         match self {
             Self::Module(arg0) => f.debug_tuple("Module").field(arg0).finish(),
             Self::LayeredModules(arg0) => f.debug_tuple("LayeredModules").field(arg0).finish(),
-            Self::TableDecl(TableDecl { frame, expr }) => write!(f, "TableDef: {frame} {expr:?}"),
+            Self::TableDecl(TableDecl { columns, expr }) => {
+                write!(f, "TableDef: {} {expr:?}", RelationColumns(columns))
+            }
             Self::InstanceOf(arg0) => write!(f, "InstanceOf: {arg0}"),
             Self::Column(arg0) => write!(f, "Column (target {arg0})"),
             Self::Wildcard(arg0) => write!(f, "Wildcard (default: {arg0})"),
@@ -263,21 +280,23 @@ impl std::fmt::Display for DeclKind {
     }
 }
 
-impl std::fmt::Display for TableFrame {
+pub struct RelationColumns<'a>(pub &'a [RelationColumn]);
+
+impl<'a> std::fmt::Display for RelationColumns<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str("[")?;
-        for (index, col) in self.columns.iter().enumerate() {
-            let is_last = index == self.columns.len() - 1;
+        for (index, col) in self.0.iter().enumerate() {
+            let is_last = index == self.0.len() - 1;
 
             let col = match col {
-                TableColumn::Wildcard => "*",
-                TableColumn::Single(name) => name.as_deref().unwrap_or("<unnamed>"),
+                RelationColumn::Wildcard => "*",
+                RelationColumn::Single(name) => name.as_deref().unwrap_or("<unnamed>"),
             };
             f.write_str(col)?;
             if !is_last {
                 f.write_str(", ")?;
             }
         }
-        f.write_str("]")
+        write!(f, "]")
     }
 }

@@ -55,6 +55,9 @@ tasks:
         mdbook-toc
         wasm-bindgen-cli
         wasm-pack
+      - cmd: |
+          [ "$(which default-target)" ] || echo "Can't find a binary that cargo installed. Is the cargo bin path (generally at ~/.cargo/bin) on the $PATH?"
+        silent: true
 
   install-maturin:
     desc: Install maturin
@@ -152,6 +155,13 @@ tasks:
 
   test-all:
     desc: Test everything, resetting snapshots. Running this isn't required when developing; it's for caching or as a reference.
+    cmds:
+      - task: test-rust
+      - task: build-all
+      - pre-commit run -a
+
+  test-rust:
+    desc: Test all rust code, resetting snapshots.
     vars:
       default_target:
         sh: default-target
@@ -162,11 +172,9 @@ tasks:
       # tests to extract them, which include compiling prql-compiler, c) not
       # fail other compilation steps if they can't be extracted.
       - cargo insta test --accept -p mdbook-prql -- run_examples
-      - task: build-all
       # Only delete unreferenced snapshots on the default target — lots are excluded under wasm.
       - cargo insta test --accept --target={{.default_target}} --delete-unreferenced-snapshots
       - cargo insta test --accept --target=wasm32-unknown-unknown
-      - pre-commit run -a
 
   build-web:
     desc: Build the website
@@ -185,6 +193,17 @@ tasks:
     cmds:
       - wasm-pack build --target nodejs --release --out-dir dist/node
       - cd tests && npm i && npm run test
+
+  run-book:
+    dir: book
+    cmds:
+      - mdbook serve --port=3000
+
+  run-playground:
+    dir: playground
+    cmds:
+      - npm install
+      - npm start
 # The next three tasks are not used for either:
 #  - the Dockerfile (installing brew takes forever)
 #    so the Dockerfile simply installs hugo & nodejs directly

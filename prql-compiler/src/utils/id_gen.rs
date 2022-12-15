@@ -1,11 +1,10 @@
 use std::marker::PhantomData;
 
 use anyhow::Result;
-use serde::{Deserialize, Serialize};
 
-use crate::ast::rq::{fold_table, CId, ColumnDecl, IrFold, Query, TId, TableDecl};
+use crate::ast::rq::{fold_table, CId, Query, RqFold, TId, TableDecl};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct IdGenerator<T: From<usize>> {
     next_id: usize,
     phantom: PhantomData<T>,
@@ -52,16 +51,35 @@ struct IdLoader {
     tid: IdGenerator<TId>,
 }
 
-impl IrFold for IdLoader {
-    fn fold_column_decl(&mut self, cd: ColumnDecl) -> Result<ColumnDecl> {
-        self.cid.skip(cd.id.get());
+impl RqFold for IdLoader {
+    fn fold_cid(&mut self, cid: CId) -> Result<CId> {
+        self.cid.skip(cid.get());
 
-        Ok(cd)
+        Ok(cid)
     }
 
     fn fold_table(&mut self, table: TableDecl) -> Result<TableDecl> {
         self.tid.skip(table.id.get());
 
         fold_table(self, table)
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct NameGenerator {
+    prefix: &'static str,
+    id: IdGenerator<usize>,
+}
+
+impl NameGenerator {
+    pub fn new(prefix: &'static str) -> Self {
+        NameGenerator {
+            prefix,
+            id: IdGenerator::new(),
+        }
+    }
+
+    pub fn gen(&mut self) -> String {
+        format!("{}{}", self.prefix, self.id.gen())
     }
 }

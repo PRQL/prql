@@ -66,7 +66,7 @@ fn compile_to_error_message(prql: &str) -> Result<String, ErrorMessage> {
 // Simple tests for "this PRQL creates this SQL" go here.
 #[cfg(test)]
 mod test {
-    use crate::{json_to_pl, parse, pl_to_json, pl_to_prql};
+    use crate::{json_to_pl, parse, pl_to_json, semantic, translate};
 
     use super::compile;
     use super::compile_to_error_message;
@@ -233,6 +233,114 @@ mod test {
     }
 
     #[test]
+    fn test_concat() {
+        assert_display_snapshot!(compile(r###"
+        from employees
+        concat managers
+        "###).unwrap(), @r###"
+        (
+          SELECT
+            *
+          FROM
+            employees
+        )
+        UNION
+        ALL
+        SELECT
+          *
+        FROM
+          managers
+        "###);
+
+        assert_display_snapshot!(compile(r###"
+        from employees
+        derive [name, cost = salary]
+        take 3
+        concat (
+            from employees
+            derive [name, cost = salary + bonuses]
+            take 10
+        )
+        "###).unwrap(), @r###"
+        WITH table_1 AS (
+          SELECT
+            *,
+            name,
+            salary + bonuses AS cost
+          FROM
+            employees
+          LIMIT
+            10
+        ) (
+          SELECT
+            *,
+            name,
+            salary AS cost
+          FROM
+            employees
+          LIMIT
+            3
+        )
+        UNION
+        ALL
+        SELECT
+          *
+        FROM
+          table_1 AS table_0
+        "###);
+
+        assert_display_snapshot!(compile(r###"
+        from employees
+        union managers
+        "###).unwrap(), @r###"
+        (
+          SELECT
+            *
+          FROM
+            employees
+        )
+        UNION
+        DISTINCT
+        SELECT
+          *
+        FROM
+          managers
+        "###);
+
+        assert_display_snapshot!(compile(r###"
+        from employees
+        concat managers
+        union all_employees_of_some_other_company
+        "###).unwrap(), @r###"
+        WITH table_1 AS (
+          (
+            SELECT
+              *
+            FROM
+              employees
+          )
+          UNION
+          ALL
+          SELECT
+            *
+          FROM
+            managers
+        ) (
+          SELECT
+            *
+          FROM
+            table_1
+        )
+        UNION
+        DISTINCT
+        SELECT
+          *
+        FROM
+          all_employees_of_some_other_company
+        "###);
+    }
+
+    #[test]
     fn test_rn_ids_are_unique() {
         assert_display_snapshot!((compile(r###"
         from y_orig
@@ -350,11 +458,11 @@ select `first name`
         WITH table_1 AS (
           SELECT
             'something' AS renamed,
-            'something' AS somefield
+            'something' AS _expr_0
           FROM
             x
           ORDER BY
-            somefield
+            _expr_0
         )
         SELECT
           renamed
@@ -952,8 +1060,7 @@ select `first name`
             employees
         )
         SELECT
-          *,
-          rn
+          *
         FROM
           table_1
         WHERE
@@ -1097,11 +1204,17 @@ join managers=employees [==emp_no]
 derive mng_name = s"managers.first_name || ' ' || managers.last_name"
 select [mng_name, managers.gender, salary_avg, salary_sd]"#;
 
-        let sql_from_prql = compile(original_prql).unwrap();
+        let sql_from_prql = parse(original_prql)
+            .and_then(semantic::resolve)
+            .and_then(translate)
+            .unwrap();
 
-        let json = parse(original_prql).and_then(pl_to_json).unwrap();
-        let prql_from_json = json_to_pl(&json).and_then(pl_to_prql).unwrap();
-        let sql_from_json = compile(&prql_from_json).unwrap();
+        let sql_from_json = parse(original_prql)
+            .and_then(pl_to_json)
+            .and_then(|json| json_to_pl(&json))
+            .and_then(semantic::resolve)
+            .and_then(translate)
+            .unwrap();
 
         assert_eq!(sql_from_prql, sql_from_json);
     }
@@ -1327,7 +1440,7 @@ take 20
           SELECT
             title,
             country,
-            AVG(salary) AS salary
+            AVG(salary) AS _expr_0
           FROM
             table_1
           WHERE
@@ -1339,7 +1452,7 @@ take 20
         SELECT
           title,
           country,
-          AVG(salary) AS sum_gross_cost
+          AVG(_expr_0) AS sum_gross_cost
         FROM
           table_2
         GROUP BY
@@ -1922,7 +2035,47 @@ join y [foo == only_in_x]
           table_1.*
         FROM
           table_2 AS table_0
-          JOIN table_3 AS table_1 ON table_0.* = table_1.*
+          JOIN table_3 AS table_1 ON table_0.id = table_1.id
+        "###
+        );
+
+        assert_display_snapshot!(compile(r###"
+        from s"""SELECT * FROM employees"""
+        filter country == "USA"
+        "###).unwrap(),
+            @r###"
+        WITH table_1 AS (
+          SELECT
+            *
+          FROM
+            employees
+        )
+        SELECT
+          *
+        FROM
+          table_1 AS table_0
+        WHERE
+          country = 'USA'
+        "###
+        );
+
+        assert_display_snapshot!(compile(r###"
+        from e=s"""SELECT * FROM employees"""
+        filter e.country == "USA"
+        "###).unwrap(),
+            @r###"
+        WITH table_1 AS (
+          SELECT
+            *
+          FROM
+            employees
+        )
+        SELECT
+          *
+        FROM
+          table_1 AS table_0
+        WHERE
+          country = 'USA'
         "###
         );
     }
@@ -1944,5 +2097,143 @@ join y [foo == only_in_x]
         "###,
         )
         .unwrap_err();
+    }
+
+    #[test]
+    fn test_name_shadowing() {
+        assert_display_snapshot!(compile(
+            r###"
+        from x
+        select [a, a, a = a + 1]
+        "###).unwrap(),
+            @r###"
+        SELECT
+          a AS _expr_0,
+          a AS _expr_1,
+          a + 1 AS a
+        FROM
+          x
+        "###
+        );
+
+        assert_display_snapshot!(compile(
+            r###"
+        from x
+        select a
+        derive a
+        derive a = a + 1
+        derive a = a + 2
+        "###).unwrap(),
+            @r###"
+        SELECT
+          a AS _expr_0,
+          a AS _expr_1,
+          a + 1,
+          a + 1 + 2 AS a
+        FROM
+          x
+        "###
+        );
+    }
+
+    #[test]
+    fn test_group_all() {
+        assert_display_snapshot!(compile(
+            r###"
+        from e=employees
+        take 10
+        join salaries [==emp_no]
+        group [e.*] (aggregate sal = (sum salaries.salary))
+            "###).unwrap(),
+            @r###"
+        WITH table_1 AS (
+          SELECT
+            *
+          FROM
+            employees AS e
+          LIMIT
+            10
+        )
+        SELECT
+          table_1.*,
+          SUM(salaries.salary) AS sal
+        FROM
+          table_1
+          JOIN salaries ON table_1.emp_no = salaries.emp_no
+        GROUP BY
+          table_1.*
+        "###
+        );
+    }
+
+    #[test]
+    fn test_output_column_deduplication() {
+        // #1249
+        assert_display_snapshot!(compile(
+            r###"
+        from report
+        derive r = s"RANK() OVER ()"
+        filter r == 1
+            "###).unwrap(),
+            @r###"
+        WITH table_1 AS (
+          SELECT
+            *,
+            RANK() OVER () AS r
+          FROM
+            report
+        )
+        SELECT
+          *
+        FROM
+          table_1
+        WHERE
+          r = 1
+        "###
+        );
+    }
+
+    #[test]
+    fn test_switch() {
+        assert_display_snapshot!(compile(
+            r###"
+        from employees
+        derive display_name = switch [
+            nickname != null -> nickname,
+            true -> f'{first_name} {last_name}'
+        ]
+            "###).unwrap(),
+            @r###"
+        SELECT
+          *,
+          CASE
+            WHEN nickname IS NOT NULL THEN nickname
+            ELSE CONCAT(first_name, ' ', last_name)
+          END AS display_name
+        FROM
+          employees
+        "###
+        );
+
+        assert_display_snapshot!(compile(
+            r###"
+        from employees
+        derive display_name = switch [
+            nickname != null -> nickname,
+            first_name != null -> f'{first_name} {last_name}'
+        ]
+            "###).unwrap(),
+            @r###"
+        SELECT
+          *,
+          CASE
+            WHEN nickname IS NOT NULL THEN nickname
+            WHEN first_name IS NOT NULL THEN CONCAT(first_name, ' ', last_name)
+            ELSE NULL
+          END AS display_name
+        FROM
+          employees
+        "###
+        );
     }
 }

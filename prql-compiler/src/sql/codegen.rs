@@ -3,6 +3,7 @@
 use anyhow::{bail, Result};
 use itertools::Itertools;
 use lazy_static::lazy_static;
+use regex::Regex;
 use sqlparser::ast::{
     self as sql_ast, BinaryOperator, DateTimeField, Function, FunctionArg, FunctionArgExpr, Join,
     JoinConstraint, JoinOperator, ObjectName, OrderByExpr, SelectItem, TableAlias, TableFactor,
@@ -19,6 +20,7 @@ use crate::ast::pl::{
 };
 use crate::ast::rq::*;
 use crate::error::{Error, Reason};
+use crate::sql::context::ColumnDecl;
 use crate::utils::OrMap;
 
 use super::translator::Context;
@@ -143,40 +145,101 @@ pub(super) fn translate_expr_kind(item: ExprKind, ctx: &mut Context) -> Result<s
                 }
             }
         },
+        ExprKind::Switch(mut cases) => {
+            let default = cases
+                .last()
+                .filter(|last| {
+                    matches!(
+                        last.condition.kind,
+                        ExprKind::Literal(Literal::Boolean(true))
+                    )
+                })
+                .map(|def| translate_expr_kind(def.value.kind.clone(), ctx))
+                .transpose()?;
+
+            if default.is_some() {
+                cases.pop();
+            }
+
+            let else_result = default
+                .or(Some(sql_ast::Expr::Value(Value::Null)))
+                .map(Box::new);
+
+            let cases: Vec<_> = cases
+                .into_iter()
+                .map(|case| -> Result<_> {
+                    let cond = translate_expr_kind(case.condition.kind, ctx)?;
+                    let value = translate_expr_kind(case.value.kind, ctx)?;
+                    Ok((cond, value))
+                })
+                .try_collect()?;
+            let (conditions, results) = cases.into_iter().unzip();
+
+            sql_ast::Expr::Case {
+                operand: None,
+                conditions,
+                results,
+                else_result,
+            }
+        }
     })
 }
 
 fn translate_cid(cid: CId, ctx: &mut Context) -> Result<sql_ast::Expr> {
     if ctx.pre_projection {
-        log::debug!("translating {cid:?}");
-        let decl = ctx.anchor.columns_decls.get(&cid).expect("bad RQ ids");
+        log::debug!("translating {cid:?} pre projection");
+        let decl = ctx.anchor.column_decls.get(&cid).expect("bad RQ ids");
 
-        if let ColumnDeclKind::Expr { expr, .. } = &decl.kind {
-            let window = decl.window.clone();
+        Ok(match decl {
+            ColumnDecl::Compute(compute) => {
+                let window = compute.window.clone();
 
-            let expr = translate_expr_kind(expr.kind.clone(), ctx)?;
+                let expr = translate_expr_kind(compute.expr.kind.clone(), ctx)?;
 
-            return if let Some(window) = window {
-                translate_windowed(expr, window, ctx)
-            } else {
-                Ok(expr)
-            };
-        }
+                if let Some(window) = window {
+                    translate_windowed(expr, window, ctx)?
+                } else {
+                    expr
+                }
+            }
+            ColumnDecl::RelationColumn(tiid, _, col) => {
+                let column = match col.clone() {
+                    RelationColumn::Wildcard => "*".to_string(),
+                    RelationColumn::Single(name) => name.unwrap(),
+                };
+                let t = &ctx.anchor.table_instances[tiid];
+
+                let ident = translate_ident(t.name.clone(), Some(column), ctx);
+                sql_ast::Expr::CompoundIdentifier(ident)
+            }
+        })
+    } else {
+        // translate into ident
+        let column_decl = &&ctx.anchor.column_decls[&cid];
+
+        let table_name = if let ColumnDecl::RelationColumn(tiid, _, _) = column_decl {
+            let t = &ctx.anchor.table_instances[tiid];
+            Some(t.name.clone().unwrap())
+        } else {
+            None
+        };
+
+        let column = match &column_decl {
+            ColumnDecl::RelationColumn(_, _, RelationColumn::Wildcard) => "*".to_string(),
+
+            _ => {
+                let name = ctx.anchor.column_names.get(&cid).cloned();
+                name.expect("a name of this column to be set before generating SQL")
+            }
+        };
+
+        let ident = translate_ident(table_name, Some(column), ctx);
+
+        log::debug!("translating {cid:?} post projection: {ident:?}");
+
+        let ident = sql_ast::Expr::CompoundIdentifier(ident);
+        Ok(ident)
     }
-
-    // translate into ident
-    let (table, column) = ctx.anchor.materialize_name(&cid);
-
-    let proj = if ctx.pre_projection { "pre" } else { "post" };
-    log::debug!(
-        "translating {cid:?} {} projection: {:?}.{}",
-        proj,
-        table,
-        column
-    );
-
-    let ident = sql_ast::Expr::CompoundIdentifier(translate_ident(table, Some(column), ctx));
-    Ok(ident)
 }
 
 pub(super) fn table_factor_of_tid(table_ref: TableRef, ctx: &Context) -> TableFactor {
@@ -318,18 +381,25 @@ pub(super) fn translate_select_item(cid: CId, ctx: &mut Context) -> Result<Selec
     let expr = translate_cid(cid, ctx)?;
 
     let inferred_name = match &expr {
-        sql_ast::Expr::Identifier(name) => Some(&name.value),
+        // sql_ast::Expr::Identifier is used for s-strings
         sql_ast::Expr::CompoundIdentifier(parts) => parts.last().map(|p| &p.value),
         _ => None,
-    };
+    }
+    .filter(|n| *n != "*");
 
-    if let Some(alias) = ctx.anchor.get_column_name(&cid) {
-        if Some(&alias) != inferred_name {
-            return Ok(SelectItem::ExprWithAlias {
-                alias: translate_ident_part(alias, ctx),
-                expr,
-            });
-        }
+    let expected = ctx.anchor.column_names.get(&cid);
+
+    if inferred_name != expected {
+        // use expected name
+        let ident = expected.cloned().unwrap_or_else(|| {
+            // or use something that will not clash with other names
+            ctx.anchor.col_name.gen()
+        });
+
+        return Ok(SelectItem::ExprWithAlias {
+            alias: translate_ident_part(ident, ctx),
+            expr,
+        });
     }
 
     Ok(SelectItem::UnnamedExpr(expr))
@@ -452,31 +522,6 @@ pub(super) fn translate_column_sort(
     })
 }
 
-pub(super) fn filter_of_filters(
-    conditions: Vec<Expr>,
-    ctx: &mut Context,
-) -> Result<Option<sql_ast::Expr>> {
-    let mut condition = None;
-    for filter in conditions {
-        if let Some(left) = condition {
-            condition = Some(Expr {
-                kind: ExprKind::Binary {
-                    op: BinOp::And,
-                    left: Box::new(left),
-                    right: Box::new(filter),
-                },
-                span: None,
-            })
-        } else {
-            condition = Some(filter)
-        }
-    }
-
-    condition
-        .map(|n| translate_expr_kind(n.kind, ctx))
-        .transpose()
-}
-
 pub(super) fn translate_join(
     (side, with, filter): (JoinSide, TableRef, Expr),
     ctx: &mut Context,
@@ -549,28 +594,25 @@ fn is_keyword(ident: &str) -> bool {
 }
 
 pub(super) fn translate_ident_part(ident: String, ctx: &Context) -> sql_ast::Ident {
+    // We'll remove this when we get the new dbt plugin working (so no need to
+    // integrate into the regex)
     let is_jinja = ident.starts_with("{{") && ident.ends_with("}}");
-
-    // TODO: can probably represent these with a single regex
-    fn starting_forbidden(c: char) -> bool {
-        !(('a'..='z').contains(&c) || matches!(c, '_' | '$'))
+    lazy_static! {
+        // One of:
+        // - `*`
+        // - An ident starting with `a-z_\$` and containing other characters `a-z0-9_\$`
+        //
+        // We could replace this with pomsky (regex<>pomsky : sql<>prql)
+        // ^ ('*' | [ascii_lower '_$'] [ascii_lower ascii_digit '_$']* ) $
+        static ref VALID_BARE_IDENT: Regex = Regex::new(r"^((\*)|(^[a-z_\$][a-z0-9_\$]*))$").unwrap();
     }
-    fn subsequent_forbidden(c: char) -> bool {
-        !(('a'..='z').contains(&c) || ('0'..='9').contains(&c) || matches!(c, '_' | '$'))
-    }
 
-    let is_asterisk = ident == "*";
+    let is_bare = VALID_BARE_IDENT.is_match(&ident);
 
-    if !is_asterisk
-        && !is_jinja
-        && (ident.is_empty()
-            || ident.starts_with(starting_forbidden)
-            || (ident.chars().count() > 1 && ident.contains(subsequent_forbidden)))
-        || is_keyword(&ident)
-    {
-        sql_ast::Ident::with_quote(ctx.dialect.ident_quote(), ident)
-    } else {
+    if is_jinja || is_bare && !is_keyword(&ident) {
         sql_ast::Ident::new(ident)
+    } else {
+        sql_ast::Ident::with_quote(ctx.dialect.ident_quote(), ident)
     }
 }
 

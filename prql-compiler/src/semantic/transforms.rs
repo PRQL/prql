@@ -1,10 +1,11 @@
 use std::collections::HashMap;
 
 use anyhow::{anyhow, bail, Result};
+use std::iter::zip;
 
 use crate::ast::pl::fold::{fold_column_sorts, fold_transform_kind, AstFold};
 use crate::ast::pl::*;
-use crate::error::{Error, Reason};
+use crate::error::{Error, Reason, WithErrorInfo};
 
 use super::context::{Decl, DeclKind};
 use super::module::{Module, NS_PARAM};
@@ -174,6 +175,11 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
             };
             (transform_kind, tbl)
         }
+        "std.concat" => {
+            let [bottom, top] = unpack::<2>(closure);
+
+            (TransformKind::Concat(Box::new(bottom)), top)
+        }
         _ => return Ok(Err(closure)),
     };
 
@@ -194,7 +200,7 @@ fn fold_by_simulating_eval(
     pipeline: Expr,
     val_type: Ty,
 ) -> Result<Expr, anyhow::Error> {
-    log::debug!("fold by simulating evalaluation");
+    log::debug!("fold by simulating evaluation");
 
     let param_name = "_tbl";
     let param_id = resolver.id.gen();
@@ -279,24 +285,16 @@ impl TransformCall {
 
                 let mut frame = body.ty.clone().unwrap().into_table().unwrap();
 
-                log::debug!("infering type of group with pipeline: {body}");
+                log::debug!("inferring type of group with pipeline: {body}");
 
                 // prepend aggregate with `by` columns
                 if let ExprKind::TransformCall(TransformCall { kind, .. }) = &body.as_ref().kind {
                     if let TransformKind::Aggregate { .. } = kind.as_ref() {
                         let aggregate_columns = frame.columns;
                         frame.columns = Vec::new();
-                        for b in by {
-                            log::debug!(".. group by {b}");
 
-                            let id = b.id.unwrap();
-                            let name = b.alias.clone().or_else(|| match &b.kind {
-                                ExprKind::Ident(ident) => Some(ident.name.clone()),
-                                _ => None,
-                            });
-
-                            frame.push_column(name, id);
-                        }
+                        log::debug!(".. group by {by:?}");
+                        frame.apply_assigns(by);
 
                         frame.columns.extend(aggregate_columns);
                     }
@@ -319,10 +317,75 @@ impl TransformCall {
                 frame.apply_assigns(assigns);
                 frame
             }
-            Join { with, .. } => ty_frame_or_default(&self.input)? + ty_frame_or_default(with)?,
+            Join { with, .. } => {
+                let left = ty_frame_or_default(&self.input)?;
+                let right = ty_frame_or_default(with)?;
+                join(left, right)
+            }
+            Concat(bottom) => {
+                let top = ty_frame_or_default(&self.input)?;
+                let bottom = ty_frame_or_default(bottom)?;
+                concat(top, bottom)?
+            }
             Sort { .. } | Filter { .. } | Take { .. } => ty_frame_or_default(&self.input)?,
         })
     }
+}
+
+fn join(mut lhs: Frame, rhs: Frame) -> Frame {
+    lhs.columns.extend(rhs.columns);
+    lhs.inputs.extend(rhs.inputs);
+    lhs
+}
+
+fn concat(mut top: Frame, bottom: Frame) -> Result<Frame, Error> {
+    if top.columns.len() != bottom.columns.len() {
+        return Err(Error::new(Reason::Simple(
+            "cannot concat two relations with non-matching number of columns.".to_string(),
+        )))
+        .with_help(format!(
+            "top has {} columns, but bottom has {}",
+            top.columns.len(),
+            bottom.columns.len()
+        ));
+    }
+
+    // TODO: I'm not sure what to use as input_name and expr_id...
+    let mut columns = Vec::with_capacity(top.columns.len());
+    for (t, b) in zip(top.columns, bottom.columns) {
+        columns.push(match (t, b) {
+            (FrameColumn::Wildcard { input_name }, FrameColumn::Wildcard { .. }) => {
+                FrameColumn::Wildcard { input_name }
+            }
+            (
+                FrameColumn::Single {
+                    name: name_t,
+                    expr_id,
+                },
+                FrameColumn::Single { name: name_b, .. },
+            ) => match (name_t, name_b) {
+                (None, None) => {
+                    let name = None;
+                    FrameColumn::Single { name, expr_id }
+                }
+                (None, Some(name)) | (Some(name), _) => {
+                    let name = Some(name);
+                    FrameColumn::Single { name, expr_id }
+                }
+            },
+            (t, b) => {
+                return Err(Error::new(Reason::Simple(format!(
+                    "cannot match columns `{t:?}` and `{b:?}`"
+                )))
+                .with_help(
+                    "make sure that top and bottom relations of concat has the same column layout",
+                ))
+            }
+        });
+    }
+
+    top.columns = columns;
+    Ok(top)
 }
 
 fn unpack<const P: usize>(closure: Closure) -> [Expr; P] {
@@ -496,44 +559,40 @@ mod tests {
           - id: 0
             name: c_invoice
             relation:
-              ExternRef:
-                - LocalTable: c_invoice
-                - - id: 0
-                    kind: Wildcard
-                  - id: 1
-                    kind:
-                      ExternRef: invoice_no
+              kind:
+                ExternRef:
+                  LocalTable: c_invoice
+              columns:
+                - Single: invoice_no
+                - Wildcard
         relation:
-          Pipeline:
-            - From:
-                source: 0
-                columns:
-                  - id: 2
-                    kind: Wildcard
-                  - id: 3
-                    kind:
-                      Expr:
-                        name: invoice_no
-                        expr:
-                          kind:
-                            ColumnRef: 1
-                          span: ~
-                name: c_invoice
-            - Select:
-                - 3
-            - Take:
-                range:
-                  start: ~
-                  end:
-                    kind:
-                      Literal:
-                        Integer: 1
-                    span: ~
-                partition:
-                  - 3
-                sort: []
-            - Select:
-                - 3
+          kind:
+            Pipeline:
+              - From:
+                  source: 0
+                  columns:
+                    - - Single: invoice_no
+                      - 0
+                    - - Wildcard
+                      - 1
+                  name: c_invoice
+              - Select:
+                  - 0
+              - Take:
+                  range:
+                    start: ~
+                    end:
+                      kind:
+                        Literal:
+                          Integer: 1
+                      span: ~
+                  partition:
+                    - 0
+                  sort: []
+              - Select:
+                  - 0
+          columns:
+            - Single: invoice_no
         "###);
 
         // oops, two arguments #339
@@ -658,72 +717,58 @@ mod tests {
           - id: 0
             name: invoices
             relation:
-              ExternRef:
-                - LocalTable: invoices
-                - - id: 0
-                    kind: Wildcard
-                  - id: 1
-                    kind:
-                      ExternRef: issued_at
-                  - id: 2
-                    kind:
-                      ExternRef: amount
-                  - id: 3
-                    kind:
-                      ExternRef: num_of_articles
+              kind:
+                ExternRef:
+                  LocalTable: invoices
+              columns:
+                - Single: issued_at
+                - Single: amount
+                - Single: num_of_articles
+                - Wildcard
         relation:
-          Pipeline:
-            - From:
-                source: 0
-                columns:
-                  - id: 4
-                    kind: Wildcard
-                  - id: 5
-                    kind:
-                      Expr:
-                        name: issued_at
-                        expr:
-                          kind:
-                            ColumnRef: 1
-                          span: ~
-                  - id: 6
-                    kind:
-                      Expr:
-                        name: amount
-                        expr:
-                          kind:
-                            ColumnRef: 2
-                          span: ~
-                  - id: 7
-                    kind:
-                      Expr:
-                        name: num_of_articles
-                        expr:
-                          kind:
-                            ColumnRef: 3
-                          span: ~
-                name: invoices
-            - Sort:
-                - direction: Asc
-                  column: 5
-                - direction: Desc
-                  column: 6
-                - direction: Asc
-                  column: 7
-            - Sort:
-                - direction: Asc
-                  column: 5
-            - Sort:
-                - direction: Desc
-                  column: 5
-            - Sort:
-                - direction: Asc
-                  column: 5
-            - Sort:
-                - direction: Desc
-                  column: 5
-            - Select:
-                - 4
+          kind:
+            Pipeline:
+              - From:
+                  source: 0
+                  columns:
+                    - - Single: issued_at
+                      - 0
+                    - - Single: amount
+                      - 1
+                    - - Single: num_of_articles
+                      - 2
+                    - - Wildcard
+                      - 3
+                  name: invoices
+              - Sort:
+                  - direction: Asc
+                    column: 0
+                  - direction: Desc
+                    column: 1
+                  - direction: Asc
+                    column: 2
+              - Sort:
+                  - direction: Asc
+                    column: 0
+              - Sort:
+                  - direction: Desc
+                    column: 0
+              - Sort:
+                  - direction: Asc
+                    column: 0
+              - Sort:
+                  - direction: Desc
+                    column: 0
+              - Select:
+                  - 0
+                  - 1
+                  - 2
+                  - 3
+          columns:
+            - Single: issued_at
+            - Single: amount
+            - Single: num_of_articles
+            - Wildcard
         "###);
     }
 }
