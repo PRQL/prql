@@ -62,7 +62,7 @@ impl AnchorContext {
     }
 
     pub fn register_wildcard(&mut self, tiid: TIId) -> CId {
-        let id = self.cid.gen();
+        let id = self.cid.next().unwrap();
         let kind = ColumnDecl::RelationColumn(tiid, id, RelationColumn::Wildcard);
         self.column_decls.insert(id, kind);
         id
@@ -75,7 +75,7 @@ impl AnchorContext {
     }
 
     pub fn create_table_instance(&mut self, mut table_ref: TableRef) {
-        let tiid = self.tiid.gen();
+        let tiid = self.tiid.next().unwrap();
 
         for (col, cid) in &table_ref.columns {
             let def = ColumnDecl::RelationColumn(tiid, *cid, col.clone());
@@ -191,7 +191,7 @@ impl IrFold for QueryLoader {
     }
 
     fn fold_table_ref(&mut self, mut table_ref: TableRef) -> Result<TableRef> {
-        let tiid = self.context.tiid.gen();
+        let tiid = self.context.tiid.next().unwrap();
 
         if table_ref.name.is_none() {
             table_ref.name = Some(self.context.table_name.gen());

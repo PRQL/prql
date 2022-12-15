@@ -141,7 +141,7 @@ fn into_tables(
     context: &mut Context,
 ) -> Result<Vec<TableDecl>> {
     let main = TableDecl {
-        id: context.anchor.tid.gen(),
+        id: context.anchor.tid.next().unwrap(),
         name: None,
         relation: main_pipeline,
     };

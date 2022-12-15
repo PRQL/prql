@@ -111,7 +111,7 @@ impl<'a> TakeConverter<'a> {
         };
 
         let compute = Compute {
-            id: self.context.cid.gen(),
+            id: self.context.cid.next().unwrap(),
             expr,
             window: Some(window),
             is_aggregation: false,

@@ -116,7 +116,7 @@ impl Lowerer {
                 let id = expr.id.unwrap();
 
                 // create a new table
-                let tid = self.tid.gen();
+                let tid = self.tid.next().unwrap();
 
                 let relation = self.lower_relation(expr)?;
 
@@ -150,7 +150,7 @@ impl Lowerer {
                 let id = expr.id.unwrap();
 
                 // create a new table
-                let tid = self.tid.gen();
+                let tid = self.tid.next().unwrap();
 
                 let cols = vec![RelationColumn::Wildcard];
 
@@ -216,7 +216,7 @@ impl Lowerer {
             .cloned()
             .chain(inferred_cols.cloned().unwrap_or_default())
             .unique()
-            .map(|col| (col, self.cid.gen()))
+            .map(|col| (col, self.cid.next().unwrap()))
             .collect_vec();
 
         log::debug!("... columns = {:?}", columns);
@@ -458,7 +458,7 @@ impl Lowerer {
         };
 
         // construct ColumnDef
-        let cid = self.cid.gen();
+        let cid = self.cid.next().unwrap();
         let compute = rq::Compute {
             id: cid,
             expr,
@@ -629,7 +629,7 @@ fn lower_table(lowerer: &mut Lowerer, table: context::TableDecl, fq_ident: Ident
     let id = *lowerer
         .table_mapping
         .entry(fq_ident.clone())
-        .or_insert_with(|| lowerer.tid.gen());
+        .or_insert_with(|| lowerer.tid.next().unwrap());
 
     let context::TableDecl { columns, expr } = table;
 

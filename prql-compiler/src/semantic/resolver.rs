@@ -54,7 +54,7 @@ impl AstFold for Resolver {
         let mut res = Vec::new();
 
         for mut stmt in stmts {
-            stmt.id = Some(self.id.gen());
+            stmt.id = Some(self.id.next().unwrap());
             if let Some(span) = stmt.span {
                 self.decls.span_map.insert(stmt.id.unwrap(), span);
             }
@@ -98,7 +98,7 @@ impl AstFold for Resolver {
             return Ok(node);
         }
 
-        let id = self.id.gen();
+        let id = self.id.next().unwrap();
         let alias = node.alias.clone();
         let span = node.span;
 

@@ -172,7 +172,7 @@ pub fn anchor_split(
     cols_at_split: &[CId],
     second_pipeline: Vec<Transform>,
 ) -> Vec<Transform> {
-    let new_tid = ctx.tid.gen();
+    let new_tid = ctx.tid.next().unwrap();
 
     log::debug!("split pipeline, first pipeline output: {cols_at_split:?}");
 
@@ -180,7 +180,7 @@ pub fn anchor_split(
     let mut cid_redirects = HashMap::<CId, CId>::new();
     let mut new_columns = Vec::new();
     for old_cid in cols_at_split {
-        let new_cid = ctx.cid.gen();
+        let new_cid = ctx.cid.next().unwrap();
 
         let old_name = ctx.ensure_column_name(*old_cid).cloned();
         if let Some(name) = old_name.clone() {

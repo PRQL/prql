@@ -15,14 +15,19 @@ impl<T: From<usize>> IdGenerator<T> {
         Self::default()
     }
 
-    fn skip(&mut self, id: usize) {
+    // We could implement this with `skip_while`, but this is just as concise.
+    fn skip_to(&mut self, id: usize) {
         self.next_id = self.next_id.max(id + 1);
     }
+}
 
-    pub fn gen(&mut self) -> T {
+impl<T: From<usize>> Iterator for IdGenerator<T> {
+    type Item = T;
+
+    fn next(&mut self) -> Option<Self::Item> {
         let id = self.next_id;
         self.next_id += 1;
-        T::from(id)
+        Some(T::from(id))
     }
 }
 
@@ -53,13 +58,13 @@ struct IdLoader {
 
 impl IrFold for IdLoader {
     fn fold_cid(&mut self, cid: CId) -> Result<CId> {
-        self.cid.skip(cid.get());
+        self.cid.skip_to(cid.get());
 
         Ok(cid)
     }
 
     fn fold_table(&mut self, table: TableDecl) -> Result<TableDecl> {
-        self.tid.skip(table.id.get());
+        self.tid.skip_to(table.id.get());
 
         fold_table(self, table)
     }
@@ -80,6 +85,6 @@ impl NameGenerator {
     }
 
     pub fn gen(&mut self) -> String {
-        format!("{}{}", self.prefix, self.id.gen())
+        format!("{}{}", self.prefix, self.id.next().unwrap())
     }
 }
