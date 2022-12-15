@@ -66,7 +66,7 @@ fn compile_to_error_message(prql: &str) -> Result<String, ErrorMessage> {
 // Simple tests for "this PRQL creates this SQL" go here.
 #[cfg(test)]
 mod test {
-    use crate::{json_to_pl, parse, pl_to_json, pl_to_prql};
+    use crate::{json_to_pl, parse, pl_to_json, semantic, translate};
 
     use super::compile;
     use super::compile_to_error_message;
@@ -952,8 +952,7 @@ select `first name`
             employees
         )
         SELECT
-          *,
-          rn
+          *
         FROM
           table_1
         WHERE
@@ -1097,11 +1096,17 @@ join managers=employees [==emp_no]
 derive mng_name = s"managers.first_name || ' ' || managers.last_name"
 select [mng_name, managers.gender, salary_avg, salary_sd]"#;
 
-        let sql_from_prql = compile(original_prql).unwrap();
+        let sql_from_prql = parse(original_prql)
+            .and_then(semantic::resolve)
+            .and_then(translate)
+            .unwrap();
 
-        let json = parse(original_prql).and_then(pl_to_json).unwrap();
-        let prql_from_json = json_to_pl(&json).and_then(pl_to_prql).unwrap();
-        let sql_from_json = compile(&prql_from_json).unwrap();
+        let sql_from_json = parse(original_prql)
+            .and_then(pl_to_json)
+            .and_then(|json| json_to_pl(&json))
+            .and_then(semantic::resolve)
+            .and_then(translate)
+            .unwrap();
 
         assert_eq!(sql_from_prql, sql_from_json);
     }
@@ -1955,8 +1960,8 @@ join y [foo == only_in_x]
         "###).unwrap(),
             @r###"
         SELECT
-          a,
-          a,
+          a AS _expr_0,
+          a AS _expr_1,
           a + 1 AS a
         FROM
           x
@@ -1973,8 +1978,57 @@ join y [foo == only_in_x]
         "###).unwrap(),
             @r###"
         SELECT
-          a,
-          a,
+          a AS _expr_0,
+          a AS _expr_1,
+          a + 1,
+          a + 1 + 2 AS a
+        FROM
+          x
+        "###
+        );
+    }
+
+    #[test]
+    fn test_group_all() {
+        assert_display_snapshot!(compile(
+            r###"
+        from e=employees
+        take 10
+        join salaries [==emp_no]
+        group [e.*] (aggregate sal = (sum salaries.salary))
+            "###).unwrap(),
+            @r###"
+        WITH table_1 AS (
+          SELECT
+            *
+          FROM
+            employees AS e
+          LIMIT
+            10
+        )
+        SELECT
+          table_1.*,
+          SUM(salaries.salary) AS sal
+        FROM
+          table_1
+          JOIN salaries ON table_1.emp_no = salaries.emp_no
+        GROUP BY
+          table_1.*
+        "###
+        );
+
+        assert_display_snapshot!(compile(
+            r###"
+        from x
+        select a
+        derive a
+        derive a = a + 1
+        derive a = a + 2
+        "###).unwrap(),
+            @r###"
+        SELECT
+          a AS _expr_0,
+          a AS _expr_1,
           a + 1,
           a + 1 + 2 AS a
         FROM

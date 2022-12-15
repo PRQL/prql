@@ -2,21 +2,21 @@
 //! replacing variables. The materialized AST is "flat", in the sense that it
 //! contains no query-specific logic.
 use std::collections::{HashMap, HashSet};
+use std::iter::zip;
 
 use anyhow::Result;
 use enum_as_inner::EnumAsInner;
 use itertools::Itertools;
 
 use crate::ast::rq::{
-    fold_relation, fold_table, CId, Compute, IrFold, Query, Relation, RelationColumn, RelationKind,
-    TId, TableDecl, TableRef, Transform,
+    fold_table, CId, Compute, IrFold, Query, RelationColumn, TId, TableDecl, TableRef, Transform,
 };
 use crate::utils::{IdGenerator, NameGenerator};
 
 #[derive(Default)]
 pub struct AnchorContext {
     pub(super) column_decls: HashMap<CId, ColumnDecl>,
-    pub(super) column_names: HashMap<CId, Option<String>>,
+    pub(super) column_names: HashMap<CId, String>,
 
     pub(super) table_decls: HashMap<TId, TableDecl>,
 
@@ -24,8 +24,6 @@ pub struct AnchorContext {
 
     pub(super) col_name: NameGenerator,
     pub(super) table_name: NameGenerator,
-
-    pub(super) used_col_names: HashMap<String, CId>,
 
     pub(super) cid: IdGenerator<CId>,
     pub(super) tid: IdGenerator<TId>,
@@ -91,15 +89,34 @@ impl AnchorContext {
         self.table_instances.insert(tiid, table_ref);
     }
 
-    pub(crate) fn get_column_name(&mut self, cid: CId) -> Option<&String> {
-        self.column_decls[&cid].as_compute()?;
+    pub(crate) fn ensure_column_name(&mut self, cid: CId) -> Option<&String> {
+        // don't name wildcards & named RelationColumns
+        let decl = &self.column_decls[&cid];
+        if let ColumnDecl::RelationColumn(_, _, col) = decl {
+            match col {
+                RelationColumn::Single(Some(name)) => {
+                    let entry = self.column_names.entry(cid);
+                    return Some(entry.or_insert_with(|| name.clone()));
+                }
+                RelationColumn::Wildcard => return None,
+                _ => {}
+            }
+        }
 
-        let name = self.column_names.entry(cid);
-        let col_name_gen = &mut self.col_name;
+        let entry = self.column_names.entry(cid);
+        Some(entry.or_insert_with(|| self.col_name.gen()))
+    }
 
-        let name = name.or_insert_with(|| Some(col_name_gen.gen()));
+    pub fn load_names(&mut self, pipeline: &[Transform], output_cols: Vec<RelationColumn>) {
+        let output_cids = self.determine_select_columns(pipeline);
 
-        name.as_ref()
+        assert_eq!(output_cids.len(), output_cols.len());
+
+        for (cid, col) in zip(output_cids.iter(), output_cols) {
+            if let RelationColumn::Single(Some(name)) = col {
+                self.column_names.insert(*cid, name);
+            }
+        }
     }
 
     pub fn determine_select_columns(&self, pipeline: &[Transform]) -> Vec<CId> {
@@ -190,25 +207,5 @@ impl IrFold for QueryLoader {
         }
 
         Ok(table_ref)
-    }
-
-    fn fold_relation(&mut self, relation: Relation) -> Result<Relation> {
-        let relation = fold_relation(self, relation)?;
-
-        // load names for computed columns
-        if let RelationKind::Pipeline(pipeline) = &relation.kind {
-            let cids = self.context.determine_select_columns(pipeline);
-
-            for (cid, col) in std::iter::zip(cids, &relation.columns) {
-                let name = if let RelationColumn::Single(name) = col.clone() {
-                    name
-                } else {
-                    None
-                };
-                self.context.column_names.insert(cid, name);
-            }
-        }
-
-        Ok(relation)
     }
 }
