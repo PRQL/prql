@@ -24,4 +24,4 @@ SELECT
   table_1.*
 FROM
   table_2 AS table_0
-  JOIN table_3 AS table_1 ON table_0.* = table_1.*
+  JOIN table_3 AS table_1 ON table_0.id = table_1.id
