@@ -39,21 +39,22 @@ RUN apt-get -yq update \
   ca-certificates \
   && rm -rf /var/lib/apt/lists/*
 
-# A previous version of this installed packaged from `apt` — that's fine in
-# principle, but it didn't have recent enough versions.
-# ========= Install brew =========
-RUN /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-ENV PATH="/home/linuxbrew/.linuxbrew/bin:${PATH}"
-
 # ========= Install task =========
-RUN brew install go-task/tap/go-task
+RUN sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b /usr/local/bin
 
 # ========= Set up workdir & copy the taskfile =========
 WORKDIR /src
 COPY Taskfile.yml .
 
+# # A previous version of this installed packaged from `apt` — that's fine in
+# # principle, but it didn't have recent enough versions.
+# # ========= Install brew =========
+# RUN /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+# ENV PATH="/home/linuxbrew/.linuxbrew/bin:${PATH}"
+# RUN brew install go-task/tap/go-task
 # ========= Run our standard dev setup tasks =========
-RUN task setup-dev
+# RUN task setup-dev
+
 
 # TODO: we could consider building the dependencies here, to take advantage of
 # Docker's caching. It's possible but not completely trivial:
