@@ -306,6 +306,38 @@ mod test {
         FROM
           managers
         "###);
+
+        assert_display_snapshot!(compile(r###"
+        from employees
+        concat managers
+        union all_employees_of_some_other_company
+        "###).unwrap(), @r###"
+        WITH table_1 AS (
+          (
+            SELECT
+              *
+            FROM
+              employees
+          )
+          UNION
+          ALL
+          SELECT
+            *
+          FROM
+            managers
+        ) (
+          SELECT
+            *
+          FROM
+            table_1
+        )
+        UNION
+        DISTINCT
+        SELECT
+          *
+        FROM
+          all_employees_of_some_other_company
+        "###);
     }
 
     #[test]

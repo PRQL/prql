@@ -278,7 +278,7 @@ fn is_split_required(transform: &Transform, following: &mut HashSet<String>) -> 
             following,
             ["From", "Join", "Compute", "Filter", "Aggregate", "Sort"],
         ),
-        Concat(_) | Unique => contains_any(
+        Unique => contains_any(
             following,
             [
                 "From",
@@ -288,6 +288,19 @@ fn is_split_required(transform: &Transform, following: &mut HashSet<String>) -> 
                 "Aggregate",
                 "Sort",
                 "Take",
+            ],
+        ),
+        Concat(_) => contains_any(
+            following,
+            [
+                "From",
+                "Join",
+                "Compute",
+                "Filter",
+                "Aggregate",
+                "Sort",
+                "Take",
+                "Concat",
             ],
         ),
         _ => false,
