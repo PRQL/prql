@@ -26,6 +26,8 @@ pub enum Ty {
     Debug, Clone, Serialize, Deserialize, PartialEq, Eq, strum::EnumString, strum::Display,
 )]
 pub enum TyLit {
+    #[strum(to_string = "list")]
+    List,
     #[strum(to_string = "column")]
     Column,
     #[strum(to_string = "scalar")]

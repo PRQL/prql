@@ -500,30 +500,30 @@ impl Resolver {
         }
 
         // resolve other positional
-        for (index, (param, arg)) in other {
-            let arg = match arg.kind {
-                // if this is a list, fold one by one
-                ExprKind::List(items) => {
-                    let mut res = Vec::with_capacity(items.len());
-                    for item in items {
-                        let item = self.fold_and_type_check(item, param, func_name)?;
+        for (index, (param, mut arg)) in other {
+            if let ExprKind::List(items) = arg.kind {
+                // if this is a list, resolve elements separately,
+                // so they can be added to scope, before resolving subsequent elements.
 
-                        // add aliased columns into scope
-                        if let Some(alias) = item.alias.clone() {
-                            let id = item.id.unwrap();
-                            self.decls.root_mod.insert_frame_col(NS_FRAME, alias, id);
-                        }
-                        res.push(item);
+                let mut res = Vec::with_capacity(items.len());
+                for item in items {
+                    let item = self.fold_and_type_check(item, param, func_name)?;
+
+                    // add aliased columns into scope
+                    if let Some(alias) = item.alias.clone() {
+                        let id = item.id.unwrap();
+                        self.decls.root_mod.insert_frame_col(NS_FRAME, alias, id);
                     }
-                    Expr {
-                        kind: ExprKind::List(res),
-                        ..arg
-                    }
+                    res.push(item);
                 }
 
-                // just fold the argument alone
-                _ => self.fold_and_type_check(arg, param, func_name)?,
-            };
+                // note that this list node has to be resolved itself
+                // (it's elements are already resolved and so their resolving
+                // should be skipped)
+                arg.kind = ExprKind::List(res);
+            }
+
+            let arg = self.fold_and_type_check(arg, param, func_name)?;
 
             closure.args[index] = arg;
         }
