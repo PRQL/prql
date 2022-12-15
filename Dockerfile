@@ -3,17 +3,18 @@
 
 # Build with:
 #
-# cd <top-level-PRQL-directory>
-# docker build -t prql .
+#   cd <top-level-PRQL-directory>
+#   docker build -t prql .
 #
 # Invoke with:
 #
-# cd <top-level-PRQL-directory>
-# docker run -it -v $(pwd)/:/src -p 3000:3000 prql
+#   cd <top-level-PRQL-directory>
+#   docker run -it -v $(pwd)/:/src -p 3000:3000 prql
+#
 # You'll see a root@xxxxxxxxx:/app/# prompt
 # Enter the commands for the various tasks
-# Ctl-C to exit that task
-# Enter 'exit' to close down the Docker machine
+# Ctrl-c to exit that task
+# Ctrl-d to close down the Docker machine
 
 # See USING_DOCKER.md for instructions for various tasks
 
@@ -42,19 +43,17 @@ RUN apt-get -yq update \
 # ========= Install task =========
 RUN sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b /usr/local/bin
 
+# ========= Install cargo-tools =========
+RUN task install-cargo-tools
+
 # ========= Set up workdir & copy the taskfile =========
 WORKDIR /src
 COPY Taskfile.yml .
 
-# # A previous version of this installed packaged from `apt` — that's fine in
-# # principle, but it didn't have recent enough versions.
-# # ========= Install brew =========
-# RUN /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-# ENV PATH="/home/linuxbrew/.linuxbrew/bin:${PATH}"
-# RUN brew install go-task/tap/go-task
-# ========= Run our standard dev setup tasks =========
-# RUN task setup-dev
-
+# TODO: currently this doesn't support doing things like running the playground,
+# since we don't install hugo & node. Default `apt` doesn't install up-to-date
+# versions, and I couldn't get `brew` working on an ARM machine. But that would
+# be a welcome addition in the future.
 
 # TODO: we could consider building the dependencies here, to take advantage of
 # Docker's caching. It's possible but not completely trivial:
