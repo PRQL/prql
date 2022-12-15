@@ -2192,4 +2192,48 @@ join y [foo == only_in_x]
         "###
         );
     }
+
+    #[test]
+    fn test_switch() {
+        assert_display_snapshot!(compile(
+            r###"
+        from employees
+        derive display_name = switch [
+            nickname != null -> nickname,
+            true -> f'{first_name} {last_name}'
+        ]
+            "###).unwrap(),
+            @r###"
+        SELECT
+          *,
+          CASE
+            WHEN nickname IS NOT NULL THEN nickname
+            ELSE CONCAT(first_name, ' ', last_name)
+          END AS display_name
+        FROM
+          employees
+        "###
+        );
+
+        assert_display_snapshot!(compile(
+            r###"
+        from employees
+        derive display_name = switch [
+            nickname != null -> nickname,
+            first_name != null -> f'{first_name} {last_name}'
+        ]
+            "###).unwrap(),
+            @r###"
+        SELECT
+          *,
+          CASE
+            WHEN nickname IS NOT NULL THEN nickname
+            WHEN first_name IS NOT NULL THEN CONCAT(first_name, ' ', last_name)
+            ELSE NULL
+          END AS display_name
+        FROM
+          employees
+        "###
+        );
+    }
 }

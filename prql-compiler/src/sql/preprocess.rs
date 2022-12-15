@@ -3,7 +3,7 @@ use std::cmp::Ordering;
 use anyhow::Result;
 
 use crate::ast::pl::{BinOp, ColumnSort, InterpolateItem, Literal, Range, WindowFrame, WindowKind};
-use crate::ast::rq::{CId, Compute, Expr, ExprKind, IrFold, Take, Transform, Window};
+use crate::ast::rq::{CId, Compute, Expr, ExprKind, RqFold, Take, Transform, Window};
 
 use super::anchor::{infer_complexity, Complexity};
 use super::context::AnchorContext;
@@ -23,7 +23,7 @@ struct TakeConverter<'a> {
     context: &'a mut AnchorContext,
 }
 
-impl<'a> IrFold for TakeConverter<'a> {
+impl<'a> RqFold for TakeConverter<'a> {
     fn fold_transforms(&mut self, transforms: Vec<Transform>) -> Result<Vec<Transform>> {
         let mut res = Vec::new();
 

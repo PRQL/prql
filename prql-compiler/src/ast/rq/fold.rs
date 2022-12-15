@@ -4,7 +4,7 @@
 use anyhow::Result;
 use itertools::Itertools;
 
-use super::super::pl::InterpolateItem;
+use crate::ast::pl::{InterpolateItem, SwitchCase};
 
 use super::*;
 
@@ -20,7 +20,7 @@ use super::*;
 // we define a function outside the trait, by default call it, and let
 // implementors override the default while calling the function directly for
 // some cases. Ref https://stackoverflow.com/a/66077767/3064736
-pub trait IrFold {
+pub trait RqFold {
     fn fold_transform(&mut self, transform: Transform) -> Result<Transform> {
         fold_transform(self, transform)
     }
@@ -60,7 +60,7 @@ pub trait IrFold {
     }
 }
 
-fn fold_compute<F: ?Sized + IrFold>(
+fn fold_compute<F: ?Sized + RqFold>(
     fold: &mut F,
     compute: Compute,
 ) -> Result<Compute, anyhow::Error> {
@@ -72,7 +72,7 @@ fn fold_compute<F: ?Sized + IrFold>(
     })
 }
 
-fn fold_window<F: ?Sized + IrFold>(fold: &mut F, w: Window) -> Result<Window> {
+fn fold_window<F: ?Sized + RqFold>(fold: &mut F, w: Window) -> Result<Window> {
     Ok(Window {
         frame: WindowFrame {
             kind: w.frame.kind,
@@ -86,7 +86,7 @@ fn fold_window<F: ?Sized + IrFold>(fold: &mut F, w: Window) -> Result<Window> {
     })
 }
 
-pub fn fold_table<F: ?Sized + IrFold>(fold: &mut F, t: TableDecl) -> Result<TableDecl> {
+pub fn fold_table<F: ?Sized + RqFold>(fold: &mut F, t: TableDecl) -> Result<TableDecl> {
     Ok(TableDecl {
         id: t.id,
         name: t.name,
@@ -94,7 +94,7 @@ pub fn fold_table<F: ?Sized + IrFold>(fold: &mut F, t: TableDecl) -> Result<Tabl
     })
 }
 
-pub fn fold_relation<F: ?Sized + IrFold>(
+pub fn fold_relation<F: ?Sized + RqFold>(
     fold: &mut F,
     relation: Relation,
 ) -> Result<Relation, anyhow::Error> {
@@ -104,7 +104,7 @@ pub fn fold_relation<F: ?Sized + IrFold>(
     })
 }
 
-pub fn fold_relation_kind<F: ?Sized + IrFold>(
+pub fn fold_relation_kind<F: ?Sized + RqFold>(
     fold: &mut F,
     rel: RelationKind,
 ) -> Result<RelationKind> {
@@ -118,7 +118,7 @@ pub fn fold_relation_kind<F: ?Sized + IrFold>(
     })
 }
 
-pub fn fold_table_ref<F: ?Sized + IrFold>(fold: &mut F, table_ref: TableRef) -> Result<TableRef> {
+pub fn fold_table_ref<F: ?Sized + RqFold>(fold: &mut F, table_ref: TableRef) -> Result<TableRef> {
     Ok(TableRef {
         name: table_ref.name,
         source: table_ref.source,
@@ -132,7 +132,7 @@ pub fn fold_table_ref<F: ?Sized + IrFold>(fold: &mut F, table_ref: TableRef) -> 
     })
 }
 
-pub fn fold_query<F: ?Sized + IrFold>(fold: &mut F, query: Query) -> Result<Query> {
+pub fn fold_query<F: ?Sized + RqFold>(fold: &mut F, query: Query) -> Result<Query> {
     Ok(Query {
         def: query.def,
         relation: fold.fold_relation(query.relation)?,
@@ -144,11 +144,11 @@ pub fn fold_query<F: ?Sized + IrFold>(fold: &mut F, query: Query) -> Result<Quer
     })
 }
 
-fn fold_cids<F: ?Sized + IrFold>(fold: &mut F, cids: Vec<CId>) -> Result<Vec<CId>> {
+fn fold_cids<F: ?Sized + RqFold>(fold: &mut F, cids: Vec<CId>) -> Result<Vec<CId>> {
     cids.into_iter().map(|i| fold.fold_cid(i)).try_collect()
 }
 
-pub fn fold_transforms<F: ?Sized + IrFold>(
+pub fn fold_transforms<F: ?Sized + RqFold>(
     fold: &mut F,
     transforms: Vec<Transform>,
 ) -> Result<Vec<Transform>> {
@@ -158,7 +158,7 @@ pub fn fold_transforms<F: ?Sized + IrFold>(
         .try_collect()
 }
 
-pub fn fold_transform<T: ?Sized + IrFold>(
+pub fn fold_transform<T: ?Sized + RqFold>(
     fold: &mut T,
     mut transform: Transform,
 ) -> Result<Transform> {
@@ -192,7 +192,7 @@ pub fn fold_transform<T: ?Sized + IrFold>(
     Ok(transform)
 }
 
-fn fold_column_sorts<T: ?Sized + IrFold>(
+fn fold_column_sorts<T: ?Sized + RqFold>(
     fold: &mut T,
     sorts: Vec<ColumnSort<CId>>,
 ) -> Result<Vec<ColumnSort<CId>>> {
@@ -207,7 +207,7 @@ fn fold_column_sorts<T: ?Sized + IrFold>(
         .try_collect()
 }
 
-pub fn fold_expr_kind<F: ?Sized + IrFold>(fold: &mut F, kind: ExprKind) -> Result<ExprKind> {
+pub fn fold_expr_kind<F: ?Sized + RqFold>(fold: &mut F, kind: ExprKind) -> Result<ExprKind> {
     Ok(match kind {
         ExprKind::ColumnRef(cid) => ExprKind::ColumnRef(fold.fold_cid(cid)?),
 
@@ -227,13 +227,19 @@ pub fn fold_expr_kind<F: ?Sized + IrFold>(fold: &mut F, kind: ExprKind) -> Resul
 
         ExprKind::SString(items) => ExprKind::SString(fold_interpolate_items(fold, items)?),
         ExprKind::FString(items) => ExprKind::FString(fold_interpolate_items(fold, items)?),
+        ExprKind::Switch(cases) => ExprKind::Switch(
+            cases
+                .into_iter()
+                .map(|c| fold_switch_case(fold, c))
+                .try_collect()?,
+        ),
 
         ExprKind::Literal(_) => kind,
     })
 }
 
 /// Helper
-pub fn fold_optional_box<F: ?Sized + IrFold>(
+pub fn fold_optional_box<F: ?Sized + RqFold>(
     fold: &mut F,
     opt: Option<Box<Expr>>,
 ) -> Result<Option<Box<Expr>>> {
@@ -243,7 +249,7 @@ pub fn fold_optional_box<F: ?Sized + IrFold>(
     })
 }
 
-pub fn fold_interpolate_items<T: ?Sized + IrFold>(
+pub fn fold_interpolate_items<T: ?Sized + RqFold>(
     fold: &mut T,
     items: Vec<InterpolateItem<Expr>>,
 ) -> Result<Vec<InterpolateItem<Expr>>> {
@@ -253,12 +259,22 @@ pub fn fold_interpolate_items<T: ?Sized + IrFold>(
         .try_collect()
 }
 
-pub fn fold_interpolate_item<T: ?Sized + IrFold>(
+pub fn fold_interpolate_item<T: ?Sized + RqFold>(
     fold: &mut T,
     item: InterpolateItem<Expr>,
 ) -> Result<InterpolateItem<Expr>> {
     Ok(match item {
         InterpolateItem::String(string) => InterpolateItem::String(string),
         InterpolateItem::Expr(expr) => InterpolateItem::Expr(Box::new(fold.fold_expr(*expr)?)),
+    })
+}
+
+pub fn fold_switch_case<F: ?Sized + RqFold>(
+    fold: &mut F,
+    case: SwitchCase<Expr>,
+) -> Result<SwitchCase<Expr>> {
+    Ok(SwitchCase {
+        condition: fold.fold_expr(case.condition)?,
+        value: fold.fold_expr(case.value)?,
     })
 }
