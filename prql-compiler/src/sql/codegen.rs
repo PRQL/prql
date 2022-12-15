@@ -20,6 +20,7 @@ use crate::ast::pl::{
 };
 use crate::ast::rq::*;
 use crate::error::{Error, Reason};
+use crate::sql::context::ColumnDecl;
 use crate::utils::OrMap;
 
 use super::translator::Context;
@@ -150,12 +151,12 @@ pub(super) fn translate_expr_kind(item: ExprKind, ctx: &mut Context) -> Result<s
 fn translate_cid(cid: CId, ctx: &mut Context) -> Result<sql_ast::Expr> {
     if ctx.pre_projection {
         log::debug!("translating {cid:?}");
-        let decl = ctx.anchor.columns_decls.get(&cid).expect("bad RQ ids");
+        let decl = ctx.anchor.column_decls.get(&cid).expect("bad RQ ids");
 
-        if let ColumnDeclKind::Expr { expr, .. } = &decl.kind {
-            let window = decl.window.clone();
+        if let ColumnDecl::Compute(compute) = decl {
+            let window = compute.window.clone();
 
-            let expr = translate_expr_kind(expr.kind.clone(), ctx)?;
+            let expr = translate_expr_kind(compute.expr.kind.clone(), ctx)?;
 
             return if let Some(window) = window {
                 translate_windowed(expr, window, ctx)
@@ -166,17 +167,26 @@ fn translate_cid(cid: CId, ctx: &mut Context) -> Result<sql_ast::Expr> {
     }
 
     // translate into ident
-    let (table, column) = ctx.anchor.materialize_name(&cid);
+    let ident = match &ctx.anchor.column_decls[&cid] {
+        ColumnDecl::Compute(_) => {
+            let name = ctx.anchor.get_column_name(cid).unwrap().clone();
+            translate_ident(None, Some(name), ctx)
+        }
+        ColumnDecl::RelationColumn(tiid, _, col) => {
+            let col = match col {
+                RelationColumn::Wildcard => "*".to_string(),
+                RelationColumn::Single(name) => name.clone().unwrap(),
+            };
+            let t = &ctx.anchor.table_instances[tiid];
+
+            translate_ident(Some(t.name.clone().unwrap()), Some(col), ctx)
+        }
+    };
 
     let proj = if ctx.pre_projection { "pre" } else { "post" };
-    log::debug!(
-        "translating {cid:?} {} projection: {:?}.{}",
-        proj,
-        table,
-        column
-    );
+    log::debug!("translating {cid:?} {proj} projection: {ident:?}");
 
-    let ident = sql_ast::Expr::CompoundIdentifier(translate_ident(table, Some(column), ctx));
+    let ident = sql_ast::Expr::CompoundIdentifier(ident);
     Ok(ident)
 }
 
@@ -324,10 +334,10 @@ pub(super) fn translate_select_item(cid: CId, ctx: &mut Context) -> Result<Selec
         _ => None,
     };
 
-    if let Some(alias) = ctx.anchor.get_column_name(&cid) {
-        if Some(&alias) != inferred_name {
+    if let Some(alias) = ctx.anchor.get_column_name(cid) {
+        if Some(alias) != inferred_name {
             return Ok(SelectItem::ExprWithAlias {
-                alias: translate_ident_part(alias, ctx),
+                alias: translate_ident_part(alias.clone(), ctx),
                 expr,
             });
         }

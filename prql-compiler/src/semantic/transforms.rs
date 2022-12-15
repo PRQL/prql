@@ -496,44 +496,40 @@ mod tests {
           - id: 0
             name: c_invoice
             relation:
-              ExternRef:
-                - LocalTable: c_invoice
-                - - id: 0
-                    kind: Wildcard
-                  - id: 1
-                    kind:
-                      ExternRef: invoice_no
+              kind:
+                ExternRef:
+                  LocalTable: c_invoice
+              columns:
+                - Single: invoice_no
+                - Wildcard
         relation:
-          Pipeline:
-            - From:
-                source: 0
-                columns:
-                  - id: 2
-                    kind: Wildcard
-                  - id: 3
-                    kind:
-                      Expr:
-                        name: invoice_no
-                        expr:
-                          kind:
-                            ColumnRef: 1
-                          span: ~
-                name: c_invoice
-            - Select:
-                - 3
-            - Take:
-                range:
-                  start: ~
-                  end:
-                    kind:
-                      Literal:
-                        Integer: 1
-                    span: ~
-                partition:
-                  - 3
-                sort: []
-            - Select:
-                - 3
+          kind:
+            Pipeline:
+              - From:
+                  source: 0
+                  columns:
+                    - - Single: invoice_no
+                      - 0
+                    - - Wildcard
+                      - 1
+                  name: c_invoice
+              - Select:
+                  - 0
+              - Take:
+                  range:
+                    start: ~
+                    end:
+                      kind:
+                        Literal:
+                          Integer: 1
+                      span: ~
+                  partition:
+                    - 0
+                  sort: []
+              - Select:
+                  - 0
+          columns:
+            - Single: invoice_no
         "###);
 
         // oops, two arguments #339
@@ -658,72 +654,58 @@ mod tests {
           - id: 0
             name: invoices
             relation:
-              ExternRef:
-                - LocalTable: invoices
-                - - id: 0
-                    kind: Wildcard
-                  - id: 1
-                    kind:
-                      ExternRef: issued_at
-                  - id: 2
-                    kind:
-                      ExternRef: amount
-                  - id: 3
-                    kind:
-                      ExternRef: num_of_articles
+              kind:
+                ExternRef:
+                  LocalTable: invoices
+              columns:
+                - Single: issued_at
+                - Single: amount
+                - Single: num_of_articles
+                - Wildcard
         relation:
-          Pipeline:
-            - From:
-                source: 0
-                columns:
-                  - id: 4
-                    kind: Wildcard
-                  - id: 5
-                    kind:
-                      Expr:
-                        name: issued_at
-                        expr:
-                          kind:
-                            ColumnRef: 1
-                          span: ~
-                  - id: 6
-                    kind:
-                      Expr:
-                        name: amount
-                        expr:
-                          kind:
-                            ColumnRef: 2
-                          span: ~
-                  - id: 7
-                    kind:
-                      Expr:
-                        name: num_of_articles
-                        expr:
-                          kind:
-                            ColumnRef: 3
-                          span: ~
-                name: invoices
-            - Sort:
-                - direction: Asc
-                  column: 5
-                - direction: Desc
-                  column: 6
-                - direction: Asc
-                  column: 7
-            - Sort:
-                - direction: Asc
-                  column: 5
-            - Sort:
-                - direction: Desc
-                  column: 5
-            - Sort:
-                - direction: Asc
-                  column: 5
-            - Sort:
-                - direction: Desc
-                  column: 5
-            - Select:
-                - 4
+          kind:
+            Pipeline:
+              - From:
+                  source: 0
+                  columns:
+                    - - Single: issued_at
+                      - 0
+                    - - Single: amount
+                      - 1
+                    - - Single: num_of_articles
+                      - 2
+                    - - Wildcard
+                      - 3
+                  name: invoices
+              - Sort:
+                  - direction: Asc
+                    column: 0
+                  - direction: Desc
+                    column: 1
+                  - direction: Asc
+                    column: 2
+              - Sort:
+                  - direction: Asc
+                    column: 0
+              - Sort:
+                  - direction: Desc
+                    column: 0
+              - Sort:
+                  - direction: Asc
+                    column: 0
+              - Sort:
+                  - direction: Desc
+                    column: 0
+              - Select:
+                  - 0
+                  - 1
+                  - 2
+                  - 3
+          columns:
+            - Single: issued_at
+            - Single: amount
+            - Single: num_of_articles
+            - Wildcard
         "###);
     }
 }

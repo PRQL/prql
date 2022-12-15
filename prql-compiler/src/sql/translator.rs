@@ -2,20 +2,15 @@
 //! then to a String. We use sqlparser because it's trivial to create the string
 //! once it's in their AST (it's just `.to_string()`). It also lets us support a
 //! few dialects of SQL immediately.
-// The average code quality here is low — we're basically plugging in test
-// cases and fixing what breaks, with some occasional refactors. I'm not sure
-// that's a terrible approach — the SQL spec is huge, so we're not reasonably
-// going to be isomorphically mapping everything back from SQL to PRQL. But it
-// does mean we should continue to iterate on this file and refactor things when
-// necessary.
 use anyhow::{anyhow, Result};
 use itertools::Itertools;
 use sqlformat::{format, FormatOptions, QueryParams};
 use sqlparser::ast::{self as sql_ast, Select, SetExpr, TableWithJoins};
 
 use crate::ast::pl::{DialectHandler, Literal};
-use crate::ast::rq::{CId, Expr, ExprKind, IrFold, Query, Relation, TableDecl, Transform};
-use crate::sql::anchor::materialize_inputs;
+use crate::ast::rq::{
+    CId, Expr, ExprKind, IrFold, Query, Relation, RelationKind, TableDecl, Transform,
+};
 use crate::utils::{IntoOnly, Pluck, TableCounter};
 
 use super::anchor;
@@ -76,10 +71,10 @@ pub fn translate_query(query: Query) -> Result<sql_ast::Query> {
     for table in tables {
         let name = table
             .name
-            .unwrap_or_else(|| context.anchor.gen_table_name());
+            .unwrap_or_else(|| context.anchor.table_name.gen());
 
-        match table.relation {
-            Relation::Pipeline(pipeline) => {
+        match table.relation.kind {
+            RelationKind::Pipeline(pipeline) => {
                 // preprocess
                 let pipeline = preprocess_distinct(pipeline, &mut context)?;
                 let pipeline = preprocess_reorder(pipeline);
@@ -87,11 +82,11 @@ pub fn translate_query(query: Query) -> Result<sql_ast::Query> {
                 // split to atomics
                 atomics.extend(split_into_atomics(name, pipeline, &mut context.anchor));
             }
-            Relation::Literal(_, _) | Relation::SString(_, _) => atomics.push(AtomicQuery {
+            RelationKind::Literal(_) | RelationKind::SString(_) => atomics.push(AtomicQuery {
                 name,
-                relation: table.relation,
+                relation: table.relation.kind,
             }),
-            Relation::ExternRef(_, _) => {
+            RelationKind::ExternRef(_) => {
                 // ref does not need it's own CTE
             }
         }
@@ -125,7 +120,7 @@ pub fn translate_query(query: Query) -> Result<sql_ast::Query> {
 #[derive(Debug)]
 pub struct AtomicQuery {
     name: String,
-    relation: Relation,
+    relation: RelationKind,
 }
 
 fn into_tables(
@@ -153,12 +148,12 @@ fn table_to_sql_cte(table: AtomicQuery, context: &mut Context) -> Result<sql_ast
     })
 }
 
-fn sql_query_of_relation(relation: Relation, context: &mut Context) -> Result<sql_ast::Query> {
+fn sql_query_of_relation(relation: RelationKind, context: &mut Context) -> Result<sql_ast::Query> {
     match relation {
-        Relation::ExternRef(_, _) => unreachable!(),
-        Relation::Pipeline(pipeline) => sql_query_of_pipeline(pipeline, context),
-        Relation::Literal(_, _) => todo!(),
-        Relation::SString(items, _) => translate_query_sstring(items, context),
+        RelationKind::ExternRef(_) => unreachable!(),
+        RelationKind::Pipeline(pipeline) => sql_query_of_pipeline(pipeline, context),
+        RelationKind::Literal(_) => todo!(),
+        RelationKind::SString(items) => translate_query_sstring(items, context),
     }
 }
 
@@ -294,7 +289,7 @@ fn split_into_atomics(
     mut pipeline: Vec<Transform>,
     context: &mut AnchorContext,
 ) -> Vec<AtomicQuery> {
-    materialize_inputs(&pipeline, context);
+    context.used_col_names.clear();
 
     let output_cols = context.determine_select_columns(&pipeline);
     let mut required_cols = output_cols.clone();
@@ -326,7 +321,7 @@ fn split_into_atomics(
     if let Some((pipeline, _)) = parts.last() {
         let select_cols = pipeline.first().unwrap().as_select().unwrap();
 
-        if select_cols != &output_cols {
+        if select_cols.iter().any(|c| !output_cols.contains(c)) {
             parts.push((vec![Transform::Select(output_cols)], select_cols.clone()));
         }
     }
@@ -341,20 +336,20 @@ fn split_into_atomics(
         // this code chunk is bloated but I cannot find a more concise alternative
         let first = parts.remove(0);
 
-        let first_name = context.gen_table_name();
+        let first_name = context.table_name.gen();
         atomics.push(AtomicQuery {
             name: first_name.clone(),
-            relation: Relation::Pipeline(first.0),
+            relation: RelationKind::Pipeline(first.0),
         });
 
         let mut prev_name = first_name;
         for (pipeline, cols_before) in parts.into_iter() {
-            let name = context.gen_table_name();
+            let name = context.table_name.gen();
             let pipeline = anchor::anchor_split(context, &prev_name, &cols_before, pipeline);
 
             atomics.push(AtomicQuery {
                 name: name.clone(),
-                relation: Relation::Pipeline(pipeline),
+                relation: RelationKind::Pipeline(pipeline),
             });
 
             prev_name = name;
@@ -364,7 +359,7 @@ fn split_into_atomics(
     };
     atomics.push(AtomicQuery {
         name,
-        relation: Relation::Pipeline(last_pipeline),
+        relation: RelationKind::Pipeline(last_pipeline),
     });
 
     atomics
@@ -401,7 +396,7 @@ mod test {
             pre_projection: false,
         };
 
-        let pipeline = query.relation.into_pipeline().unwrap();
+        let pipeline = query.relation.kind.into_pipeline().unwrap();
 
         Ok((preprocess_reorder(pipeline), context))
     }

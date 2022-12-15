@@ -350,11 +350,11 @@ select `first name`
         WITH table_1 AS (
           SELECT
             'something' AS renamed,
-            'something' AS somefield
+            'something' AS _expr_0
           FROM
             x
           ORDER BY
-            somefield
+            _expr_0
         )
         SELECT
           renamed
@@ -1327,7 +1327,7 @@ take 20
           SELECT
             title,
             country,
-            AVG(salary) AS salary
+            AVG(salary) AS _expr_0
           FROM
             table_1
           WHERE
@@ -1339,7 +1339,7 @@ take 20
         SELECT
           title,
           country,
-          AVG(salary) AS sum_gross_cost
+          AVG(_expr_0) AS sum_gross_cost
         FROM
           table_2
         GROUP BY
@@ -1922,7 +1922,7 @@ join y [foo == only_in_x]
           table_1.*
         FROM
           table_2 AS table_0
-          JOIN table_3 AS table_1 ON table_0.* = table_1.*
+          JOIN table_3 AS table_1 ON table_0.id = table_1.id
         "###
         );
     }
@@ -1944,5 +1944,42 @@ join y [foo == only_in_x]
         "###,
         )
         .unwrap_err();
+    }
+
+    #[test]
+    fn test_name_shadowing() {
+        assert_display_snapshot!(compile(
+            r###"
+        from x
+        select [a, a, a = a + 1]
+        "###).unwrap(),
+            @r###"
+        SELECT
+          a,
+          a,
+          a + 1 AS a
+        FROM
+          x
+        "###
+        );
+
+        assert_display_snapshot!(compile(
+            r###"
+        from x
+        select a
+        derive a
+        derive a = a + 1
+        derive a = a + 2
+        "###).unwrap(),
+            @r###"
+        SELECT
+          a,
+          a,
+          a + 1,
+          a + 1 + 2 AS a
+        FROM
+          x
+        "###
+        );
     }
 }

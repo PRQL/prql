@@ -6,7 +6,7 @@ input_file: book/tests/prql/examples/employees-1.prql
 WITH table_1 AS (
   SELECT
     e.gender,
-    AVG(salaries.salary) AS emp_salary,
+    AVG(salaries.salary) AS _expr_0,
     e.emp_no
   FROM
     employees AS e
@@ -18,8 +18,8 @@ WITH table_1 AS (
 table_2 AS (
   SELECT
     table_1.gender,
-    AVG(table_1.emp_salary) AS salary_avg,
-    STDDEV(table_1.emp_salary) AS salary_sd,
+    AVG(table_1._expr_0) AS salary_avg,
+    STDDEV(table_1._expr_0) AS salary_sd,
     de.dept_no
   FROM
     table_1

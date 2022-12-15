@@ -4,7 +4,7 @@ use std::ops::Range;
 use anyhow::{Ok, Result};
 use ariadne::{Color, Label, Report, ReportBuilder, ReportKind, Source};
 
-use super::context::{DeclKind, TableDecl};
+use super::context::{DeclKind, RelationColumns, TableDecl};
 use super::module::NS_DEFAULT_DB;
 use super::{Context, Frame};
 use crate::ast::pl::{fold::*, *};
@@ -102,7 +102,9 @@ impl<'a> AstFold for Labeler<'a> {
                         .unwrap_or_default();
 
                     let decl = match &decl.kind {
-                        DeclKind::TableDecl(TableDecl { frame, .. }) => format!("table {frame}"),
+                        DeclKind::TableDecl(TableDecl { columns, .. }) => {
+                            format!("table {}", RelationColumns(columns))
+                        }
                         _ => decl.to_string(),
                     };
 
