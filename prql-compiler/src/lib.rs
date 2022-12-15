@@ -1930,7 +1930,7 @@ join y [foo == only_in_x]
           JOIN table_3 AS table_1 ON table_0.id = table_1.id
         "###
         );
-        
+
         assert_display_snapshot!(compile(r###"
         from s"""SELECT * FROM employees"""
         filter country == "USA"
