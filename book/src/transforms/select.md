@@ -47,7 +47,7 @@ derive fn = e.first_name
 
 ...and would instead need to be:
 
-```prql_no_test
+```prql
 from e=employees
 select e.first_name
 derive fn = first_name  # No `e.` here
