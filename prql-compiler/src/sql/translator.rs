@@ -361,7 +361,7 @@ fn split_into_atomics(
     mut pipeline: Vec<Transform>,
     ctx: &mut AnchorContext,
 ) -> Vec<AtomicQuery> {
-    let outputs_cid = ctx.determine_select_columns(&pipeline);
+    let outputs_cid = AnchorContext::determine_select_columns(&pipeline);
 
     let mut required_cols = outputs_cid.clone();
 

@@ -108,7 +108,7 @@ impl AnchorContext {
     }
 
     pub fn load_names(&mut self, pipeline: &[Transform], output_cols: Vec<RelationColumn>) {
-        let output_cids = self.determine_select_columns(pipeline);
+        let output_cids = Self::determine_select_columns(pipeline);
 
         assert_eq!(output_cids.len(), output_cols.len());
 
@@ -119,12 +119,12 @@ impl AnchorContext {
         }
     }
 
-    pub fn determine_select_columns(&self, pipeline: &[Transform]) -> Vec<CId> {
+    pub fn determine_select_columns(pipeline: &[Transform]) -> Vec<CId> {
         if let Some((last, remaining)) = pipeline.split_last() {
             match last {
                 Transform::From(table) => table.columns.iter().map(|(_, cid)| *cid).collect(),
                 Transform::Join { with: table, .. } => [
-                    self.determine_select_columns(remaining),
+                    Self::determine_select_columns(remaining),
                     table.columns.iter().map(|(_, cid)| *cid).collect_vec(),
                 ]
                 .concat(),
@@ -132,7 +132,7 @@ impl AnchorContext {
                 Transform::Aggregate { partition, compute } => {
                     [partition.clone(), compute.clone()].concat()
                 }
-                _ => self.determine_select_columns(remaining),
+                _ => Self::determine_select_columns(remaining),
             }
         } else {
             Vec::new()
