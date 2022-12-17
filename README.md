@@ -8,7 +8,7 @@
 
 <!-- Dev badges on first line (language docs & chat) -->
 
-[![GitHub CI Status](https://img.shields.io/github/workflow/status/prql/prql/test-all/main?logo=github&style=for-the-badge)](https://github.com/prql/prql/actions?query=branch%3Amain+workflow%3Atest-all)
+[![GitHub CI Status](https://img.shields.io/github/actions/workflow/status/prql/prql/test-all.yaml?branch=main&logo=github&style=for-the-badge)](https://github.com/prql/prql/actions?query=branch%3Amain+workflow%3Atest-all)
 [![GitHub contributors](https://img.shields.io/github/contributors/prql/prql?style=for-the-badge)](https://github.com/prql/prql/graphs/contributors)
 [![Stars](https://img.shields.io/github/stars/prql/prql?style=for-the-badge)](https://github.com/prql/prql/stargazers)
 
