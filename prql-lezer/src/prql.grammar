@@ -1,0 +1,50 @@
+
+@top Query { Pipeline }
+
+@skip { space | Comment }
+
+// I haven't completely figured this out, but it seems to work at the moment (try removing and see the error...)
+@precedence { newline @left, pipe @left }
+
+Pipeline { expr_call (!pipe pipe expr_call)* }
+
+pipe { "|" |  "\n" }
+
+List { "[" "\n"? list_item (("," "\n"? ) list_item)* "\n"? "]" }
+
+list_item { Assign_call | expr_call }
+
+expr_call { Func_call | Expr }
+Func_call { Ident ( (Named_arg | Assign | Expr))+ }
+
+term { Ident | Number | List | Date | Nested_pipeline }
+
+Expr { term (Op term)? }
+
+Named_arg    { ident_part  ":" Expr }
+Assign      { ident_part  "="  Expr }
+Assign_call      { ident_part  "="  expr_call }
+
+Nested_pipeline { "(" "\n"* Pipeline "\n"* !newline   ")"  }
+
+ident_part { Ident }
+
+@tokens {
+  // We can't seem to set the number of digts, so this will allow any combination of digits & hypehns
+  Date { ( "@" ![\s] (( @digit | "-" ) ![\s] )+ ) }
+  Ident { (@asciiLetter | "_")+ }
+  Number { @digit+ }
+  space { " "+ }
+  Comment { "#" ![\n]* }
+  Op { "-" | "+" | "!" | "==" | "*" | "/" | "%" | "+" | "-" | "==" | "!=" | ">=" | "<=" | ">" | "<" }
+  
+}
+
+// TODOs:
+
+// Date = ${ ASCII_DIGIT{4} ~ "-" ~ ASCII_DIGIT{2} ~ "-" ~ ASCII_DIGIT{2} }
+
+// Date { (( Number | "-" ) ![\s] )* }
+
+// func_def { "func"  func_def_name  func_def_params  "->"  expr_call  ( "\n"+ | @eof ) }
+// func_def_name  { ident_part type_def? }
