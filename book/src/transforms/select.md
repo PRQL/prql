@@ -35,20 +35,21 @@ from e=employees
 select [e.first_name, e.last_name]
 ```
 
-Note that currently `select e.first_name` is an alias for `select first_name =
-e.first_name`, such that the table / namespace is lost. So this would not work:
+_Note:_ In the example above, the `e` representing the table / namespace
+is no longer available after the `select` statement.
+So the `filter` statement below would give a "Can't find" error:
 
 ```prql_no_test
 from e=employees
 select e.first_name
-# Can't find `e.first_name`
-derive fn = e.first_name
+filter e.first_name == "Fred" # Can't find `e.first_name`
 ```
 
-...and would instead need to be:
+To refer to the `e.first_name` column in subsequent processing,
+assign it a name in the `select` statement:
 
 ```prql
 from e=employees
-select e.first_name
-derive fn = first_name  # No `e.` here
+select first_name = e.first_name
+filter first_name == "Fred" 
 ```
