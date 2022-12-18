@@ -36,7 +36,7 @@ select [e.first_name, e.last_name]
 ```
 
 Note that currently `select e.first_name` is an alias for `select first_name =
-e.first_name`, such that the table / namespace is lost. So this would not work:
+e.first_name`, such that the table / namespace is not retained. So this would not work:
 
 ```prql_no_test
 from e=employees
