@@ -44,9 +44,9 @@ pipeline = { WHITESPACE* ~ expr_call ~ (pipe ~ expr_call)* }
 // Whitespace is required to prevent matching s"string". Forbid `operator` so `a
 // - b` can't parse as `a` & `-b`.
 //
-// Note that this needs to use `assign` rather than `assign_call`, so that 
+// Note that this needs to use `assign` rather than `assign_call`, so that
 //
-//   join s=salaries [==id]` 
+//   join s=salaries [==id]`
 //
 // isn't parsed as `s=` & `salaries [==id]`
 func_call = ${ ident ~ WHITESPACE+ ~ (!operator ~ (named_arg | assign | expr) ~ WHITESPACE*)+ }
