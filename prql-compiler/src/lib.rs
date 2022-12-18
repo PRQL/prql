@@ -1,3 +1,10 @@
+// Our error type is 128 bytes, because it contains 5 strings & an Enum, which
+// is exactly the default warning level. Given we're not that performance
+// sensitive, it's fine to ignore this at the moment (and not worth having a
+// clippy config file for a single setting). We can consider adjusting it as a
+// yak-shaving execise in the future.
+#![allow(clippy::result_large_err)]
+
 pub mod ast;
 #[cfg(feature = "cli")]
 mod cli;
