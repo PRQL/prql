@@ -46,7 +46,7 @@ pipeline = { WHITESPACE* ~ expr_call ~ (pipe ~ expr_call)* }
 // TODO: allow expr for function
 func_call = ${ ident ~ WHITESPACE+ ~ (!operator ~ (named_arg | assign | expr) ~ WHITESPACE*)+ }
 
-named_arg   = !{ ident_part ~ ":" ~ !":" ~ (assign | expr) }
+named_arg   = !{ ident_part ~ ":" ~ !":" ~ expr }
 assign      = !{ ident_part ~ "=" ~ !"=" ~ expr }
 assign_call = !{ ident_part ~ "=" ~ !"=" ~ expr_call }
 
@@ -61,6 +61,7 @@ expr_mul = { term ~ (operator_mul ~ expr_mul)? }
 term = _{ ( switch | s_string | f_string | range | literal | ident | nested_pipeline | expr_unary | list | jinja ) }
 expr_unary = { ( operator_unary ~ ( nested_pipeline | ident )) }
 literal = _{ value_and_unit | number | boolean | null | string | timestamp | date | time }
+// TODO: is there some abstraction of `assign_call | expr_call` that would work here?
 list = { "[" ~ (NEWLINE* ~ (assign_call | expr_call) ~ ("," ~ NEWLINE* ~ (assign_call | expr_call) )* ~ ","?)? ~ NEWLINE* ~ "]" }
 nested_pipeline = { "(" ~ (WHITESPACE | NEWLINE)* ~ pipeline? ~ (WHITESPACE | NEWLINE)* ~ ")" }
 
