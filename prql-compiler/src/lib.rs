@@ -408,7 +408,7 @@ derive `from` = 5
 prql dialect:bigquery
 from `db.schema.table`
 join `db.schema.table2` [==id]
-join c = `db.schema.t-able` [`db.schema.t-able`.id == c.id]
+join c = `db.schema.table` [`db.schema.t-able`.id == c.id]
         "###).unwrap()), @r###"
         SELECT
           `db.schema.table`.*,
