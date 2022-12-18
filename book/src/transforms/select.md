@@ -37,7 +37,7 @@ select [e.first_name, e.last_name]
 
 _Note:_ In the example above, the `e` representing the table / namespace
 is no longer available after the `select` statement.
-So the `filter` statement below would give a "Can't find" error:
+So the `filter` statement after it would give a "Can't find" error:
 
 ```prql_no_test
 from e=employees
@@ -50,6 +50,6 @@ assign it a name in the `select` statement:
 
 ```prql
 from e=employees
-select first_name = e.first_name
-filter first_name == "Fred" 
+select fname = e.first_name
+filter fname == "Fred" 
 ```
