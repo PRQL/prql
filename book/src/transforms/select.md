@@ -41,8 +41,7 @@ e.first_name`, such that the table / namespace is lost. So this would not work:
 ```prql_no_test
 from e=employees
 select e.first_name
-# Can't find `e.first_name`
-derive fn = e.first_name
+select fn = e.first_name # Error: cannot find `e.first_name`
 ```
 
 ...and would instead need to be:
