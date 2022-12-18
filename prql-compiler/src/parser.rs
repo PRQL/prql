@@ -2226,4 +2226,40 @@ join `my-proj`.`dataset`.`table`
                     named_args: {}
         "###)
     }
+
+    #[test]
+    fn test_assign() {
+        assert_yaml_snapshot!(parse(r###"
+from employees
+join s=salaries [==id]
+        "###).unwrap(), @r###"
+        ---
+        - Pipeline:
+            Pipeline:
+              exprs:
+                - FuncCall:
+                    name:
+                      Ident:
+                        - from
+                    args:
+                      - Ident:
+                          - employees
+                    named_args: {}
+                - FuncCall:
+                    name:
+                      Ident:
+                        - join
+                    args:
+                      - Ident:
+                          - salaries
+                        alias: s
+                      - List:
+                          - Unary:
+                              op: EqSelf
+                              expr:
+                                Ident:
+                                  - id
+                    named_args: {}
+        "###);
+    }
 }

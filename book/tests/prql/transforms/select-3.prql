@@ -1,5 +1,2 @@
-from employees
-select [
-  name = f"{first_name} {last_name}",
-  age_eoy = dob - @2022-12-31,
-]
+from e=employees
+select [e.first_name, e.last_name]

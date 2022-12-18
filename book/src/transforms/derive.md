@@ -3,7 +3,11 @@
 Computes one or more new columns.
 
 ```prql_no_test
-derive [{new_name} = {expression}]
+derive [
+  {new_name} = {expression},
+  # or
+  {expression}
+]
 ```
 
 ## Examples
