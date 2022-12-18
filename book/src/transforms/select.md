@@ -51,5 +51,5 @@ assign it a name in the `select` statement:
 ```prql
 from e=employees
 select fname = e.first_name
-filter fname == "Fred" 
+filter fname == "Fred"
 ```
