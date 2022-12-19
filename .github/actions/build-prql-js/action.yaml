@@ -6,10 +6,6 @@ description: ""
 runs:
   using: composite
   steps:
-    - name: Make dist folder
-      run: mkdir dist
-      shell: bash
-
     - name: Install wasm-pack
       uses: jetli/wasm-pack-action@v0.4.0
       with:
