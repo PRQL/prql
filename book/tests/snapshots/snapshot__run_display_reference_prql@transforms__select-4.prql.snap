@@ -1,13 +1,11 @@
 ---
 source: book/tests/snapshot.rs
 expression: Statements(parse(&prql).unwrap())
-input_file: book/tests/prql/transforms/select-3.prql
+input_file: book/tests/prql/transforms/select-4.prql
 ---
 from e = employees
-select [
-  e.first_name,
-  e.last_name,
-]
+select e.first_name
+derive fn = first_name
 
 
 
