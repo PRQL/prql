@@ -21,7 +21,7 @@
     "build:bundler": "wasm-pack build --target bundler --release --out-dir dist/bundler",
     "build:node": "wasm-pack build --target nodejs --release --out-dir dist/node",
     "build:web": "wasm-pack build --target no-modules --release --out-dir dist/web",
-    "test": "mocha tests"
+    "test": "wasm-pack test --firefox && mocha tests"
   },
   "types": "dist/node/prql_js.d.ts",
   "version": "0.3.1"

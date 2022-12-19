@@ -1,7 +1,6 @@
 # prql-js
 
-JavaScript bindings for [`prql-compiler`](https://github.com/prql/prql/). Check out <https://prql-lang.org> for more
-context.
+JavaScript bindings for [`prql-compiler`](https://github.com/prql/prql).
 
 ## Installation
 
@@ -26,7 +25,6 @@ const prql = require("prql-js");
 
 const { sql, error } = compile(`from employees | select first_name`);
 console.log(sql);
-// handle error as well...
 ```
 
 ### From a Browser
@@ -43,7 +41,6 @@ console.log(sql);
         const { sql, error } = compile("from employees | select first_name");
 
         console.log(sql);
-        // handle error as well...
       }
 
       run();
@@ -61,26 +58,14 @@ import compile from "prql-js/dist/bundler";
 
 const { sql, error } = compile(`from employees | select first_name`);
 console.log(sql);
-// handle error as well...
 ```
-
-## Notes
-
-This uses
-[`wasm-pack`](https://rustwasm.github.io/docs/wasm-pack/tutorials/npm-browser-packages/index.html)
-to generate bindings[^1].
-
-[^1]:
-
-though we would be very open to other approaches, and used `trunk`
-successfully in a rust-driven approach to this, RIP `prql-web`.
 
 ## Development
 
 Build:
 
 ```sh
-npm run build-all
+npm run build
 ```
 
 This builds Node, bundler and web packages in the `dist` path.
@@ -88,5 +73,14 @@ This builds Node, bundler and web packages in the `dist` path.
 Test:
 
 ```sh
-wasm-pack test --firefox
+npm test
 ```
+
+## Notes
+
+- This uses
+  [`wasm-pack`](https://rustwasm.github.io/docs/wasm-pack/)
+  to generate bindings.
+- We've added an `npm` layer on top of the usual approach of just using
+  `wasm-pack`, so we can distribute a single package with targets of `node`,
+  `bundler` and `no-modules`. We're open to alternative approaches.
