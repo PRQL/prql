@@ -148,3 +148,13 @@ prql dialect:bigquery
 from `project-foo.dataset.table`
 join `project-bar.dataset.table` [==col_bax]
 ```
+
+## Parameters
+
+PRQL will retain parameters like `$1` in SQL output, which can then be supplied
+to the SQL query:
+
+```prql
+from employees
+filter id == $1
+```
