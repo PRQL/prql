@@ -39,7 +39,7 @@
   "scripts": {
     "build": "react-scripts build",
     "eject": "react-scripts eject",
-    "preinstall": "cd ../prql-js && npm run build-bundler",
+    "preinstall": "cd ../prql-js && npm run build:bundler",
     "start": "react-scripts start",
     "test": "react-scripts test"
   },
