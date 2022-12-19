@@ -13,9 +13,13 @@ npm install prql-js
 Currently these functions are exposed
 
 ```javascript
-function compile(prql_string) # returns CompileResult
-function to_sql(prql_string) # returns SQL string
-function to_json(prql_string) # returns JSON string ( needs JSON.parse() to get the json)
+function compile(prql_query: string, options?: CompileOptions): string;
+
+function pl_of_prql(prql_query: string): string;
+
+function rq_of_pl(pl_json: string): string;
+
+function sql_of_rq(rq_json: string): string;
 ```
 
 ### From NodeJS
@@ -23,7 +27,7 @@ function to_json(prql_string) # returns JSON string ( needs JSON.parse() to get 
 ```javascript
 const prql = require("prql-js");
 
-const { sql, error } = compile(`from employees | select first_name`);
+const sql = compile(`from employees | select first_name`);
 console.log(sql);
 ```
 
@@ -38,7 +42,7 @@ console.log(sql);
 
       async function run() {
         await wasm_bindgen("./node_modules/prql-js/dist/web/prql_js_bg.wasm");
-        const { sql, error } = compile("from employees | select first_name");
+        const sql = compile("from employees | select first_name");
 
         console.log(sql);
       }
@@ -56,8 +60,51 @@ console.log(sql);
 ```typescript
 import compile from "prql-js/dist/bundler";
 
-const { sql, error } = compile(`from employees | select first_name`);
+const sql = compile(`from employees | select first_name`);
 console.log(sql);
+```
+
+## Errors
+
+Errors are returned as following object, serialized as a JSON array:
+
+```ts
+interface ErrorMessage {
+  /// Plain text of the error
+  reason: String;
+  /// A list of suggestions of how to fix the error
+  hint: String | null;
+  /// Character offset of error origin within a source file
+  span: Span | null;
+
+  /// Annotated code, containing cause and hints.
+  display: String | null;
+  /// Line and column number of error origin within a source file
+  location: SourceLocation | null;
+}
+
+/// Location within the source file.
+/// Tuples contain:
+/// - line number (1-based),
+/// - column number within that line (1-based),
+interface SourceLocation {
+  start: [number, number];
+
+  end: [number, number];
+}
+```
+
+These errors can be caught as such:
+
+```javascript
+try {
+  const sql = prqlJs.compile(`from employees | foo first_name`);
+} catch (error) {
+  const errorMessages = JSON.parse(error.message);
+
+  console.log(errorMessages[0].display);
+  console.log(errorMessages[0].location);
+}
 ```
 
 ## Development

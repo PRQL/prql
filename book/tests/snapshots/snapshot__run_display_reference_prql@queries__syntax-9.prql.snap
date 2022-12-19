@@ -3,7 +3,7 @@ source: book/tests/snapshot.rs
 expression: Statements(parse(&prql).unwrap())
 input_file: book/tests/prql/queries/syntax-9.prql
 ---
-prql dialect:bigquery
+prql sql_dialect:bigquery
 
 
 

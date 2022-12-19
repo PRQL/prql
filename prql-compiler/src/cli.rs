@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use ariadne::Source;
 use clap::Parser;
 use clio::{Input, Output};
@@ -8,10 +8,11 @@ use std::{
     ops::Range,
 };
 
-use crate::error::{IntoErrorMessage, Span};
-use crate::parse;
+use crate::error::{downcast, Span};
+use crate::parser;
 use crate::semantic::{self, reporting::*};
-use crate::{ast::pl::Frame, pl_to_prql};
+use crate::sql;
+use crate::{ast::pl::Frame, prql_of_pl};
 
 #[derive(Parser)]
 #[clap(name = env!("CARGO_PKG_NAME"), about, version)]
@@ -59,10 +60,7 @@ impl Cli {
                 self.write_output(&buf)?;
             }
             Err(e) => {
-                print!(
-                    "{:}",
-                    e.into_error_message(&source_id, &source, true).message
-                );
+                print!("{:}", downcast(e).composed(&source_id, &source, true));
                 std::process::exit(1)
             }
         }
@@ -73,13 +71,16 @@ impl Cli {
     fn execute(&self, source: &str) -> Result<Vec<u8>> {
         Ok(match self {
             Cli::Parse(_) => {
-                let ast = parse(source)?;
+                let ast = parser::parse(source)?;
 
                 serde_yaml::to_string(&ast)?.into_bytes()
             }
-            Cli::Format(_) => parse(source).and_then(pl_to_prql)?.as_bytes().to_vec(),
+            Cli::Format(_) => parser::parse(source)
+                .and_then(|x| prql_of_pl(x).map_err(|x| anyhow!(x)))?
+                .as_bytes()
+                .to_vec(),
             Cli::Debug(_) => {
-                let stmts = parse(source)?;
+                let stmts = parser::parse(source)?;
                 let (stmts, context) = semantic::resolve_only(stmts, None)?;
 
                 let (references, stmts) =
@@ -93,7 +94,7 @@ impl Cli {
                 .concat()
             }
             Cli::Annotate(_) => {
-                let stmts = parse(source)?;
+                let stmts = parser::parse(source)?;
 
                 // resolve
                 let (stmts, _) = semantic::resolve_only(stmts, None)?;
@@ -104,12 +105,16 @@ impl Cli {
                 combine_prql_and_frames(source, frames).as_bytes().to_vec()
             }
             Cli::Resolve(_) => {
-                let ast = parse(source)?;
+                let ast = parser::parse(source)?;
                 let ir = semantic::resolve(ast)?;
 
                 serde_json::to_string_pretty(&ir)?.into_bytes()
             }
-            Cli::Compile(_) => crate::compile(source)?.as_bytes().to_vec(),
+            Cli::Compile(_) => parser::parse(source)
+                .and_then(semantic::resolve)
+                .and_then(|rq| sql::compile(rq, None))?
+                .as_bytes()
+                .to_vec(),
         })
     }
 

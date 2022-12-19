@@ -3,7 +3,7 @@ source: book/tests/snapshot.rs
 expression: Statements(parse(&prql).unwrap())
 input_file: book/tests/prql/queries/dialect_and_version-0.prql
 ---
-prql dialect:postgres
+prql sql_dialect:postgres
 
 
 
