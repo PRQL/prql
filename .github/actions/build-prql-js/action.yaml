@@ -22,8 +22,8 @@ runs:
       shell: bash
       working-directory: prql-js/
 
-    # - name: Upgrade npm
-    #   # FIXME: Failing immediately so testing with 8
-    #   # run: npm i -g npm@9
-    #   run: npm i -g npm@8
-    #   shell: bash
+    - name: Upgrade npm
+      # FIXME: Failing immediately so testing with 8
+      # run: npm i -g npm@9
+      run: npm i -g npm@8
+      shell: bash
