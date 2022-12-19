@@ -1,4 +1,4 @@
-name: publish-gh-pages
+name: publish-web
 on:
   push:
     branches:
@@ -7,7 +7,7 @@ on:
   workflow_call:
 
 jobs:
-  publish-gh-pages:
+  publish-web:
     runs-on: ubuntu-latest
 
     # Skip running workflow on forks

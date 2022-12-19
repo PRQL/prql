@@ -17,6 +17,11 @@ runs:
         node-version: "18.x"
         registry-url: "https://registry.npmjs.org"
 
+    - name: Set npm version to 8
+      # https://github.com/prql/prql/pull/1296
+      run: npm i -g npm@8
+      shell: bash
+
     - name: Run wasm-pack for node, bundler, & web
       run: npm run build
       shell: bash
