@@ -66,8 +66,8 @@ jobs:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
       - uses: ./.github/actions/build-prql-js
-      - run: npm i && npm run test
-        working-directory: prql-js/tests/
+      - run: npm cit
+        working-directory: prql-js
 
   measure-code-cov:
     runs-on: ubuntu-latest
