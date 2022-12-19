@@ -1,3 +1,5 @@
+# TOOO: now that we've moved much of this into `package.json` scripts, possibly
+# we don't need this as a separate action any longer?
 name: build-prql-js
 description: ""
 
@@ -13,21 +15,13 @@ runs:
       with:
         version: "latest"
 
-    - name: Run wasm-pack for node
-      run: wasm-pack build --target nodejs --release --out-dir dist/node
-      shell: bash
-      working-directory: prql-js/
-    - name: Run wasm-pack for web
-      run: wasm-pack build --target no-modules --release --out-dir dist/web
-      shell: bash
-      working-directory: prql-js/
-    - name: Run wasm-pack for bundler
-      run: wasm-pack build --target bundler --release --out-dir dist/bundler
-      shell: bash
-      working-directory: prql-js/
-
     - name: Setup Node
       uses: actions/setup-node@v3
       with:
         node-version: "18.x"
         registry-url: "https://registry.npmjs.org"
+
+    - name: Run wasm-pack for node, bundler, & web
+      run: npm run build-all
+      shell: bash
+      working-directory: prql-js/
