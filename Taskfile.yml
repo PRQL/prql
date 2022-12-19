@@ -149,9 +149,7 @@ tasks:
         {{ range ( .targets | trim | splitLines ) -}}
         cargo build --all-targets --target={{.}}
         {{ end -}}
-      - mdbook build book/
-      - cd playground && npm install && npm run build
-      - cd website && hugo
+      - task: build-web
 
   test-all:
     desc: Test everything, resetting snapshots. Running this isn't required when developing; it's for caching or as a reference.
@@ -183,7 +181,7 @@ tasks:
       - cd book && mdbook build
       - mkdir -p website/public
       - rsync -ai --checksum --delete book/book/ website/public/book/
-      - cd playground && npm ci
+      - cd playground && npm install
       - cd playground && npm run build
       - rsync -ai --checksum --delete playground/build/ website/public/playground/
 
@@ -191,8 +189,8 @@ tasks:
     # These are mostly copied from the tasks in `test-all.yaml`
     dir: prql-js
     cmds:
-      - wasm-pack build --target nodejs --release --out-dir dist/node
-      - cd tests && npm i && npm run test
+      - npm run build
+      - npm cit
 
   run-book:
     dir: book
