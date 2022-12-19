@@ -1,61 +1,63 @@
 
+// TODO:
+// - Strings / s / f
+// - Namespaces
 
 @top Query { Statements }
 
 @skip { space | Comment }
 
-// I haven't completely figured this out, but it seems to work at the moment (try removing and see the error...)
-@precedence { newline }
-
 Statements { newline* Query_def? ( Func_def | Table_def)* Pipeline_stmt? end }
 
 Query_def {  @specialize<Ident, "prql">  Named_arg* newline+ }
 
-Pipeline_stmt { Pipeline (newline+ | end )}
+Pipeline_stmt { Pipeline (~amb newline+ | end )}
 
-Pipeline { Expr_call ( !newline pipe Expr_call)* }
+Pipeline { expr_call (pipe expr_call)*  }
 
-pipe { "|" | newline }
+pipe { "|" | ~amb newline  }
 
-List { "[" newline? list_item (("," newline? ) list_item)*  newline? "]" }
+List { "[" newline? list_item (("," newline? ) list_item)* ","? newline? "]" }
 
-list_item { Assign_call | Expr_call }
+list_item { Assign_call | expr_call }
 
-Expr_call { Expr | Func_call }
+expr_call { Expr | Func_call }
 Func_call { Ident ( (Named_arg | Assign | Expr))+ }
 
-term { Ident | Number | List | Date | Nested_pipeline | Expr_unary }
+term { Ident | Number | List | Date | Nested_pipeline | Expr_unary | String | Range }
 
-Expr { term (Op term)? }
+Expr { term (Op term)* }
 Expr_unary { ( Op_unary ( Nested_pipeline | Ident )) }
 
 Named_arg { ident_part ":" Expr }
 Assign { ident_part "=" Expr }
-Assign_call { ident_part "=" Expr_call }
+Assign_call { ident_part "=" expr_call }
 
-Nested_pipeline { "(" newline* Pipeline newline* ")" }
+Nested_pipeline { "(" newline* Pipeline ~amb newline?   ")" }
 
 ident_part { Ident }
 
 @tokens {
   // We can't seem to set the number of digts, so this will allow any combination of digits & hypehns
   Date { ( "@" ![\s] (( @digit | "-" ) ![\s] )+ ) }
-  Ident { (@asciiLetter | "_")+ }
+  Ident { @asciiLetter (@asciiLetter | "_" | @digit )* }
   Number { @digit+ }
   space { " "+ }
   Comment { "#" ![\n]* }
-  Op { Op_unary | "*" | "/" | "%" | "+" | "-" | "==" | "!=" | ">=" | "<=" | ">" | "<" }
+  Op { Op_unary | "*" | "/" | "%" | "+" | "-" | "==" | "!=" | ">=" | "<=" | ">" | "<" | "??" }
   Op_unary { "-" | "+" | "!" | "==" }
   end { @eof }
   newline { "\n" }
-  @precedence { Op_unary  ,Op , table, func, prql, Ident, newline }
+  String { '"' !["]* '"' }
+  Range { ".." }
+  @precedence { Op,Op_unary,  table, func, prql, Ident, newline }
 }
 
 Table_def { @specialize<Ident, "table"> ident_part "=" Nested_pipeline ( newline+ | end ) }
 
 
-Func_def { @specialize<Ident, "func"> Func_def_name Func_def_param* "->" Expr_call ( newline+ | end ) }
+Func_def { @specialize<Ident, "func"> Func_def_name Func_def_param* "->" expr_call ( newline+ | end ) }
 Type_def { "<" Type_term ( "|" Type_term)* ">" }
 Type_term { ident_part Type_def? }
 Func_def_name { ident_part Type_def? }
-Func_def_param { ident_part Type_def (":" Expr)? }
+Func_def_param { ident_part Type_def? (":" Expr)? }
