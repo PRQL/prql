@@ -33,5 +33,7 @@ runs:
         registry-url: "https://registry.npmjs.org"
 
     - name: Upgrade npm
-      run: npm i -g npm@9
+      # FIXME: Failing immediately so testing with 8
+      # run: npm i -g npm@9
+      run: npm i -g npm@8
       shell: bash
