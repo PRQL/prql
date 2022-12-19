@@ -626,7 +626,7 @@ mod test {
     use crate::ast::pl::{Expr, Ty};
     use crate::semantic::resolve_only;
     use crate::utils::IntoOnly;
-    use crate::{compile, parse};
+    use crate::{compile, parser::parse};
 
     fn parse_and_resolve(query: &str) -> Result<Expr> {
         let (stmts, _) = resolve_only(parse(query)?, None)?;

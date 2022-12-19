@@ -15,7 +15,7 @@ use pest_derive::Parser;
 
 use super::ast::pl::*;
 use super::utils::*;
-use crate::error::{Error, Reason, Span};
+use crate::error::Span;
 
 #[derive(Parser)]
 #[grammar = "prql.pest"]
@@ -64,21 +64,15 @@ fn stmt_of_parse_pair(pair: Pair<Rule>) -> Result<Stmt> {
                 .map(|v| v.try_cast(|i| i.parse_version(), None, "semver version number string"))
                 .transpose()?;
 
-            let dialect = if let Some(node) = params.remove("dialect") {
-                let span = node.span;
-                let dialect = node.try_cast(|i| i.into_ident(), None, "string")?;
-                Dialect::from_str(&dialect.to_string()).map_err(|_| {
-                    Error::new(Reason::NotFound {
-                        name: format!("{dialect:?}"),
-                        namespace: "dialect".to_string(),
-                    })
-                    .with_span(span)
-                })?
-            } else {
-                Dialect::default()
-            };
+            let other = params
+                .into_iter()
+                .flat_map(|(key, value)| match value.kind {
+                    ExprKind::Ident(value) => Some((key, value.name)),
+                    _ => None,
+                })
+                .collect();
 
-            StmtKind::QueryDef(QueryDef { version, dialect })
+            StmtKind::QueryDef(QueryDef { version, other })
         }
         Rule::func_def => {
             let mut pairs = pair.into_inner();

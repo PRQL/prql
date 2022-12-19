@@ -1,6 +1,6 @@
-//! Relational Query
+//! Relational Query AST
 //!
-//! Strictly typed AST for descibing relational queries.
+//! Strictly typed AST for describing relational queries.
 
 mod expr;
 mod fold;

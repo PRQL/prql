@@ -3,24 +3,27 @@
 //! once it's in their AST (it's just `.to_string()`). It also lets us support a
 //! few dialects of SQL immediately.
 use std::collections::HashSet;
+use std::str::FromStr;
 
 use anyhow::{anyhow, Result};
 use itertools::Itertools;
 use sqlformat::{format, FormatOptions, QueryParams};
 use sqlparser::ast::{self as sql_ast, Select, SelectItem, SetExpr, TableWithJoins};
 
-use crate::ast::pl::{BinOp, DialectHandler, Literal};
+use crate::ast::pl::{BinOp, Literal};
 use crate::ast::rq::{
     CId, Expr, ExprKind, Query, Relation, RelationColumn, RelationKind, RqFold, TableDecl,
     Transform,
 };
+use crate::error::{Error, Reason};
 use crate::sql::context::ColumnDecl;
 use crate::utils::{BreakUp, IntoOnly, Pluck, TableCounter};
 
-use super::anchor::{self, get_requirements};
 use super::codegen::*;
-use super::context::AnchorContext;
 use super::preprocess::{preprocess_distinct, preprocess_reorder};
+use super::Options;
+use super::{anchor, Dialect};
+use super::{context::AnchorContext, dialect::DialectHandler};
 
 pub(super) struct Context {
     pub dialect: Box<dyn DialectHandler>,
@@ -36,27 +39,47 @@ pub(super) struct Context {
 }
 
 /// Translate a PRQL AST into a SQL string.
-pub fn translate(query: Query) -> Result<String> {
-    let sql_query = translate_query(query)?;
+pub fn compile(query: Query, options: Option<Options>) -> Result<String> {
+    let options = options.unwrap_or_default();
 
-    let sql_query_string = sql_query.to_string();
+    let sql_ast = translate_query(query, options.dialect)?;
 
-    let formatted = format(
-        &sql_query_string,
-        &QueryParams::default(),
-        FormatOptions::default(),
-    );
+    let sql_string = sql_ast.to_string();
 
-    // The sql formatter turns `{{` into `{ {`, and while that's reasonable SQL,
-    // we want to allow jinja expressions through. So we (somewhat hackily) replace
-    // any `{ {` with `{{`.
-    let formatted = formatted.replace("{ {", "{{").replace("} }", "}}");
+    Ok(if options.format {
+        let formatted = format(
+            &sql_string,
+            &QueryParams::default(),
+            FormatOptions::default(),
+        );
 
-    Ok(formatted)
+        // The sql formatter turns `{{` into `{ {`, and while that's reasonable SQL,
+        // we want to allow jinja expressions through. So we (somewhat hackily) replace
+        // any `{ {` with `{{`.
+        formatted.replace("{ {", "{{").replace("} }", "}}")
+    } else {
+        sql_string
+    })
 }
 
-pub fn translate_query(query: Query) -> Result<sql_ast::Query> {
-    let dialect = query.def.dialect.handler();
+pub fn translate_query(query: Query, dialect: Option<Dialect>) -> Result<sql_ast::Query> {
+    let dialect = if let Some(dialect) = dialect {
+        dialect
+    } else {
+        let sql_dialect = query.def.other.get("sql_dialect");
+        sql_dialect
+            .map(|dialect| {
+                super::Dialect::from_str(dialect).map_err(|_| {
+                    Error::new(Reason::NotFound {
+                        name: format!("{dialect:?}"),
+                        namespace: "dialect".to_string(),
+                    })
+                })
+            })
+            .transpose()?
+            .unwrap_or_default()
+    };
+    let dialect = dialect.handler();
 
     let (anchor, query) = AnchorContext::of(query);
 
@@ -443,7 +466,7 @@ fn ensure_names(atomics: &[AtomicQuery], ctx: &mut AnchorContext) {
         for t in a.relation.as_pipeline().unwrap() {
             match t {
                 Transform::Sort(_) => {
-                    for r in get_requirements(t, &empty) {
+                    for r in anchor::get_requirements(t, &empty) {
                         ctx.ensure_column_name(r.col);
                     }
                 }
@@ -549,7 +572,7 @@ mod test {
     use insta::assert_snapshot;
 
     use super::*;
-    use crate::{ast::pl::GenericDialect, parse, semantic::resolve};
+    use crate::{parser::parse, semantic::resolve, sql::dialect::GenericDialect};
 
     fn parse_and_resolve(prql: &str) -> Result<(Vec<Transform>, Context)> {
         let query = resolve(parse(prql)?)?;
@@ -634,7 +657,7 @@ mod test {
 
         let query = resolve(parse(query).unwrap()).unwrap();
 
-        let sql_ast = translate(query).unwrap();
+        let sql_ast = compile(query, None).unwrap();
 
         assert_snapshot!(sql_ast);
     }
@@ -659,7 +682,7 @@ mod test {
 
         let query = resolve(parse(query).unwrap()).unwrap();
 
-        let sql_ast = translate(query).unwrap();
+        let sql_ast = compile(query, None).unwrap();
 
         assert_snapshot!(sql_ast, @r###"
         WITH table_1 AS (

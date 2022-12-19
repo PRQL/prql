@@ -7,10 +7,9 @@ use crate::error::{Error, Reason};
 // Inspired by version in sqlparser-rs; I'm surprised there isn't a version in
 // the stdlib / Itertools.
 /// Returns the only element of an Iterator, or an error if it has more than one element.
-pub trait IntoOnly
-where
-    Self: IntoIterator,
-{
+pub trait IntoOnly {
+    type Item;
+
     fn into_only(self) -> Result<Self::Item>;
 }
 
@@ -21,6 +20,8 @@ where
     // I: std::fmt::Debug,
     // <I as IntoIterator>::IntoIter: std::fmt::Debug,
 {
+    type Item = T;
+
     fn into_only(self) -> Result<T> {
         match self.into_iter().with_position().next() {
             Some(Position::Only(item)) => Ok(item),

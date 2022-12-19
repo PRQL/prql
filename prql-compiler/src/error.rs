@@ -1,12 +1,13 @@
 pub use anyhow::Result;
 
-use ariadne::{Config, Label, Report, ReportKind, Source};
+use ariadne::{Cache, Config, Label, Report, ReportKind, Source};
 use serde::{Deserialize, Serialize};
 use std::error::Error as StdError;
-use std::fmt::{self, Debug, Display, Formatter, Write};
+use std::fmt::{self, Debug, Display, Formatter};
 use std::ops::{Add, Range};
 
 use crate::parser::PestError;
+use crate::utils::IntoOnly;
 
 #[derive(Clone, PartialEq, Eq, Copy, Serialize, Deserialize)]
 pub struct Span {
@@ -21,12 +22,14 @@ pub struct Error {
     pub help: Option<String>,
 }
 
-#[derive(Debug, Clone)]
+/// Location within the source file.
+/// Tuples contain:
+/// - line number (1-based),
+/// - column number within that line (1-based),
+#[derive(Debug, Clone, Serialize)]
 pub struct SourceLocation {
-    /// Line and column
     pub start: (usize, usize),
 
-    /// Line and column
     pub end: (usize, usize),
 }
 
@@ -67,23 +70,35 @@ impl Error {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct ErrorMessage {
-    pub message: String,
-    pub line: String,
+    /// Plain text of the error
+    pub reason: String,
+    /// A list of suggestions of how to fix the error
+    pub hint: Option<String>,
+    /// Character offset of error origin within a source file
+    pub span: Option<Span>,
+
+    /// Annotated code, containing cause and hints.
+    pub display: Option<String>,
+    /// Line and column number of error origin within a source file
     pub location: Option<SourceLocation>,
 }
 
 impl Display for ErrorMessage {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         // https://github.com/zesterer/ariadne/issues/52
-        let message_without_trailing_spaces = &self
-            .message
-            .split('\n')
-            .map(str::trim)
-            .collect::<Vec<_>>()
-            .join("\n");
-        f.write_str(message_without_trailing_spaces)
+        if let Some(display) = &self.display {
+            let message_without_trailing_spaces = display
+                .split('\n')
+                .map(str::trim)
+                .collect::<Vec<_>>()
+                .join("\n");
+            f.write_str(&message_without_trailing_spaces)?;
+        } else {
+            f.write_str(&self.reason)?;
+        }
+        Ok(())
     }
 }
 
@@ -97,115 +112,129 @@ impl Display for Error {
     }
 }
 
-pub trait IntoErrorMessage {
-    fn into_error_message(self, source_id: &str, source: &str, color: bool) -> ErrorMessage;
-    fn to_location(&self, source: &Source) -> Option<SourceLocation>;
-    fn into_error_message_and_output(
-        self,
-        source_id: &str,
-        source: Source,
-        color: bool,
-    ) -> (String, String);
+#[derive(Debug, Clone, Serialize)]
+pub struct ErrorMessages {
+    pub inner: Vec<ErrorMessage>,
 }
 
-impl IntoErrorMessage for anyhow::Error {
-    /// Convert error into human-readable message and error location.
-    fn into_error_message(self, source_id: &str, source: &str, color: bool) -> ErrorMessage {
-        let source = Source::from(source);
-        let location = self.to_location(&source);
-
-        let (line, output) = self.into_error_message_and_output(source_id, source, color);
-
-        ErrorMessage {
-            message: output,
-            line,
-            location,
-        }
+impl From<ErrorMessage> for ErrorMessages {
+    fn from(e: ErrorMessage) -> Self {
+        ErrorMessages { inner: vec![e] }
     }
-    fn to_location(&self, source: &Source) -> Option<SourceLocation> {
-        let span = if let Some(error) = self.downcast_ref::<Error>() {
-            if let Some(span) = error.span {
-                Range::from(span)
-            } else {
-                return None;
+}
+
+impl Display for ErrorMessages {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        for e in &self.inner {
+            Display::fmt(&e, f)?;
+        }
+        Ok(())
+    }
+}
+
+pub fn downcast(error: anyhow::Error) -> ErrorMessages {
+    let mut span = None;
+    let mut hint = None;
+
+    let error = match error.downcast::<ErrorMessages>() {
+        Ok(messages) => return messages,
+        Err(error) => error,
+    };
+
+    let reason = match error.downcast::<Error>() {
+        Ok(error) => {
+            span = error.span;
+            hint = error.help;
+
+            error.reason.message()
+        }
+        Err(error) => {
+            match error.downcast::<PestError>() {
+                Ok(error) => {
+                    let range = pest::as_range(&error);
+                    span = Some(Span {
+                        start: range.start,
+                        end: range.end,
+                    });
+
+                    pest::as_message(&error)
+                }
+                Err(error) => {
+                    // default to basic Display
+                    format!("{:#?}", error)
+                }
             }
-        } else if let Some(error) = self.downcast_ref::<PestError>() {
-            pest::as_range(error)
-        } else {
-            return None;
-        };
+        }
+    };
+
+    ErrorMessage {
+        reason,
+        hint,
+        span,
+        display: None,
+        location: None,
+    }
+    .into()
+}
+
+impl ErrorMessages {
+    pub fn to_json(&self) -> String {
+        serde_json::to_string(self).unwrap()
+    }
+
+    /// Computes message location and builds the pretty display.
+    pub fn composed(mut self, source_id: &str, source: &str, color: bool) -> Self {
+        for e in &mut self.inner {
+            let source = Source::from(source);
+            let cache = (source_id, source);
+
+            e.location = e.compose_location(&cache.1);
+            e.display = e.compose_display(source_id, cache, color);
+        }
+        self
+    }
+}
+
+impl IntoOnly for ErrorMessages {
+    type Item = ErrorMessage;
+
+    fn into_only(self) -> Result<Self::Item> {
+        self.inner.into_only()
+    }
+}
+
+impl ErrorMessage {
+    fn compose_display<'a, C>(&self, source_id: &'a str, cache: C, color: bool) -> Option<String>
+    where
+        C: Cache<&'a str>,
+    {
+        let config = Config::default().with_color(color);
+
+        let span = Range::from(self.span?);
+
+        let mut report = Report::build(ReportKind::Error, source_id, span.start)
+            .with_config(config)
+            .with_message("")
+            .with_label(Label::new((source_id, span)).with_message(&self.reason));
+
+        if let Some(hint) = &self.hint {
+            report.set_help(hint);
+        }
+
+        let mut out = Vec::new();
+        report.finish().write(cache, &mut out).ok()?;
+        String::from_utf8(out).ok()
+    }
+
+    fn compose_location(&self, source: &Source) -> Option<SourceLocation> {
+        let span = self.span?;
 
         let start = source.get_offset_line(span.start)?;
         let end = source.get_offset_line(span.end)?;
-
         Some(SourceLocation {
             start: (start.1, start.2),
             end: (end.1, end.2),
         })
-    }
-    // TODO: should we consolidate between `into_error_message` and `into_error_message_and_output`?
-    fn into_error_message_and_output(
-        self,
-        source_id: &str,
-        source: Source,
-        color: bool,
-    ) -> (String, String) {
-        let config = Config::default().with_color(color);
-
-        if let Some(error) = self.downcast_ref::<Error>() {
-            let message = error.reason.message();
-
-            if let Some(span) = error.span {
-                let span = Range::from(span);
-
-                let mut report = Report::build(ReportKind::Error, source_id, span.start)
-                    .with_config(config)
-                    .with_message("")
-                    .with_label(Label::new((source_id, span)).with_message(&message));
-
-                if let Some(help) = &error.help {
-                    report.set_help(help);
-                }
-
-                let mut out = Vec::new();
-                report
-                    .finish()
-                    .write((source_id, source), &mut out)
-                    .unwrap();
-
-                let output = String::from_utf8(out).unwrap();
-                return (message, output);
-            } else {
-                let mut out = format!("Error: {message}");
-
-                if let Some(help) = &error.help {
-                    out = format!("{out}\n  help: {help}");
-                }
-
-                return (message, out);
-            }
-        }
-
-        if let Some(error) = self.downcast_ref::<PestError>() {
-            let span = pest::as_range(error);
-            let mut out = Vec::new();
-
-            let message = pest::as_message(error);
-            Report::build(ReportKind::Error, source_id, span.start)
-                .with_config(config)
-                .with_message("during parsing")
-                .with_label(Label::new((source_id, span)).with_message(&message))
-                .finish()
-                .write((source_id, source), &mut out)
-                .unwrap();
-
-            return (message, String::from_utf8(out).unwrap());
-        }
-
-        // default to basic Display
-        let mut message = String::new();
-        write!(&mut message, "{:#?}", self).unwrap();
-        (message.clone(), message)
     }
 }
 
