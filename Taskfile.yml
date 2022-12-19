@@ -191,8 +191,8 @@ tasks:
     # These are mostly copied from the tasks in `test-all.yaml`
     dir: prql-js
     cmds:
-      - wasm-pack build --target nodejs --release --out-dir dist/node
-      - cd tests && npm i && npm run test
+      - npm run build
+      - npm cit
 
   run-book:
     dir: book

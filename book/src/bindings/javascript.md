@@ -80,7 +80,7 @@ successfully in a rust-driven approach to this, RIP `prql-web`.
 Build:
 
 ```sh
-npm run build-all
+npm run build
 ```
 
 This builds Node, bundler and web packages in the `dist` path.

@@ -22,6 +22,6 @@ runs:
         registry-url: "https://registry.npmjs.org"
 
     - name: Run wasm-pack for node, bundler, & web
-      run: npm run build-all
+      run: npm run build
       shell: bash
       working-directory: prql-js/
