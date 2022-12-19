@@ -83,4 +83,5 @@ npm test
   to generate bindings.
 - We've added an `npm` layer on top of the usual approach of just using
   `wasm-pack`, so we can distribute a single package with targets of `node`,
-  `bundler` and `no-modules`. We're open to alternative approaches.
+  `bundler` and `no-modules` — somewhat inverting the canonical approach. We're
+  open to alternatives!
