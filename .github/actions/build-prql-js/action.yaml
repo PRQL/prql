@@ -31,3 +31,7 @@ runs:
       with:
         node-version: "18.x"
         registry-url: "https://registry.npmjs.org"
+
+    - name: Upgrade npm
+      run: npm i -g npm@9
+      shell: bash
