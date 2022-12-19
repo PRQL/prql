@@ -1,31 +1,39 @@
 
-@top Query { Pipeline }
+
+@top Query { Statements }
 
 @skip { space | Comment }
 
 // I haven't completely figured this out, but it seems to work at the moment (try removing and see the error...)
-@precedence { newline @left, pipe @left }
+@precedence { newline }
 
-Pipeline { expr_call (!pipe pipe expr_call)* }
+Statements { newline* Query_def? ( Func_def | Table_def)* Pipeline_stmt? end }
 
-pipe { "|" |  "\n" }
+Query_def {  @specialize<Ident, "prql">  Named_arg* newline+ }
 
-List { "[" "\n"? list_item (("," "\n"? ) list_item)* "\n"? "]" }
+Pipeline_stmt { Pipeline (newline+ | end )}
 
-list_item { Assign_call | expr_call }
+Pipeline { Expr_call ( !newline pipe Expr_call)* }
 
-expr_call { Func_call | Expr }
+pipe { "|" | newline }
+
+List { "[" newline? list_item (("," newline? ) list_item)*  newline? "]" }
+
+list_item { Assign_call | Expr_call }
+
+Expr_call { Expr | Func_call }
 Func_call { Ident ( (Named_arg | Assign | Expr))+ }
 
-term { Ident | Number | List | Date | Nested_pipeline }
+term { Ident | Number | List | Date | Nested_pipeline | Expr_unary }
 
 Expr { term (Op term)? }
+Expr_unary { ( Op_unary ( Nested_pipeline | Ident )) }
 
-Named_arg    { ident_part  ":" Expr }
-Assign      { ident_part  "="  Expr }
-Assign_call      { ident_part  "="  expr_call }
+Named_arg { ident_part ":" Expr }
+Assign { ident_part "=" Expr }
+Assign_call { ident_part "=" Expr_call }
 
-Nested_pipeline { "(" "\n"* Pipeline "\n"* !newline   ")"  }
+Nested_pipeline { "(" newline* Pipeline newline* ")" }
 
 ident_part { Ident }
 
@@ -36,15 +44,18 @@ ident_part { Ident }
   Number { @digit+ }
   space { " "+ }
   Comment { "#" ![\n]* }
-  Op { "-" | "+" | "!" | "==" | "*" | "/" | "%" | "+" | "-" | "==" | "!=" | ">=" | "<=" | ">" | "<" }
-
+  Op { Op_unary | "*" | "/" | "%" | "+" | "-" | "==" | "!=" | ">=" | "<=" | ">" | "<" }
+  Op_unary { "-" | "+" | "!" | "==" }
+  end { @eof }
+  newline { "\n" }
+  @precedence { Op_unary  ,Op , table, func, prql, Ident, newline }
 }
 
-// TODOs:
+Table_def { @specialize<Ident, "table"> ident_part "=" Nested_pipeline ( newline+ | end ) }
 
-// Date = ${ ASCII_DIGIT{4} ~ "-" ~ ASCII_DIGIT{2} ~ "-" ~ ASCII_DIGIT{2} }
 
-// Date { (( Number | "-" ) ![\s] )* }
-
-// func_def { "func"  func_def_name  func_def_params  "->"  expr_call  ( "\n"+ | @eof ) }
-// func_def_name  { ident_part type_def? }
+Func_def { @specialize<Ident, "func"> Func_def_name Func_def_param* "->" Expr_call ( newline+ | end ) }
+Type_def { "<" Type_term ( "|" Type_term)* ">" }
+Type_term { ident_part Type_def? }
+Func_def_name { ident_part Type_def? }
+Func_def_param { ident_part Type_def (":" Expr)? }
