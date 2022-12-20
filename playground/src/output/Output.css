@@ -1,0 +1,25 @@
+.tab-content.arrow {
+  padding: 1.5rem;
+}
+
+.arrow table {
+  border-collapse: collapse;
+}
+
+.arrow table td {
+  min-width: 2rem;
+  padding: 2px 0.5rem;
+  text-align: right;
+}
+
+.arrow table thead {
+  border-bottom: 1px solid #444;
+}
+
+.arrow table tbody tr:not(:first-child) td {
+  border-top: 1px solid #444;
+}
+
+/* .arrow table tbody tr:nth-child(2n) td {
+  background-color: #333;
+} */

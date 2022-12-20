@@ -10,6 +10,7 @@ import prqlSyntax from "./prql-syntax";
 
 import { Light as SyntaxHighlighter } from "react-syntax-highlighter";
 import sql from "react-syntax-highlighter/dist/esm/languages/hljs/sql";
+import Output from "../output/Output";
 
 SyntaxHighlighter.registerLanguage("sql", sql);
 
@@ -21,9 +22,10 @@ class Workbench extends React.Component {
 
   state = {
     filename: "input.prql",
-    sql: "",
     prql: "",
-    justCopied: false,
+    output: null,
+    outputTab: 'arrow',
+    errorMessage: null
   };
 
   loadFile(filename, content) {
@@ -56,7 +58,11 @@ class Workbench extends React.Component {
     try {
       const sql = prql.compile(value);
 
-      this.setState({ sql, errorMessage: null });
+      
+
+      const output = { sql };
+
+      this.setState({ output, errorMessage: null });
       this.monaco.editor.setModelMarkers(this.editor.getModel(), "prql", []);
     } catch (e) {
       const error = JSON.parse(e.message).inner[0];
@@ -96,32 +102,18 @@ class Workbench extends React.Component {
     }
   }
 
-  async copyOutput() {
-    try {
-      await navigator.clipboard.writeText(this.state.sql);
-
-      this.setState({ justCopied: true });
-
-      window.setTimeout(() => {
-        this.setState({ justCopied: false });
-      }, 2000);
-    } catch (e) {
-      console.error(e);
-    }
-  }
-
   render() {
     return (
       <div className="column">
         <div className="tabs">
           <div className="tab">
             <div className="tab-top">
-              <div className="tab-title">{this.state.filename}</div>
+              <div className="tab-title active">{this.state.filename}</div>
 
               <div className="spacer"></div>
 
-              <button onClick={() => this.rename()}>Rename</button>
-              <button onClick={() => this.save()}>Save</button>
+              <button className="action" onClick={() => this.rename()}>Rename</button>
+              <button className="action" onClick={() => this.save()}>Save</button>
             </div>
             <Editor
               height="10rem"
@@ -138,19 +130,8 @@ class Workbench extends React.Component {
             />
           </div>
 
-          <div className="tab">
-            <div className="tab-top">
-              <div className="tab-title">output.sql</div>
-              <div className="spacer"></div>
-              <button onClick={() => this.copyOutput()}>
-                {this.state.justCopied ? "Copied!" : "Copy to clipboard"}
-              </button>
-            </div>
-
-            <SyntaxHighlighter language="sql" useInlineStyles={false}>
-              {this.state.sql}
-            </SyntaxHighlighter>
-          </div>
+          <Output content={this.state.output} tab={this.state.outputTab}
+            onTabChange={(tab) => this.setState({ outputTab: tab })}></Output>
         </div>
 
         {this.state.errorMessage && (

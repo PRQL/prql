@@ -34,10 +34,16 @@
 .tab-top button {
   border: 0;
   background: transparent;
-  text-decoration: underline;
-  padding: 2px 1em;
-  color: lightblue;
+  color: inherit;
+  font-size: inherit;
+  font-family: inherit;
   cursor: pointer;
+}
+.tab-top .action {
+  padding: 2px 1em;
+  font-size: 80%;
+  text-decoration: underline;
+  color: lightblue;
 }
 .spacer {
   flex-grow: 1;
@@ -47,6 +53,8 @@
   align-self: start;
   padding: 3px 0.75em;
   display: inline;
+}
+.tab-title.active {
   background: #222;
 }
 .error-pane {
@@ -61,7 +69,9 @@
   border-color: red;
   background-color: #552222;
 }
-
+.tab-content {
+  background: #222;  
+}
 pre.hljs {
   margin: 0;
   background: #222;
