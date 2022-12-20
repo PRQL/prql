@@ -1,7 +1,9 @@
-
 // TODO:
 // - Strings / s / f
-// - Namespaces
+// - Namespaces; Ident_part just added, need to check
+// - Getting `join de=dept_emp [==emp_no]` parsed as an Ident and then Expr (for
+//   `de=dept_emp`), rather than Ident and then Assign (trying with `~bamb` but
+//   no effect)
 
 @top Query { Statements }
 
@@ -9,7 +11,7 @@
 
 Statements { newline* Query_def? ( Func_def | Table_def)* Pipeline_stmt? end }
 
-Query_def {  @specialize<Ident, "prql">  Named_arg* newline+ }
+Query_def {  @specialize<Ident_part, "prql">  Named_arg* newline+ }
 
 Pipeline_stmt { Pipeline (~amb newline+ | end )}
 
@@ -19,45 +21,51 @@ pipe { "|" | ~amb newline  }
 
 List { "[" newline? list_item (("," newline? ) list_item)* ","? newline? "]" }
 
-list_item { Assign_call | expr_call }
+list_item { ~bamb Assign_call |  expr_call }
 
-expr_call { Expr | Func_call }
-Func_call { Ident ( (Named_arg | Assign | Expr))+ }
+expr_call { ~bamb Expr |  Func_call }
+Func_call {  Ident ( (Named_arg | ~bamb Assign | ~bamb Expr))+ }
 
-term { Ident | Number | List | Date | Nested_pipeline | Expr_unary | String | Range }
+// !term is required here, otherwise `[x+emp_no, -3]` is parsed as `x` & `+emp_no`
+term { !term Ident | Number | List | Date |  Nested_pipeline | Op_unary term | String | Range }
 
-Expr { term (Op term)* }
-Expr_unary { ( Op_unary ( Nested_pipeline | Ident )) }
+// Not quite sure why `!term` is required here
+// We need to give precedence to `Op_bin` so we don't get `x+y` as `x` & `+y`
+Expr { !term term (( Op_bin)  term)* }
 
-Named_arg { ident_part ":" Expr }
-Assign { ident_part "=" Expr }
-Assign_call { ident_part "=" expr_call }
+Named_arg { Ident_part ":" Expr }
+Assign { Ident_part "=" Expr }
+Assign_call { Ident_part "=" expr_call }
 
 Nested_pipeline { "(" newline* Pipeline ~amb newline?   ")" }
 
-ident_part { Ident }
+// Ident { Ident_part }
+
+@precedence {as @left, term @left }
 
 @tokens {
   // We can't seem to set the number of digts, so this will allow any combination of digits & hypehns
-  Date { ( "@" ![\s] (( @digit | "-" ) ![\s] )+ ) }
-  Ident { @asciiLetter (@asciiLetter | "_" | @digit )* }
+  Date { "@" ![\s] (( @digit | "-" ) ![\s] )+ }
+  Ident_part { @asciiLetter (@asciiLetter | "_" | @digit )* }
+  Ident { Ident_part   ( ![\s] "." ![\s] Ident_part)* }
   Number { @digit+ }
   space { " "+ }
   Comment { "#" ![\n]* }
-  Op { Op_unary | "*" | "/" | "%" | "+" | "-" | "==" | "!=" | ">=" | "<=" | ">" | "<" | "??" }
-  Op_unary { "-" | "+" | "!" | "==" }
+  Op_bin { Op_unary | "*" | "/" | "%" | "!=" | ">=" | "<=" | ">" | "<" | "??" }
+  Op_unary { "-" | "+"  | "==" }
   end { @eof }
   newline { "\n" }
   String { '"' !["]* '"' }
   Range { ".." }
-  @precedence { Op,Op_unary,  table, func, prql, Ident, newline }
+  @precedence {  Ident, Ident_part ,  Op_unary , Op_bin }
+
 }
 
-Table_def { @specialize<Ident, "table"> ident_part "=" Nested_pipeline ( newline+ | end ) }
+Table_def { @specialize<Ident_part, "table"> Ident_part "=" Nested_pipeline ( newline+ | end ) }
 
 
-Func_def { @specialize<Ident, "func"> Func_def_name Func_def_param* "->" expr_call ( newline+ | end ) }
+Func_def { @specialize<Ident_part, "func"> Func_def_name Func_def_param* "->" expr_call ( newline+ | end ) }
 Type_def { "<" Type_term ( "|" Type_term)* ">" }
-Type_term { ident_part Type_def? }
-Func_def_name { ident_part Type_def? }
-Func_def_param { ident_part Type_def? (":" Expr)? }
+Type_term { Ident_part Type_def? }
+Func_def_name { Ident_part Type_def? }
+Func_def_param { Ident_part Type_def? (":" Expr)? }
