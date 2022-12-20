@@ -1,7 +1,6 @@
 # prql-js
 
-JavaScript bindings for [`prql-compiler`](https://github.com/prql/prql/). Check out <https://prql-lang.org> for more
-context.
+JavaScript bindings for [`prql-compiler`](https://github.com/prql/prql).
 
 ## Installation
 
@@ -14,9 +13,13 @@ npm install prql-js
 Currently these functions are exposed
 
 ```javascript
-function compile(prql_string) # returns CompileResult
-function to_sql(prql_string) # returns SQL string
-function to_json(prql_string) # returns JSON string ( needs JSON.parse() to get the json)
+function compile(prql_query: string, options?: CompileOptions): string;
+
+function pl_of_prql(prql_query: string): string;
+
+function rq_of_pl(pl_json: string): string;
+
+function sql_of_rq(rq_json: string): string;
 ```
 
 ### From NodeJS
@@ -24,9 +27,8 @@ function to_json(prql_string) # returns JSON string ( needs JSON.parse() to get 
 ```javascript
 const prql = require("prql-js");
 
-const { sql, error } = compile(`from employees | select first_name`);
+const sql = compile(`from employees | select first_name`);
 console.log(sql);
-// handle error as well...
 ```
 
 ### From a Browser
@@ -40,10 +42,9 @@ console.log(sql);
 
       async function run() {
         await wasm_bindgen("./node_modules/prql-js/dist/web/prql_js_bg.wasm");
-        const { sql, error } = compile("from employees | select first_name");
+        const sql = compile("from employees | select first_name");
 
         console.log(sql);
-        // handle error as well...
       }
 
       run();
@@ -59,28 +60,59 @@ console.log(sql);
 ```typescript
 import compile from "prql-js/dist/bundler";
 
-const { sql, error } = compile(`from employees | select first_name`);
+const sql = compile(`from employees | select first_name`);
 console.log(sql);
-// handle error as well...
 ```
 
-## Notes
+## Errors
 
-This uses
-[`wasm-pack`](https://rustwasm.github.io/docs/wasm-pack/tutorials/npm-browser-packages/index.html)
-to generate bindings[^1].
+Errors are returned as following object, serialized as a JSON array:
 
-[^1]:
+```ts
+interface ErrorMessage {
+  /// Plain text of the error
+  reason: String;
+  /// A list of suggestions of how to fix the error
+  hint: String | null;
+  /// Character offset of error origin within a source file
+  span: Span | null;
 
-though we would be very open to other approaches, and used `trunk`
-successfully in a rust-driven approach to this, RIP `prql-web`.
+  /// Annotated code, containing cause and hints.
+  display: String | null;
+  /// Line and column number of error origin within a source file
+  location: SourceLocation | null;
+}
+
+/// Location within the source file.
+/// Tuples contain:
+/// - line number (1-based),
+/// - column number within that line (1-based),
+interface SourceLocation {
+  start: [number, number];
+
+  end: [number, number];
+}
+```
+
+These errors can be caught as such:
+
+```javascript
+try {
+  const sql = prqlJs.compile(`from employees | foo first_name`);
+} catch (error) {
+  const errorMessages = JSON.parse(error.message).inner;
+
+  console.log(errorMessages[0].display);
+  console.log(errorMessages[0].location);
+}
+```
 
 ## Development
 
 Build:
 
 ```sh
-npm run build-all
+npm run build
 ```
 
 This builds Node, bundler and web packages in the `dist` path.
@@ -88,5 +120,16 @@ This builds Node, bundler and web packages in the `dist` path.
 Test:
 
 ```sh
-wasm-pack test --firefox
+npm test
 ```
+
+## Notes
+
+- This uses
+  [`wasm-pack`](https://rustwasm.github.io/docs/wasm-pack/)
+  to generate bindings.
+- We've added an `npm` layer on top of the usual approach of just using
+  `wasm-pack`, so we can distribute a single package with targets of `node`,
+  `bundler` and `no-modules` — somewhat inverting the approach recommended by
+  `wasm-pack`. The build instruction goes in a `build` script, rather than a
+  `pack` script. We're open to alternatives!

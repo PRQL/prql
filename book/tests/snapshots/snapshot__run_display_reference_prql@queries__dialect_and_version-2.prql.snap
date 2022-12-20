@@ -1,9 +1,9 @@
 ---
 source: book/tests/snapshot.rs
-expression: Statements(parse(&prql).unwrap())
+expression: pl_of_prql(&prql).and_then(prql_of_pl).unwrap()
 input_file: book/tests/prql/queries/dialect_and_version-2.prql
 ---
-prql dialect:generic version:^0.3
+prql version:^0.3
 
 
 

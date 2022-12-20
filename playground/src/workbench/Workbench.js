@@ -53,23 +53,23 @@ class Workbench extends React.Component {
   compile(value) {
     this.setState({ prql: value });
 
-    const result = prql.compile(value);
+    try {
+      const sql = prql.compile(value);
 
-    if (result.sql) {
-      this.setState({ sql: result.sql, errorMessage: null });
-    }
-
-    if (result.error) {
-      this.setState({ errorMessage: result.error.message });
+      this.setState({ sql, errorMessage: null });
+      this.monaco.editor.setModelMarkers(this.editor.getModel(), "prql", []);
+    } catch (e) {
+      const error = JSON.parse(e.message).inner[0];
+      this.setState({ errorMessage: error.display });
 
       const errors = [
         {
           severity: "error",
-          message: result.error.message,
-          startLineNumber: result.error.location?.start_line + 1,
-          startColumn: result.error.location?.start_column + 1,
-          endLineNumber: result.error.location?.end_line + 1,
-          endColumn: result.error.location?.end_column + 1,
+          message: error.reason,
+          startLineNumber: error.location?.start_line + 1,
+          startColumn: error.location?.start_column + 1,
+          endLineNumber: error.location?.end_line + 1,
+          endColumn: error.location?.end_column + 1,
         },
       ];
       this.monaco.editor.setModelMarkers(
@@ -77,8 +77,6 @@ class Workbench extends React.Component {
         "prql",
         errors
       );
-    } else {
-      this.monaco.editor.setModelMarkers(this.editor.getModel(), "prql", []);
     }
   }
 

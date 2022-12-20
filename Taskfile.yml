@@ -91,10 +91,6 @@ tasks:
           task install-vscode-extensions
           "
 
-  install-precommit-install-hooks:
-    desc: pre-commit install-hooks
-      - pre-commit install-hooks
-
   install-vscode-extensions:
     desc: Install recommended VSCode extensions.
     cmds:
@@ -149,9 +145,7 @@ tasks:
         {{ range ( .targets | trim | splitLines ) -}}
         cargo build --all-targets --target={{.}}
         {{ end -}}
-      - mdbook build book/
-      - cd playground && npm install && npm run build
-      - cd website && hugo
+      - task: build-web
 
   test-all:
     desc: Test everything, resetting snapshots. Running this isn't required when developing; it's for caching or as a reference.
@@ -182,8 +176,12 @@ tasks:
       - cd website && hugo --minify
       - cd book && mdbook build
       - mkdir -p website/public
+      # Copy the book into the website path, using rsync so it only copies new files
       - rsync -ai --checksum --delete book/book/ website/public/book/
-      - cd playground && npm ci
+      # Must set `install-links=false` for the playground `npm install` to install prql-js
+      # as the regular dependencie instead of creating a symlink.
+      # Refer to https://github.com/prql/prql/pull/1296.
+      - cd playground && npm install --install-links=false
       - cd playground && npm run build
       - rsync -ai --checksum --delete playground/build/ website/public/playground/
 
@@ -191,8 +189,8 @@ tasks:
     # These are mostly copied from the tasks in `test-all.yaml`
     dir: prql-js
     cmds:
-      - wasm-pack build --target nodejs --release --out-dir dist/node
-      - cd tests && npm i && npm run test
+      - npm run build
+      - npm cit
 
   run-book:
     dir: book
@@ -202,7 +200,10 @@ tasks:
   run-playground:
     dir: playground
     cmds:
-      - npm install
+      # Must set `install-links=false` for the playground `npm install` to install prql-js
+      # as the regular dependencie instead of creating a symlink.
+      # Refer to https://github.com/prql/prql/pull/1296.
+      - npm install --install-links=false
       - npm start
 # The next three tasks are not used for either:
 #  - the Dockerfile (installing brew takes forever)
