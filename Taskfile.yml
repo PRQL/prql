@@ -124,10 +124,6 @@ tasks:
 
   install-npm-dependencies:
     cmds:
-      # TODO: For some reason, we can't build the playground with npm@9. I spent
-      # an hour trying to fix this, but not sure what the cause is.
-      # https://github.com/prql/prql/pull/1296
-      - npm install -g npm@8
       - npm install --location=global prettier prettier-plugin-go-template
       - cmd:
           echo "In order to get nice auto-formatting of web code in VSCode, VSCode
@@ -182,7 +178,10 @@ tasks:
       - mkdir -p website/public
       # Copy the book into the website path, using rsync so it only copies new files
       - rsync -ai --checksum --delete book/book/ website/public/book/
-      - cd playground && npm install
+      # Must set `install-links=false` for the playground `npm install` to install prql-js
+      # as the regular dependencie instead of creating a symlink.
+      # Refer to https://github.com/prql/prql/pull/1296.
+      - cd playground && npm install --install-links=false
       - cd playground && npm run build
       - rsync -ai --checksum --delete playground/build/ website/public/playground/
 
@@ -201,7 +200,10 @@ tasks:
   run-playground:
     dir: playground
     cmds:
-      - npm install
+      # Must set `install-links=false` for the playground `npm install` to install prql-js
+      # as the regular dependencie instead of creating a symlink.
+      # Refer to https://github.com/prql/prql/pull/1296.
+      - npm install --install-links=false
       - npm start
 # The next three tasks are not used for either:
 #  - the Dockerfile (installing brew takes forever)
