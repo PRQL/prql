@@ -533,7 +533,7 @@ impl AstFold for Flattener {
 mod tests {
     use insta::assert_yaml_snapshot;
 
-    use crate::parse;
+    use crate::parser::parse;
     use crate::semantic::{resolve, resolve_only};
 
     #[test]
@@ -554,7 +554,7 @@ mod tests {
         ---
         def:
           version: ~
-          dialect: Generic
+          other: {}
         tables:
           - id: 0
             name: c_invoice
@@ -712,7 +712,7 @@ mod tests {
         ---
         def:
           version: ~
-          dialect: Generic
+          other: {}
         tables:
           - id: 0
             name: invoices

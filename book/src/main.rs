@@ -112,7 +112,8 @@ fn replace_examples(text: &str) -> Result<String> {
             Event::Start(Tag::CodeBlock(CodeBlockKind::Fenced(lang))) if lang == "prql".into() => {
                 if let Some(Event::Text(text)) = parser.next() {
                     let prql = text.to_string();
-                    let html = table_of_comparison(text.as_str().unwrap(), &compile(&prql)?);
+                    let html =
+                        table_of_comparison(text.as_str().unwrap(), &compile(&prql).unwrap());
                     cmark_acc.push(Event::Html(html.into()));
 
                     // Skip ending tag

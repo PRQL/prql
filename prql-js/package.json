@@ -1,6 +1,10 @@
 {
   "browser": "dist/web/prql_js.js",
   "description": "Javascript bindings for prql-compiler",
+  "devDependencies": {
+    "chai": "^4.3.6",
+    "mocha": "^10.0.0"
+  },
   "files": [
     "dist/**/*",
     "package.json"
@@ -13,10 +17,11 @@
     "url": "https://github.com/prql/prql"
   },
   "scripts": {
-    "build-all": "npm run build-node && npm run build-bundler && npm run build-web",
-    "build-bundler": "wasm-pack build --target bundler --release --out-dir dist/bundler",
-    "build-node": "wasm-pack build --target nodejs --release --out-dir dist/node",
-    "build-web": "wasm-pack build --target no-modules --release --out-dir dist/web"
+    "build": "npm run build:node && npm run build:bundler && npm run build:web",
+    "build:bundler": "wasm-pack build --target bundler --release --out-dir dist/bundler",
+    "build:node": "wasm-pack build --target nodejs --release --out-dir dist/node",
+    "build:web": "wasm-pack build --target no-modules --release --out-dir dist/web",
+    "test": "wasm-pack test --firefox && mocha tests"
   },
   "types": "dist/node/prql_js.d.ts",
   "version": "0.3.1"

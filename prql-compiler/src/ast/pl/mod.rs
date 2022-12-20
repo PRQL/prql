@@ -8,7 +8,6 @@
 //!
 //! Top-level construct is a list of statements [Vec<Stmt>].
 
-pub mod dialect;
 pub mod expr;
 pub mod fold;
 pub mod frame;
@@ -17,7 +16,6 @@ pub mod literal;
 pub mod stmt;
 pub mod types;
 
-pub use self::dialect::*;
 pub use self::expr::*;
 pub use self::frame::*;
 pub use self::ident::*;

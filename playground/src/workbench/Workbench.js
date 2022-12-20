@@ -10,6 +10,8 @@ import prqlSyntax from "./prql-syntax";
 
 import { Light as SyntaxHighlighter } from "react-syntax-highlighter";
 import sql from "react-syntax-highlighter/dist/esm/languages/hljs/sql";
+import Output from "../output/Output";
+import * as duckdb from "./duckdb";
 
 SyntaxHighlighter.registerLanguage("sql", sql);
 
@@ -19,15 +21,20 @@ class Workbench extends React.Component {
   monaco = null;
   editor = null;
 
+  duckdb = null;
+
   state = {
     filename: "input.prql",
-    sql: "",
     prql: "",
-    justCopied: false,
+    output: null,
+    outputTab: "arrow",
+
+    prqlError: null,
+    duckdbError: null,
   };
 
-  loadFile(filename, content) {
-    this.setState({ filename, prql: content });
+  loadFile(filename, [outputTab, content]) {
+    this.setState({ filename, outputTab, prql: content });
     if (this.editor) {
       this.editor.setValue(content);
     }
@@ -35,6 +42,8 @@ class Workbench extends React.Component {
 
   componentDidMount() {
     this.props.setCallables({ loadFile: (f, c) => this.loadFile(f, c) });
+
+    this.duckdb = duckdb.init();
   }
 
   beforeEditorMount(monaco) {
@@ -50,26 +59,26 @@ class Workbench extends React.Component {
     this.compile(editor.getValue());
   }
 
-  compile(value) {
+  async compile(value) {
     this.setState({ prql: value });
 
-    const result = prql.compile(value);
-
-    if (result.sql) {
-      this.setState({ sql: result.sql, errorMessage: null });
-    }
-
-    if (result.error) {
-      this.setState({ errorMessage: result.error.message });
+    let sql;
+    try {
+      sql = prql.compile(value);
+      this.setState({ prqlError: null });
+      this.monaco.editor.setModelMarkers(this.editor.getModel(), "prql", []);
+    } catch (e) {
+      const error = JSON.parse(e.message).inner[0];
+      this.setState({ prqlError: error.display });
 
       const errors = [
         {
           severity: "error",
-          message: result.error.message,
-          startLineNumber: result.error.location?.start_line + 1,
-          startColumn: result.error.location?.start_column + 1,
-          endLineNumber: result.error.location?.end_line + 1,
-          endColumn: result.error.location?.end_column + 1,
+          message: error.reason,
+          startLineNumber: error.location?.start_line + 1,
+          startColumn: error.location?.start_column + 1,
+          endLineNumber: error.location?.end_line + 1,
+          endColumn: error.location?.end_column + 1,
         },
       ];
       this.monaco.editor.setModelMarkers(
@@ -77,15 +86,33 @@ class Workbench extends React.Component {
         "prql",
         errors
       );
-    } else {
-      this.monaco.editor.setModelMarkers(this.editor.getModel(), "prql", []);
+      return;
     }
+
+    let arrow;
+    const c = await (await this.duckdb).connect();
+    try {
+      arrow = await c.query(sql);
+      this.setState({ duckdbError: null });
+    } catch (e) {
+      this.setState({ duckdbError: e.toString() });
+      arrow = null;
+    } finally {
+      c.close();
+    }
+
+    const output = { sql, arrow };
+
+    this.setState({ output });
   }
 
   save() {
     if (!this.editor) return;
 
-    this.props.onSaveFile(this.state.filename, this.state.prql);
+    this.props.onSaveFile(this.state.filename, [
+      this.state.outputTab,
+      this.state.prql,
+    ]);
   }
 
   rename() {
@@ -98,32 +125,22 @@ class Workbench extends React.Component {
     }
   }
 
-  async copyOutput() {
-    try {
-      await navigator.clipboard.writeText(this.state.sql);
-
-      this.setState({ justCopied: true });
-
-      window.setTimeout(() => {
-        this.setState({ justCopied: false });
-      }, 2000);
-    } catch (e) {
-      console.error(e);
-    }
-  }
-
   render() {
     return (
       <div className="column">
         <div className="tabs">
           <div className="tab">
             <div className="tab-top">
-              <div className="tab-title">{this.state.filename}</div>
+              <div className="tab-title active">{this.state.filename}</div>
 
               <div className="spacer"></div>
 
-              <button onClick={() => this.rename()}>Rename</button>
-              <button onClick={() => this.save()}>Save</button>
+              <button className="action" onClick={() => this.rename()}>
+                Rename
+              </button>
+              <button className="action" onClick={() => this.save()}>
+                Save
+              </button>
             </div>
             <Editor
               height="10rem"
@@ -140,23 +157,18 @@ class Workbench extends React.Component {
             />
           </div>
 
-          <div className="tab">
-            <div className="tab-top">
-              <div className="tab-title">output.sql</div>
-              <div className="spacer"></div>
-              <button onClick={() => this.copyOutput()}>
-                {this.state.justCopied ? "Copied!" : "Copy to clipboard"}
-              </button>
-            </div>
-
-            <SyntaxHighlighter language="sql" useInlineStyles={false}>
-              {this.state.sql}
-            </SyntaxHighlighter>
-          </div>
+          <Output
+            content={this.state.output}
+            tab={this.state.outputTab}
+            onTabChange={(tab) => this.setState({ outputTab: tab })}
+          ></Output>
         </div>
 
-        {this.state.errorMessage && (
-          <div className="error-pane">{this.state.errorMessage}</div>
+        {this.state.prqlError && (
+          <div className="error-pane">{this.state.prqlError}</div>
+        )}
+        {this.state.outputTab === "arrow" && this.state.duckdbError && (
+          <div className="error-pane">{this.state.duckdbError}</div>
         )}
       </div>
     );
