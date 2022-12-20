@@ -1,12 +1,13 @@
 .tab-content.arrow {
   padding: 1.5rem;
+  overflow-x: scroll;
 }
 
 .arrow table {
   border-collapse: collapse;
 }
 
-.arrow table td {
+.arrow table td, .arrow table th {
   min-width: 2rem;
   padding: 2px 0.5rem;
   text-align: right;

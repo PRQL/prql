@@ -11,6 +11,7 @@ import prqlSyntax from "./prql-syntax";
 import { Light as SyntaxHighlighter } from "react-syntax-highlighter";
 import sql from "react-syntax-highlighter/dist/esm/languages/hljs/sql";
 import Output from "../output/Output";
+import * as duckdb from "./duckdb";
 
 SyntaxHighlighter.registerLanguage("sql", sql);
 
@@ -20,16 +21,20 @@ class Workbench extends React.Component {
   monaco = null;
   editor = null;
 
+  duckdb = null;
+
   state = {
     filename: "input.prql",
     prql: "",
     output: null,
     outputTab: 'arrow',
-    errorMessage: null
+
+    prqlError: null,
+    duckdbError: null
   };
 
-  loadFile(filename, content) {
-    this.setState({ filename, prql: content });
+  loadFile(filename, [outputTab, content]) {
+    this.setState({ filename, outputTab, prql: content });
     if (this.editor) {
       this.editor.setValue(content);
     }
@@ -37,6 +42,8 @@ class Workbench extends React.Component {
 
   componentDidMount() {
     this.props.setCallables({ loadFile: (f, c) => this.loadFile(f, c) });
+
+    this.duckdb = duckdb.init();
   }
 
   beforeEditorMount(monaco) {
@@ -52,21 +59,17 @@ class Workbench extends React.Component {
     this.compile(editor.getValue());
   }
 
-  compile(value) {
+  async compile(value) {
     this.setState({ prql: value });
 
+    let sql;
     try {
-      const sql = prql.compile(value);
-
-      
-
-      const output = { sql };
-
-      this.setState({ output, errorMessage: null });
+      sql = prql.compile(value);
+      this.setState({ prqlError: null });
       this.monaco.editor.setModelMarkers(this.editor.getModel(), "prql", []);
     } catch (e) {
       const error = JSON.parse(e.message).inner[0];
-      this.setState({ errorMessage: error.display });
+      this.setState({ prqlError: error.display });
 
       const errors = [
         {
@@ -83,13 +86,30 @@ class Workbench extends React.Component {
         "prql",
         errors
       );
+      return;
     }
+
+    let arrow;
+    const c = await (await this.duckdb).connect();
+    try {
+      arrow = await c.query(sql);
+      this.setState({ duckdbError: null });
+    } catch (e) {
+      this.setState({ duckdbError: e.toString() });
+      arrow = null;
+    } finally {
+      c.close();
+    }
+
+    const output = { sql, arrow };
+
+    this.setState({ output });
   }
 
   save() {
     if (!this.editor) return;
 
-    this.props.onSaveFile(this.state.filename, this.state.prql);
+    this.props.onSaveFile(this.state.filename, [this.state.outputTab, this.state.prql]);
   }
 
   rename() {
@@ -134,8 +154,11 @@ class Workbench extends React.Component {
             onTabChange={(tab) => this.setState({ outputTab: tab })}></Output>
         </div>
 
-        {this.state.errorMessage && (
-          <div className="error-pane">{this.state.errorMessage}</div>
+        {this.state.prqlError && (
+          <div className="error-pane">{this.state.prqlError}</div>
+        )}
+        {this.state.outputTab === 'arrow' && this.state.duckdbError && (
+          <div className="error-pane">{this.state.duckdbError}</div>
         )}
       </div>
     );
