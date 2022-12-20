@@ -129,13 +129,13 @@ Depending on the dialect, these will remain as backticks or be converted to
 double-quotes.
 
 ```prql
-prql dialect:mysql
+prql sql_dialect:mysql
 from employees
 select `first name`
 ```
 
 ```prql
-prql dialect:postgres
+prql sql_dialect:postgres
 from employees
 select `first name`
 ```
@@ -144,7 +144,17 @@ BigQuery also uses backticks to surround project & dataset names (even if valid
 identifiers) in the `SELECT` statement:
 
 ```prql
-prql dialect:bigquery
+prql sql_dialect:bigquery
 from `project-foo.dataset.table`
 join `project-bar.dataset.table` [==col_bax]
+```
+
+## Parameters
+
+PRQL will retain parameters like `$1` in SQL output, which can then be supplied
+to the SQL query:
+
+```prql
+from employees
+filter id == $1
 ```

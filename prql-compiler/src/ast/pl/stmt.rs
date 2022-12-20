@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{collections::HashMap, fmt::Display};
 
 use anyhow::anyhow;
 use enum_as_inner::EnumAsInner;
@@ -34,7 +34,7 @@ pub enum StmtKind {
 pub struct QueryDef {
     pub version: Option<VersionReq>,
     #[serde(default)]
-    pub dialect: Dialect,
+    pub other: HashMap<String, String>,
 }
 
 /// Function definition.
@@ -95,10 +95,13 @@ impl Display for StmtKind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             StmtKind::QueryDef(query) => {
-                write!(f, "prql dialect:{}", query.dialect)?;
+                write!(f, "prql")?;
                 if let Some(version) = &query.version {
-                    write!(f, " version:{}", version)?
-                };
+                    write!(f, " version:{}", version)?;
+                }
+                for (key, value) in &query.other {
+                    write!(f, " {key}:{value}")?;
+                }
                 write!(f, "\n\n")?;
             }
             StmtKind::Pipeline(expr) => match &expr.kind {

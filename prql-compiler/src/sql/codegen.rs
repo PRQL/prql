@@ -15,8 +15,8 @@ use sqlparser::keywords::{
 use std::collections::HashSet;
 
 use crate::ast::pl::{
-    BinOp, ColumnSort, Dialect, InterpolateItem, JoinSide, Literal, Range, SortDirection,
-    WindowFrame, WindowKind,
+    BinOp, ColumnSort, InterpolateItem, JoinSide, Literal, Range, SortDirection, WindowFrame,
+    WindowKind,
 };
 use crate::ast::rq::*;
 use crate::error::{Error, Reason};
@@ -24,6 +24,7 @@ use crate::sql::context::ColumnDecl;
 use crate::utils::OrMap;
 
 use super::translator::Context;
+use super::Dialect;
 
 pub(super) fn translate_expr_kind(item: ExprKind, ctx: &mut Context) -> Result<sql_ast::Expr> {
     Ok(match item {

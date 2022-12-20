@@ -1,4 +1,4 @@
-name: publish-gh-pages
+name: publish-web
 on:
   push:
     branches:
@@ -7,7 +7,7 @@ on:
   workflow_call:
 
 jobs:
-  publish-gh-pages:
+  publish-web:
     runs-on: ubuntu-latest
 
     # Skip running workflow on forks
@@ -40,21 +40,14 @@ jobs:
           version: "1.7.0"
 
       # Playground setup
-      - uses: jetli/wasm-bindgen-action@v0.2.0
-      - uses: jetli/wasm-pack-action@v0.4.0
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: 16.x
-          cache: "npm"
-          cache-dependency-path: playground/package-lock.json
+      - uses: ./.github/actions/build-prql-js
 
       - uses: arduino/setup-task@v1
       - name: 🕷️ Build website
         run: task build-web
 
       - name: Prepare tar for upload
-        uses: actions/upload-pages-artifact@v1.0.6
+        uses: actions/upload-pages-artifact@v1.0.7
         with:
           path: website/public/
 

@@ -1,2 +1,2 @@
-from mytable
+from employees
 filter id == $1

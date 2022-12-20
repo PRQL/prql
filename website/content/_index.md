@@ -263,7 +263,7 @@ showcase_section:
     - id: dialects
       label: Dialects
       prql: |
-        prql dialect:mssql  # Will generate TOP rather than LIMIT
+        prql sql_dialect:mssql  # Will generate TOP rather than LIMIT
 
         from employees
         sort age
