@@ -59,7 +59,7 @@ class Workbench extends React.Component {
       this.setState({ sql, errorMessage: null });
       this.monaco.editor.setModelMarkers(this.editor.getModel(), "prql", []);
     } catch (e) {
-      const error = JSON.parse(e.message)[0];
+      const error = JSON.parse(e.message).inner[0];
       this.setState({ errorMessage: error.display });
 
       const errors = [

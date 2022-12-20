@@ -100,7 +100,7 @@ These errors can be caught as such:
 try {
   const sql = prqlJs.compile(`from employees | foo first_name`);
 } catch (error) {
-  const errorMessages = JSON.parse(error.message);
+  const errorMessages = JSON.parse(error.message).inner;
 
   console.log(errorMessages[0].display);
   console.log(errorMessages[0].location);
