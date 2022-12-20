@@ -54,16 +54,16 @@ class Output extends React.Component {
       const arrow = this.props.content.arrow;
 
       const header = arrow.schema.fields.map((f, index) => {
-        return <th key={index}>{f.name}</th>
-      })
+        return <th key={index}>{f.name}</th>;
+      });
 
       const data = arrow.toArray().map((x) => [...x]);
       const rows = data.map((x, index) => {
         const cells = x.map(([_name, value], index) => (
-          <td key={index}>{'' + value}</td>
-        ))
+          <td key={index}>{"" + value}</td>
+        ));
 
-        return <tr key={index}>{cells}</tr>
+        return <tr key={index}>{cells}</tr>;
       });
 
       // console.log(arrow, arrow.schema.fields, arrow.toArray());
@@ -71,7 +71,9 @@ class Output extends React.Component {
       return (
         <div className="tab-content arrow">
           <table className="tab-content">
-            <thead><tr>{header}</tr></thead>
+            <thead>
+              <tr>{header}</tr>
+            </thead>
             <tbody>{rows}</tbody>
           </table>
         </div>

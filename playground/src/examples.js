@@ -1,5 +1,7 @@
 const examples = {
-  "introduction.prql": ['sql', `from employees
+  "introduction.prql": [
+    "sql",
+    `from employees
 filter country_code == "USA"   # Each line transforms the previous result.
 derive [                       # This adds columns / variables.
   gross_salary = salary + payroll_tax,
@@ -24,9 +26,12 @@ join countries side:left [==country_code]
 derive [
   always_true = true,
   db_version = s"version()",    # An S-string, which transpiles directly into SQL
-]`],
+]`,
+  ],
 
-  "cte-0.prql": ['sql', `table newest_employees = (
+  "cte-0.prql": [
+    "sql",
+    `table newest_employees = (
   from employees
   sort tenure
   take 50
@@ -43,9 +48,12 @@ table average_salaries = (
 from newest_employees
 join average_salaries [==country]
 select [name, salary, average_country_salary]
-`],
+`,
+  ],
 
-  "employees-0.prql": ['sql', `from salaries
+  "employees-0.prql": [
+    "sql",
+    `from salaries
 group [emp_no] (
   aggregate [emp_salary = average salary]
 )
@@ -56,6 +64,7 @@ group [dept_emp.dept_no, t.title] (
 )
 join departments [==dept_no]
 select [dept_name, title, avg_salary]
-`],
+`,
+  ],
 };
 export default examples;

@@ -27,10 +27,10 @@ class Workbench extends React.Component {
     filename: "input.prql",
     prql: "",
     output: null,
-    outputTab: 'arrow',
+    outputTab: "arrow",
 
     prqlError: null,
-    duckdbError: null
+    duckdbError: null,
   };
 
   loadFile(filename, [outputTab, content]) {
@@ -109,7 +109,10 @@ class Workbench extends React.Component {
   save() {
     if (!this.editor) return;
 
-    this.props.onSaveFile(this.state.filename, [this.state.outputTab, this.state.prql]);
+    this.props.onSaveFile(this.state.filename, [
+      this.state.outputTab,
+      this.state.prql,
+    ]);
   }
 
   rename() {
@@ -132,8 +135,12 @@ class Workbench extends React.Component {
 
               <div className="spacer"></div>
 
-              <button className="action" onClick={() => this.rename()}>Rename</button>
-              <button className="action" onClick={() => this.save()}>Save</button>
+              <button className="action" onClick={() => this.rename()}>
+                Rename
+              </button>
+              <button className="action" onClick={() => this.save()}>
+                Save
+              </button>
             </div>
             <Editor
               height="10rem"
@@ -150,14 +157,17 @@ class Workbench extends React.Component {
             />
           </div>
 
-          <Output content={this.state.output} tab={this.state.outputTab}
-            onTabChange={(tab) => this.setState({ outputTab: tab })}></Output>
+          <Output
+            content={this.state.output}
+            tab={this.state.outputTab}
+            onTabChange={(tab) => this.setState({ outputTab: tab })}
+          ></Output>
         </div>
 
         {this.state.prqlError && (
           <div className="error-pane">{this.state.prqlError}</div>
         )}
-        {this.state.outputTab === 'arrow' && this.state.duckdbError && (
+        {this.state.outputTab === "arrow" && this.state.duckdbError && (
           <div className="error-pane">{this.state.duckdbError}</div>
         )}
       </div>

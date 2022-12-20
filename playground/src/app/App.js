@@ -15,7 +15,9 @@ function saveLocalStorage(files) {
 }
 
 const chinook = duckdb.CHINOOK_TABLES.reduce((lib, table) => {
-  return Object.assign(lib, { [table + '.prql']: ['arrow', `from ${table}\ntake 10`] })
+  return Object.assign(lib, {
+    [table + ".prql"]: ["arrow", `from ${table}\ntake 10`],
+  });
 }, {});
 
 class App extends React.Component {

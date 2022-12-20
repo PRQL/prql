@@ -1,4 +1,4 @@
-import * as duckdb from '@duckdb/duckdb-wasm';
+import * as duckdb from "@duckdb/duckdb-wasm";
 
 export async function init() {
   const JSDELIVR_BUNDLES = duckdb.getJsDelivrBundles();
@@ -7,7 +7,9 @@ export async function init() {
   const bundle = await duckdb.selectBundle(JSDELIVR_BUNDLES);
 
   const worker_url = URL.createObjectURL(
-    new Blob([`importScripts("${bundle.mainWorker}");`], { type: 'text/javascript' })
+    new Blob([`importScripts("${bundle.mainWorker}");`], {
+      type: "text/javascript",
+    })
   );
 
   // Instantiate the asynchronus version of DuckDB-wasm
@@ -23,9 +25,17 @@ export async function init() {
 }
 
 export const CHINOOK_TABLES = [
-  'albums', 'artists', 'customers', 'employees',
-  'genres', 'invoice_items', 'invoices', 'media_types', 'playlists',
-  'playlist_track', 'tracks'
+  "albums",
+  "artists",
+  "customers",
+  "employees",
+  "genres",
+  "invoice_items",
+  "invoices",
+  "media_types",
+  "playlists",
+  "playlist_track",
+  "tracks",
 ];
 
 async function registerChinook(db) {
@@ -33,7 +43,10 @@ async function registerChinook(db) {
 
   for (const table of CHINOOK_TABLES) {
     await db.registerFileURL(
-      `${table}.csv`, `${baseUrl}/${table}.csv`, duckdb.DuckDBDataProtocol.HTTP, false
+      `${table}.csv`,
+      `${baseUrl}/${table}.csv`,
+      duckdb.DuckDBDataProtocol.HTTP,
+      false
     );
   }
 
@@ -45,4 +58,3 @@ async function registerChinook(db) {
   }
   c.close();
 }
-
