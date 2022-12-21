@@ -8,25 +8,25 @@
 //!            PRQL
 //!
 //!    (parse) │ ▲
-//! pl_of_prql │ │ prql_of_pl
+//! prql_to_pl │ │ pl_to_prql
 //!            │ │
-//!            ▼ │      pl_of_json
+//!            ▼ │      json::from_pl
 //!                   ────────►
 //!           PL AST            PL JSON
 //!                   ◄────────
-//!            │        json_of_pl
+//!            │        json::to_pl
 //!            │
 //!  (resolve) │
-//!   rq_of_pl │
+//!   pl_to_rq │
 //!            │
 //!            │
-//!            ▼        rq_of_json
+//!            ▼        json::from_rq
 //!                   ────────►
 //!           RQ AST            RQ JSON
 //!                   ◄────────
-//!            │        json_of_rq
+//!            │        json::to_rq
 //!            │
-//!  sql_of_rq │
+//!  rq_to_sql │
 //!            ▼
 //!
 //!            SQL
@@ -36,7 +36,7 @@
 // is exactly the default warning level. Given we're not that performance
 // sensitive, it's fine to ignore this at the moment (and not worth having a
 // clippy config file for a single setting). We can consider adjusting it as a
-// yak-shaving execise in the future.
+// yak-shaving exercise in the future.
 #![allow(clippy::result_large_err)]
 
 pub mod ast;
@@ -64,9 +64,9 @@ static PRQL_VERSION: Lazy<Version> =
 /// Compile a PRQL string into a SQL string.
 ///
 /// This is a wrapper for:
-/// - [pl_of_prql] — Build PL AST from a PRQL string
-/// - [rq_of_pl] — Finds variable references, validates functions calls, determines frames and converts PL to RQ.
-/// - [sql_of_rq] — Convert RQ AST into an SQL string.
+/// - [prql_to_pl] — Build PL AST from a PRQL string
+/// - [pl_to_rq] — Finds variable references, validates functions calls, determines frames and converts PL to RQ.
+/// - [rq_to_sql] — Convert RQ AST into an SQL string.
 pub fn compile(prql: &str) -> Result<String, ErrorMessages> {
     parser::parse(prql)
         .and_then(semantic::resolve)
@@ -76,19 +76,19 @@ pub fn compile(prql: &str) -> Result<String, ErrorMessages> {
 }
 
 /// Parse PRQL into a PL AST
-pub fn pl_of_prql(prql: &str) -> Result<Vec<ast::pl::Stmt>, ErrorMessages> {
+pub fn prql_to_pl(prql: &str) -> Result<Vec<ast::pl::Stmt>, ErrorMessages> {
     parser::parse(prql)
         .map_err(error::downcast)
         .map_err(|e| e.composed("", prql, false))
 }
 
 /// Perform semantic analysis and convert PL to RQ.
-pub fn rq_of_pl(pl: Vec<ast::pl::Stmt>) -> Result<ast::rq::Query, ErrorMessages> {
+pub fn pl_to_rq(pl: Vec<ast::pl::Stmt>) -> Result<ast::rq::Query, ErrorMessages> {
     semantic::resolve(pl).map_err(error::downcast)
 }
 
 /// Generate SQL from RQ.
-pub fn sql_of_rq(
+pub fn rq_to_sql(
     rq: ast::rq::Query,
     options: Option<sql::Options>,
 ) -> Result<String, ErrorMessages> {
@@ -96,26 +96,31 @@ pub fn sql_of_rq(
 }
 
 /// Generate PRQL code from PL AST
-pub fn prql_of_pl(pl: Vec<ast::pl::Stmt>) -> Result<String, ErrorMessages> {
+pub fn pl_to_prql(pl: Vec<ast::pl::Stmt>) -> Result<String, ErrorMessages> {
     Ok(format!("{}", ast::pl::Statements(pl)))
 }
 
-/// JSON serialization
-pub fn json_of_pl(pl: Vec<ast::pl::Stmt>) -> Result<String, ErrorMessages> {
-    serde_json::to_string(&pl).map_err(|e| error::downcast(anyhow::anyhow!(e)))
-}
+/// JSON serialization and deserialization functions
+pub mod json {
+    use super::*;
 
-/// JSON deserialization
-pub fn pl_of_json(json: &str) -> Result<Vec<ast::pl::Stmt>, ErrorMessages> {
-    serde_json::from_str(json).map_err(|e| error::downcast(anyhow::anyhow!(e)))
-}
+    /// JSON serialization
+    pub fn from_pl(pl: Vec<ast::pl::Stmt>) -> Result<String, ErrorMessages> {
+        serde_json::to_string(&pl).map_err(|e| error::downcast(anyhow::anyhow!(e)))
+    }
 
-/// JSON deserialization
-pub fn rq_of_json(json: &str) -> Result<ast::rq::Query, ErrorMessages> {
-    serde_json::from_str(json).map_err(|e| error::downcast(anyhow::anyhow!(e)))
-}
+    /// JSON deserialization
+    pub fn to_pl(json: &str) -> Result<Vec<ast::pl::Stmt>, ErrorMessages> {
+        serde_json::from_str(json).map_err(|e| error::downcast(anyhow::anyhow!(e)))
+    }
 
-/// JSON serialization
-pub fn json_of_rq(rq: ast::rq::Query) -> Result<String, ErrorMessages> {
-    serde_json::to_string(&rq).map_err(|e| error::downcast(anyhow::anyhow!(e)))
+    /// JSON serialization
+    pub fn from_rq(rq: ast::rq::Query) -> Result<String, ErrorMessages> {
+        serde_json::to_string(&rq).map_err(|e| error::downcast(anyhow::anyhow!(e)))
+    }
+
+    /// JSON deserialization
+    pub fn to_rq(json: &str) -> Result<ast::rq::Query, ErrorMessages> {
+        serde_json::from_str(json).map_err(|e| error::downcast(anyhow::anyhow!(e)))
+    }
 }

@@ -5,44 +5,44 @@ use pyo3::{exceptions, prelude::*};
 #[pyfunction]
 pub fn compile(prql_query: &str, options: Option<CompileOptions>) -> PyResult<String> {
     Ok(prql_query)
-        .and_then(prql_compiler::pl_of_prql)
-        .and_then(prql_compiler::rq_of_pl)
-        .and_then(|rq| prql_compiler::sql_of_rq(rq, options.map(prql_compiler::sql::Options::from)))
+        .and_then(prql_compiler::prql_to_pl)
+        .and_then(prql_compiler::pl_to_rq)
+        .and_then(|rq| prql_compiler::rq_to_sql(rq, options.map(prql_compiler::sql::Options::from)))
         .map_err(|e| e.composed("", prql_query, false))
         .map_err(|e| (PyErr::new::<exceptions::PySyntaxError, _>(e.into_only().unwrap().reason)))
 }
 
 #[pyfunction]
-pub fn pl_of_prql(prql_query: &str) -> PyResult<String> {
+pub fn prql_to_pl(prql_query: &str) -> PyResult<String> {
     Ok(prql_query)
-        .and_then(prql_compiler::pl_of_prql)
-        .and_then(prql_compiler::json_of_pl)
+        .and_then(prql_compiler::prql_to_pl)
+        .and_then(prql_compiler::json::from_pl)
         .map_err(|err| (PyErr::new::<exceptions::PyValueError, _>(err.to_json())))
 }
 
 #[pyfunction]
-pub fn rq_of_pl(pl_json: &str) -> PyResult<String> {
+pub fn pl_to_rq(pl_json: &str) -> PyResult<String> {
     Ok(pl_json)
-        .and_then(prql_compiler::pl_of_json)
-        .and_then(prql_compiler::rq_of_pl)
-        .and_then(prql_compiler::json_of_rq)
+        .and_then(prql_compiler::json::to_pl)
+        .and_then(prql_compiler::pl_to_rq)
+        .and_then(prql_compiler::json::from_rq)
         .map_err(|err| (PyErr::new::<exceptions::PyValueError, _>(err.to_json())))
 }
 
 #[pyfunction]
-pub fn sql_of_rq(rq_json: &str) -> PyResult<String> {
+pub fn rq_to_sql(rq_json: &str) -> PyResult<String> {
     Ok(rq_json)
-        .and_then(prql_compiler::rq_of_json)
-        .and_then(|x| prql_compiler::sql_of_rq(x, None))
+        .and_then(prql_compiler::json::to_rq)
+        .and_then(|x| prql_compiler::rq_to_sql(x, None))
         .map_err(|err| (PyErr::new::<exceptions::PyValueError, _>(err.to_json())))
 }
 
 #[pymodule]
 fn prql_python(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(compile, m)?)?;
-    m.add_function(wrap_pyfunction!(pl_of_prql, m)?)?;
-    m.add_function(wrap_pyfunction!(rq_of_pl, m)?)?;
-    m.add_function(wrap_pyfunction!(sql_of_rq, m)?)?;
+    m.add_function(wrap_pyfunction!(prql_to_pl, m)?)?;
+    m.add_function(wrap_pyfunction!(pl_to_rq, m)?)?;
+    m.add_function(wrap_pyfunction!(rq_to_sql, m)?)?;
     // From https://github.com/PyO3/maturin/issues/100
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
 
