@@ -104,7 +104,7 @@ pub fn pl_to_prql(pl: Vec<ast::pl::Stmt>) -> Result<String, ErrorMessages> {
 pub mod json {
     use super::*;
 
-    /// JSON serialization    
+    /// JSON serialization
     pub fn from_pl(pl: Vec<ast::pl::Stmt>) -> Result<String, ErrorMessages> {
         serde_json::to_string(&pl).map_err(|e| error::downcast(anyhow::anyhow!(e)))
     }
