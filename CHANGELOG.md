@@ -1,5 +1,39 @@
 # PRQL Changelog
 
+## 0.3.2 — [unreleased]
+
+**Features**:
+
+- S-strings can [produce a full table.](https://prql-lang.org/book/language-features/s-strings.html#prql-3)
+- _Experimental:_ `switch` statement sets a variable to a value based on one of several expressions.
+  No page in the docs yet, but
+  [see this discussion](https://github.com/prql/prql/issues/1286#issue-1501645497)
+  for usage and the current syntax.
+
+   ```
+derive var = switch [
+score <= 10 -> "low",
+score <= 30 -> "medium",
+score <= 70 -> "high",
+true -> "very high",
+]
+```
+- _Experimental:_ `union` statement.
+No page in the docs yet, but [see this PR](https://github.com/prql/prql/pull/894#issuecomment-1353548853) for usage.
+- Any other `feat:` commits?
+
+**Fixes**:
+
+**Documentation**:
+
+- [Updated description](https://prql-lang.org/book/transforms/select.html) of how table alias is no longer available after a select.
+
+**Web**:
+
+**Integrations**:
+
+**Internal changes**:
+
 ## 0.3.1 - 2022-12-03
 
 0.3.1 brings a couple of small improvements and fixes.
