@@ -1,5 +1,47 @@
 # PRQL Changelog
 
+## 0.3.2 — [unreleased]
+
+**Features**:
+
+- S-strings can [produce a full table.](https://prql-lang.org/book/language-features/s-strings.html#prql-3)
+- _Experimental:_ `switch` statement sets a variable to a value based on one of several expressions.
+  No page in the docs yet, but
+  [see this discussion](https://github.com/prql/prql/issues/1286#issue-1501645497)
+  for usage and the current syntax. _Note: this syntax may change._
+
+  ```
+  derive var = switch [
+  score <= 10 -> "low",
+  score <= 30 -> "medium",
+  score <= 70 -> "high",
+  true -> "very high",
+  ]
+  ```
+
+- _Experimental:_ `union` statement.
+  No page in the docs yet, but [see this PR](https://github.com/prql/prql/pull/894#issuecomment-1353548853) for usage.
+
+  ```
+  from employees
+  concat managers
+  union other_employees
+  ```
+
+- Any other `feat:` commits?
+
+**Fixes**:
+
+**Documentation**:
+
+- [Updated description](https://prql-lang.org/book/transforms/select.html) of how table alias is no longer available after a select.
+
+**Web**:
+
+**Integrations**:
+
+**Internal changes**:
+
 ## 0.3.1 - 2022-12-03
 
 0.3.1 brings a couple of small improvements and fixes.
@@ -7,9 +49,11 @@
 **Features**:
 
 - Support for using s-strings for `from` (#1197, @aljazerzen)
+
   ```
   from s"SELECT * FROM employees WHERE foo > 5"
   ```
+
 - Helpful error message when referencing a table in an s-string (#1203, @aljazerzen)
 
 **Fixes**:
@@ -45,16 +89,14 @@ We've had to make some modest breaking changes for 0.3:
 - _Pipelines must start with `from`_. For example, a pipeline with only `derive foo = 5`, with no `from` transform, is no longer valid. Depending on demand
   for this feature, it would be possible to add this back.
 
-- _Shared column names now require `==` in a join_. For example:
+- _Shared column names now require `==` in a join_. The existing approach is ambiguous to the compiler —
+  `id` in the following example could be a boolean column.
 
   ```diff
   from employees
   -join positions [id]
   +join positions [==id]
   ```
-
-  The existing approach is ambiguous to the compiler — `id` could be a boolean
-  column.
 
 - _Table references containing periods must be surrounded by backticks_. For example, when referencing a schema name:
 
