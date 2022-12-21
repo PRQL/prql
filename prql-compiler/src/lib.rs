@@ -10,21 +10,21 @@
 //!    (parse) │ ▲
 //! prql_to_pl │ │ pl_to_prql
 //!            │ │
-//!            ▼ │      json::to_pl
+//!            ▼ │      json::from_pl
 //!                   ────────►
 //!           PL AST            PL JSON
 //!                   ◄────────
-//!            │        json::from_pl
+//!            │        json::to_pl
 //!            │
 //!  (resolve) │
 //!   pl_to_rq │
 //!            │
 //!            │
-//!            ▼        json::to_rq
+//!            ▼        json::from_rq
 //!                   ────────►
 //!           RQ AST            RQ JSON
 //!                   ◄────────
-//!            │        json::from_rq
+//!            │        json::to_rq
 //!            │
 //!  rq_to_sql │
 //!            ▼
