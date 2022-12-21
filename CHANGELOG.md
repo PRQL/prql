@@ -8,7 +8,7 @@
 - _Experimental:_ `switch` statement sets a variable to a value based on one of several expressions.
   No page in the docs yet, but
   [see this discussion](https://github.com/prql/prql/issues/1286#issue-1501645497)
-  for usage and the current syntax.
+  for usage and the current syntax. _Note: this syntax may change._
 
   ```
   derive var = switch [
@@ -19,9 +19,15 @@
   ]
   ```
 
-```
 - _Experimental:_ `union` statement.
 No page in the docs yet, but [see this PR](https://github.com/prql/prql/pull/894#issuecomment-1353548853) for usage.
+
+   ```
+   from employees
+   concat managers
+   union other_employees
+   ```
+
 - Any other `feat:` commits?
 
 **Fixes**:
@@ -43,11 +49,10 @@ No page in the docs yet, but [see this PR](https://github.com/prql/prql/pull/894
 **Features**:
 
 - Support for using s-strings for `from` (#1197, @aljazerzen)
-```
 
-from s"SELECT \* FROM employees WHERE foo > 5"
-
-````
+   ```
+   from s"SELECT \* FROM employees WHERE foo > 5"
+   ````
 - Helpful error message when referencing a table in an s-string (#1203, @aljazerzen)
 
 **Fixes**:
