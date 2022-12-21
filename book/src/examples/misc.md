@@ -9,7 +9,7 @@ some prospect list in a MariaDB of a CRM system.
 ```prql
 # TODO: this table should have a column `part` with values 1..5,
 # but such data declaration is not yet supported, see #286
-table parts = (
+let parts = (
     from seq_1_to_5
 )
 

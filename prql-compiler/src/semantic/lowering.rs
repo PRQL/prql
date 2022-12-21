@@ -37,7 +37,7 @@ pub fn lower_ast_to_ir(statements: Vec<pl::Stmt>, context: Context) -> Result<Qu
                 let relation = l.lower_relation(*expr)?;
                 main_pipeline = Some(relation);
             }
-            pl::StmtKind::FuncDef(_) | pl::StmtKind::TableDef(_) => {}
+            pl::StmtKind::FuncDef(_) | pl::StmtKind::VarDef(_) => {}
         }
     }
 
