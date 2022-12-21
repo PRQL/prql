@@ -39,10 +39,16 @@ WHERE
   has_dog
 ```
 
-## Internal jargon
+## Terminology
 
-Frame = Descriptor of a table. Contains list of columns (with names and types)
-and cardinality of rows. Does not contain data.
+Relation = Standard definition of a relation in context of databases:
 
-Table = Frame + data within that frame. Relation table-frame is analogous to
-object-class in Java.
+- An ordered set of tuples of form `(d_0, d_1, d_2, ...)`.
+- Set of all `d_x` is called an attribute or a column. It has a name and a type
+  domain `D_x`.
+
+Frame = descriptor of a relation. Contains list of columns (with names and
+types). Does not contain data.
+
+Table = persistently stored relation. Some uses of this term actually mean to
+say "relation".
