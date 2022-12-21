@@ -4,8 +4,8 @@ expression: Statements(parse(&prql).unwrap())
 input_file: book/tests/prql/transforms/select-4.prql
 ---
 from e = employees
-select e.first_name
-derive fn = first_name
+select fname = e.first_name
+filter fname == "Fred"
 
 
 

@@ -3,8 +3,15 @@ source: book/tests/snapshot.rs
 expression: sql
 input_file: book/tests/prql/transforms/select-4.prql
 ---
+WITH table_1 AS (
+  SELECT
+    first_name AS fname
+  FROM
+    employees AS e
+)
 SELECT
-  first_name,
-  first_name AS fn
+  fname
 FROM
-  employees AS e
+  table_1
+WHERE
+  fname = 'Fred'
