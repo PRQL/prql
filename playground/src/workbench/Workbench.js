@@ -71,7 +71,7 @@ class Workbench extends React.Component {
       const errors = JSON.parse(e.message).inner;
       this.setState({ prqlError: errors[0].display });
 
-      const monacoErrors = errors.map(error => ({
+      const monacoErrors = errors.map((error) => ({
         severity: "error",
         message: error.reason,
         startLineNumber: error.location?.start[0] + 1,
@@ -79,7 +79,11 @@ class Workbench extends React.Component {
         endLineNumber: error.location?.end[0] + 1,
         endColumn: error.location?.end[1] + 1,
       }));
-      this.monaco.editor.setModelMarkers(this.editor.getModel(), "prql", monacoErrors);
+      this.monaco.editor.setModelMarkers(
+        this.editor.getModel(),
+        "prql",
+        monacoErrors
+      );
       return;
     }
 

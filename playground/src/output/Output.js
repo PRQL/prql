@@ -57,25 +57,25 @@ class Output extends React.Component {
         return <th key={index}>{f.name}</th>;
       });
 
-      const converters = arrow.schema.fields.map(f => {
+      const converters = arrow.schema.fields.map((f) => {
         const typ = f.type.toString();
-        if (typ.startsWith('Timestamp')) {
+        if (typ.startsWith("Timestamp")) {
           // TODO: handle timezone (which Date does not support)
 
           if (typ.endsWith("<SECOND>")) {
-            return x => new Date(x * 1000).toISOString()
+            return (x) => new Date(x * 1000).toISOString();
           }
           if (typ.endsWith("<MILLISECOND>")) {
-            return x => new Date(x).toISOString()
+            return (x) => new Date(x).toISOString();
           }
           if (typ.endsWith("<MICROSECOND>")) {
-            return x => new Date(x / 1000).toISOString()
+            return (x) => new Date(x / 1000).toISOString();
           }
           if (typ.endsWith("<NANOSECOND>")) {
-            return x => new Date(x / 1000000).toISOString()
+            return (x) => new Date(x / 1000000).toISOString();
           }
         }
-        return x => x
+        return (x) => x;
       });
 
       const data = arrow.toArray().map((x) => [...x]);
