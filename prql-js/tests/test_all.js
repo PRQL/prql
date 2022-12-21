@@ -40,14 +40,14 @@ describe("prql-js", () => {
     });
   });
 
-  describe("pl_of_prql", () => {
+  describe("prql_to_pl", () => {
     it("should return valid json from valid prql", () => {
-      const json = JSON.parse(prql.pl_of_prql(employee_prql));
+      const json = JSON.parse(prql.prql_to_pl(employee_prql));
       assert.equal(json.length, 1);
     });
 
     it("should throw an error on invalid prql", () => {
-      expect(() => prql.pl_of_prql("Answer: T-H-A-T!")).to.throw("Error");
+      expect(() => prql.prql_to_pl("Answer: T-H-A-T!")).to.throw("Error");
     });
   });
 });

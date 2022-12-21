@@ -15,11 +15,11 @@ Currently these functions are exposed
 ```javascript
 function compile(prql_query: string, options?: CompileOptions): string;
 
-function pl_of_prql(prql_query: string): string;
+function prql_to_pl(prql_query: string): string;
 
-function rq_of_pl(pl_json: string): string;
+function pl_to_rq(pl_json: string): string;
 
-function sql_of_rq(rq_json: string): string;
+function rq_to_sql(rq_json: string): string;
 ```
 
 ### From NodeJS
