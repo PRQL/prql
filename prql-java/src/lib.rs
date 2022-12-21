@@ -32,8 +32,8 @@ pub extern "system" fn Java_org_prql_prql4j_PrqlCompiler_toJson(
         .get_string(query)
         .expect("Couldn't get java string!")
         .into();
-    let rs_json_str: String =
-        { prql_to_pl(&prql_query).and_then(json::from_pl) }.expect("Couldn't get prql json of query!");
+    let rs_json_str: String = { prql_to_pl(&prql_query).and_then(json::from_pl) }
+        .expect("Couldn't get prql json of query!");
     env.new_string(rs_json_str)
         .expect("Couldn't create java string!")
         .into_raw()
