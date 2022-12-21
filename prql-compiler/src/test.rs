@@ -36,8 +36,8 @@ fn test_stdlib() {
 
 #[test]
 fn json_of_test() {
-    let json = pl_of_prql("from employees | take 10")
-        .and_then(json_of_pl)
+    let json = prql_to_pl("from employees | take 10")
+        .and_then(json::from_pl)
         .unwrap();
     // Since the AST is so in flux right now just test that the brackets are present
     assert_eq!(json.chars().next().unwrap(), '[');
@@ -1140,11 +1140,11 @@ select [mng_name, managers.gender, salary_avg, salary_sd]"#;
         .and_then(|rq| sql::compile(rq, None))
         .unwrap();
 
-    let sql_from_json = pl_of_prql(original_prql)
-        .and_then(json_of_pl)
-        .and_then(|json| pl_of_json(&json))
-        .and_then(rq_of_pl)
-        .and_then(|rq| sql_of_rq(rq, None))
+    let sql_from_json = prql_to_pl(original_prql)
+        .and_then(json::from_pl)
+        .and_then(|json| json::to_pl(&json))
+        .and_then(pl_to_rq)
+        .and_then(|rq| rq_to_sql(rq, None))
         .unwrap();
 
     assert_eq!(sql_from_prql, sql_from_json);

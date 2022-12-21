@@ -142,6 +142,6 @@ fn run_display_reference_prql() {
             return;
         }
 
-        assert_display_snapshot!(pl_of_prql(&prql).and_then(prql_of_pl).unwrap());
+        assert_display_snapshot!(prql_to_pl(&prql).and_then(pl_to_prql).unwrap());
     });
 }

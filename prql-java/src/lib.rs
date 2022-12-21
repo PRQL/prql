@@ -1,7 +1,7 @@
 use jni::objects::{JClass, JString};
 use jni::sys::jstring;
 use jni::JNIEnv;
-use prql_compiler::{json_of_pl, pl_of_prql};
+use prql_compiler::{json, prql_to_pl};
 
 #[no_mangle]
 #[allow(non_snake_case)]
@@ -33,7 +33,7 @@ pub extern "system" fn Java_org_prql_prql4j_PrqlCompiler_toJson(
         .expect("Couldn't get java string!")
         .into();
     let rs_json_str: String =
-        { pl_of_prql(&prql_query).and_then(json_of_pl) }.expect("Couldn't get prql json of query!");
+        { prql_to_pl(&prql_query).and_then(json::from_pl) }.expect("Couldn't get prql json of query!");
     env.new_string(rs_json_str)
         .expect("Couldn't create java string!")
         .into_raw()

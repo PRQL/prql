@@ -12,7 +12,7 @@ use crate::error::{downcast, Span};
 use crate::parser;
 use crate::semantic::{self, reporting::*};
 use crate::sql;
-use crate::{ast::pl::Frame, prql_of_pl};
+use crate::{ast::pl::Frame, pl_to_prql};
 
 #[derive(Parser)]
 #[clap(name = env!("CARGO_PKG_NAME"), about, version)]
@@ -76,7 +76,7 @@ impl Cli {
                 serde_yaml::to_string(&ast)?.into_bytes()
             }
             Cli::Format(_) => parser::parse(source)
-                .and_then(|x| prql_of_pl(x).map_err(|x| anyhow!(x)))?
+                .and_then(|x| pl_to_prql(x).map_err(|x| anyhow!(x)))?
                 .as_bytes()
                 .to_vec(),
             Cli::Debug(_) => {
