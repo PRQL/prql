@@ -626,10 +626,9 @@ mod test {
     use crate::ast::pl::{Expr, Ty};
     use crate::semantic::resolve_only;
     use crate::utils::IntoOnly;
-    use crate::{compile, parser::parse};
 
     fn parse_and_resolve(query: &str) -> Result<Expr> {
-        let (stmts, _) = resolve_only(parse(query)?, None)?;
+        let (stmts, _) = resolve_only(crate::parser::parse(query)?, None)?;
 
         Ok(*stmts.into_only()?.kind.into_pipeline()?)
     }
@@ -646,7 +645,7 @@ mod test {
 
     #[test]
     fn test_func_call_resolve() {
-        assert_display_snapshot!(compile(r#"
+        assert_display_snapshot!(crate::test::compile(r#"
         from employees
         aggregate [
           count non_null:salary,
