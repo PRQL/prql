@@ -90,13 +90,13 @@ We've had to make some modest breaking changes for 0.3:
   for this feature, it would be possible to add this back.
 
 - _Shared column names now require `==` in a join_. The existing approach is ambiguous to the compiler —
-`id` in the following example could be a boolean column.
+  `id` in the following example could be a boolean column.
 
-   ```diff
-   from employees
-   -join positions [id]
-   +join positions [==id]
-   ```
+  ```diff
+  from employees
+  -join positions [id]
+  +join positions [==id]
+  ```
 
 - _Table references containing periods must be surrounded by backticks_. For example, when referencing a schema name:
 
