@@ -51,7 +51,7 @@
 - Support for using s-strings for `from` (#1197, @aljazerzen)
 
   ```
-  from s"SELECT \* FROM employees WHERE foo > 5"
+  from s"SELECT * FROM employees WHERE foo > 5"
   ```
 
 - Helpful error message when referencing a table in an s-string (#1203, @aljazerzen)
@@ -89,16 +89,14 @@ We've had to make some modest breaking changes for 0.3:
 - _Pipelines must start with `from`_. For example, a pipeline with only `derive foo = 5`, with no `from` transform, is no longer valid. Depending on demand
   for this feature, it would be possible to add this back.
 
-- _Shared column names now require `==` in a join_. For example:
+- _Shared column names now require `==` in a join_. The existing approach is ambiguous to the compiler —
+`id` in the following example could be a boolean column.
 
-```diff
-from employees
--join positions [id]
-+join positions [==id]
-```
-
-The existing approach is ambiguous to the compiler — `id` could be a boolean
-column.
+   ```diff
+   from employees
+   -join positions [id]
+   +join positions [==id]
+   ```
 
 - _Table references containing periods must be surrounded by backticks_. For example, when referencing a schema name:
 
