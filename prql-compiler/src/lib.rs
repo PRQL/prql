@@ -31,6 +31,7 @@
 //!
 //!            SQL
 //! ```
+
 // Our error type is 128 bytes, because it contains 5 strings & an Enum, which
 // is exactly the default warning level. Given we're not that performance
 // sensitive, it's fine to ignore this at the moment (and not worth having a
@@ -39,7 +40,7 @@
 #![allow(clippy::result_large_err)]
 
 pub mod ast;
-#[cfg(feature = "cli")]
+#[cfg(all(feature = "cli", not(target_family = "wasm")))]
 mod cli;
 mod error;
 mod parser;
@@ -49,7 +50,7 @@ pub mod sql;
 mod test;
 mod utils;
 
-#[cfg(feature = "cli")]
+#[cfg(all(feature = "cli", not(target_family = "wasm")))]
 pub use cli::Cli;
 pub use error::{ErrorMessage, ErrorMessages, SourceLocation};
 pub use utils::IntoOnly;
