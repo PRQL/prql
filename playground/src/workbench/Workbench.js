@@ -68,24 +68,18 @@ class Workbench extends React.Component {
       this.setState({ prqlError: null });
       this.monaco.editor.setModelMarkers(this.editor.getModel(), "prql", []);
     } catch (e) {
-      const error = JSON.parse(e.message).inner[0];
-      this.setState({ prqlError: error.display });
+      const errors = JSON.parse(e.message).inner;
+      this.setState({ prqlError: errors[0].display });
 
-      const errors = [
-        {
-          severity: "error",
-          message: error.reason,
-          startLineNumber: error.location?.start_line + 1,
-          startColumn: error.location?.start_column + 1,
-          endLineNumber: error.location?.end_line + 1,
-          endColumn: error.location?.end_column + 1,
-        },
-      ];
-      this.monaco.editor.setModelMarkers(
-        this.editor.getModel(),
-        "prql",
-        errors
-      );
+      const monacoErrors = errors.map(error => ({
+        severity: "error",
+        message: error.reason,
+        startLineNumber: error.location?.start[0] + 1,
+        startColumn: error.location?.start[1] + 1,
+        endLineNumber: error.location?.end[0] + 1,
+        endColumn: error.location?.end[1] + 1,
+      }));
+      this.monaco.editor.setModelMarkers(this.editor.getModel(), "prql", monacoErrors);
       return;
     }
 

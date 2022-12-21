@@ -24,8 +24,8 @@ pub struct Error {
 
 /// Location within the source file.
 /// Tuples contain:
-/// - line number (1-based),
-/// - column number within that line (1-based),
+/// - line number (0-based),
+/// - column number within that line (0-based),
 #[derive(Debug, Clone, Serialize)]
 pub struct SourceLocation {
     pub start: (usize, usize),
