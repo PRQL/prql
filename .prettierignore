@@ -1,9 +1,10 @@
 *.min.*
 /book/theme/highlight.js
+
 # TODO: move these into content out of layouts
 /website/themes/prql-theme/layouts/partials/codes/
 
-# Ideally prettier would allow blanket gitignores, but doesn't it seem to be a feature.
+# Ideally prettier would allow blanket gitignores, https://github.com/prettier/prettier/issues/8048
 
 **/node_modules
 **/.git
@@ -12,3 +13,5 @@ target/
 **/build
 **/dist
 /book/book
+/website/public
+
