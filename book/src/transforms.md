@@ -1,8 +1,8 @@
 # Transforms
 
-PRQL queries are a pipeline of transformations ("transforms"), where each transform takes
-the previous result and adjusts it in some way, before passing it onto to the
-next transform.
+PRQL queries are a pipeline of transformations ("transforms"), where each
+transform takes the previous result and adjusts it in some way, before passing
+it onto to the next transform.
 
 Because PRQL focuses on modularity, we have far fewer transforms than SQL, each
 one fulfilling a specific purpose. That's often referred to as "orthogonality".

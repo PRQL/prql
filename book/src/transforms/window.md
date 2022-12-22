@@ -68,7 +68,9 @@ group [order_month] (
 
 ## Windowing by default
 
-If you use window functions without `window` transform, they will be applied to the whole table. Unlike in SQL, they will remain window functions and will not trigger aggregation.
+If you use window functions without `window` transform, they will be applied to
+the whole table. Unlike in SQL, they will remain window functions and will not
+trigger aggregation.
 
 ```prql
 from employees

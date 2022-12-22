@@ -1,6 +1,7 @@
 # Employees
 
-These are homework tasks on [employees database](https://github.com/vrajmohan/pgsql-sample-data.git).
+These are homework tasks on
+[employees database](https://github.com/vrajmohan/pgsql-sample-data.git).
 
 Clone and init the database (requires a local PostgreSQL instance):
 
@@ -20,7 +21,8 @@ Execute a PRQL query:
 My solution:
 
 - for each employee, find their average salary,
-- join employees with their departments and titles (duplicating employees for each of their titles and departments)
+- join employees with their departments and titles (duplicating employees for
+  each of their titles and departments)
 - group by department and title, aggregating average salary
 - join with department to get department name
 

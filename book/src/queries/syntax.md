@@ -38,10 +38,11 @@ A summary of PRQL syntax
 Pipes — the connection between [transforms](../transforms.md) that make up a
 pipeline — can be either line breaks or a pipe character (`|`).
 
-In almost all situations, line-breaks pipe the result of a line's transform into the transform on
-the following line. For example, the `filter` transform operates on the result
-of `from employees` (which is just the `employees` table), and the `select` transform operates on
-the result of the `filter` transform.
+In almost all situations, line-breaks pipe the result of a line's transform into
+the transform on the following line. For example, the `filter` transform
+operates on the result of `from employees` (which is just the `employees`
+table), and the `select` transform operates on the result of the `filter`
+transform.
 
 ```prql
 from employees

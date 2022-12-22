@@ -125,9 +125,8 @@ npm test
 
 ## Notes
 
-- This uses
-  [`wasm-pack`](https://rustwasm.github.io/docs/wasm-pack/)
-  to generate bindings.
+- This uses [`wasm-pack`](https://rustwasm.github.io/docs/wasm-pack/) to
+  generate bindings.
 - We've added an `npm` layer on top of the usual approach of just using
   `wasm-pack`, so we can distribute a single package with targets of `node`,
   `bundler` and `no-modules` — somewhat inverting the approach recommended by

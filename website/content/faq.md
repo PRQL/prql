@@ -2,7 +2,9 @@
 title: "FAQ"
 ---
 
-Here are some of the most common questions we hear. Have something else you'd like to ask? Pop by our [Discord](https://discord.com/invite/eQcfaCmsNc) and ask away!
+Here are some of the most common questions we hear. Have something else you'd
+like to ask? Pop by our [Discord](https://discord.com/invite/eQcfaCmsNc) and ask
+away!
 
 {{< faq "Cool story Hansel, but what can I actually do with PRQL now?" >}}
 
@@ -11,7 +13,8 @@ integrations:
 
 - **[dbt-prql](https://github.com/prql/dbt-prql)** allows writing PRQL in
   [dbt](https://www.getdbt.com/) models. It very simple to use — install
-  `dbt-prql` with pip, and then any text between a `{% prql %}` & `{% endprql %}` tag is compiled from PRQL.
+  `dbt-prql` with pip, and then any text between a `{% prql %}` &
+  `{% endprql %}` tag is compiled from PRQL.
 - **[Jupyter](https://pyprql.readthedocs.io/en/latest/magic_readme.html)**
   allows writing PRQL in a Jupyter notebook or IPython repl, with a `%%prql`
   magic. As well as connecting to existing DBs, our integration with DuckDB
@@ -32,8 +35,8 @@ Yes, probably. We're standing on the shoulders of giants:
   - There's also [dbplyr](https://dbplyr.tidyverse.org/) which compiles a subset
     of dplyr to SQL, though requires an R runtime.
 - [Kusto](https://docs.microsoft.com/azure/data-explorer/kusto/query/samples?pivots=azuredataexplorer)
-  is also a beautiful pipelined language, similar to PRQL. But it can only
-  use Kusto-compatible DBs.
+  is also a beautiful pipelined language, similar to PRQL. But it can only use
+  Kusto-compatible DBs.
 - [Against SQL](https://www.scattered-thoughts.net/writing/against-sql/) gives a
   fairly complete description of SQL's weaknesses, both for analytical and
   transactional queries. [**@jamii**](https://github.com/jamii) consistently
@@ -45,9 +48,9 @@ Yes, probably. We're standing on the shoulders of giants:
 
 And there are many projects similar to PRQL:
 
-- [Ecto](https://hexdocs.pm/ecto/Ecto.html#module-query) is a sophisticated
-  ORM library in Elixir which has pipelined queries as well as more traditional
-  ORM features.
+- [Ecto](https://hexdocs.pm/ecto/Ecto.html#module-query) is a sophisticated ORM
+  library in Elixir which has pipelined queries as well as more traditional ORM
+  features.
 - [Morel](https://www.thestrangeloop.com/2021/morel-a-functional-query-language.html)
   is a functional language for data, also with a pipeline concept. It doesn't
   compile to SQL but states that it can access external data.
@@ -56,14 +59,14 @@ And there are many projects similar to PRQL:
   combines a declarative syntax for querying with a modelling layer.
 - [EdgeDB](https://www.edgedb.com/) is an alternative to SQL focused on
   traditional transactional workloads (as opposed to PRQL's focus on analytical
-  workloads). Their post [We can do better than
-  SQL](https://www.edgedb.com/blog/we-can-do-better-than-sql) contains many of
-  the criticisms of SQL that inspired PRQL.
+  workloads). Their post
+  [We can do better than SQL](https://www.edgedb.com/blog/we-can-do-better-than-sql)
+  contains many of the criticisms of SQL that inspired PRQL.
 - [FunSQL.jl](https://github.com/MechanicalRabbit/FunSQL.jl) is a library in
   Julia which compiles a nice query syntax to SQL. It requires a Julia runtime.
-- [LINQ](https://docs.microsoft.com/dotnet/csharp/linq/write-linq-queries),
-  is a pipelined language for the `.NET` ecosystem which can (mostly) compile to
-  SQL. It was one of the first languages to take this approach.
+- [LINQ](https://docs.microsoft.com/dotnet/csharp/linq/write-linq-queries), is a
+  pipelined language for the `.NET` ecosystem which can (mostly) compile to SQL.
+  It was one of the first languages to take this approach.
 - [Sift](https://github.com/RCHowell/Sift) is an experimental language which
   heavily uses pipes and relational algebra.
 
@@ -78,8 +81,8 @@ in usage and importance in the past decade. There are lots
 [of](https://twitter.com/seldo/status/1513599841355526145)
 [reasonable](https://benn.substack.com/p/has-sql-gone-too-far?s=r#footnote-anchor-2)
 [critiques](https://erikbern.com/2018/08/30/i-dont-want-to-learn-your-garbage-query-language.html)
-on these attempts. So a reasonable question is "Why are y'all building something that
-many others have failed at?". Some thoughts:
+on these attempts. So a reasonable question is "Why are y'all building something
+that many others have failed at?". Some thoughts:
 
 - PRQL is open. It's not designed for a specific database. PRQL will always be
   fully open-source. There will never be a commercial product. We'll never have
@@ -94,8 +97,8 @@ many others have failed at?". Some thoughts:
 - PRQL is simple. There's often a tradeoff between power and accessibility
   — e.g. rust is powerful vs. Excel is accessible — but there are also instances
   where we can expand the frontier. PRQL's orthogonality is an example of
-  synthesizing this tradeoff — have a single `filter` rather than `WHERE` & `HAVING`
-  & `QUALIFY` brings both more power _and_ more accessibility.
+  synthesizing this tradeoff — have a single `filter` rather than `WHERE` &
+  `HAVING` & `QUALIFY` brings both more power _and_ more accessibility.
 
 In the same way that "SQL was invented in the 1970s and therefore must be bad"
 is questionable logic, "`n` languages have tried and failed so therefore SQL
@@ -109,10 +112,10 @@ It's bad because — in some cases — it's bad.
 PRQL compiles to SQL, so it's compatible with any database that accepts SQL.
 
 A query's dialect can be explicitly specified, allowing for dialect-specific SQL
-to be generated. See the [Dialect
-docs](https://prql-lang.org/book/queries/dialect_and_version.html) for more
-info; note that there is currently very limited implementation of this, and most
-dialects' implementation are identical to a generic implementation.
+to be generated. See the
+[Dialect docs](https://prql-lang.org/book/queries/dialect_and_version.html) for
+more info; note that there is currently very limited implementation of this, and
+most dialects' implementation are identical to a generic implementation.
 
 {{</ faq >}}
 
@@ -132,7 +135,8 @@ SQL uses `SELECT` for all of these:
   SELECT SUM(x) FROM y
   ```
 
-- Reducing a column into groups, with a reduction function and a `GROUP BY` function:
+- Reducing a column into groups, with a reduction function and a `GROUP BY`
+  function:
 
   ```sql
   SELECT SUM(x) FROM y GROUP BY z
@@ -140,12 +144,13 @@ SQL uses `SELECT` for all of these:
 
 These are not orthogonal — `SELECT` does lots of different things depending on
 the context. It's difficult for both people and machines to evaluate the shape
-of the output. It's easy to mix meanings and raise an error (e.g. `SELECT x, MIN(y) FROM z`).
+of the output. It's easy to mix meanings and raise an error (e.g.
+`SELECT x, MIN(y) FROM z`).
 
 PRQL clearly delineates two operations with two transforms:
 
-- `select` — picking & calculating columns.
-  These calculations always produce exactly one output row for every input row.
+- `select` — picking & calculating columns. These calculations always produce
+  exactly one output row for every input row.
 
   ```prql
   from employees
@@ -171,16 +176,17 @@ group department (
 )
 ```
 
-While you should be skeptical of new claims from new entrants [Hadley
-Wickham](https://twitter.com/hadleywickham), the developer of
+While you should be skeptical of new claims from new entrants
+[Hadley Wickham](https://twitter.com/hadleywickham), the developer of
 [Tidyverse](https://www.tidyverse.org/)
 [commented](https://news.ycombinator.com/item?id=30067406) in a discussion on
 PRQL:
 
 <!-- TODO: the `>` doesn't seem to format on the website  -->
 
-> "FWIW the separate `group_by()` is one of my greatest design regrets with dplyr
-> — I wish I had made `by` a parameter of `summarise()`, `mutate()`, `filter()`
-> etc."
+> "FWIW the separate `group_by()` is one of my greatest design regrets with
+> dplyr — I wish I had made `by` a parameter of `summarise()`, `mutate()`,
+> `filter()` etc."
 
-For more detail, check out the docs in the [PRQL Book](https://prql-lang.org/book).
+For more detail, check out the docs in the
+[PRQL Book](https://prql-lang.org/book).
