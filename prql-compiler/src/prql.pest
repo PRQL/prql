@@ -41,9 +41,9 @@ keyword = _{ "prql" | "table" | "func" }
 pipe = _{ NEWLINE+ | "|" }
 pipeline = { WHITESPACE* ~ expr_call ~ (pipe ~ expr_call)* }
 
-// Whitespace is required to prevent matching s"string". And we forbid
-// `operator` so `a - b` doesn't parse as `a` & `-b`.
-func_call = ${ ident ~ WHITESPACE+ ~ (!operator ~ (named_arg | alias | expr) ~ WHITESPACE*)+ }
+// Whitespace is required to prevent matching s"string". Forbid `operator_binary` so `a
+// - b` can't parse as `a` & `-b` (but allow `select ![a]`)
+func_call = ${ ident ~ WHITESPACE+ ~ (!operator_binary ~ (named_arg | alias | expr) ~ WHITESPACE*)+ }
 
 named_arg   = !{ ident_part ~ ":" ~ !":" ~ expr }
 // alias needs to be distinct from assign, so that in `join s=salaries [==id]`,
@@ -61,7 +61,7 @@ expr_add = { expr_mul ~ (operator_add ~ expr_add)? }
 expr_mul = { term ~ (operator_mul ~ expr_mul)? }
 
 term = _{ ( switch | s_string | f_string | range | literal | ident | nested_pipeline | expr_unary | list | jinja ) }
-expr_unary = { ( operator_unary ~ ( nested_pipeline | ident )) }
+expr_unary = { ( operator_unary ~ ( nested_pipeline | ident | list )) }
 literal = _{ value_and_unit | number | boolean | null | string | timestamp | date | time }
 // TODO: is there some abstraction of `assign | expr_call` that would work here?
 list = { "[" ~ (NEWLINE* ~ (assign |  expr_call) ~ ("," ~ NEWLINE* ~ (assign | expr_call) )* ~ ","?)? ~ NEWLINE* ~ "]" }
@@ -102,7 +102,8 @@ range = ${ range_edge ~ ".." ~ range_edge }
 // the whole span, not just the part before `..`.
 range_edge = ${ literal? }
 
-operator = _{ operator_unary | operator_mul | operator_add | operator_compare | operator_logical | operator_coalesce }
+operator = _{ operator_unary | operator_binary }
+operator_binary = _{ operator_mul | operator_add | operator_compare | operator_logical | operator_coalesce }
 operator_unary = ${ "-" | "+" | "!" | "==" }
 operator_mul = ${ "*" | "/" | "%" }
 operator_add = ${ "+" | "-" }
