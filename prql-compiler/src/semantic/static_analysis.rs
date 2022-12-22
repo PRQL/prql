@@ -123,12 +123,10 @@ fn eval(kind: ExprKind) -> ExprKind {
 
             if let Some(lit) = res {
                 ExprKind::Literal(lit)
+            } else if let (BinOp::Coalesce, ExprKind::Literal(Literal::Null)) = (op, &left.kind) {
+                right.kind
             } else {
-                if let (BinOp::Coalesce, ExprKind::Literal(Literal::Null)) = (op, &left.kind) {
-                    right.kind
-                } else {
-                    ExprKind::Binary { left, op, right }
-                }
+                ExprKind::Binary { left, op, right }
             }
         }
 
