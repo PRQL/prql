@@ -41,7 +41,7 @@ welcome; there's a
 ## Standard library
 
 Currently, the standard library is
-[quite limited](https://github.com/prql/prql/blob/main/prql-compiler/src/semantic/stdlib.prql).
+[quite limited](https://github.com/prql/prql/blob/main/prql-compiler/src/semantic/std.prql).
 It contains only basic arithmetic functions (`AVERAGE`, `SUM`) and lacks
 functions for string manipulation, date handling and many math functions. One
 challenge here is the variety of functionalities and syntax of target DBMSs;
