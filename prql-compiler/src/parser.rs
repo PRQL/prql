@@ -1037,6 +1037,24 @@ Canada
         "###);
 
         assert_yaml_snapshot!(
+            expr_of_string(r#"select ![x]"#, Rule::func_call)?
+        , @r###"
+        ---
+        FuncCall:
+          name:
+            Ident:
+              - select
+          args:
+            - Unary:
+                op: Not
+                expr:
+                  List:
+                    - Ident:
+                        - x
+          named_args: {}
+        "###);
+
+        assert_yaml_snapshot!(
             expr_of_string(r#"select [x, y]"#, Rule::func_call)?
         , @r###"
         ---
