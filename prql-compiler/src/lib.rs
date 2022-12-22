@@ -52,7 +52,7 @@ mod utils;
 
 #[cfg(all(feature = "cli", not(target_family = "wasm")))]
 pub use cli::Cli;
-pub use error::{ErrorMessage, ErrorMessages, SourceLocation};
+pub use error::{downcast, ErrorMessage, ErrorMessages, SourceLocation};
 pub use utils::IntoOnly;
 
 use once_cell::sync::Lazy;
@@ -67,10 +67,10 @@ static PRQL_VERSION: Lazy<Version> =
 /// - [prql_to_pl] — Build PL AST from a PRQL string
 /// - [pl_to_rq] — Finds variable references, validates functions calls, determines frames and converts PL to RQ.
 /// - [rq_to_sql] — Convert RQ AST into an SQL string.
-pub fn compile(prql: &str) -> Result<String, ErrorMessages> {
+pub fn compile(prql: &str, options: Option<sql::Options>) -> Result<String, ErrorMessages> {
     parser::parse(prql)
         .and_then(semantic::resolve)
-        .and_then(|rq| sql::compile(rq, None))
+        .and_then(|rq| sql::compile(rq, options))
         .map_err(error::downcast)
         .map_err(|e| e.composed("", prql, false))
 }

@@ -15,7 +15,7 @@ pub extern "system" fn Java_org_prql_prql4j_PrqlCompiler_toSql(
         .expect("Couldn't get java string!")
         .into();
     let rs_sql_str: String =
-        prql_compiler::compile(&prql_query).expect("Couldn't compile query to prql!");
+        prql_compiler::compile(&prql_query, None).expect("Couldn't compile query to prql!");
     env.new_string(rs_sql_str)
         .expect("Couldn't create java string!")
         .into_raw()

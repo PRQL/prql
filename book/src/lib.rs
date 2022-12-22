@@ -107,7 +107,7 @@ fn replace_examples(text: &str) -> Result<String> {
                 if let Some(Event::Text(text)) = parser.next() {
                     let prql = text.to_string();
                     let html =
-                        table_of_comparison(text.as_str().unwrap(), &compile(&prql).unwrap());
+                        table_of_comparison(text.as_str().unwrap(), &compile(&prql, None).unwrap());
                     cmark_acc.push(Event::Html(html.into()));
 
                     // Skip ending tag
