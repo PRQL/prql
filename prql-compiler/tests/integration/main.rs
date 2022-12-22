@@ -25,7 +25,7 @@ mod tests {
             }
 
             // compile
-            let sql = prql_compiler::compile(&prql).unwrap();
+            let sql = prql_compiler::compile(&prql, None).unwrap();
 
             // save both csv files as same snapshot
             assert_snapshot!("", sqlite::query_csv(&sqlite_conn, &sql));
