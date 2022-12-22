@@ -165,6 +165,17 @@ fn test_pipelines() {
     FROM
       employees
     "###);
+
+    assert_display_snapshot!((compile(r###"
+    from employees
+    select [age | in 5..10]
+    "###).unwrap()), @r###"
+    SELECT
+      age BETWEEN 5
+      AND 10
+    FROM
+      employees
+    "###);
 }
 
 #[test]
