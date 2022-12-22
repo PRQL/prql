@@ -7,6 +7,7 @@ use std::str::FromStr;
 
 use anyhow::{anyhow, Result};
 use itertools::Itertools;
+use sqlformat::{format, FormatOptions, QueryParams};
 use sqlparser::ast::{self as sql_ast, Select, SelectItem, SetExpr, TableWithJoins};
 
 use crate::ast::pl::{BinOp, Literal};
@@ -20,6 +21,7 @@ use crate::utils::{BreakUp, IntoOnly, Pluck, TableCounter};
 
 use super::codegen::*;
 use super::preprocess::{preprocess_distinct, preprocess_reorder};
+use super::Options;
 use super::{anchor, Dialect};
 use super::{context::AnchorContext, dialect::DialectHandler};
 
@@ -34,6 +36,30 @@ pub(super) struct Context {
     /// - WHERE needs `pre_projection=true`, but
     /// - ORDER BY needs `pre_projection=false`.
     pub pre_projection: bool,
+}
+
+/// Translate a PRQL AST into a SQL string.
+pub fn compile(query: Query, options: Option<Options>) -> Result<String> {
+    let options = options.unwrap_or_default();
+
+    let sql_ast = translate_query(query, options.dialect)?;
+
+    let sql_string = sql_ast.to_string();
+
+    Ok(if options.format {
+        let formatted = format(
+            &sql_string,
+            &QueryParams::default(),
+            FormatOptions::default(),
+        );
+
+        // The sql formatter turns `{{` into `{ {`, and while that's reasonable SQL,
+        // we want to allow jinja expressions through. So we (somewhat hackily) replace
+        // any `{ {` with `{{`.
+        formatted.replace("{ {", "{{").replace("} }", "}}")
+    } else {
+        sql_string
+    })
 }
 
 pub fn translate_query(query: Query, dialect: Option<Dialect>) -> Result<sql_ast::Query> {
@@ -629,7 +655,9 @@ mod test {
         )
         "#;
 
-        let sql_ast = crate::test::compile(query).unwrap();
+        let query = resolve(parse(query).unwrap()).unwrap();
+
+        let sql_ast = compile(query, None).unwrap();
 
         assert_snapshot!(sql_ast);
     }
@@ -652,7 +680,9 @@ mod test {
         derive rank = rank
         "#;
 
-        let sql_ast = crate::test::compile(query).unwrap();
+        let query = resolve(parse(query).unwrap()).unwrap();
+
+        let sql_ast = compile(query, None).unwrap();
 
         assert_snapshot!(sql_ast, @r###"
         WITH table_1 AS (
@@ -680,7 +710,7 @@ mod test {
         filter (average bar) > 3
         "#;
 
-        assert_snapshot!(crate::test::compile(query).unwrap(), @r###"
+        assert_snapshot!(crate::compile(query).unwrap(), @r###"
         WITH table_1 AS (
           SELECT
             *,

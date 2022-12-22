@@ -52,7 +52,7 @@ mod utils;
 
 #[cfg(all(feature = "cli", not(target_family = "wasm")))]
 pub use cli::Cli;
-pub use error::{downcast, ErrorMessage, ErrorMessages, SourceLocation};
+pub use error::{ErrorMessage, ErrorMessages, SourceLocation};
 pub use utils::IntoOnly;
 
 use once_cell::sync::Lazy;
