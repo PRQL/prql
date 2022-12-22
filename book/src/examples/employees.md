@@ -5,14 +5,18 @@ These are homework tasks on
 
 Clone and init the database (requires a local PostgreSQL instance):
 
-    $ psql -U postgres -c 'CREATE DATABASE employees;'
-    $ git clone https://github.com/vrajmohan/pgsql-sample-data.git
-    $ psql -U postgres -d employees -f pgsql-sample-data/employee/employees.dump
+```sh
+psql -U postgres -c 'CREATE DATABASE employees;'
+git clone https://github.com/vrajmohan/pgsql-sample-data.git
+psql -U postgres -d employees -f pgsql-sample-data/employee/employees.dump
+```
 
 Execute a PRQL query:
 
-    $ cd prql-compiler
-    $ cargo run compile examples/employees/average-title-salary.prql | psql -U postgres -d employees
+```sh
+cd prql-compiler
+cargo run compile examples/employees/average-title-salary.prql | psql -U postgres -d employees
+```
 
 ## Task 1
 

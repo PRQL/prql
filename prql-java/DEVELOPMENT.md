@@ -56,7 +56,7 @@ As to cross compilation toolchains, we use
 
 To publish the java lib to maven public repo, project maintainer need first
 register a project in the maven nexus repo, by the doc:
-https://central.sonatype.org/publish/publish-guide/.
+<https://central.sonatype.org/publish/publish-guide/>.
 
 And then, we can release our artifact in the `release` workflow. The action we
 used is
