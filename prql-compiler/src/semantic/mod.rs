@@ -10,11 +10,11 @@ mod transforms;
 mod type_resolver;
 
 pub use self::context::Context;
+pub use self::module::Module;
 
 use crate::ast::pl::frame::{Frame, FrameColumn};
 use crate::ast::pl::Stmt;
 use crate::ast::rq::Query;
-use crate::semantic::module::Module;
 use crate::PRQL_VERSION;
 
 use anyhow::{bail, Result};
@@ -47,7 +47,7 @@ pub fn resolve_only(
 
 pub fn load_std_lib() -> Context {
     use crate::parser::parse;
-    let std_lib = include_str!("./stdlib.prql");
+    let std_lib = include_str!("./std.prql");
     let statements = parse(std_lib).unwrap();
 
     let context = Context {
