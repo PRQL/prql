@@ -49,10 +49,8 @@ pub fn rq_to_sql(rq_json: &str) -> Option<String> {
 #[wasm_bindgen]
 #[derive(Clone)]
 pub struct CompileOptions {
-    /// Pass generated SQL string trough a formatter that splits it
+    /// True for passing generated SQL string trough a formatter that splits
     /// into multiple lines and prettifies indentation and spacing.
-    ///
-    /// Defaults to true.
     pub format: bool,
 
     /// Target dialect you want to compile for.
@@ -67,11 +65,6 @@ pub struct CompileOptions {
     /// If None is used, `sql_dialect` flag from query definition is used.
     /// If it does not exist, [Dialect::Generic] is used.
     pub dialect: Option<Dialect>,
-
-    /// Emits the compiler signature as a comment after generated SQL
-    ///
-    /// Defaults to true.
-    pub signature_comment: bool,
 }
 
 #[wasm_bindgen]
@@ -79,7 +72,6 @@ pub fn default_compile_options() -> CompileOptions {
     CompileOptions {
         format: true,
         dialect: None,
-        signature_comment: true,
     }
 }
 
@@ -88,7 +80,6 @@ impl From<CompileOptions> for prql_compiler::sql::Options {
         prql_compiler::sql::Options {
             format: o.format,
             dialect: o.dialect.map(From::from),
-            signature_comment: o.signature_comment,
         }
     }
 }
