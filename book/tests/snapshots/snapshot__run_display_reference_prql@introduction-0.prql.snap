@@ -1,12 +1,12 @@
 ---
 source: book/tests/snapshot.rs
-expression: Statements(parse(&prql).unwrap())
+expression: prql_to_pl(&prql).and_then(pl_to_prql).unwrap()
 input_file: book/tests/prql/introduction-0.prql
 ---
 from employees
 filter start_date > @2021-01-01
 derive [
-  gross_salary = salary + ( coalesce tax 0 ),
+  gross_salary = salary + tax ?? 0,
   gross_cost = gross_salary + benefits_cost,
 ]
 filter gross_cost > 0

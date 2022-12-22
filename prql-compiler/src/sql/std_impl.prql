@@ -1,4 +1,3 @@
-# Aggregate Functions
 func min <scalar|column> column ->  s"MIN({column})"
 func max <scalar|column> column ->  s"MAX({column})"
 func sum <scalar|column> column ->  s"SUM({column})"
@@ -26,23 +25,3 @@ func as<scalar> `noresolve.type` column ->  s"CAST({column} AS {type})"
 # could be range.0? or range.start? But to make this happen, we need to make
 # changes to how variables are resolved.
 func in<bool> range value ->  s"{value} BETWEEN {range}"
-
-# Logical functions
-# TODO: should we remove in favor of `??` to reduce ambiguity?
-func coalesce value default -> s"COALESCE({value}, {default})"
-
-# Transform type definitions
-func from<table> `default_db.source`<table> -> null
-func select<table> columns<column> tbl<table> -> null
-func filter<table> condition<bool> tbl<table> -> null
-func derive<table> columns<column> tbl<table> -> null
-func aggregate<table> a<column> tbl<table> -> null
-func sort<table> by tbl<table> -> null
-func take<table> expr tbl<table> -> null
-func join<table> `default_db.with`<table> filter `noresolve.side`:inner tbl<table> -> null
-func concat<table> `default_db.bottom`<table> top<table> -> null
-func union<table> `default_db.bottom`<table> top<table> -> (
-    top | concat _param.bottom | group [`*`] (take 1)
-)
-func group<table> by pipeline tbl<table> -> null
-func window<table> rows:0..0 range:0..0 expanding:false rolling:0 pipeline tbl<table> -> null

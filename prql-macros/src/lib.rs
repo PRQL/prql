@@ -13,7 +13,7 @@ pub fn prql(input: TokenStream) -> TokenStream {
         _ => panic!("prql! proc macro expected a string"),
     };
 
-    let sql_string = match prql_compiler::compile(&prql_string) {
+    let sql_string = match prql_compiler::compile(&prql_string, None) {
         Ok(r) => r,
         Err(err) => {
             panic!("{}", err);

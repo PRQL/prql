@@ -85,3 +85,31 @@ impl<T> BreakUp<T> for Vec<T> {
         (self, after)
     }
 }
+
+/// Common operations on iterators over [Option<bool>]
+pub trait IterOfOptBool {
+    /// If any of the items is `None`, this returns `None`.
+    /// If any of the items is `Some(false)`, this returns `Some(false)`.
+    /// Otherwise it returns `Some(true)`.
+    fn all_true(self) -> Option<bool>;
+
+    /// If any of the items is `None`, this returns `None`.
+    /// If any of the items is `Some(true)`, this returns `Some(true)`.
+    /// Otherwise it returns `Some(false)`.
+    fn any_true(self) -> Option<bool>;
+}
+
+impl<'a, I> IterOfOptBool for I
+where
+    I: Iterator<Item = &'a Option<bool>>,
+{
+    fn all_true(self) -> Option<bool> {
+        self.cloned()
+            .fold(Some(true), |a, x| a.zip(x).map(|(a, b)| a && b))
+    }
+
+    fn any_true(self) -> Option<bool> {
+        self.cloned()
+            .fold(Some(true), |a, x| a.zip(x).map(|(a, b)| a && b))
+    }
+}

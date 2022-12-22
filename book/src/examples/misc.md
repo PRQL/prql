@@ -3,8 +3,8 @@
 This file contains many different queries I rewrote from various languages with
 intention of finding examples of where PRQL could be improved.
 
-A SQL query to find all stubs in email addresses of accounts associated with some
-prospect list in a MariaDB of a CRM system.
+A SQL query to find all stubs in email addresses of accounts associated with
+some prospect list in a MariaDB of a CRM system.
 
 ```prql
 # TODO: this table should have a column `part` with values 1..5,
@@ -24,7 +24,8 @@ derive stub = s"SUBSTRING_INDEX(SUBSTRING_INDEX({prefix}, '.', part), '.', -1)"
 select [email_address, stub]
 ```
 
-European football clubs with ratings for each year. We want to normalize each year separately.
+European football clubs with ratings for each year. We want to normalize each
+year separately.
 
 ```prql
 from club_ratings

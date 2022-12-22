@@ -60,6 +60,10 @@ pub enum ExprKind {
     SString(Vec<InterpolateItem>),
     FString(Vec<InterpolateItem>),
     Switch(Vec<SwitchCase>),
+    BuiltInFunction {
+        name: String,
+        args: Vec<Expr>,
+    },
 }
 
 impl ExprKind {
@@ -72,7 +76,7 @@ impl ExprKind {
 }
 
 #[derive(
-    Debug, PartialEq, Eq, Clone, Serialize, Deserialize, strum::Display, strum::EnumString,
+    Debug, PartialEq, Eq, Clone, Copy, Serialize, Deserialize, strum::Display, strum::EnumString,
 )]
 pub enum BinOp {
     #[strum(to_string = "*")]
@@ -105,7 +109,7 @@ pub enum BinOp {
     Coalesce,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize, strum::EnumString)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Serialize, Deserialize, strum::EnumString)]
 pub enum UnOp {
     #[strum(to_string = "-")]
     Neg,
@@ -541,6 +545,9 @@ impl Display for Expr {
                     writeln!(f, "  {} => {}", case.condition, case.value)?;
                 }
                 f.write_str("]")?;
+            }
+            ExprKind::BuiltInFunction { .. } => {
+                f.write_str("<built-in>")?;
             }
         }
 
