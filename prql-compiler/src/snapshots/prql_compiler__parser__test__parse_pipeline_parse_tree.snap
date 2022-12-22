@@ -331,7 +331,7 @@ expression: "parse_tree_of_str(&include_str!(\"../../book/tests/prql/examples/va
                                                                 },
                                                                 inner: [
                                                                     Pair {
-                                                                        rule: assign_call,
+                                                                        rule: assign,
                                                                         span: Span {
                                                                             str: "gross_salary = salary + payroll_tax",
                                                                             start: 185,
@@ -477,7 +477,7 @@ expression: "parse_tree_of_str(&include_str!(\"../../book/tests/prql/examples/va
                                                                         ],
                                                                     },
                                                                     Pair {
-                                                                        rule: assign_call,
+                                                                        rule: assign,
                                                                         span: Span {
                                                                             str: "gross_cost = gross_salary + benefits_cost  # Variables can use other variables.",
                                                                             start: 224,
@@ -1619,7 +1619,7 @@ expression: "parse_tree_of_str(&include_str!(\"../../book/tests/prql/examples/va
                                                                                                                                         ],
                                                                                                                                     },
                                                                                                                                     Pair {
-                                                                                                                                        rule: assign_call,
+                                                                                                                                        rule: assign,
                                                                                                                                         span: Span {
                                                                                                                                             str: "sum_gross_cost = sum gross_cost",
                                                                                                                                             start: 608,
@@ -1746,7 +1746,7 @@ expression: "parse_tree_of_str(&include_str!(\"../../book/tests/prql/examples/va
                                                                                                                                         ],
                                                                                                                                     },
                                                                                                                                     Pair {
-                                                                                                                                        rule: assign_call,
+                                                                                                                                        rule: assign,
                                                                                                                                         span: Span {
                                                                                                                                             str: "ct = count",
                                                                                                                                             start: 645,

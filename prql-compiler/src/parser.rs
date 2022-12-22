@@ -201,7 +201,7 @@ fn expr_of_parse_pair(pair: Pair<Rule>) -> Result<Expr> {
         // parse parts of a Pairs).
         Rule::operator_coalesce => ExprKind::Ident(Ident::from_name("-")),
 
-        Rule::assign_call | Rule::assign => {
+        Rule::assign | Rule::alias => {
             let (a, expr) = parse_named(pair.into_inner())?;
             alias = Some(a);
             expr.kind
@@ -1101,7 +1101,7 @@ Canada
         assert_yaml_snapshot!(
             expr_of_string(
                 "gross_salary = (salary + payroll_tax) * (1 + tax_rate)",
-                Rule::assign,
+                Rule::alias,
             )?,
             @r###"
         ---
