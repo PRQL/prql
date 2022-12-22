@@ -200,6 +200,9 @@ pub(super) fn translate_expr_kind(item: ExprKind, ctx: &mut Context) -> Result<s
                 else_result,
             }
         }
+        ExprKind::BuiltInFunction { name, args } => {
+            super::std::translate_built_in(name, args, ctx)?
+        }
     })
 }
 

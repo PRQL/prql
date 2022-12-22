@@ -5,6 +5,7 @@ mod codegen;
 mod context;
 mod dialect;
 mod preprocess;
+mod std;
 mod translator;
 
 pub use dialect::Dialect;

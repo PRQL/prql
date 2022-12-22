@@ -652,18 +652,17 @@ mod tests {
               kind:
                 Aggregate:
                   assigns:
-                    - id: 18
-                      SString:
-                        - String: AVG(
-                        - Expr:
-                            id: 17
+                    - id: 15
+                      BuiltInFunction:
+                        name: std.average
+                        args:
+                          - id: 17
                             Ident:
                               - _frame
                               - c_invoice
                               - amount
                             target_id: 4
                             ty: Infer
-                        - String: )
                       ty:
                         Literal: Column
               partition:
@@ -683,7 +682,7 @@ mod tests {
                       expr_id: 8
                   - Single:
                       name: ~
-                      expr_id: 18
+                      expr_id: 15
                 inputs:
                   - id: 4
                     name: c_invoice

@@ -107,6 +107,10 @@ pub fn fold_expr_kind<T: ?Sized + AstFold>(fold: &mut T, expr_kind: ExprKind) ->
         Closure(closure) => Closure(Box::new(fold.fold_closure(*closure)?)),
 
         TransformCall(transform) => TransformCall(fold.fold_transform_call(transform)?),
+        BuiltInFunction { name, args } => BuiltInFunction {
+            name,
+            args: fold.fold_exprs(args)?,
+        },
 
         // None of these capture variables, so we don't need to fold them.
         Literal(_) => expr_kind,

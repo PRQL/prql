@@ -60,6 +60,10 @@ pub enum ExprKind {
     SString(Vec<InterpolateItem>),
     FString(Vec<InterpolateItem>),
     Switch(Vec<SwitchCase>),
+    BuiltInFunction {
+        name: String,
+        args: Vec<Expr>,
+    },
 }
 
 impl ExprKind {
@@ -541,6 +545,9 @@ impl Display for Expr {
                     writeln!(f, "  {} => {}", case.condition, case.value)?;
                 }
                 f.write_str("]")?;
+            }
+            ExprKind::BuiltInFunction { .. } => {
+                f.write_str("<built-in>")?;
             }
         }
 

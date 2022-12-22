@@ -14,7 +14,7 @@ use crate::utils::IdGenerator;
 use super::context::{Context, Decl, DeclKind};
 use super::module::{Module, NS_FRAME, NS_FRAME_RIGHT, NS_PARAM};
 use super::reporting::debug_call_tree;
-use super::transforms::Flattener;
+use super::transforms::{self, Flattener};
 use super::type_resolver::{resolve_type, type_of_closure, validate_type};
 
 /// Runs semantic analysis on the query, using current state.
@@ -358,14 +358,13 @@ impl Resolver {
             let closure = self.resolve_function_args(closure)?;
 
             // evaluate
-            match super::transforms::cast_transform(self, closure)? {
-                // this function call is a transform
+            let needs_window = Some(Ty::column()) <= closure.body_ty;
+            let mut res = match self.cast_built_in_function(closure)? {
+                // this function call is a built-in function
                 Ok(transform) => transform,
 
-                // this function call is not a transform, proceed with materialization
+                // this function call is not a built-in, proceed with materialization
                 Err(closure) => {
-                    let needs_window = Some(Ty::column()) <= closure.body_ty;
-
                     let (func_env, body) = env_of_closure(closure);
 
                     self.decls.root_mod.stack_push(NS_PARAM, func_env);
@@ -378,7 +377,7 @@ impl Resolver {
                     log::debug!("stack_pop");
                     let func_env = self.decls.root_mod.stack_pop(NS_PARAM).unwrap();
 
-                    let mut res = if let ExprKind::Closure(mut inner_closure) = body.kind {
+                    if let ExprKind::Closure(mut inner_closure) = body.kind {
                         // body couldn't been resolved - construct a closure to be evaluated later
 
                         inner_closure.env = func_env.into_exprs();
@@ -400,12 +399,11 @@ impl Resolver {
                     } else {
                         // resolved, return result
                         body
-                    };
-
-                    res.needs_window = needs_window;
-                    res
+                    }
                 }
-            }
+            };
+            res.needs_window = needs_window;
+            res
         } else {
             // not enough arguments: construct a func closure
 
@@ -419,6 +417,30 @@ impl Resolver {
         };
         r.span = span;
         Ok(r)
+    }
+
+    fn cast_built_in_function(&mut self, closure: Closure) -> Result<Result<Expr, Closure>> {
+        let is_std = closure.name.as_ref().map(|n| n.path.as_slice() == ["std"]);
+
+        if !is_std.unwrap_or_default() {
+            return Ok(Err(closure));
+        }
+
+        Ok(match transforms::cast_transform(self, closure)? {
+            // it a transform
+            Ok(e) => Ok(e),
+
+            // it a std function that should be lowered into a BuiltIn
+            Err(closure) if matches!(closure.body.kind, ExprKind::Literal(Literal::Null)) => {
+                let name = closure.name.unwrap().to_string();
+                let args = closure.args;
+
+                Ok(Expr::from(ExprKind::BuiltInFunction { name, args }))
+            }
+
+            // it a normal function that should be resolved
+            Err(closure) => Err(closure),
+        })
     }
 
     fn apply_args_to_closure(

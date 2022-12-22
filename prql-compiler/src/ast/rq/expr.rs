@@ -29,6 +29,10 @@ pub enum ExprKind {
     SString(Vec<InterpolateItem<Expr>>),
     FString(Vec<InterpolateItem<Expr>>),
     Switch(Vec<SwitchCase<Expr>>),
+    BuiltInFunction {
+        name: String,
+        args: Vec<Expr>,
+    },
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
