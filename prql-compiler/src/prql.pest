@@ -43,7 +43,7 @@ pipeline = { WHITESPACE* ~ expr_call ~ (pipe ~ expr_call)* }
 
 // Whitespace is required to prevent matching s"string". Forbid `operator_binary` so `a
 // - b` can't parse as `a` & `-b` (but allow `select ![a]`)
-func_call = ${ ident ~ WHITESPACE+ ~ (!operator_binary ~ (named_arg | assign | expr) ~ WHITESPACE*)+ }
+func_call = ${ ident ~ WHITESPACE+ ~ (!operator_binary ~ (named_arg | alias | expr) ~ WHITESPACE*)+ }
 
 named_arg   = !{ ident_part ~ ":" ~ !":" ~ expr }
 // alias needs to be distinct from assign, so that in `join s=salaries [==id]`,
