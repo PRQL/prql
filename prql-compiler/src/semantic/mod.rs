@@ -5,6 +5,7 @@ mod lowering;
 mod module;
 pub mod reporting;
 mod resolver;
+mod static_analysis;
 mod transforms;
 mod type_resolver;
 

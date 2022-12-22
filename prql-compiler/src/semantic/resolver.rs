@@ -8,6 +8,7 @@ use crate::ast::pl::{fold::*, *};
 use crate::ast::rq::RelationColumn;
 use crate::error::{Error, Reason, Span};
 use crate::semantic::context::TableDecl;
+use crate::semantic::static_analysis;
 use crate::utils::IdGenerator;
 
 use super::context::{Context, Decl, DeclKind};
@@ -245,6 +246,7 @@ impl AstFold for Resolver {
         if r.ty.is_none() {
             r.ty = Some(resolve_type(&r)?);
         }
+        let r = static_analysis::static_analysis(r);
         Ok(r)
     }
 }
