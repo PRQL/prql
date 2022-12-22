@@ -66,8 +66,8 @@ expr_mul = { term ~ (operator_mul ~ expr_mul)? }
 term = _{ ( switch | s_string | f_string | range | literal | ident | nested_pipeline | expr_unary | list | jinja ) }
 expr_unary = { ( operator_unary ~ ( nested_pipeline | ident )) }
 literal = _{ value_and_unit | number | boolean | null | string | timestamp | date | time }
-// TODO: is there some abstraction of `assign_call | expr_call` that would work here?
-list = { "[" ~ (NEWLINE* ~ (assign_call | expr_call) ~ ("," ~ NEWLINE* ~ (assign_call | expr_call) )* ~ ","?)? ~ NEWLINE* ~ "]" }
+// TODO: is there some abstraction of `assign_call | pipeline` that would work here?
+list = { "[" ~ (NEWLINE* ~ (assign_call |  pipeline) ~ ("," ~ NEWLINE* ~ (assign_call | pipeline) )* ~ ","?)? ~ NEWLINE* ~ "]" }
 nested_pipeline = { "(" ~ (WHITESPACE | NEWLINE)* ~ pipeline? ~ (WHITESPACE | NEWLINE)* ~ ")" }
 
 // We haven't implemented escapes — I think we can mostly pass those through to
@@ -117,7 +117,7 @@ operator_coalesce = ${ "??" }
 // `prefixed` string and parse in the parser, but manageable for now.
 s_string = ${ "s" ~ opening_quote ~ interpolate_string_inner ~ POP }
 f_string = ${ "f" ~ opening_quote ~ interpolate_string_inner ~ POP }
-interpolate_string_inner = _{ ( interpolate_string_inner_literal | interpolate_double_bracket | ( "{" ~ expr_call ~ "}" ))* }
+interpolate_string_inner = _{ ( interpolate_string_inner_literal | interpolate_double_bracket | ( "{" ~ pipeline ~ "}" ))* }
 // We want to strip the outer `{}` of `{{}}`, so we make a silent rule and then
 // an inner non-silent rule.
 interpolate_double_bracket = _{ "{" ~ interpolate_double_bracket_literal ~ "}" }
