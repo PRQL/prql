@@ -53,10 +53,8 @@ fn prql_python(_py: Python, m: &PyModule) -> PyResult<()> {
 #[pyclass]
 #[derive(Clone)]
 pub struct CompileOptions {
-    /// Pass generated SQL string trough a formatter that splits it
+    /// True for passing generated SQL string trough a formatter that splits
     /// into multiple lines and prettifies indentation and spacing.
-    ///
-    /// Defaults to true.
     pub format: bool,
 
     /// Target dialect you want to compile for.
@@ -71,11 +69,6 @@ pub struct CompileOptions {
     /// If None is used, `sql_dialect` flag from query definition is used.
     /// If it does not exist, [Dialect::Generic] is used.
     pub dialect: Option<Dialect>,
-
-    /// Emits the compiler signature as a comment after generated SQL
-    ///
-    /// Defaults to true.
-    pub signature_comment: bool,
 }
 
 impl From<CompileOptions> for prql_compiler::sql::Options {
@@ -83,7 +76,6 @@ impl From<CompileOptions> for prql_compiler::sql::Options {
         prql_compiler::sql::Options {
             format: o.format,
             dialect: o.dialect,
-            signature_comment: o.signature_comment,
         }
     }
 }
@@ -95,14 +87,8 @@ mod test {
 
     #[test]
     fn parse_for_python() {
-        let opts = Some(CompileOptions {
-            format: true,
-            dialect: None,
-            signature_comment: false,
-        });
-
         assert_eq!(
-            compile("from employees | filter (age | in 20..30)", opts).unwrap(),
+            compile("from employees | filter (age | in 20..30)", None).unwrap(),
             "SELECT\n  *\nFROM\n  employees\nWHERE\n  age BETWEEN 20\n  AND 30"
         );
     }
