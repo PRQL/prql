@@ -1,7 +1,7 @@
 # prql-java
 
-`prql-java` offers rust bindings to the `prql-compiler` rust library. It
-exposes a java native method `public static native String toSql(String query)`.
+`prql-java` offers rust bindings to the `prql-compiler` rust library. It exposes
+a java native method `public static native String toSql(String query)`.
 
 It's still at an early stage, and currently requires compiling locally, and
 isn't published to Maven. Contributions are welcome.

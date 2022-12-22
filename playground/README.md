@@ -1,9 +1,11 @@
 # PRQL Playground
 
-A fast-feedback compiler from PRQL to SQL, hosted at <https://prql-lang.org/playground/>
+A fast-feedback compiler from PRQL to SQL, hosted at
+<https://prql-lang.org/playground/>
 
-To run locally, [set up a development
-environment](../DEVELOPMENT.md#development-environment), and then run[^1]:
+To run locally,
+[set up a development environment](../DEVELOPMENT.md#development-environment),
+and then run[^1]:
 
 ```sh
 task run-playground

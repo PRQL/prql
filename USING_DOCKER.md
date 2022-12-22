@@ -6,8 +6,8 @@ rust environment for those that don't have one already.
 
 ## Development cycle
 
-The developer loop when using Docker is substantially the same as
-if the tools had been installed directly.
+The developer loop when using Docker is substantially the same as if the tools
+had been installed directly.
 
 All the source files live in the `prql` directory on the host. As the source
 changes, the tools (running in the Docker container) can watch those directories
@@ -32,11 +32,10 @@ cd <top-level-PRQL-directory>
 docker build -t prql .
 ```
 
-_Optional:_ Install `pre-commit` on the machine that hosts Docker.
-It runs several
-[Static Checks](./DEVELOPMENT.md#tests) to ensure code consistency.
-You can also configure `git` to run `pre-commit` automatically
-for each commit with the second (one-time) command below.
+_Optional:_ Install `pre-commit` on the machine that hosts Docker. It runs
+several [Static Checks](./DEVELOPMENT.md#tests) to ensure code consistency. You
+can also configure `git` to run `pre-commit` automatically for each commit with
+the second (one-time) command below.
 
 ```bash
 pre-commit run -a   # Run checks manually

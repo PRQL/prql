@@ -1,7 +1,7 @@
 # Javascript (prql-js)
 
-JavaScript bindings for [`prql-compiler`](https://github.com/prql/prql/). Check out <https://prql-lang.org> for more
-context.
+JavaScript bindings for [`prql-compiler`](https://github.com/prql/prql/). Check
+out <https://prql-lang.org> for more context.
 
 ## Installation
 
@@ -72,8 +72,8 @@ to generate bindings[^1].
 
 [^1]:
 
-though we would be very open to other approaches, and used `trunk`
-successfully in a rust-driven approach to this, RIP `prql-web`.
+though we would be very open to other approaches, and used `trunk` successfully
+in a rust-driven approach to this, RIP `prql-web`.
 
 ## Development
 

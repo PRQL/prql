@@ -2,8 +2,8 @@
 
 `prql-compiler` contains the implementation of PRQL's compiler, written in rust.
 
-For more on PRQL, check out the [PRQL website](https://prql-lang.org) or the [PRQL
-repo](https://github.com/prql/prql).
+For more on PRQL, check out the [PRQL website](https://prql-lang.org) or the
+[PRQL repo](https://github.com/prql/prql).
 
 ## Installation
 
@@ -41,6 +41,8 @@ WHERE
 
 ## Internal jargon
 
-Frame = Descriptor of a table. Contains list of columns (with names and types) and cardinality of rows. Does not contain data.
+Frame = Descriptor of a table. Contains list of columns (with names and types)
+and cardinality of rows. Does not contain data.
 
-Table = Frame + data within that frame. Relation table-frame is analogous to object-class in Java.
+Table = Frame + data within that frame. Relation table-frame is analogous to
+object-class in Java.

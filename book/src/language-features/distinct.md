@@ -1,6 +1,7 @@
 # Distinct
 
-PRQL doesn't have a specific `distinct` keyword. Instead, use `group` and `take 1`:
+PRQL doesn't have a specific `distinct` keyword. Instead, use `group` and
+`take 1`:
 
 ```prql
 from employees
@@ -20,8 +21,8 @@ group department (take 1)
 
 ## Selecting from each group
 
-We are be able to [select a single row from each
-group](https://stackoverflow.com/questions/3800551/select-first-row-in-each-group-by-group)
+We are be able to
+[select a single row from each group](https://stackoverflow.com/questions/3800551/select-first-row-in-each-group-by-group)
 by combining `group` and `sort`:
 
 ```prql

@@ -3,5 +3,12 @@
 # TODO: move these into content out of layouts
 /website/themes/prql-theme/layouts/partials/codes/
 
-# Can't add comments to `.prettierrc`, but that's from:
-# https://github.com/NiklasPor/prettier-plugin-go-template
+# Ideally prettier would allow blanket gitignores, but doesn't it seem to be a feature.
+
+**/node_modules
+**/.git
+target/
+.mypy_cache
+**/build
+**/dist
+/book/book
