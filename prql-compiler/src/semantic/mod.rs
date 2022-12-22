@@ -7,6 +7,7 @@ pub mod reporting;
 mod resolver;
 mod transforms;
 mod type_resolver;
+mod static_analysis;
 
 pub use self::context::Context;
 

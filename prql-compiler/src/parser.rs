@@ -183,17 +183,19 @@ fn expr_of_parse_pair(pair: Pair<Rule>) -> Result<Expr> {
         // than passing along the operator. So this is unlike the rest
         // of the parsing (and maybe isn't optimal).
         Rule::expr_coalesce => {
-            let pairs = pair.into_inner();
-            // If there's no coalescing, just return the single expression.
-            if pairs.clone().count() == 1 {
-                exprs_of_parse_pairs(pairs)?.into_only()?.kind
+            let mut pairs = pair.into_inner();
+            let left = expr_of_parse_pair(pairs.next().unwrap())?;
+
+            if pairs.next().is_none() {
+                // If there's no coalescing, just return the single expression.
+                left.kind
             } else {
-                let parsed = exprs_of_parse_pairs(pairs)?;
-                ExprKind::FuncCall(FuncCall {
-                    name: Box::new(ExprKind::Ident(Ident::from_name("coalesce")).into()),
-                    args: vec![parsed[0].clone(), parsed[2].clone()],
-                    named_args: HashMap::new(),
-                })
+                let right = expr_of_parse_pair(pairs.next().unwrap())?;
+                ExprKind::Binary {
+                    left: Box::new(left),
+                    op: BinOp::Coalesce,
+                    right: Box::new(right),
+                }
             }
         }
         // This makes the previous parsing a bit easier, but is hacky;
@@ -2046,16 +2048,14 @@ join `my-proj`.`dataset`.`table`
                       Ident:
                         - derive
                     args:
-                      - FuncCall:
-                          name:
+                      - Binary:
+                          left:
                             Ident:
-                              - coalesce
-                          args:
-                            - Ident:
-                                - amount
-                            - Literal:
-                                Integer: 0
-                          named_args: {}
+                              - amount
+                          op: Coalesce
+                          right:
+                            Literal:
+                              Integer: 0
                         alias: amount
                     named_args: {}
         "### )
