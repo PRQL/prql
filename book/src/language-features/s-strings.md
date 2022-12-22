@@ -1,8 +1,9 @@
 # S-Strings
 
-An s-string inserts SQL directly, as an escape hatch when there's something that PRQL
-doesn't yet implement. For example, there's no `version()` function in SQL that
-returns the Postgres version, so if we want to use that, we use an s-string:
+An s-string inserts SQL directly, as an escape hatch when there's something that
+PRQL doesn't yet implement. For example, there's no `version()` function in SQL
+that returns the Postgres version, so if we want to use that, we use an
+s-string:
 
 ```prql
 from my_table

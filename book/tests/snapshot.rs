@@ -118,13 +118,6 @@ fn write_reference_prql() -> Result<()> {
     Ok(())
 }
 
-fn compile(prql: &str) -> Result<String, ErrorMessages> {
-    prql_to_pl(prql)
-        .and_then(pl_to_rq)
-        .and_then(|rq| rq_to_sql(rq, sql::Options::default().no_signature().some()))
-        .map_err(|e| e.composed("", prql, false))
-}
-
 /// Snapshot the output of each example.
 fn run_reference_prql() {
     glob!("prql/**/*.prql", |path| {
@@ -135,7 +128,9 @@ fn run_reference_prql() {
         }
 
         println!("{:?}", path);
-        let sql = compile(&prql).unwrap_or_else(|e| format!("Failed to compile `{prql}`; {e}"));
+
+        let opts = sql::Options::default().no_signature().some();
+        let sql = compile(&prql, opts).unwrap_or_else(|e| format!("{prql}\n\n{e}"));
         assert_snapshot!(sql);
     });
 }

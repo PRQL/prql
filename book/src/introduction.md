@@ -31,7 +31,8 @@ sort [sum_gross_cost, -country]               # `-country` means descending orde
 take 1..20                                    # Range expressions (also valid here as `take 20`)
 ```
 
-As you can see, PRQL is a linear **pipeline of transformations** — each line of the
-query is a transformation of the previous line's result.
+As you can see, PRQL is a linear **pipeline of transformations** — each line of
+the query is a transformation of the previous line's result.
 
-You can see that in SQL, operations do not follow one another, which makes it hard to compose larger queries.
+You can see that in SQL, operations do not follow one another, which makes it
+hard to compose larger queries.

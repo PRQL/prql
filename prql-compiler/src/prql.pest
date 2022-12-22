@@ -43,17 +43,14 @@ pipeline = { WHITESPACE* ~ expr_call ~ (pipe ~ expr_call)* }
 
 // Whitespace is required to prevent matching s"string". Forbid `operator_binary` so `a
 // - b` can't parse as `a` & `-b` (but allow `select ![a]`)
-//
-// Note that this needs to use `assign` rather than `assign_call`, so that
-//
-//   join s=salaries [==id]`
-//
-// isn't parsed as `s=` & `salaries [==id]`
 func_call = ${ ident ~ WHITESPACE+ ~ (!operator_binary ~ (named_arg | assign | expr) ~ WHITESPACE*)+ }
 
 named_arg   = !{ ident_part ~ ":" ~ !":" ~ expr }
-assign      = !{ ident_part ~ "=" ~ !"=" ~ expr }
-assign_call = !{ ident_part ~ "=" ~ !"=" ~ expr_call }
+// alias needs to be distinct from assign, so that in `join s=salaries [==id]`,
+// `s=salaries` is parsed separately from `[==id]`, since aliases allow for an
+// expr as an rvalue, but not a function call.
+alias = !{ ident_part ~ "=" ~ !"=" ~ expr }
+assign = !{ ident_part ~ "=" ~ !"=" ~ expr_call }
 
 expr_call = _{ (func_call | expr) }
 
@@ -66,8 +63,8 @@ expr_mul = { term ~ (operator_mul ~ expr_mul)? }
 term = _{ ( switch | s_string | f_string | range | literal | ident | nested_pipeline | expr_unary | list | jinja ) }
 expr_unary = { ( operator_unary ~ ( nested_pipeline | ident | list )) }
 literal = _{ value_and_unit | number | boolean | null | string | timestamp | date | time }
-// TODO: is there some abstraction of `assign_call | expr_call` that would work here?
-list = { "[" ~ (NEWLINE* ~ (assign_call | expr_call) ~ ("," ~ NEWLINE* ~ (assign_call | expr_call) )* ~ ","?)? ~ NEWLINE* ~ "]" }
+// TODO: is there some abstraction of `assign | expr_call` that would work here?
+list = { "[" ~ (NEWLINE* ~ (assign |  expr_call) ~ ("," ~ NEWLINE* ~ (assign | expr_call) )* ~ ","?)? ~ NEWLINE* ~ "]" }
 nested_pipeline = { "(" ~ (WHITESPACE | NEWLINE)* ~ pipeline? ~ (WHITESPACE | NEWLINE)* ~ ")" }
 
 // We haven't implemented escapes — I think we can mostly pass those through to

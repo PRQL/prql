@@ -5,27 +5,28 @@ lots of ways of contributing - big and small:
 
 - Star this repo.
 - Send a link to PRQL to a couple of people whose opinion you respect.
-- Subscribe to [Issue #1](https://github.com/prql/prql/issues/1) for
-  updates.
+- Subscribe to [Issue #1](https://github.com/prql/prql/issues/1) for updates.
 - Join the [Discord](https://discord.gg/eQcfaCmsNc).
 - Contribute towards the code. Most of the code is written in rust, and there's
-  enough to do such that any level of experience with rust is sufficient.
-  Read the [DEVELOPMENT.md](./DEVELOPMENT.md) file to get started.
-  - Find an issue labeled [help
-    wanted](https://github.com/prql/prql/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22)
-    or [good first
-    issue](https://github.com/prql/prql/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
-    and try to fix it. Feel free to PR partial solutions, or ask any questions on
-    the Issue or Discord.
+  enough to do such that any level of experience with rust is sufficient. Read
+  the [DEVELOPMENT.md](./DEVELOPMENT.md) file to get started.
+  - Find an issue labeled
+    [help wanted](https://github.com/prql/prql/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22)
+    or
+    [good first issue](https://github.com/prql/prql/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
+    and try to fix it. Feel free to PR partial solutions, or ask any questions
+    on the Issue or Discord.
   - Start with something tiny! Write a test / write a docstring / make some rust
-    nicer — it's a great way to get started by making an lasting impact in 30 minutes.
+    nicer — it's a great way to get started by making an lasting impact in 30
+    minutes.
   - And if you have rust questions, there are lots of friendly people on the
     Discord who will patiently help you.
 - Contribute towards the docs. Anything from shaping a whole section of the
   docs, to simply improving a confusing paragraph or fixing a typo.
 - Contribute towards the language.
   - Find instances where the compiler produces incorrect results, and post a bug
-    report — feel free to use the [playground](https://prql-lang.org/playground).
+    report — feel free to use the
+    [playground](https://prql-lang.org/playground).
   - Open an issue / append to an existing issue with examples of queries that
     are difficult to express in PRQL — especially if more difficult than SQL.
   - With sufficient examples, suggest a change to the language! (Though
@@ -45,8 +46,9 @@ project; thank you in advance.
 - If a change is user-facing, it would be helpful to add a line in
   [**`CHANGELOG.md`**](CHANGELOG.md), with `{message}, ({@contributor, #X})`
   where `X` is the PR number.
-- We're experimenting with using the [Conventional
-  Commits](https://www.conventionalcommits.org) message format, enforced through
+- We're experimenting with using the
+  [Conventional Commits](https://www.conventionalcommits.org) message format,
+  enforced through
   [action-semantic-pull-request](https://github.com/amannn/action-semantic-pull-request).
   This would let us generate Changelogs automatically. The check is not required
   to pass at the moment.

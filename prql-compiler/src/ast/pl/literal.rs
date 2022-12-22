@@ -4,7 +4,7 @@ use std::fmt::Display;
 use enum_as_inner::EnumAsInner;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize)]
+#[derive(Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize, strum::AsRefStr)]
 pub enum Literal {
     Null,
     Integer(i64),

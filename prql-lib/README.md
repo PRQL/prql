@@ -2,11 +2,13 @@
 
 ## Description
 
-This module compiles PRQL as a library (both `.a` and `.so` are generated). This allows embedding in languages that support FFI - looking at Golang.
+This module compiles PRQL as a library (both `.a` and `.so` are generated). This
+allows embedding in languages that support FFI - looking at Golang.
 
 ## Usage
 
-Copy the `.a` and `.so` files in a convenient place and add the following compile flags to Go (cgo):
+Copy the `.a` and `.so` files in a convenient place and add the following
+compile flags to Go (cgo):
 
 `CGO_LDFLAGS="-L/path/to/libprql_lib.a -lprql_lib -pthread -ldl" go build`
 

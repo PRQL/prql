@@ -5,10 +5,15 @@ import org.junit.Test;
 public class PrqlCompilerTest {
     @Test
     public void compile() {
-        String sql = "SELECT\n" +
+        String found = PrqlCompiler.toSql("from table");
+
+        // remove signature
+        found = found.substring(0, found.indexOf("\n\n--"));
+
+        String expected = "SELECT\n" +
                 "  *\n" +
                 "FROM\n" +
                 "  table";
-        assert sql.equalsIgnoreCase(PrqlCompiler.toSql("from table"));
+        assert expected.equalsIgnoreCase(found);
     }
 }

@@ -233,6 +233,10 @@ pub fn fold_expr_kind<F: ?Sized + RqFold>(fold: &mut F, kind: ExprKind) -> Resul
                 .map(|c| fold_switch_case(fold, c))
                 .try_collect()?,
         ),
+        ExprKind::BuiltInFunction { name, args } => ExprKind::BuiltInFunction {
+            name,
+            args: args.into_iter().map(|a| fold.fold_expr(a)).try_collect()?,
+        },
 
         ExprKind::Literal(_) => kind,
     })

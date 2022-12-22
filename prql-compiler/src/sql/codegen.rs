@@ -5,9 +5,9 @@ use itertools::Itertools;
 use lazy_static::lazy_static;
 use regex::Regex;
 use sqlparser::ast::{
-    self as sql_ast, BinaryOperator, DateTimeField, Function, FunctionArg, FunctionArgExpr, Join,
-    JoinConstraint, JoinOperator, ObjectName, OrderByExpr, SelectItem, TableAlias, TableFactor,
-    Top, UnaryOperator, Value, WindowFrameBound, WindowSpec,
+    self as sql_ast, BinaryOperator, DateTimeField, Function, FunctionArg, FunctionArgExpr, Ident,
+    Join, JoinConstraint, JoinOperator, ObjectName, OrderByExpr, SelectItem, TableAlias,
+    TableFactor, Top, UnaryOperator, Value, WindowFrameBound, WindowSpec,
 };
 use sqlparser::keywords::{
     Keyword, ALL_KEYWORDS, ALL_KEYWORDS_INDEX, RESERVED_FOR_COLUMN_ALIAS, RESERVED_FOR_TABLE_ALIAS,
@@ -47,7 +47,24 @@ pub(super) fn translate_expr_kind(item: ExprKind, ctx: &mut Context) -> Result<s
                     BinOp::Lte => BinaryOperator::LtEq,
                     BinOp::And => BinaryOperator::And,
                     BinOp::Or => BinaryOperator::Or,
-                    BinOp::Coalesce => unreachable!(),
+                    BinOp::Coalesce => {
+                        let left = translate_operand(left.kind, 0, false, ctx)?;
+                        let right = translate_operand(right.kind, 0, false, ctx)?;
+
+                        return Ok(sql_ast::Expr::Function(Function {
+                            name: ObjectName(vec![Ident {
+                                value: "COALESCE".to_string(),
+                                quote_style: None,
+                            }]),
+                            args: vec![
+                                FunctionArg::Unnamed(FunctionArgExpr::Expr(*left)),
+                                FunctionArg::Unnamed(FunctionArgExpr::Expr(*right)),
+                            ],
+                            over: None,
+                            distinct: false,
+                            special: false,
+                        }));
+                    }
                 };
 
                 let strength = op.binding_strength();
@@ -182,6 +199,9 @@ pub(super) fn translate_expr_kind(item: ExprKind, ctx: &mut Context) -> Result<s
                 results,
                 else_result,
             }
+        }
+        ExprKind::BuiltInFunction { name, args } => {
+            super::std::translate_built_in(name, args, ctx)?
         }
     })
 }

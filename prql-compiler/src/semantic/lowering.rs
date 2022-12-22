@@ -532,9 +532,16 @@ impl Lowerer {
                     })
                     .try_collect()?,
             ),
+            pl::ExprKind::BuiltInFunction { name, args } => {
+                // built-in function
+                let args = args.into_iter().map(|x| self.lower_expr(x)).try_collect()?;
+
+                rq::ExprKind::BuiltInFunction { name, args }
+            }
+
             pl::ExprKind::FuncCall(_)
-            | pl::ExprKind::Closure(_)
             | pl::ExprKind::List(_)
+            | pl::ExprKind::Closure(_)
             | pl::ExprKind::Pipeline(_)
             | pl::ExprKind::TransformCall(_) => bail!("Cannot lower to IR expr: `{ast:?}`"),
         };
