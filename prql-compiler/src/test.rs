@@ -460,7 +460,14 @@ fn test_ranges() {
     filter (age | in ..40)
     "###;
 
-    assert!(compile(query).is_err());
+    assert_display_snapshot!((compile(query).unwrap()), @r###"
+    SELECT
+      *
+    FROM
+      employees
+    WHERE
+      age <= 40
+    "###);
 
     let query = r###"
     from events

@@ -495,13 +495,6 @@ impl Lowerer {
                 }
             }
             pl::ExprKind::Literal(literal) => rq::ExprKind::Literal(literal),
-            pl::ExprKind::Range(Range { start, end }) => rq::ExprKind::Range(Range {
-                start: start
-                    .map(|x| self.lower_expr(*x))
-                    .transpose()?
-                    .map(Box::new),
-                end: end.map(|x| self.lower_expr(*x)).transpose()?.map(Box::new),
-            }),
             pl::ExprKind::Binary { left, op, right } => rq::ExprKind::Binary {
                 left: Box::new(self.lower_expr(*left)?),
                 op,
@@ -540,6 +533,7 @@ impl Lowerer {
             }
 
             pl::ExprKind::FuncCall(_)
+            | pl::ExprKind::Range(_)
             | pl::ExprKind::List(_)
             | pl::ExprKind::Closure(_)
             | pl::ExprKind::Pipeline(_)
