@@ -721,7 +721,6 @@ mod test {
     }
 
     #[test]
-    #[ignore]
     fn test_functions_nested() {
         assert_yaml_snapshot!(resolve_derive(
             r#"
@@ -729,7 +728,7 @@ mod test {
             func ret x dividend_return ->  x / (lag_day x) - 1 + dividend_return
 
             from a
-            select (ret b c)
+            derive (ret b c)
             "#
         )
         .unwrap());
