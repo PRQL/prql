@@ -1940,6 +1940,25 @@ fn test_filter_and_select_changed_alias() {
 }
 
 #[test]
+fn test_unused_alias() {
+    // #1308
+    assert_display_snapshot!(compile(r###"
+    from account
+    select n = [account.name]
+    "###).unwrap_err(), @r###"
+    Error:
+    ╭─[:3:12]
+    │
+    3 │     select n = [account.name]
+    ·            ─────────┬────────
+    ·                     ╰────────── unexpected assign to `n`
+    ·
+    · Help: move assign into the list: `[n = ...]`
+    ───╯
+    "###)
+}
+
+#[test]
 fn test_table_s_string() {
     assert_display_snapshot!(compile(r###"
     s"SELECT DISTINCT ON first_name, age FROM employees ORDER BY age ASC"
