@@ -22,10 +22,7 @@ func row_number<column> -> null
 # Other functions
 func round<scalar> n_digits column -> null
 func as<scalar> `noresolve.type` column -> null
-# TODO: Introduce a notation for getting start and end out of a ranges
-# could be range.0? or range.start? But to make this happen, we need to make
-# changes to how variables are resolved.
-func in<bool> range value -> null
+func in<bool> pattern value -> null
 
 # Transform type definitions
 func from<table> `default_db.source`<table> -> null

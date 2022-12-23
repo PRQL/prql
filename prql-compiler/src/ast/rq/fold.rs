@@ -220,10 +220,6 @@ pub fn fold_expr_kind<F: ?Sized + RqFold>(fold: &mut F, kind: ExprKind) -> Resul
             op,
             expr: Box::new(fold.fold_expr(*expr)?),
         },
-        ExprKind::Range(range) => ExprKind::Range(Range {
-            start: fold_optional_box(fold, range.start)?,
-            end: fold_optional_box(fold, range.end)?,
-        }),
 
         ExprKind::SString(items) => ExprKind::SString(fold_interpolate_items(fold, items)?),
         ExprKind::FString(items) => ExprKind::FString(fold_interpolate_items(fold, items)?),

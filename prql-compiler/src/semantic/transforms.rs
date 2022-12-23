@@ -180,6 +180,49 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
 
             (TransformKind::Concat(Box::new(bottom)), top)
         }
+
+        "std.in" => {
+            // yes, this is not a transform, but this is the most appropriate place for it
+
+            let [pattern, value] = unpack::<2>(closure);
+
+            match pattern.kind {
+                ExprKind::Range(Range { start, end }) => {
+                    let start = start.map(|start| {
+                        Expr::from(ExprKind::Binary {
+                            left: Box::new(value.clone()),
+                            op: BinOp::Gte,
+                            right: start,
+                        })
+                    });
+                    let end = end.map(|end| {
+                        Expr::from(ExprKind::Binary {
+                            left: Box::new(value),
+                            op: BinOp::Lte,
+                            right: end,
+                        })
+                    });
+
+                    let res = new_binop(start, BinOp::And, end);
+                    let res = res
+                        .unwrap_or_else(|| Expr::from(ExprKind::Literal(Literal::Boolean(true))));
+                    return Ok(Ok(res));
+                }
+                ExprKind::List(_) => {
+                    // TODO: should translate into `value IN (...)`
+                    //   but RQ currently does not support sub queries or
+                    //   even expressions that evaluate to a list.
+                }
+                _ => {}
+            }
+            bail!(Error::new(Reason::Expected {
+                who: Some("std.in".to_string()),
+                expected: "a pattern".to_string(),
+                found: pattern.to_string()
+            })
+            .with_span(pattern.span))
+        }
+
         _ => return Ok(Err(closure)),
     };
 

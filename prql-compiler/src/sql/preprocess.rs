@@ -3,7 +3,7 @@ use std::cmp::Ordering;
 use anyhow::Result;
 
 use crate::ast::pl::{BinOp, ColumnSort, InterpolateItem, Literal, Range, WindowFrame, WindowKind};
-use crate::ast::rq::{CId, Compute, Expr, ExprKind, RqFold, Take, Transform, Window};
+use crate::ast::rq::{new_binop, CId, Compute, Expr, ExprKind, RqFold, Take, Transform, Window};
 
 use super::anchor::{infer_complexity, Complexity};
 use super::context::AnchorContext;
@@ -125,7 +125,7 @@ impl<'a> TakeConverter<'a> {
         });
 
         // add the two transforms
-        let range_int = range.clone().try_map(as_int).unwrap();
+        let range_int = range.try_map(as_int).unwrap();
         vec![
             Transform::Compute(compute),
             Transform::Filter(match (range_int.start, range_int.end) {
@@ -137,37 +137,30 @@ impl<'a> TakeConverter<'a> {
                         right: int_expr(s),
                     },
                 },
-                (Some(s), None) => Expr {
-                    span: None,
-                    kind: ExprKind::Binary {
-                        left: col_ref,
-                        op: BinOp::Gte,
-                        right: int_expr(s),
-                    },
-                },
-                (None, Some(e)) => Expr {
-                    span: None,
-                    kind: ExprKind::Binary {
-                        left: col_ref,
-                        op: BinOp::Lte,
-                        right: int_expr(e),
-                    },
-                },
-                (Some(_), Some(_)) => Expr {
-                    kind: ExprKind::SString(vec![
-                        InterpolateItem::Expr(col_ref),
-                        InterpolateItem::String(" BETWEEN ".to_string()),
-                        InterpolateItem::Expr(Box::new(Expr {
-                            kind: ExprKind::Range(range.map(Box::new)),
-                            span: None,
-                        })),
-                    ]),
-                    span: None,
-                },
-                (None, None) => Expr {
-                    kind: ExprKind::Literal(Literal::Boolean(true)),
-                    span: None,
-                },
+                (start, end) => {
+                    let start = start.map(|start| Expr {
+                        kind: ExprKind::Binary {
+                            left: col_ref.clone(),
+                            op: BinOp::Gte,
+                            right: int_expr(start),
+                        },
+                        span: None,
+                    });
+                    let end = end.map(|end| Expr {
+                        kind: ExprKind::Binary {
+                            left: col_ref,
+                            op: BinOp::Lte,
+                            right: int_expr(end),
+                        },
+                        span: None,
+                    });
+
+                    let res = new_binop(start, BinOp::And, end);
+                    res.unwrap_or(Expr {
+                        kind: ExprKind::Literal(Literal::Boolean(true)),
+                        span: None,
+                    })
+                }
             }),
         ]
     }
