@@ -11,7 +11,7 @@ you start:
 PRQL is evolving into a medium-sized project and we are looking for help in a
 few different areas.
 
-### Compiler development
+### Compiler
 
 Compiler is written in Rust, and there's enough to do such that any level of
 experience with rust is sufficient.
@@ -27,7 +27,7 @@ To get started, you should read [DEVELOPMENT.md](./DEVELOPMENT.md) and
 And if you have questions, there are lots of friendly people on the Discord who
 will patiently help you.
 
-### PRQL IDE
+### IDE
 
 For non-technical savvy people, best way to explain a language and make it
 useful is to build a UI. We currently do have the playground, but we are
@@ -49,7 +49,7 @@ not be hidden in the playground code.
 The project is in the brainstorming phase, so I you are interested, post a
 message in the #web Discord channel.
 
-### Bindings and integrations
+### Integrations
 
 PRQL will become usable for everyday tasks when it becomes easy to use from
 other languages and tools.
