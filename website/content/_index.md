@@ -11,6 +11,16 @@ hero_section:
     enable: false
     link: https://prql-lang.org/book/
     label: "Reference"
+  callout: |
+    We are looking for help! Contribute with any of these:
+    - [compiler development (Rust)
+      ](https://github.com/PRQL/prql/blob/main/CONTRIBUTING.md#compiler)
+    - [IDE (a web application in brainstorming phase)
+      ](https://github.com/PRQL/prql/blob/main/CONTRIBUTING.md#ide)
+    - [website design & copy
+      ](https://github.com/PRQL/prql/blob/main/CONTRIBUTING.md#integrations)
+    - [language design
+      ](https://github.com/PRQL/prql/blob/main/CONTRIBUTING.md#language-design)
   prql_example: |
     from employees
     filter start_date > @2021-01-01

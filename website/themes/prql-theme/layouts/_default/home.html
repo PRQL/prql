@@ -12,7 +12,7 @@
                 <span>“Prequel”</span>
               </h4>
               <h2 class="mb-3">{{ .heading | markdownify }}</h2>
-              <p class="mb-3">{{ .bottom_text | markdownify }}</p>
+              <p class="mb-3 bottom-text">{{ .bottom_text | markdownify }}</p>
               {{ if .button.enable }}
                 {{ with .button }}
                   <a
@@ -24,6 +24,7 @@
                   >
                 {{ end }}
               {{ end }}
+              <div class="card callout">{{ .callout | markdownify }}</div>
             </div>
             <div class="col-lg-6 pt-4 pt-lg-0">
               <pre tabindex="0">
