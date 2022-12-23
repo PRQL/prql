@@ -12,6 +12,7 @@
     ]
   },
   "dependencies": {
+    "@duckdb/duckdb-wasm": "^1.20.0",
     "@monaco-editor/react": "^4.4.6",
     "@testing-library/jest-dom": "^5.16.5",
     "@testing-library/react": "^13.4.0",
@@ -39,7 +40,7 @@
   "scripts": {
     "build": "react-scripts build",
     "eject": "react-scripts eject",
-    "preinstall": "cd ../prql-js && npm run build:bundler",
+    "preinstall": "cp -r ../prql-compiler/tests/integration/data public && cd ../prql-js && npm run build:bundler",
     "start": "react-scripts start",
     "test": "react-scripts test"
   },

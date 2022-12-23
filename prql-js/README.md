@@ -15,11 +15,11 @@ Currently these functions are exposed
 ```javascript
 function compile(prql_query: string, options?: CompileOptions): string;
 
-function pl_of_prql(prql_query: string): string;
+function prql_to_pl(prql_query: string): string;
 
-function rq_of_pl(pl_json: string): string;
+function pl_to_rq(pl_json: string): string;
 
-function sql_of_rq(rq_json: string): string;
+function rq_to_sql(rq_json: string): string;
 ```
 
 ### From NodeJS
@@ -125,9 +125,8 @@ npm test
 
 ## Notes
 
-- This uses
-  [`wasm-pack`](https://rustwasm.github.io/docs/wasm-pack/)
-  to generate bindings.
+- This uses [`wasm-pack`](https://rustwasm.github.io/docs/wasm-pack/) to
+  generate bindings.
 - We've added an `npm` layer on top of the usual approach of just using
   `wasm-pack`, so we can distribute a single package with targets of `node`,
   `bundler` and `no-modules` — somewhat inverting the approach recommended by

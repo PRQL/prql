@@ -128,7 +128,9 @@ fn run_reference_prql() {
         }
 
         println!("{:?}", path);
-        let sql = compile(&prql).unwrap_or_else(|e| format!("Failed to compile `{prql}`; {e}"));
+
+        let opts = sql::Options::default().no_signature().some();
+        let sql = compile(&prql, opts).unwrap_or_else(|e| format!("{prql}\n\n{e}"));
         assert_snapshot!(sql);
     });
 }
@@ -142,6 +144,6 @@ fn run_display_reference_prql() {
             return;
         }
 
-        assert_display_snapshot!(pl_of_prql(&prql).and_then(prql_of_pl).unwrap());
+        assert_display_snapshot!(prql_to_pl(&prql).and_then(pl_to_prql).unwrap());
     });
 }

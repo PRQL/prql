@@ -2,18 +2,17 @@
 source: prql-compiler/src/semantic/resolver.rs
 expression: "resolve_derive(r#\"\n            from a\n            derive one = (foo | sum)\n            \"#).unwrap()"
 ---
-- id: 12
-  SString:
-    - String: SUM(
-    - Expr:
-        id: 9
+- id: 10
+  BuiltInFunction:
+    name: std.sum
+    args:
+      - id: 9
         Ident:
           - _frame
           - a
           - foo
         target_id: 4
         ty: Infer
-    - String: )
   ty:
     Literal: Column
   alias: one

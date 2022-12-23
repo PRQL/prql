@@ -1,17 +1,22 @@
 # Employees
 
-These are homework tasks on [employees database](https://github.com/vrajmohan/pgsql-sample-data.git).
+These are homework tasks on
+[employees database](https://github.com/vrajmohan/pgsql-sample-data.git).
 
 Clone and init the database (requires a local PostgreSQL instance):
 
-    $ psql -U postgres -c 'CREATE DATABASE employees;'
-    $ git clone https://github.com/vrajmohan/pgsql-sample-data.git
-    $ psql -U postgres -d employees -f pgsql-sample-data/employee/employees.dump
+```sh
+psql -U postgres -c 'CREATE DATABASE employees;'
+git clone https://github.com/vrajmohan/pgsql-sample-data.git
+psql -U postgres -d employees -f pgsql-sample-data/employee/employees.dump
+```
 
 Execute a PRQL query:
 
-    $ cd prql-compiler
-    $ cargo run compile examples/employees/average-title-salary.prql | psql -U postgres -d employees
+```sh
+cd prql-compiler
+cargo run compile examples/employees/average-title-salary.prql | psql -U postgres -d employees
+```
 
 ## Task 1
 
@@ -20,7 +25,8 @@ Execute a PRQL query:
 My solution:
 
 - for each employee, find their average salary,
-- join employees with their departments and titles (duplicating employees for each of their titles and departments)
+- join employees with their departments and titles (duplicating employees for
+  each of their titles and departments)
 - group by department and title, aggregating average salary
 - join with department to get department name
 

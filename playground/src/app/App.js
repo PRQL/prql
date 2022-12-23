@@ -2,6 +2,7 @@ import "./App.css";
 import Workbench from "../workbench/Workbench";
 import Sidebar from "../sidebar/Sidebar";
 import examples from "../examples";
+import * as duckdb from "../workbench/duckdb";
 
 import React from "react";
 
@@ -12,11 +13,19 @@ function loadLocalStorage() {
 function saveLocalStorage(files) {
   return localStorage.setItem("files", JSON.stringify(files));
 }
+
+const chinook = duckdb.CHINOOK_TABLES.reduce((lib, table) => {
+  return Object.assign(lib, {
+    [table + ".prql"]: ["arrow", `from ${table}\ntake 10`],
+  });
+}, {});
+
 class App extends React.Component {
   workbenchActions = null;
   state = {
     library: {
-      examples: examples,
+      examples,
+      chinook,
       "local storage": loadLocalStorage(),
     },
   };

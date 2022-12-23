@@ -6,25 +6,19 @@ Work with pandas and PRQL in an IPython terminal or Jupyter notebook.
 
 ## Implementation
 
-This is a thin wrapper around the fantastic
-[IPython-sql][ipysql] magic.
-Roughly speaking,
-all we do is parse PRQL to SQL and pass that through to `ipython-sql`.
+This is a thin wrapper around the fantastic [IPython-sql][ipysql] magic. Roughly
+speaking, all we do is parse PRQL to SQL and pass that through to `ipython-sql`.
 A full documentation of the supported features is available at their
-[repository][ipysql].
-Here, we document those places where we differ from them,
+[repository][ipysql]. Here, we document those places where we differ from them,
 plus those features we think you are mostly likely to find useful.
 
 ## Usage
 
 ### Installation
 
-If you have already installed PyPRQL into your environment,
-then you should be could to go!
-We bundle in `IPython` and `pandas`,
-though you'll need to install `Jupyter` separately.
-If you haven't installed PyPRQL,
-that's as simple as:
+If you have already installed PyPRQL into your environment, then you should be
+could to go! We bundle in `IPython` and `pandas`, though you'll need to install
+`Jupyter` separately. If you haven't installed PyPRQL, that's as simple as:
 
 ```shell
 pip install pyprql
@@ -73,13 +67,13 @@ We have two options for connecting a database
 
 2. Connect to an existing database
 
-   When connecting to a database, pass the connection string as an argument to the
-   line magic `%prql`. The connection string needs to be in [SQLAlchemy
-   format][conn_str], so any connection supported by `SQLAlchemy` is supported by
-   the magic. Additional connection parameters can be passed as a dictionary using
-   the `--connection_arguments` flag to the the `%prql` line magic. We ship with
-   the necessary extensions to use [DuckDB][duckdb] as the backend, and here
-   connect to an in-memory database.
+   When connecting to a database, pass the connection string as an argument to
+   the line magic `%prql`. The connection string needs to be in [SQLAlchemy
+   format][conn_str], so any connection supported by `SQLAlchemy` is supported
+   by the magic. Additional connection parameters can be passed as a dictionary
+   using the `--connection_arguments` flag to the the `%prql` line magic. We
+   ship with the necessary extensions to use [DuckDB][duckdb] as the backend,
+   and here connect to an in-memory database.
 
 ### Querying
 

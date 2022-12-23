@@ -68,8 +68,8 @@ people some time. But imperatively programming text generation with code like
 `if not loop.last` is not our highest calling. It's the "necessary" part rather
 than beautiful part of dbt.
 
-Here's the canonical example of macros in the [dbt
-documentation](https://docs.getdbt.com/docs/get-started/learning-more/using-jinja):
+Here's the canonical example of macros in the
+[dbt documentation](https://docs.getdbt.com/docs/get-started/learning-more/using-jinja):
 
 ```sql
 {%- set payment_methods = ["bank_transfer", "credit_card", "gift_card"] -%}
@@ -103,8 +103,8 @@ group order_id (
 
 As well the query being simpler in its final form, writing in PRQL also gives us
 live feedback around any errors, on every keystroke. Though there's much more to
-come, check out the current version on [PRQL
-Playground](https://prql-lang.org/playground/).
+come, check out the current version on
+[PRQL Playground](https://prql-lang.org/playground/).
 
 ## What it does
 
