@@ -314,24 +314,6 @@ impl Expr {
         Expr::from(ExprKind::Literal(Literal::Null))
     }
 
-    pub fn coerce_into_vec(self) -> Vec<Expr> {
-        match self.kind {
-            ExprKind::List(items) => items,
-            _ => vec![self],
-        }
-    }
-
-    pub fn coerce_as_mut_vec(&mut self) -> Vec<&mut Expr> {
-        if matches!(self.kind, ExprKind::List(_)) {
-            match &mut self.kind {
-                ExprKind::List(items) => items.iter_mut().collect(),
-                _ => unreachable!(),
-            }
-        } else {
-            vec![self]
-        }
-    }
-
     pub fn try_cast<T, F, S2: ToString>(
         self,
         f: F,

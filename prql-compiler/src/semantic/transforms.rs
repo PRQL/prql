@@ -30,7 +30,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
         "std.select" => {
             let [assigns, tbl] = unpack::<2>(closure);
 
-            let assigns = assigns.coerce_into_vec();
+            let assigns = coerce_into_vec(assigns)?;
             (TransformKind::Select { assigns }, tbl)
         }
         "std.filter" => {
@@ -42,20 +42,19 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
         "std.derive" => {
             let [assigns, tbl] = unpack::<2>(closure);
 
-            let assigns = assigns.coerce_into_vec();
+            let assigns = coerce_into_vec(assigns)?;
             (TransformKind::Derive { assigns }, tbl)
         }
         "std.aggregate" => {
             let [assigns, tbl] = unpack::<2>(closure);
 
-            let assigns = assigns.coerce_into_vec();
+            let assigns = coerce_into_vec(assigns)?;
             (TransformKind::Aggregate { assigns }, tbl)
         }
         "std.sort" => {
             let [by, tbl] = unpack::<2>(closure);
 
-            let by = by
-                .coerce_into_vec()
+            let by = coerce_into_vec(by)?
                 .into_iter()
                 .map(|node| {
                     let (column, direction) = match node.kind {
@@ -103,7 +102,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
                 }
             };
 
-            let filter = Box::new(Expr::collect_and(filter.coerce_into_vec()));
+            let filter = Box::new(Expr::collect_and(coerce_into_vec(filter)?));
 
             let with = Box::new(with);
             (TransformKind::Join { side, with, filter }, tbl)
@@ -111,7 +110,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
         "std.group" => {
             let [by, pipeline, tbl] = unpack::<3>(closure);
 
-            let by = by.coerce_into_vec();
+            let by = coerce_into_vec(by)?;
 
             let pipeline = fold_by_simulating_eval(resolver, pipeline, tbl.ty.clone().unwrap())?;
 
@@ -234,6 +233,25 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
         sort: Vec::new(),
     };
     Ok(Ok(Expr::from(ExprKind::TransformCall(transform_call))))
+}
+
+/// Wraps non-list Exprs into a singleton List.
+// This function should eventually be applied to all function arguments that
+// expect a list.
+pub fn coerce_into_vec(expr: Expr) -> Result<Vec<Expr>> {
+    Ok(match expr.kind {
+        ExprKind::List(items) => {
+            if let Some(alias) = expr.alias {
+                bail!(Error::new(Reason::Unexpected {
+                    found: format!("assign to `{alias}`")
+                })
+                .with_help(format!("move assign into the list: `[{alias} = ...]`"))
+                .with_span(expr.span))
+            }
+            items
+        }
+        _ => vec![expr],
+    })
 }
 
 /// Simulate evaluation of the inner pipeline of group or window
