@@ -119,7 +119,7 @@ code {
   background: white;
   z-index: 997;
   padding: 15px 0;
-  border-bottom: 1px solid rgba(0,0,0,.125);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.125);
 }
 
 #header .logo img {
@@ -369,11 +369,11 @@ pre ::-webkit-scrollbar-thumb:hover {
 }
 
 .callout {
-    padding: 1.25rem 1.25rem 0.5rem 1.25rem;
-    margin-top: 1.25rem;
-    margin-bottom: 1.25rem;
-    background-color: #fff;
-    border-left: 0.25rem solid #c92a2a;
+  padding: 1.25rem 1.25rem 0.5rem 1.25rem;
+  margin-top: 1.25rem;
+  margin-bottom: 1.25rem;
+  background-color: #fff;
+  border-left: 0.25rem solid #c92a2a;
 }
 
 /*--------------------------------------------------------------
