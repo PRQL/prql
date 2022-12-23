@@ -63,7 +63,7 @@ Op_bin { Op_bin_only | Op_unary }
   Range { ".." }
   // Couldn't managed to do these as a template; couldn't find how to negate in a template
   String { $["] !["]* $["] | $['] ![']* $['] }
-  
+
   S_string { 's' String }
   F_string { 'f' String }
 
