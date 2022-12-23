@@ -535,6 +535,7 @@ impl Lowerer {
             | pl::ExprKind::List(_)
             | pl::ExprKind::Closure(_)
             | pl::ExprKind::Pipeline(_)
+            | pl::ExprKind::Match(_, _)
             | pl::ExprKind::TransformCall(_) => {
                 log::debug!("cannot lower {ast:?}");
                 return Err(Error::new(Reason::Unexpected {

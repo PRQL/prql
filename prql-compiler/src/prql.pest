@@ -52,7 +52,7 @@ named_arg   = !{ ident_part ~ ":" ~ !":" ~ expr }
 alias = !{ ident_part ~ "=" ~ !"=" ~ expr }
 assign = !{ ident_part ~ "=" ~ !"=" ~ expr_call }
 
-expr_call = _{ (func_call | expr) }
+expr_call = _{ (match_ | func_call | expr) }
 
 expr = !{ expr_coalesce ~ (operator_logical ~ expr)? }
 expr_coalesce = { expr_compare ~ (operator_coalesce ~ expr_coalesce)? }
@@ -60,7 +60,7 @@ expr_compare = { expr_add ~ (operator_compare ~ expr_add)? }
 expr_add = { expr_mul ~ (operator_add ~ expr_add)? }
 expr_mul = { term ~ (operator_mul ~ expr_mul)? }
 
-term = _{ ( switch | s_string | f_string | range | literal | ident | nested_pipeline | expr_unary | list | jinja ) }
+term = _{ ( switch | match_ | s_string | f_string | range | literal | ident | nested_pipeline | expr_unary | list | jinja ) }
 expr_unary = { ( operator_unary ~ ( nested_pipeline | ident | list )) }
 literal = _{ value_and_unit | number | boolean | null | string | timestamp | date | time }
 // `assign | pipeline` based on discussion in #648
@@ -111,7 +111,7 @@ operator = _{ operator_unary | operator_binary }
 operator_binary = _{ operator_mul | operator_add | operator_compare | operator_logical | operator_coalesce }
 operator_unary = ${ "-" | "+" | "!" | "==" }
 operator_mul = ${ "*" | "/" | "%" }
-operator_add = ${ "+" | "-" }
+operator_add = ${ "+" | "-" ~ !">" }
 operator_compare = ${ "==" | "!=" | ">=" | "<=" | ">" | "<" }
 operator_logical = ${ ("and" | "or") ~ &WHITESPACE }
 operator_coalesce = ${ "??" }
@@ -151,3 +151,5 @@ jinja = { ("{{" ~ (!"}}" ~ ANY)* ~ "}}") }
 
 switch = { "switch" ~ "[" ~ (NEWLINE* ~ switch_case ~ ("," ~ NEWLINE* ~ switch_case )* ~ ","?)? ~ NEWLINE* ~ "]" }
 switch_case = { expr_call ~ "->" ~ expr_call }
+
+match_ = { "match" ~ expr ~ "[" ~ (NEWLINE* ~ switch_case ~ ("," ~ NEWLINE* ~ switch_case )* ~ ","?)? ~ NEWLINE* ~ "]" }

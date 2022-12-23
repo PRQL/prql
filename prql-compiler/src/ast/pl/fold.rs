@@ -97,6 +97,7 @@ pub fn fold_expr_kind<T: ?Sized + AstFold>(fold: &mut T, expr_kind: ExprKind) ->
                 .try_collect()?,
         ),
         Switch(cases) => Switch(fold_cases(fold, cases)?),
+        Match(expr, cases) => Match(Box::new(fold.fold_expr(*expr)?), fold_cases(fold, cases)?),
 
         FuncCall(func_call) => FuncCall(fold.fold_func_call(func_call)?),
         Closure(closure) => Closure(Box::new(fold.fold_closure(*closure)?)),
