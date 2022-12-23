@@ -60,6 +60,7 @@ pub enum ExprKind {
     SString(Vec<InterpolateItem>),
     FString(Vec<InterpolateItem>),
     Switch(Vec<SwitchCase>),
+    Match(Box<Expr>, Vec<SwitchCase>),
     BuiltInFunction {
         name: String,
         args: Vec<Expr>,
@@ -522,7 +523,14 @@ impl Display for Expr {
                 write!(f, "{}", literal)?;
             }
             ExprKind::Switch(cases) => {
-                f.write_str("[\n")?;
+                f.write_str("switch [\n")?;
+                for case in cases {
+                    writeln!(f, "  {} => {}", case.condition, case.value)?;
+                }
+                f.write_str("]")?;
+            }
+            ExprKind::Match(expr, cases) => {
+                writeln!(f, "match {expr} [")?;
                 for case in cases {
                     writeln!(f, "  {} => {}", case.condition, case.value)?;
                 }

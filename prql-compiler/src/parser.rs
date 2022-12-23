@@ -343,6 +343,24 @@ fn expr_of_parse_pair(pair: Pair<Rule>) -> Result<Expr> {
             ExprKind::Switch(cases)
         }
 
+        Rule::match_ => {
+            let mut pairs = pair.into_inner();
+            let expr = expr_of_parse_pair(pairs.next().unwrap())?;
+            let cases = pairs
+                .map(|pair| -> Result<_> {
+                    let [condition, value]: [Expr; 2] = pair
+                        .into_inner()
+                        .map(expr_of_parse_pair)
+                        .collect::<Result<Vec<_>>>()?
+                        .try_into()
+                        .unwrap();
+                    Ok(SwitchCase { condition, value })
+                })
+                .try_collect()?;
+
+            ExprKind::Match(Box::new(expr), cases)
+        }
+
         _ => unreachable!("{pair}"),
     };
     Ok(Expr {
