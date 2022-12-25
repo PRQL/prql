@@ -139,14 +139,6 @@ impl Lowerer {
                 table_ref
             }
             ExprKind::SString(items) => {
-                if items.iter().any(|i| matches!(i, InterpolateItem::Expr(_))) {
-                    bail!(Error::new(Reason::Simple(
-                        "table s-strings cannot contain interpolations".to_string(),
-                    ))
-                    .with_help("are you missing `from` statement?")
-                    .with_span(expr.span))
-                }
-
                 let id = expr.id.unwrap();
 
                 // create a new table
