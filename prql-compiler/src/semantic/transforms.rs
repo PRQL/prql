@@ -76,7 +76,14 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
             let range = match expr.kind {
                 ExprKind::Literal(Literal::Integer(n)) => Range::from_ints(None, Some(n)),
                 ExprKind::Range(range) => range,
-                _ => unimplemented!("`take` range: {expr}"),
+                _ => bail!(Error::new(Reason::Expected {
+                    who: Some("`take`".to_string()),
+                    expected: "int or range".to_string(),
+                    found: expr.to_string(),
+                })
+                // Possibly this should refer to the item after the `take` where
+                // one exists?
+                .with_span(expr.span)),
             };
 
             (TransformKind::Take { range }, tbl)
