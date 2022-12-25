@@ -2406,32 +2406,6 @@ fn test_switch() {
 
     assert_display_snapshot!(compile(
         r###"
-    from sales
-    select result = match sales.count [
-        eq 1 -> 'one',
-        in 2..5 -> 'a few',
-        in ..10 -> 'many',
-        eq null -> 'null',
-        in .. -> 'out of bounds'
-    ]
-        "###).unwrap(),
-        @r###"
-    SELECT
-      CASE
-        WHEN count = 1 THEN 'one'
-        WHEN count BETWEEN 2
-        AND 5 THEN 'a few'
-        WHEN count <= 10 THEN 'many'
-        WHEN count IS NULL THEN 'null'
-        ELSE 'out of bounds'
-      END AS result
-    FROM
-      sales
-    "###
-    );
-
-    assert_display_snapshot!(compile(
-        r###"
     from employees
     derive display_name = switch [
         nickname != null -> nickname,
@@ -2448,6 +2422,32 @@ fn test_switch() {
       END AS display_name
     FROM
       employees
+    "###
+    );
+
+    assert_display_snapshot!(compile(
+        r###"
+    from sales
+    select result = match sales.count [
+        1 -> 'one',
+        in 2..5 -> 'a few',
+        in ..10 -> 'many',
+        null -> 'null',
+        in .. -> 'out of bounds'
+    ]
+        "###).unwrap(),
+        @r###"
+    SELECT
+      CASE
+        WHEN count = 1 THEN 'one'
+        WHEN count BETWEEN 2
+        AND 5 THEN 'a few'
+        WHEN count <= 10 THEN 'many'
+        WHEN count IS NULL THEN 'null'
+        ELSE 'out of bounds'
+      END AS result
+    FROM
+      sales
     "###
     );
 }

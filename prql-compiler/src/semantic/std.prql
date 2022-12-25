@@ -39,11 +39,3 @@ func union<table> `default_db.bottom`<table> top<table> -> (
 )
 func group<table> by pipeline tbl<table> -> null
 func window<table> rows:0..0 range:0..0 expanding:false rolling:0 pipeline tbl<table> -> null
-
-# Operators
-func eq a b -> b == a
-func neq a b -> b != a
-func gt a b -> b > a
-func gte a b -> b >= a
-func lt a b -> b < a
-func lte a b -> b <= a

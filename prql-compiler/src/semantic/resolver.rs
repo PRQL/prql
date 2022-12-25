@@ -225,20 +225,29 @@ impl AstFold for Resolver {
 
                 let mut switch = Vec::with_capacity(cases.len());
                 for case in cases {
-                    // I'm calling fold quite liberally, to trigger errors
-                    // early. There is not much cost to it anyway.
+                    // I'm calling fold quite liberally here, to trigger any
+                    // errors early. There is not much cost to it anyway.
 
                     // resolve case
-                    let predicate = self.fold_expr(case.condition)?;
+                    let condition = self.fold_expr(case.condition)?;
                     let value = self.fold_expr(case.value)?;
 
                     // call the predicate
-                    let condition = Expr::from(ExprKind::FuncCall(FuncCall {
-                        name: Box::new(predicate),
-                        args: vec![expr.clone()],
-                        named_args: HashMap::new(),
-                    }));
-                    let condition = self.fold_expr(condition)?;
+                    let condition = match &condition.kind {
+                        ExprKind::Closure(_) => {
+                            let condition = Expr::from(ExprKind::FuncCall(FuncCall {
+                                name: Box::new(condition),
+                                args: vec![expr.clone()],
+                                named_args: HashMap::new(),
+                            }));
+                            self.fold_expr(condition)?
+                        }
+                        _ => Expr::from(ExprKind::Binary {
+                            left: Box::new(expr.clone()),
+                            op: BinOp::Eq,
+                            right: Box::new(condition),
+                        }),
+                    };
 
                     switch.push(SwitchCase { condition, value })
                 }
