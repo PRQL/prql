@@ -70,6 +70,8 @@ jobs:
         working-directory: prql-js
 
   measure-code-cov:
+    # Currently disabled due to https://github.com/actions-rs/tarpaulin/issues/21
+    if: false
     runs-on: ubuntu-latest
     # Currently this runs `cargo clean` which makes the run taking 4 min. TODO:
     # see whether `skip_clean` is reliable and then add this job to every
