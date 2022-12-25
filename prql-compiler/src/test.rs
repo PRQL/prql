@@ -2050,6 +2050,43 @@ fn test_table_s_string() {
       country = 'USA'
     "###
     );
+
+    assert_display_snapshot!(compile(r###"
+    func weeks_between start end -> s"SELECT generate_series({start}, {end}, '1 week') as date"
+    func current_week -> s"date(date_trunc('week', current_date))"
+
+    weeks_between @2022-06-03 (current_week + 4)
+    "###).unwrap(),
+        @r###"
+    WITH table_1 AS (
+      SELECT
+        generate_series(
+          DATE '2022-06-03',
+          date(date_trunc('week', current_date)) + 4,
+          '1 week'
+        ) as date
+    )
+    SELECT
+    FROM
+      table_1 AS table_0
+    "###
+    );
+
+    assert_display_snapshot!(compile(r###"
+    s"SELECT * FROM {default_db.x}"
+    "###).unwrap(),
+        @r###"
+    WITH table_1 AS (
+      SELECT
+        *
+      FROM
+        x
+    )
+    SELECT
+    FROM
+      table_1 AS table_0
+    "###
+    );
 }
 
 #[test]
