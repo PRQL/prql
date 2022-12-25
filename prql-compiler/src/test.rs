@@ -2291,3 +2291,26 @@ fn test_static_analysis() {
     "###
     );
 }
+
+#[test]
+fn test_closures_and_pipelines() {
+    assert_display_snapshot!(compile(
+        r###"
+    func addthree<column> a b c -> s"{a} || {b} || {c}"
+    func arg myarg myfunc -> ( myfunc myarg )
+
+    from y
+    select x = (
+        addthree "apples"
+        arg "bananas"
+        arg "citrus"
+    )
+        "###).unwrap(),
+        @r###"
+    SELECT
+      'apples' || 'bananas' || 'citrus' AS x
+    FROM
+      y
+    "###
+    );
+}

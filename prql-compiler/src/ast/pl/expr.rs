@@ -154,6 +154,14 @@ pub struct Closure {
     pub env: HashMap<String, Expr>,
 }
 
+impl Closure {
+    pub fn as_debug_name(&self) -> &str {
+        let ident = self.name.as_ref();
+
+        ident.map(|n| n.name.as_str()).unwrap_or("<anonymous>")
+    }
+}
+
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub struct WindowFrame<T = Box<Expr>> {
     pub kind: WindowKind,

@@ -691,7 +691,7 @@ mod tests {
         let (result, _) = resolve_only(query, None).unwrap();
         assert_yaml_snapshot!(result, @r###"
         ---
-        - Pipeline:
+        - Main:
             id: 12
             TransformCall:
               input:
