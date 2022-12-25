@@ -61,11 +61,21 @@ Op_bin { Op_bin_only | Op_unary }
   end { @eof }
   newline { "\n" }
   Range { ".." }
-  // Couldn't managed to do these as a template; couldn't find how to negate in a template
+  // Couldn't managed to do these as a template; couldn't find how to negate a variable template
   String { $["] !["]* $["] | $['] ![']* $['] }
 
-  S_string { 's' String }
-  F_string { 'f' String }
+  // TODO: not getting the interpolations highlighted; it just shows the whole string as a string
+  String_interpolated_single { $['] ( ![{'] | Interpolation_inner_single )* $['] }
+  String_interpolated_double { $["] ( ![{"] | Interpolation_inner_double )* $["] }
+
+  Interpolation_inner_single { "{" ![}']* "}" }
+  Interpolation_inner_double { "{" ![}"]* "}" }
+
+  Interpolated_string<prefix> { prefix ( String_interpolated_double | String_interpolated_single ) }
+
+  // S_string { "s" ( String_interpolated_double | String_interpolated_single ) }
+  S_string {Interpolated_string<'s'>}
+  F_string {Interpolated_string<'f'>}
 
   // We need to give precedence to `Op_bin` so we don't get `x+y` as `x` & `+y`.
   // S & F strings have precedence over idents beginning with s / f (we could use specialize but I think means we need to redefine `String` for each)
