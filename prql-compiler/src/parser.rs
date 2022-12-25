@@ -51,7 +51,7 @@ fn stmt_of_parse_pair(pair: Pair<Rule>) -> Result<Stmt> {
     let kind = match rule {
         Rule::pipeline_stmt => {
             let pipeline = expr_of_parse_pair(pair.into_inner().next().unwrap())?;
-            StmtKind::Pipeline(Box::new(pipeline))
+            StmtKind::Main(Box::new(pipeline))
         }
         Rule::query_def => {
             let mut params: HashMap<_, _> = pair
@@ -457,7 +457,7 @@ mod test {
 
         assert_yaml_snapshot!(stmts_of_string(r#"take 10"#)?, @r###"
         ---
-        - Pipeline:
+        - Main:
             FuncCall:
               name:
                 Ident:
@@ -706,7 +706,7 @@ Canada
         aggregate (sum order_id)
         "#)?, @r###"
         ---
-        - Pipeline:
+        - Main:
             Pipeline:
               exprs:
                 - FuncCall:
@@ -874,7 +874,7 @@ Canada
         assert_yaml_snapshot!(
             stmts_of_string(r#"filter country == "USA""#).unwrap(), @r###"
         ---
-        - Pipeline:
+        - Main:
             FuncCall:
               name:
                 Ident:
@@ -930,7 +930,7 @@ Canada
         assert_yaml_snapshot!(
             aggregate, @r###"
         ---
-        - Pipeline:
+        - Main:
             FuncCall:
               name:
                 Ident:
@@ -1397,7 +1397,7 @@ take 20
 
         assert_yaml_snapshot!(parse(r#"from mytable | select [a and b + c or (d e) and f]"#).unwrap(), @r###"
         ---
-        - Pipeline:
+        - Main:
             Pipeline:
               exprs:
                 - FuncCall:
@@ -1593,7 +1593,7 @@ take 20
                             - foo
                           alias: only_in_x
                       named_args: {}
-        - Pipeline:
+        - Main:
             FuncCall:
               name:
                 Ident:
@@ -1659,7 +1659,7 @@ take 20
         ]
         "#)?, @r###"
         ---
-        - Pipeline:
+        - Main:
             Pipeline:
               exprs:
                 - FuncCall:
@@ -1724,7 +1724,7 @@ join `my-proj`.`dataset`.`table`
 
         assert_yaml_snapshot!(parse(prql)?, @r###"
         ---
-        - Pipeline:
+        - Main:
             Pipeline:
               exprs:
                 - FuncCall:
@@ -1784,7 +1784,7 @@ join `my-proj`.`dataset`.`table`
         sort [issued_at, -amount, +num_of_articles]
         ").unwrap(), @r###"
         ---
-        - Pipeline:
+        - Main:
             Pipeline:
               exprs:
                 - FuncCall:
@@ -1871,7 +1871,7 @@ join `my-proj`.`dataset`.`table`
         ]
         ").unwrap(), @r###"
         ---
-        - Pipeline:
+        - Main:
             Pipeline:
               exprs:
                 - FuncCall:
@@ -1960,7 +1960,7 @@ join `my-proj`.`dataset`.`table`
         derive [age_plus_two_years = (age + 2years)]
         ").unwrap(), @r###"
         ---
-        - Pipeline:
+        - Main:
             Pipeline:
               exprs:
                 - FuncCall:
@@ -2030,7 +2030,7 @@ join `my-proj`.`dataset`.`table`
         derive x = r#"r-string test"#
         "###).unwrap(), @r###"
         ---
-        - Pipeline:
+        - Main:
             FuncCall:
               name:
                 Ident:
@@ -2050,7 +2050,7 @@ join `my-proj`.`dataset`.`table`
         derive amount = amount ?? 0
         "###).unwrap(), @r###"
         ---
-        - Pipeline:
+        - Main:
             Pipeline:
               exprs:
                 - FuncCall:
@@ -2085,7 +2085,7 @@ join `my-proj`.`dataset`.`table`
         derive x = true
         "###).unwrap(), @r###"
         ---
-        - Pipeline:
+        - Main:
             FuncCall:
               name:
                 Ident:
@@ -2107,7 +2107,7 @@ join `my-proj`.`dataset`.`table`
         select [_employees._underscored_column]
         "###).unwrap(), @r###"
         ---
-        - Pipeline:
+        - Main:
             Pipeline:
               exprs:
                 - FuncCall:
@@ -2169,7 +2169,7 @@ join `my-proj`.`dataset`.`table`
         filter num_eyes < 2
         "###).unwrap(), @r###"
         ---
-        - Pipeline:
+        - Main:
             Pipeline:
               exprs:
                 - FuncCall:
@@ -2246,7 +2246,7 @@ from employees
 join s=salaries [==id]
         "###).unwrap(), @r###"
         ---
-        - Pipeline:
+        - Main:
             Pipeline:
               exprs:
                 - FuncCall:

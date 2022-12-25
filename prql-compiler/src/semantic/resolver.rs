@@ -83,9 +83,9 @@ impl AstFold for Resolver {
                     self.decls.declare_table(table_def, stmt.id);
                     continue;
                 }
-                StmtKind::Pipeline(expr) => {
+                StmtKind::Main(expr) => {
                     let expr = Flattener::fold(self.fold_expr(*expr)?);
-                    StmtKind::Pipeline(Box::new(expr))
+                    StmtKind::Main(Box::new(expr))
                 }
             };
 
@@ -271,15 +271,27 @@ impl Resolver {
         let mut value = exprs.remove(0);
         value = self.fold_expr(value)?;
 
+        // This is a workaround for pipelines that start with a transform.
+        // It checks if first value has resolved to a closure, and if it has,
+        // constructs an adhoc closure around the pipeline.
+        // Maybe this should not even be supported, or maybe we should have
+        // some kind of indication that first element of a pipeline is not a
+        // plain value.
         let closure_param = if let ExprKind::Closure(closure) = &mut value.kind {
-            let param = "_pip_val";
-            let value = Expr::from(ExprKind::Ident(Ident::from_name(param)));
-            closure.args.push(value);
-            Some(param)
+            // only apply this workaround if closure expects a single arg
+            if (closure.params.len() - closure.args.len()) == 1 {
+                let param = "_pip_val";
+                let value = Expr::from(ExprKind::Ident(Ident::from_name(param)));
+                closure.args.push(value);
+                Some(param)
+            } else {
+                None
+            }
         } else {
             None
         };
 
+        // the beef of this function: wrapping into func calls
         for expr in exprs {
             let span = expr.span;
 
@@ -291,6 +303,7 @@ impl Resolver {
             value.span = span;
         }
 
+        // second part of the workaround
         if let Some(closure_param) = closure_param {
             value = Expr::from(ExprKind::Closure(Box::new(Closure {
                 name: None,
@@ -344,10 +357,23 @@ impl Resolver {
         let closure = self.apply_args_to_closure(closure, args, named_args)?;
         let args_len = closure.args.len();
 
-        log::debug!("{} >= {}", closure.args.len(), closure.params.len());
+        log::debug!(
+            "func {} {}/{} params",
+            closure.as_debug_name(),
+            closure.args.len(),
+            closure.params.len()
+        );
         let enough_args = closure.args.len() >= closure.params.len();
 
         let mut r = if enough_args {
+            // push the env
+            let closure_env = Module::from_exprs(closure.env);
+            self.decls.root_mod.stack_push(NS_PARAM, closure_env);
+            let closure = Closure {
+                env: HashMap::new(),
+                ..closure
+            };
+
             if log::log_enabled!(log::Level::Debug) {
                 let name = closure
                     .name
@@ -365,16 +391,17 @@ impl Resolver {
 
                 // this function call is not a built-in, proceed with materialization
                 Err(closure) => {
+                    log::debug!("stack_push for {}", closure.as_debug_name());
+
                     let (func_env, body) = env_of_closure(closure);
 
                     self.decls.root_mod.stack_push(NS_PARAM, func_env);
-                    log::debug!("stack_push");
 
                     // fold again, to resolve inner variables & functions
                     let body = self.fold_expr(body)?;
 
                     // remove param decls
-                    log::debug!("stack_pop");
+                    log::debug!("stack_pop: {:?}", body.id);
                     let func_env = self.decls.root_mod.stack_pop(NS_PARAM).unwrap();
 
                     if let ExprKind::Closure(mut inner_closure) = body.kind {
@@ -402,10 +429,15 @@ impl Resolver {
                     }
                 }
             };
+
+            // pop the env
+            self.decls.root_mod.stack_pop(NS_PARAM).unwrap();
+
             res.needs_window = needs_window;
             res
         } else {
-            // not enough arguments: construct a func closure
+            // not enough arguments: don't fold
+            log::debug!("returning as closure");
 
             let mut ty = type_of_closure(&closure);
             ty.args = ty.args[args_len..].to_vec();
@@ -493,7 +525,6 @@ impl Resolver {
 
                 is_table
             });
-        closure.args = vec![Expr::null(); closure.params.len()];
 
         let has_tables = !tables.is_empty();
 
@@ -654,7 +685,7 @@ mod test {
     fn parse_and_resolve(query: &str) -> Result<Expr> {
         let (stmts, _) = resolve_only(crate::parser::parse(query)?, None)?;
 
-        Ok(*stmts.into_only()?.kind.into_pipeline()?)
+        Ok(*stmts.into_only()?.kind.into_main()?)
     }
 
     fn resolve_type(query: &str) -> Result<Ty> {
