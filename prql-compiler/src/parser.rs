@@ -470,7 +470,7 @@ mod test {
 
         assert_yaml_snapshot!(stmts_of_string(r#"take 1..10"#)?, @r###"
         ---
-        - Pipeline:
+        - Main:
             FuncCall:
               name:
                 Ident:
@@ -894,7 +894,7 @@ Canada
         assert_yaml_snapshot!(
             stmts_of_string(r#"filter (upper country) == "USA""#).unwrap(), @r###"
         ---
-        - Pipeline:
+        - Main:
             FuncCall:
               name:
                 Ident:
@@ -967,7 +967,7 @@ Canada
         assert_yaml_snapshot!(
             aggregate, @r###"
         ---
-        - Pipeline:
+        - Main:
             FuncCall:
               name:
                 Ident:
@@ -2000,7 +2000,7 @@ join `my-proj`.`dataset`.`table`
         ]
         ").unwrap(), @r###"
         ---
-        - Pipeline:
+        - Main:
             FuncCall:
               name:
                 Ident:

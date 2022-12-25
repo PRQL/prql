@@ -2298,7 +2298,7 @@ fn test_closures_and_pipelines() {
         r###"
     func addthree<column> a b c -> s"{a} || {b} || {c}"
     func arg myarg myfunc -> ( myfunc myarg )
-    
+
     from y
     select x = (
         addthree "apples"
