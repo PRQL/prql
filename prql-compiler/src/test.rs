@@ -1798,25 +1798,6 @@ fn test_casting() {
 }
 
 #[test]
-/// Start testing some error messages. This can hopefully be expanded significantly.
-fn test_errors() {
-    assert_display_snapshot!(compile(r###"
-    from x
-    select a
-    select b
-    "###).unwrap_err(),
-        @r###"
-    Error:
-    ╭─[:4:12]
-    │
-    4 │     select b
-    ·            ┬
-    ·            ╰── Unknown name b
-    ───╯
-    "###);
-}
-
-#[test]
 fn test_toposort() {
     // #1183
 
@@ -2350,4 +2331,38 @@ fn test_closures_and_pipelines() {
       y
     "###
     );
+}
+
+#[test]
+/// Start testing some error messages. This can hopefully be expanded significantly.
+// It's also fine to put errors by the things that they're testing.
+fn test_errors() {
+    assert_display_snapshot!(compile(r###"
+    from x
+    select a
+    select b
+    "###).unwrap_err(),
+        @r###"
+    Error:
+    ╭─[:4:12]
+    │
+    4 │     select b
+    ·            ┬
+    ·            ╰── Unknown name b
+    ───╯
+    "###);
+
+    assert_display_snapshot!(compile(r###"
+    from employees
+    take 1.8
+    "###).unwrap_err(),
+        @r###"
+    Error:
+    ╭─[:3:10]
+    │
+    3 │     take 1.8
+    ·          ─┬─
+    ·           ╰─── `take` expected int or range, but found 1.8
+    ───╯
+    "###);
 }
