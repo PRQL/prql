@@ -63,9 +63,9 @@ jobs:
     uses: ./.github/workflows/publish-web.yaml
     if: contains(github.event.pull_request.labels.*.name, 'pr-publish-web')
 
-  cron:
-    uses: ./.github/workflows/cron.yaml
-    if: contains(github.event.pull_request.labels.*.name, 'pr-cron')
+  nightly:
+    uses: ./.github/workflows/nightly.yaml
+    if: contains(github.event.pull_request.labels.*.name, 'pr-nightly')
 
   check-links:
     # Another option is https://github.com/lycheeverse/lychee, but it was
@@ -78,6 +78,6 @@ jobs:
         with:
           config-file: .github/.markdown-link-check.json
           base-branch: main
-          # We also run without this in the cron workflow (maybe there's a
+          # We also run without this in the nightly workflow (maybe there's a
           # better way of organizing these so we DRY)
           check-modified-files-only: "yes"
