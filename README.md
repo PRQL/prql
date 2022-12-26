@@ -94,8 +94,8 @@ To stay in touch with PRQL:
 
 ## Explore
 
-- [PRQL Playground][PRQL playground] — experiment with PRQL in the browser.
-- [PRQL Book][PRQL book] — the language documentation.
+- [PRQL Playground][prql playground] — experiment with PRQL in the browser.
+- [PRQL Book][prql book] — the language documentation.
 - [dbt-prql][dbt-prql] — write PRQL in dbt models.
 - [Jupyter magic](https://pyprql.readthedocs.io/en/latest/magic_readme.html) —
   run PRQL in Jupyter, either against a DB, or a Pandas DataFrame / CSV /
@@ -122,8 +122,8 @@ on the direction of the language, and project administration:
 
 We welcome others to join who have a track record of contributions.
 
-[PRQL book]: https://prql-lang.org/book
-[PRQL website]: https://prql-lang.org
+[prql book]: https://prql-lang.org/book
+[prql website]: https://prql-lang.org
 [contributing]: ./CONTRIBUTING.md
-[PRQL playground]: https://prql-lang.org/playground
+[prql playground]: https://prql-lang.org/playground
 [dbt-prql]: https://github.com/prql/dbt-prql
