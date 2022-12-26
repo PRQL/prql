@@ -10,8 +10,8 @@ those need to be built deeper into the compiler. We'll resolve this at some poin
 then, we'll only add functions here that are broadly supported by most DBs.
 ```
 
-Here's the source of the current [PRQL
-stdlib](https://github.com/PRQL/prql/blob/main/prql-compiler/src/semantic/stdlib.prql):
+Here's the source of the current
+[PRQL stdlib](https://github.com/PRQL/prql/blob/main/prql-compiler/src/semantic/std.prql):
 
 ```prql_no_test
 {{#include ../../prql-compiler/src/semantic/std.prql}}

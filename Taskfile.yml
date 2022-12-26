@@ -119,8 +119,7 @@ tasks:
   install-npm-dependencies:
     cmds:
       - npm install --location=global prettier prettier-plugin-go-template
-      - cmd:
-          echo "In order to get nice auto-formatting of web code in VSCode,
+      - cmd: echo "In order to get nice auto-formatting of web code in VSCode,
           VSCode requires configuration to use the system-wide install of
           prettier. See
           https://github.com/NiklasPor/prettier-plugin-go-template/issues/58#issuecomment-1085060511
@@ -145,8 +144,7 @@ tasks:
       - task: build-web
 
   test-all:
-    desc:
-      Test everything, resetting snapshots. Running this isn't required when
+    desc: Test everything, resetting snapshots. Running this isn't required when
       developing; it's for caching or as a reference.
     cmds:
       - task: test-rust
@@ -180,7 +178,7 @@ tasks:
       - rsync -ai --checksum --delete book/book/ website/public/book/
       # Must set `install-links=false` for the playground `npm install` to install prql-js
       # as the regular dependencie instead of creating a symlink.
-      # Refer to https://github.com/prql/prql/pull/1296.
+      # Refer to https://github.com/PRQL/prql/pull/1296.
       - cd playground && npm install --install-links=false
       - cd playground && npm run build
       - rsync -ai --checksum --delete playground/build/
@@ -203,7 +201,7 @@ tasks:
     cmds:
       # Must set `install-links=false` for the playground `npm install` to install prql-js
       # as the regular dependencie instead of creating a symlink.
-      # Refer to https://github.com/prql/prql/pull/1296.
+      # Refer to https://github.com/PRQL/prql/pull/1296.
       - npm install --install-links=false
       - npm start
 # The next three tasks are not used for either:

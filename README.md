@@ -8,9 +8,9 @@
 
 <!-- Dev badges on first line (language docs & chat) -->
 
-[![GitHub CI Status](https://img.shields.io/github/workflow/status/prql/prql/test-all/main?logo=github&style=for-the-badge)](https://github.com/PRQL/prql/actions?query=branch%3Amain+workflow%3Atest-all)
-[![GitHub contributors](https://img.shields.io/github/contributors/prql/prql?style=for-the-badge)](https://github.com/PRQL/prql/graphs/contributors)
-[![Stars](https://img.shields.io/github/stars/prql/prql?style=for-the-badge)](https://github.com/PRQL/prql/stargazers)
+[![GitHub CI Status](https://img.shields.io/github/actions/workflow/status/PRQL/prql/test-all.yaml?branch=main&logo=github&style=for-the-badge)](https://github.com/PRQL/prql/actions?query=branch%3Amain+workflow%3Atest-all)
+[![GitHub contributors](https://img.shields.io/github/contributors/PRQL/prql?style=for-the-badge)](https://github.com/PRQL/prql/graphs/contributors)
+[![Stars](https://img.shields.io/github/stars/PRQL/prql?style=for-the-badge)](https://github.com/PRQL/prql/stargazers)
 
 **P**ipelined **R**elational **Q**uery **L**anguage, pronounced "Prequel".
 
@@ -99,7 +99,8 @@ To stay in touch with PRQL:
 - [pyprql Docs](https://pyprql.readthedocs.io) — the pyprql documentation, the
   python bindings to PRQL, including Jupyter magic.
 - [PRQL VSCode Extension](https://marketplace.visualstudio.com/items?itemName=prql-lang.prql-vscode)
-- [prql-js](https://www.npmjs.com/package/prql-js) — JavaScript bindings for PRQL.
+- [prql-js](https://www.npmjs.com/package/prql-js) — JavaScript bindings for
+  PRQL.
 
 ### Contributors
 

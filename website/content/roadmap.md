@@ -23,8 +23,9 @@ The language is now fairly stable. While we'll hit corner-cases, we expect we'll
 only make small changes to the existing features, even as we continue adding
 features.
 
-On this foundation we are planning to build advanced features like type checking,
-function currying, pivot/melt/wide_to_long/long_to_wide operations, operator overloading and
+On this foundation we are planning to build advanced features like type
+checking, function currying, pivot/melt/wide_to_long/long_to_wide operations,
+operator overloading and
 [a few more](https://github.com/PRQL/prql/issues?q=is%3Aissue+is%3Aopen+label%3Alanguage-design).
 
 ## Friendliness
@@ -33,13 +34,14 @@ Currently the compiler is not sufficiently friendly, despite significant recent
 improvements. We'd like to make error messages better and sand off sharp
 corners.
 
-Both bug reports of unfriendliness, and code contributions to improve them are welcome; there's a
+Both bug reports of unfriendliness, and code contributions to improve them are
+welcome; there's a
 [friendliness label.](https://github.com/PRQL/prql/issues?q=is%3Aissue+label%3Afriendliness+is%3Aopen)
 
 ## Standard library
 
-Currently, the standard library is [quite
-limited](https://github.com/PRQL/prql/blob/main/prql-compiler/src/semantic/stdlib.prql).
+Currently, the standard library is
+[quite limited](https://github.com/PRQL/prql/blob/main/prql-compiler/src/semantic/std.prql).
 It contains only basic arithmetic functions (`AVERAGE`, `SUM`) and lacks
 functions for string manipulation, date handling and many math functions. One
 challenge here is the variety of functionalities and syntax of target DBMSs;
@@ -61,8 +63,8 @@ transformations!
 
 ## PRQL as a tool
 
-`pyprql` is a step into direction of a general data handling program. Building on
-this, we want to build a tool that can read many data sources, offers syntax
+`pyprql` is a step into direction of a general data handling program. Building
+on this, we want to build a tool that can read many data sources, offers syntax
 highlighting, auto-complete and type-inference using information from database's
 schema.
 
@@ -76,8 +78,8 @@ interactive experience with fast feedback.
 
 PRQL is focused at the language layer, which means we can easily integrate with
 existing tools & apps. This will be the primary way that people can start using
-PRQL day-to-day. Probably the most impactful initial integrations will be tools that
-engineers use to build data pipelines, like
+PRQL day-to-day. Probably the most impactful initial integrations will be tools
+that engineers use to build data pipelines, like
 [`dbt-prql`](https://github.com/PRQL/prql/issues/375).
 
 ## Not in focus

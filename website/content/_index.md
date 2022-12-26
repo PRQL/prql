@@ -357,7 +357,7 @@ tools_section:
       text: |
         Reference compiler implementation. Has a CLI utility that can transpile, format and annotate PRQL queries.
 
-        `brew install prql/prql/prql-compiler`
+        `brew install prql/PRQL/prql-compiler`
 
 integrations_section:
   enable: true

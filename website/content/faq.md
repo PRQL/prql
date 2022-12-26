@@ -188,7 +188,8 @@ PRQL:
 > dplyr — I wish I had made `by` a parameter of `summarise()`, `mutate()`,
 > `filter()` etc."
 
-For more detail, check out the docs in the [PRQL Book](https://prql-lang.org/book).
+For more detail, check out the docs in the
+[PRQL Book](https://prql-lang.org/book).
 
 {{< faq "Is it "PRQL" or "prql" or "Prql"? >}}
 
