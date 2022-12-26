@@ -27,7 +27,7 @@ pub enum StmtKind {
     QueryDef(QueryDef),
     FuncDef(FuncDef),
     TableDef(TableDef),
-    Pipeline(Box<Expr>),
+    Main(Box<Expr>),
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize, Default)]
@@ -104,7 +104,7 @@ impl Display for StmtKind {
                 }
                 write!(f, "\n\n")?;
             }
-            StmtKind::Pipeline(expr) => match &expr.kind {
+            StmtKind::Main(expr) => match &expr.kind {
                 ExprKind::Pipeline(pipeline) => {
                     for expr in &pipeline.exprs {
                         writeln!(f, "{expr}")?;

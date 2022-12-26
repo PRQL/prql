@@ -32,6 +32,8 @@ pub(super) fn translate_expr_kind(item: ExprKind, ctx: &mut Context) -> Result<s
         ExprKind::Binary { op, left, right } => {
             if let Some(is_null) = try_into_is_null(&op, &left, &right, ctx)? {
                 is_null
+            } else if let Some(between) = try_into_between(&op, &left, &right, ctx)? {
+                between
             } else {
                 let op = match op {
                     BinOp::Mul => BinaryOperator::Multiply,
@@ -83,18 +85,6 @@ pub(super) fn translate_expr_kind(item: ExprKind, ctx: &mut Context) -> Result<s
             sql_ast::Expr::UnaryOp { op, expr }
         }
 
-        ExprKind::Range(r) => {
-            fn assert_bound(bound: Option<Box<Expr>>) -> Result<Expr, Error> {
-                bound.map(|b| *b).ok_or_else(|| {
-                    Error::new(Reason::Simple(
-                        "range requires both bounds to be used this way".to_string(),
-                    ))
-                })
-            }
-            let start: sql_ast::Expr = translate_expr_kind(assert_bound(r.start)?.kind, ctx)?;
-            let end: sql_ast::Expr = translate_expr_kind(assert_bound(r.end)?.kind, ctx)?;
-            sql_ast::Expr::Identifier(sql_ast::Ident::new(format!("{} AND {}", start, end)))
-        }
         // Fairly hacky — convert everything to a string, then concat it,
         // then convert to sql_ast::Expr. We can't use the `Item::sql_ast::Expr` code above
         // since we don't want to intersperse with spaces.
@@ -453,6 +443,33 @@ fn try_into_is_null(
     }
 
     Ok(None)
+}
+
+fn try_into_between(
+    op: &BinOp,
+    a: &Expr,
+    b: &Expr,
+    ctx: &mut Context,
+) -> Result<Option<sql_ast::Expr>> {
+    if !matches!(op, BinOp::And) {
+        return Ok(None);
+    }
+    let Some((a, b)) = a.kind.as_binary().zip(b.kind.as_binary()) else {
+        return Ok(None);
+    };
+    if !(matches!(a.1, BinOp::Gte) && matches!(b.1, BinOp::Lte)) {
+        return Ok(None);
+    }
+    if a.0 != b.0 {
+        return Ok(None);
+    }
+
+    Ok(Some(sql_ast::Expr::Between {
+        expr: translate_operand(a.0.kind.clone(), 0, false, ctx)?,
+        negated: false,
+        low: translate_operand(a.2.kind.clone(), 0, false, ctx)?,
+        high: translate_operand(b.2.kind.clone(), 0, false, ctx)?,
+    }))
 }
 
 fn translate_windowed(

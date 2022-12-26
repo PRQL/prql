@@ -32,4 +32,4 @@ example in joins. (PRQL compiles to SQL and so can't change the behavior of the
 database).
 
 For more context or to provide feedback check out the discussion on
-[issue #99](https://github.com/prql/prql/issues/99).
+[issue #99](https://github.com/PRQL/prql/issues/99).

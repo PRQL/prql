@@ -1,6 +1,6 @@
 # Fast tests only. We should try and keep this under one minute.
 
-# See https://github.com/prql/prql/issues/37 for some TODOs
+# See https://github.com/PRQL/prql/issues/37 for some TODOs
 
 name: pull-request
 

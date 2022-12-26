@@ -30,7 +30,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
         "std.select" => {
             let [assigns, tbl] = unpack::<2>(closure);
 
-            let assigns = assigns.coerce_into_vec();
+            let assigns = coerce_into_vec(assigns)?;
             (TransformKind::Select { assigns }, tbl)
         }
         "std.filter" => {
@@ -42,20 +42,19 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
         "std.derive" => {
             let [assigns, tbl] = unpack::<2>(closure);
 
-            let assigns = assigns.coerce_into_vec();
+            let assigns = coerce_into_vec(assigns)?;
             (TransformKind::Derive { assigns }, tbl)
         }
         "std.aggregate" => {
             let [assigns, tbl] = unpack::<2>(closure);
 
-            let assigns = assigns.coerce_into_vec();
+            let assigns = coerce_into_vec(assigns)?;
             (TransformKind::Aggregate { assigns }, tbl)
         }
         "std.sort" => {
             let [by, tbl] = unpack::<2>(closure);
 
-            let by = by
-                .coerce_into_vec()
+            let by = coerce_into_vec(by)?
                 .into_iter()
                 .map(|node| {
                     let (column, direction) = match node.kind {
@@ -77,7 +76,14 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
             let range = match expr.kind {
                 ExprKind::Literal(Literal::Integer(n)) => Range::from_ints(None, Some(n)),
                 ExprKind::Range(range) => range,
-                _ => unimplemented!("`take` range: {expr}"),
+                _ => bail!(Error::new(Reason::Expected {
+                    who: Some("`take`".to_string()),
+                    expected: "int or range".to_string(),
+                    found: expr.to_string(),
+                })
+                // Possibly this should refer to the item after the `take` where
+                // one exists?
+                .with_span(expr.span)),
             };
 
             (TransformKind::Take { range }, tbl)
@@ -103,7 +109,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
                 }
             };
 
-            let filter = Box::new(Expr::collect_and(filter.coerce_into_vec()));
+            let filter = Box::new(Expr::collect_and(coerce_into_vec(filter)?));
 
             let with = Box::new(with);
             (TransformKind::Join { side, with, filter }, tbl)
@@ -111,7 +117,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
         "std.group" => {
             let [by, pipeline, tbl] = unpack::<3>(closure);
 
-            let by = by.coerce_into_vec();
+            let by = coerce_into_vec(by)?;
 
             let pipeline = fold_by_simulating_eval(resolver, pipeline, tbl.ty.clone().unwrap())?;
 
@@ -180,6 +186,49 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
 
             (TransformKind::Concat(Box::new(bottom)), top)
         }
+
+        "std.in" => {
+            // yes, this is not a transform, but this is the most appropriate place for it
+
+            let [pattern, value] = unpack::<2>(closure);
+
+            match pattern.kind {
+                ExprKind::Range(Range { start, end }) => {
+                    let start = start.map(|start| {
+                        Expr::from(ExprKind::Binary {
+                            left: Box::new(value.clone()),
+                            op: BinOp::Gte,
+                            right: start,
+                        })
+                    });
+                    let end = end.map(|end| {
+                        Expr::from(ExprKind::Binary {
+                            left: Box::new(value),
+                            op: BinOp::Lte,
+                            right: end,
+                        })
+                    });
+
+                    let res = new_binop(start, BinOp::And, end);
+                    let res = res
+                        .unwrap_or_else(|| Expr::from(ExprKind::Literal(Literal::Boolean(true))));
+                    return Ok(Ok(res));
+                }
+                ExprKind::List(_) => {
+                    // TODO: should translate into `value IN (...)`
+                    //   but RQ currently does not support sub queries or
+                    //   even expressions that evaluate to a list.
+                }
+                _ => {}
+            }
+            bail!(Error::new(Reason::Expected {
+                who: Some("std.in".to_string()),
+                expected: "a pattern".to_string(),
+                found: pattern.to_string()
+            })
+            .with_span(pattern.span))
+        }
+
         _ => return Ok(Err(closure)),
     };
 
@@ -191,6 +240,25 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
         sort: Vec::new(),
     };
     Ok(Ok(Expr::from(ExprKind::TransformCall(transform_call))))
+}
+
+/// Wraps non-list Exprs into a singleton List.
+// This function should eventually be applied to all function arguments that
+// expect a list.
+pub fn coerce_into_vec(expr: Expr) -> Result<Vec<Expr>> {
+    Ok(match expr.kind {
+        ExprKind::List(items) => {
+            if let Some(alias) = expr.alias {
+                bail!(Error::new(Reason::Unexpected {
+                    found: format!("assign to `{alias}`")
+                })
+                .with_help(format!("move assign into the list: `[{alias} = ...]`"))
+                .with_span(expr.span))
+            }
+            items
+        }
+        _ => vec![expr],
+    })
 }
 
 /// Simulate evaluation of the inner pipeline of group or window
@@ -630,7 +698,7 @@ mod tests {
         let (result, _) = resolve_only(query, None).unwrap();
         assert_yaml_snapshot!(result, @r###"
         ---
-        - Pipeline:
+        - Main:
             id: 12
             TransformCall:
               input:

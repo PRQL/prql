@@ -154,6 +154,14 @@ pub struct Closure {
     pub env: HashMap<String, Expr>,
 }
 
+impl Closure {
+    pub fn as_debug_name(&self) -> &str {
+        let ident = self.name.as_ref();
+
+        ident.map(|n| n.name.as_str()).unwrap_or("<anonymous>")
+    }
+}
+
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub struct WindowFrame<T = Box<Expr>> {
     pub kind: WindowKind,
@@ -312,24 +320,6 @@ pub enum JoinSide {
 impl Expr {
     pub fn null() -> Expr {
         Expr::from(ExprKind::Literal(Literal::Null))
-    }
-
-    pub fn coerce_into_vec(self) -> Vec<Expr> {
-        match self.kind {
-            ExprKind::List(items) => items,
-            _ => vec![self],
-        }
-    }
-
-    pub fn coerce_as_mut_vec(&mut self) -> Vec<&mut Expr> {
-        if matches!(self.kind, ExprKind::List(_)) {
-            match &mut self.kind {
-                ExprKind::List(items) => items.iter_mut().collect(),
-                _ => unreachable!(),
-            }
-        } else {
-            vec![self]
-        }
     }
 
     pub fn try_cast<T, F, S2: ToString>(

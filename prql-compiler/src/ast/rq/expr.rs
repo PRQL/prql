@@ -1,7 +1,7 @@
 use enum_as_inner::EnumAsInner;
 use serde::{Deserialize, Serialize};
 
-use super::super::pl::{BinOp, InterpolateItem, Literal, Range, SwitchCase};
+use super::super::pl::{BinOp, InterpolateItem, Literal, SwitchCase};
 use super::CId;
 use crate::error::Span;
 
@@ -16,7 +16,6 @@ pub struct Expr {
 pub enum ExprKind {
     ColumnRef(CId),
     Literal(Literal),
-    Range(Range<Box<Expr>>),
     Binary {
         left: Box<Expr>,
         op: BinOp,

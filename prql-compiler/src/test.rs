@@ -460,7 +460,14 @@ fn test_ranges() {
     filter (age | in ..40)
     "###;
 
-    assert!(compile(query).is_err());
+    assert_display_snapshot!((compile(query).unwrap()), @r###"
+    SELECT
+      *
+    FROM
+      employees
+    WHERE
+      age <= 40
+    "###);
 
     let query = r###"
     from events
@@ -813,7 +820,7 @@ fn test_strings() {
 
 #[test]
 fn test_filter() {
-    // https://github.com/prql/prql/issues/469
+    // https://github.com/PRQL/prql/issues/469
     let query = r###"
     from employees
     filter [age > 25, age < 40]
@@ -1791,25 +1798,6 @@ fn test_casting() {
 }
 
 #[test]
-/// Start testing some error messages. This can hopefully be expanded significantly.
-fn test_errors() {
-    assert_display_snapshot!(compile(r###"
-    from x
-    select a
-    select b
-    "###).unwrap_err(),
-        @r###"
-    Error:
-    ╭─[:4:12]
-    │
-    4 │     select b
-    ·            ┬
-    ·            ╰── Unknown name b
-    ───╯
-    "###);
-}
-
-#[test]
 fn test_toposort() {
     // #1183
 
@@ -1933,6 +1921,25 @@ fn test_filter_and_select_changed_alias() {
 }
 
 #[test]
+fn test_unused_alias() {
+    // #1308
+    assert_display_snapshot!(compile(r###"
+    from account
+    select n = [account.name]
+    "###).unwrap_err(), @r###"
+    Error:
+    ╭─[:3:12]
+    │
+    3 │     select n = [account.name]
+    ·            ─────────┬────────
+    ·                     ╰────────── unexpected assign to `n`
+    ·
+    · Help: move assign into the list: `[n = ...]`
+    ───╯
+    "###)
+}
+
+#[test]
 fn test_table_s_string() {
     assert_display_snapshot!(compile(r###"
     s"SELECT DISTINCT ON first_name, age FROM employees ORDER BY age ASC"
@@ -2022,6 +2029,43 @@ fn test_table_s_string() {
       table_1 AS table_0
     WHERE
       country = 'USA'
+    "###
+    );
+
+    assert_display_snapshot!(compile(r###"
+    func weeks_between start end -> s"SELECT generate_series({start}, {end}, '1 week') as date"
+    func current_week -> s"date(date_trunc('week', current_date))"
+
+    weeks_between @2022-06-03 (current_week + 4)
+    "###).unwrap(),
+        @r###"
+    WITH table_1 AS (
+      SELECT
+        generate_series(
+          DATE '2022-06-03',
+          date(date_trunc('week', current_date)) + 4,
+          '1 week'
+        ) as date
+    )
+    SELECT
+    FROM
+      table_1 AS table_0
+    "###
+    );
+
+    assert_display_snapshot!(compile(r###"
+    s"SELECT * FROM {default_db.x}"
+    "###).unwrap(),
+        @r###"
+    WITH table_1 AS (
+      SELECT
+        *
+      FROM
+        x
+    )
+    SELECT
+    FROM
+      table_1 AS table_0
     "###
     );
 }
@@ -2264,4 +2308,61 @@ fn test_static_analysis() {
       x
     "###
     );
+}
+
+#[test]
+fn test_closures_and_pipelines() {
+    assert_display_snapshot!(compile(
+        r###"
+    func addthree<column> a b c -> s"{a} || {b} || {c}"
+    func arg myarg myfunc -> ( myfunc myarg )
+
+    from y
+    select x = (
+        addthree "apples"
+        arg "bananas"
+        arg "citrus"
+    )
+        "###).unwrap(),
+        @r###"
+    SELECT
+      'apples' || 'bananas' || 'citrus' AS x
+    FROM
+      y
+    "###
+    );
+}
+
+#[test]
+/// Start testing some error messages. This can hopefully be expanded significantly.
+// It's also fine to put errors by the things that they're testing.
+fn test_errors() {
+    assert_display_snapshot!(compile(r###"
+    from x
+    select a
+    select b
+    "###).unwrap_err(),
+        @r###"
+    Error:
+    ╭─[:4:12]
+    │
+    4 │     select b
+    ·            ┬
+    ·            ╰── Unknown name b
+    ───╯
+    "###);
+
+    assert_display_snapshot!(compile(r###"
+    from employees
+    take 1.8
+    "###).unwrap_err(),
+        @r###"
+    Error:
+    ╭─[:3:10]
+    │
+    3 │     take 1.8
+    ·          ─┬─
+    ·           ╰─── `take` expected int or range, but found 1.8
+    ───╯
+    "###);
 }

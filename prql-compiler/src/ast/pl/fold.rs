@@ -122,7 +122,7 @@ pub fn fold_stmt_kind<T: ?Sized + AstFold>(fold: &mut T, stmt_kind: StmtKind) ->
     Ok(match stmt_kind {
         FuncDef(func) => FuncDef(fold.fold_func_def(func)?),
         TableDef(table) => TableDef(fold.fold_table(table)?),
-        Pipeline(expr) => Pipeline(Box::new(fold.fold_expr(*expr)?)),
+        Main(expr) => Main(Box::new(fold.fold_expr(*expr)?)),
         QueryDef(_) => stmt_kind,
     })
 }

@@ -15,6 +15,7 @@ pub mod ident;
 pub mod literal;
 pub mod stmt;
 pub mod types;
+pub mod utils;
 
 pub use self::expr::*;
 pub use self::frame::*;
@@ -22,3 +23,4 @@ pub use self::ident::*;
 pub use self::literal::*;
 pub use self::stmt::*;
 pub use self::types::*;
+pub use self::utils::*;

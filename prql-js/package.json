@@ -14,7 +14,7 @@
   "name": "prql-js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/prql/prql"
+    "url": "https://github.com/PRQL/prql"
   },
   "scripts": {
     "build": "npm run build:node && npm run build:bundler && npm run build:web",
