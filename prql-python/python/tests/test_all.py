@@ -11,10 +11,13 @@ def test_all():
     prql_query = "from employee"
 
     # Since the AST is so in flux, let's just take these dont throw exceptions
-    res = json.loads(prql.to_json(prql_query))
+    res = prql.prql_to_pl(prql_query)
     assert res is not None
 
-    res = prql.to_sql(prql_query)
+    res = prql.pl_to_rq(res)
+    assert res is not None
+
+    res = prql.rq_to_sql(res)
     assert res is not None
 
     assert prql.__version__ is not None

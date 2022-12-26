@@ -1,4 +1,4 @@
-use crate::ast::rq::{IrFold, Transform};
+use crate::ast::rq::{RqFold, Transform};
 
 /// Folder that counts the number of table referenced in a PRQL query.
 #[derive(Debug, Default)]
@@ -12,7 +12,7 @@ impl TableCounter {
     }
 }
 
-impl IrFold for TableCounter {
+impl RqFold for TableCounter {
     fn fold_transforms(&mut self, transforms: Vec<Transform>) -> anyhow::Result<Vec<Transform>> {
         for transform in &transforms {
             if let Transform::Join { .. } | Transform::From(_) = transform {

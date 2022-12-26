@@ -9,18 +9,22 @@ version.workspace = true
 
 [dependencies]
 anyhow = "1.0.57"
-clap = {version = "3.2.3", default-features = false}
 globset = "0.4.8"
 itertools = "0.10.3"
-mdbook = {version = "0.4.21", default-features = false}
-mdbook-preprocessor-boilerplate = "0.1.1"
-prql-compiler = {path = "../prql-compiler"}
+prql-compiler = {path = "../prql-compiler", default-features = false}
 pulldown-cmark = "0.9.1"
 pulldown-cmark-to-cmark = "10.0.1"
 semver = "1.0.9"
 serde_json = "1.0.81"
 similar = "2.2.0"
 walkdir = "2.3.2"
+
+# Possibly we should just put all dependencies as excluded from wasm? Currently
+# we only put the ones that break the build.
+[target.'cfg(not(target_family="wasm"))'.dependencies]
+clap = {version = "4.0.9", default-features = false}
+mdbook = {version = "0.4.21", default-features = false}
+mdbook-preprocessor-boilerplate = {version = "0.1.1"}
 
 [dev-dependencies]
 globset = "0.4.8"

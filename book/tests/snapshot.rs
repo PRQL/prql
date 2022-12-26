@@ -19,7 +19,6 @@ use anyhow::{bail, Result};
 use globset::Glob;
 use insta::{assert_display_snapshot, assert_snapshot, glob};
 use log::warn;
-use prql_compiler::ast::pl::Statements;
 use prql_compiler::*;
 use pulldown_cmark::{CodeBlockKind, Event, Parser, Tag};
 use std::fs;
@@ -129,7 +128,9 @@ fn run_reference_prql() {
         }
 
         println!("{:?}", path);
-        let sql = compile(&prql).unwrap_or_else(|e| format!("Failed to compile `{prql}`; {e}"));
+
+        let opts = sql::Options::default().no_signature().some();
+        let sql = compile(&prql, opts).unwrap_or_else(|e| format!("{prql}\n\n{e}"));
         assert_snapshot!(sql);
     });
 }
@@ -143,6 +144,6 @@ fn run_display_reference_prql() {
             return;
         }
 
-        assert_display_snapshot!(Statements(parse(&prql).unwrap()));
+        assert_display_snapshot!(prql_to_pl(&prql).and_then(pl_to_prql).unwrap());
     });
 }

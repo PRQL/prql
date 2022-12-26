@@ -24,9 +24,9 @@ derive mng_name = s"managers.first_name || ' ' || managers.last_name"
 select [mng_name, managers.gender, salary_avg, salary_sd]`;
 
 describe("prql-js", () => {
-  describe("to_sql", () => {
+  describe("compile", () => {
     it("should return valid sql from valid prql", () => {
-      const sql = prql.to_sql(employee_prql);
+      const sql = prql.compile(employee_prql);
       assert(
         sql.trim().toLowerCase().startsWith("with") ||
           sql.trim().toLowerCase().startsWith("select")
@@ -35,31 +35,19 @@ describe("prql-js", () => {
 
     it("should throw an error on invalid prql", () => {
       expect(() =>
-        prql.to_sql("Mississippi has four S’s and four I’s.")
+        prql.compile("Mississippi has four S’s and four I’s.")
       ).to.throw("Error");
     });
   });
 
-  describe("compile", () => {
-    it("should return valid compile result for compile", () => {
-      const res = prql.compile(employee_prql);
-      expect(res.error).to.be.undefined;
-    });
-
-    it("should return  compile result with errors for compile", () => {
-      const res = prql.compile("Can you spell that without using S or I?");
-      expect(res.error).to.not.be.null;
-    });
-  });
-
-  describe("to_json", () => {
+  describe("prql_to_pl", () => {
     it("should return valid json from valid prql", () => {
-      const json = JSON.parse(prql.to_json(employee_prql));
+      const json = JSON.parse(prql.prql_to_pl(employee_prql));
       assert.equal(json.length, 1);
     });
 
     it("should throw an error on invalid prql", () => {
-      expect(() => prql.to_json("Answer: T-H-A-T!"));
+      expect(() => prql.prql_to_pl("Answer: T-H-A-T!")).to.throw("Error");
     });
   });
 });

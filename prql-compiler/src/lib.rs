@@ -1,19 +1,60 @@
+//! Compiler for PRQL language.
+//! Targets SQL and exposes PL and RQ abstract syntax trees.
+//!
+//! You probably want to start with [compile] wrapper function.
+//!
+//! For more granular access, refer to this diagram:
+//! ```ascii
+//!            PRQL
+//!
+//!    (parse) │ ▲
+//! prql_to_pl │ │ pl_to_prql
+//!            │ │
+//!            ▼ │      json::from_pl
+//!                   ────────►
+//!           PL AST            PL JSON
+//!                   ◄────────
+//!            │        json::to_pl
+//!            │
+//!  (resolve) │
+//!   pl_to_rq │
+//!            │
+//!            │
+//!            ▼        json::from_rq
+//!                   ────────►
+//!           RQ AST            RQ JSON
+//!                   ◄────────
+//!            │        json::to_rq
+//!            │
+//!  rq_to_sql │
+//!            ▼
+//!
+//!            SQL
+//! ```
+
+// Our error type is 128 bytes, because it contains 5 strings & an Enum, which
+// is exactly the default warning level. Given we're not that performance
+// sensitive, it's fine to ignore this at the moment (and not worth having a
+// clippy config file for a single setting). We can consider adjusting it as a
+// yak-shaving exercise in the future.
+#![allow(clippy::result_large_err)]
+
 pub mod ast;
-#[cfg(feature = "cli")]
+#[cfg(all(feature = "cli", not(target_family = "wasm")))]
 mod cli;
 mod error;
 mod parser;
 pub mod semantic;
 pub mod sql;
+#[cfg(test)]
+mod test;
 mod utils;
 
-#[cfg(feature = "cli")]
+#[cfg(all(feature = "cli", not(target_family = "wasm")))]
 pub use cli::Cli;
-pub use error::{ErrorMessage, IntoErrorMessage, Result, SourceLocation};
-pub use parser::parse;
-pub use sql::translate;
+pub use error::{downcast, ErrorMessage, ErrorMessages, SourceLocation};
+pub use utils::IntoOnly;
 
-use ast::{pl::Stmt, rq::Query};
 use once_cell::sync::Lazy;
 use semver::Version;
 
@@ -22,33 +63,56 @@ static PRQL_VERSION: Lazy<Version> =
 
 /// Compile a PRQL string into a SQL string.
 ///
-/// This has three stages:
-/// - [parse] — Build PL AST from a PRQL string
-/// - [semantic::resolve] — Finds variable references, validates functions calls, determines frames and converts PL to RQ.
-/// - [sql::translate] — Convert RQ AST into an SQL string.
-pub fn compile(prql: &str) -> Result<String> {
-    parse(prql).and_then(semantic::resolve).and_then(translate)
+/// This is a wrapper for:
+/// - [prql_to_pl] — Build PL AST from a PRQL string
+/// - [pl_to_rq] — Finds variable references, validates functions calls, determines frames and converts PL to RQ.
+/// - [rq_to_sql] — Convert RQ AST into an SQL string.
+pub fn compile(prql: &str, options: Option<sql::Options>) -> Result<String, ErrorMessages> {
+    parser::parse(prql)
+        .and_then(semantic::resolve)
+        .and_then(|rq| sql::compile(rq, options))
+        .map_err(error::downcast)
+        .map_err(|e| e.composed("", prql, false))
+}
+
+/// Parse PRQL into a PL AST
+pub fn prql_to_pl(prql: &str) -> Result<Vec<ast::pl::Stmt>, ErrorMessages> {
+    parser::parse(prql)
+        .map_err(error::downcast)
+        .map_err(|e| e.composed("", prql, false))
+}
+
+/// Perform semantic analysis and convert PL to RQ.
+pub fn pl_to_rq(pl: Vec<ast::pl::Stmt>) -> Result<ast::rq::Query, ErrorMessages> {
+    semantic::resolve(pl).map_err(error::downcast)
+}
+
+/// Generate SQL from RQ.
+pub fn rq_to_sql(
+    rq: ast::rq::Query,
+    options: Option<sql::Options>,
+) -> Result<String, ErrorMessages> {
+    sql::compile(rq, options).map_err(error::downcast)
 }
 
 /// Generate PRQL code from PL AST
-pub fn pl_to_prql(pl: Vec<Stmt>) -> Result<String> {
+pub fn pl_to_prql(pl: Vec<ast::pl::Stmt>) -> Result<String, ErrorMessages> {
     Ok(format!("{}", ast::pl::Statements(pl)))
 }
 
-/// Serialize PL AST into JSON
-pub fn pl_to_json(pl: Vec<Stmt>) -> Result<String> {
-    Ok(serde_json::to_string(&pl)?)
-}
+/// JSON serialization and deserialization functions
+pub mod json {
+    use super::*;
 
-/// Parse JSON as PL AST
-pub fn json_to_pl(json: &str) -> Result<Vec<Stmt>> {
-    Ok(serde_json::from_str(json)?)
-}
+    /// JSON serialization
+    pub fn from_pl(pl: Vec<ast::pl::Stmt>) -> Result<String, ErrorMessages> {
+        serde_json::to_string(&pl).map_err(|e| error::downcast(anyhow::anyhow!(e)))
+    }
 
-/// Parse JSON as RQ AST
-pub fn json_to_rq(json: &str) -> Result<Query> {
-    Ok(serde_json::from_str(json)?)
-}
+    /// JSON deserialization
+    pub fn to_pl(json: &str) -> Result<Vec<ast::pl::Stmt>, ErrorMessages> {
+        serde_json::from_str(json).map_err(|e| error::downcast(anyhow::anyhow!(e)))
+    }
 
 // TODO: possibly collapse this with other functions. Deliberately not `pub`
 // currently. Ref discussion at https://github.com/PRQL/prql/pull/1182. Note

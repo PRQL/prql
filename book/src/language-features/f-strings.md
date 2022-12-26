@@ -8,7 +8,8 @@ from employees
 select full_name = f"{first_name} {last_name}"
 ```
 
-This can be much easier to read for longer strings, relative to the SQL approach:
+This can be much easier to read for longer strings, relative to the SQL
+approach:
 
 ```prql
 from web

@@ -2,7 +2,8 @@
 
 PRQL uses `@` followed by a string to represent dates & times. This is less
 verbose than SQL's approach of `TIMESTAMP '2004-10-19 10:23:54'` and more
-explicit than SQL's implicit option of just using a string `'2004-10-19 10:23:54'`.
+explicit than SQL's implicit option of just using a string
+`'2004-10-19 10:23:54'`.
 
 ```admonish note
 Currently PRQL passes strings which can be compiled straight through to the
@@ -13,8 +14,7 @@ canonical [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) format described bel
 
 ## Dates
 
-Dates are represented by `@{yyyy-mm-dd}` — a `@` followed by the
-date format.
+Dates are represented by `@{yyyy-mm-dd}` — a `@` followed by the date format.
 
 ```prql
 from employees
@@ -34,11 +34,10 @@ derive should_have_shipped_today = (order_time < @08:30)
 
 ## Timestamps
 
-Timestamps are represented by `@{yyyy-mm-ddTHH:mm:ss.SSS±Z}` /
-`@{date}T{time}`, with any time parts not supplied being rounded to zero,
-including the timezone, which is represented by `+HH:mm`, `-HH:mm` or `Z`. This
-is `@` followed by the ISO8601 datetime format, which uses `T` to separate date &
-time.
+Timestamps are represented by `@{yyyy-mm-ddTHH:mm:ss.SSS±Z}` / `@{date}T{time}`,
+with any time parts not supplied being rounded to zero, including the timezone,
+which is represented by `+HH:mm`, `-HH:mm` or `Z`. This is `@` followed by the
+ISO8601 datetime format, which uses `T` to separate date & time.
 
 ```prql
 from commits
@@ -71,13 +70,15 @@ Here's a fuller list of examples:
 - `@2022-12-31` is a date
 - `@2022-12` or `@2022` are forbidden — SQL can't express a month, only a date
 - `@16:54:32.123456` is a time
-- `@16:54:32`, `@16:54`, `@16` are all allowed, expressing `@16:54:32.000000`, `@16:54:00.000000`, `@16:00:00.000000` respectively
+- `@16:54:32`, `@16:54`, `@16` are all allowed, expressing `@16:54:32.000000`,
+  `@16:54:00.000000`, `@16:00:00.000000` respectively
 - `@2022-12-31T16:54:32.123456` is a timestamp without timezone
 - `@2022-12-31T16:54:32.123456Z` is a timestamp in UTC
 - `@2022-12-31T16:54+02` is timestamp in UTC+2
 - `@2022-12-31T16:54+02:00` and `@2022-12-31T16:54+02` are datetimes in UTC+2
 - `@16:54+02` is forbidden — time is always local, so it cannot have a timezone
-- `@2022-12-31+02` is forbidden — date is always local, so it cannot have a timezone
+- `@2022-12-31+02` is forbidden — date is always local, so it cannot have a
+  timezone
 
 ## Roadmap
 

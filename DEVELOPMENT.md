@@ -2,9 +2,11 @@
 
 ## Development environment
 
-Setting up a local dev environment for PRQL is simple, thanks to the rust ecosystem:
+Setting up a local dev environment for PRQL is simple, thanks to the rust
+ecosystem:
 
-- Install [`rustup` & `cargo`](https://doc.rust-lang.org/cargo/getting-started/installation.html)[^5].
+- Install
+  [`rustup` & `cargo`](https://doc.rust-lang.org/cargo/getting-started/installation.html)[^5].
 - That's it! Running `cargo test` should complete successfully.
 - Alternatively, for quick contributions, hit `.` in GitHub to launch a
   [github.dev instance](https://github.dev/prql/prql).
@@ -28,8 +30,9 @@ web either:
     For completeness: running the full tests requires a couple of additional
     components that most systems will have installed already:
 
-    - A clang compiler to compile the DuckDB integration tests,
-      since we use [`duckdb-rs'](https://github.com/wangfenjin/duckdb-rs). To install a compiler:
+    - A clang compiler to compile the DuckDB integration tests, since we use
+      [`duckdb-rs'](https://github.com/wangfenjin/duckdb-rs). To install a
+      compiler:
 
       - On Mac, install xcode `xcode-select --install`
       - On Debian Linux, `apt-get install libclang-dev`
@@ -38,9 +41,9 @@ web either:
     - Python >= 3.7 to compile `prql-python`.
 
     It's very possible to develop `prql-compiler` without these, by avoiding
-    using the integration tests or `prql-python`. Running `cargo test -p prql-compiler --lib`
-    should complete successfully by running only the unit
-    tests in the `prql-compiler` package.
+    using the integration tests or `prql-python`. Running
+    `cargo test -p prql-compiler --lib` should complete successfully by running
+    only the unit tests in the `prql-compiler` package.
 
 ## Encapsulated building & testing
 
@@ -63,8 +66,8 @@ To run all tests; (which includes building everything):
 task test-all
 ```
 
-These require installing Task, either `brew install go-task/tap/go-task` or
-as described on [Task](https://taskfile.dev/#/installation).
+These require installing Task, either `brew install go-task/tap/go-task` or as
+described on [Task](https://taskfile.dev/#/installation).
 
 ## Components of PRQL
 
@@ -109,10 +112,10 @@ broader tests which ensure that we don't miss anything as PRQL develops[^1].
     **[@matklad](https://github.com/matklad)**'s advice, in his excellent blog
     post [How to Test](https://matklad.github.io//2021/05/31/how-to-test.html).
 
-> If you're making your first contribution, you don't need to engage with all this
-> — it's fine to just make a change and push the results; the tests that run in
-> GitHub will point you towards any errors, which can be then be run locally if
-> needed. We're always around to help out.
+> If you're making your first contribution, you don't need to engage with all
+> this — it's fine to just make a change and push the results; the tests that
+> run in GitHub will point you towards any errors, which can be then be run
+> locally if needed. We're always around to help out.
 
 Our tests:
 
@@ -129,8 +132,8 @@ Our tests:
   on GitHub on every commit; any changes they make are added onto the branch
   automatically in an additional commit.
 
-- **Unit tests & inline insta snapshots** — like most projects, we rely on
-  unit tests to test that our code basically works. We extensively use
+- **Unit tests & inline insta snapshots** — like most projects, we rely on unit
+  tests to test that our code basically works. We extensively use
   [Insta](https://insta.rs/), a snapshot testing tool which writes out the
   results of an expression in our code, making it faster to write and modify
   tests[^3].
@@ -150,11 +153,12 @@ Our tests:
 
     - `RUST_BACKTRACE=1` will print a full backtrace, including where an error
       value was created, for rust tests which return `Result`s.
-    - `watchexec -e rs,toml,pest,md -cr --ignore='target/**' --` will run the subsequent command on any
-      change to files with extensions which we are generally editing.
-    - `cargo insta test --accept --` runs tests with `insta`, a snapshot library, and
-      writes any results immediately. I rely on git to track changes, so I run
-      with `--accept`, but YMMV.
+    - `watchexec -e rs,toml,pest,md -cr --ignore='target/**' --` will run the
+      subsequent command on any change to files with extensions which we are
+      generally editing.
+    - `cargo insta test --accept --` runs tests with `insta`, a snapshot
+      library, and writes any results immediately. I rely on git to track
+      changes, so I run with `--accept`, but YMMV.
     - `-p prql-compiler --lib` is passed to cargo by `insta`; `-p prql-compiler`
       tells it to only run the tests for `prql-compiler` rather than the other
       crates, and `--lib` to only run the unit tests rather than the integration
@@ -169,32 +173,29 @@ Our tests:
     — note that only the initial line of each test is written by us; the remainder
     is filled in by insta.
 
-- **[Integration tests](book/src/integrations/README.md)**
-  — these run tests against real databases, to ensure we're producing correct
-  SQL.
+- **[Integration tests](book/src/integrations/README.md)** — these run tests
+  against real databases, to ensure we're producing correct SQL.
 
-- **[Examples](book/tests/snapshot.rs)**
-  — we compile all examples in the PRQL Book, to test that they produce the SQL
-  we expect, and that changes to our code don't cause any unexpected
-  regressions.
+- **[Examples](book/tests/snapshot.rs)** — we compile all examples in the PRQL
+  Book, to test that they produce the SQL we expect, and that changes to our
+  code don't cause any unexpected regressions.
 
-- **[GitHub Actions on every commit](.github/workflows/pull-request.yaml)**
-  — we run tests on `prql-compiler` for standard & wasm targets, and the
-  examples in the book on every pull request every time a commit is pushed.
-  These are designed to run in under two minutes, and we should be reassessing
-  their scope if they grow beyond that. Once these pass, a pull request can be
-  merged.
+- **[GitHub Actions on every commit](.github/workflows/pull-request.yaml)** — we
+  run tests on `prql-compiler` for standard & wasm targets, and the examples in
+  the book on every pull request every time a commit is pushed. These are
+  designed to run in under two minutes, and we should be reassessing their scope
+  if they grow beyond that. Once these pass, a pull request can be merged.
 
   All tests up to this point can be run with `task test-all` locally.
 
-- **[GitHub Actions on specific changes](.github/workflows/)**
-  — we run additional tests on pull requests when we identify changes to some
-  paths, such as bindings to other languages.
+- **[GitHub Actions on specific changes](.github/workflows/)** — we run
+  additional tests on pull requests when we identify changes to some paths, such
+  as bindings to other languages.
 
-- **[GitHub Actions on merge](.github/workflows/test-all.yaml)** — we run
-  many more tests on every merge to main. This includes testing across OSs, all
-  our language bindings, our `task` tasks, a measure of test code coverage, and
-  some performance benchmarks.
+- **[GitHub Actions on merge](.github/workflows/test-all.yaml)** — we run many
+  more tests on every merge to main. This includes testing across OSs, all our
+  language bindings, our `task` tasks, a measure of test code coverage, and some
+  performance benchmarks.
 
   We can run these tests before a merge by adding a label `pr-test-all` to the
   PR.
@@ -206,8 +207,7 @@ Our tests:
   take a long time or are unrelated to code changes, such as security checks, or
   expensive timing benchmarks, every night.
 
-  We can run these tests before a merge by adding a label `pr-cron` to the
-  PR.
+  We can run these tests before a merge by adding a label `pr-cron` to the PR.
 
 The goal of our tests is to allow us to make changes quickly. If you find
 they're making it more difficult for you to make changes, or there are missing

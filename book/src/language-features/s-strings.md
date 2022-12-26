@@ -1,8 +1,9 @@
 # S-Strings
 
-An s-string inserts SQL directly, as an escape hatch when there's something that PRQL
-doesn't yet implement. For example, there's no `version()` function in SQL that
-returns the Postgres version, so if we want to use that, we use an s-string:
+An s-string inserts SQL directly, as an escape hatch when there's something that
+PRQL doesn't yet implement. For example, there's no `version()` function in SQL
+that returns the Postgres version, so if we want to use that, we use an
+s-string:
 
 ```prql
 from my_table
@@ -39,6 +40,13 @@ For those who have used python, s-strings are similar to python's f-strings, but
 the result is SQL code, rather than a string literal. For example, a python
 f-string of `f"average{col}"` would produce `"average(salary)"`, with quotes;
 while in PRQL, `s"average{col}"` produces `average(salary)`, without quotes.
+
+We can also use s-strings to produce a full table:
+
+```prql
+from s"SELECT DISTINCT ON first_name, id, age FROM employees ORDER BY age ASC"
+join s = s"SELECT * FROM salaries" [==id]
+```
 
 ```admonish note
 S-strings in user code are intended as an escape-hatch for an unimplemented

@@ -14,7 +14,7 @@ Here's the source of the current [PRQL
 stdlib](https://github.com/PRQL/prql/blob/main/prql-compiler/src/semantic/stdlib.prql):
 
 ```prql_no_test
-{{#include ../../prql-compiler/src/semantic/stdlib.prql}}
+{{#include ../../prql-compiler/src/semantic/std.prql}}
 ```
 
 And a couple of examples:

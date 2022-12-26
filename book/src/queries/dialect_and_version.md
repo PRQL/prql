@@ -8,7 +8,7 @@ compile to a database-specific SQL flavor.
 ### Examples
 
 ```prql
-prql dialect:postgres
+prql sql_dialect:postgres
 
 from employees
 sort age
@@ -16,7 +16,7 @@ take 10
 ```
 
 ```prql
-prql dialect:mssql
+prql sql_dialect:mssql
 
 from employees
 sort age

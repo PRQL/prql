@@ -41,14 +41,16 @@ keyword = _{ "prql" | "table" | "func" }
 pipe = _{ NEWLINE+ | "|" }
 pipeline = { WHITESPACE* ~ expr_call ~ (pipe ~ expr_call)* }
 
-// Whitespace is required to prevent matching s"string".
-// Forbid `operator` so `a - b` can't parse as `a` & `-b`.
-// TODO: allow expr for function
-func_call = ${ ident ~ WHITESPACE+ ~ (!operator ~ (named_arg | assign | expr) ~ WHITESPACE*)+ }
+// Whitespace is required to prevent matching s"string". Forbid `operator_binary` so `a
+// - b` can't parse as `a` & `-b` (but allow `select ![a]`)
+func_call = ${ ident ~ WHITESPACE+ ~ (!operator_binary ~ (named_arg | alias | expr) ~ WHITESPACE*)+ }
 
-named_arg   = !{ ident_part ~ ":" ~ !":" ~ (assign | expr) }
-assign      = !{ ident_part ~ "=" ~ !"=" ~ expr }
-assign_call = !{ ident_part ~ "=" ~ !"=" ~ expr_call }
+named_arg   = !{ ident_part ~ ":" ~ !":" ~ expr }
+// alias needs to be distinct from assign, so that in `join s=salaries [==id]`,
+// `s=salaries` is parsed separately from `[==id]`, since aliases allow for an
+// expr as an rvalue, but not a function call.
+alias = !{ ident_part ~ "=" ~ !"=" ~ expr }
+assign = !{ ident_part ~ "=" ~ !"=" ~ expr_call }
 
 expr_call = _{ (func_call | expr) }
 
@@ -58,10 +60,11 @@ expr_compare = { expr_add ~ (operator_compare ~ expr_add)? }
 expr_add = { expr_mul ~ (operator_add ~ expr_add)? }
 expr_mul = { term ~ (operator_mul ~ expr_mul)? }
 
-term = _{ ( s_string | f_string | range | literal | ident | nested_pipeline | expr_unary | list | jinja ) }
-expr_unary = { ( operator_unary ~ ( nested_pipeline | ident )) }
+term = _{ ( switch | s_string | f_string | range | literal | ident | nested_pipeline | expr_unary | list | jinja ) }
+expr_unary = { ( operator_unary ~ ( nested_pipeline | ident | list )) }
 literal = _{ value_and_unit | number | boolean | null | string | timestamp | date | time }
-list = { "[" ~ (NEWLINE* ~ (assign_call | expr_call) ~ ("," ~ NEWLINE* ~ (assign_call | expr_call) )* ~ ","?)? ~ NEWLINE* ~ "]" }
+// `assign | pipeline` based on discussion in #648
+list = { "[" ~ (NEWLINE* ~ (assign |  pipeline) ~ ("," ~ NEWLINE* ~ (assign | pipeline) )* ~ ","?)? ~ NEWLINE* ~ "]" }
 nested_pipeline = { "(" ~ (WHITESPACE | NEWLINE)* ~ pipeline? ~ (WHITESPACE | NEWLINE)* ~ ")" }
 
 // We haven't implemented escapes — I think we can mostly pass those through to
@@ -99,7 +102,8 @@ range = ${ range_edge ~ ".." ~ range_edge }
 // the whole span, not just the part before `..`.
 range_edge = ${ literal? }
 
-operator = _{ operator_unary | operator_mul | operator_add | operator_compare | operator_logical | operator_coalesce }
+operator = _{ operator_unary | operator_binary }
+operator_binary = _{ operator_mul | operator_add | operator_compare | operator_logical | operator_coalesce }
 operator_unary = ${ "-" | "+" | "!" | "==" }
 operator_mul = ${ "*" | "/" | "%" }
 operator_add = ${ "+" | "-" }
@@ -111,7 +115,7 @@ operator_coalesce = ${ "??" }
 // `prefixed` string and parse in the parser, but manageable for now.
 s_string = ${ "s" ~ opening_quote ~ interpolate_string_inner ~ POP }
 f_string = ${ "f" ~ opening_quote ~ interpolate_string_inner ~ POP }
-interpolate_string_inner = _{ ( interpolate_string_inner_literal | interpolate_double_bracket | ( "{" ~ expr_call ~ "}" ))* }
+interpolate_string_inner = _{ ( interpolate_string_inner_literal | interpolate_double_bracket | ( "{" ~ pipeline ~ "}" ))* }
 // We want to strip the outer `{}` of `{{}}`, so we make a silent rule and then
 // an inner non-silent rule.
 interpolate_double_bracket = _{ "{" ~ interpolate_double_bracket_literal ~ "}" }
@@ -139,3 +143,6 @@ end_expr = _{ WHITESPACE | "," | ")" | "]" | EOI | NEWLINE | ".." }
 
 // We pass text between `{{` and `}}` through, so dbt can use Jinja.
 jinja = { ("{{" ~ (!"}}" ~ ANY)* ~ "}}") }
+
+switch = { "switch" ~ "[" ~ (NEWLINE* ~ switch_case ~ ("," ~ NEWLINE* ~ switch_case )* ~ ","?)? ~ NEWLINE* ~ "]" }
+switch_case = { expr_call ~ "->" ~ expr_call }

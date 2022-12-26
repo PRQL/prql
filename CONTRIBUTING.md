@@ -1,7 +1,7 @@
 # Contributing
 
-If you're interested in joining the community to build a better SQL, there are
-lots of ways of contributing - big and small:
+If you're interested in joining the community to build a better SQL, here is how
+you start:
 
 - Star this repo.
 - Send a link to PRQL to a couple of people whose opinion you respect.
@@ -23,30 +23,18 @@ lots of ways of contributing - big and small:
     Discord who will patiently help you.
 - Contribute towards the docs. Anything from shaping a whole section of the
   docs, to simply improving a confusing paragraph or fixing a typo.
-- Contribute towards the language.
-  - Find instances where the compiler produces incorrect results, and post a bug
-    report — feel free to use the [playground](https://prql-lang.org/playground).
-  - Open an issue / append to an existing issue with examples of queries that
-    are difficult to express in PRQL — especially if more difficult than SQL.
-  - With sufficient examples, suggest a change to the language! (Though
-    suggestions _without_ examples are difficult to engage with, so please do
-    anchor suggestions in examples.)
-- Contribute towards the project.
-  - Improve our website / book.
-  - Tell people about PRQL.
-  - Find a group of users who would be interested in PRQL, help them get up to
-    speed, help the project understand what they need.
-
-Any of these will inspire others to invest their time and energy into the
-project; thank you in advance.
+- Tell people about PRQL.
+- Find a group of users who would be interested in PRQL, help them get up to
+  speed, help the project understand what they need.
 
 ## Commits
 
 - If a change is user-facing, it would be helpful to add a line in
   [**`CHANGELOG.md`**](CHANGELOG.md), with `{message}, ({@contributor, #X})`
   where `X` is the PR number.
-- We're experimenting with using the [Conventional
-  Commits](https://www.conventionalcommits.org) message format, enforced through
+- We're experimenting with using the
+  [Conventional Commits](https://www.conventionalcommits.org) message format,
+  enforced through
   [action-semantic-pull-request](https://github.com/amannn/action-semantic-pull-request).
   This would let us generate Changelogs automatically. The check is not required
   to pass at the moment.

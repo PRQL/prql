@@ -25,7 +25,7 @@ repos:
       - id: pyupgrade
         args: ["--py38-plus"]
   - repo: https://github.com/PyCQA/isort
-    rev: 5.10.1
+    rev: v5.11.3
     hooks:
       - id: isort
   - repo: https://github.com/psf/black
@@ -42,7 +42,16 @@ repos:
       - id: markdown-link-check
         files: \.md$
         args: ["--config=.github/.markdown-link-check.json"]
+  # This is quite strict, and doesn't fix a large enough share of the issues it
+  # finds, so we don't include it. But it's reasonable to run every now & again
+  # manually and take its fixes.
+  #
+  # - repo: https://github.com/igorshubovych/markdownlint-cli
+  #   rev: v0.32.2
+  #   hooks:
+  #     - id: markdownlint
+  #       args: ["--fix"]
 ci:
-  # Currently network access isn't supported
+  # Currently network access isn't supported in the CI product.
   skip: [fmt, clippy, markdown-link-check]
   autoupdate_commit_msg: "chore: pre-commit autoupdate"

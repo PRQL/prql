@@ -1,2 +1,2 @@
 from employees
-select name = f"{first_name} {last_name}"
+select first_name

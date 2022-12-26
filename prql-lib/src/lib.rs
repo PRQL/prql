@@ -3,7 +3,7 @@
 extern crate libc;
 
 use libc::{c_char, c_int};
-use prql_compiler::{parse, pl_to_json};
+use prql_compiler::{json, prql_to_pl};
 use std::ffi::CStr;
 use std::ffi::CString;
 
@@ -15,7 +15,7 @@ use std::ffi::CString;
 pub unsafe extern "C" fn to_sql(query: *const c_char, out: *mut c_char) -> c_int {
     let prql_query: String = CStr::from_ptr(query).to_string_lossy().into_owned();
 
-    let (isErr, sql_result) = match prql_compiler::compile(&prql_query) {
+    let (isErr, sql_result) = match prql_compiler::compile(&prql_query, None) {
         Ok(sql_str) => (false, sql_str),
         Err(err) => {
             //let err_str = format!("{}", err);
@@ -44,7 +44,7 @@ pub unsafe extern "C" fn to_sql(query: *const c_char, out: *mut c_char) -> c_int
 pub unsafe extern "C" fn to_json(query: *const c_char, out: *mut c_char) -> c_int {
     let prql_query: String = CStr::from_ptr(query).to_string_lossy().into_owned();
 
-    let (isErr, sql_result) = match parse(&prql_query).and_then(pl_to_json) {
+    let (isErr, sql_result) = match prql_to_pl(&prql_query).and_then(json::from_pl) {
         Ok(sql_str) => (false, sql_str),
         Err(err) => {
             //let err_str = format!("{}", err);

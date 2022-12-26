@@ -3,7 +3,7 @@ use itertools::Itertools;
 use std::collections::{HashMap, HashSet};
 
 use crate::ast::rq::{
-    self, fold_transform, CId, Compute, Expr, IrFold, Relation, RelationColumn, RelationKind,
+    self, fold_transform, CId, Compute, Expr, Relation, RelationColumn, RelationKind, RqFold,
     TableDecl, TableRef, Transform,
 };
 
@@ -451,7 +451,7 @@ impl CidCollector {
     }
 }
 
-impl IrFold for CidCollector {
+impl RqFold for CidCollector {
     fn fold_cid(&mut self, cid: CId) -> Result<CId> {
         self.cids.insert(cid);
         Ok(cid)
@@ -463,7 +463,7 @@ struct CidRedirector<'a> {
     cid_redirects: HashMap<CId, CId>,
 }
 
-impl<'a> IrFold for CidRedirector<'a> {
+impl<'a> RqFold for CidRedirector<'a> {
     fn fold_cid(&mut self, cid: CId) -> Result<CId> {
         Ok(self.cid_redirects.get(&cid).cloned().unwrap_or(cid))
     }

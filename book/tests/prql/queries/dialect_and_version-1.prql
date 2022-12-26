@@ -1,4 +1,4 @@
-prql dialect:mssql
+prql sql_dialect:mssql
 
 from employees
 sort age

@@ -29,8 +29,9 @@ function currying, pivot/melt/wide_to_long/long_to_wide operations, operator ove
 
 ## Friendliness
 
-Currently the compiler is not sufficiently friendly, despite significant recent improvements.
-We'd like to make error messages better and sand off sharp corners.
+Currently the compiler is not sufficiently friendly, despite significant recent
+improvements. We'd like to make error messages better and sand off sharp
+corners.
 
 Both bug reports of unfriendliness, and code contributions to improve them are welcome; there's a
 [friendliness label.](https://github.com/PRQL/prql/issues?q=is%3Aissue+label%3Afriendliness+is%3Aopen)
@@ -49,12 +50,14 @@ include integration tests will help give us confidence here.
 
 ## Alternative backends
 
-Currently, PRQL only transpiles into SQL. It could be much more powerful (and in some cases performant)
-if we develop a data-frame-handling-library backend. To be more precise, we would want to apply PRQL's
-AST to a in-memory dataframe of a performance-optimized library (such as [Polars](https://www.pola.rs/)).
+Currently, PRQL only transpiles into SQL. It could be much more powerful (and in
+some cases performant) if we develop a data-frame-handling-library backend. To
+be more precise, we would want to apply PRQL's AST to a in-memory dataframe of a
+performance-optimized library (such as [Polars](https://www.pola.rs/)).
 
-This would allow data scientists, analysts and general Python developers to transform DataFrames with
-PRQL queries. One language for all data transformations!
+This would allow data scientists, analysts and general Python developers to
+transform DataFrames with PRQL queries. One language for all data
+transformations!
 
 ## PRQL as a tool
 

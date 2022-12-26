@@ -34,7 +34,8 @@ menu:
 params:
   help_the_project:
     list:
-      - text: Send a link to PRQL to a couple of people whose opinion you respect.
+      - text:
+          Send a link to PRQL to a couple of people whose opinion you respect.
       - text: |
           Rewrite any of your own queries to PRQL to see if it makes sense.
           You can use the [playground](https://prql-lang.org/playground) and submit issues

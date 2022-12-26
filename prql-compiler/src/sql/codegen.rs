@@ -5,9 +5,9 @@ use itertools::Itertools;
 use lazy_static::lazy_static;
 use regex::Regex;
 use sqlparser::ast::{
-    self as sql_ast, BinaryOperator, DateTimeField, Function, FunctionArg, FunctionArgExpr, Join,
-    JoinConstraint, JoinOperator, ObjectName, OrderByExpr, SelectItem, TableAlias, TableFactor,
-    Top, UnaryOperator, Value, WindowFrameBound, WindowSpec,
+    self as sql_ast, BinaryOperator, DateTimeField, Function, FunctionArg, FunctionArgExpr, Ident,
+    Join, JoinConstraint, JoinOperator, ObjectName, OrderByExpr, SelectItem, TableAlias,
+    TableFactor, Top, UnaryOperator, Value, WindowFrameBound, WindowSpec,
 };
 use sqlparser::keywords::{
     Keyword, ALL_KEYWORDS, ALL_KEYWORDS_INDEX, RESERVED_FOR_COLUMN_ALIAS, RESERVED_FOR_TABLE_ALIAS,
@@ -15,8 +15,8 @@ use sqlparser::keywords::{
 use std::collections::HashSet;
 
 use crate::ast::pl::{
-    BinOp, ColumnSort, Dialect, InterpolateItem, JoinSide, Literal, Range, SortDirection,
-    WindowFrame, WindowKind,
+    BinOp, ColumnSort, InterpolateItem, JoinSide, Literal, Range, SortDirection, WindowFrame,
+    WindowKind,
 };
 use crate::ast::rq::*;
 use crate::error::{Error, Reason};
@@ -24,6 +24,7 @@ use crate::sql::context::ColumnDecl;
 use crate::utils::OrMap;
 
 use super::translator::Context;
+use super::Dialect;
 
 pub(super) fn translate_expr_kind(item: ExprKind, ctx: &mut Context) -> Result<sql_ast::Expr> {
     Ok(match item {
@@ -31,6 +32,8 @@ pub(super) fn translate_expr_kind(item: ExprKind, ctx: &mut Context) -> Result<s
         ExprKind::Binary { op, left, right } => {
             if let Some(is_null) = try_into_is_null(&op, &left, &right, ctx)? {
                 is_null
+            } else if let Some(between) = try_into_between(&op, &left, &right, ctx)? {
+                between
             } else {
                 let op = match op {
                     BinOp::Mul => BinaryOperator::Multiply,
@@ -46,7 +49,24 @@ pub(super) fn translate_expr_kind(item: ExprKind, ctx: &mut Context) -> Result<s
                     BinOp::Lte => BinaryOperator::LtEq,
                     BinOp::And => BinaryOperator::And,
                     BinOp::Or => BinaryOperator::Or,
-                    BinOp::Coalesce => unreachable!(),
+                    BinOp::Coalesce => {
+                        let left = translate_operand(left.kind, 0, false, ctx)?;
+                        let right = translate_operand(right.kind, 0, false, ctx)?;
+
+                        return Ok(sql_ast::Expr::Function(Function {
+                            name: ObjectName(vec![Ident {
+                                value: "COALESCE".to_string(),
+                                quote_style: None,
+                            }]),
+                            args: vec![
+                                FunctionArg::Unnamed(FunctionArgExpr::Expr(*left)),
+                                FunctionArg::Unnamed(FunctionArgExpr::Expr(*right)),
+                            ],
+                            over: None,
+                            distinct: false,
+                            special: false,
+                        }));
+                    }
                 };
 
                 let strength = op.binding_strength();
@@ -65,18 +85,6 @@ pub(super) fn translate_expr_kind(item: ExprKind, ctx: &mut Context) -> Result<s
             sql_ast::Expr::UnaryOp { op, expr }
         }
 
-        ExprKind::Range(r) => {
-            fn assert_bound(bound: Option<Box<Expr>>) -> Result<Expr, Error> {
-                bound.map(|b| *b).ok_or_else(|| {
-                    Error::new(Reason::Simple(
-                        "range requires both bounds to be used this way".to_string(),
-                    ))
-                })
-            }
-            let start: sql_ast::Expr = translate_expr_kind(assert_bound(r.start)?.kind, ctx)?;
-            let end: sql_ast::Expr = translate_expr_kind(assert_bound(r.end)?.kind, ctx)?;
-            sql_ast::Expr::Identifier(sql_ast::Ident::new(format!("{} AND {}", start, end)))
-        }
         // Fairly hacky — convert everything to a string, then concat it,
         // then convert to sql_ast::Expr. We can't use the `Item::sql_ast::Expr` code above
         // since we don't want to intersperse with spaces.
@@ -145,6 +153,46 @@ pub(super) fn translate_expr_kind(item: ExprKind, ctx: &mut Context) -> Result<s
                 }
             }
         },
+        ExprKind::Switch(mut cases) => {
+            let default = cases
+                .last()
+                .filter(|last| {
+                    matches!(
+                        last.condition.kind,
+                        ExprKind::Literal(Literal::Boolean(true))
+                    )
+                })
+                .map(|def| translate_expr_kind(def.value.kind.clone(), ctx))
+                .transpose()?;
+
+            if default.is_some() {
+                cases.pop();
+            }
+
+            let else_result = default
+                .or(Some(sql_ast::Expr::Value(Value::Null)))
+                .map(Box::new);
+
+            let cases: Vec<_> = cases
+                .into_iter()
+                .map(|case| -> Result<_> {
+                    let cond = translate_expr_kind(case.condition.kind, ctx)?;
+                    let value = translate_expr_kind(case.value.kind, ctx)?;
+                    Ok((cond, value))
+                })
+                .try_collect()?;
+            let (conditions, results) = cases.into_iter().unzip();
+
+            sql_ast::Expr::Case {
+                operand: None,
+                conditions,
+                results,
+                else_result,
+            }
+        }
+        ExprKind::BuiltInFunction { name, args } => {
+            super::std::translate_built_in(name, args, ctx)?
+        }
     })
 }
 
@@ -395,6 +443,33 @@ fn try_into_is_null(
     }
 
     Ok(None)
+}
+
+fn try_into_between(
+    op: &BinOp,
+    a: &Expr,
+    b: &Expr,
+    ctx: &mut Context,
+) -> Result<Option<sql_ast::Expr>> {
+    if !matches!(op, BinOp::And) {
+        return Ok(None);
+    }
+    let Some((a, b)) = a.kind.as_binary().zip(b.kind.as_binary()) else {
+        return Ok(None);
+    };
+    if !(matches!(a.1, BinOp::Gte) && matches!(b.1, BinOp::Lte)) {
+        return Ok(None);
+    }
+    if a.0 != b.0 {
+        return Ok(None);
+    }
+
+    Ok(Some(sql_ast::Expr::Between {
+        expr: translate_operand(a.0.kind.clone(), 0, false, ctx)?,
+        negated: false,
+        low: translate_operand(a.2.kind.clone(), 0, false, ctx)?,
+        high: translate_operand(b.2.kind.clone(), 0, false, ctx)?,
+    }))
 }
 
 fn translate_windowed(

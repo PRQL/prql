@@ -8,12 +8,13 @@ use crate::ast::pl::{fold::*, *};
 use crate::ast::rq::RelationColumn;
 use crate::error::{Error, Reason, Span};
 use crate::semantic::context::TableDecl;
+use crate::semantic::static_analysis;
 use crate::utils::IdGenerator;
 
 use super::context::{Context, Decl, DeclKind};
 use super::module::{Module, NS_FRAME, NS_FRAME_RIGHT, NS_PARAM};
 use super::reporting::debug_call_tree;
-use super::transforms::Flattener;
+use super::transforms::{self, Flattener};
 use super::type_resolver::{resolve_type, type_of_closure, validate_type};
 
 /// Runs semantic analysis on the query, using current state.
@@ -82,9 +83,9 @@ impl AstFold for Resolver {
                     self.decls.declare_table(table_def, stmt.id);
                     continue;
                 }
-                StmtKind::Pipeline(expr) => {
+                StmtKind::Main(expr) => {
                     let expr = Flattener::fold(self.fold_expr(*expr)?);
-                    StmtKind::Pipeline(Box::new(expr))
+                    StmtKind::Main(Box::new(expr))
                 }
             };
 
@@ -245,6 +246,7 @@ impl AstFold for Resolver {
         if r.ty.is_none() {
             r.ty = Some(resolve_type(&r)?);
         }
+        let r = static_analysis::static_analysis(r);
         Ok(r)
     }
 }
@@ -269,15 +271,27 @@ impl Resolver {
         let mut value = exprs.remove(0);
         value = self.fold_expr(value)?;
 
+        // This is a workaround for pipelines that start with a transform.
+        // It checks if first value has resolved to a closure, and if it has,
+        // constructs an adhoc closure around the pipeline.
+        // Maybe this should not even be supported, or maybe we should have
+        // some kind of indication that first element of a pipeline is not a
+        // plain value.
         let closure_param = if let ExprKind::Closure(closure) = &mut value.kind {
-            let param = "_pip_val";
-            let value = Expr::from(ExprKind::Ident(Ident::from_name(param)));
-            closure.args.push(value);
-            Some(param)
+            // only apply this workaround if closure expects a single arg
+            if (closure.params.len() - closure.args.len()) == 1 {
+                let param = "_pip_val";
+                let value = Expr::from(ExprKind::Ident(Ident::from_name(param)));
+                closure.args.push(value);
+                Some(param)
+            } else {
+                None
+            }
         } else {
             None
         };
 
+        // the beef of this function: wrapping into func calls
         for expr in exprs {
             let span = expr.span;
 
@@ -289,6 +303,7 @@ impl Resolver {
             value.span = span;
         }
 
+        // second part of the workaround
         if let Some(closure_param) = closure_param {
             value = Expr::from(ExprKind::Closure(Box::new(Closure {
                 name: None,
@@ -342,10 +357,23 @@ impl Resolver {
         let closure = self.apply_args_to_closure(closure, args, named_args)?;
         let args_len = closure.args.len();
 
-        log::debug!("{} >= {}", closure.args.len(), closure.params.len());
+        log::debug!(
+            "func {} {}/{} params",
+            closure.as_debug_name(),
+            closure.args.len(),
+            closure.params.len()
+        );
         let enough_args = closure.args.len() >= closure.params.len();
 
         let mut r = if enough_args {
+            // push the env
+            let closure_env = Module::from_exprs(closure.env);
+            self.decls.root_mod.stack_push(NS_PARAM, closure_env);
+            let closure = Closure {
+                env: HashMap::new(),
+                ..closure
+            };
+
             if log::log_enabled!(log::Level::Debug) {
                 let name = closure
                     .name
@@ -356,27 +384,27 @@ impl Resolver {
             let closure = self.resolve_function_args(closure)?;
 
             // evaluate
-            match super::transforms::cast_transform(self, closure)? {
-                // this function call is a transform
+            let needs_window = Some(Ty::column()) <= closure.body_ty;
+            let mut res = match self.cast_built_in_function(closure)? {
+                // this function call is a built-in function
                 Ok(transform) => transform,
 
-                // this function call is not a transform, proceed with materialization
+                // this function call is not a built-in, proceed with materialization
                 Err(closure) => {
-                    let needs_window = Some(Ty::column()) <= closure.body_ty;
+                    log::debug!("stack_push for {}", closure.as_debug_name());
 
                     let (func_env, body) = env_of_closure(closure);
 
                     self.decls.root_mod.stack_push(NS_PARAM, func_env);
-                    log::debug!("stack_push");
 
                     // fold again, to resolve inner variables & functions
                     let body = self.fold_expr(body)?;
 
                     // remove param decls
-                    log::debug!("stack_pop");
+                    log::debug!("stack_pop: {:?}", body.id);
                     let func_env = self.decls.root_mod.stack_pop(NS_PARAM).unwrap();
 
-                    let mut res = if let ExprKind::Closure(mut inner_closure) = body.kind {
+                    if let ExprKind::Closure(mut inner_closure) = body.kind {
                         // body couldn't been resolved - construct a closure to be evaluated later
 
                         inner_closure.env = func_env.into_exprs();
@@ -398,14 +426,18 @@ impl Resolver {
                     } else {
                         // resolved, return result
                         body
-                    };
-
-                    res.needs_window = needs_window;
-                    res
+                    }
                 }
-            }
+            };
+
+            // pop the env
+            self.decls.root_mod.stack_pop(NS_PARAM).unwrap();
+
+            res.needs_window = needs_window;
+            res
         } else {
-            // not enough arguments: construct a func closure
+            // not enough arguments: don't fold
+            log::debug!("returning as closure");
 
             let mut ty = type_of_closure(&closure);
             ty.args = ty.args[args_len..].to_vec();
@@ -417,6 +449,30 @@ impl Resolver {
         };
         r.span = span;
         Ok(r)
+    }
+
+    fn cast_built_in_function(&mut self, closure: Closure) -> Result<Result<Expr, Closure>> {
+        let is_std = closure.name.as_ref().map(|n| n.path.as_slice() == ["std"]);
+
+        if !is_std.unwrap_or_default() {
+            return Ok(Err(closure));
+        }
+
+        Ok(match transforms::cast_transform(self, closure)? {
+            // it a transform
+            Ok(e) => Ok(e),
+
+            // it a std function that should be lowered into a BuiltIn
+            Err(closure) if matches!(closure.body.kind, ExprKind::Literal(Literal::Null)) => {
+                let name = closure.name.unwrap().to_string();
+                let args = closure.args;
+
+                Ok(Expr::from(ExprKind::BuiltInFunction { name, args }))
+            }
+
+            // it a normal function that should be resolved
+            Err(closure) => Err(closure),
+        })
     }
 
     fn apply_args_to_closure(
@@ -469,7 +525,6 @@ impl Resolver {
 
                 is_table
             });
-        closure.args = vec![Expr::null(); closure.params.len()];
 
         let has_tables = !tables.is_empty();
 
@@ -626,12 +681,11 @@ mod test {
     use crate::ast::pl::{Expr, Ty};
     use crate::semantic::resolve_only;
     use crate::utils::IntoOnly;
-    use crate::{compile, parse};
 
     fn parse_and_resolve(query: &str) -> Result<Expr> {
-        let (stmts, _) = resolve_only(parse(query)?, None)?;
+        let (stmts, _) = resolve_only(crate::parser::parse(query)?, None)?;
 
-        Ok(*stmts.into_only()?.kind.into_pipeline()?)
+        Ok(*stmts.into_only()?.kind.into_main()?)
     }
 
     fn resolve_type(query: &str) -> Result<Ty> {
@@ -646,7 +700,7 @@ mod test {
 
     #[test]
     fn test_func_call_resolve() {
-        assert_display_snapshot!(compile(r#"
+        assert_display_snapshot!(crate::test::compile(r#"
         from employees
         aggregate [
           count non_null:salary,
@@ -698,7 +752,6 @@ mod test {
     }
 
     #[test]
-    #[ignore]
     fn test_functions_nested() {
         assert_yaml_snapshot!(resolve_derive(
             r#"
@@ -706,7 +759,7 @@ mod test {
             func ret x dividend_return ->  x / (lag_day x) - 1 + dividend_return
 
             from a
-            select (ret b c)
+            derive (ret b c)
             "#
         )
         .unwrap());

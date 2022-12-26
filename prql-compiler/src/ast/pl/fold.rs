@@ -96,10 +96,21 @@ pub fn fold_expr_kind<T: ?Sized + AstFold>(fold: &mut T, expr_kind: ExprKind) ->
                 .map(|x| fold.fold_interpolate_item(x))
                 .try_collect()?,
         ),
+        Switch(cases) => Switch(
+            cases
+                .into_iter()
+                .map(|c| fold_switch_case(fold, c))
+                .try_collect()?,
+        ),
+
         FuncCall(func_call) => FuncCall(fold.fold_func_call(func_call)?),
         Closure(closure) => Closure(Box::new(fold.fold_closure(*closure)?)),
 
         TransformCall(transform) => TransformCall(fold.fold_transform_call(transform)?),
+        BuiltInFunction { name, args } => BuiltInFunction {
+            name,
+            args: fold.fold_exprs(args)?,
+        },
 
         // None of these capture variables, so we don't need to fold them.
         Literal(_) => expr_kind,
@@ -111,7 +122,7 @@ pub fn fold_stmt_kind<T: ?Sized + AstFold>(fold: &mut T, stmt_kind: StmtKind) ->
     Ok(match stmt_kind {
         FuncDef(func) => FuncDef(fold.fold_func_def(func)?),
         TableDef(table) => TableDef(fold.fold_table(table)?),
-        Pipeline(expr) => Pipeline(Box::new(fold.fold_expr(*expr)?)),
+        Main(expr) => Main(Box::new(fold.fold_expr(*expr)?)),
         QueryDef(_) => stmt_kind,
     })
 }
@@ -139,15 +150,15 @@ pub fn fold_pipeline<T: ?Sized + AstFold>(fold: &mut T, pipeline: Pipeline) -> R
 // This aren't strictly in the hierarchy, so we don't need to
 // have an assoc. function for `fold_optional_box` — we just
 // call out to the function in this module
-pub fn fold_optional_box<T: ?Sized + AstFold>(
-    fold: &mut T,
+pub fn fold_optional_box<F: ?Sized + AstFold>(
+    fold: &mut F,
     opt: Option<Box<Expr>>,
 ) -> Result<Option<Box<Expr>>> {
     Ok(opt.map(|n| fold.fold_expr(*n)).transpose()?.map(Box::from))
 }
 
-pub fn fold_interpolate_item<T: ?Sized + AstFold>(
-    fold: &mut T,
+pub fn fold_interpolate_item<F: ?Sized + AstFold>(
+    fold: &mut F,
     interpolate_item: InterpolateItem,
 ) -> Result<InterpolateItem> {
     Ok(match interpolate_item {
@@ -156,8 +167,15 @@ pub fn fold_interpolate_item<T: ?Sized + AstFold>(
     })
 }
 
-pub fn fold_column_sorts<T: ?Sized + AstFold>(
-    fold: &mut T,
+pub fn fold_switch_case<F: ?Sized + AstFold>(fold: &mut F, case: SwitchCase) -> Result<SwitchCase> {
+    Ok(SwitchCase {
+        condition: fold.fold_expr(case.condition)?,
+        value: fold.fold_expr(case.value)?,
+    })
+}
+
+pub fn fold_column_sorts<F: ?Sized + AstFold>(
+    fold: &mut F,
     sort: Vec<ColumnSort>,
 ) -> Result<Vec<ColumnSort>> {
     sort.into_iter()

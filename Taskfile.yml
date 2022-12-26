@@ -45,15 +45,8 @@ tasks:
     cmds:
       # `--locked` installs from the underlying lock files (which is not the
       # default?!)
-      - cargo install --locked
-        cargo-audit
-        cargo-insta
-        cargo-release
-        default-target
-        mdbook
-        mdbook-admonish
-        mdbook-toc
-        wasm-bindgen-cli
+      - cargo install --locked cargo-audit cargo-insta cargo-release
+        default-target mdbook mdbook-admonish mdbook-toc wasm-bindgen-cli
         wasm-pack
       - cmd: |
           [ "$(which default-target)" ] || echo "Can't find a binary that cargo installed. Is the cargo bin path (generally at ~/.cargo/bin) on the $PATH?"
@@ -77,7 +70,8 @@ tasks:
     status:
       # If vscode isn't installed, or there are no missing extensions,
       # return 0 and exit early.
-      - '[ ! -x "$(which code)" ] || {{ not (contains "❌" .missing_extensions) }}'
+      - '[ ! -x "$(which code)" ] || {{ not (contains "❌" .missing_extensions)
+        }}'
     silent: true
     cmds:
       - |
@@ -90,10 +84,6 @@ tasks:
 
           task install-vscode-extensions
           "
-
-  install-precommit-install-hooks:
-    desc: pre-commit install-hooks
-      - pre-commit install-hooks
 
   install-vscode-extensions:
     desc: Install recommended VSCode extensions.
@@ -130,14 +120,17 @@ tasks:
     cmds:
       - npm install --location=global prettier prettier-plugin-go-template
       - cmd:
-          echo "In order to get nice auto-formatting of web code in VSCode, VSCode
-          requires configuration to use the system-wide install of prettier. See
+          echo "In order to get nice auto-formatting of web code in VSCode,
+          VSCode requires configuration to use the system-wide install of
+          prettier. See
           https://github.com/NiklasPor/prettier-plugin-go-template/issues/58#issuecomment-1085060511
           for more info."
         silent: true
 
   build-all:
-    desc: Build everything. Running this isn't required when developing; it's for caching or as a reference.
+    desc:
+      Build everything. Running this isn't required when developing; it's for
+      caching or as a reference.
     vars:
       default_target:
         sh: default-target
@@ -149,12 +142,12 @@ tasks:
         {{ range ( .targets | trim | splitLines ) -}}
         cargo build --all-targets --target={{.}}
         {{ end -}}
-      - mdbook build book/
-      - cd playground && npm install && npm run build
-      - cd website && hugo
+      - task: build-web
 
   test-all:
-    desc: Test everything, resetting snapshots. Running this isn't required when developing; it's for caching or as a reference.
+    desc:
+      Test everything, resetting snapshots. Running this isn't required when
+      developing; it's for caching or as a reference.
     cmds:
       - task: test-rust
       - task: build-all
@@ -173,7 +166,8 @@ tasks:
       # fail other compilation steps if they can't be extracted.
       - cargo insta test --accept -p mdbook-prql -- run_examples
       # Only delete unreferenced snapshots on the default target — lots are excluded under wasm.
-      - cargo insta test --accept --target={{.default_target}} --delete-unreferenced-snapshots
+      - cargo insta test --accept --target={{.default_target}}
+        --delete-unreferenced-snapshots
       - cargo insta test --accept --target=wasm32-unknown-unknown
 
   build-web:
@@ -182,17 +176,22 @@ tasks:
       - cd website && hugo --minify
       - cd book && mdbook build
       - mkdir -p website/public
+      # Copy the book into the website path, using rsync so it only copies new files
       - rsync -ai --checksum --delete book/book/ website/public/book/
-      - cd playground && npm ci
+      # Must set `install-links=false` for the playground `npm install` to install prql-js
+      # as the regular dependencie instead of creating a symlink.
+      # Refer to https://github.com/prql/prql/pull/1296.
+      - cd playground && npm install --install-links=false
       - cd playground && npm run build
-      - rsync -ai --checksum --delete playground/build/ website/public/playground/
+      - rsync -ai --checksum --delete playground/build/
+        website/public/playground/
 
   test-prql-js:
     # These are mostly copied from the tasks in `test-all.yaml`
     dir: prql-js
     cmds:
-      - wasm-pack build --target nodejs --release --out-dir dist/node
-      - cd tests && npm i && npm run test
+      - npm run build
+      - npm cit
 
   run-book:
     dir: book
@@ -202,7 +201,10 @@ tasks:
   run-playground:
     dir: playground
     cmds:
-      - npm install
+      # Must set `install-links=false` for the playground `npm install` to install prql-js
+      # as the regular dependencie instead of creating a symlink.
+      # Refer to https://github.com/prql/prql/pull/1296.
+      - npm install --install-links=false
       - npm start
 # The next three tasks are not used for either:
 #  - the Dockerfile (installing brew takes forever)

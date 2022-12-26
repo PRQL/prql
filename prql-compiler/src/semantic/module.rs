@@ -307,6 +307,22 @@ impl Module {
             .map(|(k, v)| (k, *v.kind.into_expr().unwrap()))
             .collect()
     }
+
+    pub(crate) fn from_exprs(exprs: HashMap<String, Expr>) -> Module {
+        Module {
+            names: exprs
+                .into_iter()
+                .map(|(key, expr)| {
+                    let decl = Decl {
+                        kind: DeclKind::Expr(Box::new(expr)),
+                        ..Default::default()
+                    };
+                    (key, decl)
+                })
+                .collect(),
+            ..Default::default()
+        }
+    }
 }
 
 impl std::fmt::Debug for Module {

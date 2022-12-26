@@ -15,7 +15,7 @@ use pest_derive::Parser;
 
 use super::ast::pl::*;
 use super::utils::*;
-use crate::error::{Error, Reason, Span};
+use crate::error::Span;
 
 #[derive(Parser)]
 #[grammar = "prql.pest"]
@@ -51,7 +51,7 @@ fn stmt_of_parse_pair(pair: Pair<Rule>) -> Result<Stmt> {
     let kind = match rule {
         Rule::pipeline_stmt => {
             let pipeline = expr_of_parse_pair(pair.into_inner().next().unwrap())?;
-            StmtKind::Pipeline(Box::new(pipeline))
+            StmtKind::Main(Box::new(pipeline))
         }
         Rule::query_def => {
             let mut params: HashMap<_, _> = pair
@@ -64,21 +64,15 @@ fn stmt_of_parse_pair(pair: Pair<Rule>) -> Result<Stmt> {
                 .map(|v| v.try_cast(|i| i.parse_version(), None, "semver version number string"))
                 .transpose()?;
 
-            let dialect = if let Some(node) = params.remove("dialect") {
-                let span = node.span;
-                let dialect = node.try_cast(|i| i.into_ident(), None, "string")?;
-                Dialect::from_str(&dialect.to_string()).map_err(|_| {
-                    Error::new(Reason::NotFound {
-                        name: format!("{dialect:?}"),
-                        namespace: "dialect".to_string(),
-                    })
-                    .with_span(span)
-                })?
-            } else {
-                Dialect::default()
-            };
+            let other = params
+                .into_iter()
+                .flat_map(|(key, value)| match value.kind {
+                    ExprKind::Ident(value) => Some((key, value.name)),
+                    _ => None,
+                })
+                .collect();
 
-            StmtKind::QueryDef(QueryDef { version, dialect })
+            StmtKind::QueryDef(QueryDef { version, other })
         }
         Rule::func_def => {
             let mut pairs = pair.into_inner();
@@ -189,17 +183,19 @@ fn expr_of_parse_pair(pair: Pair<Rule>) -> Result<Expr> {
         // than passing along the operator. So this is unlike the rest
         // of the parsing (and maybe isn't optimal).
         Rule::expr_coalesce => {
-            let pairs = pair.into_inner();
-            // If there's no coalescing, just return the single expression.
-            if pairs.clone().count() == 1 {
-                exprs_of_parse_pairs(pairs)?.into_only()?.kind
+            let mut pairs = pair.into_inner();
+            let left = expr_of_parse_pair(pairs.next().unwrap())?;
+
+            if pairs.next().is_none() {
+                // If there's no coalescing, just return the single expression.
+                left.kind
             } else {
-                let parsed = exprs_of_parse_pairs(pairs)?;
-                ExprKind::FuncCall(FuncCall {
-                    name: Box::new(ExprKind::Ident(Ident::from_name("coalesce")).into()),
-                    args: vec![parsed[0].clone(), parsed[2].clone()],
-                    named_args: HashMap::new(),
-                })
+                let right = expr_of_parse_pair(pairs.next().unwrap())?;
+                ExprKind::Binary {
+                    left: Box::new(left),
+                    op: BinOp::Coalesce,
+                    right: Box::new(right),
+                }
             }
         }
         // This makes the previous parsing a bit easier, but is hacky;
@@ -207,7 +203,7 @@ fn expr_of_parse_pair(pair: Pair<Rule>) -> Result<Expr> {
         // parse parts of a Pairs).
         Rule::operator_coalesce => ExprKind::Ident(Ident::from_name("-")),
 
-        Rule::assign_call | Rule::assign => {
+        Rule::assign | Rule::alias => {
             let (a, expr) = parse_named(pair.into_inner())?;
             alias = Some(a);
             expr.kind
@@ -330,6 +326,23 @@ fn expr_of_parse_pair(pair: Pair<Rule>) -> Result<Expr> {
             })
         }
 
+        Rule::switch => {
+            let cases = pair
+                .into_inner()
+                .map(|pair| -> Result<_> {
+                    let [condition, value]: [Expr; 2] = pair
+                        .into_inner()
+                        .map(expr_of_parse_pair)
+                        .collect::<Result<Vec<_>>>()?
+                        .try_into()
+                        .unwrap();
+                    Ok(SwitchCase { condition, value })
+                })
+                .try_collect()?;
+
+            ExprKind::Switch(cases)
+        }
+
         _ => unreachable!("{pair}"),
     };
     Ok(Expr {
@@ -444,7 +457,7 @@ mod test {
 
         assert_yaml_snapshot!(stmts_of_string(r#"take 10"#)?, @r###"
         ---
-        - Pipeline:
+        - Main:
             FuncCall:
               name:
                 Ident:
@@ -457,7 +470,7 @@ mod test {
 
         assert_yaml_snapshot!(stmts_of_string(r#"take 1..10"#)?, @r###"
         ---
-        - Pipeline:
+        - Main:
             FuncCall:
               name:
                 Ident:
@@ -693,7 +706,7 @@ Canada
         aggregate (sum order_id)
         "#)?, @r###"
         ---
-        - Pipeline:
+        - Main:
             Pipeline:
               exprs:
                 - FuncCall:
@@ -861,7 +874,7 @@ Canada
         assert_yaml_snapshot!(
             stmts_of_string(r#"filter country == "USA""#).unwrap(), @r###"
         ---
-        - Pipeline:
+        - Main:
             FuncCall:
               name:
                 Ident:
@@ -881,7 +894,7 @@ Canada
         assert_yaml_snapshot!(
             stmts_of_string(r#"filter (upper country) == "USA""#).unwrap(), @r###"
         ---
-        - Pipeline:
+        - Main:
             FuncCall:
               name:
                 Ident:
@@ -917,7 +930,7 @@ Canada
         assert_yaml_snapshot!(
             aggregate, @r###"
         ---
-        - Pipeline:
+        - Main:
             FuncCall:
               name:
                 Ident:
@@ -954,7 +967,7 @@ Canada
         assert_yaml_snapshot!(
             aggregate, @r###"
         ---
-        - Pipeline:
+        - Main:
             FuncCall:
               name:
                 Ident:
@@ -1026,6 +1039,24 @@ Canada
         "###);
 
         assert_yaml_snapshot!(
+            expr_of_string(r#"select ![x]"#, Rule::func_call)?
+        , @r###"
+        ---
+        FuncCall:
+          name:
+            Ident:
+              - select
+          args:
+            - Unary:
+                op: Not
+                expr:
+                  List:
+                    - Ident:
+                        - x
+          named_args: {}
+        "###);
+
+        assert_yaml_snapshot!(
             expr_of_string(r#"select [x, y]"#, Rule::func_call)?
         , @r###"
         ---
@@ -1090,7 +1121,7 @@ Canada
         assert_yaml_snapshot!(
             expr_of_string(
                 "gross_salary = (salary + payroll_tax) * (1 + tax_rate)",
-                Rule::assign,
+                Rule::alias,
             )?,
             @r###"
         ---
@@ -1366,7 +1397,7 @@ take 20
 
         assert_yaml_snapshot!(parse(r#"from mytable | select [a and b + c or (d e) and f]"#).unwrap(), @r###"
         ---
-        - Pipeline:
+        - Main:
             Pipeline:
               exprs:
                 - FuncCall:
@@ -1562,7 +1593,7 @@ take 20
                             - foo
                           alias: only_in_x
                       named_args: {}
-        - Pipeline:
+        - Main:
             FuncCall:
               name:
                 Ident:
@@ -1628,7 +1659,7 @@ take 20
         ]
         "#)?, @r###"
         ---
-        - Pipeline:
+        - Main:
             Pipeline:
               exprs:
                 - FuncCall:
@@ -1693,7 +1724,7 @@ join `my-proj`.`dataset`.`table`
 
         assert_yaml_snapshot!(parse(prql)?, @r###"
         ---
-        - Pipeline:
+        - Main:
             Pipeline:
               exprs:
                 - FuncCall:
@@ -1753,7 +1784,7 @@ join `my-proj`.`dataset`.`table`
         sort [issued_at, -amount, +num_of_articles]
         ").unwrap(), @r###"
         ---
-        - Pipeline:
+        - Main:
             Pipeline:
               exprs:
                 - FuncCall:
@@ -1840,7 +1871,7 @@ join `my-proj`.`dataset`.`table`
         ]
         ").unwrap(), @r###"
         ---
-        - Pipeline:
+        - Main:
             Pipeline:
               exprs:
                 - FuncCall:
@@ -1929,7 +1960,7 @@ join `my-proj`.`dataset`.`table`
         derive [age_plus_two_years = (age + 2years)]
         ").unwrap(), @r###"
         ---
-        - Pipeline:
+        - Main:
             Pipeline:
               exprs:
                 - FuncCall:
@@ -1969,7 +2000,7 @@ join `my-proj`.`dataset`.`table`
         ]
         ").unwrap(), @r###"
         ---
-        - Pipeline:
+        - Main:
             FuncCall:
               name:
                 Ident:
@@ -1999,7 +2030,7 @@ join `my-proj`.`dataset`.`table`
         derive x = r#"r-string test"#
         "###).unwrap(), @r###"
         ---
-        - Pipeline:
+        - Main:
             FuncCall:
               name:
                 Ident:
@@ -2019,7 +2050,7 @@ join `my-proj`.`dataset`.`table`
         derive amount = amount ?? 0
         "###).unwrap(), @r###"
         ---
-        - Pipeline:
+        - Main:
             Pipeline:
               exprs:
                 - FuncCall:
@@ -2035,16 +2066,14 @@ join `my-proj`.`dataset`.`table`
                       Ident:
                         - derive
                     args:
-                      - FuncCall:
-                          name:
+                      - Binary:
+                          left:
                             Ident:
-                              - coalesce
-                          args:
-                            - Ident:
-                                - amount
-                            - Literal:
-                                Integer: 0
-                          named_args: {}
+                              - amount
+                          op: Coalesce
+                          right:
+                            Literal:
+                              Integer: 0
                         alias: amount
                     named_args: {}
         "### )
@@ -2056,7 +2085,7 @@ join `my-proj`.`dataset`.`table`
         derive x = true
         "###).unwrap(), @r###"
         ---
-        - Pipeline:
+        - Main:
             FuncCall:
               name:
                 Ident:
@@ -2078,7 +2107,7 @@ join `my-proj`.`dataset`.`table`
         select [_employees._underscored_column]
         "###).unwrap(), @r###"
         ---
-        - Pipeline:
+        - Main:
             Pipeline:
               exprs:
                 - FuncCall:
@@ -2140,7 +2169,7 @@ join `my-proj`.`dataset`.`table`
         filter num_eyes < 2
         "###).unwrap(), @r###"
         ---
-        - Pipeline:
+        - Main:
             Pipeline:
               exprs:
                 - FuncCall:
@@ -2208,5 +2237,41 @@ join `my-proj`.`dataset`.`table`
                               Integer: 2
                     named_args: {}
         "###)
+    }
+
+    #[test]
+    fn test_assign() {
+        assert_yaml_snapshot!(parse(r###"
+from employees
+join s=salaries [==id]
+        "###).unwrap(), @r###"
+        ---
+        - Main:
+            Pipeline:
+              exprs:
+                - FuncCall:
+                    name:
+                      Ident:
+                        - from
+                    args:
+                      - Ident:
+                          - employees
+                    named_args: {}
+                - FuncCall:
+                    name:
+                      Ident:
+                        - join
+                    args:
+                      - Ident:
+                          - salaries
+                        alias: s
+                      - List:
+                          - Unary:
+                              op: EqSelf
+                              expr:
+                                Ident:
+                                  - id
+                    named_args: {}
+        "###);
     }
 }

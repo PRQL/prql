@@ -117,9 +117,9 @@ code {
 --------------------------------------------------------------*/
 #header {
   background: white;
-  box-shadow: 0px 2px 15px rgba(0, 0, 0, 0.1);
   z-index: 997;
   padding: 15px 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.125);
 }
 
 #header .logo img {
@@ -320,12 +320,12 @@ pre ::-webkit-scrollbar-thumb:hover {
   font-weight: 700;
 }
 
-.hero p {
+.hero .bottom-text {
   font-size: 20px;
   color: #4b5157;
 }
 
-.hero a {
+.hero a.btn {
   color: #fff;
   background-color: var(--third-color);
   padding: 10px 20px;
@@ -335,7 +335,7 @@ pre ::-webkit-scrollbar-thumb:hover {
   transition: 0.3s;
 }
 
-.hero a:hover {
+.hero a.btn:hover {
   background-color: var(--main-color);
 }
 
@@ -366,6 +366,14 @@ pre ::-webkit-scrollbar-thumb:hover {
   #hero {
     height: 120vh;
   }
+}
+
+.callout {
+  padding: 1.25rem 1.25rem 0.5rem 1.25rem;
+  margin-top: 1.25rem;
+  margin-bottom: 1.25rem;
+  background-color: #fff;
+  border-left: 0.25rem solid #c92a2a;
 }
 
 /*--------------------------------------------------------------
@@ -423,7 +431,6 @@ section {
 .big-cards-section .card {
   padding: 30px;
   height: 100%;
-  border-radius: 0px;
 }
 
 .big-cards-section .card i {

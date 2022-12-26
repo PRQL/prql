@@ -13,8 +13,8 @@ table top_50 = (
 from top_50      # Starts a new pipeline
 ```
 
-In PRQL `table`s are far less common than CTEs are in SQL, since a linear
-series of CTEs can be represented with a single pipeline.
+In PRQL `table`s are far less common than CTEs are in SQL, since a linear series
+of CTEs can be represented with a single pipeline.
 
 ## Roadmap
 

@@ -7,8 +7,8 @@ use itertools::Itertools;
 
 use crate::ast::pl::fold::AstFold;
 use crate::ast::pl::{
-    self, Expr, ExprKind, FrameColumn, Ident, InterpolateItem, Range, TableExternRef, Ty,
-    WindowFrame,
+    self, Expr, ExprKind, FrameColumn, Ident, InterpolateItem, Range, SwitchCase, TableExternRef,
+    Ty, WindowFrame,
 };
 use crate::ast::rq::{self, CId, Query, RelationColumn, TId, TableDecl, Transform};
 use crate::error::{Error, Reason};
@@ -32,7 +32,7 @@ pub fn lower_ast_to_ir(statements: Vec<pl::Stmt>, context: Context) -> Result<Qu
     for statement in statements {
         match statement.kind {
             pl::StmtKind::QueryDef(def) => query_def = Some(def),
-            pl::StmtKind::Pipeline(expr) => {
+            pl::StmtKind::Main(expr) => {
                 let relation = l.lower_relation(*expr)?;
                 main_pipeline = Some(relation);
             }
@@ -139,14 +139,6 @@ impl Lowerer {
                 table_ref
             }
             ExprKind::SString(items) => {
-                if items.iter().any(|i| matches!(i, InterpolateItem::Expr(_))) {
-                    bail!(Error::new(Reason::Simple(
-                        "table s-strings cannot contain interpolations".to_string(),
-                    ))
-                    .with_help("are you missing `from` statement?")
-                    .with_span(expr.span))
-                }
-
                 let id = expr.id.unwrap();
 
                 // create a new table
@@ -495,13 +487,6 @@ impl Lowerer {
                 }
             }
             pl::ExprKind::Literal(literal) => rq::ExprKind::Literal(literal),
-            pl::ExprKind::Range(Range { start, end }) => rq::ExprKind::Range(Range {
-                start: start
-                    .map(|x| self.lower_expr(*x))
-                    .transpose()?
-                    .map(Box::new),
-                end: end.map(|x| self.lower_expr(*x)).transpose()?.map(Box::new),
-            }),
             pl::ExprKind::Binary { left, op, right } => rq::ExprKind::Binary {
                 left: Box::new(self.lower_expr(*left)?),
                 op,
@@ -521,9 +506,28 @@ impl Lowerer {
             pl::ExprKind::FString(items) => {
                 rq::ExprKind::FString(self.lower_interpolations(items)?)
             }
+            pl::ExprKind::Switch(cases) => rq::ExprKind::Switch(
+                cases
+                    .into_iter()
+                    .map(|case| -> Result<_> {
+                        Ok(SwitchCase {
+                            condition: self.lower_expr(case.condition)?,
+                            value: self.lower_expr(case.value)?,
+                        })
+                    })
+                    .try_collect()?,
+            ),
+            pl::ExprKind::BuiltInFunction { name, args } => {
+                // built-in function
+                let args = args.into_iter().map(|x| self.lower_expr(x)).try_collect()?;
+
+                rq::ExprKind::BuiltInFunction { name, args }
+            }
+
             pl::ExprKind::FuncCall(_)
-            | pl::ExprKind::Closure(_)
+            | pl::ExprKind::Range(_)
             | pl::ExprKind::List(_)
+            | pl::ExprKind::Closure(_)
             | pl::ExprKind::Pipeline(_)
             | pl::ExprKind::TransformCall(_) => bail!("Cannot lower to IR expr: `{ast:?}`"),
         };

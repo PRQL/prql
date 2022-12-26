@@ -5,15 +5,16 @@ mod lowering;
 mod module;
 pub mod reporting;
 mod resolver;
+mod static_analysis;
 mod transforms;
 mod type_resolver;
 
 pub use self::context::Context;
+pub use self::module::Module;
 
 use crate::ast::pl::frame::{Frame, FrameColumn};
 use crate::ast::pl::Stmt;
 use crate::ast::rq::Query;
-use crate::semantic::module::Module;
 use crate::PRQL_VERSION;
 
 use anyhow::{bail, Result};
@@ -45,8 +46,8 @@ pub fn resolve_only(
 }
 
 pub fn load_std_lib() -> Context {
-    use crate::parse;
-    let std_lib = include_str!("./stdlib.prql");
+    use crate::parser::parse;
+    let std_lib = include_str!("./std.prql");
     let statements = parse(std_lib).unwrap();
 
     let context = Context {
@@ -72,7 +73,7 @@ mod test {
     use insta::assert_yaml_snapshot;
 
     use super::resolve;
-    use crate::{ast::rq::Query, parse};
+    use crate::{ast::rq::Query, parser::parse};
 
     fn parse_and_resolve(query: &str) -> Result<Query> {
         resolve(parse(query)?)
@@ -81,14 +82,15 @@ mod test {
     #[test]
     fn test_header() {
         assert_yaml_snapshot!(parse_and_resolve(r###"
-        prql dialect:mssql version:"0"
+        prql sql_dialect:mssql version:"0"
 
         from employees
         "###).unwrap(), @r###"
         ---
         def:
           version: ^0
-          dialect: MsSql
+          other:
+            sql_dialect: mssql
         tables:
           - id: 0
             name: employees
@@ -114,14 +116,15 @@ mod test {
         "### );
 
         assert_yaml_snapshot!(parse_and_resolve(r###"
-        prql dialect:bigquery version:"0.3"
+        prql sql_dialect:bigquery version:"0.3"
 
         from employees
         "###).unwrap(), @r###"
         ---
         def:
           version: ^0.3
-          dialect: BigQuery
+          other:
+            sql_dialect: bigquery
         tables:
           - id: 0
             name: employees
@@ -148,7 +151,7 @@ mod test {
 
         assert!(parse_and_resolve(
             r###"
-        prql dialect:bigquery version:foo
+        prql sql_dialect:bigquery version:foo
         from employees
         "###,
         )
@@ -156,7 +159,7 @@ mod test {
 
         assert!(parse_and_resolve(
             r###"
-        prql dialect:bigquery version:"25"
+        prql sql_dialect:bigquery version:"25"
         from employees
         "###,
         )
@@ -164,7 +167,7 @@ mod test {
 
         assert!(parse_and_resolve(
             r###"
-        prql dialect:yah version:foo
+        prql sql_dialect:yah version:foo
         from employees
         "###,
         )

@@ -59,6 +59,11 @@ pub enum ExprKind {
     TransformCall(TransformCall),
     SString(Vec<InterpolateItem>),
     FString(Vec<InterpolateItem>),
+    Switch(Vec<SwitchCase>),
+    BuiltInFunction {
+        name: String,
+        args: Vec<Expr>,
+    },
 }
 
 impl ExprKind {
@@ -70,10 +75,8 @@ impl ExprKind {
     }
 }
 
-mod modname {}
-
 #[derive(
-    Debug, PartialEq, Eq, Clone, Serialize, Deserialize, strum::Display, strum::EnumString,
+    Debug, PartialEq, Eq, Clone, Copy, Serialize, Deserialize, strum::Display, strum::EnumString,
 )]
 pub enum BinOp {
     #[strum(to_string = "*")]
@@ -106,7 +109,7 @@ pub enum BinOp {
     Coalesce,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize, strum::EnumString)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Serialize, Deserialize, strum::EnumString)]
 pub enum UnOp {
     #[strum(to_string = "-")]
     Neg,
@@ -149,6 +152,14 @@ pub struct Closure {
     pub named_params: Vec<FuncParam>,
 
     pub env: HashMap<String, Expr>,
+}
+
+impl Closure {
+    pub fn as_debug_name(&self) -> &str {
+        let ident = self.name.as_ref();
+
+        ident.map(|n| n.name.as_str()).unwrap_or("<anonymous>")
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
@@ -221,6 +232,12 @@ impl Range {
             false
         }
     }
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
+pub struct SwitchCase<T = Expr> {
+    pub condition: T,
+    pub value: T,
 }
 
 /// FuncCall with better typing. Returns the modified table.
@@ -303,24 +320,6 @@ pub enum JoinSide {
 impl Expr {
     pub fn null() -> Expr {
         Expr::from(ExprKind::Literal(Literal::Null))
-    }
-
-    pub fn coerce_into_vec(self) -> Vec<Expr> {
-        match self.kind {
-            ExprKind::List(items) => items,
-            _ => vec![self],
-        }
-    }
-
-    pub fn coerce_as_mut_vec(&mut self) -> Vec<&mut Expr> {
-        if matches!(self.kind, ExprKind::List(_)) {
-            match &mut self.kind {
-                ExprKind::List(items) => items.iter_mut().collect(),
-                _ => unreachable!(),
-            }
-        } else {
-            vec![self]
-        }
     }
 
     pub fn try_cast<T, F, S2: ToString>(
@@ -458,7 +457,7 @@ impl Display for Expr {
                     write!(f, "[{}]", nodes[0])?;
                 } else {
                     f.write_str("[\n")?;
-                    for li in nodes.iter() {
+                    for li in nodes {
                         writeln!(f, "  {},", li)?;
                     }
                     f.write_str("]")?;
@@ -529,6 +528,16 @@ impl Display for Expr {
             }
             ExprKind::Literal(literal) => {
                 write!(f, "{}", literal)?;
+            }
+            ExprKind::Switch(cases) => {
+                f.write_str("[\n")?;
+                for case in cases {
+                    writeln!(f, "  {} => {}", case.condition, case.value)?;
+                }
+                f.write_str("]")?;
+            }
+            ExprKind::BuiltInFunction { .. } => {
+                f.write_str("<built-in>")?;
             }
         }
 

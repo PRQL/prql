@@ -6,6 +6,6 @@ input_file: book/tests/prql/language-features/s-strings-5.prql
 SELECT
   *,
   salary + benefits AS gross_salary,
-  365 / (salary + benefits) AS daily_rate
+  365 / salary + benefits AS daily_rate
 FROM
   employees

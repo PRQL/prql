@@ -2,7 +2,7 @@ use std::marker::PhantomData;
 
 use anyhow::Result;
 
-use crate::ast::rq::{fold_table, CId, IrFold, Query, TId, TableDecl};
+use crate::ast::rq::{fold_table, CId, Query, RqFold, TId, TableDecl};
 
 #[derive(Debug, Clone)]
 pub struct IdGenerator<T: From<usize>> {
@@ -51,7 +51,7 @@ struct IdLoader {
     tid: IdGenerator<TId>,
 }
 
-impl IrFold for IdLoader {
+impl RqFold for IdLoader {
     fn fold_cid(&mut self, cid: CId) -> Result<CId> {
         self.cid.skip(cid.get());
 

@@ -72,15 +72,15 @@ to generate bindings[^1].
 
 [^1]:
 
-though we would be very open to other approaches, and used `trunk`
-successfully in a rust-driven approach to this, RIP `prql-web`.
+though we would be very open to other approaches, and used `trunk` successfully
+in a rust-driven approach to this, RIP `prql-web`.
 
 ## Development
 
 Build:
 
 ```sh
-npm run build-all
+npm run build
 ```
 
 This builds Node, bundler and web packages in the `dist` path.
