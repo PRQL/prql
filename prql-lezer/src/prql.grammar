@@ -1,0 +1,98 @@
+// TODO:
+// - `switch` transform
+// - Do we want to highlight built-in transforms like `from` differently to
+//   normal functions?
+// - A few small TODOs included below
+
+@top Query { Statements }
+@skip { space | Comment }
+
+Statements { newline* Query_def? ( Func_def | Table_def)* Pipeline_stmt? end }
+
+Query_def { @specialize<ident_part, "prql"> Named_arg* newline+ }
+
+Pipeline_stmt { Pipeline ( ~ambig_newline newline+ | end )}
+
+Pipeline { expr_call (pipe+ expr_call)* }
+
+pipe { "|" | ~ambig_newline newline }
+
+List { "[" newline? list_item (("," newline? ) list_item)* ","? newline? "]" }
+
+list_item { Assign_call | expr_call }
+
+expr_call { Expr | Func_call }
+// Ideally we would force a space after `Ident` to prevent an invalid s-string
+// being parsed as a Func_call, e.g. `s"{a"` -> `s` & `"{a"'. But we
+// can't seem to force a space because it's in our skip, and I can't see
+// a way of changing the skip expression to only specialize on a single item
+Func_call { Ident ( (Named_arg | Assign | Expr))+ }
+
+// !term is required here, otherwise `[x+emp_no, -3]` is parsed as `x` & `+emp_no`
+term { !term Ident | Number | List | Date | Nested_pipeline | Op_unary term | String | S_string | F_string | Range }
+
+// Not quite sure why `!term` is required here
+Expr { !term term (( Op_bin) term)* }
+
+Named_arg { ident_part ":" Expr }
+Assign { ident_part "=" Expr }
+Assign_call { ident_part "=" expr_call }
+
+Nested_pipeline { "(" newline* Pipeline ~ambig_newline newline? ")" }
+
+@precedence { term @left }
+
+// Because this is outside tokens, we can't disallow whitespace.
+// It's outside tokens because otherwise it conflicts with Ident
+Ident { ident_part ( "." ident_part)* }
+
+// I don't think it's possible to have `Op_bin` & `Op_unary` as tokens — that would mean `-` can't be both unary & bin.
+Op_bin { Op_bin_only | Op_unary }
+
+@tokens {
+  // We can't seem to set the number of digits, so this will allow any
+  // combination of digits & hyphens.
+  // TODO: does excluding spaces here work? It seems to make a difference, but
+  // then I think the `Number` rule doesn't allow spaces...
+  Date { "@" ![ ] (( @digit | "-" ) ![ ] )+ }
+  ident_part { @asciiLetter (@asciiLetter | "_" | @digit )* }
+  Number { @digit+ "."? @digit* }
+  space { " "+ }
+  Comment { "#" ![\n]* }
+  Op_bin_only { "*" | "/" | "%" | "!=" | ">=" | "<=" | ">" | "<" | "??" | "and" | "or" }
+  Op_unary { "-" | "+" | "==" }
+  end { @eof }
+  newline { "\n" }
+  Range { ".." }
+  // Couldn't managed to do these & the interpolated as a template; couldn't
+  // find how to negate a variable template
+  String { $["] !["]* $["] | $['] ![']* $['] }
+
+  // TODO: not getting the interpolations highlighted; it just shows the whole
+  // string as a string, because these are all within the `@tokens` block. But
+  // they need to be within this block, because it's not possible to have
+  // negations (e.g. `![{'}` outside it.
+  String_interpolated_single { $['] ( ![{'] | Interpolation_inner_single )* $['] }
+  String_interpolated_double { $["] ( ![{"] | Interpolation_inner_double )* $["] }
+
+  Interpolation_inner_single { "{" ![}']* "}" }
+  Interpolation_inner_double { "{" ![}"]* "}" }
+
+  Interpolated_string<prefix> { prefix ( String_interpolated_double | String_interpolated_single ) }
+
+  S_string {Interpolated_string<'s'>}
+  F_string {Interpolated_string<'f'>}
+
+  // We need to give precedence to `Op_bin` so we don't get `x+y` as `x` & `+y`.
+  // S & F strings have precedence over idents beginning with s / f (we could
+  // use specialize but I think means we need to redefine `String` for each)
+  @precedence { S_string, F_string, Op_bin_only, ident_part }
+}
+
+Table_def { @specialize<ident_part, "table"> ident_part "=" Nested_pipeline ( newline+ | end ) }
+
+Func_def { @specialize<ident_part, "func"> Func_def_name Func_def_param* "->" expr_call ( newline+ | end ) }
+Type_def { "<" Type_term ( "|" Type_term)* ">" }
+Type_term { ident_part Type_def? }
+Func_def_name { ident_part Type_def? }
+Func_def_param { ident_part Type_def? (":" Expr)? }
