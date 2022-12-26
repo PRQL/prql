@@ -3,7 +3,7 @@
 `prql-compiler` contains the implementation of PRQL's compiler, written in rust.
 
 For more on PRQL, check out the [PRQL website](https://prql-lang.org) or the
-[PRQL repo](https://github.com/prql/prql).
+[PRQL repo](https://github.com/PRQL/prql).
 
 ## Installation
 

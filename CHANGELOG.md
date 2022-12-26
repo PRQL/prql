@@ -8,7 +8,7 @@
   [produce a full table.](https://prql-lang.org/book/language-features/s-strings.html#prql-3)
 - _Experimental:_ `switch` statement sets a variable to a value based on one of
   several expressions. No page in the docs yet, but
-  [see this discussion](https://github.com/prql/prql/issues/1286#issue-1501645497)
+  [see this discussion](https://github.com/PRQL/prql/issues/1286#issue-1501645497)
   for usage and the current syntax. _Note: this syntax may change._
 
   ```
@@ -21,7 +21,7 @@
   ```
 
 - _Experimental:_ `union` statement. No page in the docs yet, but
-  [see this PR](https://github.com/prql/prql/pull/894#issuecomment-1353548853)
+  [see this PR](https://github.com/PRQL/prql/pull/894#issuecomment-1353548853)
   for usage.
 
   ```
@@ -234,7 +234,7 @@ significant features, including a `union` operator and an overhaul of our type
 system, as open PRs which will follow in future releases.
 
 We also have new features in the
-[VSCode extension](https://github.com/prql/prql-code), courtesy of
+[VSCode extension](https://github.com/PRQL/prql-code), courtesy of
 @jiripospisil, including a live output panel.
 
 **Fixes**:
@@ -306,7 +306,7 @@ Thanks to @ankane, `prql-compiler` is now available from homebrew core;
 
 [^2]:
     we still need to update docs and add a release workflow for this:
-    <https://github.com/prql/prql/issues/866>
+    <https://github.com/PRQL/prql/issues/866>
 
 ## 0.2.3 - 2022-07-24
 
@@ -363,7 +363,7 @@ improvements:
 - More examples on homepage; e.g. `join` & `window`, lots of small docs
   improvements
 - Automated releases to homebrew (@roG0d )
-- [prql-js](https://github.com/prql/prql/tree/main/prql-js) is now a single
+- [prql-js](https://github.com/PRQL/prql/tree/main/prql-js) is now a single
   package for node, browsers & webpack (@charlie-sanders )
 - Parsing has some fixes, including `>=` and leading underscores in idents
   (@mklopets )
@@ -378,7 +378,7 @@ We're planning to continue collecting bugs & feature requests from users, as
 well as working on some of the bigger features, like type-inference.
 
 For those interesting in joining, we also have a new
-[Contributing page](https://github.com/prql/prql/blob/main/CONTRIBUTING.md).
+[Contributing page](https://github.com/PRQL/prql/blob/main/CONTRIBUTING.md).
 
 [^1]: Think of 0.2.1 like C+ :)
 
@@ -428,9 +428,9 @@ and Prefect workflows.
 Keep in touch with PRQL by following the project on
 [Twitter](https://twitter.com/prql_lang), joining us on
 [Discord](https://discord.gg/eQcfaCmsNc), starring the
-[repo](https://github.com/prql/prql).
+[repo](https://github.com/PRQL/prql).
 
-[Contribute](https://github.com/prql/prql/blob/main/CONTRIBUTING.md) to the
+[Contribute](https://github.com/PRQL/prql/blob/main/CONTRIBUTING.md) to the
 project — we're a really friendly community, whether you're a recent SQL user or
 an advanced rust programmer. We need bug reports, documentation tweaks & feature
 requests — just as much as we need compiler improvements written in rust.

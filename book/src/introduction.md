@@ -8,7 +8,7 @@ since it transpiles to SQL.
 
 Let's get started with an example:
 
-<!-- TODO: make this onramp friendlier: https://github.com/prql/prql/issues/522 -->
+<!-- TODO: make this onramp friendlier: https://github.com/PRQL/prql/issues/522 -->
 
 ```prql
 from employees

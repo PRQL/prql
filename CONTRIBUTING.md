@@ -5,7 +5,7 @@ you start:
 
 - Star this repo.
 - Send a link to PRQL to a couple of people whose opinion you respect.
-- Subscribe to [Issue #1](https://github.com/prql/prql/issues/1) for updates.
+- Subscribe to [Issue #1](https://github.com/PRQL/prql/issues/1) for updates.
 - Join the [Discord](https://discord.gg/eQcfaCmsNc).
 
 PRQL is evolving into a medium-sized project and we are looking for help in a
@@ -17,7 +17,7 @@ Compiler is written in Rust, and there's enough to do such that any level of
 experience with rust is sufficient.
 
 We try to keep a few onboarding issues on hand under the
-["good first issue" label](https://github.com/prql/prql/labels/good%20first%20issue).
+["good first issue" label](https://github.com/PRQL/prql/labels/good%20first%20issue).
 They have better descriptions of what to do than other issues, so they are a
 good place to start.
 
@@ -61,12 +61,12 @@ If you have experience with packaging or are maintaining a tool for data
 analysis, we'd need your help!
 
 Try looking over
-["integrations" label](https://github.com/prql/prql/labels/integrations).
+["integrations" label](https://github.com/PRQL/prql/labels/integrations).
 
 ### Language design
 
 We decide on new language features in GitHub issues, usually under
-["language design" label](https://github.com/prql/prql/issues?q=is%3Aopen+label%3Alanguage-design+sort%3Aupdated-desc).
+["language design" label](https://github.com/PRQL/prql/issues?q=is%3Aopen+label%3Alanguage-design+sort%3Aupdated-desc).
 
 You can also contribute by:
 
@@ -83,7 +83,7 @@ in examples.)
 ### Marketing
 
 - Improve our website. We have
-  [a few issues open](https://github.com/prql/prql/labels/web) on this front and
+  [a few issues open](https://github.com/PRQL/prql/labels/web) on this front and
   are looking for anyone with at least some design skills.
 - Contribute towards the docs. Anything from shaping a whole section of the
   docs, to simply improving a confusing paragraph or fixing a typo.

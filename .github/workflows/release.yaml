@@ -20,7 +20,7 @@ jobs:
               ref: 'main',
               inputs: {
               version: '${{ github.ref }}',
-              URL: 'https://github.com/prql/prql/archive/${{ github.ref }}.tar.gz'
+              URL: 'https://github.com/PRQL/prql/archive/${{ github.ref }}.tar.gz'
               }
             })
 
@@ -74,7 +74,7 @@ jobs:
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
-  # Requires another pass: https://github.com/prql/prql/issues/850
+  # Requires another pass: https://github.com/PRQL/prql/issues/850
   # publish-prql-java:
   #   runs-on: ubuntu-latest
   #   steps:

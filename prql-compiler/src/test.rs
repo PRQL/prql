@@ -820,7 +820,7 @@ fn test_strings() {
 
 #[test]
 fn test_filter() {
-    // https://github.com/prql/prql/issues/469
+    // https://github.com/PRQL/prql/issues/469
     let query = r###"
     from employees
     filter [age > 25, age < 40]
