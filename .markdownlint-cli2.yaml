@@ -1,0 +1,10 @@
+config:
+  # We use prettier for line length & wrapping
+  MD013: false
+# markdownItPlugins:
+#
+# Doesn't seem to help with some issues — if someone wants to help resolve then
+# great, but it's no huge stress to have some false positives.
+#
+# https://github.com/DavidAnson/markdownlint/issues/689
+#   - ["markdown-it-footnote"]
