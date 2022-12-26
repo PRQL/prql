@@ -187,6 +187,6 @@ For more detail, check out the docs in the [PRQL Book](https://prql-lang.org/boo
 
 {{< faq "Is it "PRQL" or "prql" or "Prql"? >}}
 
-Currently we're trying to standardize on `PRQL` for the language and `prql` for
-the project. So "PRQL queries will become clearer as we develop prql further".
-But this isn't fixed; feedback welcome.
+It's `PRQL`, since it's a backronym! We name the repo and some libraries `prql`
+because of a strong convention around lowercase, but everywhere else we use
+`PRQL`.
