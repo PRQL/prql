@@ -94,22 +94,22 @@ To stay in touch with PRQL:
 
 ## Explore
 
-- [PRQL Playground][prql playground] — experiment with PRQL in the browser.
-- [PRQL Book][prql book] — the language documentation.
+- [PRQL Playground][PRQL playground] — experiment with PRQL in the browser.
+- [PRQL Book][PRQL book] — the language documentation.
 - [dbt-prql][dbt-prql] — write PRQL in dbt models.
 - [Jupyter magic](https://pyprql.readthedocs.io/en/latest/magic_readme.html) —
   run PRQL in Jupyter, either against a DB, or a Pandas DataFrame / CSV /
   Parquet file through DuckDB.
-- [PyPRQL Docs](https://pyprql.readthedocs.io) — the PyPRQL documentation, the
+- [pyprql Docs](https://pyprql.readthedocs.io) — the pyprql documentation, the
   python bindings to PRQL, including Jupyter magic.
 - [PRQL VSCode Extension](https://marketplace.visualstudio.com/items?itemName=prql-lang.prql-vscode)
-- [PRQL-js](https://www.npmjs.com/package/prql-js) — JavaScript bindings for PRQL.
+- [prql-js](https://www.npmjs.com/package/prql-js) — JavaScript bindings for PRQL.
 
 ### Contributors
 
 Many thanks to those who've made our progress possible:
 
-[![Contributors](https://contrib.rocks/image?repo=prql/prql)](https://github.com/PRQL/prql/graphs/contributors)
+[![Contributors](https://contrib.rocks/image?repo=PRQL/prql)](https://github.com/PRQL/prql/graphs/contributors)
 
 ### Core developers
 
@@ -122,8 +122,8 @@ on the direction of the language, and project administration:
 
 We welcome others to join who have a track record of contributions.
 
-[prql book]: https://prql-lang.org/book
-[prql website]: https://prql-lang.org
+[PRQL book]: https://prql-lang.org/book
+[PRQL website]: https://prql-lang.org
 [contributing]: ./CONTRIBUTING.md
-[prql playground]: https://prql-lang.org/playground
+[PRQL playground]: https://prql-lang.org/playground
 [dbt-prql]: https://github.com/prql/dbt-prql
