@@ -3,8 +3,7 @@ description: Runs cargo test & cargo lint for a given platform & target.
 
 inputs:
   target_option:
-    description:
-      "Target triple with prefix, like `--target=wasm32-unknown-unknown`"
+    description: "Target triple with prefix, like `--target=wasm32-unknown-unknown`"
     required: false
 
 runs:
@@ -16,6 +15,7 @@ runs:
         # Without inputs.target, it seems to select linux x64 in the wasm32
         # tests, though in the docs it says it uses the target as the key?
         key: ${{ inputs.target_option }}
+        save-if: ${{ github.ref == 'refs/heads/main' }}
     - uses: jetli/wasm-bindgen-action@v0.2.0
       if: inputs.target_option == '--target=wasm32-unknown-unknown'
     - name: 📎 Clippy
