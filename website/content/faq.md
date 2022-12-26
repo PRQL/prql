@@ -193,7 +193,7 @@ For more detail, check out the docs in the
 
 {{</ faq >}}
 
-{{< faq "Is it "PRQL" or "prql" or "Prql"? >}}
+{{< faq "Is it 'PRQL' or 'prql' or 'Prql'?" >}}
 
 It's `PRQL`, since it's a backronym! We name the repo and some libraries `prql`
 because of a strong convention around lowercase, but everywhere else we use
