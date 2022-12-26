@@ -329,7 +329,7 @@ tools_section:
 
         `pip install pyprql`
 
-    - link: "https://github.com/prql/prql"
+    - link: "https://github.com/PRQL/prql"
       label: "prql-compiler"
       text: |
         Reference compiler implementation. Has a CLI utility that can transpile, format and annotate PRQL queries.

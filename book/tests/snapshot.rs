@@ -35,7 +35,7 @@ fn run_examples() -> Result<()> {
     // repo; instead we could check if there are any diffs after this has run?
 
     // Note that on windows, we only get the next _line_, and so we exclude the
-    // writing on Windows. ref https://github.com/prql/prql/issues/356
+    // writing on Windows. ref https://github.com/PRQL/prql/issues/356
     #[cfg(not(target_family = "windows"))]
     write_reference_prql()?;
     run_reference_prql();
@@ -81,7 +81,7 @@ fn write_reference_prql() -> Result<()> {
                     // At the start of a PRQL code block, push the _next_ item.
                     // Note that on windows, we only get the next _line_, and so
                     // we exclude the writing in windows. TODO: iterate over the
-                    // lines so this works on windows; https://github.com/prql/prql/issues/356
+                    // lines so this works on windows; https://github.com/PRQL/prql/issues/356
                     Event::Start(Tag::CodeBlock(CodeBlockKind::Fenced(lang)))
                         if lang == "prql".into() =>
                     {

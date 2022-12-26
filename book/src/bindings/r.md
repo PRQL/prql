@@ -1,6 +1,6 @@
 # R (prqlr)
 
-R bindings for [`prql-compiler`](https://github.com/prql/prql/).
+R bindings for [`prql-compiler`](https://github.com/PRQL/prql/).
 Check out <https://eitsupi.github.io/prqlr/> for more context.
 
 ```admonish note

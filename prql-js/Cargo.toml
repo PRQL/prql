@@ -4,7 +4,7 @@ edition = "2018"
 license = "Apache-2.0"
 name = "prql-js"
 publish = false
-repository = "https://github.com/prql/prql"
+repository = "https://github.com/PRQL/prql"
 version.workspace = true
 
 [lib]

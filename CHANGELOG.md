@@ -7,9 +7,11 @@
 **Features**:
 
 - Support for using s-strings for `from` (#1197, @aljazerzen)
+
   ```
   from s"SELECT * FROM employees WHERE foo > 5"
   ```
+
 - Helpful error message when referencing a table in an s-string (#1203, @aljazerzen)
 
 **Fixes**:
@@ -186,7 +188,7 @@ significant features, including a `union` operator and an overhaul of our type
 system, as open PRs which will follow in future releases.
 
 We also have new features in the [VSCode
-extension](https://github.com/prql/prql-code), courtesy of @jiripospisil,
+extension](https://github.com/PRQL/prql-code), courtesy of @jiripospisil,
 including a live output panel.
 
 **Fixes**:
@@ -253,7 +255,7 @@ including a live output panel.
 Thanks to @ankane, `prql-compiler` is now available from homebrew core;
 `brew install prql-compiler`[^2].
 
-[^2]: we still need to update docs and add a release workflow for this: <https://github.com/prql/prql/issues/866>
+[^2]: we still need to update docs and add a release workflow for this: <https://github.com/PRQL/prql/issues/866>
 
 ## 0.2.3 - 2022-07-24
 
@@ -314,7 +316,7 @@ Thanks for the surge in interest and contributions!
 - More examples on homepage; e.g. `join` & `window`,
   lots of small docs improvements
 - Automated releases to homebrew (@roG0d )
-- [prql-js](https://github.com/prql/prql/tree/main/prql-js) is now
+- [prql-js](https://github.com/PRQL/prql/tree/main/prql-js) is now
   a single package for node, browsers & webpack (@charlie-sanders )
 - Parsing has some fixes, including `>=` and leading underscores
   in idents (@mklopets )
@@ -330,7 +332,7 @@ We're planning to continue collecting bugs & feature requests from users,
 as well as working on some of the bigger features, like type-inference.
 
 For those interesting in joining, we also have a new
-[Contributing page](https://github.com/prql/prql/blob/main/CONTRIBUTING.md).
+[Contributing page](https://github.com/PRQL/prql/blob/main/CONTRIBUTING.md).
 
 [^1]: Think of 0.2.1 like C+ :)
 
@@ -385,9 +387,9 @@ Start using PRQL for your own projects in
 Keep in touch with PRQL by following the project on
 [Twitter](https://twitter.com/prql_lang),
 joining us on [Discord](https://discord.gg/eQcfaCmsNc),
-starring the [repo](https://github.com/prql/prql).
+starring the [repo](https://github.com/PRQL/prql).
 
-[Contribute](https://github.com/prql/prql/blob/main/CONTRIBUTING.md)
+[Contribute](https://github.com/PRQL/prql/blob/main/CONTRIBUTING.md)
 to the project — we're a really friendly community,
 whether you're a recent SQL user or an advanced rust programmer.
 We need bug reports, documentation tweaks & feature requests —

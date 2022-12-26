@@ -20,7 +20,7 @@ series of CTEs can be represented with a single pipeline.
 
 Currently it's not yet possible to have an
 [s-string](./../language-features/s-strings.md) as a whole table. See
-[#376](https://github.com/prql/prql/issues/376) for more details.
+[#376](https://github.com/PRQL/prql/issues/376) for more details.
 
 <!-- TODO: find an example that we can't currently represent with PRQL -->
 

@@ -51,7 +51,7 @@ pub fn json_to_rq(json: &str) -> Result<Query> {
 }
 
 // TODO: possibly collapse this with other functions. Deliberately not `pub`
-// currently. Ref discussion at https://github.com/prql/prql/pull/1182. Note
+// currently. Ref discussion at https://github.com/PRQL/prql/pull/1182. Note
 // that the error message this produces doesn't have the file name /
 // `source_id`, because we don't know that at this point.
 #[allow(dead_code)]
@@ -867,7 +867,7 @@ select `first name`
 
     #[test]
     fn test_filter() {
-        // https://github.com/prql/prql/issues/469
+        // https://github.com/PRQL/prql/issues/469
         let query = r###"
         from employees
         filter [age > 25, age < 40]

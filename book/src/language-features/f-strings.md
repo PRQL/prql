@@ -19,4 +19,4 @@ select url = f"http{tls}://www.{domain}.{tld}/{page}"
 
 In the future, f-strings may incorporate string formatting such as datetimes,
 numbers, and padding. If there's a feature that would be helpful, please [post
-an issue](https://github.com/prql/prql/issues/new/).
+an issue](https://github.com/PRQL/prql/issues/new/).

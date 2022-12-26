@@ -165,7 +165,7 @@ Our tests:
 
 [^3]:
     [Here's an example of an insta
-    test](https://github.com/prql/prql/blob/0.2.2/prql-compiler/src/parser.rs#L580-L605)
+    test](https://github.com/PRQL/prql/blob/0.2.2/prql-compiler/src/parser.rs#L580-L605)
     — note that only the initial line of each test is written by us; the remainder
     is filled in by insta.
 
@@ -222,7 +222,7 @@ Currently we release in a semi-automated way:
 - Run `cargo release version patch && cargo release replace` to bump the
   versions, then PR the resulting commit.
 - After merging, go to [Draft a new
-  release](https://github.com/prql/prql/releases/new), copy the changelog entry
+  release](https://github.com/PRQL/prql/releases/new), copy the changelog entry
   into the release notes, enter the tag to be created, and hit "Publish".
 - From there, both the tag and release is created and all packages are published
   automatically based on our [release workflow](.github/workflows/release.yaml).

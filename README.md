@@ -8,9 +8,9 @@
 
 <!-- Dev badges on first line (language docs & chat) -->
 
-[![GitHub CI Status](https://img.shields.io/github/workflow/status/prql/prql/test-all/main?logo=github&style=for-the-badge)](https://github.com/prql/prql/actions?query=branch%3Amain+workflow%3Atest-all)
-[![GitHub contributors](https://img.shields.io/github/contributors/prql/prql?style=for-the-badge)](https://github.com/prql/prql/graphs/contributors)
-[![Stars](https://img.shields.io/github/stars/prql/prql?style=for-the-badge)](https://github.com/prql/prql/stargazers)
+[![GitHub CI Status](https://img.shields.io/github/workflow/status/prql/prql/test-all/main?logo=github&style=for-the-badge)](https://github.com/PRQL/prql/actions?query=branch%3Amain+workflow%3Atest-all)
+[![GitHub contributors](https://img.shields.io/github/contributors/prql/prql?style=for-the-badge)](https://github.com/PRQL/prql/graphs/contributors)
+[![Stars](https://img.shields.io/github/stars/prql/prql?style=for-the-badge)](https://github.com/PRQL/prql/stargazers)
 
 **P**ipelined **R**elational **Q**uery **L**anguage, pronounced "Prequel".
 
@@ -109,7 +109,7 @@ To stay in touch with PRQL:
 
 Many thanks to those who've made our progress possible:
 
-[![Contributors](https://contrib.rocks/image?repo=prql/prql)](https://github.com/prql/prql/graphs/contributors)
+[![Contributors](https://contrib.rocks/image?repo=prql/prql)](https://github.com/PRQL/prql/graphs/contributors)
 
 ### Core developers
 

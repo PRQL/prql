@@ -1,7 +1,7 @@
 // Syntax highlighting for PRQL.
 
 // Keep consistent with
-// https://github.com/prql/prql/blob/main/website/themes/prql-theme/static/highlight/prql.js
+// https://github.com/PRQL/prql/blob/main/website/themes/prql-theme/static/highlight/prql.js
 // TODO: can we import one from the other at build time?
 
 // Inspired by [Pest's book](https://github.com/pest-parser/book)

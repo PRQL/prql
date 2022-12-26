@@ -38,12 +38,12 @@ params:
       - text: |
           Rewrite any of your own queries to PRQL to see if it makes sense.
           You can use the [playground](https://prql-lang.org/playground) and submit issues
-          [here](https://github.com/prql/prql/issues). We are looking for any
+          [here](https://github.com/PRQL/prql/issues). We are looking for any
           use-cases that expose a poor design choice, a need of a feature, a pain point
           or are just a sharp edge of the language.
     button:
       text: Contribute
-      link: https://github.com/prql/prql
+      link: https://github.com/PRQL/prql
   description: PRQL is a modern language for transforming data
   images:
     - static/img/favicon-32x32.png

@@ -5,16 +5,16 @@ lots of ways of contributing - big and small:
 
 - Star this repo.
 - Send a link to PRQL to a couple of people whose opinion you respect.
-- Subscribe to [Issue #1](https://github.com/prql/prql/issues/1) for
+- Subscribe to [Issue #1](https://github.com/PRQL/prql/issues/1) for
   updates.
 - Join the [Discord](https://discord.gg/eQcfaCmsNc).
 - Contribute towards the code. Most of the code is written in rust, and there's
   enough to do such that any level of experience with rust is sufficient.
   Read the [DEVELOPMENT.md](./DEVELOPMENT.md) file to get started.
   - Find an issue labeled [help
-    wanted](https://github.com/prql/prql/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22)
+    wanted](https://github.com/PRQL/prql/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22)
     or [good first
-    issue](https://github.com/prql/prql/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
+    issue](https://github.com/PRQL/prql/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
     and try to fix it. Feel free to PR partial solutions, or ask any questions on
     the Issue or Discord.
   - Start with something tiny! Write a test / write a docstring / make some rust
