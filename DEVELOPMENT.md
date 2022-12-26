@@ -207,20 +207,20 @@ Our tests:
     [`build-prql-python`](.github/actions/build-prql-python/action.yaml) from
     workflows. We need to use these actions since workflow calls can only have a
     depth of 2 (i.e. workflow can call workflows, but those workflows can't call
-    other workflows).
+    other workflows). We occasionally copy & paste small amounts of yaml where
+    we don't want to abstract something tiny into another action.
 
     An alternative approach would be to have all jobs in a single workflow which
-    is called on every change, and then each job filters itself whether it
-    should run. So `pull-request.yaml` and `test-all.yaml` would be a single
-    file, and `test-python` would a job that has an `if` containing a) path
-    changes, b) a branch condition for `main`, and c) a PR label filter. That
-    would be a "flatter" approach — each job contains all its own criteria. The
-    downside would less abstraction, more verbose steps, and a long list of
-    skipped jobs on every PR (since each job is skipped, rather than never
-    started).
+    is called on every change, and then each job contains all its filtering
+    logic. So `pull-request.yaml` and `test-all.yaml` would be a single file,
+    and `test-python` would a job that has an `if` containing a) path changes,
+    b) a branch condition for `main`, and c) a PR label filter. That would be a
+    "flatter" approach — each job contains all its own criteria. The downside
+    would less abstraction, more verbose jobs, and a long list of ~25/30 skipped
+    jobs on every PR (since each job is skipped, rather than never started).
 
-    Ideally we wouldn't have to make these tradeoffs — we could have an
-    arbitrary DAG of workflows with filters at each level, and a UI that less
+    Ideally we wouldn't have to make these tradeoffs — GHA would offer an
+    arbitrary DAG of workflows, with filters at each level, and a UI that less
     prominently displays workflows which aren't designed to run.
 
 - **[GitHub Actions nightly](.github/workflows/cron.yaml)** — we run tests that

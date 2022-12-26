@@ -2,6 +2,7 @@ name: cron
 
 on:
   schedule:
+    # Pick a random time, something that others won't pick, to reduce GH's demand variance.
     - cron: "49 10 * * *"
   pull_request:
     paths:
