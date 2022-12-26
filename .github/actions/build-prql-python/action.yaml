@@ -7,6 +7,8 @@ runs:
   using: composite
   steps:
     - uses: Swatinem/rust-cache@v2
+      with:
+        save-if: ${{ github.ref == 'refs/heads/main' }}
     - uses: messense/maturin-action@v1
       if: runner.os == 'Linux'
       with:

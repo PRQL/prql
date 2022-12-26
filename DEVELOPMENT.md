@@ -219,6 +219,10 @@ Our tests:
     skipped jobs on every PR (since each job is skipped, rather than never
     started).
 
+    Ideally we wouldn't have to make these tradeoffs — we could have an
+    arbitrary DAG of workflows with filters at each level, and a UI that less
+    prominently displays workflows which aren't designed to run.
+
 - **[GitHub Actions nightly](.github/workflows/cron.yaml)** — we run tests that
   take a long time or are unrelated to code changes, such as security checks, or
   expensive timing benchmarks, every night.
