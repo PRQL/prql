@@ -194,13 +194,30 @@ Our tests:
 - **[GitHub Actions on merge](.github/workflows/test-all.yaml)** — we run many
   more tests on every merge to main. This includes testing across OSs, all our
   language bindings, our `task` tasks, a measure of test code coverage, and some
-  performance benchmarks.
+  performance benchmarks.[^6]
 
   We can run these tests before a merge by adding a label `pr-test-all` to the
   PR.
 
   If these tests fail after merging, we revert the merged commit before fixing
   the test and then re-reverting.
+
+[^6]:
+    We reference "actions", such as
+    [`build-prql-python`](.github/actions/build-prql-python/action.yaml) from
+    workflows. We need to use these actions since workflow calls can only have a
+    depth of 2 (i.e. workflow can call workflows, but those workflows can't call
+    other workflows).
+
+    An alternative approach would be to have all jobs in a single workflow which
+    is called on every change, and then each job filters itself whether it
+    should run. So `pull-request.yaml` and `test-all.yaml` would be a single
+    file, and `test-python` would a job that has an `if` containing a) path
+    changes, b) a branch condition for `main`, and c) a PR label filter. That
+    would be a "flatter" approach — each job contains all its own criteria. The
+    downside would less abstraction, more verbose steps, and a long list of
+    skipped jobs on every PR (since each job is skipped, rather than never
+    started).
 
 - **[GitHub Actions nightly](.github/workflows/cron.yaml)** — we run tests that
   take a long time or are unrelated to code changes, such as security checks, or

@@ -1,7 +1,3 @@
-# Fast tests only. We should try and keep this under one minute.
-
-# See https://github.com/PRQL/prql/issues/37 for some TODOs
-
 name: pull-request
 
 on:
@@ -9,7 +5,8 @@ on:
     # Add `labeled`, so we can trigger a new run by adding a `pr-test-all`
     # label, which we then use to trigger a `test-all` run.
     types: [opened, reopened, synchronize, labeled]
-  # While most of these tests are covered by `test-all`, we need to build the cache.
+  # While most of these tests are covered by `test-all`, we need to build the
+  # cache on `main`, so we run them there too.
   push:
     branches:
       - main
