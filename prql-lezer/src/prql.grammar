@@ -1,11 +1,10 @@
 // TODO:
-// - Interpolated string inners, i.e. currently s & f strings are just treated
-//   as strings.
-// - Switch transform
-// - Do we want to highlight build-in transforms?
+// - `switch` transform
+// - Do we want to highlight built-in transforms like `from` differently to
+//   normal functions?
+// - A few small TODOs included below
 
 @top Query { Statements }
-
 @skip { space | Comment }
 
 Statements { newline* Query_def? ( Func_def | Table_def)* Pipeline_stmt? end }
@@ -23,6 +22,10 @@ List { "[" newline? list_item (("," newline? ) list_item)* ","? newline? "]" }
 list_item { Assign_call | expr_call }
 
 expr_call { Expr | Func_call }
+// Ideally we would force a space after `Ident` to prevent an invalid s-string
+// being parsed as a Func_call, e.g. `s"{a"` -> `s` & `"{a"'. But we
+// can't seem to force a space because it's in our skip, and I can't see
+// a way of changing the skip expression to only specialize on a single item
 Func_call { Ident ( (Named_arg | Assign | Expr))+ }
 
 // !term is required here, otherwise `[x+emp_no, -3]` is parsed as `x` & `+emp_no`
@@ -61,10 +64,14 @@ Op_bin { Op_bin_only | Op_unary }
   end { @eof }
   newline { "\n" }
   Range { ".." }
-  // Couldn't managed to do these as a template; couldn't find how to negate a variable template
+  // Couldn't managed to do these & the interpolated as a template; couldn't
+  // find how to negate a variable template
   String { $["] !["]* $["] | $['] ![']* $['] }
 
-  // TODO: not getting the interpolations highlighted; it just shows the whole string as a string
+  // TODO: not getting the interpolations highlighted; it just shows the whole
+  // string as a string, because these are all within the `@tokens` block. But
+  // they need to be within this block, because it's not possible to have
+  // negations (e.g. `![{'}` outside it.
   String_interpolated_single { $['] ( ![{'] | Interpolation_inner_single )* $['] }
   String_interpolated_double { $["] ( ![{"] | Interpolation_inner_double )* $["] }
 
@@ -73,12 +80,12 @@ Op_bin { Op_bin_only | Op_unary }
 
   Interpolated_string<prefix> { prefix ( String_interpolated_double | String_interpolated_single ) }
 
-  // S_string { "s" ( String_interpolated_double | String_interpolated_single ) }
   S_string {Interpolated_string<'s'>}
   F_string {Interpolated_string<'f'>}
 
   // We need to give precedence to `Op_bin` so we don't get `x+y` as `x` & `+y`.
-  // S & F strings have precedence over idents beginning with s / f (we could use specialize but I think means we need to redefine `String` for each)
+  // S & F strings have precedence over idents beginning with s / f (we could
+  // use specialize but I think means we need to redefine `String` for each)
   @precedence { S_string, F_string, Op_bin_only, ident_part }
 }
 
