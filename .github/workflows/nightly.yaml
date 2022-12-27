@@ -1,4 +1,4 @@
-name: cron
+name: nightly
 
 on:
   schedule:
@@ -6,7 +6,7 @@ on:
     - cron: "49 10 * * *"
   pull_request:
     paths:
-      - ".github/workflows/cron.yaml"
+      - ".github/workflows/nightly.yaml"
   workflow_call:
 
 jobs:
