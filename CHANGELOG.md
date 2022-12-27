@@ -9,7 +9,7 @@
 - _Experimental:_ `switch` statement sets a variable to a value based on one of
   several expressions. No page in the docs yet, but
   [see this discussion](https://github.com/PRQL/prql/issues/1286#issue-1501645497)
-  for usage and the current syntax. _Note: this syntax may change._
+  and (#1278) for usage and the current syntax. _Note: this syntax may change._
 
   ```
   derive var = switch [
@@ -30,9 +30,19 @@
   union other_employees
   ```
 
-- Any other `feat:` commits?
+The following need updated pages in the documentation:
+
+- feat: Playground queries sample database (#1305)
+- feat: comment that displays the compiler version used to generate the SQL
+  (#1322)
+- feat: `in` operator (#1330)
+- feat: Allow pipelines in list items (#1318)
+- feat: Parsing for negative select (#1317)
+- feat: additional builtin functions (#1325)
 
 **Fixes**:
+
+- fix: allow interpolations in table s-strings (#1337)
 
 **Documentation**:
 

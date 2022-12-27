@@ -59,21 +59,22 @@ For more on the language, more examples & comparisons with SQL, visit
 [prql-lang.org][prql website]. To experiment with PRQL in the browser, check out
 [PRQL Playground][prql playground].
 
-## Current status — December 2022
+## Current Status - January 2023
 
 PRQL is being actively developed by a growing community. It's ready to use by
 the intrepid, either as part of one of our supported extensions, or within your
 own tools, using one of our supported language bindings.
 
-With the announcement of the `0.3` release, PRQL now has a semantic
-understanding of expressions and fixes a number of lingering bugs. It also
-unlocks development of longer-term priorities. The
-[CHANGELOG.md](./CHANGELOG.md) gives more information.
+PRQL continues to evolve toward the
+[0.4 Milestone.](https://github.com/PRQL/prql/milestone/4) The
+[CHANGELOG.md](https://github.com/PRQL/prql/blob/main/CHANGELOG.md) gives more
+information.
 
 PRQL still has some minor bugs and some missing features, and probably is only
 ready to rolled out to non-technical teams for fairly simple queries. We're
 exploring where to focus further development; we welcome use-cases. Here's our
-current [Roadmap](https://prql-lang.org/roadmap/).
+current [Roadmap](https://prql-lang.org/roadmap/) and our longer-term
+[set of Milestones.](https://github.com/PRQL/prql/milestones)
 
 ## Get involved
 
@@ -82,7 +83,8 @@ To stay in touch with PRQL:
 - Follow us on [Twitter](https://twitter.com/prql_lang)
 - Join us on [Discord](https://discord.gg/eQcfaCmsNc)
 - Star this repo
-- [Contribute][contributing] — join us in building PRQL, through writing code or
+- [Contribute][contributing] — join us in building PRQL, through writing code
+  [(send us your use-cases!)](https://github.com/PRQL/prql/discussions), or
   inspiring others to use it.
 - See the [development](DEVELOPMENT.md) documentation for PRQL. It's easy to get
   started — the project can be built in a couple of commands, and we're a really
