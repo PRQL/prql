@@ -1928,13 +1928,13 @@ fn test_unused_alias() {
     select n = [account.name]
     "###).unwrap_err(), @r###"
     Error:
-    ╭─[:3:12]
-    │
-    3 │     select n = [account.name]
-    ·            ─────────┬────────
-    ·                     ╰────────── unexpected assign to `n`
-    ·
-    · Help: move assign into the list: `[n = ...]`
+       ╭─[:3:12]
+       │
+     3 │     select n = [account.name]
+       ·            ─────────┬────────
+       ·                     ╰────────── unexpected assign to `n`
+       ·
+       · Help: move assign into the list: `[n = ...]`
     ───╯
     "###)
 }
@@ -2344,11 +2344,11 @@ fn test_errors() {
     "###).unwrap_err(),
         @r###"
     Error:
-    ╭─[:4:12]
-    │
-    4 │     select b
-    ·            ┬
-    ·            ╰── Unknown name b
+       ╭─[:4:12]
+       │
+     4 │     select b
+       ·            ┬
+       ·            ╰── Unknown name b
     ───╯
     "###);
 
@@ -2358,11 +2358,11 @@ fn test_errors() {
     "###).unwrap_err(),
         @r###"
     Error:
-    ╭─[:3:10]
-    │
-    3 │     take 1.8
-    ·          ─┬─
-    ·           ╰─── `take` expected int or range, but found 1.8
+       ╭─[:3:10]
+       │
+     3 │     take 1.8
+       ·          ─┬─
+       ·           ╰─── `take` expected int or range, but found 1.8
     ───╯
     "###);
 }
