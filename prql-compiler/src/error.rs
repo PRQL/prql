@@ -91,7 +91,7 @@ impl Display for ErrorMessage {
         if let Some(display) = &self.display {
             let message_without_trailing_spaces = display
                 .split('\n')
-                .map(str::trim)
+                .map(str::trim_end)
                 .collect::<Vec<_>>()
                 .join("\n");
             f.write_str(&message_without_trailing_spaces)?;
