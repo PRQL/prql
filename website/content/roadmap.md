@@ -48,6 +48,11 @@ challenge here is the variety of functionalities and syntax of target DBMSs;
 e.g. there's no standard regex function. Improving our testing framework to
 include integration tests will help give us confidence here.
 
+## Milestones
+
+We have assigned features to a broad timeline in our
+[Milestones.](https://github.com/PRQL/prql/milestones)
+
 <--->
 
 ## Alternative backends
