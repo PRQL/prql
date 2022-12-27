@@ -99,6 +99,6 @@ When making updates to the Dockerfile, we have automated testing that the
 Dockerfile builds on each merge in
 [**`test-all.yaml`**](.github/workflows/test-all.yaml), and automated testing
 that the confirms all rust tests pass, in
-[**`cron.yaml`**](.github/workflows/cron.yaml).
+[**`nightly.yaml`**](.github/workflows/nightly.yaml).
 
 Add a label to the PR `pr-test-all` or `pr-cron` to run these tests on a PR.

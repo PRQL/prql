@@ -223,9 +223,9 @@ Our tests:
     arbitrary DAG of workflows, with filters at each level, and a UI that less
     prominently displays workflows which aren't designed to run.
 
-- **[GitHub Actions nightly](.github/workflows/cron.yaml)** — we run tests that
-  take a long time or are unrelated to code changes, such as security checks, or
-  expensive timing benchmarks, every night.
+- **[GitHub Actions nightly](.github/workflows/nightly.yaml)** — we run tests
+  that take a long time or are unrelated to code changes, such as security
+  checks, or expensive timing benchmarks, every night.
 
   We can run these tests before a merge by adding a label `pr-cron` to the PR.
 
