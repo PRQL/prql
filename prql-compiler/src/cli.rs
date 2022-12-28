@@ -8,11 +8,14 @@ use std::{
     ops::Range,
 };
 
-use crate::error::{downcast, Span};
-use crate::parser;
 use crate::semantic::{self, reporting::*};
-use crate::sql;
+
+use crate::parser;
 use crate::{ast::pl::Frame, pl_to_prql};
+use crate::{
+    compile,
+    error::{downcast, Span},
+};
 
 #[derive(Parser)]
 #[clap(name = env!("CARGO_PKG_NAME"), about, version)]
@@ -110,9 +113,8 @@ impl Cli {
 
                 serde_json::to_string_pretty(&ir)?.into_bytes()
             }
-            Cli::Compile(_) => parser::parse(source)
-                .and_then(semantic::resolve)
-                .and_then(|rq| sql::compile(rq, None))?
+            Cli::Compile(_) => compile(source, None)
+                .map_or_else(|x| x.to_string(), |x| x)
                 .as_bytes()
                 .to_vec(),
         })
