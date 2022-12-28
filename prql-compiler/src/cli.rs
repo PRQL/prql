@@ -9,13 +9,13 @@ use std::{
 };
 
 use crate::semantic::{self, reporting::*};
-use crate::sql;
+
+use crate::parser;
 use crate::{ast::pl::Frame, pl_to_prql};
 use crate::{
     compile,
     error::{downcast, Span},
 };
-use crate::{parser, sql::Options};
 
 #[derive(Parser)]
 #[clap(name = env!("CARGO_PKG_NAME"), about, version)]
