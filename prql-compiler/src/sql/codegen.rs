@@ -317,7 +317,7 @@ pub(super) fn translate_query_sstring(
             limit: None,
             offset: None,
             fetch: None,
-            lock: None,
+            locks: vec![],
         })
     } else {
         bail!(Error::new(Reason::Simple(

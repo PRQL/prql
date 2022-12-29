@@ -293,7 +293,7 @@ fn sql_select_query_of_pipeline(
         },
         offset,
         fetch: None,
-        lock: None,
+        locks: vec![],
     })
 }
 
@@ -349,7 +349,7 @@ fn sql_union_of_pipeline(
         limit: None,
         offset: None,
         fetch: None,
-        lock: None,
+        locks: vec![],
     })
 }
 
