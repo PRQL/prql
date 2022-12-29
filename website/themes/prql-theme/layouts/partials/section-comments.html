@@ -5,37 +5,36 @@
         <div class="section-title">
           <h2>{{ .title | markdownify }}</h2>
         </div>
-
-        <div class="row row-cols justify-content-center">
-          {{ range .comments }}
-            <div class="card-container">
-              {{/* Margin-top & margin-bottom are set to match Tweets. Maybe there's
-                a better way of designing this? (and maybe we design from the stylesheet?)
-              */}}
-              {{ with .quote }}
-                <div
-                  class="card quote"
-                  style="margin-top: 10px; margin-bottom: 10px; height: unset;"
-                >
-                  {{ if .link }}
-                    <a class="quote-text" href="{{ .link }}" target="_blank">
-                      {{ .text }}
-                      <span> — {{ .author }} </span>
-                    </a>
-                  {{ else }}
-                    <p class="quote-text">
-                      {{ .text }}
-                      <span> — {{ .author }} </span>
-                    </p>
-                  {{ end }}
-                </div>
-              {{ end }}
-              {{ with .tweet }}
-                {{ . | markdownify }}
-              {{ end }}
-            </div>
+      </div>
+      <div class="row row-cols justify-content-center">
+        {{ range .comments }}
+        <div class="card-container">
+          {{/* Margin-top & margin-bottom are set to match Tweets. Maybe there's
+          a better way of designing this? (and maybe we design from the stylesheet?)
+          */}}
+          {{ with .quote }}
+          <div
+            class="card quote"
+            style="margin-top: 10px; margin-bottom: 10px; height: unset;"
+          >
+            {{ if .link }}
+            <a class="quote-text" href="{{ .link }}" target="_blank">
+              {{ .text }}
+              <span> — {{ .author }} </span>
+            </a>
+            {{ else }}
+            <p class="quote-text">
+              {{ .text }}
+              <span> — {{ .author }} </span>
+            </p>
+            {{ end }}
+          </div>
+          {{ end }}
+          {{ with .tweet }}
+          {{ . | markdownify }}
           {{ end }}
         </div>
+        {{ end }}
       </div>
     </div>
   </section>

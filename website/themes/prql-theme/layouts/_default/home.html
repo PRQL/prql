@@ -48,23 +48,23 @@
               <div class="section-title">
                 <h2>{{ .title | markdownify }}</h2>
               </div>
-              <div class="row row-cols-1 row-cols-lg-2 justify-content-center">
-                {{ range .items }}
-                  <div class="col g-3">
-                    <div class="card">
-                      <h4>{{ .title | markdownify }}</h4>
-                      {{/* Probably there's a more general way of formatting
-                        this padding; the default is 2em, which looked too indented
-                      */}}
-                      <ul style="padding-left:1em">
-                        {{ range .content }}
-                          <li>{{ . | markdownify }}</li>
-                        {{ end }}
-                      </ul>
-                    </div>
-                  </div>
-                {{ end }}
+            </div>
+            <div class="row row-cols-1 row-cols-lg-2 justify-content-center">
+              {{ range .items }}
+              <div class="col g-3">
+                <div class="card">
+                  <h4>{{ .title | markdownify }}</h4>
+                  {{/* Probably there's a more general way of formatting
+                  this padding; the default is 2em, which looked too indented
+                  */}}
+                  <ul style="padding-left:1em">
+                    {{ range .content }}
+                    <li>{{ . | markdownify }}</li>
+                    {{ end }}
+                  </ul>
+                </div>
               </div>
+              {{ end }}
             </div>
           </div>
         </section>
@@ -143,19 +143,19 @@
               <div class="section-title">
                 <h2>{{ .title | markdownify }}</h2>
               </div>
-              <div class="row row-cols-1 row-cols-lg-3 justify-content-center">
-                {{ range .items }}
-                  <div class="col g-3">
-                    <div class="card">
-                      <h4>{{ .title | markdownify }}</h4>
-                      <p class="blue-border">
-                        <strong>{{ .main_text | markdownify }}</strong>
-                      </p>
-                      <p>{{ .content | markdownify }}</p>
-                    </div>
-                  </div>
-                {{ end }}
+            </div>
+            <div class="row row-cols-1 row-cols-lg-3 justify-content-center">
+              {{ range .items }}
+              <div class="col g-3">
+                <div class="card">
+                  <h4>{{ .title | markdownify }}</h4>
+                  <p class="blue-border">
+                    <strong>{{ .main_text | markdownify }}</strong>
+                  </p>
+                  <p>{{ .content | markdownify }}</p>
+                </div>
               </div>
+              {{ end }}
             </div>
           </div>
         </section>
