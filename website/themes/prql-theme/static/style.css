@@ -73,11 +73,6 @@ a.btn-icon i {
   text-align: center;
 }
 
-code {
-  padding: 2px 4px;
-  color: #ffffff;
-}
-
 /*--------------------------------------------------------------
 # Back to top button
 --------------------------------------------------------------*/
@@ -110,6 +105,44 @@ code {
 .back-to-top.active {
   visibility: visible;
   opacity: 1;
+}
+
+/* Code */
+
+code.hljs {
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  background-color: var(--main-color);
+  color: #ffffff;
+}
+
+code:not(.hljs) {
+  padding: 1px 0.4rem;
+  border-radius: 4px;
+  background-color: #ccc;
+  color: var(--main-color);
+}
+
+/* width */
+pre ::-webkit-scrollbar {
+  height: 6px;
+}
+
+/* Track */
+pre ::-webkit-scrollbar-track {
+  background: var(--main-color);
+}
+
+/* Handle */
+pre ::-webkit-scrollbar-thumb {
+  background: #000;
+  border-radius: 4px;
+  width: 2px;
+}
+
+/* Handle on hover */
+pre ::-webkit-scrollbar-thumb:hover {
+  background: rgb(109, 109, 109);
 }
 
 /*--------------------------------------------------------------
@@ -272,37 +305,6 @@ code {
 
 .no-hero {
   padding-top: 80px;
-}
-
-.hero code.hljs {
-  padding: 1rem;
-}
-
-code {
-  background-color: var(--main-color);
-  border-radius: 8px;
-}
-
-/* width */
-pre ::-webkit-scrollbar {
-  height: 6px;
-}
-
-/* Track */
-pre ::-webkit-scrollbar-track {
-  background: var(--main-color);
-}
-
-/* Handle */
-pre ::-webkit-scrollbar-thumb {
-  background: #000;
-  border-radius: 4px;
-  width: 2px;
-}
-
-/* Handle on hover */
-pre ::-webkit-scrollbar-thumb:hover {
-  background: rgb(109, 109, 109);
 }
 
 .hero h4 {
@@ -519,24 +521,9 @@ section {
   color: var(--main-color);
 }
 
-.content-section code {
-  background-color: var(--main-color);
-  border-radius: 4px;
-  padding: 3px 7px;
-}
-
 .content-section ul li P i {
   font-size: 12px;
   padding: 3px;
-}
-
-.content-section code {
-  background-color: var(--main-color);
-  border-radius: 8px;
-}
-
-.highlight > pre {
-  background-color: transparent !important;
 }
 
 /*--------------------------------------------------------------
@@ -599,6 +586,15 @@ article h1 {
 
 article h2 {
   margin: 2rem 0 1rem 0;
+}
+
+article > pre,
+article > .highlight {
+  margin: 0 -1rem;
+}
+
+article > .highlight > pre {
+  background-color: transparent !important;
 }
 
 /*--------------------------------------------------------------
