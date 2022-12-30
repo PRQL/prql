@@ -540,35 +540,64 @@ section {
     linear-gradient(#f2f9ff, #daeaff);
 }
 
-.comments-section .card-container {
-  width: 400px;
-  /* This is about the size of the biggest tweet, which isn't that reliable. We
-  define it here so the spacing doesn't change as the JS loads.
+.quote .quote-text {
+  height: 100%;
+  margin: 0;
 
-  TODO: Maybe there are better ways to do this; e.g. could be embed the full
-  tweet in the compiled version of the page? */
-  height: 425px;
-}
-
-.quote {
-  line-height: 1.6;
-}
-
-.quote-text {
-  margin: 30px;
-  font-size: 120%;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  justify-content: space-between;
 }
 
 .quote span {
   display: block;
   font-weight: bold;
-  margin-top: 30px;
 }
 
 .quote a:link,
 .quote a:visited {
   text-decoration: none;
   color: inherit;
+}
+.tweet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.tweet-author {
+  display: flex;
+  position: relative;
+  align-items: center;
+}
+.tweet-author-image {
+  width: 48px;
+  height: 48px;
+  border-radius: 9999px;
+}
+.tweet-author-info {
+  margin-left: 1rem;
+}
+.tweet-author-name {
+  line-height: 1rem;
+  font-weight: 500;
+  margin: 0;
+}
+.tweet-author-handler {
+  line-height: 1.8rem;
+}
+
+.tweet-logo {
+  width: 20px;
+  height: 20px;
+  position: absolute;
+  top: -4px;
+  left: -8px;
+  background: var(--third-color);
+  color: #fff;
+  border-radius: 9999px;
+  padding: 0.2rem;
 }
 
 /*--------------------------------------------------------------
