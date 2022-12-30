@@ -107,7 +107,6 @@ a.btn-icon i {
   opacity: 1;
 }
 
-
 /* Code */
 
 code.hljs {
@@ -145,7 +144,6 @@ pre ::-webkit-scrollbar-thumb {
 pre ::-webkit-scrollbar-thumb:hover {
   background: rgb(109, 109, 109);
 }
-
 
 /*--------------------------------------------------------------
 # Header
