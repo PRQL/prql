@@ -75,7 +75,7 @@ impl DialectHandler for GenericDialect {
 
 impl DialectHandler for MsSqlDialect {
     fn dialect(&self) -> Dialect {
-        Dialect::MySql
+        Dialect::MsSql
     }
     fn use_top(&self) -> bool {
         true
