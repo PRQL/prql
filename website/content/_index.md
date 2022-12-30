@@ -413,30 +413,92 @@ comments_section:
   enable: true
   title: "What people are saying"
   comments:
-    # NB: The tweets use a custom shortcode, since we want to limit the media & conversation.
+    # Tweets can be fetched with https://www.tweetic.io/docs
+
     - quote:
         text:
           It starts with FROM, it fixes trailing commas, and it's called PRQL??
           If this is a dream, don't wake me up.
         author: Jeremiah Lowin, Founder & CEO, Prefect.
-    - tweet: "{{< tweet 1522562664467107840 >}}"
-    - tweet: "{{< tweet 1485965394880131081 >}}"
+    - tweet:
+        user_id: "19042640"
+        name: "Hamilton Ulmer"
+        screen_name: "hamiltonulmer"
+        profile_image_url_https: "https://pbs.twimg.com/profile_images/1201721914814656512/B6muDm76_normal.jpg"
+        url: "https://twitter.com/hamiltonulmer/status/1522562664467107840"
+        profile_url: "https://twitter.com/hamiltonulmer"
+        created_at: "2022-05-06T13:03:21.000Z"
+        favorite_count: 2
+        conversation_count: 0
+        text:
+          very excited for prql!
+
+    - tweet:
+        user_id: "16080017"
+        name: "Swanand."
+        screen_name: "_swanand"
+        profile_image_url_https: "https://pbs.twimg.com/profile_images/1607146722555224064/iTL4gp7m_normal.jpg"
+        url: "https://twitter.com/_swanand/status/1485965394880131081"
+        profile_url: "https://twitter.com/_swanand"
+        created_at: "2022-01-25T13:18:52.000Z"
+        favorite_count: 20
+        conversation_count: 2
+        text: >
+          A few years ago, I started working on a language, called "dsql", short for declarative SQL, and a pun on "the sequel (to SQL)". I kinda chickened out of it then, the amount of study and research I needed was massive.
+          prql here is better than I imagined: github.com/max-sixty/prql
+
     - quote:
         text:
           Column aliases would have saved me hundreds of hours over the course
           of my career.
         author: "@dvasdekis"
         link: https://news.ycombinator.com/item?id=30064873
-    - tweet: "{{< tweet 1514280454890872833 >}}"
-    - tweet: "{{< tweet 1485958835844100098 >}}"
+    - tweet:
+        user_id: "231773031"
+        name: "Rishabh Software"
+        screen_name: "RishabhSoft"
+        profile_image_url_https: "https://pbs.twimg.com/profile_images/551974110566178817/JHuUzhjU_normal.png"
+        url: "https://twitter.com/RishabhSoft/status/1514280454890872833"
+        profile_url: "https://twitter.com/RishabhSoft"
+        created_at: "2022-04-13T16:32:49.000Z"
+        favorite_count: 0
+        conversation_count: 0
+        text: >
+          SQL's hold on data retrieval is slipping! 8 new databases are emerging, and some speak entirely new languages for data querying. Know more infoworld.com/article/365490… #SQL #DataQuery #GraphQL #PRQL #WebAssembly
+
+    - tweet:
+        user_id: "40653789"
+        name: "Burak Emir"
+        screen_name: "burakemir"
+        profile_image_url_https: "https://pbs.twimg.com/profile_images/215834651/BurakEmir-2007-04-23-full_normal.jpg"
+        url: "https://twitter.com/burakemir/status/1485958835844100098"
+        profile_url: "https://twitter.com/burakemir"
+        created_at: "2022-01-25T12:52:48.000Z"
+        favorite_count: 2
+        conversation_count: 1
+        text: >
+          I want to give the PRQL a little boost here, "pipeline of transformations" is IMHO a good choice for readable query languages that need to deal with SQL-like aggregations, group by and count and sum all: github.com/max-sixty/prql
     - quote:
-        text:
+        text: >
           Having written some complex dbt projects...the first thing...it gets
           right is to start with the table and work down. This is an enormous
           readability boost in large projects and leads to great intellisense.
         author: Ruben Slabbert
         link: https://lobste.rs/s/oavgcx/prql_simpler_more_powerful_sql#c_nmzcd7
-    - tweet: "{{< tweet 1485795181198983170 >}}"
+    - tweet:
+        user_id: "103516223"
+        name: "Michael Sumner"
+        screen_name: "mdsumner"
+        profile_image_url_https: "https://pbs.twimg.com/profile_images/1592964396091047937/CsbMRVRG_normal.jpg"
+        url: "https://twitter.com/mdsumner/status/1485795181198983170"
+        profile_url: "https://twitter.com/mdsumner"
+        created_at: "2022-01-25T02:02:30.000Z"
+        favorite_count: 1
+        conversation_count: 0
+        text: >
+          what an *excellent* criticism of SQL
+          #PRQL
+          github.com/max-sixty/prql#an…
     - quote:
         text: Just wanna say, I absolutely love this.
         author: Alex Kritchevsky
