@@ -430,8 +430,7 @@ comments_section:
         created_at: "2022-05-06T13:03:21.000Z"
         favorite_count: 2
         conversation_count: 0
-        text:
-          very excited for prql!
+        text: very excited for prql!
 
     - tweet:
         user_id: "16080017"
@@ -444,8 +443,11 @@ comments_section:
         favorite_count: 20
         conversation_count: 2
         text: >
-          A few years ago, I started working on a language, called "dsql", short for declarative SQL, and a pun on "the sequel (to SQL)". I kinda chickened out of it then, the amount of study and research I needed was massive.
-          prql here is better than I imagined: github.com/max-sixty/prql
+          A few years ago, I started working on a language, called "dsql", short
+          for declarative SQL, and a pun on "the sequel (to SQL)". I kinda
+          chickened out of it then, the amount of study and research I needed
+          was massive. prql here is better than I imagined:
+          github.com/max-sixty/prql
 
     - quote:
         text:
@@ -464,7 +466,10 @@ comments_section:
         favorite_count: 0
         conversation_count: 0
         text: >
-          SQL's hold on data retrieval is slipping! 8 new databases are emerging, and some speak entirely new languages for data querying. Know more infoworld.com/article/365490… #SQL #DataQuery #GraphQL #PRQL #WebAssembly
+          SQL's hold on data retrieval is slipping! 8 new databases are
+          emerging, and some speak entirely new languages for data querying.
+          Know more infoworld.com/article/365490… #SQL #DataQuery #GraphQL #PRQL
+          #WebAssembly
 
     - tweet:
         user_id: "40653789"
@@ -477,7 +482,10 @@ comments_section:
         favorite_count: 2
         conversation_count: 1
         text: >
-          I want to give the PRQL a little boost here, "pipeline of transformations" is IMHO a good choice for readable query languages that need to deal with SQL-like aggregations, group by and count and sum all: github.com/max-sixty/prql
+          I want to give the PRQL a little boost here, "pipeline of
+          transformations" is IMHO a good choice for readable query languages
+          that need to deal with SQL-like aggregations, group by and count and
+          sum all: github.com/max-sixty/prql
     - quote:
         text: >
           Having written some complex dbt projects...the first thing...it gets
@@ -496,8 +504,7 @@ comments_section:
         favorite_count: 1
         conversation_count: 0
         text: >
-          what an *excellent* criticism of SQL
-          #PRQL
+          what an *excellent* criticism of SQL #PRQL
           github.com/max-sixty/prql#an…
     - quote:
         text: Just wanna say, I absolutely love this.
