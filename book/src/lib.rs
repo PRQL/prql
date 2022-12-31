@@ -9,7 +9,7 @@ use clap::{Arg, ArgMatches, Command};
 use mdbook::preprocess::PreprocessorContext;
 use mdbook::preprocess::{CmdPreprocessor, Preprocessor};
 use mdbook::{book::Book, BookItem};
-use prql_compiler::compile;
+use prql_compiler::{compile, sql};
 use pulldown_cmark::{CodeBlockKind, Event, Options, Parser, Tag};
 use pulldown_cmark_to_cmark::cmark;
 use semver::{Version, VersionReq};
@@ -106,8 +106,10 @@ fn replace_examples(text: &str) -> Result<String> {
             Event::Start(Tag::CodeBlock(CodeBlockKind::Fenced(lang))) if lang == "prql".into() => {
                 if let Some(Event::Text(text)) = parser.next() {
                     let prql = text.to_string();
-                    let html =
-                        table_of_comparison(text.as_str().unwrap(), &compile(&prql, None).unwrap());
+                    let html = table_of_comparison(
+                        text.as_str().unwrap(),
+                        &compile(&prql, sql::Options::default().no_signature().some()).unwrap(),
+                    );
                     cmark_acc.push(Event::Html(html.into()));
 
                     // Skip ending tag
