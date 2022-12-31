@@ -131,7 +131,7 @@ tasks:
     desc: Build everything.
 
     summary: |
-      Build everything. 
+      Build everything.
 
       Running this isn't required when developing; it's for caching or as a reference.
     vars:
@@ -150,7 +150,7 @@ tasks:
   test-all:
     desc: Test everything, accepting snapshots.
     summary: |
-      Test everything, accepting snapshots. 
+      Test everything, accepting snapshots.
 
       Running this isn't required when developing; it's for caching or as a reference.
 
