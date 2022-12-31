@@ -17,16 +17,41 @@ url: roadmap
 
 {{< columns >}}
 
-## Language
+## Developer ergonomics
 
-The language is now fairly stable. While we'll hit corner-cases, we expect we'll
-only make small changes to the existing features, even as we continue adding
-features.
+The PRQL language can offer a vastly improved developer experience, both when
+exploring data and building robust data pipelines. We'd like to offer
+autocomplete both for internal language features and columns of the underlying
+database. We'd like to be able to offer developers a much faster iteration cycle
+when writing a query, including type checking both the data (e.g. numbers vs.
+strings) and containers (e.g. scalars vs. columns).
 
-On this foundation we are planning to build advanced features like type
-checking, function currying, pivot/melt/wide_to_long/long_to_wide operations,
-operator overloading and
-[a few more](https://github.com/PRQL/prql/issues?q=is%3Aissue+is%3Aopen+label%3Alanguage-design).
+This requires development across multiple dimensions — writing an LSP server,
+better support for typing in the compiler.
+
+## Database cohesion
+
+Currently PRQL compiles into SQL with no understanding of the underlying tables.
+While our focus is on TODO
+
+## Query transparency
+
+PRQL's compiler already contains structured data about the query. We'd like to
+offer transparency to tools which integrate PRQL, so they can offer lineage
+information, such as which tables are queried, TODO
+
+## SQL-to-PRQL conversion
+
+While PRQL already allows for a gradual on-ramp — there's no need to switch
+everything to PRQL right away — it would also be useful to be able to convert
+existing SQL queries to PRQL, rather than having to rewrite them manually. For
+many queries, this should be fairly easy. (For some it will be very difficult,
+but we can start with the easy ones...)
+
+## Rethinking joins
+
+Currently joins are basically the same as SQL. Tools which have a semantic model
+of the underlying tables can offer TODO
 
 ## Friendliness
 
@@ -99,3 +124,27 @@ means putting some things out of scope:
   ([#16](https://github.com/PRQL/prql/issues/16)).
 
 {{< /columns >}}
+
+<!--
+
+TODO: What's remaining in the language itself (not the stdlib)?
+
+
+## Language
+
+The language is now fairly stable. While we'll hit corner-cases, we expect we'll
+only make small changes to the existing features, even as we continue adding
+features.
+
+There are still some features that are missing: a native regex operator,
+
+On this foundation we are planning to build advanced features like type
+checking, function currying,  -->
+
+<!--
+
+TODO: are we planning to offer these? Where the underlying DB doesn't offer them, it'll be quite hard!
+
+pivot/melt/wide_to_long/long_to_wide operations,
+operator overloading and
+[a few more](https://github.com/PRQL/prql/issues?q=is%3Aissue+is%3Aopen+label%3Alanguage-design). -->
