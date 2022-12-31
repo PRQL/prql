@@ -14,3 +14,5 @@ target
 .Trash-0
 
 **/node_modules/
+
+.task
