@@ -12,8 +12,9 @@ sort [{direction}{column}]
 - Each column can be prefixed with:
   - `+`, for ascending order, the default
   - `-`, for descending order
-- When using prefixes, make sure to wrap columns in a list. Otherwise,
-  `sort -column` is interpreted as subtraction between `sort` and `column`.
+- When using prefixes, even a single column needs to be in a list or
+  parentheses. (Otherwise, `sort -foo` is parsed as a subtraction between `sort`
+  and `foo`.)
 
 ## Examples
 
@@ -32,11 +33,9 @@ from employees
 sort [age, -tenure, +salary]
 ```
 
-## Roadmap
+We can also use expressions:
 
-Currently `sort` does not accept expressions:
-
-```prql_no_test
+```prql
 from employees
-sort [s"substr({first_name}, 2, 5)"]  # Currently will fail
+sort [s"substr({first_name}, 2, 5)"]
 ```
