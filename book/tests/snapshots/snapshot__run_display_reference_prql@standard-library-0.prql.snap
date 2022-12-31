@@ -1,7 +1,7 @@
 ---
 source: book/tests/snapshot.rs
-expression: Statements(parse(&prql).unwrap())
-input_file: book/tests/prql/stdlib-0.prql
+expression: prql_to_pl(&prql).and_then(pl_to_prql).unwrap()
+input_file: book/tests/prql/standard-library-0.prql
 ---
 from employees
 derive [
@@ -13,6 +13,7 @@ derive [
   gross_salary
   round 0
 ),
+  time = s"NOW()",
 ]
 
 
