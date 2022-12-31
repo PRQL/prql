@@ -143,6 +143,21 @@ Our tests:
   you'll generally want to have lower-latency tests running in a tight
   loop.)[^2]
 
+[^2]: By running:
+
+    ```sh
+    task -w prql-compiler-fast
+    ```
+
+    ...we run `cargo insta test --accept -p prql-compiler --lib` on any file
+    change.
+
+<!--
+This is the previous doc. It has the advantage that it explains what it's doing, and is
+easy to change (e.g. to run all packages). But because of
+https://github.com/watchexec/watchexec/issues/371, the ignore behavior is unfortunately quite
+inconsistent in watchexec. Let's revert back if it gets solved.
+
 [^2]: For example, this is a command I frequently run:
 
     ```sh
@@ -165,7 +180,7 @@ Our tests:
       tests, which are slower.
     - Note that we don't want to re-run on _any_ file changing, because we can
       get into a loop of writing snapshot files, triggering a change, writing a
-      snapshot file, etc.
+      snapshot file, etc. -->
 
 [^3]:
     [Here's an example of an insta test](https://github.com/PRQL/prql/blob/0.2.2/prql-compiler/src/parser.rs#L580-L605)
