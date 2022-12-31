@@ -7,6 +7,9 @@ repository = "https://github.com/PRQL/prql"
 rust-version = "1.59.0"
 version.workspace = true
 
+[lib]
+doctest = false
+
 [dependencies]
 anyhow = "1.0.57"
 globset = "0.4.8"
