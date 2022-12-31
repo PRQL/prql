@@ -154,7 +154,7 @@ tasks:
       - pre-commit run -a
 
   test-rust:
-    desc: Test all rust code, resetting snapshots.
+    desc: Test all rust code, accepting snapshots.
     vars:
       default_target:
         sh: default-target
@@ -169,6 +169,27 @@ tasks:
       - cargo insta test --accept --target={{.default_target}}
         --delete-unreferenced-snapshots
       - cargo insta test --accept --target=wasm32-unknown-unknown
+
+  test-rust-fast:
+    desc: Test prql-compiler's unit tests.
+    summary: |
+      Test prql-compiler's unit tests, including accepting snapshots.
+
+      This can be useful as an inner loop when developing, by running this on any file change.
+      Use `-w` to get that behavior:
+
+        task -w test-rust-fast
+
+      New or changed snapshots are accepted, and expected to be reviewed with git.
+
+    env:
+      RUST_BACKTRACE: 1
+    sources:
+      # I don't think we can specify this is a single glob, which would be ideal. Ideally we want to exclude `.snap` files.
+      - "prql-compiler/**/*.rs"
+      - "prql-compiler/**/*.pest"
+    cmds:
+      - cargo insta test --accept -p prql-compiler --lib
 
   build-web:
     desc: Build the website
