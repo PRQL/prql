@@ -8,7 +8,7 @@
   - [Functions](./queries/functions.md)
   - [Tables](./queries/tables.md)
   - [Syntax](./queries/syntax.md)
-  - [Dialect & Version](./queries/dialect_and_version.md)
+  - [Dialect & Version](./queries/dialect-and-version.md)
 - [Transforms](./transforms.md)
   - [Aggregate](./transforms/aggregate.md)
   - [Derive](./transforms/derive.md)
@@ -24,7 +24,7 @@
 
   - [Coalesce](./language-features/coalesce.md)
     <!-- `DATE_TRUNC(foo_date, YEAR)` -> `foo_date.year`? Or -> `foo_date | as year`? Or `foo_date | to year`? -->
-  - [Dates & Times](./language-features/dates_and_times.md)
+  - [Dates & Times](./language-features/dates-and-times.md)
   - [Distinct](./language-features/distinct.md)
   - [F-Strings](./language-features/f-strings.md)
   - [Null handling](./language-features/null.md)
@@ -34,7 +34,7 @@
   - [S-Strings](./language-features/s-strings.md)
   - [Strings](./language-features/strings.md)
 
-- [Stdlib](./stdlib.md)
+- [Stdlib](./standard-library.md)
 - [Bindings]()
   - [Java](./bindings/java.md)
   - [JavaScript](./bindings/javascript.md)

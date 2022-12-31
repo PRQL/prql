@@ -20,7 +20,7 @@ A summary of PRQL syntax
 | `''` & `""`     | [Strings](../language-features/strings.md)                              | `derive name = 'Mary'`                                  |
 | `` ` ` ``       | [Quoted identifiers](./syntax.md#quoted-identifiers)                    | `` select `first name`  ``                              |
 | `#`             | [Comments](./syntax.md#comments)                                        | `# A comment`                                           |
-| `@`             | [Dates & Times](../language-features/dates_and_times.md#dates--times)   | `@2021-01-01`                                           |
+| `@`             | [Dates & Times](../language-features/dates-and-times.md#dates--times)   | `@2021-01-01`                                           |
 | `==`            | Equality                                                                | `filter [a == b, c != d, e > f]`                        |
 | `==`            | [Self-equality in `join`](../transforms/join.md#self-equality-operator) | `join s=salaries [==id]`                                |
 | `->`            | [Function definitions](./functions.md)                                  | `func add a b -> a + b`                                 |
