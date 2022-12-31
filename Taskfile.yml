@@ -53,7 +53,7 @@ tasks:
         silent: true
 
   install-maturin:
-    desc: Install maturin
+    desc: Install maturin.
     cmds:
       - python3 -m pip install -U maturin
 
@@ -128,9 +128,12 @@ tasks:
         silent: true
 
   build-all:
-    desc:
-      Build everything. Running this isn't required when developing; it's for
-      caching or as a reference.
+    desc: Build everything.
+
+    summary: |
+      Build everything.
+
+      Running this isn't required when developing; it's for caching or as a reference.
     vars:
       default_target:
         sh: default-target
@@ -145,9 +148,12 @@ tasks:
       - task: build-web
 
   test-all:
-    desc:
-      Test everything, resetting snapshots. Running this isn't required when
-      developing; it's for caching or as a reference.
+    desc: Test everything, accepting snapshots.
+    summary: |
+      Test everything, accepting snapshots.
+
+      Running this isn't required when developing; it's for caching or as a reference.
+
     cmds:
       - task: test-rust
       - task: build-all
@@ -192,7 +198,7 @@ tasks:
       - cargo insta test --accept -p prql-compiler --lib
 
   build-web:
-    desc: Build the website
+    desc: Build the website, including the book & playground.
     cmds:
       - cd website && hugo --minify
       - cd book && mdbook build
@@ -214,12 +220,20 @@ tasks:
       - npm run build
       - npm cit
 
+  run-web:
+    desc: Build & serve the static website.
+    dir: website
+    cmds:
+      - hugo server
+
   run-book:
+    desc: Build & serve the book.
     dir: book
     cmds:
       - mdbook serve --port=3000
 
   run-playground:
+    desc: Build & serve the playground.
     dir: playground
     cmds:
       # Must set `install-links=false` for the playground `npm install` to install prql-js
@@ -227,6 +241,7 @@ tasks:
       # Refer to https://github.com/PRQL/prql/pull/1296.
       - npm install --install-links=false
       - npm start
+#
 # The next three tasks are not used for either:
 #  - the Dockerfile (installing brew takes forever)
 #    so the Dockerfile simply installs hugo & nodejs directly
