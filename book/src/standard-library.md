@@ -1,8 +1,7 @@
 # Standard Library
 
 The standard library currently contains commonly used functions that are used in
-SQL. It's not yet as broad as we'd like, and and we're very open to expanding
-it.
+SQL. It's not yet as broad as we'd like, and we're very open to expanding it.
 
 Currently s-strings are an escape-hatch for any function that isn't in our
 standard library. If we find ourselves using them for something frequently,
