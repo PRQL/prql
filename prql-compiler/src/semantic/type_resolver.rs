@@ -97,13 +97,15 @@ where
             found: format!("type `{}`", found_ty),
         })
         .with_span(found.span));
-        if matches!(found_ty, Ty::Function(_)) && !matches!(expected, Ty::Function(_)){
+        if matches!(found_ty, Ty::Function(_)) && !matches!(expected, Ty::Function(_)) {
             return e.with_help(match &found.kind {
                 ExprKind::Closure(closure) => match &closure.name {
-                    Some(name) => format!("Have you forgot an argument to function `{}`", name.name),
-                    None => "Have you forgot an argument in this function call?".to_string()
+                    Some(name) => {
+                        format!("Have you forgot an argument to function `{}`", name.name)
+                    }
+                    None => "Have you forgot an argument in this function call?".to_string(),
                 },
-                _ => "Have you forgot an argument in this function call?".to_string()
+                _ => "Have you forgot an argument in this function call?".to_string(),
             });
         };
         return e;
