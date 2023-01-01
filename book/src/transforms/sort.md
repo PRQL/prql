@@ -44,7 +44,7 @@ sort [s"substr({first_name}, 2, 5)"]
 
 ### Ordering guarantees
 
-Most DBs will persist through ordering most transforms; for example, you can
+Most DBs will persist ordering through most transforms; for example, you can
 expect this result to be ordered by `tenure`.
 
 ```prql
