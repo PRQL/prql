@@ -57,8 +57,8 @@ But:
 
 - This is an implementation detail of the DB. If there are instances where this
   doesn't hold, please open an issue, and we'll consider how to manage it.
-- Some transforms which change the existence of rows, such as `join`, won't
-  persist ordering; for example:
+- Some transforms which change the existence of rows, such as `join` or `group`,
+  won't persist ordering; for example:
 
 ```prql
 from employees
