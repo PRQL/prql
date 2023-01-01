@@ -19,15 +19,10 @@ repos:
     hooks:
       - id: fmt
       - id: clippy
-  - repo: https://github.com/asottile/pyupgrade
-    rev: v3.3.1
+  - repo: https://github.com/charliermarsh/ruff-pre-commit
+    rev: v0.0.189
     hooks:
-      - id: pyupgrade
-        args: ["--py38-plus"]
-  - repo: https://github.com/PyCQA/isort
-    rev: 5.11.4
-    hooks:
-      - id: isort
+      - id: ruff
   - repo: https://github.com/psf/black
     rev: 22.12.0
     hooks:
