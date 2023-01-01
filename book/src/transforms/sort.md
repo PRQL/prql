@@ -44,7 +44,7 @@ sort [s"substr({first_name}, 2, 5)"]
 
 ### Ordering guarantees
 
-Currently most DBs will persist through most transforms; for example, you can
+Most DBs will persist through ordering most transforms; for example, you can
 expect this result to be ordered by `tenure`.
 
 ```prql
@@ -57,8 +57,8 @@ But:
 
 - This is an implementation detail of the DB. If there are instances where this
   doesn't hold, please open an issue, and we'll consider how to manage it.
-- Some transforms which change the number of rows, such as `join`, won't persist
-  ordering; for example:
+- Some transforms which change the existence of rows, such as `join`, won't
+  persist ordering; for example:
 
 ```prql
 from employees
