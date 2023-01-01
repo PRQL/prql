@@ -3,7 +3,7 @@ use std::cmp::Ordering;
 use anyhow::Result;
 
 use crate::ast::pl::*;
-use crate::error::{Error, Reason};
+use crate::error::{Error, Reason, WithErrorInfo};
 
 pub fn resolve_type(node: &Expr) -> Result<Ty> {
     if let Some(ty) = &node.ty {
@@ -91,12 +91,22 @@ where
         Some(Ordering::Equal | Ordering::Greater)
     );
     if !expected_is_above {
-        return Err(Error::new(Reason::Expected {
+        let e = Err(Error::new(Reason::Expected {
             who: who(),
             expected: format!("type `{}`", expected),
             found: format!("type `{}`", found_ty),
         })
         .with_span(found.span));
+        if matches!(found_ty, Ty::Function(_)) && !matches!(expected, Ty::Function(_)){
+            return e.with_help(match &found.kind {
+                ExprKind::Closure(closure) => match &closure.name {
+                    Some(name) => format!("Have you forgot an argument to function `{}`", name.name),
+                    None => "Have you forgot an argument in this function call?".to_string()
+                },
+                _ => "Have you forgot an argument in this function call?".to_string()
+            });
+        };
+        return e;
     }
     Ok(found_ty)
 }
