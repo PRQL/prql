@@ -3,9 +3,9 @@
 mod anchor;
 mod codegen;
 mod context;
-mod target;
 mod preprocess;
 mod std;
+mod target;
 mod translator;
 
 pub use target::Target;
