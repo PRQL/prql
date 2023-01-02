@@ -91,8 +91,11 @@ formatting = function (hljs) {
         // number
         scope: "number",
         // Slightly modified from https://stackoverflow.com/a/23872060/3064736;
-        // it requires a number after a decimal point, so ranges appear as ranges.
-        match: /[+-]?((\d+(\.\d+)?)|(\.\d+))/,
+        // it requires a number after a decimal point, so ranges appear as
+        // ranges.
+        // We also disallow a leading word character, so that we don't highlight
+        // a number in `foo_1`.
+        match: /[+-]?[^\w]((\d+(\.\d+)?)|(\.\d+))/,
         relevance: 10,
       },
       {
