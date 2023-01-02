@@ -1,5 +1,10 @@
 # Concat & Union
 
+```admonish note
+`concot` & `union` are currently experimental and may have bugs; please
+report any as GitHub Issues.
+```
+
 ## Concat
 
 `concat` concatenates two tables together, like `UNION ALL` in SQL. The number
@@ -14,8 +19,8 @@ concat employees_2
 
 `union` takes the union of rows, where duplicates are discarded (using the
 definition of `union` from set logic), like `UNION DISTINCT` in SQL. If all rows
-are different this is synonymous with `concat`; if there are duplicate rows it
-will produce fewer rows.
+are different between the tables, this is synonymous with `concat`; if there are
+duplicate rows it will produce fewer rows.
 
 ```prql
 from employees_1
