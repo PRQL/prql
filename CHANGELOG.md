@@ -11,12 +11,12 @@
   [see this discussion](https://github.com/PRQL/prql/issues/1286#issue-1501645497)
   and (#1278) for usage and the current syntax. _Note: this syntax may change._
 
-  ```
+  ```prql
   derive var = switch [
-  score <= 10 -> "low",
-  score <= 30 -> "medium",
-  score <= 70 -> "high",
-  true -> "very high",
+    score <= 10 -> "low",
+    score <= 30 -> "medium",
+    score <= 70 -> "high",
+    true -> "very high",
   ]
   ```
 
@@ -24,36 +24,39 @@
   [see this PR](https://github.com/PRQL/prql/pull/894#issuecomment-1353548853)
   for usage.
 
-  ```
+  ```prql
   from employees
   concat managers
   union other_employees
   ```
 
+- Add SQL comment which displays the compiler version used to generate the SQL
+  (@aljazerzen, #1322)
+- The playground now allows querying some sample data. As before, the result
+  updates on every keystroke. (@aljazerzen, #1305)
+
 The following need updated pages in the documentation:
 
-- feat: Playground queries sample database (#1305)
-- feat: comment that displays the compiler version used to generate the SQL
-  (#1322)
-- feat: `in` operator (#1330)
-- feat: Allow pipelines in list items (#1318)
-- feat: Parsing for negative select (#1317)
-- feat: additional builtin functions (#1325)
+- Add `in` operator (@aljazerzen, #1330)
+- Allow function calls & pipelines in list items (@max-sixty, #1318)
 
 **Fixes**:
 
-- fix: allow interpolations in table s-strings (#1337)
+- Allow interpolations in table s-strings (@aljazerzen, #1337)
 
 **Documentation**:
 
-- [Updated description](https://prql-lang.org/book/transforms/select.html) of
-  how table alias is no longer available after a select.
+- Add docs on aliases in
+  [Select](https://prql-lang.org/book/transforms/select.html)
 
 **Web**:
 
 **Integrations**:
 
 **Internal changes**:
+
+- Add parsing for negative select (@max-sixty, #1317)
+- Allow for additional builtin functions (@aljazerzen, #1325)
 
 ## 0.3.1 - 2022-12-03
 
@@ -63,7 +66,7 @@ The following need updated pages in the documentation:
 
 - Support for using s-strings for `from` (#1197, @aljazerzen)
 
-  ```
+  ```prql
   from s"SELECT * FROM employees WHERE foo > 5"
   ```
 
