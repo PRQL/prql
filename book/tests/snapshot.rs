@@ -3,6 +3,9 @@
 /// - Extracts PRQL code blocks into the `examples` path.
 /// - Converts them to SQL using insta, raising an error if there's a diff.
 /// - Replaces the PRQL code block with a comparison table.
+///
+/// We also use this test to run tests on our Display trait output, currently as
+/// another set of snapshots.
 //
 // Overall, this is overengineered — it's complicated and took a long time to
 // write. The intention is good — have a version of the SQL that's committed
@@ -27,17 +30,19 @@ use walkdir::WalkDir;
 
 #[test]
 fn run_examples() -> Result<()> {
-    // TODO: This doesn't delete old prql files — probably we should delete them
-    // all first?
-    //
-    // TODO: In CI this could pass by replacing files that are wrong in the
-    // repo; instead we could check if there are any diffs after this has run?
+    // TODO: In CI this could pass by replacing incorrect files. To catch that,
+    // we could check if there are any diffs after this has run?
 
-    // Note that on windows, we only get the next _line_, and so we exclude the
+    // Note that on windows, markdown is read differently, and so
     // writing on Windows. ref https://github.com/PRQL/prql/issues/356
     #[cfg(not(target_family = "windows"))]
     write_reference_prql()?;
     run_reference_prql();
+
+    // TODO: Currently we run this in the same test, since we need the
+    // `write_reference_prql` function to have been run. If we could iterate
+    // over the PRQL examples without writing them to disk, we could run this as
+    // a separate test.
     run_display_reference_prql();
 
     Ok(())
@@ -136,6 +141,7 @@ fn run_reference_prql() {
 }
 
 /// Snapshot the display trait output of each example.
+// Currently not a separate test, see notes in caller.
 fn run_display_reference_prql() {
     glob!("prql/**/*.prql", |path| {
         let prql = fs::read_to_string(path).unwrap();
