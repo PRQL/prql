@@ -20,9 +20,7 @@
   ]
   ```
 
-- _Experimental:_ `union` statement. No page in the docs yet, but
-  [see this PR](https://github.com/PRQL/prql/pull/894#issuecomment-1353548853)
-  for usage.
+- _Experimental:_ `concat` & `union` transforms. (@aljazerzen, #894)
 
   ```prql
   from employees

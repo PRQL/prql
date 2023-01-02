@@ -1,0 +1,10 @@
+---
+source: book/tests/snapshot.rs
+expression: prql_to_pl(&prql).and_then(pl_to_prql).unwrap()
+input_file: book/tests/prql/transforms/concat-and-union-1.prql
+---
+from employees_1
+union employees_2
+
+
+
