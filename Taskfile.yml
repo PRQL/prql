@@ -171,7 +171,7 @@ tasks:
       # tests to extract them, which include compiling prql-compiler, c) not
       # fail other compilation steps if they can't be extracted.
       - cargo insta test --accept -p mdbook-prql --test snapshot
-      # Only delete unreferenced snapshots on the default target — lots are 
+      # Only delete unreferenced snapshots on the default target — lots are
       # excluded under wasm.
       - cargo insta test --accept --target={{.default_target}}
         --delete-unreferenced-snapshots
