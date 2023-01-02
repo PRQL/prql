@@ -2,7 +2,7 @@ use std::collections::hash_map::RandomState;
 use std::collections::HashMap;
 use std::iter::zip;
 
-use anyhow::{bail, Result};
+use anyhow::Result;
 use itertools::Itertools;
 
 use crate::ast::pl::fold::AstFold;
@@ -163,13 +163,14 @@ impl Lowerer {
                 self.create_a_table_instance(id, None, tid)
             }
             _ => {
-                bail!(Error::new(Reason::Expected {
+                return Err(Error::new(Reason::Expected {
                     who: None,
                     expected: "pipeline that resolves to a table".to_string(),
-                    found: format!("`{expr}`")
+                    found: format!("`{expr}`"),
                 })
                 .with_help("are you missing `from` statement?")
-                .with_span(expr.span))
+                .with_span(expr.span)
+                .into())
             }
         })
     }
@@ -495,7 +496,7 @@ impl Lowerer {
                 op: match op {
                     pl::UnOp::Neg => rq::UnOp::Neg,
                     pl::UnOp::Not => rq::UnOp::Not,
-                    pl::UnOp::EqSelf => bail!("Cannot lower to IR expr: `{op:?}`"),
+                    pl::UnOp::EqSelf => panic!("EqSelf not resolved."),
                 },
                 expr: Box::new(self.lower_expr(*expr)?),
             },
@@ -528,7 +529,14 @@ impl Lowerer {
             | pl::ExprKind::List(_)
             | pl::ExprKind::Closure(_)
             | pl::ExprKind::Pipeline(_)
-            | pl::ExprKind::TransformCall(_) => bail!("Cannot lower to IR expr: `{ast:?}`"),
+            | pl::ExprKind::TransformCall(_) => {
+                return Err(Error::new(Reason::Unexpected {
+                    found: format!("`{ast}`"),
+                })
+                .with_help("this is probably a 'bad type' error (we are working on that)")
+                .with_span(ast.span)
+                .into())
+            }
         };
 
         Ok(rq::Expr {
@@ -566,11 +574,12 @@ impl Lowerer {
                             RelationColumn::Single(Some(v.clone()))
                         }
                     }
-                    None => bail!(Error::new(Reason::Simple(
+                    None => return Err(Error::new(Reason::Simple(
                         "This table contains unnamed columns, that need to be referenced by name"
-                            .to_string()
+                            .to_string(),
                     ))
-                    .with_span(self.context.span_map.get(&id).cloned())),
+                    .with_span(self.context.span_map.get(&id).cloned())
+                    .into()),
                 };
                 log::trace!("lookup cid of name={name:?} in input {input_columns:?}");
 
@@ -610,7 +619,7 @@ fn validate_take_range(range: &Range<rq::Expr>, span: Option<Span>) -> Result<()
     };
 
     let end_ok = if let Some(end) = end {
-        end.is_some()
+        end.map(|e| *e >= 1).unwrap_or(false)
     } else {
         true
     };
@@ -619,7 +628,7 @@ fn validate_take_range(range: &Range<rq::Expr>, span: Option<Span>) -> Result<()
         let range_display = format!("{}..{}", bound_display(start), bound_display(end));
         Err(Error::new(Reason::Expected {
             who: Some("take".to_string()),
-            expected: "an int range within 1..".to_string(),
+            expected: "a positive int range".to_string(),
             found: range_display,
         })
         .with_span(span)

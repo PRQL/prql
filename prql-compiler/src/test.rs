@@ -1005,7 +1005,7 @@ fn test_range() {
        │
      3 │     take 0..1
        ·     ────┬────
-       ·         ╰────── take expected an int range within 1.., but found 0..1
+       ·         ╰────── take expected a positive int range, but found 0..1
     ───╯
     "###);
 
@@ -1018,7 +1018,7 @@ fn test_range() {
        │
      3 │     take (-1..)
        ·     ─────┬─────
-       ·          ╰─────── take expected an int range within 1.., but found -1..
+       ·          ╰─────── take expected a positive int range, but found -1..
     ───╯
     "###);
 
@@ -1032,7 +1032,7 @@ fn test_range() {
        │
      4 │     take 5..5.6
        ·     ─────┬─────
-       ·          ╰─────── take expected an int range within 1.., but found 5..?
+       ·          ╰─────── take expected a positive int range, but found 5..?
     ───╯
     "###);
 
@@ -1040,12 +1040,13 @@ fn test_range() {
     from employees
     take (-1)
     "###).unwrap_err()), @r###"
-    SELECT
-        *
-    FROM
-        employees
-    LIMIT
-        5 OFFSET 10
+    Error:
+       ╭─[:3:5]
+       │
+     3 │     take (-1)
+       ·     ────┬────
+       ·         ╰────── take expected a positive int range, but found ..-1
+    ───╯
     "###);
 }
 

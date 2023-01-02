@@ -511,7 +511,7 @@ impl Display for Expr {
             ExprKind::Closure(c) => {
                 write!(
                     f,
-                    "<closure over {} with {}/{} args>",
+                    "<closure over `{}` with {}/{} args>",
                     &c.body,
                     c.args.len(),
                     c.params.len()
