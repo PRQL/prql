@@ -20,7 +20,7 @@ repos:
       - id: fmt
       - id: clippy
   - repo: https://github.com/charliermarsh/ruff-pre-commit
-    rev: v0.0.189
+    rev: v0.0.206
     hooks:
       - id: ruff
   - repo: https://github.com/psf/black
