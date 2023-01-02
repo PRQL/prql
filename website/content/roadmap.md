@@ -39,10 +39,23 @@ s-strings.
 One challenge here is the variety of functionalities and syntax of target DBMSs;
 e.g. there's no standard regex function.
 
-#### Strong typing support
+#### Type system
 
-including type checking both the data (e.g. numbers vs. strings) and containers
+Because PRQL is meant to be the querying interface of the database, a type
+system that can describe database schema as well as all intermediate results of
+the queries is needed. We want it to provide clear distinctions between
+different nullable and non-nullable values, and different kinds of containers
 (e.g. scalars vs. columns).
+
+Currently PRQL compiles into SQL with no understanding of the underlying tables.
+We plan to introduce database schema declarations into the language, so PRQL
+compiler and tooling can enrich the developer experience with autocomplete and
+early error messages.
+
+The goal here is to catch all errors at PRQL compile time, instead of at the
+database's PREPARE stage.
+
+<--->
 
 #### Friendliness
 
@@ -53,27 +66,21 @@ Both bug reports of unfriendliness, and code contributions to improve them are
 welcome; there's a
 [friendliness label.](https://github.com/PRQL/prql/issues?q=is%3Aissue+label%3Afriendliness+is%3Aopen)
 
-<--->
-
 #### Developer ergonomics — LSP
 
 The PRQL language can offer a vastly improved developer experience over SQL,
 both when exploring data and building robust data pipelines. We'd like to offer
-autocomplete both for PRQL itself and for columns of the underlying database.
-We'd like to be able to offer developers a much faster iteration cycle when
-writing a query,
+autocomplete both for PRQL itself and for columns of the underlying database,
+because fast iteration cycle can drastically decrease frustrations caused by
+banal misspellings.
 
 This requires development across multiple dimensions — writing an
 [LSP server](https://langserver.org/), better support for typing in the
-compiler, possibly database cohesion.
+compiler, and possibly database cohesion.
 
-#### Database cohesion
-
-Currently PRQL compiles into SQL with no understanding of the underlying tables.
-While PRQL never _require_ a database to compile queries, we can enrich the
-developer experience — for example, autocomplete, or early error messages — with
-information about the underlying tables, such as their columns and types. We'll
-likely implement this with an intermediate layer which can be stored on disk.
+While PRQL compiler will never depend on a database to compile queries, LPS
+server could greatly help with generating type definitions from the information
+schema of a database.
 
 #### Query transparency
 
@@ -114,10 +121,13 @@ Currently, PRQL only transpiles into SQL, using connectors such as DuckDB to
 access other formats, such as Pandas dataframes. But PRQL can be much more
 general than SQL — we could directly compile to any relational backend, offering
 more flexibility and performance — and a consistent experience for those who use
-multiple tools. For example, we could to apply PRQL's AST to a in-memory
+multiple tools.
+
+For example, we could compile PRQL to RQ (Relational Query intermediate
+representation) and then use that to apply the transformations to an in-memory
 dataframe of a performance-optimized library (such as
-[Polars](https://www.pola.rs/)), or to [Substrait](https://substrait.io/) or to
-Google Sheets.
+[Polars](https://www.pola.rs/)) or a Google Sheets spreadsheet. Alternatively,
+we could even convert RQ to [Substrait](https://substrait.io/).
 
 #### PRQL as a tool
 
