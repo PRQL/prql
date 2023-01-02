@@ -995,6 +995,59 @@ fn test_range() {
     LIMIT
       5
     "###);
+
+    assert_display_snapshot!((compile(r###"
+    from employees
+    take 0..1
+    "###).unwrap_err()), @r###"
+    Error:
+       ╭─[:3:5]
+       │
+     3 │     take 0..1
+       ·     ────┬────
+       ·         ╰────── take expected a positive int range, but found 0..1
+    ───╯
+    "###);
+
+    assert_display_snapshot!((compile(r###"
+    from employees
+    take (-1..)
+    "###).unwrap_err()), @r###"
+    Error:
+       ╭─[:3:5]
+       │
+     3 │     take (-1..)
+       ·     ─────┬─────
+       ·          ╰─────── take expected a positive int range, but found -1..
+    ───╯
+    "###);
+
+    assert_display_snapshot!((compile(r###"
+    from employees
+    select a
+    take 5..5.6
+    "###).unwrap_err()), @r###"
+    Error:
+       ╭─[:4:5]
+       │
+     4 │     take 5..5.6
+       ·     ─────┬─────
+       ·          ╰─────── take expected a positive int range, but found 5..?
+    ───╯
+    "###);
+
+    assert_display_snapshot!((compile(r###"
+    from employees
+    take (-1)
+    "###).unwrap_err()), @r###"
+    Error:
+       ╭─[:3:5]
+       │
+     3 │     take (-1)
+       ·     ────┬────
+       ·         ╰────── take expected a positive int range, but found ..-1
+    ───╯
+    "###);
 }
 
 #[test]
@@ -2365,4 +2418,22 @@ fn test_errors() {
        ·           ╰─── `take` expected int or range, but found 1.8
     ───╯
     "###);
+}
+
+#[test]
+fn test_hint_missing_args() {
+    assert_display_snapshot!(compile(r###"
+    from film
+    select [film_id, lag film_id]
+    "###).unwrap_err(), @r###"
+    Error:
+       ╭─[:3:22]
+       │
+     3 │     select [film_id, lag film_id]
+       ·                      ─────┬─────
+       ·                           ╰─────── function std.select, param `columns` expected type `column`, but found type `func infer -> column`
+       ·
+       · Help: Have you forgotten an argument to function `lag`?
+    ───╯
+    "###)
 }

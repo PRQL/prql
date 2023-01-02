@@ -1,3 +1,0 @@
-from e=employees
-select fname = e.first_name
-filter fname == "Fred"

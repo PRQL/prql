@@ -344,13 +344,13 @@ pub(super) fn range_of_ranges(ranges: Vec<Range<Expr>>) -> Result<Range<i64>> {
         current = range;
     }
 
-    if current
-        .start
-        .zip(current.end)
-        .map(|(s, e)| e < s)
-        .unwrap_or(false)
-    {
-        bail!("Range end is before its start.");
+    if let Some((s, e)) = current.start.zip(current.end) {
+        if e < s {
+            return Ok(Range {
+                start: None,
+                end: Some(0),
+            });
+        }
     }
     Ok(current)
 }
@@ -822,8 +822,12 @@ mod test {
         end: 6
         "###);
 
-        // We can't get 5..6 from 5..6.
-        assert!(range_of_ranges(vec![range2.clone(), range2.clone()]).is_err());
+        // empty range
+        assert_yaml_snapshot!(range_of_ranges(vec![range2.clone(), range2.clone()])?, @r###"
+        ---
+        start: ~
+        end: 0
+        "###);
 
         assert_yaml_snapshot!(range_of_ranges(vec![range3.clone(), range3.clone()])?, @r###"
         ---

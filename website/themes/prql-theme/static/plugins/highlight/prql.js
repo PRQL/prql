@@ -2,6 +2,7 @@
 // https://github.com/PRQL/prql/blob/main/reference/highlight-prql.js
 //
 // TODO: can we import one from the other at build time?
+
 formatting = function (hljs) {
   const TRANSFORMS = [
     "from",
@@ -17,11 +18,12 @@ formatting = function (hljs) {
     "window",
     "prql",
   ];
+  const BUILTIN_FUNCTIONS = ["switch", "in", "as"];
   return {
     name: "PRQL",
     case_insensitive: true,
     keywords: {
-      keyword: TRANSFORMS,
+      keyword: [...TRANSFORMS, ...BUILTIN_FUNCTIONS],
       literal: "false true null and or not",
     },
     contains: [
@@ -48,9 +50,17 @@ formatting = function (hljs) {
       {
         // interpolation string
         scope: "attribute",
-        begin: '(s|f)"',
-        end: '"',
         relevance: 10,
+        variants: [
+          {
+            begin: '(s|f)"""',
+            end: '"""',
+          },
+          {
+            begin: '(s|f)"',
+            end: '"',
+          },
+        ],
       },
       {
         // normal string

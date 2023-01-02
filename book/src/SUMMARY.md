@@ -33,6 +33,7 @@
   - [Regex]()
   - [S-Strings](./language-features/s-strings.md)
   - [Strings](./language-features/strings.md)
+  - [Switch](./language-features/switch.md)
 
 - [Stdlib](./standard-library.md)
 - [Bindings]()
