@@ -326,7 +326,7 @@ fn test_rn_ids_are_unique() {
 fn test_quoting() {
     // GH-#822
     assert_display_snapshot!((compile(r###"
-prql sql_dialect:postgres
+prql target:sql.postgres
 table UPPER = (
 from lower
 )
@@ -351,7 +351,7 @@ derive `from` = 5
 
     // GH-#852
     assert_display_snapshot!((compile(r###"
-prql sql_dialect:bigquery
+prql target:sql.bigquery
 from `db.schema.table`
 join `db.schema.table2` [==id]
 join c = `db.schema.t-able` [`db.schema.table`.id == c.id]
@@ -1622,10 +1622,10 @@ fn test_table_alias() {
 }
 
 #[test]
-fn test_dialects() {
+fn test_targets() {
     // Generic
     let query = r###"
-    prql sql_dialect:generic
+    prql target:sql.generic
     from Employees
     select [FirstName, `last name`]
     take 3
@@ -1643,7 +1643,7 @@ fn test_dialects() {
 
     // SQL server
     let query = r###"
-    prql sql_dialect:mssql
+    prql target:sql.mssql
     from Employees
     select [FirstName, `last name`]
     take 3
@@ -1659,7 +1659,7 @@ fn test_dialects() {
 
     // MySQL
     let query = r###"
-    prql sql_dialect:mysql
+    prql target:sql.mysql
     from Employees
     select [FirstName, `last name`]
     take 3
@@ -1677,9 +1677,9 @@ fn test_dialects() {
 }
 
 #[test]
-fn test_dialect_clickhouse() {
+fn test_target_clickhouse() {
     let query = r###"
-    prql sql_dialect:clickhouse
+    prql target:sql.clickhouse
 
     from github_json
     derive [event_type_dotted = `event.type`]
@@ -1713,7 +1713,7 @@ fn test_ident_escaping() {
 
     // MySQL
     let query = r###"
-    prql sql_dialect:mysql
+    prql target:sql.mysql
 
     from `anim"ls`
     derive [`čebela` = BeeName, medved = `bear's_name`]

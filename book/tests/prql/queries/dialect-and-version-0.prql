@@ -1,4 +1,4 @@
-prql sql_dialect:postgres
+prql target:sql.postgres
 
 from employees
 sort age

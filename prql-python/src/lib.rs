@@ -1,5 +1,5 @@
 #![cfg(not(target_family = "wasm"))]
-use prql_compiler::{self, sql::Dialect, IntoOnly};
+use prql_compiler::{self, sql::Target, IntoOnly};
 use pyo3::{exceptions, prelude::*};
 
 #[pyfunction]
@@ -49,6 +49,9 @@ fn prql_python(_py: Python, m: &PyModule) -> PyResult<()> {
     Ok(())
 }
 
+// TODO: `CompileOptions` is replicated in `prql-compiler/src/sql/mod.rs`; can
+// we combine them despite the `pyclass` attribute?
+
 /// Compilation options for SQL backend of the compiler.
 #[pyclass]
 #[derive(Clone)]
@@ -59,18 +62,18 @@ pub struct CompileOptions {
     /// Defaults to true.
     pub format: bool,
 
-    /// Target dialect you want to compile for.
+    /// Target to compile to (generally a SQL dialect).
     ///
     /// Because PRQL compiles to a subset of SQL, not all SQL features are
-    /// required for PRQL. This means that generic dialect may work with most
+    /// required for PRQL. This means that generic target may work with most
     /// databases.
     ///
-    /// If something does not work in dialect you need, please report it at
-    /// GitHub issues.
+    /// If something does not work in the target / dialect you need, please
+    /// report it at GitHub issues.
     ///
-    /// If None is used, `sql_dialect` flag from query definition is used.
-    /// If it does not exist, [Dialect::Generic] is used.
-    pub dialect: Option<Dialect>,
+    /// If None is used, `target` flag from query definition is used. If it does
+    /// not exist, [Target::Generic] is used.
+    pub target: Option<Target>,
 
     /// Emits the compiler signature as a comment after generated SQL
     ///
@@ -82,7 +85,7 @@ impl From<CompileOptions> for prql_compiler::sql::Options {
     fn from(o: CompileOptions) -> Self {
         prql_compiler::sql::Options {
             format: o.format,
-            dialect: o.dialect,
+            target: o.target,
             signature_comment: o.signature_comment,
         }
     }
@@ -97,7 +100,7 @@ mod test {
     fn parse_for_python() {
         let opts = Some(CompileOptions {
             format: true,
-            dialect: None,
+            target: None,
             signature_comment: false,
         });
 

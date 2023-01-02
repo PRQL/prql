@@ -35,6 +35,18 @@
 - The playground now allows querying some sample data. As before, the result
   updates on every keystroke. (@aljazerzen, #1305)
 
+- `dialect` is renamed to `target`, and its values are prefixed with `sql.`
+  (@max-sixty, #1388); for example:
+
+  ```prql
+  prql target:sql.bigquery  # previously was `dialect:bigquery`
+
+  from employees
+  ```
+
+  This gives us the flexibility to target other languages than SQL in the future
+  (though we have no immediate plans to implement this).
+
 The following need updated pages in the documentation:
 
 - Add `in` operator (@aljazerzen, #1330)

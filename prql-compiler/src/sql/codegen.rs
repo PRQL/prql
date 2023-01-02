@@ -24,7 +24,7 @@ use crate::sql::context::ColumnDecl;
 use crate::utils::OrMap;
 
 use super::translator::Context;
-use super::Dialect;
+use super::Target;
 
 pub(super) fn translate_expr_kind(item: ExprKind, ctx: &mut Context) -> Result<sql_ast::Expr> {
     Ok(match item {
@@ -591,7 +591,7 @@ pub(super) fn translate_ident(
     if !ctx.omit_ident_prefix || column.is_none() {
         if let Some(relation) = relation_name {
             // Special-case this for BigQuery, Ref #852
-            if matches!(ctx.dialect.dialect(), Dialect::BigQuery) {
+            if matches!(ctx.target.target(), Target::BigQuery) {
                 parts.push(relation);
             } else {
                 parts.extend(relation.split('.').map(|s| s.to_string()));
@@ -650,7 +650,7 @@ pub(super) fn translate_ident_part(ident: String, ctx: &Context) -> sql_ast::Ide
     if is_jinja || is_bare && !is_keyword(&ident) {
         sql_ast::Ident::new(ident)
     } else {
-        sql_ast::Ident::with_quote(ctx.dialect.ident_quote(), ident)
+        sql_ast::Ident::with_quote(ctx.target.ident_quote(), ident)
     }
 }
 

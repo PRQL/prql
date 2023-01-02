@@ -1,9 +1,9 @@
 ---
 source: book/tests/snapshot.rs
-expression: Statements(parse(&prql).unwrap())
+expression: prql_to_pl(&prql).and_then(pl_to_prql).unwrap()
 input_file: book/tests/prql/queries/syntax-9.prql
 ---
-prql sql_dialect:bigquery
+prql target:sql.bigquery
 
 
 
