@@ -38,7 +38,7 @@ fn run_examples() -> Result<()> {
     #[cfg(not(target_family = "windows"))]
     write_reference_prql()?;
     run_reference_prql();
-    
+
     // TODO: Currently we run this in the same test, since we need the
     // `write_reference_prql` function to have been run. If we could iterate
     // over the PRQL examples without writing them to disk, we could run this as
