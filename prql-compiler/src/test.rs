@@ -2368,7 +2368,7 @@ fn test_errors() {
 }
 
 #[test]
-fn test_hint_missing_args(){
+fn test_hint_missing_args() {
     assert_display_snapshot!(compile(r###"
     from film
     select [film_id, lag film_id]
