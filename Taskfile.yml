@@ -193,10 +193,10 @@ tasks:
       RUST_BACKTRACE: 1
     sources:
       # I don't think we can specify this is a single glob, which would be nice.
-      # Ideally we want to exclude `.pending-snap` files so a run doesn't cause
-      # another. We probably *do* want to include `.snap` files, so we get a
-      # successful run when those update, but need to check whether that could
-      # also cause looping runs.
+      # Ideally we want to exclude `.pending-snap` & `.snap.new` files so a run
+      # doesn't cause another. We probably *do* want to include `.snap` files,
+      # so we get a successful run when those update, but need to check whether
+      # that could also cause looping runs.
       - "prql-compiler/**/*.rs"
       - "prql-compiler/**/*.pest"
     cmds:
