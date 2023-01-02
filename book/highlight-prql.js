@@ -33,13 +33,13 @@ formatting = function (hljs) {
     "group",
     "window",
     "prql",
-    "switch",
   ];
+  const BUILTIN_FUNCTIONS = ["switch", "in", "as"];
   return {
     name: "PRQL",
     case_insensitive: true,
     keywords: {
-      keyword: TRANSFORMS,
+      keyword: [...TRANSFORMS, ...BUILTIN_FUNCTIONS],
       literal: "false true null and or not",
     },
     contains: [

@@ -1,0 +1,6 @@
+from employees
+derive distance = switch [
+  city == "Calgary" -> 0,
+  city == "Edmonton" -> 300,
+  true -> "Unknown",
+]
