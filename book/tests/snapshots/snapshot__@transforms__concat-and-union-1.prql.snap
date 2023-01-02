@@ -1,6 +1,6 @@
 ---
 source: book/tests/snapshot.rs
-expression: sql
+expression: "from employees_1\nunion employees_2\n"
 input_file: book/tests/prql/transforms/concat-and-union-1.prql
 ---
 (
