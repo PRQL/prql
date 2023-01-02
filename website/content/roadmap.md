@@ -156,6 +156,58 @@ means putting some things out of scope:
 
 TODO: What's remaining in the language itself (not the stdlib)?
 
+aljaz: I did a breakdown of all issues marked with "language-design":
+
+Work in progress:
+
+- #761 Intersect and Difference Operators
+- #656 Union operator
+- #286 Notation for creating sample data
+- #172 an exclude clause, that would select all columns except whats specified
+
+Stale discussions:
+
+- #819 Syntax to break an expression over multiple lines?
+- #1069 Should window default to `expanding` with a `sort`?
+- #523 Table definition syntax
+- #1286 switch / case / match semantics
+- Consistency/correctness:
+  - #1111 Deterministic/pure functions
+  - #985 Corrections of SQL's aggregation functions
+  - #905 `null`s in expressions
+- Joins:
+  - #1206 Join three tables on same column name
+  - #723 Natural Joins
+  - #716 Consider Datalog-like logic variable based JOINs
+
+Major features TODO:
+
+- #1384 feature request: grouping sets
+- #1123 filter foo LIKE ""%abc%""? (regex)
+- #562 Regex implementation
+- #993 filter based on a list of values (this is IN, ANY, ALL)
+- #746 `include` other prql files & module system
+- #644 Pivot and melt
+- #610 Date diff with `-` operator
+- #366 Date to string function
+- #566 Resolve \* to specific column names
+- #407 `WITH RECURSIVE` based iteration
+- #381 Types
+- #54 Table vs Value types
+
+Low priority:
+
+- #1225 Support escaping quotes inside strings & S-strings
+- #1092 Mutation queries (DML)
+- #968 Caching relations
+- #879 `LATERAL` joins (AKA `CROSS APPLY`) - necessary for subqueries in which
+  the rhs can reference the lhs
+- #730 Multiline comments and prql-doc
+- #643 Should compiler strive to evaulate expressions?
+- #438 Struct syntax
+- #14 JSON queries
+- #285 Write a language specification (EBNF syntax)
+- #82 Inline filters
 
 #### Language
 
