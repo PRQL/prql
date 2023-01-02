@@ -101,11 +101,11 @@ where
             return e.with_help(match &found.kind {
                 ExprKind::Closure(closure) => match &closure.name {
                     Some(name) => {
-                        format!("Have you forgot an argument to function `{}`", name.name)
+                        format!("Have you forgotten an argument to function `{}`", name.name)
                     }
-                    None => "Have you forgot an argument in this function call?".to_string(),
+                    None => "Have you forgotten an argument in this function call?".to_string(),
                 },
-                _ => "Have you forgot an argument in this function call?".to_string(),
+                _ => "Have you forgotten an argument in this function call?".to_string(),
             });
         };
         return e;
