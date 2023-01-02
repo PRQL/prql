@@ -1,0 +1,17 @@
+---
+source: book/tests/snapshot.rs
+expression: sql
+input_file: book/tests/prql/transforms/union-and-concat-1.prql
+---
+(
+  SELECT
+    *
+  FROM
+    employees_1
+)
+UNION
+DISTINCT
+SELECT
+  *
+FROM
+  employees_2

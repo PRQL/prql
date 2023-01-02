@@ -32,6 +32,8 @@ formatting = function (hljs) {
     "func",
     "group",
     "window",
+    "concat",
+    "union",
     "prql",
   ];
   const BUILTIN_FUNCTIONS = ["switch", "in", "as"];
