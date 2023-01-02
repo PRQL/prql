@@ -1,5 +1,5 @@
 from employees
 derive [
   gross_salary = salary + benefits,
-  daily_rate = s"365 / {gross_salary}"
+  daily_rate = s"{gross_salary} / 365"
 ]

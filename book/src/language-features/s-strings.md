@@ -69,15 +69,15 @@ derive [
 
 The PRQL compiler simply places a literal copy of each variable into the
 resulting string, which means we may get surprising behavior when the variable
-is a full expression and we .
+is has multiple terms and the s-string isn't parenthesized.
 
-In this toy example, the `365 / salary + benefits` gets precedence wrong:
+In this toy example, the `salary + benefits / 365` gets precedence wrong:
 
 ```prql
 from employees
 derive [
   gross_salary = salary + benefits,
-  daily_rate = s"365 / {gross_salary}"
+  daily_rate = s"{gross_salary} / 365"
 ]
 ```
 
@@ -87,6 +87,6 @@ Instead, we'd need to put the denominator `{gross_salary}` in parentheses:
 from employees
 derive [
   gross_salary = salary + benefits,
-  daily_rate = s"365 / ({gross_salary})",
+  daily_rate = s"({gross_salary}) / 365"
 ]
 ```
