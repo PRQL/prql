@@ -67,7 +67,7 @@ fn stmt_of_parse_pair(pair: Pair<Rule>) -> Result<Stmt> {
             let other = params
                 .into_iter()
                 .flat_map(|(key, value)| match value.kind {
-                    ExprKind::Ident(value) => Some((key, value.name)),
+                    ExprKind::Ident(value) => Some((key, value.to_string())),
                     _ => None,
                 })
                 .collect();

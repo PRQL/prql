@@ -1,3 +1,3 @@
-prql sql_dialect:bigquery
+prql target:sql.bigquery
 from `project-foo.dataset.table`
 join `project-bar.dataset.table` [==col_bax]

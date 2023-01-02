@@ -45,6 +45,9 @@ pub fn rq_to_sql(rq_json: &str) -> Option<String> {
     )
 }
 
+// TODO: `CompileOptions` is replicated in `prql-compiler/src/sql/mod.rs`; can
+// we combine them despite the `wasm_bindgen` attribute?
+
 /// Compilation options for SQL backend of the compiler.
 #[wasm_bindgen]
 #[derive(Clone)]
@@ -55,18 +58,18 @@ pub struct CompileOptions {
     /// Defaults to true.
     pub format: bool,
 
-    /// Target dialect you want to compile for.
+    /// Target to compile to (generally a SQL dialect).
     ///
     /// Because PRQL compiles to a subset of SQL, not all SQL features are
-    /// required for PRQL. This means that generic dialect may work with most
+    /// required for PRQL. This means that generic target may work with most
     /// databases.
     ///
-    /// If something does not work in dialect you need, please report it at
-    /// GitHub issues.
+    /// If something does not work in the target / dialect you need, please
+    /// report it at GitHub issues.
     ///
-    /// If None is used, `sql_dialect` flag from query definition is used.
-    /// If it does not exist, [Dialect::Generic] is used.
-    pub dialect: Option<Dialect>,
+    /// If None is used, `target` flag from query definition is used. If it does
+    /// not exist, [Target::Generic] is used.
+    pub target: Option<Target>,
 
     /// Emits the compiler signature as a comment after generated SQL
     ///
@@ -78,7 +81,7 @@ pub struct CompileOptions {
 pub fn default_compile_options() -> CompileOptions {
     CompileOptions {
         format: true,
-        dialect: None,
+        target: None,
         signature_comment: true,
     }
 }
@@ -87,7 +90,7 @@ impl From<CompileOptions> for prql_compiler::sql::Options {
     fn from(o: CompileOptions) -> Self {
         prql_compiler::sql::Options {
             format: o.format,
-            dialect: o.dialect.map(From::from),
+            target: o.target.map(From::from),
             signature_comment: o.signature_comment,
         }
     }
@@ -95,7 +98,7 @@ impl From<CompileOptions> for prql_compiler::sql::Options {
 
 #[wasm_bindgen]
 #[derive(Clone, Copy)]
-pub enum Dialect {
+pub enum Target {
     Ansi,
     BigQuery,
     ClickHouse,
@@ -108,20 +111,20 @@ pub enum Dialect {
     Snowflake,
 }
 
-impl From<Dialect> for prql_compiler::sql::Dialect {
-    fn from(d: Dialect) -> Self {
-        use prql_compiler::sql::Dialect as D;
+impl From<Target> for prql_compiler::sql::Target {
+    fn from(d: Target) -> Self {
+        use prql_compiler::sql::Target as D;
         match d {
-            Dialect::Ansi => D::Ansi,
-            Dialect::BigQuery => D::BigQuery,
-            Dialect::ClickHouse => D::ClickHouse,
-            Dialect::Generic => D::Generic,
-            Dialect::Hive => D::Hive,
-            Dialect::MsSql => D::MsSql,
-            Dialect::MySql => D::MySql,
-            Dialect::PostgreSql => D::PostgreSql,
-            Dialect::SQLite => D::SQLite,
-            Dialect::Snowflake => D::Snowflake,
+            Target::Ansi => D::Ansi,
+            Target::BigQuery => D::BigQuery,
+            Target::ClickHouse => D::ClickHouse,
+            Target::Generic => D::Generic,
+            Target::Hive => D::Hive,
+            Target::MsSql => D::MsSql,
+            Target::MySql => D::MySql,
+            Target::PostgreSql => D::PostgreSql,
+            Target::SQLite => D::SQLite,
+            Target::Snowflake => D::Snowflake,
         }
     }
 }

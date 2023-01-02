@@ -20,11 +20,11 @@ use crate::utils::{BreakUp, IntoOnly, Pluck, TableCounter};
 
 use super::codegen::*;
 use super::preprocess::{preprocess_distinct, preprocess_reorder};
-use super::{anchor, Dialect};
-use super::{context::AnchorContext, dialect::DialectHandler};
+use super::{anchor, Target};
+use super::{context::AnchorContext, target::TargetHandler};
 
 pub(super) struct Context {
-    pub dialect: Box<dyn DialectHandler>,
+    pub target: Box<dyn TargetHandler>,
     pub anchor: AnchorContext,
 
     pub omit_ident_prefix: bool,
@@ -36,29 +36,29 @@ pub(super) struct Context {
     pub pre_projection: bool,
 }
 
-pub fn translate_query(query: Query, dialect: Option<Dialect>) -> Result<sql_ast::Query> {
-    let dialect = if let Some(dialect) = dialect {
-        dialect
+pub fn translate_query(query: Query, target: Option<Target>) -> Result<sql_ast::Query> {
+    let target = if let Some(target) = target {
+        target
     } else {
-        let sql_dialect = query.def.other.get("sql_dialect");
-        sql_dialect
-            .map(|dialect| {
-                super::Dialect::from_str(dialect).map_err(|_| {
+        let sql_target = query.def.other.get("target");
+        sql_target
+            .map(|target| {
+                super::Target::from_str(target).map_err(|_| {
                     Error::new(Reason::NotFound {
-                        name: format!("{dialect:?}"),
-                        namespace: "dialect".to_string(),
+                        name: format!("{target:?}"),
+                        namespace: "target".to_string(),
                     })
                 })
             })
             .transpose()?
             .unwrap_or_default()
     };
-    let dialect = dialect.handler();
+    let target = target.handler();
 
     let (anchor, query) = AnchorContext::of(query);
 
     let mut context = Context {
-        dialect,
+        target,
         anchor,
         omit_ident_prefix: false,
         pre_projection: false,
@@ -267,7 +267,7 @@ fn sql_select_query_of_pipeline(
     Ok(sql_ast::Query {
         body: Box::new(SetExpr::Select(Box::new(Select {
             distinct: unique,
-            top: if context.dialect.use_top() {
+            top: if context.target.use_top() {
                 limit.map(|l| top_of_i64(l, context))
             } else {
                 None
@@ -286,7 +286,7 @@ fn sql_select_query_of_pipeline(
         }))),
         order_by,
         with: None,
-        limit: if context.dialect.use_top() {
+        limit: if context.target.use_top() {
             None
         } else {
             limit.map(expr_of_i64)
@@ -546,13 +546,13 @@ mod test {
     use insta::assert_snapshot;
 
     use super::*;
-    use crate::{parser::parse, semantic::resolve, sql::dialect::GenericDialect};
+    use crate::{parser::parse, semantic::resolve, sql::target::GenericTarget};
 
     fn parse_and_resolve(prql: &str) -> Result<(Vec<Transform>, Context)> {
         let query = resolve(parse(prql)?)?;
         let (anchor, query) = AnchorContext::of(query);
         let context = Context {
-            dialect: Box::new(GenericDialect {}),
+            target: Box::new(GenericTarget {}),
             anchor,
             omit_ident_prefix: false,
             pre_projection: false,

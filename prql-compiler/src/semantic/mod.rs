@@ -82,7 +82,7 @@ mod test {
     #[test]
     fn test_header() {
         assert_yaml_snapshot!(parse_and_resolve(r###"
-        prql sql_dialect:mssql version:"0"
+        prql target:sql.mssql version:"0"
 
         from employees
         "###).unwrap(), @r###"
@@ -90,7 +90,7 @@ mod test {
         def:
           version: ^0
           other:
-            sql_dialect: mssql
+            target: sql.mssql
         tables:
           - id: 0
             name: employees
@@ -116,7 +116,7 @@ mod test {
         "### );
 
         assert_yaml_snapshot!(parse_and_resolve(r###"
-        prql sql_dialect:bigquery version:"0.3"
+        prql target:sql.bigquery version:"0.3"
 
         from employees
         "###).unwrap(), @r###"
@@ -124,7 +124,7 @@ mod test {
         def:
           version: ^0.3
           other:
-            sql_dialect: bigquery
+            target: sql.bigquery
         tables:
           - id: 0
             name: employees
@@ -151,7 +151,7 @@ mod test {
 
         assert!(parse_and_resolve(
             r###"
-        prql sql_dialect:bigquery version:foo
+        prql target:sql.bigquery version:foo
         from employees
         "###,
         )
@@ -159,7 +159,7 @@ mod test {
 
         assert!(parse_and_resolve(
             r###"
-        prql sql_dialect:bigquery version:"25"
+        prql target:sql.bigquery version:"25"
         from employees
         "###,
         )
@@ -167,7 +167,7 @@ mod test {
 
         assert!(parse_and_resolve(
             r###"
-        prql sql_dialect:yah version:foo
+        prql target:sql.yah version:foo
         from employees
         "###,
         )
