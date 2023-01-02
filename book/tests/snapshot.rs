@@ -63,6 +63,9 @@ fn write_reference_prql() -> Result<()> {
     // old files which wouldn't be rewritten from hanging around.
     // We use `trash`, since we don't want to be removing files with test code
     // in case there's a bug.
+    //
+    // A more elegant approach would be to keep a list of the files and remove
+    // the ones we don't write.
 
     let examples_path = Path::new("tests/prql");
     if examples_path.exists() {
@@ -85,8 +88,8 @@ fn write_reference_prql() -> Result<()> {
                 match event.clone() {
                     // At the start of a PRQL code block, push the _next_ item.
                     // Note that on windows, we only get the next _line_, and so
-                    // we exclude the writing in windows. TODO: iterate over the
-                    // lines so this works on windows; https://github.com/PRQL/prql/issues/356
+                    // we exclude the writing in windows below;
+                    // https://github.com/PRQL/prql/issues/356
                     Event::Start(Tag::CodeBlock(CodeBlockKind::Fenced(lang)))
                         if lang == "prql".into() =>
                     {
