@@ -13,8 +13,9 @@ concat employees_2
 ## Union
 
 `union` takes the union of rows, where duplicates are discarded (using the
-definition from set logic). If all rows are different this is synonymous with
-`concat`; if there are duplicate rows it will produce fewer rows.
+definition of `union` from set logic), like `UNION DISTINCT` in SQL. If all rows
+are different this is synonymous with `concat`; if there are duplicate rows it
+will produce fewer rows.
 
 ```prql
 from employees_1
