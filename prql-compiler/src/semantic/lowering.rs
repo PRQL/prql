@@ -11,7 +11,7 @@ use crate::ast::pl::{
     Ty, WindowFrame,
 };
 use crate::ast::rq::{self, CId, Query, RelationColumn, TId, TableDecl, Transform};
-use crate::error::{Error, Reason};
+use crate::error::{Error, Reason, Span};
 use crate::semantic::module::Module;
 use crate::utils::{toposort, IdGenerator};
 
@@ -300,10 +300,9 @@ impl Lowerer {
             }
             pl::TransformKind::Take { range, .. } => {
                 let window = self.window.take().unwrap_or_default();
-                let range = Range {
-                    start: range.start.map(|x| self.lower_expr(*x)).transpose()?,
-                    end: range.end.map(|x| self.lower_expr(*x)).transpose()?,
-                };
+                let range = self.lower_range(range)?;
+
+                validate_take_range(&range, ast.span)?;
 
                 self.pipeline.push(Transform::Take(rq::Take {
                     range,
@@ -585,6 +584,48 @@ impl Lowerer {
         };
 
         Ok(cid)
+    }
+}
+
+fn validate_take_range(range: &Range<rq::Expr>, span: Option<Span>) -> Result<()> {
+    fn bound_as_int(bound: &Option<rq::Expr>) -> Option<Option<&i64>> {
+        bound
+            .as_ref()
+            .map(|e| e.kind.as_literal().and_then(|l| l.as_integer()))
+    }
+
+    fn bound_display(bound: Option<Option<&i64>>) -> String {
+        bound
+            .map(|x| x.map(|l| l.to_string()).unwrap_or_else(|| "?".to_string()))
+            .unwrap_or_else(|| "".to_string())
+    }
+
+    let start = bound_as_int(&range.start);
+    let end = bound_as_int(&range.end);
+
+    let start_ok = if let Some(start) = start {
+        start.map(|s| *s >= 1).unwrap_or(false)
+    } else {
+        true
+    };
+
+    let end_ok = if let Some(end) = end {
+        end.is_some()
+    } else {
+        true
+    };
+
+    if !start_ok || !end_ok {
+        let range_display = format!("{}..{}", bound_display(start), bound_display(end));
+        Err(Error::new(Reason::Expected {
+            who: Some("take".to_string()),
+            expected: "an int range within 1..".to_string(),
+            found: range_display,
+        })
+        .with_span(span)
+        .into())
+    } else {
+        Ok(())
     }
 }
 

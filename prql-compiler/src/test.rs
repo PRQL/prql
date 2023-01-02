@@ -995,6 +995,58 @@ fn test_range() {
     LIMIT
       5
     "###);
+
+    assert_display_snapshot!((compile(r###"
+    from employees
+    take 0..1
+    "###).unwrap_err()), @r###"
+    Error:
+       ╭─[:3:5]
+       │
+     3 │     take 0..1
+       ·     ────┬────
+       ·         ╰────── take expected an int range within 1.., but found 0..1
+    ───╯
+    "###);
+
+    assert_display_snapshot!((compile(r###"
+    from employees
+    take (-1..)
+    "###).unwrap_err()), @r###"
+    Error:
+       ╭─[:3:5]
+       │
+     3 │     take (-1..)
+       ·     ─────┬─────
+       ·          ╰─────── take expected an int range within 1.., but found -1..
+    ───╯
+    "###);
+
+    assert_display_snapshot!((compile(r###"
+    from employees
+    select a
+    take 5..5.6
+    "###).unwrap_err()), @r###"
+    Error:
+       ╭─[:4:5]
+       │
+     4 │     take 5..5.6
+       ·     ─────┬─────
+       ·          ╰─────── take expected an int range within 1.., but found 5..?
+    ───╯
+    "###);
+
+    assert_display_snapshot!((compile(r###"
+    from employees
+    take (-1)
+    "###).unwrap_err()), @r###"
+    SELECT
+        *
+    FROM
+        employees
+    LIMIT
+        5 OFFSET 10
+    "###);
 }
 
 #[test]
