@@ -1,7 +1,7 @@
 ---
 source: book/tests/snapshot.rs
 expression: sql
-input_file: book/tests/prql/transforms/union-and-concat-0.prql
+input_file: book/tests/prql/transforms/concat-and-union-1.prql
 ---
 (
   SELECT
@@ -10,7 +10,7 @@ input_file: book/tests/prql/transforms/union-and-concat-0.prql
     employees_1
 )
 UNION
-ALL
+DISTINCT
 SELECT
   *
 FROM
