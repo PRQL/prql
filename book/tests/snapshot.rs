@@ -142,7 +142,6 @@ fn run_reference_prql() {
     });
 }
 
-
 /// Snapshot the display trait output of each example.
 // Currently not a separate test, see notes in caller.
 //
