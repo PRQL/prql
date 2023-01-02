@@ -1,0 +1,9 @@
+---
+source: book/tests/snapshot.rs
+expression: "from my_table\nselect x = \"hello world\"\n"
+input_file: book/tests/prql/language-features/strings-0.prql
+---
+SELECT
+  'hello world' AS x
+FROM
+  my_table
