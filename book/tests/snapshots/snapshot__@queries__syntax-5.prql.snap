@@ -1,0 +1,15 @@
+---
+source: book/tests/snapshot.rs
+expression: "from employees\ngroup [title, country] (\n  aggregate [\n    average salary,\n    ct = count\n  ]\n)\n"
+input_file: book/tests/prql/queries/syntax-5.prql
+---
+SELECT
+  title,
+  country,
+  AVG(salary),
+  COUNT(*) AS ct
+FROM
+  employees
+GROUP BY
+  title,
+  country

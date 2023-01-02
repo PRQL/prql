@@ -1,0 +1,10 @@
+---
+source: book/tests/snapshot.rs
+expression: "func fahrenheit_to_celsius temp -> (temp - 32) / 1.8\nfunc interp lower:0 higher x -> (x - lower) / (higher - lower)\n\nfrom kettles\nderive boiling_proportion = (temp_c | fahrenheit_to_celsius | interp 100)\n"
+input_file: book/tests/prql/queries/functions-4.prql
+---
+SELECT
+  *,
+  ((temp_c - 32) / 1.8 - 0) / 100 AS boiling_proportion
+FROM
+  kettles

@@ -1,0 +1,9 @@
+---
+source: book/tests/snapshot.rs
+expression: "from employees\n"
+input_file: book/tests/prql/transforms/from-0.prql
+---
+SELECT
+  *
+FROM
+  employees

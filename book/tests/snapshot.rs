@@ -5,7 +5,7 @@
 /// - Replaces the PRQL code block with a comparison table.
 ///
 /// We also use this test to run tests on our Display trait output, currently as
-/// another set of snapshots.
+/// another set of snapshots (more comments inline).
 //
 // Overall, this is overengineered — it's complicated and took a long time to
 // write. The intention is good — have a version of the SQL that's committed
@@ -42,7 +42,8 @@ fn run_examples() -> Result<()> {
     // TODO: Currently we run this in the same test, since we need the
     // `write_reference_prql` function to have been run. If we could iterate
     // over the PRQL examples without writing them to disk, we could run this as
-    // a separate test.
+    // a separate test. (Though then we'd lose the deferred failures feature
+    // that insta's `glob!` macro provides.)
     run_display_reference_prql();
 
     Ok(())
@@ -132,16 +133,23 @@ fn run_reference_prql() {
             return;
         }
 
-        println!("{:?}", path);
-
         let opts = sql::Options::default().no_signature().some();
         let sql = compile(&prql, opts).unwrap_or_else(|e| format!("{prql}\n\n{e}"));
-        assert_snapshot!(sql);
+        // `glob!` gives us the file path in the test name anyway, so we pass an
+        // empty name. We pass `&prql` so the prql is in the snapshot (albeit in
+        // a single line, and, in the rare case that the SQL doesn't change, the
+        // PRQL only updates on running cargo insta with `--force-update-snapshots`).
+        assert_snapshot!("", &sql, &prql);
     });
 }
 
 /// Snapshot the display trait output of each example.
 // Currently not a separate test, see notes in caller.
+//
+// TODO: this involves writing out almost the same PRQL again — instead we could
+// compare the output of Display to the auto-formatted source. But we need an
+// autoformatter for that (unless we want to raise on any non-matching input,
+// which seems very strict)
 fn run_display_reference_prql() {
     glob!("prql/**/*.prql", |path| {
         let prql = fs::read_to_string(path).unwrap();
