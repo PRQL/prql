@@ -16,6 +16,7 @@ formatting = function (hljs) {
     "group",
     "window",
     "prql",
+    "switch",
   ];
   return {
     name: "PRQL",
@@ -48,9 +49,17 @@ formatting = function (hljs) {
       {
         // interpolation string
         scope: "attribute",
-        begin: '(s|f)"',
-        end: '"',
         relevance: 10,
+        variants: [
+          {
+            begin: '(s|f)"""',
+            end: '"""',
+          },
+          {
+            begin: '(s|f)"',
+            end: '"',
+          },
+        ],
       },
       {
         // normal string

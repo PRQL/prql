@@ -14,6 +14,11 @@
 //     "k"  => keywords
 //     "cN" => className
 
+// TODO:
+// - Can we represent strings with the actual rule of >= 3 quotes?
+// - Aliases seem a bit strong?
+// - Can we represent the inner s & f string items?
+
 formatting = function (hljs) {
   const TRANSFORMS = [
     "from",
@@ -28,6 +33,7 @@ formatting = function (hljs) {
     "group",
     "window",
     "prql",
+    "switch",
   ];
   return {
     name: "PRQL",
@@ -60,9 +66,17 @@ formatting = function (hljs) {
       {
         // interpolation string
         scope: "attribute",
-        begin: '(s|f)"',
-        end: '"',
         relevance: 10,
+        variants: [
+          {
+            begin: '(s|f)"""',
+            end: '"""',
+          },
+          {
+            begin: '(s|f)"',
+            end: '"',
+          },
+        ],
       },
       {
         // normal string
