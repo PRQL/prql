@@ -112,7 +112,7 @@ When dbt compiles models to SQL queries:
 
 - Any text in a dbt model between `{% prql %}` and `{% endprql %}` tags is
   compiled from PRQL to SQL before being passed to dbt.
-- The PRQL complier passes text that's containing `{{` & `}}` through to dbt
+- The PRQL compiler passes text that's containing `{{` & `}}` through to dbt
   without modification, which allows us to embed jinja expressions in PRQL.
   (This was added to PRQL specifically for this use-case.)
 - dbt will then compile the resulting model into its final form of raw SQL, and
