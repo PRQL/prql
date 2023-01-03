@@ -1554,6 +1554,18 @@ take 20
                             Integer: 50
                       named_args: {}
         "###);
+
+        assert_yaml_snapshot!(stmts_of_string(r#"
+            table e = (s"SELECT * FROM employees")
+            "#)?, @r###"
+        ---
+        - TableDef:
+            name: e
+            value:
+              SString:
+                - String: SELECT * FROM employees
+        "###);
+
         Ok(())
     }
 
