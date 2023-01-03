@@ -193,12 +193,13 @@ tasks:
       RUST_BACKTRACE: 1
     sources:
       # I don't think we can specify this is a single glob, which would be nice.
-      # Ideally we want to exclude `.pending-snap` & `.snap.new` files so a run
-      # doesn't cause another. We probably *do* want to include `.snap` files,
-      # so we get a successful run when those update, but need to check whether
-      # that could also cause looping runs.
+      # Ideally we want to exclude `.pending-snap` & `.snap.new` files so runs
+      # doesn't cause an infinite loop of other runs (though possibly mitigated
+      # by `--accept` and task not interrupting existing runs, so all files go
+      # to `.snap`s which match the generated output?).
       - "prql-compiler/**/*.rs"
       - "prql-compiler/**/*.pest"
+      - "prql-compiler/**/*.snap"
     cmds:
       - cargo insta test --accept -p prql-compiler --lib
 
