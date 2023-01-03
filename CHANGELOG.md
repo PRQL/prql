@@ -45,8 +45,8 @@
   This gives us the flexibility to target other languages than SQL in the long
   term.
 
-- Tables definitions can contain an unadorned s-string (@max-sixty, #1422),
-  which enables us to include a full CTE of SQL, for example:
+- Tables definitions can contain a bare s-string (@max-sixty, #1422), which
+  enables us to include a full CTE of SQL, for example:
 
   ```prql
   table grouping = s"""
