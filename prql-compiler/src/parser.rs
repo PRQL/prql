@@ -1556,7 +1556,7 @@ take 20
         "###);
 
         assert_yaml_snapshot!(stmts_of_string(r#"
-            table e = (s"SELECT * FROM employees")
+            table e = s"SELECT * FROM employees"
             "#)?, @r###"
         ---
         - TableDef:
@@ -1566,11 +1566,6 @@ take 20
                 - String: SELECT * FROM employees
         "###);
 
-        Ok(())
-    }
-
-    #[test]
-    fn test_parse_table_with_newlines() -> Result<()> {
         assert_yaml_snapshot!(stmts_of_string(
           "table x = (
 

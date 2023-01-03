@@ -15,7 +15,7 @@ func_def_param = { ident_part ~ type_def? ~ (":" ~ expr)? }
 type_def = { "<" ~ type_term ~ ( "|" ~ type_term)* ~ ">" }
 type_term = { ident_part ~ type_def? }
 
-table_def = { "table" ~ ident_part ~ "=" ~ nested_pipeline ~ ( NEWLINE+ | &EOI ) }
+table_def = { "table" ~ ident_part ~ "=" ~ expr_call ~ ( NEWLINE+ | &EOI ) }
 
 pipeline_stmt = { pipeline ~ ( NEWLINE+ | &EOI ) }
 
