@@ -46,6 +46,7 @@
 - [Internals](./internals/README.md)
   - [Name resolving](./internals/name-resolving.md)
   - [Functions](./internals/functional-lang.md)
+  - [Syntax highlighting](./internals/syntax-highlighting.md)
 - [Integrations]()
 
   - [dbt](./integrations/dbt.md)
