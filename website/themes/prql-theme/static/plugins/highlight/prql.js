@@ -13,17 +13,18 @@ formatting = function (hljs) {
     "sort",
     "join",
     "aggregate",
-    "func",
     "group",
     "window",
-    "prql",
+    "concat",
+    "union",
   ];
   const BUILTIN_FUNCTIONS = ["switch", "in", "as"];
+  const KEYWORDS = ["func", "table", "prql"];
   return {
     name: "PRQL",
     case_insensitive: true,
     keywords: {
-      keyword: [...TRANSFORMS, ...BUILTIN_FUNCTIONS],
+      keyword: [...TRANSFORMS, ...BUILTIN_FUNCTIONS, ...KEYWORDS],
       literal: "false true null and or not",
     },
     contains: [
@@ -35,12 +36,14 @@ formatting = function (hljs) {
         end: "",
         relevance: 10,
       },
-      {
-        // assign
-        scope: { 1: "variable" },
-        match: [/\w+\s*/, /=[^=]/],
-        relevance: 10,
-      },
+      // This seems much too strong at the moment, so disabling. I think ideally
+      // we'd have it for aliases but not assigns.
+      // {
+      //   // assign
+      //   scope: { 1: "variable" },
+      //   match: [/\w+\s*/, /=[^=]/],
+      //   relevance: 10,
+      // },
       {
         // date
         scope: "string",
