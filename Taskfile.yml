@@ -210,9 +210,9 @@ tasks:
       - mkdir -p website/public
       # Copy the book into the website path, using rsync so it only copies new files
       - rsync -ai --checksum --delete book/book/ website/public/book/
-      # Must set `install-links=false` for the playground `npm install` to install prql-js
-      # as the regular dependencie instead of creating a symlink.
-      # Refer to https://github.com/PRQL/prql/pull/1296.
+      # Must set `install-links=false` in the playground's `npm install` to
+      # install prql-js as the regular dependency, instead of creating a
+      # symlink. Refer to https://github.com/PRQL/prql/pull/1296.
       - cd playground && npm install --install-links=false
       - cd playground && npm run build
       - rsync -ai --checksum --delete playground/build/
@@ -241,9 +241,9 @@ tasks:
     desc: Build & serve the playground.
     dir: playground
     cmds:
-      # Must set `install-links=false` for the playground `npm install` to install prql-js
-      # as the regular dependencie instead of creating a symlink.
-      # Refer to https://github.com/PRQL/prql/pull/1296.
+      # Must set `install-links=false` in the playground's `npm install` to
+      # install prql-js as the regular dependency, instead of creating a
+      # symlink. Refer to https://github.com/PRQL/prql/pull/1296.
       - npm install --install-links=false
       - npm start
 #

@@ -80,6 +80,7 @@ The following need updated pages in the documentation:
 
 - Add parsing for negative select (@max-sixty, #1317)
 - Allow for additional builtin functions (@aljazerzen, #1325)
+- Add an automated check for typos (@max-sixty, #1421)
 
 ## 0.3.1 - 2022-12-03
 

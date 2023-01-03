@@ -316,7 +316,7 @@ fn is_split_required(transform: &Transform, following: &mut HashSet<String>) -> 
 pub struct Requirement {
     pub col: CId,
 
-    /// Maxium complexity with which this column can be expressed in this transform
+    /// Maximum complexity with which this column can be expressed in this transform
     pub max_complexity: Complexity,
 
     /// True iff this column needs to be SELECTed so I can be referenced in this transform

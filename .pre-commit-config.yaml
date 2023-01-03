@@ -14,6 +14,12 @@ repos:
         additional_dependencies:
           - prettier
           - prettier-plugin-go-template
+  - repo: https://github.com/crate-ci/typos
+    rev: v1.13.6
+    hooks:
+      - id: typos
+        # https://github.com/crate-ci/typos/issues/347
+        pass_filenames: false
   - repo: https://github.com/r0x0d/pre-commit-rust
     rev: v1.0.1
     hooks:
