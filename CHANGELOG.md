@@ -43,7 +43,20 @@
   ```
 
   This gives us the flexibility to target other languages than SQL in the future
-  (though we have no immediate plans to implement this).
+  (though there are immediate plans).
+
+- Tables definitions can contain an unadorned s-string (@max-sixty, #1422),
+  which enables us to include a full CTE of SQL, for example:
+
+  ```prql
+  table grouping = s"""
+    SELECT SUM(a)
+    FROM tbl
+    GROUP BY
+      GROUPING SETS
+      ((b, c, d), (d), (b, d))
+  """
+  ```
 
 The following need updated pages in the documentation:
 
