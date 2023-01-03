@@ -1,5 +1,4 @@
 # Internals
 
-This chapter explains semantics PRQL: how expressions are interpeteted and what
-is their meaning. It is meant for advanced users and recommended for compiler
-contributors.
+This chapter explains PRQL's semantics: how expressions are interpreted and
+their meaning. It's intended for advanced users and compiler contributors.
