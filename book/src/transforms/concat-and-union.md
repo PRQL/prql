@@ -1,7 +1,7 @@
 # Concat & Union
 
 ```admonish note
-`concot` & `union` are currently experimental and may have bugs; please
+`concat` & `union` are currently experimental and may have bugs; please
 report any as GitHub Issues.
 ```
 
