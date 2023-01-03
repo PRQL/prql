@@ -28,5 +28,5 @@ an index.
 
 While the [pest](https://pest.rs/) grammar at
 [`prql-compiler/src/prql.pest`](https://github.com/PRQL/prql/blob/main/prql-compiler/src/prql.pest)
-isn't used by PRQL, it's the arbiter of truth given it currently powers the PRQL
-compiler.
+isn't used for syntax highlighting, it's the arbiter of truth given it currently
+powers the PRQL compiler.
