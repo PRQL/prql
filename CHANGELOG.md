@@ -58,9 +58,10 @@
   """
   ```
 
+- Ranges supplied to `in` can now be half-open (@aljazerzen, #1330).
+
 The following need updated pages in the documentation:
 
-- Add `in` operator (@aljazerzen, #1330)
 - Allow function calls & pipelines in list items (@max-sixty, #1318)
 
 **Fixes**:

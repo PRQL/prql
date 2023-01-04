@@ -1,10 +1,11 @@
 ---
 source: book/tests/snapshot.rs
-expression: "from events\nfilter (date | in @1776-07-04..@1787-09-17)\nfilter (magnitude | in 50..100)\n"
+expression: "from events\nfilter (date | in @1776-07-04..@1787-09-17)\nfilter (magnitude | in 50..100)\nderive is_northern = (latitude | in 0..)\n"
 input_file: book/tests/prql/language-features/ranges-0.prql
 ---
 SELECT
-  *
+  *,
+  latitude >= 0 AS is_northern
 FROM
   events
 WHERE
