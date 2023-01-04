@@ -75,7 +75,6 @@ The following need updated pages in the documentation:
 - Fix JS example code (@BCsabaEngine, #1432)
 - JS template literal and multiline example (@BCsabaEngine, #1432)
 
-
 **Web**:
 
 **Integrations**:
