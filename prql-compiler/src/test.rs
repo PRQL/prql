@@ -1289,6 +1289,72 @@ fn test_sql_of_ast_1() {
 }
 
 #[test]
+// Confirm that a bare s-string in a table definition works as expected.
+fn test_bare_s_string() {
+    let query = r###"
+    table grouping = s"""
+        SELECT SUM(a)
+        FROM tbl
+        GROUP BY
+          GROUPING SETS
+          ((b, c, d), (d), (b, d))
+      """
+    from grouping
+    "###;
+
+    let sql = compile(query).unwrap();
+    assert_display_snapshot!(sql,
+        @r###"
+    WITH table_0 AS (
+      SELECT
+        SUM(a)
+      FROM
+        tbl
+      GROUP BY
+        GROUPING SETS ((b, c, d), (d), (b, d))
+    ),
+    grouping AS (
+      SELECT
+        *
+      FROM
+        table_0 AS table_1
+    )
+    SELECT
+      *
+    FROM
+      grouping
+    "###
+    );
+}
+
+#[test]
+// Confirm that a regular expr_call in a table definition works as expected.
+fn test_table_definition_with_expr_call() {
+    let query = r###"
+    table e = take 4 (from employees)
+    from e
+    "###;
+
+    let sql = compile(query).unwrap();
+    assert_display_snapshot!(sql,
+        @r###"
+    WITH e AS (
+      SELECT
+        *
+      FROM
+        employees
+      LIMIT
+        4
+    )
+    SELECT
+      *
+    FROM
+      e
+    "###
+    );
+}
+
+#[test]
 fn test_sql_of_ast_2() {
     let query = r###"
     from employees
