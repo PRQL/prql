@@ -2,19 +2,20 @@
 
 ## Development environment
 
-Setting up a local dev environment for PRQL is simple, thanks to the rust
+Setting up a local dev environment for PRQL is really simple, thanks to the rust
 ecosystem:
 
 - Install
   [`rustup` & `cargo`](https://doc.rust-lang.org/cargo/getting-started/installation.html)[^5].
 - That's it! Running `cargo test` should complete successfully.
-- Alternatively, for quick contributions, hit `.` in GitHub to launch a
-  [github.dev instance](https://github.dev/PRQL/prql).
+
+Alternatively, for quick contributions which don't require running code, hit `.`
+in GitHub to launch a [github.dev instance](https://github.dev/PRQL/prql).
 
 ### Installing a full development environment
 
 For more advanced development; e.g. adjusting `insta` outputs or compiling for
-web either:
+web, either:
 
 - Install Task; either `brew install go-task/tap/go-task` or as described on
   [Task](https://taskfile.dev/#/installation) and then run:
@@ -23,7 +24,8 @@ web either:
   task setup-dev
   ```
 
-- ...or copy & paste the various commands from [Taskfile.yml](Taskfile.yml).
+- ...or copy & paste the various commands from the `setup-dev` task in our
+  [Taskfile.yml](Taskfile.yml).
 - Any problems: post an issue or Discord and we'll help.
 
 [^5]:
