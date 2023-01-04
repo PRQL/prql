@@ -72,6 +72,8 @@ The following need updated pages in the documentation:
 
 - Add docs on aliases in
   [Select](https://prql-lang.org/book/transforms/select.html)
+- Fix JS example code (@BCsabaEngine, #1432)
+- JS template literal and multiline example (@BCsabaEngine, #1432)
 
 **Web**:
 
