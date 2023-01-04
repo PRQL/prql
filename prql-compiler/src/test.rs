@@ -2125,21 +2125,41 @@ fn test_table_s_string() {
 
 #[test]
 fn test_direct_table_references() {
-    compile(
+    assert_display_snapshot!(compile(
         r###"
     from x
     select s"{x}.field"
     "###,
     )
-    .unwrap_err();
+    .unwrap_err(), @r###"
+    Error:
+       ╭─[:3:15]
+       │
+     3 │     select s"{x}.field"
+       ·               ┬
+       ·               ╰── table instance cannot be referenced directly
+       ·
+       · Help: did you forget to specify the column name?
+    ───╯
+    "###);
 
-    compile(
+    assert_display_snapshot!(compile(
         r###"
     from x
     select x
     "###,
     )
-    .unwrap_err();
+    .unwrap_err(), @r###"
+    Error:
+       ╭─[:3:12]
+       │
+     3 │     select x
+       ·            ┬
+       ·            ╰── table instance cannot be referenced directly
+       ·
+       · Help: did you forget to specify the column name?
+    ───╯
+    "###);
 }
 
 #[test]
