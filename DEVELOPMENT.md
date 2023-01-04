@@ -5,12 +5,15 @@
 Setting up a local dev environment for PRQL is really simple, thanks to the rust
 ecosystem:
 
-- Install
-  [`rustup` & `cargo`](https://doc.rust-lang.org/cargo/getting-started/installation.html)[^5].
-- That's it! Running `cargo test` should complete successfully.
+1. Install
+   [`rustup` & `cargo`](https://doc.rust-lang.org/cargo/getting-started/installation.html)[^5].
+2. That's it! Running `cargo test` should complete successfully.
 
-Alternatively, for quick contributions which don't require running code, hit `.`
-in GitHub to launch a [github.dev instance](https://github.dev/PRQL/prql).
+> **Note**
+>
+> Alternatively, for quick contributions which don't require running code, such
+> as editing docs, hit `.` in GitHub to launch a
+> [github.dev instance](https://github.dev/PRQL/prql) in the browser.
 
 ### Installing a full development environment
 
@@ -26,7 +29,8 @@ web, either:
 
 - ...or copy & paste the various commands from the `setup-dev` task in our
   [Taskfile.yml](Taskfile.yml).
-- Any problems: post an issue or Discord and we'll help.
+
+Any problems: post an issue or Discord and we'll help.
 
 [^5]:
     For completeness: running the full tests requires a couple of additional
@@ -114,6 +118,8 @@ broader tests which ensure that we don't miss anything as PRQL develops[^1].
     **[@matklad](https://github.com/matklad)**'s advice, in his excellent blog
     post [How to Test](https://matklad.github.io//2021/05/31/how-to-test.html).
 
+> **Note**
+>
 > If you're making your first contribution, you don't need to engage with all
 > this — it's fine to just make a change and push the results; the tests that
 > run in GitHub will point you towards any errors, which can be then be run
@@ -255,31 +261,32 @@ raise an issue.
 
 Currently we release in a semi-automated way:
 
-- PR & merge an updated [Changelog](CHANGELOG.md).
-- Run `cargo release version patch && cargo release replace` to bump the
-  versions, then PR the resulting commit.
-- After merging, go to
-  [Draft a new release](https://github.com/PRQL/prql/releases/new), copy the
-  changelog entry into the release notes, enter the tag to be created, and hit
-  "Publish".
-- From there, both the tag and release is created and all packages are published
-  automatically based on our [release workflow](.github/workflows/release.yaml).
-- Add in the sections for a new Changelog:
+1. PR & merge an updated [Changelog](CHANGELOG.md).
+2. Run `cargo release version patch && cargo release replace` to bump the
+   versions, then PR the resulting commit.
+3. After merging, go to
+   [Draft a new release](https://github.com/PRQL/prql/releases/new), copy the
+   changelog entry into the release notes, enter the tag to be created, and hit
+   "Publish".
+4. From there, both the tag and release is created and all packages are
+   published automatically based on our
+   [release workflow](.github/workflows/release.yaml).
+5. Add in the sections for a new Changelog:
 
-  ```md
-  ## 0.3.X — [unreleased]
+   ```md
+   ## 0.3.X — [unreleased]
 
-  **Features**:
+   **Features**:
 
-  **Fixes**:
+   **Fixes**:
 
-  **Documentation**:
+   **Documentation**:
 
-  **Web**:
+   **Web**:
 
-  **Integrations**:
+   **Integrations**:
 
-  **Internal changes**:
-  ```
+   **Internal changes**:
+   ```
 
 We may make this more automated in future; e.g. automatic changelog creation.
