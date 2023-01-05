@@ -23,12 +23,25 @@ vars:
 tasks:
   # main installer is "setup-dev" which calls other tasks
   setup-dev:
+    preconditions:
+      - sh: which clang
+        msg: |
+          🔴 Can't find `clang`, which is required to install a full development environment (we use `duckdb` in our tests, which requires it). 
+
+          Please install it. On MacOS, that's
+
+            xcode-select --install
+
+          On Debian Linux, that's
+
+            apt-get update && apt-get install clang
+
     desc: Install tools for PRQL development.
     cmds:
       - task: install-cargo-tools
+      - task: install-brew-dependencies
       - task: install-maturin
       - task: install-pre-commit
-      - task: install-brew-dependencies
       - task: install-npm-dependencies
       # We only suggest, rather than install;
       #    we don't want to intrude (maybe we're being too conservative?).
@@ -105,6 +118,7 @@ tasks:
     status:
       - which hugo
       - which npm
+      - which python3
     preconditions:
       - sh: which brew
         msg: |
@@ -114,7 +128,7 @@ tasks:
           - https://gohugo.io/getting-started/installing/
           - https://docs.npmjs.com/downloading-and-installing-node-js-and-npm
     cmds:
-      - brew install hugo npm
+      - brew install hugo npm python3
 
   install-npm-dependencies:
     cmds:
