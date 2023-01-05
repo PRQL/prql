@@ -1,4 +1,4 @@
-# TOOO: now that we've moved much of this into `package.json` scripts, possibly
+# TODO: now that we've moved much of this into `package.json` scripts, possibly
 # we don't need this as a separate action any longer?
 name: build-prql-js
 description: ""

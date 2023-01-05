@@ -42,12 +42,26 @@
   from employees
   ```
 
-  This gives us the flexibility to target other languages than SQL in the future
-  (though we have no immediate plans to implement this).
+  This gives us the flexibility to target other languages than SQL in the long
+  term.
+
+- Tables definitions can contain a bare s-string (@max-sixty, #1422), which
+  enables us to include a full CTE of SQL, for example:
+
+  ```prql
+  table grouping = s"""
+    SELECT SUM(a)
+    FROM tbl
+    GROUP BY
+      GROUPING SETS
+      ((b, c, d), (d), (b, d))
+  """
+  ```
+
+- Ranges supplied to `in` can now be half-open (@aljazerzen, #1330).
 
 The following need updated pages in the documentation:
 
-- Add `in` operator (@aljazerzen, #1330)
 - Allow function calls & pipelines in list items (@max-sixty, #1318)
 
 **Fixes**:
@@ -58,6 +72,8 @@ The following need updated pages in the documentation:
 
 - Add docs on aliases in
   [Select](https://prql-lang.org/book/transforms/select.html)
+- Fix JS example code (@BCsabaEngine, #1432)
+- JS template literal and multiline example (@BCsabaEngine, #1432)
 
 **Web**:
 
@@ -67,6 +83,7 @@ The following need updated pages in the documentation:
 
 - Add parsing for negative select (@max-sixty, #1317)
 - Allow for additional builtin functions (@aljazerzen, #1325)
+- Add an automated check for typos (@max-sixty, #1421)
 
 ## 0.3.1 - 2022-12-03
 
