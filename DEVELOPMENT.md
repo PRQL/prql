@@ -180,7 +180,7 @@ broader tests which ensure that we don't miss anything as PRQL develops[^1].
 > run in GitHub will point you towards any errors, which can be then be run
 > locally if needed. We're always around to help out.
 
-Our tests:
+Our tests, from the bottom of the pyramid to the top:
 
 - **[Static checks](.pre-commit-config.yaml)** — we run a few static checks to
   ensure the code stays healthy and consistent. They're defined in
@@ -258,7 +258,11 @@ inconsistent in watchexec. Let's revert back if it gets solved.
   designed to run in under two minutes, and we should be reassessing their scope
   if they grow beyond that. Once these pass, a pull request can be merged.
 
-  All tests up to this point can be run with `task test-all` locally.
+  All tests up to this point can be run with
+
+  ```sh
+  task test-all
+  ```
 
 - **[GitHub Actions on specific changes](.github/workflows/)** — we run
   additional tests on pull requests when we identify changes to some paths, such
