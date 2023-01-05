@@ -258,7 +258,7 @@ inconsistent in watchexec. Let's revert back if it gets solved.
   designed to run in under two minutes, and we should be reassessing their scope
   if they grow beyond that. Once these pass, a pull request can be merged.
 
-  All tests up to this point can be run with
+  All tests up to this point can be run with:
 
   ```sh
   task test-all
