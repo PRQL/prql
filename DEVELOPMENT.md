@@ -3,7 +3,7 @@
 ## Setting up an initial dev environment
 
 We can set up a local development environment sufficient for navigating,
-editing, and testing PRQL's compiler code in under two minutes:
+editing, and testing PRQL's compiler code in two minutes:
 
 - Install
   [`rustup` & `cargo`](https://doc.rust-lang.org/cargo/getting-started/installation.html).
