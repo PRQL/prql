@@ -104,6 +104,7 @@ jobs:
           use_cache: true
 
   build-docker:
+    # TODO: could extract this into its own workflow and run on any changes to `Dockerfile` on PRs
     # Note that we only build the image here; we then run tests in `nightly.yaml`
     runs-on: ubuntu-latest
     steps:
