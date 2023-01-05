@@ -202,9 +202,13 @@ Our tests:
   tests[^3].
 
   These are the fastest tests which run our code; they're designed to run on
-  every save while you're developing. We include a `task` which does this:
-  `task -w test-rust-fast` (the full command is
-  `cargo insta test --accept -p prql-compiler --lib`).
+  every save while you're developing. We include a `task` which does this (thy
+  full command run on every save is
+  `cargo insta test --accept -p prql-compiler --lib`):
+
+  ```sh
+  task -w test-rust-fast
+  ```
 
 <!--
 This is the previous doc. It has the advantage that it explains what it's doing, and is
