@@ -1,64 +1,118 @@
 # Development
 
-## Development environment
+## Setting up an initial dev environment
 
-Setting up a local dev environment for PRQL is really simple, thanks to the rust
-ecosystem:
+We can set up a local development environment sufficient for navigating,
+editing, and testing PRQL's compiler code in two minutes:
 
-1. Install
-   [`rustup` & `cargo`](https://doc.rust-lang.org/cargo/getting-started/installation.html)[^5].
-2. That's it! Running `cargo test` should complete successfully.
+- Install
+  [`rustup` & `cargo`](https://doc.rust-lang.org/cargo/getting-started/installation.html).
+- [Optional but highly recommended] Install `cargo-insta`, our testing
+  framework:
 
-> **Note**
->
-> Alternatively, for quick contributions which don't require running code, such
-> as editing docs, hit `.` in GitHub to launch a
-> [github.dev instance](https://github.dev/PRQL/prql) in the browser.
+  ```sh
+  cargo install cargo-insta
+  ```
 
-### Installing a full development environment
+- That's it! Running the unit tests for the `prql-compiler` crate after cloning
+  the repo should complete successfully:
 
-For more advanced development; e.g. adjusting `insta` outputs or compiling for
-web, either:
+  ```sh
+  cargo test -p prql-compiler --lib
+  ```
+
+  ...or, to run tests and update the test snapshots:
+
+  ```sh
+  cargo insta test --accept -p prql-compiler --lib
+  ```
+
+  There's more context on our tests in [How we test](#how-we-test) below.
+
+That's sufficient for making an initial contribution to the compiler.
+
+---
+
+## Setting up a full dev environment
+
+> **Note**: We really care about this process being easy, both because the
+> project benefits from more contributors like you, and to reciprocate your
+> future contribution. If something isn't easy, please let us know in a GitHub
+> Issue. We'll enthusiastically help you, and use your feedback to improve the
+> scripts & instructions.
+
+For more advanced development; for example compiling for wasm or previewing the
+website, we have two options:
+
+### Option 1: Use the project's `task`
+
+> **Note**: This is tested on MacOS, should work on Linux, but won't work on
+> Windows.
 
 - Install Task; either `brew install go-task/tap/go-task` or as described on
-  [Task](https://taskfile.dev/#/installation) and then run:
+  [Task](https://taskfile.dev/#/installation)
+- Then run the `setup-dev` task. This runs commands from our
+  [Taskfile.yml](Taskfile.yml), installing dependencies with `cargo`, `brew`,
+  `npm` & `pip`, and suggests some VSCode extensions.
 
   ```sh
   task setup-dev
   ```
 
-- ...or copy & paste the various commands from the `setup-dev` task in our
-  [Taskfile.yml](Taskfile.yml).
+### Option 2: Install tools individually
 
-Any problems: post an issue or Discord and we'll help.
+- We'll need `cargo-insta`, to update snapshot tests:
 
-[^5]:
-    For completeness: running the full tests requires a couple of additional
-    components that most systems will have installed already:
+  ```sh
+  cargo install cargo-insta
+  ```
 
-    - A clang compiler to compile the DuckDB integration tests, since we use
-      [`duckdb-rs'](https://github.com/wangfenjin/duckdb-rs). To install a
-      compiler:
+- We'll need a couple of additional components, which most systems will have
+  already. The easiest way to check whether they're installed is to try running
+  the full tests:
 
-      - On Mac, install xcode `xcode-select --install`
-      - On Debian Linux, `apt-get install libclang-dev`
-      - On Windows, `duckdb-rs` doesn't work anyway, so these tests are excluded
+  ```sh
+  cargo test
+  ```
 
-    - Python >= 3.7 to compile `prql-python`.
+  ...and if that doesn't complete successfully, check we have:
 
-    It's very possible to develop `prql-compiler` without these, by avoiding
-    using the integration tests or `prql-python`. Running
-    `cargo test -p prql-compiler --lib` should complete successfully by running
-    only the unit tests in the `prql-compiler` package.
+  - A clang compiler, to compile the DuckDB integration tests, since we use
+    [`duckdb-rs'](https://github.com/wangfenjin/duckdb-rs). To install one:
 
-## Encapsulated building & testing
+    - On MacOS, install xcode with `xcode-select --install`
+    - On Debian Linux, `apt-get update && apt-get install clang`
+    - On Windows, `duckdb-rs` isn't supported, so these tests are excluded
+
+  - Python >= 3.7, to compile `prql-python`.
+
+- For more involved contributions, such as building the website, playground,
+  book, or some release artifacts, we'll need some additional tools. But we
+  won't need those immediately, and the error messages on what's missing should
+  be clear when we attempt those things. When we hit them, the
+  [Taskfile.yml](Taskfile.yml) will be a good source to copy & paste
+  instructions from.
+
+<!--
+
+Until we set up a Codespaces, I don't think this is that helpful — it can't run any code,
+including navigating rust code with rust-analyzer. We'd def take a contribution for a
+codespaces template, though.
+
+### github.dev
+
+- Alternatively, for quick contributions (e.g. docs), hit `.` in GitHub to
+  launch a [github.dev instance](https://github.dev/PRQL/prql). This has the
+  disadvantage that code can't run. -->
+
+### Building & testing the full project
 
 We have a couple of tasks which incorporate all building & testing. While they
 don't need to be run as part of a standard dev loop — generally we'll want to
 run a more specific test — they can be useful as a backstop to ensure everything
 works, and as a reference for how each part of the repo is built & tested. They
-should be broadly consistent with the GitHub Actions workflows; please report
-any inconsistencies.
+should be consistent with the GitHub Actions workflows; please report any
+inconsistencies.
 
 To build everything:
 
@@ -78,15 +132,13 @@ described on [Task](https://taskfile.dev/#/installation).
 ## Components of PRQL
 
 The PRQL project has several components. Instructions for working with them are
-in the **README.md** file in their directory. Here's an overview:
+in the **README.md** file in their respective paths. Here's an overview:
+
+**[book](./book/README.md)**: The PRQL language book, which documents the
+language.
 
 **[playground](./playground/README.md)**: A web GUI for the PRQL compiler. It
 shows the PRQL source beside the resulting SQL output.
-
-**[book](./book/README.md)**: Tools to build the PRQL language book that
-documents the language.
-
-**[website](./website/README.md)**: Tools to build the `hugo` website.
 
 **[prql-compiler](./prql-compiler/README.md)**: Installation and usage
 instructions for building and running the `prql-compiler`.
@@ -105,7 +157,10 @@ the `prql-compiler` rust library for bindings to other languages
 **[prql-python](./prql-python/README.md)**: Python bindings to the
 `prql-compiler` rust library.
 
-## Tests
+**[website](./website/README.md)**: Our website, hosted at
+<https://prql-lang.org>, built with `hugo`.
+
+## How we test
 
 We use a pyramid of tests — we have fast, focused tests at the bottom of the
 pyramid, which give us low latency feedback when developing, and then slower,
@@ -125,7 +180,7 @@ broader tests which ensure that we don't miss anything as PRQL develops[^1].
 > run in GitHub will point you towards any errors, which can be then be run
 > locally if needed. We're always around to help out.
 
-Our tests:
+Our tests, from the bottom of the pyramid to the top:
 
 - **[Static checks](.pre-commit-config.yaml)** — we run a few static checks to
   ensure the code stays healthy and consistent. They're defined in
@@ -141,24 +196,19 @@ Our tests:
   automatically in an additional commit.
 
 - **Unit tests & inline insta snapshots** — like most projects, we rely on unit
-  tests to test that our code basically works. We extensively use
+  tests to rapidly check that our code basically works. We extensively use
   [Insta](https://insta.rs/), a snapshot testing tool which writes out the
-  results of an expression in our code, making it faster to write and modify
+  values generated by our code, making it fast & simple to write and modify
   tests[^3].
 
   These are the fastest tests which run our code; they're designed to run on
-  every save while you're developing. (While they're covered by `task test-all`,
-  you'll generally want to have lower-latency tests running in a tight
-  loop.)[^2]
+  every save while you're developing. We include a `task` which does this (thy
+  full command run on every save is
+  `cargo insta test --accept -p prql-compiler --lib`):
 
-[^2]: By running:
-
-    ```sh
-    task -w prql-compiler-fast
-    ```
-
-    ...we run `cargo insta test --accept -p prql-compiler --lib` on any file
-    change.
+  ```sh
+  task -w test-rust-fast
+  ```
 
 <!--
 This is the previous doc. It has the advantage that it explains what it's doing, and is
@@ -208,7 +258,11 @@ inconsistent in watchexec. Let's revert back if it gets solved.
   designed to run in under two minutes, and we should be reassessing their scope
   if they grow beyond that. Once these pass, a pull request can be merged.
 
-  All tests up to this point can be run with `task test-all` locally.
+  All tests up to this point can be run with:
+
+  ```sh
+  task test-all
+  ```
 
 - **[GitHub Actions on specific changes](.github/workflows/)** — we run
   additional tests on pull requests when we identify changes to some paths, such
@@ -257,7 +311,9 @@ they're making it more difficult for you to make changes, or there are missing
 tests that would give you the confidence to make changes faster, then please
 raise an issue.
 
-## Releases
+---
+
+## Releasing
 
 Currently we release in a semi-automated way:
 
