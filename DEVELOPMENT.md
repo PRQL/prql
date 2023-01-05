@@ -303,7 +303,9 @@ they're making it more difficult for you to make changes, or there are missing
 tests that would give you the confidence to make changes faster, then please
 raise an issue.
 
-## Releases
+---
+
+## Releasing
 
 Currently we release in a semi-automated way:
 
