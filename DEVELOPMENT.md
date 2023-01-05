@@ -29,7 +29,7 @@ editing, and testing PRQL's compiler code in under two minutes:
 
   There's more context on our tests in [How we test](#how-we-test) below.
 
-That's sufficient for making an initial contribution to the compiler!
+That's sufficient for making an initial contribution to the compiler.
 
 ---
 
@@ -202,18 +202,9 @@ Our tests:
   tests[^3].
 
   These are the fastest tests which run our code; they're designed to run on
-  every save while you're developing. (While they're covered by `task test-all`,
-  you'll generally want to have lower-latency tests running in a tight
-  loop.)[^2]
-
-[^2]: By running:
-
-    ```sh
-    task -w prql-compiler-fast
-    ```
-
-    ...`task` watches for any file change, and then reruns
-    `cargo insta test --accept -p prql-compiler --lib`.
+  every save while you're developing. We include a `task` which does this:
+  `task -w test-rust-fast` (the full command is  
+  `cargo insta test --accept -p prql-compiler --lib`).
 
 <!--
 This is the previous doc. It has the advantage that it explains what it's doing, and is
