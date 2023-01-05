@@ -207,12 +207,13 @@ tasks:
       RUST_BACKTRACE: 1
     sources:
       # I don't think we can specify this is a single glob, which would be nice.
-      # Ideally we want to exclude `.pending-snap` & `.snap.new` files so a run
-      # doesn't cause another. We probably *do* want to include `.snap` files,
-      # so we get a successful run when those update, but need to check whether
-      # that could also cause looping runs.
+      # Ideally we want to exclude `.pending-snap` & `.snap.new` files so runs
+      # doesn't cause an infinite loop of other runs (though possibly mitigated
+      # by `--accept` and task not interrupting existing runs, so all files go
+      # to `.snap`s which match the generated output?).
       - "prql-compiler/**/*.rs"
       - "prql-compiler/**/*.pest"
+      - "prql-compiler/**/*.snap"
     cmds:
       - cargo insta test --accept -p prql-compiler --lib
 
@@ -224,9 +225,9 @@ tasks:
       - mkdir -p website/public
       # Copy the book into the website path, using rsync so it only copies new files
       - rsync -ai --checksum --delete book/book/ website/public/book/
-      # Must set `install-links=false` for the playground `npm install` to install prql-js
-      # as the regular dependencie instead of creating a symlink.
-      # Refer to https://github.com/PRQL/prql/pull/1296.
+      # Must set `install-links=false` in the playground's `npm install` to
+      # install prql-js as the regular dependency, instead of creating a
+      # symlink. Refer to https://github.com/PRQL/prql/pull/1296.
       - cd playground && npm install --install-links=false
       - cd playground && npm run build
       - rsync -ai --checksum --delete playground/build/
@@ -255,9 +256,9 @@ tasks:
     desc: Build & serve the playground.
     dir: playground
     cmds:
-      # Must set `install-links=false` for the playground `npm install` to install prql-js
-      # as the regular dependencie instead of creating a symlink.
-      # Refer to https://github.com/PRQL/prql/pull/1296.
+      # Must set `install-links=false` in the playground's `npm install` to
+      # install prql-js as the regular dependency, instead of creating a
+      # symlink. Refer to https://github.com/PRQL/prql/pull/1296.
       - npm install --install-links=false
       - npm start
 #

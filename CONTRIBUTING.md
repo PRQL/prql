@@ -43,8 +43,7 @@ dreaming bigger:
   server (upcoming) running as web worker.
 
 This could all be achieved by extending the playground, or by starting anew,
-with appropriate framework and without a bunch of mis-patterns that may or may
-not be hidden in the playground code.
+with appropriate framework and with higher quality code.
 
 The project is in the brainstorming phase, so I you are interested, post a
 message in the #web Discord channel.

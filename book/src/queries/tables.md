@@ -22,20 +22,15 @@ We can even place a whole CTE in an s-string, enabling us to use features which
 PRQL doesn't yet support.
 
 ```prql
-table grouping = (s"""
+table grouping = s"""
   SELECT SUM(a)
   FROM tbl
   GROUP BY
     GROUPING SETS
     ((b, c, d), (d), (b, d))
-""")
+"""
 
 from grouping
-```
-
-```admonish note
-Currently a table in an s-string needs to start with `SELECT`. This is a
-limitation from the PRQL compiler which we hope to remove soon.
 ```
 
 ```admonish info

@@ -25,11 +25,36 @@ function rq_to_sql(rq_json: string): string;
 
 ### From NodeJS
 
-```javascript
-const prql = require("prql-js");
+Direct usage
 
-const sql = compile(`from employees | select first_name`);
-console.log(sql);
+```javascript
+const prqljs = require("prql-js");
+
+const sql = prqljs.compile(`from employees | select first_name`);
+console.log(sql.sql);
+```
+
+Template literal
+
+```javascript
+const prqljs = require("prql-js");
+const prql = (string) => prqljs.compile(string[0] || "");
+
+const sql = prql`from employees | select first_name`;
+console.log(sql.sql);
+```
+
+Template literal with newlines
+
+```javascript
+const prqljs = require("prql-js");
+const prql = (string) => prqljs.compile(string[0] || "");
+
+const sql = prql`
+    from employees
+    select first_name
+`;
+console.log(sql.sql);
 ```
 
 ### From a Browser

@@ -74,8 +74,8 @@ impl AstFold for Resolver {
                     };
 
                     // validate type
-                    let expeceted = Ty::Table(Frame::default());
-                    let assumed_ty = validate_type(&table_def.value, &expeceted, || {
+                    let expected = Ty::Table(Frame::default());
+                    let assumed_ty = validate_type(&table_def.value, &expected, || {
                         Some(format!("table {}", table_def.name))
                     })?;
                     table_def.value.ty = Some(assumed_ty);
