@@ -26,7 +26,7 @@ tasks:
     preconditions:
       - sh: which clang
         msg: |
-          🔴 Can't find `clang`, which is required to install a full development environment (we use `duckdb` in our tests, which requires it). 
+          🔴 Can't find `clang`, which is required to install a full development environment (we use `duckdb` in our tests, which requires it).
 
           Please install it. On MacOS, that's
 
