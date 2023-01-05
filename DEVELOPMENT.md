@@ -14,8 +14,8 @@ editing, and testing PRQL's compiler code in under two minutes:
   cargo install cargo-insta
   ```
 
-- That's it! Running the unit tests for the `prql-compiler` crate from a cloned
-  version of the repo should complete successfully:
+- That's it! Running the unit tests for the `prql-compiler` crate after cloning
+  the repo should complete successfully:
 
   ```sh
   cargo test -p prql-compiler --lib
@@ -27,7 +27,7 @@ editing, and testing PRQL's compiler code in under two minutes:
   cargo insta test --accept -p prql-compiler --lib
   ```
 
-  There's more context on our tests in [How we test](#how-we-test) below,
+  There's more context on our tests in [How we test](#how-we-test) below.
 
 That's sufficient for making an initial contribution to the compiler!
 
