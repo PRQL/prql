@@ -15,19 +15,19 @@ editing, and testing PRQL's compiler code in under two minutes:
   ```
 
 - That's it! Running the unit tests for the `prql-compiler` crate from a cloned
-  version of the repo should complete successfully.
+  version of the repo should complete successfully:
 
   ```sh
   cargo test -p prql-compiler --lib
   ```
 
-  ...or, to run tests and update the test snapshots, run:
+  ...or, to run tests and update the test snapshots:
 
-  ```
+  ```sh
   cargo insta test --accept -p prql-compiler --lib
   ```
 
-  There's more context on our tests [How we test](#how-we-test) below,
+  There's more context on our tests in [How we test](#how-we-test) below,
 
 That's sufficient for making an initial contribution to the compiler!
 
@@ -36,15 +36,15 @@ That's sufficient for making an initial contribution to the compiler!
 ## Setting up a full dev environment
 
 > **Note**: We really care about this process being easy, both because the
-> project benefits from more contributors such as yourself, and to reciprocate
-> your future contribution. If something isn't easy, please let us know in a
-> GitHub Issue. We'll enthusiastically help you, and use your feedback to make
-> the scripts & instructions better.
+> project benefits from more contributors like you, and to reciprocate your
+> future contribution. If something isn't easy, please let us know in a GitHub
+> Issue. We'll enthusiastically help you, and use your feedback to improve the
+> scripts & instructions.
 
-For more advanced development; for example adjusting `insta` outputs or
-compiling for web, we have two options:
+For more advanced development; for example compiling for wasm or previewing the
+website, we have two options:
 
-### Option 1: Use the provided `task`
+### Option 1: Use the project's `task`
 
 > **Note**: This is tested on MacOS, should work on Linux, but won't work on
 > Windows.
@@ -61,21 +61,21 @@ compiling for web, we have two options:
 
 ### Option 2: Install tools individually
 
-- We'll need `cargo-insta`, to update snapshots:
+- We'll need `cargo-insta`, to update snapshot tests:
 
   ```sh
   cargo install cargo-insta
   ```
 
-- We'll need a a couple of additional components that most systems will have
-  installed already. The easiest way to check whether they're installed is to
-  try running the full tests:
+- We'll need a couple of additional components, which most systems will have
+  already. The easiest way to check whether they're installed is to try running
+  the full tests:
 
   ```sh
   cargo test
   ```
 
-  If that hits an error, check we have:
+  ...and if that doesn't complete successfully, check we have:
 
   - A clang compiler, to compile the DuckDB integration tests, since we use
     [`duckdb-rs'](https://github.com/wangfenjin/duckdb-rs). To install one:
@@ -212,8 +212,8 @@ Our tests:
     task -w prql-compiler-fast
     ```
 
-    ...we run `cargo insta test --accept -p prql-compiler --lib` on any file
-    change.
+    ...`task` watches for any file change, and then reruns
+    `cargo insta test --accept -p prql-compiler --lib`.
 
 <!--
 This is the previous doc. It has the advantage that it explains what it's doing, and is
