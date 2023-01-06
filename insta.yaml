@@ -1,0 +1,7 @@
+behavior:
+  force_update: true
+review:
+  include_ignored: false
+  include_hidden: false
+  # Small performance hit and never needed for us
+  warn_undiscovered: false
