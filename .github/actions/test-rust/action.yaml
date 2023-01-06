@@ -38,8 +38,21 @@ runs:
       with:
         command: test
         args: ${{ inputs.target_option }} --no-run --locked
+    - uses: baptiste0928/cargo-install@next
+      with:
+        crate: cargo-insta
+    # Only check unreferenced snapshots on the default target tests (maybe
+    # there's a nicer approach where we can parameterize one step rather than
+    # have two different ones; feel free to simplify)
     - name: 📋 Test
       uses: richb-hanover/cargo@v1.1.0
+      if: inputs.target_option != '--target=wasm32-unknown-unknown'
       with:
-        command: test
-        args: ${{ inputs.target_option }}
+        command: insta
+        args: test --unreferenced=auto ${{ inputs.target_option }}
+    - name: 📋 Test
+      uses: richb-hanover/cargo@v1.1.0
+      if: inputs.target_option == '--target=wasm32-unknown-unknown'
+      with:
+        command: insta
+        args: test ${{ inputs.target_option }}
