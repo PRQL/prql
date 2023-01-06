@@ -1325,6 +1325,62 @@ fn test_bare_s_string() {
       grouping
     "###
     );
+
+    // Test that case insensitive SELECT is accepted. We allow it as it is valid SQL.
+    let query = r###"
+    table a = s"select insensitive from rude"
+    from a
+    "###;
+
+    let sql = compile(query).unwrap();
+    assert_display_snapshot!(sql,
+        @r###"
+    WITH table_0 AS (
+      SELECT
+        insensitive
+      from
+        rude
+    ),
+    a AS (
+      SELECT
+        *
+      FROM
+        table_0 AS table_1
+    )
+    SELECT
+      *
+    FROM
+      a
+    "###
+    );
+
+    // Check a mixture of cases for good measure.
+    let query = r###"
+    table a = s"sElEcT insensitive from rude"
+    from a
+    "###;
+
+    let sql = compile(query).unwrap();
+    assert_display_snapshot!(sql,
+        @r###"
+    WITH table_0 AS (
+      SELECT
+        insensitive
+      from
+        rude
+    ),
+    a AS (
+      SELECT
+        *
+      FROM
+        table_0 AS table_1
+    )
+    SELECT
+      *
+    FROM
+      a
+    "###
+    );
 }
 
 #[test]
