@@ -38,8 +38,11 @@ runs:
       with:
         command: test
         args: ${{ inputs.target_option }} --no-run --locked
+    - uses: baptiste0928/cargo-install@next
+      with:
+        crate: cargo-insta
     - name: 📋 Test
       uses: richb-hanover/cargo@v1.1.0
       with:
-        command: test
-        args: ${{ inputs.target_option }}
+        command: insta
+        args: test --unreferenced=auto ${{ inputs.target_option }}
