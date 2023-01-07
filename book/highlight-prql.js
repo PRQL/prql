@@ -41,7 +41,7 @@ formatting = function (hljs) {
     case_insensitive: true,
     keywords: {
       keyword: [...TRANSFORMS, ...BUILTIN_FUNCTIONS, ...KEYWORDS],
-      literal: "false true null and or not",
+      literal: "false true null ",
     },
     contains: [
       hljs.COMMENT("#", "$"),
@@ -67,17 +67,58 @@ formatting = function (hljs) {
         relevance: 10,
       },
       {
-        // interpolation string
-        scope: "attribute",
+        // interpolation strings: s-strings are variables and f-strings are
+        // strings? (Though possibly that's too cute, open to adjusting)
+        //
+        scope: "variable",
         relevance: 10,
         variants: [
           {
-            begin: '(s|f)"""',
+            begin: '(s)"""',
             end: '"""',
           },
           {
-            begin: '(s|f)"',
+            begin: '(s)"',
             end: '"',
+          },
+        ],
+        contains: [
+          // I tried having the `f` / `s` be marked differently, but I don't
+          // think it's possible to have a subscope within the begin / end.
+          {
+            // I think `variable` is the right scope rather than defaulting to
+            // white, but not 100% sure; using `subst` is suggested in the docs.
+            scope: "variable",
+            begin: /\{/,
+            end: /\}/,
+          },
+        ],
+      },
+      {
+        scope: "string",
+        relevance: 10,
+        variants: [
+          {
+            begin: '(f)"""',
+            end: '"""',
+          },
+          {
+            begin: '(f)"',
+            end: '"',
+          },
+        ],
+        contains: [
+          {
+            // scope: "title.function",
+            scope: "variable",
+            begin: "f",
+            end: '"',
+            // excludesEnd: true,
+          },
+          {
+            scope: "variable",
+            begin: /\{/,
+            end: /\}/,
           },
         ],
       },
@@ -121,6 +162,13 @@ formatting = function (hljs) {
         // range
         scope: "symbol",
         match: /\.{2}/,
+        relevance: 10,
+      },
+      {
+        // operator
+        scope: "operator",
+        match:
+          /(>)|(<)|(==)|(\+)|(\-)|(!=)|(<=)|(>=)|(\?\?)|(\band\b)|(\bor\b)/,
         relevance: 10,
       },
 
