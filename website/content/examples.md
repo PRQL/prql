@@ -1,5 +1,6 @@
 ---
 title: "Examples"
+layout: article
 ---
 
 ## A simple example
