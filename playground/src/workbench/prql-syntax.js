@@ -44,7 +44,7 @@ const def = {
     "<=",
     "??",
   ],
-  
+
   // The main tokenizer for our languages
   tokenizer: {
     root: [
