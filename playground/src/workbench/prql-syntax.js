@@ -29,21 +29,7 @@ const def = {
     ...OPERATORS,
   ],
 
-  operators: [
-    "-",
-    "*",
-    "/",
-    "%",
-    "+",
-    "-",
-    "==",
-    "!=",
-    ">",
-    "<",
-    ">=",
-    "<=",
-    "??",
-  ],
+  operators: OPERATORS,
 
   // The main tokenizer for our languages
   tokenizer: {

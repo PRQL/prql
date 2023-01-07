@@ -1,6 +1,6 @@
 ---
 source: book/tests/snapshot.rs
-expression: "table grouping = s\"\"\"\n  SELECT SUM(a)\n  FROM tbl\n  GROUP BY\n    GROUPING SETS\n    ((b, c, d), (d), (b, d))\n\"\"\"\n\nfrom grouping\n"
+expression: "table grouping = (s\"\"\"\n  SELECT SUM(a)\n  FROM tbl\n  GROUP BY\n    GROUPING SETS\n    ((b, c, d), (d), (b, d))\n\"\"\")\n\nfrom grouping\n"
 input_file: book/tests/prql/queries/tables-1.prql
 ---
 WITH table_0 AS (
