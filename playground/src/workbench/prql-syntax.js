@@ -1,26 +1,33 @@
+const TRANSFORMS = [
+  "from",
+  "select",
+  "derive",
+  "filter",
+  "take",
+  "sort",
+  "join",
+  "aggregate",
+  "group",
+  "window",
+  "concat",
+  "union",
+];
+const BUILTIN_FUNCTIONS = ["switch"]; // "in", "as"
+const KEYWORDS = ["func", "table", "prql"];
+const LITERALS = [
+  "and",
+  "or",
+  "not",
+  "null",
+  "true",
+  "false",
+];
+
 const def = {
   // Set defaultToken to invalid to see what you do not tokenize yet
   // defaultToken: 'invalid',
 
-  keywords: [
-    "from",
-    "select",
-    "derive",
-    "filter",
-    "take",
-    "sort",
-    "join",
-    "aggregate",
-    "group",
-    "func",
-    "table",
-    "and",
-    "or",
-    "not",
-    "null",
-    "true",
-    "false",
-  ],
+  keywords:  [...TRANSFORMS, ...BUILTIN_FUNCTIONS, ...KEYWORDS, ...LITERALS],
 
   operators: [
     "-",
