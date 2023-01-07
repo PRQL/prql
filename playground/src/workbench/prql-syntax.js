@@ -15,7 +15,23 @@ const TRANSFORMS = [
 const BUILTIN_FUNCTIONS = ["switch"]; // "in", "as"
 const KEYWORDS = ["func", "table", "prql"];
 const LITERALS = ["null", "true", "false"];
-const OPERATORS = ["and", "or"]; // "not"
+const OPERATORS = [
+  "-",
+  "*",
+  "/",
+  "%",
+  "+",
+  "-",
+  "==",
+  "!=",
+  ">",
+  "<",
+  ">=",
+  "<=",
+  "??",
+  "and",
+  "or"
+]; // "not"
 
 const def = {
   // Set defaultToken to invalid to see what you do not tokenize yet
@@ -26,24 +42,9 @@ const def = {
     ...BUILTIN_FUNCTIONS,
     ...KEYWORDS,
     ...LITERALS,
-    ...OPERATORS,
   ],
 
-  operators: [
-    "-",
-    "*",
-    "/",
-    "%",
-    "+",
-    "-",
-    "==",
-    "!=",
-    ">",
-    "<",
-    ">=",
-    "<=",
-    "??",
-  ],
+  operators: OPERATORS,
 
   // The main tokenizer for our languages
   tokenizer: {
