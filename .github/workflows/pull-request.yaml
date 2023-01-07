@@ -25,7 +25,6 @@ jobs:
     strategy:
       matrix:
         include:
-          # TODO: I'm sure there's a better way of doing this, where `target_option` derives from `target`?
           - target_option: ""
           - target_option: "--target=wasm32-unknown-unknown"
     steps:
