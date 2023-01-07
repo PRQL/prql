@@ -1,5 +1,6 @@
 behavior:
-  force_update: true
+  # Disabling because of issues with running on Windows
+  # force_update: true
 review:
   # The default (true) has a small performance hit and never needed for us
   warn_undiscovered: false
