@@ -188,7 +188,7 @@ tasks:
       # Only delete unreferenced snapshots on the default target — lots are
       # excluded under wasm.
       - cargo insta test --accept --target={{.default_target}}
-        --unreferenced=auto
+        --delete-unreferenced-snapshots
       - cargo insta test --accept --target=wasm32-unknown-unknown
 
   test-rust-fast:
