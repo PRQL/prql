@@ -59,4 +59,8 @@ runs:
         runner.os == 'ubuntu') }}
       with:
         command: insta
-        args: test ${{ inputs.target_option }}
+        # FIXME; for debugging
+        # args: test ${{ inputs.target_option }}
+        args: test ${{ inputs.target_option }} --accept
+    - run: git diff
+      shell: bash
