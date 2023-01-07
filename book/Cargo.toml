@@ -35,7 +35,7 @@ mdbook-preprocessor-boilerplate = {version = "0.1.1"}
 
 [dev-dependencies]
 globset = "0.4.8"
-insta = {version = "1.24.1", features = ["colors", "glob"]}
+insta = {version = "1.26", features = ["colors", "glob"]}
 log = "0.4.17"
 pulldown-cmark = "0.9.1"
 pulldown-cmark-to-cmark = "10.0.1"
