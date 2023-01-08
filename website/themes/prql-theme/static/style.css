@@ -303,10 +303,6 @@ pre ::-webkit-scrollbar-thumb:hover {
   padding-top: 100px;
 }
 
-.no-hero {
-  padding-top: 80px;
-}
-
 .hero h4 {
   font-size: 20px;
   color: var(--main-color);
@@ -604,6 +600,10 @@ section {
 # Article
 --------------------------------------------------------------*/
 
+.container.article {
+  max-width: 720px;
+}
+
 article {
   padding: 4rem 0;
   font-size: 1.1em;
@@ -619,7 +619,7 @@ article h2 {
 
 article > pre,
 article > .highlight {
-  margin: 0 -1rem;
+  margin: 0 0 1rem -1rem;
 }
 
 article > .highlight > pre {
