@@ -14,7 +14,11 @@
           </ul>
 
           {{ if .button }}
-            <a class="btn" href="{{ .button.link }}" target="_blank"
+            <a
+              class="btn"
+              href="{{ .button.link }}"
+              target="_blank"
+              rel="noopener noreferrer"
               >{{ .button.text }}<sup><i class="bx bx-link-external"></i></sup
             ></a>
           {{ end }}
