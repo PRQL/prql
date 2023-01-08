@@ -133,13 +133,14 @@ dataframe of a performance-optimized library (such as
 [Polars](https://www.pola.rs/)) or a Google Sheets spreadsheet. Alternatively,
 we could even convert RQ to [Substrait](https://substrait.io/).
 
-#### PRQL as a tool
+### PRQL IDE
 
-We'll likely continue pursuing this through integrations with other tools;
-combining the potential of PRQL with its openness and ecosystem.
+We'd like to make it easier to try PRQL. We currently have the playground, which
+compiles PRQL and runs queries with a DuckDB wasm module, but there's much more
+we could do. Could we support for importing arbitrary CSV and parquet input
+files and then exporting the results? Could it integrate an LSP?
 
-If successful, we can have reproducible data transformations with an intuitive,
-interactive experience with fast feedback.
+We can balance this against building integrations with existing tools.
 
 {{< /columns >}}
 

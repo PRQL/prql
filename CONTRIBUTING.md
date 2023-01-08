@@ -6,7 +6,7 @@ ways to start:
 - Star this repo.
 - Send a link to PRQL to a couple of people whose opinion you respect.
 - Subscribe to [Issue #1](https://github.com/PRQL/prql/issues/1) for updates.
-- Join our [Discord](https://discord.com/eQcfaCmsNc)
+- Join our [Discord](https://discord.gg/eQcfaCmsNc)
 - Follow us on [Twitter](https://twitter.com/prql_lang)
 - Find an issue labeled
   [Good First Issue](https://github.com/prql/prql/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)[^1]
@@ -38,16 +38,19 @@ To get started, read [DEVELOPMENT.md](./DEVELOPMENT.md) and
 And if you have questions, there are lots of friendly people on the Discord who
 will patiently help you.
 
-### Integrations
+### Bindings & integrations
 
-PRQL will become usable for everyday tasks when it becomes easy to use from
-other languages and tools.
+For PRQL to be successful, it needs to be available for the languages & tools
+that people already use.
 
-We currently have bindings to the PRQL compiler in a few different languages,
-but they may be lacking in ergonomics, documentation or even functionality.
-
-If you have experience with packaging or are maintaining a tool for data
-analysis, we'd need your help!
+- We currently have bindings to the PRQL compiler in a few different languages;
+  many of these can be improved, documented, and packaged in a better way.
+- If you have experience with packaging in an ecosystem that doesn't currently
+  have bindings, then creating PRQL bindings for that language we don't
+  currently support would be valuable to the project.
+- If there's a tool that you use yourself to run data queries which you think
+  would benefit from a PRQL integration, suggest one to us or the tool. If it's
+  open-source, build & share a prototype.
 
 Relevant issues are labeled
 [Integrations](https://github.com/PRQL/prql/labels/integrations).
@@ -80,40 +83,12 @@ in examples.)
 - Find a group of users who would be interested in PRQL, help them get up to
   speed, help the project understand what they need.
 
-### IDE
-
-<!--
-@aljazerzen I worry this is too speculative for this page, which I think we should try and use to inspire people to _start_.
-What do you think about moving into the Roadmap "Long term"?
-
-I also think we could suggest that people find a tool and fork it (I know we discussed the tradeoffs)
-
- -->
-
-We'd like to make it easier to try PRQL. We currently have the playground, but
-there's much more we could do.
-
-- The most approachable and portable way would be a web application, just like
-  our playground.
-- Unlike the current playground, it would need support for importing arbitrary
-  CSV and parquet input files and then exporting the results.
-- Fastest (and cheapest) way to execute the queries is probably DuckDB WASM
-  (like in playground),
-- Dreaming bigger, we would want support for a LSP client connected to a LSP
-  server (upcoming) running as web worker.
-
-This could all be achieved by extending the playground, or by starting anew,
-with appropriate framework and with higher quality code.
-
-The project is in the brainstorming phase, so I you are interested, post a
-message in the #web Discord channel.
-
 ## Core team
 
 If you have any questions or feedback and don't receive a response on one of the
 general channels such as GitHub or Discord, feel free to reach out to:
 
-- [**@aljazerzen**](https://github.com/aljazerzen) — Aljaž Mur Eržen
+- [**@asljazerzen**](https://github.com/aljazerzen) — Aljaž Mur Eržen
 - [**@max-sixty**](https://github.com/max-sixty) — Maximilian Roos
 - [**@snth**](https://github.com/snth) — Tobias Brandt
 
