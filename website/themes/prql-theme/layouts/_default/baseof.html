@@ -6,11 +6,12 @@
   <body class="d-flex flex-column vh-100 overflow-hidden">
     {{ partial "header.html" . }}
 
-	<div class="d-flex flex-column flex-grow-1 overflow-scroll">
-    {{- block "main" . }}{{- end }}
 
-    {{ partial "footer.html" . }}
-	</div>
+    <div class="d-flex flex-column flex-grow-1 overflow-scroll">
+      {{- block "main" . }}{{- end }}
+
+      {{ partial "footer.html" . }}
+    </div>
 
     <a
       href="#"
