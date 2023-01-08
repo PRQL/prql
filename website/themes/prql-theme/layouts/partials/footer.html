@@ -1,58 +1,66 @@
 <footer id="footer" class="mt-auto">
   <div class="container">
-    <div class="row">
-      <div class="col-md-8 py-3">
-        <h3>Contribute to PRQL</h3>
+    <div class="row py-3">
+      <h2>Join us</h2>
+        <div class="col-md-8 py-1">
+          {{ with site.Params.contribute }}
 
-        {{ with site.Params.join_us }}
+            <p>{{ .subtitle | markdownify }}</p>
 
-          <p>{{ .subtitle | markdownify }}</p>
+            <ul>
+              {{ range .list }}
+                <li>{{ .text | markdownify }}</li>
+              {{ end }}
+            </ul>
 
-          <ul>
-            {{ range .list }}
-              <li>{{ .text | markdownify }}</li>
+            {{ if .button }}
+              <a class="btn" href="{{ .button.link }}" target="_blank"
+                >{{ .button.text }}<sup><i class="bx bx-link-external"></i></sup
+              ></a>
             {{ end }}
-          </ul>
 
-          {{ if .button }}
-            <a class="btn" href="{{ .button.link }}" target="_blank"
-              >{{ .button.text }}<sup><i class="bx bx-link-external"></i></sup
-            ></a>
+          {{ end }}
+        </div>
+        <div class="col-md-4 py-1">
+          {{ with site.Params.follow }}
+            <p>{{ .subtitle | markdownify }}</p>
+            <ul>
+              {{ range .list }}
+                <li>{{ .text | markdownify }}</li>
+              {{ end }}
+            </ul>
           {{ end }}
 
-        {{ end }}
+          {{/* TODO: put the content of these buttons in the same place as the links */}}
+
+          <p>
+            <a
+              class="btn-icon"
+              href="https://github.com/PRQL/prql"
+              target="_blank"
+              title="GitHub repository"
+              ><i class="bx bxl-github"></i
+            ></a>
+
+            <a
+              class="btn-icon"
+              href="https://discord.com/invite/eQcfaCmsNc"
+              target="_blank"
+              title="Join the Discord"
+              ><i class="bx bxl-discord"></i
+            ></a>
+
+            <a
+              class="btn-icon"
+              href="https://twitter.com/prql_lang"
+              target="_blank"
+              title="Follow us on Twitter"
+              ><i class="bx bxl-twitter"></i
+            ></a>
+          </p>
+        </div>
       </div>
-
-      <div class="col-md-4 py-3 text-end">
-        <p>
-          Subscribe to
-          {{ "[issue #1 for a GitHub notification on updates](https://github.com/PRQL/prql/issues/1)." | markdownify }}
-        </p>
-
-        <p>
-          {{ "Join our [Discord server](https://discord.com/invite/eQcfaCmsNc)." | markdownify }}
-        </p>
-
-        <p>
-          <a
-            class="btn-icon"
-            href="https://github.com/PRQL/prql"
-            target="_blank"
-            title="GitHub repository"
-            ><i class="bx bxl-github"></i
-          ></a>
-
-          <a
-            class="btn-icon"
-            href="https://discord.com/invite/eQcfaCmsNc"
-            target="_blank"
-            title="Join the Discord"
-            ><i class="bx bxl-discord"></i
-          ></a>
-        </p>
-
-        <p>{{ site.Params.license }}</p>
-      </div>
+      <p><small>{{ site.Params.license }}</small></p>
     </div>
   </div>
 </footer>
