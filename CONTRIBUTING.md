@@ -1,52 +1,42 @@
 # Contributing
 
-If you're interested in joining the community to build a better SQL, here is how
-you start:
+If you're interested in joining the community to build a better SQL, here are
+ways to start:
 
 - Star this repo.
 - Send a link to PRQL to a couple of people whose opinion you respect.
 - Subscribe to [Issue #1](https://github.com/PRQL/prql/issues/1) for updates.
-- Join the [Discord](https://discord.gg/eQcfaCmsNc).
+- Join our [Discord](https://discord.com/eQcfaCmsNc)
+- Follow us on [Twitter](https://twitter.com/prql_lang)
+- Find an issue labeled
+  [Good First Issue](https://github.com/prql/prql/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)[^1]
+  and start contributing to the code.
 
-PRQL is evolving into a medium-sized project and we are looking for help in a
-few different areas.
+[^1]:
+    These are better phrased as "Well explained issues"; the core team regularly
+    do these issues too!
+
+PRQL is evolving from a project with lots of excitement into a project that
+folks are using in their work and integrating into their tools. We're actively
+looking for collaborators to lead that growth with us.
+
+## Areas for larger contributions
 
 ### Compiler
 
-Compiler is written in Rust, and there's enough to do such that any level of
+The compiler is written in Rust, and there's enough to do such that any level of
 experience with rust is sufficient.
 
 We try to keep a few onboarding issues on hand under the
 ["good first issue" label](https://github.com/PRQL/prql/labels/good%20first%20issue).
-They have better descriptions of what to do than other issues, so they are a
-good place to start.
+These have been screened to have sufficient context to get started (and we very
+much welcome questions where there's some context missing).
 
-To get started, you should read [DEVELOPMENT.md](./DEVELOPMENT.md) and
+To get started, read [DEVELOPMENT.md](./DEVELOPMENT.md) and
 [ARCHITECTURE.md](./prql-compiler/ARCHITECTURE.md)
 
 And if you have questions, there are lots of friendly people on the Discord who
 will patiently help you.
-
-### IDE
-
-For non-technical savvy people, best way to explain a language and make it
-useful is to build a UI. We currently do have the playground, but we are
-dreaming bigger:
-
-- Most approachable and portable way, would be a web application, just like
-  playground.
-- Unlike playground, it needs support for importing arbitrary CSV and parquet
-  input files and then exporting the results.
-- Fastest (and cheapest) way to execute the queries is probably DuckDB WASM
-  (like in playground),
-- Dreaming bigger, we would want support for a LSP client connected to a LSP
-  server (upcoming) running as web worker.
-
-This could all be achieved by extending the playground, or by starting anew,
-with appropriate framework and with higher quality code.
-
-The project is in the brainstorming phase, so I you are interested, post a
-message in the #web Discord channel.
 
 ### Integrations
 
@@ -59,8 +49,8 @@ but they may be lacking in ergonomics, documentation or even functionality.
 If you have experience with packaging or are maintaining a tool for data
 analysis, we'd need your help!
 
-Try looking over
-["integrations" label](https://github.com/PRQL/prql/labels/integrations).
+Relevant issues are labeled
+[Integrations](https://github.com/PRQL/prql/labels/integrations).
 
 ### Language design
 
@@ -89,6 +79,34 @@ in examples.)
 - Tell people about PRQL.
 - Find a group of users who would be interested in PRQL, help them get up to
   speed, help the project understand what they need.
+
+### IDE
+
+<!--
+@aljazerzen I worry this is too speculative for this page, which I think we should try and use to inspire people to _start_.
+What do you think about moving into the Roadmap "Long term"?
+
+I also think we could suggest that people find a tool and fork it (I know we discussed the tradeoffs)
+
+ -->
+
+We'd like to make it easier to try PRQL. We currently have the playground, but
+there's much more we could do.
+
+- The most approachable and portable way would be a web application, just like
+  our playground.
+- Unlike the current playground, it would need support for importing arbitrary
+  CSV and parquet input files and then exporting the results.
+- Fastest (and cheapest) way to execute the queries is probably DuckDB WASM
+  (like in playground),
+- Dreaming bigger, we would want support for a LSP client connected to a LSP
+  server (upcoming) running as web worker.
+
+This could all be achieved by extending the playground, or by starting anew,
+with appropriate framework and with higher quality code.
+
+The project is in the brainstorming phase, so I you are interested, post a
+message in the #web Discord channel.
 
 ## Core team
 
