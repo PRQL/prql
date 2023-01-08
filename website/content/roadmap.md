@@ -103,15 +103,19 @@ existing SQL queries to PRQL, rather than having to rewrite them manually. For
 many queries, this should be fairly easy. (For some it will be very difficult,
 but we can start with the easy ones...)
 
-#### Rethinking joins
+#### Language
 
-Currently joins are not fundamentally different from SQL's approach.
+While the core semantics and syntax of the language are now fairly stable, we
+are planning
+[a few major features](https://github.com/PRQL/prql/issues?q=is%3Aopen+is%3Aissue+label%3Amajor-feature+label%3Alanguage-design)
+that will give PRQL the feeling of a real programming language and elevate it in
+[the chomsky hierarchy](https://en.wikipedia.org/wiki/Chomsky_hierarchy).
+Honorable mentions here are recursive CTEs (or rather functions), algebraic type
+system, pre-specified join conditions and regex.
 
-Tools which have a semantic model of the underlying tables can offer a better
-experience here, such as pre-specifying join conditions. While PRQL's focus is
-on the developer experience rather than heavy semantic models, we should
-consider whether there are ways to make joins easier without introducing weight
-to the language.
+Note that these features will probably inflict breaking changes with each minor
+release before we stabilize the 1.0, the first indefinitely supported language
+edition.
 
 <--->
 
@@ -131,8 +135,6 @@ we could even convert RQ to [Substrait](https://substrait.io/).
 
 #### PRQL as a tool
 
-<!-- @snth do you want to mention prql-query? I would but I know you've been suggesting we delay -->
-
 We'll likely continue pursuing this through integrations with other tools;
 combining the potential of PRQL with its openness and ecosystem.
 
@@ -151,86 +153,3 @@ means putting some things out of scope:
   that! ([#13](https://github.com/PRQL/prql/issues/13)).
 - Writing DDL / index / schema manipulation / inserting data
   ([#16](https://github.com/PRQL/prql/issues/16)).
-
-<!--
-
-TODO: What's remaining in the language itself (not the stdlib)?
-
-aljaz: I did a breakdown of all issues marked with "language-design":
-
-Work in progress:
-
-- #761 Intersect and Difference Operators
-- #656 Union operator
-- #286 Notation for creating sample data
-- #172 an exclude clause, that would select all columns except whats specified
-
-Stale discussions:
-
-- #819 Syntax to break an expression over multiple lines?
-- #1069 Should window default to `expanding` with a `sort`?
-- #523 Table definition syntax
-- #1286 switch / case / match semantics
-- Consistency/correctness:
-  - #1111 Deterministic/pure functions
-  - #985 Corrections of SQL's aggregation functions
-  - #905 `null`s in expressions
-- Joins:
-  - #1206 Join three tables on same column name
-  - #723 Natural Joins
-  - #716 Consider Datalog-like logic variable based JOINs
-
-Major features TODO:
-
-- #1384 feature request: grouping sets
-- #1123 filter foo LIKE ""%abc%""? (regex)
-- #562 Regex implementation
-- #993 filter based on a list of values (this is IN, ANY, ALL)
-- #746 `include` other prql files & module system
-- #644 Pivot and melt
-- #610 Date diff with `-` operator
-- #366 Date to string function
-- #566 Resolve \* to specific column names
-- #407 `WITH RECURSIVE` based iteration
-- #381 Types
-- #54 Table vs Value types
-
-Low priority:
-
-- #1225 Support escaping quotes inside strings & S-strings
-- #1092 Mutation queries (DML)
-- #968 Caching relations
-- #879 `LATERAL` joins (AKA `CROSS APPLY`) - necessary for subqueries in which
-  the rhs can reference the lhs
-- #730 Multiline comments and prql-doc
-- #643 Should compiler strive to evaulate expressions?
-- #438 Struct syntax
-- #14 JSON queries
-- #285 Write a language specification (EBNF syntax)
-- #82 Inline filters
-
-#### Language
-
-The language is now fairly stable. While we'll hit corner-cases, we expect we'll
-only make small changes to the existing features, even as we continue adding
-features.
-
-There are still some features that are missing: a native regex operator,
-
-On this foundation we are planning to build advanced features like type
-checking, function currying,  -->
-
-<!--
-
-TODO: are we planning to offer these? Where the underlying DB doesn't offer them, it'll be quite hard!
-
-pivot/melt/wide_to_long/long_to_wide operations,
-operator overloading and
-[a few more](https://github.com/PRQL/prql/issues?q=is%3Aissue+is%3Aopen+label%3Alanguage-design). -->
-<!--
-We haven't kept this up to date — let's only add it if we think we have a path to doing that...
-
-#### Milestones
-
-We have assigned features to a broad timeline in our
-[Milestones.](https://github.com/PRQL/prql/milestones) -->
