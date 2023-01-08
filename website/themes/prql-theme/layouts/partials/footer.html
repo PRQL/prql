@@ -1,10 +1,13 @@
 <footer id="footer" class="mt-auto">
   <div class="container">
     <div class="row">
-      <div class="col-md-6 py-3">
-        <h3>Help the project</h3>
+      <div class="col-md-8 py-3">
+        <h3>Contribute to PRQL</h3>
 
-        {{ with site.Params.help_the_project }}
+        {{ with site.Params.join_us }}
+
+          <p>{{ .subtitle | markdownify }}</p>
+
           <ul>
             {{ range .list }}
               <li>{{ .text | markdownify }}</li>
@@ -20,7 +23,7 @@
         {{ end }}
       </div>
 
-      <div class="col-md-6 py-3 text-end">
+      <div class="col-md-4 py-3 text-end">
         <p>
           Subscribe to
           {{ "[issue #1 for a GitHub notification on updates](https://github.com/PRQL/prql/issues/1)." | markdownify }}
