@@ -178,6 +178,14 @@ tasks:
     vars:
       default_target:
         sh: default-target
+    sources:
+      # See notes in `test-rust`
+      - "**/*.rs"
+      - "**/*.md"
+      - "**/*.toml"
+      - "**/*.lock"
+      - "**/*.pest"
+      - "**/*.snap"
     cmds:
       # We run this `snapshot` first for the reasons given in
       # `parser::test_parse_pipeline_parse_tree`. Ideally we would a) retain
@@ -186,7 +194,7 @@ tasks:
       # fail other compilation steps if they can't be extracted.
       - cargo insta test --accept -p mdbook-prql --test snapshot
       # Only delete unreferenced snapshots on the default target — lots are
-      # excluded under wasm.
+      # excluded under wasm. Note that this will also over-delete on Windows.
       - cargo insta test --accept --target={{.default_target}}
         --unreferenced=auto
       - cargo insta test --accept --target=wasm32-unknown-unknown
