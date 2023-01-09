@@ -56,7 +56,10 @@ Op_bin { Op_bin_only | Op_unary }
   // then I think the `Number` rule doesn't allow spaces...
   Date { "@" ![ ] (( @digit | "-" ) ![ ] )+ }
   ident_part { @asciiLetter (@asciiLetter | "_" | @digit )* }
-  Number { @digit+ "."? @digit* }
+  // TODO: This is not as precise as PRQL, which doesn't allow trailing
+  // underscores and allows no digit before the decimal point.
+  number_part { @digit ( @digit | "_" )* }
+  Number { number_part "."? number_part? }
   space { " "+ }
   Comment { "#" ![\n]* }
   Op_bin_only { "*" | "/" | "%" | "!=" | ">=" | "<=" | ">" | "<" | "??" | "and" | "or" }
