@@ -25,7 +25,7 @@ hero_section:
         sum_gross_cost = sum gross_cost,
       ]
     )
-    filter sum_gross_cost > 100000
+    filter sum_gross_cost > 100_000
     derive id = f"{title}_{country}"
     derive country_code = s"LEFT(country, 2)"
     sort [sum_gross_cost, -country]
@@ -131,7 +131,7 @@ showcase_section:
           aggregate [max_salary = max salary]
         )
         # And filter after aggregations!
-        filter max_salary > 100000
+        filter max_salary > 100_000
       sql: |
         SELECT
           country,
@@ -143,7 +143,7 @@ showcase_section:
         GROUP BY
           country
         HAVING
-          MAX(salary) > 100000
+          MAX(salary) > 100_000
 
     # markdown-link-check-disable
     - id: f-strings

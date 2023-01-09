@@ -67,8 +67,15 @@ const def = {
       [/[()[\]]/, "@brackets"],
 
       // numbers
-      [/\d*\.\d+([eE][-+]?\d+)?/, "number.float"],
-      [/\d+/, "number"],
+      // Slightly modified from https://stackoverflow.com/a/23872060/3064736;
+      // it requires a number after a decimal point, so ranges appear as
+      // ranges.
+      // We disallow a leading word character, so that we don't highlight
+      // a number in `foo_1`,
+      // We allow underscores, a bit more liberally than PRQL, which doesn't
+      // allow them at the start or end (but that's difficult to express with
+      // regex; contributions welcome).
+      [/[+-]?[^\w](([\d_]+(\.[\d_]+])?)|(\.[\d_]+))/, "number"],
 
       // strings
       [/"([^"\\]|\\.)*$/, "string.invalid"], // non-terminated string

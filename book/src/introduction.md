@@ -24,7 +24,7 @@ group [title, country] (                      # `group` runs a pipeline over eac
     sum_gross_cost = sum gross_cost,          # `=` sets a column name
   ]
 )
-filter sum_gross_cost > 100000                # `filter` replaces both of SQL's `WHERE` & `HAVING`
+filter sum_gross_cost > 100_000                # `filter` replaces both of SQL's `WHERE` & `HAVING`
 derive id = f"{title}_{country}"              # F-strings like python
 derive country_code = s"LEFT(country, 2)"     # S-strings allow using SQL as an escape hatch
 sort [sum_gross_cost, -country]               # `-country` means descending order

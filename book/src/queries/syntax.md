@@ -96,8 +96,10 @@ select first_name
 
 ## Parentheses
 
-Parentheses — `()` — are used to give precedence to inner expressions, as is the
-case in almost all languages / math.
+<!-- TODO document conclusions from https://github.com/PRQL/prql/issues/648  -->
+
+Parentheses — `()` — are used to give precedence to inner expressions, like in
+other languages.
 
 In particular, parentheses are used to nest pipelines for transforms such as
 `group` and `window`, which take a pipeline. Here, the `aggregate` pipeline is
@@ -115,13 +117,15 @@ group [title, country] (
 
 ## Comments
 
-Comments are represented by `#`. Currently only single line comments exist.
+Comments are represented by `#`.
 
 ```prql
 from employees  # Comment 1
 # Comment 2
 aggregate [average salary]
 ```
+
+There's no distinct multiline comment syntax.
 
 ## Quoted identifiers
 
@@ -158,4 +162,17 @@ to the SQL query:
 ```prql
 from employees
 filter id == $1
+```
+
+## Numbers
+
+Numbers can contain underscores between numbers; which can make reading large
+numbers easier:
+
+```prql
+from numbers
+select [
+    small = 1.000_000_1,
+    big = 5_000_000,
+]
 ```
