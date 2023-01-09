@@ -114,7 +114,7 @@ impl Context {
         }
 
         // base case: direct lookup
-        let decls = self.root_mod.lookup(&ident);
+        let decls = self.root_mod.lookup(ident);
         match decls.len() {
             // no match: try match *
             0 => {}
@@ -194,9 +194,7 @@ impl Context {
 
     fn resolve_ident_wildcard(&mut self, ident: &Ident) -> Result<Ident, String> {
         if ident.name != "*" {
-            return Err(format!(
-                "Unsupported feature: advanced wildcard column matching"
-            ));
+            return Err("Unsupported feature: advanced wildcard column matching".to_string());
         }
 
         let (mod_ident, mod_decl) = {
