@@ -7,6 +7,12 @@ repos:
         exclude: '(.*\.snap|.*render-link.html)'
       - id: check-yaml
       - id: mixed-line-ending
+  - repo: https://github.com/crate-ci/typos
+    rev: v1.13.6
+    hooks:
+      - id: typos
+        # https://github.com/crate-ci/typos/issues/347
+        pass_filenames: false
   - repo: https://github.com/pre-commit/mirrors-prettier
     rev: v3.0.0-alpha.4
     hooks:
@@ -14,17 +20,6 @@ repos:
         additional_dependencies:
           - prettier
           - prettier-plugin-go-template
-  - repo: https://github.com/crate-ci/typos
-    rev: v1.13.6
-    hooks:
-      - id: typos
-        # https://github.com/crate-ci/typos/issues/347
-        pass_filenames: false
-  - repo: https://github.com/r0x0d/pre-commit-rust
-    rev: v1.0.1
-    hooks:
-      - id: fmt
-      - id: clippy
   - repo: https://github.com/charliermarsh/ruff-pre-commit
     rev: v0.0.215
     hooks:
@@ -33,6 +28,11 @@ repos:
     rev: 22.12.0
     hooks:
       - id: black
+  - repo: https://github.com/r0x0d/pre-commit-rust
+    rev: v1.0.1
+    hooks:
+      - id: fmt
+      - id: clippy
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v0.991
     hooks:
