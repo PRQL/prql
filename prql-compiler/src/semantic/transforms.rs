@@ -8,7 +8,7 @@ use crate::ast::pl::*;
 use crate::error::{Error, Reason, WithErrorInfo};
 
 use super::context::{Decl, DeclKind};
-use super::module::{Module, NS_PARAM};
+use super::module::{Module, NS_ALL_UNKNOWN, NS_PARAM};
 use super::resolver::Resolver;
 use super::Frame;
 
@@ -30,7 +30,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
         "std.select" => {
             let [assigns, tbl] = unpack::<2>(closure);
 
-            let assigns = coerce_into_vec(assigns)?;
+            let assigns = coerce_and_flatten(assigns)?;
             (TransformKind::Select { assigns }, tbl)
         }
         "std.filter" => {
@@ -42,19 +42,19 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
         "std.derive" => {
             let [assigns, tbl] = unpack::<2>(closure);
 
-            let assigns = coerce_into_vec(assigns)?;
+            let assigns = coerce_and_flatten(assigns)?;
             (TransformKind::Derive { assigns }, tbl)
         }
         "std.aggregate" => {
             let [assigns, tbl] = unpack::<2>(closure);
 
-            let assigns = coerce_into_vec(assigns)?;
+            let assigns = coerce_and_flatten(assigns)?;
             (TransformKind::Aggregate { assigns }, tbl)
         }
         "std.sort" => {
             let [by, tbl] = unpack::<2>(closure);
 
-            let by = coerce_into_vec(by)?
+            let by = coerce_and_flatten(by)?
                 .into_iter()
                 .map(|node| {
                     let (column, direction) = match node.kind {
@@ -109,7 +109,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
                 }
             };
 
-            let filter = Box::new(Expr::collect_and(coerce_into_vec(filter)?));
+            let filter = Box::new(Expr::collect_and(coerce_and_flatten(filter)?));
 
             let with = Box::new(with);
             (TransformKind::Join { side, with, filter }, tbl)
@@ -117,7 +117,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
         "std.group" => {
             let [by, pipeline, tbl] = unpack::<3>(closure);
 
-            let by = coerce_into_vec(by)?;
+            let by = coerce_and_flatten(by)?;
 
             let pipeline = fold_by_simulating_eval(resolver, pipeline, tbl.ty.clone().unwrap())?;
 
@@ -259,6 +259,20 @@ pub fn coerce_into_vec(expr: Expr) -> Result<Vec<Expr>> {
         }
         _ => vec![expr],
     })
+}
+
+/// Converts `a` into `[a]` and `[b, [c, d]]` into `[b, c, d]`.
+pub fn coerce_and_flatten(expr: Expr) -> Result<Vec<Expr>> {
+    let items = coerce_into_vec(expr)?;
+    let mut res = Vec::with_capacity(items.len());
+    for item in items {
+        res.extend(coerce_into_vec(item)?);
+    }
+    let mut res2 = Vec::with_capacity(res.len());
+    for item in res {
+        res2.extend(coerce_into_vec(item)?);
+    }
+    Ok(res2)
 }
 
 /// Simulate evaluation of the inner pipeline of group or window
@@ -422,8 +436,8 @@ fn concat(mut top: Frame, bottom: Frame) -> Result<Frame, Error> {
     let mut columns = Vec::with_capacity(top.columns.len());
     for (t, b) in zip(top.columns, bottom.columns) {
         columns.push(match (t, b) {
-            (FrameColumn::Wildcard { input_name }, FrameColumn::Wildcard { .. }) => {
-                FrameColumn::Wildcard { input_name }
+            (FrameColumn::AllUnknown { input_name }, FrameColumn::AllUnknown { .. }) => {
+                FrameColumn::AllUnknown { input_name }
             }
             (
                 FrameColumn::Single {
@@ -454,6 +468,71 @@ fn concat(mut top: Frame, bottom: Frame) -> Result<Frame, Error> {
 
     top.columns = columns;
     Ok(top)
+}
+
+impl Frame {
+    pub fn apply_assign(&mut self, expr: &Expr) {
+        let id = expr.id.unwrap();
+
+        if let Some(ident) = &expr.kind.as_ident() {
+            if ident.name == NS_ALL_UNKNOWN {
+                let input_id = expr.target_id.unwrap();
+                let input = self.inputs.iter().find(|i| i.id == input_id).unwrap();
+                self.columns.push(FrameColumn::AllUnknown {
+                    input_name: input.name.clone(),
+                });
+                return;
+            }
+        }
+
+        let col_name = expr
+            .alias
+            .clone()
+            .or_else(|| expr.kind.as_ident().cloned().map(|x| x.name));
+
+        // remove names from columns with the same name
+        if col_name.is_some() {
+            for c in &mut self.columns {
+                if let FrameColumn::Single { name, .. } = c {
+                    if name.as_ref().map(|i| &i.name) == col_name.as_ref() {
+                        *name = None;
+                    }
+                }
+            }
+        }
+
+        self.columns.push(FrameColumn::Single {
+            name: col_name.map(Ident::from_name),
+            expr_id: id,
+        });
+    }
+
+    pub fn apply_assigns(&mut self, assigns: &[Expr]) {
+        for expr in assigns {
+            self.apply_assign(expr);
+        }
+    }
+
+    pub fn find_input(&self, input_name: &str) -> Option<&FrameInput> {
+        self.inputs.iter().find(|i| i.name == input_name)
+    }
+
+    /// Renames all frame inputs to given alias.
+    pub fn rename(&mut self, alias: String) {
+        for input in &mut self.inputs {
+            input.name = alias.clone();
+        }
+
+        for col in &mut self.columns {
+            match col {
+                FrameColumn::AllUnknown { input_name } => *input_name = alias.clone(),
+                FrameColumn::Single {
+                    name: Some(name), ..
+                } => name.path = vec![alias.clone()],
+                _ => {}
+            }
+        }
+    }
 }
 
 fn unpack<const P: usize>(closure: Closure) -> [Expr; P] {
@@ -709,7 +788,7 @@ mod tests {
                 ty:
                   Table:
                     columns:
-                      - Wildcard:
+                      - AllUnknown:
                           input_name: c_invoice
                     inputs:
                       - id: 4

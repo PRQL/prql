@@ -39,6 +39,11 @@ impl Ident {
             (first, Some(self))
         }
     }
+
+    pub fn with_name<S: ToString>(mut self, name: S) -> Self {
+        self.name = name.to_string();
+        self
+    }
 }
 
 impl std::fmt::Display for Ident {

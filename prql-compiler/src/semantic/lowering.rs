@@ -12,7 +12,7 @@ use crate::ast::pl::{
 };
 use crate::ast::rq::{self, CId, Query, RelationColumn, TId, TableDecl, Transform};
 use crate::error::{Error, Reason, Span};
-use crate::semantic::module::Module;
+use crate::semantic::module::{Module, NS_ALL_UNKNOWN};
 use crate::utils::{toposort, IdGenerator};
 
 use super::context::{self, Context, DeclKind};
@@ -107,7 +107,13 @@ impl Lowerer {
 
                 log::debug!("lowering an instance of table {fq_table_name} (id={id})...");
 
-                let name = expr.alias.clone().or(Some(fq_table_name.name));
+                let input_name = expr
+                    .ty
+                    .as_ref()
+                    .and_then(|t| t.as_table())
+                    .and_then(|f| f.inputs.first())
+                    .map(|i| i.name.clone());
+                let name = input_name.or(Some(fq_table_name.name));
 
                 self.create_a_table_instance(id, name, tid)
             }
@@ -377,7 +383,7 @@ impl Lowerer {
 
                     columns.push((RelationColumn::Single(name), cid));
                 }
-                FrameColumn::Wildcard { input_name } => {
+                FrameColumn::AllUnknown { input_name } => {
                     let input = frame.find_input(input_name).unwrap();
 
                     match &self.node_mapping[&input.id] {
@@ -530,12 +536,13 @@ impl Lowerer {
             | pl::ExprKind::Closure(_)
             | pl::ExprKind::Pipeline(_)
             | pl::ExprKind::TransformCall(_) => {
+                log::debug!("cannot lower {ast:?}");
                 return Err(Error::new(Reason::Unexpected {
                     found: format!("`{ast}`"),
                 })
                 .with_help("this is probably a 'bad type' error (we are working on that)")
                 .with_span(ast.span)
-                .into())
+                .into());
             }
         };
 
@@ -568,7 +575,7 @@ impl Lowerer {
             Some(LoweredTarget::Input(input_columns)) => {
                 let name = match name {
                     Some(v) => {
-                        if v == "*" {
+                        if v == NS_ALL_UNKNOWN {
                             RelationColumn::Wildcard
                         } else {
                             RelationColumn::Single(Some(v.clone()))

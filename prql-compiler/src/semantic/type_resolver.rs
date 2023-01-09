@@ -79,7 +79,7 @@ where
                     name: input_name.clone(),
                     table: None,
                 }],
-                columns: vec![FrameColumn::Wildcard { input_name }],
+                columns: vec![FrameColumn::AllUnknown { input_name }],
             })
         } else {
             expected.clone()

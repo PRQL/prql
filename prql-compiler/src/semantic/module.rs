@@ -15,7 +15,12 @@ pub const NS_FRAME: &str = "_frame";
 pub const NS_FRAME_RIGHT: &str = "_right";
 pub const NS_PARAM: &str = "_param";
 pub const NS_DEFAULT_DB: &str = "default_db";
+// refers to the containing module (direct parent)
 pub const NS_SELF: &str = "_self";
+// implies we can infer new names in the containing module
+pub const NS_INFER: &str = "_infer";
+// refers a list of all columns that could possibly be inferred
+pub const NS_ALL_UNKNOWN: &str = "_all_unknown";
 
 #[derive(Default, Serialize, Deserialize, Clone)]
 pub struct Module {
@@ -45,13 +50,11 @@ impl Module {
                     "default_db".to_string(),
                     Decl::from(DeclKind::Module(Module {
                         names: HashMap::from([(
-                            "*".to_string(),
-                            Decl::from(DeclKind::Wildcard(Box::new(DeclKind::TableDecl(
-                                TableDecl {
-                                    columns: vec![RelationColumn::Wildcard],
-                                    expr: None,
-                                },
-                            )))),
+                            NS_INFER.to_string(),
+                            Decl::from(DeclKind::Infer(Box::new(DeclKind::TableDecl(TableDecl {
+                                columns: vec![RelationColumn::Wildcard],
+                                expr: None,
+                            })))),
                         )]),
                         shadowed: None,
                         redirects: vec![],
@@ -203,7 +206,7 @@ impl Module {
         for column in &frame.columns {
             // determine input name
             let input_name = match column {
-                FrameColumn::Wildcard { input_name } => Some(input_name),
+                FrameColumn::AllUnknown { input_name } => Some(input_name),
                 FrameColumn::Single { name, .. } => name.as_ref().and_then(|n| n.path.first()),
             };
 
@@ -239,13 +242,13 @@ impl Module {
 
             // insert column decl
             match column {
-                FrameColumn::Wildcard { input_name } => {
+                FrameColumn::AllUnknown { input_name } => {
                     let input = frame.inputs.iter().find(|i| &i.name == input_name).unwrap();
 
-                    let kind = DeclKind::Wildcard(Box::new(DeclKind::Column(input.id)));
+                    let kind = DeclKind::Infer(Box::new(DeclKind::Column(input.id)));
                     let declared_at = Some(input.id);
                     let entry = Decl { kind, declared_at };
-                    ns.names.insert("*".to_string(), entry);
+                    ns.names.insert(NS_INFER.to_string(), entry);
                 }
                 FrameColumn::Single {
                     name: Some(name),
