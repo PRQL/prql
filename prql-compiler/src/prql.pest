@@ -90,7 +90,12 @@ string_inner = { ( !( PEEK ) ~ ANY )+ }
 // Either > 3 quotes, or just one. Currently both of those can be multiline.
 string = ${ opening_quote ~ string_inner? ~ POP }
 
-number = ${ operator_add? ~ ( ASCII_DIGIT )+ ~ ("." ~ ( ASCII_DIGIT )+)? }
+// We can use underscores within numbers
+number_char = _{ ASCII_DIGIT | "_" }
+// Numbers need to start and end with a digit. We implement the end by matching
+// either a number_char that's not the final char, or a final char that's a digit.
+number_part = _{ ( ASCII_DIGIT ) ~ (( number_char ~ &number_char )* ~ ( ASCII_DIGIT ~ !number_char ))? }
+number = ${ operator_add? ~ number_part ~ ("." ~ number_part)? }
 
 boolean = ${ "true" | "false" }
 

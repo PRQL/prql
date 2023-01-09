@@ -422,6 +422,8 @@ fn test_numbers() {
     let query = r###"
     from numbers
     select [
+        v = 5.000_000_1,
+        w = 5_000,
         x = 5,
         y = 5.0,
         z = 5.00,
@@ -430,6 +432,8 @@ fn test_numbers() {
 
     assert_display_snapshot!((compile(query).unwrap()), @r###"
     SELECT
+      5.0000001 AS v,
+      5000 AS w,
       5 AS x,
       5.0 AS y,
       5.0 AS z

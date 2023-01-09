@@ -249,7 +249,9 @@ fn expr_of_parse_pair(pair: Pair<Rule>) -> Result<Expr> {
         }
 
         Rule::number => {
-            let str = pair.as_str();
+            // pest is responsible for ensuring these are in the correct place,
+            // so we just need to remove them.
+            let str = pair.as_str().replace('_', "");
 
             let lit = if let Ok(i) = str.parse::<i64>() {
                 Literal::Integer(i)
@@ -845,6 +847,11 @@ Canada
         Literal:
           Integer: 23
         "###);
+        assert_yaml_snapshot!(expr_of_string(r#"2_3_4.5_6"#, Rule::number)?, @r###"
+        ---
+        Literal:
+          Float: 234.56
+        "###);
         assert_yaml_snapshot!(expr_of_string(r#"23.6"#, Rule::number)?, @r###"
         ---
         Literal:
@@ -866,6 +873,17 @@ Canada
             Literal:
               Integer: 2
         "###);
+
+        // Underscores can't go at the beginning or end of numbers
+        assert!(expr_of_string(dbg!("_2"), Rule::number).is_err());
+        assert!(expr_of_string(dbg!("_"), Rule::number).is_err());
+        assert!(expr_of_string(dbg!("_2.3"), Rule::number).is_err());
+        // We need to test these with `stmts_of_string` because they start with
+        // a valid number (and pest will return as much as possible and then return)
+        let bad_numbers = vec!["2_", "2.3_"];
+        for bad_number in bad_numbers {
+            assert!(stmts_of_string(dbg!(bad_number)).is_err());
+        }
         Ok(())
     }
 
