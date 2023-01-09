@@ -11,7 +11,7 @@ features, adapt their syntax and show how they are used in PRQL.
 ## Fancy functional features
 
 Functional programming is an old school programming paradigm, that is slowly
-gaining traction withing a few common languages that are designed with
+gaining traction within a few common languages that are designed with
 procedural paradigm in mind.
 
 The many aspects of paradigm have been discussed extensively, so I'll try to be
