@@ -1,6 +1,6 @@
 # PRQL Changelog
 
-## 0.3.2 — [unreleased]
+## 0.4.0 — [unreleased]
 
 **Features**:
 
@@ -26,6 +26,17 @@
   from employees
   concat managers
   union other_employees
+  ```
+
+- Numbers can now contain underscores, which can make reading long numbers
+  easier (@max-sixty, #1467):
+
+  ```prql
+  from numbers
+  select [
+      small = 1.000_000_1,
+      big = 5_000_000,
+  ]
   ```
 
 - Add SQL comment which displays the compiler version used to generate the SQL
