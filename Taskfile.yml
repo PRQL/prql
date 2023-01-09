@@ -169,6 +169,9 @@ tasks:
       Running this isn't required when developing; it's for caching or as a reference.
 
     cmds:
+      # TODO: this doesn't run the python or js tests; only the rust tests of
+      # prql-python. We should add them in here. They are run in `test-all.yaml`
+      # on GHA.
       - task: test-rust
       - task: build-all
       - pre-commit run -a
