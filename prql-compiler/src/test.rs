@@ -243,7 +243,7 @@ fn test_concat() {
       SELECT
         *
       FROM
-        employees
+        employees AS t
     )
     UNION
     DISTINCT

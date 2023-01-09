@@ -4,9 +4,9 @@ expression: "resolve_type(r#\"\n            from table_1\n            join custo
 ---
 Table:
   columns:
-    - Wildcard:
+    - AllUnknown:
         input_name: table_1
-    - Wildcard:
+    - AllUnknown:
         input_name: customers
   inputs:
     - id: 4

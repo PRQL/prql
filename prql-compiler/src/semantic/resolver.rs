@@ -129,7 +129,7 @@ impl AstFold for Resolver {
                         }
                     }
 
-                    DeclKind::Wildcard(_) => Expr {
+                    DeclKind::Infer(_) => Expr {
                         kind: ExprKind::Ident(fq_ident),
                         target_id: entry.declared_at,
                         ..node
@@ -141,24 +141,23 @@ impl AstFold for Resolver {
                     },
 
                     DeclKind::TableDecl(TableDecl { columns, .. }) => {
-                        let alias = node.alias.unwrap_or_else(|| ident.name.clone());
+                        let rel_name = ident.name.clone();
 
                         let instance_frame = Frame {
                             inputs: vec![FrameInput {
                                 id,
-                                name: alias.clone(),
+                                name: rel_name.clone(),
                                 table: Some(fq_ident.clone()),
                             }],
                             columns: columns
                                 .iter()
                                 .map(|col| match col {
-                                    RelationColumn::Wildcard => FrameColumn::Wildcard {
-                                        input_name: alias.clone(),
+                                    RelationColumn::Wildcard => FrameColumn::AllUnknown {
+                                        input_name: rel_name.clone(),
                                     },
-                                    RelationColumn::Single(name) => FrameColumn::Single {
-                                        name: name.clone().map(|name| Ident {
-                                            name,
-                                            path: vec![alias.clone()],
+                                    RelationColumn::Single(col_name) => FrameColumn::Single {
+                                        name: col_name.clone().map(|col_name| {
+                                            Ident::from_path(vec![rel_name.clone(), col_name])
                                         }),
                                         expr_id: id,
                                     },
@@ -176,7 +175,7 @@ impl AstFold for Resolver {
                         }
                     }
 
-                    DeclKind::Expr(expr) => expr.as_ref().clone(),
+                    DeclKind::Expr(expr) => self.fold_expr(expr.as_ref().clone())?,
 
                     DeclKind::InstanceOf(_) => {
                         bail!(Error::new(Reason::Simple(
@@ -185,11 +184,6 @@ impl AstFold for Resolver {
                         .with_span(span)
                         .with_help("did you forget to specify the column name?"));
                     }
-
-                    DeclKind::NoResolve => Expr {
-                        kind: ExprKind::Ident(ident),
-                        ..node
-                    },
 
                     _ => Expr {
                         kind: ExprKind::Ident(fq_ident),
@@ -245,6 +239,11 @@ impl AstFold for Resolver {
 
         if r.ty.is_none() {
             r.ty = Some(resolve_type(&r)?);
+        }
+        if let Some(Ty::Table(frame)) = &mut r.ty {
+            if let Some(alias) = r.alias.take() {
+                frame.rename(alias);
+            }
         }
         let r = static_analysis::static_analysis(r);
         Ok(r)
@@ -342,7 +341,7 @@ impl Resolver {
         };
 
         res.map_err(|e| {
-            log::debug!("cannot resolve, context={:#?}", self.decls);
+            log::debug!("cannot resolve: `{e}`, context={:#?}", self.decls);
             anyhow!(Error::new(Reason::Simple(e)).with_span(span))
         })
     }

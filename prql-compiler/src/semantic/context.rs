@@ -5,7 +5,9 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::{collections::HashMap, fmt::Debug};
 
-use super::module::{Module, NS_DEFAULT_DB, NS_SELF, NS_STD};
+use super::module::{
+    Module, NS_ALL_UNKNOWN, NS_DEFAULT_DB, NS_FRAME, NS_FRAME_RIGHT, NS_INFER, NS_SELF, NS_STD,
+};
 use crate::ast::pl::*;
 use crate::ast::rq::RelationColumn;
 use crate::error::Span;
@@ -40,16 +42,17 @@ pub enum DeclKind {
 
     InstanceOf(Ident),
 
+    /// A single column. Contains id of target which is either:
+    /// - an input relation that is source of this column or
+    /// - a column expression.
     Column(usize),
 
-    /// Contains a default value to be created in parent namespace matched.
-    Wildcard(Box<DeclKind>),
+    /// Contains a default value to be created in parent namespace when NS_INFER is matched.
+    Infer(Box<DeclKind>),
 
     FuncDef(FuncDef),
 
     Expr(Box<Expr>),
-
-    NoResolve,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -90,7 +93,7 @@ impl Context {
         let frame = table_def.value.ty.clone().unwrap().into_table().unwrap();
         let columns = (frame.columns.into_iter())
             .map(|col| match col {
-                FrameColumn::Wildcard { .. } => RelationColumn::Wildcard,
+                FrameColumn::AllUnknown { .. } => RelationColumn::Wildcard,
                 FrameColumn::Single { name, .. } => RelationColumn::Single(name.map(|n| n.name)),
             })
             .collect();
@@ -105,9 +108,13 @@ impl Context {
     }
 
     pub fn resolve_ident(&mut self, ident: &Ident) -> Result<Ident, String> {
-        // lookup the name
-        let decls = self.root_mod.lookup(ident);
+        // special case: wildcard
+        if ident.name.contains('*') {
+            return self.resolve_ident_wildcard(ident);
+        }
 
+        // base case: direct lookup
+        let decls = self.root_mod.lookup(ident);
         match decls.len() {
             // no match: try match *
             0 => {}
@@ -122,35 +129,34 @@ impl Context {
             }
         }
 
-        // this variable can be from a namespace that we don't know all columns of
+        // fallback case: this variable can be from a namespace that we don't know all columns of
         let decls = if ident.name != "*" {
             self.root_mod.lookup(&Ident {
                 path: ident.path.clone(),
-                name: "*".to_string(),
+                name: NS_INFER.to_string(),
             })
         } else {
             HashSet::new()
         };
-
         match decls.len() {
             0 => Err(format!("Unknown name {ident}")),
 
             // single match, great!
             1 => {
-                let wildcard_ident = decls.into_iter().next().unwrap();
+                let infer_ident = decls.into_iter().next().unwrap();
 
-                let wildcard = self.root_mod.get(&wildcard_ident).unwrap();
-                let wildcard_default = wildcard.kind.as_wildcard().cloned().unwrap();
-                let input_id = wildcard.declared_at;
+                let infer = self.root_mod.get(&infer_ident).unwrap();
+                let infer_default = infer.kind.as_infer().cloned().unwrap();
+                let input_id = infer.declared_at;
 
-                let module_ident = wildcard_ident.pop().unwrap();
+                let module_ident = infer_ident.pop().unwrap();
                 let module = self.root_mod.get_mut(&module_ident).unwrap();
                 let module = module.kind.as_module_mut().unwrap();
 
                 // insert default
                 module
                     .names
-                    .insert(ident.name.clone(), Decl::from(*wildcard_default));
+                    .insert(ident.name.clone(), Decl::from(*infer_default));
 
                 // infer table columns
                 if let Some(decl) = module.names.get(NS_SELF).cloned() {
@@ -186,6 +192,52 @@ impl Context {
         }
     }
 
+    fn resolve_ident_wildcard(&mut self, ident: &Ident) -> Result<Ident, String> {
+        if ident.name != "*" {
+            return Err("Unsupported feature: advanced wildcard column matching".to_string());
+        }
+
+        let (mod_ident, mod_decl) = {
+            let mod_ident = (Ident::from_name(NS_FRAME) + ident.clone()).pop().unwrap();
+
+            if let Some(mod_decl) = self.root_mod.get_mut(&mod_ident) {
+                (mod_ident, mod_decl)
+            } else {
+                let mod_ident = (Ident::from_name(NS_FRAME_RIGHT) + ident.clone())
+                    .pop()
+                    .unwrap();
+
+                let mod_decl = (self.root_mod.get_mut(&mod_ident))
+                    .ok_or_else(|| format!("Unknown relation {ident}"))?;
+
+                (mod_ident, mod_decl)
+            }
+        };
+
+        let module = (mod_decl.kind.as_module_mut())
+            .ok_or_else(|| format!("Expected a module {mod_ident}"))?;
+
+        let fq_cols = (module.names.iter())
+            .flat_map(|(name, decl)| match &decl.kind {
+                DeclKind::Column(_) => Some(mod_ident.clone() + Ident::from_name(name)),
+                DeclKind::Infer(_) => Some(mod_ident.clone() + Ident::from_name(NS_ALL_UNKNOWN)),
+                _ => None,
+            })
+            .map(|fq_col| Expr::from(ExprKind::Ident(fq_col)))
+            .collect_vec();
+        let cols_expr = DeclKind::Expr(Box::new(Expr::from(ExprKind::List(fq_cols))));
+
+        let save_as = "_wildcard_match";
+        module.names.insert(save_as.to_string(), cols_expr.into());
+
+        module.names.insert(
+            NS_ALL_UNKNOWN.to_string(),
+            DeclKind::Column(mod_decl.declared_at.unwrap()).into(),
+        );
+
+        Ok(mod_ident + Ident::from_name(save_as))
+    }
+
     fn infer_table_column(&mut self, table_ident: &Ident, col_name: &str) -> Result<(), String> {
         let table = self.root_mod.get_mut(table_ident).unwrap();
         let table_decl = table.kind.as_table_decl_mut().unwrap();
@@ -211,7 +263,7 @@ impl Context {
         if let Some(expr) = &table_decl.expr {
             if let Some(Ty::Table(frame)) = expr.ty.as_ref() {
                 let wildcard_inputs = (frame.columns.iter())
-                    .filter_map(|c| c.as_wildcard())
+                    .filter_map(|c| c.as_all_unknown())
                     .collect_vec();
 
                 match wildcard_inputs.len() {
@@ -272,10 +324,9 @@ impl std::fmt::Display for DeclKind {
             }
             Self::InstanceOf(arg0) => write!(f, "InstanceOf: {arg0}"),
             Self::Column(arg0) => write!(f, "Column (target {arg0})"),
-            Self::Wildcard(arg0) => write!(f, "Wildcard (default: {arg0})"),
+            Self::Infer(arg0) => write!(f, "Infer (default: {arg0})"),
             Self::FuncDef(arg0) => write!(f, "FuncDef: {arg0}"),
             Self::Expr(arg0) => write!(f, "Expr: {arg0}"),
-            Self::NoResolve => write!(f, "NoResolve"),
         }
     }
 }

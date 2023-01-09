@@ -60,7 +60,7 @@ pub struct TableDecl {
     /// An id for this table, unique within all tables in this query.
     pub id: TId,
 
-    /// Given name of this table (name of the CTE)
+    /// Name hint for this declaration (name of the CTE)
     pub name: Option<String>,
 
     /// Table's contents.
@@ -76,7 +76,7 @@ pub struct TableRef {
     // of this table in the same query
     pub columns: Vec<(RelationColumn, CId)>,
 
-    /// Given name of this table (table alias)
+    /// Name hint for relation within this pipeline (table alias)
     pub name: Option<String>,
 }
 
