@@ -325,6 +325,12 @@ principles_section:
         and readability. We de-emphasize other SQL features such as inserting
         data or transactions.
 
+videos_section:
+  enable: true
+  title: "Pipelines in action"
+  items:
+    - youtube_id: IQRRsfavEic
+
 tools_section:
   enable: true
   title: "Tools"
