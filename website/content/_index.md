@@ -329,7 +329,7 @@ videos_section:
   enable: true
   title: "Pipelines in action"
   items:
-  - youtube_id: IQRRsfavEic
+    - youtube_id: IQRRsfavEic
 
 tools_section:
   enable: true
