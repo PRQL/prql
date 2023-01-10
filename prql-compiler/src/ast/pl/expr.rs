@@ -530,7 +530,7 @@ impl Display for Expr {
                 write!(f, "{}", literal)?;
             }
             ExprKind::Switch(cases) => {
-                f.write_str("[\n")?;
+                f.write_str("switch [\n")?;
                 for case in cases {
                     writeln!(f, "  {} => {}", case.condition, case.value)?;
                 }

@@ -96,12 +96,7 @@ pub fn fold_expr_kind<T: ?Sized + AstFold>(fold: &mut T, expr_kind: ExprKind) ->
                 .map(|x| fold.fold_interpolate_item(x))
                 .try_collect()?,
         ),
-        Switch(cases) => Switch(
-            cases
-                .into_iter()
-                .map(|c| fold_switch_case(fold, c))
-                .try_collect()?,
-        ),
+        Switch(cases) => Switch(fold_cases(fold, cases)?),
 
         FuncCall(func_call) => FuncCall(fold.fold_func_call(func_call)?),
         Closure(closure) => Closure(Box::new(fold.fold_closure(*closure)?)),
@@ -165,6 +160,16 @@ pub fn fold_interpolate_item<F: ?Sized + AstFold>(
         InterpolateItem::String(string) => InterpolateItem::String(string),
         InterpolateItem::Expr(expr) => InterpolateItem::Expr(Box::new(fold.fold_expr(*expr)?)),
     })
+}
+
+fn fold_cases<F: ?Sized + AstFold>(
+    fold: &mut F,
+    cases: Vec<SwitchCase>,
+) -> Result<Vec<SwitchCase>> {
+    cases
+        .into_iter()
+        .map(|c| fold_switch_case(fold, c))
+        .try_collect()
 }
 
 pub fn fold_switch_case<F: ?Sized + AstFold>(fold: &mut F, case: SwitchCase) -> Result<SwitchCase> {
