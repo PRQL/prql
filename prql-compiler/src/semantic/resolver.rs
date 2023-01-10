@@ -24,12 +24,12 @@ pub fn resolve(stmts: Vec<Stmt>, context: Context) -> Result<(Vec<Stmt>, Context
     let mut resolver = Resolver::new(context);
     let stmts = resolver.fold_stmts(stmts)?;
 
-    Ok((stmts, resolver.decls))
+    Ok((stmts, resolver.context))
 }
 
 /// Can fold (walk) over AST and for each function call or variable find what they are referencing.
 pub struct Resolver {
-    pub decls: Context,
+    pub context: Context,
 
     default_namespace: Option<String>,
 
@@ -42,7 +42,7 @@ pub struct Resolver {
 impl Resolver {
     fn new(context: Context) -> Self {
         Resolver {
-            decls: context,
+            context,
             default_namespace: None,
             in_func_call_name: false,
             id: IdGenerator::new(),
@@ -57,13 +57,13 @@ impl AstFold for Resolver {
         for mut stmt in stmts {
             stmt.id = Some(self.id.gen());
             if let Some(span) = stmt.span {
-                self.decls.span_map.insert(stmt.id.unwrap(), span);
+                self.context.span_map.insert(stmt.id.unwrap(), span);
             }
 
             let kind = match stmt.kind {
                 StmtKind::QueryDef(d) => StmtKind::QueryDef(d),
                 StmtKind::FuncDef(func_def) => {
-                    self.decls.declare_func(func_def, stmt.id);
+                    self.context.declare_func(func_def, stmt.id);
                     continue;
                 }
                 StmtKind::TableDef(table_def) => {
@@ -80,7 +80,7 @@ impl AstFold for Resolver {
                     })?;
                     table_def.value.ty = Some(assumed_ty);
 
-                    self.decls.declare_table(table_def, stmt.id);
+                    self.context.declare_table(table_def, stmt.id);
                     continue;
                 }
                 StmtKind::Main(expr) => {
@@ -104,7 +104,7 @@ impl AstFold for Resolver {
         let span = node.span;
 
         if let Some(span) = span {
-            self.decls.span_map.insert(id, span);
+            self.context.span_map.insert(id, span);
         }
 
         log::trace!("folding expr {node:?}");
@@ -114,7 +114,7 @@ impl AstFold for Resolver {
                 log::debug!("resolving ident {ident}...");
                 let fq_ident = self.resolve_ident(&ident, node.span)?;
                 log::debug!("... resolved to {fq_ident}");
-                let entry = self.decls.root_mod.get(&fq_ident).unwrap();
+                let entry = self.context.root_mod.get(&fq_ident).unwrap();
                 log::debug!("... which is {entry}");
 
                 match &entry.kind {
@@ -335,13 +335,13 @@ impl Resolver {
                 path: vec![self.default_namespace.clone().unwrap()],
                 name: ident.name.clone(),
             };
-            self.decls.resolve_ident(&defaulted)
+            self.context.resolve_ident(&defaulted)
         } else {
-            self.decls.resolve_ident(ident)
+            self.context.resolve_ident(ident)
         };
 
         res.map_err(|e| {
-            log::debug!("cannot resolve: `{e}`, context={:#?}", self.decls);
+            log::debug!("cannot resolve: `{e}`, context={:#?}", self.context);
             anyhow!(Error::new(Reason::Simple(e)).with_span(span))
         })
     }
@@ -367,7 +367,7 @@ impl Resolver {
         let mut r = if enough_args {
             // push the env
             let closure_env = Module::from_exprs(closure.env);
-            self.decls.root_mod.stack_push(NS_PARAM, closure_env);
+            self.context.root_mod.stack_push(NS_PARAM, closure_env);
             let closure = Closure {
                 env: HashMap::new(),
                 ..closure
@@ -394,14 +394,14 @@ impl Resolver {
 
                     let (func_env, body) = env_of_closure(closure);
 
-                    self.decls.root_mod.stack_push(NS_PARAM, func_env);
+                    self.context.root_mod.stack_push(NS_PARAM, func_env);
 
                     // fold again, to resolve inner variables & functions
                     let body = self.fold_expr(body)?;
 
                     // remove param decls
                     log::debug!("stack_pop: {:?}", body.id);
-                    let func_env = self.decls.root_mod.stack_pop(NS_PARAM).unwrap();
+                    let func_env = self.context.root_mod.stack_pop(NS_PARAM).unwrap();
 
                     if let ExprKind::Closure(mut inner_closure) = body.kind {
                         // body couldn't been resolved - construct a closure to be evaluated later
@@ -430,7 +430,7 @@ impl Resolver {
             };
 
             // pop the env
-            self.decls.root_mod.stack_pop(NS_PARAM).unwrap();
+            self.context.root_mod.stack_pop(NS_PARAM).unwrap();
 
             res.needs_window = needs_window;
             res
@@ -529,8 +529,8 @@ impl Resolver {
 
         // resolve tables
         if has_tables {
-            self.decls.root_mod.shadow(NS_FRAME);
-            self.decls.root_mod.shadow(NS_FRAME_RIGHT);
+            self.context.root_mod.shadow(NS_FRAME);
+            self.context.root_mod.shadow(NS_FRAME_RIGHT);
 
             for pos in tables.into_iter().with_position() {
                 let is_last = matches!(pos, Position::Last(_) | Position::Only(_));
@@ -543,9 +543,9 @@ impl Resolver {
                 // add table's frame into scope
                 if let Some(Ty::Table(frame)) = &arg.ty {
                     if is_last {
-                        self.decls.root_mod.insert_frame(frame, NS_FRAME);
+                        self.context.root_mod.insert_frame(frame, NS_FRAME);
                     } else {
-                        self.decls.root_mod.insert_frame(frame, NS_FRAME_RIGHT);
+                        self.context.root_mod.insert_frame(frame, NS_FRAME_RIGHT);
                     }
                 }
 
@@ -566,7 +566,7 @@ impl Resolver {
                     // add aliased columns into scope
                     if let Some(alias) = item.alias.clone() {
                         let id = item.id.unwrap();
-                        self.decls.root_mod.insert_frame_col(NS_FRAME, alias, id);
+                        self.context.root_mod.insert_frame_col(NS_FRAME, alias, id);
                     }
                     res.push(item);
                 }
@@ -583,8 +583,8 @@ impl Resolver {
         }
 
         if has_tables {
-            self.decls.root_mod.unshadow(NS_FRAME);
-            self.decls.root_mod.unshadow(NS_FRAME_RIGHT);
+            self.context.root_mod.unshadow(NS_FRAME);
+            self.context.root_mod.unshadow(NS_FRAME_RIGHT);
         }
 
         Ok(closure)
