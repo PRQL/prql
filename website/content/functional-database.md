@@ -274,7 +274,8 @@ here, namely:
 - inline currying - function call must start with a function name,
 - syntax for declaring tables.
 
-We focused on the core features and left these out because they can be worked around.
+We focused on the core features and left these out because they can be worked
+around.
 
 Also, PRQL may not ever get all of these features, because ideas in this article
 are only my own and not necessarily of the whole PRQL core team.
