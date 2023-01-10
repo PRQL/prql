@@ -304,11 +304,11 @@ fn fold_by_simulating_eval(
     }));
 
     let env = Module::singleton(param_name, Decl::from(DeclKind::Column(param_id)));
-    resolver.decls.root_mod.stack_push(NS_PARAM, env);
+    resolver.context.root_mod.stack_push(NS_PARAM, env);
 
     let pipeline = resolver.fold_expr(pipeline)?;
 
-    resolver.decls.root_mod.stack_pop(NS_PARAM).unwrap();
+    resolver.context.root_mod.stack_pop(NS_PARAM).unwrap();
 
     // now, we need wrap the result into a closure and replace
     // the dummy node with closure's parameter.
