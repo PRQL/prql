@@ -1,9 +1,9 @@
 #![cfg(not(target_family = "wasm"))]
-use prql_compiler::{self, sql::Target, IntoOnly};
+use prql_compiler::{self, sql::Dialect, IntoOnly};
 use pyo3::{exceptions, prelude::*};
 
 #[pyfunction]
-pub fn compile(prql_query: &str, options: Option<CompileOptions>) -> PyResult<String> {
+pub fn compile(prql_query: &str, options: Option<SQLCompileOptions>) -> PyResult<String> {
     Ok(prql_query)
         .and_then(prql_compiler::prql_to_pl)
         .and_then(prql_compiler::pl_to_rq)
@@ -49,31 +49,28 @@ fn prql_python(_py: Python, m: &PyModule) -> PyResult<()> {
     Ok(())
 }
 
-// TODO: `CompileOptions` is replicated in `prql-compiler/src/sql/mod.rs`; can
-// we combine them despite the `pyclass` attribute?
-
 /// Compilation options for SQL backend of the compiler.
 #[pyclass]
 #[derive(Clone)]
-pub struct CompileOptions {
+pub struct SQLCompileOptions {
     /// Pass generated SQL string trough a formatter that splits it
     /// into multiple lines and prettifies indentation and spacing.
     ///
     /// Defaults to true.
     pub format: bool,
 
-    /// Target to compile to (generally a SQL dialect).
+    /// Target dialect you want to compile for.
     ///
     /// Because PRQL compiles to a subset of SQL, not all SQL features are
-    /// required for PRQL. This means that generic target may work with most
+    /// required for PRQL. This means that generic dialect may work with most
     /// databases.
     ///
-    /// If something does not work in the target / dialect you need, please
-    /// report it at GitHub issues.
+    /// If something does not work in dialect you need, please report it at
+    /// GitHub issues.
     ///
-    /// If None is used, `target` flag from query definition is used. If it does
-    /// not exist, [Target::Generic] is used.
-    pub target: Option<Target>,
+    /// If None is used, `sql_dialect` flag from query definition is used.
+    /// If it does not exist, [Dialect::Generic] is used.
+    pub dialect: Option<Dialect>,
 
     /// Emits the compiler signature as a comment after generated SQL
     ///
@@ -81,11 +78,11 @@ pub struct CompileOptions {
     pub signature_comment: bool,
 }
 
-impl From<CompileOptions> for prql_compiler::sql::Options {
-    fn from(o: CompileOptions) -> Self {
+impl From<SQLCompileOptions> for prql_compiler::sql::Options {
+    fn from(o: SQLCompileOptions) -> Self {
         prql_compiler::sql::Options {
             format: o.format,
-            target: o.target,
+            dialect: o.dialect,
             signature_comment: o.signature_comment,
         }
     }
@@ -98,9 +95,9 @@ mod test {
 
     #[test]
     fn parse_for_python() {
-        let opts = Some(CompileOptions {
+        let opts = Some(SQLCompileOptions {
             format: true,
-            target: None,
+            dialect: None,
             signature_comment: false,
         });
 

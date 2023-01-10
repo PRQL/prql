@@ -3,12 +3,12 @@
 mod anchor;
 mod codegen;
 mod context;
+mod dialect;
 mod preprocess;
 mod std;
-mod target;
 mod translator;
 
-pub use target::Target;
+pub use dialect::Dialect;
 
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
@@ -19,7 +19,7 @@ use crate::{ast::rq::Query, PRQL_VERSION};
 pub fn compile(query: Query, options: Option<Options>) -> Result<String> {
     let options = options.unwrap_or_default();
 
-    let sql_ast = translator::translate_query(query, options.target)?;
+    let sql_ast = translator::translate_query(query, options.dialect)?;
 
     let sql = sql_ast.to_string();
 
@@ -64,18 +64,18 @@ pub struct Options {
     /// Defaults to true.
     pub format: bool,
 
-    /// Target to compile to (generally a SQL dialect).
+    /// Target dialect you want to compile for.
     ///
     /// Because PRQL compiles to a subset of SQL, not all SQL features are
-    /// required for PRQL. This means that generic target may work with most
+    /// required for PRQL. This means that generic dialect may work with most
     /// databases.
     ///
-    /// If something does not work in the target / dialect you need, please
-    /// report it at GitHub issues.
+    /// If something does not work in dialect you need, please report it at
+    /// GitHub issues.
     ///
-    /// If None is used, `target` flag from query definition is used. If it does
-    /// not exist, [Target::Generic] is used.
-    pub target: Option<Target>,
+    /// If None is used, `sql_dialect` flag from query definition is used.
+    /// If it does not exist, [Dialect::Generic] is used.
+    pub dialect: Option<Dialect>,
 
     /// Emits the compiler signature as a comment after generated SQL
     ///
@@ -87,7 +87,7 @@ impl Default for Options {
     fn default() -> Self {
         Self {
             format: true,
-            target: None,
+            dialect: None,
             signature_comment: true,
         }
     }
@@ -104,8 +104,8 @@ impl Options {
         self
     }
 
-    pub fn with_target(mut self, target: Target) -> Self {
-        self.target = Some(target);
+    pub fn with_dialect(mut self, dialect: Dialect) -> Self {
+        self.dialect = Some(dialect);
         self
     }
 
