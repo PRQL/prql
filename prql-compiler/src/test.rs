@@ -2579,7 +2579,7 @@ fn test_hint_missing_args() {
        ·                      ─────┬─────
        ·                           ╰─────── function std.select, param `columns` expected type `column`, but found type `func infer -> column`
        ·
-       · Help: Have you forgotten an argument to function `lag`?
+       · Help: Have you forgotten an argument to function std.lag?
     ───╯
     "###)
 }
