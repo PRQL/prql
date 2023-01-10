@@ -5,12 +5,13 @@ use std::iter::zip;
 
 use crate::ast::pl::fold::{fold_column_sorts, fold_transform_kind, AstFold};
 use crate::ast::pl::*;
+use crate::ast::rq::RelationColumn;
 use crate::error::{Error, Reason, WithErrorInfo};
 
 use super::context::{Decl, DeclKind};
 use super::module::{Module, NS_ALL_UNKNOWN, NS_PARAM};
 use super::resolver::Resolver;
-use super::Frame;
+use super::{Context, Frame};
 
 /// try to convert function call with enough args into transform
 pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Result<Expr, Closure>> {
@@ -336,7 +337,7 @@ fn fold_by_simulating_eval(
 }
 
 impl TransformCall {
-    pub fn infer_type(&self) -> Result<Frame> {
+    pub fn infer_type(&self, context: &Context) -> Result<Frame> {
         use TransformKind::*;
 
         fn ty_frame_or_default(expr: &Expr) -> Result<Frame> {
@@ -352,13 +353,13 @@ impl TransformCall {
                 let mut frame = ty_frame_or_default(&self.input)?;
 
                 frame.columns.clear();
-                frame.apply_assigns(assigns);
+                frame.apply_assigns(assigns, context);
                 frame
             }
             Derive { assigns } => {
                 let mut frame = ty_frame_or_default(&self.input)?;
 
-                frame.apply_assigns(assigns);
+                frame.apply_assigns(assigns, context);
                 frame
             }
             Group { pipeline, by, .. } => {
@@ -376,7 +377,7 @@ impl TransformCall {
                         frame.columns = Vec::new();
 
                         log::debug!(".. group by {by:?}");
-                        frame.apply_assigns(by);
+                        frame.apply_assigns(by, context);
 
                         frame.columns.extend(aggregate_columns);
                     }
@@ -396,7 +397,7 @@ impl TransformCall {
                 let mut frame = ty_frame_or_default(&self.input)?;
                 frame.columns.clear();
 
-                frame.apply_assigns(assigns);
+                frame.apply_assigns(assigns, context);
                 frame
             }
             Join { with, .. } => {
@@ -436,8 +437,8 @@ fn concat(mut top: Frame, bottom: Frame) -> Result<Frame, Error> {
     let mut columns = Vec::with_capacity(top.columns.len());
     for (t, b) in zip(top.columns, bottom.columns) {
         columns.push(match (t, b) {
-            (FrameColumn::AllUnknown { input_name }, FrameColumn::AllUnknown { .. }) => {
-                FrameColumn::AllUnknown { input_name }
+            (FrameColumn::All { input_name, except }, FrameColumn::All { .. }) => {
+                FrameColumn::All { input_name, except }
             }
             (
                 FrameColumn::Single {
@@ -471,19 +472,36 @@ fn concat(mut top: Frame, bottom: Frame) -> Result<Frame, Error> {
 }
 
 impl Frame {
-    pub fn apply_assign(&mut self, expr: &Expr) {
-        let id = expr.id.unwrap();
-
+    pub fn apply_assign(&mut self, expr: &Expr, context: &Context) {
         if let Some(ident) = &expr.kind.as_ident() {
             if ident.name == NS_ALL_UNKNOWN {
                 let input_id = expr.target_id.unwrap();
                 let input = self.inputs.iter().find(|i| i.id == input_id).unwrap();
-                self.columns.push(FrameColumn::AllUnknown {
-                    input_name: input.name.clone(),
-                });
+
+                let rel_def = context.root_mod.get(input.table.as_ref().unwrap()).unwrap();
+                let rel_def = rel_def.kind.as_table_decl().unwrap();
+
+                let has_wildcard = rel_def
+                    .columns
+                    .iter()
+                    .any(|c| matches!(c, RelationColumn::Wildcard));
+                if has_wildcard {
+                    let known_cols = rel_def
+                        .columns
+                        .iter()
+                        .flat_map(|c| c.as_single().cloned().flatten())
+                        .collect();
+
+                    self.columns.push(FrameColumn::All {
+                        input_name: input.name.clone(),
+                        except: known_cols,
+                    });
+                }
                 return;
             }
         }
+
+        let id = expr.id.unwrap();
 
         let col_name = expr
             .alias
@@ -507,9 +525,9 @@ impl Frame {
         });
     }
 
-    pub fn apply_assigns(&mut self, assigns: &[Expr]) {
+    pub fn apply_assigns(&mut self, assigns: &[Expr], context: &Context) {
         for expr in assigns {
-            self.apply_assign(expr);
+            self.apply_assign(expr, context);
         }
     }
 
@@ -525,7 +543,7 @@ impl Frame {
 
         for col in &mut self.columns {
             match col {
-                FrameColumn::AllUnknown { input_name } => *input_name = alias.clone(),
+                FrameColumn::All { input_name, .. } => *input_name = alias.clone(),
                 FrameColumn::Single {
                     name: Some(name), ..
                 } => name.path = vec![alias.clone()],
@@ -788,8 +806,9 @@ mod tests {
                 ty:
                   Table:
                     columns:
-                      - AllUnknown:
+                      - All:
                           input_name: c_invoice
+                          except: []
                     inputs:
                       - id: 4
                         name: c_invoice

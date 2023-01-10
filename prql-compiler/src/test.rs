@@ -2583,3 +2583,70 @@ fn test_hint_missing_args() {
     ───╯
     "###)
 }
+
+#[test]
+fn test_basic_agg() {
+    assert_display_snapshot!(compile(r#"
+    from employees
+    aggregate [
+      count non_null:salary,
+      count,
+    ]
+    "#).unwrap(),
+        @r###"
+    SELECT
+      COUNT(salary),
+      COUNT(*)
+    FROM
+      employees
+    "###
+    );
+}
+
+#[test]
+fn test_exclude_columns() {
+    assert_display_snapshot!(compile(r#"
+    from tracks
+    select [track_id, title, composer, bytes]
+    select ![title, composer]
+    "#).unwrap(),
+        @r###"
+    SELECT
+      track_id,
+      bytes
+    FROM
+      tracks
+    "###
+    );
+
+    assert_display_snapshot!(compile(r#"
+    from tracks
+    select [track_id, title, composer, bytes]
+    group ![title, composer] (aggregate count)
+    "#).unwrap(),
+        @r###"
+    SELECT
+      track_id,
+      bytes,
+      COUNT(*)
+    FROM
+      tracks
+    GROUP BY
+      track_id,
+      bytes
+    "###
+    );
+
+    assert_display_snapshot!(compile(r#"
+    from artists
+    derive nick = name
+    select ![artists.*]
+    "#).unwrap(),
+        @r###"
+    SELECT
+      name AS nick
+    FROM
+      artists
+    "###
+    );
+}

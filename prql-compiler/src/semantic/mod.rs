@@ -80,6 +80,136 @@ mod test {
     }
 
     #[test]
+    fn test_resolve_01() {
+        assert_yaml_snapshot!(parse_and_resolve(r###"
+        from employees
+        select ![foo]
+        "###).unwrap(), @r###"
+        ---
+        def:
+          version: ~
+          other: {}
+        tables:
+          - id: 0
+            name: employees
+            relation:
+              kind:
+                ExternRef:
+                  LocalTable: employees
+              columns:
+                - Single: foo
+                - Wildcard
+        relation:
+          kind:
+            Pipeline:
+              - From:
+                  source: 0
+                  columns:
+                    - - Single: foo
+                      - 0
+                    - - Wildcard
+                      - 1
+                  name: employees
+              - Select:
+                  - 1
+              - Select:
+                  - 1
+          columns:
+            - Wildcard
+        "###)
+    }
+
+    #[test]
+    fn test_resolve_02() {
+        assert_yaml_snapshot!(parse_and_resolve(r###"
+        from foo
+        sort day
+        window range:-4..4 (
+            derive [next_four_days = sum b]
+        )
+        "###).unwrap(), @r###"
+        ---
+        def:
+          version: ~
+          other: {}
+        tables:
+          - id: 0
+            name: foo
+            relation:
+              kind:
+                ExternRef:
+                  LocalTable: foo
+              columns:
+                - Single: day
+                - Single: b
+                - Wildcard
+        relation:
+          kind:
+            Pipeline:
+              - From:
+                  source: 0
+                  columns:
+                    - - Single: day
+                      - 0
+                    - - Single: b
+                      - 1
+                    - - Wildcard
+                      - 2
+                  name: foo
+              - Sort:
+                  - direction: Asc
+                    column: 0
+              - Compute:
+                  id: 3
+                  expr:
+                    kind:
+                      BuiltInFunction:
+                        name: std.sum
+                        args:
+                          - kind:
+                              ColumnRef: 1
+                            span:
+                              start: 105
+                              end: 106
+                    span:
+                      start: 84
+                      end: 106
+                  window:
+                    frame:
+                      kind: Range
+                      range:
+                        start:
+                          kind:
+                            Literal:
+                              Integer: -4
+                          span:
+                            start: 56
+                            end: 58
+                        end:
+                          kind:
+                            Literal:
+                              Integer: 4
+                          span:
+                            start: 60
+                            end: 61
+                    partition: []
+                    sort:
+                      - direction: Asc
+                        column: 0
+              - Select:
+                  - 0
+                  - 1
+                  - 2
+                  - 3
+          columns:
+            - Single: day
+            - Single: b
+            - Wildcard
+            - Single: next_four_days
+        "###)
+    }
+
+    #[test]
     fn test_header() {
         assert_yaml_snapshot!(parse_and_resolve(r###"
         prql target:sql.mssql version:"0"

@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use std::iter::zip;
 
 use anyhow::Result;
+use enum_as_inner::EnumAsInner;
 use itertools::Itertools;
 
 use crate::ast::pl::fold::AstFold;
@@ -70,7 +71,7 @@ struct Lowerer {
     table_buffer: Vec<TableDecl>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, EnumAsInner)]
 enum LoweredTarget {
     /// Lowered node was a computed expression.
     Compute(CId),
@@ -383,14 +384,21 @@ impl Lowerer {
 
                     columns.push((RelationColumn::Single(name), cid));
                 }
-                FrameColumn::AllUnknown { input_name } => {
+                FrameColumn::All { input_name, except } => {
                     let input = frame.find_input(input_name).unwrap();
 
                     match &self.node_mapping[&input.id] {
                         LoweredTarget::Compute(_cid) => unreachable!(),
                         LoweredTarget::Input(input_cols) => {
-                            let mut input_cols = input_cols.iter().collect_vec();
+                            let mut input_cols = input_cols
+                                .iter()
+                                .filter(|(c, _)| match c {
+                                    RelationColumn::Single(Some(name)) => !except.contains(name),
+                                    _ => true,
+                                })
+                                .collect_vec();
                             input_cols.sort_by_key(|e| e.1 .1);
+                            dbg!(&input_cols);
 
                             for (col, (cid, _)) in input_cols {
                                 columns.push((col.clone(), *cid));
