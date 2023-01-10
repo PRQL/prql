@@ -19,13 +19,6 @@ runs:
         save-if: ${{ github.ref == 'refs/heads/main' }}
     - uses: jetli/wasm-bindgen-action@v0.2.0
       if: inputs.target_option == '--target=wasm32-unknown-unknown'
-    - name: 📎 Clippy
-      uses: richb-hanover/cargo@v1.1.0
-      with:
-        command: clippy
-        # Note that `--all-targets` doesn't refer to targets like
-        # `wasm32-unknown-unknown`; it refers to lib / bin / tests etc.
-        args: --all-targets ${{ inputs.target_option }} -- -D warnings
     - name: ⌨️ Fmt
       uses: richb-hanover/cargo@v1.1.0
       with:
@@ -60,3 +53,10 @@ runs:
       with:
         command: insta
         args: test ${{ inputs.target_option }}
+    - name: 📎 Clippy
+      uses: richb-hanover/cargo@v1.1.0
+      with:
+        command: clippy
+        # Note that `--all-targets` doesn't refer to targets like
+        # `wasm32-unknown-unknown`; it refers to lib / bin / tests etc.
+        args: --all-targets ${{ inputs.target_option }} -- -D warnings
