@@ -98,18 +98,12 @@ where
         })
         .with_span(found.span));
         if matches!(found_ty, Ty::Function(_)) && !matches!(expected, Ty::Function(_)) {
-            return e.with_help(match &found.kind {
-                ExprKind::Closure(closure) => match &closure.name {
-                    Some(name) => {
-                        format!(
-                            "Have you forgotten an argument to function `{}`?",
-                            name.name
-                        )
-                    }
-                    None => "Have you forgotten an argument in this function call?".to_string(),
-                },
-                _ => "Have you forgotten an argument in this function call?".to_string(),
-            });
+            let func_name = found.kind.as_closure().and_then(|c| c.name.as_ref());
+            let to_what = func_name
+                .map(|n| format!("to function {n}"))
+                .unwrap_or_else(|| "in this function call?".to_string());
+
+            return e.with_help(format!("Have you forgotten an argument {to_what}?"));
         };
         return e;
     }
