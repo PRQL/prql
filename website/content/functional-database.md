@@ -265,7 +265,7 @@ basically any relational database.
 
 ## Appendix
 
-### PRQL support
+#### PRQL support
 
 PRQL is a work is progress. It does not yet support all the features presented
 here, namely:
@@ -279,11 +279,12 @@ We focused on the core features and all of these can be worked around.
 Also, PRQL may not ever get all of these features, because ideas in this article
 are only my own and not necessarily of the whole PRQL core team.
 
-### Many functions in SQL are not pure
+#### Many functions in SQL are not pure
 
-And we don't have a plan on how to deal with that.
+And we don't have a plan on
+[how to deal with that](https://github.com/PRQL/prql/issues/1111).
 
-### In math, function call syntax is ambiguous
+#### In math, function call syntax is ambiguous
 
 If you think about it, the function call syntax from math is kind of ambiguous.
 For example, what does this mean:
@@ -293,5 +294,5 @@ a(b + 1)
 ```
 
 If could either be a call of function a, or it could be just multiplication
-where we omitted _. This is not a problem in conventional programming languages
-because they don't allow omitting the _.
+where we omitted `*`. This is not a problem in conventional programming
+languages because they don't allow omitting the `*`.
