@@ -600,10 +600,6 @@ section {
 # Article
 --------------------------------------------------------------*/
 
-.container.article {
-  max-width: 720px;
-}
-
 article {
   padding: 4rem 0;
   font-size: 1.1em;
@@ -619,7 +615,7 @@ article h2 {
 
 article > pre,
 article > .highlight {
-  margin: 0 0 1rem -1rem;
+  margin: 0 -0.5rem 1rem -0.5rem;
 }
 
 article > .highlight > pre {
@@ -701,4 +697,21 @@ details.faq summary h2::before {
 }
 details.faq[open] summary h2:before {
   content: "▼";
+}
+
+/*--------------------------------------------------------------
+# Table of contents
+--------------------------------------------------------------*/
+.toc > * {
+  position: fixed;
+  padding: 4rem 0;
+}
+.toc ul li {
+  list-style: none;
+  margin: 0;
+  padding-top: 0.5em;
+}
+
+.toc ul li ul {
+    display: none;
 }

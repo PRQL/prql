@@ -1,7 +1,9 @@
 ---
 title: Functional databases
 date: 2023-01-07
+authors: ["aljazerzen"]
 layout: article
+toc: true
 ---
 
 I believe that many of the ideas from functional programming are very suitable
