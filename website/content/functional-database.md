@@ -1,5 +1,5 @@
 ---
-title: Functional databases
+title: A functional approach to relational queries
 date: 2023-01-07
 authors: ["aljazerzen"]
 layout: article
@@ -271,10 +271,10 @@ PRQL is a work is progress. It does not yet support all the features presented
 here, namely:
 
 - `let` syntax for variable declarations,
-- inline currying - function call must that with a function name.
+- inline currying - function call must start with a function name,
 - syntax for declaring tables.
 
-We focused on the core features and all of these can be worked around.
+We focused on the core features and left these out because they can be worked around.
 
 Also, PRQL may not ever get all of these features, because ideas in this article
 are only my own and not necessarily of the whole PRQL core team.
