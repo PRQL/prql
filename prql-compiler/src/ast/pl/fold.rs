@@ -72,6 +72,10 @@ pub fn fold_expr_kind<T: ?Sized + AstFold>(fold: &mut T, expr_kind: ExprKind) ->
     use ExprKind::*;
     Ok(match expr_kind {
         Ident(ident) => Ident(ident),
+        All { within, except } => All {
+            within,
+            except: fold.fold_exprs(except)?,
+        },
         Binary { op, left, right } => Binary {
             op,
             left: Box::new(fold.fold_expr(*left)?),

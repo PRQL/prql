@@ -19,8 +19,6 @@ pub const NS_DEFAULT_DB: &str = "default_db";
 pub const NS_SELF: &str = "_self";
 // implies we can infer new names in the containing module
 pub const NS_INFER: &str = "_infer";
-// refers a list of all columns that could possibly be inferred
-pub const NS_ALL_UNKNOWN: &str = "_all_unknown";
 
 #[derive(Default, Serialize, Deserialize, Clone)]
 pub struct Module {

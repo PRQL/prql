@@ -1,8 +1,8 @@
 use std::collections::hash_map::RandomState;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::iter::zip;
 
-use anyhow::Result;
+use anyhow::{bail, Result};
 use enum_as_inner::EnumAsInner;
 use itertools::Itertools;
 
@@ -13,7 +13,7 @@ use crate::ast::pl::{
 };
 use crate::ast::rq::{self, CId, Query, RelationColumn, TId, TableDecl, Transform};
 use crate::error::{Error, Reason, Span};
-use crate::semantic::module::{Module, NS_ALL_UNKNOWN};
+use crate::semantic::module::Module;
 use crate::utils::{toposort, IdGenerator};
 
 use super::context::{self, Context, DeclKind};
@@ -284,8 +284,7 @@ impl Lowerer {
                 self.declare_as_columns(assigns, false)?;
             }
             pl::TransformKind::Select { assigns, .. } => {
-                let select = self.declare_as_columns(assigns, false)?;
-                self.pipeline.push(Transform::Select(select));
+                self.declare_as_columns(assigns, false)?;
             }
             pl::TransformKind::Filter { filter, .. } => {
                 let filter = self.lower_expr(*filter)?;
@@ -420,10 +419,42 @@ impl Lowerer {
         exprs: Vec<pl::Expr>,
         is_aggregation: bool,
     ) -> Result<Vec<CId>> {
-        exprs
-            .into_iter()
-            .map(|x| self.declare_as_column(x, is_aggregation))
-            .try_collect()
+        let mut r = Vec::with_capacity(exprs.len());
+        for expr in exprs {
+            let pl::ExprKind::All { except, .. } = expr.kind else {
+                // base case
+                r.push(self.declare_as_column(expr, is_aggregation)?);
+                continue;
+            };
+
+            // special case: ExprKind::All
+            let mut selected = Vec::<CId>::new();
+            for target_id in expr.target_ids {
+                match &self.node_mapping[&target_id] {
+                    LoweredTarget::Compute(cid) => {
+                        selected.push(*cid);
+                    }
+                    LoweredTarget::Input(input) => {
+                        let mut cols = input.iter().collect_vec();
+                        cols.sort_by_key(|c| c.1 .1);
+                        selected.extend(cols.into_iter().map(|(_, (cid, _))| cid));
+                    }
+                }
+            }
+
+            let except: HashSet<CId> = except
+                .into_iter()
+                .filter(|e| e.target_id.is_some())
+                .map(|e| {
+                    let id = e.target_id.unwrap();
+                    self.lookup_cid(id, Some(&e.kind.into_ident().unwrap().name))
+                })
+                .try_collect()?;
+            selected.retain(|c| !except.contains(c));
+
+            r.extend(selected);
+        }
+        Ok(r)
     }
 
     fn declare_as_column(
@@ -497,6 +528,9 @@ impl Lowerer {
                     // Let's hope that the database engine can resolve it.
                     rq::ExprKind::SString(vec![InterpolateItem::String(ident.name)])
                 }
+            }
+            pl::ExprKind::All { .. } => {
+                bail!(Error::new_simple("Wildcards cannot be used here").with_span(ast.span))
             }
             pl::ExprKind::Literal(literal) => rq::ExprKind::Literal(literal),
             pl::ExprKind::Binary { left, op, right } => rq::ExprKind::Binary {
@@ -580,13 +614,7 @@ impl Lowerer {
             Some(LoweredTarget::Compute(cid)) => *cid,
             Some(LoweredTarget::Input(input_columns)) => {
                 let name = match name {
-                    Some(v) => {
-                        if v == NS_ALL_UNKNOWN {
-                            RelationColumn::Wildcard
-                        } else {
-                            RelationColumn::Single(Some(v.clone()))
-                        }
-                    }
+                    Some(v) => RelationColumn::Single(Some(v.clone())),
                     None => return Err(Error::new_simple(
                         "This table contains unnamed columns, that need to be referenced by name",
                     )

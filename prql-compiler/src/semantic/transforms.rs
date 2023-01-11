@@ -1,6 +1,7 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use anyhow::{anyhow, bail, Result};
+use itertools::Itertools;
 use std::iter::zip;
 
 use crate::ast::pl::fold::{fold_column_sorts, fold_transform_kind, AstFold};
@@ -9,7 +10,7 @@ use crate::ast::rq::RelationColumn;
 use crate::error::{Error, Reason, WithErrorInfo};
 
 use super::context::{Decl, DeclKind};
-use super::module::{Module, NS_ALL_UNKNOWN, NS_PARAM};
+use super::module::{Module, NS_FRAME, NS_PARAM};
 use super::resolver::Resolver;
 use super::{Context, Frame};
 
@@ -352,7 +353,7 @@ impl TransformCall {
             Select { assigns } => {
                 let mut frame = ty_frame_or_default(&self.input)?;
 
-                frame.columns.clear();
+                frame.clear();
                 frame.apply_assigns(assigns, context);
                 frame
             }
@@ -395,7 +396,7 @@ impl TransformCall {
             }
             Aggregate { assigns } => {
                 let mut frame = ty_frame_or_default(&self.input)?;
-                frame.columns.clear();
+                frame.clear();
 
                 frame.apply_assigns(assigns, context);
                 frame
@@ -470,33 +471,39 @@ fn concat(mut top: Frame, bottom: Frame) -> Result<Frame, Error> {
 }
 
 impl Frame {
+    pub fn clear(&mut self) {
+        self.prev_columns.clear();
+        self.prev_columns.append(&mut self.columns);
+    }
+
     pub fn apply_assign(&mut self, expr: &Expr, context: &Context) {
-        if let Some(ident) = &expr.kind.as_ident() {
-            if ident.name == NS_ALL_UNKNOWN {
-                let input_id = expr.target_id.unwrap();
-                let input = self.inputs.iter().find(|i| i.id == input_id).unwrap();
+        if let ExprKind::All { except, .. } = &expr.kind {
+            let except_exprs: HashSet<&usize> =
+                except.iter().flat_map(|e| e.target_id.iter()).collect();
+            let except_inputs: HashSet<&usize> =
+                except.iter().flat_map(|e| e.target_ids.iter()).collect();
 
-                let rel_def = context.root_mod.get(input.table.as_ref().unwrap()).unwrap();
-                let rel_def = rel_def.kind.as_table_decl().unwrap();
-
-                let has_wildcard = rel_def
-                    .columns
-                    .iter()
-                    .any(|c| matches!(c, RelationColumn::Wildcard));
-                if has_wildcard {
-                    let known_cols = rel_def
-                        .columns
-                        .iter()
-                        .flat_map(|c| c.as_single().cloned().flatten())
-                        .collect();
-
-                    self.columns.push(FrameColumn::All {
-                        input_name: input.name.clone(),
-                        except: known_cols,
-                    });
+            for target_id in &expr.target_ids {
+                match self.inputs.iter().find(|i| i.id == *target_id) {
+                    Some(input) => {
+                        if except_inputs.contains(target_id) {
+                            continue;
+                        }
+                        self.columns.extend(input.get_all_columns(except, context));
+                    }
+                    None => {
+                        if except_exprs.contains(target_id) {
+                            continue;
+                        }
+                        let prev_col = self.prev_columns.iter().find(|c| match c {
+                            FrameColumn::Single { expr_id, .. } => expr_id == target_id,
+                            _ => false,
+                        });
+                        self.columns.extend(prev_col.cloned());
+                    }
                 }
-                return;
             }
+            return;
         }
 
         let id = expr.id.unwrap();
@@ -547,6 +554,53 @@ impl Frame {
                 } => name.path = vec![alias.clone()],
                 _ => {}
             }
+        }
+    }
+}
+
+impl FrameInput {
+    fn get_all_columns(&self, except: &[Expr], context: &Context) -> Vec<FrameColumn> {
+        let rel_def = context.root_mod.get(self.table.as_ref().unwrap()).unwrap();
+        let rel_def = rel_def.kind.as_table_decl().unwrap();
+        let has_wildcard = rel_def
+            .columns
+            .iter()
+            .any(|c| matches!(c, RelationColumn::Wildcard));
+        if has_wildcard {
+            // Relation has a wildcard (i.e. we don't know all the columns)
+            // which means we cannot list all columns.
+            // Instead we can just stick FrameColumn::All into the frame.
+            // We could do this for all columns, but it is less transparent,
+            // so let's use it just as a last resort.
+
+            let input_ident_fq = Ident::from_path(vec![NS_FRAME, self.name.as_str()]);
+
+            let except = except
+                .iter()
+                .filter_map(|e| match &e.kind {
+                    ExprKind::Ident(i) => Some(i),
+                    _ => None,
+                })
+                .filter(|i| i.starts_with(&input_ident_fq))
+                .map(|i| i.name.clone())
+                .collect();
+
+            vec![FrameColumn::All {
+                input_name: self.name.clone(),
+                except,
+            }]
+        } else {
+            rel_def
+                .columns
+                .iter()
+                .map(|col| {
+                    let name = col.as_single().unwrap().clone().map(Ident::from_name);
+                    FrameColumn::Single {
+                        name,
+                        expr_id: self.id,
+                    }
+                })
+                .collect_vec()
         }
     }
 }
@@ -739,8 +793,6 @@ mod tests {
                     - - Wildcard
                       - 1
                   name: c_invoice
-              - Select:
-                  - 0
               - Take:
                   range:
                     start: ~

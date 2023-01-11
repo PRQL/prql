@@ -1,5 +1,6 @@
 use std::fmt::Write;
 
+use itertools::Itertools;
 use serde::{self, ser::SerializeSeq, Deserialize, Deserializer, Serialize, Serializer};
 
 /// A name. Generally columns, tables, functions, variables.
@@ -43,6 +44,16 @@ impl Ident {
     pub fn with_name<S: ToString>(mut self, name: S) -> Self {
         self.name = name.to_string();
         self
+    }
+
+    pub fn starts_with(&self, prefix: &Ident) -> bool {
+        if self.path.len() < prefix.path.len() {
+            false
+        } else {
+            let self_chunks = self.path.iter().chain(Some(&self.name));
+            let prefix_chunks = prefix.path.iter().chain(Some(&prefix.name));
+            !std::iter::zip(self_chunks, prefix_chunks).all_equal()
+        }
     }
 }
 

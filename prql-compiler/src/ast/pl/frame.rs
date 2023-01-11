@@ -16,6 +16,10 @@ pub struct Frame {
     pub columns: Vec<FrameColumn>,
 
     pub inputs: Vec<FrameInput>,
+
+    // A hack that allows name retention when applying `ExprKind::All { except }`
+    #[serde(skip)]
+    pub prev_columns: Vec<FrameColumn>,
 }
 
 #[derive(Clone, Eq, Debug, PartialEq, Serialize, Deserialize)]
