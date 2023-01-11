@@ -2326,7 +2326,6 @@ fn test_name_shadowing() {
 }
 
 #[test]
-#[ignore]
 fn test_group_all() {
     assert_display_snapshot!(compile(
         r###"
@@ -2359,7 +2358,7 @@ fn test_group_all() {
         r###"
     from e=albums
     group ![genre_id] (aggregate count)
-        "###).unwrap_err(), @"");
+        "###).unwrap_err(), @"Excluding columns not supported as this position");
 }
 
 #[test]

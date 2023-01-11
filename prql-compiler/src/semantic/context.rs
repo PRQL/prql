@@ -5,9 +5,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::{collections::HashMap, fmt::Debug};
 
-use super::module::{
-    Module, NS_ALL_UNKNOWN, NS_DEFAULT_DB, NS_FRAME, NS_FRAME_RIGHT, NS_INFER, NS_SELF, NS_STD,
-};
+use super::module::{Module, NS_DEFAULT_DB, NS_FRAME, NS_FRAME_RIGHT, NS_INFER, NS_SELF, NS_STD};
 use crate::ast::pl::*;
 use crate::ast::rq::RelationColumn;
 use crate::error::Span;
@@ -117,11 +115,6 @@ impl Context {
         // special case: wildcard
         if ident.name.contains('*') {
             return self.resolve_ident_wildcard(ident);
-        }
-
-        // special case: NS_ALL_UNKNOWN
-        if ident.name == NS_ALL_UNKNOWN {
-            return self.resolve_ident_all_unknown(ident);
         }
 
         // base case: direct lookup
@@ -236,39 +229,27 @@ impl Context {
         let module = (mod_decl.kind.as_module_mut())
             .ok_or_else(|| format!("Expected a module {mod_ident}"))?;
 
-        let fq_cols = (module.names.iter())
-            .flat_map(|(name, decl)| match &decl.kind {
-                DeclKind::Column(_) => Some(mod_ident.clone() + Ident::from_name(name)),
-                DeclKind::Infer(_) => Some(mod_ident.clone() + Ident::from_name(NS_ALL_UNKNOWN)),
-                _ => None,
-            })
-            .map(|fq_col| Expr::from(ExprKind::Ident(fq_col)))
-            .collect_vec();
-        let cols_expr = DeclKind::Expr(Box::new(Expr::from(ExprKind::List(fq_cols))));
+        let fq_cols = if module.names.contains_key(NS_INFER) {
+            vec![Expr::from(ExprKind::All {
+                within: mod_ident.clone(),
+                except: Vec::new(),
+            })]
+        } else {
+            (module.names.iter())
+                .filter(|(_, decl)| matches!(&decl.kind, DeclKind::Column(_)))
+                .map(|(name, _)| mod_ident.clone() + Ident::from_name(name))
+                .map(|fq_col| Expr::from(ExprKind::Ident(fq_col)))
+                .collect_vec()
+        };
 
+        // This is just a workaround to return an Expr from this function.
+        // We wrap the expr into DeclKind::Expr and save it into context.
+        let cols_expr = DeclKind::Expr(Box::new(Expr::from(ExprKind::List(fq_cols))));
         let save_as = "_wildcard_match";
         module.names.insert(save_as.to_string(), cols_expr.into());
 
+        // Then we can return ident to that decl.
         Ok(mod_ident + Ident::from_name(save_as))
-    }
-
-    fn resolve_ident_all_unknown(&mut self, ident: &Ident) -> Result<Ident, String> {
-        assert!(ident.name == NS_ALL_UNKNOWN);
-
-        let mod_ident =
-            (ident.clone().pop()).ok_or_else(|| "Invalid use of builtin".to_string())?;
-        let mod_decl = (self.root_mod.get_mut(&mod_ident))
-            .ok_or_else(|| format!("Unknown relation {ident}"))?;
-
-        let module = (mod_decl.kind.as_module_mut())
-            .ok_or_else(|| format!("Expected a module {mod_ident}"))?;
-
-        module.names.insert(
-            NS_ALL_UNKNOWN.to_string(),
-            DeclKind::Column(mod_decl.declared_at.unwrap()).into(),
-        );
-
-        Ok(ident.clone())
     }
 
     fn infer_table_column(&mut self, table_ident: &Ident, col_name: &str) -> Result<(), String> {

@@ -86,6 +86,7 @@ where
                     input_name,
                     except: HashSet::new(),
                 }],
+                ..Default::default()
             })
         } else {
             expected.clone()

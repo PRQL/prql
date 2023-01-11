@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::iter::zip;
 
 use anyhow::{anyhow, bail, Result};
@@ -8,7 +8,6 @@ use crate::ast::pl::{fold::*, *};
 use crate::ast::rq::RelationColumn;
 use crate::error::{Error, Reason, Span};
 use crate::semantic::context::TableDecl;
-use crate::semantic::module::{NS_ALL_UNKNOWN, NS_INFER};
 use crate::semantic::static_analysis;
 use crate::semantic::transforms::coerce_and_flatten;
 use crate::utils::IdGenerator;
@@ -169,6 +168,7 @@ impl AstFold for Resolver {
                                     },
                                 })
                                 .collect(),
+                            ..Default::default()
                         };
 
                         log::debug!("instanced table {fq_ident} as {instance_frame:?}");
@@ -238,6 +238,31 @@ impl AstFold for Resolver {
                 op: UnOp::Not,
                 expr,
             } if matches!(expr.kind, ExprKind::List(_)) => self.resolve_column_exclusion(*expr)?,
+
+            ExprKind::All { within, except } => {
+                let decl = self.context.root_mod.get(&within);
+
+                // lookup ids of matched inputs
+                let target_ids = decl
+                    .and_then(|d| d.kind.as_module())
+                    .iter()
+                    .flat_map(|module| module.as_decls())
+                    .sorted_by_key(|(_, decl)| decl.order)
+                    .flat_map(|(_, decl)| match &decl.kind {
+                        DeclKind::Column(target_id) => Some(*target_id),
+                        DeclKind::Infer(_) => decl.declared_at,
+                        _ => None,
+                    })
+                    .unique()
+                    .collect();
+
+                let kind = ExprKind::All { within, except };
+                Expr {
+                    kind,
+                    target_ids,
+                    ..node
+                }
+            }
 
             item => Expr {
                 kind: fold_expr_kind(self, item)?,
@@ -670,10 +695,10 @@ impl Resolver {
     fn resolve_column_exclusion(&mut self, expr: Expr) -> Result<Expr, anyhow::Error> {
         let expr = self.fold_expr(expr)?;
         let list = coerce_and_flatten(expr)?;
-        let mentioned: HashSet<Ident> = list
+        let except: Vec<Expr> = list
             .into_iter()
             .map(|e| match e.kind {
-                ExprKind::Ident(ident) => Ok(ident),
+                ExprKind::Ident(_) | ExprKind::All { .. } => Ok(e),
                 _ => Err(Error::new(Reason::Expected {
                     who: Some("exclusion".to_string()),
                     expected: "column name".to_string(),
@@ -682,25 +707,10 @@ impl Resolver {
             })
             .try_collect()?;
 
-        let module = self.context.root_mod.names.get(NS_FRAME);
-        let module = module.and_then(|d| d.kind.as_module());
-        let mut names = module.map(|m| m.as_decls()).unwrap_or_default();
-        names.sort_by_key(|(_, decl)| decl.order);
-
-        let not_mentioned = names
-            .into_iter()
-            .filter(|(_, decl)| matches!(decl.kind, DeclKind::Column(_) | DeclKind::Infer(_)))
-            .map(|(mut ident, _)| {
-                if ident.name == NS_INFER {
-                    ident = ident.with_name(NS_ALL_UNKNOWN);
-                }
-                Ident::from_name(NS_FRAME) + ident
-            })
-            .filter(|ident| !mentioned.contains(ident))
-            .map(|ident| Expr::from(ExprKind::Ident(ident)))
-            .collect_vec();
-
-        self.fold_expr(Expr::from(ExprKind::List(not_mentioned)))
+        self.fold_expr(Expr::from(ExprKind::All {
+            within: Ident::from_name(NS_FRAME),
+            except,
+        }))
     }
 }
 
