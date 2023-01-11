@@ -104,10 +104,10 @@ other languages.
 Parentheses are required around:
 
 - Any nested function call containing a pipe, either the `|` symbol or a new
-  line. "nested" means within a transform; i.e. not just the main pipeline.
+  line. "Nested" means within a transform; i.e. not just the main pipeline.
 - Any function call that isn't separated from other expressions, like
   `sum distance` in `round 0 (sum distance)`. "Separated" means being a single
-  item in a list or a pipeline[^1]
+  item in a list or a pipeline[^1].
 - A minus sign in a function argument, like in `add (-1) (-3)`
 
 Parentheses are not required around operators
@@ -124,13 +124,15 @@ derive total_distance = (sum distance)
 derive min_capped_distance = (min distance ?? 5)
 # No parentheses needed, because no function call
 derive travel_time = distance / 40
+# No inner parentheses needed around `1+1` because no function call
+derive distance_rounded_2_dp = (round 1+1 distance)
 derive [
   # Requires parentheses, because it contains a pipe
   is_far = (distance | in 100..),
   # The left value of the range requires parentheses,
   # because of the minus sign
   is_negative = (distance | in (-100..0)),
-  # Doesn't require parentheses, because it's in a list (*confusing)!
+  # Doesn't require parentheses, because it's in a list (confusing, see footnote)!
   average_distance = average distance,
 ]
 # Requires parentheses because of the minus sign
@@ -146,10 +148,10 @@ circumstances. And we're planning to make the error messages much better,
 so the compiler is there to help out.
 ```
 
-Consistent with this, in transforms which take another transform as an argument,
-such as `group` and `window`, parentheses are used to nest the inner transforms.
-Here, the `aggregate` pipeline is applied to each group of unique `title` and
-`country` values:
+Consistent with this, parentheses are used to nest the inner transforms in
+transforms which take another transform as an argument, such as `group` and
+`window`, Here, the `aggregate` pipeline is applied to each group of unique
+`title` and `country` values:
 
 ```prql
 from employees
