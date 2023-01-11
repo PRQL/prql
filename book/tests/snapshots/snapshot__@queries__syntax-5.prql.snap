@@ -1,15 +1,19 @@
 ---
 source: book/tests/snapshot.rs
-expression: "from employees\ngroup [title, country] (\n  aggregate [\n    average salary,\n    ct = count\n  ]\n)\n"
+expression: "from employees\n# Requires parentheses, because it's contains a pipe\nderive is_proximate = (distance | in 0..20)\n# Requires parentheses, because it's a function call\nderive average_distance = (sum distance)\nderive [\n  # Requires parentheses, because it's contains a pipe\n  is_mid = (distance | in 20..100),\n  # Doesn't require parentheses, because it's in a list!\n  is_far = in 100.. distance,\n  # The left value of the range also requires parentheses,\n  # because of the minus sign\n  is_negative = (distance | in (-100..0))\n]\n# Requires parentheses because of the minus sign\nsort (-distance)\n"
 input_file: book/tests/prql/queries/syntax-5.prql
 ---
 SELECT
-  title,
-  country,
-  AVG(salary),
-  COUNT(*) AS ct
+  *,
+  distance BETWEEN 0
+  AND 20 AS is_proximate,
+  SUM(distance) OVER () AS average_distance,
+  distance BETWEEN 20
+  AND 100 AS is_mid,
+  distance >= 100 AS is_far,
+  distance BETWEEN -100
+  AND 0 AS is_negative
 FROM
   employees
-GROUP BY
-  title,
-  country
+ORDER BY
+  distance DESC

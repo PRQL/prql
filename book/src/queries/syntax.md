@@ -101,9 +101,43 @@ select first_name
 Parentheses — `()` — are used to give precedence to inner expressions, like in
 other languages.
 
-In particular, parentheses are used to nest pipelines for transforms such as
-`group` and `window`, which take a pipeline. Here, the `aggregate` pipeline is
-applied to each group of unique `title` and `country` values.
+Parentheses are required around:
+
+- any expression containing a pipe, either the `|` symbol or a linebreak
+- any function call that isn't otherwise separated from other expressions (for
+  example, it's in a list)
+- when a minus sign is used to make a negative value in a function argument
+
+```prql
+from employees
+# Requires parentheses, because it's contains a pipe
+derive is_proximate = (distance | in 0..20)
+# Requires parentheses, because it's a function call
+derive average_distance = (sum distance)
+derive [
+  # Requires parentheses, because it's contains a pipe
+  is_mid = (distance | in 20..100),
+  # Doesn't require parentheses, because it's in a list!
+  is_far = in 100.. distance,
+  # The left value of the range also requires parentheses,
+  # because of the minus sign
+  is_negative = (distance | in (-100..0))
+]
+# Requires parentheses because of the minus sign
+sort (-distance)
+```
+
+```admonish note
+We realize some of this is not intuitive. We are considering approaches to
+make this more intuitive — even at the cost of requiring more syntax in some
+circumstances. And we're planning to make the error messages much better,
+so the compiler s there to help out.
+```
+
+Consistent with this, in transforms which take another transform as an argument,
+such as `group` and `window`, parentheses are used to nest the inner transforms.
+Here, the `aggregate` pipeline is applied to each group of unique `title` and
+`country` values:
 
 ```prql
 from employees
