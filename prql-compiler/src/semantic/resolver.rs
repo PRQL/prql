@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::iter::zip;
 
 use anyhow::{anyhow, bail, Result};
@@ -8,7 +8,9 @@ use crate::ast::pl::{fold::*, *};
 use crate::ast::rq::RelationColumn;
 use crate::error::{Error, Reason, Span};
 use crate::semantic::context::TableDecl;
+use crate::semantic::module::{NS_ALL_UNKNOWN, NS_INFER};
 use crate::semantic::static_analysis;
+use crate::semantic::transforms::coerce_and_flatten;
 use crate::utils::IdGenerator;
 
 use super::context::{Context, Decl, DeclKind};
@@ -152,8 +154,12 @@ impl AstFold for Resolver {
                             columns: columns
                                 .iter()
                                 .map(|col| match col {
-                                    RelationColumn::Wildcard => FrameColumn::AllUnknown {
+                                    RelationColumn::Wildcard => FrameColumn::All {
                                         input_name: rel_name.clone(),
+                                        except: columns
+                                            .iter()
+                                            .flat_map(|c| c.as_single().cloned().flatten())
+                                            .collect(),
                                     },
                                     RelationColumn::Single(col_name) => FrameColumn::Single {
                                         name: col_name.clone().map(|col_name| {
@@ -178,11 +184,11 @@ impl AstFold for Resolver {
                     DeclKind::Expr(expr) => self.fold_expr(expr.as_ref().clone())?,
 
                     DeclKind::InstanceOf(_) => {
-                        bail!(Error::new(Reason::Simple(
-                            "table instance cannot be referenced directly".to_string(),
-                        ))
-                        .with_span(span)
-                        .with_help("did you forget to specify the column name?"));
+                        bail!(
+                            Error::new_simple("table instance cannot be referenced directly",)
+                                .with_span(span)
+                                .with_help("did you forget to specify the column name?")
+                        );
                     }
 
                     _ => Expr {
@@ -228,6 +234,11 @@ impl AstFold for Resolver {
                 Expr { kind, ..node }
             }
 
+            ExprKind::Unary {
+                op: UnOp::Not,
+                expr,
+            } if matches!(expr.kind, ExprKind::List(_)) => self.resolve_column_exclusion(*expr)?,
+
             item => Expr {
                 kind: fold_expr_kind(self, item)?,
                 ..node
@@ -238,7 +249,7 @@ impl AstFold for Resolver {
         r.span = r.span.or(span);
 
         if r.ty.is_none() {
-            r.ty = Some(resolve_type(&r)?);
+            r.ty = Some(resolve_type(&r, &self.context)?);
         }
         if let Some(Ty::Table(frame)) = &mut r.ty {
             if let Some(alias) = r.alias.take() {
@@ -342,7 +353,7 @@ impl Resolver {
 
         res.map_err(|e| {
             log::debug!("cannot resolve: `{e}`, context={:#?}", self.context);
-            anyhow!(Error::new(Reason::Simple(e)).with_span(span))
+            anyhow!(Error::new_simple(e).with_span(span))
         })
     }
 
@@ -655,6 +666,42 @@ impl Resolver {
         let kind = fold_expr_kind(self, kind)?;
         Ok(kind)
     }
+
+    fn resolve_column_exclusion(&mut self, expr: Expr) -> Result<Expr, anyhow::Error> {
+        let expr = self.fold_expr(expr)?;
+        let list = coerce_and_flatten(expr)?;
+        let mentioned: HashSet<Ident> = list
+            .into_iter()
+            .map(|e| match e.kind {
+                ExprKind::Ident(ident) => Ok(ident),
+                _ => Err(Error::new(Reason::Expected {
+                    who: Some("exclusion".to_string()),
+                    expected: "column name".to_string(),
+                    found: format!("`{e}`"),
+                })),
+            })
+            .try_collect()?;
+
+        let module = self.context.root_mod.names.get(NS_FRAME);
+        let module = module.and_then(|d| d.kind.as_module());
+        let mut names = module.map(|m| m.as_decls()).unwrap_or_default();
+        names.sort_by_key(|(_, decl)| decl.order);
+
+        let not_mentioned = names
+            .into_iter()
+            .filter(|(_, decl)| matches!(decl.kind, DeclKind::Column(_) | DeclKind::Infer(_)))
+            .map(|(mut ident, _)| {
+                if ident.name == NS_INFER {
+                    ident = ident.with_name(NS_ALL_UNKNOWN);
+                }
+                Ident::from_name(NS_FRAME) + ident
+            })
+            .filter(|ident| !mentioned.contains(ident))
+            .map(|ident| Expr::from(ExprKind::Ident(ident)))
+            .collect_vec();
+
+        self.fold_expr(Expr::from(ExprKind::List(not_mentioned)))
+    }
 }
 
 fn env_of_closure(closure: Closure) -> (Module, Expr) {
@@ -664,6 +711,7 @@ fn env_of_closure(closure: Closure) -> (Module, Expr) {
         let v = Decl {
             declared_at: arg.id,
             kind: DeclKind::Expr(Box::new(arg)),
+            order: 0,
         };
         let param_name = param.name.split('.').last().unwrap();
         func_env.names.insert(param_name.to_string(), v);
@@ -675,7 +723,7 @@ fn env_of_closure(closure: Closure) -> (Module, Expr) {
 #[cfg(test)]
 mod test {
     use anyhow::Result;
-    use insta::{assert_display_snapshot, assert_yaml_snapshot};
+    use insta::assert_yaml_snapshot;
 
     use crate::ast::pl::{Expr, Ty};
     use crate::semantic::resolve_only;
@@ -696,26 +744,6 @@ mod test {
         let derive = expr.kind.into_transform_call()?;
         Ok(derive.kind.into_derive()?)
     }
-
-    #[test]
-    fn test_func_call_resolve() {
-        assert_display_snapshot!(crate::test::compile(r#"
-        from employees
-        aggregate [
-          count non_null:salary,
-          count,
-        ]
-        "#).unwrap(),
-            @r###"
-        SELECT
-          COUNT(salary),
-          COUNT(*)
-        FROM
-          employees
-        "###
-        );
-    }
-
     #[test]
     fn test_variables_1() {
         assert_yaml_snapshot!(resolve_derive(

@@ -59,6 +59,10 @@ impl Error {
         }
     }
 
+    pub fn new_simple<S: ToString>(reason: S) -> Self {
+        Error::new(Reason::Simple(reason.to_string()))
+    }
+
     pub fn with_help<S: Into<String>>(mut self, help: S) -> Self {
         self.help = Some(help.into());
         self

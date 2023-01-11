@@ -7,7 +7,7 @@ use crate::ast::rq::{new_binop, CId, Compute, Expr, ExprKind, RqFold, Take, Tran
 
 use super::anchor::{infer_complexity, Complexity};
 use super::context::AnchorContext;
-use super::translator::Context;
+use super::Context;
 
 pub(super) fn preprocess_distinct(
     pipeline: Vec<Transform>,

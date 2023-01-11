@@ -1,4 +1,7 @@
-use std::fmt::{Debug, Display, Formatter};
+use std::{
+    collections::HashSet,
+    fmt::{Debug, Display, Formatter},
+};
 
 use enum_as_inner::EnumAsInner;
 use itertools::{Itertools, Position};
@@ -31,9 +34,10 @@ pub struct FrameInput {
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize, EnumAsInner)]
 pub enum FrameColumn {
-    /// Used for `foo_table.*`
-    AllUnknown {
+    /// All columns (including unknown ones) from an input (i.e. `foo_table.*`)
+    All {
         input_name: String,
+        except: HashSet<String>,
     },
 
     Single {
@@ -91,7 +95,7 @@ fn display_frame_column(
     display_ids: bool,
 ) -> std::fmt::Result {
     match col {
-        FrameColumn::AllUnknown { input_name } => {
+        FrameColumn::All { input_name, .. } => {
             write!(f, "{input_name}.*")?;
         }
         FrameColumn::Single { name, expr_id } => {

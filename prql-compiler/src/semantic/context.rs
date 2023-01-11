@@ -28,6 +28,10 @@ pub struct Decl {
     pub declared_at: Option<usize>,
 
     pub kind: DeclKind,
+
+    /// Some declarations (like relation columns) have an order to them.
+    /// 0 means that the order is irrelevant.
+    pub order: usize,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, EnumAsInner)]
@@ -81,6 +85,7 @@ impl Context {
         let decl = Decl {
             kind: DeclKind::FuncDef(func_def),
             declared_at: id,
+            order: 0,
         };
         self.root_mod.insert(ident, decl).unwrap();
     }
@@ -93,7 +98,7 @@ impl Context {
         let frame = table_def.value.ty.clone().unwrap().into_table().unwrap();
         let columns = (frame.columns.into_iter())
             .map(|col| match col {
-                FrameColumn::AllUnknown { .. } => RelationColumn::Wildcard,
+                FrameColumn::All { .. } => RelationColumn::Wildcard,
                 FrameColumn::Single { name, .. } => RelationColumn::Single(name.map(|n| n.name)),
             })
             .collect();
@@ -102,6 +107,7 @@ impl Context {
         let decl = Decl {
             declared_at: id,
             kind: DeclKind::TableDecl(TableDecl { columns, expr }),
+            order: 0,
         };
 
         self.root_mod.insert(ident, decl).unwrap();
@@ -111,6 +117,11 @@ impl Context {
         // special case: wildcard
         if ident.name.contains('*') {
             return self.resolve_ident_wildcard(ident);
+        }
+
+        // special case: NS_ALL_UNKNOWN
+        if ident.name == NS_ALL_UNKNOWN {
+            return self.resolve_ident_all_unknown(ident);
         }
 
         // base case: direct lookup
@@ -198,19 +209,27 @@ impl Context {
         }
 
         let (mod_ident, mod_decl) = {
-            let mod_ident = (Ident::from_name(NS_FRAME) + ident.clone()).pop().unwrap();
-
-            if let Some(mod_decl) = self.root_mod.get_mut(&mod_ident) {
-                (mod_ident, mod_decl)
-            } else {
-                let mod_ident = (Ident::from_name(NS_FRAME_RIGHT) + ident.clone())
-                    .pop()
-                    .unwrap();
-
+            if ident.path.len() > 1 {
+                let mod_ident = ident.clone().pop().unwrap();
                 let mod_decl = (self.root_mod.get_mut(&mod_ident))
                     .ok_or_else(|| format!("Unknown relation {ident}"))?;
 
                 (mod_ident, mod_decl)
+            } else {
+                let mod_ident = (Ident::from_name(NS_FRAME) + ident.clone()).pop().unwrap();
+
+                if let Some(mod_decl) = self.root_mod.get_mut(&mod_ident) {
+                    (mod_ident, mod_decl)
+                } else {
+                    let mod_ident = (Ident::from_name(NS_FRAME_RIGHT) + ident.clone())
+                        .pop()
+                        .unwrap();
+
+                    let mod_decl = (self.root_mod.get_mut(&mod_ident))
+                        .ok_or_else(|| format!("Unknown relation {ident}"))?;
+
+                    (mod_ident, mod_decl)
+                }
             }
         };
 
@@ -230,12 +249,26 @@ impl Context {
         let save_as = "_wildcard_match";
         module.names.insert(save_as.to_string(), cols_expr.into());
 
+        Ok(mod_ident + Ident::from_name(save_as))
+    }
+
+    fn resolve_ident_all_unknown(&mut self, ident: &Ident) -> Result<Ident, String> {
+        assert!(ident.name == NS_ALL_UNKNOWN);
+
+        let mod_ident =
+            (ident.clone().pop()).ok_or_else(|| "Invalid use of builtin".to_string())?;
+        let mod_decl = (self.root_mod.get_mut(&mod_ident))
+            .ok_or_else(|| format!("Unknown relation {ident}"))?;
+
+        let module = (mod_decl.kind.as_module_mut())
+            .ok_or_else(|| format!("Expected a module {mod_ident}"))?;
+
         module.names.insert(
             NS_ALL_UNKNOWN.to_string(),
             DeclKind::Column(mod_decl.declared_at.unwrap()).into(),
         );
 
-        Ok(mod_ident + Ident::from_name(save_as))
+        Ok(ident.clone())
     }
 
     fn infer_table_column(&mut self, table_ident: &Ident, col_name: &str) -> Result<(), String> {
@@ -263,13 +296,13 @@ impl Context {
         if let Some(expr) = &table_decl.expr {
             if let Some(Ty::Table(frame)) = expr.ty.as_ref() {
                 let wildcard_inputs = (frame.columns.iter())
-                    .filter_map(|c| c.as_all_unknown())
+                    .filter_map(|c| c.as_all())
                     .collect_vec();
 
                 match wildcard_inputs.len() {
                     0 => return Err(format!("Cannot infer where {table_ident}.{col_name} is from")),
                     1 => {
-                        let input_name = wildcard_inputs.into_iter().next().unwrap();
+                        let (input_name, _) = wildcard_inputs.into_iter().next().unwrap();
 
                         let input = frame.find_input(input_name).unwrap();
                         if let Some(table_ident) = input.table.clone() {
@@ -304,6 +337,7 @@ impl From<DeclKind> for Decl {
         Decl {
             kind,
             declared_at: None,
+            order: 0,
         }
     }
 }

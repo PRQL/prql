@@ -1,11 +1,14 @@
 use std::cmp::Ordering;
+use std::collections::HashSet;
 
 use anyhow::Result;
 
 use crate::ast::pl::*;
 use crate::error::{Error, Reason, WithErrorInfo};
 
-pub fn resolve_type(node: &Expr) -> Result<Ty> {
+use super::Context;
+
+pub fn resolve_type(node: &Expr, context: &Context) -> Result<Ty> {
     if let Some(ty) = &node.ty {
         return Ok(ty.clone());
     }
@@ -29,7 +32,7 @@ pub fn resolve_type(node: &Expr) -> Result<Ty> {
         ExprKind::FString(_) => TyLit::String.into(),
         ExprKind::Range(_) => Ty::Infer, // TODO
 
-        ExprKind::TransformCall(call) => Ty::Table(call.infer_type()?),
+        ExprKind::TransformCall(call) => Ty::Table(call.infer_type(context)?),
         ExprKind::List(_) => Ty::Literal(TyLit::List),
 
         _ => Ty::Infer,
@@ -79,7 +82,10 @@ where
                     name: input_name.clone(),
                     table: None,
                 }],
-                columns: vec![FrameColumn::AllUnknown { input_name }],
+                columns: vec![FrameColumn::All {
+                    input_name,
+                    except: HashSet::new(),
+                }],
             })
         } else {
             expected.clone()

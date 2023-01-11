@@ -45,7 +45,7 @@ pub enum RelationKind {
     SString(Vec<InterpolateItem<Expr>>),
 }
 
-#[derive(Debug, PartialEq, Clone, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Eq, Hash, Serialize, Deserialize, EnumAsInner)]
 pub enum RelationColumn {
     /// Description of a single column that may have a name.
     /// Unnamed columns cannot be referenced.

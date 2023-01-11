@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use std::iter::zip;
 
 use anyhow::Result;
+use enum_as_inner::EnumAsInner;
 use itertools::Itertools;
 
 use crate::ast::pl::fold::AstFold;
@@ -43,8 +44,7 @@ pub fn lower_ast_to_ir(statements: Vec<pl::Stmt>, context: Context) -> Result<Qu
     Ok(Query {
         def: query_def.unwrap_or_default(),
         tables: l.table_buffer,
-        relation: main_pipeline
-            .ok_or_else(|| Error::new(Reason::Simple("missing main pipeline".to_string())))?,
+        relation: main_pipeline.ok_or_else(|| Error::new_simple("missing main pipeline"))?,
     })
 }
 
@@ -70,7 +70,7 @@ struct Lowerer {
     table_buffer: Vec<TableDecl>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, EnumAsInner)]
 enum LoweredTarget {
     /// Lowered node was a computed expression.
     Compute(CId),
@@ -383,13 +383,19 @@ impl Lowerer {
 
                     columns.push((RelationColumn::Single(name), cid));
                 }
-                FrameColumn::AllUnknown { input_name } => {
+                FrameColumn::All { input_name, except } => {
                     let input = frame.find_input(input_name).unwrap();
 
                     match &self.node_mapping[&input.id] {
                         LoweredTarget::Compute(_cid) => unreachable!(),
                         LoweredTarget::Input(input_cols) => {
-                            let mut input_cols = input_cols.iter().collect_vec();
+                            let mut input_cols = input_cols
+                                .iter()
+                                .filter(|(c, _)| match c {
+                                    RelationColumn::Single(Some(name)) => !except.contains(name),
+                                    _ => true,
+                                })
+                                .collect_vec();
                             input_cols.sort_by_key(|e| e.1 .1);
 
                             for (col, (cid, _)) in input_cols {
@@ -581,10 +587,9 @@ impl Lowerer {
                             RelationColumn::Single(Some(v.clone()))
                         }
                     }
-                    None => return Err(Error::new(Reason::Simple(
-                        "This table contains unnamed columns, that need to be referenced by name"
-                            .to_string(),
-                    ))
+                    None => return Err(Error::new_simple(
+                        "This table contains unnamed columns, that need to be referenced by name",
+                    )
                     .with_span(self.context.span_map.get(&id).cloned())
                     .into()),
                 };
