@@ -28,6 +28,13 @@
   union other_employees
   ```
 
+- _Experimental:_ Excluding columns (@aljazerzen, #1329)
+
+  ```prql
+  from employees
+  select ![title, composer]
+  ```
+
 - Numbers can now contain underscores, which can make reading long numbers
   easier (@max-sixty, #1467):
 
