@@ -1,3 +1,7 @@
-from employees  # Comment 1
-# Comment 2
-aggregate [average salary]
+from employees
+group [title, country] (
+  aggregate [
+    average salary,
+    ct = count
+  ]
+)
