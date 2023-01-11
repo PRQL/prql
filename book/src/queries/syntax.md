@@ -110,7 +110,8 @@ Parentheses are required around:
   item in a list or a pipeline[^1].
 - A minus sign in a function argument, like in `add (-1) (-3)`
 
-Parentheses are not required around operators
+Parentheses are not required around expressions which use operators but no
+function call, like `foo + bar`.
 
 [^1]: or, technically, on the right side of an assignment in a list....
 
