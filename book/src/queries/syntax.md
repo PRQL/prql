@@ -103,35 +103,49 @@ other languages.
 
 Parentheses are required around:
 
-- any expression containing a pipe, either the `|` symbol or a linebreak
-- any function call that isn't otherwise separated from other expressions (for
-  example, it's in a list)
-- when a minus sign is used to make a negative value in a function argument
+- Any nested function call containing a pipe, either the `|` symbol or a new
+  line. "nested" means within a transform; i.e. not just the main pipeline.
+- Any function call that isn't separated from other expressions, like
+  `sum distance` in `round 0 (sum distance)`. "Separated" means being a single
+  item in a list or a pipeline[^1]
+- A minus sign in a function argument, like in `add (-1) (-3)`
+
+Parentheses are not required around operators
+
+[^1]: or, technically, on the right side of an assignment in a list....
 
 ```prql
 from employees
 # Requires parentheses, because it's contains a pipe
 derive is_proximate = (distance | in 0..20)
 # Requires parentheses, because it's a function call
-derive average_distance = (sum distance)
+derive total_distance = (sum distance)
+# `??` doesn't require parentheses, as it's not a function call
+derive min_capped_distance = (min distance ?? 5)
+# No parentheses needed, because no function call
+derive travel_time = distance / 40
 derive [
-  # Requires parentheses, because it's contains a pipe
-  is_mid = (distance | in 20..100),
-  # Doesn't require parentheses, because it's in a list!
-  is_far = in 100.. distance,
-  # The left value of the range also requires parentheses,
+  # Requires parentheses, because it contains a pipe
+  is_far = (distance | in 100..),
+  # The left value of the range requires parentheses,
   # because of the minus sign
-  is_negative = (distance | in (-100..0))
+  is_negative = (distance | in (-100..0)),
+  # This is fine too
+  is_negative = (distance | in (-100)..0),
+  # Doesn't require parentheses, because it's in a list (*confusing)!
+  average_distance = average distance,
 ]
 # Requires parentheses because of the minus sign
 sort (-distance)
+# A list is fine too
+sort [-distance]
 ```
 
 ```admonish note
 We realize some of this is not intuitive. We are considering approaches to
 make this more intuitive — even at the cost of requiring more syntax in some
 circumstances. And we're planning to make the error messages much better,
-so the compiler s there to help out.
+so the compiler is there to help out.
 ```
 
 Consistent with this, in transforms which take another transform as an argument,

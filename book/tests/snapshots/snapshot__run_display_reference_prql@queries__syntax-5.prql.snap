@@ -9,20 +9,29 @@ derive is_proximate = (
   in 0..20
 )
 derive (
-  average_distance = sum distance
+  total_distance = sum distance
 )
+derive (
+  min_capped_distance = min distance ?? 5
+)
+derive travel_time = distance / 40
 derive [
-  is_mid = (
+  is_far = (
   distance
-  in 20..100
+  in 100..
 ),
-  is_far = in 100.. distance,
   is_negative = (
   distance
   in -100..0
 ),
+  is_negative = (
+  distance
+  in -100 ..0
+),
+  average_distance = average distance,
 ]
 sort -distance
+sort [-distance]
 
 
 
