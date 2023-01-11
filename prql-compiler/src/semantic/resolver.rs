@@ -184,11 +184,11 @@ impl AstFold for Resolver {
                     DeclKind::Expr(expr) => self.fold_expr(expr.as_ref().clone())?,
 
                     DeclKind::InstanceOf(_) => {
-                        bail!(Error::new(Reason::Simple(
-                            "table instance cannot be referenced directly".to_string(),
-                        ))
-                        .with_span(span)
-                        .with_help("did you forget to specify the column name?"));
+                        bail!(
+                            Error::new_simple("table instance cannot be referenced directly",)
+                                .with_span(span)
+                                .with_help("did you forget to specify the column name?")
+                        );
                     }
 
                     _ => Expr {
@@ -353,7 +353,7 @@ impl Resolver {
 
         res.map_err(|e| {
             log::debug!("cannot resolve: `{e}`, context={:#?}", self.context);
-            anyhow!(Error::new(Reason::Simple(e)).with_span(span))
+            anyhow!(Error::new_simple(e).with_span(span))
         })
     }
 

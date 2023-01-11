@@ -5,8 +5,8 @@ use anyhow::Result;
 use once_cell::sync::Lazy;
 use sqlparser::ast::{self as sql_ast};
 
-use super::codegen;
-use super::translator::Context;
+use super::gen_expr::translate_sstring;
+use super::Context;
 use crate::ast::{pl, rq};
 use crate::semantic;
 
@@ -66,7 +66,7 @@ pub(super) fn translate_built_in(
         })
         .collect::<Vec<_>>();
 
-    let s_string = codegen::translate_sstring(body, ctx)?;
+    let s_string = translate_sstring(body, ctx)?;
 
     Ok(sql_ast::Expr::Identifier(sql_ast::Ident::new(s_string)))
 }

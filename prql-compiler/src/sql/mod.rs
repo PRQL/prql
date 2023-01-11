@@ -1,12 +1,13 @@
 //! Backend for translating RQ into SQL
 
 mod anchor;
-mod codegen;
 mod context;
 mod dialect;
+mod gen_expr;
+mod gen_projection;
+mod gen_query;
 mod preprocess;
 mod std;
-mod translator;
 
 pub use dialect::Dialect;
 
@@ -15,11 +16,13 @@ use serde::{Deserialize, Serialize};
 
 use crate::{ast::rq::Query, PRQL_VERSION};
 
+use self::{context::AnchorContext, dialect::DialectHandler};
+
 /// Translate a PRQL AST into a SQL string.
 pub fn compile(query: Query, options: Option<Options>) -> Result<String> {
     let options = options.unwrap_or_default();
 
-    let sql_ast = translator::translate_query(query, options.dialect)?;
+    let sql_ast = gen_query::translate_query(query, options.dialect)?;
 
     let sql = sql_ast.to_string();
 
@@ -112,4 +115,17 @@ impl Options {
     pub fn some(self) -> Option<Self> {
         Some(self)
     }
+}
+
+struct Context {
+    pub dialect: Box<dyn DialectHandler>,
+    pub anchor: AnchorContext,
+
+    pub omit_ident_prefix: bool,
+
+    /// True iff codegen should generate expressions before SELECT's projection is applied.
+    /// For example:
+    /// - WHERE needs `pre_projection=true`, but
+    /// - ORDER BY needs `pre_projection=false`.
+    pub pre_projection: bool,
 }

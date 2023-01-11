@@ -19,12 +19,12 @@ use crate::ast::pl::{
     WindowKind,
 };
 use crate::ast::rq::*;
-use crate::error::{Error, Reason};
+use crate::error::{Error, Span};
 use crate::sql::context::ColumnDecl;
 use crate::utils::OrMap;
 
-use super::translator::Context;
-use super::Dialect;
+use super::gen_projection::try_into_exprs;
+use super::Context;
 
 pub(super) fn translate_expr_kind(item: ExprKind, ctx: &mut Context) -> Result<sql_ast::Expr> {
     Ok(match item {
@@ -196,7 +196,7 @@ pub(super) fn translate_expr_kind(item: ExprKind, ctx: &mut Context) -> Result<s
     })
 }
 
-fn translate_cid(cid: CId, ctx: &mut Context) -> Result<sql_ast::Expr> {
+pub(super) fn translate_cid(cid: CId, ctx: &mut Context) -> Result<sql_ast::Expr> {
     if ctx.pre_projection {
         log::debug!("translating {cid:?} pre projection");
         let decl = ctx.anchor.column_decls.get(&cid).expect("bad RQ ids");
@@ -204,11 +204,12 @@ fn translate_cid(cid: CId, ctx: &mut Context) -> Result<sql_ast::Expr> {
         Ok(match decl {
             ColumnDecl::Compute(compute) => {
                 let window = compute.window.clone();
+                let span = compute.expr.span;
 
                 let expr = translate_expr_kind(compute.expr.kind.clone(), ctx)?;
 
                 if let Some(window) = window {
-                    translate_windowed(expr, window, ctx)?
+                    translate_windowed(expr, window, ctx, span)?
                 } else {
                     expr
                 }
@@ -330,10 +331,10 @@ pub(super) fn translate_query_sstring(
         }
     }
 
-    bail!(Error::new(Reason::Simple(
-        "s-strings representing a table must start with `SELECT `".to_string()
-    ))
-    .with_help("this is a limitation by current compiler implementation"))
+    bail!(
+        Error::new_simple("s-strings representing a table must start with `SELECT `".to_string())
+            .with_help("this is a limitation by current compiler implementation")
+    )
 }
 
 /// Aggregate several ordered ranges into one, computing the intersection.
@@ -391,11 +392,6 @@ pub(super) fn top_of_i64(take: i64, ctx: &mut Context) -> Top {
         percent: false,
     }
 }
-pub(super) fn try_into_exprs(cids: Vec<CId>, ctx: &mut Context) -> Result<Vec<sql_ast::Expr>> {
-    cids.into_iter()
-        .map(|cid| translate_cid(cid, ctx))
-        .try_collect()
-}
 
 pub(super) fn translate_select_item(cid: CId, ctx: &mut Context) -> Result<SelectItem> {
     let expr = translate_cid(cid, ctx)?;
@@ -415,6 +411,7 @@ pub(super) fn translate_select_item(cid: CId, ctx: &mut Context) -> Result<Selec
             // or use something that will not clash with other names
             ctx.anchor.col_name.gen()
         });
+        ctx.anchor.column_names.insert(cid, ident.to_string());
 
         return Ok(SelectItem::ExprWithAlias {
             alias: translate_ident_part(ident, ctx),
@@ -485,6 +482,7 @@ fn translate_windowed(
     expr: sql_ast::Expr,
     window: Window,
     ctx: &mut Context,
+    span: Option<Span>,
 ) -> Result<sql_ast::Expr> {
     let default_frame = {
         let (kind, range) = if window.sort.is_empty() {
@@ -505,7 +503,7 @@ fn translate_windowed(
     };
 
     let window = WindowSpec {
-        partition_by: try_into_exprs(window.partition, ctx)?,
+        partition_by: try_into_exprs(window.partition, ctx, span)?,
         order_by: (window.sort)
             .into_iter()
             .map(|sort| translate_column_sort(&sort, ctx))
@@ -600,7 +598,7 @@ pub(super) fn translate_ident(
     if !ctx.omit_ident_prefix || column.is_none() {
         if let Some(relation) = relation_name {
             // Special-case this for BigQuery, Ref #852
-            if matches!(ctx.dialect.dialect(), Dialect::BigQuery) {
+            if ctx.dialect.big_query_quoting() {
                 parts.push(relation);
             } else {
                 parts.extend(relation.split('.').map(|s| s.to_string()));

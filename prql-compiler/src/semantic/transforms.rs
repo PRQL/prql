@@ -423,9 +423,9 @@ fn join(mut lhs: Frame, rhs: Frame) -> Frame {
 
 fn concat(mut top: Frame, bottom: Frame) -> Result<Frame, Error> {
     if top.columns.len() != bottom.columns.len() {
-        return Err(Error::new(Reason::Simple(
-            "cannot concat two relations with non-matching number of columns.".to_string(),
-        )))
+        return Err(Error::new_simple(
+            "cannot concat two relations with non-matching number of columns.",
+        ))
         .with_help(format!(
             "top has {} columns, but bottom has {}",
             top.columns.len(),
@@ -456,14 +456,12 @@ fn concat(mut top: Frame, bottom: Frame) -> Result<Frame, Error> {
                     FrameColumn::Single { name, expr_id }
                 }
             },
-            (t, b) => {
-                return Err(Error::new(Reason::Simple(format!(
-                    "cannot match columns `{t:?}` and `{b:?}`"
-                )))
-                .with_help(
-                    "make sure that top and bottom relations of concat has the same column layout",
-                ))
-            }
+            (t, b) => return Err(Error::new_simple(format!(
+                "cannot match columns `{t:?}` and `{b:?}`"
+            ))
+            .with_help(
+                "make sure that top and bottom relations of concat has the same column layout",
+            )),
         });
     }
 

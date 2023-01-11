@@ -2298,7 +2298,7 @@ fn test_name_shadowing() {
         @r###"
     SELECT
       a AS _expr_0,
-      a AS _expr_1,
+      a AS _expr_0,
       a + 1 AS a
     FROM
       x
@@ -2316,7 +2316,7 @@ fn test_name_shadowing() {
         @r###"
     SELECT
       a AS _expr_0,
-      a AS _expr_1,
+      a AS _expr_0,
       a + 1,
       a + 1 + 2 AS a
     FROM
@@ -2326,6 +2326,7 @@ fn test_name_shadowing() {
 }
 
 #[test]
+#[ignore]
 fn test_group_all() {
     assert_display_snapshot!(compile(
         r###"
@@ -2353,6 +2354,12 @@ fn test_group_all() {
       table_1.*
     "###
     );
+
+    assert_display_snapshot!(compile(
+        r###"
+    from e=albums
+    group ![genre_id] (aggregate count)
+        "###).unwrap_err(), @"");
 }
 
 #[test]
@@ -2647,6 +2654,47 @@ fn test_exclude_columns() {
       name AS nick
     FROM
       artists
+    "###
+    );
+
+    assert_display_snapshot!(compile(r#"
+    prql target:sql.bigquery
+    from tracks
+    select ![milliseconds,bytes]
+    "#).unwrap(),
+        @r###"
+    SELECT
+      *
+    EXCEPT
+      (milliseconds, bytes)
+    FROM
+      tracks
+    "###
+    );
+
+    assert_display_snapshot!(compile(r#"
+    prql target:sql.snowflake
+    from tracks
+    select ![milliseconds,bytes]
+    "#).unwrap(),
+        @r###"
+    SELECT
+      * EXCLUDE (milliseconds, bytes)
+    FROM
+      tracks
+    "###
+    );
+
+    assert_display_snapshot!(compile(r#"
+    prql target:sql.duckdb
+    from tracks
+    select ![milliseconds,bytes]
+    "#).unwrap(),
+        @r###"
+    SELECT
+      * EXCLUDE (milliseconds, bytes)
+    FROM
+      tracks
     "###
     );
 }

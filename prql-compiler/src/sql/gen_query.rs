@@ -11,30 +11,16 @@ use sqlparser::ast::{self as sql_ast, Select, SelectItem, SetExpr, TableWithJoin
 
 use crate::ast::pl::{BinOp, Literal};
 use crate::ast::rq::{
-    CId, Expr, ExprKind, Query, Relation, RelationColumn, RelationKind, RqFold, TableDecl,
-    Transform,
+    CId, Expr, ExprKind, Query, Relation, RelationKind, RqFold, TableDecl, Transform,
 };
 use crate::error::{Error, Reason};
-use crate::sql::context::ColumnDecl;
 use crate::utils::{BreakUp, IntoOnly, Pluck, TableCounter};
 
-use super::codegen::*;
+use super::context::AnchorContext;
+use super::gen_projection::*;
 use super::preprocess::{preprocess_distinct, preprocess_reorder};
 use super::{anchor, Dialect};
-use super::{context::AnchorContext, dialect::DialectHandler};
-
-pub(super) struct Context {
-    pub dialect: Box<dyn DialectHandler>,
-    pub anchor: AnchorContext,
-
-    pub omit_ident_prefix: bool,
-
-    /// True iff codegen should generate expressions before SELECT's projection is applied.
-    /// For example:
-    /// - WHERE needs `pre_projection=true`, but
-    /// - ORDER BY needs `pre_projection=false`.
-    pub pre_projection: bool,
-}
+use super::{gen_expr::*, Context};
 
 pub fn translate_query(query: Query, dialect: Option<Dialect>) -> Result<sql_ast::Query> {
     let dialect = if let Some(dialect) = dialect {
@@ -189,14 +175,9 @@ fn sql_select_query_of_pipeline(
 ) -> Result<sql_ast::Query> {
     context.pre_projection = true;
 
-    let projection = pipeline
-        .pluck(|t| t.into_select())
-        .into_only() // expect only one select
-        .map(|cols| translate_wildcards(&context.anchor, cols))
-        .unwrap_or_default()
-        .into_iter()
-        .map(|id| translate_select_item(id, context))
-        .try_collect()?;
+    let projection = pipeline.pluck(|t| t.into_select()).into_only().unwrap();
+    let projection = translate_wildcards(&context.anchor, projection);
+    let projection = translate_select_items(projection.0, projection.1, context)?;
 
     let mut from = pipeline
         .pluck(|t| t.into_from())
@@ -235,7 +216,7 @@ fn sql_select_query_of_pipeline(
     // GROUP BY
     let aggregate = after_agg.pluck(|t| t.into_aggregate()).into_iter().next();
     let group_by: Vec<CId> = aggregate.map(|(part, _)| part).unwrap_or_default();
-    let group_by = try_into_exprs(group_by, context)?;
+    let group_by = try_into_exprs(group_by, context, None)?;
 
     context.pre_projection = false;
 
@@ -458,65 +439,6 @@ fn ensure_names(atomics: &[AtomicQuery], ctx: &mut AnchorContext) {
             }
         }
     }
-}
-
-/// Convert RQ wildcards to SQL stars.
-/// Note that they don't have the same semantics:
-/// - wildcard means "other columns that we don't have the knowledge of"
-/// - star means "all columns of the table"
-///
-pub fn translate_wildcards(ctx: &AnchorContext, cols: Vec<CId>) -> Vec<CId> {
-    // When compiling:
-    // from employees | group department (take 3)
-    // Row number will be computed in a CTE that also contains a star.
-    // In the main query, star will also include row number, which was not
-    // requested.
-    // This function emits a warning when this happens.
-    fn warn_not_empty(in_star: &HashSet<CId>) {
-        // TODO: eventually this should throw an error
-        //   I don't want to do this now, because we have no way around it.
-        //   One way would be to use * EXCLUDE in DuckDB dialect
-        //   Another would be to ask the user to add table definitions.
-        if log::log_enabled!(log::Level::Warn) && !in_star.is_empty() {
-            let in_star = in_star.iter().map(|c| format!("{c:?}")).collect_vec();
-            let in_star = in_star.join(", ");
-
-            log::warn!("Columns {in_star} will be included with *, but were not requested.")
-        }
-    }
-
-    let mut output = Vec::new();
-    let mut in_star = HashSet::new();
-    for cid in cols {
-        if let ColumnDecl::RelationColumn(tiid, _, col) = &ctx.column_decls[&cid] {
-            if matches!(col, RelationColumn::Wildcard) {
-                warn_not_empty(&in_star);
-                in_star.clear();
-
-                let table_ref = &ctx.table_instances[tiid];
-                in_star.extend(table_ref.columns.iter().filter_map(|c| match c {
-                    (RelationColumn::Wildcard, _) => None,
-                    (_, cid) => Some(*cid),
-                }));
-
-                // remove preceding cols that will be included with this star
-                while let Some(prev) = output.pop() {
-                    if !in_star.remove(&prev) {
-                        output.push(prev);
-                        break;
-                    }
-                }
-            }
-        }
-
-        // don't use cols that have been included by preceding star
-        if !in_star.remove(&cid) {
-            output.push(cid);
-        }
-    }
-
-    warn_not_empty(&in_star);
-    output
 }
 
 fn filter_of_conditions(exprs: Vec<Expr>, context: &mut Context) -> Result<Option<sql_ast::Expr>> {

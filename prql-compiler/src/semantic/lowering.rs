@@ -44,8 +44,7 @@ pub fn lower_ast_to_ir(statements: Vec<pl::Stmt>, context: Context) -> Result<Qu
     Ok(Query {
         def: query_def.unwrap_or_default(),
         tables: l.table_buffer,
-        relation: main_pipeline
-            .ok_or_else(|| Error::new(Reason::Simple("missing main pipeline".to_string())))?,
+        relation: main_pipeline.ok_or_else(|| Error::new_simple("missing main pipeline"))?,
     })
 }
 
@@ -398,7 +397,6 @@ impl Lowerer {
                                 })
                                 .collect_vec();
                             input_cols.sort_by_key(|e| e.1 .1);
-                            dbg!(&input_cols);
 
                             for (col, (cid, _)) in input_cols {
                                 columns.push((col.clone(), *cid));
@@ -589,10 +587,9 @@ impl Lowerer {
                             RelationColumn::Single(Some(v.clone()))
                         }
                     }
-                    None => return Err(Error::new(Reason::Simple(
-                        "This table contains unnamed columns, that need to be referenced by name"
-                            .to_string(),
-                    ))
+                    None => return Err(Error::new_simple(
+                        "This table contains unnamed columns, that need to be referenced by name",
+                    )
                     .with_span(self.context.span_map.get(&id).cloned())
                     .into()),
                 };
