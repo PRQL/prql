@@ -96,24 +96,29 @@ select first_name
 
 ## Parentheses
 
-<!-- TODO document conclusions from https://github.com/PRQL/prql/issues/648  -->
+Parentheses — `()` — are used to give precedence to inner expressions.
 
-Parentheses — `()` — are used to give precedence to inner expressions, like in
-other languages.
+```admonish note
+We realize some of the finer points here are not intuitive. We are considering approaches to
+make this more intuitive — even at the cost of requiring more syntax in some
+circumstances. And we're planning to make the error messages much better,
+so the compiler is there to help out.
+```
 
 Parentheses are required around:
 
 - Any nested function call containing a pipe, either the `|` symbol or a new
   line. "Nested" means within a transform; i.e. not just the main pipeline.
-- Any function call that isn't separated from other expressions, like
-  `sum distance` in `round 0 (sum distance)`. "Separated" means being a single
-  item in a list or a pipeline[^1].
+- Any function call that isn't a single item in a list or a pipeline, like
+  `sum distance` in `round 0 (sum distance)`[^1].
 - A minus sign in a function argument, like in `add (-1) (-3)`
 
 Parentheses are not required around expressions which use operators but no
 function call, like `foo + bar`.
 
-[^1]: or, technically, on the right side of an assignment in a list....
+[^1]: or, technically, on the right side of an assignment in a list.
+
+Here's a full rundown of times this applier:
 
 ```prql
 from employees
@@ -140,13 +145,6 @@ derive [
 sort (-distance)
 # A list is fine too
 sort [-distance]
-```
-
-```admonish note
-We realize some of this is not intuitive. We are considering approaches to
-make this more intuitive — even at the cost of requiring more syntax in some
-circumstances. And we're planning to make the error messages much better,
-so the compiler is there to help out.
 ```
 
 Consistent with this, parentheses are used to nest the inner transforms in
