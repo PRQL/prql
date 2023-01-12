@@ -17,7 +17,7 @@
   - [Group](./transforms/group.md)
   - [Join](./transforms/join.md)
   - [Select](./transforms/select.md)
-  - [Append & set operators](./transforms/append-and-union.md)
+  - [Append & set operators](./transforms/append.md)
   - [Sort](./transforms/sort.md)
   - [Take](./transforms/take.md)
   - [Window](./transforms/window.md)
