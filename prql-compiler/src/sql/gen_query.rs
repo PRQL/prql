@@ -350,14 +350,8 @@ fn sql_of_sample_data(data: RelationLiteral) -> sql_ast::Query {
             from: vec![],
             projection: std::iter::zip(data.columns.clone(), row)
                 .map(|(col, value)| SelectItem::ExprWithAlias {
-                    expr: sql_ast::Expr::Identifier(sql_ast::Ident {
-                        value: value.into(),
-                        quote_style: None,
-                    }),
-                    alias: sql_ast::Ident {
-                        value: col,
-                        quote_style: None,
-                    },
+                    expr: sql_ast::Expr::Identifier(sql_ast::Ident::new(value)),
+                    alias: sql_ast::Ident::new(col),
                 })
                 .collect(),
             selection: None,
