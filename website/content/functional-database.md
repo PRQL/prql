@@ -220,6 +220,8 @@ focused around the innovative function call syntax.
     Many functions in SQL are not pure, and we don't have a plan on
     [how to deal with that](https://github.com/PRQL/prql/issues/1111).
 
+### Basics
+
 A basic operation on a relation would be:
 
 ```
@@ -255,6 +257,161 @@ All these queries can be simplified to an expression of relations and scalars.
 In PRQL, we call such expressions "Relational Queries" or RQ for short. It is an
 intermediate representation of prql-compiler and can be translated to SQL and
 executed on basically any relational database.
+
+This is the gist of how to express SQL queries with a functional language. At
+this stage a curious reader might ask "can PRQL express any SQL query?" to which
+I'd say: almost. Another might be wondering "but is it less cumbersome and more
+consistent?" and I'd reply "very much, yes", but really it depends on who you
+ask. And someone might say "why functional?" to which I say "exactly the
+question I was waiting for!".
+
+There are a few quick benefits I want to get out of the way:
+
+- Pipelines make the flow of the query "top-to-bottom". An earlier part of a
+  pipeline will always be valid query, regardless of what follows.
+- Functions on relations (transforms) are designed to be orthogonal. Each of
+  them has as little effects as possible and can be used at any point in the
+  pipeline (except for `from`).
+
+But there is more.
+
+### Aggregate
+
+At this point, I have to introduce `aggregate`. It takes a relation and produces
+a single row using some aggregation function:
+
+```prql
+(from albums | aggregate [n_albums = count])
+```
+
+What happens if we don't specify the leading relation?
+
+```prql
+(aggregate [n_albums = count])
+```
+
+Because `aggregate` is missing an argument, currying kicks in and the whole
+expression evaluates to a function that is still waiting for a relation.
+
+In SQL it is common to use GROUP BY when aggregating. If you think about it, it
+basically separates the relation into groups using some criteria and then
+applies `aggregate` to each of the groups. This is exactly how PRQL expressed
+it:
+
+```prql
+from albums | group artist_id (aggregate [n_albums = count])
+```
+
+This is a lot for one line, so let's unveil new syntactic conveniences: a new
+line is a pipe operator and the top-level pipeline does not need parenthesis.
+I'll also add a new transform at the back, don't worry about it.
+
+```prql
+from albums
+group artist_id (
+    aggregate [n_albums = count]
+)
+filter n_albums > 3
+```
+
+Notice how `group` operates on the whole relation it get's from `from` and that
+`aggregate` is passed to group as a function to be applied to each of the
+groups. `aggregate` then converts each of the groups into a single row and
+returns that to group that composes these rows back together. This can now be
+passed on to `filter`, which will removed any rows don't match its condition.
+
+In SQL, a similar expression would have these four parts:
+
+- projection in SELECT,
+- an aggregation function that implicitly triggers of aggregation,
+- GROUP BY clause,
+- HAVING clause.
+
+These parts are entangled syntactically and semantically into one feature we
+understand as GROUPING.
+
+The beautiful realization is that this really are 3 different operations that
+are happening and that when separated they don't need to be associated with each
+other. For example `filter` is more commonly expressed as WHERE and `group` has
+other uses than `aggregate`.
+
+But to separate the these core relational operations, we need to a way to
+express aggregate as a function. This is why functional paradigm really fits
+with relational data model.
+
+### Distinct
+
+A common question when learning SQL is "how do I select the row where column x
+is min?". It has many variations, but there are two ways of doing it:
+
+```sql
+-- option 1
+SELECT x, y, z FROM tab ORDER BY x LIMIT 1
+
+-- option 2
+SELECT x, y, z FROM tab WHERE x = (SELECT min(x) FROM tab)
+```
+
+[A followup question](https://stackoverflow.com/questions/3800551/select-first-row-in-each-group-by-group)
+would be "how do I select the tow where column x is max, for each group over
+y?". This seems like a similar problem but solution is SQL is surprisingly
+different:
+
+```sql
+-- option 1 (unsupported in some dialects)
+SELECT DISTINCT ON (y) x, y, z FROM tab ORDER BY y, x, z;
+
+-- option 2  (supported by most dialects)
+WITH summary AS (
+    SELECT x, y, z,
+        ROW_NUMBER() OVER(PARTITION BY y ORDER BY x) AS rank
+    FROM tab)
+SELECT * FROM summary WHERE rank = 1
+```
+
+Now break the query down into core operations. Essentially we want to do the
+same thing we did before, but performed on groups by `y`. Before we used SQL
+that can be expressed as `sort x | take 1` (which evaluates to a function), so
+now surly this should work:
+
+```prql
+from tab
+group y (sort x | take 1)
+```
+
+And it does. You can go and test this out in the
+[PRQL playground](https://prql-lang.org/playground/).
+
+Another variation of the question would be "how do I select a row, for each of
+group over all columns?". If you phrase it differently "group by all columns and
+then take one row from each group". Or another way: "select distinct values of
+all columns".
+
+```prql
+from tab
+group tab.* (take 1)
+```
+
+As you can see, our language has many shortcuts for expressing operations such
+as DISTINCT. This is convenient for us humans, but it's not a good base for
+relational query language.
+
+## Summary
+
+I hope my point is clear: relational query language benefits a lot by separating
+operations into orthogonal transforms[^3]. These transforms are in most cases
+pure functions that are easiest to express in a functional language.
+
+<!-- SQL, on the other hand, uses many keywords and syntactic constructs to express
+most commonly used combinations of these transforms. This falls short when
+trying to express uncommon operations while not providing significantly shorter queries. -->
+
+[^3]:
+    Transforms in PRQL are not completely orthogonal. `select`, `derive`,
+    `aggregate` and `join` all manipulate relation columns. So in a sense, they
+    are much closer to each other than they are to `take`.
+
+### Real programming language
 
 ## Appendix
 
