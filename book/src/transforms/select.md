@@ -4,10 +4,12 @@ Picks and computes columns.
 
 ```prql_no_test
 select [
-  {new_name} = {expression},
+  {name} = {expression},
   # or
-  {expression}
+  {column},
 ]
+# or
+select ![{column}]
 ```
 
 ## Examples
@@ -33,6 +35,37 @@ select first_name
 ```prql
 from e=employees
 select [e.first_name, e.last_name]
+```
+
+### Excluding columns
+
+We can use `!` to exclude a list of columns. This can operate in two ways:
+
+- We use `SELECT * EXCLUDE` or `SELECT * EXCEPT` for the supplied columns in
+  dialects which support it.
+- Otherwise, the columns much have been defined prior in the query (unless all
+  of a table's columns are excluded); for example in another `select` or a
+  `group` transform.
+
+Some examples:
+
+```prql
+prql target:sql.bigquery
+
+from tracks
+select ![milliseconds,bytes]
+```
+
+```prql
+from tracks
+select [track_id, title, composer, bytes]
+select ![title, composer]
+```
+
+```prql
+from artists
+derive nick = name
+select ![artists.*]
 ```
 
 <!-- TODO: I think this should move to a separate "Aliases" page -->

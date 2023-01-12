@@ -1,0 +1,9 @@
+---
+source: book/tests/snapshot.rs
+expression: "from artists\nderive nick = name\nselect ![artists.*]\n"
+input_file: book/tests/prql/transforms/select-6.prql
+---
+SELECT
+  name AS nick
+FROM
+  artists
