@@ -152,6 +152,7 @@ pub(super) fn translate_expr_kind(item: ExprKind, ctx: &mut Context) -> Result<s
                     fractional_seconds_precision: None,
                 }
             }
+            Literal::Relation(_) => unreachable!(),
         },
         ExprKind::Switch(mut cases) => {
             let default = cases

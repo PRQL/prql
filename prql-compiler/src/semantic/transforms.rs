@@ -295,6 +295,46 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
             return Ok(Ok(res));
         }
 
+        "std.from_csv" => {
+            // yes, this is not a transform, but this is the most appropriate place for it
+
+            let [csv_expr] = unpack::<1>(closure);
+
+            let ExprKind::Literal(Literal::String(csv)) = csv_expr.kind else {
+                return Err(Error::new(Reason::Expected { who: Some("std.from_csv".to_string()), expected: "a string literal".to_string(), found: format!("`{csv_expr}`") }).with_span(csv_expr.span).into())
+            };
+
+            let res = parse_csv(&csv)?;
+
+            let input = FrameInput {
+                id: csv_expr.id.unwrap(),
+                name: csv_expr.alias.unwrap_or_else(|| "csv".to_string()),
+                table: None,
+            };
+
+            let columns = res
+                .columns
+                .iter()
+                .map(|name| FrameColumn::Single {
+                    name: Some(Ident::from_name(name)),
+                    expr_id: input.id,
+                })
+                .collect();
+
+            let frame = Frame {
+                columns,
+                inputs: vec![input],
+                ..Default::default()
+            };
+            let res = Expr::from(ExprKind::Literal(Literal::Relation(res)));
+            let res = Expr {
+                ty: Some(Ty::Table(frame)),
+                id: csv_expr.id,
+                ..res
+            };
+            return Ok(Ok(res));
+        }
+
         _ => return Ok(Err(closure)),
     };
 
@@ -810,6 +850,29 @@ impl AstFold for Flattener {
     }
 }
 
+// TODO: Can we dynamically get the types, like in pandas? We need to put
+// quotes around strings and not around numbers.
+// https://stackoverflow.com/questions/64369887/how-do-i-read-csv-data-without-knowing-the-structure-at-compile-time
+fn parse_csv(csv: &str) -> Result<RelationLiteral> {
+    let mut rdr = csv::Reader::from_reader(csv.as_bytes());
+
+    Ok(RelationLiteral {
+        columns: rdr
+            .headers()?
+            .into_iter()
+            .map(|h| h.to_string())
+            .collect::<Vec<_>>(),
+        rows: rdr
+            .records()
+            .into_iter()
+            // This is messy rust, but I can't get it to resolve the Errors
+            // when it leads with `row_result?`. I'm sure it's possible...
+            .map(|row_result| {
+                row_result.map(|row| row.into_iter().map(|x| x.to_string()).collect())
+            })
+            .try_collect()?,
+    })
+}
 #[cfg(test)]
 mod tests {
     use insta::assert_yaml_snapshot;
