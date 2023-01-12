@@ -6,10 +6,10 @@
 
 - S-strings can
   [produce a full table.](https://prql-lang.org/book/language-features/s-strings.html#prql-3)
-- _Experimental:_ The
-  [`switch`](https://prql-lang.org/book/language-features/switch.html) function
-  sets a variable to a value based on one of several expressions (@aljazerzen,
-  #1278).
+- _Experimental:_ `switch` statement sets a variable to a value based on one of
+  several expressions. No page in the docs yet, but
+  [see this discussion](https://github.com/PRQL/prql/issues/1286#issue-1501645497)
+  and (#1278) for usage and the current syntax. _Note: this syntax may change._
 
   ```prql
   derive var = switch [
@@ -18,21 +18,6 @@
     score <= 70 -> "high",
     true -> "very high",
   ]
-  ```
-
-  ...compiles to:
-
-  ```sql
-  SELECT
-    *,
-    CASE
-      WHEN score <= 10 THEN 'low'
-      WHEN score <= 30 THEN 'medium'
-      WHEN score <= 70 THEN 'high'
-      ELSE 'very high'
-    END AS var
-  FROM
-    bar
   ```
 
 - _Experimental:_ `concat` & `union` transforms. (@aljazerzen, #894)
@@ -61,7 +46,7 @@
   ]
   ```
 
-- Add a comment in the SQL output containing the PRQL compiler version
+- Add SQL comment which displays the compiler version used to generate the SQL
   (@aljazerzen, #1322)
 - The playground now allows querying some sample data. As before, the result
   updates on every keystroke. (@aljazerzen, #1305)
@@ -93,6 +78,10 @@
 
 - Ranges supplied to `in` can now be half-open (@aljazerzen, #1330).
 
+The following need updated pages in the documentation:
+
+- Allow function calls & pipelines in list items (@max-sixty, #1318)
+
 **Fixes**:
 
 - Allow interpolations in table s-strings (@aljazerzen, #1337)
@@ -102,7 +91,7 @@
 - Add docs on aliases in
   [Select](https://prql-lang.org/book/transforms/select.html)
 - Fix JS example code (@BCsabaEngine, #1432)
-- Add JS template literal and multiline example (@BCsabaEngine, #1432)
+- JS template literal and multiline example (@BCsabaEngine, #1432)
 
 **Web**:
 
