@@ -1,4 +1,4 @@
-# Dates & Times
+# Dates & times
 
 PRQL uses `@` followed by a string to represent dates & times. This is less
 verbose than SQL's approach of `TIMESTAMP '2004-10-19 10:23:54'` and more

@@ -244,7 +244,7 @@ fn is_split_required(transform: &Transform, following: &mut HashSet<String>) -> 
     // - sort (no limit)
     // - take (no limit)
     // - unique (for DISTINCT)
-    // - concat (max 1)
+    // - append (max 1)
     // - unique (for UNION)
     //
     // Select is not affected by the order.
@@ -290,7 +290,7 @@ fn is_split_required(transform: &Transform, following: &mut HashSet<String>) -> 
                 "Take",
             ],
         ),
-        Concat(_) => contains_any(
+        Append(_) => contains_any(
             following,
             [
                 "From",
@@ -300,7 +300,7 @@ fn is_split_required(transform: &Transform, following: &mut HashSet<String>) -> 
                 "Aggregate",
                 "Sort",
                 "Take",
-                "Concat",
+                "Append",
             ],
         ),
         _ => false,
@@ -378,7 +378,7 @@ pub fn get_requirements(transform: &Transform, following: &HashSet<String>) -> V
             cids
         }
 
-        Select(_) | From(_) | Concat(_) | Aggregate { .. } | Unique => return Vec::new(),
+        Select(_) | From(_) | Append(_) | Aggregate { .. } | Unique => return Vec::new(),
     };
 
     let (max_complexity, selected) = match transform {

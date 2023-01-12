@@ -183,10 +183,10 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
             };
             (transform_kind, tbl)
         }
-        "std.concat" => {
+        "std.append" => {
             let [bottom, top] = unpack::<2>(closure);
 
-            (TransformKind::Concat(Box::new(bottom)), top)
+            (TransformKind::Append(Box::new(bottom)), top)
         }
 
         "std.in" => {
@@ -470,10 +470,10 @@ impl TransformCall {
                 let right = ty_frame_or_default(with)?;
                 join(left, right)
             }
-            Concat(bottom) => {
+            Append(bottom) => {
                 let top = ty_frame_or_default(&self.input)?;
                 let bottom = ty_frame_or_default(bottom)?;
-                concat(top, bottom)?
+                append(top, bottom)?
             }
             Sort { .. } | Filter { .. } | Take { .. } => ty_frame_or_default(&self.input)?,
         })
@@ -486,10 +486,10 @@ fn join(mut lhs: Frame, rhs: Frame) -> Frame {
     lhs
 }
 
-fn concat(mut top: Frame, bottom: Frame) -> Result<Frame, Error> {
+fn append(mut top: Frame, bottom: Frame) -> Result<Frame, Error> {
     if top.columns.len() != bottom.columns.len() {
         return Err(Error::new_simple(
-            "cannot concat two relations with non-matching number of columns.",
+            "cannot append two relations with non-matching number of columns.",
         ))
         .with_help(format!(
             "top has {} columns, but bottom has {}",
@@ -525,7 +525,7 @@ fn concat(mut top: Frame, bottom: Frame) -> Result<Frame, Error> {
                 "cannot match columns `{t:?}` and `{b:?}`"
             ))
             .with_help(
-                "make sure that top and bottom relations of concat has the same column layout",
+                "make sure that top and bottom relations of append has the same column layout",
             )),
         });
     }

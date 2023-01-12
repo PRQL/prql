@@ -1,0 +1,17 @@
+---
+source: book/tests/snapshot.rs
+expression: "from employees_1\nappend employees_2\n"
+input_file: book/tests/prql/transforms/append-0.prql
+---
+(
+  SELECT
+    *
+  FROM
+    employees_1
+)
+UNION
+ALL
+SELECT
+  *
+FROM
+  employees_2

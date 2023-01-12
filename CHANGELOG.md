@@ -20,11 +20,11 @@
   ]
   ```
 
-- _Experimental:_ `concat` & `union` transforms. (@aljazerzen, #894)
+- _Experimental:_ `append` & `union` transforms. (@aljazerzen, #894)
 
   ```prql
   from employees
-  concat managers
+  append managers
   union other_employees
   ```
 

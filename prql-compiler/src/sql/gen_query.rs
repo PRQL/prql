@@ -162,11 +162,11 @@ fn sql_query_of_pipeline(
     context.omit_ident_prefix = counter.count() == 1;
     log::debug!("atomic query contains {} tables", counter.count());
 
-    let (before_concat, after_concat) = pipeline.break_up(|t| matches!(t, Transform::Concat(_)));
+    let (before_append, after_append) = pipeline.break_up(|t| matches!(t, Transform::Append(_)));
 
-    let select = sql_select_query_of_pipeline(before_concat, context)?;
+    let select = sql_select_query_of_pipeline(before_append, context)?;
 
-    sql_union_of_pipeline(select, after_concat, context)
+    sql_union_of_pipeline(select, after_append, context)
 }
 
 fn sql_select_query_of_pipeline(
@@ -207,7 +207,7 @@ fn sql_select_query_of_pipeline(
 
     // Split the pipeline into before & after the aggregate
     let (mut before_agg, mut after_agg) =
-        pipeline.break_up(|t| matches!(t, Transform::Aggregate { .. } | Transform::Concat(_)));
+        pipeline.break_up(|t| matches!(t, Transform::Aggregate { .. } | Transform::Append(_)));
 
     // WHERE and HAVING
     let where_ = filter_of_conditions(before_agg.pluck(|t| t.into_filter()), context)?;
@@ -285,10 +285,10 @@ fn sql_union_of_pipeline(
     context: &mut Context,
 ) -> Result<sql_ast::Query, anyhow::Error> {
     // union
-    let concat = pipeline.pluck(|t| t.into_concat()).into_iter().next();
+    let append = pipeline.pluck(|t| t.into_append()).into_iter().next();
     let unique = pipeline.iter().any(|t| matches!(t, Transform::Unique));
 
-    let bottom = if let Some(bottom) = concat {
+    let bottom = if let Some(bottom) = append {
         bottom
     } else {
         return Ok(top);
