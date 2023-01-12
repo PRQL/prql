@@ -6,6 +6,7 @@ use std::collections::HashSet;
 use std::{collections::HashMap, fmt::Debug};
 
 use super::module::{Module, NS_DEFAULT_DB, NS_FRAME, NS_FRAME_RIGHT, NS_INFER, NS_SELF, NS_STD};
+use super::type_resolver::validate_type;
 use crate::ast::pl::*;
 use crate::ast::rq::RelationColumn;
 use crate::error::{Error, Span};
@@ -98,7 +99,18 @@ impl Context {
         let mut path = Vec::new();
 
         let decl = match &var_def.value.ty {
-            Some(Ty::Table(frame)) => {
+            Some(Ty::Table(_) | Ty::Infer) => {
+                let mut value = var_def.value;
+
+                let ty = value.ty.clone().unwrap();
+                let frame = ty.into_table().unwrap_or_else(|_| {
+                    let assumed =
+                        validate_type(value.as_ref(), &Ty::Table(Frame::default()), || None)
+                            .unwrap();
+                    value.ty = Some(assumed.clone());
+                    assumed.into_table().unwrap()
+                });
+
                 path = vec![NS_DEFAULT_DB.to_string()];
 
                 let columns = (frame.columns.iter())
@@ -110,7 +122,7 @@ impl Context {
                     })
                     .collect();
 
-                let expr = Some(var_def.value);
+                let expr = Some(value);
                 DeclKind::TableDecl(TableDecl { columns, expr })
             }
             Some(_) => DeclKind::Expr(var_def.value),

@@ -1296,7 +1296,7 @@ fn test_sql_of_ast_1() {
 // Confirm that a bare s-string in a table definition works as expected.
 fn test_bare_s_string() {
     let query = r###"
-    table grouping = s"""
+    let grouping = s"""
         SELECT SUM(a)
         FROM tbl
         GROUP BY
@@ -1332,7 +1332,7 @@ fn test_bare_s_string() {
 
     // Test that case insensitive SELECT is accepted. We allow it as it is valid SQL.
     let query = r###"
-    table a = s"select insensitive from rude"
+    let a = s"select insensitive from rude"
     from a
     "###;
 
@@ -1360,7 +1360,7 @@ fn test_bare_s_string() {
 
     // Check a mixture of cases for good measure.
     let query = r###"
-    table a = s"sElEcT insensitive from rude"
+    let a = s"sElEcT insensitive from rude"
     from a
     "###;
 
@@ -1391,7 +1391,7 @@ fn test_bare_s_string() {
 // Confirm that a regular expr_call in a table definition works as expected.
 fn test_table_definition_with_expr_call() {
     let query = r###"
-    table e = take 4 (from employees)
+    let e = take 4 (from employees)
     from e
     "###;
 

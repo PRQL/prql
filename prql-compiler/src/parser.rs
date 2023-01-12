@@ -1571,10 +1571,10 @@ take 20
         "###);
 
         assert_yaml_snapshot!(stmts_of_string(r#"
-            table e = s"SELECT * FROM employees"
+            let e = s"SELECT * FROM employees"
             "#)?, @r###"
         ---
-        - TableDef:
+        - VarDef:
             name: e
             value:
               SString:
