@@ -495,7 +495,7 @@ impl Resolver {
 
         Ok(match transforms::cast_transform(self, closure)? {
             // it a transform
-            Ok(e) => Ok(e),
+            Ok(e) => Ok(self.fold_expr(e)?),
 
             // it a std function that should be lowered into a BuiltIn
             Err(closure) if matches!(closure.body.kind, ExprKind::Literal(Literal::Null)) => {
