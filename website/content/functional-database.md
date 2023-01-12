@@ -255,8 +255,8 @@ columns of a relation in function calls:
 
 All these queries can be simplified to an expression of relations and scalars.
 In PRQL, we call such expressions "Relational Queries" or RQ for short. It is an
-intermediate representation of prql-compiler and can be translated to SQL and
-executed on basically any relational database.
+intermediate representation of the prql-compiler and can be translated to SQL
+and executed on basically any relational database.
 
 This is the gist of how to express SQL queries with a functional language. At
 this stage a curious reader might ask "can PRQL express any SQL query?" to which
@@ -343,7 +343,7 @@ data model.
 ### Distinct
 
 A common question when learning SQL is "how do I select the row where column x
-is min?". It has many variations, but there are two ways of doing it:
+is smallest?". It has many variations, but there are two ways of doing it:
 
 ```sql
 -- option 1
@@ -354,9 +354,9 @@ SELECT x, y, z FROM tab WHERE x = (SELECT min(x) FROM tab)
 ```
 
 [A follow-up question](https://stackoverflow.com/questions/3800551/select-first-row-in-each-group-by-group)
-would be "how do I select the row where column x is max, for each group over
-y?". This seems like a similar problem but the solution in SQL is surprisingly
-different:
+would be "how do I select the row where column x is smallest, for each group
+over y?". This seems like a similar problem but the solution in SQL is
+surprisingly different:
 
 ```sql
 -- option 1 (unsupported in some dialects)
@@ -407,8 +407,8 @@ when trying to express uncommon operations while not providing significantly
 shorter queries. -->
 
 If you want to see more of what PRQL is capable of, come and check out
-[the project](https://github.com/PRQL/prql). It may not have monads (yet), it's
-probably better than what you are forced to use now.
+[the project](https://github.com/PRQL/prql). It may not have monads (yet), but
+it's probably better than what you are forced to use now.
 
 [^3]:
     Transforms in PRQL are not completely orthogonal. `select`, `derive`,
