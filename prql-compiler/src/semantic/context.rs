@@ -237,6 +237,7 @@ impl Context {
         } else {
             (module.names.iter())
                 .filter(|(_, decl)| matches!(&decl.kind, DeclKind::Column(_)))
+                .sorted_by_key(|(_, decl)| decl.order)
                 .map(|(name, _)| mod_ident.clone() + Ident::from_name(name))
                 .map(|fq_col| Expr::from(ExprKind::Ident(fq_col)))
                 .collect_vec()

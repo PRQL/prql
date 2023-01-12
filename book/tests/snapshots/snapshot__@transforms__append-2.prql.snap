@@ -11,9 +11,9 @@ WITH table_1 AS (
     employees_2
 )
 SELECT
-  employees_1.last_name,
-  employees_1.first_name
+  employees_1.first_name,
+  employees_1.last_name
 FROM
   employees_1
-  JOIN table_1 AS table_0 ON employees_1.last_name = table_0.first_name
-  AND employees_1.first_name = table_0.last_name
+  JOIN table_1 AS table_0 ON employees_1.first_name = table_0.first_name
+  AND employees_1.last_name = table_0.last_name
