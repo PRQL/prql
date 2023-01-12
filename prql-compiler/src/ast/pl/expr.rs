@@ -302,7 +302,7 @@ pub enum TransformKind {
         range: Range,
         pipeline: Box<Expr>,
     },
-    Concat(Box<Expr>),
+    Append(Box<Expr>),
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]

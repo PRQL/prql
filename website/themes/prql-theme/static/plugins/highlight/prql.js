@@ -15,7 +15,7 @@ formatting = function (hljs) {
     "aggregate",
     "group",
     "window",
-    "concat",
+    "append",
     "union",
   ];
   const BUILTIN_FUNCTIONS = ["switch", "in", "as"];

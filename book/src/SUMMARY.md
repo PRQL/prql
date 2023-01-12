@@ -8,7 +8,7 @@
   - [Functions](./queries/functions.md)
   - [Tables](./queries/tables.md)
   - [Syntax](./queries/syntax.md)
-  - [Dialect & Version](./queries/dialect-and-version.md)
+  - [Dialect & version](./queries/dialect-and-version.md)
 - [Transforms](./transforms.md)
   - [Aggregate](./transforms/aggregate.md)
   - [Derive](./transforms/derive.md)
@@ -17,7 +17,7 @@
   - [Group](./transforms/group.md)
   - [Join](./transforms/join.md)
   - [Select](./transforms/select.md)
-  - [Concat & Union](./transforms/concat-and-union.md)
+  - [Append & set operators](./transforms/append-and-union.md)
   - [Sort](./transforms/sort.md)
   - [Take](./transforms/take.md)
   - [Window](./transforms/window.md)
@@ -25,7 +25,7 @@
 
   - [Coalesce](./language-features/coalesce.md)
     <!-- `DATE_TRUNC(foo_date, YEAR)` -> `foo_date.year`? Or -> `foo_date | as year`? Or `foo_date | to year`? -->
-  - [Dates & Times](./language-features/dates-and-times.md)
+  - [Dates & times](./language-features/dates-and-times.md)
   - [Distinct](./language-features/distinct.md)
   - [F-Strings](./language-features/f-strings.md)
   - [Null handling](./language-features/null.md)

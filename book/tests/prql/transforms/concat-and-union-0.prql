@@ -1,2 +1,2 @@
 from employees_1
-concat employees_2
+append employees_2

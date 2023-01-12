@@ -328,10 +328,10 @@ impl Lowerer {
                 };
                 self.pipeline.push(transform);
             }
-            pl::TransformKind::Concat(bottom) => {
+            pl::TransformKind::Append(bottom) => {
                 let bottom = self.lower_table_ref(*bottom)?;
 
-                let transform = Transform::Concat(bottom);
+                let transform = Transform::Append(bottom);
                 self.pipeline.push(transform);
             }
             pl::TransformKind::Group { .. } | pl::TransformKind::Window { .. } => unreachable!(

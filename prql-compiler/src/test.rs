@@ -179,10 +179,10 @@ fn test_pipelines() {
 }
 
 #[test]
-fn test_concat() {
+fn test_append() {
     assert_display_snapshot!(compile(r###"
     from employees
-    concat managers
+    append managers
     "###).unwrap(), @r###"
     (
       SELECT
@@ -202,7 +202,7 @@ fn test_concat() {
     from employees
     derive [name, cost = salary]
     take 3
-    concat (
+    append (
         from employees
         derive [name, cost = salary + bonuses]
         take 10
@@ -255,7 +255,7 @@ fn test_concat() {
 
     assert_display_snapshot!(compile(r###"
     from employees
-    concat managers
+    append managers
     union all_employees_of_some_other_company
     "###).unwrap(), @r###"
     WITH table_1 AS (
