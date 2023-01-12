@@ -39,3 +39,20 @@ func union<table> `default_db.bottom`<table> top<table> -> (
 )
 func group<table> by pipeline tbl<table> -> null
 func window<table> rows:0..0 range:0..0 expanding:false rolling:0 pipeline tbl<table> -> null
+
+func intersection<table> bottom<table> top<table> -> (
+    from t = _param.top | join b = _param.bottom (all (map _eq (zip t.* b.*))) | select t.*
+)
+func difference<table> bottom<table> top<table> -> (
+    from t = _param.top
+    join side:left b = _param.bottom (all (map _eq (zip t.* b.*)))
+    filter (all (map _is_null b.*))
+    select t.*
+)
+
+# List functions
+func all<bool> list<list> -> null
+func map<list> fn list<list> -> null
+func zip<list> a<list> b<list> -> null
+func _eq<list> a<list> -> null
+func _is_null a -> a == null

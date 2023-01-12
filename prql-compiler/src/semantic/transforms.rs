@@ -231,6 +231,70 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
             .with_span(pattern.span))
         }
 
+        "std.all" => {
+            // yes, this is not a transform, but this is the most appropriate place for it
+
+            let [list] = unpack::<1>(closure);
+            let list = list.kind.into_list().unwrap();
+
+            let mut res = None;
+            for item in list {
+                res = new_binop(res, BinOp::And, Some(item));
+            }
+            let res = res.unwrap_or_else(|| Expr::from(ExprKind::Literal(Literal::Boolean(true))));
+
+            return Ok(Ok(res));
+        }
+
+        "std.map" => {
+            // yes, this is not a transform, but this is the most appropriate place for it
+
+            let [func, list] = unpack::<2>(closure);
+            let list_items = list.kind.into_list().unwrap();
+
+            let list_items = list_items
+                .into_iter()
+                .map(|item| {
+                    Expr::from(ExprKind::FuncCall(FuncCall {
+                        name: Box::new(func.clone()),
+                        args: vec![item],
+                        named_args: HashMap::new(),
+                    }))
+                })
+                .collect_vec();
+
+            return Ok(Ok(Expr {
+                kind: ExprKind::List(list_items),
+                ..list
+            }));
+        }
+
+        "std.zip" => {
+            // yes, this is not a transform, but this is the most appropriate place for it
+
+            let [a, b] = unpack::<2>(closure);
+            let a = a.kind.into_list().unwrap();
+            let b = b.kind.into_list().unwrap();
+
+            let mut res = Vec::new();
+            for (a, b) in std::iter::zip(a, b) {
+                res.push(Expr::from(ExprKind::List(vec![a, b])));
+            }
+
+            return Ok(Ok(Expr::from(ExprKind::List(res))));
+        }
+
+        "std._eq" => {
+            // yes, this is not a transform, but this is the most appropriate place for it
+
+            let [list] = unpack::<1>(closure);
+            let list = list.kind.into_list().unwrap();
+            let [a, b]: [Expr; 2] = list.try_into().unwrap();
+
+            let res = new_binop(Some(a), BinOp::Eq, Some(b)).unwrap();
+            return Ok(Ok(res));
+        }
+
         _ => return Ok(Err(closure)),
     };
 
@@ -846,7 +910,7 @@ mod tests {
         assert_yaml_snapshot!(result, @r###"
         ---
         - Main:
-            id: 12
+            id: 18
             TransformCall:
               input:
                 id: 4

@@ -2697,3 +2697,61 @@ fn test_exclude_columns() {
     "###
     );
 }
+
+#[test]
+fn test_intersection() {
+    assert_display_snapshot!(compile(r#"
+    intersection (
+        from album | select artist_id
+    ) (
+        from artist | select artist_id
+    )
+    "#).unwrap(),
+        @r###"
+    WITH table_1 AS (
+      SELECT
+        artist_id
+      FROM
+        album
+    )
+    SELECT
+      artist.artist_id
+    FROM
+      artist
+      JOIN table_1 AS table_0 ON artist.artist_id = table_0.artist_id
+    "###
+    );
+
+    assert_display_snapshot!(compile(r#"
+    difference (
+        from album | select artist_id
+    ) (
+        from artist | select artist_id
+    )
+    "#).unwrap(),
+        @r###"
+    WITH table_1 AS (
+      SELECT
+        artist_id
+      FROM
+        album
+    )
+    SELECT
+      artist.artist_id
+    FROM
+      artist
+      LEFT JOIN table_1 AS table_0 ON artist.artist_id = table_0.artist_id
+    WHERE
+      table_0.artist_id IS NULL
+    "###
+    );
+
+    // TODO:
+    // assert_display_snapshot!(compile(r#"
+    // intersection (from album) (from artist)
+    // "#).unwrap(), @"");
+
+    // assert_display_snapshot!(compile(r#"
+    // difference (from album) (from artist)
+    // "#).unwrap(), @"");
+}
