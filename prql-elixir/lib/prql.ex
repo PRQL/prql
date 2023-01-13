@@ -28,7 +28,7 @@ defmodule PRQL do
   Compile a `PRQL` query to `SQL` query.
 
   Returns generated SQL query on success in shape of `{:ok, sql}`. This SQL query can
-  be safely feeded into a SQL driver to get the output.
+  be safely fed into a SQL driver to get the output.
 
   On error, `{:error, reason}` is returned where `reason` is a `JSON` string.
   Use any `JSON` encoder library to encode it.
