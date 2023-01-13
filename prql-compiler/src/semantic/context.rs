@@ -6,9 +6,10 @@ use std::collections::HashSet;
 use std::{collections::HashMap, fmt::Debug};
 
 use super::module::{Module, NS_DEFAULT_DB, NS_FRAME, NS_FRAME_RIGHT, NS_INFER, NS_SELF, NS_STD};
+use super::type_resolver::validate_type;
 use crate::ast::pl::*;
 use crate::ast::rq::RelationColumn;
-use crate::error::Span;
+use crate::error::{Error, Span};
 
 /// Context of the pipeline.
 #[derive(Default, Serialize, Deserialize, Clone)]
@@ -88,27 +89,62 @@ impl Context {
         self.root_mod.insert(ident, decl).unwrap();
     }
 
-    pub fn declare_table(&mut self, table_def: TableDef, id: Option<usize>) {
-        let name = table_def.name;
-        let path = vec![NS_DEFAULT_DB.to_string()];
-        let ident = Ident { name, path };
+    pub fn declare_var(
+        &mut self,
+        var_def: VarDef,
+        id: Option<usize>,
+        span: Option<Span>,
+    ) -> Result<()> {
+        let name = var_def.name;
+        let mut path = Vec::new();
 
-        let frame = table_def.value.ty.clone().unwrap().into_table().unwrap();
-        let columns = (frame.columns.into_iter())
-            .map(|col| match col {
-                FrameColumn::All { .. } => RelationColumn::Wildcard,
-                FrameColumn::Single { name, .. } => RelationColumn::Single(name.map(|n| n.name)),
-            })
-            .collect();
+        let decl = match &var_def.value.ty {
+            Some(Ty::Table(_) | Ty::Infer) => {
+                let mut value = var_def.value;
 
-        let expr = Some(table_def.value);
+                let ty = value.ty.clone().unwrap();
+                let frame = ty.into_table().unwrap_or_else(|_| {
+                    let assumed =
+                        validate_type(value.as_ref(), &Ty::Table(Frame::default()), || None)
+                            .unwrap();
+                    value.ty = Some(assumed.clone());
+                    assumed.into_table().unwrap()
+                });
+
+                path = vec![NS_DEFAULT_DB.to_string()];
+
+                let columns = (frame.columns.iter())
+                    .map(|col| match col {
+                        FrameColumn::All { .. } => RelationColumn::Wildcard,
+                        FrameColumn::Single { name, .. } => {
+                            RelationColumn::Single(name.as_ref().map(|n| n.name.clone()))
+                        }
+                    })
+                    .collect();
+
+                let expr = Some(value);
+                DeclKind::TableDecl(TableDecl { columns, expr })
+            }
+            Some(_) => DeclKind::Expr(var_def.value),
+            None => {
+                return Err(
+                    Error::new_simple("Cannot infer type. Type annotations needed.")
+                        .with_span(span)
+                        .into(),
+                );
+            }
+        };
+
         let decl = Decl {
             declared_at: id,
-            kind: DeclKind::TableDecl(TableDecl { columns, expr }),
+            kind: decl,
             order: 0,
         };
 
+        let ident = Ident { name, path };
         self.root_mod.insert(ident, decl).unwrap();
+
+        Ok(())
     }
 
     pub fn resolve_ident(&mut self, ident: &Ident) -> Result<Ident, String> {
