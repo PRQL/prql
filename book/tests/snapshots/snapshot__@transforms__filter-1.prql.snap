@@ -8,5 +8,4 @@ SELECT
 FROM
   employees
 WHERE
-  age BETWEEN 25
-  AND 40
+  age BETWEEN 25 AND 40

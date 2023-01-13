@@ -171,8 +171,7 @@ fn test_pipelines() {
     select [age | in 5..10]
     "###).unwrap()), @r###"
     SELECT
-      age BETWEEN 5
-      AND 10
+      age BETWEEN 5 AND 10
     FROM
       employees
     "###);
@@ -452,8 +451,7 @@ fn test_ranges() {
     FROM
       employees
     WHERE
-      age BETWEEN 18
-      AND 40
+      age BETWEEN 18 AND 40
     "###);
 
     let query = r###"
@@ -481,8 +479,7 @@ fn test_ranges() {
     FROM
       events
     WHERE
-      date BETWEEN DATE '1776-07-04'
-      AND DATE '1787-09-17'
+      date BETWEEN DATE '1776-07-04' AND DATE '1787-09-17'
     "###);
 }
 
@@ -589,13 +586,11 @@ fn test_window_functions_02() {
       SUM(num_books) OVER (
         PARTITION BY order_month
         ORDER BY
-          order_day ROWS BETWEEN UNBOUNDED PRECEDING
-          AND CURRENT ROW
+          order_day ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
       ) AS running_total_num_books,
       LAG(num_books, 7) OVER (
         ORDER BY
-          order_day ROWS BETWEEN UNBOUNDED PRECEDING
-          AND UNBOUNDED FOLLOWING
+          order_day ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
       ) AS num_books_last_week
     FROM
       table_1
@@ -659,8 +654,7 @@ fn test_window_functions_05() {
       RANK() OVER (
         PARTITION BY month
         ORDER BY
-          num_orders ROWS BETWEEN UNBOUNDED PRECEDING
-          AND CURRENT ROW
+          num_orders ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
       ),
       LAG(num_orders, 7) OVER () AS num_orders_last_week
     FROM
@@ -697,10 +691,7 @@ fn test_window_functions_07() {
     "###).unwrap()), @r###"
     SELECT
       *,
-      SUM(b) OVER (
-        ROWS BETWEEN UNBOUNDED PRECEDING
-        AND CURRENT ROW
-      ) AS running_total
+      SUM(b) OVER (ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running_total
     FROM
       foo
     "###);
@@ -716,10 +707,7 @@ fn test_window_functions_08() {
     "###).unwrap()), @r###"
     SELECT
       *,
-      SUM(b) OVER (
-        ROWS BETWEEN 2 PRECEDING
-        AND CURRENT ROW
-      ) AS last_three
+      SUM(b) OVER (ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS last_three
     FROM
       foo
     "###);
@@ -757,8 +745,7 @@ fn test_window_functions_10() {
       *,
       SUM(b) OVER (
         ORDER BY
-          day RANGE BETWEEN 4 PRECEDING
-          AND 4 FOLLOWING
+          day RANGE BETWEEN 4 PRECEDING AND 4 FOLLOWING
       ) AS next_four_days
     FROM
       foo
@@ -1151,8 +1138,7 @@ fn test_distinct() {
     FROM
       table_1
     WHERE
-      _expr_0 BETWEEN 2
-      AND 3
+      _expr_0 BETWEEN 2 AND 3
     "###);
 }
 
