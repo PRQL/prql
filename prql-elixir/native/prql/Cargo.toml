@@ -1,7 +1,7 @@
 [package]
 name = "prql"
 version = "0.1.0"
-authors = []
+authors = ["Kasun Vithanage <kasvith.me@gmail.com>"]
 edition = "2018"
 
 [lib]
