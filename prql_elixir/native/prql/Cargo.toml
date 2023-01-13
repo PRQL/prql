@@ -1,0 +1,16 @@
+[package]
+name = "prql"
+version = "0.1.0"
+authors = []
+edition = "2018"
+
+[lib]
+name = "prql"
+path = "src/lib.rs"
+crate-type = ["cdylib"]
+
+[dependencies]
+rustler = "0.26.0"
+prql-compiler = {path = "../../../prql-compiler", default-features = false}
+
+[workspace]
