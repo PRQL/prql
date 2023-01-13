@@ -2124,6 +2124,7 @@ dependencies = [
 name = "prql-python"
 version = "0.3.1"
 dependencies = [
+ "insta",
  "prql-compiler",
  "pyo3",
  "pyo3-build-config",
@@ -2599,9 +2600,9 @@ dependencies = [
 
 [[package]]
 name = "sqlformat"
-version = "0.2.0"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f87e292b4291f154971a43c3774364e2cbcaec599d3f5bf6fa9d122885dbc38a"
+checksum = "0c12bc9199d1db8234678b7051747c07f517cdcf019262d1847b94ec8b1aee3e"
 dependencies = [
  "itertools",
  "nom",

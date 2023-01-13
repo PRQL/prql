@@ -92,6 +92,7 @@ impl From<SQLCompileOptions> for prql_compiler::sql::Options {
 #[cfg(test)]
 mod test {
     use super::*;
+    use insta::assert_snapshot;
 
     #[test]
     fn parse_for_python() {
@@ -101,9 +102,16 @@ mod test {
             signature_comment: false,
         });
 
-        assert_eq!(
+        assert_snapshot!(
             compile("from employees | filter (age | in 20..30)", opts).unwrap(),
-            "SELECT\n  *\nFROM\n  employees\nWHERE\n  age BETWEEN 20\n  AND 30"
+            @r###"
+        SELECT
+          *
+        FROM
+          employees
+        WHERE
+          age BETWEEN 20 AND 30
+        "###
         );
     }
 }

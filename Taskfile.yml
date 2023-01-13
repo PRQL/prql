@@ -201,6 +201,8 @@ tasks:
       - cargo insta test --accept --target={{.default_target}}
         --unreferenced=auto
       - cargo insta test --accept --target=wasm32-unknown-unknown
+      # We build the book too, because that acts as a test
+      - cd book && mdbook build
 
   test-rust-fast:
     desc: Test prql-compiler's unit tests.
