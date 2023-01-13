@@ -73,11 +73,6 @@ a.btn-icon i {
   text-align: center;
 }
 
-code {
-  padding: 2px 4px;
-  color: #ffffff;
-}
-
 /*--------------------------------------------------------------
 # Back to top button
 --------------------------------------------------------------*/
@@ -112,14 +107,52 @@ code {
   opacity: 1;
 }
 
+/* Code */
+
+code.hljs {
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  background-color: var(--main-color);
+  color: #ffffff;
+}
+
+code:not(.hljs) {
+  padding: 1px 0.4rem;
+  border-radius: 4px;
+  background-color: #ccc;
+  color: var(--main-color);
+}
+
+/* width */
+pre ::-webkit-scrollbar {
+  height: 6px;
+}
+
+/* Track */
+pre ::-webkit-scrollbar-track {
+  background: var(--main-color);
+}
+
+/* Handle */
+pre ::-webkit-scrollbar-thumb {
+  background: #000;
+  border-radius: 4px;
+  width: 2px;
+}
+
+/* Handle on hover */
+pre ::-webkit-scrollbar-thumb:hover {
+  background: rgb(109, 109, 109);
+}
+
 /*--------------------------------------------------------------
 # Header
 --------------------------------------------------------------*/
 #header {
   background: white;
-  box-shadow: 0px 2px 15px rgba(0, 0, 0, 0.1);
   z-index: 997;
   padding: 15px 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.125);
 }
 
 #header .logo img {
@@ -270,41 +303,6 @@ code {
   padding-top: 100px;
 }
 
-.no-hero {
-  padding-top: 80px;
-}
-
-.hero code.hljs {
-  padding: 1rem;
-}
-
-code {
-  background-color: var(--main-color);
-  border-radius: 8px;
-}
-
-/* width */
-pre ::-webkit-scrollbar {
-  height: 6px;
-}
-
-/* Track */
-pre ::-webkit-scrollbar-track {
-  background: var(--main-color);
-}
-
-/* Handle */
-pre ::-webkit-scrollbar-thumb {
-  background: #000;
-  border-radius: 4px;
-  width: 2px;
-}
-
-/* Handle on hover */
-pre ::-webkit-scrollbar-thumb:hover {
-  background: rgb(109, 109, 109);
-}
-
 .hero h4 {
   font-size: 20px;
   color: var(--main-color);
@@ -320,12 +318,12 @@ pre ::-webkit-scrollbar-thumb:hover {
   font-weight: 700;
 }
 
-.hero p {
+.hero .bottom-text {
   font-size: 20px;
   color: #4b5157;
 }
 
-.hero a {
+.hero a.btn {
   color: #fff;
   background-color: var(--third-color);
   padding: 10px 20px;
@@ -335,7 +333,7 @@ pre ::-webkit-scrollbar-thumb:hover {
   transition: 0.3s;
 }
 
-.hero a:hover {
+.hero a.btn:hover {
   background-color: var(--main-color);
 }
 
@@ -366,6 +364,14 @@ pre ::-webkit-scrollbar-thumb:hover {
   #hero {
     height: 120vh;
   }
+}
+
+.callout {
+  padding: 1.25rem 1.25rem 0.5rem 1.25rem;
+  margin-top: 1.25rem;
+  margin-bottom: 1.25rem;
+  background-color: #fff;
+  border-left: 0.25rem solid #c92a2a;
 }
 
 /*--------------------------------------------------------------
@@ -414,24 +420,23 @@ section {
 }
 
 /*--------------------------------------------------------------
-# Principles
+# Cards
 --------------------------------------------------------------*/
-.principle_section {
+.big-cards-section {
   background: #f2f9ff;
 }
 
-.principle_section .card {
+.big-cards-section .card {
   padding: 30px;
   height: 100%;
-  border-radius: 0px;
 }
 
-.principle_section .card i {
+.big-cards-section .card i {
   color: #202b38;
   font-size: 52px;
 }
 
-.principle_section .card h4 {
+.big-cards-section .card h4 {
   font-weight: 600;
   font-size: 24px;
   line-height: 60px;
@@ -439,7 +444,7 @@ section {
   color: var(--secondary-color);
 }
 
-.principle_section .card h4::after {
+.big-cards-section .card h4::after {
   content: "";
   width: 50%;
   height: 2px;
@@ -448,7 +453,7 @@ section {
   margin: 4px 0px;
 }
 
-.principle_section .card p {
+.big-cards-section .card p {
   color: var(--main-color);
 }
 
@@ -485,7 +490,7 @@ section {
 }
 
 .content-section .card {
-  padding: 15px;
+  padding: 1.5em;
   height: 100%;
   flex: 100%;
 }
@@ -512,24 +517,9 @@ section {
   color: var(--main-color);
 }
 
-.content-section code {
-  background-color: var(--main-color);
-  border-radius: 4px;
-  padding: 3px 7px;
-}
-
 .content-section ul li P i {
   font-size: 12px;
   padding: 3px;
-}
-
-.content-section code {
-  background-color: var(--main-color);
-  border-radius: 8px;
-}
-
-.highlight > pre {
-  background-color: transparent !important;
 }
 
 /*--------------------------------------------------------------
@@ -546,35 +536,64 @@ section {
     linear-gradient(#f2f9ff, #daeaff);
 }
 
-.comments-section .card-container {
-  width: 400px;
-  /* This is about the size of the biggest tweet, which isn't that reliable. We
-  define it here so the spacing doesn't change as the JS loads.
+.quote .quote-text {
+  height: 100%;
+  margin: 0;
 
-  TODO: Maybe there are better ways to do this; e.g. could be embed the full
-  tweet in the compiled version of the page? */
-  height: 425px;
-}
-
-.quote {
-  line-height: 1.6;
-}
-
-.quote-text {
-  margin: 30px;
-  font-size: 120%;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  justify-content: space-between;
 }
 
 .quote span {
   display: block;
   font-weight: bold;
-  margin-top: 30px;
 }
 
 .quote a:link,
 .quote a:visited {
   text-decoration: none;
   color: inherit;
+}
+.tweet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.tweet-author {
+  display: flex;
+  position: relative;
+  align-items: center;
+}
+.tweet-author-image {
+  width: 48px;
+  height: 48px;
+  border-radius: 9999px;
+}
+.tweet-author-info {
+  margin-left: 1rem;
+}
+.tweet-author-name {
+  line-height: 1rem;
+  font-weight: 500;
+  margin: 0;
+}
+.tweet-author-handler {
+  line-height: 1.8rem;
+}
+
+.tweet-logo {
+  width: 20px;
+  height: 20px;
+  position: absolute;
+  top: -4px;
+  left: -8px;
+  background: var(--third-color);
+  color: #fff;
+  border-radius: 9999px;
+  padding: 0.2rem;
 }
 
 /*--------------------------------------------------------------
@@ -583,7 +602,7 @@ section {
 
 article {
   padding: 4rem 0;
-  font-size: 1.2em;
+  font-size: 1.1em;
 }
 
 article h1 {
@@ -594,31 +613,44 @@ article h2 {
   margin: 2rem 0 1rem 0;
 }
 
+article > pre,
+article > .highlight {
+  margin: 0 -0.5rem 1rem -0.5rem;
+}
+
+article > .highlight > pre {
+  background-color: transparent !important;
+}
+
 /*--------------------------------------------------------------
 # Footer
 --------------------------------------------------------------*/
 #footer {
-  background: var(--main-color);
-  background: linear-gradient(#1d252e, var(--main-color));
+  /*
+  TODO: the background was a dark color, but it made the links quite difficult to read.
+  Probably I (@max-sixty) shouldn't be choosing colors — so please feel free to
+  adjust.
+  */
+  background: #cbdcef;
+  /* background: linear-gradient(#58718d, var(--main-color)); */
   padding: 1rem 0 2rem 0;
-  color: #fff;
+  /* color: #fff; */
 }
 
-#footer p {
+/* #footer p {
   color: #bbb;
-}
+} */
 
-#footer a.btn {
-  color: #fff;
+/* #footer a.btn {
   background-color: var(--secondary-color);
-}
+} */
 
 #footer ul {
   padding-left: 1rem;
-  color: #bbb;
+  /* color: #bbb; */
 }
 
-#footer .copyright {
+/* #footer .copyright {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -637,4 +669,49 @@ article h2 {
 
 #footer .copyright p {
   display: flex;
+} */
+
+/*--------------------------------------------------------------
+# FAQ sections
+--------------------------------------------------------------*/
+details.faq h2 {
+  display: inline-flex;
+  align-items: center;
+  margin-bottom: 0;
+  font-size: 26px;
+  white-space: pre-wrap;
+}
+details.faq[open] summary h2 {
+  margin-bottom: 1rem;
+}
+details.faq summary::-webkit-details-marker {
+  display: none;
+}
+details.faq summary {
+  list-style: none;
+}
+details.faq summary h2::before {
+  content: "►";
+  font-size: 16px;
+  margin-right: 5px;
+}
+details.faq[open] summary h2:before {
+  content: "▼";
+}
+
+/*--------------------------------------------------------------
+# Table of contents
+--------------------------------------------------------------*/
+.toc > * {
+  position: fixed;
+  padding: 4rem 0;
+}
+.toc ul li {
+  list-style: none;
+  margin: 0;
+  padding-top: 0.5em;
+}
+
+.toc ul li ul {
+  display: none;
 }

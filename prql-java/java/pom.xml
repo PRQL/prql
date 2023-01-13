@@ -10,7 +10,7 @@
 
     <name>${project.groupId}:${project.artifactId}</name>
     <description>prql-compiler api for java</description>
-    <url>https://github.com/prql/prql</url>
+    <url>https://github.com/PRQL/prql</url>
 
     <licenses>
         <license>
@@ -27,9 +27,9 @@
     </developers>
 
     <scm>
-        <connection>scm:git:git://github.com/prql/prql.git</connection>
+        <connection>scm:git:git://github.com/PRQL/prql.git</connection>
         <developerConnection>scm:git:ssh://github.com:prql/prql.git</developerConnection>
-        <url>https://github.com/prql/prql/tree/main</url>
+        <url>https://github.com/PRQL/prql/tree/main</url>
     </scm>
 
     <properties>

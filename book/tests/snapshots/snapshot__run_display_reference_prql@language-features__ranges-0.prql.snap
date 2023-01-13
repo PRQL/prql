@@ -1,0 +1,21 @@
+---
+source: book/tests/snapshot.rs
+expression: prql_to_pl(&prql).and_then(pl_to_prql).unwrap()
+input_file: book/tests/prql/language-features/ranges-0.prql
+---
+from events
+filter (
+  date
+  in @1776-07-04..@1787-09-17
+)
+filter (
+  magnitude
+  in 50..100
+)
+derive is_northern = (
+  latitude
+  in 0..
+)
+
+
+

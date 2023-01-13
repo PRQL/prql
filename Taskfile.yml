@@ -12,40 +12,63 @@
 version: "3"
 
 vars:
-  # Keeps in sync with .vscode/extensions.json
+  # Keep in sync with .vscode/extensions.json
   vscode_extensions: |
     budparr.language-hugo-vscode
     esbenp.prettier-vscode
     mitsuhiko.insta
-    prql.prql
+    prql-lang.prql-vscode
     rust-lang.rust-analyzer
 
 tasks:
+  # main installer is "setup-dev" which calls other tasks
   setup-dev:
+    preconditions:
+      - sh: which clang
+        msg: |
+          🔴 Can't find `clang`, which is required to install a full development environment (we use `duckdb` in our tests, which requires it).
+
+          Please install it. On MacOS, that's
+
+            xcode-select --install
+
+          On Debian Linux, that's
+
+            apt-get update && apt-get install clang
+
     desc: Install tools for PRQL development.
     cmds:
-      # `--locked` installs from the underlying lock files (which is not the default?!)
-      - cargo install --locked
-        cargo-audit
-        cargo-insta
-        cargo-release
-        default-target
-        mdbook
-        mdbook-admonish
-        mdbook-toc
-        wasm-bindgen-cli
-        wasm-pack
-      - python3 -m pip install -U maturin
-      - task: install-pre-commit
+      - task: install-cargo-tools
       - task: install-brew-dependencies
+      - task: install-maturin
+      - task: install-pre-commit
       - task: install-npm-dependencies
-      # We only suggest, rather than install; we don't want to intrude (though maybe we're being too conservative?).
+      # We only suggest, rather than install; we don't want to intrude (maybe
+      # we're being too conservative?).
       - task: suggest-vscode-extensions
       - pre-commit install-hooks
       - cmd: |
           echo "
-          🟢 Set up complete! ✅🚀"
+          🟢 Setup complete! ✅🚀"
         silent: true
+
+  install-cargo-tools:
+    # factored this out because it takes a long time to build
+    desc: Install cargo tools for PRQL development.
+    cmds:
+      # `--locked` installs from the underlying lock files (which is not the
+      # default?!)
+      - cargo install --locked cargo-audit cargo-insta cargo-release
+        default-target mdbook mdbook-admonish mdbook-toc wasm-bindgen-cli
+        wasm-pack
+      - cmd: |
+          [ "$(which default-target)" ] || echo "🔴 Can't find a binary that cargo just installed. Is the cargo bin path (generally at ~/.cargo/bin) on the \$PATH?"
+        silent: true
+
+  install-maturin:
+    desc: Install maturin.
+    cmds:
+      - python3 -m pip install -U maturin
 
   suggest-vscode-extensions:
     desc: Check and suggest VSCode extensions.
@@ -58,8 +81,10 @@ tasks:
           {{ if not (contains . $.extensions) }}❌ {{.}} {{else}}✅ {{.}} {{ end }}
         {{ end -}}
     status:
-      # If vscode isn't installed, or there are no missing extensions, return 0 and exit early.
-      - '[ ! -x "$(which code)" ] || {{ not (contains "❌" .missing_extensions) }}'
+      # If vscode isn't installed, or there are no missing extensions,
+      # return 0 and exit early.
+      - '[ ! -x "$(which code)" ] || {{ not (contains "❌" .missing_extensions)
+        }}'
     silent: true
     cmds:
       - |
@@ -82,7 +107,8 @@ tasks:
         {{ end -}}
 
   install-pre-commit:
-    # Someone might have this installed with `brew`, so only install if it can't be found.
+    # Someone might have this installed with `brew`,
+    # so only install if it can't be found.
     status:
       - which pre-commit
     cmds:
@@ -92,6 +118,7 @@ tasks:
     status:
       - which hugo
       - which npm
+      - which python3
     preconditions:
       - sh: which brew
         msg: |
@@ -101,20 +128,26 @@ tasks:
           - https://gohugo.io/getting-started/installing/
           - https://docs.npmjs.com/downloading-and-installing-node-js-and-npm
     cmds:
-      - brew install hugo npm
+      - brew install hugo npm python3
 
   install-npm-dependencies:
     cmds:
       - npm install --location=global prettier prettier-plugin-go-template
       - cmd:
-          echo "In order to get nice auto-formatting of web code in VSCode, VSCode
-          requires configuration to use the system-wide install of prettier. See
+          echo "In order to get nice auto-formatting of web code in VSCode,
+          VSCode requires configuration to use the system-wide install of
+          prettier. See
           https://github.com/NiklasPor/prettier-plugin-go-template/issues/58#issuecomment-1085060511
           for more info."
         silent: true
 
   build-all:
-    desc: Build everything. Running this isn't required when developing; it's for caching or as a reference.
+    desc: Build everything.
+
+    summary: |
+      Build everything.
+
+      Running this isn't required when developing; it's for caching or as a reference.
     vars:
       default_target:
         sh: default-target
@@ -126,35 +159,151 @@ tasks:
         {{ range ( .targets | trim | splitLines ) -}}
         cargo build --all-targets --target={{.}}
         {{ end -}}
-      - mdbook build book/
-      - cd playground && npm install && npm run build
-      - cd website && hugo
+      - task: build-web
 
   test-all:
-    desc: Test everything, resetting snapshots. Running this isn't required when developing; it's for caching or as a reference.
+    desc: Test everything, accepting snapshots.
+    summary: |
+      Test everything, accepting snapshots.
+
+      Running this isn't required when developing; it's for caching or as a reference.
+
+    cmds:
+      # TODO: this doesn't run the python or js tests; only the rust tests of
+      # prql-python. We should add them in here. They are run in `test-all.yaml`
+      # on GHA.
+      - task: test-rust
+      - task: build-all
+      - pre-commit run -a
+
+  test-rust:
+    desc: Test all rust code, accepting snapshots.
     vars:
       default_target:
         sh: default-target
+    sources:
+      # See notes in `test-rust`
+      - "**/*.rs"
+      - "**/*.md"
+      - "**/*.toml"
+      - "**/*.lock"
+      - "**/*.pest"
+      - "**/*.snap"
     cmds:
-      # We run this `run_examples` first for the reasons given in
+      # We run this `snapshot` first for the reasons given in
       # `parser::test_parse_pipeline_parse_tree`. Ideally we would a) retain
       # examples in the documentation (inc. tested), b) not rely on falliable
       # tests to extract them, which include compiling prql-compiler, c) not
       # fail other compilation steps if they can't be extracted.
-      - cargo insta test --accept -- -p mdbook-prql run_examples
-      - task: build-all
-      # Only delete unreferenced snapshots on the default target — lots are excluded under wasm.
-      - cargo insta test --accept --delete-unreferenced-snapshots -- --target={{.default_target}}
-      - cargo insta test --accept -- --target=wasm32-unknown-unknown
-      - pre-commit run -a
+      - cargo insta test --accept -p mdbook-prql --test snapshot
+      # Only delete unreferenced snapshots on the default target — lots are
+      # excluded under wasm. Note that this will also over-delete on Windows.
+      - cargo insta test --accept --target={{.default_target}}
+        --unreferenced=auto
+      - cargo insta test --accept --target=wasm32-unknown-unknown
+      # We build the book too, because that acts as a test
+      - cd book && mdbook build
+
+  test-rust-fast:
+    desc: Test prql-compiler's unit tests.
+    summary: |
+      Test prql-compiler's unit tests, including accepting snapshots.
+
+      This can be useful as an inner loop when developing, by running this on any file change.
+      Use `-w` to get that behavior:
+
+        task -w test-rust-fast
+
+      New or changed snapshots are accepted, and expected to be reviewed with git.
+
+    env:
+      RUST_BACKTRACE: 1
+    sources:
+      # I don't think we can specify this is a single glob, which would be nice.
+      # Ideally we want to exclude `.pending-snap` & `.snap.new` files so runs
+      # doesn't cause an infinite loop of other runs (though possibly mitigated
+      # by `--accept` and task not interrupting existing runs, so all files go
+      # to `.snap`s which match the generated output?).
+      - "prql-compiler/**/*.rs"
+      - "prql-compiler/**/*.pest"
+      - "prql-compiler/**/*.snap"
+    cmds:
+      - cargo insta test --accept -p prql-compiler --lib
 
   build-web:
-    desc: Build the website
+    desc: Build the website, including the book & playground.
     cmds:
       - cd website && hugo --minify
       - cd book && mdbook build
       - mkdir -p website/public
+      # Copy the book into the website path, using rsync so it only copies new files
       - rsync -ai --checksum --delete book/book/ website/public/book/
-      - cd playground && npm ci
+      # Must set `install-links=false` in the playground's `npm install` to
+      # install prql-js as the regular dependency, instead of creating a
+      # symlink. Refer to https://github.com/PRQL/prql/pull/1296.
+      - cd playground && npm install --install-links=false
       - cd playground && npm run build
-      - rsync -ai --checksum --delete playground/build/ website/public/playground/
+      - rsync -ai --checksum --delete playground/build/
+        website/public/playground/
+
+  test-prql-js:
+    # These are mostly copied from the tasks in `test-all.yaml`
+    dir: prql-js
+    cmds:
+      - npm run build
+      - npm cit
+
+  run-web:
+    desc: Build & serve the static website.
+    dir: website
+    cmds:
+      - hugo server
+
+  run-book:
+    desc: Build & serve the book.
+    dir: book
+    cmds:
+      - mdbook serve --port=3000
+
+  run-playground:
+    desc: Build & serve the playground.
+    dir: playground
+    cmds:
+      # Must set `install-links=false` in the playground's `npm install` to
+      # install prql-js as the regular dependency, instead of creating a
+      # symlink. Refer to https://github.com/PRQL/prql/pull/1296.
+      - npm install --install-links=false
+      - npm start
+#
+# The next three tasks are not used for either:
+#  - the Dockerfile (installing brew takes forever)
+#    so the Dockerfile simply installs hugo & nodejs directly
+#  - the "desktop setup" - it uses other tasks in the Taskfile.yml
+# They remain in the Taskfile.yml as a hint if they should ever be needed
+
+# install-brew:
+#   # Initially added for building Docker container
+#   status:
+#     - which brew
+#   cmds:
+#     # https://stackoverflow.com/questions/58292862/how-to-install-homebrew-on-ubuntu-inside-docker-container
+#     - useradd -m -s /bin/zsh linuxbrew
+#     - usermod -aG sudo linuxbrew
+#     - mkdir -p /home/linuxbrew/.linuxbrew
+#     - chown -R linuxbrew /home/linuxbrew/.linuxbrew
+#     - export HOMEBREW_INSTALL_FROM_API=1
+#     - /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
+#     - chown -R $CONTAINER_USER: /home/linuxbrew/.linuxbrew
+
+# install-hugo:
+#   cmds:
+#     # - /home/linuxbrew/.linuxbrew/bin/brew install hugo
+#     - curl -L https://github.com/gohugoio/hugo/releases/download/v0.91.2/hugo_0.91.2_Linux-64bit.deb -o hugo.deb
+#     - apt install ./hugo.deb
+
+# install-nodejs:
+#   cmds:
+#     # - /home/linuxbrew/.linuxbrew/bin/brew install nodejs
+#     - curl -fsSL https://deb.nodesource.com/setup_16.x | bash -
+#     - apt install -y nodejs
+#     - cd /app/playground/ ; npm install

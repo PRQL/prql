@@ -1,0 +1,9 @@
+---
+source: book/tests/snapshot.rs
+expression: "from employees\nselect full_name = f\"{first_name} {last_name}\"\n"
+input_file: book/tests/prql/language-features/f-strings-0.prql
+---
+SELECT
+  CONCAT(first_name, ' ', last_name) AS full_name
+FROM
+  employees

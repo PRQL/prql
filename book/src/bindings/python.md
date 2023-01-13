@@ -11,7 +11,7 @@ import prql_python as prql
 
 prql_query = """
     from employees
-    join salaries [emp_id]
+    join salaries [==emp_id]
     group [dept_id, gender] (
       aggregate [
         avg_salary = average salary

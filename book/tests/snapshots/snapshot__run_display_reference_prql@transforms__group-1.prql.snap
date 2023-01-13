@@ -1,0 +1,11 @@
+---
+source: book/tests/snapshot.rs
+expression: prql_to_pl(&prql).and_then(pl_to_prql).unwrap()
+input_file: book/tests/prql/transforms/group-1.prql
+---
+from employees
+sort join_date
+take 1
+
+
+

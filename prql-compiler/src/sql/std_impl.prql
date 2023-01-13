@@ -1,0 +1,23 @@
+func min <scalar|column> column ->  s"MIN({column})"
+func max <scalar|column> column ->  s"MAX({column})"
+func sum <scalar|column> column ->  s"SUM({column})"
+func avg <scalar|column> column ->  s"AVG({column})"
+func stddev <scalar|column> column ->  s"STDDEV({column})"
+func average <scalar|column> column ->  s"AVG({column})"
+func count <scalar|column> non_null:s"*" ->  s"COUNT({non_null})"
+# TODO: Possibly make this into `count distinct:true` (or like `distinct:` as an
+# abbreviation of that?)
+func count_distinct <scalar|column> column ->  s"COUNT(DISTINCT `{column}`)"
+
+# Window functions
+func lag<column> offset column ->  s"LAG({column}, {offset})"
+func lead<column> offset column ->  s"LEAD({column}, {offset})"
+func first<column> offset column ->  s"FIRST_VALUE({column}, {offset})"
+func last<column> offset column ->  s"LAST_VALUE({column}, {offset})"
+func rank<column> ->  s"RANK()"
+func rank_dense<column> ->  s"DENSE_RANK()"
+func row_number<column> ->  s"ROW_NUMBER()"
+
+# Other functions
+func round<scalar> n_digits column ->  s"ROUND({column}, {n_digits})"
+func as<scalar> `noresolve.type` column ->  s"CAST({column} AS {type})"

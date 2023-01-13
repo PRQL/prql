@@ -12,7 +12,7 @@
                 <span>“Prequel”</span>
               </h4>
               <h2 class="mb-3">{{ .heading | markdownify }}</h2>
-              <p class="mb-3">{{ .bottom_text | markdownify }}</p>
+              <p class="mb-3 bottom-text">{{ .bottom_text | markdownify }}</p>
               {{ if .button.enable }}
                 {{ with .button }}
                   <a
@@ -38,37 +38,38 @@
   <!-- End Hero -->
 
   <main id="main">
-    <!-- ======= principle Section ======= -->
-    {{ with .Params.principle_section }}
-      {{/* TODO: can we integrate this with section-cards? It's very similar */}}
+    <!-- ======= Why PRQL Section ======= -->
+    {{ with .Params.why_prql_section }}
       {{ if .enable }}
-        <section class="principle_section">
+        <section class="big-cards-section">
           <div class="container">
             <div class="row">
               <div class="section-title">
                 <h2>{{ .title | markdownify }}</h2>
               </div>
-              <div class="row row-cols-1 row-cols-lg-3 justify-content-center">
-                {{ range .items }}
-                  <div class="col g-3">
-                    <div class="card">
-                      <h4>{{ .title | markdownify }}</h4>
-                      <p class="blue-border">
-                        <strong>{{ .main_text | markdownify }}</strong>
-                      </p>
-                      <p>{{ .content | markdownify }}</p>
-                    </div>
+            </div>
+            <div class="row row-cols-1 row-cols-lg-2 justify-content-center">
+              {{ range .items }}
+                <div class="col g-3">
+                  <div class="card">
+                    <h4>{{ .title | markdownify }}</h4>
+                    {{/* Probably there's a more general way of formatting
+                      this padding; the default is 2em, which looked too indented
+                    */}}
+                    <ul style="padding-left:1em">
+                      {{ range .content }}
+                        <li>{{ . | markdownify }}</li>
+                      {{ end }}
+                    </ul>
                   </div>
-                {{ end }}
-              </div>
+                </div>
+              {{ end }}
             </div>
           </div>
         </section>
       {{ end }}
     {{ end }}
-    <!-- End principle_section -->
 
-    <!-- ======= Showcase Section ======= -->
     {{ with .Params.showcase_section }}
       {{ if .enable }}
         <section class="content-section showcase-section section-bg">
@@ -131,6 +132,64 @@
         </section>
       {{ end }}
     {{ end }}
+
+    {{ with .Params.principles_section }}
+      {{/* TODO: can we integrate this with section-cards? It's very similar */}}
+      {{ if .enable }}
+        <section class="big-cards-section">
+          <div class="container">
+            <div class="row">
+              <div class="section-title">
+                <h2>{{ .title | markdownify }}</h2>
+              </div>
+            </div>
+            <div class="row row-cols-1 row-cols-lg-3 justify-content-center">
+              {{ range .items }}
+                <div class="col g-3">
+                  <div class="card">
+                    <h4>{{ .title | markdownify }}</h4>
+                    <p class="blue-border">
+                      <strong>{{ .main_text | markdownify }}</strong>
+                    </p>
+                    <p>{{ .content | markdownify }}</p>
+                  </div>
+                </div>
+              {{ end }}
+            </div>
+          </div>
+        </section>
+      {{ end }}
+    {{ end }}
+
+    {{ with .Params.videos_section }}
+      {{ if .enable }}
+        <section class="vidoes-section">
+          <div class="container">
+            <div class="row">
+              <div class="section-title">
+                <h2>{{ .title | markdownify }}</h2>
+              </div>
+            </div>
+            <div class="row row-cols-1 row-cols-lg-3">
+              {{ range .items }}
+                <div class="col g-3">
+                  <iframe
+                    width="560"
+                    height="315"
+                    src="https://www.youtube-nocookie.com/embed/{{ .youtube_id }}"
+                    title="YouTube video player"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen
+                  ></iframe>
+                </div>
+              {{ end }}
+            </div>
+          </div>
+        </section>
+      {{ end }}
+    {{ end }}
+
     {{ partial "section-cards" .Params.integrations_section }}
     {{ partial "section-cards" .Params.tools_section }}
     {{ partial "section-cards" .Params.bindings_section }}

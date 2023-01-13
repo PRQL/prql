@@ -19,7 +19,7 @@ derive gross_salary = (salary + payroll_tax)
 
 ...and so on:
 
-```prql
+```prql_no_test
 from employees
 derive gross_salary = (salary + payroll_tax)
 sort gross_salary
@@ -31,12 +31,12 @@ When compiling to SQL, the PRQL compiler will try to represent as many
 transforms as possible with a single `SELECT` statement. When necessary it will
 "overflow" using CTEs (common table expressions):
 
-```prql
+```prql_no_test
 from e = employees
 derive gross_salary = (salary + payroll_tax)
 sort gross_salary
 take 10
-join d = department [dept_no]
+join d = department [==dept_no]
 select [e.name, gross_salary, d.name]
 ```
 

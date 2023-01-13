@@ -1,22 +1,23 @@
-import json
-
 import prql_python as prql
 
 
 def test_all():
     """
     Test the basic python functions
+
+    Because the AST was in flux, we only test these don't throw exceptions. But we
+    should write more tests at some point.
     """
 
     prql_query = "from employee"
 
-    # Since the AST is so in flux lets just take these dont throw exceptions
-    res = json.loads(prql.to_json(prql_query))
+    res = prql.prql_to_pl(prql_query)
     assert res is not None
 
-    res = prql.to_sql(prql_query)
+    res = prql.pl_to_rq(res)
     assert res is not None
 
+    res = prql.rq_to_sql(res)
+    assert res is not None
 
-if __name__ == "__main__":
-    test_all()
+    assert prql.__version__ is not None

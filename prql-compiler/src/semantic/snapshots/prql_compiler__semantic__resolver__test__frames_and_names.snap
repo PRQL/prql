@@ -1,0 +1,28 @@
+---
+source: prql-compiler/src/semantic/resolver.rs
+expression: "resolve_type(r#\"\n            from orders\n            select [customer_no, gross, tax, gross - tax]\n            take 20\n            \"#).unwrap()"
+---
+Table:
+  columns:
+    - Single:
+        name:
+          - customer_no
+        expr_id: 11
+    - Single:
+        name:
+          - gross
+        expr_id: 12
+    - Single:
+        name:
+          - tax
+        expr_id: 13
+    - Single:
+        name: ~
+        expr_id: 14
+  inputs:
+    - id: 4
+      name: orders
+      table:
+        - default_db
+        - orders
+

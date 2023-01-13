@@ -1,0 +1,31 @@
+---
+source: book/tests/snapshot.rs
+expression: "table newest_employees = (\n  from employees\n  sort tenure\n  take 50\n)\n\ntable average_salaries = (\n  from salaries\n  group country (\n    aggregate average_country_salary = (average salary)\n  )\n)\n\nfrom newest_employees\njoin average_salaries [==country]\nselect [name, salary, average_country_salary]\n"
+input_file: book/tests/prql/examples/cte-0.prql
+---
+WITH average_salaries AS (
+  SELECT
+    country,
+    AVG(salary) AS average_country_salary
+  FROM
+    salaries
+  GROUP BY
+    country
+),
+newest_employees AS (
+  SELECT
+    *
+  FROM
+    employees
+  ORDER BY
+    tenure
+  LIMIT
+    50
+)
+SELECT
+  newest_employees.name,
+  newest_employees.salary,
+  average_salaries.average_country_salary
+FROM
+  newest_employees
+  JOIN average_salaries ON newest_employees.country = average_salaries.country

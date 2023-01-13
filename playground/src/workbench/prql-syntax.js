@@ -1,25 +1,32 @@
+const TRANSFORMS = [
+  "from",
+  "select",
+  "derive",
+  "filter",
+  "take",
+  "sort",
+  "join",
+  "aggregate",
+  "group",
+  "window",
+  "append",
+  "union",
+];
+const BUILTIN_FUNCTIONS = ["switch"]; // "in", "as"
+const KEYWORDS = ["func", "table", "prql"];
+const LITERALS = ["null", "true", "false"];
+const OPERATORS = ["and", "or"]; // "not"
+
 const def = {
   // Set defaultToken to invalid to see what you do not tokenize yet
   // defaultToken: 'invalid',
 
   keywords: [
-    "from",
-    "select",
-    "derive",
-    "filter",
-    "take",
-    "sort",
-    "join",
-    "aggregate",
-    "group",
-    "func",
-    "table",
-    "and",
-    "or",
-    "not",
-    "null",
-    "true",
-    "false",
+    ...TRANSFORMS,
+    ...BUILTIN_FUNCTIONS,
+    ...KEYWORDS,
+    ...LITERALS,
+    ...OPERATORS,
   ],
 
   operators: [
@@ -60,11 +67,18 @@ const def = {
       [/[()[\]]/, "@brackets"],
 
       // numbers
-      [/\d*\.\d+([eE][-+]?\d+)?/, "number.float"],
-      [/\d+/, "number"],
+      // Slightly modified from https://stackoverflow.com/a/23872060/3064736;
+      // it requires a number after a decimal point, so ranges appear as
+      // ranges.
+      // We disallow a leading word character, so that we don't highlight
+      // a number in `foo_1`,
+      // We allow underscores, a bit more liberally than PRQL, which doesn't
+      // allow them at the start or end (but that's difficult to express with
+      // regex; contributions welcome).
+      [/[+-]?[^\w](([\d_]+(\.[\d_]+])?)|(\.[\d_]+))/, "number"],
 
       // strings
-      [/"([^"\\]|\\.)*$/, "string.invalid"], // non-teminated string
+      [/"([^"\\]|\\.)*$/, "string.invalid"], // non-terminated string
       [/"/, { token: "string.quote", bracket: "@open", next: "@string" }],
 
       // characters

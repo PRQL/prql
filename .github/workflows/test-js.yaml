@@ -1,0 +1,29 @@
+name: test-js
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    paths:
+      - "prql-js/**"
+      - ".github/workflows/test-js.yaml"
+  workflow_call:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    # This is copy & pasted into test-all.yaml
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+    steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v3
+      - uses: ./.github/actions/build-prql-js
+      - run: npm cit
+        working-directory: prql-js

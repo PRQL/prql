@@ -1,0 +1,9 @@
+let grouping = s"""
+  SELECT SUM(a)
+  FROM tbl
+  GROUP BY
+    GROUPING SETS
+    ((b, c, d), (d), (b, d))
+"""
+
+from grouping

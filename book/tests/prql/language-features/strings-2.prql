@@ -1,1 +1,2 @@
-derive x = '"hello world"'
+from my_table
+select x = '"hello world"'

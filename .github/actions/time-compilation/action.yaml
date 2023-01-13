@@ -13,10 +13,10 @@ runs:
     - name: 🔗 Setup toolchain
       shell: bash
       # Doing this ourselves since https://github.com/dtolnay/rust-toolchain/issues/29
-      run: rustup override set nightly-2022-07-26
+      run: rustup override set nightly-2022-10-22
     - name: 💰 Cache
       id: cache
-      uses: Swatinem/rust-cache@v1
+      uses: Swatinem/rust-cache@v2
       # 'true' seems to require quotes (and using `inputs.use_cache` doesn't
       # work); I'm really not sure why. There are some issues on the interwebs
       # around this, but I couldn't find one that explained it.
@@ -25,7 +25,7 @@ runs:
       shell: bash
       run: rm -rf target/cargo-timings
     - name: 🏭 Compile
-      uses: actions-rs/cargo@v1
+      uses: richb-hanover/cargo@v1.1.0
       with:
         command: build
         args: --timings=html --all-targets -Z unstable-options

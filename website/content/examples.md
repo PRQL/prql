@@ -1,5 +1,6 @@
 ---
 title: "Examples"
+layout: article
 ---
 
 ## A simple example
@@ -26,7 +27,7 @@ GROUP BY
   title,
   country
 HAVING
-  COUNT(*) > 200
+  COUNT(*) > 2000
 ORDER BY
   sum_gross_cost,
   country DESC
@@ -36,13 +37,13 @@ Even this simple query demonstrates some of the problems with SQL's lack of
 abstractions:
 
 - Unnecessary repetition — the calculations for each measure are repeated,
-  despite deriving from a previous measure. The repetition in the `WHERE`
-  clause obfuscates the meaning of the expression.
+  despite deriving from a previous measure. The repetition in the `WHERE` clause
+  obfuscates the meaning of the expression.
 - Functions have multiple operators — `HAVING` & `WHERE` are fundamentally
   similar operations applied at different stages of the pipeline, but SQL's lack
   of pipeline-based precedence requires it to have two different operators.
-- Operators have multiple functions — the `SELECT` operator both
-  creates new aggregations, and selects which columns to include.
+- Operators have multiple functions — the `SELECT` operator both creates new
+  aggregations, and selects which columns to include.
 - Awkward syntax — when developing the query, commenting out the final line of
   the `SELECT` list causes a syntax error because of how commas are handled, and
   we need to repeat the columns in the `GROUP BY` clause in the `SELECT` list.
@@ -69,7 +70,7 @@ group [title, country] (                      # `group` runs a pipeline over eac
   ]
 )
 sort [sum_gross_cost, -country]               # `-country` means descending order.
-filter ct > 200
+filter ct > 2_000
 take 20
 ```
 
@@ -148,7 +149,7 @@ func lag_day x -> group sec_id (                      # `group` is used for wind
 func ret x -> x / (x | lag_day) - 1 + dividend_return
 
 from prices
-join interest_rates [date]
+join interest_rates [==date]
 select [                                              # `select` only includes unnamed columns, unlike `derive`
   return_total =      prices_adj   | ret | if_valid   # `|` can be used rather than newlines
   return_usd =        prices_usd   | ret | if_valid

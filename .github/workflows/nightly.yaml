@@ -1,0 +1,84 @@
+name: nightly
+
+on:
+  schedule:
+    # Pick a random time, something that others won't pick, to reduce GH's demand variance.
+    - cron: "49 10 * * *"
+  pull_request:
+    paths:
+      - ".github/workflows/nightly.yaml"
+  workflow_call:
+
+jobs:
+  cargo-audit:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+      issues: write
+      checks: write
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rs/audit-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+  check-links:
+    # We run on modified files only in PR, so do another check of all files here.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: gaurav-nelson/github-action-markdown-link-check@v1
+        with:
+          config-file: .github/.markdown-link-check.json
+
+  time-compilation:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        use_cache: [true, false]
+    steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v3
+      - uses: ./.github/actions/time-compilation
+        with:
+          use_cache: ${{ matrix.use_cache }}
+
+  update-rust-toolchain:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v3
+      - uses: a-kenji/update-rust-toolchain@main
+        with:
+          minor-version-delta: 1
+          toolchain-path: "./rust-toolchain.toml"
+          pr-title: "build: Update rust toolchain version"
+
+  test-docker:
+    # We only test the build in `test-all`; this also runs tests.
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v3
+
+      - uses: docker/setup-buildx-action@v2
+
+      - name: Build
+        uses: docker/build-push-action@v3
+        with:
+          tags: prql:latest
+          # Use the GHA cache
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # https://aschmelyun.com/blog/using-docker-run-inside-of-github-actions/
+      - name: Test
+        uses: addnab/docker-run-action@v3
+        with:
+          image: prql:latest
+          options: -v ${{ github.workspace }}/:/src
+          run: task test-rust

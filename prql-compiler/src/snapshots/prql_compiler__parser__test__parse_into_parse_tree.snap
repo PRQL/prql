@@ -52,7 +52,7 @@ expression: "parse_tree_of_str(r#\"country == \"USA\"\"#, Rule::expr)?"
                                                 },
                                                 inner: [
                                                     Pair {
-                                                        rule: ident_part_first,
+                                                        rule: ident_plain,
                                                         span: Span {
                                                             str: "country",
                                                             start: 0,

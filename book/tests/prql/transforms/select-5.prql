@@ -1,0 +1,3 @@
+from tracks
+select [track_id, title, composer, bytes]
+select ![title, composer]

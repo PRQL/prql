@@ -1,0 +1,5 @@
+prql target:sql.postgres
+
+from employees
+sort age
+take 10

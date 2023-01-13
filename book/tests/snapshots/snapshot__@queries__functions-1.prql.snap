@@ -1,0 +1,11 @@
+---
+source: book/tests/snapshot.rs
+expression: "func interp lower:0 higher x -> (x - lower) / (higher - lower)\n\nfrom students\nderive [\n  sat_proportion_1 = (interp 1600 sat_score),\n  sat_proportion_2 = (interp lower:0 1600 sat_score),\n]\n"
+input_file: book/tests/prql/queries/functions-1.prql
+---
+SELECT
+  *,
+  (sat_score - 0) / 1600 AS sat_proportion_1,
+  (sat_score - 0) / 1600 AS sat_proportion_2
+FROM
+  students

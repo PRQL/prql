@@ -12,7 +12,9 @@ sort [{direction}{column}]
 - Each column can be prefixed with:
   - `+`, for ascending order, the default
   - `-`, for descending order
-- When using prefixes, make sure to wrap columns in a list. Otherwise, `sort -column` is interpreted as subtraction between `sort` and `column`.
+- When using prefixes, even a single column needs to be in a list or
+  parentheses. (Otherwise, `sort -foo` is parsed as a subtraction between `sort`
+  and `foo`.)
 
 ## Examples
 
@@ -31,11 +33,37 @@ from employees
 sort [age, -tenure, +salary]
 ```
 
-## Roadmap
+We can also use expressions:
 
-Currently `sort` does not accept expressions:
-
-```prql_no_test
+```prql
 from employees
-sort [s"substr({first_name}, 2, 5)"]  # Currently will fail
+sort [s"substr({first_name}, 2, 5)"]
 ```
+
+## Notes
+
+### Ordering guarantees
+
+Most DBs will persist ordering through most transforms; for example, you can
+expect this result to be ordered by `tenure`.
+
+```prql
+from employees
+sort tenure
+derive name = f"{first_name} {last_name}"
+```
+
+But:
+
+- This is an implementation detail of the DB. If there are instances where this
+  doesn't hold, please open an issue, and we'll consider how to manage it.
+- Some transforms which change the existence of rows, such as `join` or `group`,
+  won't persist ordering; for example:
+
+```prql
+from employees
+sort tenure
+join locations [==employee_id]
+```
+
+See [Issue #1363](https://github.com/PRQL/prql/issues/1363) for more details.

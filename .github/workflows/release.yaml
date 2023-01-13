@@ -16,11 +16,11 @@ jobs:
             await github.rest.actions.createWorkflowDispatch({
               owner: 'prql',
               repo: 'homebrew-prql',
-              workflow_id: 'update.yml',
+              workflow_id: 'update.yaml',
               ref: 'main',
               inputs: {
               version: '${{ github.ref }}',
-              URL: 'https://github.com/prql/prql/archive/${{ github.ref }}.tar.gz'
+              URL: 'https://github.com/PRQL/prql/archive/${{ github.ref }}.tar.gz'
               }
             })
 
@@ -32,7 +32,7 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
-      - uses: ./.github/actions/build-wheel
+      - uses: ./.github/actions/build-prql-python
 
   publish-prql-python:
     runs-on: ubuntu-latest
@@ -54,34 +54,7 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
-      - name: Make dist folder
-        run: mkdir dist
-
-      - name: Install wasm-pack
-        uses: jetli/wasm-pack-action@v0.3.0
-        with:
-          version: "latest"
-
-      - name: Run wasm-pack for node
-        run: wasm-pack build --target nodejs --release --out-dir dist/node
-        working-directory: prql-js/
-      - name: Run wasm-pack for web
-        run: wasm-pack build --target no-modules --release --out-dir dist/web
-        working-directory: prql-js/
-      - name: Run wasm-pack for bundler
-        run: wasm-pack build --target bundler --release --out-dir dist/bundler
-        working-directory: prql-js/
-
-      - name: Setup Node
-        uses: actions/setup-node@v3
-        with:
-          node-version: "18.x"
-          registry-url: "https://registry.npmjs.org"
-
-      - name: Run prql tests for node
-        run: npm i && npm run test
-        working-directory: prql-js/tests/
-
+      - uses: ./.github/actions/build-prql-js
       - name: Publish package on npm
         run: npm publish
         working-directory: prql-js/
@@ -98,8 +71,10 @@ jobs:
         with:
           command: publish
           args: -p prql-compiler
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
-  # Requires another pass: https://github.com/prql/prql/issues/850
+  # Requires another pass: https://github.com/PRQL/prql/issues/850
   # publish-prql-java:
   #   runs-on: ubuntu-latest
   #   steps:

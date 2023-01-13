@@ -12,7 +12,7 @@ cargo add prql-compiler
 
 `cargo run`
 
-#### src/main.rs:
+#### src/main.rs
 
 ```rust
 use prql_compiler::compile;
@@ -25,7 +25,7 @@ fn main() {
 
 ```
 
-#### Cargo.toml:
+#### Cargo.toml
 
 ```
 [package]

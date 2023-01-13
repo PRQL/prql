@@ -1,0 +1,2 @@
+from employees
+sort [s"substr({first_name}, 2, 5)"]

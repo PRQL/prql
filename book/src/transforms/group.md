@@ -20,9 +20,9 @@ group [title, country] (
 )
 ```
 
-In concept, a transform in context of a `group` does the same transformation to the group as
-it would to the table — for example finding the employee who joined first across
-the whole table:
+In concept, a transform in context of a `group` does the same transformation to
+the group as it would to the table — for example finding the employee who joined
+first across the whole table:
 
 ```prql
 from employees
@@ -30,8 +30,8 @@ sort join_date
 take 1
 ```
 
-To find the employee who joined first in each department, it's exactly the
-same pipeline, but within a `group` expression:
+To find the employee who joined first in each department, it's exactly the same
+pipeline, but within a `group` expression:
 
 ```prql
 from employees

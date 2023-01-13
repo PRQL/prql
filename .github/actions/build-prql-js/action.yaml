@@ -1,0 +1,23 @@
+# TODO: now that we've moved much of this into `package.json` scripts, possibly
+# we don't need this as a separate action any longer?
+name: build-prql-js
+description: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Install wasm-pack
+      uses: jetli/wasm-pack-action@v0.4.0
+      with:
+        version: "latest"
+
+    - name: Setup Node
+      uses: actions/setup-node@v3
+      with:
+        node-version: "18.x"
+        registry-url: "https://registry.npmjs.org"
+
+    - name: Run wasm-pack for node, bundler, & web
+      run: npm run build
+      shell: bash
+      working-directory: prql-js/

@@ -1,11 +1,11 @@
 ```prql
-table newest_employees = (
+let newest_employees = (
   from employees
   sort tenure
   take 50
 )
 
-table average_salaries = (
+let average_salaries = (
   from salaries
   group country (
     aggregate average_country_salary = (average salary)
@@ -13,6 +13,6 @@ table average_salaries = (
 )
 
 from newest_employees
-join average_salaries [country]
+join average_salaries [==country]
 select [name, salary, average_country_salary]
 ```

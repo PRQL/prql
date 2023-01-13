@@ -1,5 +1,5 @@
-func celsius_of_fahrenheit temp -> (temp - 32) * 3
+func fahrenheit_to_celsius temp -> (temp - 32) / 1.8
 func interp lower:0 higher x -> (x - lower) / (higher - lower)
 
 from kettles
-derive boiling_proportion = (temp_c | celsius_of_fahrenheit | interp 100)
+derive boiling_proportion = (temp_c | fahrenheit_to_celsius | interp 100)

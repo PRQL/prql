@@ -1,0 +1,14 @@
+config:
+  # We use prettier for line length & wrapping
+  MD013: false
+  # Code block style — generally this is fine, but it has false positives on
+  # footnotes. See below re markdown-it-footnote issue. If we could resolve
+  # that, we could turn this back on.
+  MD046: false
+# markdownItPlugins:
+#
+# Doesn't seem to help with some issues — if someone wants to help resolve then
+# great, but it's no huge stress to have some false positives.
+#
+# https://github.com/DavidAnson/markdownlint/issues/689
+#   - ["markdown-it-footnote"]

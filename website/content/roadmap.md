@@ -15,67 +15,134 @@ url: roadmap
 >
 > -- <cite>PRQL Developers</cite>
 
+## Medium term
+
 {{< columns >}}
 
-## Language
+#### Integrations
 
-The language is now fairly stable. While we'll hit corner-cases, we expect we'll
-only make small changes to the existing features, even as we continue adding
-features.
+PRQL is focused at the language layer, which means we can easily integrate with
+existing tools & apps. Integrations will be the primary way that people can
+start using PRQL day-to-day. At first, the most impactful initial integrations
+will be tools that engineers use to build data pipelines, like
+[`dbt-prql`](https://github.com/PRQL/prql/issues/375).
 
-On this foundation we are planning to build advanced features like type checking,
-function currying, pivot/melt/wide_to_long/long_to_wide operations, operator overloading and
-[a few more](https://github.com/prql/prql/issues?q=is%3Aissue+is%3Aopen+label%3Alanguage-design).
+#### Standard library
 
-## Friendliness
-
-Currently the compiler is not sufficiently friendly, despite significant recent improvements.
-We'd like to make error messages better and sand off sharp corners.
-
-Both bug reports of unfriendliness, and code contributions to improve them are welcome; there's a
-[friendliness label.](https://github.com/prql/prql/issues?q=is%3Aissue+label%3Afriendlienss+is%3Aopen)
-
-## Standard library
-
-Currently, the standard library is [quite
-limited](https://github.com/prql/prql/blob/main/prql-compiler/src/semantic/stdlib.prql).
+Currently, the standard library is
+[quite limited](https://github.com/PRQL/prql/blob/main/prql-compiler/src/semantic/std.prql).
 It contains only basic arithmetic functions (`AVERAGE`, `SUM`) and lacks
-functions for string manipulation, date handling and many math functions. One
-challenge here is the variety of functionalities and syntax of target DBMSs;
-e.g. there's no standard regex function. Improving our testing framework to
-include integration tests will help give us confidence here.
+functions for string manipulation, date handling and many math functions. We're
+looking to gradually introduce these as needed, and reduce the need for
+s-strings.
+
+One challenge here is the variety of functionalities and syntax of target DBMSs;
+e.g. there's no standard regex function.
+
+#### Type system
+
+Because PRQL is meant to be the querying interface of the database, a type
+system that can describe database schema as well as all intermediate results of
+the queries is needed. We want it to provide clear distinctions between
+different nullable and non-nullable values, and different kinds of containers
+(e.g. scalars vs. columns).
+
+Currently PRQL compiles into SQL with no understanding of the underlying tables.
+We plan to introduce database schema declarations into the language, so PRQL
+compiler and tooling can enrich the developer experience with autocomplete and
+early error messages.
+
+The goal here is to catch all errors at PRQL compile time, instead of at the
+database's PREPARE stage.
 
 <--->
 
-## Alternative backends
+#### Friendliness
 
-Currently, PRQL only transpiles into SQL. It could be much more powerful (and in some cases performant)
-if we develop a data-frame-handling-library backend. To be more precise, we would want to apply PRQL's
-AST to a in-memory dataframe of a performance-optimized library (such as [Polars](https://www.pola.rs/)).
+Currently the compiler output's friendliness is variable — sometimes it produces
+much better error messages than SQL, but sometimes they can be confusing.
 
-This would allow data scientists, analysts and general Python developers to transform DataFrames with
-PRQL queries. One language for all data transformations!
+Both bug reports of unfriendliness, and code contributions to improve them are
+welcome; there's a
+[friendliness label.](https://github.com/PRQL/prql/issues?q=is%3Aissue+label%3Afriendliness+is%3Aopen)
 
-## PRQL as a tool
+#### Developer ergonomics — LSP
 
-PyPrql is a step into direction of a general data handling program. Building on
-this, we want to build a tool that can read many data sources, offers syntax
-highlighting, auto-complete and type-inference using information from database's
-schema.
+The PRQL language can offer a vastly improved developer experience over SQL,
+both when exploring data and building robust data pipelines. We'd like to offer
+autocomplete both for PRQL itself and for columns of the underlying database,
+because fast iteration cycle can drastically decrease frustrations caused by
+banal misspellings.
 
-We'll likely continue pursuing this through integrations with other tools;
-combining the potential of PRQL with its openness and ecosystem.
+This requires development across multiple dimensions — writing an
+[LSP server](https://langserver.org/), better support for typing in the
+compiler, and possibly database cohesion.
 
-If successful, we can have reproducible data transformations with an intuitive,
-interactive experience with fast feedback.
+While PRQL compiler will never depend on a database to compile queries, LPS
+server could greatly help with generating type definitions from the information
+schema of a database.
 
-## Integrations
+#### Query transparency
 
-PRQL is focused at the language layer, which means we can easily integrate with
-existing tools & apps. This will be the primary way that people can start using
-PRQL day-to-day. Probably the most impactful initial integrations will be tools that
-engineers use to build data pipelines, like
-[`dbt-prql`](https://github.com/prql/prql/issues/375).
+PRQL's compiler already contains structured data about the query. We'd like to
+offer transparency to tools which use PRQL, so they can offer lineage
+information, such as which tables are queried, and a DAG of transformations for
+each column.
+
+{{< /columns >}}
+
+## Long term
+
+{{< columns >}}
+
+#### SQL-to-PRQL conversion
+
+While PRQL already allows for a gradual on-ramp — there's no need to switch
+everything to PRQL right away — it would also be useful to be able to convert
+existing SQL queries to PRQL, rather than having to rewrite them manually. For
+many queries, this should be fairly easy. (For some it will be very difficult,
+but we can start with the easy ones...)
+
+#### Language
+
+While the core semantics and syntax of the language are now fairly stable, we
+are planning
+[a few major features](https://github.com/PRQL/prql/issues?q=is%3Aopen+is%3Aissue+label%3Amajor-feature+label%3Alanguage-design)
+that will give PRQL the feeling of a real programming language and elevate it in
+[the chomsky hierarchy](https://en.wikipedia.org/wiki/Chomsky_hierarchy).
+Honorable mentions here are recursive CTEs (or rather functions), algebraic type
+system, pre-specified join conditions and regex.
+
+Note that these features will probably inflict breaking changes with each minor
+release before we stabilize the 1.0, the first indefinitely supported language
+edition.
+
+<--->
+
+#### Alternative backends
+
+Currently, PRQL only transpiles into SQL, using connectors such as DuckDB to
+access other formats, such as Pandas dataframes. But PRQL can be much more
+general than SQL — we could directly compile to any relational backend, offering
+more flexibility and performance — and a consistent experience for those who use
+multiple tools.
+
+For example, we could compile PRQL to RQ (Relational Query intermediate
+representation) and then use that to apply the transformations to an in-memory
+dataframe of a performance-optimized library (such as
+[Polars](https://www.pola.rs/)) or a Google Sheets spreadsheet. Alternatively,
+we could even convert RQ to [Substrait](https://substrait.io/).
+
+### PRQL IDE
+
+We'd like to make it easier to try PRQL. We currently have the playground, which
+compiles PRQL and runs queries with a DuckDB wasm module, but there's much more
+we could do. Could we support for importing arbitrary CSV and parquet input
+files and then exporting the results? Could it integrate an LSP?
+
+We can balance this against building integrations with existing tools.
+
+{{< /columns >}}
 
 ## Not in focus
 
@@ -84,8 +151,6 @@ make reading and writing analytical queries easier, and so for the moment that
 means putting some things out of scope:
 
 - Building infrastructure outside of queries, like lineage. dbt is excellent at
-  that! ([#13](https://github.com/prql/prql/issues/13)).
+  that! ([#13](https://github.com/PRQL/prql/issues/13)).
 - Writing DDL / index / schema manipulation / inserting data
-  ([#16](https://github.com/prql/prql/issues/16)).
-
-{{< /columns >}}
+  ([#16](https://github.com/PRQL/prql/issues/16)).

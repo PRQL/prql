@@ -39,7 +39,7 @@ WHERE
 {% prql %}
 from {{ source('salesforce', 'in_process') }}
 derive expected_sales = probability * value
-join {{ ref('team', 'team_sales') }} [name]
+join {{ ref('team', 'team_sales') }} [==name]
 group name (
   aggregate (expected_sales)
 )
@@ -68,8 +68,8 @@ people some time. But imperatively programming text generation with code like
 `if not loop.last` is not our highest calling. It's the "necessary" part rather
 than beautiful part of dbt.
 
-Here's the canonical example of macros in the [dbt
-documentation](https://docs.getdbt.com/tutorial/learning-more/using-jinja):
+Here's the canonical example of macros in the
+[dbt documentation](https://docs.getdbt.com/docs/get-started/learning-more/using-jinja):
 
 ```sql
 {%- set payment_methods = ["bank_transfer", "credit_card", "gift_card"] -%}
@@ -103,8 +103,8 @@ group order_id (
 
 As well the query being simpler in its final form, writing in PRQL also gives us
 live feedback around any errors, on every keystroke. Though there's much more to
-come, check out the current version on [PRQL
-Playground](https://prql-lang.org/playground/).
+come, check out the current version on
+[PRQL Playground](https://prql-lang.org/playground/).
 
 ## What it does
 
@@ -112,7 +112,7 @@ When dbt compiles models to SQL queries:
 
 - Any text in a dbt model between `{% prql %}` and `{% endprql %}` tags is
   compiled from PRQL to SQL before being passed to dbt.
-- The PRQL complier passes text that's containing `{{` & `}}` through to dbt
+- The PRQL compiler passes text that's containing `{{` & `}}` through to dbt
   without modification, which allows us to embed jinja expressions in PRQL.
   (This was added to PRQL specifically for this use-case.)
 - dbt will then compile the resulting model into its final form of raw SQL, and

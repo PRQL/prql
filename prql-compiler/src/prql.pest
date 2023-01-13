@@ -1,84 +1,56 @@
-// TODO:
-// - Some rules are silent because we don't strictly need them, but that may be
-//   too rushed — maybe we do actually want to know about e.g. comments in the
-//   parse tree (and potentially put them into SQL comments)
-// - Need to resolve how to handle "inline pipelines"; there is a rule here but
-//   it's not used or tested. It's partly a language question — do those need to
-//   start with `from`? How do these work in the midst of an `aggregate`
-//   transform?
-
 WHITESPACE = _{ " " | "\t" }
-// Need to exclude # in strings (and maybe confirm whether this the syntax we want)
+
+// TODO: maybe pass comments to AST (and potentially put them into SQL comments)
 COMMENT = _{ "#" ~ (!NEWLINE ~ ANY) * }
 
-query = { SOI ~ NEWLINE* ~ query_def ~ NEWLINE* ~ (( func_def | table | pipeline ) ~ ( NEWLINE+ | &EOI ))* ~ EOI }
+statements = _{ SOI ~ NEWLINE* ~ query_def ? ~ (func_def | var_def)* ~ pipeline_stmt? ~ EOI }
 
-query_def = { WHITESPACE* ~ ("prql" ~ named_arg* ~ NEWLINE)? }
+query_def = { "prql" ~ named_arg* ~ NEWLINE+ }
 
-func_def = { "func" ~ func_def_name ~ func_def_params ~ "->" ~ expr }
+func_def = { "func" ~ func_def_name ~ func_def_params ~ "->" ~ expr_call ~ ( NEWLINE+ | &EOI ) }
 
-func_def_name = { ident ~ type_def? }
+func_def_name = { ident_part ~ type_def? }
 func_def_params = { func_def_param* }
-func_def_param = { (named_arg | ident) ~ type_def? }
+func_def_param = { ident_part ~ type_def? ~ (":" ~ expr)? }
 type_def = { "<" ~ type_term ~ ( "|" ~ type_term)* ~ ">" }
-type_term = { ident ~ type_def? }
+type_term = { ident_part ~ type_def? }
 
-table = { "table" ~ ident ~ "=" ~ nested_pipeline }
+var_def = { "let" ~ ident_part ~ "=" ~ expr_call ~ ( NEWLINE+ | &EOI ) }
+
+pipeline_stmt = { pipeline ~ ( NEWLINE+ | &EOI ) }
+
+// An ident is a sequence of word-like terms, separated by `.`. Where surrounded
+// by backticks, the term is taken as-is, including any periods it contains.
+// We allow `e.*`, but not just `*`, since it would conflict with multiply in some cases.
+ident = ${
+    !operator ~ !(keyword ~ WHITESPACE)
+    ~ (ident_plain | ident_backticks)
+    ~ ("."  ~ (ident_plain | ident_backticks | ident_star))*
+}
+ident_part = ${ ident_plain | ident_backticks }
+// Either a normal ident (starting with a letter, `$` or `_`), or any string surrounded
+// by backticks.
+ident_plain = { ((ASCII_ALPHA | "$" | "_") ~ (ASCII_ALPHANUMERIC | "_" )* ) }
+ident_backticks = _{ PUSH("`") ~ (!NEWLINE ~ string_inner)* ~ POP }
+// This is split out so we can make `ident_part_next` silent, but still capture it.
+ident_star = { "*" }
+
+keyword = _{ "prql" | "table" | "func" }
+
 
 pipe = _{ NEWLINE+ | "|" }
 pipeline = { WHITESPACE* ~ expr_call ~ (pipe ~ expr_call)* }
 
-// See parser.rs for why this is so complicated to parse
-ident = ${ !operator ~ !(keyword ~ WHITESPACE) ~ (ident_part_first | ident_backticks) ~ (ident_part_next | ident_backticks)* }
-// Either a normal ident (starting with a letter, `$` or `_`), or any string surrounded
-// by backticks.
-ident_part_first = { ((ASCII_ALPHA | "$" | "_") ~ (ASCII_ALPHANUMERIC | "_" )* ) }
-// We allow `e.*`, but not just `*`, since it would conflict with multiply in
-// some cases.
-ident_part_next = _{ ident_separator ~ (ident_part_first | ident_star | ident_backticks) }
-// These two are split out so we can make `ident_part_next` silent, but still
-// capture these.
-ident_separator = { "." }
-ident_star = { "*" }
-// Anything surrounded by backticks, we pass through.
-// ident_backticks = _{ "`" ~ (!NEWLINE ~ !"`" ~ ANY)* ~ "`" }
-ident_backticks = _{ PUSH("`") ~ (!NEWLINE ~ string_inner)* ~ POP }
-// For sorting
-signed_ident = { ( "+" | "-" ) ~ ident }
-keyword = _{ "prql" | "table" | "func" }
+// Whitespace is required to prevent matching s"string". Forbid `operator_binary` so `a
+// - b` can't parse as `a` & `-b` (but allow `select ![a]`)
+func_call = ${ ident ~ WHITESPACE+ ~ (!operator_binary ~ (named_arg | alias | expr) ~ WHITESPACE*)+ }
 
-// A central issue around the terms vs expr is that we want to be able to parse:
-//   [foo bar + 1, 2]
-// as:
-// - foo bar + 1
-//   - foo bar
-//     - foo
-//     - bar
-//   - +
-//   - 1
-// - 2
-// So this requires two non-silent rules:
-// - A notion of list item that contains anything, including operators (but
-//   not commas); e.g. `foo bar + 1`.
-// - A notion of expr that aggregates things between operators, e.g. foo bar.
-// So we call the list item `expr`, and the things between separators `terms`.
-//
-// We could have them be the same, but then we need logic in the parser to
-// account for where the list item is in this parse tree
-// - foo bar
-//   - foo
-//   - bar
-// - +
-// - 1
-// - 2
-
-// whitespace is required to prevent matching s"string".
-// Forbid `operator` so `a - b` can't parse as `a` & `-b`.
-func_call = ${ ident ~ WHITESPACE+ ~ (!operator ~ (named_arg | assign | expr) ~ WHITESPACE*)+ }
-
-named_arg   = !{ ident ~ ":" ~ !":" ~ (assign | expr) }
-assign      = !{ ident ~ "=" ~ !"=" ~ expr }
-assign_call = !{ ident ~ "=" ~ !"=" ~ expr_call }
+named_arg   = !{ ident_part ~ ":" ~ !":" ~ expr }
+// alias needs to be distinct from assign, so that in `join s=salaries [==id]`,
+// `s=salaries` is parsed separately from `[==id]`, since aliases allow for an
+// expr as an rvalue, but not a function call.
+alias = !{ ident_part ~ "=" ~ !"=" ~ expr }
+assign = !{ ident_part ~ "=" ~ !"=" ~ expr_call }
 
 expr_call = _{ (func_call | expr) }
 
@@ -88,13 +60,12 @@ expr_compare = { expr_add ~ (operator_compare ~ expr_add)? }
 expr_add = { expr_mul ~ (operator_add ~ expr_add)? }
 expr_mul = { term ~ (operator_mul ~ expr_mul)? }
 
-term = _{ ( s_string | f_string | range | literal | ident | nested_pipeline | expr_unary | list | jinja ) }
-// TODO: is this correct? We have `signed ident` above?
-// expr_unary is for sorting.
-expr_unary = { ( operator_unary ~ ( nested_pipeline | ident )) }
-literal = _{ interval | number | boolean | null | string | timestamp | date | time }
-list = { "[" ~ (NEWLINE* ~ (assign_call | expr_call) ~ ("," ~ NEWLINE* ~ (assign_call | expr_call) )* ~ ","?)? ~ NEWLINE* ~ "]" }
-nested_pipeline = _{ "(" ~ (WHITESPACE | NEWLINE)* ~ pipeline ~ (WHITESPACE | NEWLINE)* ~ ")" }
+term = _{ ( switch | s_string | f_string | range | literal | ident | nested_pipeline | expr_unary | list | jinja ) }
+expr_unary = { ( operator_unary ~ ( nested_pipeline | ident | list )) }
+literal = _{ value_and_unit | number | boolean | null | string | timestamp | date | time }
+// `assign | pipeline` based on discussion in #648
+list = { "[" ~ (NEWLINE* ~ (assign |  pipeline) ~ ("," ~ NEWLINE* ~ (assign | pipeline) )* ~ ","?)? ~ NEWLINE* ~ "]" }
+nested_pipeline = { "(" ~ (WHITESPACE | NEWLINE)* ~ pipeline? ~ (WHITESPACE | NEWLINE)* ~ ")" }
 
 // We haven't implemented escapes — I think we can mostly pass those through to
 // SQL, but there may be things we're missing.
@@ -117,9 +88,14 @@ opening_quote = _{ PUSH(multi_quote) | PUSH(single_quote) }
 // PEEK refers to the opening quote; `"` or `'` or multiple quotes.
 string_inner = { ( !( PEEK ) ~ ANY )+ }
 // Either > 3 quotes, or just one. Currently both of those can be multiline.
-string = ${ opening_quote ~ string_inner ~ POP }
+string = ${ opening_quote ~ string_inner? ~ POP }
 
-number = ${ operator_add? ~ ( ASCII_DIGIT )+ ~ ("." ~ ( ASCII_DIGIT )+)? }
+// We can use underscores within numbers
+number_char = _{ ASCII_DIGIT | "_" }
+// Numbers need to start and end with a digit. We implement the end by matching
+// either a number_char that's not the final char, or a final char that's a digit.
+number_part = _{ ( ASCII_DIGIT ) ~ (( number_char ~ &number_char )* ~ ( ASCII_DIGIT ~ !number_char ))? }
+number = ${ operator_add? ~ number_part ~ ("." ~ number_part)? }
 
 boolean = ${ "true" | "false" }
 
@@ -131,8 +107,9 @@ range = ${ range_edge ~ ".." ~ range_edge }
 // the whole span, not just the part before `..`.
 range_edge = ${ literal? }
 
-operator = _{ operator_unary | operator_mul | operator_add | operator_compare | operator_logical | operator_coalesce }
-operator_unary = ${ "-" | "+" | "!" }
+operator = _{ operator_unary | operator_binary }
+operator_binary = _{ operator_mul | operator_add | operator_compare | operator_logical | operator_coalesce }
+operator_unary = ${ "-" | "+" | "!" | "==" }
 operator_mul = ${ "*" | "/" | "%" }
 operator_add = ${ "+" | "-" }
 operator_compare = ${ "==" | "!=" | ">=" | "<=" | ">" | "<" }
@@ -143,15 +120,15 @@ operator_coalesce = ${ "??" }
 // `prefixed` string and parse in the parser, but manageable for now.
 s_string = ${ "s" ~ opening_quote ~ interpolate_string_inner ~ POP }
 f_string = ${ "f" ~ opening_quote ~ interpolate_string_inner ~ POP }
-interpolate_string_inner = _{ ( interpolate_string_inner_literal | interpolate_double_bracket | ( "{" ~ expr_call ~ "}" ))* }
+interpolate_string_inner = _{ ( interpolate_string_inner_literal | interpolate_double_bracket | ( "{" ~ pipeline ~ "}" ))* }
 // We want to strip the outer `{}` of `{{}}`, so we make a silent rule and then
 // an inner non-silent rule.
 interpolate_double_bracket = _{ "{" ~ interpolate_double_bracket_literal ~ "}" }
 interpolate_double_bracket_literal = { "{" ~ ( !"}}"  ~ ANY )+ ~ "}" }
 interpolate_string_inner_literal = { ( !( PEEK | "{" ) ~ ANY )+ }
 
-interval_kind = { "microseconds" | "milliseconds" | "seconds" | "minutes" | "hours" | "days" | "weeks" | "months" | "years" }
-interval = ${ number ~ interval_kind }
+unit = { "microseconds" | "milliseconds" | "seconds" | "minutes" | "hours" | "days" | "weeks" | "months" | "years" }
+value_and_unit = ${ number ~ unit }
 
 date = ${ "@" ~ date_inner ~ &end_expr }
 time = ${ "@" ~ time_inner ~ &end_expr }
@@ -171,3 +148,6 @@ end_expr = _{ WHITESPACE | "," | ")" | "]" | EOI | NEWLINE | ".." }
 
 // We pass text between `{{` and `}}` through, so dbt can use Jinja.
 jinja = { ("{{" ~ (!"}}" ~ ANY)* ~ "}}") }
+
+switch = { "switch" ~ "[" ~ (NEWLINE* ~ switch_case ~ ("," ~ NEWLINE* ~ switch_case )* ~ ","?)? ~ NEWLINE* ~ "]" }
+switch_case = { expr_call ~ "->" ~ expr_call }

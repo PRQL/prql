@@ -32,21 +32,45 @@ menu:
       weight: 5
 
 params:
-  help_the_project:
+  contribute:
+    subtitle: |
+      Contribute to PRQL — we're a welcoming community, and there are lots of ways to make an impact:
+
     list:
-      - text: Send a link to PRQL to a couple of people whose opinion you respect.
-      - text: |
-          Rewrite any of your own queries to PRQL to see if it makes sense.
-          You can use the [playground](https://prql-lang.org/playground) and submit issues
-          [here](https://github.com/prql/prql/issues). We are looking for any
-          use-cases that expose a poor design choice, a need of a feature, a pain point
-          or are just a sharp edge of the language.
+      - text:
+          Are there people whose opinion you respect who might be interested in
+          PRQL? Send them a link to PRQL.
+      - text:
+          "Know Rust (or want to learn!)? [Contribute to our
+          compiler](https://github.com/PRQL/prql/blob/main/CONTRIBUTING.md#compiler)"
+      - text:
+          "Familiar with web? Spot a mistake? [Improve the website design or
+          copy](https://github.com/PRQL/prql/blob/main/CONTRIBUTING.md#integrations)"
+      - text:
+          "Interested in helping people explore their data? [Kick off our push
+          to improve our
+          playground](https://github.com/PRQL/prql/blob/main/CONTRIBUTING.md#ide)"
+      - text:
+          "Is SQL your mother-tongue? [Show us SQL queries which translate well
+          /
+          badly](https://github.com/PRQL/prql/blob/main/CONTRIBUTING.md#language-design).
+          We are looking for any use-cases that expose a poor design choice, a
+          need of a feature, or a sharp edge of the language."
     button:
       text: Contribute
-      link: https://github.com/prql/prql
+      link: https://github.com/PRQL/prql/blob/main/CONTRIBUTING.md
+  follow:
+    subtitle: "Follow us:"
+    list:
+      - text: Star our GitHub repo [PRQL/prql](https://github.com/PRQL/prql)
+      - text: Join our [Discord](https://discord.com/invite/eQcfaCmsNc)
+      - text: Follow us on [Twitter](https://twitter.com/prql_lang)
+      - text:
+          "Subscribe to [issue #1 for a GitHub notification on
+          updates](https://github.com/PRQL/prql/issues/1)"
   description: PRQL is a modern language for transforming data
   images:
     - static/img/favicon-32x32.png
   title: PRQL
 
-  license: "© 2022, PRQL developers. Apache 2.0 Licensed"
+  license: "© 2022-2023, PRQL Developers. Apache 2.0 Licensed"

@@ -1,0 +1,23 @@
+---
+source: book/tests/snapshot.rs
+expression: prql_to_pl(&prql).and_then(pl_to_prql).unwrap()
+input_file: book/tests/prql/queries/functions-2.prql
+---
+func interp higher x lower:0 -> x - lower / higher - lower
+
+
+
+from students
+derive [
+  sat_proportion_1 = (
+  sat_score
+  interp 1600
+),
+  sat_proportion_2 = (
+  sat_score
+  interp lower:0 1600
+),
+]
+
+
+

@@ -1,9 +1,18 @@
 .DS_Store
 
 dist
-.vscode/settings.json
-.vscode/launch.json
-.idea
+target
+
+**/.vscode/settings.json
+**/.vscode/launch.json
+**/.idea
+
 /*.prql
 */*.prql
-target
+
+# Appears when using Docker container
+.Trash-0
+
+**/node_modules/
+
+.task

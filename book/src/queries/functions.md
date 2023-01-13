@@ -14,13 +14,13 @@ Functions have two types of parameters:
 2. Named parameters, which optionally take an argument, otherwise using their
    default value.
 
-So this function is named `celsius_of_fahrenheit` and has one parameter `temp`:
+So this function is named `fahrenheit_to_celsius` and has one parameter `temp`:
 
 ```prql
-func celsius_of_fahrenheit temp -> (temp - 32) * 3
+func fahrenheit_to_celsius temp -> (temp - 32) / 1.8
 
 from cities
-derive temp_c = (celsius_of_fahrenheit temp_f)
+derive temp_c = (fahrenheit_to_celsius temp_f)
 ```
 
 This function is named `interp`, and has two positional parameters named
@@ -59,20 +59,20 @@ derive [
 and
 
 ```prql
-func celsius_of_fahrenheit temp -> (temp - 32) * 3
+func fahrenheit_to_celsius temp -> (temp - 32) / 1.8
 
 from cities
-derive temp_c = (temp_f | celsius_of_fahrenheit)
+derive temp_c = (temp_f | fahrenheit_to_celsius)
 ```
 
 We can combine a chain of functions, which makes logic more readable:
 
 ```prql
-func celsius_of_fahrenheit temp -> (temp - 32) * 3
+func fahrenheit_to_celsius temp -> (temp - 32) / 1.8
 func interp lower:0 higher x -> (x - lower) / (higher - lower)
 
 from kettles
-derive boiling_proportion = (temp_c | celsius_of_fahrenheit | interp 100)
+derive boiling_proportion = (temp_c | fahrenheit_to_celsius | interp 100)
 ```
 
 ## Roadmap

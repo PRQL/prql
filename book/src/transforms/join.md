@@ -8,26 +8,31 @@ join side:{inner|left|right|full} {table} {[conditions]}
 
 ## Parameters
 
-- `side` decides which rows to include. Defaults to `inner`
+- `side` decides which rows to include, defaulting to `inner`.
 - Table reference
 - List of conditions
-  - If all terms are column identifiers, this will compile to `USING(...)`. In
-    this case, both tables must contain specified columns. The result will only
-    contain one column for each specified column.
+  - The result of join operation is a cartesian (cross) product of rows from
+    both tables, which is then filtered to match all of these conditions.
+  - If name is the same from both tables, it can be expressed with only `==col`.
 
 ## Examples
 
 ```prql
 from employees
-join side:left positions [id==employee_id]
+join side:left positions [employees.id==positions.employee_id]
 ```
 
 ```prql
 from employees
-join side:full positions [emp_no]
+join side:left p=positions [employees.id==p.employee_id]
 ```
+
+## Self equality operator
+
+If the join conditions are of form `left.x == right.x`, we can use "self
+equality operator":
 
 ```prql
 from employees
-join side:left p=positions [id==employee_id]
+join positions [==emp_no]
 ```

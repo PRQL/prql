@@ -3,7 +3,7 @@ build = "build.rs"
 edition = "2021"
 name = "prql-python"
 publish = false
-version = "0.2.7"
+version.workspace = true
 
 [lib]
 crate-type = ["cdylib"]
@@ -13,7 +13,10 @@ name = "prql_python"
 pyo3 = {version = "0.17.0", features = ["abi3-py37"]}
 
 [dependencies]
-prql-compiler = {path = "../prql-compiler"}
+prql-compiler = {path = "../prql-compiler", default-features = false}
+
+[dev-dependencies]
+insta = {version = "1.26", features = ["colors", "glob", "yaml"]}
 
 [build-dependencies]
 pyo3-build-config = "0.17.0"

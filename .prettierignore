@@ -1,7 +1,18 @@
 *.min.*
 /book/theme/highlight.js
+
 # TODO: move these into content out of layouts
 /website/themes/prql-theme/layouts/partials/codes/
 
-# Can't add comments to `.prettierrc`, but that's from:
-# https://github.com/NiklasPor/prettier-plugin-go-template
+/website/themes/prql-theme/layouts/_default/_markup/render-link.html
+
+# Ideally prettier would allow blanket gitignores, https://github.com/prettier/prettier/issues/8048
+
+**/node_modules
+**/.git
+target/
+.mypy_cache
+**/build
+**/dist
+/book/book
+/website/public

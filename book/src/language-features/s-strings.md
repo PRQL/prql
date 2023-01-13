@@ -1,11 +1,13 @@
 # S-Strings
 
-An s-string inserts SQL directly, as an escape hatch when there's something that PRQL
-doesn't yet implement. For example, there's no `version()` function in SQL that
-returns the Postgres version, so if we want to use that, we use an s-string:
+An s-string inserts SQL directly, as an escape hatch when there's something that
+PRQL doesn't yet implement. For example, there's no `version()` function in SQL
+that returns the Postgres version, so if we want to use that, we use an
+s-string:
 
 ```prql
-derive db_version = s"version()"
+from my_table
+select db_version = s"version()"
 ```
 
 We can embed columns in an s-string using braces. For example, PRQL's standard
@@ -34,7 +36,27 @@ join s=salaries side:left [
 ]
 ```
 
-To use brackets in an s-string, use double brackets:
+For those who have used python, s-strings are similar to python's f-strings, but
+the result is SQL code, rather than a string literal. For example, a python
+f-string of `f"average{col}"` would produce `"average(salary)"`, with quotes;
+while in PRQL, `s"average{col}"` produces `average(salary)`, without quotes.
+
+We can also use s-strings to produce a full table:
+
+```prql
+from s"SELECT DISTINCT ON first_name, id, age FROM employees ORDER BY age ASC"
+join s = s"SELECT * FROM salaries" [==id]
+```
+
+```admonish note
+S-strings in user code are intended as an escape-hatch for an unimplemented
+feature. If we often need s-strings to express something, that's a sign we
+should implement it in PRQL or PRQL's stdlib.
+```
+
+## Braces
+
+To output braces from an s-string, use double braces:
 
 ```prql
 from employees
@@ -43,11 +65,28 @@ derive [
 ]
 ```
 
-For those who have used python, s-strings are similar to python's f-strings, but
-the result is SQL, rather than a string literal — a python f-string of
-`f"average{col}"` where `col="salary"` would produce `"average(salary)"`, with
-the quotes. `s"average{col}"` produces `average(salary)`, without quotes.
+## Precedence
 
-s-strings in user code are intended as an escape-hatch for an unimplemented
-feature. If we often need s-strings to express something, that's a sign we
-should implement it in PRQL or PRQL's stdlib.
+The PRQL compiler simply places a literal copy of each variable into the
+resulting string, which means we may get surprising behavior when the variable
+is has multiple terms and the s-string isn't parenthesized.
+
+In this toy example, the `salary + benefits / 365` gets precedence wrong:
+
+```prql
+from employees
+derive [
+  gross_salary = salary + benefits,
+  daily_rate = s"{gross_salary} / 365"
+]
+```
+
+Instead, we'd need to put the denominator `{gross_salary}` in parentheses:
+
+```prql
+from employees
+derive [
+  gross_salary = salary + benefits,
+  daily_rate = s"({gross_salary}) / 365"
+]
+```

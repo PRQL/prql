@@ -25,14 +25,14 @@ mod tests {
             }
 
             // compile
-            let sql = prql_compiler::compile(&prql).unwrap();
+            let sql = prql_compiler::compile(&prql, None).unwrap();
 
             // save both csv files as same snapshot
-            assert_snapshot!("", sqlite::query_csv(&sqlite_conn, &sql));
-            assert_snapshot!("", duckdb::query_csv(&duckdb_conn, &sql));
+            assert_snapshot!(sqlite::query_csv(&sqlite_conn, &sql));
+            assert_snapshot!(duckdb::query_csv(&duckdb_conn, &sql));
 
             if let Some(pg_client) = &mut pg_client {
-                assert_snapshot!("", postgres::query_csv(pg_client, &sql));
+                assert_snapshot!(postgres::query_csv(pg_client, &sql));
             }
         });
     }

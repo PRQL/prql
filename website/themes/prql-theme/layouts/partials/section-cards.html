@@ -8,26 +8,25 @@
         <div class="section-title">
           <h2>{{ .title | markdownify }}</h2>
         </div>
-
-        <div class="row row-cols-1 row-cols-lg-4 justify-content-left">
-          {{ range .sections }}
-            <div class="col g-3">
-              <div class="card">
-                {{ if and .link .label }}
-                  <h4>
-                    {{/* We recreate the markdown so external links will parse &
-                      display as such.
-                    */}}
-                    {{ print "[" .label "]" "(" .link ")" | markdownify }}
-                  </h4>
-                {{ else }}
-                  <h4 class="text-muted">{{ .label }}</h4>
-                {{ end }}
-                {{ .text | markdownify }}
-              </div>
+      </div>
+      <div class="row row-cols-1 row-cols-lg-4 justify-content-left">
+        {{ range .sections }}
+          <div class="col g-3">
+            <div class="card">
+              {{ if and .link .label }}
+                <h4>
+                  {{/* We recreate the markdown so external links will parse &
+                    display as such.
+                  */}}
+                  {{ print "[" .label "]" "(" .link ")" | markdownify }}
+                </h4>
+              {{ else }}
+                <h4 class="text-muted">{{ .label }}</h4>
+              {{ end }}
+              {{ .text | markdownify }}
             </div>
-          {{ end }}
-        </div>
+          </div>
+        {{ end }}
       </div>
     </div>
   </section>
