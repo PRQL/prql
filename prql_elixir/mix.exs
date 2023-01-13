@@ -6,7 +6,16 @@ defmodule PRQL.MixProject do
       app: :prql,
       version: "0.1.0",
       elixir: "~> 1.14",
-      deps: deps()
+      deps: deps(),
+      name: "PRQL",
+      source_url: "https://github.com/PRQL/prql",
+      homepage_url: "https://prql-lang.org/",
+      docs: [
+        # The main page in the docs
+        main: "readme",
+        logo: "../website/static/img/icon.svg",
+        extras: ["README.md"]
+      ]
     ]
   end
 
