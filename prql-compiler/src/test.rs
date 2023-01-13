@@ -184,12 +184,10 @@ fn test_append() {
     from employees
     append managers
     "###).unwrap(), @r###"
-    (
-      SELECT
-        *
-      FROM
-        employees
-    )
+    SELECT
+      *
+    FROM
+      employees
     UNION
     ALL
     SELECT
@@ -217,16 +215,20 @@ fn test_append() {
         employees
       LIMIT
         10
-    ) (
-      SELECT
-        *,
-        name,
-        salary AS cost
-      FROM
-        employees
-      LIMIT
-        3
     )
+    SELECT
+      *
+    FROM
+      (
+        SELECT
+          *,
+          name,
+          salary AS cost
+        FROM
+          employees
+        LIMIT
+          3
+      ) AS table_3
     UNION
     ALL
     SELECT
@@ -239,12 +241,10 @@ fn test_append() {
     from employees
     union managers
     "###).unwrap(), @r###"
-    (
-      SELECT
-        *
-      FROM
-        employees AS t
-    )
+    SELECT
+      *
+    FROM
+      employees AS t
     UNION
     DISTINCT
     SELECT
@@ -259,24 +259,21 @@ fn test_append() {
     union all_employees_of_some_other_company
     "###).unwrap(), @r###"
     WITH table_1 AS (
-      (
-        SELECT
-          *
-        FROM
-          employees
-      )
+      SELECT
+        *
+      FROM
+        employees
       UNION
       ALL
       SELECT
         *
       FROM
         managers
-    ) (
-      SELECT
-        *
-      FROM
-        table_1
     )
+    SELECT
+      *
+    FROM
+      table_1
     UNION
     DISTINCT
     SELECT

@@ -7,7 +7,9 @@ use std::str::FromStr;
 
 use anyhow::{anyhow, Result};
 use itertools::Itertools;
-use sqlparser::ast::{self as sql_ast, Select, SelectItem, SetExpr, TableWithJoins};
+use sqlparser::ast::{
+    self as sql_ast, Ident, Select, SelectItem, SetExpr, TableAlias, TableFactor, TableWithJoins,
+};
 
 use crate::ast::pl::{BinOp, Literal, RelationLiteral};
 use crate::ast::rq::{
@@ -285,54 +287,69 @@ fn sql_union_of_pipeline(
     context: &mut Context,
 ) -> Result<sql_ast::Query, anyhow::Error> {
     // union
+
     let append = pipeline.pluck(|t| t.into_append()).into_iter().next();
     let unique = pipeline.iter().any(|t| matches!(t, Transform::Unique));
 
-    let bottom = if let Some(bottom) = append {
-        bottom
-    } else {
+    let Some(bottom) = append else {
         return Ok(top);
     };
 
-    let from = TableWithJoins {
-        relation: table_factor_of_tid(bottom, context),
-        joins: vec![],
-    };
+    let top_is_simple = top.with.is_none()
+        && top.order_by.is_empty()
+        && top.limit.is_none()
+        && top.offset.is_none()
+        && top.fetch.is_none()
+        && top.locks.is_empty();
 
-    Ok(sql_ast::Query {
-        with: None,
-        body: Box::new(SetExpr::SetOperation {
-            left: Box::new(SetExpr::Query(Box::new(top))),
-            right: Box::new(SetExpr::Select(Box::new(Select {
-                distinct: false,
-                top: None,
-                projection: vec![SelectItem::Wildcard(
-                    sql_ast::WildcardAdditionalOptions::default(),
-                )],
-                into: None,
-                from: vec![from],
-                lateral_views: vec![],
-                selection: None,
-                group_by: vec![],
-                cluster_by: vec![],
-                distribute_by: vec![],
-                sort_by: vec![],
-                having: None,
-                qualify: None,
-            }))),
-            set_quantifier: if unique {
+    let left = if top_is_simple {
+        top.body
+    } else {
+        // top is not simple, so we need to wrap it into
+        // `SELECT * FROM top`
+        Box::new(SetExpr::Select(Box::new(Select {
+            projection: vec![SelectItem::Wildcard(
+                sql_ast::WildcardAdditionalOptions::default(),
+            )],
+            from: vec![TableWithJoins {
+                relation: TableFactor::Derived {
+                    lateral: false,
+                    subquery: Box::new(top),
+                    alias: Some(TableAlias {
+                        name: Ident::new(context.anchor.table_name.gen()),
+                        columns: Vec::new(),
+                    }),
+                },
+                joins: vec![],
+            }],
+            ..default_select()
+        })))
+    };
+    let op = sql_ast::SetOperator::Union;
+
+    Ok(default_query(SetExpr::SetOperation {
+        left,
+        right: Box::new(SetExpr::Select(Box::new(Select {
+            projection: vec![SelectItem::Wildcard(
+                sql_ast::WildcardAdditionalOptions::default(),
+            )],
+            from: vec![TableWithJoins {
+                relation: table_factor_of_tid(bottom, context),
+                joins: vec![],
+            }],
+            ..default_select()
+        }))),
+        set_quantifier: if unique {
+            if context.dialect.set_ops_distinct() {
                 sql_ast::SetQuantifier::Distinct
             } else {
-                sql_ast::SetQuantifier::All
-            },
-            op: sql_ast::SetOperator::Union,
-        }),
-        order_by: vec![],
-        limit: None,
-        offset: None,
-        fetch: None,
-        locks: vec![],
-    })
+                sql_ast::SetQuantifier::None
+            }
+        } else {
+            sql_ast::SetQuantifier::All
+        },
+        op,
+    }))
 }
 
 fn sql_of_sample_data(data: RelationLiteral) -> sql_ast::Query {
@@ -517,6 +534,36 @@ fn all(mut exprs: Vec<Expr>) -> Option<Expr> {
         };
     }
     Some(condition)
+}
+
+fn default_query(body: sql_ast::SetExpr) -> sql_ast::Query {
+    sql_ast::Query {
+        with: None,
+        body: Box::new(body),
+        order_by: Vec::new(),
+        limit: None,
+        offset: None,
+        fetch: None,
+        locks: Vec::new(),
+    }
+}
+
+fn default_select() -> Select {
+    Select {
+        distinct: false,
+        top: None,
+        projection: Vec::new(),
+        into: None,
+        from: Vec::new(),
+        lateral_views: Vec::new(),
+        selection: None,
+        group_by: Vec::new(),
+        cluster_by: Vec::new(),
+        distribute_by: Vec::new(),
+        sort_by: Vec::new(),
+        having: None,
+        qualify: None,
+    }
 }
 
 #[cfg(test)]
