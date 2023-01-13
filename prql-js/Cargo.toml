@@ -1,6 +1,6 @@
 [package]
 description = "Javascript bindings for prql-compiler"
-edition = "2018"
+edition = "2021"
 license = "Apache-2.0"
 name = "prql-js"
 publish = false
