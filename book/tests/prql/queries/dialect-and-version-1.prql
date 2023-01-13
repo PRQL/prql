@@ -1,4 +1,4 @@
-prql sql_dialect:mssql
+prql target:sql.mssql
 
 from employees
 sort age

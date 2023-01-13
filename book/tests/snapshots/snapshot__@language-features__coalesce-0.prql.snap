@@ -1,0 +1,10 @@
+---
+source: book/tests/snapshot.rs
+expression: "from orders\nderive amount ?? 0\n"
+input_file: book/tests/prql/language-features/coalesce-0.prql
+---
+SELECT
+  *,
+  COALESCE(amount, 0)
+FROM
+  orders

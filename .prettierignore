@@ -4,6 +4,8 @@
 # TODO: move these into content out of layouts
 /website/themes/prql-theme/layouts/partials/codes/
 
+/website/themes/prql-theme/layouts/_default/_markup/render-link.html
+
 # Ideally prettier would allow blanket gitignores, https://github.com/prettier/prettier/issues/8048
 
 **/node_modules

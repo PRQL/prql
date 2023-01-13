@@ -92,7 +92,7 @@ impl Cli {
                 [
                     references,
                     format!("\n{context:#?}\n").into_bytes(),
-                    serde_yaml::to_string(&stmts)?.into_bytes(),
+                    format!("\n{stmts:#?}\n").into_bytes(),
                 ]
                 .concat()
             }

@@ -1,4 +1,11 @@
-{{/* Formats external links with an icon, and opens in a new tab. */}}
+{{/*
+
+Formats external links with an icon, and opens in a new tab.
+
+Note that it's important not to have a blank line at the end; so we exclude this
+file from prettier / pre-commit's fixer
+
+  */}}
 {{ $is_external := strings.HasPrefix .Destination "http" }}
 <a
   href="{{ .Destination | safeURL }}"

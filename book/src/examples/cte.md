@@ -1,11 +1,11 @@
 ```prql
-table newest_employees = (
+let newest_employees = (
   from employees
   sort tenure
   take 50
 )
 
-table average_salaries = (
+let average_salaries = (
   from salaries
   group country (
     aggregate average_country_salary = (average salary)

@@ -1,0 +1,3 @@
+from employees
+sort tenure
+join locations [==employee_id]

@@ -3,6 +3,9 @@
 /// - Extracts PRQL code blocks into the `examples` path.
 /// - Converts them to SQL using insta, raising an error if there's a diff.
 /// - Replaces the PRQL code block with a comparison table.
+///
+/// We also use this test to run tests on our Display trait output, currently as
+/// another set of snapshots (more comments inline).
 //
 // Overall, this is overengineered — it's complicated and took a long time to
 // write. The intention is good — have a version of the SQL that's committed
@@ -27,17 +30,20 @@ use walkdir::WalkDir;
 
 #[test]
 fn run_examples() -> Result<()> {
-    // TODO: This doesn't delete old prql files — probably we should delete them
-    // all first?
-    //
-    // TODO: In CI this could pass by replacing files that are wrong in the
-    // repo; instead we could check if there are any diffs after this has run?
+    // TODO: In CI this could pass by replacing incorrect files. To catch that,
+    // we could check if there are any diffs after this has run?
 
-    // Note that on windows, we only get the next _line_, and so we exclude the
+    // Note that on windows, markdown is read differently, and so
     // writing on Windows. ref https://github.com/PRQL/prql/issues/356
     #[cfg(not(target_family = "windows"))]
     write_reference_prql()?;
     run_reference_prql();
+
+    // TODO: Currently we run this in the same test, since we need the
+    // `write_reference_prql` function to have been run. If we could iterate
+    // over the PRQL examples without writing them to disk, we could run this as
+    // a separate test. (Though then we'd lose the deferred failures feature
+    // that insta's `glob!` macro provides.)
     run_display_reference_prql();
 
     Ok(())
@@ -57,6 +63,9 @@ fn write_reference_prql() -> Result<()> {
     // old files which wouldn't be rewritten from hanging around.
     // We use `trash`, since we don't want to be removing files with test code
     // in case there's a bug.
+    //
+    // A more elegant approach would be to keep a list of the files and remove
+    // the ones we don't write.
 
     let examples_path = Path::new("tests/prql");
     if examples_path.exists() {
@@ -79,8 +88,8 @@ fn write_reference_prql() -> Result<()> {
                 match event.clone() {
                     // At the start of a PRQL code block, push the _next_ item.
                     // Note that on windows, we only get the next _line_, and so
-                    // we exclude the writing in windows. TODO: iterate over the
-                    // lines so this works on windows; https://github.com/PRQL/prql/issues/356
+                    // we exclude the writing in windows below;
+                    // https://github.com/PRQL/prql/issues/356
                     Event::Start(Tag::CodeBlock(CodeBlockKind::Fenced(lang)))
                         if lang == "prql".into() =>
                     {
@@ -127,15 +136,23 @@ fn run_reference_prql() {
             return;
         }
 
-        println!("{:?}", path);
-
         let opts = sql::Options::default().no_signature().some();
         let sql = compile(&prql, opts).unwrap_or_else(|e| format!("{prql}\n\n{e}"));
-        assert_snapshot!(sql);
+        // `glob!` gives us the file path in the test name anyway, so we pass an
+        // empty name. We pass `&prql` so the prql is in the snapshot (albeit in
+        // a single line, and, in the rare case that the SQL doesn't change, the
+        // PRQL only updates on running cargo insta with `--force-update-snapshots`).
+        assert_snapshot!("", &sql, &prql);
     });
 }
 
 /// Snapshot the display trait output of each example.
+// Currently not a separate test, see notes in caller.
+//
+// TODO: this involves writing out almost the same PRQL again — instead we could
+// compare the output of Display to the auto-formatted source. But we need an
+// autoformatter for that (unless we want to raise on any non-matching input,
+// which seems very strict)
 fn run_display_reference_prql() {
     glob!("prql/**/*.prql", |path| {
         let prql = fs::read_to_string(path).unwrap();

@@ -3,7 +3,7 @@ WHITESPACE = _{ " " | "\t" }
 // TODO: maybe pass comments to AST (and potentially put them into SQL comments)
 COMMENT = _{ "#" ~ (!NEWLINE ~ ANY) * }
 
-statements = _{ SOI ~ NEWLINE* ~ query_def ? ~ (func_def | table_def)* ~ pipeline_stmt? ~ EOI }
+statements = _{ SOI ~ NEWLINE* ~ query_def ? ~ (func_def | var_def)* ~ pipeline_stmt? ~ EOI }
 
 query_def = { "prql" ~ named_arg* ~ NEWLINE+ }
 
@@ -15,7 +15,7 @@ func_def_param = { ident_part ~ type_def? ~ (":" ~ expr)? }
 type_def = { "<" ~ type_term ~ ( "|" ~ type_term)* ~ ">" }
 type_term = { ident_part ~ type_def? }
 
-table_def = { "table" ~ ident_part ~ "=" ~ nested_pipeline ~ ( NEWLINE+ | &EOI ) }
+var_def = { "let" ~ ident_part ~ "=" ~ expr_call ~ ( NEWLINE+ | &EOI ) }
 
 pipeline_stmt = { pipeline ~ ( NEWLINE+ | &EOI ) }
 
@@ -90,7 +90,12 @@ string_inner = { ( !( PEEK ) ~ ANY )+ }
 // Either > 3 quotes, or just one. Currently both of those can be multiline.
 string = ${ opening_quote ~ string_inner? ~ POP }
 
-number = ${ operator_add? ~ ( ASCII_DIGIT )+ ~ ("." ~ ( ASCII_DIGIT )+)? }
+// We can use underscores within numbers
+number_char = _{ ASCII_DIGIT | "_" }
+// Numbers need to start and end with a digit. We implement the end by matching
+// either a number_char that's not the final char, or a final char that's a digit.
+number_part = _{ ( ASCII_DIGIT ) ~ (( number_char ~ &number_char )* ~ ( ASCII_DIGIT ~ !number_char ))? }
+number = ${ operator_add? ~ number_part ~ ("." ~ number_part)? }
 
 boolean = ${ "true" | "false" }
 

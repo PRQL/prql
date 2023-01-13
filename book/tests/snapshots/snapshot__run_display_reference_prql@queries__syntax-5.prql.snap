@@ -1,18 +1,36 @@
 ---
 source: book/tests/snapshot.rs
-expression: Statements(parse(&prql).unwrap())
+expression: prql_to_pl(&prql).and_then(pl_to_prql).unwrap()
 input_file: book/tests/prql/queries/syntax-5.prql
 ---
 from employees
-group [
-  title,
-  country,
-] (
-  aggregate [
-  average salary,
-  ct = count,
-]
+derive is_proximate = (
+  distance
+  in 0..20
 )
+derive (
+  total_distance = sum distance
+)
+derive (
+  min_capped_distance = min distance ?? 5
+)
+derive travel_time = distance / 40
+derive (
+  distance_rounded_2_dp = round 1 + 1 distance
+)
+derive [
+  is_far = (
+  distance
+  in 100..
+),
+  is_negative = (
+  distance
+  in -100..0
+),
+  average_distance = average distance,
+]
+sort -distance
+sort [-distance]
 
 
 

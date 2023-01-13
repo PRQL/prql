@@ -1,10 +1,14 @@
 ---
 source: book/tests/snapshot.rs
-expression: Statements(parse(&prql).unwrap())
+expression: prql_to_pl(&prql).and_then(pl_to_prql).unwrap()
 input_file: book/tests/prql/queries/syntax-10.prql
 ---
-from employees
-filter id == $1
+prql target:sql.bigquery
+
+
+
+from `project-foo.dataset.table`
+join `project-bar.dataset.table` [==col_bax]
 
 
 

@@ -18,8 +18,8 @@
 
 # See USING_DOCKER.md for instructions for various tasks
 
-FROM rust:1.64.0-slim-buster
-# Surprising this isn't aready in the rust image
+FROM rust:1.65.0-slim-buster
+# Surprising this isn't already in the rust image
 ENV PATH="/root/.cargo/bin:${PATH}"
 
 # ========= Install essential apt packages =========

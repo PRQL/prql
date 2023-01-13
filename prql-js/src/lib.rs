@@ -5,7 +5,7 @@ mod utils;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
-pub fn compile(prql_query: &str, options: Option<CompileOptions>) -> Option<String> {
+pub fn compile(prql_query: &str, options: Option<SQLCompileOptions>) -> Option<String> {
     return_or_throw(
         Ok(prql_query)
             .and_then(prql_compiler::prql_to_pl)
@@ -48,7 +48,7 @@ pub fn rq_to_sql(rq_json: &str) -> Option<String> {
 /// Compilation options for SQL backend of the compiler.
 #[wasm_bindgen]
 #[derive(Clone)]
-pub struct CompileOptions {
+pub struct SQLCompileOptions {
     /// Pass generated SQL string trough a formatter that splits it
     /// into multiple lines and prettifies indentation and spacing.
     ///
@@ -75,16 +75,16 @@ pub struct CompileOptions {
 }
 
 #[wasm_bindgen]
-pub fn default_compile_options() -> CompileOptions {
-    CompileOptions {
+pub fn default_compile_options() -> SQLCompileOptions {
+    SQLCompileOptions {
         format: true,
         dialect: None,
         signature_comment: true,
     }
 }
 
-impl From<CompileOptions> for prql_compiler::sql::Options {
-    fn from(o: CompileOptions) -> Self {
+impl From<SQLCompileOptions> for prql_compiler::sql::Options {
+    fn from(o: SQLCompileOptions) -> Self {
         prql_compiler::sql::Options {
             format: o.format,
             dialect: o.dialect.map(From::from),

@@ -1,0 +1,38 @@
+---
+source: book/tests/snapshot.rs
+expression: "from e=employees\njoin salaries [==emp_no]\ngroup [e.emp_no, e.gender] (\n  aggregate [\n    emp_salary = average salaries.salary\n  ]\n)\njoin de=dept_emp [==emp_no] side:left\ngroup [de.dept_no, gender] (\n  aggregate [\n    salary_avg = average emp_salary,\n    salary_sd = stddev emp_salary,\n  ]\n)\njoin departments [==dept_no]\nselect [dept_name, gender, salary_avg, salary_sd]\n"
+input_file: book/tests/prql/examples/employees-1.prql
+---
+WITH table_1 AS (
+  SELECT
+    e.gender,
+    AVG(salaries.salary) AS _expr_0,
+    e.emp_no
+  FROM
+    employees AS e
+    JOIN salaries ON e.emp_no = salaries.emp_no
+  GROUP BY
+    e.emp_no,
+    e.gender
+),
+table_2 AS (
+  SELECT
+    table_1.gender,
+    AVG(table_1._expr_0) AS salary_avg,
+    STDDEV(table_1._expr_0) AS salary_sd,
+    de.dept_no
+  FROM
+    table_1
+    LEFT JOIN dept_emp AS de ON table_1.emp_no = de.emp_no
+  GROUP BY
+    de.dept_no,
+    table_1.gender
+)
+SELECT
+  departments.dept_name,
+  table_2.gender,
+  table_2.salary_avg,
+  table_2.salary_sd
+FROM
+  table_2
+  JOIN departments ON table_2.dept_no = departments.dept_no

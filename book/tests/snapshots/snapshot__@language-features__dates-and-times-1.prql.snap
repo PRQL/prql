@@ -1,0 +1,10 @@
+---
+source: book/tests/snapshot.rs
+expression: "from orders\nderive should_have_shipped_today = (order_time < @08:30)\n"
+input_file: book/tests/prql/language-features/dates-and-times-1.prql
+---
+SELECT
+  *,
+  order_time < TIME '08:30' AS should_have_shipped_today
+FROM
+  orders

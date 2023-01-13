@@ -1,0 +1,40 @@
+---
+source: book/tests/snapshot.rs
+expression: "from employees\nfilter country == \"USA\"                       # Each line transforms the previous result.\nderive [                                     # This adds columns / variables.\n  gross_salary = salary + payroll_tax,\n  gross_cost = gross_salary + benefits_cost  # Variables can use other variables.\n]\nfilter gross_cost > 0\ngroup [title, country] (                     # For each group use a nested pipeline\n  aggregate [                                # Aggregate each group to a single row\n    average salary,\n    average gross_salary,\n    sum salary,\n    sum gross_salary,\n    average gross_cost,\n    sum_gross_cost = sum gross_cost,\n    ct = count,\n  ]\n)\nsort sum_gross_cost\nfilter ct > 200\ntake 20\n"
+input_file: book/tests/prql/examples/variables-0.prql
+---
+WITH table_1 AS (
+  SELECT
+    title,
+    country,
+    salary + payroll_tax + benefits_cost AS _expr_0,
+    salary + payroll_tax AS _expr_1,
+    salary
+  FROM
+    employees
+  WHERE
+    country = 'USA'
+)
+SELECT
+  title,
+  country,
+  AVG(salary),
+  AVG(_expr_1),
+  SUM(salary),
+  SUM(_expr_1),
+  AVG(_expr_0),
+  SUM(_expr_0) AS sum_gross_cost,
+  COUNT(*) AS ct
+FROM
+  table_1
+WHERE
+  _expr_0 > 0
+GROUP BY
+  title,
+  country
+HAVING
+  COUNT(*) > 200
+ORDER BY
+  sum_gross_cost
+LIMIT
+  20

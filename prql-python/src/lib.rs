@@ -3,7 +3,7 @@ use prql_compiler::{self, sql::Dialect, IntoOnly};
 use pyo3::{exceptions, prelude::*};
 
 #[pyfunction]
-pub fn compile(prql_query: &str, options: Option<CompileOptions>) -> PyResult<String> {
+pub fn compile(prql_query: &str, options: Option<SQLCompileOptions>) -> PyResult<String> {
     Ok(prql_query)
         .and_then(prql_compiler::prql_to_pl)
         .and_then(prql_compiler::pl_to_rq)
@@ -52,7 +52,7 @@ fn prql_python(_py: Python, m: &PyModule) -> PyResult<()> {
 /// Compilation options for SQL backend of the compiler.
 #[pyclass]
 #[derive(Clone)]
-pub struct CompileOptions {
+pub struct SQLCompileOptions {
     /// Pass generated SQL string trough a formatter that splits it
     /// into multiple lines and prettifies indentation and spacing.
     ///
@@ -78,8 +78,8 @@ pub struct CompileOptions {
     pub signature_comment: bool,
 }
 
-impl From<CompileOptions> for prql_compiler::sql::Options {
-    fn from(o: CompileOptions) -> Self {
+impl From<SQLCompileOptions> for prql_compiler::sql::Options {
+    fn from(o: SQLCompileOptions) -> Self {
         prql_compiler::sql::Options {
             format: o.format,
             dialect: o.dialect,
@@ -92,18 +92,26 @@ impl From<CompileOptions> for prql_compiler::sql::Options {
 #[cfg(test)]
 mod test {
     use super::*;
+    use insta::assert_snapshot;
 
     #[test]
     fn parse_for_python() {
-        let opts = Some(CompileOptions {
+        let opts = Some(SQLCompileOptions {
             format: true,
             dialect: None,
             signature_comment: false,
         });
 
-        assert_eq!(
+        assert_snapshot!(
             compile("from employees | filter (age | in 20..30)", opts).unwrap(),
-            "SELECT\n  *\nFROM\n  employees\nWHERE\n  age BETWEEN 20\n  AND 30"
+            @r###"
+        SELECT
+          *
+        FROM
+          employees
+        WHERE
+          age BETWEEN 20 AND 30
+        "###
         );
     }
 }

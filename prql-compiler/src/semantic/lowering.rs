@@ -1,8 +1,9 @@
 use std::collections::hash_map::RandomState;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::iter::zip;
 
 use anyhow::{bail, Result};
+use enum_as_inner::EnumAsInner;
 use itertools::Itertools;
 
 use crate::ast::pl::fold::AstFold;
@@ -11,7 +12,7 @@ use crate::ast::pl::{
     Ty, WindowFrame,
 };
 use crate::ast::rq::{self, CId, Query, RelationColumn, TId, TableDecl, Transform};
-use crate::error::{Error, Reason};
+use crate::error::{Error, Reason, Span};
 use crate::semantic::module::Module;
 use crate::utils::{toposort, IdGenerator};
 
@@ -36,15 +37,14 @@ pub fn lower_ast_to_ir(statements: Vec<pl::Stmt>, context: Context) -> Result<Qu
                 let relation = l.lower_relation(*expr)?;
                 main_pipeline = Some(relation);
             }
-            pl::StmtKind::FuncDef(_) | pl::StmtKind::TableDef(_) => {}
+            pl::StmtKind::FuncDef(_) | pl::StmtKind::VarDef(_) => {}
         }
     }
 
     Ok(Query {
         def: query_def.unwrap_or_default(),
         tables: l.table_buffer,
-        relation: main_pipeline
-            .ok_or_else(|| Error::new(Reason::Simple("missing main pipeline".to_string())))?,
+        relation: main_pipeline.ok_or_else(|| Error::new_simple("missing main pipeline"))?,
     })
 }
 
@@ -70,7 +70,7 @@ struct Lowerer {
     table_buffer: Vec<TableDecl>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, EnumAsInner)]
 enum LoweredTarget {
     /// Lowered node was a computed expression.
     Compute(CId),
@@ -107,7 +107,13 @@ impl Lowerer {
 
                 log::debug!("lowering an instance of table {fq_table_name} (id={id})...");
 
-                let name = expr.alias.clone().or(Some(fq_table_name.name));
+                let input_name = expr
+                    .ty
+                    .as_ref()
+                    .and_then(|t| t.as_table())
+                    .and_then(|f| f.inputs.first())
+                    .map(|i| i.name.clone());
+                let name = input_name.or(Some(fq_table_name.name));
 
                 self.create_a_table_instance(id, name, tid)
             }
@@ -162,14 +168,44 @@ impl Lowerer {
                 // return an instance of this new table
                 self.create_a_table_instance(id, None, tid)
             }
+
+            ExprKind::Literal(pl::Literal::Relation(lit)) => {
+                let id = expr.id.unwrap();
+
+                // create a new table
+                let tid = self.tid.gen();
+
+                let cols = lit
+                    .columns
+                    .iter()
+                    .map(|c| RelationColumn::Single(Some(c.clone())))
+                    .collect_vec();
+
+                let relation = rq::Relation {
+                    kind: rq::RelationKind::Literal(lit),
+                    columns: cols.clone(),
+                };
+
+                log::debug!("lowering literal relation table, columns = {:?}", cols);
+                self.table_buffer.push(TableDecl {
+                    id: tid,
+                    name: None,
+                    relation,
+                });
+
+                // return an instance of this new table
+                self.create_a_table_instance(id, None, tid)
+            }
+
             _ => {
-                bail!(Error::new(Reason::Expected {
+                return Err(Error::new(Reason::Expected {
                     who: None,
                     expected: "pipeline that resolves to a table".to_string(),
-                    found: format!("`{expr}`")
+                    found: format!("`{expr}`"),
                 })
                 .with_help("are you missing `from` statement?")
-                .with_span(expr.span))
+                .with_span(expr.span)
+                .into())
             }
         })
     }
@@ -277,8 +313,7 @@ impl Lowerer {
                 self.declare_as_columns(assigns, false)?;
             }
             pl::TransformKind::Select { assigns, .. } => {
-                let select = self.declare_as_columns(assigns, false)?;
-                self.pipeline.push(Transform::Select(select));
+                self.declare_as_columns(assigns, false)?;
             }
             pl::TransformKind::Filter { filter, .. } => {
                 let filter = self.lower_expr(*filter)?;
@@ -300,10 +335,9 @@ impl Lowerer {
             }
             pl::TransformKind::Take { range, .. } => {
                 let window = self.window.take().unwrap_or_default();
-                let range = Range {
-                    start: range.start.map(|x| self.lower_expr(*x)).transpose()?,
-                    end: range.end.map(|x| self.lower_expr(*x)).transpose()?,
-                };
+                let range = self.lower_range(range)?;
+
+                validate_take_range(&range, ast.span)?;
 
                 self.pipeline.push(Transform::Take(rq::Take {
                     range,
@@ -323,10 +357,10 @@ impl Lowerer {
                 };
                 self.pipeline.push(transform);
             }
-            pl::TransformKind::Concat(bottom) => {
+            pl::TransformKind::Append(bottom) => {
                 let bottom = self.lower_table_ref(*bottom)?;
 
-                let transform = Transform::Concat(bottom);
+                let transform = Transform::Append(bottom);
                 self.pipeline.push(transform);
             }
             pl::TransformKind::Group { .. } | pl::TransformKind::Window { .. } => unreachable!(
@@ -377,13 +411,19 @@ impl Lowerer {
 
                     columns.push((RelationColumn::Single(name), cid));
                 }
-                FrameColumn::Wildcard { input_name } => {
+                FrameColumn::All { input_name, except } => {
                     let input = frame.find_input(input_name).unwrap();
 
                     match &self.node_mapping[&input.id] {
                         LoweredTarget::Compute(_cid) => unreachable!(),
                         LoweredTarget::Input(input_cols) => {
-                            let mut input_cols = input_cols.iter().collect_vec();
+                            let mut input_cols = input_cols
+                                .iter()
+                                .filter(|(c, _)| match c {
+                                    RelationColumn::Single(Some(name)) => !except.contains(name),
+                                    _ => true,
+                                })
+                                .collect_vec();
                             input_cols.sort_by_key(|e| e.1 .1);
 
                             for (col, (cid, _)) in input_cols {
@@ -408,10 +448,42 @@ impl Lowerer {
         exprs: Vec<pl::Expr>,
         is_aggregation: bool,
     ) -> Result<Vec<CId>> {
-        exprs
-            .into_iter()
-            .map(|x| self.declare_as_column(x, is_aggregation))
-            .try_collect()
+        let mut r = Vec::with_capacity(exprs.len());
+        for expr in exprs {
+            let pl::ExprKind::All { except, .. } = expr.kind else {
+                // base case
+                r.push(self.declare_as_column(expr, is_aggregation)?);
+                continue;
+            };
+
+            // special case: ExprKind::All
+            let mut selected = Vec::<CId>::new();
+            for target_id in expr.target_ids {
+                match &self.node_mapping[&target_id] {
+                    LoweredTarget::Compute(cid) => {
+                        selected.push(*cid);
+                    }
+                    LoweredTarget::Input(input) => {
+                        let mut cols = input.iter().collect_vec();
+                        cols.sort_by_key(|c| c.1 .1);
+                        selected.extend(cols.into_iter().map(|(_, (cid, _))| cid));
+                    }
+                }
+            }
+
+            let except: HashSet<CId> = except
+                .into_iter()
+                .filter(|e| e.target_id.is_some())
+                .map(|e| {
+                    let id = e.target_id.unwrap();
+                    self.lookup_cid(id, Some(&e.kind.into_ident().unwrap().name))
+                })
+                .try_collect()?;
+            selected.retain(|c| !except.contains(c));
+
+            r.extend(selected);
+        }
+        Ok(r)
     }
 
     fn declare_as_column(
@@ -486,6 +558,9 @@ impl Lowerer {
                     rq::ExprKind::SString(vec![InterpolateItem::String(ident.name)])
                 }
             }
+            pl::ExprKind::All { .. } => {
+                bail!(Error::new_simple("Wildcards cannot be used here").with_span(ast.span))
+            }
             pl::ExprKind::Literal(literal) => rq::ExprKind::Literal(literal),
             pl::ExprKind::Binary { left, op, right } => rq::ExprKind::Binary {
                 left: Box::new(self.lower_expr(*left)?),
@@ -496,7 +571,7 @@ impl Lowerer {
                 op: match op {
                     pl::UnOp::Neg => rq::UnOp::Neg,
                     pl::UnOp::Not => rq::UnOp::Not,
-                    pl::UnOp::EqSelf => bail!("Cannot lower to IR expr: `{op:?}`"),
+                    pl::UnOp::EqSelf => panic!("EqSelf not resolved."),
                 },
                 expr: Box::new(self.lower_expr(*expr)?),
             },
@@ -529,7 +604,15 @@ impl Lowerer {
             | pl::ExprKind::List(_)
             | pl::ExprKind::Closure(_)
             | pl::ExprKind::Pipeline(_)
-            | pl::ExprKind::TransformCall(_) => bail!("Cannot lower to IR expr: `{ast:?}`"),
+            | pl::ExprKind::TransformCall(_) => {
+                log::debug!("cannot lower {ast:?}");
+                return Err(Error::new(Reason::Unexpected {
+                    found: format!("`{ast}`"),
+                })
+                .with_help("this is probably a 'bad type' error (we are working on that)")
+                .with_span(ast.span)
+                .into());
+            }
         };
 
         Ok(rq::Expr {
@@ -560,18 +643,12 @@ impl Lowerer {
             Some(LoweredTarget::Compute(cid)) => *cid,
             Some(LoweredTarget::Input(input_columns)) => {
                 let name = match name {
-                    Some(v) => {
-                        if v == "*" {
-                            RelationColumn::Wildcard
-                        } else {
-                            RelationColumn::Single(Some(v.clone()))
-                        }
-                    }
-                    None => bail!(Error::new(Reason::Simple(
-                        "This table contains unnamed columns, that need to be referenced by name"
-                            .to_string()
-                    ))
-                    .with_span(self.context.span_map.get(&id).cloned())),
+                    Some(v) => RelationColumn::Single(Some(v.clone())),
+                    None => return Err(Error::new_simple(
+                        "This table contains unnamed columns, that need to be referenced by name",
+                    )
+                    .with_span(self.context.span_map.get(&id).cloned())
+                    .into()),
                 };
                 log::trace!("lookup cid of name={name:?} in input {input_columns:?}");
 
@@ -585,6 +662,48 @@ impl Lowerer {
         };
 
         Ok(cid)
+    }
+}
+
+fn validate_take_range(range: &Range<rq::Expr>, span: Option<Span>) -> Result<()> {
+    fn bound_as_int(bound: &Option<rq::Expr>) -> Option<Option<&i64>> {
+        bound
+            .as_ref()
+            .map(|e| e.kind.as_literal().and_then(|l| l.as_integer()))
+    }
+
+    fn bound_display(bound: Option<Option<&i64>>) -> String {
+        bound
+            .map(|x| x.map(|l| l.to_string()).unwrap_or_else(|| "?".to_string()))
+            .unwrap_or_else(|| "".to_string())
+    }
+
+    let start = bound_as_int(&range.start);
+    let end = bound_as_int(&range.end);
+
+    let start_ok = if let Some(start) = start {
+        start.map(|s| *s >= 1).unwrap_or(false)
+    } else {
+        true
+    };
+
+    let end_ok = if let Some(end) = end {
+        end.map(|e| *e >= 1).unwrap_or(false)
+    } else {
+        true
+    };
+
+    if !start_ok || !end_ok {
+        let range_display = format!("{}..{}", bound_display(start), bound_display(end));
+        Err(Error::new(Reason::Expected {
+            who: Some("take".to_string()),
+            expected: "a positive int range".to_string(),
+            found: range_display,
+        })
+        .with_span(span)
+        .into())
+    } else {
+        Ok(())
     }
 }
 

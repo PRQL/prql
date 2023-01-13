@@ -1,0 +1,21 @@
+---
+source: prql-compiler/src/sql/gen_query.rs
+expression: sql_ast
+---
+WITH table_1 AS (
+  SELECT
+    title,
+    AVG(salary) AS _expr_0
+  FROM
+    employees
+  GROUP BY
+    title,
+    emp_no
+)
+SELECT
+  title,
+  AVG(_expr_0) AS avg_salary
+FROM
+  table_1
+GROUP BY
+  title

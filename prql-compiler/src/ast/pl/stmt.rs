@@ -26,7 +26,7 @@ pub struct Stmt {
 pub enum StmtKind {
     QueryDef(QueryDef),
     FuncDef(FuncDef),
-    TableDef(TableDef),
+    VarDef(VarDef),
     Main(Box<Expr>),
 }
 
@@ -58,7 +58,7 @@ pub struct FuncParam {
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub struct TableDef {
+pub struct VarDef {
     pub name: String,
     pub value: Box<Expr>,
 }
@@ -115,15 +115,15 @@ impl Display for StmtKind {
             StmtKind::FuncDef(func_def) => {
                 writeln!(f, "{func_def}\n")?;
             }
-            StmtKind::TableDef(table) => {
-                let pipeline = &table.value;
+            StmtKind::VarDef(var) => {
+                let pipeline = &var.value;
                 match &pipeline.kind {
                     ExprKind::FuncCall(_) => {
-                        write!(f, "table {} = (\n  {pipeline}\n)\n\n", table.name)?;
+                        write!(f, "let {} = (\n  {pipeline}\n)\n\n", var.name)?;
                     }
 
                     _ => {
-                        write!(f, "table {} = {pipeline}\n\n", table.name)?;
+                        write!(f, "let {} = {pipeline}\n\n", var.name)?;
                     }
                 };
             }

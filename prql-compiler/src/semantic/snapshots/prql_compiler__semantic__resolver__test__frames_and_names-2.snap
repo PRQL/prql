@@ -4,10 +4,12 @@ expression: "resolve_type(r#\"\n            from table_1\n            join custo
 ---
 Table:
   columns:
-    - Wildcard:
+    - All:
         input_name: table_1
-    - Wildcard:
+        except: []
+    - All:
         input_name: customers
+        except: []
   inputs:
     - id: 4
       name: table_1

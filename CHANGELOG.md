@@ -1,6 +1,6 @@
 # PRQL Changelog
 
-## 0.3.2 — [unreleased]
+## 0.4.0 — [unreleased]
 
 **Features**:
 
@@ -11,49 +11,97 @@
   [see this discussion](https://github.com/PRQL/prql/issues/1286#issue-1501645497)
   and (#1278) for usage and the current syntax. _Note: this syntax may change._
 
-  ```
+  ```prql
   derive var = switch [
-  score <= 10 -> "low",
-  score <= 30 -> "medium",
-  score <= 70 -> "high",
-  true -> "very high",
+    score <= 10 -> "low",
+    score <= 30 -> "medium",
+    score <= 70 -> "high",
+    true -> "very high",
   ]
   ```
 
-- _Experimental:_ `union` statement. No page in the docs yet, but
-  [see this PR](https://github.com/PRQL/prql/pull/894#issuecomment-1353548853)
-  for usage.
+- _Experimental:_ `append` & `union` transforms. (@aljazerzen, #894)
 
-  ```
+  ```prql
   from employees
-  concat managers
+  append managers
   union other_employees
   ```
 
+- _Experimental:_ Excluding columns (@aljazerzen, #1329)
+
+  ```prql
+  from employees
+  select ![title, composer]
+  ```
+
+- Numbers can now contain underscores, which can make reading long numbers
+  easier (@max-sixty, #1467):
+
+  ```prql
+  from numbers
+  select [
+      small = 1.000_000_1,
+      big = 5_000_000,
+  ]
+  ```
+
+- Add SQL comment which displays the compiler version used to generate the SQL
+  (@aljazerzen, #1322)
+- The playground now allows querying some sample data. As before, the result
+  updates on every keystroke. (@aljazerzen, #1305)
+
+- `dialect` is renamed to `target`, and its values are prefixed with `sql.`
+  (@max-sixty, #1388); for example:
+
+  ```prql
+  prql target:sql.bigquery  # previously was `dialect:bigquery`
+
+  from employees
+  ```
+
+  This gives us the flexibility to target other languages than SQL in the long
+  term.
+
+- Tables definitions can contain a bare s-string (@max-sixty, #1422), which
+  enables us to include a full CTE of SQL, for example:
+
+  ```prql
+  table grouping = s"""
+    SELECT SUM(a)
+    FROM tbl
+    GROUP BY
+      GROUPING SETS
+      ((b, c, d), (d), (b, d))
+  """
+  ```
+
+- Ranges supplied to `in` can now be half-open (@aljazerzen, #1330).
+
 The following need updated pages in the documentation:
 
-- feat: Playground queries sample database (#1305)
-- feat: comment that displays the compiler version used to generate the SQL
-  (#1322)
-- feat: `in` operator (#1330)
-- feat: Allow pipelines in list items (#1318)
-- feat: Parsing for negative select (#1317)
-- feat: additional builtin functions (#1325)
+- Allow function calls & pipelines in list items (@max-sixty, #1318)
 
 **Fixes**:
 
-- fix: allow interpolations in table s-strings (#1337)
+- Allow interpolations in table s-strings (@aljazerzen, #1337)
 
 **Documentation**:
 
-- [Updated description](https://prql-lang.org/book/transforms/select.html) of
-  how table alias is no longer available after a select.
+- Add docs on aliases in
+  [Select](https://prql-lang.org/book/transforms/select.html)
+- Fix JS example code (@BCsabaEngine, #1432)
+- JS template literal and multiline example (@BCsabaEngine, #1432)
 
 **Web**:
 
 **Integrations**:
 
 **Internal changes**:
+
+- Add parsing for negative select (@max-sixty, #1317)
+- Allow for additional builtin functions (@aljazerzen, #1325)
+- Add an automated check for typos (@max-sixty, #1421)
 
 ## 0.3.1 - 2022-12-03
 
@@ -63,7 +111,7 @@ The following need updated pages in the documentation:
 
 - Support for using s-strings for `from` (#1197, @aljazerzen)
 
-  ```
+  ```prql
   from s"SELECT * FROM employees WHERE foo > 5"
   ```
 

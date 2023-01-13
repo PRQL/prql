@@ -1,0 +1,14 @@
+---
+source: book/tests/snapshot.rs
+expression: "from employees\ngroup employee_id (\n  sort month\n  window rolling:12 (\n    derive [trail_12_m_comp = sum paycheck]\n  )\n)\n"
+input_file: book/tests/prql/transforms/window-0.prql
+---
+SELECT
+  *,
+  SUM(paycheck) OVER (
+    PARTITION BY employee_id
+    ORDER BY
+      month ROWS BETWEEN 11 PRECEDING AND CURRENT ROW
+  ) AS trail_12_m_comp
+FROM
+  employees

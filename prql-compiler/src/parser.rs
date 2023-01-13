@@ -67,7 +67,7 @@ fn stmt_of_parse_pair(pair: Pair<Rule>) -> Result<Stmt> {
             let other = params
                 .into_iter()
                 .flat_map(|(key, value)| match value.kind {
-                    ExprKind::Ident(value) => Some((key, value.name)),
+                    ExprKind::Ident(value) => Some((key, value.to_string())),
                     _ => None,
                 })
                 .collect();
@@ -111,16 +111,13 @@ fn stmt_of_parse_pair(pair: Pair<Rule>) -> Result<Stmt> {
                 return_ty: return_type,
             })
         }
-        Rule::table_def => {
+        Rule::var_def => {
             let mut pairs = pair.into_inner();
 
             let name = parse_ident_part(pairs.next().unwrap());
-            let pipeline = expr_of_parse_pair(pairs.next().unwrap())?;
+            let value = Box::new(expr_of_parse_pair(pairs.next().unwrap())?);
 
-            StmtKind::TableDef(TableDef {
-                name,
-                value: Box::new(pipeline),
-            })
+            StmtKind::VarDef(VarDef { name, value })
         }
         _ => unreachable!("{pair}"),
     };
@@ -249,7 +246,9 @@ fn expr_of_parse_pair(pair: Pair<Rule>) -> Result<Expr> {
         }
 
         Rule::number => {
-            let str = pair.as_str();
+            // pest is responsible for ensuring these are in the correct place,
+            // so we just need to remove them.
+            let str = pair.as_str().replace('_', "");
 
             let lit = if let Ok(i) = str.parse::<i64>() {
                 Literal::Integer(i)
@@ -845,6 +844,11 @@ Canada
         Literal:
           Integer: 23
         "###);
+        assert_yaml_snapshot!(expr_of_string(r#"2_3_4.5_6"#, Rule::number)?, @r###"
+        ---
+        Literal:
+          Float: 234.56
+        "###);
         assert_yaml_snapshot!(expr_of_string(r#"23.6"#, Rule::number)?, @r###"
         ---
         Literal:
@@ -866,6 +870,17 @@ Canada
             Literal:
               Integer: 2
         "###);
+
+        // Underscores can't go at the beginning or end of numbers
+        assert!(expr_of_string(dbg!("_2"), Rule::number).is_err());
+        assert!(expr_of_string(dbg!("_"), Rule::number).is_err());
+        assert!(expr_of_string(dbg!("_2.3"), Rule::number).is_err());
+        // We need to test these with `stmts_of_string` because they start with
+        // a valid number (and pest will return as much as possible and then return)
+        let bad_numbers = vec!["2_", "2.3_"];
+        for bad_number in bad_numbers {
+            assert!(stmts_of_string(dbg!(bad_number)).is_err());
+        }
         Ok(())
     }
 
@@ -1470,10 +1485,10 @@ take 20
     #[test]
     fn test_parse_table() -> Result<()> {
         assert_yaml_snapshot!(stmts_of_string(
-            "table newest_employees = (from employees)"
+            "let newest_employees = (from employees)"
         )?, @r###"
         ---
-        - TableDef:
+        - VarDef:
             name: newest_employees
             value:
               FuncCall:
@@ -1488,7 +1503,7 @@ take 20
 
         assert_yaml_snapshot!(stmts_of_string(
             r#"
-        table newest_employees = (
+        let newest_employees = (
           from employees
           group country (
             aggregate [
@@ -1500,7 +1515,7 @@ take 20
         )"#.trim())?,
          @r###"
         ---
-        - TableDef:
+        - VarDef:
             name: newest_employees
             value:
               Pipeline:
@@ -1554,13 +1569,20 @@ take 20
                             Integer: 50
                       named_args: {}
         "###);
-        Ok(())
-    }
 
-    #[test]
-    fn test_parse_table_with_newlines() -> Result<()> {
+        assert_yaml_snapshot!(stmts_of_string(r#"
+            let e = s"SELECT * FROM employees"
+            "#)?, @r###"
+        ---
+        - VarDef:
+            name: e
+            value:
+              SString:
+                - String: SELECT * FROM employees
+        "###);
+
         assert_yaml_snapshot!(stmts_of_string(
-          "table x = (
+          "let x = (
 
             from x_table
 
@@ -1571,7 +1593,7 @@ take 20
           from x"
         )?, @r###"
         ---
-        - TableDef:
+        - VarDef:
             name: x
             value:
               Pipeline:

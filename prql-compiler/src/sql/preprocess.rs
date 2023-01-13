@@ -7,7 +7,7 @@ use crate::ast::rq::{new_binop, CId, Compute, Expr, ExprKind, RqFold, Take, Tran
 
 use super::anchor::{infer_complexity, Complexity};
 use super::context::AnchorContext;
-use super::translator::Context;
+use super::Context;
 
 pub(super) fn preprocess_distinct(
     pipeline: Vec<Transform>,
@@ -169,7 +169,7 @@ impl<'a> TakeConverter<'a> {
 /// Pull Compose transforms in front of other transforms if possible.
 /// Position of Compose is important for two reasons:
 /// - when splitting pipelines, they provide information in which pipeline the
-///   column is computed and subsquently, with which table name should be used
+///   column is computed and subsequently, with which table name should be used
 ///   for name materialization.
 /// - the transform order in SQL requires Computes to be before Filter. This
 ///   can be circumvented by materializing the column earlier in the pipeline,

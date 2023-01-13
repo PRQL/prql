@@ -2,6 +2,7 @@
 // https://github.com/PRQL/prql/blob/main/reference/highlight-prql.js
 //
 // TODO: can we import one from the other at build time?
+
 formatting = function (hljs) {
   const TRANSFORMS = [
     "from",
@@ -12,17 +13,19 @@ formatting = function (hljs) {
     "sort",
     "join",
     "aggregate",
-    "func",
     "group",
     "window",
-    "prql",
+    "append",
+    "union",
   ];
+  const BUILTIN_FUNCTIONS = ["switch", "in", "as"];
+  const KEYWORDS = ["func", "table", "prql"];
   return {
     name: "PRQL",
     case_insensitive: true,
     keywords: {
-      keyword: TRANSFORMS,
-      literal: "false true null and or not",
+      keyword: [...TRANSFORMS, ...BUILTIN_FUNCTIONS, ...KEYWORDS],
+      literal: "false true null ",
     },
     contains: [
       hljs.COMMENT("#", "$"),
@@ -33,12 +36,14 @@ formatting = function (hljs) {
         end: "",
         relevance: 10,
       },
-      {
-        // assign
-        scope: { 1: "variable" },
-        match: [/\w+\s*/, /=[^=]/],
-        relevance: 10,
-      },
+      // This seems much too strong at the moment, so disabling. I think ideally
+      // we'd have it for aliases but not assigns.
+      // {
+      //   // assign
+      //   scope: { 1: "variable" },
+      //   match: [/\w+\s*/, /=[^=]/],
+      //   relevance: 10,
+      // },
       {
         // date
         scope: "string",
@@ -46,11 +51,60 @@ formatting = function (hljs) {
         relevance: 10,
       },
       {
-        // interpolation string
-        scope: "attribute",
-        begin: '(s|f)"',
-        end: '"',
+        // interpolation strings: s-strings are variables and f-strings are
+        // strings? (Though possibly that's too cute, open to adjusting)
+        //
+        scope: "variable",
         relevance: 10,
+        variants: [
+          {
+            begin: '(s)"""',
+            end: '"""',
+          },
+          {
+            begin: '(s)"',
+            end: '"',
+          },
+        ],
+        contains: [
+          // I tried having the `f` / `s` be marked differently, but I don't
+          // think it's possible to have a subscope within the begin / end.
+          {
+            // I think `variable` is the right scope rather than defaulting to
+            // white, but not 100% sure; using `subst` is suggested in the docs.
+            scope: "variable",
+            begin: /\{/,
+            end: /\}/,
+          },
+        ],
+      },
+      {
+        scope: "string",
+        relevance: 10,
+        variants: [
+          {
+            begin: '(f)"""',
+            end: '"""',
+          },
+          {
+            begin: '(f)"',
+            end: '"',
+          },
+        ],
+        contains: [
+          {
+            // scope: "title.function",
+            scope: "variable",
+            begin: "f",
+            end: '"',
+            // excludesEnd: true,
+          },
+          {
+            scope: "variable",
+            begin: /\{/,
+            end: /\}/,
+          },
+        ],
       },
       {
         // normal string
@@ -81,14 +135,27 @@ formatting = function (hljs) {
         // number
         scope: "number",
         // Slightly modified from https://stackoverflow.com/a/23872060/3064736;
-        // it requires a number after a decimal point, so ranges appear as ranges.
-        match: /[+-]?((\d+(\.\d+)?)|(\.\d+))/,
+        // it requires a number after a decimal point, so ranges appear as
+        // ranges.
+        // We disallow a leading word character, so that we don't highlight
+        // a number in `foo_1`,
+        // We allow underscores, a bit more liberally than PRQL, which doesn't
+        // allow them at the start or end (but that's difficult to express with
+        // regex; contributions welcome).
+        match: /[+-]?[^\w](([\d_]+(\.[\d_]+])?)|(\.[\d_]+))/,
         relevance: 10,
       },
       {
         // range
         scope: "symbol",
         match: /\.{2}/,
+        relevance: 10,
+      },
+      {
+        // operator
+        scope: "operator",
+        match:
+          /(>)|(<)|(==)|(\+)|(\-)|(!=)|(<=)|(>=)|(\?\?)|(\band\b)|(\bor\b)/,
         relevance: 10,
       },
 
@@ -104,12 +171,6 @@ formatting = function (hljs) {
       //     begin: [/^\s*[a-zA-Z]+/, /(\s+[a-zA-Z]+)+/],
       //     relevance: 10
       // },
-
-      // I couldn't seem to get this working, and other languages don't seem
-      // to use it.
-      // { // operator
-      //     match: [/-/, /\*/], //,'/', '%', '+', '-', '==', '!=', '>', '<', '>=', '<=', '??']
-      // {
     ],
   };
 };

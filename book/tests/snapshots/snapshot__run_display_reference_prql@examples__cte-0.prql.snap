@@ -1,9 +1,9 @@
 ---
 source: book/tests/snapshot.rs
-expression: Statements(parse(&prql).unwrap())
+expression: prql_to_pl(&prql).and_then(pl_to_prql).unwrap()
 input_file: book/tests/prql/examples/cte-0.prql
 ---
-table newest_employees = (
+let newest_employees = (
   from employees
   sort tenure
   take 50
@@ -11,7 +11,7 @@ table newest_employees = (
 
 
 
-table average_salaries = (
+let average_salaries = (
   from salaries
   group country (
   aggregate (

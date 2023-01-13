@@ -92,8 +92,7 @@ impl<'a> AstFold for Labeler<'a> {
                         DeclKind::FuncDef(_) => Color::Magenta,
                         DeclKind::Module(_) => Color::Cyan,
                         DeclKind::LayeredModules(_) => Color::Cyan,
-                        DeclKind::NoResolve => Color::White,
-                        DeclKind::Wildcard(_) => Color::White,
+                        DeclKind::Infer(_) => Color::White,
                     };
 
                     let location = decl

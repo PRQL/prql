@@ -303,10 +303,6 @@ pre ::-webkit-scrollbar-thumb:hover {
   padding-top: 100px;
 }
 
-.no-hero {
-  padding-top: 80px;
-}
-
 .hero h4 {
   font-size: 20px;
   color: var(--main-color);
@@ -619,7 +615,7 @@ article h2 {
 
 article > pre,
 article > .highlight {
-  margin: 0 -1rem;
+  margin: 0 -0.5rem 1rem -0.5rem;
 }
 
 article > .highlight > pre {
@@ -630,27 +626,31 @@ article > .highlight > pre {
 # Footer
 --------------------------------------------------------------*/
 #footer {
-  background: var(--main-color);
-  background: linear-gradient(#1d252e, var(--main-color));
+  /*
+  TODO: the background was a dark color, but it made the links quite difficult to read.
+  Probably I (@max-sixty) shouldn't be choosing colors — so please feel free to
+  adjust.
+  */
+  background: #cbdcef;
+  /* background: linear-gradient(#58718d, var(--main-color)); */
   padding: 1rem 0 2rem 0;
-  color: #fff;
+  /* color: #fff; */
 }
 
-#footer p {
+/* #footer p {
   color: #bbb;
-}
+} */
 
-#footer a.btn {
-  color: #fff;
+/* #footer a.btn {
   background-color: var(--secondary-color);
-}
+} */
 
 #footer ul {
   padding-left: 1rem;
-  color: #bbb;
+  /* color: #bbb; */
 }
 
-#footer .copyright {
+/* #footer .copyright {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -669,7 +669,7 @@ article > .highlight > pre {
 
 #footer .copyright p {
   display: flex;
-}
+} */
 
 /*--------------------------------------------------------------
 # FAQ sections
@@ -697,4 +697,21 @@ details.faq summary h2::before {
 }
 details.faq[open] summary h2:before {
   content: "▼";
+}
+
+/*--------------------------------------------------------------
+# Table of contents
+--------------------------------------------------------------*/
+.toc > * {
+  position: fixed;
+  padding: 4rem 0;
+}
+.toc ul li {
+  list-style: none;
+  margin: 0;
+  padding-top: 0.5em;
+}
+
+.toc ul li ul {
+  display: none;
 }

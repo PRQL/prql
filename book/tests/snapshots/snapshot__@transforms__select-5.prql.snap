@@ -1,0 +1,10 @@
+---
+source: book/tests/snapshot.rs
+expression: "from tracks\nselect [track_id, title, composer, bytes]\nselect ![title, composer]\n"
+input_file: book/tests/prql/transforms/select-5.prql
+---
+SELECT
+  track_id,
+  bytes
+FROM
+  tracks

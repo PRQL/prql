@@ -1,0 +1,19 @@
+---
+source: book/tests/snapshot.rs
+expression: "from employees_1\nselect [first_name, last_name]\nintersection (\n    from employees_2\n    select [first_name, last_name]\n)\n"
+input_file: book/tests/prql/transforms/append-2.prql
+---
+WITH table_1 AS (
+  SELECT
+    first_name,
+    last_name
+  FROM
+    employees_2
+)
+SELECT
+  employees_1.first_name,
+  employees_1.last_name
+FROM
+  employees_1
+  JOIN table_1 AS table_0 ON employees_1.first_name = table_0.first_name
+  AND employees_1.last_name = table_0.last_name

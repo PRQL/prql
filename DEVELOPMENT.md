@@ -1,58 +1,118 @@
 # Development
 
-## Development environment
+## Setting up an initial dev environment
 
-Setting up a local dev environment for PRQL is simple, thanks to the rust
-ecosystem:
+We can set up a local development environment sufficient for navigating,
+editing, and testing PRQL's compiler code in two minutes:
 
 - Install
-  [`rustup` & `cargo`](https://doc.rust-lang.org/cargo/getting-started/installation.html)[^5].
-- That's it! Running `cargo test` should complete successfully.
-- Alternatively, for quick contributions, hit `.` in GitHub to launch a
-  [github.dev instance](https://github.dev/PRQL/prql).
+  [`rustup` & `cargo`](https://doc.rust-lang.org/cargo/getting-started/installation.html).
+- [Optional but highly recommended] Install `cargo-insta`, our testing
+  framework:
 
-### Installing a full development environment
+  ```sh
+  cargo install cargo-insta
+  ```
 
-For more advanced development; e.g. adjusting `insta` outputs or compiling for
-web either:
+- That's it! Running the unit tests for the `prql-compiler` crate after cloning
+  the repo should complete successfully:
+
+  ```sh
+  cargo test -p prql-compiler --lib
+  ```
+
+  ...or, to run tests and update the test snapshots:
+
+  ```sh
+  cargo insta test --accept -p prql-compiler --lib
+  ```
+
+  There's more context on our tests in [How we test](#how-we-test) below.
+
+That's sufficient for making an initial contribution to the compiler.
+
+---
+
+## Setting up a full dev environment
+
+> **Note**: We really care about this process being easy, both because the
+> project benefits from more contributors like you, and to reciprocate your
+> future contribution. If something isn't easy, please let us know in a GitHub
+> Issue. We'll enthusiastically help you, and use your feedback to improve the
+> scripts & instructions.
+
+For more advanced development; for example compiling for wasm or previewing the
+website, we have two options:
+
+### Option 1: Use the project's `task`
+
+> **Note**: This is tested on MacOS, should work on Linux, but won't work on
+> Windows.
 
 - Install Task; either `brew install go-task/tap/go-task` or as described on
-  [Task](https://taskfile.dev/#/installation) and then run:
+  [Task](https://taskfile.dev/#/installation)
+- Then run the `setup-dev` task. This runs commands from our
+  [Taskfile.yml](Taskfile.yml), installing dependencies with `cargo`, `brew`,
+  `npm` & `pip`, and suggests some VSCode extensions.
 
   ```sh
   task setup-dev
   ```
 
-- ...or copy & paste the various commands from [Taskfile.yml](Taskfile.yml).
-- Any problems: post an issue or Discord and we'll help.
+### Option 2: Install tools individually
 
-[^5]:
-    For completeness: running the full tests requires a couple of additional
-    components that most systems will have installed already:
+- We'll need `cargo-insta`, to update snapshot tests:
 
-    - A clang compiler to compile the DuckDB integration tests, since we use
-      [`duckdb-rs'](https://github.com/wangfenjin/duckdb-rs). To install a
-      compiler:
+  ```sh
+  cargo install cargo-insta
+  ```
 
-      - On Mac, install xcode `xcode-select --install`
-      - On Debian Linux, `apt-get install libclang-dev`
-      - On Windows, `duckdb-rs` doesn't work anyway, so these tests are excluded
+- We'll need a couple of additional components, which most systems will have
+  already. The easiest way to check whether they're installed is to try running
+  the full tests:
 
-    - Python >= 3.7 to compile `prql-python`.
+  ```sh
+  cargo test
+  ```
 
-    It's very possible to develop `prql-compiler` without these, by avoiding
-    using the integration tests or `prql-python`. Running
-    `cargo test -p prql-compiler --lib` should complete successfully by running
-    only the unit tests in the `prql-compiler` package.
+  ...and if that doesn't complete successfully, check we have:
 
-## Encapsulated building & testing
+  - A clang compiler, to compile the DuckDB integration tests, since we use
+    [`duckdb-rs'](https://github.com/wangfenjin/duckdb-rs). To install one:
+
+    - On MacOS, install xcode with `xcode-select --install`
+    - On Debian Linux, `apt-get update && apt-get install clang`
+    - On Windows, `duckdb-rs` isn't supported, so these tests are excluded
+
+  - Python >= 3.7, to compile `prql-python`.
+
+- For more involved contributions, such as building the website, playground,
+  book, or some release artifacts, we'll need some additional tools. But we
+  won't need those immediately, and the error messages on what's missing should
+  be clear when we attempt those things. When we hit them, the
+  [Taskfile.yml](Taskfile.yml) will be a good source to copy & paste
+  instructions from.
+
+<!--
+
+Until we set up a Codespaces, I don't think this is that helpful — it can't run any code,
+including navigating rust code with rust-analyzer. We'd def take a contribution for a
+codespaces template, though.
+
+### github.dev
+
+- Alternatively, for quick contributions (e.g. docs), hit `.` in GitHub to
+  launch a [github.dev instance](https://github.dev/PRQL/prql). This has the
+  disadvantage that code can't run. -->
+
+### Building & testing the full project
 
 We have a couple of tasks which incorporate all building & testing. While they
 don't need to be run as part of a standard dev loop — generally we'll want to
 run a more specific test — they can be useful as a backstop to ensure everything
 works, and as a reference for how each part of the repo is built & tested. They
-should be broadly consistent with the GitHub Actions workflows; please report
-any inconsistencies.
+should be consistent with the GitHub Actions workflows; please report any
+inconsistencies.
 
 To build everything:
 
@@ -69,18 +129,68 @@ task test-all
 These require installing Task, either `brew install go-task/tap/go-task` or as
 described on [Task](https://taskfile.dev/#/installation).
 
+## Contribution workflow
+
+We're similar to most projects on GitHub — open a Pull Request with a suggested
+change!
+
+### Commits
+
+- If a change is user-facing, it would be helpful to add a line in
+  [**`CHANGELOG.md`**](CHANGELOG.md), with `{message}, ({@contributor, #X})`
+  where `X` is the PR number.
+- We're experimenting with using the
+  [Conventional Commits](https://www.conventionalcommits.org) message format,
+  enforced through
+  [action-semantic-pull-request](https://github.com/amannn/action-semantic-pull-request).
+  This would let us generate Changelogs automatically. The check is not required
+  to pass at the moment.
+
+### Merges
+
+- **We merge any code that makes PRQL better**
+- A PR doesn't need to be perfect to be merged; it doesn't need to solve a big
+  problem. It needs to:
+  - be in the right direction
+  - make incremental progress
+  - be explicit on its current state, so others can continue the progress
+- If you have merge permissions, and are reasonably confident that a PR is
+  suitable to merge (whether or not you're the author), feel free to merge.
+  - If you don't have merge permissions and have authored a few PRs, ask and ye
+    shall receive.
+- The primary way we ratchet the code quality is through automated tests.
+  - This means PRs almost always need a test to demonstrate incremental
+    progress.
+  - If a change breaks functionality without breaking tests, our tests were
+    insufficient.
+- We use PR reviews to give general context, offer specific assistance, and
+  collaborate on larger decisions.
+  - Reviews around 'nits' like code formatting / idioms / etc are very welcome.
+    But the norm is for them to be received as helpful advice, rather than as
+    mandatory tasks to complete. Adding automated tests & lints to automate
+    these suggestions is welcome.
+  - If you have merge permissions and would like a PR to be reviewed before it
+    merges, that's great — ask or assign a reviewer.
+  - If a PR hasn't received attention after a day, please feel free to ping the
+    pull request.
+- People may review a PR after it's merged. As part of the understanding that we
+  can merge quickly, contributors are expected to incorporate substantive
+  feedback into a future PR.
+- We should revert quickly if the impact of a PR turns out not to be consistent
+  with our expectations, or there isn't as much consensus on a decision as we
+  had hoped. It's very easy to revert code and then re-revert when we've
+  resolved the issue; it's a sign of moving quickly.
+
 ## Components of PRQL
 
 The PRQL project has several components. Instructions for working with them are
-in the **README.md** file in their directory. Here's an overview:
+in the **README.md** file in their respective paths. Here's an overview:
+
+**[book](./book/README.md)**: The PRQL language book, which documents the
+language.
 
 **[playground](./playground/README.md)**: A web GUI for the PRQL compiler. It
 shows the PRQL source beside the resulting SQL output.
-
-**[book](./book/README.md)**: Tools to build the PRQL language book that
-documents the language.
-
-**[website](./website/README.md)**: Tools to build the `hugo` website.
 
 **[prql-compiler](./prql-compiler/README.md)**: Installation and usage
 instructions for building and running the `prql-compiler`.
@@ -99,7 +209,10 @@ the `prql-compiler` rust library for bindings to other languages
 **[prql-python](./prql-python/README.md)**: Python bindings to the
 `prql-compiler` rust library.
 
-## Tests
+**[website](./website/README.md)**: Our website, hosted at
+<https://prql-lang.org>, built with `hugo`.
+
+## How we test
 
 We use a pyramid of tests — we have fast, focused tests at the bottom of the
 pyramid, which give us low latency feedback when developing, and then slower,
@@ -112,12 +225,14 @@ broader tests which ensure that we don't miss anything as PRQL develops[^1].
     **[@matklad](https://github.com/matklad)**'s advice, in his excellent blog
     post [How to Test](https://matklad.github.io//2021/05/31/how-to-test.html).
 
+> **Note**
+>
 > If you're making your first contribution, you don't need to engage with all
 > this — it's fine to just make a change and push the results; the tests that
 > run in GitHub will point you towards any errors, which can be then be run
 > locally if needed. We're always around to help out.
 
-Our tests:
+Our tests, from the bottom of the pyramid to the top:
 
 - **[Static checks](.pre-commit-config.yaml)** — we run a few static checks to
   ensure the code stays healthy and consistent. They're defined in
@@ -133,24 +248,19 @@ Our tests:
   automatically in an additional commit.
 
 - **Unit tests & inline insta snapshots** — like most projects, we rely on unit
-  tests to test that our code basically works. We extensively use
+  tests to rapidly check that our code basically works. We extensively use
   [Insta](https://insta.rs/), a snapshot testing tool which writes out the
-  results of an expression in our code, making it faster to write and modify
+  values generated by our code, making it fast & simple to write and modify
   tests[^3].
 
   These are the fastest tests which run our code; they're designed to run on
-  every save while you're developing. (While they're covered by `task test-all`,
-  you'll generally want to have lower-latency tests running in a tight
-  loop.)[^2]
+  every save while you're developing. We include a `task` which does this (thy
+  full command run on every save is
+  `cargo insta test --accept -p prql-compiler --lib`):
 
-[^2]: By running:
-
-    ```sh
-    task -w prql-compiler-fast
-    ```
-
-    ...we run `cargo insta test --accept -p prql-compiler --lib` on any file
-    change.
+  ```sh
+  task -w test-rust-fast
+  ```
 
 <!--
 This is the previous doc. It has the advantage that it explains what it's doing, and is
@@ -200,7 +310,11 @@ inconsistent in watchexec. Let's revert back if it gets solved.
   designed to run in under two minutes, and we should be reassessing their scope
   if they grow beyond that. Once these pass, a pull request can be merged.
 
-  All tests up to this point can be run with `task test-all` locally.
+  All tests up to this point can be run with:
+
+  ```sh
+  task test-all
+  ```
 
 - **[GitHub Actions on specific changes](.github/workflows/)** — we run
   additional tests on pull requests when we identify changes to some paths, such
@@ -249,35 +363,38 @@ they're making it more difficult for you to make changes, or there are missing
 tests that would give you the confidence to make changes faster, then please
 raise an issue.
 
-## Releases
+---
+
+## Releasing
 
 Currently we release in a semi-automated way:
 
-- PR & merge an updated [Changelog](CHANGELOG.md).
-- Run `cargo release version patch && cargo release replace` to bump the
-  versions, then PR the resulting commit.
-- After merging, go to
-  [Draft a new release](https://github.com/PRQL/prql/releases/new), copy the
-  changelog entry into the release notes, enter the tag to be created, and hit
-  "Publish".
-- From there, both the tag and release is created and all packages are published
-  automatically based on our [release workflow](.github/workflows/release.yaml).
-- Add in the sections for a new Changelog:
+1. PR & merge an updated [Changelog](CHANGELOG.md).
+2. Run `cargo release version patch && cargo release replace` to bump the
+   versions, then PR the resulting commit.
+3. After merging, go to
+   [Draft a new release](https://github.com/PRQL/prql/releases/new), copy the
+   changelog entry into the release notes, enter the tag to be created, and hit
+   "Publish".
+4. From there, both the tag and release is created and all packages are
+   published automatically based on our
+   [release workflow](.github/workflows/release.yaml).
+5. Add in the sections for a new Changelog:
 
-  ```md
-  ## 0.3.X — [unreleased]
+   ```md
+   ## 0.3.X — [unreleased]
 
-  **Features**:
+   **Features**:
 
-  **Fixes**:
+   **Fixes**:
 
-  **Documentation**:
+   **Documentation**:
 
-  **Web**:
+   **Web**:
 
-  **Integrations**:
+   **Integrations**:
 
-  **Internal changes**:
-  ```
+   **Internal changes**:
+   ```
 
 We may make this more automated in future; e.g. automatic changelog creation.

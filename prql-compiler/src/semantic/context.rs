@@ -5,10 +5,11 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::{collections::HashMap, fmt::Debug};
 
-use super::module::{Module, NS_DEFAULT_DB, NS_SELF, NS_STD};
+use super::module::{Module, NS_DEFAULT_DB, NS_FRAME, NS_FRAME_RIGHT, NS_INFER, NS_SELF, NS_STD};
+use super::type_resolver::validate_type;
 use crate::ast::pl::*;
 use crate::ast::rq::RelationColumn;
-use crate::error::Span;
+use crate::error::{Error, Span};
 
 /// Context of the pipeline.
 #[derive(Default, Serialize, Deserialize, Clone)]
@@ -26,6 +27,10 @@ pub struct Decl {
     pub declared_at: Option<usize>,
 
     pub kind: DeclKind,
+
+    /// Some declarations (like relation columns) have an order to them.
+    /// 0 means that the order is irrelevant.
+    pub order: usize,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, EnumAsInner)]
@@ -40,16 +45,17 @@ pub enum DeclKind {
 
     InstanceOf(Ident),
 
+    /// A single column. Contains id of target which is either:
+    /// - an input relation that is source of this column or
+    /// - a column expression.
     Column(usize),
 
-    /// Contains a default value to be created in parent namespace matched.
-    Wildcard(Box<DeclKind>),
+    /// Contains a default value to be created in parent namespace when NS_INFER is matched.
+    Infer(Box<DeclKind>),
 
     FuncDef(FuncDef),
 
     Expr(Box<Expr>),
-
-    NoResolve,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -78,36 +84,77 @@ impl Context {
         let decl = Decl {
             kind: DeclKind::FuncDef(func_def),
             declared_at: id,
+            order: 0,
         };
         self.root_mod.insert(ident, decl).unwrap();
     }
 
-    pub fn declare_table(&mut self, table_def: TableDef, id: Option<usize>) {
-        let name = table_def.name;
-        let path = vec![NS_DEFAULT_DB.to_string()];
-        let ident = Ident { name, path };
+    pub fn declare_var(
+        &mut self,
+        var_def: VarDef,
+        id: Option<usize>,
+        span: Option<Span>,
+    ) -> Result<()> {
+        let name = var_def.name;
+        let mut path = Vec::new();
 
-        let frame = table_def.value.ty.clone().unwrap().into_table().unwrap();
-        let columns = (frame.columns.into_iter())
-            .map(|col| match col {
-                FrameColumn::Wildcard { .. } => RelationColumn::Wildcard,
-                FrameColumn::Single { name, .. } => RelationColumn::Single(name.map(|n| n.name)),
-            })
-            .collect();
+        let decl = match &var_def.value.ty {
+            Some(Ty::Table(_) | Ty::Infer) => {
+                let mut value = var_def.value;
 
-        let expr = Some(table_def.value);
-        let decl = Decl {
-            declared_at: id,
-            kind: DeclKind::TableDecl(TableDecl { columns, expr }),
+                let ty = value.ty.clone().unwrap();
+                let frame = ty.into_table().unwrap_or_else(|_| {
+                    let assumed =
+                        validate_type(value.as_ref(), &Ty::Table(Frame::default()), || None)
+                            .unwrap();
+                    value.ty = Some(assumed.clone());
+                    assumed.into_table().unwrap()
+                });
+
+                path = vec![NS_DEFAULT_DB.to_string()];
+
+                let columns = (frame.columns.iter())
+                    .map(|col| match col {
+                        FrameColumn::All { .. } => RelationColumn::Wildcard,
+                        FrameColumn::Single { name, .. } => {
+                            RelationColumn::Single(name.as_ref().map(|n| n.name.clone()))
+                        }
+                    })
+                    .collect();
+
+                let expr = Some(value);
+                DeclKind::TableDecl(TableDecl { columns, expr })
+            }
+            Some(_) => DeclKind::Expr(var_def.value),
+            None => {
+                return Err(
+                    Error::new_simple("Cannot infer type. Type annotations needed.")
+                        .with_span(span)
+                        .into(),
+                );
+            }
         };
 
+        let decl = Decl {
+            declared_at: id,
+            kind: decl,
+            order: 0,
+        };
+
+        let ident = Ident { name, path };
         self.root_mod.insert(ident, decl).unwrap();
+
+        Ok(())
     }
 
     pub fn resolve_ident(&mut self, ident: &Ident) -> Result<Ident, String> {
-        // lookup the name
-        let decls = self.root_mod.lookup(ident);
+        // special case: wildcard
+        if ident.name.contains('*') {
+            return self.resolve_ident_wildcard(ident);
+        }
 
+        // base case: direct lookup
+        let decls = self.root_mod.lookup(ident);
         match decls.len() {
             // no match: try match *
             0 => {}
@@ -122,35 +169,34 @@ impl Context {
             }
         }
 
-        // this variable can be from a namespace that we don't know all columns of
+        // fallback case: this variable can be from a namespace that we don't know all columns of
         let decls = if ident.name != "*" {
             self.root_mod.lookup(&Ident {
                 path: ident.path.clone(),
-                name: "*".to_string(),
+                name: NS_INFER.to_string(),
             })
         } else {
             HashSet::new()
         };
-
         match decls.len() {
             0 => Err(format!("Unknown name {ident}")),
 
             // single match, great!
             1 => {
-                let wildcard_ident = decls.into_iter().next().unwrap();
+                let infer_ident = decls.into_iter().next().unwrap();
 
-                let wildcard = self.root_mod.get(&wildcard_ident).unwrap();
-                let wildcard_default = wildcard.kind.as_wildcard().cloned().unwrap();
-                let input_id = wildcard.declared_at;
+                let infer = self.root_mod.get(&infer_ident).unwrap();
+                let infer_default = infer.kind.as_infer().cloned().unwrap();
+                let input_id = infer.declared_at;
 
-                let module_ident = wildcard_ident.pop().unwrap();
+                let module_ident = infer_ident.pop().unwrap();
                 let module = self.root_mod.get_mut(&module_ident).unwrap();
                 let module = module.kind.as_module_mut().unwrap();
 
                 // insert default
                 module
                     .names
-                    .insert(ident.name.clone(), Decl::from(*wildcard_default));
+                    .insert(ident.name.clone(), Decl::from(*infer_default));
 
                 // infer table columns
                 if let Some(decl) = module.names.get(NS_SELF).cloned() {
@@ -186,6 +232,63 @@ impl Context {
         }
     }
 
+    fn resolve_ident_wildcard(&mut self, ident: &Ident) -> Result<Ident, String> {
+        if ident.name != "*" {
+            return Err("Unsupported feature: advanced wildcard column matching".to_string());
+        }
+
+        let (mod_ident, mod_decl) = {
+            if ident.path.len() > 1 {
+                let mod_ident = ident.clone().pop().unwrap();
+                let mod_decl = (self.root_mod.get_mut(&mod_ident))
+                    .ok_or_else(|| format!("Unknown relation {ident}"))?;
+
+                (mod_ident, mod_decl)
+            } else {
+                let mod_ident = (Ident::from_name(NS_FRAME) + ident.clone()).pop().unwrap();
+
+                if let Some(mod_decl) = self.root_mod.get_mut(&mod_ident) {
+                    (mod_ident, mod_decl)
+                } else {
+                    let mod_ident = (Ident::from_name(NS_FRAME_RIGHT) + ident.clone())
+                        .pop()
+                        .unwrap();
+
+                    let mod_decl = (self.root_mod.get_mut(&mod_ident))
+                        .ok_or_else(|| format!("Unknown relation {ident}"))?;
+
+                    (mod_ident, mod_decl)
+                }
+            }
+        };
+
+        let module = (mod_decl.kind.as_module_mut())
+            .ok_or_else(|| format!("Expected a module {mod_ident}"))?;
+
+        let fq_cols = if module.names.contains_key(NS_INFER) {
+            vec![Expr::from(ExprKind::All {
+                within: mod_ident.clone(),
+                except: Vec::new(),
+            })]
+        } else {
+            (module.names.iter())
+                .filter(|(_, decl)| matches!(&decl.kind, DeclKind::Column(_)))
+                .sorted_by_key(|(_, decl)| decl.order)
+                .map(|(name, _)| mod_ident.clone() + Ident::from_name(name))
+                .map(|fq_col| Expr::from(ExprKind::Ident(fq_col)))
+                .collect_vec()
+        };
+
+        // This is just a workaround to return an Expr from this function.
+        // We wrap the expr into DeclKind::Expr and save it into context.
+        let cols_expr = DeclKind::Expr(Box::new(Expr::from(ExprKind::List(fq_cols))));
+        let save_as = "_wildcard_match";
+        module.names.insert(save_as.to_string(), cols_expr.into());
+
+        // Then we can return ident to that decl.
+        Ok(mod_ident + Ident::from_name(save_as))
+    }
+
     fn infer_table_column(&mut self, table_ident: &Ident, col_name: &str) -> Result<(), String> {
         let table = self.root_mod.get_mut(table_ident).unwrap();
         let table_decl = table.kind.as_table_decl_mut().unwrap();
@@ -211,13 +314,13 @@ impl Context {
         if let Some(expr) = &table_decl.expr {
             if let Some(Ty::Table(frame)) = expr.ty.as_ref() {
                 let wildcard_inputs = (frame.columns.iter())
-                    .filter_map(|c| c.as_wildcard())
+                    .filter_map(|c| c.as_all())
                     .collect_vec();
 
                 match wildcard_inputs.len() {
                     0 => return Err(format!("Cannot infer where {table_ident}.{col_name} is from")),
                     1 => {
-                        let input_name = wildcard_inputs.into_iter().next().unwrap();
+                        let (input_name, _) = wildcard_inputs.into_iter().next().unwrap();
 
                         let input = frame.find_input(input_name).unwrap();
                         if let Some(table_ident) = input.table.clone() {
@@ -252,6 +355,7 @@ impl From<DeclKind> for Decl {
         Decl {
             kind,
             declared_at: None,
+            order: 0,
         }
     }
 }
@@ -272,10 +376,9 @@ impl std::fmt::Display for DeclKind {
             }
             Self::InstanceOf(arg0) => write!(f, "InstanceOf: {arg0}"),
             Self::Column(arg0) => write!(f, "Column (target {arg0})"),
-            Self::Wildcard(arg0) => write!(f, "Wildcard (default: {arg0})"),
+            Self::Infer(arg0) => write!(f, "Infer (default: {arg0})"),
             Self::FuncDef(arg0) => write!(f, "FuncDef: {arg0}"),
             Self::Expr(arg0) => write!(f, "Expr: {arg0}"),
-            Self::NoResolve => write!(f, "NoResolve"),
         }
     }
 }

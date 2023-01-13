@@ -12,7 +12,7 @@
 version: "3"
 
 vars:
-  # Keeps in sync with .vscode/extensions.json
+  # Keep in sync with .vscode/extensions.json
   vscode_extensions: |
     budparr.language-hugo-vscode
     esbenp.prettier-vscode
@@ -23,15 +23,28 @@ vars:
 tasks:
   # main installer is "setup-dev" which calls other tasks
   setup-dev:
+    preconditions:
+      - sh: which clang
+        msg: |
+          🔴 Can't find `clang`, which is required to install a full development environment (we use `duckdb` in our tests, which requires it).
+
+          Please install it. On MacOS, that's
+
+            xcode-select --install
+
+          On Debian Linux, that's
+
+            apt-get update && apt-get install clang
+
     desc: Install tools for PRQL development.
     cmds:
       - task: install-cargo-tools
+      - task: install-brew-dependencies
       - task: install-maturin
       - task: install-pre-commit
-      - task: install-brew-dependencies
       - task: install-npm-dependencies
-      # We only suggest, rather than install;
-      #    we don't want to intrude (maybe we're being too conservative?).
+      # We only suggest, rather than install; we don't want to intrude (maybe
+      # we're being too conservative?).
       - task: suggest-vscode-extensions
       - pre-commit install-hooks
       - cmd: |
@@ -49,7 +62,7 @@ tasks:
         default-target mdbook mdbook-admonish mdbook-toc wasm-bindgen-cli
         wasm-pack
       - cmd: |
-          [ "$(which default-target)" ] || echo "Can't find a binary that cargo installed. Is the cargo bin path (generally at ~/.cargo/bin) on the $PATH?"
+          [ "$(which default-target)" ] || echo "🔴 Can't find a binary that cargo just installed. Is the cargo bin path (generally at ~/.cargo/bin) on the \$PATH?"
         silent: true
 
   install-maturin:
@@ -105,6 +118,7 @@ tasks:
     status:
       - which hugo
       - which npm
+      - which python3
     preconditions:
       - sh: which brew
         msg: |
@@ -114,7 +128,7 @@ tasks:
           - https://gohugo.io/getting-started/installing/
           - https://docs.npmjs.com/downloading-and-installing-node-js-and-npm
     cmds:
-      - brew install hugo npm
+      - brew install hugo npm python3
 
   install-npm-dependencies:
     cmds:
@@ -155,6 +169,9 @@ tasks:
       Running this isn't required when developing; it's for caching or as a reference.
 
     cmds:
+      # TODO: this doesn't run the python or js tests; only the rust tests of
+      # prql-python. We should add them in here. They are run in `test-all.yaml`
+      # on GHA.
       - task: test-rust
       - task: build-all
       - pre-commit run -a
@@ -164,17 +181,28 @@ tasks:
     vars:
       default_target:
         sh: default-target
+    sources:
+      # See notes in `test-rust`
+      - "**/*.rs"
+      - "**/*.md"
+      - "**/*.toml"
+      - "**/*.lock"
+      - "**/*.pest"
+      - "**/*.snap"
     cmds:
-      # We run this `run_examples` first for the reasons given in
+      # We run this `snapshot` first for the reasons given in
       # `parser::test_parse_pipeline_parse_tree`. Ideally we would a) retain
       # examples in the documentation (inc. tested), b) not rely on falliable
       # tests to extract them, which include compiling prql-compiler, c) not
       # fail other compilation steps if they can't be extracted.
-      - cargo insta test --accept -p mdbook-prql -- run_examples
-      # Only delete unreferenced snapshots on the default target — lots are excluded under wasm.
+      - cargo insta test --accept -p mdbook-prql --test snapshot
+      # Only delete unreferenced snapshots on the default target — lots are
+      # excluded under wasm. Note that this will also over-delete on Windows.
       - cargo insta test --accept --target={{.default_target}}
-        --delete-unreferenced-snapshots
+        --unreferenced=auto
       - cargo insta test --accept --target=wasm32-unknown-unknown
+      # We build the book too, because that acts as a test
+      - cd book && mdbook build
 
   test-rust-fast:
     desc: Test prql-compiler's unit tests.
@@ -191,9 +219,14 @@ tasks:
     env:
       RUST_BACKTRACE: 1
     sources:
-      # I don't think we can specify this is a single glob, which would be ideal. Ideally we want to exclude `.snap` files.
+      # I don't think we can specify this is a single glob, which would be nice.
+      # Ideally we want to exclude `.pending-snap` & `.snap.new` files so runs
+      # doesn't cause an infinite loop of other runs (though possibly mitigated
+      # by `--accept` and task not interrupting existing runs, so all files go
+      # to `.snap`s which match the generated output?).
       - "prql-compiler/**/*.rs"
       - "prql-compiler/**/*.pest"
+      - "prql-compiler/**/*.snap"
     cmds:
       - cargo insta test --accept -p prql-compiler --lib
 
@@ -205,9 +238,9 @@ tasks:
       - mkdir -p website/public
       # Copy the book into the website path, using rsync so it only copies new files
       - rsync -ai --checksum --delete book/book/ website/public/book/
-      # Must set `install-links=false` for the playground `npm install` to install prql-js
-      # as the regular dependencie instead of creating a symlink.
-      # Refer to https://github.com/PRQL/prql/pull/1296.
+      # Must set `install-links=false` in the playground's `npm install` to
+      # install prql-js as the regular dependency, instead of creating a
+      # symlink. Refer to https://github.com/PRQL/prql/pull/1296.
       - cd playground && npm install --install-links=false
       - cd playground && npm run build
       - rsync -ai --checksum --delete playground/build/
@@ -236,9 +269,9 @@ tasks:
     desc: Build & serve the playground.
     dir: playground
     cmds:
-      # Must set `install-links=false` for the playground `npm install` to install prql-js
-      # as the regular dependencie instead of creating a symlink.
-      # Refer to https://github.com/PRQL/prql/pull/1296.
+      # Must set `install-links=false` in the playground's `npm install` to
+      # install prql-js as the regular dependency, instead of creating a
+      # symlink. Refer to https://github.com/PRQL/prql/pull/1296.
       - npm install --install-links=false
       - npm start
 #

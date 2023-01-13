@@ -1,5 +1,6 @@
 ---
 title: "Examples"
+layout: article
 ---
 
 ## A simple example
@@ -26,7 +27,7 @@ GROUP BY
   title,
   country
 HAVING
-  COUNT(*) > 200
+  COUNT(*) > 2000
 ORDER BY
   sum_gross_cost,
   country DESC
@@ -69,7 +70,7 @@ group [title, country] (                      # `group` runs a pipeline over eac
   ]
 )
 sort [sum_gross_cost, -country]               # `-country` means descending order.
-filter ct > 200
+filter ct > 2_000
 take 20
 ```
 

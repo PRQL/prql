@@ -1,3 +1,3 @@
-prql sql_dialect:bigquery
-from `project-foo.dataset.table`
-join `project-bar.dataset.table` [==col_bax]
+prql target:sql.postgres
+from employees
+select `first name`
