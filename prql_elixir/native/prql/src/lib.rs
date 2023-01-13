@@ -1,5 +1,4 @@
-use prql_compiler::sql::Dialect as D;
-use rustler::{Atom, NifStruct};
+use rustler::{Atom, NifResult, NifStruct, NifTuple};
 
 mod atoms {
     rustler::atoms! {
@@ -20,7 +19,24 @@ mod atoms {
     }
 }
 
+/// Convert a `Result` from PRQL into a tuple in elixir `{:ok, binary()} | {:error, binary()}`
+fn to_result_tuple(result: Result<String, prql_compiler::ErrorMessages>) -> NifResult<Response> {
+    match result {
+        Ok(sql) => Ok(Response {
+            status: atoms::ok(),
+            result: sql,
+        }),
+        Err(e) => Ok(Response {
+            status: atoms::error(),
+            result: e.to_json(),
+        }),
+    }
+}
+
+/// Get the dialect from an atom. By default `Generic` dialect will be used
 fn dialect_from_atom(a: Atom) -> prql_compiler::sql::Dialect {
+    use prql_compiler::sql::Dialect as D;
+
     if a == atoms::ansi() {
         D::Ansi
     } else if a == atoms::big_query() {
@@ -46,17 +62,18 @@ fn dialect_from_atom(a: Atom) -> prql_compiler::sql::Dialect {
     }
 }
 
-impl From<CompileOptions> for prql_compiler::sql::Dialect {
-    fn from(options: CompileOptions) -> Self {
-        let dialect = options.dialect;
-        match dialect {
-            Some(d) => dialect_from_atom(d),
-            None => D::Generic,
+impl From<CompileOptions> for prql_compiler::sql::Options {
+    /// Get `prql_compiler::sql::Options` options from `CompileOptions`
+    fn from(o: CompileOptions) -> Self {
+        prql_compiler::sql::Options {
+            format: o.format,
+            dialect: Some(dialect_from_atom(o.dialect)),
+            signature_comment: o.signature_comment,
         }
     }
 }
 
-#[derive(Clone, NifStruct)]
+#[derive(Clone, NifStruct, Debug)]
 #[module = "PRQL.Native.CompileOptions"]
 pub struct CompileOptions {
     /// Pass generated SQL string trough a formatter that splits it
@@ -76,7 +93,7 @@ pub struct CompileOptions {
     ///
     /// If None is used, `sql_dialect` flag from query definition is used.
     /// If it does not exist, [Dialect::Generic] is used.
-    pub dialect: Option<Atom>,
+    pub dialect: Atom,
 
     /// Emits the compiler signature as a comment after generated SQL
     ///
@@ -84,7 +101,61 @@ pub struct CompileOptions {
     pub signature_comment: bool,
 }
 
-#[rustler::nif]
-fn compile(prql_query: &str, options: Option<CompileOptions>) {}
+#[derive(NifTuple)]
+pub struct Response {
+    /// status atom `:ok` or `:error`
+    status: Atom,
 
-rustler::init!("Elixir.PRQL", [compile]);
+    /// result string
+    result: String,
+}
+
+#[rustler::nif]
+/// compile a prql query into sql
+pub fn compile(prql_query: &str, options: CompileOptions) -> NifResult<Response> {
+    to_result_tuple(
+        Ok(prql_query)
+            .and_then(prql_compiler::prql_to_pl)
+            .and_then(prql_compiler::pl_to_rq)
+            .and_then(|rq| {
+                prql_compiler::rq_to_sql(rq, Some(options).map(prql_compiler::sql::Options::from))
+            })
+            .map_err(|e| e.composed("", prql_query, false)),
+    )
+}
+
+#[rustler::nif]
+/// convert a prql query into PL AST
+pub fn prql_to_pl(prql_query: &str) -> NifResult<Response> {
+    to_result_tuple(
+        Ok(prql_query)
+            .and_then(prql_compiler::prql_to_pl)
+            .and_then(prql_compiler::json::from_pl),
+    )
+}
+
+#[rustler::nif]
+/// Convert PL AST into RQ
+pub fn pl_to_rq(pl_json: &str) -> NifResult<Response> {
+    to_result_tuple(
+        Ok(pl_json)
+            .and_then(prql_compiler::json::to_pl)
+            .and_then(prql_compiler::pl_to_rq)
+            .and_then(prql_compiler::json::from_rq),
+    )
+}
+
+#[rustler::nif]
+/// Convert RQ to SQL
+pub fn rq_to_sql(rq_json: &str) -> NifResult<Response> {
+    to_result_tuple(
+        Ok(rq_json)
+            .and_then(prql_compiler::json::to_rq)
+            .and_then(|x| prql_compiler::rq_to_sql(x, None)),
+    )
+}
+
+rustler::init!(
+    "Elixir.PRQL.Native",
+    [compile, prql_to_pl, pl_to_rq, rq_to_sql]
+);
