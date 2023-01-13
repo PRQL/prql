@@ -83,6 +83,10 @@ pub trait DialectHandler {
     fn column_exclude(&self) -> Option<ColumnExclude> {
         None
     }
+
+    fn set_ops_distinct(&self) -> bool {
+        true
+    }
 }
 
 impl DialectHandler for GenericDialect {}
@@ -96,6 +100,11 @@ impl DialectHandler for MsSqlDialect {
 impl DialectHandler for MySqlDialect {
     fn ident_quote(&self) -> char {
         '`'
+    }
+
+    fn set_ops_distinct(&self) -> bool {
+        // https://dev.mysql.com/doc/refman/8.0/en/set-operations.html
+        true
     }
 }
 
@@ -116,6 +125,11 @@ impl DialectHandler for BigQueryDialect {
         // https://cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#select_except
         Some(ColumnExclude::Except)
     }
+
+    fn set_ops_distinct(&self) -> bool {
+        // https://cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#set_operators
+        true
+    }
 }
 
 impl DialectHandler for SnowflakeDialect {
@@ -123,11 +137,21 @@ impl DialectHandler for SnowflakeDialect {
         // https://docs.snowflake.com/en/sql-reference/sql/select.html
         Some(ColumnExclude::Exclude)
     }
+
+    fn set_ops_distinct(&self) -> bool {
+        // https://docs.snowflake.com/en/sql-reference/operators-query.html
+        false
+    }
 }
 
 impl DialectHandler for DuckDbDialect {
     fn column_exclude(&self) -> Option<ColumnExclude> {
         // https://duckdb.org/2022/05/04/friendlier-sql.html#select--exclude
         Some(ColumnExclude::Exclude)
+    }
+
+    fn set_ops_distinct(&self) -> bool {
+        // https://duckdb.org/docs/sql/query_syntax/setops.html
+        false
     }
 }
