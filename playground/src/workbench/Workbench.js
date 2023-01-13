@@ -87,6 +87,20 @@ class Workbench extends React.Component {
       return;
     }
 
+    let pl;
+    try {
+      if (sql) {
+        pl = prql.pl_of_prql(value);
+      }
+    } catch (ignored) {}
+
+    let rq;
+    try {
+      if (pl) {
+        rq = prql.rq_of_pl(pl);
+      }
+    } catch (ignored) {}
+
     let arrow;
     const c = await (await this.duckdb).connect();
     try {
@@ -99,7 +113,7 @@ class Workbench extends React.Component {
       c.close();
     }
 
-    const output = { sql, arrow };
+    const output = { sql, arrow, pl, rq };
 
     this.setState({ output });
   }
