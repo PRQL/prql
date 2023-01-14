@@ -62,7 +62,7 @@ expr_mul = { term ~ (operator_mul ~ expr_mul)? }
 
 term = _{ ( switch | s_string | f_string | range | literal | ident | nested_pipeline | expr_unary | list | jinja ) }
 expr_unary = { ( operator_unary ~ ( nested_pipeline | ident | list )) }
-literal = _{ value_and_unit | number | boolean | null | string | timestamp | date | time }
+literal = _{ value_and_unit | number | boolean | null | string | timestamp | date | time | "(" ~ literal ~ ")" }
 // `assign | pipeline` based on discussion in #648
 list = { "[" ~ (NEWLINE* ~ (assign |  pipeline) ~ ("," ~ NEWLINE* ~ (assign | pipeline) )* ~ ","?)? ~ NEWLINE* ~ "]" }
 nested_pipeline = { "(" ~ (WHITESPACE | NEWLINE)* ~ pipeline? ~ (WHITESPACE | NEWLINE)* ~ ")" }
@@ -102,9 +102,6 @@ boolean = ${ "true" | "false" }
 null = ${ "null" }
 
 range = ${ range_edge ~ ".." ~ range_edge }
-// We need `literal` separate from `term_simple` for things like range edges,
-// which would infinitely recurse otherwise, since it'll keep trying to parse
-// the whole span, not just the part before `..`.
 range_edge = ${ literal? }
 
 operator = _{ operator_unary | operator_binary }
