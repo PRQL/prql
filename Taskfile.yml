@@ -119,6 +119,7 @@ tasks:
       - which hugo
       - which npm
       - which python3
+      - which elixir
     preconditions:
       - sh: which brew
         msg: |
@@ -128,7 +129,7 @@ tasks:
           - https://gohugo.io/getting-started/installing/
           - https://docs.npmjs.com/downloading-and-installing-node-js-and-npm
     cmds:
-      - brew install hugo npm python3
+      - brew install hugo npm python3 elixir
 
   install-npm-dependencies:
     cmds:
@@ -252,6 +253,14 @@ tasks:
     cmds:
       - npm run build
       - npm cit
+
+  test-elixir:
+    # These are mostly copied from the tasks in `test-all.yaml`
+    dir: prql-elixir
+    cmds:
+      - mix deps.get
+      - mix compile
+      - mix test
 
   run-web:
     desc: Build & serve the static website.
