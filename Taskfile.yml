@@ -135,7 +135,8 @@ tasks:
   install-npm-dependencies:
     cmds:
       - npm install --location=global prettier prettier-plugin-go-template
-      - cmd: echo "In order to get nice auto-formatting of web code in VSCode,
+      - cmd:
+          echo "In order to get nice auto-formatting of web code in VSCode,
           VSCode requires configuration to use the system-wide install of
           prettier. See
           https://github.com/NiklasPor/prettier-plugin-go-template/issues/58#issuecomment-1085060511
