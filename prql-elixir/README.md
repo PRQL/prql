@@ -35,3 +35,5 @@ rust crate from this repo:
 - Install dependencies with `mix deps.get`
 - Compile project `mix compile`
 - Run tests `mix test`
+
+Future work includes publishing pre-compiled artifacts, so Elixir projects can run PRQL without needing a rust toolchain.
