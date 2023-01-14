@@ -113,15 +113,9 @@ pub struct Response {
 #[rustler::nif]
 /// compile a prql query into sql
 pub fn compile(prql_query: &str, options: CompileOptions) -> NifResult<Response> {
-    to_result_tuple(
-        Ok(prql_query)
-            .and_then(prql_compiler::prql_to_pl)
-            .and_then(prql_compiler::pl_to_rq)
-            .and_then(|rq| {
-                prql_compiler::rq_to_sql(rq, Some(options).map(prql_compiler::sql::Options::from))
-            })
-            .map_err(|e| e.composed("", prql_query, false)),
-    )
+    let opts = prql_compiler::sql::Options::from(options);
+    let result = prql_compiler::compile(prql_query, Some(opts));
+    to_result_tuple(result)
 }
 
 #[rustler::nif]
