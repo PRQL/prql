@@ -442,44 +442,21 @@ fn test_numbers() {
 fn test_ranges() {
     let query = r###"
     from employees
-    filter (age | in 18..40)
+    derive [
+      close = (distance | in 0..100),
+      far = (distance | in 100..),
+      country_founding | in @1776-07-04..@1787-09-17
+    ]
     "###;
 
     assert_display_snapshot!((compile(query).unwrap()), @r###"
     SELECT
-      *
+      *,
+      distance BETWEEN 0 AND 100 AS close,
+      distance >= 100 AS far,
+      country_founding BETWEEN DATE '1776-07-04' AND DATE '1787-09-17'
     FROM
       employees
-    WHERE
-      age BETWEEN 18 AND 40
-    "###);
-
-    let query = r###"
-    from employees
-    filter (age | in ..40)
-    "###;
-
-    assert_display_snapshot!((compile(query).unwrap()), @r###"
-    SELECT
-      *
-    FROM
-      employees
-    WHERE
-      age <= 40
-    "###);
-
-    let query = r###"
-    from events
-    filter (date | in @1776-07-04..@1787-09-17)
-    "###;
-
-    assert_display_snapshot!((compile(query).unwrap()), @r###"
-    SELECT
-      *
-    FROM
-      events
-    WHERE
-      date BETWEEN DATE '1776-07-04' AND DATE '1787-09-17'
     "###);
 }
 
@@ -898,7 +875,7 @@ fn test_nulls() {
 }
 
 #[test]
-fn test_range() {
+fn test_take() {
     assert_display_snapshot!((compile(r###"
     from employees
     take ..10

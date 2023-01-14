@@ -1882,7 +1882,8 @@ join `my-proj`.`dataset`.`table`
     fn test_range() {
         assert_yaml_snapshot!(parse("
         from employees
-        filter (age | between 18..40)
+        filter (distance | in 0..40)
+        filter (distance | in (0)..40)
         derive [
           greater_than_ten = 11..,
           less_than_ten = ..9,
@@ -1912,16 +1913,39 @@ join `my-proj`.`dataset`.`table`
                       - Pipeline:
                           exprs:
                             - Ident:
-                                - age
+                                - distance
                             - FuncCall:
                                 name:
                                   Ident:
-                                    - between
+                                    - in
                                 args:
                                   - Range:
                                       start:
                                         Literal:
-                                          Integer: 18
+                                          Integer: 0
+                                      end:
+                                        Literal:
+                                          Integer: 40
+                                named_args: {}
+                    named_args: {}
+                - FuncCall:
+                    name:
+                      Ident:
+                        - filter
+                    args:
+                      - Pipeline:
+                          exprs:
+                            - Ident:
+                                - distance
+                            - FuncCall:
+                                name:
+                                  Ident:
+                                    - in
+                                args:
+                                  - Range:
+                                      start:
+                                        Literal:
+                                          Integer: 0
                                       end:
                                         Literal:
                                           Integer: 40

@@ -15,6 +15,8 @@ derive [
   # The left value of the range requires parentheses,
   # because of the minus sign
   is_negative = (distance | in (-100..0)),
+  # ...this is equivalent
+  is_negative = (distance | in (-100)..0),
   # Doesn't require parentheses, because it's in a list (confusing, see footnote)!
   average_distance = average distance,
 ]
