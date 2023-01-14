@@ -258,6 +258,8 @@ tasks:
   test-elixir:
     dir: prql-elixir
     cmds:
+      # We could move this line into an `install` task
+      - mix local.hex --force
       - mix deps.get --force
       - mix compile
       - mix test
