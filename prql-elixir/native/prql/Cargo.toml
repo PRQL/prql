@@ -1,6 +1,8 @@
 [package]
 name = "prql"
+description = "Elixir NIF bindings for prql-compiler"
 version = "0.1.0"
+license = "Apache-2.0"
 authors = ["Kasun Vithanage <kasvith.me@gmail.com>"]
 edition = "2018"
 
