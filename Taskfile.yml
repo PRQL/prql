@@ -43,7 +43,6 @@ tasks:
       - task: install-maturin
       - task: install-pre-commit
       - task: install-npm-dependencies
-      - task: install-elixir-dependencies
       # We only suggest, rather than install; we don't want to intrude (maybe
       # we're being too conservative?).
       - task: suggest-vscode-extensions
@@ -141,10 +140,6 @@ tasks:
           https://github.com/NiklasPor/prettier-plugin-go-template/issues/58#issuecomment-1085060511
           for more info."
         silent: true
-
-  install-elixir-dependencies:
-    cmds:
-      - mix deps.get
 
   build-all:
     desc: Build everything.
@@ -262,6 +257,7 @@ tasks:
     # These are mostly copied from the tasks in `test-all.yaml`
     dir: prql-elixir
     cmds:
+      - mix deps.get
       - mix compile
       - mix test
 
