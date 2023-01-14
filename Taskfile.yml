@@ -43,6 +43,7 @@ tasks:
       - task: install-maturin
       - task: install-pre-commit
       - task: install-npm-dependencies
+      - task: install-elixir-dependencies
       # We only suggest, rather than install; we don't want to intrude (maybe
       # we're being too conservative?).
       - task: suggest-vscode-extensions
@@ -119,6 +120,7 @@ tasks:
       - which hugo
       - which npm
       - which python3
+      - which elixir
     preconditions:
       - sh: which brew
         msg: |
@@ -128,18 +130,21 @@ tasks:
           - https://gohugo.io/getting-started/installing/
           - https://docs.npmjs.com/downloading-and-installing-node-js-and-npm
     cmds:
-      - brew install hugo npm python3
+      - brew install hugo npm python3 elixir
 
   install-npm-dependencies:
     cmds:
       - npm install --location=global prettier prettier-plugin-go-template
-      - cmd:
-          echo "In order to get nice auto-formatting of web code in VSCode,
+      - cmd: echo "In order to get nice auto-formatting of web code in VSCode,
           VSCode requires configuration to use the system-wide install of
           prettier. See
           https://github.com/NiklasPor/prettier-plugin-go-template/issues/58#issuecomment-1085060511
           for more info."
         silent: true
+
+  install-elixir-dependencies:
+    cmds:
+      - mix deps.get
 
   build-all:
     desc: Build everything.
@@ -252,6 +257,13 @@ tasks:
     cmds:
       - npm run build
       - npm cit
+
+  test-prql-elixir:
+    # These are mostly copied from the tasks in `test-all.yaml`
+    dir: prql-elixir
+    cmds:
+      - mix compile
+      - mix test
 
   run-web:
     desc: Build & serve the static website.
