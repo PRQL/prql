@@ -29,7 +29,7 @@ walkdir = "2.3.2"
 # Possibly we should just put all dependencies as excluded from wasm? Currently
 # we only put the ones that break the build.
 [target.'cfg(not(target_family="wasm"))'.dependencies]
-clap = {version = "4.0.9", default-features = false}
+clap = {version = "4.1.1", default-features = false}
 mdbook = {version = "0.4.21", default-features = false}
 mdbook-preprocessor-boilerplate = {version = "0.1.1"}
 

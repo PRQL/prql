@@ -44,7 +44,7 @@ strum_macros = "0.24.0"
 # anyway, so they're not required.
 [target.'cfg(not(target_family="wasm"))'.dependencies]
 atty = {version = "0.2.14", optional = true}
-clap = {version = "4.0.9", optional = true, features = ["derive"]}
+clap = {version = "4.1.1", optional = true, features = ["derive"]}
 clio = {version = "0.2.4", features = ['clap-parse'], optional = true}
 color-eyre = {version = "0.6.1", optional = true}
 
