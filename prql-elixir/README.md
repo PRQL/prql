@@ -25,8 +25,8 @@ end
 
 ## Development
 
-We are using `Rustler` to provide rust bindings for `prql-compiler`.
-So you need to install `Rust` toolchain in order to develop this project.
+We are using `Rustler` to provide rust bindings for `prql-compiler`. So you need
+to install `Rust` toolchain in order to develop this project.
 
 - Install dependencies with `mix deps.get`
 - Compile project `mix compile`
