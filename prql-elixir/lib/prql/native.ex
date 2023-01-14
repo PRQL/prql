@@ -21,11 +21,11 @@ defmodule PRQL.Native.CompileOptions do
           | :mysql
           | :postgres
           | :ansi
-          | :big_query
+          | :bigquery
           | :click_house
           | :hive
-          | :sql_lite
-          | :snow_flake
+          | :sqllite
+          | :snowflake
 
   @type t :: %__MODULE__{
           dialect: dialect(),

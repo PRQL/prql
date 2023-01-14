@@ -14,11 +14,11 @@ defmodule PRQL do
           | :mysql
           | :postgres
           | :ansi
-          | :big_query
-          | :click_house
+          | :bigquery
+          | :clickhouse
           | :hive
-          | :sql_lite
-          | :snow_flake
+          | :sqllite
+          | :snowflake
   @type format_opt :: {:format, boolean()}
   @type signature_comment_opt :: {:signature_comment, boolean()}
   @type dialect_opt :: {:dialect, dialect()}
@@ -36,8 +36,8 @@ defmodule PRQL do
   ## Options
 
     * `:dialect` - Dialect used for generate SQL. Accepted values are
-    `:generic`, `:mssql`, `:mysql`, `:postgres`, `:ansi`, `:big_query`,
-    `:click_house`, `:hive`, `:sql_lite`, `:snow_flake`
+    `:generic`, `:mssql`, `:mysql`, `:postgres`, `:ansi`, `:bigquery`,
+    `:clickhouse`, `:hive`, `:sqllite`, `:snowflake`
 
     * `:format` - Formats the output, defaults to `true`
 

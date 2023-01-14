@@ -7,15 +7,15 @@ mod atoms {
 
       // dialects
       ansi,
-      big_query,
-      click_house,
+      bigquery,
+      clickhouse,
       generic,
       hive,
       mssql,
       mysql,
       postgres,
-      sql_lite,
-      snow_flake
+      sqllite,
+      snowflake
     }
 }
 
@@ -39,9 +39,9 @@ fn dialect_from_atom(a: Atom) -> prql_compiler::sql::Dialect {
 
     if a == atoms::ansi() {
         D::Ansi
-    } else if a == atoms::big_query() {
+    } else if a == atoms::bigquery() {
         D::BigQuery
-    } else if a == atoms::click_house() {
+    } else if a == atoms::clickhouse() {
         D::ClickHouse
     } else if a == atoms::generic() {
         D::Generic
@@ -53,9 +53,9 @@ fn dialect_from_atom(a: Atom) -> prql_compiler::sql::Dialect {
         D::MySql
     } else if a == atoms::postgres() {
         D::PostgreSql
-    } else if a == atoms::sql_lite() {
+    } else if a == atoms::sqllite() {
         D::SQLite
-    } else if a == atoms::snow_flake() {
+    } else if a == atoms::snowflake() {
         D::Snowflake
     } else {
         D::Generic
