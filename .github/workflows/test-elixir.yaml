@@ -31,8 +31,11 @@ jobs:
         elixir: ["1.14.2"]
     runs-on: ${{matrix.os}}
     steps:
+      # fix CRLF issue on windows
       - run: |
           git config --global core.autocrlf false
+        working-directory: /
+
       # Step: Check out the code.
       - name: Checkout code
         uses: actions/checkout@v3
