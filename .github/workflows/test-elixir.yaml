@@ -31,19 +31,18 @@ jobs:
         elixir: ["1.14.2"]
     runs-on: ${{matrix.os}}
     steps:
+      - run: |
+          git config --global core.autocrlf false
+      # Step: Check out the code.
+      - name: Checkout code
+        uses: actions/checkout@v3
+
       # Step: Setup Elixir + Erlang image as the base.
       - name: Set up Elixir
         uses: erlef/setup-beam@v1
         with:
           otp-version: ${{matrix.otp}}
           elixir-version: ${{matrix.elixir}}
-
-      - name: Prepare git
-        run: git config --global core.autocrlf false
-
-      # Step: Check out the code.
-      - name: Checkout code
-        uses: actions/checkout@v3
 
       # Step: Define how to cache deps. Restores existing cache if present.
       - name: Cache deps
