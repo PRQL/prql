@@ -25,6 +25,7 @@ jobs:
   test:
     strategy:
       matrix:
+        # TODO: add mac runner when availiable
         os: [ubuntu-latest, windows-latest]
         otp: ["25.1.2"]
         elixir: ["1.14.2"]
