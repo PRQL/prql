@@ -55,7 +55,8 @@ jobs:
           cache-name: cache-elixir-deps
         with:
           path: prql-elixir/deps
-          key: ${{ runner.os }}-mix-${{ env.cache-name }}-${{
+          key:
+            ${{ runner.os }}-mix-${{ env.cache-name }}-${{
             hashFiles('**/mix.lock') }}
           restore-keys: |
             ${{ runner.os }}-mix-${{ env.cache-name }}-
@@ -70,7 +71,8 @@ jobs:
           cache-name: cache-compiled-build
         with:
           path: prql-elixir/_build
-          key: ${{ runner.os }}-mix-${{ env.cache-name }}-${{
+          key:
+            ${{ runner.os }}-mix-${{ env.cache-name }}-${{
             hashFiles('**/mix.lock') }}
           restore-keys: |
             ${{ runner.os }}-mix-${{ env.cache-name }}-
