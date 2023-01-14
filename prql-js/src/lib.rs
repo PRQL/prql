@@ -4,6 +4,12 @@ mod utils;
 
 use wasm_bindgen::prelude::*;
 
+// TODO: these functions could be smaller and automatically inherit
+// `prql-compiler` behavior if we replaced this logic with a call directly to
+// the prql-compiler functions, and these functions just did the JS<>Rust
+// conversions. Ref this discussion re `prql-elixir`
+// https://github.com/PRQL/prql/pull/1500/files#r1070213774
+
 #[wasm_bindgen]
 pub fn compile(prql_query: &str, options: Option<SQLCompileOptions>) -> Option<String> {
     return_or_throw(
