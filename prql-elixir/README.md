@@ -25,12 +25,12 @@ end
 
 ## Development
 
-We are in the early stages of developing Elixir bindings. 
+We are in the early stages of developing Elixir bindings.
 
 We're using `Rustler` to provide rust bindings for `prql-compiler`.
 
-Currently using the bindings in an Elixir project requires compiling the
-rust crate from this repo:
+Currently using the bindings in an Elixir project requires compiling the rust
+crate from this repo:
 
 - Install dependencies with `mix deps.get`
 - Compile project `mix compile`
