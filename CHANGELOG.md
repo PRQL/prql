@@ -98,6 +98,8 @@ The following need updated pages in the documentation:
 
 **Integrations**:
 
+- Added Elixir integration exposing PRQL functions as NIFs (#1500, @kasvith)
+- Exposed Elixir flavor with exceptions (#1513, @kasvith)
 - Rename prql-compiler CLI to prqlc (@aljazerzen #1515)
 
 **Internal changes**:
