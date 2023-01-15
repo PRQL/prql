@@ -122,6 +122,9 @@ defmodule PRQL do
   """
   @spec rq_to_sql!(binary()) :: binary()
   def rq_to_sql!(rq_json) do
-    PRQL.Native.rq_to_sql(rq_json)
+    case rq_to_sql(rq_json) do
+      {:ok, result} -> result
+      {:error, reason} -> raise PRQL.PRQLError, reason
+    end
   end
 end
