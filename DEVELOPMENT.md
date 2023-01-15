@@ -204,8 +204,6 @@ rust library.
 **[prql-lib](./prql-lib/README.md)**: Generates `.a` and `.so` libraries from
 the `prql-compiler` rust library for bindings to other languages
 
-**[prql-macros](./prql-macros/README.md)**: rust macros for PRQL
-
 **[prql-python](./prql-python/README.md)**: Python bindings to the
 `prql-compiler` rust library.
 

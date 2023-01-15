@@ -15,8 +15,9 @@ version.workspace = true
 cli = ["clio", "atty", "clap", "color-eyre"]
 default = ["cli"]
 
-[lib]
-doctest = false
+[[bin]]
+name = "prqlc"
+path = "src/cli.rs"
 
 [dependencies]
 anyhow = {version = "1.0.57", features = ["backtrace"]}
