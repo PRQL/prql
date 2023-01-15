@@ -97,6 +97,9 @@ The following need updated pages in the documentation:
 
 **Integrations**:
 
+- Added Elixir integration exposing PRQL functions as NIFs (#1500, @kasvith)
+- Exposed Elixir flavor with exceptions (#1513, @kasvith)
+
 **Internal changes**:
 
 - Add parsing for negative select (@max-sixty, #1317)
