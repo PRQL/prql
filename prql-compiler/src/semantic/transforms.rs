@@ -738,7 +738,7 @@ pub struct Flattener {
 
     /// Window and group contain Closures in their inner pipelines.
     /// These closures have form similar to this function:
-    /// ```
+    /// ```prql
     /// func closure tbl_chunk -> (derive ... (sort ... (tbl_chunk)))
     /// ```
     /// To flatten a window or group, we need to replace group/window transform

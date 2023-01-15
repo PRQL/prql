@@ -92,6 +92,7 @@ The following need updated pages in the documentation:
   [Select](https://prql-lang.org/book/transforms/select.html)
 - Fix JS example code (@BCsabaEngine, #1432)
 - JS template literal and multiline example (@BCsabaEngine, #1432)
+- Improve prql-compiler docs & examples (@aljazerzen #1515)
 
 **Web**:
 
@@ -99,6 +100,7 @@ The following need updated pages in the documentation:
 
 - Added Elixir integration exposing PRQL functions as NIFs (#1500, @kasvith)
 - Exposed Elixir flavor with exceptions (#1513, @kasvith)
+- Rename prql-compiler CLI to prqlc (@aljazerzen #1515)
 
 **Internal changes**:
 

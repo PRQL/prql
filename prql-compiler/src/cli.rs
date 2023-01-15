@@ -3,19 +3,28 @@ use ariadne::Source;
 use clap::Parser;
 use clio::{Input, Output};
 use itertools::Itertools;
-use std::{
-    io::{Read, Write},
-    ops::Range,
-};
+use std::io::{Read, Write};
+use std::ops::Range;
+use std::process::exit;
 
-use crate::semantic::{self, reporting::*};
+use prql_compiler::semantic::{self, reporting::*};
 
-use crate::parser;
-use crate::{ast::pl::Frame, pl_to_prql};
-use crate::{
-    compile,
-    error::{downcast, Span},
-};
+use prql_compiler::downcast;
+use prql_compiler::{ast::pl::Frame, pl_to_prql};
+use prql_compiler::{compile, prql_to_pl, Span};
+
+fn main() -> color_eyre::eyre::Result<()> {
+    env_logger::builder().format_timestamp(None).init();
+    color_eyre::install()?;
+    let mut cli = Cli::parse();
+
+    if let Err(error) = cli.run() {
+        eprintln!("{error}");
+        exit(1)
+    }
+
+    Ok(())
+}
 
 #[derive(Parser)]
 #[clap(name = env!("CARGO_PKG_NAME"), about, version)]
@@ -74,16 +83,17 @@ impl Cli {
     fn execute(&self, source: &str) -> Result<Vec<u8>> {
         Ok(match self {
             Cli::Parse(_) => {
-                let ast = parser::parse(source)?;
+                let ast = prql_to_pl(source).map_err(|e| anyhow!(e))?;
 
                 serde_yaml::to_string(&ast)?.into_bytes()
             }
-            Cli::Format(_) => parser::parse(source)
-                .and_then(|x| pl_to_prql(x).map_err(|x| anyhow!(x)))?
+            Cli::Format(_) => prql_to_pl(source)
+                .and_then(|x| pl_to_prql(x))
+                .map_err(|x| anyhow!(x))?
                 .as_bytes()
                 .to_vec(),
             Cli::Debug(_) => {
-                let stmts = parser::parse(source)?;
+                let stmts = prql_to_pl(source).map_err(|x| anyhow!(x))?;
                 let (stmts, context) = semantic::resolve_only(stmts, None)?;
 
                 let (references, stmts) =
@@ -97,7 +107,7 @@ impl Cli {
                 .concat()
             }
             Cli::Annotate(_) => {
-                let stmts = parser::parse(source)?;
+                let stmts = prql_to_pl(source).map_err(|x| anyhow!(x))?;
 
                 // resolve
                 let (stmts, _) = semantic::resolve_only(stmts, None)?;
@@ -108,7 +118,7 @@ impl Cli {
                 combine_prql_and_frames(source, frames).as_bytes().to_vec()
             }
             Cli::Resolve(_) => {
-                let ast = parser::parse(source)?;
+                let ast = prql_to_pl(source).map_err(|x| anyhow!(x))?;
                 let ir = semantic::resolve(ast)?;
 
                 serde_json::to_string_pretty(&ir)?.into_bytes()
