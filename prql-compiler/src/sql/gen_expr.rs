@@ -618,7 +618,7 @@ pub(super) fn translate_ident(
                 // So for the moment, we check whether there's a `*` in there,
                 // and if there is, we don't split it up.
                 //
-                // I think probably we should intepret `schema.table` as a
+                // I think probably we should interpret `schema.table` as a
                 // namespace when it's passed to `from` or `join`, but that
                 // requires handling the types in those transforms.
                 parts.push(relation);
