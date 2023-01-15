@@ -345,6 +345,18 @@ derive `from` = 5
       JOIN some_schema.tablename ON "UPPER".id = some_schema.tablename.id
     "###);
 
+    // GH-1493
+    let query = r###"
+    from `dir/*.parquet`
+        # join files=`*.parquet` [==id]
+    "###;
+    assert_display_snapshot!((compile(query).unwrap()), @r###"
+    SELECT
+      *
+    FROM
+      "dir/*.parquet"
+    "###);
+
     // GH-#852
     assert_display_snapshot!((compile(r###"
 prql target:sql.bigquery
