@@ -8,15 +8,12 @@ rust-version = "1.60.0"
 version.workspace = true
 
 [features]
-# We previously had `cli` not compile by default, because of an issue with
-# compiling a dependency with wasm. We no longer exclude it, but there's no need
-# to have it in in order to use it as a lib. We could alternatively put it in a
-# separate crate if that would make things more modular.
 cli = ["clio", "atty", "clap", "color-eyre"]
-default = ["cli"]
 
-[lib]
-doctest = false
+[[bin]]
+name = "prqlc"
+path = "src/cli.rs"
+required-features = ["cli"]
 
 [dependencies]
 anyhow = {version = "1.0.57", features = ["backtrace"]}
@@ -39,10 +36,6 @@ sqlformat = "0.2.0"
 sqlparser = {version = "0.30.0", features = ["serde"]}
 strum = {version = "0.24.0", features = ["std", "derive"]}# for converting enum variants to string
 strum_macros = "0.24.0"
-
-# These bring in `errno`, which fails under wasm. We disable the cli in wasm
-# anyway, so they're not required.
-[target.'cfg(not(target_family="wasm"))'.dependencies]
 atty = {version = "0.2.14", optional = true}
 clap = {version = "4.1.1", optional = true, features = ["derive"]}
 clio = {version = "0.2.4", features = ['clap-parse'], optional = true}

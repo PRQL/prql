@@ -92,10 +92,13 @@ The following need updated pages in the documentation:
   [Select](https://prql-lang.org/book/transforms/select.html)
 - Fix JS example code (@BCsabaEngine, #1432)
 - JS template literal and multiline example (@BCsabaEngine, #1432)
+- Improve prql-compiler docs & examples (@aljazerzen #1515)
 
 **Web**:
 
 **Integrations**:
+
+- Rename prql-compiler CLI to prqlc (@aljazerzen #1515)
 
 **Internal changes**:
 
