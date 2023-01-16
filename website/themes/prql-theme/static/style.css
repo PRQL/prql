@@ -720,13 +720,13 @@ details.faq[open] summary h2:before {
 --------------------------------------------------------------*/
 
 .list h1 {
-    margin-bottom: 2rem;
+  margin-bottom: 2rem;
 }
 
 .list .post-item {
-    padding: 0.75rem 0;
+  padding: 0.75rem 0;
 }
 
-.list .post-item>a {
-    font-family: var(--title-font);
+.list .post-item > a {
+  font-family: var(--title-font);
 }
