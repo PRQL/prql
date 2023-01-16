@@ -1,15 +1,36 @@
 # PRQL Changelog
 
-## 0.4.0 — [unreleased]
+## 0.4.1 — [unreleased]
 
 **Features**:
 
-- S-strings can
-  [produce a full table.](https://prql-lang.org/book/language-features/s-strings.html#prql-3)
-- _Experimental:_ `switch` statement sets a variable to a value based on one of
-  several expressions. No page in the docs yet, but
-  [see this discussion](https://github.com/PRQL/prql/issues/1286#issue-1501645497)
-  and (#1278) for usage and the current syntax. _Note: this syntax may change._
+- Change column name inference to also include relation name.
+
+  ```
+  from albums
+  select title # name used to be inferred as title only
+  select albums.title # so using albums was not possible here
+  ```
+
+- Allow quoted identifiers like `dir/*.parquet` to be passed through
+  (@max-sixty, #1516).
+
+## 0.4.0 — 2022-01-15
+
+0.4.0 brings lots of new features including `switch`, `select ![]` and numbers
+with underscores. We have initial (unpublished) bindings to Elixir. And there's
+the usual improvements to fixes & documentation (only a minority are listed
+below in this release).
+
+0.4.0 also has some breaking changes: `dialect` renaming to `target`, and the
+compiler's API has changed. Full details below.
+
+**Features**:
+
+- _Experimental:_ The
+  [`switch`](https://prql-lang.org/book/language-features/switch.html) function
+  sets a variable to a value based on one of several expressions (@aljazerzen,
+  #1278).
 
   ```prql
   derive var = switch [
