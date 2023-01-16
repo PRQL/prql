@@ -3,14 +3,7 @@ source: book/tests/snapshot.rs
 expression: "from `dir/*.parquet`\n"
 input_file: book/tests/prql/queries/syntax-10.prql
 ---
-from `dir/*.parquet`
-
-
-Error:
-   ╭─[:1:6]
-   │
- 1 │ from `dir/*.parquet`
-   ·      ───────┬───────
-   ·             ╰───────── Unsupported feature: advanced wildcard column matching
-───╯
-
+SELECT
+  *
+FROM
+  "dir/*.parquet"
