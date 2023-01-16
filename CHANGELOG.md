@@ -1,6 +1,14 @@
 # PRQL Changelog
 
-## 0.4.0 — [unreleased]
+## 0.4.0 — 2022-01-15
+
+0.4.0 brings lots of new features including `switch`, `select ![]` and numbers
+with underscores. We have initial (unpublished) bindings to Elixir. And then
+there's the usual improvements to fixes & documentation (only a minority are
+listed below in this release).
+
+0.4.0 also has some breaking changes: `dialect` renaming to `target`, and the
+library's API has changed.
 
 **Features**:
 
@@ -142,14 +150,14 @@
 
 **New contributors**:
 
-- @EArazli made their first contribution in #1359
-- @boramalper made their first contribution in #1362
-- @allurefx made their first contribution in #1377
-- @bcho made their first contribution in #1375
-- @JettChenT made their first contribution in #1385
-- @BlurrechDev made their first contribution in #1411
-- @BCsabaEngine made their first contribution in #1432
-- @kasvith made their first contribution in #1500
+- @EArazli, with #1359
+- @boramalper, with #1362
+- @allurefx, with #1377
+- @bcho, with #1375
+- @JettChenT, with #1385
+- @BlurrechDev, with #1411
+- @BCsabaEngine, with #1432
+- @kasvith, with #1500
 
 ## 0.3.1 - 2022-12-03
 

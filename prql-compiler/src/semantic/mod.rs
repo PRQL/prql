@@ -157,13 +157,13 @@ mod test {
         "### );
 
         assert_yaml_snapshot!(parse_and_resolve(r###"
-        prql target:sql.bigquery version:"0.3"
+        prql target:sql.bigquery version:"0.4"
 
         from employees
         "###).unwrap(), @r###"
         ---
         def:
-          version: ^0.3
+          version: ^0.4
           other:
             target: sql.bigquery
         tables:
