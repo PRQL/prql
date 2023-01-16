@@ -22,10 +22,14 @@ with underscores. We have initial (unpublished) bindings to Elixir. And there's
 the usual improvements to fixes & documentation (only a minority are listed
 below in this release).
 
-0.4.0 also has some breaking changes: `dialect` renaming to `target`, and the
-compiler's API has changed. Full details below.
+0.4.0 also has some breaking changes: `table` is `let`, `dialect` is renamed to
+`target`, and the compiler's API has changed. Full details below.
 
 **Features**:
+
+- Defining a temporary table is now expressed as `let` rather than `table`
+  (@aljazerzen, #1315). See the
+  [tables docs](https://prql-lang.org/book/queries/tables.html) for details.
 
 - _Experimental:_ The
   [`switch`](https://prql-lang.org/book/language-features/switch.html) function
