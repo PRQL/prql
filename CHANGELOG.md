@@ -1,5 +1,17 @@
 # PRQL Changelog
 
+## 0.4.1 — (unreleased)
+
+**Features**:
+
+- Change column name inference to also include relation name.
+
+  ```
+  from albums
+  select title # name used to be inferred as title only
+  select albums.title # so using albums was not possible here
+  ```
+
 ## 0.4.0 — 2022-01-15
 
 0.4.0 brings lots of new features including `switch`, `select ![]` and numbers
