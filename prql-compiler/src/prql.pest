@@ -23,7 +23,7 @@ pipeline_stmt = { pipeline ~ ( NEWLINE+ | &EOI ) }
 // by backticks, the term is taken as-is, including any periods it contains.
 // We allow `e.*`, but not just `*`, since it would conflict with multiply in some cases.
 ident = ${
-    !operator 
+    !operator
     ~ (ident_plain | ident_backticks)
     ~ ("."  ~ (ident_plain | ident_backticks | ident_star))*
 }
