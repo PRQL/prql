@@ -18,7 +18,7 @@ use super::utils::*;
 use crate::error::Span;
 
 #[derive(Parser)]
-#[grammar = "prql.pest"]
+#[grammar = "parser/prql.pest"]
 struct PrqlParser;
 
 pub(crate) type PestError = pest::error::Error<Rule>;
@@ -436,7 +436,7 @@ fn ast_of_interpolate_items(pair: Pair<Rule>) -> Result<Vec<InterpolateItem>> {
 mod test {
 
     use super::*;
-    use insta::{assert_debug_snapshot, assert_yaml_snapshot};
+    use insta::assert_yaml_snapshot;
 
     fn stmts_of_string(string: &str) -> Result<Vec<Stmt>> {
         let pairs = parse_tree_of_str(string, Rule::statements)?;
@@ -490,62 +490,207 @@ mod test {
 
     #[test]
     fn test_parse_pipeline_parse_tree() {
-        assert_debug_snapshot!(parse_tree_of_str(
-            // It's useful to have canonical examples rather than copy-pasting
-            // everything, so we reference the prql file here. But a downside of
-            // this implementation is: if there's an error in extracting the
-            // example from the docs into the file specified here, this test
-            // won't compile. Because `cargo insta test --accept` on the
-            // workspace — which extracts the example — requires compiling this,
-            // we can get stuck.
-            //
-            // Breaking out of that requires running this `cargo insta test
-            // --accept` within `book`, and then running it on the workspace.
-            // `task test-all` does this.
-            //
-            // If we change this, it would great if we can retain having
-            // examples tested in the docs.
-            &include_str!("../../book/tests/prql/examples/variables-0.prql")
-                .trim()
-                // Required for Windows
-                .replace("\r\n", "\n"),
-            Rule::pipeline
+        assert_yaml_snapshot!(stmts_of_parse_pairs(
+            parse_tree_of_str(
+                // It's useful to have canonical examples rather than copy-pasting
+                // everything, so we reference the prql file here. But a downside of
+                // this implementation is: if there's an error in extracting the
+                // example from the docs into the file specified here, this test
+                // won't compile. Because `cargo insta test --accept` on the
+                // workspace — which extracts the example — requires compiling this,
+                // we can get stuck.
+                //
+                // Breaking out of that requires running this `cargo insta test
+                // --accept` within `book`, and then running it on the workspace.
+                // `task test-all` does this.
+                //
+                // If we change this, it would great if we can retain having
+                // examples tested in the docs.
+                &include_str!("../../../book/tests/prql/examples/variables-0.prql")
+                    .trim()
+                    // Required for Windows
+                    .replace("\r\n", "\n"),
+                Rule::statements
+            )
+            .unwrap()
         )
         .unwrap());
     }
+
     #[test]
-    fn test_parse_into_parse_tree() -> Result<()> {
-        assert_debug_snapshot!(parse_tree_of_str(r#"country == "USA""#, Rule::expr)?);
-        assert_debug_snapshot!(parse_tree_of_str("select [a, b, c]", Rule::func_call)?);
-        assert_debug_snapshot!(parse_tree_of_str(
+    fn test_parse_basic_exprs() -> Result<()> {
+        assert_yaml_snapshot!(expr_of_string(r#"country == "USA""#, Rule::expr)?, @r###"
+        ---
+        Binary:
+          left:
+            Ident:
+              - country
+          op: Eq
+          right:
+            Literal:
+              String: USA
+        "###);
+        assert_yaml_snapshot!(expr_of_string("select [a, b, c]", Rule::func_call)?, @r###"
+        ---
+        FuncCall:
+          name:
+            Ident:
+              - select
+          args:
+            - List:
+                - Ident:
+                    - a
+                - Ident:
+                    - b
+                - Ident:
+                    - c
+          named_args: {}
+        "###);
+        assert_yaml_snapshot!(expr_of_string(
             "group [title, country] (
                 aggregate [sum salary]
             )",
             Rule::pipeline
-        )?);
-        assert_debug_snapshot!(parse_tree_of_str(
+        )?, @r###"
+        ---
+        FuncCall:
+          name:
+            Ident:
+              - group
+          args:
+            - List:
+                - Ident:
+                    - title
+                - Ident:
+                    - country
+            - FuncCall:
+                name:
+                  Ident:
+                    - aggregate
+                args:
+                  - List:
+                      - FuncCall:
+                          name:
+                            Ident:
+                              - sum
+                          args:
+                            - Ident:
+                                - salary
+                          named_args: {}
+                named_args: {}
+          named_args: {}
+        "###);
+        assert_yaml_snapshot!(expr_of_string(
             r#"    filter country == "USA""#,
             Rule::pipeline
-        )?);
-        assert_debug_snapshot!(parse_tree_of_str("[a, b, c,]", Rule::list)?);
-        assert_debug_snapshot!(parse_tree_of_str(
+        )?, @r###"
+        ---
+        FuncCall:
+          name:
+            Ident:
+              - filter
+          args:
+            - Binary:
+                left:
+                  Ident:
+                    - country
+                op: Eq
+                right:
+                  Literal:
+                    String: USA
+          named_args: {}
+        "###);
+        assert_yaml_snapshot!(expr_of_string("[a, b, c,]", Rule::list)?, @r###"
+        ---
+        List:
+          - Ident:
+              - a
+          - Ident:
+              - b
+          - Ident:
+              - c
+        "###);
+        assert_yaml_snapshot!(expr_of_string(
             r#"[
   gross_salary = salary + payroll_tax,
   gross_cost   = gross_salary + benefits_cost
 ]"#,
             Rule::list
-        )?);
+        )?, @r###"
+        ---
+        List:
+          - Binary:
+              left:
+                Ident:
+                  - salary
+              op: Add
+              right:
+                Ident:
+                  - payroll_tax
+            alias: gross_salary
+          - Binary:
+              left:
+                Ident:
+                  - gross_salary
+              op: Add
+              right:
+                Ident:
+                  - benefits_cost
+            alias: gross_cost
+        "###);
         // Currently not putting comments in our parse tree, so this is blank.
-        assert_debug_snapshot!(parse_tree_of_str(
+        assert_yaml_snapshot!(stmts_of_string(
             r#"# this is a comment
-        select a"#,
-            Rule::COMMENT
-        )?, @"[]");
-        assert_debug_snapshot!(parse_tree_of_str(
+        select a"#
+        )?, @r###"
+        ---
+        - Main:
+            FuncCall:
+              name:
+                Ident:
+                  - select
+              args:
+                - Ident:
+                    - a
+              named_args: {}
+        "###);
+        assert_yaml_snapshot!(expr_of_string(
             "join side:left country [id==employee_id]",
             Rule::func_call
-        )?);
-        assert_debug_snapshot!(parse_tree_of_str("1  + 2", Rule::expr)?);
+        )?, @r###"
+        ---
+        FuncCall:
+          name:
+            Ident:
+              - join
+          args:
+            - Ident:
+                - country
+            - List:
+                - Binary:
+                    left:
+                      Ident:
+                        - id
+                    op: Eq
+                    right:
+                      Ident:
+                        - employee_id
+          named_args:
+            side:
+              Ident:
+                - left
+        "###);
+        assert_yaml_snapshot!(expr_of_string("1  + 2", Rule::expr)?, @r###"
+        ---
+        Binary:
+          left:
+            Literal:
+              Integer: 1
+          op: Add
+          right:
+            Literal:
+              Integer: 2
+        "###);
         Ok(())
     }
 
@@ -1162,36 +1307,6 @@ Canada
                   - tax_rate
         alias: gross_salary
         "###);
-        Ok(())
-    }
-
-    #[test]
-    fn test_parse_query() -> Result<()> {
-        assert_yaml_snapshot!(stmts_of_string(
-            r#"
-from employees
-filter country == "USA"                        # Each line transforms the previous result.
-derive [                                      # This adds columns / variables.
-  gross_salary = salary + payroll_tax,
-  gross_cost =   gross_salary + benefits_cost # Variables can use other variables.
-]
-filter gross_cost > 0
-group [title, country] (
-aggregate [               # `by` are the columns to group by.
-                   average salary,            # These are aggregation calcs run on each group.
-                   sum salary,
-                   average gross_salary,
-                   sum gross_salary,
-                   average gross_cost,
-  sum_gross_cost = sum gross_cost,
-  ct             = count,
-] )
-sort sum_gross_cost
-filter ct > 200
-take 20
-    "#
-            .trim()
-        )?);
         Ok(())
     }
 
