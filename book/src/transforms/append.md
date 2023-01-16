@@ -1,4 +1,4 @@
-# Append & set operators
+# Append
 
 ```admonish note
 `append`, `union`, `difference` and `intersection` are currently experimental
