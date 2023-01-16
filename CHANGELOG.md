@@ -1,6 +1,6 @@
 # PRQL Changelog
 
-## 0.4.0 — [unreleased]
+## 0.4.0 — 2022-01-15
 
 **Features**:
 
