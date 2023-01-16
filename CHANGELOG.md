@@ -37,6 +37,14 @@
   [`switch` docs](https://prql-lang.org/book/language-features/switch.html) for
   more details.
 
+- _Experimental:_ Columns can be excluded by name with `select` (@aljazerzen,
+  #1329)
+
+  ```prql
+  from albums
+  select ![title, composer]
+  ```
+
 - _Experimental:_ `append` transform, equivalent to `UNION ALL` in SQL.
   (@aljazerzen, #894)
 
@@ -48,14 +56,6 @@
   Check out the
   [`append` docs](https://prql-lang.org/book/transforms/append.html) for more
   details.
-
-- _Experimental:_ Columns can be excluded by name with `select` (@aljazerzen,
-  #1329)
-
-  ```prql
-  from albums
-  select ![title, composer]
-  ```
 
 - Numbers can contain underscores, which can make reading long numbers easier
   (@max-sixty, #1467):
@@ -95,11 +95,18 @@
   """
   ```
 
-- Ranges supplied to `in` can now be half-open (@aljazerzen, #1330).
+- Ranges supplied to `in` can be half-open (@aljazerzen, #1330).
+
+- The crate's external API has changed to allow for compiling to intermediate
+  representation. This also affects bindings. See
+  [`prql_compiler` docs](https://docs.rs/prql-compiler/latest/prql_compiler/)
+  for more details.
 
 **Fixes**:
 
 - Allow interpolations in table s-strings (@aljazerzen, #1337)
+
+[not all documentation changes are included here]
 
 **Documentation**:
 
@@ -107,7 +114,8 @@
   [Select](https://prql-lang.org/book/transforms/select.html)
 - Add JS template literal and multiline example (@BCsabaEngine, #1432)
 - JS template literal and multiline example (@BCsabaEngine, #1432)
-- Improve prql-compiler docs & examples (@aljazerzen #1515)
+- Improve prql-compiler docs & examples (@aljazerzen, #1515)
+- Fix string highlighting in book (@max-sixty, #1264)
 
 [not all documentation changes are included here]
 
@@ -127,6 +135,8 @@
 - Add parsing for negative select (@max-sixty, #1317)
 - Allow for additional builtin functions (@aljazerzen, #1325)
 - Add an automated check for typos (@max-sixty, #1421)
+- Add tasks for running playground & book (@max-sixty, #1265)
+- Add tasks for running tests on every file change (@max-sixty, #1380)
 
 [not all internal changes are included here]
 

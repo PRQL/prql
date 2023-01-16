@@ -367,7 +367,9 @@ raise an issue.
 
 Currently we release in a semi-automated way:
 
-1. PR & merge an updated [Changelog](CHANGELOG.md).
+1. PR & merge an updated [Changelog](CHANGELOG.md). GitHub will produce a draft
+   version at <https://github.com/PRQL/prql/releases/new>, including "New
+   Contributors".
 2. Run `cargo release version patch && cargo release replace` to bump the
    versions, then PR the resulting commit.
 3. After merging, go to
@@ -380,7 +382,7 @@ Currently we release in a semi-automated way:
 5. Add in the sections for a new Changelog:
 
    ```md
-   ## 0.3.X — [unreleased]
+   ## 0.4.X — [unreleased]
 
    **Features**:
 
@@ -393,6 +395,8 @@ Currently we release in a semi-automated way:
    **Integrations**:
 
    **Internal changes**:
+
+   **New Contributors**:
    ```
 
 We may make this more automated in future; e.g. automatic changelog creation.
