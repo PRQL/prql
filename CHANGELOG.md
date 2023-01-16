@@ -3,12 +3,12 @@
 ## 0.4.0 — 2022-01-15
 
 0.4.0 brings lots of new features including `switch`, `select ![]` and numbers
-with underscores. We have initial (unpublished) bindings to Elixir. And then
-there's the usual improvements to fixes & documentation (only a minority are
-listed below in this release).
+with underscores. We have initial (unpublished) bindings to Elixir. And there's
+the usual improvements to fixes & documentation (only a minority are listed
+below in this release).
 
 0.4.0 also has some breaking changes: `dialect` renaming to `target`, and the
-library's API has changed.
+compiler's API has changed. Full details below.
 
 **Features**:
 
