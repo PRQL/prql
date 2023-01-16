@@ -170,11 +170,12 @@ tasks:
       Running this isn't required when developing; it's for caching or as a reference.
 
     cmds:
-      # TODO: this doesn't run the python or js tests; only the rust tests of
-      # prql-python. We should add them in here. They are run in `test-all.yaml`
-      # on GHA.
+      # TODO: this doesn't run the python tests. We should add them in here.
+      # They are run in `test-all.yaml` on GHA.
       - task: test-rust
       - task: build-all
+      - task: test-js
+      - task: test-elixir
       - pre-commit run -a
 
   test-rust:
@@ -247,7 +248,7 @@ tasks:
       - rsync -ai --checksum --delete playground/build/
         website/public/playground/
 
-  test-prql-js:
+  test-js:
     # These are mostly copied from the tasks in `test-all.yaml`
     dir: prql-js
     cmds:
@@ -255,10 +256,11 @@ tasks:
       - npm cit
 
   test-elixir:
-    # These are mostly copied from the tasks in `test-all.yaml`
     dir: prql-elixir
     cmds:
-      - mix deps.get
+      # We could move this line into an `install` task
+      - mix local.hex --force
+      - mix deps.get --force
       - mix compile
       - mix test
 
