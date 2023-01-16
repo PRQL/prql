@@ -614,7 +614,7 @@ impl Frame {
 
         let alias = expr.alias.as_ref();
         let name = alias
-            .map(|a| Ident::from_name(a))
+            .map(Ident::from_name)
             .or_else(|| expr.kind.as_ident().and_then(|i| i.clone().pop_front().1));
 
         // remove names from columns with the same name
