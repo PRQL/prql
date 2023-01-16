@@ -6,7 +6,7 @@
 
 - Change column name inference to also include relation name.
 
-  ```
+  ```prql
   from albums
   select title # name used to be inferred as title only
   select albums.title # so using albums was not possible here
@@ -14,6 +14,18 @@
 
 - Allow quoted identifiers like `dir/*.parquet` to be passed through
   (@max-sixty, #1516).
+
+**Fixes**:
+
+**Documentation**:
+
+**Web**:
+
+**Integrations**:
+
+**Internal changes**:
+
+**New Contributors**:
 
 ## 0.4.0 — 2022-01-15
 
