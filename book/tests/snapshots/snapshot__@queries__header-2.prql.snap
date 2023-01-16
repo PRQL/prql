@@ -1,7 +1,7 @@
 ---
 source: book/tests/snapshot.rs
 expression: "prql version:\"0.3\"\n\nfrom employees\n"
-input_file: book/tests/prql/queries/dialect-and-version-2.prql
+input_file: book/tests/prql/queries/header-2.prql
 ---
 SELECT
   *
