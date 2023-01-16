@@ -8,7 +8,7 @@
   - [Functions](./queries/functions.md)
   - [Tables](./queries/tables.md)
   - [Syntax](./queries/syntax.md)
-  - [Dialect & version](./queries/dialect-and-version.md)
+  - [Header: target & version](./queries/header.md)
 - [Transforms](./transforms.md)
   - [Aggregate](./transforms/aggregate.md)
   - [Append](./transforms/append.md)
