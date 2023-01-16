@@ -23,7 +23,7 @@ pipeline_stmt = { pipeline ~ ( NEWLINE+ | &EOI ) }
 // by backticks, the term is taken as-is, including any periods it contains.
 // We allow `e.*`, but not just `*`, since it would conflict with multiply in some cases.
 ident = ${
-    !operator ~ !(keyword ~ WHITESPACE)
+    !operator 
     ~ (ident_plain | ident_backticks)
     ~ ("."  ~ (ident_plain | ident_backticks | ident_star))*
 }
@@ -34,9 +34,6 @@ ident_plain = { ((ASCII_ALPHA | "$" | "_") ~ (ASCII_ALPHANUMERIC | "_" )* ) }
 ident_backticks = _{ PUSH("`") ~ (!NEWLINE ~ string_inner)* ~ POP }
 // This is split out so we can make `ident_part_next` silent, but still capture it.
 ident_star = { "*" }
-
-keyword = _{ "prql" | "table" | "func" }
-
 
 pipe = _{ NEWLINE+ | "|" }
 pipeline = { WHITESPACE* ~ expr_call ~ (pipe ~ expr_call)* }
