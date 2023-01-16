@@ -136,9 +136,11 @@ change!
 
 ### Commits
 
-- If a change is user-facing, it would be helpful to add a line in
+- If a change is user-facing, please add a line in
   [**`CHANGELOG.md`**](CHANGELOG.md), with `{message}, ({@contributor, #X})`
   where `X` is the PR number.
+  - If there's a missing entry, a follow-up PR containing just the changelog
+    entry is welcome.
 - We're experimenting with using the
   [Conventional Commits](https://www.conventionalcommits.org) message format,
   enforced through
@@ -373,9 +375,9 @@ Currently we release in a semi-automated way:
 2. Run `cargo release version patch -x && cargo release replace -x` to bump the
    versions, then PR the resulting commit.
 3. After merging, go to
-   [Draft a new release](https://github.com/PRQL/prql/releases/new), copy the
-   changelog entry into the release notes, enter the tag to be created, and hit
-   "Publish".
+   [Draft a new release](https://github.com/PRQL/prql/releases/new)[^perms],
+   copy the changelog entry into the release description[^wrap], enter the tag
+   to be created, and hit "Publish".
 4. From there, both the tag and release is created and all packages are
    published automatically based on our
    [release workflow](.github/workflows/release.yaml).
@@ -400,3 +402,10 @@ Currently we release in a semi-automated way:
    ```
 
 We may make this more automated in future; e.g. automatic changelog creation.
+
+[^wrap]:
+    Unfortunately GitHub's markdown parser interprets linebreaks as newlines. I
+    haven't found a better way of editing the markdown to look reasonable than
+    manually editing the text.
+
+[^perms]: Only maintainers have access to this page.
