@@ -33,18 +33,27 @@
     bar
   ```
 
-- _Experimental:_ `append` & `union` transforms. (@aljazerzen, #894)
+  Check out the
+  [`switch` docs](https://prql-lang.org/book/language-features/switch.html) for
+  more details.
+
+- _Experimental:_ `append` transform, equivalent to `UNION ALL` in SQL.
+  (@aljazerzen, #894)
 
   ```prql
   from employees
   append managers
-  union other_employees
   ```
 
-- _Experimental:_ Excluding columns (@aljazerzen, #1329)
+  Check out the
+  [`append` docs](https://prql-lang.org/book/transforms/append.html) for more
+  details.
+
+- _Experimental:_ Columns can be excluded by name with `select` (@aljazerzen,
+  #1329)
 
   ```prql
-  from employees
+  from albums
   select ![title, composer]
   ```
 
@@ -61,9 +70,6 @@
 
 - The SQL output contains a comment with the PRQL compiler version (@aljazerzen,
   #1322)
-- The playground allows querying some sample data. As before, the result updates
-  on every keystroke. (@aljazerzen, #1305)
-
 - `dialect` is renamed to `target`, and its values are prefixed with `sql.`
   (@max-sixty, #1388); for example:
 
@@ -103,19 +109,37 @@
 - JS template literal and multiline example (@BCsabaEngine, #1432)
 - Improve prql-compiler docs & examples (@aljazerzen #1515)
 
+[not all documentation changes are included here]
+
 **Web**:
+
+- The playground allows querying some sample data. As before, the result updates
+  on every keystroke. (@aljazerzen, #1305)
 
 **Integrations**:
 
 - Added Elixir integration exposing PRQL functions as NIFs (#1500, @kasvith)
 - Exposed Elixir flavor with exceptions (#1513, @kasvith)
-- Rename prql-compiler binary to prqlc (@aljazerzen #1515)
+- Rename `prql-compiler` binary to `prqlc` (@aljazerzen #1515)
 
 **Internal changes**:
 
 - Add parsing for negative select (@max-sixty, #1317)
 - Allow for additional builtin functions (@aljazerzen, #1325)
 - Add an automated check for typos (@max-sixty, #1421)
+
+[not all internal changes are included here]
+
+**New contributors**:
+
+- @EArazli made their first contribution in #1359
+- @boramalper made their first contribution in #1362
+- @allurefx made their first contribution in #1377
+- @bcho made their first contribution in #1375
+- @JettChenT made their first contribution in #1385
+- @BlurrechDev made their first contribution in #1411
+- @BCsabaEngine made their first contribution in #1432
+- @kasvith made their first contribution in #1500
 
 ## 0.3.1 - 2022-12-03
 
