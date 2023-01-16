@@ -112,11 +112,14 @@ library's API has changed.
 
 **Fixes**:
 
+[This release, the changelog only contains a subset of fixes]
+
 - Allow interpolations in table s-strings (@aljazerzen, #1337)
 
-[not all documentation changes are included here]
-
 **Documentation**:
+
+[This release, the changelog only contains a subset of documentation
+improvements]
 
 - Add docs on aliases in
   [Select](https://prql-lang.org/book/transforms/select.html)
@@ -125,8 +128,6 @@ library's API has changed.
 - Improve prql-compiler docs & examples (@aljazerzen, #1515)
 - Fix string highlighting in book (@max-sixty, #1264)
 
-[not all documentation changes are included here]
-
 **Web**:
 
 - The playground allows querying some sample data. As before, the result updates
@@ -134,19 +135,21 @@ library's API has changed.
 
 **Integrations**:
 
+[This release, the changelog only contains a subset of integration improvements]
+
 - Added Elixir integration exposing PRQL functions as NIFs (#1500, @kasvith)
 - Exposed Elixir flavor with exceptions (#1513, @kasvith)
 - Rename `prql-compiler` binary to `prqlc` (@aljazerzen #1515)
 
 **Internal changes**:
 
+[This release, the changelog only contains a subset of internal changes]
+
 - Add parsing for negative select (@max-sixty, #1317)
 - Allow for additional builtin functions (@aljazerzen, #1325)
 - Add an automated check for typos (@max-sixty, #1421)
 - Add tasks for running playground & book (@max-sixty, #1265)
 - Add tasks for running tests on every file change (@max-sixty, #1380)
-
-[not all internal changes are included here]
 
 **New contributors**:
 
