@@ -2,6 +2,8 @@
 //! of pest pairs into a tree of AST Items. It has a small function to call into
 //! pest to get the parse tree / concrete syntax tree, and then a large
 //! function for turning that into PRQL AST.
+mod chumsky;
+
 use std::collections::HashMap;
 use std::str::FromStr;
 
@@ -165,13 +167,14 @@ fn expr_of_parse_pair(pair: Pair<Rule>) -> Result<Expr> {
 
             let op = pairs.next().unwrap();
 
-            let a = expr_of_parse_pair(pairs.next().unwrap())?;
-            match UnOp::from_str(op.as_str()) {
-                Ok(op) => ExprKind::Unary {
+            let expr = expr_of_parse_pair(pairs.next().unwrap())?;
+            let op = UnOp::from_str(op.as_str()).unwrap();
+            match op {
+                UnOp::Add => expr.kind,
+                _ => ExprKind::Unary {
                     op,
-                    expr: Box::new(a),
+                    expr: Box::new(expr),
                 },
-                Err(_) => a.kind, // `+column` is the same as `column`
             }
         }
 
@@ -235,14 +238,10 @@ fn expr_of_parse_pair(pair: Pair<Rule>) -> Result<Expr> {
             ExprKind::Ident(Ident::from_name(inner))
         }
         Rule::ident => {
-            let inner = pair.clone().into_inner();
-            let mut parts = inner
-                .into_iter()
-                .map(|x| x.as_str().to_string())
-                .collect::<Vec<String>>();
-            let name = parts.pop().unwrap();
+            // Pest has already parsed, so Chumsky should never fail
+            let ident = ::chumsky::Parser::parse(&chumsky::ident(), pair.as_str()).unwrap();
 
-            ExprKind::Ident(Ident { path: parts, name })
+            ExprKind::Ident(ident)
         }
 
         Rule::number => {
