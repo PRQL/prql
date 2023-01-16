@@ -1738,8 +1738,9 @@ select [
     #[test]
     fn test_parse_backticks() -> Result<()> {
         let prql = "
-from `a.b`
+from `a/*.parquet`
 aggregate [max c]
+join `schema.table` [==id]
 join `my-proj.dataset.table`
 join `my-proj`.`dataset`.`table`
 ";
@@ -1755,7 +1756,7 @@ join `my-proj`.`dataset`.`table`
                         - from
                     args:
                       - Ident:
-                          - a.b
+                          - a/*.parquet
                     named_args: {}
                 - FuncCall:
                     name:
@@ -1771,6 +1772,20 @@ join `my-proj`.`dataset`.`table`
                                 - Ident:
                                     - c
                               named_args: {}
+                    named_args: {}
+                - FuncCall:
+                    name:
+                      Ident:
+                        - join
+                    args:
+                      - Ident:
+                          - schema.table
+                      - List:
+                          - Unary:
+                              op: EqSelf
+                              expr:
+                                Ident:
+                                  - id
                     named_args: {}
                 - FuncCall:
                     name:

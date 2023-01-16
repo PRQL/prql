@@ -149,7 +149,16 @@ impl Context {
 
     pub fn resolve_ident(&mut self, ident: &Ident) -> Result<Ident, String> {
         // special case: wildcard
-        if ident.name.contains('*') {
+        if ident.name == "*" {
+            // TODO: we may want to raise an error if someone has passed `download*` in
+            // an attempt to query for all `download` columns and expects to be able
+            // to select a `download_2020_01_01` column later in the query. But
+            // sometimes we want to query for `*.parquet` files, and give them an
+            // alias. So we don't raise an error here, but if there's a way of
+            // differentiating the cases, we can implement that.
+            // if ident.name != "*" {
+            //     return Err("Unsupported feature: advanced wildcard column matching".to_string());
+            // }
             return self.resolve_ident_wildcard(ident);
         }
 
@@ -233,10 +242,6 @@ impl Context {
     }
 
     fn resolve_ident_wildcard(&mut self, ident: &Ident) -> Result<Ident, String> {
-        if ident.name != "*" {
-            return Err("Unsupported feature: advanced wildcard column matching".to_string());
-        }
-
         let (mod_ident, mod_decl) = {
             if ident.path.len() > 1 {
                 let mod_ident = ident.clone().pop().unwrap();

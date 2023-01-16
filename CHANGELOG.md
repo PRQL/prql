@@ -12,6 +12,9 @@
   select albums.title # so using albums was not possible here
   ```
 
+- Allow quoted identifiers like `dir/*.parquet` to be passed through
+  (@max-sixty, #1516).
+
 ## 0.4.0 — 2022-01-15
 
 0.4.0 brings lots of new features including `switch`, `select ![]` and numbers
