@@ -370,7 +370,7 @@ Currently we release in a semi-automated way:
 1. PR & merge an updated [Changelog](CHANGELOG.md). GitHub will produce a draft
    version at <https://github.com/PRQL/prql/releases/new>, including "New
    Contributors".
-2. Run `cargo release version patch && cargo release replace` to bump the
+2. Run `cargo release version patch -x && cargo release replace -x` to bump the
    versions, then PR the resulting commit.
 3. After merging, go to
    [Draft a new release](https://github.com/PRQL/prql/releases/new), copy the
