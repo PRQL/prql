@@ -6,10 +6,12 @@ Table:
   columns:
     - Single:
         name:
+          - e
           - emp_no
         expr_id: 17
     - Single:
         name:
+          - e
           - gender
         expr_id: 18
     - Single:
