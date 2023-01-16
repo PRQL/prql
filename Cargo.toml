@@ -1,6 +1,7 @@
 [workspace]
 members = [
   "prql-compiler",
+  "prql-compiler/examples/compile-files",
   "prql-compiler/prql-compiler-macros",
   "prql-java",
   "prql-lib",
@@ -17,7 +18,7 @@ members = [
 opt-level = "s"
 
 [workspace.package]
-version = "0.3.1"
+version = "0.4.0"
 
 [workspace.metadata.release]
 consolidate-commits = true

@@ -167,7 +167,6 @@ pre ::-webkit-scrollbar-thumb:hover {
 #header a:not(.btn-icon) {
   color: var(--main-color);
   transition: 0.2s;
-  text-decoration: none;
 }
 
 #header a:hover,
@@ -205,7 +204,6 @@ pre ::-webkit-scrollbar-thumb:hover {
   align-items: center;
   justify-content: space-between;
   padding: 10px 0 3px 30px;
-  font-family: var(--title-font);
   font-size: 18px;
   white-space: nowrap;
 }
@@ -702,6 +700,7 @@ details.faq[open] summary h2:before {
 /*--------------------------------------------------------------
 # Table of contents
 --------------------------------------------------------------*/
+
 .toc > * {
   position: fixed;
   padding: 4rem 0;
@@ -714,4 +713,20 @@ details.faq[open] summary h2:before {
 
 .toc ul li ul {
   display: none;
+}
+
+/*--------------------------------------------------------------
+# List
+--------------------------------------------------------------*/
+
+.list h1 {
+  margin-bottom: 2rem;
+}
+
+.list .post-item {
+  padding: 0.75rem 0;
+}
+
+.list .post-item > a {
+  font-family: var(--title-font);
 }

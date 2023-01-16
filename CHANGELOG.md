@@ -1,6 +1,6 @@
 # PRQL Changelog
 
-## 0.4.1 — [unreleased]
+## 0.4.1 — (unreleased)
 
 **Features**:
 
@@ -41,23 +41,47 @@ compiler's API has changed. Full details below.
   ]
   ```
 
-- _Experimental:_ `append` & `union` transforms. (@aljazerzen, #894)
+  ...compiles to:
+
+  ```sql
+  SELECT
+    *,
+    CASE
+      WHEN score <= 10 THEN 'low'
+      WHEN score <= 30 THEN 'medium'
+      WHEN score <= 70 THEN 'high'
+      ELSE 'very high'
+    END AS var
+  FROM
+    bar
+  ```
+
+  Check out the
+  [`switch` docs](https://prql-lang.org/book/language-features/switch.html) for
+  more details.
+
+- _Experimental:_ Columns can be excluded by name with `select` (@aljazerzen,
+  #1329)
+
+  ```prql
+  from albums
+  select ![title, composer]
+  ```
+
+- _Experimental:_ `append` transform, equivalent to `UNION ALL` in SQL.
+  (@aljazerzen, #894)
 
   ```prql
   from employees
   append managers
-  union other_employees
   ```
 
-- _Experimental:_ Excluding columns (@aljazerzen, #1329)
+  Check out the
+  [`append` docs](https://prql-lang.org/book/transforms/append.html) for more
+  details.
 
-  ```prql
-  from employees
-  select ![title, composer]
-  ```
-
-- Numbers can now contain underscores, which can make reading long numbers
-  easier (@max-sixty, #1467):
+- Numbers can contain underscores, which can make reading long numbers easier
+  (@max-sixty, #1467):
 
   ```prql
   from numbers
@@ -67,11 +91,8 @@ compiler's API has changed. Full details below.
   ]
   ```
 
-- Add SQL comment which displays the compiler version used to generate the SQL
-  (@aljazerzen, #1322)
-- The playground now allows querying some sample data. As before, the result
-  updates on every keystroke. (@aljazerzen, #1305)
-
+- The SQL output contains a comment with the PRQL compiler version (@aljazerzen,
+  #1322)
 - `dialect` is renamed to `target`, and its values are prefixed with `sql.`
   (@max-sixty, #1388); for example:
 
@@ -97,37 +118,64 @@ compiler's API has changed. Full details below.
   """
   ```
 
-- Ranges supplied to `in` can now be half-open (@aljazerzen, #1330).
+- Ranges supplied to `in` can be half-open (@aljazerzen, #1330).
 
-The following need updated pages in the documentation:
-
-- Allow function calls & pipelines in list items (@max-sixty, #1318)
+- The crate's external API has changed to allow for compiling to intermediate
+  representation. This also affects bindings. See
+  [`prql_compiler` docs](https://docs.rs/prql-compiler/latest/prql_compiler/)
+  for more details.
 
 **Fixes**:
+
+[This release, the changelog only contains a subset of fixes]
 
 - Allow interpolations in table s-strings (@aljazerzen, #1337)
 
 **Documentation**:
 
+[This release, the changelog only contains a subset of documentation
+improvements]
+
 - Add docs on aliases in
   [Select](https://prql-lang.org/book/transforms/select.html)
-- Fix JS example code (@BCsabaEngine, #1432)
+- Add JS template literal and multiline example (@BCsabaEngine, #1432)
 - JS template literal and multiline example (@BCsabaEngine, #1432)
-- Improve prql-compiler docs & examples (@aljazerzen #1515)
+- Improve prql-compiler docs & examples (@aljazerzen, #1515)
+- Fix string highlighting in book (@max-sixty, #1264)
 
 **Web**:
 
+- The playground allows querying some sample data. As before, the result updates
+  on every keystroke. (@aljazerzen, #1305)
+
 **Integrations**:
+
+[This release, the changelog only contains a subset of integration improvements]
 
 - Added Elixir integration exposing PRQL functions as NIFs (#1500, @kasvith)
 - Exposed Elixir flavor with exceptions (#1513, @kasvith)
-- Rename prql-compiler CLI to prqlc (@aljazerzen #1515)
+- Rename `prql-compiler` binary to `prqlc` (@aljazerzen #1515)
 
 **Internal changes**:
+
+[This release, the changelog only contains a subset of internal changes]
 
 - Add parsing for negative select (@max-sixty, #1317)
 - Allow for additional builtin functions (@aljazerzen, #1325)
 - Add an automated check for typos (@max-sixty, #1421)
+- Add tasks for running playground & book (@max-sixty, #1265)
+- Add tasks for running tests on every file change (@max-sixty, #1380)
+
+**New contributors**:
+
+- @EArazli, with #1359
+- @boramalper, with #1362
+- @allurefx, with #1377
+- @bcho, with #1375
+- @JettChenT, with #1385
+- @BlurrechDev, with #1411
+- @BCsabaEngine, with #1432
+- @kasvith, with #1500
 
 ## 0.3.1 - 2022-12-03
 

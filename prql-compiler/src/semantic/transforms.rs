@@ -612,26 +612,23 @@ impl Frame {
 
         let id = expr.id.unwrap();
 
-        let col_name = expr
-            .alias
-            .clone()
-            .or_else(|| expr.kind.as_ident().cloned().map(|x| x.name));
+        let alias = expr.alias.as_ref();
+        let name = alias
+            .map(Ident::from_name)
+            .or_else(|| expr.kind.as_ident().and_then(|i| i.clone().pop_front().1));
 
         // remove names from columns with the same name
-        if col_name.is_some() {
+        if name.is_some() {
             for c in &mut self.columns {
-                if let FrameColumn::Single { name, .. } = c {
-                    if name.as_ref().map(|i| &i.name) == col_name.as_ref() {
-                        *name = None;
+                if let FrameColumn::Single { name: n, .. } = c {
+                    if n.as_ref().map(|i| &i.name) == name.as_ref().map(|i| &i.name) {
+                        *n = None;
                     }
                 }
             }
         }
 
-        self.columns.push(FrameColumn::Single {
-            name: col_name.map(Ident::from_name),
-            expr_id: id,
-        });
+        self.columns.push(FrameColumn::Single { name, expr_id: id });
     }
 
     pub fn apply_assigns(&mut self, assigns: &[Expr], context: &Context) {
@@ -1021,6 +1018,7 @@ mod tests {
                 columns:
                   - Single:
                       name:
+                        - c_invoice
                         - date
                       expr_id: 8
                   - Single:

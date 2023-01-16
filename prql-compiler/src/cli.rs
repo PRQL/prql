@@ -29,22 +29,23 @@ fn main() -> color_eyre::eyre::Result<()> {
 #[derive(Parser)]
 #[clap(name = env!("CARGO_PKG_NAME"), about, version)]
 pub enum Cli {
-    /// Produces abstract syntax tree
+    /// Parse PL AST
     Parse(CommandIO),
 
-    /// Formats PRQL code
+    /// Parse & generate PRQL code back
     #[clap(name = "fmt")]
     Format(CommandIO),
 
-    /// Adds comments annotating current table layout
+    /// Parse, resolve & combine source with comments annotating relation type
     Annotate(CommandIO),
 
+    /// Parse & resolve, but don't lower into RQ
     Debug(CommandIO),
 
-    /// Produces intermediate representation of the query
+    /// Parse, resolve & lower into RQ
     Resolve(CommandIO),
 
-    /// Transpiles to SQL
+    /// Parse, resolve, lower into RQ & compile to SQL
     Compile(CommandIO),
 }
 

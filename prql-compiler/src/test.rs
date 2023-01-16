@@ -2753,3 +2753,49 @@ fn test_custom_transforms() {
     "###
     );
 }
+
+#[test]
+fn test_name_inference() {
+    assert_display_snapshot!(compile(r#"
+    from albums
+    select [artist_id + album_id]
+    # nothing inferred infer
+    "#).unwrap(),
+        @r###"
+    SELECT
+      artist_id + album_id
+    FROM
+      albums
+    "###
+    );
+
+    let sql1 = compile(
+        r#"
+    from albums
+    select [artist_id]
+    # infer albums.artist_id
+    select [albums.artist_id]
+    "#,
+    )
+    .unwrap();
+    let sql2 = compile(
+        r#"
+    from albums
+    select [albums.artist_id]
+    # infer albums.artist_id
+    select [albums.artist_id]
+    "#,
+    )
+    .unwrap();
+    assert_eq!(sql1, sql2);
+
+    assert_display_snapshot!(
+        sql1,
+        @r###"
+    SELECT
+      artist_id
+    FROM
+      albums
+    "###
+    );
+}
