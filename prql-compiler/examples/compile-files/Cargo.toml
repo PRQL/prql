@@ -4,4 +4,4 @@ name = "compile-files"
 version.workspace = true
 
 [build-dependencies]
-prql-compiler = {path = '../../prql-compiler'}
+prql-compiler = {path = '../../'}

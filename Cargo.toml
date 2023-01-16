@@ -1,13 +1,13 @@
 [workspace]
 members = [
   "prql-compiler",
+  "prql-compiler/examples/compile-files",
   "prql-compiler/prql-compiler-macros",
   "prql-java",
   "prql-lib",
   "prql-js",
   "prql-python",
   "book",
-  "examples/*",
 ]
 # Note we don't have a `default-members = ["prql-compiler"]`, since that causes
 # commands like `cargo test` to only run tests from the default package. And
