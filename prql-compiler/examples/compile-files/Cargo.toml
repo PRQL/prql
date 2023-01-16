@@ -1,8 +1,0 @@
-[package]
-name = "compile-files"
-version = "0.0.0"
-
-[workspace]
-
-[build-dependencies]
-prql-compiler = { path = '../..' }

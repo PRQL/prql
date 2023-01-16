@@ -604,6 +604,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "compile-files"
+version = "0.3.1"
+dependencies = [
+ "prql-compiler",
+]
+
+[[package]]
 name = "console"
 version = "0.15.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"

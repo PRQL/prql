@@ -1,0 +1,7 @@
+[package]
+edition = "2021"
+name = "compile-files"
+version.workspace = true
+
+[build-dependencies]
+prql-compiler = {path = '../../prql-compiler'}
