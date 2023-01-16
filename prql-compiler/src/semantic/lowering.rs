@@ -37,7 +37,7 @@ pub fn lower_ast_to_ir(statements: Vec<pl::Stmt>, context: Context) -> Result<Qu
                 let relation = l.lower_relation(*expr)?;
                 main_pipeline = Some(relation);
             }
-            pl::StmtKind::FuncDef(_) | pl::StmtKind::TableDef(_) => {}
+            pl::StmtKind::FuncDef(_) | pl::StmtKind::VarDef(_) => {}
         }
     }
 
@@ -168,6 +168,35 @@ impl Lowerer {
                 // return an instance of this new table
                 self.create_a_table_instance(id, None, tid)
             }
+
+            ExprKind::Literal(pl::Literal::Relation(lit)) => {
+                let id = expr.id.unwrap();
+
+                // create a new table
+                let tid = self.tid.gen();
+
+                let cols = lit
+                    .columns
+                    .iter()
+                    .map(|c| RelationColumn::Single(Some(c.clone())))
+                    .collect_vec();
+
+                let relation = rq::Relation {
+                    kind: rq::RelationKind::Literal(lit),
+                    columns: cols.clone(),
+                };
+
+                log::debug!("lowering literal relation table, columns = {:?}", cols);
+                self.table_buffer.push(TableDecl {
+                    id: tid,
+                    name: None,
+                    relation,
+                });
+
+                // return an instance of this new table
+                self.create_a_table_instance(id, None, tid)
+            }
+
             _ => {
                 return Err(Error::new(Reason::Expected {
                     who: None,
@@ -328,10 +357,10 @@ impl Lowerer {
                 };
                 self.pipeline.push(transform);
             }
-            pl::TransformKind::Concat(bottom) => {
+            pl::TransformKind::Append(bottom) => {
                 let bottom = self.lower_table_ref(*bottom)?;
 
-                let transform = Transform::Concat(bottom);
+                let transform = Transform::Append(bottom);
                 self.pipeline.push(transform);
             }
             pl::TransformKind::Group { .. } | pl::TransformKind::Window { .. } => unreachable!(

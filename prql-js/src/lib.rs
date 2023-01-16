@@ -7,12 +7,7 @@ use wasm_bindgen::prelude::*;
 #[wasm_bindgen]
 pub fn compile(prql_query: &str, options: Option<SQLCompileOptions>) -> Option<String> {
     return_or_throw(
-        Ok(prql_query)
-            .and_then(prql_compiler::prql_to_pl)
-            .and_then(prql_compiler::pl_to_rq)
-            .and_then(|rq| {
-                prql_compiler::rq_to_sql(rq, options.map(prql_compiler::sql::Options::from))
-            })
+        prql_compiler::compile(prql_query, options.map(|x| x.into()))
             .map_err(|e| e.composed("", prql_query, false)),
     )
 }

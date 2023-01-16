@@ -1,6 +1,6 @@
 [package]
 edition = "2021"
-name = "prql-macros"
+name = "prql-compiler-macros"
 publish = false
 version.workspace = true
 
@@ -10,7 +10,7 @@ proc_macro = true
 test = false
 
 [dependencies]
-prql-compiler = {path = "../prql-compiler", default-features = false}
+prql-compiler = {path = "..", default-features = false}
 syn = "1.0"
 
 [package.metadata.release]

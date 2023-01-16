@@ -36,8 +36,8 @@ pub trait AstFold {
     fn fold_exprs(&mut self, exprs: Vec<Expr>) -> Result<Vec<Expr>> {
         exprs.into_iter().map(|node| self.fold_expr(node)).collect()
     }
-    fn fold_table(&mut self, table: TableDef) -> Result<TableDef> {
-        Ok(TableDef {
+    fn fold_var_def(&mut self, table: VarDef) -> Result<VarDef> {
+        Ok(VarDef {
             name: table.name,
             value: Box::new(self.fold_expr(*table.value)?),
         })
@@ -120,7 +120,7 @@ pub fn fold_stmt_kind<T: ?Sized + AstFold>(fold: &mut T, stmt_kind: StmtKind) ->
     use StmtKind::*;
     Ok(match stmt_kind {
         FuncDef(func) => FuncDef(fold.fold_func_def(func)?),
-        TableDef(table) => TableDef(fold.fold_table(table)?),
+        VarDef(var_def) => VarDef(fold.fold_var_def(var_def)?),
         Main(expr) => Main(Box::new(fold.fold_expr(*expr)?)),
         QueryDef(_) => stmt_kind,
     })
@@ -259,7 +259,7 @@ pub fn fold_transform_kind<T: ?Sized + AstFold>(
             with: Box::new(fold.fold_expr(*with)?),
             filter: Box::new(fold.fold_expr(*filter)?),
         },
-        Concat(bottom) => Concat(Box::new(fold.fold_expr(*bottom)?)),
+        Append(bottom) => Append(Box::new(fold.fold_expr(*bottom)?)),
         Group { by, pipeline } => Group {
             by: fold.fold_exprs(by)?,
             pipeline: Box::new(fold.fold_expr(*pipeline)?),

@@ -26,6 +26,8 @@ class Output extends React.Component {
         <div className="tab-top">
           <Tab text="output.sql" name="sql" parent={this.props} />
           <Tab text="output.arrow" name="arrow" parent={this.props} />
+          <Tab text="output.pl.json" name="pl" parent={this.props} />
+          <Tab text="output.rq.json" name="rq" parent={this.props} />
 
           <div className="spacer"></div>
 
@@ -98,6 +100,22 @@ class Output extends React.Component {
             <tbody>{rows}</tbody>
           </table>
         </div>
+      );
+    }
+    if (this.props.tab === "pl" && this.props.content.pl) {
+      const pl = JSON.stringify(JSON.parse(this.props.content.pl), null, 4);
+      return (
+        <SyntaxHighlighter language="json" useInlineStyles={false}>
+          {pl}
+        </SyntaxHighlighter>
+      );
+    }
+    if (this.props.tab === "rq" && this.props.content.rq) {
+      const rq = JSON.stringify(JSON.parse(this.props.content.rq), null, 4);
+      return (
+        <SyntaxHighlighter language="json" useInlineStyles={false}>
+          {rq}
+        </SyntaxHighlighter>
       );
     }
     return <div className="tab-content"></div>;

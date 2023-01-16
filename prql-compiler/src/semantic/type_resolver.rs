@@ -24,6 +24,7 @@ pub fn resolve_type(node: &Expr, context: &Context) -> Result<Ty> {
             Literal::Time(_) => TyLit::Time.into(),
             Literal::Timestamp(_) => TyLit::Timestamp.into(),
             Literal::ValueAndUnit(_) => Ty::Infer, // TODO
+            Literal::Relation(_) => unreachable!(),
         },
 
         ExprKind::Ident(_) | ExprKind::Pipeline(_) | ExprKind::FuncCall(_) => Ty::Infer,

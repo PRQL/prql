@@ -111,16 +111,13 @@ fn stmt_of_parse_pair(pair: Pair<Rule>) -> Result<Stmt> {
                 return_ty: return_type,
             })
         }
-        Rule::table_def => {
+        Rule::var_def => {
             let mut pairs = pair.into_inner();
 
             let name = parse_ident_part(pairs.next().unwrap());
-            let pipeline = expr_of_parse_pair(pairs.next().unwrap())?;
+            let value = Box::new(expr_of_parse_pair(pairs.next().unwrap())?);
 
-            StmtKind::TableDef(TableDef {
-                name,
-                value: Box::new(pipeline),
-            })
+            StmtKind::VarDef(VarDef { name, value })
         }
         _ => unreachable!("{pair}"),
     };
@@ -1488,10 +1485,10 @@ take 20
     #[test]
     fn test_parse_table() -> Result<()> {
         assert_yaml_snapshot!(stmts_of_string(
-            "table newest_employees = (from employees)"
+            "let newest_employees = (from employees)"
         )?, @r###"
         ---
-        - TableDef:
+        - VarDef:
             name: newest_employees
             value:
               FuncCall:
@@ -1506,7 +1503,7 @@ take 20
 
         assert_yaml_snapshot!(stmts_of_string(
             r#"
-        table newest_employees = (
+        let newest_employees = (
           from employees
           group country (
             aggregate [
@@ -1518,7 +1515,7 @@ take 20
         )"#.trim())?,
          @r###"
         ---
-        - TableDef:
+        - VarDef:
             name: newest_employees
             value:
               Pipeline:
@@ -1574,10 +1571,10 @@ take 20
         "###);
 
         assert_yaml_snapshot!(stmts_of_string(r#"
-            table e = s"SELECT * FROM employees"
+            let e = s"SELECT * FROM employees"
             "#)?, @r###"
         ---
-        - TableDef:
+        - VarDef:
             name: e
             value:
               SString:
@@ -1585,7 +1582,7 @@ take 20
         "###);
 
         assert_yaml_snapshot!(stmts_of_string(
-          "table x = (
+          "let x = (
 
             from x_table
 
@@ -1596,7 +1593,7 @@ take 20
           from x"
         )?, @r###"
         ---
-        - TableDef:
+        - VarDef:
             name: x
             value:
               Pipeline:
@@ -1885,7 +1882,8 @@ join `my-proj`.`dataset`.`table`
     fn test_range() {
         assert_yaml_snapshot!(parse("
         from employees
-        filter (age | between 18..40)
+        filter (distance | in 0..40)
+        filter (distance | in (0)..40)
         derive [
           greater_than_ten = 11..,
           less_than_ten = ..9,
@@ -1915,16 +1913,39 @@ join `my-proj`.`dataset`.`table`
                       - Pipeline:
                           exprs:
                             - Ident:
-                                - age
+                                - distance
                             - FuncCall:
                                 name:
                                   Ident:
-                                    - between
+                                    - in
                                 args:
                                   - Range:
                                       start:
                                         Literal:
-                                          Integer: 18
+                                          Integer: 0
+                                      end:
+                                        Literal:
+                                          Integer: 40
+                                named_args: {}
+                    named_args: {}
+                - FuncCall:
+                    name:
+                      Ident:
+                        - filter
+                    args:
+                      - Pipeline:
+                          exprs:
+                            - Ident:
+                                - distance
+                            - FuncCall:
+                                name:
+                                  Ident:
+                                    - in
+                                args:
+                                  - Range:
+                                      start:
+                                        Literal:
+                                          Integer: 0
                                       end:
                                         Literal:
                                           Integer: 40

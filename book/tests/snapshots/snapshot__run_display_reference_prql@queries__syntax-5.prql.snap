@@ -27,6 +27,10 @@ derive [
   distance
   in -100..0
 ),
+  is_negative = (
+  distance
+  in -100..0
+),
   average_distance = average distance,
 ]
 sort -distance

@@ -38,7 +38,7 @@ derive [
   select [name, salary, country]
 )
 
-table average_salaries = (
+let average_salaries = (
   from employees
   group country (
     aggregate average_country_salary = (average salary)

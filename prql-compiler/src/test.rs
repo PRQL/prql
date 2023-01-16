@@ -171,25 +171,22 @@ fn test_pipelines() {
     select [age | in 5..10]
     "###).unwrap()), @r###"
     SELECT
-      age BETWEEN 5
-      AND 10
+      age BETWEEN 5 AND 10
     FROM
       employees
     "###);
 }
 
 #[test]
-fn test_concat() {
+fn test_append() {
     assert_display_snapshot!(compile(r###"
     from employees
-    concat managers
+    append managers
     "###).unwrap(), @r###"
-    (
-      SELECT
-        *
-      FROM
-        employees
-    )
+    SELECT
+      *
+    FROM
+      employees
     UNION
     ALL
     SELECT
@@ -202,7 +199,7 @@ fn test_concat() {
     from employees
     derive [name, cost = salary]
     take 3
-    concat (
+    append (
         from employees
         derive [name, cost = salary + bonuses]
         take 10
@@ -217,16 +214,20 @@ fn test_concat() {
         employees
       LIMIT
         10
-    ) (
-      SELECT
-        *,
-        name,
-        salary AS cost
-      FROM
-        employees
-      LIMIT
-        3
     )
+    SELECT
+      *
+    FROM
+      (
+        SELECT
+          *,
+          name,
+          salary AS cost
+        FROM
+          employees
+        LIMIT
+          3
+      ) AS table_3
     UNION
     ALL
     SELECT
@@ -239,12 +240,10 @@ fn test_concat() {
     from employees
     union managers
     "###).unwrap(), @r###"
-    (
-      SELECT
-        *
-      FROM
-        employees AS t
-    )
+    SELECT
+      *
+    FROM
+      employees AS t
     UNION
     DISTINCT
     SELECT
@@ -255,28 +254,25 @@ fn test_concat() {
 
     assert_display_snapshot!(compile(r###"
     from employees
-    concat managers
+    append managers
     union all_employees_of_some_other_company
     "###).unwrap(), @r###"
     WITH table_1 AS (
-      (
-        SELECT
-          *
-        FROM
-          employees
-      )
+      SELECT
+        *
+      FROM
+        employees
       UNION
       ALL
       SELECT
         *
       FROM
         managers
-    ) (
-      SELECT
-        *
-      FROM
-        table_1
     )
+    SELECT
+      *
+    FROM
+      table_1
     UNION
     DISTINCT
     SELECT
@@ -327,8 +323,8 @@ fn test_quoting() {
     // GH-#822
     assert_display_snapshot!((compile(r###"
 prql target:sql.postgres
-table UPPER = (
-from lower
+let UPPER = (
+    from lower
 )
 from UPPER
 join `some_schema.tablename` [==id]
@@ -446,46 +442,21 @@ fn test_numbers() {
 fn test_ranges() {
     let query = r###"
     from employees
-    filter (age | in 18..40)
+    derive [
+      close = (distance | in 0..100),
+      far = (distance | in 100..),
+      country_founding | in @1776-07-04..@1787-09-17
+    ]
     "###;
 
     assert_display_snapshot!((compile(query).unwrap()), @r###"
     SELECT
-      *
+      *,
+      distance BETWEEN 0 AND 100 AS close,
+      distance >= 100 AS far,
+      country_founding BETWEEN DATE '1776-07-04' AND DATE '1787-09-17'
     FROM
       employees
-    WHERE
-      age BETWEEN 18
-      AND 40
-    "###);
-
-    let query = r###"
-    from employees
-    filter (age | in ..40)
-    "###;
-
-    assert_display_snapshot!((compile(query).unwrap()), @r###"
-    SELECT
-      *
-    FROM
-      employees
-    WHERE
-      age <= 40
-    "###);
-
-    let query = r###"
-    from events
-    filter (date | in @1776-07-04..@1787-09-17)
-    "###;
-
-    assert_display_snapshot!((compile(query).unwrap()), @r###"
-    SELECT
-      *
-    FROM
-      events
-    WHERE
-      date BETWEEN DATE '1776-07-04'
-      AND DATE '1787-09-17'
     "###);
 }
 
@@ -592,13 +563,11 @@ fn test_window_functions_02() {
       SUM(num_books) OVER (
         PARTITION BY order_month
         ORDER BY
-          order_day ROWS BETWEEN UNBOUNDED PRECEDING
-          AND CURRENT ROW
+          order_day ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
       ) AS running_total_num_books,
       LAG(num_books, 7) OVER (
         ORDER BY
-          order_day ROWS BETWEEN UNBOUNDED PRECEDING
-          AND UNBOUNDED FOLLOWING
+          order_day ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
       ) AS num_books_last_week
     FROM
       table_1
@@ -662,8 +631,7 @@ fn test_window_functions_05() {
       RANK() OVER (
         PARTITION BY month
         ORDER BY
-          num_orders ROWS BETWEEN UNBOUNDED PRECEDING
-          AND CURRENT ROW
+          num_orders ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
       ),
       LAG(num_orders, 7) OVER () AS num_orders_last_week
     FROM
@@ -700,10 +668,7 @@ fn test_window_functions_07() {
     "###).unwrap()), @r###"
     SELECT
       *,
-      SUM(b) OVER (
-        ROWS BETWEEN UNBOUNDED PRECEDING
-        AND CURRENT ROW
-      ) AS running_total
+      SUM(b) OVER (ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running_total
     FROM
       foo
     "###);
@@ -719,10 +684,7 @@ fn test_window_functions_08() {
     "###).unwrap()), @r###"
     SELECT
       *,
-      SUM(b) OVER (
-        ROWS BETWEEN 2 PRECEDING
-        AND CURRENT ROW
-      ) AS last_three
+      SUM(b) OVER (ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS last_three
     FROM
       foo
     "###);
@@ -760,8 +722,7 @@ fn test_window_functions_10() {
       *,
       SUM(b) OVER (
         ORDER BY
-          day RANGE BETWEEN 4 PRECEDING
-          AND 4 FOLLOWING
+          day RANGE BETWEEN 4 PRECEDING AND 4 FOLLOWING
       ) AS next_four_days
     FROM
       foo
@@ -914,7 +875,7 @@ fn test_nulls() {
 }
 
 #[test]
-fn test_range() {
+fn test_take() {
     assert_display_snapshot!((compile(r###"
     from employees
     take ..10
@@ -1154,8 +1115,7 @@ fn test_distinct() {
     FROM
       table_1
     WHERE
-      _expr_0 BETWEEN 2
-      AND 3
+      _expr_0 BETWEEN 2 AND 3
     "###);
 }
 
@@ -1296,7 +1256,7 @@ fn test_sql_of_ast_1() {
 // Confirm that a bare s-string in a table definition works as expected.
 fn test_bare_s_string() {
     let query = r###"
-    table grouping = s"""
+    let grouping = s"""
         SELECT SUM(a)
         FROM tbl
         GROUP BY
@@ -1332,7 +1292,7 @@ fn test_bare_s_string() {
 
     // Test that case insensitive SELECT is accepted. We allow it as it is valid SQL.
     let query = r###"
-    table a = s"select insensitive from rude"
+    let a = s"select insensitive from rude"
     from a
     "###;
 
@@ -1360,7 +1320,7 @@ fn test_bare_s_string() {
 
     // Check a mixture of cases for good measure.
     let query = r###"
-    table a = s"sElEcT insensitive from rude"
+    let a = s"sElEcT insensitive from rude"
     from a
     "###;
 
@@ -1391,7 +1351,7 @@ fn test_bare_s_string() {
 // Confirm that a regular expr_call in a table definition works as expected.
 fn test_table_definition_with_expr_call() {
     let query = r###"
-    table e = take 4 (from employees)
+    let e = take 4 (from employees)
     from e
     "###;
 
@@ -1488,12 +1448,12 @@ take 20
 fn test_prql_to_sql_table() {
     // table
     let query = r#"
-    table newest_employees = (
+    let newest_employees = (
         from employees
         sort tenure
         take 50
     )
-    table average_salaries = (
+    let average_salaries = (
         from salaries
         group country (
             aggregate [
@@ -1628,7 +1588,7 @@ fn test_nonatomic() {
 fn test_nonatomic_table() {
     // A take, then two aggregates
     let query = r###"
-    table a = (
+    let a = (
         from employees
         take 50
         group country (aggregate [s"count(*)"])
@@ -1878,12 +1838,12 @@ fn test_literal() {
 fn test_same_column_names() {
     // #820
     let query = r###"
-table x = (
+let x = (
 from x_table
 select only_in_x = foo
 )
 
-table y = (
+let y = (
 from y_table
 select foo
 )
@@ -1981,11 +1941,11 @@ fn test_toposort() {
     // #1183
 
     assert_display_snapshot!(compile(r###"
-    table b = (
+    let b = (
         from somesource
     )
 
-    table a = (
+    let a = (
         from b
     )
 
@@ -2694,6 +2654,90 @@ fn test_exclude_columns() {
       * EXCLUDE (milliseconds, bytes)
     FROM
       tracks
+    "###
+    );
+}
+
+#[test]
+fn test_intersection() {
+    assert_display_snapshot!(compile(r#"
+    intersection (
+        from album | select artist_id
+    ) (
+        from artist | select artist_id
+    )
+    "#).unwrap(),
+        @r###"
+    WITH table_1 AS (
+      SELECT
+        artist_id
+      FROM
+        album
+    )
+    SELECT
+      artist.artist_id
+    FROM
+      artist
+      JOIN table_1 AS table_0 ON artist.artist_id = table_0.artist_id
+    "###
+    );
+
+    assert_display_snapshot!(compile(r#"
+    difference (
+        from album | select artist_id
+    ) (
+        from artist | select artist_id
+    )
+    "#).unwrap(),
+        @r###"
+    WITH table_1 AS (
+      SELECT
+        artist_id
+      FROM
+        album
+    )
+    SELECT
+      artist.artist_id
+    FROM
+      artist
+      LEFT JOIN table_1 AS table_0 ON artist.artist_id = table_0.artist_id
+    WHERE
+      table_0.artist_id IS NULL
+    "###
+    );
+
+    // TODO:
+    // assert_display_snapshot!(compile(r#"
+    // intersection (from album) (from artist)
+    // "#).unwrap(), @"");
+
+    // assert_display_snapshot!(compile(r#"
+    // difference (from album) (from artist)
+    // "#).unwrap(), @"");
+}
+
+#[test]
+fn test_custom_transforms() {
+    assert_display_snapshot!(compile(r#"
+    let my_transform = (
+        derive double = single * 2
+        sort name
+    )
+
+    from tab
+    my_transform
+    take 3
+    "#).unwrap(),
+        @r###"
+    SELECT
+      *,
+      single * 2 AS double
+    FROM
+      tab
+    ORDER BY
+      name
+    LIMIT
+      3
     "###
     );
 }

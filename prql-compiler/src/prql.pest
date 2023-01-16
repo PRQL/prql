@@ -3,7 +3,7 @@ WHITESPACE = _{ " " | "\t" }
 // TODO: maybe pass comments to AST (and potentially put them into SQL comments)
 COMMENT = _{ "#" ~ (!NEWLINE ~ ANY) * }
 
-statements = _{ SOI ~ NEWLINE* ~ query_def ? ~ (func_def | table_def)* ~ pipeline_stmt? ~ EOI }
+statements = _{ SOI ~ NEWLINE* ~ query_def ? ~ (func_def | var_def)* ~ pipeline_stmt? ~ EOI }
 
 query_def = { "prql" ~ named_arg* ~ NEWLINE+ }
 
@@ -15,7 +15,7 @@ func_def_param = { ident_part ~ type_def? ~ (":" ~ expr)? }
 type_def = { "<" ~ type_term ~ ( "|" ~ type_term)* ~ ">" }
 type_term = { ident_part ~ type_def? }
 
-table_def = { "table" ~ ident_part ~ "=" ~ expr_call ~ ( NEWLINE+ | &EOI ) }
+var_def = { "let" ~ ident_part ~ "=" ~ expr_call ~ ( NEWLINE+ | &EOI ) }
 
 pipeline_stmt = { pipeline ~ ( NEWLINE+ | &EOI ) }
 
@@ -62,7 +62,7 @@ expr_mul = { term ~ (operator_mul ~ expr_mul)? }
 
 term = _{ ( switch | s_string | f_string | range | literal | ident | nested_pipeline | expr_unary | list | jinja ) }
 expr_unary = { ( operator_unary ~ ( nested_pipeline | ident | list )) }
-literal = _{ value_and_unit | number | boolean | null | string | timestamp | date | time }
+literal = _{ value_and_unit | number | boolean | null | string | timestamp | date | time | "(" ~ literal ~ ")" }
 // `assign | pipeline` based on discussion in #648
 list = { "[" ~ (NEWLINE* ~ (assign |  pipeline) ~ ("," ~ NEWLINE* ~ (assign | pipeline) )* ~ ","?)? ~ NEWLINE* ~ "]" }
 nested_pipeline = { "(" ~ (WHITESPACE | NEWLINE)* ~ pipeline? ~ (WHITESPACE | NEWLINE)* ~ ")" }
@@ -102,9 +102,6 @@ boolean = ${ "true" | "false" }
 null = ${ "null" }
 
 range = ${ range_edge ~ ".." ~ range_edge }
-// We need `literal` separate from `term_simple` for things like range edges,
-// which would infinitely recurse otherwise, since it'll keep trying to parse
-// the whole span, not just the part before `..`.
 range_edge = ${ literal? }
 
 operator = _{ operator_unary | operator_binary }

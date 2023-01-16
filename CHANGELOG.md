@@ -4,8 +4,6 @@
 
 **Features**:
 
-- S-strings can
-  [produce a full table.](https://prql-lang.org/book/language-features/s-strings.html#prql-3)
 - _Experimental:_ The
   [`switch`](https://prql-lang.org/book/language-features/switch.html) function
   sets a variable to a value based on one of several expressions (@aljazerzen,
@@ -35,11 +33,11 @@
     bar
   ```
 
-- _Experimental:_ `concat` & `union` transforms. (@aljazerzen, #894)
+- _Experimental:_ `append` & `union` transforms. (@aljazerzen, #894)
 
   ```prql
   from employees
-  concat managers
+  append managers
   union other_employees
   ```
 
@@ -50,8 +48,8 @@
   select ![title, composer]
   ```
 
-- Numbers can now contain underscores, which can make reading long numbers
-  easier (@max-sixty, #1467):
+- Numbers can contain underscores, which can make reading long numbers easier
+  (@max-sixty, #1467):
 
   ```prql
   from numbers
@@ -61,10 +59,10 @@
   ]
   ```
 
-- Add a comment in the SQL output containing the PRQL compiler version
-  (@aljazerzen, #1322)
-- The playground now allows querying some sample data. As before, the result
-  updates on every keystroke. (@aljazerzen, #1305)
+- The SQL output contains a comment with the PRQL compiler version (@aljazerzen,
+  #1322)
+- The playground allows querying some sample data. As before, the result updates
+  on every keystroke. (@aljazerzen, #1305)
 
 - `dialect` is renamed to `target`, and its values are prefixed with `sql.`
   (@max-sixty, #1388); for example:
@@ -101,12 +99,17 @@
 
 - Add docs on aliases in
   [Select](https://prql-lang.org/book/transforms/select.html)
-- Fix JS example code (@BCsabaEngine, #1432)
 - Add JS template literal and multiline example (@BCsabaEngine, #1432)
+- JS template literal and multiline example (@BCsabaEngine, #1432)
+- Improve prql-compiler docs & examples (@aljazerzen #1515)
 
 **Web**:
 
 **Integrations**:
+
+- Added Elixir integration exposing PRQL functions as NIFs (#1500, @kasvith)
+- Exposed Elixir flavor with exceptions (#1513, @kasvith)
+- Rename prql-compiler binary to prqlc (@aljazerzen #1515)
 
 **Internal changes**:
 

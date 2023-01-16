@@ -1,4 +1,4 @@
-table genre_count = (
+let genre_count = (
     from genres
     aggregate a = count
 )

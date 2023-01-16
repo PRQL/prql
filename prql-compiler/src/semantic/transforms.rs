@@ -183,10 +183,10 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
             };
             (transform_kind, tbl)
         }
-        "std.concat" => {
+        "std.append" => {
             let [bottom, top] = unpack::<2>(closure);
 
-            (TransformKind::Concat(Box::new(bottom)), top)
+            (TransformKind::Append(Box::new(bottom)), top)
         }
 
         "std.in" => {
@@ -229,6 +229,110 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
                 found: pattern.to_string()
             })
             .with_span(pattern.span))
+        }
+
+        "std.all" => {
+            // yes, this is not a transform, but this is the most appropriate place for it
+
+            let [list] = unpack::<1>(closure);
+            let list = list.kind.into_list().unwrap();
+
+            let mut res = None;
+            for item in list {
+                res = new_binop(res, BinOp::And, Some(item));
+            }
+            let res = res.unwrap_or_else(|| Expr::from(ExprKind::Literal(Literal::Boolean(true))));
+
+            return Ok(Ok(res));
+        }
+
+        "std.map" => {
+            // yes, this is not a transform, but this is the most appropriate place for it
+
+            let [func, list] = unpack::<2>(closure);
+            let list_items = list.kind.into_list().unwrap();
+
+            let list_items = list_items
+                .into_iter()
+                .map(|item| {
+                    Expr::from(ExprKind::FuncCall(FuncCall {
+                        name: Box::new(func.clone()),
+                        args: vec![item],
+                        named_args: HashMap::new(),
+                    }))
+                })
+                .collect_vec();
+
+            return Ok(Ok(Expr {
+                kind: ExprKind::List(list_items),
+                ..list
+            }));
+        }
+
+        "std.zip" => {
+            // yes, this is not a transform, but this is the most appropriate place for it
+
+            let [a, b] = unpack::<2>(closure);
+            let a = a.kind.into_list().unwrap();
+            let b = b.kind.into_list().unwrap();
+
+            let mut res = Vec::new();
+            for (a, b) in std::iter::zip(a, b) {
+                res.push(Expr::from(ExprKind::List(vec![a, b])));
+            }
+
+            return Ok(Ok(Expr::from(ExprKind::List(res))));
+        }
+
+        "std._eq" => {
+            // yes, this is not a transform, but this is the most appropriate place for it
+
+            let [list] = unpack::<1>(closure);
+            let list = list.kind.into_list().unwrap();
+            let [a, b]: [Expr; 2] = list.try_into().unwrap();
+
+            let res = new_binop(Some(a), BinOp::Eq, Some(b)).unwrap();
+            return Ok(Ok(res));
+        }
+
+        "std.from_csv" => {
+            // yes, this is not a transform, but this is the most appropriate place for it
+
+            let [csv_expr] = unpack::<1>(closure);
+
+            let ExprKind::Literal(Literal::String(csv)) = csv_expr.kind else {
+                return Err(Error::new(Reason::Expected { who: Some("std.from_csv".to_string()), expected: "a string literal".to_string(), found: format!("`{csv_expr}`") }).with_span(csv_expr.span).into())
+            };
+
+            let res = parse_csv(&csv)?;
+
+            let input = FrameInput {
+                id: csv_expr.id.unwrap(),
+                name: csv_expr.alias.unwrap_or_else(|| "csv".to_string()),
+                table: None,
+            };
+
+            let columns = res
+                .columns
+                .iter()
+                .map(|name| FrameColumn::Single {
+                    name: Some(Ident::from_name(name)),
+                    expr_id: input.id,
+                })
+                .collect();
+
+            let frame = Frame {
+                columns,
+                inputs: vec![input],
+                ..Default::default()
+            };
+            let res = Expr::from(ExprKind::Literal(Literal::Relation(res)));
+            let res = Expr {
+                ty: Some(Ty::Table(frame)),
+                id: csv_expr.id,
+                ..res
+            };
+            return Ok(Ok(res));
         }
 
         _ => return Ok(Err(closure)),
@@ -406,10 +510,10 @@ impl TransformCall {
                 let right = ty_frame_or_default(with)?;
                 join(left, right)
             }
-            Concat(bottom) => {
+            Append(bottom) => {
                 let top = ty_frame_or_default(&self.input)?;
                 let bottom = ty_frame_or_default(bottom)?;
-                concat(top, bottom)?
+                append(top, bottom)?
             }
             Sort { .. } | Filter { .. } | Take { .. } => ty_frame_or_default(&self.input)?,
         })
@@ -422,10 +526,10 @@ fn join(mut lhs: Frame, rhs: Frame) -> Frame {
     lhs
 }
 
-fn concat(mut top: Frame, bottom: Frame) -> Result<Frame, Error> {
+fn append(mut top: Frame, bottom: Frame) -> Result<Frame, Error> {
     if top.columns.len() != bottom.columns.len() {
         return Err(Error::new_simple(
-            "cannot concat two relations with non-matching number of columns.",
+            "cannot append two relations with non-matching number of columns.",
         ))
         .with_help(format!(
             "top has {} columns, but bottom has {}",
@@ -461,7 +565,7 @@ fn concat(mut top: Frame, bottom: Frame) -> Result<Frame, Error> {
                 "cannot match columns `{t:?}` and `{b:?}`"
             ))
             .with_help(
-                "make sure that top and bottom relations of concat has the same column layout",
+                "make sure that top and bottom relations of append has the same column layout",
             )),
         });
     }
@@ -634,7 +738,7 @@ pub struct Flattener {
 
     /// Window and group contain Closures in their inner pipelines.
     /// These closures have form similar to this function:
-    /// ```
+    /// ```prql
     /// func closure tbl_chunk -> (derive ... (sort ... (tbl_chunk)))
     /// ```
     /// To flatten a window or group, we need to replace group/window transform
@@ -746,6 +850,29 @@ impl AstFold for Flattener {
     }
 }
 
+// TODO: Can we dynamically get the types, like in pandas? We need to put
+// quotes around strings and not around numbers.
+// https://stackoverflow.com/questions/64369887/how-do-i-read-csv-data-without-knowing-the-structure-at-compile-time
+fn parse_csv(csv: &str) -> Result<RelationLiteral> {
+    let mut rdr = csv::Reader::from_reader(csv.as_bytes());
+
+    Ok(RelationLiteral {
+        columns: rdr
+            .headers()?
+            .into_iter()
+            .map(|h| h.to_string())
+            .collect::<Vec<_>>(),
+        rows: rdr
+            .records()
+            .into_iter()
+            // This is messy rust, but I can't get it to resolve the Errors
+            // when it leads with `row_result?`. I'm sure it's possible...
+            .map(|row_result| {
+                row_result.map(|row| row.into_iter().map(|x| x.to_string()).collect())
+            })
+            .try_collect()?,
+    })
+}
 #[cfg(test)]
 mod tests {
     use insta::assert_yaml_snapshot;
@@ -846,7 +973,7 @@ mod tests {
         assert_yaml_snapshot!(result, @r###"
         ---
         - Main:
-            id: 12
+            id: 18
             TransformCall:
               input:
                 id: 4
