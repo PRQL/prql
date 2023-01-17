@@ -109,7 +109,11 @@ impl AnchorContext {
         Some(entry.or_insert_with(|| self.col_name.gen()))
     }
 
-    pub(super) fn load_names(&mut self, pipeline: &[SqlTransform], output_cols: Vec<RelationColumn>) {
+    pub(super) fn load_names(
+        &mut self,
+        pipeline: &[SqlTransform],
+        output_cols: Vec<RelationColumn>,
+    ) {
         let output_cids = Self::determine_select_columns(pipeline);
 
         assert_eq!(output_cids.len(), output_cols.len());
@@ -145,7 +149,10 @@ impl AnchorContext {
     }
 
     /// Returns a set of all columns of all tables in a pipeline
-    pub(super) fn collect_pipeline_inputs(&self, pipeline: &[SqlTransform]) -> (Vec<TIId>, HashSet<CId>) {
+    pub(super) fn collect_pipeline_inputs(
+        &self,
+        pipeline: &[SqlTransform],
+    ) -> (Vec<TIId>, HashSet<CId>) {
         let mut tables = Vec::new();
         let mut columns = HashSet::new();
         for t in pipeline {
