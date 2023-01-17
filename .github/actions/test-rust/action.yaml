@@ -47,15 +47,13 @@ runs:
     # have two different ones; we welcome a change to simplify this)
     - name: 📋 Test
       uses: richb-hanover/cargo@v1.1.0
-      if:
-        ${{ (inputs.target_option == '' && runner.os == 'ubuntu') }}
+      if: ${{ (inputs.target_option == '' && runner.os == 'ubuntu') }}
       with:
         command: insta
         args: test --unreferenced=auto ${{ inputs.target_option }}
     - name: 📋 Test
       uses: richb-hanover/cargo@v1.1.0
-      if:
-        ${{ !(inputs.target_option == '' && runner.os == 'ubuntu') }}
+      if: ${{ !(inputs.target_option == '' && runner.os == 'ubuntu') }}
       with:
         command: insta
         args: test ${{ inputs.target_option }}
