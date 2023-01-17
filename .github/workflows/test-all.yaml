@@ -39,7 +39,7 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
-      - uses: ./.github/actions/test-python
+      - uses: ./.github/workflows/test-python
 
   test-java:
     runs-on: ${{ matrix.os }}
