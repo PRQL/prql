@@ -1,7 +1,11 @@
 [package]
-edition = "2021"
 name = "prql-compiler-macros"
 publish = false
+
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
 version.workspace = true
 
 [lib]
@@ -14,6 +18,5 @@ prql-compiler = {path = "..", default-features = false}
 syn = "1.0"
 
 [package.metadata.release]
-shared-version = true
 tag-name = "{{version}}"
 tag-prefix = ""

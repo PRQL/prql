@@ -1,8 +1,12 @@
 [package]
 build = "build.rs"
-edition = "2021"
 name = "prql-python"
 publish = false
+
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
 version.workspace = true
 
 [lib]
@@ -22,6 +26,5 @@ insta = {version = "1.26", features = ["colors", "glob", "yaml"]}
 pyo3-build-config = "0.17.0"
 
 [package.metadata.release]
-shared-version = true
 tag-name = "{{version}}"
 tag-prefix = ""

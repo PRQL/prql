@@ -13,14 +13,17 @@ members = [
 # commands like `cargo test` to only run tests from the default package. And
 # `cargo insta test` doesn't have a `--workspace` flag.
 
+[workspace.package]
+edition = "2021"
+license = "Apache-2.0"
+repository = "https://github.com/PRQL/prql"
+rust-version = "1.60.0"
+version = "0.4.0"
+
 [profile.release.package.prql-js]
 # Tell `rustc` to optimize for small code size.
 opt-level = "s"
 
-[workspace.package]
-version = "0.4.0"
-
 [workspace.metadata.release]
 consolidate-commits = true
 pre-release-commit-message = "chore: Release {{version}}"
-shared-version = true
