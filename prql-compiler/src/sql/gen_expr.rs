@@ -595,7 +595,6 @@ pub(super) fn translate_ident(
     column: Option<String>,
     ctx: &Context,
 ) -> Vec<sql_ast::Ident> {
-    dbg!(relation_name.clone(), column.clone());
     let mut parts = Vec::with_capacity(4);
     if !ctx.omit_ident_prefix || column.is_none() {
         if let Some(relation) = relation_name {
