@@ -1,6 +1,7 @@
 # Pipelines
 
-PRQL queries are a sequence of lines (or _transforms_) that form a _pipeline_. Each line transforms the data, and passes its result to the next.
+PRQL queries are a sequence of lines (or _transforms_) that form a _pipeline_.
+Each line transforms the data, and passes its result to the next.
 
 **The simplest pipeline** is just:
 
@@ -28,8 +29,8 @@ sort gross_salary
 ## Compiling to SQL
 
 PRQL compiles the query to SQL. The PRQL compiler tries to represent as many
-transforms as possible with a single `SELECT` statement. When necessary, the compiler 
-"overflows" and creates CTEs (common table expressions):
+transforms as possible with a single `SELECT` statement. When necessary, the
+compiler "overflows" and creates CTEs (common table expressions):
 
 ```prql_no_test
 from e = employees
