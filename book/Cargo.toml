@@ -47,6 +47,5 @@ walkdir = "2.3.2"
 trash = "3.0.0"
 
 [package.metadata.release]
-shared-version = true
 tag-name = "{{version}}"
 tag-prefix = ""

@@ -18,6 +18,5 @@ jni = "0.20.0"
 prql-compiler = {path = "../prql-compiler", default-features = false}
 
 [package.metadata.release]
-shared-version = true
 tag-name = "{{version}}"
 tag-prefix = ""

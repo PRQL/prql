@@ -26,6 +26,5 @@ insta = {version = "1.26", features = ["colors", "glob", "yaml"]}
 pyo3-build-config = "0.17.0"
 
 [package.metadata.release]
-shared-version = true
 tag-name = "{{version}}"
 tag-prefix = ""

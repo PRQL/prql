@@ -68,6 +68,5 @@ harness = false
 name = "bench"
 
 [package.metadata.release]
-shared-version = true
 tag-name = "{{version}}"
 tag-prefix = ""

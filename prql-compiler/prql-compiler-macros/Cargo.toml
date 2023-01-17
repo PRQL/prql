@@ -18,6 +18,5 @@ prql-compiler = {path = "..", default-features = false}
 syn = "1.0"
 
 [package.metadata.release]
-shared-version = true
 tag-name = "{{version}}"
 tag-prefix = ""
