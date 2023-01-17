@@ -26,7 +26,7 @@ jobs:
       matrix:
         include:
           - target_option: ""
-          - target_option: "--target=wasm32-unknown-unknown"
+          - target_option: "--exclude=prqlc --target=wasm32-unknown-unknown"
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3

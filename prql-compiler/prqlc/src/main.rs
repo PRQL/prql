@@ -89,7 +89,7 @@ impl Cli {
                 serde_yaml::to_string(&ast)?.into_bytes()
             }
             Cli::Format(_) => prql_to_pl(source)
-                .and_then(|x| pl_to_prql(x))
+                .and_then(pl_to_prql)
                 .map_err(|x| anyhow!(x))?
                 .as_bytes()
                 .to_vec(),
