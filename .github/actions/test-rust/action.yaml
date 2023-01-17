@@ -48,7 +48,7 @@ runs:
     - name: 📋 Test
       uses: richb-hanover/cargo@v1.1.0
       if:
-        ${{ (inputs.target_option != '--target=wasm32-unknown-unknown' &&
+        ${{ (inputs.target_option != '--exclude prqlc --target=wasm32-unknown-unknown' &&
         runner.os == 'ubuntu') }}
       with:
         command: insta
@@ -56,7 +56,7 @@ runs:
     - name: 📋 Test
       uses: richb-hanover/cargo@v1.1.0
       if:
-        ${{ ! (inputs.target_option != '--target=wasm32-unknown-unknown' &&
+        ${{ ! (inputs.target_option != '--exclude prqlc --target=wasm32-unknown-unknown' &&
         runner.os == 'ubuntu') }}
       with:
         command: insta
