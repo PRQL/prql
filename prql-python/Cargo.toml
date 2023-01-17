@@ -1,8 +1,12 @@
 [package]
 build = "build.rs"
-edition = "2021"
 name = "prql-python"
 publish = false
+
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
 version.workspace = true
 
 [lib]

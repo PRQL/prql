@@ -1,6 +1,11 @@
 [package]
-edition = "2021"
 name = "compile-files"
+publish = false
+
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
 version.workspace = true
 
 [build-dependencies]

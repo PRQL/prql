@@ -1,11 +1,17 @@
 [package]
 description = "Javascript bindings for prql-compiler"
-edition = "2021"
-license = "Apache-2.0"
 name = "prql-js"
 publish = false
-repository = "https://github.com/PRQL/prql"
+
+edition.workspace = true
+rust-version.workspace = true
 version.workspace = true
+
+# Unsupported by `wasm-pack` (which seems kinda unmaintained now...)
+# license.workspace = true
+# repository.workspace = true
+license = "Apache-2.0"
+repository = "https://github.com/PRQL/prql"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
