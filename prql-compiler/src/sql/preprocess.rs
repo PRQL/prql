@@ -19,7 +19,7 @@ pub(super) enum SqlTransform {
 }
 
 pub(super) fn wrap(pipe: Vec<Transform>) -> Vec<SqlTransform> {
-    pipe.into_iter().map(|t| SqlTransform::Super(t)).collect()
+    pipe.into_iter().map(SqlTransform::Super).collect()
 }
 
 /// Creates [SqlTransform::Distinct] from [Transform::Take]
