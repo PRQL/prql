@@ -1,9 +1,9 @@
 ---
 source: book/tests/snapshot.rs
-expression: "prql target:sql.mysql\nfrom employees\nselect `first name`\n"
+expression: "from employees  # Comment 1\n# Comment 2\naggregate [average salary]\n"
 input_file: book/tests/prql/queries/syntax-8.prql
 ---
 SELECT
-  `first name`
+  AVG(salary)
 FROM
   employees

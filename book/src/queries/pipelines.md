@@ -32,7 +32,7 @@ PRQL compiles the query to SQL. The PRQL compiler tries to represent as many
 transforms as possible with a single `SELECT` statement. When necessary, the
 compiler "overflows" and creates CTEs (common table expressions):
 
-```prql_no_test
+```prql
 from e = employees
 derive gross_salary = (salary + payroll_tax)
 sort gross_salary
