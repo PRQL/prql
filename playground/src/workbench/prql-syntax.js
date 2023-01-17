@@ -13,7 +13,7 @@ const TRANSFORMS = [
   "union",
 ];
 const BUILTIN_FUNCTIONS = ["switch"]; // "in", "as"
-const KEYWORDS = ["func", "table", "prql"];
+const KEYWORDS = ["func", "let", "prql"];
 const LITERALS = ["null", "true", "false"];
 const OPERATORS = ["and", "or"]; // "not"
 
