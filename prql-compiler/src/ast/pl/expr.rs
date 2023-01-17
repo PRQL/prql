@@ -121,6 +121,8 @@ pub enum BinOp {
 pub enum UnOp {
     #[strum(to_string = "-")]
     Neg,
+    #[strum(to_string = "+")]
+    Add,
     #[strum(to_string = "!")]
     Not,
     #[strum(to_string = "==")]
@@ -501,6 +503,7 @@ impl Display for Expr {
             }
             ExprKind::Unary { op, expr } => match op {
                 UnOp::Neg => write!(f, "-{}", expr)?,
+                UnOp::Add => write!(f, "+{}", expr)?,
                 UnOp::Not => write!(f, "not {}", expr)?,
                 UnOp::EqSelf => write!(f, "=={}", expr)?,
             },

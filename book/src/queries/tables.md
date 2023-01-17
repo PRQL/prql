@@ -1,6 +1,6 @@
 # Tables
 
-We can create a table — similar to a CTE in SQL — with `table`:
+We can define a temporary table — similar to a CTE in SQL — with `let`:
 
 ```prql
 let top_50 = (
@@ -11,11 +11,6 @@ let top_50 = (
 )
 
 from top_50      # Starts a new pipeline
-```
-
-```admonish note
-The table expression requires surrounding parentheses. Without parentheses, the compiler wouldn't
-be able to evaluate where the expression stopped and the main pipeline started.
 ```
 
 We can even place a whole CTE in an s-string, enabling us to use features which

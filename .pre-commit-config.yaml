@@ -43,6 +43,15 @@ repos:
       - id: markdown-link-check
         files: \.md$
         args: ["--config=.github/.markdown-link-check.json"]
+  - repo: local
+    hooks:
+      - id: no-dbg
+        name: no-dbg
+        description: We shouldn't merge code with `dbg!` in
+        language: pygrep
+        types: ["rust"]
+        # A regex searching sql files for either `prj-` or 'tgs-'.
+        entry: "dbg!"
   # This is quite strict, and doesn't fix a large enough share of the issues it
   # finds, so we don't include it. But it's reasonable to run every now & again
   # manually and take its fixes.

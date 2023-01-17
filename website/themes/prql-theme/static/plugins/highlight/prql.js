@@ -19,7 +19,7 @@ formatting = function (hljs) {
     "union",
   ];
   const BUILTIN_FUNCTIONS = ["switch", "in", "as"];
-  const KEYWORDS = ["func", "table", "prql"];
+  const KEYWORDS = ["func", "let", "prql"];
   return {
     name: "PRQL",
     case_insensitive: true,

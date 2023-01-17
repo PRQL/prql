@@ -6,11 +6,26 @@
 
 - Change column name inference to also include relation name.
 
-  ```
+  ```prql
   from albums
   select title # name used to be inferred as title only
   select albums.title # so using albums was not possible here
   ```
+
+- Allow quoted identifiers like `dir/*.parquet` to be passed through
+  (@max-sixty, #1516).
+
+**Fixes**:
+
+**Documentation**:
+
+**Web**:
+
+**Integrations**:
+
+**Internal changes**:
+
+**New Contributors**:
 
 ## 0.4.0 — 2022-01-15
 
@@ -19,10 +34,14 @@ with underscores. We have initial (unpublished) bindings to Elixir. And there's
 the usual improvements to fixes & documentation (only a minority are listed
 below in this release).
 
-0.4.0 also has some breaking changes: `dialect` renaming to `target`, and the
-compiler's API has changed. Full details below.
+0.4.0 also has some breaking changes: `table` is `let`, `dialect` is renamed to
+`target`, and the compiler's API has changed. Full details below.
 
 **Features**:
+
+- Defining a temporary table is now expressed as `let` rather than `table`
+  (@aljazerzen, #1315). See the
+  [tables docs](https://prql-lang.org/book/queries/tables.html) for details.
 
 - _Experimental:_ The
   [`switch`](https://prql-lang.org/book/language-features/switch.html) function
@@ -106,7 +125,7 @@ compiler's API has changed. Full details below.
   enables us to include a full CTE of SQL, for example:
 
   ```prql
-  table grouping = s"""
+  let grouping = s"""
     SELECT SUM(a)
     FROM tbl
     GROUP BY

@@ -598,8 +598,28 @@ pub(super) fn translate_ident(
     let mut parts = Vec::with_capacity(4);
     if !ctx.omit_ident_prefix || column.is_none() {
         if let Some(relation) = relation_name {
-            // Special-case this for BigQuery, Ref #852
+            #[allow(clippy::if_same_then_else)]
             if ctx.dialect.big_query_quoting() {
+                // Special-case this for BigQuery, Ref #852
+                parts.push(relation);
+            } else if relation.contains('*') {
+                // This messy and could be cleaned up a lot.
+                // If `parts` is (includung the backticks)
+                //
+                //   `schema.table`
+                //
+                // then we want to split it up, because we need to produce the
+                // result without the surrounding backticks, ref #822.
+                //
+                // But if it's `path/*.parquet`, then we want to retain the
+                // backticks.
+                //
+                // So for the moment, we check whether there's a `*` in there,
+                // and if there is, we don't split it up.
+                //
+                // I think probably we should interpret `schema.table` as a
+                // namespace when it's passed to `from` or `join`, but that
+                // requires handling the types in those transforms.
                 parts.push(relation);
             } else {
                 parts.extend(relation.split('.').map(|s| s.to_string()));
