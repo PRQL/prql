@@ -8,7 +8,7 @@ target
 **/.idea
 
 /*.prql
-**/_*.prql
+_*.prql
 
 # Appears when using Docker container
 .Trash-0
