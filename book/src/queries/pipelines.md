@@ -43,6 +43,6 @@ select [e.name, gross_salary, d.name]
 
 ## See also
 
-[Transforms](../transforms.md) - PRQL Transforms 
+[Transforms](../transforms.md) - PRQL Transforms
 
 [Syntax](./syntax.md) - Notation for PRQL queries
