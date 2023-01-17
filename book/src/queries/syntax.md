@@ -96,10 +96,9 @@ select first_name
 
 ## Expressions
 
-PRQL is made up of  _expressions_, like `2 + 3` or `((1 + x) * y)`.
-In the example below, note the use of
-expressions to calculate the alias `circumference` and in the `filter`
-transform.
+PRQL is made up of _expressions_, like `2 + 3` or `((1 + x) * y)`. In the
+example below, note the use of expressions to calculate the alias
+`circumference` and in the `filter` transform.
 
 ```prql
 from foo
