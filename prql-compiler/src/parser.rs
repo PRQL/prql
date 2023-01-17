@@ -872,14 +872,14 @@ Canada
         "###);
 
         // Underscores can't go at the beginning or end of numbers
-        assert!(expr_of_string(dbg!("_2"), Rule::number).is_err());
-        assert!(expr_of_string(dbg!("_"), Rule::number).is_err());
-        assert!(expr_of_string(dbg!("_2.3"), Rule::number).is_err());
+        assert!(expr_of_string("_2", Rule::number).is_err());
+        assert!(expr_of_string("_", Rule::number).is_err());
+        assert!(expr_of_string("_2.3", Rule::number).is_err());
         // We need to test these with `stmts_of_string` because they start with
         // a valid number (and pest will return as much as possible and then return)
         let bad_numbers = vec!["2_", "2.3_"];
         for bad_number in bad_numbers {
-            assert!(stmts_of_string(dbg!(bad_number)).is_err());
+            assert!(stmts_of_string(bad_number).is_err());
         }
         Ok(())
     }
