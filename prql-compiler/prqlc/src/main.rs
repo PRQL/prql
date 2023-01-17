@@ -214,11 +214,11 @@ sort full
         assert_snapshot!(String::from_utf8(output).unwrap().trim(),
         @r###"
         from initial_table
-        select [f = first_name, l = last_name, gender]  # [f, l, gender]
-        derive full_name = f + " " + l                  # [f, l, gender, full_name]
-        take 23                                         # [f, l, gender, full_name]
-        select [l + " " + f, full = full_name, gender]  # [?, full, gender]
-        sort full                                       # [?, full, gender]
+        select [f = first_name, l = last_name, gender]  # [f, l, initial_table.gender]
+        derive full_name = f + " " + l                  # [f, l, initial_table.gender, full_name]
+        take 23                                         # [f, l, initial_table.gender, full_name]
+        select [l + " " + f, full = full_name, gender]  # [?, full, initial_table.gender]
+        sort full                                       # [?, full, initial_table.gender]
         "###);
     }
 
