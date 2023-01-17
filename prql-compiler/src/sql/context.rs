@@ -13,6 +13,8 @@ use crate::ast::rq::{
 };
 use crate::utils::{IdGenerator, NameGenerator};
 
+use super::preprocess::SqlTransform;
+
 #[derive(Default)]
 pub struct AnchorContext {
     pub(super) column_decls: HashMap<CId, ColumnDecl>,
@@ -107,7 +109,11 @@ impl AnchorContext {
         Some(entry.or_insert_with(|| self.col_name.gen()))
     }
 
-    pub fn load_names(&mut self, pipeline: &[Transform], output_cols: Vec<RelationColumn>) {
+    pub(super) fn load_names(
+        &mut self,
+        pipeline: &[SqlTransform],
+        output_cols: Vec<RelationColumn>,
+    ) {
         let output_cids = Self::determine_select_columns(pipeline);
 
         assert_eq!(output_cids.len(), output_cols.len());
@@ -119,17 +125,20 @@ impl AnchorContext {
         }
     }
 
-    pub fn determine_select_columns(pipeline: &[Transform]) -> Vec<CId> {
+    pub(super) fn determine_select_columns(pipeline: &[SqlTransform]) -> Vec<CId> {
+        use SqlTransform::*;
+        use Transform::*;
+
         if let Some((last, remaining)) = pipeline.split_last() {
             match last {
-                Transform::From(table) => table.columns.iter().map(|(_, cid)| *cid).collect(),
-                Transform::Join { with: table, .. } => [
+                Super(From(table)) => table.columns.iter().map(|(_, cid)| *cid).collect(),
+                Super(Join { with: table, .. }) => [
                     Self::determine_select_columns(remaining),
                     table.columns.iter().map(|(_, cid)| *cid).collect_vec(),
                 ]
                 .concat(),
-                Transform::Select(cols) => cols.clone(),
-                Transform::Aggregate { partition, compute } => {
+                Super(Select(cols)) => cols.clone(),
+                Super(Aggregate { partition, compute }) => {
                     [partition.clone(), compute.clone()].concat()
                 }
                 _ => Self::determine_select_columns(remaining),
@@ -140,11 +149,17 @@ impl AnchorContext {
     }
 
     /// Returns a set of all columns of all tables in a pipeline
-    pub fn collect_pipeline_inputs(&self, pipeline: &[Transform]) -> (Vec<TIId>, HashSet<CId>) {
+    pub(super) fn collect_pipeline_inputs(
+        &self,
+        pipeline: &[SqlTransform],
+    ) -> (Vec<TIId>, HashSet<CId>) {
         let mut tables = Vec::new();
         let mut columns = HashSet::new();
         for t in pipeline {
-            if let Transform::From(table) | Transform::Join { with: table, .. } = t {
+            if let SqlTransform::Super(
+                Transform::From(table) | Transform::Join { with: table, .. },
+            ) = t
+            {
                 // a hack to get TIId of a TableRef
                 // (ideally, TIId would be saved in TableRef)
                 if let Some((_, cid)) = table.columns.first() {

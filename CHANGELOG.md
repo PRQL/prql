@@ -125,7 +125,7 @@ below in this release).
   enables us to include a full CTE of SQL, for example:
 
   ```prql
-  table grouping = s"""
+  let grouping = s"""
     SELECT SUM(a)
     FROM tbl
     GROUP BY
