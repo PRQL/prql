@@ -48,16 +48,16 @@ runs:
     - name: 📋 Test
       uses: richb-hanover/cargo@v1.1.0
       if:
-        ${{ (inputs.target_option != '--exclude prqlc
-        --target=wasm32-unknown-unknown' && runner.os == 'ubuntu') }}
+        ${{ (inputs.target_option != '--exclude=prqlc --target=wasm32-unknown-unknown' &&
+          runner.os == 'ubuntu') }}
       with:
         command: insta
         args: test --unreferenced=auto ${{ inputs.target_option }}
     - name: 📋 Test
       uses: richb-hanover/cargo@v1.1.0
       if:
-        ${{ ! (inputs.target_option != '--exclude prqlc
-        --target=wasm32-unknown-unknown' && runner.os == 'ubuntu') }}
+        ${{ ! (inputs.target_option != '--exclude=prqlc --target=wasm32-unknown-unknown' &&
+          runner.os == 'ubuntu') }}
       with:
         command: insta
         args: test ${{ inputs.target_option }}
