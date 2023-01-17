@@ -152,7 +152,11 @@ pre ::-webkit-scrollbar-thumb:hover {
   z-index: 997;
   padding: 15px 0;
   border-bottom: 4px solid rgb(32, 43, 56);
-  background: linear-gradient(45deg, rgb(175, 192, 207) 0%, rgb(82, 134, 182) 100%);
+  background: linear-gradient(
+    45deg,
+    rgb(175, 192, 207) 0%,
+    rgb(82, 134, 182) 100%
+  );
 }
 
 #header .logo img {
@@ -290,7 +294,11 @@ pre ::-webkit-scrollbar-thumb:hover {
   width: 100%;
   min-height: 100vh;
   background: #f2f9ff;
-  background: linear-gradient(45deg, rgb(211, 214, 217) 0%, rgb(81, 133, 182) 100%);
+  background: linear-gradient(
+    45deg,
+    rgb(211, 214, 217) 0%,
+    rgb(81, 133, 182) 100%
+  );
   padding-top: 100px;
 }
 
