@@ -8,25 +8,12 @@ repository.workspace = true
 rust-version.workspace = true
 version.workspace = true
 
-[features]
-cli = ["clio", "atty", "clap", "color-eyre"]
-
-[[bin]]
-name = "prqlc"
-path = "src/cli.rs"
-required-features = ["cli"]
-
 [dependencies]
 anyhow = {version = "1.0.57", features = ["backtrace"]}
 ariadne = "0.1.5"
-atty = {version = "0.2.14", optional = true}
-clap = {version = "4.1.1", optional = true, features = ["derive"]}
-clio = {version = "0.2.4", features = ['clap-parse'], optional = true}
-color-eyre = {version = "0.6.1", optional = true}
 csv = "1.1.6"
 chumsky = "0.8.0"
 enum-as-inner = "0.5.0"
-env_logger = {version = "0.9.1", features = ["termcolor"]}
 itertools = "0.10.3"
 lazy_static = "1.4.0"
 log = "0.4.17"
@@ -37,7 +24,6 @@ regex = "1.7.0"
 semver = {version = "1.0.14", features = ["serde"]}
 serde = {version = "1.0.137", features = ["derive"]}
 serde_json = "1.0.81"
-serde_yaml = "0.9.1"
 sqlformat = "0.2.0"
 sqlparser = {version = "0.30.0", features = ["serde"]}
 strum = {version = "0.24.0", features = ["std", "derive"]}# for converting enum variants to string
