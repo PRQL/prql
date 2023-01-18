@@ -41,6 +41,7 @@ very welcome.
 - `sql.postgres`
 - `sql.sqlite`
 - `sql.snowflake`
+- `sql.duckdb`
 
 ## Version
 
