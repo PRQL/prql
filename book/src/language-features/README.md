@@ -14,7 +14,7 @@ Much SQL syntax is complicated. PRQL has facilities to simplify the statements.
 
 [Regex](./regex.md) - How PRQL handles regular expressions
 
-[Stdlib](./stdlib.md) - The "builtin" set of functions in PRQL
+[Stdlib](./standard-library.md) - The "builtin" set of functions in PRQL
 
 [Strings](./strings.md) - PRQL rules for creating strings
 
