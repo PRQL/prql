@@ -3,38 +3,12 @@ source: book/tests/snapshot.rs
 expression: prql_to_pl(&prql).and_then(pl_to_prql).unwrap()
 input_file: book/tests/prql/queries/syntax-5.prql
 ---
-from employees
-derive is_proximate = (
-  distance
-  in 0..20
-)
-derive (
-  total_distance = sum distance
-)
-derive (
-  min_capped_distance = min distance ?? 5
-)
-derive travel_time = distance / 40
-derive (
-  distance_rounded_2_dp = round 1 + 1 distance
-)
-derive [
-  is_far = (
-  distance
-  in 100..
-),
-  is_negative = (
-  distance
-  in -100..0
-),
-  is_negative = (
-  distance
-  in -100..0
-),
-  average_distance = average distance,
+from foo
+select [
+  circumference = diameter * 3.14159,
+  color,
 ]
-sort -distance
-sort [-distance]
+filter circumference > 10 and color != "red"
 
 
 
