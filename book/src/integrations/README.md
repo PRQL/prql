@@ -1,6 +1,6 @@
 # Integrations
 
-PRQL is building integrations with the external tools at the left, including:
+PRQL is building integrations with lots of external tools, including:
 
 - dbt
 - Jypyter
