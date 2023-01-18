@@ -127,12 +127,12 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
-        # Note this currently uses a manually mantained key in
-        # `prql-compiler/Cargo.toml`, because of
-        # https://github.com/foresterre/cargo-msrv/issues/590
       - uses: baptiste0928/cargo-install@next
         with:
           crate: cargo-msrv
+        # Note this currently uses a manually mantained key in
+        # `prql-compiler/Cargo.toml`, because of
+        # https://github.com/foresterre/cargo-msrv/issues/590
       - name: Verify minimum rust version
         # Ideally we'd check all crates, ref https://github.com/foresterre/cargo-msrv/issues/295
         working-directory: prql-compiler
