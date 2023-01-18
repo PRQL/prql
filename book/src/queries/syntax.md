@@ -16,12 +16,12 @@ A summary of PRQL syntax
 | `=`             | [Assigns](../transforms/select.md) & [Aliases](../transforms/join.md)   | `from e = employees` <br> `derive total = (sum salary)` |
 | `:`             | [Named args & Parameters](./functions.md)                               | `interp lower:0 1600 sat_score`                         |
 | `[]`            | [Lists](./syntax.md#lists)                                              | `select [id, amount]`                                   |
-| `()`            | [Precedence](./syntax.md#parentheses)                                   | `derive celsius = (fahrenheit - 32) / 1.8`              |
+| `()`            | [Precedence & Parentheses](./syntax.md#precedence-and-parentheses)      | `derive celsius = (fahrenheit - 32) / 1.8`              |
 | `''` & `""`     | [Strings](../language-features/strings.md)                              | `derive name = 'Mary'`                                  |
 | `` ` ` ``       | [Quoted identifiers](./syntax.md#quoted-identifiers)                    | `` select `first name`  ``                              |
 | `#`             | [Comments](./syntax.md#comments)                                        | `# A comment`                                           |
 | `@`             | [Dates & Times](../language-features/dates-and-times.md#dates--times)   | `@2021-01-01`                                           |
-| `==`            | Equality                                                                | `filter [a == b, c != d, e > f]`                        |
+| `==`            | [Expressions](./syntax.md#expressions)                                  | `filter a == b and c != d and e > f`                    |
 | `==`            | [Self-equality in `join`](../transforms/join.md#self-equality-operator) | `join s=salaries [==id]`                                |
 | `->`            | [Function definitions](./functions.md)                                  | `func add a b -> a + b`                                 |
 | `+`/`-`         | [Sort order](../transforms/sort.md)                                     | `sort [-amount, +date]`                                 |
@@ -94,9 +94,24 @@ from employees
 select first_name
 ```
 
-## Parentheses
+## Expressions
 
-Parentheses — `()` — are used to give precedence to inner expressions.
+PRQL is made up of _expressions_, like `2 + 3` or `((1 + x) * y)`. In the
+example below, note the use of expressions to calculate the alias
+`circumference` and in the `filter` transform.
+
+```prql
+from foo
+select [
+	circumference = diameter * 3.14159,
+	color,
+	]
+filter circumference > 10 and color != "red"
+```
+
+## Precedence and Parentheses
+
+Parentheses — `()` — are used to give _precedence_ to inner expressions.
 
 ```admonish note
 We realize some of the finer points here are not intuitive. We are considering approaches to
@@ -112,6 +127,8 @@ Parentheses are required around:
 - Any function call that isn't a single item in a list or a pipeline, like
   `sum distance` in `round 0 (sum distance)`[^1].
 - A minus sign in a function argument, like in `add (-1) (-3)`
+- [Inner transforms](#inner-transforms) for `group`, `window`, and other
+  transforms.
 
 Parentheses are not required around expressions which use operators but no
 function call, like `foo + bar`.
@@ -149,10 +166,11 @@ sort (-distance)
 sort [-distance]
 ```
 
-Consistent with this, parentheses are used to nest the inner transforms in
-transforms which take another transform as an argument, such as `group` and
-`window`, Here, the `aggregate` pipeline is applied to each group of unique
-`title` and `country` values:
+## Inner Transforms
+
+Parentheses are also used for transforms (such as `group` and `window`) that
+pass their result to an "inner transform". The example below applies the
+`aggregate` pipeline to each group of unique `title` and `country` values:
 
 ```prql
 from employees

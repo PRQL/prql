@@ -1,20 +1,20 @@
 ---
 source: book/tests/snapshot.rs
-expression: "from employees\n# Requires parentheses, because it's contains a pipe\nderive is_proximate = (distance | in 0..20)\n# Requires parentheses, because it's a function call\nderive total_distance = (sum distance)\n# `??` doesn't require parentheses, as it's not a function call\nderive min_capped_distance = (min distance ?? 5)\n# No parentheses needed, because no function call\nderive travel_time = distance / 40\n# No inner parentheses needed around `1+1` because no function call\nderive distance_rounded_2_dp = (round 1+1 distance)\nderive [\n  # Requires parentheses, because it contains a pipe\n  is_far = (distance | in 100..),\n  # The left value of the range requires parentheses,\n  # because of the minus sign\n  is_negative = (distance | in (-100..0)),\n  # ...this is equivalent\n  is_negative = (distance | in (-100)..0),\n  # Doesn't require parentheses, because it's in a list (confusing, see footnote)!\n  average_distance = average distance,\n]\n# Requires parentheses because of the minus sign\nsort (-distance)\n# A list is fine too\nsort [-distance]\n"
+expression: "from foo\nselect [\n\tcircumference = diameter * 3.14159,\n\tcolor,\n\t]\nfilter circumference > 10 and color != \"red\"\n"
 input_file: book/tests/prql/queries/syntax-5.prql
 ---
+WITH table_1 AS (
+  SELECT
+    diameter * 3.14159 AS circumference,
+    color
+  FROM
+    foo
+)
 SELECT
-  *,
-  distance BETWEEN 0 AND 20 AS is_proximate,
-  SUM(distance) OVER () AS total_distance,
-  MIN(COALESCE(distance, 5)) OVER () AS min_capped_distance,
-  distance / 40 AS travel_time,
-  ROUND(distance, 2) AS distance_rounded_2_dp,
-  distance >= 100 AS is_far,
-  distance BETWEEN -100 AND 0,
-  distance BETWEEN -100 AND 0 AS is_negative,
-  AVG(distance) OVER () AS average_distance
+  circumference,
+  color
 FROM
-  employees
-ORDER BY
-  distance DESC
+  table_1
+WHERE
+  circumference > 10
+  AND color <> 'red'

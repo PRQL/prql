@@ -1,1 +1,3 @@
-from `dir/*.parquet`
+prql target:sql.postgres
+from employees
+select `first name`

@@ -3,12 +3,7 @@ source: book/tests/snapshot.rs
 expression: prql_to_pl(&prql).and_then(pl_to_prql).unwrap()
 input_file: book/tests/prql/queries/syntax-11.prql
 ---
-prql target:sql.bigquery
-
-
-
-from `project-foo.dataset.table`
-join `project-bar.dataset.table` [==col_bax]
+from `dir/*.parquet`
 
 
 
