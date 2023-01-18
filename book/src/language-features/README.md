@@ -1,6 +1,5 @@
 # Language Features
 
-
 [Coalesce](./coalesce.md) - How PRQL handles potentially NULL values
 
 [Dates & times](./dates-and-times.md) - How PRQL handles dates and times
