@@ -27,6 +27,6 @@ an index.
   [`playground/src/workbench/prql-syntax.js`](https://github.com/PRQL/prql/blob/main/playground/src/workbench/prql-syntax.js).
 
 While the [pest](https://pest.rs/) grammar at
-[`prql-compiler/src/prql.pest`](https://github.com/PRQL/prql/blob/main/prql-compiler/src/prql.pest)
+[`prql-compiler/src/parser/prql.pest`](https://github.com/PRQL/prql/blob/main/prql-compiler/src/parser/prql.pest)
 isn't used for syntax highlighting, it's the arbiter of truth given it currently
 powers the PRQL compiler.

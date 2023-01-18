@@ -1,11 +1,18 @@
-# All tests — run this only on merges to main or where a specific label is set.
-
 name: test-all
+
+# The full suite of tests. These can take up to 20 minutes, so are only run on
+# merges or where we're more concerned about a break outside the core libraries.
+
+# To run these on a PR, label with `pr-test-all`.
 
 on:
   push:
     branches:
       - main
+  pull_request:
+    paths:
+      - "**/Cargo.*"
+      - ".github/workflows/test-all.yaml"
   # Called by pull-request when specifically requested
   workflow_call:
 
@@ -100,3 +107,19 @@ jobs:
           load: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  test-min-rust-version:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v3
+      - uses: baptiste0928/cargo-install@next
+        with:
+          crate: cargo-msrv
+        # Note this currently uses a manually mantained key in
+        # `prql-compiler/Cargo.toml`, because of
+        # https://github.com/foresterre/cargo-msrv/issues/590
+      - name: Verify minimum rust version
+        # Ideally we'd check all crates, ref https://github.com/foresterre/cargo-msrv/issues/295
+        working-directory: prql-compiler
+        run: cargo msrv verify
