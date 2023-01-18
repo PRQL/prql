@@ -1,4 +1,4 @@
-# Query header: target dialect & version
+# Target: Dialect & Version
 
 ## Target dialect
 
