@@ -32,7 +32,7 @@ jobs:
           target_option: ${{ matrix.target_option }}
 
   test-python:
-    - uses: ./.github/workflows/test-python.yaml
+    uses: ./.github/workflows/test-python.yaml
 
   test-java:
     runs-on: ${{ matrix.os }}
