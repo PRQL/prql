@@ -1,6 +1,5 @@
 # Language Features
 
-Much SQL syntax is complicated. PRQL has facilities to simplify the statements.
 
 [Coalesce](./coalesce.md) - How PRQL handles potentially NULL values
 
