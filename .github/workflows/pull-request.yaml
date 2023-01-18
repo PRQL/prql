@@ -30,14 +30,13 @@ jobs:
         include:
           - target_option: ""
           - target_option: "--target=wasm32-unknown-unknown"
-          - os: "ubuntu-latest"
+          - os: ubuntu-latest
     uses: ./.github/workflows/test-rust.yaml
-       with:
+      with:
         target_option: ${{ matrix.target_option }}
         os: ${{ matrix.os }}
 
   test-book:
-    runs-on: ubuntu-latest
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
