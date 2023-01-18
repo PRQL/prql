@@ -8,6 +8,10 @@ repository.workspace = true
 rust-version.workspace = true
 version.workspace = true
 
+# Manually updated to match the version in the root `Cargo.toml`, until
+# https://github.com/foresterre/cargo-msrv/issues/590 is resolved.
+metadata.msrv = "1.65.0"
+
 [features]
 cli = ["clio", "atty", "clap", "color-eyre"]
 
@@ -20,11 +24,11 @@ required-features = ["cli"]
 anyhow = {version = "1.0.57", features = ["backtrace"]}
 ariadne = "0.1.5"
 atty = {version = "0.2.14", optional = true}
+chumsky = "0.8.0"
 clap = {version = "4.1.1", optional = true, features = ["derive"]}
 clio = {version = "0.2.4", features = ['clap-parse'], optional = true}
 color-eyre = {version = "0.6.1", optional = true}
 csv = "1.1.6"
-chumsky = "0.8.0"
 enum-as-inner = "0.5.0"
 env_logger = {version = "0.9.1", features = ["termcolor"]}
 itertools = "0.10.3"
