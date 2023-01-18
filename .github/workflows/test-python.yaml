@@ -17,8 +17,9 @@ on:
 # workflow, or (worse but acceptable) skipping the job if there's a
 # `pr-test-all` label on the PR. Or some other way...
 #
-# concurrency: group: ${{ github.workflow }}-${{ github.ref }}
-#   cancel-in-progress: true
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-py
+  cancel-in-progress: true
 
 jobs:
   test:
