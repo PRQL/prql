@@ -1,0 +1,9 @@
+---
+source: book/tests/snapshot.rs
+expression: "from `dir/*.parquet`\n"
+input_file: book/tests/prql/language-features/syntax-11.prql
+---
+SELECT
+  *
+FROM
+  "dir/*.parquet"
