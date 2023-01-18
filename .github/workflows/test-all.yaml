@@ -15,21 +15,7 @@ concurrency:
 
 jobs:
   test-rust:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        include:
-          - os: ubuntu-latest
-          - os: windows-latest
-          - os: macos-latest
-          - os: ubuntu-latest
-            target_option: "--target=wasm32-unknown-unknown"
-    steps:
-      - name: 📂 Checkout code
-        uses: actions/checkout@v3
-      - uses: ./.github/actions/test-rust
-        with:
-          target_option: ${{ matrix.target_option }}
+    uses: ./.github/workflows/test-rust.yaml
 
   test-python:
     uses: ./.github/workflows/test-python.yaml
