@@ -32,13 +32,7 @@ jobs:
           target_option: ${{ matrix.target_option }}
 
   test-python:
-    # strategy:
-    #   matrix:
-    #     os: [ubuntu-latest, macos-latest, windows-latest]
-    steps:
-      - uses: ./.github/workflows/test-python.yaml
-        # with:
-        #   os: ${{ matrix.os }}
+    - uses: ./.github/workflows/test-python.yaml
 
   test-java:
     runs-on: ${{ matrix.os }}
