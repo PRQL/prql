@@ -12,6 +12,13 @@ on:
       - main
 
 concurrency:
+  # This seems to require `-pr` on the end; I _think_ because this calls
+  # `test-all`, which calls `test-python`, and if `test-python` runs too, then
+  # we have two workflows with the same concurrency group, which GitHub calls a
+  # deadlock. Here's an example:
+  # https://github.com/PRQL/prql/actions/runs/3945798229. By adding `-pr` here,
+  # the job that runs under `test-all` (called from here) will have `-pr` on the
+  # end, and so won't deadlock.
   group: ${{ github.workflow }}-${{ github.ref }}-pr
   cancel-in-progress: true
 
@@ -25,7 +32,6 @@ jobs:
           - target_option: ""
           - target_option: "--target=wasm32-unknown-unknown"
     steps:
-      - run: echo ${{ github.workflow }}-${{ github.ref }}
       - name: 📂 Checkout code
         uses: actions/checkout@v3
       - name: 📋 Test workspace
