@@ -40,7 +40,7 @@
   - [F-Strings](./language-features/f-strings.md)
   - [Switch](./language-features/switch.md)
   - [Syntax](./language-features/syntax.md)
-  - [Target: Dialect & Version](./language-features/target.md)
+  - [Target & Version](./language-features/target.md)
 
 - [Bindings](./bindings/README.md)
 
