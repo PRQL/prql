@@ -1,7 +1,7 @@
 # Queries
 
-PRQL queries are composed of a sequence of statements (a _pipeline_) that modify
-or _transform_ data as it is passed from statement to statement.
+PRQL queries are composed of a sequence of _transforms_ that form a _pipeline_
+that modifies data as it is passed from one to the next.
 
 The major items of a _query_ are listed at the left:
 
