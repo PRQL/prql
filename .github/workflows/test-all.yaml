@@ -1,10 +1,9 @@
 name: test-all
 
-description: >
-  The full suite of tests. These can take up to 20 minutes, so are only run on
-  merges or where we're more concerned about a break outside the core libraries.
+# The full suite of tests. These can take up to 20 minutes, so are only run on
+# merges or where we're more concerned about a break outside the core libraries.
 
-  To run these on a PR, label with `pr-test-all`.
+# To run these on a PR, label with `pr-test-all`.
 
 on:
   push:
