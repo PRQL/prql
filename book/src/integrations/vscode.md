@@ -1,4 +1,4 @@
-# VScode Extension
+# VSCode Extension
 
 PRQL has a VScode Extension that compiles a PRQL query in a VScode pane and
 displays the resulting SQL code in a second pane on the side. This is very handy
