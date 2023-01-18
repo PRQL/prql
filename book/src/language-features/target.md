@@ -1,4 +1,4 @@
-# Target: Dialect & Version
+# Target & Version
 
 ## Target dialect
 
