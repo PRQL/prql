@@ -8,7 +8,6 @@ on:
     paths:
       - "prql-python/**"
       - ".github/workflows/test-python.yaml"
-      - ".github/actions/test-python/**"
   workflow_call:
 
 concurrency:
@@ -24,4 +23,30 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
-      - uses: ./.github/actions/test-python
+      - name: Build wheel
+        uses: ./.github/actions/build-prql-python
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.7"
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.8"
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.9"
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+      - name: Install nox
+        run: pipx install nox
+        shell: bash
+      - name: Cache Nox
+        uses: actions/cache@v3
+        with:
+          path: .nox
+          key:
+            nox-${{ hashFiles('prql-python/noxfile.py') }}-${{
+            hashFiles('prql-python/requirements.txt') }}
+      - name: Run tests
+        shell: bash
+        run: nox -s tests -f prql-python/noxfile.py
