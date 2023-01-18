@@ -101,6 +101,7 @@ pub enum Dialect {
     PostgreSql,
     SQLite,
     Snowflake,
+    DuckDb,
 }
 
 impl From<Dialect> for prql_compiler::sql::Dialect {
@@ -117,6 +118,7 @@ impl From<Dialect> for prql_compiler::sql::Dialect {
             Dialect::PostgreSql => D::PostgreSql,
             Dialect::SQLite => D::SQLite,
             Dialect::Snowflake => D::Snowflake,
+            Dialect::DuckDb => D::DuckDb,
         }
     }
 }
