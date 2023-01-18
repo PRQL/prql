@@ -5,7 +5,7 @@ license = "Apache-2.0"
 name = "prql-compiler"
 repository = "https://github.com/PRQL/prql"
 rust-version = "1.60.0"
-version = "0.4.0"
+version.workspace = true
 
 [features]
 cli = ["clio", "atty", "clap", "color-eyre"]
