@@ -10,16 +10,6 @@ on:
       - ".github/workflows/test-python.yaml"
   workflow_call:
 
-# TODO: we needed to remove this, because if there's a) a change in the path
-# such that this is run on a PR and b) a label on the PR such that `test-all` is
-# triggered, then this deadlocks. I'm sure there's a way of designing this so it
-# doesn't deadlock — either adding something to the key so it knows the "parent"
-# workflow, or (worse but acceptable) skipping the job if there's a
-# `pr-test-all` label on the PR. Or some other way...
-#
-# concurrency: group: ${{ github.workflow }}-${{ github.ref }}
-#   cancel-in-progress: true
-
 jobs:
   test:
     runs-on: ${{ matrix.os }}
