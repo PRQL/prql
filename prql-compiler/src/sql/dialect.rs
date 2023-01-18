@@ -2,6 +2,7 @@ use core::fmt::Debug;
 use serde::{Deserialize, Serialize};
 use strum;
 
+// Make sure to update Python bindings, JS bindings & docs in the book.
 #[derive(
     Debug, PartialEq, Eq, Clone, Serialize, Deserialize, strum::EnumString, strum::Display,
 )]
