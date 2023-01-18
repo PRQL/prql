@@ -18,7 +18,7 @@ on:
 # `pr-test-all` label on the PR. Or some other way...
 #
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -28,8 +28,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
-      - run:
-          echo ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
+      - run: echo ${{ github.workflow }}-${{ github.ref }}
       - name: 📂 Checkout code
         uses: actions/checkout@v3
       - name: Build wheel

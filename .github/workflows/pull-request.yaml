@@ -12,7 +12,7 @@ on:
       - main
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}-pr
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -25,6 +25,7 @@ jobs:
           - target_option: ""
           - target_option: "--target=wasm32-unknown-unknown"
     steps:
+      - run: echo ${{ github.workflow }}-${{ github.ref }}
       - name: 📂 Checkout code
         uses: actions/checkout@v3
       - name: 📋 Test workspace
