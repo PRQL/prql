@@ -5,6 +5,6 @@ or _transform_ data as it is passed from statement to statement.
 
 The major items of a _query_ are listed at the left:
 
-- Pipelines
-- Functions
-- Tables
+- [Pipelines](./pipelines.md)
+- [Functions](./functions.md)
+- [Tables](./tables.md)
