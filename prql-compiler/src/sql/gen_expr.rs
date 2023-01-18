@@ -461,7 +461,9 @@ fn try_into_between(
     if !matches!(op, BinOp::And) {
         return Ok(None);
     }
-    let Some((a, b)) = a.kind.as_binary().zip(b.kind.as_binary()) else {
+    let (a, b) = if let Some((a, b)) = a.kind.as_binary().zip(b.kind.as_binary()) {
+        (a, b)
+    } else {
         return Ok(None);
     };
     if !(matches!(a.1, BinOp::Gte) && matches!(b.1, BinOp::Lte)) {

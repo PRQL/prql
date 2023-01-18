@@ -450,7 +450,9 @@ impl Lowerer {
     ) -> Result<Vec<CId>> {
         let mut r = Vec::with_capacity(exprs.len());
         for expr in exprs {
-            let pl::ExprKind::All { except, .. } = expr.kind else {
+            let except = if let pl::ExprKind::All { except, .. } = expr.kind {
+                except
+            } else {
                 // base case
                 r.push(self.declare_as_column(expr, is_aggregation)?);
                 continue;

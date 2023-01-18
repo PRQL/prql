@@ -27,9 +27,11 @@ pub(super) fn try_into_exprs(
         .map(|cid| {
             let decl = ctx.anchor.column_decls.get(&cid).unwrap();
 
-            let ColumnDecl::RelationColumn(tiid, _, RelationColumn::Wildcard) = decl else {
+            let tiid = if let ColumnDecl::RelationColumn(tiid, _, RelationColumn::Wildcard) = decl {
+                tiid
+            } else {
                 // base case
-                return translate_cid(cid, ctx)
+                return translate_cid(cid, ctx);
             };
 
             // wildcard
@@ -69,7 +71,11 @@ pub(super) fn translate_wildcards(ctx: &AnchorContext, cols: Vec<CId>) -> (Vec<C
     // requested.
     // This function adds that column to the exclusion list.
     fn exclude(star: &mut Option<(CId, HashSet<CId>)>, excluded: &mut Excluded) {
-        let Some((cid, in_star)) = star.take() else { return };
+        let (cid, in_star) = if let Some((cid, in_star)) = star.take() {
+            (cid, in_star)
+        } else {
+            return;
+        };
         if in_star.is_empty() {
             return;
         }
@@ -125,9 +131,11 @@ pub(super) fn translate_select_items(
         .map(|cid| {
             let decl = ctx.anchor.column_decls.get(&cid).unwrap();
 
-            let ColumnDecl::RelationColumn(tiid, _, RelationColumn::Wildcard) = decl else {
-                // general case
-                return translate_select_item(cid, ctx)
+            let tiid = if let ColumnDecl::RelationColumn(tiid, _, RelationColumn::Wildcard) = decl {
+                tiid
+            } else {
+                // base case
+                return translate_select_item(cid, ctx);
             };
 
             // wildcard case
@@ -158,7 +166,9 @@ fn translate_exclude(
 ) -> Option<WildcardAdditionalOptions> {
     let excluded = as_col_names(&excluded, &ctx.anchor);
 
-    let Some(supported) = ctx.dialect.column_exclude() else {
+    let supported = if let Some(supported) = ctx.dialect.column_exclude() {
+        supported
+    } else {
         // TODO: eventually this should throw an error
         //   I don't want to do this now, because we have no way around it.
         //   We could also ask the user to add table definitions.

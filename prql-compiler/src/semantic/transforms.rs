@@ -300,8 +300,16 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
 
             let [csv_expr] = unpack::<1>(closure);
 
-            let ExprKind::Literal(Literal::String(csv)) = csv_expr.kind else {
-                return Err(Error::new(Reason::Expected { who: Some("std.from_csv".to_string()), expected: "a string literal".to_string(), found: format!("`{csv_expr}`") }).with_span(csv_expr.span).into())
+            let csv = if let ExprKind::Literal(Literal::String(csv)) = csv_expr.kind {
+                csv
+            } else {
+                return Err(Error::new(Reason::Expected {
+                    who: Some("std.from_csv".to_string()),
+                    expected: "a string literal".to_string(),
+                    found: format!("`{}`", csv_expr),
+                })
+                .with_span(csv_expr.span)
+                .into());
             };
 
             let res = parse_csv(&csv)?;

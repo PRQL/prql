@@ -291,7 +291,9 @@ fn sql_union_of_pipeline(
     let append = pipeline.pluck(|t| t.into_append()).into_iter().next();
     let unique = pipeline.iter().any(|t| matches!(t, Transform::Unique));
 
-    let Some(bottom) = append else {
+    let bottom = if let Some(bottom) = append {
+        bottom
+    } else {
         return Ok(top);
     };
 
