@@ -2407,7 +2407,7 @@ fn test_switch() {
         r###"
     from tracks
     select category = switch [
-        length > avg_length -> 'long'
+        length > avg_length => 'long'
     ]
     group category (aggregate count)
         "###).unwrap(),
