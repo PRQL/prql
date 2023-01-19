@@ -623,7 +623,7 @@ dependencies = [
 
 [[package]]
 name = "compile-files"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "prql-compiler",
 ]
@@ -1588,7 +1588,7 @@ dependencies = [
 
 [[package]]
 name = "mdbook-prql"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "anyhow",
  "clap 4.1.1",
@@ -2070,22 +2070,17 @@ dependencies = [
 
 [[package]]
 name = "prql-compiler"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "anyhow",
  "ariadne",
- "atty",
  "cfg-if",
  "chrono",
  "chumsky",
- "clap 4.1.1",
- "clio",
- "color-eyre",
  "criterion",
  "csv",
  "duckdb",
  "enum-as-inner",
- "env_logger 0.9.3",
  "globset",
  "insta",
  "itertools",
@@ -2102,7 +2097,6 @@ dependencies = [
  "semver",
  "serde",
  "serde_json",
- "serde_yaml",
  "similar",
  "sqlformat",
  "sqlparser",
@@ -2113,7 +2107,7 @@ dependencies = [
 
 [[package]]
 name = "prql-compiler-macros"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "prql-compiler",
  "syn",
@@ -2121,7 +2115,7 @@ dependencies = [
 
 [[package]]
 name = "prql-java"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "jni",
  "prql-compiler",
@@ -2129,7 +2123,7 @@ dependencies = [
 
 [[package]]
 name = "prql-js"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "console_error_panic_hook",
  "prql-compiler",
@@ -2139,7 +2133,7 @@ dependencies = [
 
 [[package]]
 name = "prql-lib"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "libc",
  "prql-compiler",
@@ -2148,12 +2142,30 @@ dependencies = [
 
 [[package]]
 name = "prql-python"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "insta",
  "prql-compiler",
  "pyo3",
  "pyo3-build-config",
+]
+
+[[package]]
+name = "prqlc"
+version = "0.4.1"
+dependencies = [
+ "anyhow",
+ "ariadne",
+ "atty",
+ "clap 4.1.1",
+ "clio",
+ "color-eyre",
+ "env_logger 0.9.3",
+ "insta",
+ "itertools",
+ "prql-compiler",
+ "serde_json",
+ "serde_yaml",
 ]
 
 [[package]]
