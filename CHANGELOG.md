@@ -4,8 +4,11 @@
 
 **Features**:
 
-- `from_text` function that supports JSON and CSV formats. (@aljazerzen, @snth)
-  _(Implemented in Playground)_
+- New `from_text format-arg string-arg` function that supports JSON and CSV formats. 
+_format-arg_ can be `format:csv` or `format:json`.
+_string-arg_ can be a string in any format.
+(@aljazerzen, @snth)
+_(Implemented in Playground)_
 
   ```prql
   from_text format:csv """
@@ -26,8 +29,6 @@
       ]
   }'''
   ```
-
-  Currently, arguments are limited to string constants.
 
 - Change switch syntax to use `=>` instead of `->` due to clash with planned
   lambda function syntax. See the
