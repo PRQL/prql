@@ -926,7 +926,6 @@ mod from_text {
             String(string) => Literal::String(string),
             Array(_) => Literal::Null,
             Object(_) => Literal::Null,
-
         }
     }
 
@@ -956,7 +955,7 @@ mod from_text {
         let data: Vec<JsonFormat1Row> = serde_json::from_str(text)?;
         let mut columns = data
             .first()
-            .ok_or(anyhow!("json: no rows"))?
+            .ok_or_else(|| anyhow!("json: no rows"))?
             .keys()
             .cloned()
             .collect_vec();

@@ -12,7 +12,7 @@
   1,2,3
   4,5,6
   """
-  
+
   from_text format:json '''
       [{"a": 1, "b": "x", "c": false }, {"a": 4, "b": "y", "c": null }]
   '''
