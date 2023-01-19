@@ -347,8 +347,6 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
                 })
                 .collect();
 
-            dbg!(&columns);
-
             let frame = Frame {
                 columns,
                 inputs: vec![input],
