@@ -1,5 +1,5 @@
 // We put all the code apart from a facade in `lib.rs` so we can easily disable
-// its compliation for wasm targets.
+// its compilation for wasm targets.
 //
 // We still want to allow compilation for wasm, because we compile the whole
 // workspace for wasm in our tests.
