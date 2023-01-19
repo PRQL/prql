@@ -36,6 +36,7 @@ jobs:
     #   target_option: ${{ matrix.target_option }}
 
   test-book:
+    runs-on: ubuntu-latest
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
