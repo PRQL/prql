@@ -2402,6 +2402,36 @@ fn test_switch() {
       employees
     "###
     );
+
+    assert_display_snapshot!(compile(
+        r###"
+    from tracks
+    select category = switch [
+        length > avg_length -> 'long'
+    ]
+    group category (aggregate count)
+        "###).unwrap(),
+        @r###"
+    WITH table_1 AS (
+      SELECT
+        CASE
+          WHEN length > avg_length THEN 'long'
+          ELSE NULL
+        END AS category,
+        avg_length,
+        length
+      FROM
+        tracks
+    )
+    SELECT
+      category,
+      COUNT(*)
+    FROM
+      table_1
+    GROUP BY
+      category
+    "###
+    );
 }
 
 #[test]
