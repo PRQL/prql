@@ -9,7 +9,7 @@
 
 **Features**:
 
-- Inferred column names include the relation name:
+- Inferred column names include the relation name (@aljazerzen, #1550):
 
   ```prql
   from albums
