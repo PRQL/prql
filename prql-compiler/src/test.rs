@@ -2366,8 +2366,8 @@ fn test_switch() {
         r###"
     from employees
     derive display_name = switch [
-        nickname != null -> nickname,
-        true -> f'{first_name} {last_name}'
+        nickname != null => nickname,
+        true => f'{first_name} {last_name}'
     ]
         "###).unwrap(),
         @r###"
@@ -2386,8 +2386,8 @@ fn test_switch() {
         r###"
     from employees
     derive display_name = switch [
-        nickname != null -> nickname,
-        first_name != null -> f'{first_name} {last_name}'
+        nickname != null => nickname,
+        first_name != null => f'{first_name} {last_name}'
     ]
         "###).unwrap(),
         @r###"
@@ -2478,12 +2478,12 @@ fn test_static_analysis() {
         a3 = null ?? y,
 
         a3 = switch [
-            false == true -> 1,
-            7 == 3 -> 2,
-            7 == y -> 3,
-            7.3 == 7.3 -> 4,
-            z -> 5,
-            true -> 6
+            false == true => 1,
+            7 == 3 => 2,
+            7 == y => 3,
+            7.3 == 7.3 => 4,
+            z => 5,
+            true => 6
         ]
     ]
         "###).unwrap(),

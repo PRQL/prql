@@ -1,5 +1,12 @@
 # PRQL Changelog
 
+## 0.5.0 — [unreleased]
+
+**Features**:
+
+- Change switch syntax to use `=>` instead of `->`
+  due to clash with planned lambda function syntax.
+
 ## 0.4.2 — [unreleased]
 
 **Features**:
