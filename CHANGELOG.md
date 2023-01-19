@@ -4,11 +4,9 @@
 
 **Features**:
 
-- New `from_text format-arg string-arg` function that supports JSON and CSV formats. 
-_format-arg_ can be `format:csv` or `format:json`.
-_string-arg_ can be a string in any format.
-(@aljazerzen, @snth)
-_(Implemented in Playground)_
+- New `from_text format-arg string-arg` function that supports JSON and CSV
+  formats. _format-arg_ can be `format:csv` or `format:json`. _string-arg_ can
+  be a string in any format. (@aljazerzen, @snth) _(Implemented in Playground)_
 
   ```prql
   from_text format:csv """
