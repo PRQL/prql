@@ -4,7 +4,7 @@
 
 **Features**:
 
-- Change column name inference to also include relation name.
+- Inferred column names include the relation name:
 
   ```prql
   from albums
@@ -12,7 +12,7 @@
   select albums.title # so using albums was not possible here
   ```
 
-- Allow quoted identifiers like `dir/*.parquet` to be passed through
+- Quoted identifiers such as `dir/*.parquet` are passed through to SQL.
   (@max-sixty, #1516).
 
 **Fixes**:
