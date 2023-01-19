@@ -2074,13 +2074,9 @@ version = "0.4.0"
 dependencies = [
  "anyhow",
  "ariadne",
- "atty",
  "cfg-if",
  "chrono",
  "chumsky",
- "clap 4.1.1",
- "clio",
- "color-eyre",
  "criterion",
  "csv",
  "duckdb",
