@@ -3,6 +3,7 @@ members = [
   "prql-compiler",
   "prql-compiler/examples/compile-files",
   "prql-compiler/prql-compiler-macros",
+  "prql-compiler/prqlc",
   "prql-java",
   "prql-lib",
   "prql-js",

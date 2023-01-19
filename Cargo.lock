@@ -2074,18 +2074,13 @@ version = "0.4.0"
 dependencies = [
  "anyhow",
  "ariadne",
- "atty",
  "cfg-if",
  "chrono",
  "chumsky",
- "clap 4.1.1",
- "clio",
- "color-eyre",
  "criterion",
  "csv",
  "duckdb",
  "enum-as-inner",
- "env_logger 0.9.3",
  "globset",
  "insta",
  "itertools",
@@ -2102,7 +2097,6 @@ dependencies = [
  "semver",
  "serde",
  "serde_json",
- "serde_yaml",
  "similar",
  "sqlformat",
  "sqlparser",
@@ -2154,6 +2148,24 @@ dependencies = [
  "prql-compiler",
  "pyo3",
  "pyo3-build-config",
+]
+
+[[package]]
+name = "prqlc"
+version = "0.4.0"
+dependencies = [
+ "anyhow",
+ "ariadne",
+ "atty",
+ "clap 4.1.1",
+ "clio",
+ "color-eyre",
+ "env_logger 0.9.3",
+ "insta",
+ "itertools",
+ "prql-compiler",
+ "serde_json",
+ "serde_yaml",
 ]
 
 [[package]]

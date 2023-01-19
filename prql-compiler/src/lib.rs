@@ -65,7 +65,7 @@
 //! - ... compile, format & debug PRQL from command line.
 //!
 //!     ```sh
-//!     $ cargo install prql-compiler --features=cli
+//!     $ cargo install prqlc
 //!     $ prqlc compile query.prql
 //!     ```
 //!
