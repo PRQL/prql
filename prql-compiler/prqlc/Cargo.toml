@@ -8,6 +8,10 @@ repository.workspace = true
 rust-version.workspace = true
 version.workspace = true
 
+[lib]
+doctest = false
+test = false
+
 [target.'cfg(not(target_family="wasm"))'.dependencies]
 anyhow = {version = "1.0.57"}
 ariadne = "0.1.5"
