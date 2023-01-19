@@ -1,12 +1,7 @@
 name: test-rust
 
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    paths:
-      - ".github/workflows/test-rust.yaml"
+  # Currently we only run this as `workflow_call`, since it's always called from `pull-request`.
   workflow_call:
     inputs:
       os:
@@ -20,7 +15,7 @@ on:
 
 jobs:
   test:
-    runs-on: ${{ inputs.os || "ubuntu-latest" }}
+    runs-on: ${{ inputs.os }}
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
