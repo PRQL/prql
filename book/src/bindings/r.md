@@ -28,5 +28,5 @@ group [dept_id, gender] (
   ]
 )
 " |>
-  prql_to_sql()
+  prql_compile()
 ```
