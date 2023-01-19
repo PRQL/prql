@@ -144,4 +144,4 @@ end_expr = _{ WHITESPACE | "," | ")" | "]" | EOI | NEWLINE | ".." }
 jinja = { ("{{" ~ (!"}}" ~ ANY)* ~ "}}") }
 
 switch = { "switch" ~ "[" ~ (NEWLINE* ~ switch_case ~ ("," ~ NEWLINE* ~ switch_case )* ~ ","?)? ~ NEWLINE* ~ "]" }
-switch_case = { expr_call ~ "=>" ~ expr_call }
+switch_case = { expr_call ~ "->" ~ expr_call }
