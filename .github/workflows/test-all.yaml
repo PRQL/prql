@@ -17,57 +17,29 @@ on:
   workflow_call:
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  # See notes in `pull-request.yaml`
+  group: ${{ github.workflow }}-${{ github.ref }}-test-all
   cancel-in-progress: true
 
 jobs:
   test-rust:
-    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        include:
-          - os: ubuntu-latest
-          - os: windows-latest
-          - os: macos-latest
-          - os: ubuntu-latest
-            target_option: "--target=wasm32-unknown-unknown"
-    steps:
-      - name: 📂 Checkout code
-        uses: actions/checkout@v3
-      - uses: ./.github/actions/test-rust
-        with:
-          target_option: ${{ matrix.target_option }}
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        target_option: ["", --target=wasm32-unknown-unknown]
+    uses: ./.github/workflows/test-rust.yaml
+    with:
+      os: ${{ matrix.os }}
+      target_option: ${{ matrix.target_option }}
 
   test-python:
     uses: ./.github/workflows/test-python.yaml
 
   test-java:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        # TODO: enable for windows
-        os: [ubuntu-latest, macos-latest]
-      # Java test is simple enough that it's not worth splitting out into a
-      # separate action. These three lines are copied to test-java, which runs on
-      # any java change.
-    steps:
-      - name: 📂 Checkout code
-        uses: actions/checkout@v3
-      - working-directory: prql-java/java/
-        run: ./mvnw test
+    uses: ./.github/workflows/test-java.yaml
 
   test-js:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest]
-    steps:
-      # This is copy & pasted into test-js.yaml
-      - name: 📂 Checkout code
-        uses: actions/checkout@v3
-      - uses: ./.github/actions/build-prql-js
-      - run: npm cit
-        working-directory: prql-js
+    uses: ./.github/workflows/test-js.yaml
 
   measure-code-cov:
     # Currently disabled due to https://github.com/actions-rs/tarpaulin/issues/21
