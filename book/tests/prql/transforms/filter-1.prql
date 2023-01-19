@@ -1,2 +1,2 @@
 from employees
-filter (age | in 25..40)
+filter (age > 25 or department != "IT")

@@ -7,17 +7,20 @@ use crate::ast::rq::{
     TableDecl, TableRef, Transform,
 };
 
-use super::context::{AnchorContext, ColumnDecl};
+use super::{
+    context::{AnchorContext, ColumnDecl},
+    preprocess::{SqlFold, SqlTransform},
+};
 
-type RemainingPipeline = (Vec<Transform>, Vec<CId>);
+type RemainingPipeline = (Vec<SqlTransform>, Vec<CId>);
 
 /// Splits pipeline into two parts, such that the second part contains
 /// maximum number of transforms while "fitting" into a SELECT query.
-pub fn split_off_back(
+pub(super) fn split_off_back(
     ctx: &mut AnchorContext,
     output: Vec<CId>,
-    mut pipeline: Vec<Transform>,
-) -> (Option<RemainingPipeline>, Vec<Transform>) {
+    mut pipeline: Vec<SqlTransform>,
+) -> (Option<RemainingPipeline>, Vec<SqlTransform>) {
     if pipeline.is_empty() {
         return (None, Vec::new());
     }
@@ -35,7 +38,7 @@ pub fn split_off_back(
         // stop if split is needed
         let split = is_split_required(&transform, &mut following_transforms);
         if split {
-            log::debug!("split required after {}", transform.as_ref());
+            log::debug!("split required after {}", transform.as_str());
             log::debug!(".. following={:?}", following_transforms);
             pipeline.push(transform);
             break;
@@ -43,11 +46,11 @@ pub fn split_off_back(
 
         // anchor and record all requirements
         let required = get_requirements(&transform, &following_transforms);
-        log::debug!("transform {} requires {:?}", transform.as_ref(), required);
+        log::debug!("transform {} requires {:?}", transform.as_str(), required);
         inputs_required.extend(required);
 
         match &transform {
-            Transform::Compute(compute) => {
+            SqlTransform::Super(Transform::Compute(compute)) => {
                 if can_materialize(compute, &inputs_required) {
                     log::debug!("materializing {:?}", compute.id);
                     inputs_avail.insert(compute.id);
@@ -56,7 +59,7 @@ pub fn split_off_back(
                     break;
                 }
             }
-            Transform::Aggregate { compute, .. } => {
+            SqlTransform::Super(Transform::Aggregate { compute, .. }) => {
                 for cid in compute {
                     let decl = &ctx.column_decls[cid];
                     if let ColumnDecl::Compute(compute) = decl {
@@ -67,7 +70,7 @@ pub fn split_off_back(
                     }
                 }
             }
-            Transform::From(with) | Transform::Join { with, .. } => {
+            SqlTransform::Super(Transform::From(with) | Transform::Join { with, .. }) => {
                 for (_, cid) in &with.columns {
                     inputs_avail.insert(*cid);
                 }
@@ -76,7 +79,7 @@ pub fn split_off_back(
         }
 
         // push into current pipeline
-        if !matches!(transform, Transform::Select(_)) {
+        if !matches!(transform, SqlTransform::Super(Transform::Select(_))) {
             curr_pipeline_rev.push(transform);
         }
     }
@@ -127,7 +130,7 @@ pub fn split_off_back(
             output
         };
 
-        curr_pipeline_rev.push(Transform::Select(output));
+        curr_pipeline_rev.push(SqlTransform::Super(Transform::Select(output)));
     }
 
     let remaining_pipeline = if pipeline.is_empty() {
@@ -166,12 +169,12 @@ fn can_materialize(compute: &Compute, inputs_required: &[Requirement]) -> bool {
 /// - prepend pipeline with From
 /// - redefine columns materialized in preceding pipeline
 /// - redirect all references to original columns to the new ones
-pub fn anchor_split(
+pub(super) fn anchor_split(
     ctx: &mut AnchorContext,
     first_table_name: &str,
     cols_at_split: &[CId],
-    second_pipeline: Vec<Transform>,
-) -> Vec<Transform> {
+    second_pipeline: Vec<SqlTransform>,
+) -> Vec<SqlTransform> {
     let new_tid = ctx.tid.gen();
 
     log::debug!("split pipeline, first pipeline output: {cols_at_split:?}");
@@ -223,17 +226,17 @@ pub fn anchor_split(
 
     // adjust second part: prepend from and rewrite expressions to use new columns
     let mut second = second_pipeline;
-    second.insert(0, Transform::From(table_ref));
+    second.insert(0, SqlTransform::Super(Transform::From(table_ref)));
 
     let mut redirector = CidRedirector { ctx, cid_redirects };
-    redirector.fold_transforms(second).unwrap()
+    redirector.fold_sql_transforms(second).unwrap()
 }
 
 /// Determines whether a pipeline must be split at a transform to
 /// fit into one SELECT statement.
 ///
 /// `following` contain names of following transforms in the pipeline.
-fn is_split_required(transform: &Transform, following: &mut HashSet<String>) -> bool {
+fn is_split_required(transform: &SqlTransform, following: &mut HashSet<String>) -> bool {
     // Pipeline must be split when there is a transform that is out of order:
     // - from (max 1x),
     // - join (no limit),
@@ -248,11 +251,12 @@ fn is_split_required(transform: &Transform, following: &mut HashSet<String>) -> 
     // - unique (for UNION)
     //
     // Select is not affected by the order.
+    use SqlTransform::*;
     use Transform::*;
 
     // Compute for aggregation does not count as a real compute,
     // because it's done within the aggregation
-    if let Compute(decl) = transform {
+    if let Super(Compute(decl)) = transform {
         if decl.is_aggregation {
             return false;
         }
@@ -268,17 +272,17 @@ fn is_split_required(transform: &Transform, following: &mut HashSet<String>) -> 
     }
 
     let split = match transform {
-        From(_) => contains_any(following, ["From"]),
-        Join { .. } => contains_any(following, ["From"]),
-        Aggregate { .. } => contains_any(following, ["From", "Join", "Aggregate"]),
-        Filter(_) => contains_any(following, ["From", "Join"]),
-        Compute(_) => contains_any(following, ["From", "Join", /* "Aggregate" */ "Filter"]),
-        Sort(_) => contains_any(following, ["From", "Join", "Compute", "Aggregate"]),
-        Take(_) => contains_any(
+        Super(From(_)) => contains_any(following, ["From"]),
+        Super(Join { .. }) => contains_any(following, ["From"]),
+        Super(Aggregate { .. }) => contains_any(following, ["From", "Join", "Aggregate"]),
+        Super(Filter(_)) => contains_any(following, ["From", "Join"]),
+        Super(Compute(_)) => contains_any(following, ["From", "Join", /* "Aggregate" */ "Filter"]),
+        Super(Sort(_)) => contains_any(following, ["From", "Join", "Compute", "Aggregate"]),
+        Super(Take(_)) => contains_any(
             following,
             ["From", "Join", "Compute", "Filter", "Aggregate", "Sort"],
         ),
-        Unique => contains_any(
+        Distinct => contains_any(
             following,
             [
                 "From",
@@ -290,7 +294,7 @@ fn is_split_required(transform: &Transform, following: &mut HashSet<String>) -> 
                 "Take",
             ],
         ),
-        Append(_) => contains_any(
+        Super(Append(_)) => contains_any(
             following,
             [
                 "From",
@@ -307,7 +311,7 @@ fn is_split_required(transform: &Transform, following: &mut HashSet<String>) -> 
     };
 
     if !split {
-        following.insert(transform.as_ref().to_string());
+        following.insert(transform.as_str().to_string());
     }
     split
 }
@@ -345,10 +349,14 @@ impl std::fmt::Debug for Requirement {
     }
 }
 
-pub fn get_requirements(transform: &Transform, following: &HashSet<String>) -> Vec<Requirement> {
+pub(super) fn get_requirements(
+    transform: &SqlTransform,
+    following: &HashSet<String>,
+) -> Vec<Requirement> {
+    use SqlTransform::*;
     use Transform::*;
 
-    if let Aggregate { partition, compute } = transform {
+    if let Super(Aggregate { partition, compute }) = transform {
         let mut r = Vec::new();
         r.extend(into_requirements(
             partition.clone(),
@@ -364,10 +372,10 @@ pub fn get_requirements(transform: &Transform, following: &HashSet<String>) -> V
     }
 
     let cids = match transform {
-        Compute(compute) => CidCollector::collect(compute.expr.clone()),
-        Filter(expr) | Join { filter: expr, .. } => CidCollector::collect(expr.clone()),
-        Sort(sorts) => sorts.iter().map(|s| s.column).collect(),
-        Take(rq::Take { range, .. }) => {
+        Super(Compute(compute)) => CidCollector::collect(compute.expr.clone()),
+        Super(Filter(expr) | Join { filter: expr, .. }) => CidCollector::collect(expr.clone()),
+        Super(Sort(sorts)) => sorts.iter().map(|s| s.column).collect(),
+        Super(Take(rq::Take { range, .. })) => {
             let mut cids = Vec::new();
             if let Some(e) = &range.start {
                 cids.extend(CidCollector::collect(e.clone()));
@@ -378,11 +386,11 @@ pub fn get_requirements(transform: &Transform, following: &HashSet<String>) -> V
             cids
         }
 
-        Select(_) | From(_) | Append(_) | Aggregate { .. } | Unique => return Vec::new(),
+        Super(Select(_) | From(_) | Append(_) | Aggregate { .. }) | Distinct => return Vec::new(),
     };
 
     let (max_complexity, selected) = match transform {
-        Compute(decl) => (
+        Super(Compute(decl)) => (
             if infer_complexity(decl) == Complexity::Plain {
                 Complexity::Aggregation
             } else {
@@ -390,7 +398,7 @@ pub fn get_requirements(transform: &Transform, following: &HashSet<String>) -> V
             },
             false,
         ),
-        Filter(_) => (
+        Super(Filter(_)) => (
             if !following.contains("Aggregate") {
                 Complexity::Aggregation
             } else {
@@ -399,9 +407,9 @@ pub fn get_requirements(transform: &Transform, following: &HashSet<String>) -> V
             false,
         ),
         // ORDER BY uses aliased columns, so the columns can have high complexity
-        Sort(_) => (Complexity::Aggregation, true),
-        Take(_) => (Complexity::Plain, false),
-        Join { .. } => (Complexity::Plain, false),
+        Super(Sort(_)) => (Complexity::Aggregation, true),
+        Super(Take(_)) => (Complexity::Plain, false),
+        Super(Join { .. }) => (Complexity::Plain, false),
 
         _ => unreachable!(),
     };
@@ -479,3 +487,5 @@ impl<'a> RqFold for CidRedirector<'a> {
         }
     }
 }
+
+impl<'a> SqlFold for CidRedirector<'a> {}

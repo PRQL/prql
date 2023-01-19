@@ -21,3 +21,16 @@ def test_all():
     assert res is not None
 
     assert prql.__version__ is not None
+
+    # Example from readme
+    prql_query = """
+        from employees
+        join salaries [==emp_id]
+        group [employees.dept_id, employees.gender] (
+        aggregate [
+            avg_salary = average salaries.salary
+        ]
+        )
+    """
+
+    assert prql.compile(prql_query)

@@ -8,11 +8,23 @@ repository.workspace = true
 rust-version.workspace = true
 version.workspace = true
 
+# Manually updated to match the version in the root `Cargo.toml`, until
+# https://github.com/foresterre/cargo-msrv/issues/590 is resolved.
+metadata.msrv = "1.65.0"
+
+[features]
+cli = ["clio", "atty", "clap", "color-eyre"]
+
+[[bin]]
+name = "prqlc"
+path = "src/cli.rs"
+required-features = ["cli"]
+
 [dependencies]
 anyhow = {version = "1.0.57", features = ["backtrace"]}
 ariadne = "0.1.5"
-csv = "1.1.6"
 chumsky = "0.8.0"
+csv = "1.1.6"
 enum-as-inner = "0.5.0"
 itertools = "0.10.3"
 lazy_static = "1.4.0"
@@ -28,6 +40,11 @@ sqlformat = "0.2.0"
 sqlparser = {version = "0.30.0", features = ["serde"]}
 strum = {version = "0.24.0", features = ["std", "derive"]}# for converting enum variants to string
 strum_macros = "0.24.0"
+
+atty = {version = "0.2.14", optional = true}
+clap = {version = "4.1.1", optional = true, features = ["derive"]}
+clio = {version = "0.2.4", features = ['clap-parse'], optional = true}
+color-eyre = {version = "0.6.1", optional = true}
 
 [dev-dependencies]
 cfg-if = "1.0"

@@ -12,10 +12,14 @@ on:
       - main
 
 concurrency:
-  # This adds `job` to the key so when running full tests, we don't cancel the
-  # overlapping jobs, since GH relies on them passing before allowing a PR to
-  # pass.
-  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.job }}
+  # This seems to require `-pr` on the end; I _think_ because this calls
+  # `test-all`, which calls `test-python`, and if `test-python` runs too, then
+  # we have two workflows with the same concurrency group, which GitHub calls a
+  # deadlock. Here's an example:
+  # https://github.com/PRQL/prql/actions/runs/3945798229. By adding `-pr` here,
+  # the job that runs under `test-all` (called from here) will have `-pr` on the
+  # end, and so won't deadlock.
+  group: ${{ github.workflow }}-${{ github.ref }}-pr
   cancel-in-progress: true
 
 jobs:

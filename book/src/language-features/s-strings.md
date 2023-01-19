@@ -10,7 +10,7 @@ from my_table
 select db_version = s"version()"
 ```
 
-We can embed columns in an s-string using braces. For example, PRQL's standard
+Embed a column name in an s-string using braces. For example, PRQL's standard
 library defines the `average` function as:
 
 ```prql_no_test
@@ -81,7 +81,7 @@ derive [
 ]
 ```
 
-Instead, we'd need to put the denominator `{gross_salary}` in parentheses:
+Instead, put the denominator `{gross_salary}` in parentheses:
 
 ```prql
 from employees
