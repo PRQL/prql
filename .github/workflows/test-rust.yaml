@@ -10,10 +10,12 @@ on:
   workflow_call:
     inputs:
       os:
-        required: true
+        required: false
+        default: ubuntu-latest
         type: string
       target_option:
-        required: true
+        required: false
+        default: --target=wasm32-unknown-unknown
         type: string
 
 jobs:
