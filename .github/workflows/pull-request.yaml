@@ -16,9 +16,9 @@ concurrency:
   # `test-all`, which calls `test-python`, and if `test-python` runs too, then
   # we have two workflows with the same concurrency group, which GitHub calls a
   # deadlock. Here's an example:
-  # https://github.com/PRQL/prql/actions/runs/3945798229. By adding `-pull-request` here,
-  # the job that runs under `test-all` (called from here) will have the suffix
-  # end, and so won't deadlock.
+  # https://github.com/PRQL/prql/actions/runs/3945798229. By adding
+  # `-pull-request` here, the job that runs under `test-all` (called from here)
+  # will have the suffix, and so won't deadlock.
   group: ${{ github.workflow }}-${{ github.ref }}-pull-request
   cancel-in-progress: true
 
