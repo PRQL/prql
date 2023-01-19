@@ -1,0 +1,9 @@
+---
+source: book/tests/snapshot.rs
+expression: "prql version:\"0.4\"\n\nfrom employees\n"
+input_file: book/tests/prql/language-features/target-2.prql
+---
+SELECT
+  *
+FROM
+  employees

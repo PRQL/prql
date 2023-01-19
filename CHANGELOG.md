@@ -1,16 +1,49 @@
 # PRQL Changelog
 
+## 0.4.1 — 2022-01-18
+
+0.4.1 comes a few days after 0.4.0, with a couple of features and the release of
+`prqlc`, the CLI crate.
+
+0.4.1 has 35 commits from 6 contributors.
+
+**Features**:
+
+- Inferred column names include the relation name (@aljazerzen, #1550):
+
+  ```prql
+  from albums
+  select title # name used to be inferred as title only
+  select albums.title # so using albums was not possible here
+  ```
+
+- Quoted identifiers such as `dir/*.parquet` are passed through to SQL.
+  (@max-sixty, #1516).
+
+- The CLI is installed with `cargo install prqlc`. The binary was renamed in
+  0.4.0 but required an additional `--features` flag, which has been removed in
+  favor of this new crate (@max-sixty & @aljazerzen, #1549).
+
+**New Contributors**:
+
+- @fool1280, with #1554
+- @nkicg6, with #1567
+
 ## 0.4.0 — 2022-01-15
 
 0.4.0 brings lots of new features including `switch`, `select ![]` and numbers
-with underscores. We have initial (unpublished) bindings to Elixir. And then
-there's the usual improvements to fixes & documentation (only a minority are
-listed below in this release).
+with underscores. We have initial (unpublished) bindings to Elixir. And there's
+the usual improvements to fixes & documentation (only a minority are listed
+below in this release).
 
-0.4.0 also has some breaking changes: `dialect` renaming to `target`, and the
-library's API has changed.
+0.4.0 also has some breaking changes: `table` is `let`, `dialect` is renamed to
+`target`, and the compiler's API has changed. Full details below.
 
 **Features**:
+
+- Defining a temporary table is now expressed as `let` rather than `table`
+  (@aljazerzen, #1315). See the
+  [tables docs](https://prql-lang.org/book/queries/tables.html) for details.
 
 - _Experimental:_ The
   [`switch`](https://prql-lang.org/book/language-features/switch.html) function
@@ -94,7 +127,7 @@ library's API has changed.
   enables us to include a full CTE of SQL, for example:
 
   ```prql
-  table grouping = s"""
+  let grouping = s"""
     SELECT SUM(a)
     FROM tbl
     GROUP BY

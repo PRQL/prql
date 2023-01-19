@@ -6,22 +6,21 @@ use std::collections::HashSet;
 use std::str::FromStr;
 
 use anyhow::{anyhow, Result};
+use enum_as_inner::EnumAsInner;
 use itertools::Itertools;
 use sqlparser::ast::{
     self as sql_ast, Ident, Select, SelectItem, SetExpr, TableAlias, TableFactor, TableWithJoins,
 };
 
 use crate::ast::pl::{BinOp, Literal, RelationLiteral};
-use crate::ast::rq::{
-    CId, Expr, ExprKind, Query, Relation, RelationKind, RqFold, TableDecl, Transform,
-};
+use crate::ast::rq::{CId, Expr, ExprKind, Query, Relation, RelationKind, TableDecl, Transform};
 use crate::error::{Error, Reason};
-use crate::utils::{BreakUp, IntoOnly, Pluck, TableCounter};
+use crate::utils::{BreakUp, IntoOnly, Pluck};
 
 use super::context::AnchorContext;
 use super::gen_expr::*;
 use super::gen_projection::*;
-use super::preprocess::{preprocess_distinct, preprocess_reorder};
+use super::preprocess::{self, SqlTransform};
 use super::{anchor, Context, Dialect};
 
 pub fn translate_query(query: Query, dialect: Option<Dialect>) -> Result<sql_ast::Query> {
@@ -66,8 +65,11 @@ pub fn translate_query(query: Query, dialect: Option<Dialect>) -> Result<sql_ast
         match table.relation.kind {
             RelationKind::Pipeline(pipeline) => {
                 // preprocess
-                let pipeline = preprocess_distinct(pipeline, &mut context)?;
-                let pipeline = preprocess_reorder(pipeline);
+                let pipeline = Ok(pipeline)
+                    .map(preprocess::wrap)
+                    .and_then(|p| preprocess::distinct(p, &mut context))
+                    .map(preprocess::reorder)
+                    .unwrap();
 
                 // load names of output columns
                 context.anchor.load_names(&pipeline, table.relation.columns);
@@ -82,7 +84,7 @@ pub fn translate_query(query: Query, dialect: Option<Dialect>) -> Result<sql_ast
             }
             RelationKind::Literal(_) | RelationKind::SString(_) => atomics.push(AtomicQuery {
                 name,
-                relation: table.relation.kind,
+                relation: SqlRelation::Super(table.relation.kind),
             }),
             RelationKind::ExternRef(_) => {
                 // ref does not need it's own CTE
@@ -118,7 +120,13 @@ pub fn translate_query(query: Query, dialect: Option<Dialect>) -> Result<sql_ast
 #[derive(Debug)]
 pub struct AtomicQuery {
     name: String,
-    relation: RelationKind,
+    relation: SqlRelation,
+}
+
+#[derive(Debug, EnumAsInner)]
+enum SqlRelation {
+    Super(RelationKind),
+    Pipeline(Vec<SqlTransform>),
 }
 
 fn into_tables(
@@ -146,25 +154,27 @@ fn table_to_sql_cte(table: AtomicQuery, context: &mut Context) -> Result<sql_ast
     })
 }
 
-fn sql_query_of_relation(relation: RelationKind, context: &mut Context) -> Result<sql_ast::Query> {
+fn sql_query_of_relation(relation: SqlRelation, context: &mut Context) -> Result<sql_ast::Query> {
+    use RelationKind::*;
+
     match relation {
-        RelationKind::ExternRef(_) => unreachable!(),
-        RelationKind::Pipeline(pipeline) => sql_query_of_pipeline(pipeline, context),
-        RelationKind::Literal(lit) => Ok(sql_of_sample_data(lit)),
-        RelationKind::SString(items) => translate_query_sstring(items, context),
+        SqlRelation::Super(ExternRef(_)) | SqlRelation::Super(Pipeline(_)) => unreachable!(),
+        SqlRelation::Pipeline(pipeline) => sql_query_of_pipeline(pipeline, context),
+        SqlRelation::Super(Literal(lit)) => Ok(sql_of_sample_data(lit)),
+        SqlRelation::Super(SString(items)) => translate_query_sstring(items, context),
     }
 }
 
 fn sql_query_of_pipeline(
-    pipeline: Vec<Transform>,
+    pipeline: Vec<SqlTransform>,
     context: &mut Context,
 ) -> Result<sql_ast::Query> {
-    let mut counter = TableCounter::default();
-    let pipeline = counter.fold_transforms(pipeline)?;
-    context.omit_ident_prefix = counter.count() == 1;
-    log::debug!("atomic query contains {} tables", counter.count());
+    let table_count = count_tables(&pipeline);
+    log::debug!("atomic query contains {table_count} tables");
+    context.omit_ident_prefix = table_count == 1;
 
-    let (before_append, after_append) = pipeline.break_up(|t| matches!(t, Transform::Append(_)));
+    let (before_append, after_append) =
+        pipeline.break_up(|t| matches!(t, SqlTransform::Super(Transform::Append(_))));
 
     let select = sql_select_query_of_pipeline(before_append, context)?;
 
@@ -172,17 +182,20 @@ fn sql_query_of_pipeline(
 }
 
 fn sql_select_query_of_pipeline(
-    mut pipeline: Vec<Transform>,
+    mut pipeline: Vec<SqlTransform>,
     context: &mut Context,
 ) -> Result<sql_ast::Query> {
     context.pre_projection = true;
 
-    let projection = pipeline.pluck(|t| t.into_select()).into_only().unwrap();
+    let projection = pipeline
+        .pluck(|t| t.into_super_and(|t| t.into_select()))
+        .into_only()
+        .unwrap();
     let projection = translate_wildcards(&context.anchor, projection);
     let projection = translate_select_items(projection.0, projection.1, context)?;
 
     let mut from = pipeline
-        .pluck(|t| t.into_from())
+        .pluck(|t| t.into_super_and(|t| t.into_from()))
         .into_iter()
         .map(|source| TableWithJoins {
             relation: table_factor_of_tid(source, context),
@@ -191,7 +204,7 @@ fn sql_select_query_of_pipeline(
         .collect::<Vec<_>>();
 
     let joins = pipeline
-        .pluck(|t| t.into_join())
+        .pluck(|t| t.into_super_and(|t| t.into_join()))
         .into_iter()
         .map(|j| translate_join(j, context))
         .collect::<Result<Vec<_>>>()?;
@@ -203,20 +216,33 @@ fn sql_select_query_of_pipeline(
         }
     }
 
-    let sorts = pipeline.pluck(|t| t.into_sort());
-    let takes = pipeline.pluck(|t| t.into_take());
-    let unique = pipeline.iter().any(|t| matches!(t, Transform::Unique));
+    let sorts = pipeline.pluck(|t| t.into_super_and(|t| t.into_sort()));
+    let takes = pipeline.pluck(|t| t.into_super_and(|t| t.into_take()));
+    let distinct = pipeline.iter().any(|t| matches!(t, SqlTransform::Distinct));
 
     // Split the pipeline into before & after the aggregate
-    let (mut before_agg, mut after_agg) =
-        pipeline.break_up(|t| matches!(t, Transform::Aggregate { .. } | Transform::Append(_)));
+    let (mut before_agg, mut after_agg) = pipeline.break_up(|t| {
+        matches!(
+            t,
+            SqlTransform::Super(Transform::Aggregate { .. } | Transform::Append(_))
+        )
+    });
 
     // WHERE and HAVING
-    let where_ = filter_of_conditions(before_agg.pluck(|t| t.into_filter()), context)?;
-    let having = filter_of_conditions(after_agg.pluck(|t| t.into_filter()), context)?;
+    let where_ = filter_of_conditions(
+        before_agg.pluck(|t| t.into_super_and(|t| t.into_filter())),
+        context,
+    )?;
+    let having = filter_of_conditions(
+        after_agg.pluck(|t| t.into_super_and(|t| t.into_filter())),
+        context,
+    )?;
 
     // GROUP BY
-    let aggregate = after_agg.pluck(|t| t.into_aggregate()).into_iter().next();
+    let aggregate = after_agg
+        .pluck(|t| t.into_super_and(|t| t.into_aggregate()))
+        .into_iter()
+        .next();
     let group_by: Vec<CId> = aggregate.map(|(part, _)| part).unwrap_or_default();
     let group_by = try_into_exprs(group_by, context, None)?;
 
@@ -250,7 +276,7 @@ fn sql_select_query_of_pipeline(
 
     Ok(sql_ast::Query {
         body: Box::new(SetExpr::Select(Box::new(Select {
-            distinct: unique,
+            distinct,
             top: if context.dialect.use_top() {
                 limit.map(|l| top_of_i64(l, context))
             } else {
@@ -283,13 +309,16 @@ fn sql_select_query_of_pipeline(
 
 fn sql_union_of_pipeline(
     top: sql_ast::Query,
-    mut pipeline: Vec<Transform>,
+    mut pipeline: Vec<SqlTransform>,
     context: &mut Context,
 ) -> Result<sql_ast::Query, anyhow::Error> {
     // union
 
-    let append = pipeline.pluck(|t| t.into_append()).into_iter().next();
-    let unique = pipeline.iter().any(|t| matches!(t, Transform::Unique));
+    let append = pipeline
+        .pluck(|t| t.into_super_and(|t| t.into_append()))
+        .into_iter()
+        .next();
+    let distinct = pipeline.iter().any(|t| matches!(t, SqlTransform::Distinct));
 
     let bottom = if let Some(bottom) = append {
         bottom
@@ -341,7 +370,7 @@ fn sql_union_of_pipeline(
             }],
             ..default_select()
         }))),
-        set_quantifier: if unique {
+        set_quantifier: if distinct {
             if context.dialect.set_ops_distinct() {
                 sql_ast::SetQuantifier::Distinct
             } else {
@@ -411,7 +440,7 @@ fn sql_of_sample_data(data: RelationLiteral) -> sql_ast::Query {
 
 fn split_into_atomics(
     name: String,
-    mut pipeline: Vec<Transform>,
+    mut pipeline: Vec<SqlTransform>,
     ctx: &mut AnchorContext,
 ) -> Vec<AtomicQuery> {
     let outputs_cid = AnchorContext::determine_select_columns(&pipeline);
@@ -426,7 +455,7 @@ fn split_into_atomics(
         if let Some((preceding, cols_at_split)) = preceding {
             log::debug!(
                 "pipeline split after {}",
-                preceding.last().unwrap().as_ref()
+                preceding.last().unwrap().as_str()
             );
             parts_rev.push((split, cols_at_split.clone()));
 
@@ -443,10 +472,19 @@ fn split_into_atomics(
     // sometimes, additional columns will be added into select, which have to
     // be filtered out here, using additional CTE
     if let Some((pipeline, _)) = parts.last() {
-        let select_cols = pipeline.first().unwrap().as_select().unwrap();
+        let select_cols = pipeline
+            .first()
+            .unwrap()
+            .as_super()
+            .unwrap()
+            .as_select()
+            .unwrap();
 
         if select_cols.iter().any(|c| !outputs_cid.contains(c)) {
-            parts.push((vec![Transform::Select(outputs_cid)], select_cols.clone()));
+            parts.push((
+                vec![SqlTransform::Super(Transform::Select(outputs_cid))],
+                select_cols.clone(),
+            ));
         }
     }
 
@@ -463,7 +501,7 @@ fn split_into_atomics(
         let first_name = ctx.table_name.gen();
         atomics.push(AtomicQuery {
             name: first_name.clone(),
-            relation: RelationKind::Pipeline(first.0),
+            relation: SqlRelation::Pipeline(first.0),
         });
 
         let mut prev_name = first_name;
@@ -473,7 +511,7 @@ fn split_into_atomics(
 
             atomics.push(AtomicQuery {
                 name: name.clone(),
-                relation: RelationKind::Pipeline(pipeline),
+                relation: SqlRelation::Pipeline(pipeline),
             });
 
             prev_name = name;
@@ -483,7 +521,7 @@ fn split_into_atomics(
     };
     atomics.push(AtomicQuery {
         name,
-        relation: RelationKind::Pipeline(last_pipeline),
+        relation: SqlRelation::Pipeline(last_pipeline),
     });
 
     atomics
@@ -495,12 +533,12 @@ fn ensure_names(atomics: &[AtomicQuery], ctx: &mut AnchorContext) {
         let empty = HashSet::new();
         for t in a.relation.as_pipeline().unwrap() {
             match t {
-                Transform::Sort(_) => {
+                SqlTransform::Super(Transform::Sort(_)) => {
                     for r in anchor::get_requirements(t, &empty) {
                         ctx.ensure_column_name(r.col);
                     }
                 }
-                Transform::Select(cids) => {
+                SqlTransform::Super(Transform::Select(cids)) => {
                     for cid in cids {
                         let _decl = &ctx.column_decls[cid];
                         //let name = match decl {
@@ -568,6 +606,16 @@ fn default_select() -> Select {
     }
 }
 
+fn count_tables(transforms: &[SqlTransform]) -> usize {
+    let mut count = 0;
+    for transform in transforms {
+        if let SqlTransform::Super(Transform::Join { .. } | Transform::From(_)) = transform {
+            count += 1;
+        }
+    }
+
+    count
+}
 #[cfg(test)]
 mod test {
     use insta::assert_snapshot;
@@ -575,7 +623,7 @@ mod test {
     use super::*;
     use crate::{parser::parse, semantic::resolve, sql::dialect::GenericDialect};
 
-    fn parse_and_resolve(prql: &str) -> Result<(Vec<Transform>, Context)> {
+    fn parse_and_resolve(prql: &str) -> Result<(Vec<SqlTransform>, Context)> {
         let query = resolve(parse(prql)?)?;
         let (anchor, query) = AnchorContext::of(query);
         let context = Context {
@@ -587,7 +635,7 @@ mod test {
 
         let pipeline = query.relation.kind.into_pipeline().unwrap();
 
-        Ok((preprocess_reorder(pipeline), context))
+        Ok((preprocess::reorder(preprocess::wrap(pipeline)), context))
     }
 
     #[test]

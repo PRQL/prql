@@ -572,6 +572,7 @@ impl Lowerer {
             pl::ExprKind::Unary { op, expr } => rq::ExprKind::Unary {
                 op: match op {
                     pl::UnOp::Neg => rq::UnOp::Neg,
+                    pl::UnOp::Add => panic!("Add not resolved."),
                     pl::UnOp::Not => rq::UnOp::Not,
                     pl::UnOp::EqSelf => panic!("EqSelf not resolved."),
                 },

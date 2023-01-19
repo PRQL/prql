@@ -121,6 +121,19 @@ mod test {
     }
 
     #[test]
+    fn test_resolve_04() {
+        assert_yaml_snapshot!(parse_and_resolve(r###"
+        from x
+        select [a, a, a = a + 1]
+        "###).unwrap().relation.columns, @r###"
+        ---
+        - Single: ~
+        - Single: ~
+        - Single: a
+        "###)
+    }
+
+    #[test]
     fn test_header() {
         assert_yaml_snapshot!(parse_and_resolve(r###"
         prql target:sql.mssql version:"0"

@@ -22,9 +22,9 @@ menu:
       name: Roadmap
       url: /roadmap/
       weight: 3
-    - identifier: Examples
-      name: Examples
-      url: /examples/
+    - identifier: Posts
+      name: Posts
+      url: /posts/
       weight: 4
     - identifier: FAQ
       name: FAQ

@@ -1,8 +1,3 @@
-// This extern is probably not needed in the general case,
-// but this is a crate references a create in a different workspace, so
-// cargo does not link it auto-magically.
-extern crate prql_compiler;
-
 use prql_compiler::compile;
 use std::{env, fs, path::Path};
 

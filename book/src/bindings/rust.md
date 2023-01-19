@@ -16,11 +16,17 @@ cargo add prql-compiler
 
 ```rust
 use prql_compiler::compile;
+use prql_compiler::sql;
 
 fn main() {
     let prql = "from employees | select [name,age]  ";
-    let sql = compile(prql).unwrap();
-    println!("{:?}", sql.replace("\n", " "));
+    let opt = sql::Options {
+             format: true,
+             dialect: Some(sql::Dialect::SQLite),
+             signature_comment: true,
+         };
+    let sql = compile(&prql, Some(opt)).unwrap();
+    println!("PRQL: {}\nSQLite: {}", prql, sql);
 }
 
 ```
@@ -34,5 +40,5 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-prql-compiler = "0.2.2"
+prql-compiler = "0.4.0"
 ```

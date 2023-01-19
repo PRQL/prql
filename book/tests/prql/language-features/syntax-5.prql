@@ -1,0 +1,6 @@
+from foo
+select [
+	circumference = diameter * 3.14159,
+	color,
+	]
+filter circumference > 10 and color != "red"

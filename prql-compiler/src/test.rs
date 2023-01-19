@@ -345,6 +345,18 @@ derive `from` = 5
       JOIN some_schema.tablename ON "UPPER".id = some_schema.tablename.id
     "###);
 
+    // GH-1493
+    let query = r###"
+    from `dir/*.parquet`
+        # join files=`*.parquet` [==id]
+    "###;
+    assert_display_snapshot!((compile(query).unwrap()), @r###"
+    SELECT
+      *
+    FROM
+      "dir/*.parquet"
+    "###);
+
     // GH-#852
     assert_display_snapshot!((compile(r###"
 prql target:sql.bigquery
@@ -2738,6 +2750,52 @@ fn test_custom_transforms() {
       name
     LIMIT
       3
+    "###
+    );
+}
+
+#[test]
+fn test_name_inference() {
+    assert_display_snapshot!(compile(r#"
+    from albums
+    select [artist_id + album_id]
+    # nothing inferred infer
+    "#).unwrap(),
+        @r###"
+    SELECT
+      artist_id + album_id
+    FROM
+      albums
+    "###
+    );
+
+    let sql1 = compile(
+        r#"
+    from albums
+    select [artist_id]
+    # infer albums.artist_id
+    select [albums.artist_id]
+    "#,
+    )
+    .unwrap();
+    let sql2 = compile(
+        r#"
+    from albums
+    select [albums.artist_id]
+    # infer albums.artist_id
+    select [albums.artist_id]
+    "#,
+    )
+    .unwrap();
+    assert_eq!(sql1, sql2);
+
+    assert_display_snapshot!(
+        sql1,
+        @r###"
+    SELECT
+      artist_id
+    FROM
+      albums
     "###
     );
 }

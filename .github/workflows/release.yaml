@@ -67,7 +67,7 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
-      - uses: actions-rs/cargo@v1
+      - uses: richb-hanover/cargo@v1.1.0
         with:
           command: publish
           args: -p prql-compiler

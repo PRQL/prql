@@ -15,5 +15,10 @@ filter age > 25
 
 ```prql
 from employees
+filter (age > 25 or department != "IT")
+```
+
+```prql
+from employees
 filter (age | in 25..40)
 ```
