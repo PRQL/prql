@@ -49,7 +49,7 @@ jobs:
         run: mdbook build
         working-directory: book/
 
-  # Run Mac & Windows & other tests a `pr-test-all` label (as well as on `main`).
+  # Run Mac & Windows & other tests on a `pr-test-all` label (as well as the other conditions in `test-all.yaml`).
   test-all:
     uses: ./.github/workflows/test-all.yaml
     if: contains(github.event.pull_request.labels.*.name, 'pr-test-all')
