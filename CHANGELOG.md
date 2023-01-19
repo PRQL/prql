@@ -28,7 +28,7 @@
   ```
 
   Currently, arguments are limited to string constants.
-  
+
 - Change switch syntax to use `=>` instead of `->` due to clash with planned
   lambda function syntax. See the
   [discussion and example syntax](https://github.com/PRQL/prql/issues/1286#issuecomment-1375332474)
