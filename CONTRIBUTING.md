@@ -13,7 +13,7 @@ ways to start:
   and start contributing to the code.
 - Join our [regular Developer Call.](https://github.com/PRQL/prql/issues/1083)
   Here's an
-  [iCal file to add the dates to your calendar.](https://raw.githubusercontent.com/prql/prql/main/Fortnightly_Dev_Call.ics)
+  [iCal file to add the dates to your calendar.]
 
 [^1]:
     These are better phrased as "Well explained issues"; the core team regularly
