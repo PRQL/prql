@@ -1,0 +1,21 @@
+---
+source: book/tests/snapshot.rs
+expression: prql_to_pl(&prql).and_then(pl_to_prql).unwrap()
+input_file: book/tests/prql/language-features/syntax-2.prql
+---
+from numbers
+derive [
+  x = 1,
+  y = 2,
+]
+derive [
+  a = x,
+  b = y,
+]
+derive [
+  c = a,
+  d = b,
+]
+
+
+

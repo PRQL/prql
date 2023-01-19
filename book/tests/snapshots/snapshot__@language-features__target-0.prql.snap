@@ -1,0 +1,13 @@
+---
+source: book/tests/snapshot.rs
+expression: "prql target:sql.postgres\n\nfrom employees\nsort age\ntake 10\n"
+input_file: book/tests/prql/language-features/target-0.prql
+---
+SELECT
+  *
+FROM
+  employees
+ORDER BY
+  age
+LIMIT
+  10
