@@ -12,26 +12,23 @@ on:
       - main
 
 concurrency:
-  # This seems to require `-pr` on the end; I _think_ because this calls
+  # This seems to require a suffix on the end; I _think_ because this calls
   # `test-all`, which calls `test-python`, and if `test-python` runs too, then
   # we have two workflows with the same concurrency group, which GitHub calls a
   # deadlock. Here's an example:
-  # https://github.com/PRQL/prql/actions/runs/3945798229. By adding `-pr` here,
-  # the job that runs under `test-all` (called from here) will have `-pr` on the
+  # https://github.com/PRQL/prql/actions/runs/3945798229. By adding `-pull-request` here,
+  # the job that runs under `test-all` (called from here) will have the suffix
   # end, and so won't deadlock.
-  group: ${{ github.workflow }}-${{ github.ref }}-pr
+  group: ${{ github.workflow }}-${{ github.ref }}-pull-request
   cancel-in-progress: true
 
 jobs:
-  # Only run ubuntu on pull-requests, since it's fastest.
   test-rust:
     strategy:
       matrix:
-        os: [ubuntu-latest]
         target_option: ["", "--target=wasm32-unknown-unknown"]
     uses: ./.github/workflows/test-rust.yaml
     with:
-      os: ${{ matrix.os }}
       target_option: ${{ matrix.target_option }}
 
   test-book:
