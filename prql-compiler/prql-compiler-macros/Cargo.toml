@@ -1,6 +1,5 @@
 [package]
 name = "prql-compiler-macros"
-publish = false
 
 edition.workspace = true
 license.workspace = true
