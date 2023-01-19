@@ -5,13 +5,14 @@
 **Features**:
 
 - Change switch syntax to use `=>` instead of `->` due to clash with planned
-  lambda function syntax.
+  lambda function syntax. See the [discussion and example syntax](https://github.com/PRQL/prql/issues/1286#issuecomment-1375332474)
+  _(Implemented in Playground)_
 
 ## 0.4.2 — [unreleased]
 
 **Features**:
 
-- `from_text` function that supports JSON and CSV formats. (@aljazerzen, @snth)
+- `from_text` function that supports JSON and CSV formats. (@aljazerzen, @snth) _(Implemented in Playground)_
 
   ```prql
   from_text format:csv """
