@@ -25,14 +25,14 @@ concurrency:
 jobs:
   # Only run ubuntu on pull-requests, since it's fastest.
   test-rust:
-    # strategy:
-    #   matrix:
-    #     os: [ubuntu-latest]
-    #     target_option: ["", "--target=wasm32-unknown-unknown"]
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        target_option: ["", "--target=wasm32-unknown-unknown"]
     uses: ./.github/workflows/test-rust.yaml
-    # with:
-    #   os: ${{ matrix.os }}
-    #   target_option: ${{ matrix.target_option }}
+    with:
+      os: ${{ matrix.os }}
+      target_option: ${{ matrix.target_option }}
 
   test-book:
     runs-on: ubuntu-latest
