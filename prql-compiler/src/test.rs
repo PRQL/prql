@@ -2829,3 +2829,93 @@ fn test_name_inference() {
     "###
     );
 }
+
+#[test]
+fn test_from_text() {
+    assert_display_snapshot!(compile(r#"
+    from_text format:csv """
+a,b,c
+1,2,3
+4,5,6
+    """
+    select [b, c]
+    "#).unwrap(),
+        @r###"
+    WITH table_1 AS (
+      SELECT
+        '1' AS a,
+        '2' AS b,
+        '3' AS c
+      UNION
+      ALL
+      SELECT
+        '4' AS a,
+        '5' AS b,
+        '6' AS c
+    )
+    SELECT
+      b,
+      c
+    FROM
+      table_1 AS table_0
+    "###
+    );
+
+    assert_display_snapshot!(compile(r#"
+    from_text format:json '''
+      [{"a": 1, "b": "x", "c": false }, {"a": 4, "b": "y", "c": null }]
+    '''
+    select [b, c]
+    "#).unwrap(),
+        @r###"
+    WITH table_1 AS (
+      SELECT
+        1 AS a,
+        'x' AS b,
+        false AS c
+      UNION
+      ALL
+      SELECT
+        4 AS a,
+        'y' AS b,
+        NULL AS c
+    )
+    SELECT
+      b,
+      c
+    FROM
+      table_1 AS table_0
+    "###
+    );
+
+    assert_display_snapshot!(compile(r#"
+    from_text format:json '''{
+        "columns": ["a", "b", "c"],
+        "data": [
+            [1, "x", false],
+            [4, "y", null]
+        ]
+    }'''
+    select [b, c]
+    "#).unwrap(),
+        @r###"
+    WITH table_1 AS (
+      SELECT
+        1 AS a,
+        'x' AS b,
+        false AS c
+      UNION
+      ALL
+      SELECT
+        4 AS a,
+        'y' AS b,
+        NULL AS c
+    )
+    SELECT
+      b,
+      c
+    FROM
+      table_1 AS table_0
+    "###
+    );
+}

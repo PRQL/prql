@@ -1,5 +1,33 @@
 # PRQL Changelog
 
+## 0.4.2 — [unreleased]
+
+**Features**:
+
+- `from_text` function that supports JSON and CSV formats. (@aljazerzen, @snth)
+
+  ```prql
+  from_text format:csv """
+  a,b,c
+  1,2,3
+  4,5,6
+  """
+
+  from_text format:json '''
+      [{"a": 1, "b": "x", "c": false }, {"a": 4, "b": "y", "c": null }]
+  '''
+
+  from_text format:json '''{
+      "columns": ["a", "b", "c"],
+      "data": [
+          [1, "x", false],
+          [4, "y", null]
+      ]
+  }'''
+  ```
+
+  Currently, arguments are limited to string constants.
+
 ## 0.4.1 — 2022-01-18
 
 0.4.1 comes a few days after 0.4.0, with a couple of features and the release of
