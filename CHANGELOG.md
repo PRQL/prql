@@ -6,7 +6,9 @@
 
 - New `from_text format-arg string-arg` function that supports JSON and CSV
   formats. _format-arg_ can be `format:csv` or `format:json`. _string-arg_ can
-  be a string in any format. See discussion in https://github.com/PRQL/prql/pull/1514 (@aljazerzen, @snth) _(Implemented in Playground)_
+  be a string in any format. See discussion in
+  https://github.com/PRQL/prql/pull/1514 (@aljazerzen, @snth) _(Implemented in
+  Playground)_
 
   ```prql
   from_text format:csv """
@@ -29,9 +31,9 @@
   ```
 
 - **Breaking Change:** Change `switch` syntax to use `=>` instead of `->` due to
-  clash with planned lambda function syntax. 
-  See discussion and new syntax at: https://github.com/PRQL/prql/issues/1286#issuecomment-1375332474 
-  _(Implemented in Playground)_
+  clash with planned lambda function syntax. See discussion and new syntax at:
+  https://github.com/PRQL/prql/issues/1286#issuecomment-1375332474 _(Implemented
+  in Playground)_
 
 ## 0.4.1 — 2022-01-18
 
