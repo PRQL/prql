@@ -25,8 +25,7 @@ runs:
         command: clippy
         # Note that `--all-targets` doesn't refer to targets like
         # `wasm32-unknown-unknown`; it refers to lib / bin / tests etc.
-        args:
-          --all-targets --workspace ${{ inputs.target_option }} -- -D warnings
+        args: --all-targets ${{ inputs.target_option }} -- -D warnings
     - name: ⌨️ Fmt
       uses: richb-hanover/cargo@v1.1.0
       with:
@@ -38,7 +37,7 @@ runs:
       uses: richb-hanover/cargo@v1.1.0
       with:
         command: test
-        args: --workspace ${{ inputs.target_option }} --no-run --locked
+        args: ${{ inputs.target_option }} --no-run --locked
     - uses: baptiste0928/cargo-install@next
       with:
         crate: cargo-insta
@@ -47,7 +46,17 @@ runs:
     # have two different ones; we welcome a change to simplify this)
     - name: 📋 Test
       uses: richb-hanover/cargo@v1.1.0
-      if: ${{ (inputs.target_option == '' && runner.os == 'ubuntu') }}
+      if:
+        ${{ (inputs.target_option != '--target=wasm32-unknown-unknown' &&
+        runner.os == 'ubuntu') }}
       with:
         command: insta
         args: test --unreferenced=auto ${{ inputs.target_option }}
+    - name: 📋 Test
+      uses: richb-hanover/cargo@v1.1.0
+      if:
+        ${{ ! (inputs.target_option != '--target=wasm32-unknown-unknown' &&
+        runner.os == 'ubuntu') }}
+      with:
+        command: insta
+        args: test ${{ inputs.target_option }}
