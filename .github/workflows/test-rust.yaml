@@ -15,7 +15,7 @@ on:
         type: string
       target_option:
         required: false
-        default: --target=wasm32-unknown-unknown
+        default: ""
         type: string
 
 jobs:
