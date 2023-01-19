@@ -20,7 +20,7 @@ on:
 
 jobs:
   test:
-    runs-on: ${{ inputs.os || ubuntu-latest }}
+    runs-on: ${{ inputs.os || "ubuntu-latest" }}
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
