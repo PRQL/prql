@@ -2418,8 +2418,8 @@ fn test_switch() {
           WHEN length > avg_length THEN 'long'
           ELSE NULL
         END AS category,
-        avg_length,
-        length
+        length,
+        avg_length
       FROM
         tracks
     )
