@@ -4,6 +4,8 @@
 
 **Features**:
 
+- Change the experimental switch syntax to use `=>` instead of `->` due to clash
+  with planned lambda function syntax.
 - `loop`, which translates to `WITH RECURSIVE` (#1642, @aljazerzen)
 - Convert parser from pest to Chumsky (@aljazerzen, #1818)
   - Improved error messages, and the potential to make even better in the
