@@ -15,7 +15,14 @@ concurrency:
 
 jobs:
   test-rust:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest, ubuntu-latest]
+        target_option: [--target=wasm32-unknown-unknown]
     uses: ./.github/workflows/test-rust.yaml
+    with:
+      os: ${{ matrix.os }}
+      target_option: ${{ matrix.target_option }}
 
   test-python:
     uses: ./.github/workflows/test-python.yaml
