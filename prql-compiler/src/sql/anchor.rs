@@ -472,7 +472,9 @@ pub fn infer_complexity_expr(expr: &Expr) -> Complexity {
 
 #[derive(Default)]
 pub struct CidCollector {
-    cids: HashSet<CId>,
+    // we could use HashSet instead of Vec, but this caused nondeterministic
+    // results downstream
+    cids: Vec<CId>,
 }
 
 impl CidCollector {
@@ -485,7 +487,7 @@ impl CidCollector {
 
 impl RqFold for CidCollector {
     fn fold_cid(&mut self, cid: CId) -> Result<CId> {
-        self.cids.insert(cid);
+        self.cids.push(cid);
         Ok(cid)
     }
 }
