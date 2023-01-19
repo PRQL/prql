@@ -15,6 +15,10 @@
 - Allow quoted identifiers like `dir/*.parquet` to be passed through
   (@max-sixty, #1516).
 
+- The CLI is installed with `cargo install prqlc`. The binary was renamed in
+  0.4.0 but required an additional `--features` flag, which has been removed in
+  favor of this new crate (@max-sixty & @aljazerzen, #1549).
+
 **Fixes**:
 
 **Documentation**:
