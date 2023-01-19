@@ -1,6 +1,6 @@
 [package]
+description = "Macros for PRQL compilation at build time"
 name = "prql-compiler-macros"
-publish = false
 
 edition.workspace = true
 license.workspace = true

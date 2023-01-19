@@ -1,10 +1,15 @@
 # PRQL Changelog
 
-## 0.4.1 — (unreleased)
+## 0.4.1 — 2022-01-18
+
+0.4.1 comes a few days after 0.4.0, with a couple of features and the release of
+`prqlc`, the CLI crate.
+
+0.4.1 has 35 commits from 6 contributors.
 
 **Features**:
 
-- Change column name inference to also include relation name.
+- Inferred column names include the relation name (@aljazerzen, #1550):
 
   ```prql
   from albums
@@ -12,20 +17,17 @@
   select albums.title # so using albums was not possible here
   ```
 
-- Allow quoted identifiers like `dir/*.parquet` to be passed through
+- Quoted identifiers such as `dir/*.parquet` are passed through to SQL.
   (@max-sixty, #1516).
 
-**Fixes**:
-
-**Documentation**:
-
-**Web**:
-
-**Integrations**:
-
-**Internal changes**:
+- The CLI is installed with `cargo install prqlc`. The binary was renamed in
+  0.4.0 but required an additional `--features` flag, which has been removed in
+  favor of this new crate (@max-sixty & @aljazerzen, #1549).
 
 **New Contributors**:
+
+- @fool1280, with #1554
+- @nkicg6, with #1567
 
 ## 0.4.0 — 2022-01-15
 

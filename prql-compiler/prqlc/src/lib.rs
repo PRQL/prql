@@ -1,3 +1,4 @@
+#![cfg(not(target_family = "wasm"))]
 use anyhow::{anyhow, Result};
 use ariadne::Source;
 use clap::Parser;
@@ -13,7 +14,7 @@ use prql_compiler::downcast;
 use prql_compiler::{ast::pl::Frame, pl_to_prql};
 use prql_compiler::{compile, prql_to_pl, Span};
 
-fn main() -> color_eyre::eyre::Result<()> {
+pub fn main() -> color_eyre::eyre::Result<()> {
     env_logger::builder().format_timestamp(None).init();
     color_eyre::install()?;
     let mut cli = Cli::parse();
@@ -89,7 +90,7 @@ impl Cli {
                 serde_yaml::to_string(&ast)?.into_bytes()
             }
             Cli::Format(_) => prql_to_pl(source)
-                .and_then(|x| pl_to_prql(x))
+                .and_then(pl_to_prql)
                 .map_err(|x| anyhow!(x))?
                 .as_bytes()
                 .to_vec(),
@@ -214,11 +215,11 @@ sort full
         assert_snapshot!(String::from_utf8(output).unwrap().trim(),
         @r###"
         from initial_table
-        select [f = first_name, l = last_name, gender]  # [f, l, gender]
-        derive full_name = f + " " + l                  # [f, l, gender, full_name]
-        take 23                                         # [f, l, gender, full_name]
-        select [l + " " + f, full = full_name, gender]  # [?, full, gender]
-        sort full                                       # [?, full, gender]
+        select [f = first_name, l = last_name, gender]  # [f, l, initial_table.gender]
+        derive full_name = f + " " + l                  # [f, l, initial_table.gender, full_name]
+        take 23                                         # [f, l, initial_table.gender, full_name]
+        select [l + " " + f, full = full_name, gender]  # [?, full, initial_table.gender]
+        sort full                                       # [?, full, initial_table.gender]
         "###);
     }
 

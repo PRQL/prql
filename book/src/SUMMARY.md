@@ -49,6 +49,7 @@
   - [Python](./bindings/python.md)
   - [R](./bindings/r.md)
   - [Rust](./bindings/rust.md)
+  - [Elixir](./bindings/elixir.md)
 
 - [Internals](./internals/README.md)
 

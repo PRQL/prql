@@ -7,3 +7,4 @@ PRQL has bindings for many languages. These include:
 - [Python](./python.md)
 - [R](./r.md)
 - [Rust](./rust.md)
+- [Elixir](./elixir.md)

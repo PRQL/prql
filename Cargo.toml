@@ -3,6 +3,7 @@ members = [
   "prql-compiler",
   "prql-compiler/examples/compile-files",
   "prql-compiler/prql-compiler-macros",
+  "prql-compiler/prqlc",
   "prql-java",
   "prql-lib",
   "prql-js",
@@ -18,7 +19,7 @@ edition = "2021"
 license = "Apache-2.0"
 repository = "https://github.com/PRQL/prql"
 rust-version = "1.65.0"
-version = "0.4.0"
+version = "0.4.1"
 
 [profile.release.package.prql-js]
 # Tell `rustc` to optimize for small code size.
