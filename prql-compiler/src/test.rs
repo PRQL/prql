@@ -2840,15 +2840,15 @@ a,b,c
         @r###"
     WITH table_1 AS (
       SELECT
+        1 AS a,
         'x' AS b,
-        false AS c,
-        1 AS a
+        false AS c
       UNION
       ALL
       SELECT
+        4 AS a,
         'y' AS b,
-        NULL AS c,
-        4 AS a
+        NULL AS c
     )
     SELECT
       b,

@@ -954,12 +954,16 @@ mod from_text {
 
     fn parse_json1(text: &str) -> Result<RelationLiteral> {
         let data: Vec<JsonFormat1Row> = serde_json::from_str(text)?;
-        let columns = data
+        let mut columns = data
             .first()
             .ok_or(anyhow!("json: no rows"))?
             .keys()
             .cloned()
             .collect_vec();
+
+        // JSON object keys are not ordered, so have to apply some order to produce
+        // deterministic results
+        columns.sort();
 
         let rows = data
             .into_iter()
