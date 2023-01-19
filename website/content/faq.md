@@ -113,9 +113,9 @@ PRQL compiles to SQL, so it's compatible with any database that accepts SQL.
 
 A query's dialect can be explicitly specified, allowing for dialect-specific SQL
 to be generated. See the
-[Dialect docs](https://prql-lang.org/book/queries/header.html) for more info;
-note that there is currently very limited implementation of this, and most
-dialects' implementation are identical to a generic implementation.
+[Dialect docs](https://prql-lang.org/book/language-features/target.html) for
+more info; note that there is currently very limited implementation of this, and
+most dialects' implementation are identical to a generic implementation.
 
 {{</ faq >}}
 

@@ -113,47 +113,7 @@ pub(super) fn translate_expr_kind(item: ExprKind, ctx: &mut Context) -> Result<s
                 special: false,
             })
         }
-        ExprKind::Literal(l) => match l {
-            Literal::Null => sql_ast::Expr::Value(Value::Null),
-            Literal::String(s) => sql_ast::Expr::Value(Value::SingleQuotedString(s)),
-            Literal::Boolean(b) => sql_ast::Expr::Value(Value::Boolean(b)),
-            Literal::Float(f) => sql_ast::Expr::Value(Value::Number(format!("{f:?}"), false)),
-            Literal::Integer(i) => sql_ast::Expr::Value(Value::Number(format!("{i}"), false)),
-            Literal::Date(value) => sql_ast::Expr::TypedString {
-                data_type: sql_ast::DataType::Date,
-                value,
-            },
-            Literal::Time(value) => sql_ast::Expr::TypedString {
-                data_type: sql_ast::DataType::Time(None, sql_ast::TimezoneInfo::None),
-                value,
-            },
-            Literal::Timestamp(value) => sql_ast::Expr::TypedString {
-                data_type: sql_ast::DataType::Timestamp(None, sql_ast::TimezoneInfo::None),
-                value,
-            },
-            Literal::ValueAndUnit(vau) => {
-                let sql_parser_datetime = match vau.unit.as_str() {
-                    "years" => DateTimeField::Year,
-                    "months" => DateTimeField::Month,
-                    "days" => DateTimeField::Day,
-                    "hours" => DateTimeField::Hour,
-                    "minutes" => DateTimeField::Minute,
-                    "seconds" => DateTimeField::Second,
-                    _ => bail!("Unsupported interval unit: {}", vau.unit),
-                };
-                sql_ast::Expr::Interval {
-                    value: Box::new(translate_expr_kind(
-                        ExprKind::Literal(Literal::Integer(vau.n)),
-                        ctx,
-                    )?),
-                    leading_field: Some(sql_parser_datetime),
-                    leading_precision: None,
-                    last_field: None,
-                    fractional_seconds_precision: None,
-                }
-            }
-            Literal::Relation(_) => unreachable!(),
-        },
+        ExprKind::Literal(l) => translate_literal(l)?,
         ExprKind::Switch(mut cases) => {
             let default = cases
                 .last()
@@ -194,6 +154,47 @@ pub(super) fn translate_expr_kind(item: ExprKind, ctx: &mut Context) -> Result<s
         ExprKind::BuiltInFunction { name, args } => {
             super::std::translate_built_in(name, args, ctx)?
         }
+    })
+}
+
+pub(super) fn translate_literal(l: Literal) -> Result<sql_ast::Expr> {
+    Ok(match l {
+        Literal::Null => sql_ast::Expr::Value(Value::Null),
+        Literal::String(s) => sql_ast::Expr::Value(Value::SingleQuotedString(s)),
+        Literal::Boolean(b) => sql_ast::Expr::Value(Value::Boolean(b)),
+        Literal::Float(f) => sql_ast::Expr::Value(Value::Number(format!("{f:?}"), false)),
+        Literal::Integer(i) => sql_ast::Expr::Value(Value::Number(format!("{i}"), false)),
+        Literal::Date(value) => sql_ast::Expr::TypedString {
+            data_type: sql_ast::DataType::Date,
+            value,
+        },
+        Literal::Time(value) => sql_ast::Expr::TypedString {
+            data_type: sql_ast::DataType::Time(None, sql_ast::TimezoneInfo::None),
+            value,
+        },
+        Literal::Timestamp(value) => sql_ast::Expr::TypedString {
+            data_type: sql_ast::DataType::Timestamp(None, sql_ast::TimezoneInfo::None),
+            value,
+        },
+        Literal::ValueAndUnit(vau) => {
+            let sql_parser_datetime = match vau.unit.as_str() {
+                "years" => DateTimeField::Year,
+                "months" => DateTimeField::Month,
+                "days" => DateTimeField::Day,
+                "hours" => DateTimeField::Hour,
+                "minutes" => DateTimeField::Minute,
+                "seconds" => DateTimeField::Second,
+                _ => bail!("Unsupported interval unit: {}", vau.unit),
+            };
+            sql_ast::Expr::Interval {
+                value: Box::new(translate_literal(Literal::Integer(vau.n))?),
+                leading_field: Some(sql_parser_datetime),
+                leading_precision: None,
+                last_field: None,
+                fractional_seconds_precision: None,
+            }
+        }
+        Literal::Relation(_) => unreachable!(),
     })
 }
 

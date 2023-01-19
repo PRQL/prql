@@ -2,6 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use anyhow::{anyhow, bail, Result};
 use itertools::Itertools;
+use serde::Deserialize;
 use std::iter::zip;
 
 use crate::ast::pl::fold::{fold_column_sorts, fold_transform_kind, AstFold};
@@ -295,20 +296,45 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
             return Ok(Ok(res));
         }
 
-        "std.from_csv" => {
+        "std.from_text" => {
             // yes, this is not a transform, but this is the most appropriate place for it
 
-            let [csv_expr] = unpack::<1>(closure);
+            let [format, text_expr] = unpack::<2>(closure);
 
-            let ExprKind::Literal(Literal::String(csv)) = csv_expr.kind else {
-                return Err(Error::new(Reason::Expected { who: Some("std.from_csv".to_string()), expected: "a string literal".to_string(), found: format!("`{csv_expr}`") }).with_span(csv_expr.span).into())
+            let text = match text_expr.kind {
+                ExprKind::Literal(Literal::String(text)) => text,
+                _ => {
+                    return Err(Error::new(Reason::Expected {
+                        who: Some("std.from_text".to_string()),
+                        expected: "a string literal".to_string(),
+                        found: format!("`{text_expr}`"),
+                    })
+                    .with_span(text_expr.span)
+                    .into());
+                }
             };
 
-            let res = parse_csv(&csv)?;
+            let res = {
+                let span = format.span;
+                let format = format
+                    .try_cast(ExprKind::into_ident, Some("format"), "ident")?
+                    .to_string();
+                match format.as_str() {
+                    "csv" => from_text::parse_csv(&text)?,
+                    "json" => from_text::parse_json(&text)?,
+
+                    _ => bail!(Error::new(Reason::Expected {
+                        who: Some("`format`".to_string()),
+                        expected: "csv or json".to_string(),
+                        found: format
+                    })
+                    .with_span(span)),
+                }
+            };
 
             let input = FrameInput {
-                id: csv_expr.id.unwrap(),
-                name: csv_expr.alias.unwrap_or_else(|| "csv".to_string()),
+                id: text_expr.id.unwrap(),
+                name: text_expr.alias.unwrap_or_else(|| "text".to_string()),
                 table: None,
             };
 
@@ -329,7 +355,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
             let res = Expr::from(ExprKind::Literal(Literal::Relation(res)));
             let res = Expr {
                 ty: Some(Ty::Table(frame)),
-                id: csv_expr.id,
+                id: text_expr.id,
                 ..res
             };
             return Ok(Ok(res));
@@ -706,6 +732,8 @@ impl FrameInput {
     }
 }
 
+// Expects closure's args to be resolved.
+// Note that named args are before positional args, in order of declaration.
 fn unpack<const P: usize>(closure: Closure) -> [Expr; P] {
     closure.args.try_into().expect("bad transform cast")
 }
@@ -847,29 +875,113 @@ impl AstFold for Flattener {
     }
 }
 
-// TODO: Can we dynamically get the types, like in pandas? We need to put
-// quotes around strings and not around numbers.
-// https://stackoverflow.com/questions/64369887/how-do-i-read-csv-data-without-knowing-the-structure-at-compile-time
-fn parse_csv(csv: &str) -> Result<RelationLiteral> {
-    let mut rdr = csv::Reader::from_reader(csv.as_bytes());
+mod from_text {
+    use super::*;
 
-    Ok(RelationLiteral {
-        columns: rdr
-            .headers()?
-            .into_iter()
-            .map(|h| h.to_string())
-            .collect::<Vec<_>>(),
-        rows: rdr
-            .records()
-            .into_iter()
-            // This is messy rust, but I can't get it to resolve the Errors
-            // when it leads with `row_result?`. I'm sure it's possible...
-            .map(|row_result| {
-                row_result.map(|row| row.into_iter().map(|x| x.to_string()).collect())
+    // TODO: Can we dynamically get the types, like in pandas? We need to put
+    // quotes around strings and not around numbers.
+    // https://stackoverflow.com/questions/64369887/how-do-i-read-csv-data-without-knowing-the-structure-at-compile-time
+    pub fn parse_csv(text: &str) -> Result<RelationLiteral> {
+        let text = text.trim();
+        let mut rdr = csv::Reader::from_reader(text.as_bytes());
+
+        fn parse_header(row: &csv::StringRecord) -> Vec<String> {
+            row.into_iter().map(|x| x.to_string()).collect()
+        }
+
+        fn parse_row(row: csv::StringRecord) -> Vec<Literal> {
+            row.into_iter()
+                .map(|x| Literal::String(x.to_string()))
+                .collect()
+        }
+
+        Ok(RelationLiteral {
+            columns: parse_header(rdr.headers()?),
+            rows: rdr
+                .records()
+                .into_iter()
+                .map(|row_result| row_result.map(parse_row))
+                .try_collect()?,
+        })
+    }
+
+    type JsonFormat1Row = HashMap<String, serde_json::Value>;
+
+    #[derive(Deserialize)]
+    struct JsonFormat2 {
+        columns: Vec<String>,
+        data: Vec<Vec<serde_json::Value>>,
+    }
+
+    fn map_json_primitive(primitive: serde_json::Value) -> Literal {
+        use serde_json::Value::*;
+        match primitive {
+            Null => Literal::Null,
+            Bool(bool) => Literal::Boolean(bool),
+            Number(number) if number.is_i64() => Literal::Integer(number.as_i64().unwrap()),
+            Number(number) if number.is_f64() => Literal::Float(number.as_f64().unwrap()),
+            Number(_) => Literal::Null,
+            String(string) => Literal::String(string),
+            Array(_) => Literal::Null,
+            Object(_) => Literal::Null,
+        }
+    }
+
+    fn object_to_vec(
+        mut row_map: HashMap<String, serde_json::Value>,
+        columns: &[String],
+    ) -> Vec<Literal> {
+        columns
+            .iter()
+            .map(|c| {
+                row_map
+                    .remove(c)
+                    .map(map_json_primitive)
+                    .unwrap_or(Literal::Null)
             })
-            .try_collect()?,
-    })
+            .collect_vec()
+    }
+
+    pub fn parse_json(text: &str) -> Result<RelationLiteral> {
+        parse_json1(text).or_else(|err1| {
+            parse_json2(text)
+                .map_err(|err2| anyhow!("While parsing rows: {err1}\nWhile parsing object: {err2}"))
+        })
+    }
+
+    fn parse_json1(text: &str) -> Result<RelationLiteral> {
+        let data: Vec<JsonFormat1Row> = serde_json::from_str(text)?;
+        let mut columns = data
+            .first()
+            .ok_or_else(|| anyhow!("json: no rows"))?
+            .keys()
+            .cloned()
+            .collect_vec();
+
+        // JSON object keys are not ordered, so have to apply some order to produce
+        // deterministic results
+        columns.sort();
+
+        let rows = data
+            .into_iter()
+            .map(|row_map| object_to_vec(row_map, &columns))
+            .collect_vec();
+        Ok(RelationLiteral { columns, rows })
+    }
+
+    fn parse_json2(text: &str) -> Result<RelationLiteral> {
+        let JsonFormat2 { columns, data } = serde_json::from_str(text)?;
+
+        Ok(RelationLiteral {
+            columns,
+            rows: data
+                .into_iter()
+                .map(|row| row.into_iter().map(map_json_primitive).collect_vec())
+                .collect_vec(),
+        })
+    }
 }
+
 #[cfg(test)]
 mod tests {
     use insta::assert_yaml_snapshot;

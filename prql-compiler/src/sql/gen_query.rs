@@ -160,7 +160,7 @@ fn sql_query_of_relation(relation: SqlRelation, context: &mut Context) -> Result
     match relation {
         SqlRelation::Super(ExternRef(_)) | SqlRelation::Super(Pipeline(_)) => unreachable!(),
         SqlRelation::Pipeline(pipeline) => sql_query_of_pipeline(pipeline, context),
-        SqlRelation::Super(Literal(lit)) => Ok(sql_of_sample_data(lit)),
+        SqlRelation::Super(Literal(lit)) => Ok(sql_of_sample_data(lit)?),
         SqlRelation::Super(SString(items)) => translate_query_sstring(items, context),
     }
 }
@@ -381,59 +381,39 @@ fn sql_union_of_pipeline(
     }))
 }
 
-fn sql_of_sample_data(data: RelationLiteral) -> sql_ast::Query {
+fn sql_of_sample_data(data: RelationLiteral) -> Result<sql_ast::Query> {
     // TODO: this could be made to use VALUES instead of SELECT UNION ALL SELECT
     //       I'm not sure about compatibility though.
 
-    let mut selects = vec![];
+    let mut selects = Vec::with_capacity(data.rows.len());
 
     for row in data.rows {
-        // This seems *very* verbose. Maybe we put an issue into sqlparser-rs to
-        // have something like a builder for these?
         let body = sql_ast::SetExpr::Select(Box::new(Select {
-            distinct: false,
-            top: None,
-            from: vec![],
             projection: std::iter::zip(data.columns.clone(), row)
-                .map(|(col, value)| SelectItem::ExprWithAlias {
-                    expr: sql_ast::Expr::Identifier(sql_ast::Ident::new(value)),
-                    alias: sql_ast::Ident::new(col),
+                .map(|(col, value)| -> Result<_> {
+                    Ok(SelectItem::ExprWithAlias {
+                        expr: translate_literal(value)?,
+                        alias: sql_ast::Ident::new(col),
+                    })
                 })
-                .collect(),
-            selection: None,
-            group_by: vec![],
-            having: None,
-            lateral_views: vec![],
-            cluster_by: vec![],
-            distribute_by: vec![],
-            into: None,
-            qualify: None,
-            sort_by: vec![],
+                .try_collect()?,
+            ..default_select()
         }));
 
         selects.push(body)
     }
 
-    // Not the most elegant way of doing this but sufficient for now.
-    let first = selects.remove(0);
-    let body = selects
-        .into_iter()
-        .fold(first, |acc, select| SetExpr::SetOperation {
+    let mut body = selects.remove(0);
+    for select in selects {
+        body = SetExpr::SetOperation {
             op: sql_ast::SetOperator::Union,
             set_quantifier: sql_ast::SetQuantifier::All,
-            left: Box::new(acc),
+            left: Box::new(body),
             right: Box::new(select),
-        });
-
-    sql_ast::Query {
-        with: (None),
-        body: Box::new(body),
-        order_by: vec![],
-        limit: None,
-        offset: None,
-        fetch: None,
-        locks: vec![],
+        }
     }
+
+    Ok(default_query(body))
 }
 
 fn split_into_atomics(

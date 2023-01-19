@@ -398,12 +398,12 @@ bindings_section:
       label: "prqlr"
       text: "R bindings for prql-compiler."
 
-    - link: https://crates.io/crates/prql-compiler
-      label: "prql-compiler"
+    - link: https://crates.io/crates/prqlc
+      label: "prqlc"
       text: |
-        PRQL's compiler library, written in Rust.
+        A CLI for PRQL compiler, written in Rust.
 
-        `cargo install prql-compiler`
+        `cargo install prqlc`
 
 comments_section:
   enable: true

@@ -1,6 +1,6 @@
 # F-Strings
 
-f-strings are a readable approach to building new strings from existing strings.
+F-strings are a readable approach to building new strings from existing strings.
 Currently PRQL supports this for concatenating strings:
 
 ```prql

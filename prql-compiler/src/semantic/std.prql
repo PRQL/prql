@@ -58,4 +58,4 @@ func _eq<list> a<list> -> null
 func _is_null a -> a == null
 
 # Misc
-func from_csv<table> csv<string> -> null
+func from_text<table> text<string> `noresolve.format`:csv -> null

@@ -1,9 +1,0 @@
----
-source: book/tests/snapshot.rs
-expression: "from `music.albums`\n"
-input_file: book/tests/prql/queries/syntax-12.prql
----
-SELECT
-  *
-FROM
-  music.albums

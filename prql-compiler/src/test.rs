@@ -2366,8 +2366,8 @@ fn test_switch() {
         r###"
     from employees
     derive display_name = switch [
-        nickname != null -> nickname,
-        true -> f'{first_name} {last_name}'
+        nickname != null => nickname,
+        true => f'{first_name} {last_name}'
     ]
         "###).unwrap(),
         @r###"
@@ -2386,8 +2386,8 @@ fn test_switch() {
         r###"
     from employees
     derive display_name = switch [
-        nickname != null -> nickname,
-        first_name != null -> f'{first_name} {last_name}'
+        nickname != null => nickname,
+        first_name != null => f'{first_name} {last_name}'
     ]
         "###).unwrap(),
         @r###"
@@ -2400,6 +2400,36 @@ fn test_switch() {
       END AS display_name
     FROM
       employees
+    "###
+    );
+
+    assert_display_snapshot!(compile(
+        r###"
+    from tracks
+    select category = switch [
+        length > avg_length => 'long'
+    ]
+    group category (aggregate count)
+        "###).unwrap(),
+        @r###"
+    WITH table_1 AS (
+      SELECT
+        CASE
+          WHEN length > avg_length THEN 'long'
+          ELSE NULL
+        END AS category,
+        length,
+        avg_length
+      FROM
+        tracks
+    )
+    SELECT
+      category,
+      COUNT(*)
+    FROM
+      table_1
+    GROUP BY
+      category
     "###
     );
 }
@@ -2448,12 +2478,12 @@ fn test_static_analysis() {
         a3 = null ?? y,
 
         a3 = switch [
-            false == true -> 1,
-            7 == 3 -> 2,
-            7 == y -> 3,
-            7.3 == 7.3 -> 4,
-            z -> 5,
-            true -> 6
+            false == true => 1,
+            7 == 3 => 2,
+            7 == y => 3,
+            7.3 == 7.3 => 4,
+            z => 5,
+            true => 6
         ]
     ]
         "###).unwrap(),
@@ -2796,6 +2826,96 @@ fn test_name_inference() {
       artist_id
     FROM
       albums
+    "###
+    );
+}
+
+#[test]
+fn test_from_text() {
+    assert_display_snapshot!(compile(r#"
+    from_text format:csv """
+a,b,c
+1,2,3
+4,5,6
+    """
+    select [b, c]
+    "#).unwrap(),
+        @r###"
+    WITH table_1 AS (
+      SELECT
+        '1' AS a,
+        '2' AS b,
+        '3' AS c
+      UNION
+      ALL
+      SELECT
+        '4' AS a,
+        '5' AS b,
+        '6' AS c
+    )
+    SELECT
+      b,
+      c
+    FROM
+      table_1 AS table_0
+    "###
+    );
+
+    assert_display_snapshot!(compile(r#"
+    from_text format:json '''
+      [{"a": 1, "b": "x", "c": false }, {"a": 4, "b": "y", "c": null }]
+    '''
+    select [b, c]
+    "#).unwrap(),
+        @r###"
+    WITH table_1 AS (
+      SELECT
+        1 AS a,
+        'x' AS b,
+        false AS c
+      UNION
+      ALL
+      SELECT
+        4 AS a,
+        'y' AS b,
+        NULL AS c
+    )
+    SELECT
+      b,
+      c
+    FROM
+      table_1 AS table_0
+    "###
+    );
+
+    assert_display_snapshot!(compile(r#"
+    from_text format:json '''{
+        "columns": ["a", "b", "c"],
+        "data": [
+            [1, "x", false],
+            [4, "y", null]
+        ]
+    }'''
+    select [b, c]
+    "#).unwrap(),
+        @r###"
+    WITH table_1 AS (
+      SELECT
+        1 AS a,
+        'x' AS b,
+        false AS c
+      UNION
+      ALL
+      SELECT
+        4 AS a,
+        'y' AS b,
+        NULL AS c
+    )
+    SELECT
+      b,
+      c
+    FROM
+      table_1 AS table_0
     "###
     );
 }
