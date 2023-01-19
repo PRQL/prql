@@ -11,7 +11,7 @@ ways to start:
 - Find an issue labeled
   [Good First Issue](https://github.com/prql/prql/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)[^1]
   and start contributing to the code.
-- Join our [regular Develper Call.](https://github.com/PRQL/prql/issues/1083)
+- Join our [regular Developer Call.](https://github.com/PRQL/prql/issues/1083)
   Here's an
   [iCal file to add the dates to your calendar.](https://raw.githubusercontent.com/prql/prql/main/Fortnightly_Dev_Call.ics)
 
