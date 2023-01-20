@@ -32,7 +32,6 @@
 
   For now, the argument is limited to string constants.
 
-
 ## 0.4.1 — 2022-01-18
 
 0.4.1 comes a few days after 0.4.0, with a couple of features and the release of
