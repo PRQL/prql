@@ -108,16 +108,16 @@ static PRQL_VERSION: Lazy<Version> =
 /// use prql_compiler::compile;
 /// use prql_compiler::sql;
 ///
-/// fn main() {
-///     let prql = "from employees | select [name,age] ";
-///     let opt = sql::Options {
-///         format: true,
-///         dialect: Some(sql::Dialect::SQLite),
-///         signature_comment: true
-///     };
-///     let sql = compile(&prql, Some(opt)).unwrap();
-///     println!("PRQL: {}\nSQLite: {}", prql, sql);
-/// }
+///
+/// let prql = "from employees | select [name,age] ";
+/// let opt = sql::Options {
+///     format: true,
+///     dialect: Some(sql::Dialect::SQLite),
+///     signature_comment: true
+/// };
+/// let sql = compile(&prql, Some(opt)).unwrap();
+/// println!("PRQL: {}\nSQLite: {}", prql, sql);
+///
 /// ```
 /// See [`sql::Options`](sql/struct.Options.html) and [`sql::Dialect`](sql/enum.Dialect.html) for options and supported SQL dialects.
 pub fn compile(prql: &str, options: Option<sql::Options>) -> Result<String, ErrorMessages> {
