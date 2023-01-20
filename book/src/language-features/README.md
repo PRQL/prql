@@ -16,5 +16,4 @@ language.
 | S-Strings        | [Insert SQL directly into a query with an S-string](./s-strings.md)       |
 | F-Strings        | [Combine several column's data with F-strings](./f-strings.md)            |
 | Switch           | [Create a new column based on the contents of other columns](./switch.md) |
-| Syntax           | [PRQL operators and syntax explained](./syntax.md)                        |
 | Target & Version | [Specify a target SQL engine and PRQL version](./target.md)               |
