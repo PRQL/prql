@@ -1,0 +1,3 @@
+from albums
+select [title, artist_id]
+join artists [==artist_id]

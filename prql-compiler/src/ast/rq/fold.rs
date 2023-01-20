@@ -186,8 +186,7 @@ pub fn fold_transform<T: ?Sized + RqFold>(
             with: fold.fold_table_ref(with)?,
             filter: fold.fold_expr(filter)?,
         },
-        Concat(bottom) => Concat(fold.fold_table_ref(bottom)?),
-        Unique => Unique,
+        Append(bottom) => Append(fold.fold_table_ref(bottom)?),
     };
     Ok(transform)
 }

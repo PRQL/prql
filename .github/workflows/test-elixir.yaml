@@ -1,0 +1,99 @@
+name: test-elixir
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    paths:
+      - "prql-elixir/**"
+      - ".github/workflows/test-elixir.yaml"
+  workflow_call:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: prql-elixir
+
+env:
+  MIX_ENV: test
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        # TODO: add mac runner when availiable
+        os: [ubuntu-latest, windows-latest]
+        otp: ["25.1.2"]
+        elixir: ["1.14.2"]
+    runs-on: ${{matrix.os}}
+    steps:
+      # fix CRLF issue on windows
+      - run: |
+          git config --global core.autocrlf false
+        working-directory: /
+
+      # Step: Check out the code.
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Step: Setup Elixir + Erlang image as the base.
+      - name: Set up Elixir
+        uses: erlef/setup-beam@v1
+        with:
+          otp-version: ${{matrix.otp}}
+          elixir-version: ${{matrix.elixir}}
+
+      # Step: Define how to cache deps. Restores existing cache if present.
+      - name: Cache deps
+        id: cache-deps
+        uses: actions/cache@v3
+        env:
+          cache-name: cache-elixir-deps
+        with:
+          path: prql-elixir/deps
+          key:
+            ${{ runner.os }}-mix-${{ env.cache-name }}-${{
+            hashFiles('**/mix.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-mix-${{ env.cache-name }}-
+
+      # Step: Define how to cache the `_build` directory. After the first run,
+      # this speeds up tests runs a lot. This includes not re-compiling our
+      # project's downloaded deps every run.
+      - name: Cache compiled build
+        id: cache-build
+        uses: actions/cache@v3
+        env:
+          cache-name: cache-compiled-build
+        with:
+          path: prql-elixir/_build
+          key:
+            ${{ runner.os }}-mix-${{ env.cache-name }}-${{
+            hashFiles('**/mix.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-mix-${{ env.cache-name }}-
+            ${{ runner.os }}-mix-
+
+      # Step: Download project dependencies. If unchanged, uses
+      # the cached version.
+      - name: Install dependencies
+        run: mix deps.get
+
+      # Step: Compile the project treating any warnings as errors.
+      # Customize this step if a different behavior is desired.
+      - name: Compiles without warnings
+        run: mix compile --warnings-as-errors
+
+      # Step: Check that the checked in code has already been formatted.
+      # This step fails if something was found unformatted.
+      # Customize this step as desired.
+      - name: Check Formatting
+        run: mix format --check-formatted
+
+      # Step: Execute the tests.
+      - name: Run tests
+        run: mix test

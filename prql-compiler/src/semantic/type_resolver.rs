@@ -1,11 +1,14 @@
 use std::cmp::Ordering;
+use std::collections::HashSet;
 
 use anyhow::Result;
 
 use crate::ast::pl::*;
 use crate::error::{Error, Reason, WithErrorInfo};
 
-pub fn resolve_type(node: &Expr) -> Result<Ty> {
+use super::Context;
+
+pub fn resolve_type(node: &Expr, context: &Context) -> Result<Ty> {
     if let Some(ty) = &node.ty {
         return Ok(ty.clone());
     }
@@ -21,6 +24,7 @@ pub fn resolve_type(node: &Expr) -> Result<Ty> {
             Literal::Time(_) => TyLit::Time.into(),
             Literal::Timestamp(_) => TyLit::Timestamp.into(),
             Literal::ValueAndUnit(_) => Ty::Infer, // TODO
+            Literal::Relation(_) => unreachable!(),
         },
 
         ExprKind::Ident(_) | ExprKind::Pipeline(_) | ExprKind::FuncCall(_) => Ty::Infer,
@@ -29,7 +33,7 @@ pub fn resolve_type(node: &Expr) -> Result<Ty> {
         ExprKind::FString(_) => TyLit::String.into(),
         ExprKind::Range(_) => Ty::Infer, // TODO
 
-        ExprKind::TransformCall(call) => Ty::Table(call.infer_type()?),
+        ExprKind::TransformCall(call) => Ty::Table(call.infer_type(context)?),
         ExprKind::List(_) => Ty::Literal(TyLit::List),
 
         _ => Ty::Infer,
@@ -79,7 +83,11 @@ where
                     name: input_name.clone(),
                     table: None,
                 }],
-                columns: vec![FrameColumn::Wildcard { input_name }],
+                columns: vec![FrameColumn::All {
+                    input_name,
+                    except: HashSet::new(),
+                }],
+                ..Default::default()
             })
         } else {
             expected.clone()
@@ -98,18 +106,12 @@ where
         })
         .with_span(found.span));
         if matches!(found_ty, Ty::Function(_)) && !matches!(expected, Ty::Function(_)) {
-            return e.with_help(match &found.kind {
-                ExprKind::Closure(closure) => match &closure.name {
-                    Some(name) => {
-                        format!(
-                            "Have you forgotten an argument to function `{}`?",
-                            name.name
-                        )
-                    }
-                    None => "Have you forgotten an argument in this function call?".to_string(),
-                },
-                _ => "Have you forgotten an argument in this function call?".to_string(),
-            });
+            let func_name = found.kind.as_closure().and_then(|c| c.name.as_ref());
+            let to_what = func_name
+                .map(|n| format!("to function {n}"))
+                .unwrap_or_else(|| "in this function call?".to_string());
+
+            return e.with_help(format!("Have you forgotten an argument {to_what}?"));
         };
         return e;
     }

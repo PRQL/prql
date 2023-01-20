@@ -1,15 +1,82 @@
 # PRQL Changelog
 
-## 0.3.2 — [unreleased]
+## 0.4.2 — [unreleased]
 
 **Features**:
 
-- S-strings can
-  [produce a full table.](https://prql-lang.org/book/language-features/s-strings.html#prql-3)
-- _Experimental:_ `switch` statement sets a variable to a value based on one of
-  several expressions. No page in the docs yet, but
-  [see this discussion](https://github.com/PRQL/prql/issues/1286#issue-1501645497)
-  and (#1278) for usage and the current syntax. _Note: this syntax may change._
+- `from_text` function that supports JSON and CSV formats. (@aljazerzen, @snth)
+
+  ```prql
+  from_text format:csv """
+  a,b,c
+  1,2,3
+  4,5,6
+  """
+
+  from_text format:json '''
+      [{"a": 1, "b": "x", "c": false }, {"a": 4, "b": "y", "c": null }]
+  '''
+
+  from_text format:json '''{
+      "columns": ["a", "b", "c"],
+      "data": [
+          [1, "x", false],
+          [4, "y", null]
+      ]
+  }'''
+  ```
+
+  Currently, arguments are limited to string constants.
+
+## 0.4.1 — 2022-01-18
+
+0.4.1 comes a few days after 0.4.0, with a couple of features and the release of
+`prqlc`, the CLI crate.
+
+0.4.1 has 35 commits from 6 contributors.
+
+**Features**:
+
+- Inferred column names include the relation name (@aljazerzen, #1550):
+
+  ```prql
+  from albums
+  select title # name used to be inferred as title only
+  select albums.title # so using albums was not possible here
+  ```
+
+- Quoted identifiers such as `dir/*.parquet` are passed through to SQL.
+  (@max-sixty, #1516).
+
+- The CLI is installed with `cargo install prqlc`. The binary was renamed in
+  0.4.0 but required an additional `--features` flag, which has been removed in
+  favor of this new crate (@max-sixty & @aljazerzen, #1549).
+
+**New Contributors**:
+
+- @fool1280, with #1554
+- @nkicg6, with #1567
+
+## 0.4.0 — 2022-01-15
+
+0.4.0 brings lots of new features including `switch`, `select ![]` and numbers
+with underscores. We have initial (unpublished) bindings to Elixir. And there's
+the usual improvements to fixes & documentation (only a minority are listed
+below in this release).
+
+0.4.0 also has some breaking changes: `table` is `let`, `dialect` is renamed to
+`target`, and the compiler's API has changed. Full details below.
+
+**Features**:
+
+- Defining a temporary table is now expressed as `let` rather than `table`
+  (@aljazerzen, #1315). See the
+  [tables docs](https://prql-lang.org/book/queries/tables.html) for details.
+
+- _Experimental:_ The
+  [`switch`](https://prql-lang.org/book/language-features/switch.html) function
+  sets a variable to a value based on one of several expressions (@aljazerzen,
+  #1278).
 
   ```prql
   derive var = switch [
@@ -20,19 +87,58 @@
   ]
   ```
 
-- _Experimental:_ `concat` & `union` transforms. (@aljazerzen, #894)
+  ...compiles to:
+
+  ```sql
+  SELECT
+    *,
+    CASE
+      WHEN score <= 10 THEN 'low'
+      WHEN score <= 30 THEN 'medium'
+      WHEN score <= 70 THEN 'high'
+      ELSE 'very high'
+    END AS var
+  FROM
+    bar
+  ```
+
+  Check out the
+  [`switch` docs](https://prql-lang.org/book/language-features/switch.html) for
+  more details.
+
+- _Experimental:_ Columns can be excluded by name with `select` (@aljazerzen,
+  #1329)
+
+  ```prql
+  from albums
+  select ![title, composer]
+  ```
+
+- _Experimental:_ `append` transform, equivalent to `UNION ALL` in SQL.
+  (@aljazerzen, #894)
 
   ```prql
   from employees
-  concat managers
-  union other_employees
+  append managers
   ```
 
-- Add SQL comment which displays the compiler version used to generate the SQL
-  (@aljazerzen, #1322)
-- The playground now allows querying some sample data. As before, the result
-  updates on every keystroke. (@aljazerzen, #1305)
+  Check out the
+  [`append` docs](https://prql-lang.org/book/transforms/append.html) for more
+  details.
 
+- Numbers can contain underscores, which can make reading long numbers easier
+  (@max-sixty, #1467):
+
+  ```prql
+  from numbers
+  select [
+      small = 1.000_000_1,
+      big = 5_000_000,
+  ]
+  ```
+
+- The SQL output contains a comment with the PRQL compiler version (@aljazerzen,
+  #1322)
 - `dialect` is renamed to `target`, and its values are prefixed with `sql.`
   (@max-sixty, #1388); for example:
 
@@ -49,7 +155,7 @@
   enables us to include a full CTE of SQL, for example:
 
   ```prql
-  table grouping = s"""
+  let grouping = s"""
     SELECT SUM(a)
     FROM tbl
     GROUP BY
@@ -58,32 +164,64 @@
   """
   ```
 
-- Ranges supplied to `in` can now be half-open (@aljazerzen, #1330).
+- Ranges supplied to `in` can be half-open (@aljazerzen, #1330).
 
-The following need updated pages in the documentation:
-
-- Allow function calls & pipelines in list items (@max-sixty, #1318)
+- The crate's external API has changed to allow for compiling to intermediate
+  representation. This also affects bindings. See
+  [`prql_compiler` docs](https://docs.rs/prql-compiler/latest/prql_compiler/)
+  for more details.
 
 **Fixes**:
+
+[This release, the changelog only contains a subset of fixes]
 
 - Allow interpolations in table s-strings (@aljazerzen, #1337)
 
 **Documentation**:
 
+[This release, the changelog only contains a subset of documentation
+improvements]
+
 - Add docs on aliases in
   [Select](https://prql-lang.org/book/transforms/select.html)
-- Fix JS example code (@BCsabaEngine, #1432)
+- Add JS template literal and multiline example (@BCsabaEngine, #1432)
 - JS template literal and multiline example (@BCsabaEngine, #1432)
+- Improve prql-compiler docs & examples (@aljazerzen, #1515)
+- Fix string highlighting in book (@max-sixty, #1264)
 
 **Web**:
 
+- The playground allows querying some sample data. As before, the result updates
+  on every keystroke. (@aljazerzen, #1305)
+
 **Integrations**:
 
+[This release, the changelog only contains a subset of integration improvements]
+
+- Added Elixir integration exposing PRQL functions as NIFs (#1500, @kasvith)
+- Exposed Elixir flavor with exceptions (#1513, @kasvith)
+- Rename `prql-compiler` binary to `prqlc` (@aljazerzen #1515)
+
 **Internal changes**:
+
+[This release, the changelog only contains a subset of internal changes]
 
 - Add parsing for negative select (@max-sixty, #1317)
 - Allow for additional builtin functions (@aljazerzen, #1325)
 - Add an automated check for typos (@max-sixty, #1421)
+- Add tasks for running playground & book (@max-sixty, #1265)
+- Add tasks for running tests on every file change (@max-sixty, #1380)
+
+**New contributors**:
+
+- @EArazli, with #1359
+- @boramalper, with #1362
+- @allurefx, with #1377
+- @bcho, with #1375
+- @JettChenT, with #1385
+- @BlurrechDev, with #1411
+- @BCsabaEngine, with #1432
+- @kasvith, with #1500
 
 ## 0.3.1 - 2022-12-03
 

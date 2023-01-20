@@ -97,22 +97,22 @@ Errors are returned as following object, serialized as a JSON array:
 ```ts
 interface ErrorMessage {
   /// Plain text of the error
-  reason: String;
+  reason: string;
   /// A list of suggestions of how to fix the error
-  hint: String | null;
+  hint: string | null;
   /// Character offset of error origin within a source file
-  span: Span | null;
+  span: [number, number] | null;
 
   /// Annotated code, containing cause and hints.
-  display: String | null;
+  display: string | null;
   /// Line and column number of error origin within a source file
   location: SourceLocation | null;
 }
 
 /// Location within the source file.
 /// Tuples contain:
-/// - line number (1-based),
-/// - column number within that line (1-based),
+/// - line number (0-based),
+/// - column number within that line (0-based),
 interface SourceLocation {
   start: [number, number];
 

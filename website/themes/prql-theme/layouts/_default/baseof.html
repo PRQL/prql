@@ -3,13 +3,15 @@
   {{ partial "head.html" . }}
 
 
-  <body class="d-flex flex-column min-vh-100">
+  <body class="d-flex flex-column vh-100 overflow-hidden">
     {{ partial "header.html" . }}
 
-    {{- block "main" . }}{{- end }}
 
-    {{ partial "footer.html" . }}
+    <div class="d-flex flex-column flex-grow-1 overflow-scroll">
+      {{- block "main" . }}{{- end }}
 
+      {{ partial "footer.html" . }}
+    </div>
 
     <a
       href="#"

@@ -1,28 +1,23 @@
 [package]
 description = "PRQL is a modern language for transforming data — a simple, powerful, pipelined SQL replacement."
-edition = "2021"
-license = "Apache-2.0"
 name = "prql-compiler"
-repository = "https://github.com/PRQL/prql"
-rust-version = "1.60.0"
+
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
 version.workspace = true
 
-[features]
-# We previously had `cli` not compile by default, because of an issue with
-# compiling a dependency with wasm. We no longer exclude it, but there's no need
-# to have it in in order to use it as a lib. We could alternatively put it in a
-# separate crate if that would make things more modular.
-cli = ["clio", "atty", "clap", "color-eyre"]
-default = ["cli"]
-
-[lib]
-doctest = false
+# Manually updated to match the version in the root `Cargo.toml`, until
+# https://github.com/foresterre/cargo-msrv/issues/590 is resolved.
+metadata.msrv = "1.65.0"
 
 [dependencies]
 anyhow = {version = "1.0.57", features = ["backtrace"]}
 ariadne = "0.1.5"
+chumsky = "0.8.0"
+csv = "1.1.6"
 enum-as-inner = "0.5.0"
-env_logger = {version = "0.9.1", features = ["termcolor"]}
 itertools = "0.10.3"
 lazy_static = "1.4.0"
 log = "0.4.17"
@@ -33,19 +28,10 @@ regex = "1.7.0"
 semver = {version = "1.0.14", features = ["serde"]}
 serde = {version = "1.0.137", features = ["derive"]}
 serde_json = "1.0.81"
-serde_yaml = "0.9.1"
 sqlformat = "0.2.0"
 sqlparser = {version = "0.30.0", features = ["serde"]}
 strum = {version = "0.24.0", features = ["std", "derive"]}# for converting enum variants to string
 strum_macros = "0.24.0"
-
-# These bring in `errno`, which fails under wasm. We disable the cli in wasm
-# anyway, so they're not required.
-[target.'cfg(not(target_family="wasm"))'.dependencies]
-atty = {version = "0.2.14", optional = true}
-clap = {version = "4.0.9", optional = true, features = ["derive"]}
-clio = {version = "0.2.4", features = ['clap-parse'], optional = true}
-color-eyre = {version = "0.6.1", optional = true}
 
 [dev-dependencies]
 cfg-if = "1.0"
@@ -73,6 +59,5 @@ harness = false
 name = "bench"
 
 [package.metadata.release]
-shared-version = true
 tag-name = "{{version}}"
 tag-prefix = ""

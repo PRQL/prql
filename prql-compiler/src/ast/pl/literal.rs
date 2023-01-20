@@ -15,6 +15,7 @@ pub enum Literal {
     Time(String),
     Timestamp(String),
     ValueAndUnit(ValueAndUnit),
+    Relation(RelationLiteral),
 }
 
 // Compound units, such as "2 days 3 hours" can be represented as `2days + 3hours`
@@ -22,6 +23,14 @@ pub enum Literal {
 pub struct ValueAndUnit {
     pub n: i64,       // Do any DBs use floats or decimals for this?
     pub unit: String, // Could be an enum IntervalType,
+}
+
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+pub struct RelationLiteral {
+    /// Column names
+    pub columns: Vec<String>,
+    /// Row-oriented data
+    pub rows: Vec<Vec<Literal>>,
 }
 
 impl From<Literal> for anyhow::Error {
@@ -78,6 +87,10 @@ impl Display for Literal {
 
             Literal::ValueAndUnit(i) => {
                 write!(f, "{}{}", i.n, i.unit)?;
+            }
+
+            Literal::Relation(_) => {
+                write!(f, "<unimplemented relation>")?;
             }
         }
         Ok(())

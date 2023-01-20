@@ -1,16 +1,19 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use anyhow::{anyhow, bail, Result};
+use itertools::Itertools;
+use serde::Deserialize;
 use std::iter::zip;
 
 use crate::ast::pl::fold::{fold_column_sorts, fold_transform_kind, AstFold};
 use crate::ast::pl::*;
+use crate::ast::rq::RelationColumn;
 use crate::error::{Error, Reason, WithErrorInfo};
 
 use super::context::{Decl, DeclKind};
-use super::module::{Module, NS_PARAM};
+use super::module::{Module, NS_FRAME, NS_PARAM};
 use super::resolver::Resolver;
-use super::Frame;
+use super::{Context, Frame};
 
 /// try to convert function call with enough args into transform
 pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Result<Expr, Closure>> {
@@ -30,7 +33,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
         "std.select" => {
             let [assigns, tbl] = unpack::<2>(closure);
 
-            let assigns = coerce_into_vec(assigns)?;
+            let assigns = coerce_and_flatten(assigns)?;
             (TransformKind::Select { assigns }, tbl)
         }
         "std.filter" => {
@@ -42,19 +45,19 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
         "std.derive" => {
             let [assigns, tbl] = unpack::<2>(closure);
 
-            let assigns = coerce_into_vec(assigns)?;
+            let assigns = coerce_and_flatten(assigns)?;
             (TransformKind::Derive { assigns }, tbl)
         }
         "std.aggregate" => {
             let [assigns, tbl] = unpack::<2>(closure);
 
-            let assigns = coerce_into_vec(assigns)?;
+            let assigns = coerce_and_flatten(assigns)?;
             (TransformKind::Aggregate { assigns }, tbl)
         }
         "std.sort" => {
             let [by, tbl] = unpack::<2>(closure);
 
-            let by = coerce_into_vec(by)?
+            let by = coerce_and_flatten(by)?
                 .into_iter()
                 .map(|node| {
                     let (column, direction) = match node.kind {
@@ -109,7 +112,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
                 }
             };
 
-            let filter = Box::new(Expr::collect_and(coerce_into_vec(filter)?));
+            let filter = Box::new(Expr::collect_and(coerce_and_flatten(filter)?));
 
             let with = Box::new(with);
             (TransformKind::Join { side, with, filter }, tbl)
@@ -117,7 +120,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
         "std.group" => {
             let [by, pipeline, tbl] = unpack::<3>(closure);
 
-            let by = coerce_into_vec(by)?;
+            let by = coerce_and_flatten(by)?;
 
             let pipeline = fold_by_simulating_eval(resolver, pipeline, tbl.ty.clone().unwrap())?;
 
@@ -181,10 +184,10 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
             };
             (transform_kind, tbl)
         }
-        "std.concat" => {
+        "std.append" => {
             let [bottom, top] = unpack::<2>(closure);
 
-            (TransformKind::Concat(Box::new(bottom)), top)
+            (TransformKind::Append(Box::new(bottom)), top)
         }
 
         "std.in" => {
@@ -229,6 +232,135 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
             .with_span(pattern.span))
         }
 
+        "std.all" => {
+            // yes, this is not a transform, but this is the most appropriate place for it
+
+            let [list] = unpack::<1>(closure);
+            let list = list.kind.into_list().unwrap();
+
+            let mut res = None;
+            for item in list {
+                res = new_binop(res, BinOp::And, Some(item));
+            }
+            let res = res.unwrap_or_else(|| Expr::from(ExprKind::Literal(Literal::Boolean(true))));
+
+            return Ok(Ok(res));
+        }
+
+        "std.map" => {
+            // yes, this is not a transform, but this is the most appropriate place for it
+
+            let [func, list] = unpack::<2>(closure);
+            let list_items = list.kind.into_list().unwrap();
+
+            let list_items = list_items
+                .into_iter()
+                .map(|item| {
+                    Expr::from(ExprKind::FuncCall(FuncCall {
+                        name: Box::new(func.clone()),
+                        args: vec![item],
+                        named_args: HashMap::new(),
+                    }))
+                })
+                .collect_vec();
+
+            return Ok(Ok(Expr {
+                kind: ExprKind::List(list_items),
+                ..list
+            }));
+        }
+
+        "std.zip" => {
+            // yes, this is not a transform, but this is the most appropriate place for it
+
+            let [a, b] = unpack::<2>(closure);
+            let a = a.kind.into_list().unwrap();
+            let b = b.kind.into_list().unwrap();
+
+            let mut res = Vec::new();
+            for (a, b) in std::iter::zip(a, b) {
+                res.push(Expr::from(ExprKind::List(vec![a, b])));
+            }
+
+            return Ok(Ok(Expr::from(ExprKind::List(res))));
+        }
+
+        "std._eq" => {
+            // yes, this is not a transform, but this is the most appropriate place for it
+
+            let [list] = unpack::<1>(closure);
+            let list = list.kind.into_list().unwrap();
+            let [a, b]: [Expr; 2] = list.try_into().unwrap();
+
+            let res = new_binop(Some(a), BinOp::Eq, Some(b)).unwrap();
+            return Ok(Ok(res));
+        }
+
+        "std.from_text" => {
+            // yes, this is not a transform, but this is the most appropriate place for it
+
+            let [format, text_expr] = unpack::<2>(closure);
+
+            let text = match text_expr.kind {
+                ExprKind::Literal(Literal::String(text)) => text,
+                _ => {
+                    return Err(Error::new(Reason::Expected {
+                        who: Some("std.from_text".to_string()),
+                        expected: "a string literal".to_string(),
+                        found: format!("`{text_expr}`"),
+                    })
+                    .with_span(text_expr.span)
+                    .into());
+                }
+            };
+
+            let res = {
+                let span = format.span;
+                let format = format
+                    .try_cast(ExprKind::into_ident, Some("format"), "ident")?
+                    .to_string();
+                match format.as_str() {
+                    "csv" => from_text::parse_csv(&text)?,
+                    "json" => from_text::parse_json(&text)?,
+
+                    _ => bail!(Error::new(Reason::Expected {
+                        who: Some("`format`".to_string()),
+                        expected: "csv or json".to_string(),
+                        found: format
+                    })
+                    .with_span(span)),
+                }
+            };
+
+            let input = FrameInput {
+                id: text_expr.id.unwrap(),
+                name: text_expr.alias.unwrap_or_else(|| "text".to_string()),
+                table: None,
+            };
+
+            let columns = res
+                .columns
+                .iter()
+                .map(|name| FrameColumn::Single {
+                    name: Some(Ident::from_name(name)),
+                    expr_id: input.id,
+                })
+                .collect();
+
+            let frame = Frame {
+                columns,
+                inputs: vec![input],
+                ..Default::default()
+            };
+            let res = Expr::from(ExprKind::Literal(Literal::Relation(res)));
+            let res = Expr {
+                ty: Some(Ty::Table(frame)),
+                id: text_expr.id,
+                ..res
+            };
+            return Ok(Ok(res));
+        }
+
         _ => return Ok(Err(closure)),
     };
 
@@ -261,6 +393,20 @@ pub fn coerce_into_vec(expr: Expr) -> Result<Vec<Expr>> {
     })
 }
 
+/// Converts `a` into `[a]` and `[b, [c, d]]` into `[b, c, d]`.
+pub fn coerce_and_flatten(expr: Expr) -> Result<Vec<Expr>> {
+    let items = coerce_into_vec(expr)?;
+    let mut res = Vec::with_capacity(items.len());
+    for item in items {
+        res.extend(coerce_into_vec(item)?);
+    }
+    let mut res2 = Vec::with_capacity(res.len());
+    for item in res {
+        res2.extend(coerce_into_vec(item)?);
+    }
+    Ok(res2)
+}
+
 /// Simulate evaluation of the inner pipeline of group or window
 // Creates a dummy node that acts as value that pipeline can be resolved upon.
 fn fold_by_simulating_eval(
@@ -290,11 +436,11 @@ fn fold_by_simulating_eval(
     }));
 
     let env = Module::singleton(param_name, Decl::from(DeclKind::Column(param_id)));
-    resolver.decls.root_mod.stack_push(NS_PARAM, env);
+    resolver.context.root_mod.stack_push(NS_PARAM, env);
 
     let pipeline = resolver.fold_expr(pipeline)?;
 
-    resolver.decls.root_mod.stack_pop(NS_PARAM).unwrap();
+    resolver.context.root_mod.stack_pop(NS_PARAM).unwrap();
 
     // now, we need wrap the result into a closure and replace
     // the dummy node with closure's parameter.
@@ -322,7 +468,7 @@ fn fold_by_simulating_eval(
 }
 
 impl TransformCall {
-    pub fn infer_type(&self) -> Result<Frame> {
+    pub fn infer_type(&self, context: &Context) -> Result<Frame> {
         use TransformKind::*;
 
         fn ty_frame_or_default(expr: &Expr) -> Result<Frame> {
@@ -337,14 +483,14 @@ impl TransformCall {
             Select { assigns } => {
                 let mut frame = ty_frame_or_default(&self.input)?;
 
-                frame.columns.clear();
-                frame.apply_assigns(assigns);
+                frame.clear();
+                frame.apply_assigns(assigns, context);
                 frame
             }
             Derive { assigns } => {
                 let mut frame = ty_frame_or_default(&self.input)?;
 
-                frame.apply_assigns(assigns);
+                frame.apply_assigns(assigns, context);
                 frame
             }
             Group { pipeline, by, .. } => {
@@ -362,7 +508,7 @@ impl TransformCall {
                         frame.columns = Vec::new();
 
                         log::debug!(".. group by {by:?}");
-                        frame.apply_assigns(by);
+                        frame.apply_assigns(by, context);
 
                         frame.columns.extend(aggregate_columns);
                     }
@@ -380,9 +526,9 @@ impl TransformCall {
             }
             Aggregate { assigns } => {
                 let mut frame = ty_frame_or_default(&self.input)?;
-                frame.columns.clear();
+                frame.clear();
 
-                frame.apply_assigns(assigns);
+                frame.apply_assigns(assigns, context);
                 frame
             }
             Join { with, .. } => {
@@ -390,10 +536,10 @@ impl TransformCall {
                 let right = ty_frame_or_default(with)?;
                 join(left, right)
             }
-            Concat(bottom) => {
+            Append(bottom) => {
                 let top = ty_frame_or_default(&self.input)?;
                 let bottom = ty_frame_or_default(bottom)?;
-                concat(top, bottom)?
+                append(top, bottom)?
             }
             Sort { .. } | Filter { .. } | Take { .. } => ty_frame_or_default(&self.input)?,
         })
@@ -406,11 +552,11 @@ fn join(mut lhs: Frame, rhs: Frame) -> Frame {
     lhs
 }
 
-fn concat(mut top: Frame, bottom: Frame) -> Result<Frame, Error> {
+fn append(mut top: Frame, bottom: Frame) -> Result<Frame, Error> {
     if top.columns.len() != bottom.columns.len() {
-        return Err(Error::new(Reason::Simple(
-            "cannot concat two relations with non-matching number of columns.".to_string(),
-        )))
+        return Err(Error::new_simple(
+            "cannot append two relations with non-matching number of columns.",
+        ))
         .with_help(format!(
             "top has {} columns, but bottom has {}",
             top.columns.len(),
@@ -422,8 +568,8 @@ fn concat(mut top: Frame, bottom: Frame) -> Result<Frame, Error> {
     let mut columns = Vec::with_capacity(top.columns.len());
     for (t, b) in zip(top.columns, bottom.columns) {
         columns.push(match (t, b) {
-            (FrameColumn::Wildcard { input_name }, FrameColumn::Wildcard { .. }) => {
-                FrameColumn::Wildcard { input_name }
+            (FrameColumn::All { input_name, except }, FrameColumn::All { .. }) => {
+                FrameColumn::All { input_name, except }
             }
             (
                 FrameColumn::Single {
@@ -441,14 +587,12 @@ fn concat(mut top: Frame, bottom: Frame) -> Result<Frame, Error> {
                     FrameColumn::Single { name, expr_id }
                 }
             },
-            (t, b) => {
-                return Err(Error::new(Reason::Simple(format!(
-                    "cannot match columns `{t:?}` and `{b:?}`"
-                )))
-                .with_help(
-                    "make sure that top and bottom relations of concat has the same column layout",
-                ))
-            }
+            (t, b) => return Err(Error::new_simple(format!(
+                "cannot match columns `{t:?}` and `{b:?}`"
+            ))
+            .with_help(
+                "make sure that top and bottom relations of append has the same column layout",
+            )),
         });
     }
 
@@ -456,6 +600,140 @@ fn concat(mut top: Frame, bottom: Frame) -> Result<Frame, Error> {
     Ok(top)
 }
 
+impl Frame {
+    pub fn clear(&mut self) {
+        self.prev_columns.clear();
+        self.prev_columns.append(&mut self.columns);
+    }
+
+    pub fn apply_assign(&mut self, expr: &Expr, context: &Context) {
+        if let ExprKind::All { except, .. } = &expr.kind {
+            let except_exprs: HashSet<&usize> =
+                except.iter().flat_map(|e| e.target_id.iter()).collect();
+            let except_inputs: HashSet<&usize> =
+                except.iter().flat_map(|e| e.target_ids.iter()).collect();
+
+            for target_id in &expr.target_ids {
+                match self.inputs.iter().find(|i| i.id == *target_id) {
+                    Some(input) => {
+                        if except_inputs.contains(target_id) {
+                            continue;
+                        }
+                        self.columns.extend(input.get_all_columns(except, context));
+                    }
+                    None => {
+                        if except_exprs.contains(target_id) {
+                            continue;
+                        }
+                        let prev_col = self.prev_columns.iter().find(|c| match c {
+                            FrameColumn::Single { expr_id, .. } => expr_id == target_id,
+                            _ => false,
+                        });
+                        self.columns.extend(prev_col.cloned());
+                    }
+                }
+            }
+            return;
+        }
+
+        let id = expr.id.unwrap();
+
+        let alias = expr.alias.as_ref();
+        let name = alias
+            .map(Ident::from_name)
+            .or_else(|| expr.kind.as_ident().and_then(|i| i.clone().pop_front().1));
+
+        // remove names from columns with the same name
+        if name.is_some() {
+            for c in &mut self.columns {
+                if let FrameColumn::Single { name: n, .. } = c {
+                    if n.as_ref().map(|i| &i.name) == name.as_ref().map(|i| &i.name) {
+                        *n = None;
+                    }
+                }
+            }
+        }
+
+        self.columns.push(FrameColumn::Single { name, expr_id: id });
+    }
+
+    pub fn apply_assigns(&mut self, assigns: &[Expr], context: &Context) {
+        for expr in assigns {
+            self.apply_assign(expr, context);
+        }
+    }
+
+    pub fn find_input(&self, input_name: &str) -> Option<&FrameInput> {
+        self.inputs.iter().find(|i| i.name == input_name)
+    }
+
+    /// Renames all frame inputs to given alias.
+    pub fn rename(&mut self, alias: String) {
+        for input in &mut self.inputs {
+            input.name = alias.clone();
+        }
+
+        for col in &mut self.columns {
+            match col {
+                FrameColumn::All { input_name, .. } => *input_name = alias.clone(),
+                FrameColumn::Single {
+                    name: Some(name), ..
+                } => name.path = vec![alias.clone()],
+                _ => {}
+            }
+        }
+    }
+}
+
+impl FrameInput {
+    fn get_all_columns(&self, except: &[Expr], context: &Context) -> Vec<FrameColumn> {
+        let rel_def = context.root_mod.get(self.table.as_ref().unwrap()).unwrap();
+        let rel_def = rel_def.kind.as_table_decl().unwrap();
+        let has_wildcard = rel_def
+            .columns
+            .iter()
+            .any(|c| matches!(c, RelationColumn::Wildcard));
+        if has_wildcard {
+            // Relation has a wildcard (i.e. we don't know all the columns)
+            // which means we cannot list all columns.
+            // Instead we can just stick FrameColumn::All into the frame.
+            // We could do this for all columns, but it is less transparent,
+            // so let's use it just as a last resort.
+
+            let input_ident_fq = Ident::from_path(vec![NS_FRAME, self.name.as_str()]);
+
+            let except = except
+                .iter()
+                .filter_map(|e| match &e.kind {
+                    ExprKind::Ident(i) => Some(i),
+                    _ => None,
+                })
+                .filter(|i| i.starts_with(&input_ident_fq))
+                .map(|i| i.name.clone())
+                .collect();
+
+            vec![FrameColumn::All {
+                input_name: self.name.clone(),
+                except,
+            }]
+        } else {
+            rel_def
+                .columns
+                .iter()
+                .map(|col| {
+                    let name = col.as_single().unwrap().clone().map(Ident::from_name);
+                    FrameColumn::Single {
+                        name,
+                        expr_id: self.id,
+                    }
+                })
+                .collect_vec()
+        }
+    }
+}
+
+// Expects closure's args to be resolved.
+// Note that named args are before positional args, in order of declaration.
 fn unpack<const P: usize>(closure: Closure) -> [Expr; P] {
     closure.args.try_into().expect("bad transform cast")
 }
@@ -485,7 +763,7 @@ pub struct Flattener {
 
     /// Window and group contain Closures in their inner pipelines.
     /// These closures have form similar to this function:
-    /// ```
+    /// ```prql
     /// func closure tbl_chunk -> (derive ... (sort ... (tbl_chunk)))
     /// ```
     /// To flatten a window or group, we need to replace group/window transform
@@ -597,6 +875,113 @@ impl AstFold for Flattener {
     }
 }
 
+mod from_text {
+    use super::*;
+
+    // TODO: Can we dynamically get the types, like in pandas? We need to put
+    // quotes around strings and not around numbers.
+    // https://stackoverflow.com/questions/64369887/how-do-i-read-csv-data-without-knowing-the-structure-at-compile-time
+    pub fn parse_csv(text: &str) -> Result<RelationLiteral> {
+        let text = text.trim();
+        let mut rdr = csv::Reader::from_reader(text.as_bytes());
+
+        fn parse_header(row: &csv::StringRecord) -> Vec<String> {
+            row.into_iter().map(|x| x.to_string()).collect()
+        }
+
+        fn parse_row(row: csv::StringRecord) -> Vec<Literal> {
+            row.into_iter()
+                .map(|x| Literal::String(x.to_string()))
+                .collect()
+        }
+
+        Ok(RelationLiteral {
+            columns: parse_header(rdr.headers()?),
+            rows: rdr
+                .records()
+                .into_iter()
+                .map(|row_result| row_result.map(parse_row))
+                .try_collect()?,
+        })
+    }
+
+    type JsonFormat1Row = HashMap<String, serde_json::Value>;
+
+    #[derive(Deserialize)]
+    struct JsonFormat2 {
+        columns: Vec<String>,
+        data: Vec<Vec<serde_json::Value>>,
+    }
+
+    fn map_json_primitive(primitive: serde_json::Value) -> Literal {
+        use serde_json::Value::*;
+        match primitive {
+            Null => Literal::Null,
+            Bool(bool) => Literal::Boolean(bool),
+            Number(number) if number.is_i64() => Literal::Integer(number.as_i64().unwrap()),
+            Number(number) if number.is_f64() => Literal::Float(number.as_f64().unwrap()),
+            Number(_) => Literal::Null,
+            String(string) => Literal::String(string),
+            Array(_) => Literal::Null,
+            Object(_) => Literal::Null,
+        }
+    }
+
+    fn object_to_vec(
+        mut row_map: HashMap<String, serde_json::Value>,
+        columns: &[String],
+    ) -> Vec<Literal> {
+        columns
+            .iter()
+            .map(|c| {
+                row_map
+                    .remove(c)
+                    .map(map_json_primitive)
+                    .unwrap_or(Literal::Null)
+            })
+            .collect_vec()
+    }
+
+    pub fn parse_json(text: &str) -> Result<RelationLiteral> {
+        parse_json1(text).or_else(|err1| {
+            parse_json2(text)
+                .map_err(|err2| anyhow!("While parsing rows: {err1}\nWhile parsing object: {err2}"))
+        })
+    }
+
+    fn parse_json1(text: &str) -> Result<RelationLiteral> {
+        let data: Vec<JsonFormat1Row> = serde_json::from_str(text)?;
+        let mut columns = data
+            .first()
+            .ok_or_else(|| anyhow!("json: no rows"))?
+            .keys()
+            .cloned()
+            .collect_vec();
+
+        // JSON object keys are not ordered, so have to apply some order to produce
+        // deterministic results
+        columns.sort();
+
+        let rows = data
+            .into_iter()
+            .map(|row_map| object_to_vec(row_map, &columns))
+            .collect_vec();
+        Ok(RelationLiteral { columns, rows })
+    }
+
+    fn parse_json2(text: &str) -> Result<RelationLiteral> {
+        let JsonFormat2 { columns, data } = serde_json::from_str(text)?;
+
+        Ok(RelationLiteral {
+            columns,
+            rows: data
+                .into_iter()
+                .map(|row| row.into_iter().map(map_json_primitive).collect_vec())
+                .collect_vec(),
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use insta::assert_yaml_snapshot;
@@ -644,8 +1029,6 @@ mod tests {
                     - - Wildcard
                       - 1
                   name: c_invoice
-              - Select:
-                  - 0
               - Take:
                   range:
                     start: ~
@@ -699,7 +1082,7 @@ mod tests {
         assert_yaml_snapshot!(result, @r###"
         ---
         - Main:
-            id: 12
+            id: 18
             TransformCall:
               input:
                 id: 4
@@ -709,8 +1092,9 @@ mod tests {
                 ty:
                   Table:
                     columns:
-                      - Wildcard:
+                      - All:
                           input_name: c_invoice
+                          except: []
                     inputs:
                       - id: 4
                         name: c_invoice
@@ -746,6 +1130,7 @@ mod tests {
                 columns:
                   - Single:
                       name:
+                        - c_invoice
                         - date
                       expr_id: 8
                   - Single:

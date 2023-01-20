@@ -1,4 +1,7 @@
-use std::fmt::{Debug, Display, Formatter};
+use std::{
+    collections::HashSet,
+    fmt::{Debug, Display, Formatter},
+};
 
 use enum_as_inner::EnumAsInner;
 use itertools::{Itertools, Position};
@@ -13,6 +16,10 @@ pub struct Frame {
     pub columns: Vec<FrameColumn>,
 
     pub inputs: Vec<FrameInput>,
+
+    // A hack that allows name retention when applying `ExprKind::All { except }`
+    #[serde(skip)]
+    pub prev_columns: Vec<FrameColumn>,
 }
 
 #[derive(Clone, Eq, Debug, PartialEq, Serialize, Deserialize)]
@@ -31,9 +38,10 @@ pub struct FrameInput {
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize, EnumAsInner)]
 pub enum FrameColumn {
-    /// Used for `foo_table.*`
-    Wildcard {
+    /// All columns (including unknown ones) from an input (i.e. `foo_table.*`)
+    All {
         input_name: String,
+        except: HashSet<String>,
     },
 
     Single {
@@ -57,52 +65,6 @@ pub enum SortDirection {
 impl Default for SortDirection {
     fn default() -> Self {
         SortDirection::Asc
-    }
-}
-
-impl Frame {
-    pub fn apply_assign(&mut self, expr: &Expr) {
-        let id = expr.id.unwrap();
-
-        if let Some(ident) = &expr.kind.as_ident() {
-            if ident.name == "*" {
-                self.columns.push(FrameColumn::Wildcard {
-                    input_name: ident.path.last().cloned().unwrap(),
-                });
-                return;
-            }
-        }
-
-        let col_name = expr
-            .alias
-            .clone()
-            .or_else(|| expr.kind.as_ident().cloned().map(|x| x.name));
-
-        // remove names from columns with the same name
-        if col_name.is_some() {
-            for c in &mut self.columns {
-                if let FrameColumn::Single { name, .. } = c {
-                    if name.as_ref().map(|i| &i.name) == col_name.as_ref() {
-                        *name = None;
-                    }
-                }
-            }
-        }
-
-        self.columns.push(FrameColumn::Single {
-            name: col_name.map(Ident::from_name),
-            expr_id: id,
-        });
-    }
-
-    pub fn apply_assigns(&mut self, assigns: &[Expr]) {
-        for expr in assigns {
-            self.apply_assign(expr);
-        }
-    }
-
-    pub fn find_input(&self, input_name: &str) -> Option<&FrameInput> {
-        self.inputs.iter().find(|i| i.name == input_name)
     }
 }
 
@@ -137,7 +99,7 @@ fn display_frame_column(
     display_ids: bool,
 ) -> std::fmt::Result {
     match col {
-        FrameColumn::Wildcard { input_name } => {
+        FrameColumn::All { input_name, .. } => {
             write!(f, "{input_name}.*")?;
         }
         FrameColumn::Single { name, expr_id } => {

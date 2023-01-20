@@ -1,4 +1,4 @@
-table top_50 = (
+let top_50 = (
   from employees
   sort salary
   take 50

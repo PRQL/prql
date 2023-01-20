@@ -38,7 +38,7 @@ derive [
   select [name, salary, country]
 )
 
-table average_salaries = (
+let average_salaries = (
   from employees
   group country (
     aggregate average_country_salary = (average salary)
@@ -64,6 +64,31 @@ group [dept_emp.dept_no, t.title] (
 )
 join departments [==dept_no]
 select [dept_name, title, avg_salary]
+`,
+  ],
+
+  "artists-0.prql": [
+    "arrow",
+    `from tracks
+select [album_id, name, unit_price]
+sort [-unit_price, name]
+group album_id (
+    aggregate [
+    track_count = count,
+    album_price = sum unit_price
+    ]
+)
+join albums [==album_id]
+group artist_id (
+    aggregate [
+    track_count = sum track_count,
+    artist_price = sum album_price
+    ]
+)
+join artists [==artist_id]
+select [artists.name, artist_price, track_count]
+sort [-artist_price]
+derive avg_track_price = artist_price / track_count
 `,
   ],
 };

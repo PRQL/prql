@@ -31,6 +31,44 @@
 //!
 //!            SQL
 //! ```
+//!
+//! ## Common use-cases
+//!
+//! I want to ...
+//! - ... compile PRQL queries at run time, because I cannot commit them into
+//!     the source tree.
+//!
+//!     ```
+//!     # fn main() -> Result<(), prql_compiler::ErrorMessages> {
+//!     let sql = prql_compiler::compile(
+//!         "from albums | select [title, artist_id]",
+//!          prql_compiler::sql::Options::default().no_format().some()
+//!     )?;
+//!     assert_eq!(&sql[..35], "SELECT title, artist_id FROM albums");
+//!     # Ok(())
+//!     # }
+//!     ```
+//!
+//! - ... compile PRQL queries to SQL at build time.
+//!
+//!     Use `prql-compiler-macros` crate (unreleased), which can be used like
+//!     this:
+//!     ```ignore
+//!     let sql: &str = prql_to_sql!("from albums | select [title, artist_id]");
+//!     ```
+//!
+//! - ... compile .prql files to .sql files at build time.
+//!
+//!     Call this crate from `build.rs`. See
+//!     [this example project](https://github.com/PRQL/prql/tree/main/prql-compiler/examples/compile-files).
+//!
+//! - ... compile, format & debug PRQL from command line.
+//!
+//!     ```sh
+//!     $ cargo install prqlc
+//!     $ prqlc compile query.prql
+//!     ```
+//!
 
 // Our error type is 128 bytes, because it contains 5 strings & an Enum, which
 // is exactly the default warning level. Given we're not that performance
@@ -40,8 +78,6 @@
 #![allow(clippy::result_large_err)]
 
 pub mod ast;
-#[cfg(all(feature = "cli", not(target_family = "wasm")))]
-mod cli;
 mod error;
 mod parser;
 pub mod semantic;
@@ -50,9 +86,7 @@ pub mod sql;
 mod test;
 mod utils;
 
-#[cfg(all(feature = "cli", not(target_family = "wasm")))]
-pub use cli::Cli;
-pub use error::{downcast, ErrorMessage, ErrorMessages, SourceLocation};
+pub use error::{downcast, ErrorMessage, ErrorMessages, SourceLocation, Span};
 pub use utils::IntoOnly;
 
 use once_cell::sync::Lazy;

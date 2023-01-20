@@ -50,15 +50,14 @@ docker run -it -v $(pwd)/:/src -p 3000:3000 prql
 ```
 
 - There'll be a `root@xxxxxxxxx:/src/#` prompt
-- Enter a command to run or test code
-- Ctrl-C to stop that command
+- Enter a command to run or test code; for example `cargo test`
 - Enter `exit` to stop the container
 
 ## Running code with Docker
 
-Currently our Docker image only supports running rust dependencies, though
-adding `hugo` & `nodejs` such that the playground can run would be a welcome
-contribution.
+Currently our Docker image only supports running rust dependencies. (adding
+`hugo` & `nodejs` so that the playground can run would be a welcome
+contribution.)
 
 Use the `docker run...` command above, then enter the relevant commands; for
 example `cargo insta test --accept` or `task run book` — more details of the

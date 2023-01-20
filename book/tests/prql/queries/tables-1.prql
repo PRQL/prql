@@ -1,4 +1,4 @@
-table grouping = s"""
+let grouping = s"""
   SELECT SUM(a)
   FROM tbl
   GROUP BY

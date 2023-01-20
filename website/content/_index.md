@@ -11,16 +11,6 @@ hero_section:
     enable: false
     link: https://prql-lang.org/book/
     label: "Reference"
-  callout: |
-    We are looking for help! Contribute with any of these:
-    - [compiler development (Rust)
-      ](https://github.com/PRQL/prql/blob/main/CONTRIBUTING.md#compiler)
-    - [IDE (a web application in brainstorming phase)
-      ](https://github.com/PRQL/prql/blob/main/CONTRIBUTING.md#ide)
-    - [website design & copy
-      ](https://github.com/PRQL/prql/blob/main/CONTRIBUTING.md#integrations)
-    - [language design
-      ](https://github.com/PRQL/prql/blob/main/CONTRIBUTING.md#language-design)
   prql_example: |
     from employees
     filter start_date > @2021-01-01
@@ -35,7 +25,7 @@ hero_section:
         sum_gross_cost = sum gross_cost,
       ]
     )
-    filter sum_gross_cost > 100000
+    filter sum_gross_cost > 100_000
     derive id = f"{title}_{country}"
     derive country_code = s"LEFT(country, 2)"
     sort [sum_gross_cost, -country]
@@ -141,7 +131,7 @@ showcase_section:
           aggregate [max_salary = max salary]
         )
         # And filter after aggregations!
-        filter max_salary > 100000
+        filter max_salary > 100_000
       sql: |
         SELECT
           country,
@@ -153,7 +143,7 @@ showcase_section:
         GROUP BY
           country
         HAVING
-          MAX(salary) > 100000
+          MAX(salary) > 100_000
 
     # markdown-link-check-disable
     - id: f-strings
@@ -335,6 +325,12 @@ principles_section:
         and readability. We de-emphasize other SQL features such as inserting
         data or transactions.
 
+videos_section:
+  enable: true
+  title: "Pipelines in action"
+  items:
+    - youtube_id: IQRRsfavEic
+
 tools_section:
   enable: true
   title: "Tools"
@@ -402,12 +398,12 @@ bindings_section:
       label: "prqlr"
       text: "R bindings for prql-compiler."
 
-    - link: https://crates.io/crates/prql-compiler
-      label: "prql-compiler"
+    - link: https://crates.io/crates/prqlc
+      label: "prqlc"
       text: |
-        PRQL's compiler library, written in Rust.
+        A CLI for PRQL compiler, written in Rust.
 
-        `cargo install prql-compiler`
+        `cargo install prqlc`
 
 comments_section:
   enable: true

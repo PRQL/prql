@@ -5,14 +5,9 @@ mod utils;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
-pub fn compile(prql_query: &str, options: Option<CompileOptions>) -> Option<String> {
+pub fn compile(prql_query: &str, options: Option<SQLCompileOptions>) -> Option<String> {
     return_or_throw(
-        Ok(prql_query)
-            .and_then(prql_compiler::prql_to_pl)
-            .and_then(prql_compiler::pl_to_rq)
-            .and_then(|rq| {
-                prql_compiler::rq_to_sql(rq, options.map(prql_compiler::sql::Options::from))
-            })
+        prql_compiler::compile(prql_query, options.map(|x| x.into()))
             .map_err(|e| e.composed("", prql_query, false)),
     )
 }
@@ -45,31 +40,28 @@ pub fn rq_to_sql(rq_json: &str) -> Option<String> {
     )
 }
 
-// TODO: `CompileOptions` is replicated in `prql-compiler/src/sql/mod.rs`; can
-// we combine them despite the `wasm_bindgen` attribute?
-
 /// Compilation options for SQL backend of the compiler.
 #[wasm_bindgen]
 #[derive(Clone)]
-pub struct CompileOptions {
+pub struct SQLCompileOptions {
     /// Pass generated SQL string trough a formatter that splits it
     /// into multiple lines and prettifies indentation and spacing.
     ///
     /// Defaults to true.
     pub format: bool,
 
-    /// Target to compile to (generally a SQL dialect).
+    /// Target dialect you want to compile for.
     ///
     /// Because PRQL compiles to a subset of SQL, not all SQL features are
-    /// required for PRQL. This means that generic target may work with most
+    /// required for PRQL. This means that generic dialect may work with most
     /// databases.
     ///
-    /// If something does not work in the target / dialect you need, please
-    /// report it at GitHub issues.
+    /// If something does not work in dialect you need, please report it at
+    /// GitHub issues.
     ///
-    /// If None is used, `target` flag from query definition is used. If it does
-    /// not exist, [Target::Generic] is used.
-    pub target: Option<Target>,
+    /// If None is used, `sql_dialect` flag from query definition is used.
+    /// If it does not exist, [Dialect::Generic] is used.
+    pub dialect: Option<Dialect>,
 
     /// Emits the compiler signature as a comment after generated SQL
     ///
@@ -78,19 +70,19 @@ pub struct CompileOptions {
 }
 
 #[wasm_bindgen]
-pub fn default_compile_options() -> CompileOptions {
-    CompileOptions {
+pub fn default_compile_options() -> SQLCompileOptions {
+    SQLCompileOptions {
         format: true,
-        target: None,
+        dialect: None,
         signature_comment: true,
     }
 }
 
-impl From<CompileOptions> for prql_compiler::sql::Options {
-    fn from(o: CompileOptions) -> Self {
+impl From<SQLCompileOptions> for prql_compiler::sql::Options {
+    fn from(o: SQLCompileOptions) -> Self {
         prql_compiler::sql::Options {
             format: o.format,
-            target: o.target.map(From::from),
+            dialect: o.dialect.map(From::from),
             signature_comment: o.signature_comment,
         }
     }
@@ -98,7 +90,7 @@ impl From<CompileOptions> for prql_compiler::sql::Options {
 
 #[wasm_bindgen]
 #[derive(Clone, Copy)]
-pub enum Target {
+pub enum Dialect {
     Ansi,
     BigQuery,
     ClickHouse,
@@ -109,22 +101,24 @@ pub enum Target {
     PostgreSql,
     SQLite,
     Snowflake,
+    DuckDb,
 }
 
-impl From<Target> for prql_compiler::sql::Target {
-    fn from(d: Target) -> Self {
-        use prql_compiler::sql::Target as D;
+impl From<Dialect> for prql_compiler::sql::Dialect {
+    fn from(d: Dialect) -> Self {
+        use prql_compiler::sql::Dialect as D;
         match d {
-            Target::Ansi => D::Ansi,
-            Target::BigQuery => D::BigQuery,
-            Target::ClickHouse => D::ClickHouse,
-            Target::Generic => D::Generic,
-            Target::Hive => D::Hive,
-            Target::MsSql => D::MsSql,
-            Target::MySql => D::MySql,
-            Target::PostgreSql => D::PostgreSql,
-            Target::SQLite => D::SQLite,
-            Target::Snowflake => D::Snowflake,
+            Dialect::Ansi => D::Ansi,
+            Dialect::BigQuery => D::BigQuery,
+            Dialect::ClickHouse => D::ClickHouse,
+            Dialect::Generic => D::Generic,
+            Dialect::Hive => D::Hive,
+            Dialect::MsSql => D::MsSql,
+            Dialect::MySql => D::MySql,
+            Dialect::PostgreSql => D::PostgreSql,
+            Dialect::SQLite => D::SQLite,
+            Dialect::Snowflake => D::Snowflake,
+            Dialect::DuckDb => D::DuckDb,
         }
     }
 }

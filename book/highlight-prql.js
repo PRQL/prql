@@ -31,17 +31,17 @@ formatting = function (hljs) {
     "aggregate",
     "group",
     "window",
-    "concat",
+    "append",
     "union",
   ];
   const BUILTIN_FUNCTIONS = ["switch", "in", "as"];
-  const KEYWORDS = ["func", "table", "prql"];
+  const KEYWORDS = ["func", "let", "prql"];
   return {
     name: "PRQL",
     case_insensitive: true,
     keywords: {
       keyword: [...TRANSFORMS, ...BUILTIN_FUNCTIONS, ...KEYWORDS],
-      literal: "false true null and or not",
+      literal: "false true null ",
     },
     contains: [
       hljs.COMMENT("#", "$"),
@@ -67,17 +67,58 @@ formatting = function (hljs) {
         relevance: 10,
       },
       {
-        // interpolation string
-        scope: "attribute",
+        // interpolation strings: s-strings are variables and f-strings are
+        // strings? (Though possibly that's too cute, open to adjusting)
+        //
+        scope: "variable",
         relevance: 10,
         variants: [
           {
-            begin: '(s|f)"""',
+            begin: '(s)"""',
             end: '"""',
           },
           {
-            begin: '(s|f)"',
+            begin: '(s)"',
             end: '"',
+          },
+        ],
+        contains: [
+          // I tried having the `f` / `s` be marked differently, but I don't
+          // think it's possible to have a subscope within the begin / end.
+          {
+            // I think `variable` is the right scope rather than defaulting to
+            // white, but not 100% sure; using `subst` is suggested in the docs.
+            scope: "variable",
+            begin: /\{/,
+            end: /\}/,
+          },
+        ],
+      },
+      {
+        scope: "string",
+        relevance: 10,
+        variants: [
+          {
+            begin: '(f)"""',
+            end: '"""',
+          },
+          {
+            begin: '(f)"',
+            end: '"',
+          },
+        ],
+        contains: [
+          {
+            // scope: "title.function",
+            scope: "variable",
+            begin: "f",
+            end: '"',
+            // excludesEnd: true,
+          },
+          {
+            scope: "variable",
+            begin: /\{/,
+            end: /\}/,
           },
         ],
       },
@@ -112,15 +153,25 @@ formatting = function (hljs) {
         // Slightly modified from https://stackoverflow.com/a/23872060/3064736;
         // it requires a number after a decimal point, so ranges appear as
         // ranges.
-        // We also disallow a leading word character, so that we don't highlight
-        // a number in `foo_1`.
-        match: /[+-]?[^\w]((\d+(\.\d+)?)|(\.\d+))/,
+        // We disallow a leading word character, so that we don't highlight
+        // a number in `foo_1`,
+        // We allow underscores, a bit more liberally than PRQL, which doesn't
+        // allow them at the start or end (but that's difficult to express with
+        // regex; contributions welcome).
+        match: /[+-]?[^\w](([\d_]+(\.[\d_]+])?)|(\.[\d_]+))/,
         relevance: 10,
       },
       {
         // range
         scope: "symbol",
         match: /\.{2}/,
+        relevance: 10,
+      },
+      {
+        // operator
+        scope: "operator",
+        match:
+          /(>)|(<)|(==)|(\+)|(\-)|(!=)|(<=)|(>=)|(\?\?)|(\band\b)|(\bor\b)/,
         relevance: 10,
       },
 

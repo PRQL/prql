@@ -1,0 +1,22 @@
+COMMENT: iCalendar .ics format file to add Fortnightly PRQL Dev Call to your calendar
+COMMENT: DTSTART is the starting time of the first event
+COMMENT: DTEND is the ending time of the first event
+COMMENT: RRULE specifies the repeat interval (2nd & 4th Sunday), and end date ("UNTIL")
+COMMENT:
+BEGIN:VCALENDAR
+PRODID:-//Apple Inc.//macOS 12.6.1//EN
+VERSION:2.0
+BEGIN:VEVENT
+DTSTAMP:20230105T164630
+UID:dev-call.prql-lang.org
+DTSTART;TZID=America/New_York:20230108T123000
+DTEND;TZID=America/New_York:20230108T130000
+RRULE:FREQ=MONTHLY;INTERVAL=1;BYDAY=2SU,4SU;UNTIL=20230331
+DESCRIPTION:Discord #dev-voice-channel\nhttps://discord.gg/2RUBzz3R3J\n1730Z on 2nd & 4th Sunday
+LOCATION:
+SEQUENCE:0
+STATUS:CONFIRMED
+SUMMARY:PRQL Fortnightly Dev Call
+TRANSP:TRANSPARENT
+END:VEVENT
+END:VCALENDAR

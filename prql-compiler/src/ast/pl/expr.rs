@@ -27,6 +27,10 @@ pub struct Expr {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub target_id: Option<usize>,
 
+    /// For [ExprKind::All], these are ids of included nodes
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub target_ids: Vec<usize>,
+
     /// Type of expression this node represents. [None] means type has not yet been determined.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub ty: Option<Ty>,
@@ -41,6 +45,10 @@ pub struct Expr {
 #[derive(Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize, strum::AsRefStr)]
 pub enum ExprKind {
     Ident(Ident),
+    All {
+        within: Ident,
+        except: Vec<Expr>,
+    },
     Literal(Literal),
     Pipeline(Pipeline),
     List(Vec<Expr>),
@@ -113,6 +121,8 @@ pub enum BinOp {
 pub enum UnOp {
     #[strum(to_string = "-")]
     Neg,
+    #[strum(to_string = "+")]
+    Add,
     #[strum(to_string = "!")]
     Not,
     #[strum(to_string = "==")]
@@ -294,7 +304,7 @@ pub enum TransformKind {
         range: Range,
         pipeline: Box<Expr>,
     },
-    Concat(Box<Expr>),
+    Append(Box<Expr>),
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
@@ -365,6 +375,7 @@ impl From<ExprKind> for Expr {
             kind,
             span: None,
             target_id: None,
+            target_ids: Vec::new(),
             ty: None,
             needs_window: false,
             alias: None,
@@ -431,6 +442,13 @@ impl Display for Expr {
             ExprKind::Ident(s) => {
                 display_ident(f, s)?;
             }
+            ExprKind::All { within, except } => {
+                write!(f, "{within}.![")?;
+                for e in except {
+                    write!(f, "{e},")?;
+                }
+                f.write_str("]")?;
+            }
             ExprKind::Pipeline(pipeline) => {
                 f.write_char('(')?;
                 match pipeline.exprs.len() {
@@ -485,6 +503,7 @@ impl Display for Expr {
             }
             ExprKind::Unary { op, expr } => match op {
                 UnOp::Neg => write!(f, "-{}", expr)?,
+                UnOp::Add => write!(f, "+{}", expr)?,
                 UnOp::Not => write!(f, "not {}", expr)?,
                 UnOp::EqSelf => write!(f, "=={}", expr)?,
             },
@@ -530,7 +549,7 @@ impl Display for Expr {
                 write!(f, "{}", literal)?;
             }
             ExprKind::Switch(cases) => {
-                f.write_str("[\n")?;
+                f.write_str("switch [\n")?;
                 for case in cases {
                     writeln!(f, "  {} => {}", case.condition, case.value)?;
                 }

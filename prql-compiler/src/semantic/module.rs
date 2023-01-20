@@ -15,7 +15,10 @@ pub const NS_FRAME: &str = "_frame";
 pub const NS_FRAME_RIGHT: &str = "_right";
 pub const NS_PARAM: &str = "_param";
 pub const NS_DEFAULT_DB: &str = "default_db";
+// refers to the containing module (direct parent)
 pub const NS_SELF: &str = "_self";
+// implies we can infer new names in the containing module
+pub const NS_INFER: &str = "_infer";
 
 #[derive(Default, Serialize, Deserialize, Clone)]
 pub struct Module {
@@ -45,13 +48,11 @@ impl Module {
                     "default_db".to_string(),
                     Decl::from(DeclKind::Module(Module {
                         names: HashMap::from([(
-                            "*".to_string(),
-                            Decl::from(DeclKind::Wildcard(Box::new(DeclKind::TableDecl(
-                                TableDecl {
-                                    columns: vec![RelationColumn::Wildcard],
-                                    expr: None,
-                                },
-                            )))),
+                            NS_INFER.to_string(),
+                            Decl::from(DeclKind::Infer(Box::new(DeclKind::TableDecl(TableDecl {
+                                columns: vec![RelationColumn::Wildcard],
+                                expr: None,
+                            })))),
                         )]),
                         shadowed: None,
                         redirects: vec![],
@@ -200,10 +201,10 @@ impl Module {
         let namespace = self.names.entry(namespace.to_string()).or_default();
         let namespace = namespace.kind.as_module_mut().unwrap();
 
-        for column in &frame.columns {
+        for (col_index, column) in frame.columns.iter().enumerate() {
             // determine input name
             let input_name = match column {
-                FrameColumn::Wildcard { input_name } => Some(input_name),
+                FrameColumn::All { input_name, .. } => Some(input_name),
                 FrameColumn::Single { name, .. } => name.as_ref().and_then(|n| n.path.first()),
             };
 
@@ -221,12 +222,14 @@ impl Module {
                             let self_decl = Decl {
                                 declared_at: Some(input.id),
                                 kind: DeclKind::InstanceOf(fq_table),
+                                order: 0,
                             };
                             sub_ns.names.insert(NS_SELF.to_string(), self_decl);
                         }
                         let sub_ns = Decl {
                             declared_at: Some(input.id),
                             kind: DeclKind::Module(sub_ns),
+                            order: 0,
                         };
 
                         namespace.names.entry(input_name.clone()).or_insert(sub_ns)
@@ -239,20 +242,28 @@ impl Module {
 
             // insert column decl
             match column {
-                FrameColumn::Wildcard { input_name } => {
+                FrameColumn::All { input_name, .. } => {
                     let input = frame.inputs.iter().find(|i| &i.name == input_name).unwrap();
 
-                    let kind = DeclKind::Wildcard(Box::new(DeclKind::Column(input.id)));
+                    let kind = DeclKind::Infer(Box::new(DeclKind::Column(input.id)));
                     let declared_at = Some(input.id);
-                    let entry = Decl { kind, declared_at };
-                    ns.names.insert("*".to_string(), entry);
+                    let decl = Decl {
+                        kind,
+                        declared_at,
+                        order: col_index + 1,
+                    };
+                    ns.names.insert(NS_INFER.to_string(), decl);
                 }
                 FrameColumn::Single {
                     name: Some(name),
                     expr_id,
                 } => {
-                    ns.names
-                        .insert(name.name.clone(), DeclKind::Column(*expr_id).into());
+                    let decl = Decl {
+                        kind: DeclKind::Column(*expr_id),
+                        declared_at: None,
+                        order: col_index + 1,
+                    };
+                    ns.names.insert(name.name.clone(), decl);
                 }
                 _ => {}
             }
@@ -322,6 +333,22 @@ impl Module {
                 .collect(),
             ..Default::default()
         }
+    }
+
+    pub fn as_decls(&self) -> Vec<(Ident, &Decl)> {
+        let mut r = Vec::new();
+        for (name, decl) in &self.names {
+            match &decl.kind {
+                DeclKind::Module(module) => r.extend(
+                    module
+                        .as_decls()
+                        .into_iter()
+                        .map(|(inner, decl)| (Ident::from_name(name) + inner, decl)),
+                ),
+                _ => r.push((Ident::from_name(name), decl)),
+            }
+        }
+        r
     }
 }
 

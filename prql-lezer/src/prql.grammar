@@ -56,7 +56,10 @@ Op_bin { Op_bin_only | Op_unary }
   // then I think the `Number` rule doesn't allow spaces...
   Date { "@" ![ ] (( @digit | "-" ) ![ ] )+ }
   ident_part { @asciiLetter (@asciiLetter | "_" | @digit )* }
-  Number { @digit+ "."? @digit* }
+  // TODO: This is not as precise as PRQL, which doesn't allow trailing
+  // underscores and allows no digit before the decimal point.
+  number_part { @digit ( @digit | "_" )* }
+  Number { number_part "."? number_part? }
   space { " "+ }
   Comment { "#" ![\n]* }
   Op_bin_only { "*" | "/" | "%" | "!=" | ">=" | "<=" | ">" | "<" | "??" | "and" | "or" }
@@ -89,7 +92,7 @@ Op_bin { Op_bin_only | Op_unary }
   @precedence { S_string, F_string, Op_bin_only, ident_part }
 }
 
-Table_def { @specialize<ident_part, "table"> ident_part "=" Nested_pipeline ( newline+ | end ) }
+Table_def { @specialize<ident_part, "let"> ident_part "=" Nested_pipeline ( newline+ | end ) }
 
 Func_def { @specialize<ident_part, "func"> Func_def_name Func_def_param* "->" expr_call ( newline+ | end ) }
 Type_def { "<" Type_term ( "|" Type_term)* ">" }

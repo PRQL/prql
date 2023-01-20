@@ -45,20 +45,6 @@ updates:
     schedule:
       interval: "daily"
 
-  - directory: ".github/actions/test-python"
-    commit-message:
-      prefix: "chore: "
-    package-ecosystem: "github-actions"
-    schedule:
-      interval: "daily"
-
-  - directory: ".github/actions/test-rust"
-    commit-message:
-      prefix: "chore: "
-    package-ecosystem: "github-actions"
-    schedule:
-      interval: "daily"
-
   - directory: ".github/actions/time-compilation"
     commit-message:
       prefix: "chore: "

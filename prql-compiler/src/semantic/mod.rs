@@ -80,6 +80,60 @@ mod test {
     }
 
     #[test]
+    fn test_resolve_01() {
+        assert_yaml_snapshot!(parse_and_resolve(r###"
+        from employees
+        select ![foo]
+        "###).unwrap().relation.columns, @r###"
+        ---
+        - Wildcard
+        "###)
+    }
+
+    #[test]
+    fn test_resolve_02() {
+        assert_yaml_snapshot!(parse_and_resolve(r###"
+        from foo
+        sort day
+        window range:-4..4 (
+            derive [next_four_days = sum b]
+        )
+        "###).unwrap().relation.columns, @r###"
+        ---
+        - Single: day
+        - Single: b
+        - Wildcard
+        - Single: next_four_days
+        "###)
+    }
+
+    #[test]
+    fn test_resolve_03() {
+        assert_yaml_snapshot!(parse_and_resolve(r###"
+        from a=albums
+        filter is_sponsored
+        select [a.*]
+        "###).unwrap().relation.columns, @r###"
+        ---
+        - Single: is_sponsored
+        - Wildcard
+        "###)
+    }
+
+    #[test]
+    fn test_resolve_04() {
+        assert_yaml_snapshot!(parse_and_resolve(r###"
+        from x
+        select [a, a, a = a + 1]
+        "###).unwrap().relation.columns, @r###"
+        ---
+        - Single: ~
+        - Single: ~
+        - Single: a
+        "###)
+    }
+
+    #[test]
     fn test_header() {
         assert_yaml_snapshot!(parse_and_resolve(r###"
         prql target:sql.mssql version:"0"
@@ -116,13 +170,13 @@ mod test {
         "### );
 
         assert_yaml_snapshot!(parse_and_resolve(r###"
-        prql target:sql.bigquery version:"0.3"
+        prql target:sql.bigquery version:"0.4"
 
         from employees
         "###).unwrap(), @r###"
         ---
         def:
-          version: ^0.3
+          version: ^0.4
           other:
             target: sql.bigquery
         tables:

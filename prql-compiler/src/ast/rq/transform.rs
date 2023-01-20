@@ -24,8 +24,7 @@ pub enum Transform {
         with: TableRef,
         filter: Expr,
     },
-    Concat(TableRef),
-    Unique,
+    Append(TableRef),
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]

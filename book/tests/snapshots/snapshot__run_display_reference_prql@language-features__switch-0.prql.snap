@@ -4,7 +4,7 @@ expression: prql_to_pl(&prql).and_then(pl_to_prql).unwrap()
 input_file: book/tests/prql/language-features/switch-0.prql
 ---
 from employees
-derive distance = [
+derive distance = switch [
   city == "Calgary" => 0
   city == "Edmonton" => 300
 ]

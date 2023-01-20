@@ -9,6 +9,7 @@ use crate::ast::rq::RelationColumn;
 use crate::error::{Error, Reason, Span};
 use crate::semantic::context::TableDecl;
 use crate::semantic::static_analysis;
+use crate::semantic::transforms::coerce_and_flatten;
 use crate::utils::IdGenerator;
 
 use super::context::{Context, Decl, DeclKind};
@@ -24,12 +25,12 @@ pub fn resolve(stmts: Vec<Stmt>, context: Context) -> Result<(Vec<Stmt>, Context
     let mut resolver = Resolver::new(context);
     let stmts = resolver.fold_stmts(stmts)?;
 
-    Ok((stmts, resolver.decls))
+    Ok((stmts, resolver.context))
 }
 
 /// Can fold (walk) over AST and for each function call or variable find what they are referencing.
 pub struct Resolver {
-    pub decls: Context,
+    pub context: Context,
 
     default_namespace: Option<String>,
 
@@ -42,7 +43,7 @@ pub struct Resolver {
 impl Resolver {
     fn new(context: Context) -> Self {
         Resolver {
-            decls: context,
+            context,
             default_namespace: None,
             in_func_call_name: false,
             id: IdGenerator::new(),
@@ -57,30 +58,23 @@ impl AstFold for Resolver {
         for mut stmt in stmts {
             stmt.id = Some(self.id.gen());
             if let Some(span) = stmt.span {
-                self.decls.span_map.insert(stmt.id.unwrap(), span);
+                self.context.span_map.insert(stmt.id.unwrap(), span);
             }
 
             let kind = match stmt.kind {
                 StmtKind::QueryDef(d) => StmtKind::QueryDef(d),
                 StmtKind::FuncDef(func_def) => {
-                    self.decls.declare_func(func_def, stmt.id);
+                    self.context.declare_func(func_def, stmt.id);
                     continue;
                 }
-                StmtKind::TableDef(table_def) => {
-                    let table_def = self.fold_table(table_def)?;
-                    let mut table_def = TableDef {
-                        value: Box::new(Flattener::fold(*table_def.value)),
-                        ..table_def
+                StmtKind::VarDef(var_def) => {
+                    let var_def = self.fold_var_def(var_def)?;
+                    let var_def = VarDef {
+                        value: Box::new(Flattener::fold(*var_def.value)),
+                        ..var_def
                     };
 
-                    // validate type
-                    let expected = Ty::Table(Frame::default());
-                    let assumed_ty = validate_type(&table_def.value, &expected, || {
-                        Some(format!("table {}", table_def.name))
-                    })?;
-                    table_def.value.ty = Some(assumed_ty);
-
-                    self.decls.declare_table(table_def, stmt.id);
+                    self.context.declare_var(var_def, stmt.id, stmt.span)?;
                     continue;
                 }
                 StmtKind::Main(expr) => {
@@ -104,7 +98,7 @@ impl AstFold for Resolver {
         let span = node.span;
 
         if let Some(span) = span {
-            self.decls.span_map.insert(id, span);
+            self.context.span_map.insert(id, span);
         }
 
         log::trace!("folding expr {node:?}");
@@ -114,7 +108,7 @@ impl AstFold for Resolver {
                 log::debug!("resolving ident {ident}...");
                 let fq_ident = self.resolve_ident(&ident, node.span)?;
                 log::debug!("... resolved to {fq_ident}");
-                let entry = self.decls.root_mod.get(&fq_ident).unwrap();
+                let entry = self.context.root_mod.get(&fq_ident).unwrap();
                 log::debug!("... which is {entry}");
 
                 match &entry.kind {
@@ -129,7 +123,7 @@ impl AstFold for Resolver {
                         }
                     }
 
-                    DeclKind::Wildcard(_) => Expr {
+                    DeclKind::Infer(_) => Expr {
                         kind: ExprKind::Ident(fq_ident),
                         target_id: entry.declared_at,
                         ..node
@@ -141,29 +135,33 @@ impl AstFold for Resolver {
                     },
 
                     DeclKind::TableDecl(TableDecl { columns, .. }) => {
-                        let alias = node.alias.unwrap_or_else(|| ident.name.clone());
+                        let rel_name = ident.name.clone();
 
                         let instance_frame = Frame {
                             inputs: vec![FrameInput {
                                 id,
-                                name: alias.clone(),
+                                name: rel_name.clone(),
                                 table: Some(fq_ident.clone()),
                             }],
                             columns: columns
                                 .iter()
                                 .map(|col| match col {
-                                    RelationColumn::Wildcard => FrameColumn::Wildcard {
-                                        input_name: alias.clone(),
+                                    RelationColumn::Wildcard => FrameColumn::All {
+                                        input_name: rel_name.clone(),
+                                        except: columns
+                                            .iter()
+                                            .flat_map(|c| c.as_single().cloned().flatten())
+                                            .collect(),
                                     },
-                                    RelationColumn::Single(name) => FrameColumn::Single {
-                                        name: name.clone().map(|name| Ident {
-                                            name,
-                                            path: vec![alias.clone()],
+                                    RelationColumn::Single(col_name) => FrameColumn::Single {
+                                        name: col_name.clone().map(|col_name| {
+                                            Ident::from_path(vec![rel_name.clone(), col_name])
                                         }),
                                         expr_id: id,
                                     },
                                 })
                                 .collect(),
+                            ..Default::default()
                         };
 
                         log::debug!("instanced table {fq_ident} as {instance_frame:?}");
@@ -176,20 +174,15 @@ impl AstFold for Resolver {
                         }
                     }
 
-                    DeclKind::Expr(expr) => expr.as_ref().clone(),
+                    DeclKind::Expr(expr) => self.fold_expr(expr.as_ref().clone())?,
 
                     DeclKind::InstanceOf(_) => {
-                        bail!(Error::new(Reason::Simple(
-                            "table instance cannot be referenced directly".to_string(),
-                        ))
-                        .with_span(span)
-                        .with_help("did you forget to specify the column name?"));
+                        bail!(
+                            Error::new_simple("table instance cannot be referenced directly",)
+                                .with_span(span)
+                                .with_help("did you forget to specify the column name?")
+                        );
                     }
-
-                    DeclKind::NoResolve => Expr {
-                        kind: ExprKind::Ident(ident),
-                        ..node
-                    },
 
                     _ => Expr {
                         kind: ExprKind::Ident(fq_ident),
@@ -234,6 +227,36 @@ impl AstFold for Resolver {
                 Expr { kind, ..node }
             }
 
+            ExprKind::Unary {
+                op: UnOp::Not,
+                expr,
+            } if matches!(expr.kind, ExprKind::List(_)) => self.resolve_column_exclusion(*expr)?,
+
+            ExprKind::All { within, except } => {
+                let decl = self.context.root_mod.get(&within);
+
+                // lookup ids of matched inputs
+                let target_ids = decl
+                    .and_then(|d| d.kind.as_module())
+                    .iter()
+                    .flat_map(|module| module.as_decls())
+                    .sorted_by_key(|(_, decl)| decl.order)
+                    .flat_map(|(_, decl)| match &decl.kind {
+                        DeclKind::Column(target_id) => Some(*target_id),
+                        DeclKind::Infer(_) => decl.declared_at,
+                        _ => None,
+                    })
+                    .unique()
+                    .collect();
+
+                let kind = ExprKind::All { within, except };
+                Expr {
+                    kind,
+                    target_ids,
+                    ..node
+                }
+            }
+
             item => Expr {
                 kind: fold_expr_kind(self, item)?,
                 ..node
@@ -244,7 +267,12 @@ impl AstFold for Resolver {
         r.span = r.span.or(span);
 
         if r.ty.is_none() {
-            r.ty = Some(resolve_type(&r)?);
+            r.ty = Some(resolve_type(&r, &self.context)?);
+        }
+        if let Some(Ty::Table(frame)) = &mut r.ty {
+            if let Some(alias) = r.alias.take() {
+                frame.rename(alias);
+            }
         }
         let r = static_analysis::static_analysis(r);
         Ok(r)
@@ -336,14 +364,14 @@ impl Resolver {
                 path: vec![self.default_namespace.clone().unwrap()],
                 name: ident.name.clone(),
             };
-            self.decls.resolve_ident(&defaulted)
+            self.context.resolve_ident(&defaulted)
         } else {
-            self.decls.resolve_ident(ident)
+            self.context.resolve_ident(ident)
         };
 
         res.map_err(|e| {
-            log::debug!("cannot resolve, context={:#?}", self.decls);
-            anyhow!(Error::new(Reason::Simple(e)).with_span(span))
+            log::debug!("cannot resolve: `{e}`, context={:#?}", self.context);
+            anyhow!(Error::new_simple(e).with_span(span))
         })
     }
 
@@ -368,7 +396,7 @@ impl Resolver {
         let mut r = if enough_args {
             // push the env
             let closure_env = Module::from_exprs(closure.env);
-            self.decls.root_mod.stack_push(NS_PARAM, closure_env);
+            self.context.root_mod.stack_push(NS_PARAM, closure_env);
             let closure = Closure {
                 env: HashMap::new(),
                 ..closure
@@ -395,14 +423,14 @@ impl Resolver {
 
                     let (func_env, body) = env_of_closure(closure);
 
-                    self.decls.root_mod.stack_push(NS_PARAM, func_env);
+                    self.context.root_mod.stack_push(NS_PARAM, func_env);
 
                     // fold again, to resolve inner variables & functions
                     let body = self.fold_expr(body)?;
 
                     // remove param decls
                     log::debug!("stack_pop: {:?}", body.id);
-                    let func_env = self.decls.root_mod.stack_pop(NS_PARAM).unwrap();
+                    let func_env = self.context.root_mod.stack_pop(NS_PARAM).unwrap();
 
                     if let ExprKind::Closure(mut inner_closure) = body.kind {
                         // body couldn't been resolved - construct a closure to be evaluated later
@@ -431,7 +459,7 @@ impl Resolver {
             };
 
             // pop the env
-            self.decls.root_mod.stack_pop(NS_PARAM).unwrap();
+            self.context.root_mod.stack_pop(NS_PARAM).unwrap();
 
             res.needs_window = needs_window;
             res
@@ -460,7 +488,7 @@ impl Resolver {
 
         Ok(match transforms::cast_transform(self, closure)? {
             // it a transform
-            Ok(e) => Ok(e),
+            Ok(e) => Ok(self.fold_expr(e)?),
 
             // it a std function that should be lowered into a BuiltIn
             Err(closure) if matches!(closure.body.kind, ExprKind::Literal(Literal::Null)) => {
@@ -530,8 +558,8 @@ impl Resolver {
 
         // resolve tables
         if has_tables {
-            self.decls.root_mod.shadow(NS_FRAME);
-            self.decls.root_mod.shadow(NS_FRAME_RIGHT);
+            self.context.root_mod.shadow(NS_FRAME);
+            self.context.root_mod.shadow(NS_FRAME_RIGHT);
 
             for pos in tables.into_iter().with_position() {
                 let is_last = matches!(pos, Position::Last(_) | Position::Only(_));
@@ -544,9 +572,9 @@ impl Resolver {
                 // add table's frame into scope
                 if let Some(Ty::Table(frame)) = &arg.ty {
                     if is_last {
-                        self.decls.root_mod.insert_frame(frame, NS_FRAME);
+                        self.context.root_mod.insert_frame(frame, NS_FRAME);
                     } else {
-                        self.decls.root_mod.insert_frame(frame, NS_FRAME_RIGHT);
+                        self.context.root_mod.insert_frame(frame, NS_FRAME_RIGHT);
                     }
                 }
 
@@ -567,7 +595,7 @@ impl Resolver {
                     // add aliased columns into scope
                     if let Some(alias) = item.alias.clone() {
                         let id = item.id.unwrap();
-                        self.decls.root_mod.insert_frame_col(NS_FRAME, alias, id);
+                        self.context.root_mod.insert_frame_col(NS_FRAME, alias, id);
                     }
                     res.push(item);
                 }
@@ -584,8 +612,8 @@ impl Resolver {
         }
 
         if has_tables {
-            self.decls.root_mod.unshadow(NS_FRAME);
-            self.decls.root_mod.unshadow(NS_FRAME_RIGHT);
+            self.context.root_mod.unshadow(NS_FRAME);
+            self.context.root_mod.unshadow(NS_FRAME_RIGHT);
         }
 
         Ok(closure)
@@ -656,6 +684,27 @@ impl Resolver {
         let kind = fold_expr_kind(self, kind)?;
         Ok(kind)
     }
+
+    fn resolve_column_exclusion(&mut self, expr: Expr) -> Result<Expr, anyhow::Error> {
+        let expr = self.fold_expr(expr)?;
+        let list = coerce_and_flatten(expr)?;
+        let except: Vec<Expr> = list
+            .into_iter()
+            .map(|e| match e.kind {
+                ExprKind::Ident(_) | ExprKind::All { .. } => Ok(e),
+                _ => Err(Error::new(Reason::Expected {
+                    who: Some("exclusion".to_string()),
+                    expected: "column name".to_string(),
+                    found: format!("`{e}`"),
+                })),
+            })
+            .try_collect()?;
+
+        self.fold_expr(Expr::from(ExprKind::All {
+            within: Ident::from_name(NS_FRAME),
+            except,
+        }))
+    }
 }
 
 fn env_of_closure(closure: Closure) -> (Module, Expr) {
@@ -665,6 +714,7 @@ fn env_of_closure(closure: Closure) -> (Module, Expr) {
         let v = Decl {
             declared_at: arg.id,
             kind: DeclKind::Expr(Box::new(arg)),
+            order: 0,
         };
         let param_name = param.name.split('.').last().unwrap();
         func_env.names.insert(param_name.to_string(), v);
@@ -676,7 +726,7 @@ fn env_of_closure(closure: Closure) -> (Module, Expr) {
 #[cfg(test)]
 mod test {
     use anyhow::Result;
-    use insta::{assert_display_snapshot, assert_yaml_snapshot};
+    use insta::assert_yaml_snapshot;
 
     use crate::ast::pl::{Expr, Ty};
     use crate::semantic::resolve_only;
@@ -697,26 +747,6 @@ mod test {
         let derive = expr.kind.into_transform_call()?;
         Ok(derive.kind.into_derive()?)
     }
-
-    #[test]
-    fn test_func_call_resolve() {
-        assert_display_snapshot!(crate::test::compile(r#"
-        from employees
-        aggregate [
-          count non_null:salary,
-          count,
-        ]
-        "#).unwrap(),
-            @r###"
-        SELECT
-          COUNT(salary),
-          COUNT(*)
-        FROM
-          employees
-        "###
-        );
-    }
-
     #[test]
     fn test_variables_1() {
         assert_yaml_snapshot!(resolve_derive(

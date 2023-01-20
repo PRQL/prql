@@ -17,7 +17,7 @@ pub use utils::*;
 use enum_as_inner::EnumAsInner;
 use serde::{Deserialize, Serialize};
 
-use super::pl::{ColumnSort, QueryDef, Range, WindowFrame};
+use super::pl::{ColumnSort, QueryDef, Range, RelationLiteral, WindowFrame};
 use super::pl::{InterpolateItem, TableExternRef};
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
@@ -45,7 +45,7 @@ pub enum RelationKind {
     SString(Vec<InterpolateItem<Expr>>),
 }
 
-#[derive(Debug, PartialEq, Clone, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Eq, Hash, Serialize, Deserialize, EnumAsInner)]
 pub enum RelationColumn {
     /// Description of a single column that may have a name.
     /// Unnamed columns cannot be referenced.
@@ -60,7 +60,7 @@ pub struct TableDecl {
     /// An id for this table, unique within all tables in this query.
     pub id: TId,
 
-    /// Given name of this table (name of the CTE)
+    /// Name hint for this declaration (name of the CTE)
     pub name: Option<String>,
 
     /// Table's contents.
@@ -76,16 +76,6 @@ pub struct TableRef {
     // of this table in the same query
     pub columns: Vec<(RelationColumn, CId)>,
 
-    /// Given name of this table (table alias)
+    /// Name hint for relation within this pipeline (table alias)
     pub name: Option<String>,
-}
-
-#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
-pub struct RelationLiteral {
-    /// Column names
-    pub columns: Vec<String>,
-    /// Row-oriented data
-    // TODO: this should be generic, so it can contain any type (but at least
-    // numbers)
-    pub rows: Vec<Vec<String>>,
 }

@@ -24,7 +24,6 @@
                   >
                 {{ end }}
               {{ end }}
-              <div class="card callout">{{ .callout | markdownify }}</div>
             </div>
             <div class="col-lg-6 pt-4 pt-lg-0">
               <pre tabindex="0">
@@ -154,6 +153,35 @@
                     </p>
                     <p>{{ .content | markdownify }}</p>
                   </div>
+                </div>
+              {{ end }}
+            </div>
+          </div>
+        </section>
+      {{ end }}
+    {{ end }}
+
+    {{ with .Params.videos_section }}
+      {{ if .enable }}
+        <section class="vidoes-section">
+          <div class="container">
+            <div class="row">
+              <div class="section-title">
+                <h2>{{ .title | markdownify }}</h2>
+              </div>
+            </div>
+            <div class="row row-cols-1 row-cols-lg-3">
+              {{ range .items }}
+                <div class="col g-3">
+                  <iframe
+                    width="560"
+                    height="315"
+                    src="https://www.youtube-nocookie.com/embed/{{ .youtube_id }}"
+                    title="YouTube video player"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen
+                  ></iframe>
                 </div>
               {{ end }}
             </div>

@@ -1,0 +1,11 @@
+---
+source: book/tests/snapshot.rs
+expression: "from employees\nfilter id == $1\n"
+input_file: book/tests/prql/syntax-14.prql
+---
+SELECT
+  *
+FROM
+  employees
+WHERE
+  id = $1

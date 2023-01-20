@@ -129,6 +129,60 @@ task test-all
 These require installing Task, either `brew install go-task/tap/go-task` or as
 described on [Task](https://taskfile.dev/#/installation).
 
+## Contribution workflow
+
+We're similar to most projects on GitHub — open a Pull Request with a suggested
+change!
+
+### Commits
+
+- If a change is user-facing, please add a line in
+  [**`CHANGELOG.md`**](CHANGELOG.md), with `{message}, ({@contributor, #X})`
+  where `X` is the PR number.
+  - If there's a missing entry, a follow-up PR containing just the changelog
+    entry is welcome.
+- We're experimenting with using the
+  [Conventional Commits](https://www.conventionalcommits.org) message format,
+  enforced through
+  [action-semantic-pull-request](https://github.com/amannn/action-semantic-pull-request).
+  This would let us generate Changelogs automatically. The check is not required
+  to pass at the moment.
+
+### Merges
+
+- **We merge any code that makes PRQL better**
+- A PR doesn't need to be perfect to be merged; it doesn't need to solve a big
+  problem. It needs to:
+  - be in the right direction
+  - make incremental progress
+  - be explicit on its current state, so others can continue the progress
+- If you have merge permissions, and are reasonably confident that a PR is
+  suitable to merge (whether or not you're the author), feel free to merge.
+  - If you don't have merge permissions and have authored a few PRs, ask and ye
+    shall receive.
+- The primary way we ratchet the code quality is through automated tests.
+  - This means PRs almost always need a test to demonstrate incremental
+    progress.
+  - If a change breaks functionality without breaking tests, our tests were
+    insufficient.
+- We use PR reviews to give general context, offer specific assistance, and
+  collaborate on larger decisions.
+  - Reviews around 'nits' like code formatting / idioms / etc are very welcome.
+    But the norm is for them to be received as helpful advice, rather than as
+    mandatory tasks to complete. Adding automated tests & lints to automate
+    these suggestions is welcome.
+  - If you have merge permissions and would like a PR to be reviewed before it
+    merges, that's great — ask or assign a reviewer.
+  - If a PR hasn't received attention after a day, please feel free to ping the
+    pull request.
+- People may review a PR after it's merged. As part of the understanding that we
+  can merge quickly, contributors are expected to incorporate substantive
+  feedback into a future PR.
+- We should revert quickly if the impact of a PR turns out not to be consistent
+  with our expectations, or there isn't as much consensus on a decision as we
+  had hoped. It's very easy to revert code and then re-revert when we've
+  resolved the issue; it's a sign of moving quickly.
+
 ## Components of PRQL
 
 The PRQL project has several components. Instructions for working with them are
@@ -151,8 +205,6 @@ rust library.
 
 **[prql-lib](./prql-lib/README.md)**: Generates `.a` and `.so` libraries from
 the `prql-compiler` rust library for bindings to other languages
-
-**[prql-macros](./prql-macros/README.md)**: rust macros for PRQL
 
 **[prql-python](./prql-python/README.md)**: Python bindings to the
 `prql-compiler` rust library.
@@ -317,20 +369,22 @@ raise an issue.
 
 Currently we release in a semi-automated way:
 
-1. PR & merge an updated [Changelog](CHANGELOG.md).
-2. Run `cargo release version patch && cargo release replace` to bump the
+1. PR & merge an updated [Changelog](CHANGELOG.md). GitHub will produce a draft
+   version at <https://github.com/PRQL/prql/releases/new>, including "New
+   Contributors".
+2. Run `cargo release version patch -x && cargo release replace -x` to bump the
    versions, then PR the resulting commit.
 3. After merging, go to
-   [Draft a new release](https://github.com/PRQL/prql/releases/new), copy the
-   changelog entry into the release notes, enter the tag to be created, and hit
-   "Publish".
+   [Draft a new release](https://github.com/PRQL/prql/releases/new)[^perms],
+   copy the changelog entry into the release description[^wrap], enter the tag
+   to be created, and hit "Publish".
 4. From there, both the tag and release is created and all packages are
    published automatically based on our
    [release workflow](.github/workflows/release.yaml).
 5. Add in the sections for a new Changelog:
 
    ```md
-   ## 0.3.X — [unreleased]
+   ## 0.4.X — [unreleased]
 
    **Features**:
 
@@ -343,6 +397,15 @@ Currently we release in a semi-automated way:
    **Integrations**:
 
    **Internal changes**:
+
+   **New Contributors**:
    ```
 
 We may make this more automated in future; e.g. automatic changelog creation.
+
+[^wrap]:
+    Unfortunately GitHub's markdown parser interprets linebreaks as newlines. I
+    haven't found a better way of editing the markdown to look reasonable than
+    manually editing the text.
+
+[^perms]: Only maintainers have access to this page.

@@ -6,14 +6,17 @@ Table:
   columns:
     - Single:
         name:
+          - orders
           - customer_no
         expr_id: 11
     - Single:
         name:
+          - orders
           - gross
         expr_id: 12
     - Single:
         name:
+          - orders
           - tax
         expr_id: 13
     - Single:

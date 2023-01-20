@@ -36,8 +36,8 @@ pub trait AstFold {
     fn fold_exprs(&mut self, exprs: Vec<Expr>) -> Result<Vec<Expr>> {
         exprs.into_iter().map(|node| self.fold_expr(node)).collect()
     }
-    fn fold_table(&mut self, table: TableDef) -> Result<TableDef> {
-        Ok(TableDef {
+    fn fold_var_def(&mut self, table: VarDef) -> Result<VarDef> {
+        Ok(VarDef {
             name: table.name,
             value: Box::new(self.fold_expr(*table.value)?),
         })
@@ -72,6 +72,10 @@ pub fn fold_expr_kind<T: ?Sized + AstFold>(fold: &mut T, expr_kind: ExprKind) ->
     use ExprKind::*;
     Ok(match expr_kind {
         Ident(ident) => Ident(ident),
+        All { within, except } => All {
+            within,
+            except: fold.fold_exprs(except)?,
+        },
         Binary { op, left, right } => Binary {
             op,
             left: Box::new(fold.fold_expr(*left)?),
@@ -96,12 +100,7 @@ pub fn fold_expr_kind<T: ?Sized + AstFold>(fold: &mut T, expr_kind: ExprKind) ->
                 .map(|x| fold.fold_interpolate_item(x))
                 .try_collect()?,
         ),
-        Switch(cases) => Switch(
-            cases
-                .into_iter()
-                .map(|c| fold_switch_case(fold, c))
-                .try_collect()?,
-        ),
+        Switch(cases) => Switch(fold_cases(fold, cases)?),
 
         FuncCall(func_call) => FuncCall(fold.fold_func_call(func_call)?),
         Closure(closure) => Closure(Box::new(fold.fold_closure(*closure)?)),
@@ -121,7 +120,7 @@ pub fn fold_stmt_kind<T: ?Sized + AstFold>(fold: &mut T, stmt_kind: StmtKind) ->
     use StmtKind::*;
     Ok(match stmt_kind {
         FuncDef(func) => FuncDef(fold.fold_func_def(func)?),
-        TableDef(table) => TableDef(fold.fold_table(table)?),
+        VarDef(var_def) => VarDef(fold.fold_var_def(var_def)?),
         Main(expr) => Main(Box::new(fold.fold_expr(*expr)?)),
         QueryDef(_) => stmt_kind,
     })
@@ -165,6 +164,16 @@ pub fn fold_interpolate_item<F: ?Sized + AstFold>(
         InterpolateItem::String(string) => InterpolateItem::String(string),
         InterpolateItem::Expr(expr) => InterpolateItem::Expr(Box::new(fold.fold_expr(*expr)?)),
     })
+}
+
+fn fold_cases<F: ?Sized + AstFold>(
+    fold: &mut F,
+    cases: Vec<SwitchCase>,
+) -> Result<Vec<SwitchCase>> {
+    cases
+        .into_iter()
+        .map(|c| fold_switch_case(fold, c))
+        .try_collect()
 }
 
 pub fn fold_switch_case<F: ?Sized + AstFold>(fold: &mut F, case: SwitchCase) -> Result<SwitchCase> {
@@ -250,7 +259,7 @@ pub fn fold_transform_kind<T: ?Sized + AstFold>(
             with: Box::new(fold.fold_expr(*with)?),
             filter: Box::new(fold.fold_expr(*filter)?),
         },
-        Concat(bottom) => Concat(Box::new(fold.fold_expr(*bottom)?)),
+        Append(bottom) => Append(Box::new(fold.fold_expr(*bottom)?)),
         Group { by, pipeline } => Group {
             by: fold.fold_exprs(by)?,
             pipeline: Box::new(fold.fold_expr(*pipeline)?),

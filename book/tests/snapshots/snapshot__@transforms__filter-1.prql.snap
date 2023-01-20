@@ -1,6 +1,6 @@
 ---
 source: book/tests/snapshot.rs
-expression: "from employees\nfilter (age | in 25..40)\n"
+expression: "from employees\nfilter (age > 25 or department != \"IT\")\n"
 input_file: book/tests/prql/transforms/filter-1.prql
 ---
 SELECT
@@ -8,5 +8,5 @@ SELECT
 FROM
   employees
 WHERE
-  age BETWEEN 25
-  AND 40
+  age > 25
+  OR department <> 'IT'
