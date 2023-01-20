@@ -1,9 +1,0 @@
----
-source: book/tests/snapshot.rs
-expression: "from employees\nselect [first_name]\n"
-input_file: book/tests/prql/language-features/syntax-3.prql
----
-SELECT
-  first_name
-FROM
-  employees
