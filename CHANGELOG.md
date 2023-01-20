@@ -30,10 +30,8 @@
   }'''
   ```
 
-- **Breaking Change:** Change `switch` syntax to use `=>` instead of `->` due to
-  clash with planned lambda function syntax. See discussion and new syntax at:
-  https://github.com/PRQL/prql/issues/1286#issuecomment-1375332474 _(Implemented
-  in Playground)_
+  For now, the argument is limited to string constants.
+
 
 ## 0.4.1 — 2022-01-18
 
