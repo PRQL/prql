@@ -102,7 +102,7 @@ static PRQL_VERSION: Lazy<Version> =
 /// - [pl_to_rq] — Finds variable references, validates functions calls, determines frames and converts PL to RQ.
 /// - [rq_to_sql] — Convert RQ AST into an SQL string.
 /// # Example
-/// Use the prql compiler to convert a PRQL string to SQLite dialect SQL
+/// Use the prql compiler to convert a PRQL string to SQLite dialect
 ///
 /// ```
 /// use prql_compiler::compile;
@@ -112,7 +112,7 @@ static PRQL_VERSION: Lazy<Version> =
 ///     let prql = "from employees | select [name,age] ";
 ///     let opt = sql::Options {
 ///         format: true,
-///         dialect: Some(sql::Dialect::Sqlite),
+///         dialect: Some(sql::Dialect::SQLite),
 ///         signature_comment: true
 ///     };
 ///     let sql = compile(&prql, Some(opt)).unwrap();
