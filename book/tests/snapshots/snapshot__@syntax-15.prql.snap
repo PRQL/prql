@@ -1,0 +1,10 @@
+---
+source: book/tests/snapshot.rs
+expression: "from numbers\nselect [\n    small = 1.000_000_1,\n    big = 5_000_000,\n]\n"
+input_file: book/tests/prql/syntax-15.prql
+---
+SELECT
+  1.0000001 AS small,
+  5000000 AS big
+FROM
+  numbers

@@ -24,6 +24,7 @@
   - [Take](./transforms/take.md)
   - [Window](./transforms/window.md)
 
+- [Syntax](./syntax.md)
 - [Language features](./language-features/README.md)
 
   - [Coalesce](./language-features/coalesce.md)
@@ -39,7 +40,6 @@
   - [S-Strings](./language-features/s-strings.md)
   - [F-Strings](./language-features/f-strings.md)
   - [Switch](./language-features/switch.md)
-  - [Syntax](./language-features/syntax.md)
   - [Target & Version](./language-features/target.md)
 
 - [Bindings](./bindings/README.md)
