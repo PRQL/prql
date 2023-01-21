@@ -235,18 +235,18 @@ showcase_section:
       label: Joins
       prql: |
         from employees
-        join benefits [==employee_id]
-        join side:left p=positions [id==employee_id]
-        select [employee_id, role, vision_coverage]
+        join b=benefits [==employee_id]
+        join side:left p=positions [p.id==employees.employee_id]
+        select [employees.employee_id, p.role, b.vision_coverage]
       sql: |
         SELECT
-          employee_id,
-          role,
-          vision_coverage
+          employees.employee_id,
+          p.role,
+          b.vision_coverage
         FROM
           employees
-          JOIN benefits USING(employee_id)
-          LEFT JOIN positions AS p ON id = employee_id
+          JOIN benefits AS b ON employees.employee_id = b.employee_id
+          LEFT JOIN positions AS p ON p.id = employees.employee_id
 
     - id: null-handling
       label: Null handling
