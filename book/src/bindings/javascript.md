@@ -71,9 +71,9 @@ This uses
 to generate bindings[^1].
 
 [^1]:
-
-though we would be very open to other approaches, and used `trunk` successfully
-in a rust-driven approach to this, RIP `prql-web`.
+    Though we would be very open to other approaches, given wasm-pack does not
+    seem maintained, and we're eliding many of its features to build for three
+    targets.
 
 ## Development
 
