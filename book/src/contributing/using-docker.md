@@ -33,7 +33,7 @@ docker build -t prql .
 ```
 
 _Optional:_ Install `pre-commit` on the machine that hosts Docker. It runs
-several [Static Checks](./DEVELOPMENT.md#tests) to ensure code consistency. You
+several [Static Checks](./development.md#tests) to ensure code consistency. You
 can also configure `git` to run `pre-commit` automatically for each commit with
 the second (one-time) command below.
 
@@ -61,8 +61,8 @@ contribution.)
 
 Use the `docker run...` command above, then enter the relevant commands; for
 example `cargo insta test --accept` or `task run book` — more details of the
-commands are in each component's `README.md` file or
-[**`DEVELOPMENT.md`**](DEVELOPMENT.md).
+commands are in each component's `README.md` file or our
+[Development docs](./development.md).
 
 > Note: The first time you run a component, it may take some time to install
 > additional files. Once they're built, start up is quick.
@@ -96,8 +96,8 @@ hugo server --bind 0.0.0.0 -p 3000
 
 When making updates to the Dockerfile, we have automated testing that the
 Dockerfile builds on each merge in
-[**`test-all.yaml`**](.github/workflows/test-all.yaml), and automated testing
-that the confirms all rust tests pass, in
-[**`nightly.yaml`**](.github/workflows/nightly.yaml).
+[**`test-all.yaml`**](https://github.com/PRQL/prql/blob/main/.github/workflows/test-all.yaml),
+and automated testing that the confirms all rust tests pass, in
+[**`nightly.yaml`**](https://github.com/PRQL/prql/blob/main/.github/workflows/nightly.yaml).
 
 Add a label to the PR `pr-test-all` or `pr-cron` to run these tests on a PR.

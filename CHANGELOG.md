@@ -452,7 +452,9 @@ We also have new features in the
 
 **Documentation**:
 
-- Add docs on [Architecture](prql-compiler/ARCHITECTURE.md) (@aljazerzen, #904)
+- Add docs on
+  [Architecture](https://prql-lang.org/book/internals/compiler-architecture.html)
+  (@aljazerzen, #904)
 - Add Changelog (@max-sixty, #890 #891)
 
 **Internal changes**:

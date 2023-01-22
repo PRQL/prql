@@ -1,3 +1,5 @@
 # GitHub Workflows
 
-See [**`DEVELOPMENT.md`**](../../DEVELOPMENT.md#tests) for docs & discussion.
+See
+[our development docs](https://prql-lang.org/book/contributing/development.html)
+for docs & discussion.

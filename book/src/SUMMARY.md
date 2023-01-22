@@ -51,12 +51,6 @@
   - [Rust](./bindings/rust.md)
   - [Elixir](./bindings/elixir.md)
 
-- [Internals](./internals/README.md)
-
-  - [Name resolving](./internals/name-resolving.md)
-  - [Functions](./internals/functional-lang.md)
-  - [Syntax highlighting](./internals/syntax-highlighting.md)
-
 - [Integrations](./integrations/README.md)
 
   - [dbt](./integrations/dbt.md)
@@ -66,7 +60,20 @@
   - [Rill](./integrations/rill.md)
 
 - [Examples](./examples/README.md)
+
   - [Variables](./examples/variables.md)
   - [List equivalence](./examples/list-equivalence.md)
   - [CTE (intermediate tables)](./examples/cte.md)
   - [Employees](./examples/employees.md)
+
+- [Contributing to PRQL](./contributing/README.md)
+
+  - [Development](./contributing/development.md)
+  - [Using Docker](./contributing/using-docker.md)
+
+- [Internals](./internals/README.md)
+
+  - [Compiler architecture](./internals/compiler-architecture.md)
+  - [Name resolving](./internals/name-resolving.md)
+  - [Functions](./internals/functional-lang.md)
+  - [Syntax highlighting](./internals/syntax-highlighting.md)

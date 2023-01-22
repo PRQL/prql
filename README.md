@@ -89,7 +89,7 @@ To stay in touch with PRQL:
 - [Contribute][contributing] — join us in building PRQL, through writing code
   [(send us your use-cases!)](https://github.com/PRQL/prql/discussions), or
   inspiring others to use it.
-- See the [development](DEVELOPMENT.md) documentation for PRQL. It's easy to get
+- See the [development][development] documentation for PRQL. It's easy to get
   started — the project can be built in a couple of commands, and we're a really
   friendly community!
 
@@ -113,19 +113,11 @@ Many thanks to those who've made our progress possible:
 
 [![Contributors](https://contrib.rocks/image?repo=PRQL/prql)](https://github.com/PRQL/prql/graphs/contributors)
 
-### Core developers
-
-We have core developers who are responsible for reviewing code, making decisions
-on the direction of the language, and project administration:
-
-- [**@aljazerzen**](https://github.com/aljazerzen) — Aljaž Mur Eržen
-- [**@max-sixty**](https://github.com/max-sixty) — Maximilian Roos
-- [**@snth**](https://github.com/snth) — Tobias Brandt
-
 We welcome others to join who have a track record of contributions.
 
 [prql book]: https://prql-lang.org/book
 [prql website]: https://prql-lang.org
-[contributing]: ./CONTRIBUTING.md
+[contributing]: https://prql-lang.org/book/contributing/index.html
+[development]: https://prql-lang.org/book/contributing/development.html
 [prql playground]: https://prql-lang.org/playground
 [dbt-prql]: https://github.com/prql/dbt-prql
