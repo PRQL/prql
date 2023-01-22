@@ -10,11 +10,14 @@ services:
       timeout: 10s
       retries: 120
     ports:
-      - 5432:5432
-  test:
+      - 5454:5432
+  integration:
     build:
-      dockerfile: test.dockerfile
+      dockerfile: integration.dockerfile
       context: .
+    environment:
+      POSTGRES_HOST: "postgres"
+      RUST_BACKTRACE: "0"
     depends_on:
       postgres:
         condition: service_healthy

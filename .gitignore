@@ -3,6 +3,8 @@
 dist
 target*
 
+lcov.info
+
 **/.vscode/settings.json
 **/.vscode/launch.json
 **/.idea
