@@ -52,8 +52,9 @@ website, we have two options:
 - Install Task; either `brew install go-task/tap/go-task` or as described on
   [Task](https://taskfile.dev/#/installation)
 - Then run the `setup-dev` task. This runs commands from our
-  [Taskfile.yml](Taskfile.yml), installing dependencies with `cargo`, `brew`,
-  `npm` & `pip`, and suggests some VSCode extensions.
+  [Taskfile.yml](https://github.com/PRQL/prql/blob/main/Taskfile.yml),
+  installing dependencies with `cargo`, `brew`, `npm` & `pip`, and suggests some
+  VSCode extensions.
 
   ```sh
   task setup-dev
@@ -90,8 +91,8 @@ website, we have two options:
   book, or some release artifacts, we'll need some additional tools. But we
   won't need those immediately, and the error messages on what's missing should
   be clear when we attempt those things. When we hit them, the
-  [Taskfile.yml](Taskfile.yml) will be a good source to copy & paste
-  instructions from.
+  [Taskfile.yml](https://github.com/PRQL/prql/blob/main/Taskfile.yml) will be a
+  good source to copy & paste instructions from.
 
 <!--
 
@@ -137,8 +138,8 @@ change!
 ### Commits
 
 - If a change is user-facing, please add a line in
-  [**`CHANGELOG.md`**](CHANGELOG.md), with `{message}, ({@contributor, #X})`
-  where `X` is the PR number.
+  [**`CHANGELOG.md`**](https://github.com/PRQL/prql/blob/main/CHANGELOG.md),
+  with `{message}, ({@contributor, #X})` where `X` is the PR number.
   - If there's a missing entry, a follow-up PR containing just the changelog
     entry is welcome.
 - We're experimenting with using the
@@ -188,29 +189,32 @@ change!
 The PRQL project has several components. Instructions for working with them are
 in the **README.md** file in their respective paths. Here's an overview:
 
-**[book](./book/README.md)**: The PRQL language book, which documents the
-language.
+**[book](https://github.com/PRQL/prql/blob/main/book/README.md)**: The PRQL
+language book, which documents the language.
 
-**[playground](./playground/README.md)**: A web GUI for the PRQL compiler. It
-shows the PRQL source beside the resulting SQL output.
+**[playground](https://github.com/PRQL/prql/blob/main/playground/README.md)**: A
+web GUI for the PRQL compiler. It shows the PRQL source beside the resulting SQL
+output.
 
-**[prql-compiler](./prql-compiler/README.md)**: Installation and usage
-instructions for building and running the `prql-compiler`.
+**[prql-compiler](https://github.com/PRQL/prql/blob/main/prql-compiler/README.md)**:
+Installation and usage instructions for building and running the
+`prql-compiler`.
 
-**[prql-java](./prql-java/README.md)**: Rust bindings to the `prql-compiler`
-rust library.
+**[prql-java](https://github.com/PRQL/prql/blob/main/prql-java/README.md)**:
+Rust bindings to the `prql-compiler` rust library.
 
-**[prql-js](./prql-js/README.md)**: Javascript bindings to the `prql-compiler`
-rust library.
+**[prql-js](https://github.com/PRQL/prql/blob/main/prql-js/README.md)**:
+Javascript bindings to the `prql-compiler` rust library.
 
-**[prql-lib](./prql-lib/README.md)**: Generates `.a` and `.so` libraries from
-the `prql-compiler` rust library for bindings to other languages
+**[prql-lib](https://github.com/PRQL/prql/blob/main/prql-lib/README.md)**:
+Generates `.a` and `.so` libraries from the `prql-compiler` rust library for
+bindings to other languages
 
-**[prql-python](./prql-python/README.md)**: Python bindings to the
-`prql-compiler` rust library.
+**[prql-python](https://github.com/PRQL/prql/blob/main/prql-python/README.md)**:
+Python bindings to the `prql-compiler` rust library.
 
-**[website](./website/README.md)**: Our website, hosted at
-<https://prql-lang.org>, built with `hugo`.
+**[website](https://github.com/PRQL/prql/blob/main/website/README.md)**: Our
+website, hosted at <https://prql-lang.org>, built with `hugo`.
 
 ## How we test
 
@@ -234,10 +238,11 @@ broader tests which ensure that we don't miss anything as PRQL develops[^1].
 
 Our tests, from the bottom of the pyramid to the top:
 
-- **[Static checks](.pre-commit-config.yaml)** — we run a few static checks to
-  ensure the code stays healthy and consistent. They're defined in
-  [**`.pre-commit-config.yaml`**](.pre-commit-config.yaml), using
-  [pre-commit](https://pre-commit.com). They can be run locally with
+- **[Static checks](https://github.com/PRQL/prql/blob/main/.pre-commit-config.yaml)**
+  — we run a few static checks to ensure the code stays healthy and consistent.
+  They're defined in
+  [**`.pre-commit-config.yaml`**](https://github.com/PRQL/prql/blob/main/.pre-commit-config.yaml),
+  using [pre-commit](https://pre-commit.com). They can be run locally with
 
   ```sh
   pre-commit run -a
@@ -297,18 +302,21 @@ inconsistent in watchexec. Let's revert back if it gets solved.
     — note that only the initial line of each test is written by us; the
     remainder is filled in by insta.
 
-- **[Integration tests](book/src/integrations/README.md)** — these run tests
-  against real databases, to ensure we're producing correct SQL.
+- **[Integration tests](https://github.com/PRQL/prql/blob/main/book/src/integrations/README.md)**
+  — these run tests against real databases, to ensure we're producing correct
+  SQL.
 
-- **[Examples](book/tests/snapshot.rs)** — we compile all examples in the PRQL
-  Book, to test that they produce the SQL we expect, and that changes to our
-  code don't cause any unexpected regressions.
+- **[Examples](https://github.com/PRQL/prql/blob/main/book/tests/snapshot.rs)**
+  — we compile all examples in the PRQL Book, to test that they produce the SQL
+  we expect, and that changes to our code don't cause any unexpected
+  regressions.
 
-- **[GitHub Actions on every commit](.github/workflows/pull-request.yaml)** — we
-  run tests on `prql-compiler` for standard & wasm targets, and the examples in
-  the book on every pull request every time a commit is pushed. These are
-  designed to run in under two minutes, and we should be reassessing their scope
-  if they grow beyond that. Once these pass, a pull request can be merged.
+- **[GitHub Actions on every commit](https://github.com/PRQL/prql/blob/main/.github/workflows/pull-request.yaml)**
+  — we run tests on `prql-compiler` for standard & wasm targets, and the
+  examples in the book on every pull request every time a commit is pushed.
+  These are designed to run in under two minutes, and we should be reassessing
+  their scope if they grow beyond that. Once these pass, a pull request can be
+  merged.
 
   All tests up to this point can be run with:
 
@@ -316,14 +324,14 @@ inconsistent in watchexec. Let's revert back if it gets solved.
   task test-all
   ```
 
-- **[GitHub Actions on specific changes](.github/workflows/)** — we run
-  additional tests on pull requests when we identify changes to some paths, such
-  as bindings to other languages.
+- **[GitHub Actions on specific changes](https://github.com/PRQL/prql/blob/main/.github/workflows/)**
+  — we run additional tests on pull requests when we identify changes to some
+  paths, such as bindings to other languages.
 
-- **[GitHub Actions on merge](.github/workflows/test-all.yaml)** — we run many
-  more tests on every merge to main. This includes testing across OSs, all our
-  language bindings, our `task` tasks, a measure of test code coverage, and some
-  performance benchmarks.[^6]
+- **[GitHub Actions on merge](https://github.com/PRQL/prql/blob/main/.github/workflows/test-all.yaml)**
+  — we run many more tests on every merge to main. This includes testing across
+  OSs, all our language bindings, our `task` tasks, a measure of test code
+  coverage, and some performance benchmarks.[^6]
 
   We can run these tests before a merge by adding a label `pr-test-all` to the
   PR.
@@ -333,11 +341,11 @@ inconsistent in watchexec. Let's revert back if it gets solved.
 
 [^6]:
     We reference "actions", such as
-    [`build-prql-python`](.github/actions/build-prql-python/action.yaml) from
-    workflows. We need to use these actions since workflow calls can only have a
-    depth of 2 (i.e. workflow can call workflows, but those workflows can't call
-    other workflows). We occasionally copy & paste small amounts of yaml where
-    we don't want to abstract something tiny into another action.
+    [`build-prql-python`](https://github.com/PRQL/prql/blob/main/.github/actions/build-prql-python/action.yaml)
+    from workflows. We need to use these actions since workflow calls can only
+    have a depth of 2 (i.e. workflow can call workflows, but those workflows
+    can't call other workflows). We occasionally copy & paste small amounts of
+    yaml where we don't want to abstract something tiny into another action.
 
     An alternative approach would be to have all jobs in a single workflow which
     is called on every change, and then each job contains all its filtering
@@ -352,9 +360,9 @@ inconsistent in watchexec. Let's revert back if it gets solved.
     arbitrary DAG of workflows, with filters at each level, and a UI that less
     prominently displays workflows which aren't designed to run.
 
-- **[GitHub Actions nightly](.github/workflows/nightly.yaml)** — we run tests
-  that take a long time or are unrelated to code changes, such as security
-  checks, or expensive timing benchmarks, every night.
+- **[GitHub Actions nightly](https://github.com/PRQL/prql/blob/main/.github/workflows/nightly.yaml)**
+  — we run tests that take a long time or are unrelated to code changes, such as
+  security checks, or expensive timing benchmarks, every night.
 
   We can run these tests before a merge by adding a label `pr-cron` to the PR.
 
@@ -369,9 +377,10 @@ raise an issue.
 
 Currently we release in a semi-automated way:
 
-1. PR & merge an updated [Changelog](CHANGELOG.md). GitHub will produce a draft
-   version at <https://github.com/PRQL/prql/releases/new>, including "New
-   Contributors".
+1. PR & merge an updated
+   [Changelog](https://github.com/PRQL/prql/blob/main/CHANGELOG.md). GitHub will
+   produce a draft version at <https://github.com/PRQL/prql/releases/new>,
+   including "New Contributors".
 2. Run `cargo release version patch -x && cargo release replace -x` to bump the
    versions, then PR the resulting commit.
 3. After merging, go to
@@ -380,7 +389,7 @@ Currently we release in a semi-automated way:
    to be created, and hit "Publish".
 4. From there, both the tag and release is created and all packages are
    published automatically based on our
-   [release workflow](.github/workflows/release.yaml).
+   [release workflow](https://github.com/PRQL/prql/blob/main/.github/workflows/release.yaml).
 5. Add in the sections for a new Changelog:
 
    ```md
