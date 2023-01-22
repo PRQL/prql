@@ -4,7 +4,7 @@ A fast-feedback compiler from PRQL to SQL, hosted at
 <https://prql-lang.org/playground/>
 
 To run locally,
-[set up a development environment](https://prql-lang.org/book/contributing/development.html#development-environment),
+[set up a development environment](https://prql-lang.org/book/contributing/development.html),
 and then run[^1]:
 
 ```sh
