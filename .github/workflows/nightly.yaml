@@ -70,7 +70,6 @@ jobs:
       - uses: richb-hanover/cargo@v1.1.0
         with:
           command: udeps
-          toolchain: nightly
 
   test-docker:
     # We only test the build in `test-all`; this also runs tests.
