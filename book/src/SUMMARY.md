@@ -44,12 +44,12 @@
 
 - [Bindings](./bindings/README.md)
 
+  - [Elixir](./bindings/elixir.md)
   - [Java](./bindings/java.md)
   - [JavaScript](./bindings/javascript.md)
   - [Python](./bindings/python.md)
   - [R](./bindings/r.md)
   - [Rust](./bindings/rust.md)
-  - [Elixir](./bindings/elixir.md)
 
 - [Integrations](./integrations/README.md)
 
