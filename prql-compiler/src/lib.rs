@@ -92,7 +92,7 @@ pub use utils::IntoOnly;
 use once_cell::sync::Lazy;
 use semver::Version;
 
-static PRQL_VERSION: Lazy<Version> =
+pub static PRQL_VERSION: Lazy<Version> =
     Lazy::new(|| Version::parse(env!("CARGO_PKG_VERSION")).expect("Invalid PRQL version number"));
 
 /// Compile a PRQL string into a SQL string.
