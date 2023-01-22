@@ -475,17 +475,6 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "2.34.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a0610544180c38b88101fecf2dd634b174a62eef6946f84dfc6a7127512b381c"
-dependencies = [
- "bitflags",
- "textwrap 0.11.0",
- "unicode-width",
-]
-
-[[package]]
-name = "clap"
 version = "3.2.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "71655c45cb9845d3270c9d6df84ebe72b4dad3c2ba3f7023ad47c144e4e473a5"
@@ -493,7 +482,7 @@ dependencies = [
  "bitflags",
  "clap_lex 0.2.4",
  "indexmap",
- "textwrap 0.16.0",
+ "textwrap",
 ]
 
 [[package]]
@@ -1590,19 +1579,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "mdbook-preprocessor-boilerplate"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9118690be768c307c112211f45812c7fc5fb132352e35cc03e5b6bc0848a76d6"
-dependencies = [
- "anyhow",
- "clap 2.34.0",
- "mdbook",
- "semver",
- "serde_json",
-]
-
-[[package]]
 name = "mdbook-prql"
 version = "0.4.1"
 dependencies = [
@@ -1613,7 +1589,6 @@ dependencies = [
  "itertools",
  "log",
  "mdbook",
- "mdbook-preprocessor-boilerplate",
  "prql-compiler",
  "pulldown-cmark",
  "pulldown-cmark-to-cmark",
@@ -2788,15 +2763,6 @@ checksum = "cb20089a8ba2b69debd491f8d2d023761cbf196e999218c591fa1e7e15a21907"
 dependencies = [
  "rustix",
  "windows-sys",
-]
-
-[[package]]
-name = "textwrap"
-version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d326610f408c7a4eb6f51c37c330e496b08506c9457c9d34287ecc38809fb060"
-dependencies = [
- "unicode-width",
 ]
 
 [[package]]
