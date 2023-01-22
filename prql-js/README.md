@@ -152,9 +152,14 @@ npm test
 ## Notes
 
 - This uses [`wasm-pack`](https://rustwasm.github.io/docs/wasm-pack/) to
-  generate bindings.
+  generate bindings[^1].
 - We've added an `npm` layer on top of the usual approach of just using
   `wasm-pack`, so we can distribute a single package with targets of `node`,
   `bundler` and `no-modules` — somewhat inverting the approach recommended by
   `wasm-pack`. The build instruction goes in a `build` script, rather than a
-  `pack` script. We're open to alternatives!
+  `pack` script.
+
+[^1]:
+    Though we would be very open to other approaches, given wasm-pack does not
+    seem maintained, and we're eliding many of its features to build for three
+    targets.
