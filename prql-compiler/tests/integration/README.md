@@ -44,12 +44,15 @@ run by running `docker-compose up`. This will:
 - run the two images, executing the tests.
 
 Steps to run the tests:
+
 1. Compile the integration test:
+
    ```
    $ cargo build --test integration
    ```
 
 2. Copy the test file to tests/integration dir:
+
    ```
    $ cp target/debug/deps/integration-xxxxx prql-compiler/tests/integration
    ```
