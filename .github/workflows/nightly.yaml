@@ -57,6 +57,18 @@ jobs:
           toolchain-path: "./rust-toolchain.toml"
           pr-title: "build: Update rust toolchain version"
 
+  check-unused-dependencies:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v3
+      - uses: baptiste0928/cargo-install@next
+        with:
+          crate: cargo-udeps
+      - uses: richb-hanover/cargo@v1.1.0
+        with:
+          command: +nightly udeps
+
   test-docker:
     # We only test the build in `test-all`; this also runs tests.
     runs-on: ubuntu-latest
