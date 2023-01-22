@@ -35,16 +35,12 @@ strum_macros = "0.24.0"
 
 [dev-dependencies]
 cfg-if = "1.0"
-chrono = "0.4"
-globset = "0.4.8"
 insta = {version = "1.26", features = ["colors", "glob", "yaml"]}
-pulldown-cmark = "0.9.1"
-pulldown-cmark-to-cmark = "10.0.1"
-similar = "2.2.0"
-walkdir = "2.3.2"
 
 # For integration tests
 [target.'cfg(not(target_family="wasm"))'.dev-dependencies]
+chrono = "0.4"
+pretty_assertions = "1.3.0"
 criterion = "0.4.0"
 postgres = "0.19.3"
 rusqlite = {version = "0.28.0", features = ["bundled", "csvtab"]}

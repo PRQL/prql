@@ -9,13 +9,6 @@ pub use toposort::toposort;
 
 use anyhow::Result;
 
-#[cfg(test)]
-#[allow(dead_code)]
-pub fn diff(a: &str, b: &str) -> String {
-    use similar::TextDiff;
-    TextDiff::from_lines(a, b).unified_diff().to_string()
-}
-
 pub trait OrMap<T> {
     /// Merges two options into one using `f`.
     /// If one of the options is None, results defaults to the other one.
