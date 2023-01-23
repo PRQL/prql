@@ -11,7 +11,7 @@ R bindings for [`prql-compiler`](https://github.com/PRQL/prql/). Check out
 ## Installation
 
 ```r
-install.packages("prqlr", repos = "https://eitsupi.r-universe.dev")
+install.packages("prqlr")
 ```
 
 ## Usage
