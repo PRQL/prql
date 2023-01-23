@@ -79,14 +79,17 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
             let range = match expr.kind {
                 ExprKind::Literal(Literal::Integer(n)) => Range::from_ints(None, Some(n)),
                 ExprKind::Range(range) => range,
-                _ => bail!(Error::new(Reason::Expected {
-                    who: Some("`take`".to_string()),
-                    expected: "int or range".to_string(),
-                    found: expr.to_string(),
-                })
-                // Possibly this should refer to the item after the `take` where
-                // one exists?
-                .with_span(expr.span)),
+                _ => {
+                    return Err(Error::new(Reason::Expected {
+                        who: Some("`take`".to_string()),
+                        expected: "int or range".to_string(),
+                        found: expr.to_string(),
+                    })
+                    // Possibly this should refer to the item after the `take` where
+                    // one exists?
+                    .with_span(expr.span)
+                    .into());
+                }
             };
 
             (TransformKind::Take { range }, tbl)
@@ -224,12 +227,13 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
                 }
                 _ => {}
             }
-            bail!(Error::new(Reason::Expected {
+            return Err(Error::new(Reason::Expected {
                 who: Some("std.in".to_string()),
                 expected: "a pattern".to_string(),
-                found: pattern.to_string()
+                found: pattern.to_string(),
             })
-            .with_span(pattern.span))
+            .with_span(pattern.span)
+            .into());
         }
 
         "std.all" => {
@@ -323,12 +327,15 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
                     "csv" => from_text::parse_csv(&text)?,
                     "json" => from_text::parse_json(&text)?,
 
-                    _ => bail!(Error::new(Reason::Expected {
-                        who: Some("`format`".to_string()),
-                        expected: "csv or json".to_string(),
-                        found: format
-                    })
-                    .with_span(span)),
+                    _ => {
+                        return Err(Error::new(Reason::Expected {
+                            who: Some("`format`".to_string()),
+                            expected: "csv or json".to_string(),
+                            found: format,
+                        })
+                        .with_span(span)
+                        .into())
+                    }
                 }
             };
 
@@ -1029,6 +1036,8 @@ mod tests {
                     - - Wildcard
                       - 1
                   name: c_invoice
+              - Select:
+                  - 0
               - Take:
                   range:
                     start: ~

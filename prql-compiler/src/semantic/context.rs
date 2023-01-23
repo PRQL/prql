@@ -242,40 +242,51 @@ impl Context {
     }
 
     fn resolve_ident_wildcard(&mut self, ident: &Ident) -> Result<Ident, String> {
+        // Try matching ident prefix with a module
         let (mod_ident, mod_decl) = {
             if ident.path.len() > 1 {
+                // Ident has specified full path
                 let mod_ident = ident.clone().pop().unwrap();
                 let mod_decl = (self.root_mod.get_mut(&mod_ident))
                     .ok_or_else(|| format!("Unknown relation {ident}"))?;
 
                 (mod_ident, mod_decl)
             } else {
+                // Ident could be just part of NS_FRAME
                 let mod_ident = (Ident::from_name(NS_FRAME) + ident.clone()).pop().unwrap();
 
                 if let Some(mod_decl) = self.root_mod.get_mut(&mod_ident) {
                     (mod_ident, mod_decl)
                 } else {
+                    // ... or part of NS_FRAME_RIGHT
                     let mod_ident = (Ident::from_name(NS_FRAME_RIGHT) + ident.clone())
                         .pop()
                         .unwrap();
 
-                    let mod_decl = (self.root_mod.get_mut(&mod_ident))
-                        .ok_or_else(|| format!("Unknown relation {ident}"))?;
+                    let mod_decl = self.root_mod.get_mut(&mod_ident);
+
+                    // ... well - I guess not. Throw.
+                    let mod_decl = mod_decl.ok_or_else(|| format!("Unknown relation {ident}"))?;
 
                     (mod_ident, mod_decl)
                 }
             }
         };
 
+        // Unwrap module
         let module = (mod_decl.kind.as_module_mut())
             .ok_or_else(|| format!("Expected a module {mod_ident}"))?;
 
         let fq_cols = if module.names.contains_key(NS_INFER) {
+            // Columns can be inferred, which means that we don't know all column names at
+            // compile time: use ExprKind::All
             vec![Expr::from(ExprKind::All {
                 within: mod_ident.clone(),
                 except: Vec::new(),
             })]
         } else {
+            // Columns cannot be inferred, what's in the namespace is all there
+            // could be in this namespace.
             (module.names.iter())
                 .filter(|(_, decl)| matches!(&decl.kind, DeclKind::Column(_)))
                 .sorted_by_key(|(_, decl)| decl.order)
@@ -286,7 +297,11 @@ impl Context {
 
         // This is just a workaround to return an Expr from this function.
         // We wrap the expr into DeclKind::Expr and save it into context.
-        let cols_expr = DeclKind::Expr(Box::new(Expr::from(ExprKind::List(fq_cols))));
+        let cols_expr = Expr {
+            flatten: true,
+            ..Expr::from(ExprKind::List(fq_cols))
+        };
+        let cols_expr = DeclKind::Expr(Box::new(cols_expr));
         let save_as = "_wildcard_match";
         module.names.insert(save_as.to_string(), cols_expr.into());
 
