@@ -1,55 +1,50 @@
 # Append
 
-```admonish note
-`append`, `union`, `difference` and `intersection` are currently experimental
-and may have bugs; please report any as GitHub Issues.
-```
+Concatenates two tables together.
 
-## Append
-
-`append` concatenates two tables together, like `UNION ALL` in SQL. The number
-of rows is always the sum of the number of rows from the two input tables.
+Equivalent to `UNION ALL` in SQL. The number of rows is always the sum of the
+number of rows from the two input tables. To replicate `UNION DISTINCT`, see
+[set operations](#set-operations).
 
 ```prql
 from employees_1
 append employees_2
 ```
 
-## Union
+## Remove
 
-`union` takes the union of rows, where duplicates are discarded (using the
-definition of `union` from set logic), like `UNION DISTINCT` in SQL. If all rows
-are different between the tables, this is synonymous with `append`; if there are
-duplicate rows it will produce fewer rows.
+> _experimental_
+
+Removes rows that appear in another relation, like `EXCEPT ALL`. Duplicate rows
+are removed one-for-one.
 
 ```prql
 from employees_1
-union employees_2
+remove employees_2
 ```
 
 ## Intersection
 
-```prql
-from employees_1
-select [first_name, last_name]
-intersection (
-    from employees_2
-    select [first_name, last_name]
-)
-```
-
-## Difference
+> _experimental_
 
 ```prql
 from employees_1
-select [first_name, last_name]
-difference (
-    from employees_2
-    select [first_name, last_name]
-)
+intersect employees_2
 ```
 
-```admonish note
-Currently, unknown columns (wildcards) may not work with set operators or may
-even produce invalid SQL.
+## Set operations
+
+> _experimental_
+
+To imitate set operations i.e. (`UNION`, `EXCEPT` and `INTERSECT`), you can use
+the following functions:
+
+```prql_no_test
+func distinct rel -> (from t = _param.rel | group [t.*] (take 1))
+func union `default_db.bottom` top -> (top | append bottom | distinct)
+func except `default_db.bottom` top -> (top | distinct | remove bottom)
+func intersect_distinct `default_db.bottom` top -> (top | intersect bottom | distinct)
 ```
+
+Don't mind the `default_db.` and `_param.`, these are compiler implementation
+detail for now.

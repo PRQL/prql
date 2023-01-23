@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use anyhow::{bail, Result};
+use anyhow::Result;
 use itertools::Itertools;
 use sqlparser::ast::{
     self as sql_ast, ExceptSelectItem, ExcludeSelectItem, ObjectName, SelectItem,
@@ -39,10 +39,11 @@ pub(super) fn try_into_exprs(
             let ident = translate_ident(table_name, Some("*".to_string()), ctx);
             if let Some(excluded) = excluded.get(&cid) {
                 if !excluded.is_empty() {
-                    bail!(
-                        Error::new_simple("Excluding columns not supported as this position")
-                            .with_span(span)
-                    );
+                    return Err(Error::new_simple(
+                        "Excluding columns not supported as this position",
+                    )
+                    .with_span(span)
+                    .into());
                 }
             }
 

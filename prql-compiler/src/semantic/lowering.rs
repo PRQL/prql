@@ -2,7 +2,7 @@ use std::collections::hash_map::RandomState;
 use std::collections::{HashMap, HashSet};
 use std::iter::zip;
 
-use anyhow::{bail, Result};
+use anyhow::Result;
 use enum_as_inner::EnumAsInner;
 use itertools::Itertools;
 
@@ -313,7 +313,8 @@ impl Lowerer {
                 self.declare_as_columns(assigns, false)?;
             }
             pl::TransformKind::Select { assigns, .. } => {
-                self.declare_as_columns(assigns, false)?;
+                let cids = self.declare_as_columns(assigns, false)?;
+                self.pipeline.push(Transform::Select(cids));
             }
             pl::TransformKind::Filter { filter, .. } => {
                 let filter = self.lower_expr(*filter)?;
@@ -558,8 +559,40 @@ impl Lowerer {
                     rq::ExprKind::SString(vec![InterpolateItem::String(ident.name)])
                 }
             }
-            pl::ExprKind::All { .. } => {
-                bail!(Error::new_simple("Wildcards cannot be used here").with_span(ast.span))
+            pl::ExprKind::All { except, .. } => {
+                let mut targets = Vec::new();
+
+                for target_id in &ast.target_ids {
+                    match self.node_mapping.get(target_id) {
+                        Some(LoweredTarget::Compute(cid)) => targets.push(*cid),
+                        Some(LoweredTarget::Input(input_columns)) => {
+                            targets.extend(input_columns.values().map(|(c, _)| c))
+                        }
+                        _ => {}
+                    }
+                }
+
+                // this is terrible code
+                let except: HashSet<_> = except
+                    .iter()
+                    .map(|e| {
+                        let ident = e.kind.as_ident().unwrap();
+                        self.lookup_cid(e.target_id.unwrap(), Some(&ident.name))
+                            .unwrap()
+                    })
+                    .collect();
+
+                targets.retain(|t| !except.contains(t));
+
+                if targets.len() == 1 {
+                    rq::ExprKind::ColumnRef(targets[0])
+                } else {
+                    return Err(
+                        Error::new_simple("This wildcard usage is not yet supported.")
+                            .with_span(ast.span)
+                            .into(),
+                    );
+                }
             }
             pl::ExprKind::Literal(literal) => rq::ExprKind::Literal(literal),
             pl::ExprKind::Binary { left, op, right } => rq::ExprKind::Binary {

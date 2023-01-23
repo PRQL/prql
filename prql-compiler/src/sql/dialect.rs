@@ -13,6 +13,8 @@ pub enum Dialect {
     BigQuery,
     #[strum(serialize = "clickhouse")]
     ClickHouse,
+    #[strum(serialize = "duckdb")]
+    DuckDb,
     #[strum(serialize = "generic")]
     Generic,
     #[strum(serialize = "hive")]
@@ -27,8 +29,6 @@ pub enum Dialect {
     SQLite,
     #[strum(serialize = "snowflake")]
     Snowflake,
-    #[strum(serialize = "duckdb")]
-    DuckDb,
 }
 
 // Is this the best approach for the Enum / Struct — basically that we have one
@@ -36,15 +36,18 @@ pub enum Dialect {
 // respective Enum?
 
 impl Dialect {
-    pub fn handler(&self) -> Box<dyn DialectHandler> {
+    pub(super) fn handler(&self) -> Box<dyn DialectHandler> {
         match self {
             Dialect::MsSql => Box::new(MsSqlDialect),
             Dialect::MySql => Box::new(MySqlDialect),
             Dialect::BigQuery => Box::new(BigQueryDialect),
+            Dialect::SQLite => Box::new(SQLiteDialect),
             Dialect::ClickHouse => Box::new(ClickHouseDialect),
             Dialect::Snowflake => Box::new(SnowflakeDialect),
             Dialect::DuckDb => Box::new(DuckDbDialect),
-            _ => Box::new(GenericDialect),
+            Dialect::Ansi | Dialect::Generic | Dialect::Hive | Dialect::PostgreSql => {
+                Box::new(GenericDialect)
+            }
         }
     }
 }
@@ -56,6 +59,7 @@ impl Default for Dialect {
 }
 
 pub struct GenericDialect;
+pub struct SQLiteDialect;
 pub struct MySqlDialect;
 pub struct MsSqlDialect;
 pub struct BigQueryDialect;
@@ -64,11 +68,12 @@ pub struct ClickHouseDialect;
 pub struct SnowflakeDialect;
 pub struct DuckDbDialect;
 
-pub enum ColumnExclude {
+pub(super) enum ColumnExclude {
     Exclude,
     Except,
 }
-pub trait DialectHandler {
+
+pub(super) trait DialectHandler {
     fn use_top(&self) -> bool {
         false
     }
@@ -85,12 +90,34 @@ pub trait DialectHandler {
         None
     }
 
+    /// Support for DISTINCT in set ops (UNION DISTINCT, INTERSECT DISTINCT)
+    /// When not supported we fallback to implicit DISTINCT.
     fn set_ops_distinct(&self) -> bool {
         true
+    }
+
+    /// Support or EXCEPT ALL.
+    /// When not supported, fallback to anti join.
+    fn except_all(&self) -> bool {
+        true
+    }
+
+    fn intersect_all(&self) -> bool {
+        self.except_all()
     }
 }
 
 impl DialectHandler for GenericDialect {}
+
+impl DialectHandler for SQLiteDialect {
+    fn set_ops_distinct(&self) -> bool {
+        false
+    }
+
+    fn except_all(&self) -> bool {
+        false
+    }
+}
 
 impl DialectHandler for MsSqlDialect {
     fn use_top(&self) -> bool {
@@ -151,8 +178,63 @@ impl DialectHandler for DuckDbDialect {
         Some(ColumnExclude::Exclude)
     }
 
-    fn set_ops_distinct(&self) -> bool {
+    fn except_all(&self) -> bool {
         // https://duckdb.org/docs/sql/query_syntax/setops.html
         false
     }
 }
+
+/*
+## Set operations support matrix
+
+Set-ops have quite different support in major SQL dialects. This is an attempt to document it.
+
+| SQL construct                 | SQLite  | BQ     | Postgres | MySQL 8+ | DuckDB
+|-------------------------------|---------|--------|----------|----------|--------
+| UNION (implicit DISTINCT)     | x       |        | x        | x        | x
+| UNION DISTINCT                |         | x      | x        | x        | x
+| UNION ALL                     | x       | x      | x        | x        | x
+| EXCEPT (implicit DISTINCT)    | x       |        | x        | x        | x
+| EXCEPT DISTINCT               |         | x      | x        | x        | x
+| EXCEPT ALL                    |         |        | x        | x        |
+
+
+### UNION DISTINCT
+
+For UNION, these are equivalent:
+- a UNION DISTINCT b,
+- DISTINCT (a UNION ALL b)
+- DISTINCT (a UNION ALL (DISTINCT b))
+- DISTINCT ((DISTINCT a) UNION ALL b)
+- DISTINCT ((DISTINCT a) UNION ALL (DISTINCT b))
+
+
+### EXCEPT DISTINCT
+
+For EXCEPT it makes a difference when DISTINCT is applied. Below is a test query to validate
+the behavior. When applied before EXCEPT, the output should be [3] and when applied after EXCEPT,
+the output should be [2, 3].
+
+```
+SELECT * FROM (SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 2 UNION ALL SELECT 3) t
+EXCEPT
+SELECT * FROM (SELECT 1 UNION ALL SELECT 2) t;
+```
+
+All dialects seem to be applying *before*, but none seem to document that.
+
+
+### INTERSECT DISTINCT
+
+For INTERSECT, it does not matter when DISTINCT is applied. BigQuery documentation does mention
+it is applied *after*, which makes me think there is a difference I'm not seeing.
+
+My reasoning is that:
+- Distinct is equivalent to applying `group * (take 1)`.
+- In effect, this is a restriction that "each group can have at most one value".
+- If we apply DISTINCT to any input of INTERSECT ALL, this restriction on the input is retained
+  through the operation. That's because no group will not contain more values than it started with,
+  and no group that was present in both inputs, will be missing from the output.
+- Thus, applying distinct after INTERSECT ALL is equivalent to applying it to any of the inputs.
+
+*/

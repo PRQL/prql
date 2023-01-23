@@ -1,6 +1,2 @@
 from employees_1
-select [first_name, last_name]
-intersection (
-    from employees_2
-    select [first_name, last_name]
-)
+intersect employees_2
