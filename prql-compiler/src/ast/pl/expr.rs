@@ -40,6 +40,11 @@ pub struct Expr {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub alias: Option<String>,
+
+    /// When true on [ExprKind::List], this list will be flattened when placed
+    /// in some other list.
+    #[serde(skip)]
+    pub flatten: bool,
 }
 
 #[derive(Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize, strum::AsRefStr)]
@@ -379,6 +384,7 @@ impl From<ExprKind> for Expr {
             ty: None,
             needs_window: false,
             alias: None,
+            flatten: false,
         }
     }
 }
