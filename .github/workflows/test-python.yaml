@@ -19,8 +19,11 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
+      - uses: arduino/setup-task@v1
+        with:
+          repo-token: "${{ secrets.GITHUB_TOKEN }}"
       - name: Build wheel
-        uses: ./.github/actions/build-prql-python
+        run: task build-python-wheel
       - uses: actions/setup-python@v4
         with:
           python-version: "3.7"
