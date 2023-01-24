@@ -17,6 +17,8 @@ runs:
     - name: 💰 Cache
       id: cache
       uses: Swatinem/rust-cache@v2
+      with:
+        save-if: ${{ github.ref == 'refs/heads/main' }}
       # 'true' seems to require quotes (and using `inputs.use_cache` doesn't
       # work); I'm really not sure why. There are some issues on the interwebs
       # around this, but I couldn't find one that explained it.
