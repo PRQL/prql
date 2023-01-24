@@ -165,12 +165,12 @@ tasks:
   build-python-wheel:
     dir: prql-python
     cmds:
-      - cmd: maturin build --release
+      - cmd: maturin build --release ../dist
         platforms: [windows, linux]
         # I _think_ both of these are needed (at least the x86 seems to be needed on an ARM machine)
       - cmd: rustup target add x86_64-apple-darwin aarch64-apple-darwin
         platforms: [darwin]
-      - cmd: maturin build --release --universal2
+      - cmd: maturin build --release --universal2 -o ../dist
         platforms: [darwin]
 
   test-all:
