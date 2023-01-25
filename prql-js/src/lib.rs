@@ -78,6 +78,14 @@ pub fn default_compile_options() -> SQLCompileOptions {
     }
 }
 
+#[wasm_bindgen]
+impl SQLCompileOptions {
+    #[wasm_bindgen(constructor)]
+    pub fn new() -> Self {
+        default_compile_options()
+    }
+}
+
 impl From<SQLCompileOptions> for prql_compiler::sql::Options {
     fn from(o: SQLCompileOptions) -> Self {
         prql_compiler::sql::Options {
