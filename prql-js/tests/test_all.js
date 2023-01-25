@@ -66,6 +66,6 @@ describe("prql-js", () => {
         opts.dialect = prql.Dialect.Sqlite;
         assert.equal(opts.dialect, prql.Dialect.Sqlite);
       });
-    })
+    });
   });
 });
