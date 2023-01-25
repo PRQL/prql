@@ -69,20 +69,26 @@ pub struct SQLCompileOptions {
     pub signature_comment: bool,
 }
 
+impl Default for SQLCompileOptions {
+    fn default() -> Self {
+        Self {
+            format: true,
+            dialect: None,
+            signature_comment: true,
+        }
+    }
+}
+
 #[wasm_bindgen]
 pub fn default_compile_options() -> SQLCompileOptions {
-    SQLCompileOptions {
-        format: true,
-        dialect: None,
-        signature_comment: true,
-    }
+    SQLCompileOptions::default()
 }
 
 #[wasm_bindgen]
 impl SQLCompileOptions {
     #[wasm_bindgen(constructor)]
     pub fn new() -> Self {
-        default_compile_options()
+        Self::default()
     }
 }
 
