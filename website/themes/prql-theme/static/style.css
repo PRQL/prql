@@ -735,10 +735,10 @@ details.faq[open] summary h2:before {
 # "Full screen" iframe views for book, playground etc
 --------------------------------------------------------------*/
 .big-iframe {
-  padding-top: 80px; /* This is for the header */
+  flex-grow: 1;
 }
 .big-iframe iframe {
-  height: calc(100vh - 80px); /* This is for the header */
+  height: 100%;
   width: 100vw;
   display: block;
   border: none;
