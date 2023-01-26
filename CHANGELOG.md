@@ -16,15 +16,13 @@
 
 **New Contributors**:
 
-## 0.4.2 — [unreleased]
+## 0.4.2 — 2022-01-25
 
 **Features**:
 
 - New `from_text format-arg string-arg` function that supports JSON and CSV
   formats. _format-arg_ can be `format:csv` or `format:json`. _string-arg_ can
-  be a string in any format. See discussion in
-  https://github.com/PRQL/prql/pull/1514 (@aljazerzen, @snth) _(Implemented in
-  Playground)_
+  be a string in any format. (@aljazerzen & @snth, #1514)
 
   ```prql
   from_text format:csv """
@@ -47,6 +45,16 @@
   ```
 
   For now, the argument is limited to string constants.
+
+**Fixes**
+
+- Export constructor for SQLCompileOptions (@bcho, #1621)
+- Remove backticks in count_distinct (@aljazerzen, #1611)
+
+**New Contributors**
+
+- @1Kinoti, with #1596
+- @veenaamb, with #1614
 
 ## 0.4.1 — 2022-01-18
 
