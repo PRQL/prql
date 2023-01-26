@@ -232,7 +232,9 @@ pub(super) fn union(pipeline: Vec<SqlTransform>) -> Vec<SqlTransform> {
     let mut res = Vec::with_capacity(pipeline.len());
     let mut pipeline = pipeline.into_iter().peekable();
     while let Some(t) = pipeline.next() {
-        let Super(Append(bottom)) = t else {
+        let bottom = if let Super(Append(bottom)) = t {
+            bottom
+        } else {
             res.push(t);
             continue;
         };
@@ -264,8 +266,21 @@ pub(super) fn except(pipeline: Vec<SqlTransform>, ctx: &Context) -> Result<Vec<S
         if res.len() < 2 {
             continue;
         }
-        let Super(Join { side: JoinSide::Left, filter: join_cond, with }) = &res[res.len() - 2] else { continue };
-        let Super(Filter(filter)) = &res[res.len() - 1] else { continue };
+        let (with, join_cond) = if let Super(Join {
+            side: JoinSide::Left,
+            filter: join_cond,
+            with,
+        }) = &res[res.len() - 2]
+        {
+            (with, join_cond)
+        } else {
+            continue;
+        };
+        let filter = if let Super(Filter(filter)) = &res[res.len() - 1] {
+            filter
+        } else {
+            continue;
+        };
 
         let top = AnchorContext::determine_select_columns(&res[0..res.len() - 2]);
         let bottom = with.columns.iter().map(|(_, c)| *c).collect_vec();
@@ -346,7 +361,16 @@ pub(super) fn intersect(pipeline: Vec<SqlTransform>, ctx: &Context) -> Result<Ve
         if res.is_empty() {
             continue;
         }
-        let Super(Join { side: JoinSide::Inner, filter: join_cond, with }) = &res[res.len() - 1] else { continue };
+        let (with, join_cond) = if let Super(Join {
+            side: JoinSide::Inner,
+            filter: join_cond,
+            with,
+        }) = &res[res.len() - 1]
+        {
+            (with, join_cond)
+        } else {
+            continue;
+        };
 
         let top = AnchorContext::determine_select_columns(&res[0..res.len() - 1]);
         let bottom = with.columns.iter().map(|(_, c)| *c).collect_vec();
