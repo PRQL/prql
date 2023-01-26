@@ -53,7 +53,3 @@ duckdb = {version = "0.6.0", features = ["bundled", "chrono"]}
 [[bench]]
 harness = false
 name = "bench"
-
-[package.metadata.release]
-tag-name = "{{version}}"
-tag-prefix = ""
