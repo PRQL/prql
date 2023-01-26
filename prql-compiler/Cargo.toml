@@ -1,12 +1,10 @@
 [package]
 description = "PRQL is a modern language for transforming data — a simple, powerful, pipelined SQL replacement."
+edition = "2021"
+license = "Apache-2.0"
 name = "prql-compiler"
-
-edition.workspace = true
-license.workspace = true
-repository.workspace = true
-rust-version.workspace = true
-version.workspace = true
+repository = "https://github.com/PRQL/prql"
+version = "0.4.2"
 
 # Manually updated to match the version in the root `Cargo.toml`, until
 # https://github.com/foresterre/cargo-msrv/issues/590 is resolved.
