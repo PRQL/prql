@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use crate::ast::pl::{Expr, Ident};
 use crate::ast::rq::RelationColumn;
 
-use super::context::{Decl, DeclKind, TableDecl};
+use super::context::{Decl, DeclKind, TableDecl, TableExpr};
 use super::{Frame, FrameColumn};
 
 pub const NS_STD: &str = "std";
@@ -51,7 +51,7 @@ impl Module {
                             NS_INFER.to_string(),
                             Decl::from(DeclKind::Infer(Box::new(DeclKind::TableDecl(TableDecl {
                                 columns: vec![RelationColumn::Wildcard],
-                                expr: None,
+                                expr: TableExpr::LocalTable,
                             })))),
                         )]),
                         shadowed: None,

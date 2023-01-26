@@ -15,8 +15,8 @@ use sqlparser::keywords::{
 use std::collections::HashSet;
 
 use crate::ast::pl::{
-    BinOp, ColumnSort, InterpolateItem, JoinSide, Literal, Range, SortDirection, WindowFrame,
-    WindowKind,
+    BinOp, ColumnSort, InterpolateItem, JoinSide, Literal, Range, SortDirection, TableExternRef,
+    WindowFrame, WindowKind,
 };
 use crate::ast::rq::*;
 use crate::error::{Error, Span};
@@ -259,9 +259,22 @@ pub(super) fn translate_cid(cid: CId, ctx: &mut Context) -> Result<sql_ast::Expr
 pub(super) fn table_factor_of_tid(table_ref: TableRef, ctx: &Context) -> TableFactor {
     let decl = ctx.anchor.table_decls.get(&table_ref.source).unwrap();
 
-    let relation_name = decl.name.clone().unwrap();
+    let name = match &decl.relation.kind {
+        // special case for anchor
+        RelationKind::ExternRef(TableExternRef::Anchor(anchor_id)) => {
+            sql_ast::ObjectName(vec![Ident::new(anchor_id.clone())])
+        }
+
+        // base case
+        _ => {
+            let decl_name = decl.name.clone().unwrap();
+
+            sql_ast::ObjectName(translate_ident(Some(decl_name), None, ctx))
+        }
+    };
+
     TableFactor::Table {
-        name: sql_ast::ObjectName(translate_ident(Some(relation_name), None, ctx)),
+        name,
         alias: if decl.name == table_ref.name {
             None
         } else {
@@ -592,18 +605,18 @@ pub(super) fn translate_join(
 // [sql_ast::Expr::CompoundIdentifier](sql_ast::Expr::CompoundIdentifier), each of which
 // contains `Vec<Ident>`.
 pub(super) fn translate_ident(
-    relation_name: Option<String>,
+    table_name: Option<String>,
     column: Option<String>,
     ctx: &Context,
 ) -> Vec<sql_ast::Ident> {
     let mut parts = Vec::with_capacity(4);
     if !ctx.omit_ident_prefix || column.is_none() {
-        if let Some(relation) = relation_name {
+        if let Some(table) = table_name {
             #[allow(clippy::if_same_then_else)]
             if ctx.dialect.big_query_quoting() {
                 // Special-case this for BigQuery, Ref #852
-                parts.push(relation);
-            } else if relation.contains('*') {
+                parts.push(table);
+            } else if table.contains('*') {
                 // This messy and could be cleaned up a lot.
                 // If `parts` is (includung the backticks)
                 //
@@ -621,9 +634,9 @@ pub(super) fn translate_ident(
                 // I think probably we should interpret `schema.table` as a
                 // namespace when it's passed to `from` or `join`, but that
                 // requires handling the types in those transforms.
-                parts.push(relation);
+                parts.push(table);
             } else {
-                parts.extend(relation.split('.').map(|s| s.to_string()));
+                parts.extend(table.split('.').map(|s| s.to_string()));
             }
         }
     }

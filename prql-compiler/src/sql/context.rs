@@ -8,8 +8,10 @@ use anyhow::Result;
 use enum_as_inner::EnumAsInner;
 use itertools::Itertools;
 
+use crate::ast::pl::TableExternRef;
 use crate::ast::rq::{
-    fold_table, CId, Compute, Query, RelationColumn, RqFold, TId, TableDecl, TableRef, Transform,
+    fold_table, CId, Compute, Query, RelationColumn, RelationKind, RqFold, TId, TableDecl,
+    TableRef, Transform,
 };
 use crate::utils::{IdGenerator, NameGenerator};
 
@@ -200,14 +202,18 @@ impl QueryLoader {
 
 impl RqFold for QueryLoader {
     fn fold_table(&mut self, table: TableDecl) -> Result<TableDecl> {
-        let mut table = fold_table(self, table)?;
+        let mut decl = fold_table(self, table)?;
 
-        if table.name.is_none() {
-            table.name = Some(self.context.table_name.gen());
+        if let RelationKind::ExternRef(TableExternRef::LocalTable(table)) = &decl.relation.kind {
+            decl.name = Some(table.clone());
         }
 
-        self.context.table_decls.insert(table.id, table.clone());
-        Ok(table)
+        if decl.name.is_none() && decl.relation.kind.as_extern_ref().is_none() {
+            decl.name = Some(self.context.table_name.gen());
+        }
+
+        self.context.table_decls.insert(decl.id, decl.clone());
+        Ok(decl)
     }
 
     fn fold_compute(&mut self, compute: Compute) -> Result<Compute> {
