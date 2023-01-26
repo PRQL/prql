@@ -24,6 +24,7 @@
   - [Take](./transforms/take.md)
   - [Window](./transforms/window.md)
 
+- [Syntax](./syntax.md)
 - [Language features](./language-features/README.md)
 
   - [Coalesce](./language-features/coalesce.md)
@@ -39,22 +40,16 @@
   - [S-Strings](./language-features/s-strings.md)
   - [F-Strings](./language-features/f-strings.md)
   - [Switch](./language-features/switch.md)
-  - [Syntax](./language-features/syntax.md)
   - [Target & Version](./language-features/target.md)
 
 - [Bindings](./bindings/README.md)
 
+  - [Elixir](./bindings/elixir.md)
   - [Java](./bindings/java.md)
   - [JavaScript](./bindings/javascript.md)
   - [Python](./bindings/python.md)
   - [R](./bindings/r.md)
   - [Rust](./bindings/rust.md)
-
-- [Internals](./internals/README.md)
-
-  - [Name resolving](./internals/name-resolving.md)
-  - [Functions](./internals/functional-lang.md)
-  - [Syntax highlighting](./internals/syntax-highlighting.md)
 
 - [Integrations](./integrations/README.md)
 
@@ -65,7 +60,20 @@
   - [Rill](./integrations/rill.md)
 
 - [Examples](./examples/README.md)
+
   - [Variables](./examples/variables.md)
   - [List equivalence](./examples/list-equivalence.md)
   - [CTE (intermediate tables)](./examples/cte.md)
   - [Employees](./examples/employees.md)
+
+- [Contributing to PRQL](./contributing/README.md)
+
+  - [Development](./contributing/development.md)
+  - [Using Docker](./contributing/using-docker.md)
+
+- [Internals](./internals/README.md)
+
+  - [Compiler architecture](./internals/compiler-architecture.md)
+  - [Name resolving](./internals/name-resolving.md)
+  - [Functions](./internals/functional-lang.md)
+  - [Syntax highlighting](./internals/syntax-highlighting.md)

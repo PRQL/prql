@@ -32,7 +32,6 @@ walkdir = "2.3.2"
 [target.'cfg(not(target_family="wasm"))'.dependencies]
 clap = {version = "4.1.1", default-features = false}
 mdbook = {version = "0.4.21", default-features = false}
-mdbook-preprocessor-boilerplate = {version = "0.1.1"}
 
 [dev-dependencies]
 globset = "0.4.8"

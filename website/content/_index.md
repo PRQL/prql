@@ -235,18 +235,18 @@ showcase_section:
       label: Joins
       prql: |
         from employees
-        join benefits [==employee_id]
-        join side:left p=positions [id==employee_id]
-        select [employee_id, role, vision_coverage]
+        join b=benefits [==employee_id]
+        join side:left p=positions [p.id==employees.employee_id]
+        select [employees.employee_id, p.role, b.vision_coverage]
       sql: |
         SELECT
-          employee_id,
-          role,
-          vision_coverage
+          employees.employee_id,
+          p.role,
+          b.vision_coverage
         FROM
           employees
-          JOIN benefits USING(employee_id)
-          LEFT JOIN positions AS p ON id = employee_id
+          JOIN benefits AS b ON employees.employee_id = b.employee_id
+          LEFT JOIN positions AS p ON p.id = employees.employee_id
 
     - id: null-handling
       label: Null handling
@@ -394,16 +394,16 @@ bindings_section:
       label: "prql-js"
       text: "JavaScript bindings for prql-compiler."
 
-    - link: https://eitsupi.r-universe.dev/ui#package:prqlr
+    - link: https://CRAN.R-project.org/package=prqlr
       label: "prqlr"
       text: "R bindings for prql-compiler."
 
-    - link: https://crates.io/crates/prql-compiler
-      label: "prql-compiler"
+    - link: https://crates.io/crates/prqlc
+      label: "prqlc"
       text: |
-        PRQL's compiler library, written in Rust.
+        A CLI for PRQL compiler, written in Rust.
 
-        `cargo install prql-compiler`
+        `cargo install prqlc`
 
 comments_section:
   enable: true

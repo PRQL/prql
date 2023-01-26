@@ -173,6 +173,16 @@ impl AnchorContext {
         }
         (tables, columns)
     }
+
+    pub(super) fn contains_wildcard(&self, cids: &[CId]) -> bool {
+        for cid in cids {
+            let decl = &self.column_decls[cid];
+            if let ColumnDecl::RelationColumn(_, _, RelationColumn::Wildcard) = decl {
+                return true;
+            }
+        }
+        false
+    }
 }
 
 /// Loads info about [Query] into [AnchorContext]

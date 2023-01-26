@@ -17,6 +17,11 @@ mod tests {
 
         // for each of the queries
         glob!("queries/**/*.prql", |path| {
+            let test_name = path
+                .file_name()
+                .and_then(|s| s.to_str())
+                .unwrap_or_default();
+
             // read
             let prql = fs::read_to_string(path).unwrap();
 
@@ -25,15 +30,33 @@ mod tests {
             }
 
             // compile
-            let sql = prql_compiler::compile(&prql, None).unwrap();
+            let opts = prql_compiler::sql::Options::default()
+                .with_dialect(prql_compiler::sql::Dialect::SQLite)
+                .no_format()
+                .some();
+            let sql = prql_compiler::compile(&prql, opts).unwrap();
+            let sqlite_out = sqlite::query_csv(&sqlite_conn, &sql);
 
             // save both csv files as same snapshot
-            assert_snapshot!(sqlite::query_csv(&sqlite_conn, &sql));
-            assert_snapshot!(duckdb::query_csv(&duckdb_conn, &sql));
+            let opts = prql_compiler::sql::Options::default()
+                .with_dialect(prql_compiler::sql::Dialect::DuckDb)
+                .no_format()
+                .some();
+            let sql = prql_compiler::compile(&prql, opts).unwrap();
+            let duckdb_out = duckdb::query_csv(&duckdb_conn, &sql);
+            pretty_assertions::assert_eq!(sqlite_out, duckdb_out, "SQLite == DuckDB: {test_name}");
 
             if let Some(pg_client) = &mut pg_client {
-                assert_snapshot!(postgres::query_csv(pg_client, &sql));
+                let opts = prql_compiler::sql::Options::default()
+                    .with_dialect(prql_compiler::sql::Dialect::PostgreSql)
+                    .no_format()
+                    .some();
+                let sql = prql_compiler::compile(&prql, opts).unwrap();
+                let pg_out = postgres::query_csv(pg_client, &sql);
+                pretty_assertions::assert_eq!(sqlite_out, pg_out, "SQLite == PG: {test_name}");
             }
+
+            assert_snapshot!(sqlite_out);
         });
     }
 
@@ -45,6 +68,7 @@ mod tests {
             .join("tests/integration")
             .join(relative_path)
             .canonicalize()
+            .or_else(|_| Path::new("./").join(relative_path).canonicalize())
             .unwrap()
             .to_str()
             .unwrap()
@@ -178,6 +202,7 @@ mod tests {
         pub fn connect() -> Option<Client> {
             let host = std::env::var("POSTGRES_HOST").ok()?;
 
+            println!("connecting to Postgres...");
             let client = Client::connect(&format!("host={} user=postgres", host), NoTls).unwrap();
 
             Some(client)
@@ -214,7 +239,8 @@ mod tests {
                             &Type::TEXT | &Type::VARCHAR => get::<String>(&row, i),
                             &Type::JSON | &Type::JSONB => get::<String>(&row, i),
                             &Type::FLOAT4 => get::<f32>(&row, i),
-                            &Type::FLOAT8 => get::<f32>(&row, i),
+                            &Type::FLOAT8 => get::<f64>(&row, i),
+                            &Type::NUMERIC => get::<String>(&row, i),
                             &Type::TIMESTAMPTZ | &Type::TIMESTAMP => get::<Timestamp>(&row, i),
                             t => unimplemented!("postgres type {t}"),
                         })

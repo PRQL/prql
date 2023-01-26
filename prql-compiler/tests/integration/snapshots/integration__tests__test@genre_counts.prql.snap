@@ -1,6 +1,6 @@
 ---
 source: prql-compiler/tests/integration/main.rs
-expression: "sqlite::query_csv(&sqlite_conn, &sql)"
+expression: sqlite_out
 input_file: prql-compiler/tests/integration/queries/genre_counts.prql
 ---
 a

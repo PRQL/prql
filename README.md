@@ -2,13 +2,16 @@
 
 <!-- User badges on first line (language docs & chat) -->
 
-[![Language Docs](https://img.shields.io/badge/DOCS-LANGUAGE-blue?style=for-the-badge)](https://prql-lang.org)
+[![Website](https://img.shields.io/badge/INTRO-WEB-blue?style=for-the-badge)](https://prql-lang.org)
+[![Playground](https://img.shields.io/badge/INTRO-PLAYGROUND-blue?style=for-the-badge)](https://prql-lang.org/book)
+[![Language Docs](https://img.shields.io/badge/DOCS-BOOK-blue?style=for-the-badge)](https://prql-lang.org/book)
 [![Discord](https://img.shields.io/discord/936728116712316989?label=discord%20chat&style=for-the-badge)](https://discord.gg/eQcfaCmsNc)
-[![Twitter](https://img.shields.io/twitter/follow/prql_lang?color=%231DA1F2&style=for-the-badge)](https://twitter.com/prql_lang)
 
-<!-- Dev badges on first line (language docs & chat) -->
+<!-- Doesn't seem to be working; add back if it is -->
+<!-- [![Twitter](https://img.shields.io/twitter/follow/prql_lang?color=%231DA1F2&style=for-the-badge)](https://twitter.com/prql_lang) -->
+<!-- Dev badges on second line -->
 
-[![GitHub CI Status](https://img.shields.io/github/actions/workflow/status/PRQL/prql/test-all.yaml?branch=main&logo=github&style=for-the-badge)](https://github.com/PRQL/prql/actions?query=branch%3Amain+workflow%3Atest-all)
+[![GitHub CI Status](https://img.shields.io/github/actions/workflow/status/PRQL/prql/pull-request.yaml?branch=main&logo=github&style=for-the-badge)](https://github.com/PRQL/prql/actions?query=branch%3Amain+workflow%3Atest-all)
 [![GitHub contributors](https://img.shields.io/github/contributors/PRQL/prql?style=for-the-badge)](https://github.com/PRQL/prql/graphs/contributors)
 [![Stars](https://img.shields.io/github/stars/PRQL/prql?style=for-the-badge)](https://github.com/PRQL/prql/stargazers)
 
@@ -86,7 +89,7 @@ To stay in touch with PRQL:
 - [Contribute][contributing] — join us in building PRQL, through writing code
   [(send us your use-cases!)](https://github.com/PRQL/prql/discussions), or
   inspiring others to use it.
-- See the [development](DEVELOPMENT.md) documentation for PRQL. It's easy to get
+- See the [development][development] documentation for PRQL. It's easy to get
   started — the project can be built in a couple of commands, and we're a really
   friendly community!
 
@@ -104,25 +107,17 @@ To stay in touch with PRQL:
 - [prql-js](https://www.npmjs.com/package/prql-js) — JavaScript bindings for
   PRQL.
 
-### Contributors
+## Contributors
 
 Many thanks to those who've made our progress possible:
 
 [![Contributors](https://contrib.rocks/image?repo=PRQL/prql)](https://github.com/PRQL/prql/graphs/contributors)
 
-### Core developers
-
-We have core developers who are responsible for reviewing code, making decisions
-on the direction of the language, and project administration:
-
-- [**@aljazerzen**](https://github.com/aljazerzen) — Aljaž Mur Eržen
-- [**@max-sixty**](https://github.com/max-sixty) — Maximilian Roos
-- [**@snth**](https://github.com/snth) — Tobias Brandt
-
 We welcome others to join who have a track record of contributions.
 
 [prql book]: https://prql-lang.org/book
 [prql website]: https://prql-lang.org
-[contributing]: ./CONTRIBUTING.md
+[contributing]: https://prql-lang.org/book/contributing/index.html
+[development]: https://prql-lang.org/book/contributing/development.html
 [prql playground]: https://prql-lang.org/playground
 [dbt-prql]: https://github.com/prql/dbt-prql

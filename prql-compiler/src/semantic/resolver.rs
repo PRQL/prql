@@ -177,11 +177,12 @@ impl AstFold for Resolver {
                     DeclKind::Expr(expr) => self.fold_expr(expr.as_ref().clone())?,
 
                     DeclKind::InstanceOf(_) => {
-                        bail!(
-                            Error::new_simple("table instance cannot be referenced directly",)
-                                .with_span(span)
-                                .with_help("did you forget to specify the column name?")
-                        );
+                        return Err(Error::new_simple(
+                            "table instance cannot be referenced directly",
+                        )
+                        .with_span(span)
+                        .with_help("did you forget to specify the column name?")
+                        .into());
                     }
 
                     _ => Expr {
@@ -197,6 +198,7 @@ impl AstFold for Resolver {
                 named_args,
             }) => {
                 // fold name (or closure)
+                self.default_namespace = None;
                 let old = self.in_func_call_name;
                 self.in_func_call_name = true;
                 let name = self.fold_expr(*name)?;
@@ -209,10 +211,8 @@ impl AstFold for Resolver {
             }
 
             ExprKind::Pipeline(pipeline) => {
-                let default_namespace = self.default_namespace.take();
-                let res = self.resolve_pipeline(pipeline)?;
-                self.default_namespace = default_namespace;
-                res
+                self.default_namespace = None;
+                self.resolve_pipeline(pipeline)?
             }
 
             ExprKind::Closure(closure) => {
@@ -253,6 +253,24 @@ impl AstFold for Resolver {
                 Expr {
                     kind,
                     target_ids,
+                    ..node
+                }
+            }
+
+            ExprKind::List(exprs) => {
+                let exprs = self.fold_exprs(exprs)?;
+
+                // flatten
+                let exprs = exprs
+                    .into_iter()
+                    .flat_map(|e| match e.kind {
+                        ExprKind::List(items) if e.flatten => items,
+                        _ => vec![e],
+                    })
+                    .collect_vec();
+
+                Expr {
+                    kind: ExprKind::List(exprs),
                     ..node
                 }
             }

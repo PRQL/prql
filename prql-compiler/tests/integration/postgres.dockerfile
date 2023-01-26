@@ -25,5 +25,5 @@ RUN apt-get update && apt-get install -y pgloader
 # allow password-less logins
 ENV POSTGRES_HOST_AUTH_METHOD=trust
 
-COPY /data/chinook.db /
+COPY /data/chinook/chinook.db /
 RUN echo "pgloader /chinook.db postgresql://postgres:pass@unix:/var/run/postgresql:/postgres" > /docker-entrypoint-initdb.d/load-chinook.sh

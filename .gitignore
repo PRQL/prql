@@ -1,10 +1,13 @@
 .DS_Store
 
 dist
-target
+target*
+
+lcov.info
 
 **/.vscode/settings.json
 **/.vscode/launch.json
+**/.vscode/tasks.json
 **/.idea
 
 /*.prql

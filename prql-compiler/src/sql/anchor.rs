@@ -246,9 +246,8 @@ fn is_split_required(transform: &SqlTransform, following: &mut HashSet<String>) 
     // - compute (no limit)
     // - sort (no limit)
     // - take (no limit)
-    // - unique (for DISTINCT)
-    // - append (max 1)
-    // - unique (for UNION)
+    // - distinct
+    // - append/except/intersect (no limit)
     //
     // Select is not affected by the order.
     use SqlTransform::*;
@@ -294,7 +293,7 @@ fn is_split_required(transform: &SqlTransform, following: &mut HashSet<String>) 
                 "Take",
             ],
         ),
-        Super(Append(_)) => contains_any(
+        Union { .. } | Except { .. } | Intersect { .. } => contains_any(
             following,
             [
                 "From",
@@ -304,7 +303,7 @@ fn is_split_required(transform: &SqlTransform, following: &mut HashSet<String>) 
                 "Aggregate",
                 "Sort",
                 "Take",
-                "Append",
+                "Distinct",
             ],
         ),
         _ => false,
@@ -356,6 +355,7 @@ pub(super) fn get_requirements(
     use SqlTransform::*;
     use Transform::*;
 
+    // special case for aggregate, which contain two difference Complexities
     if let Super(Aggregate { partition, compute }) = transform {
         let mut r = Vec::new();
         r.extend(into_requirements(
@@ -371,6 +371,7 @@ pub(super) fn get_requirements(
         return r;
     }
 
+    // general case: extract cids
     let cids = match transform {
         Super(Compute(compute)) => CidCollector::collect(compute.expr.clone()),
         Super(Filter(expr) | Join { filter: expr, .. }) => CidCollector::collect(expr.clone()),
@@ -386,9 +387,15 @@ pub(super) fn get_requirements(
             cids
         }
 
-        Super(Select(_) | From(_) | Append(_) | Aggregate { .. }) | Distinct => return Vec::new(),
+        Super(Append(_)) => unreachable!(),
+        Super(Select(_) | From(_) | Aggregate { .. })
+        | Distinct
+        | Union { .. }
+        | Except { .. }
+        | Intersect { .. } => return Vec::new(),
     };
 
+    // general case: determine complexity
     let (max_complexity, selected) = match transform {
         Super(Compute(decl)) => (
             if infer_complexity(decl) == Complexity::Plain {
@@ -420,8 +427,10 @@ pub(super) fn get_requirements(
 /// Complexity of a column expressions.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Complexity {
-    /// Non-aggregated and non-windowed expressions
+    /// Simple non-aggregated and non-windowed expressions
     Plain,
+    /// Expressions that cannot be used in GROUP BY (CASE)
+    NonGroup,
     /// Non-aggregated expressions
     Windowed,
     /// Everything
@@ -442,26 +451,53 @@ pub fn infer_complexity(compute: &Compute) -> Complexity {
     } else if compute.is_aggregation {
         Aggregation
     } else {
-        Plain
+        infer_complexity_expr(&compute.expr)
+    }
+}
+
+pub fn infer_complexity_expr(expr: &Expr) -> Complexity {
+    match &expr.kind {
+        rq::ExprKind::Switch(_) => Complexity::NonGroup,
+        rq::ExprKind::Binary { left, right, .. } => {
+            Complexity::max(infer_complexity_expr(left), infer_complexity_expr(right))
+        }
+        rq::ExprKind::Unary { expr, .. } => infer_complexity_expr(expr),
+        rq::ExprKind::BuiltInFunction { args, .. } => args
+            .iter()
+            .map(infer_complexity_expr)
+            .max()
+            .unwrap_or(Complexity::Plain),
+        rq::ExprKind::ColumnRef(_)
+        | rq::ExprKind::Literal(_)
+        | rq::ExprKind::SString(_)
+        | rq::ExprKind::FString(_) => Complexity::Plain,
     }
 }
 
 #[derive(Default)]
 pub struct CidCollector {
-    cids: HashSet<CId>,
+    // we could use HashSet instead of Vec, but this caused nondeterministic
+    // results downstream
+    cids: Vec<CId>,
 }
 
 impl CidCollector {
     pub fn collect(expr: Expr) -> Vec<CId> {
         let mut collector = CidCollector::default();
         collector.fold_expr(expr).unwrap();
-        collector.cids.into_iter().collect_vec()
+        collector.cids
+    }
+
+    pub fn collect_t(t: Transform) -> (Transform, Vec<CId>) {
+        let mut collector = CidCollector::default();
+        let t = collector.fold_transform(t).unwrap();
+        (t, collector.cids)
     }
 }
 
 impl RqFold for CidCollector {
     fn fold_cid(&mut self, cid: CId) -> Result<CId> {
-        self.cids.insert(cid);
+        self.cids.push(cid);
         Ok(cid)
     }
 }

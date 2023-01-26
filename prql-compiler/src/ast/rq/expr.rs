@@ -16,18 +16,26 @@ pub struct Expr {
 pub enum ExprKind {
     ColumnRef(CId),
     Literal(Literal),
+
+    // TODO: convert this into built-in function
     Binary {
         left: Box<Expr>,
         op: BinOp,
         right: Box<Expr>,
     },
+
+    // TODO: convert this into built-in function
     Unary {
         op: UnOp,
         expr: Box<Expr>,
     },
+
     SString(Vec<InterpolateItem<Expr>>),
+
+    // TODO: convert this into built-in function
     FString(Vec<InterpolateItem<Expr>>),
     Switch(Vec<SwitchCase<Expr>>),
+
     BuiltInFunction {
         name: String,
         args: Vec<Expr>,

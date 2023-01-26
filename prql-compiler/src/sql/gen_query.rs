@@ -66,10 +66,15 @@ pub fn translate_query(query: Query, dialect: Option<Dialect>) -> Result<sql_ast
             RelationKind::Pipeline(pipeline) => {
                 // preprocess
                 let pipeline = Ok(pipeline)
+                    .map(preprocess::normalize)
+                    .map(preprocess::push_down_selects)
+                    .map(preprocess::prune_inputs)
                     .map(preprocess::wrap)
                     .and_then(|p| preprocess::distinct(p, &mut context))
-                    .map(preprocess::reorder)
-                    .unwrap();
+                    .map(preprocess::union)
+                    .and_then(|p| preprocess::except(p, &context))
+                    .and_then(|p| preprocess::intersect(p, &context))
+                    .map(preprocess::reorder)?;
 
                 // load names of output columns
                 context.anchor.load_names(&pipeline, table.relation.columns);
@@ -160,7 +165,7 @@ fn sql_query_of_relation(relation: SqlRelation, context: &mut Context) -> Result
     match relation {
         SqlRelation::Super(ExternRef(_)) | SqlRelation::Super(Pipeline(_)) => unreachable!(),
         SqlRelation::Pipeline(pipeline) => sql_query_of_pipeline(pipeline, context),
-        SqlRelation::Super(Literal(lit)) => Ok(sql_of_sample_data(lit)),
+        SqlRelation::Super(Literal(lit)) => Ok(sql_of_sample_data(lit)?),
         SqlRelation::Super(SString(items)) => translate_query_sstring(items, context),
     }
 }
@@ -169,22 +174,24 @@ fn sql_query_of_pipeline(
     pipeline: Vec<SqlTransform>,
     context: &mut Context,
 ) -> Result<sql_ast::Query> {
-    let table_count = count_tables(&pipeline);
-    log::debug!("atomic query contains {table_count} tables");
-    context.omit_ident_prefix = table_count == 1;
+    use SqlTransform::*;
 
-    let (before_append, after_append) =
-        pipeline.break_up(|t| matches!(t, SqlTransform::Super(Transform::Append(_))));
+    let (select, set_ops) =
+        pipeline.break_up(|t| matches!(t, Union { .. } | Except { .. } | Intersect { .. }));
 
-    let select = sql_select_query_of_pipeline(before_append, context)?;
+    let select = sql_select_query_of_pipeline(select, context)?;
 
-    sql_union_of_pipeline(select, after_append, context)
+    sql_set_ops_of_pipeline(select, set_ops, context)
 }
 
 fn sql_select_query_of_pipeline(
     mut pipeline: Vec<SqlTransform>,
     context: &mut Context,
 ) -> Result<sql_ast::Query> {
+    let table_count = count_tables(&pipeline);
+    log::debug!("atomic query contains {table_count} tables");
+    context.omit_ident_prefix = table_count == 1;
+
     context.pre_projection = true;
 
     let projection = pipeline
@@ -274,168 +281,146 @@ fn sql_select_query_of_pipeline(
         .transpose()?
         .unwrap_or_default();
 
+    let (top, limit) = if context.dialect.use_top() {
+        (limit.map(|l| top_of_i64(l, context)), None)
+    } else {
+        (None, limit.map(expr_of_i64))
+    };
     Ok(sql_ast::Query {
-        body: Box::new(SetExpr::Select(Box::new(Select {
+        order_by,
+        limit,
+        offset,
+        ..default_query(SetExpr::Select(Box::new(Select {
             distinct,
-            top: if context.dialect.use_top() {
-                limit.map(|l| top_of_i64(l, context))
-            } else {
-                None
-            },
+            top,
             projection,
-            into: None,
             from,
-            lateral_views: vec![],
             selection: where_,
             group_by,
-            cluster_by: vec![],
-            distribute_by: vec![],
-            sort_by: vec![],
             having,
-            qualify: None,
-        }))),
-        order_by,
-        with: None,
-        limit: if context.dialect.use_top() {
-            None
-        } else {
-            limit.map(expr_of_i64)
-        },
-        offset,
-        fetch: None,
-        locks: vec![],
+            ..default_select()
+        })))
     })
 }
 
-fn sql_union_of_pipeline(
-    top: sql_ast::Query,
+fn sql_set_ops_of_pipeline(
+    mut top: sql_ast::Query,
     mut pipeline: Vec<SqlTransform>,
     context: &mut Context,
 ) -> Result<sql_ast::Query, anyhow::Error> {
-    // union
+    // reverse, so it's easier (and O(1)) to pop
+    pipeline.reverse();
 
-    let append = pipeline
-        .pluck(|t| t.into_super_and(|t| t.into_append()))
-        .into_iter()
-        .next();
-    let distinct = pipeline.iter().any(|t| matches!(t, SqlTransform::Distinct));
+    while let Some(transform) = pipeline.pop() {
+        use SqlTransform::*;
 
-    let bottom = if let Some(bottom) = append {
-        bottom
-    } else {
-        return Ok(top);
-    };
+        let op = match &transform {
+            Union { .. } => sql_ast::SetOperator::Union,
+            Except { .. } => sql_ast::SetOperator::Except,
+            Intersect { .. } => sql_ast::SetOperator::Intersect,
+            _ => unreachable!(),
+        };
 
-    let top_is_simple = top.with.is_none()
-        && top.order_by.is_empty()
-        && top.limit.is_none()
-        && top.offset.is_none()
-        && top.fetch.is_none()
-        && top.locks.is_empty();
+        let (distinct, bottom) = match transform {
+            Union { distinct, bottom }
+            | Except { distinct, bottom }
+            | Intersect { distinct, bottom } => (distinct, bottom),
+            _ => unreachable!(),
+        };
 
-    let left = if top_is_simple {
-        top.body
-    } else {
-        // top is not simple, so we need to wrap it into
-        // `SELECT * FROM top`
-        Box::new(SetExpr::Select(Box::new(Select {
-            projection: vec![SelectItem::Wildcard(
-                sql_ast::WildcardAdditionalOptions::default(),
-            )],
-            from: vec![TableWithJoins {
-                relation: TableFactor::Derived {
-                    lateral: false,
-                    subquery: Box::new(top),
-                    alias: Some(TableAlias {
-                        name: Ident::new(context.anchor.table_name.gen()),
-                        columns: Vec::new(),
-                    }),
-                },
-                joins: vec![],
-            }],
-            ..default_select()
-        })))
-    };
-    let op = sql_ast::SetOperator::Union;
+        // prepare top
+        let top_is_simple = top.with.is_none()
+            && top.order_by.is_empty()
+            && top.limit.is_none()
+            && top.offset.is_none()
+            && top.fetch.is_none()
+            && top.locks.is_empty();
 
-    Ok(default_query(SetExpr::SetOperation {
-        left,
-        right: Box::new(SetExpr::Select(Box::new(Select {
-            projection: vec![SelectItem::Wildcard(
-                sql_ast::WildcardAdditionalOptions::default(),
-            )],
-            from: vec![TableWithJoins {
-                relation: table_factor_of_tid(bottom, context),
-                joins: vec![],
-            }],
-            ..default_select()
-        }))),
-        set_quantifier: if distinct {
-            if context.dialect.set_ops_distinct() {
-                sql_ast::SetQuantifier::Distinct
-            } else {
-                sql_ast::SetQuantifier::None
-            }
+        let left = if top_is_simple {
+            top.body
         } else {
-            sql_ast::SetQuantifier::All
-        },
-        op,
-    }))
+            // top is not simple, so we need to wrap it into
+            // `SELECT * FROM top`
+            Box::new(SetExpr::Select(Box::new(Select {
+                projection: vec![SelectItem::Wildcard(
+                    sql_ast::WildcardAdditionalOptions::default(),
+                )],
+                from: vec![TableWithJoins {
+                    relation: TableFactor::Derived {
+                        lateral: false,
+                        subquery: Box::new(top),
+                        alias: Some(TableAlias {
+                            name: Ident::new(context.anchor.table_name.gen()),
+                            columns: Vec::new(),
+                        }),
+                    },
+                    joins: vec![],
+                }],
+                ..default_select()
+            })))
+        };
+
+        top = default_query(SetExpr::SetOperation {
+            left,
+            right: Box::new(SetExpr::Select(Box::new(Select {
+                projection: vec![SelectItem::Wildcard(
+                    sql_ast::WildcardAdditionalOptions::default(),
+                )],
+                from: vec![TableWithJoins {
+                    relation: table_factor_of_tid(bottom, context),
+                    joins: vec![],
+                }],
+                ..default_select()
+            }))),
+            set_quantifier: if distinct {
+                if context.dialect.set_ops_distinct() {
+                    sql_ast::SetQuantifier::Distinct
+                } else {
+                    sql_ast::SetQuantifier::None
+                }
+            } else {
+                sql_ast::SetQuantifier::All
+            },
+            op,
+        });
+    }
+
+    Ok(top)
 }
 
-fn sql_of_sample_data(data: RelationLiteral) -> sql_ast::Query {
+fn sql_of_sample_data(data: RelationLiteral) -> Result<sql_ast::Query> {
     // TODO: this could be made to use VALUES instead of SELECT UNION ALL SELECT
     //       I'm not sure about compatibility though.
 
-    let mut selects = vec![];
+    let mut selects = Vec::with_capacity(data.rows.len());
 
     for row in data.rows {
-        // This seems *very* verbose. Maybe we put an issue into sqlparser-rs to
-        // have something like a builder for these?
         let body = sql_ast::SetExpr::Select(Box::new(Select {
-            distinct: false,
-            top: None,
-            from: vec![],
             projection: std::iter::zip(data.columns.clone(), row)
-                .map(|(col, value)| SelectItem::ExprWithAlias {
-                    expr: sql_ast::Expr::Identifier(sql_ast::Ident::new(value)),
-                    alias: sql_ast::Ident::new(col),
+                .map(|(col, value)| -> Result<_> {
+                    Ok(SelectItem::ExprWithAlias {
+                        expr: translate_literal(value)?,
+                        alias: sql_ast::Ident::new(col),
+                    })
                 })
-                .collect(),
-            selection: None,
-            group_by: vec![],
-            having: None,
-            lateral_views: vec![],
-            cluster_by: vec![],
-            distribute_by: vec![],
-            into: None,
-            qualify: None,
-            sort_by: vec![],
+                .try_collect()?,
+            ..default_select()
         }));
 
         selects.push(body)
     }
 
-    // Not the most elegant way of doing this but sufficient for now.
-    let first = selects.remove(0);
-    let body = selects
-        .into_iter()
-        .fold(first, |acc, select| SetExpr::SetOperation {
+    let mut body = selects.remove(0);
+    for select in selects {
+        body = SetExpr::SetOperation {
             op: sql_ast::SetOperator::Union,
             set_quantifier: sql_ast::SetQuantifier::All,
-            left: Box::new(acc),
+            left: Box::new(body),
             right: Box::new(select),
-        });
-
-    sql_ast::Query {
-        with: (None),
-        body: Box::new(body),
-        order_by: vec![],
-        limit: None,
-        offset: None,
-        fetch: None,
-        locks: vec![],
+        }
     }
+
+    Ok(default_query(body))
 }
 
 fn split_into_atomics(

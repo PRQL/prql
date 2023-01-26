@@ -25,14 +25,12 @@ pub struct ValueAndUnit {
     pub unit: String, // Could be an enum IntervalType,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct RelationLiteral {
     /// Column names
     pub columns: Vec<String>,
     /// Row-oriented data
-    // TODO: this should be generic, so it can contain any type (but at least
-    // numbers)
-    pub rows: Vec<Vec<String>>,
+    pub rows: Vec<Vec<Literal>>,
 }
 
 impl From<Literal> for anyhow::Error {

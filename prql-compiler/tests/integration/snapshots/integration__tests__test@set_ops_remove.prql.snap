@@ -1,0 +1,7 @@
+---
+source: prql-compiler/tests/integration/main.rs
+expression: sqlite_out
+input_file: prql-compiler/tests/integration/queries/set_ops_remove.prql
+---
+a
+3

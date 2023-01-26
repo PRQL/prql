@@ -12,32 +12,24 @@ on:
       - main
 
 concurrency:
-  # This seems to require `-pr` on the end; I _think_ because this calls
+  # This seems to require a suffix on the end; I _think_ because this calls
   # `test-all`, which calls `test-python`, and if `test-python` runs too, then
   # we have two workflows with the same concurrency group, which GitHub calls a
   # deadlock. Here's an example:
-  # https://github.com/PRQL/prql/actions/runs/3945798229. By adding `-pr` here,
-  # the job that runs under `test-all` (called from here) will have `-pr` on the
-  # end, and so won't deadlock.
-  group: ${{ github.workflow }}-${{ github.ref }}-pr
+  # https://github.com/PRQL/prql/actions/runs/3945798229. By adding
+  # `-pull-request` here, the job that runs under `test-all` (called from here)
+  # will have the suffix, and so won't deadlock.
+  group: ${{ github.workflow }}-${{ github.ref }}-pull-request
   cancel-in-progress: true
 
 jobs:
-  # Only run ubuntu on pull-requests, since it's fastest.
   test-rust:
-    runs-on: ubuntu-latest
     strategy:
       matrix:
-        include:
-          - target_option: ""
-          - target_option: "--target=wasm32-unknown-unknown"
-    steps:
-      - name: 📂 Checkout code
-        uses: actions/checkout@v3
-      - name: 📋 Test workspace
-        uses: ./.github/actions/test-rust
-        with:
-          target_option: ${{ matrix.target_option }}
+        target_option: ["", "--target=wasm32-unknown-unknown"]
+    uses: ./.github/workflows/test-rust.yaml
+    with:
+      target_option: ${{ matrix.target_option }}
 
   test-book:
     runs-on: ubuntu-latest
@@ -57,7 +49,7 @@ jobs:
         run: mdbook build
         working-directory: book/
 
-  # Run Mac & Windows & other tests a `pr-test-all` label (as well as on `main`).
+  # Run Mac & Windows & other tests on a `pr-test-all` label (as well as the other conditions in `test-all.yaml`).
   test-all:
     uses: ./.github/workflows/test-all.yaml
     if: contains(github.event.pull_request.labels.*.name, 'pr-test-all')

@@ -1,8 +1,8 @@
 from i=invoices
 join ii=invoice_items [==invoice_id]
 derive [
-    month = s"STRFTIME('%Y-%m', {i.invoice_date})",
-    day = s"STRFTIME('%Y-%m-%d', {i.invoice_date})",
+    month = s"substring(CAST({i.invoice_date} AS TEXT), 1, 7)",
+    day = s"substring(CAST({i.invoice_date} AS TEXT), 1, 10)",
 ]
 group [month, day] (
     aggregate [
@@ -19,3 +19,12 @@ group [month] (
 )
 sort day
 derive [num_tracks_last_week = lag 7 num_tracks]
+select [
+    month,
+    day,
+    num_orders = s"CAST({num_orders} AS INT)",
+    num_tracks = s"CAST({num_tracks} AS INT)",
+    total_price = s"ROUND(CAST({total_price} AS FLOAT) * 100) / 100",
+    running_total_num_tracks = s"CAST({running_total_num_tracks} AS INT)",
+    num_tracks_last_week = s"CAST({num_tracks_last_week} AS INT)"
+]
