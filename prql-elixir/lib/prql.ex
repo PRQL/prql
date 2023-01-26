@@ -17,7 +17,7 @@ defmodule PRQL do
           | :bigquery
           | :clickhouse
           | :hive
-          | :sqllite
+          | :sqlite
           | :snowflake
   @type format_opt :: {:format, boolean()}
   @type signature_comment_opt :: {:signature_comment, boolean()}
@@ -37,7 +37,7 @@ defmodule PRQL do
 
     * `:dialect` - Dialect used for generate SQL. Accepted values are
     `:generic`, `:mssql`, `:mysql`, `:postgres`, `:ansi`, `:bigquery`,
-    `:clickhouse`, `:hive`, `:sqllite`, `:snowflake`
+    `:clickhouse`, `:hive`, `:sqlite`, `:snowflake`
 
     * `:format` - Formats the output, defaults to `true`
 

@@ -26,7 +26,7 @@ defmodule PRQL.Native.CompileOptions do
           | :bigquery
           | :clickhouse
           | :hive
-          | :sqllite
+          | :sqlite
           | :snowflake
 
   @type t :: %__MODULE__{

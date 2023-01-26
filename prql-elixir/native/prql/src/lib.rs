@@ -14,7 +14,7 @@ mod atoms {
       mssql,
       mysql,
       postgres,
-      sqllite,
+      sqlite,
       snowflake
     }
 }
@@ -53,7 +53,7 @@ fn dialect_from_atom(a: Atom) -> prql_compiler::sql::Dialect {
         D::MySql
     } else if a == atoms::postgres() {
         D::PostgreSql
-    } else if a == atoms::sqllite() {
+    } else if a == atoms::sqlite() {
         D::SQLite
     } else if a == atoms::snowflake() {
         D::Snowflake
