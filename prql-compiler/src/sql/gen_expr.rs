@@ -952,7 +952,7 @@ mod test {
             let (anchor, _) = AnchorContext::of(query);
             context_with_concat_function = Context {
                 dialect: Box::new(GenericDialect {}),
-                anchor: anchor,
+                anchor,
                 omit_ident_prefix: false,
                 pre_projection: false,
             };
@@ -962,7 +962,7 @@ mod test {
             let (anchor, _) = AnchorContext::of(query);
             context_without_concat_function = Context {
                 dialect: Box::new(SQLiteDialect {}),
-                anchor: anchor,
+                anchor,
                 omit_ident_prefix: false,
                 pre_projection: false,
             };
