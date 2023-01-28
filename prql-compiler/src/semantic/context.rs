@@ -63,9 +63,19 @@ pub struct TableDecl {
     /// Columns layout
     pub columns: Vec<RelationColumn>,
 
-    /// None means that this is an extern table (actual table in database)
-    /// Some means a CTE
-    pub expr: Option<Box<Expr>>,
+    pub expr: TableExpr,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, EnumAsInner)]
+pub enum TableExpr {
+    /// In SQL, this is a CTE
+    RelationVar(Box<Expr>),
+
+    /// Actual table in a database, that we can refer to by name in SQL
+    LocalTable,
+
+    /// A placeholder for a relation that will be provided later.
+    Anchor(String),
 }
 
 #[derive(Clone, Eq, Debug, PartialEq, Serialize, Deserialize)]
@@ -122,7 +132,7 @@ impl Context {
                     })
                     .collect();
 
-                let expr = Some(value);
+                let expr = TableExpr::RelationVar(value);
                 DeclKind::TableDecl(TableDecl { columns, expr })
             }
             Some(_) => DeclKind::Expr(var_def.value),
@@ -331,7 +341,7 @@ impl Context {
         table_decl.columns.push(col);
 
         // also add into input tables of this table expression
-        if let Some(expr) = &table_decl.expr {
+        if let TableExpr::RelationVar(expr) = &table_decl.expr {
             if let Some(Ty::Table(frame)) = expr.ty.as_ref() {
                 let wildcard_inputs = (frame.columns.iter())
                     .filter_map(|c| c.as_all())

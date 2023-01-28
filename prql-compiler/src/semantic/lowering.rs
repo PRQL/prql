@@ -13,6 +13,7 @@ use crate::ast::pl::{
 };
 use crate::ast::rq::{self, CId, Query, RelationColumn, TId, TableDecl, Transform};
 use crate::error::{Error, Reason, Span};
+use crate::semantic::context::TableExpr;
 use crate::semantic::module::Module;
 use crate::utils::{toposort, IdGenerator};
 
@@ -790,13 +791,16 @@ fn lower_table(lowerer: &mut Lowerer, table: context::TableDecl, fq_ident: Ident
 
     let context::TableDecl { columns, expr } = table;
 
-    let relation = if let Some(expr) = expr {
-        // this is a CTE
-        lowerer.lower_relation(*expr)?
-    } else {
-        relation_from_extern_ref(columns, fq_ident.name.clone())
+    let (relation, name) = match expr {
+        TableExpr::RelationVar(expr) => {
+            // a CTE
+            (lowerer.lower_relation(*expr)?, Some(fq_ident.name))
+        }
+        TableExpr::LocalTable => {
+            extern_ref_to_relation(columns, TableExternRef::LocalTable(fq_ident.name))
+        }
+        TableExpr::Anchor(id) => extern_ref_to_relation(columns, TableExternRef::Anchor(id)),
     };
-    let name = Some(fq_ident.name);
 
     log::debug!("lowering table {name:?}, columns = {:?}", relation.columns);
 
@@ -805,14 +809,18 @@ fn lower_table(lowerer: &mut Lowerer, table: context::TableDecl, fq_ident: Ident
     Ok(())
 }
 
-fn relation_from_extern_ref(mut columns: Vec<RelationColumn>, table_name: String) -> rq::Relation {
+fn extern_ref_to_relation(
+    mut columns: Vec<RelationColumn>,
+    extern_ref: TableExternRef,
+) -> (rq::Relation, Option<String>) {
     // put wildcards last
     columns.sort_by_key(|a| matches!(a, RelationColumn::Wildcard));
 
-    rq::Relation {
-        kind: rq::RelationKind::ExternRef(TableExternRef::LocalTable(table_name)),
+    let relation = rq::Relation {
+        kind: rq::RelationKind::ExternRef(extern_ref),
         columns,
-    }
+    };
+    (relation, None)
 }
 
 fn toposort_tables(tables: Vec<(Ident, context::TableDecl)>) -> Vec<(Ident, context::TableDecl)> {
@@ -821,7 +829,7 @@ fn toposort_tables(tables: Vec<(Ident, context::TableDecl)>) -> Vec<(Ident, cont
     let mut dependencies: Vec<(Ident, Vec<Ident>)> = tables
         .iter()
         .map(|(ident, table)| {
-            let deps = (table.expr.clone())
+            let deps = (table.expr.clone().into_relation_var())
                 .map(|e| TableDepsCollector::collect(*e))
                 .unwrap_or_default();
             (ident.clone(), deps)

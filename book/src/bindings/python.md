@@ -19,5 +19,5 @@ prql_query = """
     )
 """
 
-sql = prql.to_sql(prql_query)
+sql = prql.compile(prql_query)
 ```

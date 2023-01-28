@@ -58,3 +58,4 @@ func _is_null a -> _param.a == null
 
 # Misc
 func from_text<table> text<string> `noresolve.format`:csv -> null
+func anchor<table> id<string> -> null

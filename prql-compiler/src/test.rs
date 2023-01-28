@@ -1711,21 +1711,38 @@ fn test_sql_of_ast_2() {
 
 #[test]
 fn test_prql_to_sql_1() {
-    let query = r#"
+    assert_display_snapshot!(compile(r#"
     from employees
     aggregate [
         count non_null:salary,
         sum salary,
     ]
-    "#;
-    let sql = compile(query).unwrap();
-    assert_display_snapshot!(sql,
+    "#).unwrap(),
         @r###"
     SELECT
       COUNT(salary),
       SUM(salary)
     FROM
       employees
+    "###
+    );
+    assert_display_snapshot!(compile(r#"
+    prql target:sql.postgres
+    from developers
+    group team (
+        aggregate [
+            skill_width = count_distinct specialty,
+        ]
+    )
+    "#).unwrap(),
+        @r###"
+    SELECT
+      team,
+      COUNT(DISTINCT specialty) AS skill_width
+    FROM
+      developers
+    GROUP BY
+      team
     "###
     )
 }

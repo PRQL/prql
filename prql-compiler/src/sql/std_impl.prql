@@ -7,7 +7,7 @@ func average <scalar|column> column ->  s"AVG({column})"
 func count <scalar|column> non_null:s"*" ->  s"COUNT({non_null})"
 # TODO: Possibly make this into `count distinct:true` (or like `distinct:` as an
 # abbreviation of that?)
-func count_distinct <scalar|column> column ->  s"COUNT(DISTINCT `{column}`)"
+func count_distinct <scalar|column> column ->  s"COUNT(DISTINCT {column})"
 
 # Window functions
 func lag<column> offset column ->  s"LAG({column}, {offset})"
