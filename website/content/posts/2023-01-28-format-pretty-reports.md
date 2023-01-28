@@ -99,8 +99,8 @@ func prtpct v -> s'printf("%1.1f%", {v})'
 from PropertyData
 select [
   Map, Lot,
-  App_Tot2020,
-  App_Tot2021,
+  App_Total2020,
+  App_Total2021,
   pctchange = (pct App_Total2020 App_Total2021),
 ]
 
