@@ -105,6 +105,12 @@ pub(super) trait DialectHandler {
     fn intersect_all(&self) -> bool {
         self.except_all()
     }
+
+    /// Support for CONCAT function.
+    /// When not supported we fallback to use `||` as concat operator.
+    fn has_concat_function(&self) -> bool {
+        true
+    }
 }
 
 impl DialectHandler for GenericDialect {}
@@ -115,6 +121,10 @@ impl DialectHandler for SQLiteDialect {
     }
 
     fn except_all(&self) -> bool {
+        false
+    }
+
+    fn has_concat_function(&self) -> bool {
         false
     }
 }
