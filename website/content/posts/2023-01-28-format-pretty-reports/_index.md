@@ -32,22 +32,23 @@ displaying their values along with their percent change.
    ```
 
    I also want to compute the percent change between values. It's easy to create
-   a `pct` function:
+   a `percent_diff` function:
 
    ```prql
-   # pct computes the amount (percent) the new differs from old
-   func pct o n -> 100.0*( n - o ) / o
+   # percent_diff computes the amount (percent) the new differs from old
+   func percent_diff old new -> 100.0*( new - old ) / old
    ```
 
-   One final function: the `pct` function returns a floating point number with
+   One final function: the `percent_diff` function returns a floating point number with
    many digits after the decimal place. I only want to display one place in my
-   results, with a trailing `%`. So I wrote a `prtpct` ("print percent")
+   results, with a trailing `%`. So I wrote a `format_percent`
    function that uses a `printf()` to format the value.
 
    ```prql
-   # prtpct prints a floating point number with "%"
-   func prtpct v -> s'printf("%1.1f%", {v})'
+   # format_percent prints a floating point number with "%"
+   func format_percent v -> s'printf("%1.1f%", {v})'
    ```
+
 
 2. **Column Headings:** Use a PRQL _alias_ to assign each column a nice name.
    This becomes its column heading. The examples above might be:
@@ -63,10 +64,10 @@ displaying their values along with their percent change.
 3. **Excluding certain columns:** I want to sort results by the (numeric)
    percent change, but I don't want to display that percentage value (with
    multiple decimal places) in the final table. So I split the query into
-   pieces: the first `select` collects all the columns necessary (including
-   using `pct` to calculate the percentage as a number). The query then sorts
+   pieces: the first `select` collects all the necessary columns (adding
+   a new column using `percent_diff`). The query then sorts
    the values and passes those results to a second `select` that's responsible
-   for formatting the column headings and contents (using aliases and `prtpct`).
+   for formatting the column headings and contents (using aliases and `format_percent`).
 
 4. **Putting it all together:** Here is my workflow for a typical query.
 
@@ -87,11 +88,11 @@ produces.
 # dollars displays a numeric value as dollars with commas
 func dollars d -> s"""printf("$%,d",{d})"""
 
-# pct computes the amount (percent) the new differs from old
-func pct o n -> 100.0*( n - o ) / o
+# percent_diff computes the amount (percent) the new differs from old
+func percent_diff old new -> 100.0*( new - old ) / old
 
-# prtpct prints a floating point number with "%"
-func prtpct v -> s'printf("%1.1f%", {v})'
+# format_percent prints a floating point number with "%"
+func format_percent v -> s'printf("%1.1f%", {v})'
 
 # Step 1: First calculate important columns
 from PropertyData
@@ -99,7 +100,7 @@ select [
   Map, Lot,
   App_Total2020,
   App_Total2021,
-  pctchange = (pct App_Total2020 App_Total2021),
+  pctchange = (percent_diff App_Total2020 App_Total2021),
 ]
 
 # Step 2: Sort the resulting table by pctchange
@@ -110,7 +111,7 @@ select [
    Map, Lot,
    Appraisal2020 = (dollars App_Total2020),
   `Appraisal 2021` = (dollars App_Total2021),
-  `Percent Change` = (prtpct pctchange),
+  `Percent Change` = (format_percent pctchange),
 ]
 take 20
 ```
@@ -119,9 +120,9 @@ The image below shows the result of that query. Note that:
 
 - The column headings match the _aliases_ of the second `select` statement
 - The `dollars` function formats values with `$` and `,` as expected
-- The `pct` function computes the percent change between the _old_ and _new_
+- The `percent_diff` function computes the percent change between the _old_ and _new_
   values
-- The `prtpct` function formats the value with a single decimal place and
+- The `format_percent` function formats the value with a single decimal place and
   appends a `%`
 
 ![First rows](./query_result.png)
