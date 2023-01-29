@@ -7,8 +7,6 @@ toc: false
 url: format-pretty-reports
 ---
 
-# Format Pretty Reports with PRQL
-
 > I can no longer bring myself to write bare SQL - PRQL makes building queries
 > so easy.
 
@@ -126,7 +124,7 @@ The image below shows the result of that query. Note that:
 - The `prtpct` function formats the value with a single decimal place and
   appends a `%`
 
-![First rows](../../static/img/Formatted_SQLite_Query.png)
+![First rows](./query_result.png)
 
 [^1]:
     **My Tools:** I use [VSCode](https://code.visualstudio.com/) to maintain a
