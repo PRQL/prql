@@ -248,6 +248,7 @@ fn is_split_required(transform: &SqlTransform, following: &mut HashSet<String>) 
     // - take (no limit)
     // - distinct
     // - append/except/intersect (no limit)
+    // - loop (max 1x)
     //
     // Select is not affected by the order.
     use SqlTransform::*;
@@ -306,6 +307,7 @@ fn is_split_required(transform: &SqlTransform, following: &mut HashSet<String>) 
                 "Distinct",
             ],
         ),
+        SqlTransform::Loop(_) => !following.is_empty(),
         _ => false,
     };
 
@@ -387,12 +389,13 @@ pub(super) fn get_requirements(
             cids
         }
 
-        Super(Append(_)) => unreachable!(),
-        Super(Select(_) | From(_) | Aggregate { .. })
+        Super(Aggregate { .. } | Append(_) | Transform::Loop(_)) => unreachable!(),
+        Super(Select(_) | From(_))
         | Distinct
         | Union { .. }
         | Except { .. }
-        | Intersect { .. } => return Vec::new(),
+        | Intersect { .. }
+        | SqlTransform::Loop(_) => return Vec::new(),
     };
 
     // general case: determine complexity

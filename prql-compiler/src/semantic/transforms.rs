@@ -192,6 +192,13 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
 
             (TransformKind::Append(Box::new(bottom)), top)
         }
+        "std.loop" => {
+            let [pipeline, tbl] = unpack::<2>(closure);
+
+            let pipeline = fold_by_simulating_eval(resolver, pipeline, tbl.ty.clone().unwrap())?;
+
+            (TransformKind::Loop(Box::new(pipeline)), tbl)
+        }
 
         "std.in" => {
             // yes, this is not a transform, but this is the most appropriate place for it
@@ -581,6 +588,12 @@ impl TransformCall {
                 let top = ty_frame_or_default(&self.input)?;
                 let bottom = ty_frame_or_default(bottom)?;
                 append(top, bottom)?
+            }
+            Loop(pipeline) => {
+                // pipeline's body is resolved, just use its type
+                let Closure { body, .. } = pipeline.kind.as_closure().unwrap().as_ref();
+
+                body.ty.clone().unwrap().into_table().unwrap()
             }
             Sort { .. } | Filter { .. } | Take { .. } => ty_frame_or_default(&self.input)?,
         })

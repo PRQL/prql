@@ -25,6 +25,7 @@ pub(super) enum SqlTransform {
     Except { bottom: TableRef, distinct: bool },
     Intersect { bottom: TableRef, distinct: bool },
     Union { bottom: TableRef, distinct: bool },
+    Loop(Vec<SqlTransform>),
 }
 
 /// Pushes all [Transform::Select]s to the back of the pipeline.
@@ -76,7 +77,12 @@ pub(super) fn prune_inputs(mut pipeline: Vec<Transform>) -> Vec<Transform> {
 }
 
 pub(super) fn wrap(pipe: Vec<Transform>) -> Vec<SqlTransform> {
-    pipe.into_iter().map(SqlTransform::Super).collect()
+    pipe.into_iter()
+        .map(|t| match t {
+            Transform::Loop(pipeline) => SqlTransform::Loop(wrap(pipeline)),
+            _ => SqlTransform::Super(t),
+        })
+        .collect()
 }
 
 /// Creates [SqlTransform::Distinct] from [Transform::Take]
@@ -581,6 +587,7 @@ pub(super) trait SqlFold: RqFold {
                 bottom: self.fold_table_ref(bottom)?,
                 distinct,
             },
+            SqlTransform::Loop(pipeline) => SqlTransform::Loop(self.fold_sql_transforms(pipeline)?),
         })
     }
 }

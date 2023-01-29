@@ -3226,3 +3226,45 @@ fn test_header_target_error() {
     from a
     "#).unwrap_err(),@r###"target `"sql.foo"` not found"###)
 }
+
+#[test]
+fn test_loop() {
+    assert_display_snapshot!(compile(r#"
+    from_text format:json '[{"n": 1 }]'
+    loop (
+        select n = n+1
+        filter n<5
+    )
+    "#).unwrap(),
+        @r###"
+    WITH table_1 AS (
+      SELECT
+        1 AS n
+    ),
+    table_3 AS (
+      WITH RECURSIVE loop AS (
+        SELECT
+          n + 1 AS n
+        FROM
+          table_1 AS table_0
+        UNION
+        ALL
+        SELECT
+          n + 1 AS n
+        FROM
+          loop
+        WHERE
+          n + 1 < 5
+      )
+      SELECT
+        *
+      FROM
+        loop
+    )
+    SELECT
+      n
+    FROM
+      table_3
+    "###
+    );
+}

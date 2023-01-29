@@ -169,6 +169,72 @@ fn sql_query_of_pipeline(
 ) -> Result<sql_ast::Query> {
     use SqlTransform::*;
 
+    if let Some(Loop(_)) = pipeline.last() {
+        let mut first = pipeline;
+        let loop_ = first.pop().unwrap();
+        let mut second = loop_.into_loop().unwrap();
+
+        let tid = context.anchor.tid.gen();
+
+        let table_decl = TableDecl {
+            id: tid,
+            name: Some("loop".to_string()),
+            relation: Relation {
+                kind: RelationKind::Pipeline(Vec::new()),
+                columns: Vec::new(),
+            },
+        };
+        context.anchor.table_decls.insert(tid, table_decl);
+
+        second.push(Super(Transform::From(crate::ast::rq::TableRef {
+            source: tid,
+            columns: Vec::new(),
+            name: None,
+        })));
+
+        let first = sql_select_query_of_pipeline(first, context)?;
+        let second = sql_select_query_of_pipeline(second, context)?;
+
+        let first = query_to_set_expr(first, context);
+        let second = query_to_set_expr(second, context);
+
+        let cte = sql_ast::Cte {
+            alias: TableAlias {
+                name: Ident::new("loop"),
+                columns: Vec::new(),
+            },
+            query: Box::new(default_query(SetExpr::SetOperation {
+                op: sql_ast::SetOperator::Union,
+                set_quantifier: sql_ast::SetQuantifier::All,
+                left: first,
+                right: second,
+            })),
+            from: None,
+        };
+
+        return Ok(sql_ast::Query {
+            with: Some(sql_ast::With {
+                recursive: true,
+                cte_tables: vec![cte],
+            }),
+            ..default_query(sql_ast::SetExpr::Select(Box::new(sql_ast::Select {
+                projection: vec![SelectItem::Wildcard(
+                    sql_ast::WildcardAdditionalOptions::default(),
+                )],
+                from: vec![TableWithJoins {
+                    relation: TableFactor::Table {
+                        name: sql_ast::ObjectName(vec![Ident::new("loop")]),
+                        alias: None,
+                        args: None,
+                        with_hints: Vec::new(),
+                    },
+                    joins: vec![],
+                }],
+                ..default_select()
+            })))
+        });
+    };
+
     let (select, set_ops) =
         pipeline.break_up(|t| matches!(t, Union { .. } | Except { .. } | Intersect { .. }));
 
@@ -322,36 +388,7 @@ fn sql_set_ops_of_pipeline(
         };
 
         // prepare top
-        let top_is_simple = top.with.is_none()
-            && top.order_by.is_empty()
-            && top.limit.is_none()
-            && top.offset.is_none()
-            && top.fetch.is_none()
-            && top.locks.is_empty();
-
-        let left = if top_is_simple {
-            top.body
-        } else {
-            // top is not simple, so we need to wrap it into
-            // `SELECT * FROM top`
-            Box::new(SetExpr::Select(Box::new(Select {
-                projection: vec![SelectItem::Wildcard(
-                    sql_ast::WildcardAdditionalOptions::default(),
-                )],
-                from: vec![TableWithJoins {
-                    relation: TableFactor::Derived {
-                        lateral: false,
-                        subquery: Box::new(top),
-                        alias: Some(TableAlias {
-                            name: Ident::new(context.anchor.table_name.gen()),
-                            columns: Vec::new(),
-                        }),
-                    },
-                    joins: vec![],
-                }],
-                ..default_select()
-            })))
-        };
+        let left = query_to_set_expr(top, context);
 
         top = default_query(SetExpr::SetOperation {
             left,
@@ -582,6 +619,39 @@ fn default_select() -> Select {
         having: None,
         qualify: None,
     }
+}
+
+fn query_to_set_expr(query: sql_ast::Query, context: &mut Context) -> Box<SetExpr> {
+    let is_simple = query.with.is_none()
+        && query.order_by.is_empty()
+        && query.limit.is_none()
+        && query.offset.is_none()
+        && query.fetch.is_none()
+        && query.locks.is_empty();
+
+    if is_simple {
+        return query.body;
+    }
+
+    // query is not simple, so we need to wrap it into
+    // `SELECT * FROM (query)`
+    Box::new(SetExpr::Select(Box::new(Select {
+        projection: vec![SelectItem::Wildcard(
+            sql_ast::WildcardAdditionalOptions::default(),
+        )],
+        from: vec![TableWithJoins {
+            relation: TableFactor::Derived {
+                lateral: false,
+                subquery: Box::new(query),
+                alias: Some(TableAlias {
+                    name: Ident::new(context.anchor.table_name.gen()),
+                    columns: Vec::new(),
+                }),
+            },
+            joins: vec![],
+        }],
+        ..default_select()
+    })))
 }
 
 fn count_tables(transforms: &[SqlTransform]) -> usize {
