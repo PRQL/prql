@@ -1,5 +1,5 @@
 ---
-title: Format Pretty Reports in PRQL
+title: Format pretty reports in PRQL
 date: 2023-01-28
 authors: ["richb-hanover"]
 layout: article
