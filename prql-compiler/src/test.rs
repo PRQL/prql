@@ -1516,8 +1516,8 @@ fn test_f_string() {
     ]
     "###;
 
-    let sql = compile(query).unwrap();
-    assert_display_snapshot!(sql,
+    assert_display_snapshot!(
+      compile(query).unwrap(),
         @r###"
     SELECT
       CONCAT(
@@ -1532,6 +1532,23 @@ fn test_f_string() {
       employees
     "###
     );
+
+    assert_display_snapshot!(
+        crate::compile(
+          query,
+          sql::Options::default()
+              .no_signature()
+              .with_dialect(sql::Dialect::SQLite)
+              .some()
+      ).unwrap(),
+          @r###"
+    SELECT
+      'Hello my name is ' || prefix || first_name || ' ' || last_name,
+      'and I am ' || year_born - now() || ' years old.'
+    FROM
+      employees
+    "###
+    )
 }
 
 #[test]
