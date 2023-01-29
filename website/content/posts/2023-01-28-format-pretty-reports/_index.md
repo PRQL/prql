@@ -53,8 +53,10 @@ displaying their values along with their percent change.
    This becomes its column heading. The examples above might be:
 
    ```prql
-    Appraisal2020 = (dollars App_Total2020),
-   `Appraisal 2021` = (dollars App_Total2021),
+   select [
+      Appraisal2020 = (dollars App_Total2020),
+     `Appraisal 2021` = (dollars App_Total2021),
+   ]
    ```
 
    Note how the second example puts the column heading in backticks to preserve
