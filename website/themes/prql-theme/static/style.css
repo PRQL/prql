@@ -611,6 +611,20 @@ article h2 {
   margin: 2rem 0 1rem 0;
 }
 
+article img {
+  max-width: 100%;
+}
+
+article > blockquote {
+  margin: 0 0 1rem -1.5rem;
+  padding: 0.25rem 1.25rem;
+  border-left: 0.25rem solid #c92a2a;
+}
+
+article > blockquote > *:last-child {
+  margin-bottom: 0;
+}
+
 article > pre,
 article > .highlight {
   margin: 0 -0.5rem 1rem -0.5rem;
