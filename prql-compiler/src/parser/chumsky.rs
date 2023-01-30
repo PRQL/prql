@@ -68,6 +68,13 @@ fn ident_part() -> impl Parser<char, String, Error = Simple<char>> {
     plain.or(backticks)
 }
 
+fn digits(n: usize) -> impl Parser<char, String, Error = Simple<char>> {
+    filter::<_, _, Simple<char>>(|c: &char| c.is_ascii_digit())
+        .repeated()
+        .exactly(n)
+        .collect::<String>()
+}
+
 pub fn ident() -> impl Parser<char, Ident, Error = Simple<char>> {
     let star = just('*').map(|c| c.to_string());
 
@@ -77,4 +84,36 @@ pub fn ident() -> impl Parser<char, Ident, Error = Simple<char>> {
     ident_part()
         .chain(just('.').ignore_then(ident_part().or(star)).repeated())
         .map(Ident::from_path::<String>)
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    use insta::assert_yaml_snapshot;
+    #[test]
+    fn test_date() {
+        let date = just('@').ignore_then(
+            digits(4)
+                .then_ignore(just('-'))
+                .then(digits(2))
+                .then_ignore(just('-'))
+                .then(digits(2)),
+        );
+
+        // TODO:
+        // - Why is the result nested?
+        // - What's the type signature to extract `date` to a function?
+        // - Separately from this, but we could be much more liberal about
+        //   dates, this has been discussed on Twitter as a helpful feature.
+        //   (and then we could lint to a standard format, so we're coaching
+        //   users into simplicity)
+        assert_yaml_snapshot!(date.parse("@1984-01-01").unwrap(), @r###"
+        ---
+        - - "1984"
+          - "01"
+        - "01"
+        "###);
+        // Ok(())
+    }
 }
