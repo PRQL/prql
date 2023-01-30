@@ -48,12 +48,12 @@ defmodule PRQL do
 
   Using default `Generic` dialect:
       iex> PRQL.compile("from customers", signature_comment: false)
-      {:ok, "SELECT\n  *\nFROM\n  customers"}
+      {:ok, "SELECT\n  *\nFROM\n  customers\n"}
 
 
   Using `MSSQL` dialect:
       iex> PRQL.compile("from customers\ntake 10", dialect: :mssql, signature_comment: false)
-      {:ok, "SELECT\n  TOP (10) *\nFROM\n  customers"}
+      {:ok, "SELECT\n  TOP (10) *\nFROM\n  customers\n"}
   """
   @spec compile(binary(), [compile_opts()]) :: {:ok, binary()} | {:error, binary()}
   def compile(prql_query, opts \\ []) when is_binary(prql_query) and is_list(opts) do
