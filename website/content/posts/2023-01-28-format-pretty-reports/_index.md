@@ -1,84 +1,89 @@
 ---
-title: Format pretty reports in PRQL
+title: Format pretty reports
 date: 2023-01-28
 authors: ["richb-hanover"]
 layout: article
 toc: false
-url: format-pretty-reports
 ---
 
 > I can no longer bring myself to write bare SQL - PRQL makes building queries
-> so easy.
+> so easy. So here's how I use PRQL _functions_ and _aliases_ for naming
+> variables to "pretty up" a SQL report.
 
-Here's how I use PRQL _functions_, _aliases_ for naming variables, and multiple
-`select` statements to "pretty up" a SQL report.
-
-From my database of property values, I want to show the change across years,
+I have an SQLite database with a table named `PropertyData` and I want to show
+the change of column `App_Total2020` and `App_Total2021` across years,
 displaying their values along with their percent change.
 
-1. **Functions:** Of course, property values are in dollars. So I could simply
-   display them as `450000`. But they are more compelling if they're written as
-   `$450,000`. Writing the SQL code and format strings for each column would be
-   boring (and error-prone). PRQL allows me to create a `dollars` function and
-   then use it multiple times:
+## Functions
 
-   ```prql
-   # dollars displays a numeric value as whole dollars with commas
-   func dollars d -> s"""printf("$%,d",{d})"""
-   ...
-   (dollars App_Total2020),
-   (dollars App_Total2021),
-   ...
-   ```
+Of course, property values are in dollars. So I could simply display them as
+`450000`. But they are more compelling if they're written as `$450,000`. Writing
+the SQL code and format strings for each column would be tedious and
+error-prone. PRQL allows me to create a `dollars` function and then use it
+multiple times:
 
-   I also want to compute the percent change between values. It's easy to create
-   a `percent_diff` function:
+```prql
+# dollars displays a numeric value as whole dollars with commas
+func dollars d -> s"""printf("$%,d",{d})"""
 
-   ```prql
-   # percent_diff computes the amount (percent) the new differs from old
-   func percent_diff old new -> 100.0*( new - old ) / old
-   ```
+select [
+    (dollars App_Total2020),
+    (dollars App_Total2021),
+]
+```
 
-   One final function: the `percent_diff` function returns a floating point
-   number with many digits after the decimal place. I only want to display one
-   place in my results, with a trailing `%`. So I wrote a `format_percent`
-   function that uses a `printf()` to format the value.
+I also want to compute the percent change between values. It's easy to create a
+`percent_diff` function:
 
-   ```prql
-   # format_percent prints a floating point number with "%"
-   func format_percent v -> s'printf("%1.1f%", {v})'
-   ```
+```prql
+# percent_diff computes the amount (percent) the new differs from old
+func percent_diff old new -> 100.0*( new - old ) / old
+```
 
-2. **Column Headings:** Use a PRQL _alias_ to assign each column a nice name.
-   This becomes its column heading. The examples above might be:
+One final function: the `percent_diff` function returns a floating point number
+with many digits after the decimal place. I only want to display one place in my
+results, with a trailing `%`. So I wrote a `format_percent` function that uses a
+`printf()` to format the value.
 
-   ```prql
-   select [
-      Appraisal2020 = (dollars App_Total2020),
-     `Appraisal 2021` = (dollars App_Total2021),
-   ]
-   ```
+```prql
+# format_percent prints a floating point number with "%"
+func format_percent v -> s'printf("%1.1f%", {v})'
+```
 
-   Note how the second example puts the column heading in backticks to preserve
-   spaces.
+## Column Headings
 
-3. **Excluding certain columns:** I want to sort results by the (numeric)
-   percent change, but I don't want to display that percentage value (with
-   multiple decimal places) in the final table. So I split the query into
-   pieces: the first `select` collects all the necessary columns (adding a new
-   column using `percent_diff`). The query then sorts the values and passes
-   those results to a second `select` that's responsible for formatting the
-   column headings and contents (using aliases and `format_percent`).
+Use a PRQL _alias_ to assign each column a nice name. This becomes its column
+heading. The examples above might be:
 
-4. **Putting it all together:** Here is my workflow for a typical query.
+```prql
+select [
+    Appraisal2020 = (dollars App_Total2020),
+   `Appraisal 2021` = (dollars App_Total2021),
+]
+```
 
-   - Using the tools listed below... [^1]
-   - Enter the PRQL query in the VSCode editor. Use a `.prql` suffix for the
-     file.
-   - Open the PRQL VSCode extension (Ctl-Shift-P, or Cmd-Shift-P on Mac). It'll
-     appear and display the compiled SQL in a second pane on the right.
-   - Copy the SQL from the right pane and paste it into the DBM program. Run the
-     query. That's it!
+Note how the second example puts the column heading in backticks to preserve
+spaces.
+
+## Excluding certain columns
+
+I want to sort results by the (numeric) percent change, but I don't want to
+display that percentage value (with multiple decimal places) in the final table.
+So I split the query into pieces: the first `select` collects all the necessary
+columns. adding a new column using `percent_diff`). The query then sorts the
+values and passes those results to a second `select` that's responsible for
+formatting the column headings and contents (using aliases and
+`format_percent`).
+
+## Putting it all together
+
+Here is my workflow for a typical query using the tools listed below: [^1]
+
+- Enter the PRQL query in the VSCode editor. Use a `.prql` suffix for the file.
+- Open the PRQL VSCode extension (Ctl-Shift-P, or Cmd-Shift-P on Mac). It'll
+  appear and display the compiled SQL in a second pane on the right.
+- Copy the SQL from the right pane and paste it into the DBM program. Run the
+  query. That's it!
 
 Here's the PRQL for this example, followed by the result from my database.
 _Note:_ Paste the PRQL query below into the
@@ -98,33 +103,33 @@ func format_percent v -> s'printf("%1.1f%", {v})'
 # Step 1: First calculate important columns
 from PropertyData
 select [
-  Map, Lot,
-  App_Total2020,
-  App_Total2021,
-  pctchange = (percent_diff App_Total2020 App_Total2021),
+    Map, Lot,
+    App_Total2020,
+    App_Total2021,
+    pct_change = (percent_diff App_Total2020 App_Total2021),
 ]
 
-# Step 2: Sort the resulting table by pctchange
-sort [-pctchange]
+# Step 2: Sort the resulting table by pct_change
+sort [-pct_change]
 
 # Step 3: Format the column headings and contents
 select [
-   Map, Lot,
-   Appraisal2020 = (dollars App_Total2020),
-  `Appraisal 2021` = (dollars App_Total2021),
-  `Percent Change` = (format_percent pctchange),
+    Map, Lot,
+    Appraisal2020 = (dollars App_Total2020),
+   `Appraisal 2021` = (dollars App_Total2021),
+   `Percent Change` = (format_percent pct_change),
 ]
 take 20
 ```
 
-The image below shows the result of that query. Note that:
+The image below shows the result of that query:
 
-- The column headings match the _aliases_ of the second `select` statement
-- The `dollars` function formats values with `$` and `,` as expected
-- The `percent_diff` function computes the percent change between the _old_ and
-  _new_ values
-- The `format_percent` function formats the value with a single decimal place
-  and appends a `%`
+- the column headings match the _aliases_ of the second `select` statement,
+- the `dollars` function formats values with `$` and `,` as expected,
+- the `percent_diff` function computes the percent change between the _old_ and
+  _new_ values,
+- the `format_percent` function formats the value with a single decimal place
+  and appends a `%`.
 
 ![First rows](./query_result.png)
 
