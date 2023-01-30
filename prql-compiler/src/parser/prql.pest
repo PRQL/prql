@@ -114,12 +114,18 @@ operator_coalesce = ${ "??" }
 // `prefixed` string and parse in the parser, but manageable for now.
 s_string = ${ "s" ~ opening_quote ~ interpolate_string_inner ~ POP }
 f_string = ${ "f" ~ opening_quote ~ interpolate_string_inner ~ POP }
-interpolate_string_inner = _{ ( interpolate_string_inner_literal | interpolate_double_bracket | ( "{" ~ pipeline ~ "}" ))* }
-// We want to strip the outer `{}` of `{{}}`, so we make a silent rule and then
-// an inner non-silent rule.
-interpolate_double_bracket = _{ "{" ~ interpolate_double_bracket_literal ~ "}" }
-interpolate_double_bracket_literal = { "{" ~ ( !"}}"  ~ ANY )+ ~ "}" }
-interpolate_string_inner_literal = { ( !( PEEK | "{" ) ~ ANY )+ }
+interpolate_string_inner = _{ 
+    ( 
+        interpolate_string_inner_literal | 
+        double_open_bracket | 
+        double_close_bracket | 
+        ( "{" ~ pipeline ~ "}" )
+    )* 
+}
+double_open_bracket = { "{{" }
+double_close_bracket = { "}}" }
+// Anything apart from the quote (PEEK), the beginning of an expr (`{`), or a `}}`
+interpolate_string_inner_literal = { ( !( PEEK | "{" | double_close_bracket ) ~ ANY )+ }
 
 unit = { "microseconds" | "milliseconds" | "seconds" | "minutes" | "hours" | "days" | "weeks" | "months" | "years" }
 value_and_unit = ${ number ~ unit }
