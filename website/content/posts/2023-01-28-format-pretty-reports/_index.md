@@ -70,7 +70,7 @@ spaces.
 I want to sort results by the (numeric) percent change, but I don't want to
 display that percentage value (with multiple decimal places) in the final table.
 So I split the query into pieces: the first `select` collects all the necessary
-columns. adding a new column using `percent_diff`). The query then sorts the
+columns, adding a new column using `percent_diff`. The query then sorts the
 values and passes those results to a second `select` that's responsible for
 formatting the column headings and contents (using aliases and
 `format_percent`).
