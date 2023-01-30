@@ -114,13 +114,13 @@ operator_coalesce = ${ "??" }
 // `prefixed` string and parse in the parser, but manageable for now.
 s_string = ${ "s" ~ opening_quote ~ interpolate_string_inner ~ POP }
 f_string = ${ "f" ~ opening_quote ~ interpolate_string_inner ~ POP }
-interpolate_string_inner = _{ 
-    ( 
-        interpolate_string_inner_literal | 
-        double_open_bracket | 
-        double_close_bracket | 
+interpolate_string_inner = _{
+    (
+        interpolate_string_inner_literal |
+        double_open_bracket |
+        double_close_bracket |
         ( "{" ~ pipeline ~ "}" )
-    )* 
+    )*
 }
 double_open_bracket = { "{{" }
 double_close_bracket = { "}}" }
