@@ -9,7 +9,7 @@ defmodule PRQLTest do
       from customers
     """
 
-    excepted_result = "SELECT\n  *\nFROM\n  customers"
+    excepted_result = "SELECT\n  *\nFROM\n  customers\n"
 
     assert PRQL.compile(prql_query, @compile_opts) == {:ok, excepted_result}
   end
