@@ -45,9 +45,8 @@ impl Dialect {
             Dialect::ClickHouse => Box::new(ClickHouseDialect),
             Dialect::Snowflake => Box::new(SnowflakeDialect),
             Dialect::DuckDb => Box::new(DuckDbDialect),
-            Dialect::Ansi | Dialect::Generic | Dialect::Hive | Dialect::PostgreSql => {
-                Box::new(GenericDialect)
-            }
+            Dialect::PostgreSql => Box::new(PostgresDialect),
+            Dialect::Ansi | Dialect::Generic | Dialect::Hive => Box::new(GenericDialect),
         }
     }
 }
@@ -67,6 +66,7 @@ pub struct ClickHouseDialect;
 
 pub struct SnowflakeDialect;
 pub struct DuckDbDialect;
+pub struct PostgresDialect;
 
 pub(super) enum ColumnExclude {
     Exclude,
@@ -111,9 +111,21 @@ pub(super) trait DialectHandler {
     fn has_concat_function(&self) -> bool {
         true
     }
+
+    /// Whether or not intervals such as `INTERVAL 1 HOUR` require quotes like
+    /// `INTERVAL '1' HOUR`
+    fn requires_quotes_intervals(&self) -> bool {
+        false
+    }
 }
 
 impl DialectHandler for GenericDialect {}
+
+impl DialectHandler for PostgresDialect {
+    fn requires_quotes_intervals(&self) -> bool {
+        true
+    }
+}
 
 impl DialectHandler for SQLiteDialect {
     fn set_ops_distinct(&self) -> bool {
