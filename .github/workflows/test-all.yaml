@@ -86,7 +86,7 @@ jobs:
       - uses: docker/setup-buildx-action@v2
 
       - name: Build
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v4
         with:
           tags: prql:latest
           # Use the GHA cache
