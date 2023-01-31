@@ -94,7 +94,7 @@ pub(super) fn translate_expr_kind(item: ExprKind, ctx: &mut Context) -> Result<s
             sql_ast::Expr::Identifier(sql_ast::Ident::new(string))
         }
         ExprKind::FString(f_string_items) => translate_fstring(f_string_items, ctx)?,
-        ExprKind::Literal(l) => translate_literal(l)?,
+        ExprKind::Literal(l) => translate_literal(l, ctx)?,
         ExprKind::Switch(mut cases) => {
             let default = cases
                 .last()
@@ -138,7 +138,7 @@ pub(super) fn translate_expr_kind(item: ExprKind, ctx: &mut Context) -> Result<s
     })
 }
 
-pub(super) fn translate_literal(l: Literal) -> Result<sql_ast::Expr> {
+pub(super) fn translate_literal(l: Literal, ctx: &Context) -> Result<sql_ast::Expr> {
     Ok(match l {
         Literal::Null => sql_ast::Expr::Value(Value::Null),
         Literal::String(s) => sql_ast::Expr::Value(Value::SingleQuotedString(s)),
@@ -167,8 +167,15 @@ pub(super) fn translate_literal(l: Literal) -> Result<sql_ast::Expr> {
                 "seconds" => DateTimeField::Second,
                 _ => bail!("Unsupported interval unit: {}", vau.unit),
             };
+            let value = if ctx.dialect.requires_quotes_intervals() {
+                Box::new(sql_ast::Expr::Value(Value::SingleQuotedString(
+                    vau.n.to_string(),
+                )))
+            } else {
+                Box::new(translate_literal(Literal::Integer(vau.n), ctx)?)
+            };
             sql_ast::Expr::Interval {
-                value: Box::new(translate_literal(Literal::Integer(vau.n))?),
+                value,
                 leading_field: Some(sql_parser_datetime),
                 leading_precision: None,
                 last_field: None,

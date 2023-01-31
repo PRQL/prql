@@ -165,7 +165,7 @@ fn sql_query_of_relation(relation: SqlRelation, context: &mut Context) -> Result
     match relation {
         SqlRelation::Super(ExternRef(_)) | SqlRelation::Super(Pipeline(_)) => unreachable!(),
         SqlRelation::Pipeline(pipeline) => sql_query_of_pipeline(pipeline, context),
-        SqlRelation::Super(Literal(lit)) => Ok(sql_of_sample_data(lit)?),
+        SqlRelation::Super(Literal(lit)) => Ok(sql_of_sample_data(lit, context)?),
         SqlRelation::Super(SString(items)) => translate_query_sstring(items, context),
     }
 }
@@ -388,7 +388,7 @@ fn sql_set_ops_of_pipeline(
     Ok(top)
 }
 
-fn sql_of_sample_data(data: RelationLiteral) -> Result<sql_ast::Query> {
+fn sql_of_sample_data(data: RelationLiteral, ctx: &Context) -> Result<sql_ast::Query> {
     // TODO: this could be made to use VALUES instead of SELECT UNION ALL SELECT
     //       I'm not sure about compatibility though.
 
@@ -399,7 +399,7 @@ fn sql_of_sample_data(data: RelationLiteral) -> Result<sql_ast::Query> {
             projection: std::iter::zip(data.columns.clone(), row)
                 .map(|(col, value)| -> Result<_> {
                     Ok(SelectItem::ExprWithAlias {
-                        expr: translate_literal(value)?,
+                        expr: translate_literal(value, ctx)?,
                         alias: sql_ast::Ident::new(col),
                     })
                 })
