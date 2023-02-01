@@ -6,6 +6,10 @@
 
 **Fixes**:
 
+- Support double brackets in s-strings which aren't symmetric (@max-sixty,
+  #1650)
+- Support Postgres's Interval syntax (@max-sixty, #1649)
+
 **Documentation**:
 
 **Web**:
