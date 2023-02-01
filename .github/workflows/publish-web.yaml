@@ -57,4 +57,4 @@ jobs:
         # on a fork (it'll fail the workflow even if it otherwise builds successfully)
         if: "!github.event.pull_request.head.repo.fork"
         id: deployment
-        uses: actions/deploy-pages@v1.2.3
+        uses: actions/deploy-pages@v1.2.4
