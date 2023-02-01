@@ -93,25 +93,39 @@ mod test {
     use insta::assert_yaml_snapshot;
     #[test]
     fn test_date() {
-        let date = just('@').ignore_then(
-            digits(4)
-                .then_ignore(just('-'))
-                .then(digits(2))
-                .then_ignore(just('-'))
-                .then(digits(2)),
-        );
+        let date = just('@')
+            .ignore_then(
+                digits(4)
+                    .then_ignore(just('-'))
+                    .then(digits(2))
+                    .then_ignore(just('-'))
+                    .then(digits(2)),
+            )
+            .map(|((y, m), d)| (y, m, d));
+
+        #[allow(unused_variables)]
+        let equivalent_but_all_on_one_level = just('@')
+            .ignore_then(digits(4))
+            .then_ignore(just('-'))
+            .then(digits(2))
+            .then_ignore(just('-'))
+            .then(digits(2))
+            .map(|((y, m), d)| (y, m, d));
 
         // TODO:
-        // - Why is the result nested?
-        // - What's the type signature to extract `date` to a function?
+        // - > Why is the result nested?
+        //   result has the shape of your parsers, which are nested
+        // - > What's the type signature to extract `date` to a function?
+        //   impl Parser<char, (String, String, String), Error = Simple<char>>
+        //   (i.e. something that implements a parser)
         // - Separately from this, but we could be much more liberal about
         //   dates, this has been discussed on Twitter as a helpful feature.
         //   (and then we could lint to a standard format, so we're coaching
         //   users into simplicity)
-        assert_yaml_snapshot!(date.parse("@1984-01-01").unwrap(), @r###"
+        assert_yaml_snapshot!(date.parse("@1984-12-01").unwrap(), @r###"
         ---
-        - - "1984"
-          - "01"
+        - "1984"
+        - "12"
         - "01"
         "###);
         // Ok(())
