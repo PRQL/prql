@@ -147,7 +147,7 @@ mod test {
             target: sql.mssql
         tables:
           - id: 0
-            name: employees
+            name: ~
             relation:
               kind:
                 ExternRef:
@@ -181,7 +181,7 @@ mod test {
             target: sql.bigquery
         tables:
           - id: 0
-            name: employees
+            name: ~
             relation:
               kind:
                 ExternRef:

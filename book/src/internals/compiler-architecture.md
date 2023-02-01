@@ -1,4 +1,4 @@
-# Architecture of PRQL compiler
+# Compiler architecture
 
 Compiler works in the following stages:
 

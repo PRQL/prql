@@ -33,17 +33,16 @@ func aggregate<table> a<column> tbl<table> -> null
 func sort<table> by tbl<table> -> null
 func take<table> expr tbl<table> -> null
 func join<table> `default_db.with`<table> filter `noresolve.side`:inner tbl<table> -> null
-func append<table> `default_db.bottom`<table> top<table> -> null
-func union<table> `default_db.bottom`<table> top<table> -> (
-    from t = _param.top | append _param.bottom | group [t.*] (take 1)
-)
 func group<table> by pipeline tbl<table> -> null
 func window<table> rows:0..0 range:0..0 expanding:false rolling:0 pipeline tbl<table> -> null
 
-func intersection<table> bottom<table> top<table> -> (
-    from t = _param.top | join b = _param.bottom (all (map _eq (zip t.* b.*))) | select t.*
+func append<table> `default_db.bottom`<table> top<table> -> null
+func intersect<table> `default_db.bottom`<table> top<table> -> (
+    from t = _param.top
+    join b = _param.bottom (all (map _eq (zip t.* b.*)))
+    select t.*
 )
-func difference<table> bottom<table> top<table> -> (
+func remove<table> `default_db.bottom`<table> top<table> -> (
     from t = _param.top
     join side:left b = _param.bottom (all (map _eq (zip t.* b.*)))
     filter (all (map _is_null b.*))
@@ -55,7 +54,8 @@ func all<bool> list<list> -> null
 func map<list> fn list<list> -> null
 func zip<list> a<list> b<list> -> null
 func _eq<list> a<list> -> null
-func _is_null a -> a == null
+func _is_null a -> _param.a == null
 
 # Misc
 func from_text<table> text<string> `noresolve.format`:csv -> null
+func anchor<table> id<string> -> null

@@ -53,9 +53,26 @@ jobs:
         uses: actions/checkout@v3
       - uses: a-kenji/update-rust-toolchain@main
         with:
-          minor-version-delta: 1
+          # Discussion in #1561
+          # Move this up until 3, so the next upgrade is at 1.66 once 1.69 is released.
+          minor-version-delta: 2
           toolchain-path: "./rust-toolchain.toml"
           pr-title: "build: Update rust toolchain version"
+
+  check-unused-dependencies:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v3
+      - uses: baptiste0928/cargo-install@next
+        with:
+          crate: cargo-udeps
+      # Doing this ourselves since https://github.com/dtolnay/rust-toolchain/issues/29
+      - run: rustup override set nightly-2022-10-22
+      - uses: richb-hanover/cargo@v1.1.0
+        with:
+          command: udeps
+          args: --all-targets
 
   test-docker:
     # We only test the build in `test-all`; this also runs tests.
@@ -67,7 +84,7 @@ jobs:
       - uses: docker/setup-buildx-action@v2
 
       - name: Build
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v4
         with:
           tags: prql:latest
           # Use the GHA cache

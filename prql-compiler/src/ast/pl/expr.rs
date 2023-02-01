@@ -40,6 +40,11 @@ pub struct Expr {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub alias: Option<String>,
+
+    /// When true on [ExprKind::List], this list will be flattened when placed
+    /// in some other list.
+    #[serde(skip)]
+    pub flatten: bool,
 }
 
 #[derive(Debug, EnumAsInner, PartialEq, Clone, Serialize, Deserialize, strum::AsRefStr)]
@@ -313,9 +318,16 @@ pub enum WindowKind {
     Range,
 }
 
+/// A reference to a table that is not in scope of this query.
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub enum TableExternRef {
+    /// Actual table in a database, that we can refer to by name in SQL
     LocalTable(String),
+
+    /// Placeholder for a relation that will be provided later.
+    /// This is very similar to relational s-strings and may not even be needed for now, so
+    /// it's not documented anywhere. But it will be used in the future.
+    Anchor(String),
     // TODO: add other sources such as files, URLs
 }
 
@@ -379,6 +391,7 @@ impl From<ExprKind> for Expr {
             ty: None,
             needs_window: false,
             alias: None,
+            flatten: false,
         }
     }
 }

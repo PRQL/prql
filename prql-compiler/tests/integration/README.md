@@ -15,22 +15,26 @@ tables are stored as CSV files. Their current size is 432kB, it could be gzip-ed
 to 112kB, but that would require a preprocessing step before running
 `cargo test`.
 
-## SQLite
+## RDMBS
+
+### SQLite
 
 Can be run as part of `cargo test`. Uses bundled sqlite, compiled as part of
 cargo build.
 
-## DuckDb
+### DuckDb
 
 Can be run as part of `cargo test`. Uses bundled DuckDb, compiled as part of
 cargo build.
 
-## Postgres
+### Postgres
 
 If passed environmental variable `POSTGRES_HOST` this crate will requests
 postgres server that should already have data loaded in.
 
-### Docker compose
+This will not run as a part of `cargo test`, but can be run with docker-compose.
+
+## Docker compose
 
 There is also a proof on concept for testing done against Postgres, which can be
 run by running `docker-compose up`. This will:
@@ -38,6 +42,26 @@ run by running `docker-compose up`. This will:
 - build a docker image for Postgres (with data already loaded in)
 - build a docker image for this crate (+data), compiled with --tests
 - run the two images, executing the tests.
+
+Steps to run the tests:
+
+1. Compile the integration test:
+
+   ```
+   $ cargo build --test integration
+   ```
+
+2. Copy the test file to tests/integration dir:
+
+   ```
+   $ cp target/debug/deps/integration-xxxxx prql-compiler/tests/integration
+   ```
+
+3. Run docker compose (that will also build the image):
+   ```
+   $ cd prql-compiler/tests/integration
+   $ docker-compose up
+   ```
 
 ## Test organization
 

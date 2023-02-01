@@ -10,7 +10,7 @@ use crate::ast::pl::*;
 use crate::ast::rq::RelationColumn;
 use crate::error::{Error, Reason, WithErrorInfo};
 
-use super::context::{Decl, DeclKind};
+use super::context::{Decl, DeclKind, TableDecl, TableExpr};
 use super::module::{Module, NS_FRAME, NS_PARAM};
 use super::resolver::Resolver;
 use super::{Context, Frame};
@@ -79,14 +79,17 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
             let range = match expr.kind {
                 ExprKind::Literal(Literal::Integer(n)) => Range::from_ints(None, Some(n)),
                 ExprKind::Range(range) => range,
-                _ => bail!(Error::new(Reason::Expected {
-                    who: Some("`take`".to_string()),
-                    expected: "int or range".to_string(),
-                    found: expr.to_string(),
-                })
-                // Possibly this should refer to the item after the `take` where
-                // one exists?
-                .with_span(expr.span)),
+                _ => {
+                    return Err(Error::new(Reason::Expected {
+                        who: Some("`take`".to_string()),
+                        expected: "int or range".to_string(),
+                        found: expr.to_string(),
+                    })
+                    // Possibly this should refer to the item after the `take` where
+                    // one exists?
+                    .with_span(expr.span)
+                    .into());
+                }
             };
 
             (TransformKind::Take { range }, tbl)
@@ -224,12 +227,13 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
                 }
                 _ => {}
             }
-            bail!(Error::new(Reason::Expected {
+            return Err(Error::new(Reason::Expected {
                 who: Some("std.in".to_string()),
                 expected: "a pattern".to_string(),
-                found: pattern.to_string()
+                found: pattern.to_string(),
             })
-            .with_span(pattern.span))
+            .with_span(pattern.span)
+            .into());
         }
 
         "std.all" => {
@@ -323,12 +327,15 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
                     "csv" => from_text::parse_csv(&text)?,
                     "json" => from_text::parse_json(&text)?,
 
-                    _ => bail!(Error::new(Reason::Expected {
-                        who: Some("`format`".to_string()),
-                        expected: "csv or json".to_string(),
-                        found: format
-                    })
-                    .with_span(span)),
+                    _ => {
+                        return Err(Error::new(Reason::Expected {
+                            who: Some("`format`".to_string()),
+                            expected: "csv or json".to_string(),
+                            found: format,
+                        })
+                        .with_span(span)
+                        .into())
+                    }
                 }
             };
 
@@ -358,6 +365,40 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
                 id: text_expr.id,
                 ..res
             };
+            return Ok(Ok(res));
+        }
+
+        "std.anchor" => {
+            // yes, this is not a transform, but this is the most appropriate place for it
+
+            let [id_expr] = unpack::<1>(closure);
+
+            let id = match id_expr.kind {
+                ExprKind::Literal(Literal::String(text)) => text,
+                _ => {
+                    return Err(Error::new(Reason::Expected {
+                        who: Some("std.anchor".to_string()),
+                        expected: "a string literal".to_string(),
+                        found: format!("`{id_expr}`"),
+                    })
+                    .with_span(id_expr.span)
+                    .into());
+                }
+            };
+
+            let ident = Ident::from_path(vec!["_anchor".to_string(), id.clone()]);
+            let entry = Decl {
+                declared_at: id_expr.id,
+                kind: DeclKind::TableDecl(TableDecl {
+                    columns: vec![RelationColumn::Wildcard],
+                    expr: TableExpr::Anchor(id),
+                }),
+                order: 0,
+            };
+            resolver.context.root_mod.insert(ident.clone(), entry)?;
+
+            let mut res = Expr::from(ExprKind::Ident(ident));
+            res.alias = Some("anchor".to_string());
             return Ok(Ok(res));
         }
 
@@ -1010,7 +1051,7 @@ mod tests {
           other: {}
         tables:
           - id: 0
-            name: c_invoice
+            name: ~
             relation:
               kind:
                 ExternRef:
@@ -1029,6 +1070,8 @@ mod tests {
                     - - Wildcard
                       - 1
                   name: c_invoice
+              - Select:
+                  - 0
               - Take:
                   range:
                     start: ~
@@ -1167,7 +1210,7 @@ mod tests {
           other: {}
         tables:
           - id: 0
-            name: invoices
+            name: ~
             relation:
               kind:
                 ExternRef:

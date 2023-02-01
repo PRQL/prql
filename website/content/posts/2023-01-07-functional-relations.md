@@ -1,7 +1,7 @@
 ---
 title: A functional approach to relational queries
 date: 2023-01-07
-authors: ["aljazerzen"]
+authors: ["Aljaž Mur Eržen"]
 layout: article
 toc: true
 url: functional-relations

@@ -237,49 +237,330 @@ fn test_append() {
     "###);
 
     assert_display_snapshot!(compile(r###"
+    func distinct rel -> (from t = _param.rel | group [t.*] (take 1))
+    func union `default_db.bottom` top -> (top | append bottom | distinct)
+
     from employees
     union managers
     "###).unwrap(), @r###"
     SELECT
       *
     FROM
-      employees AS t
+      employees
     UNION
     DISTINCT
     SELECT
       *
     FROM
-      managers
+      bottom
     "###);
 
     assert_display_snapshot!(compile(r###"
+    func distinct rel -> (from t = _param.rel | group [t.*] (take 1))
+    func union `default_db.bottom` top -> (top | append bottom | distinct)
+
     from employees
     append managers
     union all_employees_of_some_other_company
     "###).unwrap(), @r###"
-    WITH table_1 AS (
-      SELECT
-        *
-      FROM
-        employees
-      UNION
-      ALL
-      SELECT
-        *
-      FROM
-        managers
-    )
     SELECT
       *
     FROM
-      table_1
+      employees
+    UNION
+    ALL
+    SELECT
+      *
+    FROM
+      managers
     UNION
     DISTINCT
     SELECT
       *
     FROM
-      all_employees_of_some_other_company
+      bottom
     "###);
+}
+
+#[test]
+fn test_remove() {
+    assert_display_snapshot!(compile(r#"
+    from albums
+    remove artists
+    "#).unwrap(),
+        @r###"
+    SELECT
+      *
+    FROM
+      albums AS t
+    EXCEPT
+      ALL
+    SELECT
+      *
+    FROM
+      artists AS b
+    "###
+    );
+
+    assert_display_snapshot!(compile(r#"
+    from album
+    select artist_id
+    remove (
+        from artist | select artist_id
+    )
+    "#).unwrap(),
+        @r###"
+    WITH table_1 AS (
+      SELECT
+        artist_id
+      FROM
+        artist
+    )
+    SELECT
+      artist_id
+    FROM
+      album
+    EXCEPT
+      ALL
+    SELECT
+      *
+    FROM
+      table_1 AS table_0
+    "###
+    );
+
+    assert_display_snapshot!(compile(r#"
+    from album
+    select [artist_id, title]
+    remove (
+        from artist | select artist_id
+    )
+    "#).unwrap(),
+        @r###"
+    WITH table_1 AS (
+      SELECT
+        artist_id
+      FROM
+        artist
+    )
+    SELECT
+      album.artist_id,
+      album.title
+    FROM
+      album
+      LEFT JOIN table_1 AS table_0 ON album.artist_id = table_0.artist_id
+    WHERE
+      table_0.artist_id IS NULL
+    "###
+    );
+
+    assert_display_snapshot!(compile(r#"
+    prql target:sql.sqlite
+
+    from album
+    remove artist
+    "#).unwrap_err(),
+        @"Your dialect does not support EXCEPT ALL"
+    );
+
+    assert_display_snapshot!(compile(r#"
+    prql target:sql.sqlite
+
+    func distinct rel -> (from t = _param.rel | group [t.*] (take 1))
+    func except `default_db.bottom` top -> (top | distinct | remove bottom)
+
+    from album
+    select [artist_id, title]
+    except (from artist | select [artist_id, name])
+    "#).unwrap(),
+        @r###"
+    WITH table_1 AS (
+      SELECT
+        DISTINCT artist_id,
+        title
+      FROM
+        album
+    )
+    SELECT
+      table_1.artist_id,
+      table_1.title
+    FROM
+      table_1
+      LEFT JOIN bottom AS b ON table_1.artist_id = b.*
+    WHERE
+      b.* IS NULL
+    "###
+    );
+
+    assert_display_snapshot!(compile(r#"
+    prql target:sql.sqlite
+
+    func distinct rel -> (from t = _param.rel | group [t.*] (take 1))
+    func except `default_db.bottom` top -> (top | distinct | remove bottom)
+
+    from album
+    except artist
+    "#).unwrap(),
+        @r###"
+    SELECT
+      *
+    FROM
+      album AS t
+    EXCEPT
+    SELECT
+      *
+    FROM
+      bottom AS b
+    "###
+    );
+}
+
+#[test]
+fn test_intersect() {
+    assert_display_snapshot!(compile(r#"
+    from album
+    intersect artist
+    "#).unwrap(),
+        @r###"
+    SELECT
+      *
+    FROM
+      album AS t
+    INTERSECT
+    ALL
+    SELECT
+      *
+    FROM
+      artist AS b
+    "###
+    );
+
+    assert_display_snapshot!(compile(r#"
+    from album
+    select artist_id
+    intersect (
+        from artist | select artist_id
+    )
+    "#).unwrap(),
+        @r###"
+    WITH table_1 AS (
+      SELECT
+        artist_id
+      FROM
+        artist
+    )
+    SELECT
+      artist_id
+    FROM
+      album
+    INTERSECT
+    ALL
+    SELECT
+      *
+    FROM
+      table_1 AS table_0
+    "###
+    );
+
+    assert_display_snapshot!(compile(r#"
+    func distinct rel -> (from t = _param.rel | group [t.*] (take 1))
+
+    from album
+    select artist_id
+    distinct
+    intersect (
+        from artist | select artist_id
+    )
+    distinct
+    "#).unwrap(),
+        @r###"
+    WITH table_1 AS (
+      SELECT
+        artist_id
+      FROM
+        artist
+    )
+    SELECT
+      artist_id
+    FROM
+      album
+    INTERSECT
+    DISTINCT
+    SELECT
+      *
+    FROM
+      table_1 AS table_0
+    "###
+    );
+
+    assert_display_snapshot!(compile(r#"
+    func distinct rel -> (from t = _param.rel | group [t.*] (take 1))
+
+    from album
+    select artist_id
+    intersect (
+        from artist | select artist_id
+    )
+    distinct
+    "#).unwrap(),
+        @r###"
+    WITH table_1 AS (
+      SELECT
+        artist_id
+      FROM
+        artist
+    )
+    SELECT
+      artist_id
+    FROM
+      album
+    INTERSECT
+    DISTINCT
+    SELECT
+      *
+    FROM
+      table_1 AS table_0
+    "###
+    );
+
+    assert_display_snapshot!(compile(r#"
+    func distinct rel -> (from t = _param.rel | group [t.*] (take 1))
+
+    from album
+    select artist_id
+    distinct
+    intersect (
+        from artist | select artist_id
+    )
+    "#).unwrap(),
+        @r###"
+    WITH table_1 AS (
+      SELECT
+        artist_id
+      FROM
+        artist
+    )
+    SELECT
+      artist_id
+    FROM
+      album
+    INTERSECT
+    DISTINCT
+    SELECT
+      *
+    FROM
+      table_1 AS table_0
+    "###
+    );
+
+    assert_display_snapshot!(compile(r#"
+    prql target:sql.sqlite
+
+    from album
+    intersect artist
+    "#).unwrap_err(),
+        @"Your dialect does not support INTERCEPT ALL"
+    );
 }
 
 #[test]
@@ -483,6 +764,20 @@ fn test_interval() {
     SELECT
       *,
       start + INTERVAL 10 DAY AS first_check_in
+    FROM
+      projects
+    "###);
+
+    let query = r###"
+    prql target:sql.postgres
+
+    from projects
+    derive first_check_in = start + 10days
+    "###;
+    assert_display_snapshot!((compile(query).unwrap()), @r###"
+    SELECT
+      *,
+      start + INTERVAL '10' DAY AS first_check_in
     FROM
       projects
     "###);
@@ -1129,6 +1424,29 @@ fn test_distinct() {
     WHERE
       _expr_0 BETWEEN 2 AND 3
     "###);
+
+    assert_display_snapshot!((compile(r###"
+    from employees
+    group department (sort salary | take 4..4)
+    "###).unwrap()), @r###"
+    WITH table_1 AS (
+      SELECT
+        *,
+        ROW_NUMBER() OVER (
+          PARTITION BY department
+          ORDER BY
+            salary
+        ) AS _expr_0
+      FROM
+        employees
+    )
+    SELECT
+      *
+    FROM
+      table_1
+    WHERE
+      _expr_0 = 4
+    "###);
 }
 
 #[test]
@@ -1212,8 +1530,8 @@ fn test_f_string() {
     ]
     "###;
 
-    let sql = compile(query).unwrap();
-    assert_display_snapshot!(sql,
+    assert_display_snapshot!(
+      compile(query).unwrap(),
         @r###"
     SELECT
       CONCAT(
@@ -1228,6 +1546,23 @@ fn test_f_string() {
       employees
     "###
     );
+
+    assert_display_snapshot!(
+        crate::compile(
+          query,
+          sql::Options::default()
+              .no_signature()
+              .with_dialect(sql::Dialect::SQLite)
+              .some()
+      ).unwrap(),
+          @r###"
+    SELECT
+      'Hello my name is ' || prefix || first_name || ' ' || last_name,
+      'and I am ' || year_born - now() || ' years old.'
+    FROM
+      employees
+    "###
+    )
 }
 
 #[test]
@@ -1407,21 +1742,38 @@ fn test_sql_of_ast_2() {
 
 #[test]
 fn test_prql_to_sql_1() {
-    let query = r#"
+    assert_display_snapshot!(compile(r#"
     from employees
     aggregate [
         count non_null:salary,
         sum salary,
     ]
-    "#;
-    let sql = compile(query).unwrap();
-    assert_display_snapshot!(sql,
+    "#).unwrap(),
         @r###"
     SELECT
       COUNT(salary),
       SUM(salary)
     FROM
       employees
+    "###
+    );
+    assert_display_snapshot!(compile(r#"
+    prql target:sql.postgres
+    from developers
+    group team (
+        aggregate [
+            skill_width = count_distinct specialty,
+        ]
+    )
+    "#).unwrap(),
+        @r###"
+    SELECT
+      team,
+      COUNT(DISTINCT specialty) AS skill_width
+    FROM
+      developers
+    GROUP BY
+      team
     "###
     )
 }
@@ -2698,64 +3050,6 @@ fn test_exclude_columns() {
       tracks
     "###
     );
-}
-
-#[test]
-fn test_intersection() {
-    assert_display_snapshot!(compile(r#"
-    intersection (
-        from album | select artist_id
-    ) (
-        from artist | select artist_id
-    )
-    "#).unwrap(),
-        @r###"
-    WITH table_1 AS (
-      SELECT
-        artist_id
-      FROM
-        album
-    )
-    SELECT
-      artist.artist_id
-    FROM
-      artist
-      JOIN table_1 AS table_0 ON artist.artist_id = table_0.artist_id
-    "###
-    );
-
-    assert_display_snapshot!(compile(r#"
-    difference (
-        from album | select artist_id
-    ) (
-        from artist | select artist_id
-    )
-    "#).unwrap(),
-        @r###"
-    WITH table_1 AS (
-      SELECT
-        artist_id
-      FROM
-        album
-    )
-    SELECT
-      artist.artist_id
-    FROM
-      artist
-      LEFT JOIN table_1 AS table_0 ON artist.artist_id = table_0.artist_id
-    WHERE
-      table_0.artist_id IS NULL
-    "###
-    );
-
-    // TODO:
-    // assert_display_snapshot!(compile(r#"
-    // intersection (from album) (from artist)
-    // "#).unwrap(), @"");
-
-    // assert_display_snapshot!(compile(r#"
-    // difference (from album) (from artist)
-    // "#).unwrap(), @"");
 }
 
 #[test]

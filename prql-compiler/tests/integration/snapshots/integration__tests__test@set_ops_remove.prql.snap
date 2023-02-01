@@ -1,7 +1,7 @@
 ---
 source: prql-compiler/tests/integration/main.rs
 expression: sqlite_out
-input_file: prql-compiler/tests/integration/queries/genre_counts.prql
+input_file: prql-compiler/tests/integration/queries/set_ops_remove.prql
 ---
 a
--25
+3

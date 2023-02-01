@@ -15,8 +15,8 @@ use sqlparser::keywords::{
 use std::collections::HashSet;
 
 use crate::ast::pl::{
-    BinOp, ColumnSort, InterpolateItem, JoinSide, Literal, Range, SortDirection, WindowFrame,
-    WindowKind,
+    BinOp, ColumnSort, InterpolateItem, JoinSide, Literal, Range, SortDirection, TableExternRef,
+    WindowFrame, WindowKind,
 };
 use crate::ast::rq::*;
 use crate::error::{Error, Span};
@@ -93,27 +93,8 @@ pub(super) fn translate_expr_kind(item: ExprKind, ctx: &mut Context) -> Result<s
 
             sql_ast::Expr::Identifier(sql_ast::Ident::new(string))
         }
-        ExprKind::FString(f_string_items) => {
-            let args = f_string_items
-                .into_iter()
-                .map(|item| match item {
-                    InterpolateItem::String(string) => {
-                        Ok(sql_ast::Expr::Value(Value::SingleQuotedString(string)))
-                    }
-                    InterpolateItem::Expr(node) => translate_expr_kind(node.kind, ctx),
-                })
-                .map(|r| r.map(|e| FunctionArg::Unnamed(FunctionArgExpr::Expr(e))))
-                .collect::<Result<Vec<_>>>()?;
-
-            sql_ast::Expr::Function(Function {
-                name: ObjectName(vec![sql_ast::Ident::new("CONCAT")]),
-                args,
-                distinct: false,
-                over: None,
-                special: false,
-            })
-        }
-        ExprKind::Literal(l) => translate_literal(l)?,
+        ExprKind::FString(f_string_items) => translate_fstring(f_string_items, ctx)?,
+        ExprKind::Literal(l) => translate_literal(l, ctx)?,
         ExprKind::Switch(mut cases) => {
             let default = cases
                 .last()
@@ -157,7 +138,7 @@ pub(super) fn translate_expr_kind(item: ExprKind, ctx: &mut Context) -> Result<s
     })
 }
 
-pub(super) fn translate_literal(l: Literal) -> Result<sql_ast::Expr> {
+pub(super) fn translate_literal(l: Literal, ctx: &Context) -> Result<sql_ast::Expr> {
     Ok(match l {
         Literal::Null => sql_ast::Expr::Value(Value::Null),
         Literal::String(s) => sql_ast::Expr::Value(Value::SingleQuotedString(s)),
@@ -186,8 +167,15 @@ pub(super) fn translate_literal(l: Literal) -> Result<sql_ast::Expr> {
                 "seconds" => DateTimeField::Second,
                 _ => bail!("Unsupported interval unit: {}", vau.unit),
             };
+            let value = if ctx.dialect.requires_quotes_intervals() {
+                Box::new(sql_ast::Expr::Value(Value::SingleQuotedString(
+                    vau.n.to_string(),
+                )))
+            } else {
+                Box::new(translate_literal(Literal::Integer(vau.n), ctx)?)
+            };
             sql_ast::Expr::Interval {
-                value: Box::new(translate_literal(Literal::Integer(vau.n))?),
+                value,
                 leading_field: Some(sql_parser_datetime),
                 leading_precision: None,
                 last_field: None,
@@ -259,9 +247,22 @@ pub(super) fn translate_cid(cid: CId, ctx: &mut Context) -> Result<sql_ast::Expr
 pub(super) fn table_factor_of_tid(table_ref: TableRef, ctx: &Context) -> TableFactor {
     let decl = ctx.anchor.table_decls.get(&table_ref.source).unwrap();
 
-    let relation_name = decl.name.clone().unwrap();
+    let name = match &decl.relation.kind {
+        // special case for anchor
+        RelationKind::ExternRef(TableExternRef::Anchor(anchor_id)) => {
+            sql_ast::ObjectName(vec![Ident::new(anchor_id.clone())])
+        }
+
+        // base case
+        _ => {
+            let decl_name = decl.name.clone().unwrap();
+
+            sql_ast::ObjectName(translate_ident(Some(decl_name), None, ctx))
+        }
+    };
+
     TableFactor::Table {
-        name: sql_ast::ObjectName(translate_ident(Some(relation_name), None, ctx)),
+        name,
         alias: if decl.name == table_ref.name {
             None
         } else {
@@ -337,6 +338,59 @@ pub(super) fn translate_query_sstring(
         Error::new_simple("s-strings representing a table must start with `SELECT `".to_string())
             .with_help("this is a limitation by current compiler implementation")
     )
+}
+
+fn translate_fstring_with_concat_function(
+    items: Vec<InterpolateItem<Expr>>,
+    ctx: &mut Context,
+) -> Result<sql_ast::Expr> {
+    let args = items
+        .into_iter()
+        .map(|item| match item {
+            InterpolateItem::String(string) => {
+                Ok(sql_ast::Expr::Value(Value::SingleQuotedString(string)))
+            }
+            InterpolateItem::Expr(node) => translate_expr_kind(node.kind, ctx),
+        })
+        .map(|r| r.map(|e| FunctionArg::Unnamed(FunctionArgExpr::Expr(e))))
+        .collect::<Result<Vec<_>>>()?;
+
+    Ok(sql_ast::Expr::Function(Function {
+        name: ObjectName(vec![sql_ast::Ident::new("CONCAT")]),
+        args,
+        distinct: false,
+        over: None,
+        special: false,
+    }))
+}
+
+fn translate_fstring_with_concat_operator(
+    items: Vec<InterpolateItem<Expr>>,
+    ctx: &mut Context,
+) -> Result<sql_ast::Expr> {
+    let string = items
+        .into_iter()
+        .map(|f_string_item| match f_string_item {
+            InterpolateItem::String(string) => Ok(Value::SingleQuotedString(string).to_string()),
+            InterpolateItem::Expr(node) => {
+                translate_expr_kind(node.kind, ctx).map(|expr| expr.to_string())
+            }
+        })
+        .collect::<Result<Vec<String>>>()?
+        .join("||");
+
+    Ok(sql_ast::Expr::Identifier(sql_ast::Ident::new(string)))
+}
+
+pub(super) fn translate_fstring(
+    items: Vec<InterpolateItem<Expr>>,
+    ctx: &mut Context,
+) -> Result<sql_ast::Expr> {
+    if ctx.dialect.has_concat_function() {
+        translate_fstring_with_concat_function(items, ctx)
+    } else {
+        translate_fstring_with_concat_operator(items, ctx)
+    }
 }
 
 /// Aggregate several ordered ranges into one, computing the intersection.
@@ -592,18 +646,18 @@ pub(super) fn translate_join(
 // [sql_ast::Expr::CompoundIdentifier](sql_ast::Expr::CompoundIdentifier), each of which
 // contains `Vec<Ident>`.
 pub(super) fn translate_ident(
-    relation_name: Option<String>,
+    table_name: Option<String>,
     column: Option<String>,
     ctx: &Context,
 ) -> Vec<sql_ast::Ident> {
     let mut parts = Vec::with_capacity(4);
     if !ctx.omit_ident_prefix || column.is_none() {
-        if let Some(relation) = relation_name {
+        if let Some(table) = table_name {
             #[allow(clippy::if_same_then_else)]
             if ctx.dialect.big_query_quoting() {
                 // Special-case this for BigQuery, Ref #852
-                parts.push(relation);
-            } else if relation.contains('*') {
+                parts.push(table);
+            } else if table.contains('*') {
                 // This messy and could be cleaned up a lot.
                 // If `parts` is (includung the backticks)
                 //
@@ -621,9 +675,9 @@ pub(super) fn translate_ident(
                 // I think probably we should interpret `schema.table` as a
                 // namespace when it's passed to `from` or `join`, but that
                 // requires handling the types in those transforms.
-                parts.push(relation);
+                parts.push(table);
             } else {
-                parts.extend(relation.split('.').map(|s| s.to_string()));
+                parts.extend(table.split('.').map(|s| s.to_string()));
             }
         }
     }
@@ -803,6 +857,10 @@ impl SQLExpression for UnaryOperator {
 mod test {
     use super::*;
     use crate::ast::pl::Range;
+    use crate::sql::context::AnchorContext;
+    use crate::{
+        parser::parse, semantic::resolve, sql::dialect::GenericDialect, sql::dialect::SQLiteDialect,
+    };
     use insta::assert_yaml_snapshot;
 
     #[test]
@@ -887,6 +945,52 @@ mod test {
         start: 5
         end: 5
         "###);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_translate_fstring() -> Result<()> {
+        let mut context_with_concat_function: Context;
+        let mut context_without_concat_function: Context;
+
+        {
+            let query = resolve(parse("from foo")?)?;
+            let (anchor, _) = AnchorContext::of(query);
+            context_with_concat_function = Context {
+                dialect: Box::new(GenericDialect {}),
+                anchor,
+                omit_ident_prefix: false,
+                pre_projection: false,
+            };
+        }
+        {
+            let query = resolve(parse("from foo")?)?;
+            let (anchor, _) = AnchorContext::of(query);
+            context_without_concat_function = Context {
+                dialect: Box::new(SQLiteDialect {}),
+                anchor,
+                omit_ident_prefix: false,
+                pre_projection: false,
+            };
+        }
+
+        fn str_lit(s: &str) -> InterpolateItem<Expr> {
+            InterpolateItem::String(s.to_string())
+        }
+
+        assert_yaml_snapshot!(translate_fstring(vec![
+            str_lit("hello"),
+            str_lit("world"),
+            ], &mut context_with_concat_function)?.to_string(), @r###"
+    ---
+    "CONCAT('hello', 'world')"
+    "###);
+
+        assert_yaml_snapshot!(translate_fstring(vec![str_lit("hello"), str_lit("world")], &mut context_without_concat_function)?.to_string(), @r###"
+    ---
+    "'hello'||'world'"
+    "###);
 
         Ok(())
     }

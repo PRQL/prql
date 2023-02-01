@@ -31,7 +31,7 @@ derive [
 
   "cte-0.prql": [
     "sql",
-    `table newest_employees = (
+    `let newest_employees = (
   from employees
   sort tenure
   take 50

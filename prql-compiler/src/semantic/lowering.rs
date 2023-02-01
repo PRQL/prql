@@ -2,7 +2,7 @@ use std::collections::hash_map::RandomState;
 use std::collections::{HashMap, HashSet};
 use std::iter::zip;
 
-use anyhow::{bail, Result};
+use anyhow::Result;
 use enum_as_inner::EnumAsInner;
 use itertools::Itertools;
 
@@ -13,6 +13,7 @@ use crate::ast::pl::{
 };
 use crate::ast::rq::{self, CId, Query, RelationColumn, TId, TableDecl, Transform};
 use crate::error::{Error, Reason, Span};
+use crate::semantic::context::TableExpr;
 use crate::semantic::module::Module;
 use crate::utils::{toposort, IdGenerator};
 
@@ -313,7 +314,8 @@ impl Lowerer {
                 self.declare_as_columns(assigns, false)?;
             }
             pl::TransformKind::Select { assigns, .. } => {
-                self.declare_as_columns(assigns, false)?;
+                let cids = self.declare_as_columns(assigns, false)?;
+                self.pipeline.push(Transform::Select(cids));
             }
             pl::TransformKind::Filter { filter, .. } => {
                 let filter = self.lower_expr(*filter)?;
@@ -558,8 +560,40 @@ impl Lowerer {
                     rq::ExprKind::SString(vec![InterpolateItem::String(ident.name)])
                 }
             }
-            pl::ExprKind::All { .. } => {
-                bail!(Error::new_simple("Wildcards cannot be used here").with_span(ast.span))
+            pl::ExprKind::All { except, .. } => {
+                let mut targets = Vec::new();
+
+                for target_id in &ast.target_ids {
+                    match self.node_mapping.get(target_id) {
+                        Some(LoweredTarget::Compute(cid)) => targets.push(*cid),
+                        Some(LoweredTarget::Input(input_columns)) => {
+                            targets.extend(input_columns.values().map(|(c, _)| c))
+                        }
+                        _ => {}
+                    }
+                }
+
+                // this is terrible code
+                let except: HashSet<_> = except
+                    .iter()
+                    .map(|e| {
+                        let ident = e.kind.as_ident().unwrap();
+                        self.lookup_cid(e.target_id.unwrap(), Some(&ident.name))
+                            .unwrap()
+                    })
+                    .collect();
+
+                targets.retain(|t| !except.contains(t));
+
+                if targets.len() == 1 {
+                    rq::ExprKind::ColumnRef(targets[0])
+                } else {
+                    return Err(
+                        Error::new_simple("This wildcard usage is not yet supported.")
+                            .with_span(ast.span)
+                            .into(),
+                    );
+                }
             }
             pl::ExprKind::Literal(literal) => rq::ExprKind::Literal(literal),
             pl::ExprKind::Binary { left, op, right } => rq::ExprKind::Binary {
@@ -757,13 +791,16 @@ fn lower_table(lowerer: &mut Lowerer, table: context::TableDecl, fq_ident: Ident
 
     let context::TableDecl { columns, expr } = table;
 
-    let relation = if let Some(expr) = expr {
-        // this is a CTE
-        lowerer.lower_relation(*expr)?
-    } else {
-        relation_from_extern_ref(columns, fq_ident.name.clone())
+    let (relation, name) = match expr {
+        TableExpr::RelationVar(expr) => {
+            // a CTE
+            (lowerer.lower_relation(*expr)?, Some(fq_ident.name))
+        }
+        TableExpr::LocalTable => {
+            extern_ref_to_relation(columns, TableExternRef::LocalTable(fq_ident.name))
+        }
+        TableExpr::Anchor(id) => extern_ref_to_relation(columns, TableExternRef::Anchor(id)),
     };
-    let name = Some(fq_ident.name);
 
     log::debug!("lowering table {name:?}, columns = {:?}", relation.columns);
 
@@ -772,14 +809,18 @@ fn lower_table(lowerer: &mut Lowerer, table: context::TableDecl, fq_ident: Ident
     Ok(())
 }
 
-fn relation_from_extern_ref(mut columns: Vec<RelationColumn>, table_name: String) -> rq::Relation {
+fn extern_ref_to_relation(
+    mut columns: Vec<RelationColumn>,
+    extern_ref: TableExternRef,
+) -> (rq::Relation, Option<String>) {
     // put wildcards last
     columns.sort_by_key(|a| matches!(a, RelationColumn::Wildcard));
 
-    rq::Relation {
-        kind: rq::RelationKind::ExternRef(TableExternRef::LocalTable(table_name)),
+    let relation = rq::Relation {
+        kind: rq::RelationKind::ExternRef(extern_ref),
         columns,
-    }
+    };
+    (relation, None)
 }
 
 fn toposort_tables(tables: Vec<(Ident, context::TableDecl)>) -> Vec<(Ident, context::TableDecl)> {
@@ -788,7 +829,7 @@ fn toposort_tables(tables: Vec<(Ident, context::TableDecl)>) -> Vec<(Ident, cont
     let mut dependencies: Vec<(Ident, Vec<Ident>)> = tables
         .iter()
         .map(|(ident, table)| {
-            let deps = (table.expr.clone())
+            let deps = (table.expr.clone().into_relation_var())
                 .map(|e| TableDepsCollector::collect(*e))
                 .unwrap_or_default();
             (ident.clone(), deps)

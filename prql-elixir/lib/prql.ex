@@ -17,7 +17,7 @@ defmodule PRQL do
           | :bigquery
           | :clickhouse
           | :hive
-          | :sqllite
+          | :sqlite
           | :snowflake
   @type format_opt :: {:format, boolean()}
   @type signature_comment_opt :: {:signature_comment, boolean()}
@@ -37,7 +37,7 @@ defmodule PRQL do
 
     * `:dialect` - Dialect used for generate SQL. Accepted values are
     `:generic`, `:mssql`, `:mysql`, `:postgres`, `:ansi`, `:bigquery`,
-    `:clickhouse`, `:hive`, `:sqllite`, `:snowflake`
+    `:clickhouse`, `:hive`, `:sqlite`, `:snowflake`
 
     * `:format` - Formats the output, defaults to `true`
 
@@ -48,12 +48,12 @@ defmodule PRQL do
 
   Using default `Generic` dialect:
       iex> PRQL.compile("from customers", signature_comment: false)
-      {:ok, "SELECT\n  *\nFROM\n  customers"}
+      {:ok, "SELECT\n  *\nFROM\n  customers\n"}
 
 
   Using `MSSQL` dialect:
       iex> PRQL.compile("from customers\ntake 10", dialect: :mssql, signature_comment: false)
-      {:ok, "SELECT\n  TOP (10) *\nFROM\n  customers"}
+      {:ok, "SELECT\n  TOP (10) *\nFROM\n  customers\n"}
   """
   @spec compile(binary(), [compile_opts()]) :: {:ok, binary()} | {:error, binary()}
   def compile(prql_query, opts \\ []) when is_binary(prql_query) and is_list(opts) do

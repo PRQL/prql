@@ -92,7 +92,7 @@ pub use utils::IntoOnly;
 use once_cell::sync::Lazy;
 use semver::Version;
 
-static PRQL_VERSION: Lazy<Version> =
+pub static PRQL_VERSION: Lazy<Version> =
     Lazy::new(|| Version::parse(env!("CARGO_PKG_VERSION")).expect("Invalid PRQL version number"));
 
 /// Compile a PRQL string into a SQL string.
@@ -101,6 +101,25 @@ static PRQL_VERSION: Lazy<Version> =
 /// - [prql_to_pl] — Build PL AST from a PRQL string
 /// - [pl_to_rq] — Finds variable references, validates functions calls, determines frames and converts PL to RQ.
 /// - [rq_to_sql] — Convert RQ AST into an SQL string.
+/// # Example
+/// Use the prql compiler to convert a PRQL string to SQLite dialect
+///
+/// ```
+/// use prql_compiler::compile;
+/// use prql_compiler::sql;
+///
+///
+/// let prql = "from employees | select [name,age] ";
+/// let opt = sql::Options {
+///     format: true,
+///     dialect: Some(sql::Dialect::SQLite),
+///     signature_comment: true
+/// };
+/// let sql = compile(&prql, Some(opt)).unwrap();
+/// println!("PRQL: {}\nSQLite: {}", prql, sql);
+///
+/// ```
+/// See [`sql::Options`](sql/struct.Options.html) and [`sql::Dialect`](sql/enum.Dialect.html) for options and supported SQL dialects.
 pub fn compile(prql: &str, options: Option<sql::Options>) -> Result<String, ErrorMessages> {
     parser::parse(prql)
         .and_then(semantic::resolve)

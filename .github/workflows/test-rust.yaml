@@ -22,9 +22,7 @@ jobs:
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
         with:
-          # Without inputs.target, it seems to select linux x64 in the wasm32
-          # tests, though in the docs it says it uses the target as the key?
-          key: ${{ inputs.target_option }}
+          key: ${{ inputs.os }}-${{ inputs.target_option }}
           save-if: ${{ github.ref == 'refs/heads/main' }}
       - uses: jetli/wasm-bindgen-action@v0.2.0
         if: inputs.target_option == '--target=wasm32-unknown-unknown'
@@ -57,7 +55,7 @@ jobs:
         uses: richb-hanover/cargo@v1.1.0
         if:
           ${{ (inputs.target_option != '--target=wasm32-unknown-unknown' &&
-          runner.os == 'ubuntu') }}
+          runner.os == 'Linux') }}
         with:
           command: insta
           args: test --unreferenced=auto ${{ inputs.target_option }}
@@ -65,7 +63,7 @@ jobs:
         uses: richb-hanover/cargo@v1.1.0
         if:
           ${{ ! (inputs.target_option != '--target=wasm32-unknown-unknown' &&
-          runner.os == 'ubuntu') }}
+          runner.os == 'Linux') }}
         with:
           command: insta
           # FIXME; for debugging

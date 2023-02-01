@@ -4,7 +4,7 @@ use std::ops::Range;
 use anyhow::{Ok, Result};
 use ariadne::{Color, Label, Report, ReportBuilder, ReportKind, Source};
 
-use super::context::{DeclKind, RelationColumns, TableDecl};
+use super::context::{DeclKind, RelationColumns, TableDecl, TableExpr};
 use super::module::NS_DEFAULT_DB;
 use super::{Context, Frame};
 use crate::ast::pl::{fold::*, *};
@@ -53,7 +53,8 @@ impl<'a> Labeler<'a> {
 
             for (_, decl) in default_db.names.into_iter() {
                 if let DeclKind::TableDecl(TableDecl {
-                    expr: Some(expr), ..
+                    expr: TableExpr::RelationVar(expr),
+                    ..
                 }) = decl.kind
                 {
                     self.fold_expr(*expr).unwrap();

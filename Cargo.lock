@@ -475,17 +475,6 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "2.34.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a0610544180c38b88101fecf2dd634b174a62eef6946f84dfc6a7127512b381c"
-dependencies = [
- "bitflags",
- "textwrap 0.11.0",
- "unicode-width",
-]
-
-[[package]]
-name = "clap"
 version = "3.2.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "71655c45cb9845d3270c9d6df84ebe72b4dad3c2ba3f7023ad47c144e4e473a5"
@@ -493,7 +482,7 @@ dependencies = [
  "bitflags",
  "clap_lex 0.2.4",
  "indexmap",
- "textwrap 0.16.0",
+ "textwrap",
 ]
 
 [[package]]
@@ -623,7 +612,7 @@ dependencies = [
 
 [[package]]
 name = "compile-files"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "prql-compiler",
 ]
@@ -805,6 +794,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "ctor"
+version = "0.1.26"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6d2301688392eb071b0bf1a37be05c469d3cc4dbbd95df672fe28ab021e6a096"
+dependencies = [
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "cxx"
 version = "1.0.85"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -847,6 +846,12 @@ dependencies = [
  "quote",
  "syn",
 ]
+
+[[package]]
+name = "diff"
+version = "0.1.13"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "56254986775e3233ffa9c4d7d3faaf6d36a2c09d30b20687e9f88bc8bafc16c8"
 
 [[package]]
 name = "digest"
@@ -1574,21 +1579,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "mdbook-preprocessor-boilerplate"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9118690be768c307c112211f45812c7fc5fb132352e35cc03e5b6bc0848a76d6"
-dependencies = [
- "anyhow",
- "clap 2.34.0",
- "mdbook",
- "semver",
- "serde_json",
-]
-
-[[package]]
 name = "mdbook-prql"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "anyhow",
  "clap 4.1.1",
@@ -1597,7 +1589,6 @@ dependencies = [
  "itertools",
  "log",
  "mdbook",
- "mdbook-preprocessor-boilerplate",
  "prql-compiler",
  "pulldown-cmark",
  "pulldown-cmark-to-cmark",
@@ -1823,6 +1814,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9b7820b9daea5457c9f21c69448905d723fbd21136ccf521748f23fd49e723ee"
 
 [[package]]
+name = "output_vt100"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "628223faebab4e3e40667ee0b2336d34a5b960ff60ea743ddfdbcf7770bcfb66"
+dependencies = [
+ "winapi",
+]
+
+[[package]]
 name = "owo-colors"
 version = "3.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2021,6 +2021,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5b40af805b3121feab8a3c29f04d8ad262fa8e0561883e7653e024ae4479e6de"
 
 [[package]]
+name = "pretty_assertions"
+version = "1.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a25e9bcb20aa780fd0bb16b72403a9064d6b3f22f026946029acb941a50af755"
+dependencies = [
+ "ctor",
+ "diff",
+ "output_vt100",
+ "yansi",
+]
+
+[[package]]
 name = "proc-macro-crate"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2070,7 +2082,7 @@ dependencies = [
 
 [[package]]
 name = "prql-compiler"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "anyhow",
  "ariadne",
@@ -2081,7 +2093,6 @@ dependencies = [
  "csv",
  "duckdb",
  "enum-as-inner",
- "globset",
  "insta",
  "itertools",
  "lazy_static",
@@ -2090,24 +2101,21 @@ dependencies = [
  "pest",
  "pest_derive",
  "postgres",
- "pulldown-cmark",
- "pulldown-cmark-to-cmark",
+ "pretty_assertions",
  "regex",
  "rusqlite",
  "semver",
  "serde",
  "serde_json",
- "similar",
  "sqlformat",
  "sqlparser",
  "strum",
  "strum_macros",
- "walkdir",
 ]
 
 [[package]]
 name = "prql-compiler-macros"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "prql-compiler",
  "syn",
@@ -2115,7 +2123,7 @@ dependencies = [
 
 [[package]]
 name = "prql-java"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "jni",
  "prql-compiler",
@@ -2123,7 +2131,7 @@ dependencies = [
 
 [[package]]
 name = "prql-js"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "console_error_panic_hook",
  "prql-compiler",
@@ -2133,7 +2141,7 @@ dependencies = [
 
 [[package]]
 name = "prql-lib"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "libc",
  "prql-compiler",
@@ -2142,7 +2150,7 @@ dependencies = [
 
 [[package]]
 name = "prql-python"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "insta",
  "prql-compiler",
@@ -2152,7 +2160,7 @@ dependencies = [
 
 [[package]]
 name = "prqlc"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "anyhow",
  "ariadne",
@@ -2755,15 +2763,6 @@ checksum = "cb20089a8ba2b69debd491f8d2d023761cbf196e999218c591fa1e7e15a21907"
 dependencies = [
  "rustix",
  "windows-sys",
-]
-
-[[package]]
-name = "textwrap"
-version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d326610f408c7a4eb6f51c37c330e496b08506c9457c9d34287ecc38809fb060"
-dependencies = [
- "unicode-width",
 ]
 
 [[package]]

@@ -1,10 +1,28 @@
 # PRQL Changelog
 
-## 0.4.2 — [unreleased]
+## 0.4.3 — [unreleased]
 
 **Features**:
 
-- `from_text` function that supports JSON and CSV formats. (@aljazerzen, @snth)
+**Fixes**:
+
+**Documentation**:
+
+**Web**:
+
+**Integrations**:
+
+**Internal changes**:
+
+**New Contributors**:
+
+## 0.4.2 — 2022-01-25
+
+**Features**:
+
+- New `from_text format-arg string-arg` function that supports JSON and CSV
+  formats. _format-arg_ can be `format:csv` or `format:json`. _string-arg_ can
+  be a string in any format. (@aljazerzen & @snth, #1514)
 
   ```prql
   from_text format:csv """
@@ -26,7 +44,17 @@
   }'''
   ```
 
-  Currently, arguments are limited to string constants.
+  For now, the argument is limited to string constants.
+
+**Fixes**
+
+- Export constructor for SQLCompileOptions (@bcho, #1621)
+- Remove backticks in count_distinct (@aljazerzen, #1611)
+
+**New Contributors**
+
+- @1Kinoti, with #1596
+- @veenaamb, with #1614
 
 ## 0.4.1 — 2022-01-18
 
@@ -448,7 +476,9 @@ We also have new features in the
 
 **Documentation**:
 
-- Add docs on [Architecture](prql-compiler/ARCHITECTURE.md) (@aljazerzen, #904)
+- Add docs on
+  [Architecture](https://prql-lang.org/book/internals/compiler-architecture.html)
+  (@aljazerzen, #904)
 - Add Changelog (@max-sixty, #890 #891)
 
 **Internal changes**:
