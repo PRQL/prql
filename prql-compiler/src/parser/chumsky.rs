@@ -75,6 +75,10 @@ fn digits(n: usize) -> impl Parser<char, String, Error = Simple<char>> {
         .collect::<String>()
 }
 
+fn join<const D: char>((a, b): (String, String)) -> String {
+    return a + &D.to_string() + &b;
+}
+
 pub fn ident() -> impl Parser<char, Ident, Error = Simple<char>> {
     let star = just('*').map(|c| c.to_string());
 
@@ -94,23 +98,13 @@ mod test {
     #[test]
     fn test_date() {
         let date = just('@')
-            .ignore_then(
-                digits(4)
-                    .then_ignore(just('-'))
-                    .then(digits(2))
-                    .then_ignore(just('-'))
-                    .then(digits(2)),
-            )
-            .map(|((y, m), d)| (y, m, d));
-
-        #[allow(unused_variables)]
-        let equivalent_but_all_on_one_level = just('@')
             .ignore_then(digits(4))
             .then_ignore(just('-'))
             .then(digits(2))
+            .map(join::<'-'>)
             .then_ignore(just('-'))
             .then(digits(2))
-            .map(|((y, m), d)| (y, m, d));
+            .map(join::<'-'>);
 
         // TODO:
         // - > Why is the result nested?
@@ -124,9 +118,7 @@ mod test {
         //   users into simplicity)
         assert_yaml_snapshot!(date.parse("@1984-12-01").unwrap(), @r###"
         ---
-        - "1984"
-        - "12"
-        - "01"
+        1984-12-01
         "###);
         // Ok(())
     }
