@@ -123,7 +123,7 @@ class Output extends React.Component {
 
   async copyOutput() {
     try {
-      await navigator.clipboard.writeText(this.props.content.sql);
+      await navigator.clipboard.writeText(this.props.content[this.props.tab]);
 
       this.setState({ justCopied: true });
 
