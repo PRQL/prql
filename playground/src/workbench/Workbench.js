@@ -1,11 +1,11 @@
 import "./Workbench.css";
 
-import React from "react";
 import * as prql from "prql-js/dist/bundler";
+import React from "react";
 
-import * as monacoTheme from "./monaco-theme.json";
-import * as monaco from "monaco-editor";
 import Editor, { loader } from "@monaco-editor/react";
+import * as monaco from "monaco-editor";
+import * as monacoTheme from "./monaco-theme.json";
 import prqlSyntax from "./prql-syntax";
 
 import { Light as SyntaxHighlighter } from "react-syntax-highlighter";
@@ -165,6 +165,7 @@ class Workbench extends React.Component {
               options={{
                 minimap: { enabled: false },
                 scrollBeyondLastLine: false,
+                fontSize: 14,
               }}
             />
           </div>
