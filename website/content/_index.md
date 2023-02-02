@@ -115,9 +115,9 @@ showcase_section:
         ]
       sql: |
         SELECT
-          employees.*,
+          *,
           DATE '2022-12-31' - dob AS age_at_year_end,
-          start + INTERVAL '10' DAY AS first_check_in
+          start + INTERVAL 10 DAY AS first_check_in
         FROM
           employees
 
