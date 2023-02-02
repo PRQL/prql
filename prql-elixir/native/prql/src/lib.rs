@@ -82,16 +82,15 @@ pub struct CompileOptions {
     /// Defaults to true.
     pub format: bool,
 
-    /// Target dialect you want to compile for.
+    /// Target dialect to compile to.
     ///
-    /// Because PRQL compiles to a subset of SQL, not all SQL features are
-    /// required for PRQL. This means that generic dialect may work with most
-    /// databases.
+    /// This is only changes the output for a relatively small subset of
+    /// features.
     ///
-    /// If something does not work in dialect you need, please report it at
-    /// GitHub issues.
+    /// If something does not work in a specific dialect, please raise in a
+    /// GitHub issue.
     ///
-    /// If None is used, `sql_dialect` flag from query definition is used.
+    /// If `None` is used, the `target` argument from the query header is used.
     /// If it does not exist, [Dialect::Generic] is used.
     pub dialect: Atom,
 
