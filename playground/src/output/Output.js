@@ -1,6 +1,7 @@
 import "./Output.css";
 
 import React from "react";
+import YAML from "yaml";
 
 import { Light as SyntaxHighlighter } from "react-syntax-highlighter";
 
@@ -26,8 +27,8 @@ class Output extends React.Component {
         <div className="tab-top">
           <Tab text="output.sql" name="sql" parent={this.props} />
           <Tab text="output.arrow" name="arrow" parent={this.props} />
-          <Tab text="output.pl.json" name="pl" parent={this.props} />
-          <Tab text="output.rq.json" name="rq" parent={this.props} />
+          <Tab text="output.pl.yaml" name="pl" parent={this.props} />
+          <Tab text="output.rq.yaml" name="rq" parent={this.props} />
 
           <div className="spacer"></div>
 
@@ -103,7 +104,7 @@ class Output extends React.Component {
       );
     }
     if (this.props.tab === "pl" && this.props.content.pl) {
-      const pl = JSON.stringify(JSON.parse(this.props.content.pl), null, 4);
+      const pl = YAML.stringify(JSON.parse(this.props.content.pl));
       return (
         <SyntaxHighlighter language="json" useInlineStyles={false}>
           {pl}
@@ -111,7 +112,7 @@ class Output extends React.Component {
       );
     }
     if (this.props.tab === "rq" && this.props.content.rq) {
-      const rq = JSON.stringify(JSON.parse(this.props.content.rq), null, 4);
+      const rq = YAML.stringify(JSON.parse(this.props.content.rq));
       return (
         <SyntaxHighlighter language="json" useInlineStyles={false}>
           {rq}
@@ -123,7 +124,7 @@ class Output extends React.Component {
 
   async copyOutput() {
     try {
-      await navigator.clipboard.writeText(this.props.content.sql);
+      await navigator.clipboard.writeText(this.props.content[this.props.tab]);
 
       this.setState({ justCopied: true });
 
