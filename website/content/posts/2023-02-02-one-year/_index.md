@@ -31,7 +31,7 @@ Language design & development in the last year have been focused on these areas:
   and their [interactions](https://github.com/PRQL/prql/issues/300),
 
 - fundamentals of how [functions](https://github.com/PRQL/prql/issues/444) and
-  pipelines are [evaluated](define-functional-semantics).
+  pipelines are [evaluated](#define-functional-semantics).
 
 PRQL is now in a state where it can greatly improve the developer experience for
 writing complex analytical queries, but it does require a bit of fiddling to set
