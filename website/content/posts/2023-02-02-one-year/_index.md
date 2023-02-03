@@ -5,9 +5,9 @@ layout: article
 toc: true
 ---
 
-A year ago,
+A year ago, we posted
 [a proposal for a modern SQL replacement](https://news.ycombinator.com/item?id=30060784)
-was posted to Hacker News. It immediately sparked the interest of many people
+to Hacker News. It immediately sparked the interest of many people
 dealing with data. The project grew a community of people who are now developing
 the language, tooling, and the idea of a modern relational language. Since then
 we've opened 1577 issues & PRs on [our main repo](https://github.com/PRQL/prql),
