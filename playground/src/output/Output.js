@@ -1,9 +1,13 @@
 import "./Output.css";
 
 import React from "react";
-import YAML from "yaml";
 
 import { Light as SyntaxHighlighter } from "react-syntax-highlighter";
+import sql from "react-syntax-highlighter/dist/esm/languages/hljs/sql";
+import yaml from "react-syntax-highlighter/dist/esm/languages/hljs/yaml";
+
+SyntaxHighlighter.registerLanguage("sql", sql);
+SyntaxHighlighter.registerLanguage("yaml", yaml);
 
 function Tab(props) {
   return (
@@ -104,18 +108,16 @@ class Output extends React.Component {
       );
     }
     if (this.props.tab === "pl" && this.props.content.pl) {
-      const pl = YAML.stringify(JSON.parse(this.props.content.pl));
       return (
-        <SyntaxHighlighter language="json" useInlineStyles={false}>
-          {pl}
+        <SyntaxHighlighter language="yaml" useInlineStyles={false}>
+          {this.props.content.pl}
         </SyntaxHighlighter>
       );
     }
     if (this.props.tab === "rq" && this.props.content.rq) {
-      const rq = YAML.stringify(JSON.parse(this.props.content.rq));
       return (
-        <SyntaxHighlighter language="json" useInlineStyles={false}>
-          {rq}
+        <SyntaxHighlighter language="yaml" useInlineStyles={false}>
+          {this.props.content.rq}
         </SyntaxHighlighter>
       );
     }
