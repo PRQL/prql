@@ -1,69 +1,57 @@
 const examples = {
   "introduction.prql": [
-    "sql",
-    `from employees
-filter country_code == "USA"   # Each line transforms the previous result.
-derive [                       # This adds columns / variables.
-  gross_salary = salary + payroll_tax,
-  gross_cost = gross_salary + benefits_cost  # Variables can use other variables.
+    "arrow",
+    `from invoices
+filter billing_country == "USA" # Each line transforms the previous result
+derive [                        # This adds columns
+  transaction_fees = 0.8,
+  income = total - transaction_fees  # Columns can use other columns
 ]
-filter gross_cost > 0
-group [title, country_code] (  # For each group use a nested pipeline
-  aggregate [                  # Aggregate each group to a single row
-    average salary,
-    average gross_salary,
-    sum salary,
-    sum gross_salary,
-    average gross_cost,
-    sum_gross_cost = sum gross_cost,
+filter income > 1     # Transforms can be repeated.
+group customer_id (   # Use a nested pipeline on each group
+  aggregate [         # Aggregate each group to a single row
+    average total,
+    sum_income = sum income,
     ct = count,
   ]
 )
-sort sum_gross_cost
-filter ct > 200
-take 20
-join countries side:left [==country_code]
-derive [
-  always_true = true,
-  db_version = s"version()",    # An S-string, which transpiles directly into SQL
-]`,
-  ],
-
-  "cte-0.prql": [
-    "sql",
-    `let newest_employees = (
-  from employees
-  sort tenure
-  take 50
-  select [name, salary, country]
-)
-
-let average_salaries = (
-  from employees
-  group country (
-    aggregate average_country_salary = (average salary)
-  )
-)
-
-from newest_employees
-join average_salaries [==country]
-select [name, salary, average_country_salary]
+sort [-sum_income]    # Decreasing order
+take 10               # Limit to top 10 spenders
+join c=customers [==customer_id]
+derive name = f"{c.last_name}, {c.first_name}"
+select [              # Select only these columns
+  c.customer_id, name, sum_income
+]
+derive db_version = s"version()" # S-string, escape hatch to SQL
 `,
   ],
 
-  "employees-0.prql": [
-    "sql",
-    `from salaries
-group [emp_no] (
-  aggregate [emp_salary = average salary]
+  "let-table-0.prql": [
+    "arrow",
+    `let soundtracks = (
+  from playlists
+  filter name == 'TV Shows'
+  join pt=playlist_track [==playlist_id]
+  select pt.track_id
 )
-join t=titles [==emp_no]
-join dept_emp side:left [==emp_no]
-group [dept_emp.dept_no, t.title] (
-  aggregate [avg_salary = average emp_salary]
+
+let high_energy = (
+  from genres
+  filter name == 'Rock And Roll' or name == 'Hip Hop/Rap'
 )
-join departments [==dept_no]
-select [dept_name, title, avg_salary]
+
+from t=tracks
+
+# anti-join soundtracks
+join side:left s=soundtracks [==track_id]
+filter s.track_id == null
+
+# limit to kicker genres
+join g=high_energy [==genre_id]
+
+# format output
+select [t.track_id, track = t.name, genre = g.name]
+take 10
 `,
   ],
 

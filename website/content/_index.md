@@ -12,24 +12,28 @@ hero_section:
     link: https://prql-lang.org/book/
     label: "Reference"
   prql_example: |
-    from employees
-    filter start_date > @2021-01-01
+    from invoices
+    filter billing_country == "USA"
     derive [
-      gross_salary = salary + (tax ?? 0),
-      gross_cost = gross_salary + benefits_cost,
+      transaction_fees = 0.8,
+      income = total - transaction_fees
     ]
-    filter gross_cost > 0
-    group [title, country] (
+    filter income > 1
+    group customer_id (
       aggregate [
-        average gross_salary,
-        sum_gross_cost = sum gross_cost,
+        average total,
+        sum_income = sum income,
+        ct = count,
       ]
     )
-    filter sum_gross_cost > 100_000
-    derive id = f"{title}_{country}"
-    derive country_code = s"LEFT(country, 2)"
-    sort [sum_gross_cost, -country]
-    take 1..20
+    sort [-sum_income]
+    take 10
+    join c=customers [==customer_id]
+    derive name = f"{c.last_name}, {c.first_name}"
+    select [
+      c.customer_id, name, sum_income
+    ]
+    derive db_version = s"version()"
 
 why_prql_section:
   enable: true
