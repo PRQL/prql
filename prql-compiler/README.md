@@ -5,9 +5,10 @@
 For more on PRQL, check out the [PRQL website](https://prql-lang.org) or the
 [PRQL repo](https://github.com/PRQL/prql).
 
-For more usage examples and the library documentation, check out the [`prql-compiler` documentation](https://docs.rs/prql-compiler/latest/prql_compiler/).
+For more usage examples and the library documentation, check out the
+[`prql-compiler` documentation](https://docs.rs/prql-compiler/latest/prql_compiler/).
 
-# Installation 
+# Installation
 
 ```shell
 cargo add prql-compiler
@@ -28,24 +29,22 @@ let opt = sql::Options{
     dialect: Some(sql::Dialect::SQLite),
     signature_comment: false
 };
-
 let sql = compile(&prql, Some(opt)).unwrap();
 assert_eq!("SELECT name, age FROM employees", sql);
 ```
 
-
 ## Terminology
 
-[*Relation*](https://en.wikipedia.org/wiki/Relation_(database)): Standard definition of a relation in context of databases:
+[_Relation_](<https://en.wikipedia.org/wiki/Relation_(database)>): Standard
+definition of a relation in context of databases:
 
 - An ordered set of tuples of form `(d_0, d_1, d_2, ...)`.
 - Set of all `d_x` is called an attribute or a column. It has a name and a type
   domain `D_x`.
 
-*Frame*: descriptor of a relation. Contains list of columns (with names and
+_Frame_: descriptor of a relation. Contains list of columns (with names and
 types). Does not contain data.
 
-[*Table*](https://en.wikipedia.org/wiki/Table_(database)#Tables_versus_relations): persistently stored relation. Some uses of this term actually mean to
-say "relation".
-
-
+[_Table_](<https://en.wikipedia.org/wiki/Table_(database)#Tables_versus_relations>):
+persistently stored relation. Some uses of this term actually mean to say
+"relation".
