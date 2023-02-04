@@ -42,9 +42,11 @@ async function registerChinook(db) {
   const baseUrl = `${window.location.href}/data/chinook`;
   const http = duckdb.DuckDBDataProtocol.HTTP;
 
-  await Promise.all(CHINOOK_TABLES.map(table =>
-    db.registerFileURL(`${table}.csv`, `${baseUrl}/${table}.csv`, http, false)
-  ));
+  await Promise.all(
+    CHINOOK_TABLES.map((table) =>
+      db.registerFileURL(`${table}.csv`, `${baseUrl}/${table}.csv`, http, false)
+    )
+  );
 
   const c = await db.connect();
   for (const table of CHINOOK_TABLES) {
