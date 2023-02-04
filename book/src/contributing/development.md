@@ -142,21 +142,18 @@ change!
   with `{message}, ({@contributor, #X})` where `X` is the PR number.
   - If there's a missing entry, a follow-up PR containing just the changelog
     entry is welcome.
-- We're experimenting with using the
-  [Conventional Commits](https://www.conventionalcommits.org) message format,
-  enforced through
+- We're using [Conventional Commits](https://www.conventionalcommits.org)
+  message format, enforced through
   [action-semantic-pull-request](https://github.com/amannn/action-semantic-pull-request).
-  This would let us generate Changelogs automatically. The check is not required
-  to pass at the moment.
 
 ### Merges
 
 - **We merge any code that makes PRQL better**
 - A PR doesn't need to be perfect to be merged; it doesn't need to solve a big
   problem. It needs to:
-  - be in the right direction
-  - make incremental progress
-  - be explicit on its current state, so others can continue the progress
+  - be in the right direction,
+  - make incremental progress,
+  - be explicit on its current state, so others can continue the progress.
 - If you have merge permissions, and are reasonably confident that a PR is
   suitable to merge (whether or not you're the author), feel free to merge.
   - If you don't have merge permissions and have authored a few PRs, ask and ye
@@ -369,14 +366,14 @@ Currently we release in a semi-automated way:
    including "New Contributors".
 2. Run `cargo release version patch -x && cargo release replace -x` to bump the
    versions, then PR the resulting commit.
-3. After merging, go to
-   [Draft a new release](https://github.com/PRQL/prql/releases/new)[^perms],
+3. After merging, force push the commit to `website` (see section below).
+4. [Draft a new release](https://github.com/PRQL/prql/releases/new)[^perms],
    copy the changelog entry into the release description[^wrap], enter the tag
    to be created, and hit "Publish".
-4. From there, both the tag and release is created and all packages are
+5. From there, both the tag and release is created and all packages are
    published automatically based on our
    [release workflow](https://github.com/PRQL/prql/blob/main/.github/workflows/release.yaml).
-5. Add in the sections for a new Changelog:
+6. Add in the sections for a new Changelog:
 
    ```md
    ## 0.4.X — [unreleased]
@@ -404,3 +401,17 @@ We may make this more automated in future; e.g. automatic changelog creation.
     manually editing the text.
 
 [^perms]: Only maintainers have access to this page.
+
+---
+
+## Publish the website
+
+The website is published together with the book and the playground, and is
+automatically build and released on any push to the `website` branch.
+
+The `website` branch should point to latest release, so the book and playground
+match the released libraries. Website fixes should be committed to the `main`
+branch via a PR and cherry-picked to `website` if needed.
+
+Push access to the `website` branch is restricted to
+[PRQL core team](https://github.com/orgs/PRQL/teams/prql-team).
