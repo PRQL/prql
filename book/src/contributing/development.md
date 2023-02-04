@@ -356,6 +356,19 @@ raise an issue.
 
 ---
 
+## Website
+
+The website is published together with the book and the playground, and is
+automatically built and released on any push to the `website` branch.
+
+The `website` branch points to the latest release, plus any website-specific
+fixes. That way, the compiler behavior in the playground matches the latest
+release. These fixes should have a `backport website` label added to the PR,
+which will automatically cherry-pick the commit from `main` to the `website`
+branch on merge.
+
+---
+
 ## Releasing
 
 Currently we release in a semi-automated way:
@@ -401,14 +414,3 @@ We may make this more automated in future; e.g. automatic changelog creation.
     manually editing the text.
 
 [^perms]: Only maintainers have access to this page.
-
----
-
-## Publish the website
-
-The website is published together with the book and the playground, and is
-automatically build and released on any push to the `website` branch.
-
-The `website` branch should point to latest release, so the book and playground
-match the released libraries. Website fixes should be committed to the `main`
-branch via a PR and cherry-picked to `website` if needed.
