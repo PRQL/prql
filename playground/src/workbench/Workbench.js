@@ -89,7 +89,7 @@ class Workbench extends React.Component {
       if (sql) {
         pl = prql.prql_to_pl(value);
       }
-    } catch (ignored) { }
+    } catch (ignored) {}
 
     let rq;
     try {
