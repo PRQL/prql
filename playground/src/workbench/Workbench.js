@@ -2,18 +2,15 @@ import "./Workbench.css";
 
 import * as prql from "prql-js/dist/bundler";
 import React from "react";
+import YAML from "yaml";
 
 import Editor, { loader } from "@monaco-editor/react";
 import * as monaco from "monaco-editor";
 import * as monacoTheme from "./monaco-theme.json";
 import prqlSyntax from "./prql-syntax";
 
-import { Light as SyntaxHighlighter } from "react-syntax-highlighter";
-import sql from "react-syntax-highlighter/dist/esm/languages/hljs/sql";
 import Output from "../output/Output";
 import * as duckdb from "./duckdb";
-
-SyntaxHighlighter.registerLanguage("sql", sql);
 
 loader.config({ monaco });
 
@@ -92,14 +89,16 @@ class Workbench extends React.Component {
       if (sql) {
         pl = prql.prql_to_pl(value);
       }
-    } catch (ignored) {}
+    } catch (ignored) { }
 
     let rq;
     try {
       if (pl) {
         rq = prql.pl_to_rq(pl);
       }
-    } catch (ignored) {}
+    } catch (ignored) {
+      console.log(ignored);
+    }
 
     let arrow;
     const c = await (await this.duckdb).connect();
@@ -111,6 +110,13 @@ class Workbench extends React.Component {
       arrow = null;
     } finally {
       c.close();
+    }
+
+    if (pl) {
+      pl = YAML.stringify(JSON.parse(pl));
+    }
+    if (rq) {
+      rq = YAML.stringify(JSON.parse(rq));
     }
 
     const output = { sql, arrow, pl, rq };
