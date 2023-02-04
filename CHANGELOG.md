@@ -12,7 +12,10 @@
 
 **Documentation**:
 
-- Add a documentation test for prql-compiler, update prql-compiler README, and include the README in the prql book section for Rust binidings. The code examples in the README are included and tested as doctests in the prql-compiler (@nkicg6, #1679)
+- Add a documentation test for prql-compiler, update prql-compiler README, and
+  include the README in the prql book section for Rust binidings. The code
+  examples in the README are included and tested as doctests in the
+  prql-compiler (@nkicg6, #1679)
 
 **Web**:
 

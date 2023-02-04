@@ -25,7 +25,7 @@ use prql_compiler::{compile, sql};
 
 let prql = "from employees | select [name, age]";
 let opt = sql::Options{
-    format: false, 
+    format: false,
     dialect: Some(sql::Dialect::SQLite),
     signature_comment: false
 };
