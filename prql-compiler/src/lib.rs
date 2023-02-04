@@ -115,7 +115,7 @@ pub static PRQL_VERSION: Lazy<Version> =
 /// };
 /// let sql = compile(&prql, Some(opt)).unwrap();
 /// println!("PRQL: {}\nSQLite: {}", prql, &sql);
-/// # assert_eq!("SELECT name, age FROM employees", sql)
+/// assert_eq!("SELECT name, age FROM employees", sql)
 ///
 /// ```
 /// See [`sql::Options`](sql/struct.Options.html) and [`sql::Dialect`](sql/enum.Dialect.html) for options and supported SQL dialects.

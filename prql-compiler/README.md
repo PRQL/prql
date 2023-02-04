@@ -1,6 +1,6 @@
-# Rust PRQL compiler
+# PRQL compiler
 
-`prql-compiler` contains the implementation of PRQL's compiler, written in rust.
+`prql-compiler` contains the implementation of PRQL's compiler, written in Rust.
 
 For more on PRQL, check out the [PRQL website](https://prql-lang.org) or the
 [PRQL repo](https://github.com/PRQL/prql).
@@ -20,17 +20,17 @@ Compile a PRQL string to a SQLite dialect string.
 **src/main.rs**
 
 ```rust
-  use prql_compiler::{compile, sql};
+use prql_compiler::{compile, sql};
 
-  let prql = "from employees | select [name, age]";
-  let opt = sql::Options{
-      format: false, 
-      dialect: Some(sql::Dialect::SQLite),
-      signature_comment: false
-  };
+let prql = "from employees | select [name, age]";
+let opt = sql::Options{
+    format: false, 
+    dialect: Some(sql::Dialect::SQLite),
+    signature_comment: false
+};
 
-  let sql = compile(&prql, Some(opt)).unwrap();
-  assert_eq!("SELECT name, age FROM employees", sql);
+let sql = compile(&prql, Some(opt)).unwrap();
+assert_eq!("SELECT name, age FROM employees", sql);
 ```
 
 
