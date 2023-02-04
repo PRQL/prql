@@ -92,3 +92,10 @@ jobs:
   #         nexus_username: ${{ secrets.nexus_username }}
   #         nexus_password: ${{ secrets.nexus_password }}
   #         directory: prql-java/java/
+
+  publish-website:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v3
+      - run: git push origin HEAD:website --force

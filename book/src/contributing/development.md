@@ -366,14 +366,14 @@ Currently we release in a semi-automated way:
    including "New Contributors".
 2. Run `cargo release version patch -x && cargo release replace -x` to bump the
    versions, then PR the resulting commit.
-3. After merging, force push the commit to `website` (see section below).
-4. [Draft a new release](https://github.com/PRQL/prql/releases/new)[^perms],
+3. After merging, go to
+   [Draft a new release](https://github.com/PRQL/prql/releases/new)[^perms],
    copy the changelog entry into the release description[^wrap], enter the tag
    to be created, and hit "Publish".
-5. From there, both the tag and release is created and all packages are
+4. From there, both the tag and release is created and all packages are
    published automatically based on our
    [release workflow](https://github.com/PRQL/prql/blob/main/.github/workflows/release.yaml).
-6. Add in the sections for a new Changelog:
+5. Add in the sections for a new Changelog:
 
    ```md
    ## 0.4.X — [unreleased]
@@ -412,6 +412,3 @@ automatically build and released on any push to the `website` branch.
 The `website` branch should point to latest release, so the book and playground
 match the released libraries. Website fixes should be committed to the `main`
 branch via a PR and cherry-picked to `website` if needed.
-
-Push access to the `website` branch is restricted to
-[PRQL core team](https://github.com/orgs/PRQL/teams/prql-team).
