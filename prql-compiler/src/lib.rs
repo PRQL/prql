@@ -105,18 +105,17 @@ pub static PRQL_VERSION: Lazy<Version> =
 /// Use the prql compiler to convert a PRQL string to SQLite dialect
 ///
 /// ```
-/// use prql_compiler::compile;
-/// use prql_compiler::sql;
-///
+/// use prql_compiler::{compile, sql};
 ///
 /// let prql = "from employees | select [name,age] ";
 /// let opt = sql::Options {
-///     format: true,
+///     format: false,
 ///     dialect: Some(sql::Dialect::SQLite),
-///     signature_comment: true
+///     signature_comment: false
 /// };
 /// let sql = compile(&prql, Some(opt)).unwrap();
-/// println!("PRQL: {}\nSQLite: {}", prql, sql);
+/// println!("PRQL: {}\nSQLite: {}", prql, &sql);
+/// # assert_eq!("SELECT name, age FROM employees", sql)
 ///
 /// ```
 /// See [`sql::Options`](sql/struct.Options.html) and [`sql::Dialect`](sql/enum.Dialect.html) for options and supported SQL dialects.
@@ -127,6 +126,10 @@ pub fn compile(prql: &str, options: Option<sql::Options>) -> Result<String, Erro
         .map_err(error::downcast)
         .map_err(|e| e.composed("", prql, false))
 }
+
+#[doc = include_str!("../README.md")]
+#[cfg(doctest)]
+pub struct ReadmeDoctests;
 
 /// Parse PRQL into a PL AST
 pub fn prql_to_pl(prql: &str) -> Result<Vec<ast::pl::Stmt>, ErrorMessages> {
