@@ -74,6 +74,8 @@ impl From<CompileOptions> for prql_compiler::sql::Options {
     }
 }
 
+// Unclear why we need this `allow`
+#[allow(clippy::needless_borrow)]
 #[derive(Clone, NifStruct, Debug)]
 #[module = "PRQL.Native.CompileOptions"]
 pub struct CompileOptions {
