@@ -35,5 +35,4 @@ jobs:
           # Docs are at https://github.com/tibdex/backport/blob/main/action.yml
           # We only use `website` atm
           label_pattern: "^pr-backport-(?<base>([^ ]+))$"
-          title_template:
-            'docs(website): Backport "<%= title %>" (<%= number%>)'
+          title_template: "chore: Backport #<%= number%> to `web`"
