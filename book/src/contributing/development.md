@@ -359,16 +359,15 @@ raise an issue.
 ## Website
 
 The website is published together with the book and the playground, and is
-automatically built and released on any push to the `website` branch.
+automatically built and released on any push to the `web` branch.
 
-The `website` branch points to the latest release plus any website-specific
-fixes. That way, the compiler behavior in the playground matches the latest
-release while allowing us to fix mistakes with a tighter loop than every
-release.
+The `web` branch points to the latest release plus any website-specific fixes.
+That way, the compiler behavior in the playground matches the latest release
+while allowing us to fix mistakes with a tighter loop than every release.
 
 Fixes to the playground, book, or website should have a `pr-backport-web` label
-added to their PR — a bot will then open another PR onto the `website` branch
-once the initial branch merges.
+added to their PR — a bot will then open another PR onto the `web` branch once
+the initial branch merges.
 
 ```admonish note
 Because of GitHub's restrictions on bots kicking off workflows, running the
