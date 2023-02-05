@@ -366,9 +366,9 @@ fixes. That way, the compiler behavior in the playground matches the latest
 release while allowing us to fix mistakes with a tighter loop than every
 release.
 
-Fixes to the playground, book, or website should have a `pr-backport-website`
-label added to their PR — a bot will then open another PR onto the `website`
-branch once the initial branch merges.
+Fixes to the playground, book, or website should have a `pr-backport-web` label
+added to their PR — a bot will then open another PR onto the `website` branch
+once the initial branch merges.
 
 ```admonish note
 Because of GitHub's restrictions on bots kicking off workflows, running the
