@@ -12,15 +12,17 @@ mod std;
 pub use dialect::Dialect;
 
 use anyhow::Result;
+use serde::{Deserialize, Serialize};
 
-use crate::{ast::rq::Query, Options, PRQL_VERSION};
+use crate::{ast::rq::Query, PRQL_VERSION};
 
 use self::{context::AnchorContext, dialect::DialectHandler};
 
 /// Translate a PRQL AST into a SQL string.
-pub fn compile(query: Query, options: Options) -> Result<String> {
-    let crate::Target::Sql(dialect) = options.target;
-    let sql_ast = gen_query::translate_query(query, dialect)?;
+pub fn compile(query: Query, options: Option<Options>) -> Result<String> {
+    let options = options.unwrap_or_default();
+
+    let sql_ast = gen_query::translate_query(query, options.dialect)?;
 
     let sql = sql_ast.to_string();
 
@@ -56,6 +58,64 @@ pub fn compile(query: Query, options: Options) -> Result<String> {
     Ok(sql)
 }
 
+/// Compilation options for SQL backend of the compiler.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Options {
+    /// Pass generated SQL string trough a formatter that splits it
+    /// into multiple lines and prettifies indentation and spacing.
+    ///
+    /// Defaults to true.
+    pub format: bool,
+
+    /// Target dialect to compile to.
+    ///
+    /// This is only changes the output for a relatively small subset of
+    /// features.
+    ///
+    /// If something does not work in a specific dialect, please raise in a
+    /// GitHub issue.
+    ///
+    /// If `None` is used, the `target` argument from the query header is used.
+    /// If it does not exist, [Dialect::Generic] is used.
+    pub dialect: Option<Dialect>,
+
+    /// Emits the compiler signature as a comment after generated SQL
+    ///
+    /// Defaults to true.
+    pub signature_comment: bool,
+}
+
+impl Default for Options {
+    fn default() -> Self {
+        Self {
+            format: true,
+            dialect: None,
+            signature_comment: true,
+        }
+    }
+}
+
+impl Options {
+    pub fn no_format(mut self) -> Self {
+        self.format = false;
+        self
+    }
+
+    pub fn no_signature(mut self) -> Self {
+        self.signature_comment = false;
+        self
+    }
+
+    pub fn with_dialect(mut self, dialect: Dialect) -> Self {
+        self.dialect = Some(dialect);
+        self
+    }
+
+    pub fn some(self) -> Option<Self> {
+        Some(self)
+    }
+}
+
 struct Context {
     pub dialect: Box<dyn DialectHandler>,
     pub anchor: AnchorContext,
@@ -72,11 +132,19 @@ struct Context {
 #[cfg(test)]
 mod test {
     use crate::compile;
-    use crate::Options;
+    use crate::sql::Options;
 
     #[test]
     fn test_end_with_new_line() {
-        let sql = compile("from a", Options::default().no_signature()).unwrap();
+        let sql = compile(
+            "from a",
+            Some(Options {
+                format: true,
+                dialect: None,
+                signature_comment: false,
+            }),
+        )
+        .unwrap();
         assert_eq!(sql, "SELECT\n  *\nFROM\n  a\n")
     }
 }

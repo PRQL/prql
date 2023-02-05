@@ -5,9 +5,9 @@ mod utils;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
-pub fn compile(prql_query: &str, options: Option<CompileOptions>) -> Option<String> {
+pub fn compile(prql_query: &str, options: Option<SQLCompileOptions>) -> Option<String> {
     return_or_throw(
-        prql_compiler::compile(prql_query, options.map(|x| x.into()).unwrap_or_default())
+        prql_compiler::compile(prql_query, options.map(|x| x.into()))
             .map_err(|e| e.composed("", prql_query, false)),
     )
 }
@@ -36,14 +36,14 @@ pub fn rq_to_sql(rq_json: &str) -> Option<String> {
     return_or_throw(
         Ok(rq_json)
             .and_then(prql_compiler::json::to_rq)
-            .and_then(|x| prql_compiler::rq_to_sql(x, prql_compiler::Options::default())),
+            .and_then(|x| prql_compiler::rq_to_sql(x, None)),
     )
 }
 
 /// Compilation options for SQL backend of the compiler.
 #[wasm_bindgen]
 #[derive(Clone)]
-pub struct CompileOptions {
+pub struct SQLCompileOptions {
     /// Pass generated SQL string trough a formatter that splits it
     /// into multiple lines and prettifies indentation and spacing.
     ///
@@ -60,7 +60,7 @@ pub struct CompileOptions {
     ///
     /// If `None` is used, the `target` argument from the query header is used.
     /// If it does not exist, [Dialect::Generic] is used.
-    pub target: Option<Dialect>,
+    pub dialect: Option<Dialect>,
 
     /// Emits the compiler signature as a comment after generated SQL
     ///
@@ -68,34 +68,34 @@ pub struct CompileOptions {
     pub signature_comment: bool,
 }
 
-impl Default for CompileOptions {
+impl Default for SQLCompileOptions {
     fn default() -> Self {
         Self {
             format: true,
-            target: None,
+            dialect: None,
             signature_comment: true,
         }
     }
 }
 
 #[wasm_bindgen]
-pub fn default_compile_options() -> CompileOptions {
-    CompileOptions::default()
+pub fn default_compile_options() -> SQLCompileOptions {
+    SQLCompileOptions::default()
 }
 
 #[wasm_bindgen]
-impl CompileOptions {
+impl SQLCompileOptions {
     #[wasm_bindgen(constructor)]
     pub fn new() -> Self {
         Self::default()
     }
 }
 
-impl From<CompileOptions> for prql_compiler::Options {
-    fn from(o: CompileOptions) -> Self {
-        prql_compiler::Options {
+impl From<SQLCompileOptions> for prql_compiler::sql::Options {
+    fn from(o: SQLCompileOptions) -> Self {
+        prql_compiler::sql::Options {
             format: o.format,
-            target: prql_compiler::Target::Sql(o.target.map(From::from)),
+            dialect: o.dialect.map(From::from),
             signature_comment: o.signature_comment,
         }
     }

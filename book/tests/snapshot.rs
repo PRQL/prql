@@ -136,7 +136,7 @@ fn run_reference_prql() {
             return;
         }
 
-        let opts = Options::default().no_signature();
+        let opts = sql::Options::default().no_signature().some();
         let sql = compile(&prql, opts).unwrap_or_else(|e| format!("{prql}\n\n{e}"));
         // `glob!` gives us the file path in the test name anyway, so we pass an
         // empty name. We pass `&prql` so the prql is in the snapshot (albeit in

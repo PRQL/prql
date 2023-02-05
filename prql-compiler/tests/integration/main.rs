@@ -7,7 +7,6 @@ mod tests {
     use std::{fs, path::Path};
 
     use insta::{assert_snapshot, glob};
-    use prql_compiler::{sql::Dialect, Options, Target};
 
     #[test]
     fn test() {
@@ -31,24 +30,27 @@ mod tests {
             }
 
             // compile
-            let opts = Options::default()
-                .with_target(Target::Sql(Some(Dialect::SQLite)))
-                .no_format();
+            let opts = prql_compiler::sql::Options::default()
+                .with_dialect(prql_compiler::sql::Dialect::SQLite)
+                .no_format()
+                .some();
             let sql = prql_compiler::compile(&prql, opts).unwrap();
             let sqlite_out = sqlite::query_csv(&sqlite_conn, &sql);
 
             // save both csv files as same snapshot
-            let opts = Options::default()
-                .with_target(Target::Sql(Some(Dialect::DuckDb)))
-                .no_format();
+            let opts = prql_compiler::sql::Options::default()
+                .with_dialect(prql_compiler::sql::Dialect::DuckDb)
+                .no_format()
+                .some();
             let sql = prql_compiler::compile(&prql, opts).unwrap();
             let duckdb_out = duckdb::query_csv(&duckdb_conn, &sql);
             pretty_assertions::assert_eq!(sqlite_out, duckdb_out, "SQLite == DuckDB: {test_name}");
 
             if let Some(pg_client) = &mut pg_client {
-                let opts = Options::default()
-                    .with_target(Target::Sql(Some(Dialect::PostgreSql)))
-                    .no_format();
+                let opts = prql_compiler::sql::Options::default()
+                    .with_dialect(prql_compiler::sql::Dialect::PostgreSql)
+                    .no_format()
+                    .some();
                 let sql = prql_compiler::compile(&prql, opts).unwrap();
                 let pg_out = postgres::query_csv(pg_client, &sql);
                 pretty_assertions::assert_eq!(sqlite_out, pg_out, "SQLite == PG: {test_name}");
