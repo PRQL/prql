@@ -51,7 +51,7 @@ describe("prql-js", () => {
     });
   });
 
-  describe("CompileOptions", () => {
+  describe("SQLCompileOptions", () => {
     it("should be able to create from default_compile_options", () => {
       const opts = prql.default_compile_options();
       expect(() => {
@@ -61,7 +61,7 @@ describe("prql-js", () => {
     });
 
     it("should be able to create from constructor", () => {
-      const opts = new prql.CompileOptions();
+      const opts = new prql.SQLCompileOptions();
       expect(() => {
         opts.dialect = prql.Dialect.Sqlite;
         assert.equal(opts.dialect, prql.Dialect.Sqlite);

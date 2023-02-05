@@ -3,11 +3,11 @@ use prql_compiler::{self, sql::Dialect, IntoOnly};
 use pyo3::{exceptions, prelude::*};
 
 #[pyfunction]
-pub fn compile(prql_query: &str, options: Option<CompileOptions>) -> PyResult<String> {
+pub fn compile(prql_query: &str, options: Option<SQLCompileOptions>) -> PyResult<String> {
     Ok(prql_query)
         .and_then(prql_compiler::prql_to_pl)
         .and_then(prql_compiler::pl_to_rq)
-        .and_then(|rq| prql_compiler::rq_to_sql(rq, options.map(|o| o.into()).unwrap_or_default()))
+        .and_then(|rq| prql_compiler::rq_to_sql(rq, options.map(prql_compiler::sql::Options::from)))
         .map_err(|e| e.composed("", prql_query, false))
         .map_err(|e| (PyErr::new::<exceptions::PySyntaxError, _>(e.into_only().unwrap().reason)))
 }
@@ -33,7 +33,7 @@ pub fn pl_to_rq(pl_json: &str) -> PyResult<String> {
 pub fn rq_to_sql(rq_json: &str) -> PyResult<String> {
     Ok(rq_json)
         .and_then(prql_compiler::json::to_rq)
-        .and_then(|x| prql_compiler::rq_to_sql(x, prql_compiler::Options::default()))
+        .and_then(|x| prql_compiler::rq_to_sql(x, None))
         .map_err(|err| (PyErr::new::<exceptions::PyValueError, _>(err.to_json())))
 }
 
@@ -52,7 +52,7 @@ fn prql_python(_py: Python, m: &PyModule) -> PyResult<()> {
 /// Compilation options for SQL backend of the compiler.
 #[pyclass]
 #[derive(Clone)]
-pub struct CompileOptions {
+pub struct SQLCompileOptions {
     /// Pass generated SQL string trough a formatter that splits it
     /// into multiple lines and prettifies indentation and spacing.
     ///
@@ -69,7 +69,7 @@ pub struct CompileOptions {
     ///
     /// If `None` is used, the `target` argument from the query header is used.
     /// If it does not exist, [Dialect::Generic] is used.
-    pub target: Option<Dialect>,
+    pub dialect: Option<Dialect>,
 
     /// Emits the compiler signature as a comment after generated SQL
     ///
@@ -77,11 +77,11 @@ pub struct CompileOptions {
     pub signature_comment: bool,
 }
 
-impl From<CompileOptions> for prql_compiler::Options {
-    fn from(o: CompileOptions) -> Self {
-        prql_compiler::Options {
+impl From<SQLCompileOptions> for prql_compiler::sql::Options {
+    fn from(o: SQLCompileOptions) -> Self {
+        prql_compiler::sql::Options {
             format: o.format,
-            target: prql_compiler::Target::Sql(o.target),
+            dialect: o.dialect,
             signature_comment: o.signature_comment,
         }
     }
@@ -95,9 +95,9 @@ mod test {
 
     #[test]
     fn parse_for_python() {
-        let opts = Some(CompileOptions {
+        let opts = Some(SQLCompileOptions {
             format: true,
-            target: None,
+            dialect: None,
             signature_comment: false,
         });
 
