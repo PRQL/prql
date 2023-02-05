@@ -13,7 +13,7 @@ hero_section:
     label: "Reference"
   prql_example: |
     from invoices
-    filter billing_country == "USA"
+    filter invoice_date >= @1970-01-16
     derive [
       transaction_fees = 0.8,
       income = total - transaction_fees

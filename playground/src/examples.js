@@ -2,7 +2,7 @@ const examples = {
   "introduction.prql": [
     "arrow",
     `from invoices
-filter billing_country == "USA" # Each line transforms the previous result
+filter invoice_date >= @1970-01-16
 derive [                        # This adds columns
   transaction_fees = 0.8,
   income = total - transaction_fees  # Columns can use other columns
