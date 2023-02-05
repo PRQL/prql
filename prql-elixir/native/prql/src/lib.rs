@@ -1,4 +1,8 @@
 #![cfg(not(target_family = "wasm"))]
+// TODO: unclear why we need this `allow`; it's required in `CompileOptions`,
+// likely because of the `NifStruct` derive.
+#![allow(clippy::needless_borrow)]
+
 use rustler::{Atom, NifResult, NifStruct, NifTuple};
 
 mod atoms {
@@ -74,8 +78,6 @@ impl From<CompileOptions> for prql_compiler::sql::Options {
     }
 }
 
-// Unclear why we need this `allow`
-#[allow(clippy::needless_borrow)]
 #[derive(Clone, NifStruct, Debug)]
 #[module = "PRQL.Native.CompileOptions"]
 pub struct CompileOptions {
