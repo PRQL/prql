@@ -49,10 +49,16 @@ jobs:
         run: mdbook build
         working-directory: book/
 
-  # Run Mac & Windows & other tests on a `pr-test-all` label (as well as the other conditions in `test-all.yaml`).
+  # Run Mac & Windows & bindings' other tests on a `pr-test-all` label or a `!`
+  # (meanting a breaking change) in the PR title. (We also run on other
+  # conditions defined in `test-all.yaml`; the conditions defined here aren't
+  # possible to use as conditions for running a workflow, only a job, so we use
+  # this approach.)
   test-all:
     uses: ./.github/workflows/test-all.yaml
-    if: contains(github.event.pull_request.labels.*.name, 'pr-test-all')
+    if:
+      contains(github.event.pull_request.labels.*.name, 'pr-test-all') ||
+      contains(github.event.pull_request.title, '!')
 
   publish:
     uses: ./.github/workflows/publish-web.yaml
