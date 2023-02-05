@@ -1,12 +1,11 @@
 [package]
 authors = ["Kasun Vithanage <kasvith.me@gmail.com>"]
 description = "Elixir NIF bindings for prql-compiler"
-edition = "2021"
 # TODO: should this be `prql-elixir`?
 name = "prql"
 publish = false
 
-# edition.workspace = true
+edition.workspace = true
 license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
@@ -19,5 +18,6 @@ path = "src/lib.rs"
 
 [dependencies]
 prql-compiler = {path = "../../../prql-compiler", default-features = false, version = "0.4.2"}
-[target.'cfg(not(target_family="wasm"))'.dependencies]
+# See notes in `lib.rs` re excluding these targets.
+[target.'cfg(not(any(target_family="wasm", target_os="macos")))'.dependencies]
 rustler = "0.26.0"
