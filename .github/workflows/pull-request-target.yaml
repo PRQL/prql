@@ -24,7 +24,7 @@ jobs:
         github.event.action == 'closed'
         || (
           github.event.action == 'labeled'
-          && contains(github.event.label.name, 'backport website')
+          && contains(github.event.label.name, 'pr-backport-web')
         )
       )
     steps:
@@ -33,6 +33,6 @@ jobs:
           # This is a personal access token from the @prql-bot
           github_token: ${{ secrets.BACKPORT_GITHUB_TOKEN }}
           # We only use `website` atm
-          label_pattern: "pr-backport-website"
+          label_pattern: "pr-backport-web"
           title_template:
             'docs(website): Backport "<%= title %>" (<%= number%>)'
