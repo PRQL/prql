@@ -147,7 +147,7 @@ showcase_section:
         GROUP BY
           country
         HAVING
-          MAX(salary) > 100_000
+          MAX(salary) > 100000
 
     # markdown-link-check-disable
     - id: f-strings
