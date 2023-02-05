@@ -21,15 +21,15 @@ Compile a PRQL string to a SQLite dialect string.
 **src/main.rs**
 
 ```rust
-use prql_compiler::{compile, Options, Target, sql::Dialect};
+use prql_compiler::{compile, sql};
 
 let prql = "from employees | select [name, age]";
-let opt = Options {
+let opt = sql::Options{
     format: false,
-    target: Target::Sql(Some(Dialect::SQLite)),
+    dialect: Some(sql::Dialect::SQLite),
     signature_comment: false
 };
-let sql = compile(&prql, opt).unwrap();
+let sql = compile(&prql, Some(opt)).unwrap();
 assert_eq!("SELECT name, age FROM employees", sql);
 ```
 

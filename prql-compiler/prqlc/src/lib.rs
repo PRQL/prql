@@ -10,9 +10,9 @@ use std::process::exit;
 
 use prql_compiler::semantic::{self, reporting::*};
 
+use prql_compiler::downcast;
 use prql_compiler::{ast::pl::Frame, pl_to_prql};
 use prql_compiler::{compile, prql_to_pl, Span};
-use prql_compiler::{downcast, Options};
 
 pub fn main() -> color_eyre::eyre::Result<()> {
     env_logger::builder().format_timestamp(None).init();
@@ -125,7 +125,7 @@ impl Cli {
 
                 serde_json::to_string_pretty(&ir)?.into_bytes()
             }
-            Cli::Compile(_) => compile(source, Options::default())
+            Cli::Compile(_) => compile(source, None)
                 .map_or_else(|x| x.to_string(), |x| x)
                 .as_bytes()
                 .to_vec(),
