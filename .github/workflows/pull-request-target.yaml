@@ -32,7 +32,8 @@ jobs:
         with:
           # This is a personal access token from the @prql-bot
           github_token: ${{ secrets.BACKPORT_GITHUB_TOKEN }}
+          # Docs are at https://github.com/tibdex/backport/blob/main/action.yml
           # We only use `website` atm
-          label_pattern: "pr-backport-web"
+          label_pattern: "pr-backport-(?<base>([^ ]+)"
           title_template:
             'docs(website): Backport "<%= title %>" (<%= number%>)'
