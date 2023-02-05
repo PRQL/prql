@@ -4,6 +4,9 @@
 
 **Features**:
 
+- Change public API to use target instead of dialect in preparation for feature
+  work (@aljazerzen, #1684)
+
 **Fixes**:
 
 - Support double brackets in s-strings which aren't symmetric (@max-sixty,
