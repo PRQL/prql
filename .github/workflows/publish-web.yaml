@@ -2,7 +2,7 @@ name: publish-web
 on:
   push:
     branches:
-      - website
+      - web
   # Called by pull-request when specifically requested
   workflow_call:
 
