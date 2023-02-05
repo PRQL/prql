@@ -38,7 +38,7 @@ fn to_result_tuple(result: Result<String, prql_compiler::ErrorMessages>) -> NifR
     }
 }
 
-/// Get the dialect from an atom. By default `Generic` dialect will be used
+/// Get the target from an atom. By default `Generic` SQL dialect will be used
 fn target_from_atom(a: Atom) -> prql_compiler::Target {
     use prql_compiler::sql::Dialect as D;
 
