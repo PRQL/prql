@@ -1,3 +1,4 @@
+#![cfg(not(target_family = "wasm"))]
 use rustler::{Atom, NifResult, NifStruct, NifTuple};
 
 mod atoms {
