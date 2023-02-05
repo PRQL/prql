@@ -42,7 +42,7 @@
 //!     # fn main() -> Result<(), prql_compiler::ErrorMessages> {
 //!     let sql = prql_compiler::compile(
 //!         "from albums | select [title, artist_id]",
-//!          prql_compiler::sql::Options::default().no_format().some()
+//!          prql_compiler::Options::default().no_format()
 //!     )?;
 //!     assert_eq!(&sql[..35], "SELECT title, artist_id FROM albums");
 //!     # Ok(())
@@ -91,6 +91,7 @@ pub use utils::IntoOnly;
 
 use once_cell::sync::Lazy;
 use semver::Version;
+use serde::{Deserialize, Serialize};
 
 pub static PRQL_VERSION: Lazy<Version> =
     Lazy::new(|| Version::parse(env!("CARGO_PKG_VERSION")).expect("Invalid PRQL version number"));
@@ -105,26 +106,81 @@ pub static PRQL_VERSION: Lazy<Version> =
 /// Use the prql compiler to convert a PRQL string to SQLite dialect
 ///
 /// ```
-/// use prql_compiler::{compile, sql};
+/// use prql_compiler::{compile, Options, Target, sql::Dialect};
 ///
 /// let prql = "from employees | select [name,age] ";
-/// let opt = sql::Options {
+/// let opt = Options {
 ///     format: false,
-///     dialect: Some(sql::Dialect::SQLite),
+///     target: Target::Sql(Some(Dialect::SQLite)),
 ///     signature_comment: false
 /// };
-/// let sql = compile(&prql, Some(opt)).unwrap();
+/// let sql = compile(&prql, opt).unwrap();
 /// println!("PRQL: {}\nSQLite: {}", prql, &sql);
 /// assert_eq!("SELECT name, age FROM employees", sql)
 ///
 /// ```
 /// See [`sql::Options`](sql/struct.Options.html) and [`sql::Dialect`](sql/enum.Dialect.html) for options and supported SQL dialects.
-pub fn compile(prql: &str, options: Option<sql::Options>) -> Result<String, ErrorMessages> {
+pub fn compile(prql: &str, options: Options) -> Result<String, ErrorMessages> {
     parser::parse(prql)
         .and_then(semantic::resolve)
         .and_then(|rq| sql::compile(rq, options))
         .map_err(error::downcast)
         .map_err(|e| e.composed("", prql, false))
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum Target {
+    /// If `None` is used, dialect is extracted from `target` query header.
+    Sql(Option<sql::Dialect>),
+}
+
+/// Compilation options for SQL backend of the compiler.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Options {
+    /// Pass generated SQL string trough a formatter that splits it
+    /// into multiple lines and prettifies indentation and spacing.
+    ///
+    /// Defaults to true.
+    pub format: bool,
+
+    /// Target and dialect to compile to.
+    pub target: Target,
+
+    /// Emits the compiler signature as a comment after generated SQL
+    ///
+    /// Defaults to true.
+    pub signature_comment: bool,
+}
+
+impl Default for Options {
+    fn default() -> Self {
+        Self {
+            format: true,
+            target: Target::Sql(None),
+            signature_comment: true,
+        }
+    }
+}
+
+impl Options {
+    pub fn no_format(mut self) -> Self {
+        self.format = false;
+        self
+    }
+
+    pub fn no_signature(mut self) -> Self {
+        self.signature_comment = false;
+        self
+    }
+
+    pub fn with_target(mut self, target: Target) -> Self {
+        self.target = target;
+        self
+    }
+
+    pub fn some(self) -> Option<Self> {
+        Some(self)
+    }
 }
 
 #[doc = include_str!("../README.md")]
@@ -144,10 +200,7 @@ pub fn pl_to_rq(pl: Vec<ast::pl::Stmt>) -> Result<ast::rq::Query, ErrorMessages>
 }
 
 /// Generate SQL from RQ.
-pub fn rq_to_sql(
-    rq: ast::rq::Query,
-    options: Option<sql::Options>,
-) -> Result<String, ErrorMessages> {
+pub fn rq_to_sql(rq: ast::rq::Query, options: Options) -> Result<String, ErrorMessages> {
     sql::compile(rq, options).map_err(error::downcast)
 }
 

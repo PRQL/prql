@@ -2,6 +2,12 @@ use core::fmt::Debug;
 use serde::{Deserialize, Serialize};
 use strum;
 
+/// SQL dialect.
+///
+/// This is only changes the output for a relatively small subset of features.
+///
+/// If something does not work in a specific dialect, please raise in a
+/// GitHub issue.
 // Make sure to update Python bindings, JS bindings & docs in the book.
 #[derive(
     Debug, PartialEq, Eq, Clone, Serialize, Deserialize, strum::EnumString, strum::Display,
