@@ -361,11 +361,19 @@ raise an issue.
 The website is published together with the book and the playground, and is
 automatically built and released on any push to the `website` branch.
 
-The `website` branch points to the latest release, plus any website-specific
+The `website` branch points to the latest release plus any website-specific
 fixes. That way, the compiler behavior in the playground matches the latest
-release. These fixes should have a `backport website` label added to the PR,
-which will automatically cherry-pick the commit from `main` to the `website`
-branch on merge.
+release while allowing us to fix mistakes with a tighter loop than every
+release.
+
+Fixes to the playground, book, or website should have a `backport website` label
+added to their PR — a bot will then open another PR onto the `website` branch
+once the initial branch merges.
+
+```admonish note
+Because of GitHub's restrictions on bots kicking off workflows, running the
+standard tests requires some user-interaction, such as adding a label.
+```
 
 ---
 
