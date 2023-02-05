@@ -30,4 +30,5 @@ jobs:
     steps:
       - uses: tibdex/backport@v2
         with:
+          # This is a personal access token from the @prql-bot
           github_token: ${{ secrets.BACKPORT_GITHUB_TOKEN }}
