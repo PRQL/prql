@@ -1,3 +1,17 @@
+//! Feature map for SQL dialects.
+//!
+//! The general principle with is to strive to target only the generic (i.e. default) dialect.
+//!
+//! This means that we prioritize common dialects and old dialect versions, because such
+//! implementations would also be supported by newer versions.
+//!
+//! Dialect-specifics should be added only if:
+//! - the generic dialect is not supported (i.e. LIMIT is not supported in MS SQL),
+//! - dialect-specific impl is more performant than generic impl.
+//!
+//! As a consequence, generated SQL may be verbose, since it will avoid newer or less adopted SQL
+//! constructs. The upside is much less complex translator.
+
 use core::fmt::Debug;
 use serde::{Deserialize, Serialize};
 use strum;
