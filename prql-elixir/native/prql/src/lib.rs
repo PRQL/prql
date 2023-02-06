@@ -1,11 +1,5 @@
 // These bindings aren't relevant on wasm
 #![cfg(not(target_family = "wasm"))]
-// TODO: we would really like to compile on Mac, but we're getting linking
-// errors at the moment. (Though I'm not sure we always used to get them?)
-#![cfg(not(target_os = "macos"))]
-// TODO: unclear why we need this `allow`; it's required in `CompileOptions`,
-// likely because of the `NifStruct` derive.
-#![allow(clippy::needless_borrow)]
 
 use rustler::{Atom, NifResult, NifStruct, NifTuple};
 

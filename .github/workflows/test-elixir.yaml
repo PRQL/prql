@@ -55,8 +55,7 @@ jobs:
           cache-name: cache-elixir-deps
         with:
           path: prql-elixir/deps
-          key:
-            ${{ runner.os }}-mix-${{ env.cache-name }}-${{
+          key: ${{ runner.os }}-mix-${{ env.cache-name }}-${{
             hashFiles('**/mix.lock') }}
           restore-keys: |
             ${{ runner.os }}-mix-${{ env.cache-name }}-
@@ -71,14 +70,74 @@ jobs:
           cache-name: cache-compiled-build
         with:
           path: prql-elixir/_build
-          key:
-            ${{ runner.os }}-mix-${{ env.cache-name }}-${{
+          key: ${{ runner.os }}-mix-${{ env.cache-name }}-${{
             hashFiles('**/mix.lock') }}
           restore-keys: |
             ${{ runner.os }}-mix-${{ env.cache-name }}-
             ${{ runner.os }}-mix-
 
       # Step: Download project dependencies. If unchanged, uses
+      # the cached version.
+      - name: Install dependencies
+        run: mix deps.get
+
+      # Step: Compile the project treating any warnings as errors.
+      # Customize this step if a different behavior is desired.
+      - name: Compiles without warnings
+        run: mix compile --warnings-as-errors
+
+      # Step: Check that the checked in code has already been formatted.
+      # This step fails if something was found unformatted.
+      # Customize this step as desired.
+      - name: Check Formatting
+        run: mix format --check-formatted
+
+      # Step: Execute the tests.
+      - name: Run tests
+        run: mix test
+
+  test_macos:
+    name: macos-latest test
+    runs-on: macos-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Install Erlang/Elixir
+        run: |
+          brew install elixir
+          mix local.hex --force
+            # Step: Download project dependencies. If unchanged, uses
+
+      # Step: Define how to cache deps. Restores existing cache if present.
+      - name: Cache deps
+        id: cache-deps
+        uses: actions/cache@v3
+        env:
+          cache-name: cache-elixir-deps
+        with:
+          path: prql-elixir/deps
+          key: ${{ runner.os }}-mix-${{ env.cache-name }}-${{
+            hashFiles('**/mix.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-mix-${{ env.cache-name }}-
+
+      # Step: Define how to cache the `_build` directory. After the first run,
+      # this speeds up tests runs a lot. This includes not re-compiling our
+      # project's downloaded deps every run.
+      - name: Cache compiled build
+        id: cache-build
+        uses: actions/cache@v3
+        env:
+          cache-name: cache-compiled-build
+        with:
+          path: prql-elixir/_build
+          key: ${{ runner.os }}-mix-${{ env.cache-name }}-${{
+            hashFiles('**/mix.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-mix-${{ env.cache-name }}-
+            ${{ runner.os }}-mix-
+
       # the cached version.
       - name: Install dependencies
         run: mix deps.get
