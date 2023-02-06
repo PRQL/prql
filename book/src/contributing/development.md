@@ -163,6 +163,9 @@ change!
     progress.
   - If a change breaks functionality without breaking tests, our tests were
     insufficient.
+  - If a change breaks existing tests (for example, changing an external API),
+    that indicates we should be careful about merging a change, including
+    soliciting others' views.
 - We use PR reviews to give general context, offer specific assistance, and
   collaborate on larger decisions.
   - Reviews around 'nits' like code formatting / idioms / etc are very welcome.
@@ -368,11 +371,6 @@ while allowing us to fix mistakes with a tighter loop than every release.
 Fixes to the playground, book, or website should have a `pr-backport-web` label
 added to their PR — a bot will then open another PR onto the `web` branch once
 the initial branch merges.
-
-```admonish note
-Because of GitHub's restrictions on bots kicking off workflows, running the
-standard tests requires some user-interaction, such as adding a label.
-```
 
 ---
 
