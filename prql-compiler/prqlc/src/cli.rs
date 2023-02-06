@@ -1,4 +1,3 @@
-#![cfg(not(target_family = "wasm"))]
 use anyhow::{anyhow, Result};
 use ariadne::Source;
 use clap::Parser;
@@ -9,10 +8,11 @@ use std::ops::Range;
 use std::process::exit;
 
 use prql_compiler::semantic::{self, reporting::*};
-
 use prql_compiler::{ast::pl::Frame, pl_to_prql};
 use prql_compiler::{compile, prql_to_pl, Span};
 use prql_compiler::{downcast, Options};
+
+use crate::watch;
 
 pub fn main() -> color_eyre::eyre::Result<()> {
     env_logger::builder().format_timestamp(None).init();
@@ -48,6 +48,9 @@ pub enum Cli {
 
     /// Parse, resolve, lower into RQ & compile to SQL
     Compile(CommandIO),
+
+    /// Watch a directory and compile .prql files to .sql files
+    Watch(watch::WatchCommand),
 }
 
 #[derive(clap::Args, Default)]
@@ -65,6 +68,14 @@ fn is_stdin(input: &Input) -> bool {
 
 impl Cli {
     pub fn run(&mut self) -> Result<()> {
+        if let Cli::Watch(command) = self {
+            return watch::run(command);
+        };
+
+        self.run_io_command()
+    }
+
+    fn run_io_command(&mut self) -> std::result::Result<(), anyhow::Error> {
         let (source, source_id) = self.read_input()?;
 
         let res = self.execute(&source);
@@ -129,6 +140,7 @@ impl Cli {
                 .map_or_else(|x| x.to_string(), |x| x)
                 .as_bytes()
                 .to_vec(),
+            Cli::Watch(_) => unreachable!(),
         })
     }
 
@@ -149,6 +161,7 @@ impl Cli {
                 let source_id = (*io.input.path()).to_str().unwrap().to_string();
                 Ok((source, source_id))
             }
+            Cli::Watch(_) => unreachable!(),
         }
     }
 
@@ -158,6 +171,7 @@ impl Cli {
             Parse(io) | Format(io) | Debug(io) | Annotate(io) | Resolve(io) | Compile(io) => {
                 io.output.write_all(data)
             }
+            Cli::Watch(_) => unreachable!(),
         }
     }
 }

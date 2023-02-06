@@ -6,6 +6,8 @@
 
 #[cfg(not(target_family = "wasm"))]
 mod cli;
+#[cfg(not(target_family = "wasm"))]
+mod watch;
 
 #[cfg(not(target_family = "wasm"))]
 fn main() -> color_eyre::eyre::Result<()> {
