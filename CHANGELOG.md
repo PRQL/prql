@@ -7,6 +7,9 @@
 - Change public API to use target instead of dialect in preparation for feature
   work (@aljazerzen, #1684)
 
+- `prqlc watch` command which watches filesystem for changes and compiles .prql
+  files to .sql (@aljazerzen, #1708)
+
 **Fixes**:
 
 - Support double brackets in s-strings which aren't symmetric (@max-sixty,
