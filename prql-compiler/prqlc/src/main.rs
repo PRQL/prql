@@ -5,8 +5,11 @@
 // workspace for wasm in our tests.
 
 #[cfg(not(target_family = "wasm"))]
+mod cli;
+
+#[cfg(not(target_family = "wasm"))]
 fn main() -> color_eyre::eyre::Result<()> {
-    prqlc::main()
+    cli::main()
 }
 
 #[cfg(target_family = "wasm")]
