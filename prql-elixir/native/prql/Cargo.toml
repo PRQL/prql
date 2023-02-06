@@ -20,4 +20,4 @@ path = "src/lib.rs"
 prql-compiler = {path = "../../../prql-compiler", default-features = false, version = "0.4.2"}
 # See notes in `lib.rs` re excluding these targets.
 [target.'cfg(not(any(target_family="wasm", target_os="macos")))'.dependencies]
-rustler = "0.26.0"
+rustler = "0.27.0"
