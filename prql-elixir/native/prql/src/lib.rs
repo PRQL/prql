@@ -1,5 +1,8 @@
 // These bindings aren't relevant on wasm
 #![cfg(not(target_family = "wasm"))]
+// TODO: unclear why we need this `allow`; it's required in `CompileOptions`,
+// likely because of the `NifStruct` derive.
+#![allow(clippy::needless_borrow)]
 
 use rustler::{Atom, NifResult, NifStruct, NifTuple};
 
