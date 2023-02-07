@@ -14,18 +14,7 @@ body {
   height: 100vh !important;
 }
 
-/* Avenir Next */
-@font-face {
-  font-family: "Avenir Next";
-  font-weight: bold;
-  font-style: normal;
-  font-display: swap;
-  src: local(""),
-    url("https://prql-lang.org/fonts/AvenirNext.woff2") format("woff2"),
-    url("https://prql-lang.org/fonts/AvenirNext.woff") format("woff");
-}
-
 h1 {
-  font-family: "Avenir Next", -apple-system, BlinkMacSystemFont, "Segoe UI",
-    Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
 }

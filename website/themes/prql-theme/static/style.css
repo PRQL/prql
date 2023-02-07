@@ -1,13 +1,3 @@
-/* Avenir Next */
-@font-face {
-  font-family: "Avenir Next";
-  font-weight: bold;
-  font-style: normal;
-  font-display: swap;
-  src: local(""), url("../fonts/AvenirNext.woff2") format("woff2"),
-    url("../fonts/AvenirNext.woff") format("woff");
-}
-
 /*--------------------------------------------------------------
 # General
 --------------------------------------------------------------*/
@@ -15,8 +5,8 @@
   --main-color: #202b38;
   --secondary-color: #c92a2a;
   --third-color: #1864ab;
-  --title-font: "Avenir Next", -apple-system, BlinkMacSystemFont, "Segoe UI",
-    Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+  --title-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
   --body-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
     Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
 }
