@@ -1,3 +1,4 @@
+# Jobs that run on every pull-request, regardless of its contents.
 name: pull-request
 
 on:
@@ -12,13 +13,14 @@ on:
       - main
 
 concurrency:
-  # This seems to require a suffix on the end; I _think_ because this calls
+  # This seems to require a custom suffix; I _think_ because this calls
   # `test-all`, which calls `test-python`, and if `test-python` runs too, then
   # we have two workflows with the same concurrency group, which GitHub calls a
   # deadlock. Here's an example:
   # https://github.com/PRQL/prql/actions/runs/3945798229. By adding
   # `-pull-request` here, the job that runs under `test-all` (called from here)
-  # will have the suffix, and so won't deadlock.
+  # will have the suffix, and so won't deadlock. But I'm not certain, and it
+  # doesn't seem possible to inspect these values to understand the true cause.
   group: ${{ github.workflow }}-${{ github.ref }}-pull-request
   cancel-in-progress: true
 
