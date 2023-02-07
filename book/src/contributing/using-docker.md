@@ -46,7 +46,7 @@ Finally, start up the Docker container with:
 
 ```bash
 cd <top-level-PRQL-directory>
-docker run -it -v $(pwd)/:/src -p 3000:3000 prql
+docker run --rm -it -v $(pwd)/:/src -p 3000:3000 prql
 ```
 
 - There'll be a `root@xxxxxxxxx:/src/#` prompt
