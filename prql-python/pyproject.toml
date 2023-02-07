@@ -29,7 +29,3 @@ ignore = [
   # No lambdas — too strict
   "E731",
 ]
-
-[[tool.mypy.overrides]]
-module = ["yaml"]
-ignore_missing_imports = true
