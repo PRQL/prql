@@ -1,3 +1,6 @@
 pytest==7.0.0
 pytest-xdist==2.5.0
 pytest-clarity==1.0.1
+# Required for website example tests
+PyYAML==6.0
+types-PyYAML==6.0.12.4

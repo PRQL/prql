@@ -37,6 +37,7 @@ repos:
     rev: v0.991
     hooks:
       - id: mypy
+        additional_dependencies: ["types-PyYAML==6.0.12.4"]
   - repo: https://github.com/tcort/markdown-link-check
     rev: v3.10.3
     hooks:

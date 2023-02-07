@@ -96,14 +96,14 @@ showcase_section:
     - id: friendly-syntax
       label: Friendly syntax
       prql: |
-        from order               # This is a comment
+        from orders               # This is a comment
         filter status == "done"
-        sort [-amount]           # sort order
+        sort [-amount]           # sort orders
       sql: |
         SELECT
-          order.*
+          *
         FROM
-          order
+          orders
         WHERE
           status = 'done'
         ORDER BY
@@ -173,7 +173,7 @@ showcase_section:
         )
       sql: |
         SELECT
-          employees.*,
+          *,
           SUM(paycheck) OVER (
             PARTITION BY employee_id
             ORDER BY
@@ -186,13 +186,13 @@ showcase_section:
     - id: functions
       label: Functions
       prql: |
-        func fahrenheit_from_celsius temp -> temp * 9/5 + 32
+        func fahrenheit_from_celsius temp -> temp * 1.8 + 32
 
         from weather
         select temp_f = (fahrenheit_from_celsius temp_c)
       sql: |
         SELECT
-          temp_c * 9/5 + 32 AS temp_f
+          temp_c * 1.8 + 32 AS temp_f
         FROM
           weather
 
@@ -207,33 +207,36 @@ showcase_section:
           take 1
         )
       sql: |
-        WITH table_0 AS (
+        WITH table_1 AS (
           SELECT
-            employees.*,
+            *,
             ROW_NUMBER() OVER (
               PARTITION BY role
               ORDER BY
                 join_date
-            ) AS _rn
+            ) AS _expr_0
           FROM
             employees
         )
         SELECT
-          table_0.*
+          *
         FROM
-          table_0
+          table_1
         WHERE
-          _rn <= 1
+          _expr_0 <= 1
 
     - id: s-string
       label: S-strings
       prql: |
         # There's no `version` in PRQL, but
         # we have an escape hatch:
-        derive db_version = s"version()"
+        from x
+          derive db_version = s"version()"
       sql: |
         SELECT
+          *,
           version() AS db_version
+        FROM x
 
     - id: joins
       label: Joins
@@ -261,7 +264,7 @@ showcase_section:
         derive channel = channel ?? "unknown"
       sql: |
         SELECT
-          users.*,
+          *,
           COALESCE(channel, 'unknown') AS channel
         FROM
           users
@@ -279,7 +282,7 @@ showcase_section:
         take 10
       sql: |
         SELECT
-          TOP (10) employees.*
+          TOP (10) *
         FROM
           employees
         ORDER BY
