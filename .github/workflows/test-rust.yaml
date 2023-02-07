@@ -1,7 +1,7 @@
 name: test-rust
 
 on:
-  # Currently we only run this as `workflow_call`, since it's always called from `pull-request`.
+  # Currently we only run this as `workflow_call`, since `pull-request` always calls it.
   workflow_call:
     inputs:
       os:
