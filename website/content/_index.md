@@ -96,14 +96,14 @@ showcase_section:
     - id: friendly-syntax
       label: Friendly syntax
       prql: |
-        from order               # This is a comment
+        from orders               # This is a comment
         filter status == "done"
-        sort [-amount]           # sort order
+        sort [-amount]           # sort orders
       sql: |
         SELECT
           *
         FROM
-          "order"
+          orders
         WHERE
           status = 'done'
         ORDER BY
@@ -186,13 +186,13 @@ showcase_section:
     - id: functions
       label: Functions
       prql: |
-        func fahrenheit_from_celsius temp -> temp * 9/5 + 32
+        func fahrenheit_from_celsius temp -> temp * 1.8 + 32
 
         from weather
         select temp_f = (fahrenheit_from_celsius temp_c)
       sql: |
         SELECT
-          temp_c * 9/5 + 32 AS temp_f
+          temp_c * 1.8 + 32 AS temp_f
         FROM
           weather
 
@@ -230,10 +230,13 @@ showcase_section:
       prql: |
         # There's no `version` in PRQL, but
         # we have an escape hatch:
-        derive db_version = s"version()"
+        from x
+          derive db_version = s"version()"
       sql: |
         SELECT
+          *,
           version() AS db_version
+        FROM x
 
     - id: joins
       label: Joins
