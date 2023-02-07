@@ -214,7 +214,7 @@ showcase_section:
               PARTITION BY role
               ORDER BY
                 join_date
-            ) AS _expr_0 
+            ) AS _expr_0
           FROM
             employees
         )
