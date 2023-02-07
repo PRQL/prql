@@ -101,9 +101,9 @@ showcase_section:
         sort [-amount]           # sort order
       sql: |
         SELECT
-          order.*
+          *
         FROM
-          order
+          "order"
         WHERE
           status = 'done'
         ORDER BY
@@ -173,7 +173,7 @@ showcase_section:
         )
       sql: |
         SELECT
-          employees.*,
+          *,
           SUM(paycheck) OVER (
             PARTITION BY employee_id
             ORDER BY
@@ -207,23 +207,23 @@ showcase_section:
           take 1
         )
       sql: |
-        WITH table_0 AS (
+        WITH table_1 AS (
           SELECT
-            employees.*,
+            *,
             ROW_NUMBER() OVER (
               PARTITION BY role
               ORDER BY
                 join_date
-            ) AS _rn
+            ) AS _expr_0 
           FROM
             employees
         )
         SELECT
-          table_0.*
+          *
         FROM
-          table_0
+          table_1
         WHERE
-          _rn <= 1
+          _expr_0 <= 1
 
     - id: s-string
       label: S-strings
@@ -261,7 +261,7 @@ showcase_section:
         derive channel = channel ?? "unknown"
       sql: |
         SELECT
-          users.*,
+          *,
           COALESCE(channel, 'unknown') AS channel
         FROM
           users
@@ -279,7 +279,7 @@ showcase_section:
         take 10
       sql: |
         SELECT
-          TOP (10) employees.*
+          TOP (10) *
         FROM
           employees
         ORDER BY
