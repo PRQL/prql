@@ -388,7 +388,6 @@ Currently we release in a semi-automated way:
    ```sh
    echo "This release had $(git rev-list --count $(git rev-list --tags --max-count=1)..) commits from $(git shortlog --summary $(git rev-list --tags --max-count=1).. | wc -l | tr -d '[:space:]') contributors."
    ```
-
 2. Run `cargo release version patch -x && cargo release replace -x` to bump the
    versions, then PR the resulting commit.
 3. After merging, go to
@@ -398,7 +397,9 @@ Currently we release in a semi-automated way:
 4. From there, both the tag and release is created and all packages are
    published automatically based on our
    [release workflow](https://github.com/PRQL/prql/blob/main/.github/workflows/release.yaml).
-5. Add in the sections for a new Changelog:
+5. Update Issue https://github.com/PRQL/prql/issues/1 so that people will be notified of the change.
+
+6. Add in the sections for a new Changelog:
 
    ```md
    ## 0.4.X — [unreleased]
