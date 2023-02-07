@@ -26,6 +26,8 @@
 
 **Internal changes**:
 
+- Add tests for all PRQL website examples to prql-python to ensure compiled results match expected SQL (@nkicg6, #1719) 
+
 **New Contributors**:
 
 ## 0.4.2 — 2022-01-25
