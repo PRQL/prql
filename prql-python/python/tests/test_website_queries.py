@@ -12,7 +12,7 @@ def normalize(sql: str) -> str:
 
 
 def test_all_examples(example_queries):
-    """Compile and compare each example PRQL query to the expected SQL """
+    """Compile and compare each example PRQL query to the expected SQL"""
     for query in example_queries:
         compiled = prql.compile(query["prql"])
         compiled_normalized = normalize(compiled)
