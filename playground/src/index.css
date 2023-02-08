@@ -14,7 +14,17 @@ body {
   height: 100vh !important;
 }
 
+/* Inter ExtraBold */
+@font-face {
+    font-family: "InterExtraBold";
+    font-weight: bold;
+    font-style: normal;
+    font-display: swap;
+    src: local(""), url("https://prql-lang.org/fonts/inter-extra-bold.woff2") format("woff2"),
+        url("https://prql-lang.org/fonts/inter-extra-bold.woff") format("woff");
+}
+
 h1 {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-    Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+  font-family: "InterExtraBold", -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
 }

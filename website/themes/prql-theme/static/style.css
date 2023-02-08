@@ -1,3 +1,23 @@
+/* Inter ExtraBold */
+@font-face {
+    font-family: "InterExtraBold";
+    font-weight: 800;
+    font-style: normal;
+    font-display: swap;
+    src: local(""), url("../fonts/inter-extra-bold.woff2") format("woff2"),
+        url("../fonts/inter-extra-bold.woff") format("woff");
+}
+
+/* Inter ExtraBold */
+@font-face {
+    font-family: "YoungSerif";
+    font-weight: 800;
+    font-style: normal;
+    font-display: swap;
+    src: local(""), url("../fonts/YoungSerif-Regular.woff2") format("woff2"),
+        url("../fonts/YoungSerif-Regular.woff") format("woff");
+}
+
 /*--------------------------------------------------------------
 # General
 --------------------------------------------------------------*/
@@ -5,8 +25,8 @@
   --main-color: #202b38;
   --secondary-color: #c92a2a;
   --third-color: #1864ab;
-  --title-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-    Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+  --title-font: YoungSerif, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
   --body-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
     Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
 }
@@ -151,7 +171,6 @@ pre ::-webkit-scrollbar-thumb:hover {
 
 #header .logo h1 {
   margin: 0;
-  line-height: 1;
 }
 
 #header a:not(.btn-icon) {
@@ -387,8 +406,6 @@ section {
   font-size: 45px;
   font-weight: 700;
   padding: 0;
-  letter-spacing: 2px;
-  font-variant: small-caps;
   color: var(--main-color);
 }
 
