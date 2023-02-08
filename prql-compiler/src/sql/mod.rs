@@ -10,6 +10,7 @@ mod preprocess;
 mod std;
 
 pub use dialect::Dialect;
+pub use dialect::DIALECT_NAMES;
 
 use anyhow::Result;
 

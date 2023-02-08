@@ -13,8 +13,9 @@
 //! constructs. The upside is much less complex translator.
 
 use core::fmt::Debug;
+use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
-use strum;
+use strum::{EnumMessage, IntoEnumIterator};
 
 /// SQL dialect.
 ///
@@ -24,7 +25,16 @@ use strum;
 /// GitHub issue.
 // Make sure to update Python bindings, JS bindings & docs in the book.
 #[derive(
-    Debug, PartialEq, Eq, Clone, Serialize, Deserialize, strum::EnumString, strum::Display,
+    Debug,
+    PartialEq,
+    Eq,
+    Clone,
+    Serialize,
+    Deserialize,
+    strum::Display,
+    strum::EnumIter,
+    strum::EnumMessage,
+    strum::EnumString,
 )]
 pub enum Dialect {
     #[strum(serialize = "ansi")]
@@ -50,6 +60,12 @@ pub enum Dialect {
     #[strum(serialize = "snowflake")]
     Snowflake,
 }
+
+pub static DIALECT_NAMES: Lazy<Vec<&str>> = Lazy::new(|| {
+    Dialect::iter()
+        .flat_map(|s| s.get_serializations().to_vec())
+        .collect::<Vec<&'static str>>()
+});
 
 // Is this the best approach for the Enum / Struct — basically that we have one
 // Enum that gets its respective Struct, and then the Struct can also get its
