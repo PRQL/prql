@@ -37,7 +37,7 @@ Options
 
 ```javascript
 const opts = new prql.CompileOptions();
-opts.target = 'sql.mssql';
+opts.target = "sql.mssql";
 opts.format = false;
 opts.signature_comment = false;
 
