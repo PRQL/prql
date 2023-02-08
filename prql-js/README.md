@@ -30,7 +30,19 @@ Direct usage
 const prqljs = require("prql-js");
 
 const sql = prqljs.compile(`from employees | select first_name`);
-console.log(sql.sql);
+console.log(sql);
+```
+
+Options
+
+```javascript
+const opts = new prql.CompileOptions();
+opts.target = "sql.mssql";
+opts.format = false;
+opts.signature_comment = false;
+
+const sql = prqljs.compile(`from employees | take 10`, opts);
+console.log(sql);
 ```
 
 Template literal
@@ -40,7 +52,7 @@ const prqljs = require("prql-js");
 const prql = (string) => prqljs.compile(string[0] || "");
 
 const sql = prql`from employees | select first_name`;
-console.log(sql.sql);
+console.log(sql);
 ```
 
 Template literal with newlines
@@ -53,7 +65,7 @@ const sql = prql`
     from employees
     select first_name
 `;
-console.log(sql.sql);
+console.log(sql);
 ```
 
 ### From a Browser
