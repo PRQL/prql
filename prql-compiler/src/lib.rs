@@ -134,6 +134,15 @@ pub enum Target {
     Sql(Option<sql::Dialect>),
 }
 
+impl Target {
+    pub fn names() -> Vec<String> {
+        sql::Dialect::names()
+            .into_iter()
+            .map(|d| format!("sql.{d}"))
+            .collect()
+    }
+}
+
 /// Compilation options for SQL backend of the compiler.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Options {

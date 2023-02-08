@@ -14,7 +14,7 @@
 
 use core::fmt::Debug;
 use serde::{Deserialize, Serialize};
-use strum;
+use strum::{EnumMessage, IntoEnumIterator};
 
 /// SQL dialect.
 ///
@@ -24,7 +24,16 @@ use strum;
 /// GitHub issue.
 // Make sure to update Python bindings, JS bindings & docs in the book.
 #[derive(
-    Debug, PartialEq, Eq, Clone, Serialize, Deserialize, strum::EnumString, strum::Display,
+    Debug,
+    PartialEq,
+    Eq,
+    Clone,
+    Serialize,
+    Deserialize,
+    strum::Display,
+    strum::EnumIter,
+    strum::EnumMessage,
+    strum::EnumString,
 )]
 pub enum Dialect {
     #[strum(serialize = "ansi")]
@@ -68,6 +77,12 @@ impl Dialect {
             Dialect::PostgreSql => Box::new(PostgresDialect),
             Dialect::Ansi | Dialect::Generic | Dialect::Hive => Box::new(GenericDialect),
         }
+    }
+
+    pub fn names() -> Vec<&'static str> {
+        Dialect::iter()
+            .flat_map(|d| d.get_serializations().to_vec())
+            .collect::<Vec<&'static str>>()
     }
 }
 
