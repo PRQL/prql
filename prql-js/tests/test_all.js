@@ -79,4 +79,22 @@ describe("prql-js", () => {
       assert(res.includes("target:sql.generic"));
     });
   });
+
+  describe("get_targets", () => {
+    it("return a list of targets", () => {
+      const targets = new prql.get_targets()
+      assert(targets.length > 0);
+      assert(targets.includes('sql.sqlite'));
+    });
+
+    it("should fallback to generic dialect", () => {
+      const opts = new prql.CompileOptions();
+
+      opts.target = 'sql.not_existing';
+      const res = prql.compile("from a", opts);
+
+      // target should appear in signature comment
+      assert(res.includes('target:sql.generic'));
+    });
+  });
 });

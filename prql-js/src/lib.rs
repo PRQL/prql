@@ -66,14 +66,28 @@ pub struct CompileOptions {
 }
 
 #[wasm_bindgen]
-impl CompileOptions {
-    #[wasm_bindgen(constructor)]
-    pub fn new() -> Self {
+pub fn get_targets() -> Vec<JsValue> {
+    prql_compiler::Target::names()
+        .iter()
+        .map(|t| JsValue::from_str(t))
+        .collect()
+}
+
+impl Default for CompileOptions {
+    fn default() -> Self {
         Self {
             format: true,
             target: String::new(),
             signature_comment: true,
         }
+    }
+}
+
+#[wasm_bindgen]
+impl CompileOptions {
+    #[wasm_bindgen(constructor)]
+    pub fn new() -> Self {
+        Self::default()
     }
 
     #[wasm_bindgen(getter)]
