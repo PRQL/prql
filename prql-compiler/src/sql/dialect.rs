@@ -13,7 +13,6 @@
 //! constructs. The upside is much less complex translator.
 
 use core::fmt::Debug;
-use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use strum::{EnumMessage, IntoEnumIterator};
 
@@ -61,12 +60,6 @@ pub enum Dialect {
     Snowflake,
 }
 
-pub static DIALECT_NAMES: Lazy<Vec<&str>> = Lazy::new(|| {
-    Dialect::iter()
-        .flat_map(|s| s.get_serializations().to_vec())
-        .collect::<Vec<&'static str>>()
-});
-
 // Is this the best approach for the Enum / Struct — basically that we have one
 // Enum that gets its respective Struct, and then the Struct can also get its
 // respective Enum?
@@ -84,6 +77,12 @@ impl Dialect {
             Dialect::PostgreSql => Box::new(PostgresDialect),
             Dialect::Ansi | Dialect::Generic | Dialect::Hive => Box::new(GenericDialect),
         }
+    }
+
+    pub fn names() -> Vec<&'static str> {
+        Dialect::iter()
+            .flat_map(|s| s.get_serializations().to_vec())
+            .collect::<Vec<&'static str>>()
     }
 }
 
