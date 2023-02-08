@@ -5,12 +5,8 @@ on:
   workflow_call:
     inputs:
       os:
-        required: false
-        default: ubuntu-latest
         type: string
       target_option:
-        required: false
-        default: ""
         type: string
 
 jobs:
