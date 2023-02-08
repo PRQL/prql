@@ -398,7 +398,10 @@ Currently we release in a semi-automated way:
 4. From there, both the tag and release is created and all packages are
    published automatically based on our
    [release workflow](https://github.com/PRQL/prql/blob/main/.github/workflows/release.yaml).
-5. Add in the sections for a new Changelog:
+5. Update Issue https://github.com/PRQL/prql/issues/1 so that people will be
+   notified of the change.
+
+6. Add in the sections for a new Changelog:
 
    ```md
    ## 0.4.X — [unreleased]
