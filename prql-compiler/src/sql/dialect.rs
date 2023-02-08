@@ -37,27 +37,27 @@ use strum::{EnumMessage, IntoEnumIterator};
     strum::EnumString,
 )]
 pub enum Dialect {
-    #[strum(serialize = "ansi")]
+    #[strum(serialize = "sql.ansi")]
     Ansi,
-    #[strum(serialize = "bigquery")]
+    #[strum(serialize = "sql.bigquery")]
     BigQuery,
-    #[strum(serialize = "clickhouse")]
+    #[strum(serialize = "sql.clickhouse")]
     ClickHouse,
-    #[strum(serialize = "duckdb")]
+    #[strum(serialize = "sql.duckdb")]
     DuckDb,
-    #[strum(serialize = "generic")]
+    #[strum(serialize = "sql.generic")]
     Generic,
-    #[strum(serialize = "hive")]
+    #[strum(serialize = "sql.hive")]
     Hive,
-    #[strum(serialize = "mssql")]
+    #[strum(serialize = "sql.mssql")]
     MsSql,
-    #[strum(serialize = "mysql")]
+    #[strum(serialize = "sql.mysql")]
     MySql,
-    #[strum(serialize = "postgres")]
+    #[strum(serialize = "sql.postgres")]
     PostgreSql,
-    #[strum(serialize = "sqlite")]
+    #[strum(serialize = "sql.sqlite")]
     SQLite,
-    #[strum(serialize = "snowflake")]
+    #[strum(serialize = "sql.snowflake")]
     Snowflake,
 }
 

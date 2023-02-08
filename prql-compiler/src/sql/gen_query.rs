@@ -29,7 +29,6 @@ pub fn translate_query(query: Query, dialect: Option<Dialect>) -> Result<sql_ast
     } else {
         let target = query.def.other.get("target");
         target
-            .and_then(|target| target.strip_prefix("sql."))
             .map(|dialect| {
                 super::Dialect::from_str(dialect).map_err(|_| {
                     Error::new(Reason::NotFound {
