@@ -29,10 +29,10 @@ jobs:
     strategy:
       matrix:
         target_option: ["", "--target=wasm32-unknown-unknown"]
-        os: [ubuntu-latest]
     uses: ./.github/workflows/test-rust.yaml
     with:
       target_option: ${{ matrix.target_option }}
+      os: ubuntu-latest
 
   test-book:
     runs-on: ubuntu-latest

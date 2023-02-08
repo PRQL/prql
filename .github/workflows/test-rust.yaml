@@ -5,10 +5,8 @@ on:
   workflow_call:
     inputs:
       os:
-        required: false
         type: string
       target_option:
-        required: false
         type: string
 
 jobs:
