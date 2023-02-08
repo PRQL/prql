@@ -36,27 +36,27 @@ use strum::{EnumMessage, IntoEnumIterator};
     strum::EnumString,
 )]
 pub enum Dialect {
-    #[strum(serialize = "sql.ansi")]
+    #[strum(serialize = "ansi")]
     Ansi,
-    #[strum(serialize = "sql.bigquery")]
+    #[strum(serialize = "bigquery")]
     BigQuery,
-    #[strum(serialize = "sql.clickhouse")]
+    #[strum(serialize = "clickhouse")]
     ClickHouse,
-    #[strum(serialize = "sql.duckdb")]
+    #[strum(serialize = "duckdb")]
     DuckDb,
-    #[strum(serialize = "sql.generic")]
+    #[strum(serialize = "generic")]
     Generic,
-    #[strum(serialize = "sql.hive")]
+    #[strum(serialize = "hive")]
     Hive,
-    #[strum(serialize = "sql.mssql")]
+    #[strum(serialize = "mssql")]
     MsSql,
-    #[strum(serialize = "sql.mysql")]
+    #[strum(serialize = "mysql")]
     MySql,
-    #[strum(serialize = "sql.postgres")]
+    #[strum(serialize = "postgres")]
     PostgreSql,
-    #[strum(serialize = "sql.sqlite")]
+    #[strum(serialize = "sqlite")]
     SQLite,
-    #[strum(serialize = "sql.snowflake")]
+    #[strum(serialize = "snowflake")]
     Snowflake,
 }
 
@@ -81,7 +81,7 @@ impl Dialect {
 
     pub fn names() -> Vec<&'static str> {
         Dialect::iter()
-            .flat_map(|s| s.get_serializations().to_vec())
+            .flat_map(|d| d.get_serializations().to_vec())
             .collect::<Vec<&'static str>>()
     }
 }
