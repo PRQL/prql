@@ -37,7 +37,7 @@ Options
 
 ```javascript
 const opts = new prql.CompileOptions();
-opts.target = prql.Dialect.MsSql;
+opts.target = 'sql.mssql';
 opts.format = false;
 opts.signature_comment = false;
 

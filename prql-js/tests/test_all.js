@@ -41,7 +41,7 @@ describe("prql-js", () => {
 
     it("should compile to dialect", () => {
       const opts = new prql.CompileOptions();
-      opts.target = prql.Dialect.MsSql;
+      opts.target = 'sql.mssql';
       opts.format = false;
       opts.signature_comment = false;
 
@@ -62,18 +62,21 @@ describe("prql-js", () => {
   });
 
   describe("CompileOptions", () => {
-    it("should be able to create from default_compile_options", () => {
-      const opts = prql.default_compile_options();
-
-      opts.target = prql.Dialect.Sqlite;
-      assert.equal(opts.target, prql.Dialect.Sqlite);
-    });
-
     it("should be able to create from constructor", () => {
       const opts = new prql.CompileOptions();
 
-      opts.target = prql.Dialect.Sqlite;
-      assert.equal(opts.target, prql.Dialect.Sqlite);
+      opts.target = 'sql.sqlite';
+      assert.equal(opts.target, 'sql.sqlite');
+    });
+
+    it("should fallback to generic dialect", () => {
+      const opts = new prql.CompileOptions();
+
+      opts.target = 'sql.not_existing';
+      const res = prql.compile("from a", opts);
+
+      // target should appear in signature comment
+      assert(res.includes('target:sql.generic'));
     });
   });
 });

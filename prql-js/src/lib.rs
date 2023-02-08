@@ -2,6 +2,9 @@
 #![allow(clippy::drop_non_drop)]
 mod utils;
 
+use std::str::FromStr;
+
+use prql_compiler::sql::Dialect;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
@@ -50,17 +53,11 @@ pub struct CompileOptions {
     /// Defaults to true.
     pub format: bool,
 
-    /// Target dialect to compile to.
-    ///
-    /// This is only changes the output for a relatively small subset of
-    /// features.
-    ///
-    /// If something does not work in a specific dialect, please raise in a
-    /// GitHub issue.
+    /// Target to compile to (e.g. sql.postgres)
     ///
     /// If `None` is used, the `target` argument from the query header is used.
-    /// If it does not exist, [Dialect::Generic] is used.
-    pub target: Option<Dialect>,
+    #[wasm_bindgen(skip)]
+    pub target: String,
 
     /// Emits the compiler signature as a comment after generated SQL
     ///
@@ -68,70 +65,38 @@ pub struct CompileOptions {
     pub signature_comment: bool,
 }
 
-impl Default for CompileOptions {
-    fn default() -> Self {
-        Self {
-            format: true,
-            target: None,
-            signature_comment: true,
-        }
-    }
-}
-
-#[wasm_bindgen]
-pub fn default_compile_options() -> CompileOptions {
-    CompileOptions::default()
-}
-
 #[wasm_bindgen]
 impl CompileOptions {
     #[wasm_bindgen(constructor)]
     pub fn new() -> Self {
-        Self::default()
+        Self {
+            format: true,
+            target: String::new(),
+            signature_comment: true,
+        }
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn target(&self) -> String {
+        self.target.clone()
+    }
+
+    #[wasm_bindgen(setter)]
+    pub fn set_target(&mut self, target: String) {
+        self.target = target;
     }
 }
 
 impl From<CompileOptions> for prql_compiler::Options {
     fn from(o: CompileOptions) -> Self {
+        let maybe_dialect = o.target.strip_prefix("sql.");
+        let dialect =
+            maybe_dialect.map(|dialect| Dialect::from_str(dialect).unwrap_or(Dialect::Generic));
+
         prql_compiler::Options {
             format: o.format,
-            target: prql_compiler::Target::Sql(o.target.map(From::from)),
+            target: prql_compiler::Target::Sql(dialect),
             signature_comment: o.signature_comment,
-        }
-    }
-}
-
-#[wasm_bindgen]
-#[derive(Clone, Copy)]
-pub enum Dialect {
-    Ansi,
-    BigQuery,
-    ClickHouse,
-    Generic,
-    Hive,
-    MsSql,
-    MySql,
-    PostgreSql,
-    SQLite,
-    Snowflake,
-    DuckDb,
-}
-
-impl From<Dialect> for prql_compiler::sql::Dialect {
-    fn from(d: Dialect) -> Self {
-        use prql_compiler::sql::Dialect as D;
-        match d {
-            Dialect::Ansi => D::Ansi,
-            Dialect::BigQuery => D::BigQuery,
-            Dialect::ClickHouse => D::ClickHouse,
-            Dialect::Generic => D::Generic,
-            Dialect::Hive => D::Hive,
-            Dialect::MsSql => D::MsSql,
-            Dialect::MySql => D::MySql,
-            Dialect::PostgreSql => D::PostgreSql,
-            Dialect::SQLite => D::SQLite,
-            Dialect::Snowflake => D::Snowflake,
-            Dialect::DuckDb => D::DuckDb,
         }
     }
 }
