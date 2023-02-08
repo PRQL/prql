@@ -17,7 +17,7 @@
     "@testing-library/jest-dom": "^5.16.5",
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^14.4.3",
-    "monaco-editor": "^0.34.0",
+    "monaco-editor": "^0.35.0",
     "prql-js": "file:../prql-js",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
