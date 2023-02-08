@@ -38,6 +38,16 @@ describe("prql-js", () => {
         prql.compile("Mississippi has four S’s and four I’s.")
       ).to.throw("Error");
     });
+
+    it("should compile to dialect", () => {
+      const opts = new prql.CompileOptions();
+      opts.target = prql.Dialect.MsSql;
+      opts.format = false;
+      opts.signature_comment = false;
+
+      const res = prql.compile("from a | take 10", opts);
+      assert.equal(res, "SELECT TOP (10) * FROM a");
+    });
   });
 
   describe("prql_to_pl", () => {
@@ -54,18 +64,16 @@ describe("prql-js", () => {
   describe("CompileOptions", () => {
     it("should be able to create from default_compile_options", () => {
       const opts = prql.default_compile_options();
-      expect(() => {
-        opts.dialect = prql.Dialect.Sqlite;
-        assert.equal(opts.dialect, prql.Dialect.Sqlite);
-      });
+
+      opts.target = prql.Dialect.Sqlite;
+      assert.equal(opts.target, prql.Dialect.Sqlite);
     });
 
     it("should be able to create from constructor", () => {
       const opts = new prql.CompileOptions();
-      expect(() => {
-        opts.dialect = prql.Dialect.Sqlite;
-        assert.equal(opts.dialect, prql.Dialect.Sqlite);
-      });
+
+      opts.target = prql.Dialect.Sqlite;
+      assert.equal(opts.target, prql.Dialect.Sqlite);
     });
   });
 });
