@@ -16,12 +16,13 @@ body {
 
 /* Inter ExtraBold */
 @font-face {
-    font-family: "InterExtraBold";
-    font-weight: bold;
-    font-style: normal;
-    font-display: swap;
-    src: local(""), url("https://prql-lang.org/fonts/inter-extra-bold.woff2") format("woff2"),
-        url("https://prql-lang.org/fonts/inter-extra-bold.woff") format("woff");
+  font-family: "InterExtraBold";
+  font-weight: bold;
+  font-style: normal;
+  font-display: swap;
+  src: local(""),
+    url("https://prql-lang.org/fonts/inter-extra-bold.woff2") format("woff2"),
+    url("https://prql-lang.org/fonts/inter-extra-bold.woff") format("woff");
 }
 
 h1 {

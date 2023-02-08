@@ -1,11 +1,11 @@
 /* Inter ExtraBold */
 @font-face {
-    font-family: "InterExtraBold";
-    font-weight: 800;
-    font-style: normal;
-    font-display: swap;
-    src: local(""), url("../fonts/inter-extra-bold.woff2") format("woff2"),
-        url("../fonts/inter-extra-bold.woff") format("woff");
+  font-family: "InterExtraBold";
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+  src: local(""), url("../fonts/inter-extra-bold.woff2") format("woff2"),
+    url("../fonts/inter-extra-bold.woff") format("woff");
 }
 
 /*--------------------------------------------------------------
