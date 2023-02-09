@@ -186,13 +186,13 @@ showcase_section:
     - id: functions
       label: Functions
       prql: |
-        func fahrenheit_from_celsius temp -> temp * 1.8 + 32
+        func fahrenheit_from_celsius temp -> temp * 9/5 + 32
 
         from weather
         select temp_f = (fahrenheit_from_celsius temp_c)
       sql: |
         SELECT
-          temp_c * 1.8 + 32 AS temp_f
+          temp_c * 9/5 + 32 AS temp_f
         FROM
           weather
 
