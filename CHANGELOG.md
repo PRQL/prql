@@ -1,12 +1,28 @@
 # PRQL Changelog
 
+## 0.5.1 — [unreleased]
+
+**Features**:
+
+**Fixes**:
+
+**Documentation**:
+
+**Web**:
+
+**Integrations**:
+
+**Internal changes**:
+
+**New Contributors**:
+
 ## 0.5.0 — 2022-02-08
 
 0.5.0 contains a few fixes, some improvements to bindings, lots of docs
 improvements, and some work on forthcoming features. It contains one breaking
 change in the compiler's `Options` interface.
 
-This release has 74 commits from 12 contributors.
+This release has 74 commits from 12 contributors. Selected changes:
 
 **Features**:
 

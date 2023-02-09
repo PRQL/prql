@@ -386,7 +386,7 @@ Currently we release in a semi-automated way:
    We can use this script to generate the first line:
 
    ```sh
-   echo "This release has $(git rev-list --count $(git rev-list --tags --max-count=1)..) commits from $(git shortlog --summary $(git rev-list --tags --max-count=1).. | wc -l | tr -d '[:space:]') contributors."
+   echo "This release has $(git rev-list --count $(git rev-list --tags --max-count=1)..) commits from $(git shortlog --summary $(git rev-list --tags --max-count=1).. | wc -l | tr -d '[:space:]') contributors. Selected changes:"
    ```
 
 2. Run `cargo release version patch -x && cargo release replace -x` to bump the
@@ -404,7 +404,7 @@ Currently we release in a semi-automated way:
 6. Add in the sections for a new Changelog:
 
    ```md
-   ## 0.4.X — [unreleased]
+   ## 0.5.X — [unreleased]
 
    **Features**:
 
