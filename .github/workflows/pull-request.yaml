@@ -28,9 +28,9 @@ jobs:
   test-rust:
     strategy:
       matrix:
-        target_option: ["", "--target=wasm32-unknown-unknown"]
         # We use a matrix here to mirror `test-all`, so they share a cache.
         os: [ubuntu-latest]
+        target_option: ["", "--target=wasm32-unknown-unknown"]
     uses: ./.github/workflows/test-rust.yaml
     with:
       os: ${{ matrix.os }}
