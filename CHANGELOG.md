@@ -6,7 +6,7 @@
 improvements, and some work on forthcoming features. It contains one breaking
 change in the compiler's `Options` interface.
 
-This release has 74 commits from 12 contributors.
+This release has 74 commits from 12 contributors. Selected changes:
 
 **Features**:
 
