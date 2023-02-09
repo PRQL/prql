@@ -86,7 +86,7 @@ pub mod sql;
 mod test;
 mod utils;
 
-pub use error::{downcast, ErrorMessage, ErrorMessages, SourceLocation, Span};
+pub use error::{downcast, Error, ErrorMessage, ErrorMessages, Reason, SourceLocation, Span};
 pub use utils::IntoOnly;
 
 use once_cell::sync::Lazy;
@@ -151,15 +151,18 @@ impl Target {
 }
 
 impl FromStr for Target {
-    type Err = ErrorMessages;
+    type Err = Error;
 
     fn from_str(s: &str) -> Result<Target, Self::Err> {
         if s.starts_with("sql.") {
             let maybe_dialect = s.strip_prefix("sql.").unwrap_or(s);
-            let dialect = sql::Dialect::from_str(maybe_dialect).unwrap_or(sql::Dialect::Generic);
+            let dialect = sql::Dialect::from_str(maybe_dialect).unwrap_or_default();
             Ok(Target::Sql(Some(dialect)))
         } else {
-            Err(downcast(anyhow::anyhow!("Unknown target: {}", s)))
+            Err(Error::new(Reason::NotFound {
+                name: format!("{s:?}"),
+                namespace: "target".to_string(),
+            }))
         }
     }
 }
