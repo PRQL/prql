@@ -27,5 +27,6 @@ version = "0.5.0"
 opt-level = "s"
 
 [workspace.metadata.release]
+allow_branch = ["*"]
 consolidate-commits = true
 pre-release-commit-message = "chore: Release {{version}}"
