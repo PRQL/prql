@@ -4,6 +4,7 @@ mod utils;
 
 use std::str::FromStr;
 
+use prql_compiler::Target;
 use prql_compiler::sql::Dialect;
 use wasm_bindgen::prelude::*;
 
@@ -103,13 +104,11 @@ impl CompileOptions {
 
 impl From<CompileOptions> for prql_compiler::Options {
     fn from(o: CompileOptions) -> Self {
-        let maybe_dialect = o.target.strip_prefix("sql.");
-        let dialect =
-            maybe_dialect.map(|dialect| Dialect::from_str(dialect).unwrap_or(Dialect::Generic));
+        let target = Target::from_str(&o.target).unwrap_or_default();
 
         prql_compiler::Options {
             format: o.format,
-            target: prql_compiler::Target::Sql(dialect),
+            target,
             signature_comment: o.signature_comment,
         }
     }
