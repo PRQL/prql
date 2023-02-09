@@ -16,6 +16,6 @@ name = "prql"
 path = "src/lib.rs"
 
 [dependencies]
-prql-compiler = {path = "../../../prql-compiler", default-features = false, version = "0.4.2"}
+prql-compiler = {path = "../../../prql-compiler", default-features = false, version = "0.5.0" }
 [target.'cfg(not(any(target_family="wasm")))'.dependencies]
 rustler = "0.27.0"
