@@ -33,8 +33,8 @@ jobs:
         os: [ubuntu-latest]
     uses: ./.github/workflows/test-rust.yaml
     with:
-      target_option: ${{ matrix.target_option }}
       os: ${{ matrix.os }}
+      target_option: ${{ matrix.target_option }}
 
   test-book:
     runs-on: ubuntu-latest
