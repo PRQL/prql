@@ -92,6 +92,7 @@ pub use utils::IntoOnly;
 use once_cell::sync::Lazy;
 use semver::Version;
 use serde::{Deserialize, Serialize};
+use std::str::FromStr;
 
 pub static PRQL_VERSION: Lazy<Version> =
     Lazy::new(|| Version::parse(env!("CARGO_PKG_VERSION")).expect("Invalid PRQL version number"));
@@ -134,12 +135,32 @@ pub enum Target {
     Sql(Option<sql::Dialect>),
 }
 
+impl Default for Target {
+    fn default() -> Self {
+        Self::Sql(Some(sql::Dialect::default()))
+    }
+}
+
 impl Target {
     pub fn names() -> Vec<String> {
         sql::Dialect::names()
             .into_iter()
             .map(|d| format!("sql.{d}"))
             .collect()
+    }
+}
+
+impl FromStr for Target {
+    type Err = ErrorMessages;
+
+    fn from_str(s: &str) -> Result<Target, Self::Err> {
+        if s.starts_with("sql.") {
+            let maybe_dialect = s.strip_prefix("sql.").unwrap_or(s);
+            let dialect = sql::Dialect::from_str(maybe_dialect).unwrap_or(sql::Dialect::Generic);
+            Ok(Target::Sql(Some(dialect)))
+        } else {
+            Err(downcast(anyhow::anyhow!("Unknown target: {}", s)))
+        }
     }
 }
 
