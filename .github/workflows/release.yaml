@@ -95,7 +95,7 @@ jobs:
   #         nexus_password: ${{ secrets.nexus_password }}
   #         directory: prql-java/java/
 
-  publish-website:
+  push-web-branch:
     runs-on: ubuntu-latest
     steps:
       - name: 📂 Checkout code
