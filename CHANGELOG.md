@@ -1,6 +1,12 @@
 # PRQL Changelog
 
-## 0.4.3 — [unreleased]
+## 0.5.0 — 2022-02-08
+
+0.5.0 contains a few fixes, some improvements to bindings, lots of docs
+improvements, and some work on forthcoming features. It contains one breaking
+change in the compiler's `Options` interface.
+
+This release has 74 commits from 12 contributors.
 
 **Features**:
 
@@ -20,13 +26,9 @@
 **Documentation**:
 
 - Add a documentation test for prql-compiler, update prql-compiler README, and
-  include the README in the prql book section for Rust binidings. The code
+  include the README in the prql book section for Rust bindings. The code
   examples in the README are included and tested as doctests in the
   prql-compiler (@nkicg6, #1679)
-
-**Web**:
-
-**Integrations**:
 
 **Internal changes**:
 
@@ -34,6 +36,10 @@
   results match expected SQL (@nkicg6, #1719)
 
 **New Contributors**:
+
+- @ruslandoga, with #1628
+- @RalfNorthman, with #1632
+- @nicot, with #1662
 
 ## 0.4.2 — 2022-01-25
 
