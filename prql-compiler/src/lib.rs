@@ -137,7 +137,7 @@ pub enum Target {
 
 impl Default for Target {
     fn default() -> Self {
-        Self::Sql(Some(sql::Dialect::default()))
+        Self::Sql(None)
     }
 }
 
