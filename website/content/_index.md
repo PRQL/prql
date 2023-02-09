@@ -192,7 +192,7 @@ showcase_section:
         select temp_f = (fahrenheit_from_celsius temp_c)
       sql: |
         SELECT
-          temp_c * 9/5 + 32 AS temp_f
+          temp_c * 9 / 5 + 32 AS temp_f
         FROM
           weather
 
