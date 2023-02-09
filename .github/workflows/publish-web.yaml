@@ -33,6 +33,8 @@ jobs:
       # Book setup
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/web' }}
       - uses: peaceiris/actions-mdbook@v1
       - uses: baptiste0928/cargo-install@next
         with:
