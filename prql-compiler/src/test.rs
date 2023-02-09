@@ -2844,7 +2844,7 @@ fn test_static_analysis() {
       3 AS a,
       false AS b,
       15,
-      0,
+      3 / 5,
       3,
       8,
       -2,
