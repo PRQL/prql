@@ -100,4 +100,4 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
-      - run: git push origin HEAD:website --force
+      - run: git push origin HEAD:web --force
