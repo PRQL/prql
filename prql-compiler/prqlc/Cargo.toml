@@ -18,7 +18,7 @@ color-eyre = "0.6.1"
 env_logger = {version = "0.9.1", features = ["termcolor"]}
 itertools = "0.10.3"
 notify = "^5.1.0"
-prql-compiler = {path = '..', version = "0.4.2"}
+prql-compiler = {path = '..', version = "0.5.0" }
 serde_json = "1.0.81"
 serde_yaml = "0.9.1"
 walkdir = "^2.3.2"
