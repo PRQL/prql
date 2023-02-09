@@ -1,5 +1,21 @@
 # PRQL Changelog
 
+## 0.5.1 — [unreleased]
+
+**Features**:
+
+**Fixes**:
+
+**Documentation**:
+
+**Web**:
+
+**Integrations**:
+
+**Internal changes**:
+
+**New Contributors**:
+
 ## 0.5.0 — 2022-02-08
 
 0.5.0 contains a few fixes, some improvements to bindings, lots of docs
