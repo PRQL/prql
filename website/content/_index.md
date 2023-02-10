@@ -155,9 +155,9 @@ showcase_section:
       prql: |
         from web
         # Just like Python
-        select url = f"http://www.{domain}.{tld}/{page}"
+        select url = f"https://www.{domain}.{tld}/{page}"
       sql: |
-        SELECT CONCAT('http://www.', domain, '.', tld,
+        SELECT CONCAT('https://www.', domain, '.', tld,
           '/', page) AS url
         FROM web
     # markdown-link-check-enable
