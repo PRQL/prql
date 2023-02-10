@@ -154,20 +154,20 @@ impl FromStr for Target {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Target, Self::Err> {
-        let not_found_error = Error::new(Reason::NotFound {
-            name: format!("{s:?}"),
-            namespace: "target".to_string(),
-        });
-
-        if s.starts_with("sql.") {
-            s.strip_prefix("sql.")
-                .map(sql::Dialect::from_str)
-                .transpose()
-                .map(Target::Sql)
-                .map_err(|_| not_found_error)
-        } else {
-            Err(not_found_error)
-        }
+        // We have a closure here because we can't create the error in the
+        // pipeline, since it needs to be in two places, and we'd need to clone.
+        // (Though possibly it's too optimize-y.)
+        let not_found_error = |s| {
+            Error::new(Reason::NotFound {
+                name: format!("{s:?}"),
+                namespace: "target".to_string(),
+            })
+        };
+        s.strip_prefix("sql.")
+            .ok_or_else(|| not_found_error(s))
+            .map(sql::Dialect::from_str)?
+            .map(|x| Target::Sql(Some(x)))
+            .map_err(|_| not_found_error(s))
     }
 }
 
