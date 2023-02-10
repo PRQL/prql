@@ -9,7 +9,7 @@
 # Invoke with:
 #
 #   cd <top-level-PRQL-directory>
-#   docker run -it -v $(pwd)/:/src -p 3000:3000 prql
+#   docker run --rm -it -v $(pwd)/:/src -p 3000:3000 prql
 #
 # You'll see a root@xxxxxxxxx:/app/# prompt
 # Enter the commands for the various tasks
@@ -49,6 +49,14 @@ COPY Taskfile.yml .
 
 # ========= Install cargo-tools =========
 RUN task install-cargo-tools
+
+# ========= Install hugo =========
+# https://stackoverflow.com/a/75330596/1827982 and 
+# https://www.docker.com/blog/faster-multi-platform-builds-dockerfile-cross-compilation-guide/
+
+ARG BUILDARCH
+RUN curl -L "https://github.com/gohugoio/hugo/releases/download/v0.110.0/hugo_0.110.0_linux-$BUILDARCH.deb" -o hugo.deb
+RUN apt-get install ./hugo.deb
 
 # TODO: currently this doesn't support doing things like running the playground,
 # since we don't install hugo & node. Default `apt` doesn't install up-to-date

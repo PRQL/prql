@@ -42,7 +42,10 @@ pre-commit run -a   # Run checks manually
 pre-commit install  # (one time) install the git hooks
 ```
 
-Finally, start up the Docker container with:
+## Start the Docker Container
+
+After you have built the container (one-time), start up the Docker container
+with:
 
 ```bash
 cd <top-level-PRQL-directory>
@@ -55,9 +58,9 @@ docker run --rm -it -v $(pwd)/:/src -p 3000:3000 prql
 
 ## Running code with Docker
 
-Currently our Docker image only supports running rust dependencies. (adding
-`hugo` & `nodejs` so that the playground can run would be a welcome
-contribution.)
+Currently our Docker image only supports running rust dependencies and working
+on the Book and Website. (Adding `nodejs` so that the Playground can run would
+be a welcome contribution.)
 
 Use the `docker run...` command above, then enter the relevant commands; for
 example `cargo insta test --accept` or `task run book` — more details of the

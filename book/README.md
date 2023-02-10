@@ -36,3 +36,13 @@ As described in [**book.toml**](book.toml), we have a few preprocessors which
 convert the markdown into the code displayed on the site. Some of these are
 quite hacky, and will likely not work on Windows. If this is a problem, please
 post an issue and we'll try and find a workaround.
+
+## Dockerfile
+
+To work on the Book, start the Docker container and then use:
+
+```sh
+cd book
+mdbook serve -n 0.0.0.0 -p 3000
+# use ^C to abort the mdbook server
+```
