@@ -155,9 +155,10 @@ impl FromStr for Target {
 
     fn from_str(s: &str) -> Result<Target, Self::Err> {
         s.strip_prefix("sql.")
-            .map(|dialect| sql::Dialect::from_str(dialect).unwrap_or_default())
+            .map(sql::Dialect::from_str)
+            .unwrap()
             .map(|d| Target::Sql(Some(d)))
-            .ok_or_else(|| {
+            .map_err(|_| {
                 Error::new(Reason::NotFound {
                     name: format!("{s:?}"),
                     namespace: "target".to_string(),
@@ -285,12 +286,15 @@ mod tests {
         "###);
 
         assert_debug_snapshot!(Target::from_str(&"sql.poostgres".to_string()), @r###"
-        Ok(
-            Sql(
-                Some(
-                    Generic,
-                ),
-            ),
+        Err(
+            Error {
+                span: None,
+                reason: NotFound {
+                    name: "\"sql.poostgres\"",
+                    namespace: "target",
+                },
+                help: None,
+            },
         )
         "###);
 
