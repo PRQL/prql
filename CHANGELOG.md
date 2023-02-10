@@ -9,9 +9,11 @@
 - Delegate dividing literal integers to the DB. Previously integer division was
   executed during PRQL compilation, which could be confusing given that behavior
   is different across DBs. Other arithmetic operations are still executed during
-  compilation. (@max-sixty #1747)
+  compilation. (@max-sixty, #1747)
 
 **Documentation**:
+
+- Add docs on the `from_text` transform (@max-sixty, )
 
 **Web**:
 
