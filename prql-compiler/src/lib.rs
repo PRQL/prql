@@ -265,3 +265,46 @@ pub mod json {
         serde_json::from_str(json).map_err(|e| error::downcast(anyhow::anyhow!(e)))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::Target;
+    use insta::assert_debug_snapshot;
+    use std::str::FromStr;
+
+    #[test]
+    fn test_target_from_str() {
+        assert_debug_snapshot!(Target::from_str(&"sql.postgres".to_string()), @r###"
+        Ok(
+            Sql(
+                Some(
+                    PostgreSql,
+                ),
+            ),
+        )
+        "###);
+
+        assert_debug_snapshot!(Target::from_str(&"sql.poostgres".to_string()), @r###"
+        Ok(
+            Sql(
+                Some(
+                    Generic,
+                ),
+            ),
+        )
+        "###);
+
+        assert_debug_snapshot!(Target::from_str(&"postgres".to_string()), @r###"
+        Err(
+            Error {
+                span: None,
+                reason: NotFound {
+                    name: "\"postgres\"",
+                    namespace: "target",
+                },
+                help: None,
+            },
+        )
+        "###);
+    }
+}
