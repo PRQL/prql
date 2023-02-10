@@ -51,7 +51,7 @@ COPY Taskfile.yml .
 RUN task install-cargo-tools
 
 # ========= Install hugo =========
-# https://stackoverflow.com/a/75330596/1827982 and 
+# https://stackoverflow.com/a/75330596/1827982 and
 # https://www.docker.com/blog/faster-multi-platform-builds-dockerfile-cross-compilation-guide/
 
 ARG BUILDARCH
