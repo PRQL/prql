@@ -154,16 +154,15 @@ impl FromStr for Target {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Target, Self::Err> {
-        if s.starts_with("sql.") {
-            let maybe_dialect = s.strip_prefix("sql.").unwrap_or(s);
-            let dialect = sql::Dialect::from_str(maybe_dialect).unwrap_or_default();
-            Ok(Target::Sql(Some(dialect)))
-        } else {
-            Err(Error::new(Reason::NotFound {
-                name: format!("{s:?}"),
-                namespace: "target".to_string(),
-            }))
-        }
+        s.strip_prefix("sql.")
+            .map(|dialect| sql::Dialect::from_str(dialect).unwrap_or_default())
+            .map(|d| Target::Sql(Some(d)))
+            .ok_or_else(|| {
+                Error::new(Reason::NotFound {
+                    name: format!("{s:?}"),
+                    namespace: "target".to_string(),
+                })
+            })
     }
 }
 
