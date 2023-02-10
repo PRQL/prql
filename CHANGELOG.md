@@ -13,7 +13,7 @@
 
 **Documentation**:
 
-- Add docs on the `from_text` transform (@max-sixty, )
+- Add docs on the `from_text` transform (@max-sixty, #1756)
 
 **Web**:
 
