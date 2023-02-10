@@ -154,22 +154,19 @@ impl FromStr for Target {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Target, Self::Err> {
+        let not_found_error = Error::new(Reason::NotFound {
+            name: format!("{s:?}"),
+            namespace: "target".to_string(),
+        });
+
         if s.starts_with("sql.") {
             s.strip_prefix("sql.")
                 .map(sql::Dialect::from_str)
                 .transpose()
                 .map(Target::Sql)
-                .map_err(|_| {
-                    Error::new(Reason::NotFound {
-                        name: format!("{s:?}"),
-                        namespace: "target".to_string(),
-                    })
-                })
+                .map_err(|_| not_found_error)
         } else {
-            Err(Error::new(Reason::NotFound {
-                name: format!("{s:?}"),
-                namespace: "target".to_string(),
-            }))
+            Err(not_found_error)
         }
     }
 }
