@@ -22,6 +22,9 @@ pub struct Error {
     pub help: Option<String>,
 }
 
+#[derive(Debug, Clone)]
+pub struct Errors(pub Vec<Error>);
+
 /// Location within the source file.
 /// Tuples contain:
 /// - line number (0-based),
@@ -109,8 +112,18 @@ impl Display for ErrorMessage {
 // Needed for anyhow
 impl StdError for Error {}
 
+// Needed for anyhow
+impl StdError for Errors {}
+
 // Needed for StdError
 impl Display for Error {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        Debug::fmt(&self, f)
+    }
+}
+
+// Needed for StdError
+impl Display for Errors {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         Debug::fmt(&self, f)
     }
@@ -142,6 +155,19 @@ pub fn downcast(error: anyhow::Error) -> ErrorMessages {
 
     let error = match error.downcast::<ErrorMessages>() {
         Ok(messages) => return messages,
+        Err(error) => error,
+    };
+
+    let error = match error.downcast::<Errors>() {
+        Ok(messages) => {
+            return ErrorMessages {
+                inner: messages
+                    .0
+                    .into_iter()
+                    .flat_map(|e| downcast(e.into()).inner)
+                    .collect(),
+            }
+        }
         Err(error) => error,
     };
 

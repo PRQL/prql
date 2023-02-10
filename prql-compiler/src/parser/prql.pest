@@ -38,18 +38,19 @@ ident_star = { "*" }
 pipe = _{ NEWLINE+ | "|" }
 pipeline = { WHITESPACE* ~ expr_call ~ (pipe ~ expr_call)* }
 
-// Whitespace is required to prevent matching s"string". Forbid `operator_binary` so `a
-// - b` can't parse as `a` & `-b` (but allow `select ![a]`)
-func_call = ${ ident ~ WHITESPACE+ ~ (!operator_binary ~ (named_arg | alias | expr) ~ WHITESPACE*)+ }
 
-named_arg   = !{ ident_part ~ ":" ~ !":" ~ expr }
-// alias needs to be distinct from assign, so that in `join s=salaries [==id]`,
-// `s=salaries` is parsed separately from `[==id]`, since aliases allow for an
-// expr as an rvalue, but not a function call.
-alias = !{ ident_part ~ "=" ~ !"=" ~ expr }
+// assign_call needs to be distinct from assign, so that in `derive a = b c`, `b c` is not
+// a function call, but in `derive [a = sum b]`, `sub b` is.
+assign_call = !{ ident_part ~ "=" ~ !"=" ~ expr }
 assign = !{ ident_part ~ "=" ~ !"=" ~ expr_call }
 
 expr_call = _{ (func_call | expr) }
+
+// Whitespace is required to prevent matching s"string". Forbid `operator_binary` so `a
+// - b` can't parse as `a` & `-b` (but allow `select ![a]`)
+func_call = ${ ident ~ WHITESPACE+ ~ (!operator_binary ~ (named_arg | assign_call | expr) ~ WHITESPACE*)+ }
+
+named_arg   = !{ ident_part ~ ":" ~ !":" ~ expr }
 
 expr = !{ expr_coalesce ~ (operator_logical ~ expr)? }
 expr_coalesce = { expr_compare ~ (operator_coalesce ~ expr_coalesce)? }
