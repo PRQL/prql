@@ -12,7 +12,7 @@ npm install prql-js
 
 Currently these functions are exposed
 
-```javascript
+```typescript
 function compile(prql_query: string, options?: CompileOptions): string;
 
 function prql_to_pl(prql_query: string): string;
@@ -22,7 +22,7 @@ function pl_to_rq(pl_json: string): string;
 function rq_to_sql(rq_json: string): string;
 ```
 
-### From NodeJS
+### From Node.js
 
 Direct usage
 
@@ -68,7 +68,7 @@ const sql = prql`
 console.log(sql);
 ```
 
-### From a Browser
+### From a browser
 
 ```html
 <html>
@@ -92,7 +92,7 @@ console.log(sql);
 </html>
 ```
 
-### From a Framework or a Bundler
+### From a framework or a bundler
 
 ```typescript
 import compile from "prql-js/dist/bundler";
@@ -105,7 +105,7 @@ console.log(sql);
 
 Errors are returned as following object, serialized as a JSON array:
 
-```ts
+```typescript
 interface ErrorMessage {
   /// Plain text of the error
   reason: string;
