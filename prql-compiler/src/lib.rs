@@ -154,16 +154,23 @@ impl FromStr for Target {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Target, Self::Err> {
-        s.strip_prefix("sql.")
-            .map(sql::Dialect::from_str)
-            .unwrap()
-            .map(|d| Target::Sql(Some(d)))
-            .map_err(|_| {
-                Error::new(Reason::NotFound {
-                    name: format!("{s:?}"),
-                    namespace: "target".to_string(),
+        if s.starts_with("sql.") {
+            s.strip_prefix("sql.")
+                .map(sql::Dialect::from_str)
+                .transpose()
+                .map(Target::Sql)
+                .map_err(|_| {
+                    Error::new(Reason::NotFound {
+                        name: format!("{s:?}"),
+                        namespace: "target".to_string(),
+                    })
                 })
-            })
+        } else {
+            Err(Error::new(Reason::NotFound {
+                name: format!("{s:?}"),
+                namespace: "target".to_string(),
+            }))
+        }
     }
 }
 
@@ -275,7 +282,7 @@ mod tests {
 
     #[test]
     fn test_target_from_str() {
-        assert_debug_snapshot!(Target::from_str(&"sql.postgres".to_string()), @r###"
+        assert_debug_snapshot!(Target::from_str("sql.postgres"), @r###"
         Ok(
             Sql(
                 Some(
@@ -285,7 +292,7 @@ mod tests {
         )
         "###);
 
-        assert_debug_snapshot!(Target::from_str(&"sql.poostgres".to_string()), @r###"
+        assert_debug_snapshot!(Target::from_str("sql.poostgres"), @r###"
         Err(
             Error {
                 span: None,
@@ -298,7 +305,7 @@ mod tests {
         )
         "###);
 
-        assert_debug_snapshot!(Target::from_str(&"postgres".to_string()), @r###"
+        assert_debug_snapshot!(Target::from_str("postgres"), @r###"
         Err(
             Error {
                 span: None,
