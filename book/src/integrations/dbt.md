@@ -80,7 +80,7 @@ people some time. But imperatively programming text generation with code like
 than beautiful part of dbt.
 
 Here's the canonical example of macros in the
-[dbt documentation](https://docs.getdbt.com/tutorial/learning-more/using-jinja):
+[dbt documentation](https://docs.getdbt.com/docs/build/jinja-macros):
 
 ```sql
 {%- set payment_methods = ["bank_transfer", "credit_card", "gift_card"] -%}
