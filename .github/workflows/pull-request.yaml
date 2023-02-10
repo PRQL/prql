@@ -45,7 +45,12 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           save-if: ${{ github.ref == 'refs/heads/main' }}
-      - uses: peaceiris/actions-mdbook@v1
+      - uses: baptiste0928/cargo-install@next
+        with:
+          crate: mdbook
+      - uses: baptiste0928/cargo-install@next
+        with:
+          crate: mdbook-footnote
       - uses: baptiste0928/cargo-install@next
         with:
           crate: mdbook-admonish
