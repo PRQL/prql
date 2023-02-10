@@ -7,6 +7,7 @@ mod chumsky;
 use std::collections::HashMap;
 use std::str::FromStr;
 
+use ::chumsky::error::SimpleReason;
 use anyhow::bail;
 use anyhow::{anyhow, Result};
 use itertools::Itertools;
@@ -17,7 +18,7 @@ use pest_derive::Parser;
 
 use super::ast::pl::*;
 use super::utils::*;
-use crate::error::Span;
+use crate::error::{Error, Errors, Reason, Span};
 
 #[derive(Parser)]
 #[grammar = "parser/prql.pest"]
@@ -28,17 +29,53 @@ pub(crate) type PestRule = Rule;
 
 /// Build PL AST from a PRQL query string.
 pub fn parse(string: &str) -> Result<Vec<Stmt>> {
-    let pairs = parse_tree_of_str(string, Rule::statements)?;
+    ::chumsky::Parser::parse(&chumsky::source(), string)
+        .map_err(|errors| errors.into_iter().map(convert_error).collect_vec())
+        .map_err(Errors)
+        .map_err(|e| anyhow!(e))
+}
 
-    stmts_of_parse_pairs(pairs)
+fn convert_error(e: ::chumsky::prelude::Simple<char>) -> Error {
+    let span = Some(Span {
+        start: e.span().start,
+        end: e.span().end,
+    });
+
+    dbg!(&e);
+
+    if let SimpleReason::Custom(message) = e.reason() {
+        return Error::new_simple(message).with_span(span);
+    }
+
+    let expected = e
+        .expected()
+        .filter_map(|e| e.map(|e| format!("{e:?}")))
+        .collect_vec();
+
+    let found = e.found().map(|c| format!("{c:?}")).unwrap_or_default();
+
+    if expected.is_empty() {
+        Error::new(Reason::Unexpected { found })
+    } else {
+        let expected = expected.join(", ");
+
+        Error::new(Reason::Expected {
+            who: None,
+            expected,
+            found,
+        })
+    }
+    .with_span(span)
 }
 
 /// Parse a string into a parse tree / concrete syntax tree, made up of pest Pairs.
+#[allow(dead_code)]
 fn parse_tree_of_str(source: &str, rule: Rule) -> Result<Pairs<Rule>> {
     Ok(PrqlParser::parse(rule, source)?)
 }
 
 /// Parses a parse tree of pest Pairs into a list of statements.
+#[allow(dead_code)]
 fn stmts_of_parse_pairs(pairs: Pairs<Rule>) -> Result<Vec<Stmt>> {
     pairs
         .filter(|p| !matches!(p.as_rule(), Rule::EOI))
@@ -46,6 +83,7 @@ fn stmts_of_parse_pairs(pairs: Pairs<Rule>) -> Result<Vec<Stmt>> {
         .collect()
 }
 
+#[allow(dead_code)]
 fn stmt_of_parse_pair(pair: Pair<Rule>) -> Result<Stmt> {
     let span = pair.as_span();
     let rule = pair.as_rule();
@@ -132,6 +170,7 @@ fn stmt_of_parse_pair(pair: Pair<Rule>) -> Result<Stmt> {
 }
 
 /// Parses a parse tree of pest Pairs into an AST.
+#[allow(dead_code)]
 fn exprs_of_parse_pairs(pairs: Pairs<Rule>) -> Result<Vec<Expr>> {
     pairs
         .filter(|p| !matches!(p.as_rule(), Rule::EOI))
@@ -139,6 +178,7 @@ fn exprs_of_parse_pairs(pairs: Pairs<Rule>) -> Result<Vec<Expr>> {
         .collect()
 }
 
+#[allow(dead_code)]
 fn expr_of_parse_pair(pair: Pair<Rule>) -> Result<Expr> {
     let span = pair.as_span();
     let rule = pair.as_rule();
@@ -203,7 +243,7 @@ fn expr_of_parse_pair(pair: Pair<Rule>) -> Result<Expr> {
         // parse parts of a Pairs).
         Rule::operator_coalesce => ExprKind::Ident(Ident::from_name("-")),
 
-        Rule::assign | Rule::alias => {
+        Rule::assign | Rule::assign_call => {
             let (a, expr) = parse_named(pair.into_inner())?;
             alias = Some(a);
             expr.kind
@@ -430,6 +470,7 @@ fn ast_of_interpolate_items(pair: Pair<Rule>) -> Result<Vec<InterpolateItem>> {
 mod test {
 
     use super::*;
+    use ::chumsky::{prelude::*, Parser};
     use insta::assert_yaml_snapshot;
 
     fn stmts_of_string(string: &str) -> Result<Vec<Stmt>> {
@@ -438,17 +479,15 @@ mod test {
         stmts_of_parse_pairs(pairs)
     }
 
-    fn expr_of_string(string: &str, rule: Rule) -> Result<Expr> {
-        let mut pairs = parse_tree_of_str(string, rule)?;
-
-        expr_of_parse_pair(pairs.next().unwrap())
+    fn expr_of_string(string: &str) -> Result<Expr, Vec<::chumsky::prelude::Simple<char>>> {
+        ::chumsky::Parser::parse(&chumsky::expr_call().then_ignore(end()), string)
     }
 
     #[test]
-    fn test_parse_take() -> Result<()> {
-        parse_tree_of_str("take 10", Rule::statements)?;
+    fn test_parse_take() {
+        parse_tree_of_str("take 10", Rule::statements).unwrap();
 
-        assert_yaml_snapshot!(stmts_of_string(r#"take 10"#)?, @r###"
+        assert_yaml_snapshot!(stmts_of_string(r#"take 10"#).unwrap(), @r###"
         ---
         - Main:
             FuncCall:
@@ -458,10 +497,9 @@ mod test {
               args:
                 - Literal:
                     Integer: 10
-              named_args: {}
         "###);
 
-        assert_yaml_snapshot!(stmts_of_string(r#"take 1..10"#)?, @r###"
+        assert_yaml_snapshot!(stmts_of_string(r#"take 1..10"#).unwrap(), @r###"
         ---
         - Main:
             FuncCall:
@@ -476,10 +514,7 @@ mod test {
                     end:
                       Literal:
                         Integer: 10
-              named_args: {}
         "###);
-
-        Ok(())
     }
 
     #[test]
@@ -512,8 +547,8 @@ mod test {
     }
 
     #[test]
-    fn test_parse_basic_exprs() -> Result<()> {
-        assert_yaml_snapshot!(expr_of_string(r#"country == "USA""#, Rule::expr)?, @r###"
+    fn test_parse_basic_exprs() {
+        assert_yaml_snapshot!(expr_of_string(r#"country == "USA""#).unwrap(), @r###"
         ---
         Binary:
           left:
@@ -524,7 +559,7 @@ mod test {
             Literal:
               String: USA
         "###);
-        assert_yaml_snapshot!(expr_of_string("select [a, b, c]", Rule::func_call)?, @r###"
+        assert_yaml_snapshot!(expr_of_string("select [a, b, c]").unwrap(), @r###"
         ---
         FuncCall:
           name:
@@ -538,14 +573,12 @@ mod test {
                     - b
                 - Ident:
                     - c
-          named_args: {}
         "###);
         assert_yaml_snapshot!(expr_of_string(
             "group [title, country] (
                 aggregate [sum salary]
-            )",
-            Rule::pipeline
-        )?, @r###"
+            )"
+        ).unwrap(), @r###"
         ---
         FuncCall:
           name:
@@ -570,14 +603,10 @@ mod test {
                           args:
                             - Ident:
                                 - salary
-                          named_args: {}
-                named_args: {}
-          named_args: {}
         "###);
         assert_yaml_snapshot!(expr_of_string(
-            r#"    filter country == "USA""#,
-            Rule::pipeline
-        )?, @r###"
+            r#"    filter country == "USA""#
+        ).unwrap(), @r###"
         ---
         FuncCall:
           name:
@@ -592,9 +621,8 @@ mod test {
                 right:
                   Literal:
                     String: USA
-          named_args: {}
         "###);
-        assert_yaml_snapshot!(expr_of_string("[a, b, c,]", Rule::list)?, @r###"
+        assert_yaml_snapshot!(expr_of_string("[a, b, c,]").unwrap(), @r###"
         ---
         List:
           - Ident:
@@ -608,9 +636,8 @@ mod test {
             r#"[
   gross_salary = salary + payroll_tax,
   gross_cost   = gross_salary + benefits_cost
-]"#,
-            Rule::list
-        )?, @r###"
+]"#
+        ).unwrap(), @r###"
         ---
         List:
           - Binary:
@@ -636,7 +663,7 @@ mod test {
         assert_yaml_snapshot!(stmts_of_string(
             r#"# this is a comment
         select a"#
-        )?, @r###"
+        ).unwrap(), @r###"
         ---
         - Main:
             FuncCall:
@@ -646,12 +673,10 @@ mod test {
               args:
                 - Ident:
                     - a
-              named_args: {}
         "###);
         assert_yaml_snapshot!(expr_of_string(
-            "join side:left country [id==employee_id]",
-            Rule::func_call
-        )?, @r###"
+            "join side:left country [id==employee_id]"
+        ).unwrap(), @r###"
         ---
         FuncCall:
           name:
@@ -674,7 +699,7 @@ mod test {
               Ident:
                 - left
         "###);
-        assert_yaml_snapshot!(expr_of_string("1  + 2", Rule::expr)?, @r###"
+        assert_yaml_snapshot!(expr_of_string("1  + 2").unwrap(), @r###"
         ---
         Binary:
           left:
@@ -684,41 +709,40 @@ mod test {
           right:
             Literal:
               Integer: 2
-        "###);
-        Ok(())
+        "###)
     }
 
     #[test]
-    fn test_parse_string() -> Result<()> {
-        let double_quoted_ast = expr_of_string(r#"" U S A ""#, Rule::string)?;
+    fn test_parse_string() {
+        let double_quoted_ast = expr_of_string(r#"" U S A ""#).unwrap();
         assert_yaml_snapshot!(double_quoted_ast, @r###"
         ---
         Literal:
           String: " U S A "
         "###);
 
-        let single_quoted_ast = expr_of_string(r#"' U S A '"#, Rule::string)?;
+        let single_quoted_ast = expr_of_string(r#"' U S A '"#).unwrap();
         assert_eq!(single_quoted_ast, double_quoted_ast);
 
         // Single quotes within double quotes should produce a string containing
         // the single quotes (and vice versa).
-        assert_yaml_snapshot!(expr_of_string(r#""' U S A '""#, Rule::string)? , @r###"
+        assert_yaml_snapshot!(expr_of_string(r#""' U S A '""#).unwrap(), @r###"
         ---
         Literal:
           String: "' U S A '"
         "###);
-        assert_yaml_snapshot!(expr_of_string(r#"'" U S A "'"#, Rule::string)? , @r###"
+        assert_yaml_snapshot!(expr_of_string(r#"'" U S A "'"#).unwrap(), @r###"
         ---
         Literal:
           String: "\" U S A \""
         "###);
 
-        assert!(expr_of_string(r#"" U S A"#, Rule::string).is_err());
-        assert!(expr_of_string(r#"" U S A '"#, Rule::string).is_err());
+        expr_of_string(r#"" U S A"#).unwrap_err();
+        expr_of_string(r#"" U S A '"#).unwrap_err();
 
         // Escapes get passed through (the insta snapshot has them escaped I
         // think, which isn't that clear, so repeated below).
-        let escaped_string = expr_of_string(r#"" \U S A ""#, Rule::string)?;
+        let escaped_string = expr_of_string(r#"" \U S A ""#).unwrap();
         assert_yaml_snapshot!(escaped_string, @r###"
         ---
         Literal:
@@ -739,7 +763,7 @@ mod test {
         // should arguably encourage multiline-strings. (Though no objection if
         // someone wants to implement it, this test is recording current
         // behavior rather than maintaining a contract).
-        let escaped_quotes = expr_of_string(r#"" Canada \""#, Rule::string)?;
+        let escaped_quotes = expr_of_string(r#"" Canada \""#).unwrap();
         assert_yaml_snapshot!(escaped_quotes, @r###"
         ---
         Literal:
@@ -762,8 +786,8 @@ Canada
 "
 
 """"#,
-            Rule::string,
-        )?;
+        )
+        .unwrap();
         assert_yaml_snapshot!(multi_double, @r###"
         ---
         Literal:
@@ -777,8 +801,8 @@ Canada
 """
 
 '''"#,
-            Rule::string,
-        )?;
+        )
+        .unwrap();
         assert_yaml_snapshot!(multi_single, @r###"
         ---
         Literal:
@@ -786,19 +810,17 @@ Canada
         "###);
 
         assert_yaml_snapshot!(
-          expr_of_string("''", Rule::string).unwrap(),
+          expr_of_string("''").unwrap(),
           @r###"
         ---
         Literal:
           String: ""
         "###);
-
-        Ok(())
     }
 
     #[test]
-    fn test_parse_s_string() -> Result<()> {
-        assert_yaml_snapshot!(expr_of_string(r#"s"SUM({col})""#, Rule::expr_call)?, @r###"
+    fn test_parse_s_string() {
+        assert_yaml_snapshot!(expr_of_string(r#"s"SUM({col})""#).unwrap(), @r###"
         ---
         SString:
           - String: SUM(
@@ -807,7 +829,7 @@ Canada
                 - col
           - String: )
         "###);
-        assert_yaml_snapshot!(expr_of_string(r#"s"SUM({2 + 2})""#, Rule::expr_call)?, @r###"
+        assert_yaml_snapshot!(expr_of_string(r#"s"SUM({2 + 2})""#).unwrap(), @r###"
         ---
         SString:
           - String: SUM(
@@ -821,28 +843,25 @@ Canada
                   Literal:
                     Integer: 2
           - String: )
-        "###);
-        Ok(())
+        "###)
     }
 
     #[test]
-    fn test_parse_s_string_braces() -> Result<()> {
-        assert_yaml_snapshot!(expr_of_string(r#"s"{{?crystal_var}}""#, Rule::expr_call)?, @r###"
+    fn test_parse_s_string_braces() {
+        assert_yaml_snapshot!(expr_of_string(r#"s"{{?crystal_var}}""#).unwrap(), @r###"
         ---
         SString:
           - String: "{"
           - String: "?crystal_var"
           - String: "}"
         "###);
-        assert_yaml_snapshot!(expr_of_string(r#"s"foo{{bar""#, Rule::expr_call)?, @r###"
+        assert_yaml_snapshot!(expr_of_string(r#"s"foo{{bar""#).unwrap(), @r###"
         ---
         SString:
           - String: foo
           - String: "{"
           - String: bar
         "###);
-
-        Ok(())
     }
 
     #[test]
@@ -858,7 +877,7 @@ Canada
 
     #[test]
     fn test_parse_list() {
-        assert_yaml_snapshot!(expr_of_string(r#"[1 + 1, 2]"#, Rule::list).unwrap(), @r###"
+        assert_yaml_snapshot!(expr_of_string(r#"[1 + 1, 2]"#).unwrap(), @r###"
         ---
         List:
           - Binary:
@@ -872,7 +891,7 @@ Canada
           - Literal:
               Integer: 2
         "###);
-        assert_yaml_snapshot!(expr_of_string(r#"[1 + (f 1), 2]"#, Rule::list).unwrap(), @r###"
+        assert_yaml_snapshot!(expr_of_string(r#"[1 + (f 1), 2]"#).unwrap(), @r###"
         ---
         List:
           - Binary:
@@ -888,7 +907,6 @@ Canada
                   args:
                     - Literal:
                         Integer: 1
-                  named_args: {}
           - Literal:
               Integer: 2
         "###);
@@ -896,8 +914,8 @@ Canada
         assert_yaml_snapshot!(expr_of_string(
             r#"[1,
 
-                2]"#,
-         Rule::list).unwrap(), @r###"
+                2]"#
+        ).unwrap(), @r###"
         ---
         List:
           - Literal:
@@ -906,8 +924,8 @@ Canada
               Integer: 2
         "###);
         // Function call in a list
-        let ab = expr_of_string(r#"[a b]"#, Rule::list).unwrap();
-        let a_comma_b = expr_of_string(r#"[a, b]"#, Rule::list).unwrap();
+        let ab = expr_of_string(r#"[a b]"#).unwrap();
+        let a_comma_b = expr_of_string(r#"[a, b]"#).unwrap();
         assert_yaml_snapshot!(ab, @r###"
         ---
         List:
@@ -918,7 +936,6 @@ Canada
               args:
                 - Ident:
                     - b
-              named_args: {}
         "###);
         assert_yaml_snapshot!(a_comma_b, @r###"
         ---
@@ -930,13 +947,16 @@ Canada
         "###);
         assert_ne!(ab, a_comma_b);
 
-        assert_yaml_snapshot!(expr_of_string(r#"[amount, +amount, -amount]"#, Rule::list).unwrap(), @r###"
+        assert_yaml_snapshot!(expr_of_string(r#"[amount, +amount, -amount]"#).unwrap(), @r###"
         ---
         List:
           - Ident:
               - amount
-          - Ident:
-              - amount
+          - Unary:
+              op: Add
+              expr:
+                Ident:
+                  - amount
           - Unary:
               op: Neg
               expr:
@@ -944,13 +964,16 @@ Canada
                   - amount
         "###);
         // Operators in list items
-        assert_yaml_snapshot!(expr_of_string(r#"[amount, +amount, -amount]"#, Rule::list).unwrap(), @r###"
+        assert_yaml_snapshot!(expr_of_string(r#"[amount, +amount, -amount]"#).unwrap(), @r###"
         ---
         List:
           - Ident:
               - amount
-          - Ident:
-              - amount
+          - Unary:
+              op: Add
+              expr:
+                Ident:
+                  - amount
           - Unary:
               op: Neg
               expr:
@@ -960,28 +983,28 @@ Canada
     }
 
     #[test]
-    fn test_parse_number() -> Result<()> {
-        assert_yaml_snapshot!(expr_of_string(r#"23"#, Rule::number)?, @r###"
+    fn test_parse_number() {
+        assert_yaml_snapshot!(expr_of_string(r#"23"#).unwrap(), @r###"
         ---
         Literal:
           Integer: 23
         "###);
-        assert_yaml_snapshot!(expr_of_string(r#"2_3_4.5_6"#, Rule::number)?, @r###"
+        assert_yaml_snapshot!(expr_of_string(r#"2_3_4.5_6"#).unwrap(), @r###"
         ---
         Literal:
           Float: 234.56
         "###);
-        assert_yaml_snapshot!(expr_of_string(r#"23.6"#, Rule::number)?, @r###"
+        assert_yaml_snapshot!(expr_of_string(r#"23.6"#).unwrap(), @r###"
         ---
         Literal:
           Float: 23.6
         "###);
-        assert_yaml_snapshot!(expr_of_string(r#"23.0"#, Rule::number)?, @r###"
+        assert_yaml_snapshot!(expr_of_string(r#"23.0"#).unwrap(), @r###"
         ---
         Literal:
           Float: 23
         "###);
-        assert_yaml_snapshot!(expr_of_string(r#"2 + 2"#, Rule::expr_add)?, @r###"
+        assert_yaml_snapshot!(expr_of_string(r#"2 + 2"#).unwrap(), @r###"
         ---
         Binary:
           left:
@@ -993,17 +1016,18 @@ Canada
               Integer: 2
         "###);
 
-        // Underscores can't go at the beginning or end of numbers
-        assert!(expr_of_string("_2", Rule::number).is_err());
-        assert!(expr_of_string("_", Rule::number).is_err());
-        assert!(expr_of_string("_2.3", Rule::number).is_err());
+        // Underscores at the beginning are parsed as ident
+        expr_of_string("_2").unwrap().kind.into_ident().unwrap();
+        expr_of_string("_").unwrap().kind.into_ident().unwrap();
+        
+        expr_of_string("_2.3").unwrap_err();
+
         // We need to test these with `stmts_of_string` because they start with
         // a valid number (and pest will return as much as possible and then return)
         let bad_numbers = vec!["2_", "2.3_"];
         for bad_number in bad_numbers {
-            assert!(stmts_of_string(bad_number).is_err());
+            stmts_of_string(bad_number).unwrap_err();
         }
-        Ok(())
     }
 
     #[test]
@@ -1025,7 +1049,6 @@ Canada
                     right:
                       Literal:
                         String: USA
-              named_args: {}
         "###);
 
         assert_yaml_snapshot!(
@@ -1046,12 +1069,10 @@ Canada
                         args:
                           - Ident:
                               - country
-                        named_args: {}
                     op: Eq
                     right:
                       Literal:
                         String: USA
-              named_args: {}
         "###
         );
     }
@@ -1089,11 +1110,8 @@ Canada
                               args:
                                 - Ident:
                                     - salary
-                              named_args: {}
                           - Ident:
                               - count
-                    named_args: {}
-              named_args: {}
         "###);
         let aggregate = stmts_of_string(
             r"group [title] (
@@ -1126,16 +1144,13 @@ Canada
                               args:
                                 - Ident:
                                     - salary
-                              named_args: {}
-                    named_args: {}
-              named_args: {}
         "###);
     }
 
     #[test]
-    fn test_parse_derive() -> Result<()> {
+    fn test_parse_derive() {
         assert_yaml_snapshot!(
-            expr_of_string(r#"derive [x = 5, y = (-x)]"#, Rule::func_call)?
+            expr_of_string(r#"derive [x = 5, y = (-x)]"#).unwrap()
         , @r###"
         ---
         FuncCall:
@@ -1153,16 +1168,13 @@ Canada
                       Ident:
                         - x
                   alias: y
-          named_args: {}
         "###);
-
-        Ok(())
     }
 
     #[test]
-    fn test_parse_select() -> Result<()> {
+    fn test_parse_select() {
         assert_yaml_snapshot!(
-            expr_of_string(r#"select x"#, Rule::func_call)?
+            expr_of_string(r#"select x"#).unwrap()
         , @r###"
         ---
         FuncCall:
@@ -1172,11 +1184,10 @@ Canada
           args:
             - Ident:
                 - x
-          named_args: {}
         "###);
 
         assert_yaml_snapshot!(
-            expr_of_string(r#"select ![x]"#, Rule::func_call)?
+            expr_of_string(r#"select ![x]"#).unwrap()
         , @r###"
         ---
         FuncCall:
@@ -1190,11 +1201,10 @@ Canada
                   List:
                     - Ident:
                         - x
-          named_args: {}
         "###);
 
         assert_yaml_snapshot!(
-            expr_of_string(r#"select [x, y]"#, Rule::func_call)?
+            expr_of_string(r#"select [x, y]"#).unwrap()
         , @r###"
         ---
         FuncCall:
@@ -1207,16 +1217,13 @@ Canada
                     - x
                 - Ident:
                     - y
-          named_args: {}
         "###);
-
-        Ok(())
     }
 
     #[test]
-    fn test_parse_expr() -> Result<()> {
+    fn test_parse_expr() {
         assert_yaml_snapshot!(
-            expr_of_string(r#"country == "USA""#, Rule::expr)?
+            expr_of_string(r#"country == "USA""#).unwrap()
         , @r###"
         ---
         Binary:
@@ -1232,8 +1239,7 @@ Canada
                 r#"[
   gross_salary = salary + payroll_tax,
   gross_cost   = gross_salary + benefits_cost,
-]"#,
-        Rule::list)?, @r###"
+]"#).unwrap(), @r###"
         ---
         List:
           - Binary:
@@ -1257,9 +1263,8 @@ Canada
         "###);
         assert_yaml_snapshot!(
             expr_of_string(
-                "gross_salary = (salary + payroll_tax) * (1 + tax_rate)",
-                Rule::alias,
-            )?,
+                "gross_salary = (salary + payroll_tax) * (1 + tax_rate)"
+            ).unwrap(),
             @r###"
         ---
         Binary:
@@ -1283,13 +1288,12 @@ Canada
                 Ident:
                   - tax_rate
         alias: gross_salary
-        "###);
-        Ok(())
+        "###)
     }
 
     #[test]
-    fn test_parse_function() -> Result<()> {
-        assert_yaml_snapshot!(stmts_of_string("func plus_one x ->  x + 1")?, @r###"
+    fn test_parse_function() {
+        assert_yaml_snapshot!(stmts_of_string("func plus_one x ->  x + 1").unwrap(), @r###"
         ---
         - FuncDef:
             name: plus_one
@@ -1308,7 +1312,7 @@ Canada
                     Integer: 1
             return_ty: ~
         "###);
-        assert_yaml_snapshot!(stmts_of_string("func identity x ->  x")?
+        assert_yaml_snapshot!(stmts_of_string("func identity x ->  x").unwrap()
         , @r###"
         ---
         - FuncDef:
@@ -1322,7 +1326,7 @@ Canada
                 - x
             return_ty: ~
         "###);
-        assert_yaml_snapshot!(stmts_of_string("func plus_one x ->  (x + 1)")?
+        assert_yaml_snapshot!(stmts_of_string("func plus_one x ->  (x + 1)").unwrap()
         , @r###"
         ---
         - FuncDef:
@@ -1342,7 +1346,7 @@ Canada
                     Integer: 1
             return_ty: ~
         "###);
-        assert_yaml_snapshot!(stmts_of_string("func plus_one x ->  x + 1")?
+        assert_yaml_snapshot!(stmts_of_string("func plus_one x ->  x + 1").unwrap()
         , @r###"
         ---
         - FuncDef:
@@ -1362,7 +1366,7 @@ Canada
                     Integer: 1
             return_ty: ~
         "###);
-        assert_yaml_snapshot!(stmts_of_string("func foo x -> some_func (foo bar + 1) (plax) - baz")?
+        assert_yaml_snapshot!(stmts_of_string("func foo x -> some_func (foo bar + 1) (plax) - baz").unwrap()
         , @r###"
         ---
         - FuncDef:
@@ -1390,7 +1394,6 @@ Canada
                             right:
                               Literal:
                                 Integer: 1
-                      named_args: {}
                   - Binary:
                       left:
                         Ident:
@@ -1399,11 +1402,10 @@ Canada
                       right:
                         Ident:
                           - baz
-                named_args: {}
             return_ty: ~
         "###);
 
-        assert_yaml_snapshot!(stmts_of_string("func return_constant ->  42")?, @r###"
+        assert_yaml_snapshot!(stmts_of_string("func return_constant ->  42").unwrap(), @r###"
         ---
         - FuncDef:
             name: return_constant
@@ -1414,7 +1416,7 @@ Canada
                 Integer: 42
             return_ty: ~
         "###);
-        assert_yaml_snapshot!(stmts_of_string(r#"func count X ->  s"SUM({X})""#)?, @r###"
+        assert_yaml_snapshot!(stmts_of_string(r#"func count X ->  s"SUM({X})""#).unwrap(), @r###"
         ---
         - FuncDef:
             name: count
@@ -1449,7 +1451,7 @@ Canada
             ));
             */
 
-        assert_yaml_snapshot!(stmts_of_string(r#"func add x to:a ->  x + to"#)?, @r###"
+        assert_yaml_snapshot!(stmts_of_string(r#"func add x to:a ->  x + to"#).unwrap(), @r###"
         ---
         - FuncDef:
             name: add
@@ -1472,14 +1474,12 @@ Canada
                     - to
             return_ty: ~
         "###);
-
-        Ok(())
     }
 
     #[test]
     fn test_parse_func_call() {
         // Function without argument
-        let ast = expr_of_string(r#"count"#, Rule::expr).unwrap();
+        let ast = expr_of_string(r#"count"#).unwrap();
         let ident = ast.kind.into_ident().unwrap();
         assert_yaml_snapshot!(
             ident, @r###"
@@ -1488,7 +1488,7 @@ Canada
         "###);
 
         // A non-friendly option for #154
-        let ast = expr_of_string(r#"count s'*'"#, Rule::expr_call).unwrap();
+        let ast = expr_of_string(r#"count s'*'"#).unwrap();
         let func_call: FuncCall = ast.kind.into_func_call().unwrap();
         assert_yaml_snapshot!(
             func_call, @r###"
@@ -1499,7 +1499,6 @@ Canada
         args:
           - SString:
               - String: "*"
-        named_args: {}
         "###);
 
         assert_yaml_snapshot!(parse(r#"from mytable | select [a and b + c or (d e) and f]"#).unwrap(), @r###"
@@ -1514,7 +1513,6 @@ Canada
                     args:
                       - Ident:
                           - mytable
-                    named_args: {}
                 - FuncCall:
                     name:
                       Ident:
@@ -1548,15 +1546,13 @@ Canada
                                           args:
                                             - Ident:
                                                 - e
-                                          named_args: {}
                                       op: And
                                       right:
                                         Ident:
                                           - f
-                    named_args: {}
         "###);
 
-        let ast = expr_of_string(r#"add bar to=3"#, Rule::expr_call).unwrap();
+        let ast = expr_of_string(r#"add bar to=3"#).unwrap();
         assert_yaml_snapshot!(
             ast, @r###"
         ---
@@ -1570,15 +1566,14 @@ Canada
             - Literal:
                 Integer: 3
               alias: to
-          named_args: {}
         "###);
     }
 
     #[test]
-    fn test_parse_table() -> Result<()> {
+    fn test_parse_table() {
         assert_yaml_snapshot!(stmts_of_string(
             "let newest_employees = (from employees)"
-        )?, @r###"
+        ).unwrap(), @r###"
         ---
         - VarDef:
             name: newest_employees
@@ -1590,7 +1585,6 @@ Canada
                 args:
                   - Ident:
                       - employees
-                named_args: {}
         "###);
 
         assert_yaml_snapshot!(stmts_of_string(
@@ -1604,7 +1598,7 @@ Canada
           )
           sort tenure
           take 50
-        )"#.trim())?,
+        )"#.trim()).unwrap(),
          @r###"
         ---
         - VarDef:
@@ -1619,7 +1613,6 @@ Canada
                       args:
                         - Ident:
                             - employees
-                      named_args: {}
                   - FuncCall:
                       name:
                         Ident:
@@ -1640,10 +1633,7 @@ Canada
                                       args:
                                         - Ident:
                                             - salary
-                                      named_args: {}
                                     alias: average_country_salary
-                            named_args: {}
-                      named_args: {}
                   - FuncCall:
                       name:
                         Ident:
@@ -1651,7 +1641,6 @@ Canada
                       args:
                         - Ident:
                             - tenure
-                      named_args: {}
                   - FuncCall:
                       name:
                         Ident:
@@ -1659,12 +1648,11 @@ Canada
                       args:
                         - Literal:
                             Integer: 50
-                      named_args: {}
         "###);
 
         assert_yaml_snapshot!(stmts_of_string(r#"
             let e = s"SELECT * FROM employees"
-            "#)?, @r###"
+            "#).unwrap(), @r###"
         ---
         - VarDef:
             name: e
@@ -1683,7 +1671,7 @@ Canada
           )
 
           from x"
-        )?, @r###"
+        ).unwrap(), @r###"
         ---
         - VarDef:
             name: x
@@ -1697,7 +1685,6 @@ Canada
                       args:
                         - Ident:
                             - x_table
-                      named_args: {}
                   - FuncCall:
                       name:
                         Ident:
@@ -1706,7 +1693,6 @@ Canada
                         - Ident:
                             - foo
                           alias: only_in_x
-                      named_args: {}
         - Main:
             FuncCall:
               name:
@@ -1715,15 +1701,12 @@ Canada
               args:
                 - Ident:
                     - x
-              named_args: {}
         "###);
-
-        Ok(())
     }
 
     #[test]
     fn test_inline_pipeline() {
-        assert_yaml_snapshot!(expr_of_string("(salary | percentile 50)", Rule::nested_pipeline).unwrap(), @r###"
+        assert_yaml_snapshot!(expr_of_string("(salary | percentile 50)").unwrap(), @r###"
         ---
         Pipeline:
           exprs:
@@ -1736,7 +1719,6 @@ Canada
                 args:
                   - Literal:
                       Integer: 50
-                named_args: {}
         "###);
         assert_yaml_snapshot!(stmts_of_string("func median x -> (x | percentile 50)").unwrap(), @r###"
         ---
@@ -1758,20 +1740,19 @@ Canada
                       args:
                         - Literal:
                             Integer: 50
-                      named_args: {}
             return_ty: ~
         "###);
     }
 
     #[test]
-    fn test_parse_sql_parameters() -> Result<()> {
+    fn test_parse_sql_parameters() {
         assert_yaml_snapshot!(parse(r#"
         from mytable
         filter [
           first_name == $1,
           last_name == $2.name
         ]
-        "#)?, @r###"
+        "#).unwrap(), @r###"
         ---
         - Main:
             Pipeline:
@@ -1783,7 +1764,6 @@ Canada
                     args:
                       - Ident:
                           - mytable
-                    named_args: {}
                 - FuncCall:
                     name:
                       Ident:
@@ -1807,28 +1787,25 @@ Canada
                                 Ident:
                                   - $2
                                   - name
-                    named_args: {}
         "###);
-        Ok(())
     }
 
     #[test]
-    fn test_tab_characters() -> Result<()> {
+    fn test_tab_characters() {
         // #284
-
-        let prql = "from c_invoice
+        parse(
+            "from c_invoice
 join doc:c_doctype [==c_invoice_id]
 select [
 \tinvoice_no,
 \tdocstatus
-]";
-        parse(prql)?;
-
-        Ok(())
+]",
+        )
+        .unwrap();
     }
 
     #[test]
-    fn test_parse_backticks() -> Result<()> {
+    fn test_parse_backticks() {
         let prql = "
 from `a/*.parquet`
 aggregate [max c]
@@ -1837,7 +1814,7 @@ join `my-proj.dataset.table`
 join `my-proj`.`dataset`.`table`
 ";
 
-        assert_yaml_snapshot!(parse(prql)?, @r###"
+        assert_yaml_snapshot!(parse(prql).unwrap(), @r###"
         ---
         - Main:
             Pipeline:
@@ -1849,7 +1826,6 @@ join `my-proj`.`dataset`.`table`
                     args:
                       - Ident:
                           - a/*.parquet
-                    named_args: {}
                 - FuncCall:
                     name:
                       Ident:
@@ -1863,8 +1839,6 @@ join `my-proj`.`dataset`.`table`
                               args:
                                 - Ident:
                                     - c
-                              named_args: {}
-                    named_args: {}
                 - FuncCall:
                     name:
                       Ident:
@@ -1878,7 +1852,6 @@ join `my-proj`.`dataset`.`table`
                               expr:
                                 Ident:
                                   - id
-                    named_args: {}
                 - FuncCall:
                     name:
                       Ident:
@@ -1886,7 +1859,6 @@ join `my-proj`.`dataset`.`table`
                     args:
                       - Ident:
                           - my-proj.dataset.table
-                    named_args: {}
                 - FuncCall:
                     name:
                       Ident:
@@ -1896,14 +1868,11 @@ join `my-proj`.`dataset`.`table`
                           - my-proj
                           - dataset
                           - table
-                    named_args: {}
         "###);
-
-        Ok(())
     }
 
     #[test]
-    fn test_parse_sort() -> Result<()> {
+    fn test_parse_sort() {
         assert_yaml_snapshot!(parse("
         from invoices
         sort issued_at
@@ -1923,7 +1892,6 @@ join `my-proj`.`dataset`.`table`
                     args:
                       - Ident:
                           - invoices
-                    named_args: {}
                 - FuncCall:
                     name:
                       Ident:
@@ -1931,7 +1899,6 @@ join `my-proj`.`dataset`.`table`
                     args:
                       - Ident:
                           - issued_at
-                    named_args: {}
                 - FuncCall:
                     name:
                       Ident:
@@ -1942,7 +1909,6 @@ join `my-proj`.`dataset`.`table`
                           expr:
                             Ident:
                               - issued_at
-                    named_args: {}
                 - FuncCall:
                     name:
                       Ident:
@@ -1951,7 +1917,6 @@ join `my-proj`.`dataset`.`table`
                       - List:
                           - Ident:
                               - issued_at
-                    named_args: {}
                 - FuncCall:
                     name:
                       Ident:
@@ -1963,7 +1928,6 @@ join `my-proj`.`dataset`.`table`
                               expr:
                                 Ident:
                                   - issued_at
-                    named_args: {}
                 - FuncCall:
                     name:
                       Ident:
@@ -1977,12 +1941,12 @@ join `my-proj`.`dataset`.`table`
                               expr:
                                 Ident:
                                   - amount
-                          - Ident:
-                              - num_of_articles
-                    named_args: {}
+                          - Unary:
+                              op: Add
+                              expr:
+                                Ident:
+                                  - num_of_articles
         "###);
-
-        Ok(())
     }
 
     #[test]
@@ -2011,7 +1975,6 @@ join `my-proj`.`dataset`.`table`
                     args:
                       - Ident:
                           - employees
-                    named_args: {}
                 - FuncCall:
                     name:
                       Ident:
@@ -2033,8 +1996,6 @@ join `my-proj`.`dataset`.`table`
                                       end:
                                         Literal:
                                           Integer: 40
-                                named_args: {}
-                    named_args: {}
                 - FuncCall:
                     name:
                       Ident:
@@ -2056,8 +2017,6 @@ join `my-proj`.`dataset`.`table`
                                       end:
                                         Literal:
                                           Integer: 40
-                                named_args: {}
-                    named_args: {}
                 - FuncCall:
                     name:
                       Ident:
@@ -2102,12 +2061,11 @@ join `my-proj`.`dataset`.`table`
                                 Literal:
                                   Date: 2021-01-01
                             alias: dates
-                    named_args: {}
         "###);
     }
 
     #[test]
-    fn test_dates() -> Result<()> {
+    fn test_dates() {
         assert_yaml_snapshot!(parse("
         from employees
         derive [age_plus_two_years = (age + 2years)]
@@ -2123,7 +2081,6 @@ join `my-proj`.`dataset`.`table`
                     args:
                       - Ident:
                           - employees
-                    named_args: {}
                 - FuncCall:
                     name:
                       Ident:
@@ -2141,7 +2098,6 @@ join `my-proj`.`dataset`.`table`
                                     n: 2
                                     unit: years
                             alias: age_plus_two_years
-                    named_args: {}
         "###);
 
         assert_yaml_snapshot!(parse("
@@ -2169,12 +2125,9 @@ join `my-proj`.`dataset`.`table`
                     - Literal:
                         Time: "14:00"
                       alias: time
-              named_args: {}
         "###);
 
-        assert!(parse("derive x = @2020-01-0").is_err());
-
-        Ok(())
+        parse("derive x = @2020-01-0").unwrap_err();
     }
 
     #[test]
@@ -2192,7 +2145,6 @@ join `my-proj`.`dataset`.`table`
                 - Ident:
                     - r
                   alias: x
-              named_args: {}
         "### )
     }
 
@@ -2213,7 +2165,6 @@ join `my-proj`.`dataset`.`table`
                     args:
                       - Ident:
                           - employees
-                    named_args: {}
                 - FuncCall:
                     name:
                       Ident:
@@ -2228,7 +2179,6 @@ join `my-proj`.`dataset`.`table`
                             Literal:
                               Integer: 0
                         alias: amount
-                    named_args: {}
         "### )
     }
 
@@ -2247,7 +2197,6 @@ join `my-proj`.`dataset`.`table`
                 - Literal:
                     Boolean: true
                   alias: x
-              named_args: {}
         "###)
     }
 
@@ -2270,7 +2219,6 @@ join `my-proj`.`dataset`.`table`
                     args:
                       - Ident:
                           - employees
-                    named_args: {}
                 - FuncCall:
                     name:
                       Ident:
@@ -2284,7 +2232,6 @@ join `my-proj`.`dataset`.`table`
                               expr:
                                 Ident:
                                   - employee_id
-                    named_args: {}
                 - FuncCall:
                     name:
                       Ident:
@@ -2298,7 +2245,6 @@ join `my-proj`.`dataset`.`table`
                           right:
                             Ident:
                               - $1
-                    named_args: {}
                 - FuncCall:
                     name:
                       Ident:
@@ -2308,7 +2254,6 @@ join `my-proj`.`dataset`.`table`
                           - Ident:
                               - _employees
                               - _underscored_column
-                    named_args: {}
         "###)
     }
 
@@ -2332,7 +2277,6 @@ join `my-proj`.`dataset`.`table`
                     args:
                       - Ident:
                           - people
-                    named_args: {}
                 - FuncCall:
                     name:
                       Ident:
@@ -2346,7 +2290,6 @@ join `my-proj`.`dataset`.`table`
                           right:
                             Literal:
                               Integer: 100
-                    named_args: {}
                 - FuncCall:
                     name:
                       Ident:
@@ -2360,7 +2303,6 @@ join `my-proj`.`dataset`.`table`
                           right:
                             Literal:
                               Integer: 10
-                    named_args: {}
                 - FuncCall:
                     name:
                       Ident:
@@ -2374,7 +2316,6 @@ join `my-proj`.`dataset`.`table`
                           right:
                             Literal:
                               Integer: 0
-                    named_args: {}
                 - FuncCall:
                     name:
                       Ident:
@@ -2388,7 +2329,6 @@ join `my-proj`.`dataset`.`table`
                           right:
                             Literal:
                               Integer: 2
-                    named_args: {}
         "###)
     }
 
@@ -2409,7 +2349,6 @@ join s=salaries [==id]
                     args:
                       - Ident:
                           - employees
-                    named_args: {}
                 - FuncCall:
                     name:
                       Ident:
@@ -2424,7 +2363,6 @@ join s=salaries [==id]
                               expr:
                                 Ident:
                                   - id
-                    named_args: {}
         "###);
     }
 }

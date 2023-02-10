@@ -12,7 +12,6 @@ expression: "stmts_of_parse_pairs(parse_tree_of_str(&include_str!(\"../../../boo
             args:
               - Ident:
                   - employees
-            named_args: {}
         - FuncCall:
             name:
               Ident:
@@ -26,7 +25,6 @@ expression: "stmts_of_parse_pairs(parse_tree_of_str(&include_str!(\"../../../boo
                   right:
                     Literal:
                       String: USA
-            named_args: {}
         - FuncCall:
             name:
               Ident:
@@ -51,7 +49,6 @@ expression: "stmts_of_parse_pairs(parse_tree_of_str(&include_str!(\"../../../boo
                         Ident:
                           - benefits_cost
                     alias: gross_cost
-            named_args: {}
         - FuncCall:
             name:
               Ident:
@@ -65,7 +62,6 @@ expression: "stmts_of_parse_pairs(parse_tree_of_str(&include_str!(\"../../../boo
                   right:
                     Literal:
                       Integer: 0
-            named_args: {}
         - FuncCall:
             name:
               Ident:
@@ -89,7 +85,6 @@ expression: "stmts_of_parse_pairs(parse_tree_of_str(&include_str!(\"../../../boo
                             args:
                               - Ident:
                                   - salary
-                            named_args: {}
                         - FuncCall:
                             name:
                               Ident:
@@ -97,7 +92,6 @@ expression: "stmts_of_parse_pairs(parse_tree_of_str(&include_str!(\"../../../boo
                             args:
                               - Ident:
                                   - gross_salary
-                            named_args: {}
                         - FuncCall:
                             name:
                               Ident:
@@ -105,7 +99,6 @@ expression: "stmts_of_parse_pairs(parse_tree_of_str(&include_str!(\"../../../boo
                             args:
                               - Ident:
                                   - salary
-                            named_args: {}
                         - FuncCall:
                             name:
                               Ident:
@@ -113,7 +106,6 @@ expression: "stmts_of_parse_pairs(parse_tree_of_str(&include_str!(\"../../../boo
                             args:
                               - Ident:
                                   - gross_salary
-                            named_args: {}
                         - FuncCall:
                             name:
                               Ident:
@@ -121,7 +113,6 @@ expression: "stmts_of_parse_pairs(parse_tree_of_str(&include_str!(\"../../../boo
                             args:
                               - Ident:
                                   - gross_cost
-                            named_args: {}
                         - FuncCall:
                             name:
                               Ident:
@@ -129,13 +120,10 @@ expression: "stmts_of_parse_pairs(parse_tree_of_str(&include_str!(\"../../../boo
                             args:
                               - Ident:
                                   - gross_cost
-                            named_args: {}
                           alias: sum_gross_cost
                         - Ident:
                             - count
                           alias: ct
-                  named_args: {}
-            named_args: {}
         - FuncCall:
             name:
               Ident:
@@ -143,7 +131,6 @@ expression: "stmts_of_parse_pairs(parse_tree_of_str(&include_str!(\"../../../boo
             args:
               - Ident:
                   - sum_gross_cost
-            named_args: {}
         - FuncCall:
             name:
               Ident:
@@ -157,7 +144,6 @@ expression: "stmts_of_parse_pairs(parse_tree_of_str(&include_str!(\"../../../boo
                   right:
                     Literal:
                       Integer: 200
-            named_args: {}
         - FuncCall:
             name:
               Ident:
@@ -165,5 +151,4 @@ expression: "stmts_of_parse_pairs(parse_tree_of_str(&include_str!(\"../../../boo
             args:
               - Literal:
                   Integer: 20
-            named_args: {}
 
