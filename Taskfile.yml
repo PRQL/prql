@@ -59,8 +59,10 @@ tasks:
       # `--locked` installs from the underlying lock files (which is not the
       # default?!)
       - cargo install --locked cargo-audit cargo-insta cargo-release
-        default-target mdbook mdbook-admonish mdbook-footnote mdbook-toc
-        wasm-bindgen-cli wasm-pack
+        default-target mdbook mdbook-admonish mdbook-toc wasm-bindgen-cli
+        wasm-pack
+        # Can't install atm with `--locked`
+      - cargo install mdbook-footnote
       - cmd: |
           [ "$(which default-target)" ] || echo "🔴 Can't find a binary that cargo just installed. Is the cargo bin path (generally at ~/.cargo/bin) on the \$PATH?"
         silent: true
