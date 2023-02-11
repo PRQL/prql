@@ -1,0 +1,22 @@
+---
+source: book/tests/snapshot.rs
+expression: prql_to_pl(&prql).and_then(pl_to_prql).unwrap()
+input_file: book/tests/prql/transforms/from_text-1.prql
+---
+let temp_format_lookup = (
+  from_text format:csv "
+country_code,format
+uk,C
+us,F
+lr,F
+de,C
+"
+)
+
+
+
+from temperatures
+join temp_format_lookup [==country_code]
+
+
+

@@ -1,0 +1,52 @@
+---
+source: book/tests/snapshot.rs
+expression: "let x = from_text format:json \"\"\"{\n    \"columns\": [\"a\", \"b\", \"c\"],\n    \"data\": [\n        [1, \"x\", false],\n        [4, \"y\", null]\n    ]\n}\"\"\"\n\nlet y = from_text format:json \"\"\"\n    [\n        {\"a\": 1, \"m\": \"5\"},\n        {\"a\": 4, \"n\": \"6\"}\n    ]\n\"\"\"\n\nfrom x | join y [==a]\n"
+input_file: book/tests/prql/transforms/from_text-2.prql
+---
+WITH table_0 AS (
+  SELECT
+    1 AS a,
+    'x' AS b,
+    false AS c
+  UNION
+  ALL
+  SELECT
+    4 AS a,
+    'y' AS b,
+    NULL AS c
+),
+x AS (
+  SELECT
+    a,
+    b,
+    c
+  FROM
+    table_0 AS table_1
+),
+table_2 AS (
+  SELECT
+    1 AS a,
+    '5' AS m
+  UNION
+  ALL
+  SELECT
+    4 AS a,
+    NULL AS m
+),
+y AS (
+  SELECT
+    a,
+    m
+  FROM
+    table_2 AS table_3
+)
+SELECT
+  x.a,
+  x.b,
+  x.c,
+  y.a,
+  y.m
+FROM
+  x
+  JOIN y ON x.a = y.a
+
