@@ -1,6 +1,4 @@
-#![allow(dead_code)]
-
-use std::collections::HashMap;
+use std::{collections::HashMap, str::FromStr};
 
 use chumsky::prelude::*;
 use semver::VersionReq;
@@ -11,6 +9,11 @@ use crate::{ast::pl::*, Span};
 pub fn source() -> impl Parser<Token, Vec<Stmt>, Error = Simple<Token>> {
     query_def()
         .or_not()
+        .chain(
+            var_def()
+                .or(function_def())
+                .separated_by(new_line().or(whitespace()).repeated()),
+        )
         .chain(main_pipeline().or_not())
         .then_ignore(end())
         .labelled("source file")
@@ -61,6 +64,102 @@ fn query_def() -> impl Parser<Token, Stmt, Error = Simple<Token>> {
         })
         .map_with_span(into_stmt)
         .labelled("query header")
+}
+
+fn var_def() -> impl Parser<Token, Stmt, Error = Simple<Token>> {
+    keyword("let")
+        .ignore_then(whitespace())
+        .ignore_then(ident_part())
+        .then_ignore(ctrl("=").padded_by(whitespace().or_not()))
+        .then(expr_call().map(Box::new))
+        .map(|(name, value)| VarDef { name, value })
+        .map(StmtKind::VarDef)
+        .map_with_span(into_stmt)
+        .labelled("variable definition")
+}
+
+fn function_def() -> impl Parser<Token, Stmt, Error = Simple<Token>> {
+    keyword("func")
+        .ignore_then(whitespace())
+        .ignore_then(
+            // func name
+            ident_part()
+                .then_ignore(whitespace().or_not())
+                .then(type_expr().or_not()),
+        )
+        .then(
+            // params
+            ident_part()
+                .then_ignore(whitespace().or_not())
+                .then(type_expr().or_not())
+                .then_ignore(whitespace().or_not())
+                .then(
+                    ctrl(":")
+                        .ignore_then(whitespace().or_not())
+                        .ignore_then(expr())
+                        .or_not(),
+                )
+                .repeated(),
+        )
+        .then_ignore(whitespace().or_not())
+        .then_ignore(ctrl("->"))
+        .then(expr_call().map(Box::new))
+        .then_ignore(whitespace().or_not())
+        .then_ignore(new_line())
+        .map(|(((name, return_ty), params), body)| {
+            let (pos, nam) = params
+                .into_iter()
+                .map(|((name, ty), default_value)| FuncParam {
+                    name,
+                    ty,
+                    default_value,
+                })
+                .partition(|p| p.default_value.is_none());
+
+            FuncDef {
+                name,
+                positional_params: pos,
+                named_params: nam,
+                body,
+                return_ty,
+            }
+        })
+        .map(StmtKind::FuncDef)
+        .map_with_span(into_stmt)
+        .labelled("function definition")
+}
+
+pub fn type_expr() -> impl Parser<Token, Ty, Error = Simple<Token>> {
+    recursive(|type_expr| {
+        let type_term = ident_part().then(type_expr.or_not()).map(|(name, param)| {
+            let ty = match TyLit::from_str(&name) {
+                Ok(t) => Ty::from(t),
+                Err(_) if name == "table" => Ty::Table(Frame::default()),
+                Err(_) => {
+                    eprintln!("named type: {}", name);
+                    Ty::Named(name.to_string())
+                }
+            };
+
+            if let Some(param) = param {
+                Ty::Parameterized(Box::new(ty), Box::new(param))
+            } else {
+                ty
+            }
+        });
+
+        ctrl("<")
+            .ignore_then(type_term.separated_by(ctrl("|").padded_by(whitespace().or_not())))
+            .then_ignore(ctrl(">"))
+            .map(|mut terms| {
+                if terms.len() == 1 {
+                    terms.remove(0)
+                } else {
+                    Ty::AnyOf(terms)
+                }
+            })
+    })
+    .labelled("type expression")
 }
 
 pub fn expr_call() -> impl Parser<Token, Expr, Error = Simple<Token>> {
@@ -136,6 +235,7 @@ where
         .ignore_then(
             expr.padded_by(whitespace().or_not())
                 .separated_by(ctrl("|").or(new_line().repeated().at_least(1).to(())))
+                .at_least(1)
                 .map(|mut exprs| {
                     if exprs.len() == 1 {
                         exprs.remove(0).kind

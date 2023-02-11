@@ -37,7 +37,7 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
         .map(|x| x.to_string())
         .map(Token::Control);
 
-    let control = one_of("></%=+-*[]().,:|")
+    let control = one_of("></%=+-*[]().,:|!")
         .map(|c: char| c.to_string())
         .map(Token::Control);
 
