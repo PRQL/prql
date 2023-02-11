@@ -37,7 +37,7 @@ convert the markdown into the code displayed on the site. Some of these are
 quite hacky, and will likely not work on Windows. If this is a problem, please
 post an issue and we'll try and find a workaround.
 
-## Dockerfile
+## Docker
 
 To work on the Book, start the Docker container and then use:
 
