@@ -212,8 +212,11 @@ tasks:
       # tests to extract them, which include compiling prql-compiler, c) not
       # fail other compilation steps if they can't be extracted.
       - cargo insta test --accept -p mdbook-prql --test snapshot
+        --target={{.default_target}}
       # Only delete unreferenced snapshots on the default target — lots are
       # excluded under wasm. Note that this will also over-delete on Windows.
+      # Note that we need to pass the target explicitly to manage
+      # https://github.com/rust-lang/cargo/issues/8899
       - cargo insta test --accept --target={{.default_target}}
         --unreferenced=auto
       - cargo insta test --accept --target=wasm32-unknown-unknown
@@ -244,7 +247,8 @@ tasks:
       - "prql-compiler/**/*.pest"
       - "prql-compiler/**/*.snap"
     cmds:
-      - cargo insta test --accept -p prql-compiler --lib
+      - cargo insta test --accept -p prql-compiler --lib --target=$(cargo
+        default-target)
 
   build-web:
     desc: Build the website, including the book & playground.
