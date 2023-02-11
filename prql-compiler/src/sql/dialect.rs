@@ -241,6 +241,28 @@ impl DialectHandler for DuckDbDialect {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::Dialect;
+    use insta::assert_debug_snapshot;
+    use std::str::FromStr;
+
+    #[test]
+    fn test_dialect_from_str() {
+        assert_debug_snapshot!(Dialect::from_str("postgres"), @r###"
+        Ok(
+            PostgreSql,
+        )
+        "###);
+
+        assert_debug_snapshot!(Dialect::from_str("foo"), @r###"
+        Err(
+            VariantNotFound,
+        )
+        "###);
+    }
+}
+
 /*
 ## Set operations support matrix
 
