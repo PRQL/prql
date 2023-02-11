@@ -278,7 +278,7 @@ tasks:
       - mix compile
       - mix test
 
-  run-web:
+  run-website:
     desc: Build & serve the static website.
     dir: website
     cmds:
