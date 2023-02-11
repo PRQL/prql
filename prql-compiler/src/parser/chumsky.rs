@@ -5,19 +5,25 @@ use std::collections::HashMap;
 use chumsky::prelude::*;
 use semver::VersionReq;
 
+use super::lexer::Token;
 use crate::{ast::pl::*, Span};
 
-pub fn source() -> impl Parser<char, Vec<Stmt>, Error = Simple<char>> {
+pub fn source() -> impl Parser<Token, Vec<Stmt>, Error = Simple<Token>> {
     let stmt = query_def().or(main_pipeline());
 
-    stmt.separated_by(just('\n'))
-        .padded_by(whitespace().or(just('\n').to(())).repeated())
+    stmt.separated_by(just(Token::NewLine))
+        .padded_by(just(Token::Whitespace).or(just(Token::NewLine)).repeated())
         .then_ignore(end())
 }
 
-fn main_pipeline() -> impl Parser<char, Stmt, Error = Simple<char>> {
+fn main_pipeline() -> impl Parser<Token, Stmt, Error = Simple<Token>> {
     expr_call()
-        .separated_by(pipe())
+        .separated_by(
+            just(Token::Pipe).or(just(Token::NewLine)
+                .repeated()
+                .at_least(1)
+                .to(Token::NewLine)),
+        )
         .at_least(1)
         .map(|mut exprs| {
             if exprs.len() == 1 {
@@ -32,12 +38,12 @@ fn main_pipeline() -> impl Parser<char, Stmt, Error = Simple<char>> {
         .map_with_span(into_stmt)
 }
 
-fn query_def() -> impl Parser<char, Stmt, Error = Simple<char>> {
-    str("prql")
+fn query_def() -> impl Parser<Token, Stmt, Error = Simple<Token>> {
+    keyword("prql")
         .ignore_then(
             // named arg
             ident_part()
-                .then_ignore(just(':').padded_by(whitespace().or_not()))
+                .then_ignore(just(Token::Colon).padded_by(just(Token::Whitespace).or_not()))
                 .then(expr_call())
                 .repeated(),
         )
@@ -68,34 +74,34 @@ fn query_def() -> impl Parser<char, Stmt, Error = Simple<char>> {
         .map_with_span(into_stmt)
 }
 
-pub fn expr_call() -> impl Parser<char, Expr, Error = Simple<char>> {
+pub fn expr_call() -> impl Parser<Token, Expr, Error = Simple<Token>> {
     recursive(|expr| {
-        let literal = literal().map(ExprKind::Literal);
+        let literal = select! { Token::Literal(lit) => lit }.map(ExprKind::Literal);
 
         let ident_kind = ident().map(ExprKind::Ident);
 
-        let list = just('[')
+        let list = just(Token::BracketL)
             .ignore_then(
                 ident_part()
-                    .then_ignore(just('=').padded_by(whitespace().or_not()))
+                    .then_ignore(just(Token::Equals).padded_by(just(Token::Whitespace).or_not()))
                     .or_not()
                     .then(expr.clone())
                     .map(|(alias, expr)| Expr { alias, ..expr })
-                    .padded_by(whitespace().or(just('\n').to(())).repeated())
-                    .separated_by(just(','))
+                    .padded_by(just(Token::Whitespace).or(just(Token::NewLine)).repeated())
+                    .separated_by(just(Token::Comma))
                     .allow_trailing(),
             )
-            .then_ignore(just(']'))
+            .then_ignore(just(Token::BracketR))
             .map(ExprKind::List)
             .labelled("list");
 
-        let pipeline = just('(')
+        let pipeline = just(Token::ParenthesisL)
             .ignore_then(
                 expr.clone()
-                    .padded_by(whitespace().or_not())
-                    .separated_by(pipe()),
+                    .padded_by(just(Token::Whitespace).or_not())
+                    .separated_by(just(Token::Pipe).or(just(Token::NewLine))),
             )
-            .then_ignore(just(')'))
+            .then_ignore(just(Token::ParenthesisR))
             .map(|mut exprs| {
                 if exprs.len() == 1 {
                     exprs.remove(0).kind
@@ -138,17 +144,22 @@ pub fn expr_call() -> impl Parser<char, Expr, Error = Simple<char>> {
     })
 }
 
-fn binary_op_parser<'a, O>(
-    term: BoxedParser<'a, char, Expr, Simple<char>>,
-    op: O,
-) -> BoxedParser<char, Expr, Simple<char>>
+fn binary_op_parser<'a, Term, Op>(
+    term: Term,
+    op: Op,
+) -> impl Parser<Token, Expr, Error = Simple<Token>> + 'a
 where
-    O: Parser<char, BinOp, Error = Simple<char>> + 'a,
+    Term: Parser<Token, Expr, Error = Simple<Token>> + 'a,
+    Op: Parser<Token, BinOp, Error = Simple<Token>> + 'a,
 {
-    let term = term.map_with_span(|e, s| (e, s));
+    let term = term.map_with_span(|e, s| (e, s)).boxed();
 
     (term.clone())
-        .then(op.padded_by(whitespace().or_not()).then(term).repeated())
+        .then(
+            op.padded_by(just(Token::Whitespace).or_not())
+                .then(term)
+                .repeated(),
+        )
         .foldl(|left, (op, right)| {
             let span = left.1.start..right.1.end;
             let kind = ExprKind::Binary {
@@ -163,8 +174,8 @@ where
 }
 
 fn func_call(
-    expr: Recursive<char, Expr, Simple<char>>,
-) -> impl Parser<char, ExprKind, Error = Simple<char>> + '_ {
+    expr: Recursive<Token, Expr, Simple<Token>>,
+) -> impl Parser<Token, ExprKind, Error = Simple<Token>> + '_ {
     let name = ident()
         .boxed()
         .map(ExprKind::Ident)
@@ -172,11 +183,11 @@ fn func_call(
 
     let named_arg = ident_part()
         .map(Some)
-        .then_ignore(just(':').padded_by(whitespace().or_not()))
+        .then_ignore(just(Token::Colon).padded_by(just(Token::Whitespace).or_not()))
         .then(expr.clone());
 
     let assign_call = ident_part()
-        .then_ignore(just('=').padded_by(whitespace().or_not()))
+        .then_ignore(just(Token::Equals).padded_by(just(Token::Whitespace).or_not()))
         .then(expr.clone())
         .map(|(alias, expr)| Expr {
             alias: Some(alias),
@@ -184,7 +195,7 @@ fn func_call(
         });
     let positional_arg = assign_call.or(expr.clone()).map(|expr| (None, expr));
 
-    let args = whitespace()
+    let args = just(Token::Whitespace)
         .ignore_then(named_arg.or(positional_arg))
         .repeated()
         .at_least(1);
@@ -208,206 +219,59 @@ fn func_call(
     })
 }
 
-fn literal() -> impl Parser<char, Literal, Error = Simple<char>> {
-    let exp = just('e').or(just('E')).ignore_then(
-        just('+')
-            .or(just('-'))
-            .or_not()
-            .chain::<char, _, _>(text::digits(10)),
-    );
-
-    let number_part = filter(|c: &char| c.is_digit(10) && *c != '0')
-        .map(Some)
-        .chain::<_, Vec<_>, _>(filter(move |c: &char| c.is_digit(10) || *c == '_').repeated())
-        .collect()
-        .or(just('0').map(|c| vec![c]));
-
-    let frac = just('.').chain(number_part);
-
-    let number = just('+')
-        .or(just('-'))
-        .or_not()
-        .chain::<char, _, _>(number_part)
-        .chain::<char, _, _>(frac.or_not().flatten())
-        .chain::<char, _, _>(exp.or_not().flatten())
-        .try_map(|chars, span| {
-            // pest is responsible for ensuring these are in the correct place,
-            // so we just need to remove them.
-            let str = chars.into_iter().filter(|c| *c != '_').collect::<String>();
-
-            if let Ok(i) = str.parse::<i64>() {
-                Ok(Literal::Integer(i))
-            } else if let Ok(f) = str.parse::<f64>() {
-                Ok(Literal::Float(f))
-            } else {
-                Err(Simple::custom(span, "invalid number"))
-            }
-        })
-        .labelled("number");
-
-    let string = string();
-
-    let bool = (str("true").to(true))
-        .or(str("false").to(false))
-        .map(Literal::Boolean);
-
-    let null = str("null").to(Literal::Null);
-
-    let value_and_unit = number_part
-        .then(
-            str("microseconds")
-                .or(str("milliseconds"))
-                .or(str("seconds"))
-                .or(str("minutes"))
-                .or(str("hours"))
-                .or(str("days"))
-                .or(str("weeks"))
-                .or(str("months"))
-                .or(str("years")),
-        )
-        .try_map(|(number, unit), span| {
-            let str = number.into_iter().filter(|c| *c != '_').collect::<String>();
-            if let Ok(n) = str.parse::<i64>() {
-                let unit = unit.to_string();
-                Ok(ValueAndUnit { n, unit })
-            } else {
-                Err(Simple::custom(span, "invalid number"))
-            }
-        })
-        .map(Literal::ValueAndUnit);
-
-    // TODO: timestamp
-    // TODO: date
-    // TODO: time
-    // TODO: "(" ~ literal ~ ")" }  --- should this even be here?
-
-    string.or(number).or(bool).or(null).or(value_and_unit)
-}
-
-fn string() -> impl Parser<char, Literal, Error = Simple<char>> {
-    let escape = just('\\').ignore_then(
-        just('\\')
-            .or(just('/'))
-            .or(just('"'))
-            .or(just('b').to('\x08'))
-            .or(just('f').to('\x0C'))
-            .or(just('n').to('\n'))
-            .or(just('r').to('\r'))
-            .or(just('t').to('\t'))
-            .or(just('u').ignore_then(
-                filter(|c: &char| c.is_digit(16))
-                    .repeated()
-                    .exactly(4)
-                    .collect::<String>()
-                    .validate(|digits, span, emit| {
-                        char::from_u32(u32::from_str_radix(&digits, 16).unwrap()).unwrap_or_else(
-                            || {
-                                emit(Simple::custom(span, "invalid unicode character"));
-                                '\u{FFFD}' // unicode replacement character
-                            },
-                        )
-                    }),
-            )),
-    );
-
-    // TODO: multi-quoted strings (this is just parsing JSON strings)
-    just('"')
-        .ignore_then(filter(|c| *c != '\\' && *c != '"').or(escape).repeated())
-        .then_ignore(just('"'))
-        .collect::<String>()
-        .map(Literal::String)
-        .labelled("string")
-}
-
-fn ident_part() -> impl Parser<char, String, Error = Simple<char>> {
-    let plain = filter(|c: &char| c.is_ascii_alphabetic() || *c == '_' || *c == '$')
-        .map(Some)
-        .chain::<char, Vec<_>, _>(
-            filter(|c: &char| c.is_ascii_alphanumeric() || *c == '_').repeated(),
-        )
-        .collect();
-
-    let backticks = just('`')
-        .ignore_then(filter(|c| *c != '`').repeated())
-        .then_ignore(just('`'))
-        .collect::<String>();
-
-    plain.or(backticks)
-}
-
-pub fn ident() -> impl Parser<char, Ident, Error = Simple<char>> {
-    let star = just('*').map(|c| c.to_string());
+pub fn ident() -> impl Parser<Token, Ident, Error = Simple<Token>> {
+    let star = just(Token::Star).to("*".to_string());
 
     // TODO: !operator ~ !(keyword ~ WHITESPACE)
     //  we probably need combinator::Not, which has not been released yet.
 
     ident_part()
-        .chain(just('.').ignore_then(ident_part().or(star)).repeated())
+        .chain(
+            just(Token::Dot)
+                .ignore_then(ident_part().or(star))
+                .repeated(),
+        )
         .map(Ident::from_path::<String>)
 }
 
-fn operator() -> impl Parser<char, (), Error = Simple<char>> {
-    operator_binary().to(()).or(operator_unary().to(()))
+fn operator_unary() -> impl Parser<Token, UnOp, Error = Simple<Token>> {
+    select! {
+        Token::UnOp(op) => op,
+        Token::Plus => UnOp::Add,
+        Token::Minus => UnOp::Neg,
+    }
+}
+fn operator_mul() -> impl Parser<Token, BinOp, Error = Simple<Token>> {
+    select! {
+        Token::BinOp(op) if op == BinOp::Div || op == BinOp::Mod => op,
+        Token::Star => BinOp::Mul,
+    }
+}
+fn operator_add() -> impl Parser<Token, BinOp, Error = Simple<Token>> {
+    select! {
+        Token::Plus => BinOp::Add,
+        Token::Minus => BinOp::Sub,
+    }
+}
+fn operator_compare() -> impl Parser<Token, BinOp, Error = Simple<Token>> {
+    use BinOp::*;
+    select! {
+        Token::BinOp(op) if matches!(op, Eq | Ne | Gte | Lte | Gt | Lt) => op
+    }
+}
+fn operator_logical() -> impl Parser<Token, BinOp, Error = Simple<Token>> {
+    select! { Token::BinOp(op) if op == BinOp::And || op == BinOp::Or => op }
+}
+fn operator_coalesce() -> impl Parser<Token, BinOp, Error = Simple<Token>> {
+    select! { Token::BinOp(op) if op == BinOp::Coalesce => op }
 }
 
-fn operator_binary() -> impl Parser<char, BinOp, Error = Simple<char>> {
-    operator_mul()
-        .or(operator_add())
-        .or(operator_compare())
-        .or(operator_logical())
-        .or(operator_coalesce())
-}
-fn operator_unary() -> impl Parser<char, UnOp, Error = Simple<char>> {
-    just('-')
-        .to(UnOp::Neg)
-        .or(just('+').to(UnOp::Add))
-        .or(just('!').to(UnOp::Not))
-        .or(str("==").to(UnOp::EqSelf))
-}
-fn operator_mul() -> impl Parser<char, BinOp, Error = Simple<char>> {
-    (just('*').to(BinOp::Mul))
-        .or(just('/').to(BinOp::Div))
-        .or(just('%').to(BinOp::Mod))
-}
-fn operator_add() -> impl Parser<char, BinOp, Error = Simple<char>> {
-    just('+').to(BinOp::Add).or(just('-').to(BinOp::Sub))
-}
-fn operator_compare() -> impl Parser<char, BinOp, Error = Simple<char>> {
-    str("==")
-        .to(BinOp::Eq)
-        .or(str("!=").to(BinOp::Ne))
-        .or(str(">=").to(BinOp::Gte))
-        .or(str("<=").to(BinOp::Lte))
-        .or(str(">").to(BinOp::Gt))
-        .or(str("<").to(BinOp::Lt))
-}
-fn operator_logical() -> impl Parser<char, BinOp, Error = Simple<char>> {
-    (just("and").to(BinOp::And))
-        .or(just("or").to(BinOp::Or))
-        .then_ignore(whitespace())
-}
-fn operator_coalesce() -> impl Parser<char, BinOp, Error = Simple<char>> {
-    just("??").map(|_| BinOp::Coalesce)
+fn ident_part() -> impl Parser<Token, String, Error = Simple<Token>> {
+    select! { Token::Ident(ident) => ident }
 }
 
-fn pipe() -> impl Parser<char, char, Error = Simple<char>> {
-    just('|')
-        .or(just('\n')
-            .repeated()
-            .at_least(1)
-            .map(|mut chars| chars.pop().unwrap()))
-        .padded_by(whitespace().or_not())
-}
-
-fn whitespace() -> impl Parser<char, (), Error = Simple<char>> + Clone {
-    filter(|c: &char| *c == '\t' || *c == ' ')
-        .repeated()
-        .at_least(1)
-        .to(())
-}
-
-fn str(chars: &str) -> impl Parser<char, &str, Error = Simple<char>> + '_ {
-    just(chars)
+fn keyword(kw: &str) -> impl Parser<Token, String, Error = Simple<Token>> + '_ {
+    select! { Token::Ident(ident) if ident == kw => ident }
 }
 
 fn into_stmt(kind: StmtKind, span: std::ops::Range<usize>) -> Stmt {
