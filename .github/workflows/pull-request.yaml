@@ -39,6 +39,7 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
+        # Duplicated in `publish-web.yaml`
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
         with:
@@ -52,7 +53,6 @@ jobs:
       - uses: baptiste0928/cargo-install@next
         with:
           crate: mdbook-admonish
-          version: "1.7.0"
       - name: 🔨 Build
         run: mdbook build
         working-directory: book/
