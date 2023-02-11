@@ -113,8 +113,6 @@ Many thanks to those who've made our progress possible:
 
 [![Contributors](https://contrib.rocks/image?repo=PRQL/prql)](https://github.com/PRQL/prql/graphs/contributors)
 
-We welcome others to join who have a track record of contributions.
-
 [prql book]: https://prql-lang.org/book
 [prql website]: https://prql-lang.org
 [contributing]: https://prql-lang.org/book/contributing/index.html
