@@ -14,7 +14,6 @@ use sqlparser::ast::{
 
 use crate::ast::pl::{BinOp, Literal, RelationLiteral};
 use crate::ast::rq::{CId, Expr, ExprKind, Query, Relation, RelationKind, TableDecl, Transform};
-use crate::error::{Error, Reason};
 use crate::utils::{BreakUp, IntoOnly, Pluck};
 use crate::Target;
 
@@ -30,14 +29,7 @@ pub fn translate_query(query: Query, dialect: Option<Dialect>) -> Result<sql_ast
     } else {
         let target = query.def.other.get("target");
         let Target::Sql(maybe_dialect) = target
-            .map(|target| {
-                Target::from_str(target).map_err(|_| {
-                    Error::new(Reason::NotFound {
-                        name: format!("{target:?}"),
-                        namespace: "target".to_string(),
-                    })
-                })
-            })
+            .map(|s| Target::from_str(s))
             .transpose()?
             .unwrap_or_default();
         maybe_dialect.unwrap_or_default()
