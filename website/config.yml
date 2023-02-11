@@ -12,7 +12,7 @@ menu:
     # TODO: Can we use the info from pages directly? https://gohugo.io/templates/menu-templates/#menu-entries-from-the-pages-front-matter
     - identifier: Book
       name: Book
-      url: /book_integrated/
+      url: /book/
       weight: 1
     - identifier: Playground
       name: Playground
