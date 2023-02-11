@@ -264,7 +264,7 @@ tasks:
       - cd playground && npm install --install-links=false
       - cd playground && npm run build
       - rsync -ai --checksum --delete playground/build/
-        website/public/playground_inner/
+        website/public/playground/
 
   test-js:
     # These are mostly copied from the tasks in `test-all.yaml`
