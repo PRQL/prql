@@ -12,7 +12,11 @@ git-repository-url = "https://github.com/PRQL/prql"
 [preprocessor.prql]
 # This is required because mdbook-prql isn't necessarily installed; maybe
 # there's a better way.
-command = "cargo run --bin mdbook-prql"
+#
+# We put the target directory in `target-book` because of
+# https://github.com/rust-lang/cargo/issues/8899, as an alternative to requiring
+# `default-target` to be installed.
+command = "cargo run --bin mdbook-prql --target-dir=target-book"
 
 [preprocessor.admonish]
 assets_version = "2.0.0" # do not edit: managed by `mdbook-admonish install`
