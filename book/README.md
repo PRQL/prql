@@ -39,7 +39,7 @@ post an issue and we'll try and find a workaround.
 
 ## Docker
 
-To work on the Book, start the Docker container and then use:
+To work on the Book using Docker, start the Docker container and then use:
 
 ```sh
 cd book
