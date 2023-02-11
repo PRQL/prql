@@ -1,0 +1,16 @@
+let x = from_text format:json """{
+    "columns": ["a", "b", "c"],
+    "data": [
+        [1, "x", false],
+        [4, "y", null]
+    ]
+}"""
+
+let y = from_text format:json """
+    [
+        {"a": 1, "m": "5"},
+        {"a": 4, "n": "6"}
+    ]
+"""
+
+from x | join y [==a]

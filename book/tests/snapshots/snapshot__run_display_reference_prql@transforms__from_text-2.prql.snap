@@ -1,0 +1,33 @@
+---
+source: book/tests/snapshot.rs
+expression: prql_to_pl(&prql).and_then(pl_to_prql).unwrap()
+input_file: book/tests/prql/transforms/from_text-2.prql
+---
+let x = (
+  from_text format:json '{
+    "columns": ["a", "b", "c"],
+    "data": [
+        [1, "x", false],
+        [4, "y", null]
+    ]
+}'
+)
+
+
+
+let y = (
+  from_text format:json '
+    [
+        {"a": 1, "m": "5"},
+        {"a": 4, "n": "6"}
+    ]
+'
+)
+
+
+
+from x
+join y [==a]
+
+
+

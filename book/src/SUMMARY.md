@@ -17,6 +17,7 @@
   - [Derive](./transforms/derive.md)
   - [Filter](./transforms/filter.md)
   - [From](./transforms/from.md)
+  - [From Text](./transforms/from_text.md)
   - [Group](./transforms/group.md)
   - [Join](./transforms/join.md)
   - [Select](./transforms/select.md)

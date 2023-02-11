@@ -1,0 +1,10 @@
+let temp_format_lookup = from_text format:csv """
+country_code,format
+uk,C
+us,F
+lr,F
+de,C
+"""
+
+from temperatures
+join temp_format_lookup [==country_code]
