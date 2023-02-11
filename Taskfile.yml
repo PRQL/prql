@@ -185,14 +185,26 @@ tasks:
     vars:
       default_target:
         sh: default-target
-    sources:
-      # See notes in `test-rust`
-      - "**/*.rs"
-      - "**/*.md"
-      - "**/*.toml"
-      - "**/*.lock"
-      - "**/*.pest"
-      - "**/*.snap"
+    # Commenting out the ability to watch, since Task seems to trip over itself,
+    # starting a new process before the old one has finished when a process
+    # changes output files.
+    #
+    # I think this is happening because the book tests delete `.prql` files,
+    # which causes `.snap` files to be removed when unreferenced, and this then
+    # compounds. Ideally the `mdbook` tests wouldn't delete its path of `.prql`
+    # files, instead only updating changed paths.
+    #
+    # We can turn this back on when Task handles it more robustly, or we improve
+    # the mdbook tests.
+    #
+    # sources:
+    #   # See notes in `test-rust-fast`
+    #   - "**/*.rs"
+    #   - "**/*.md"
+    #   - "**/*.toml"
+    #   - "**/*.lock"
+    #   - "**/*.pest"
+    #   - "**/*.snap"
     cmds:
       # We run this `snapshot` first for the reasons given in
       # `parser::test_parse_pipeline_parse_tree`. Ideally we would a) retain
