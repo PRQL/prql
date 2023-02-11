@@ -1307,7 +1307,7 @@ Canada
 
     #[test]
     fn test_parse_function() {
-        assert_yaml_snapshot!(parse("func plus_one x ->  x + 1").unwrap(), @r###"
+        assert_yaml_snapshot!(parse("func plus_one x ->  x + 1\n").unwrap(), @r###"
         ---
         - FuncDef:
             name: plus_one
@@ -1326,7 +1326,7 @@ Canada
                     Integer: 1
             return_ty: ~
         "###);
-        assert_yaml_snapshot!(parse("func identity x ->  x").unwrap()
+        assert_yaml_snapshot!(parse("func identity x ->  x\n").unwrap()
         , @r###"
         ---
         - FuncDef:
@@ -1340,7 +1340,7 @@ Canada
                 - x
             return_ty: ~
         "###);
-        assert_yaml_snapshot!(parse("func plus_one x ->  (x + 1)").unwrap()
+        assert_yaml_snapshot!(parse("func plus_one x ->  (x + 1)\n").unwrap()
         , @r###"
         ---
         - FuncDef:
@@ -1360,7 +1360,7 @@ Canada
                     Integer: 1
             return_ty: ~
         "###);
-        assert_yaml_snapshot!(parse("func plus_one x ->  x + 1").unwrap()
+        assert_yaml_snapshot!(parse("func plus_one x ->  x + 1\n").unwrap()
         , @r###"
         ---
         - FuncDef:
@@ -1380,7 +1380,7 @@ Canada
                     Integer: 1
             return_ty: ~
         "###);
-        assert_yaml_snapshot!(parse("func foo x -> some_func (foo bar + 1) (plax) - baz").unwrap()
+        assert_yaml_snapshot!(parse("func foo x -> some_func (foo bar + 1) (plax) - baz\n").unwrap()
         , @r###"
         ---
         - FuncDef:
@@ -1419,7 +1419,7 @@ Canada
             return_ty: ~
         "###);
 
-        assert_yaml_snapshot!(parse("func return_constant ->  42").unwrap(), @r###"
+        assert_yaml_snapshot!(parse("func return_constant ->  42\n").unwrap(), @r###"
         ---
         - FuncDef:
             name: return_constant
@@ -1430,7 +1430,8 @@ Canada
                 Integer: 42
             return_ty: ~
         "###);
-        assert_yaml_snapshot!(parse(r#"func count X ->  s"SUM({X})""#).unwrap(), @r###"
+        assert_yaml_snapshot!(parse(r#"func count X ->  s"SUM({X})"
+        "#).unwrap(), @r###"
         ---
         - FuncDef:
             name: count
@@ -1465,7 +1466,7 @@ Canada
             ));
             */
 
-        assert_yaml_snapshot!(parse(r#"func add x to:a ->  x + to"#).unwrap(), @r###"
+        assert_yaml_snapshot!(parse("func add x to:a ->  x + to\n").unwrap(), @r###"
         ---
         - FuncDef:
             name: add
@@ -1584,7 +1585,7 @@ Canada
     }
 
     #[test]
-    fn test_parse_table() {
+    fn test_parse_var_def() {
         assert_yaml_snapshot!(parse(
             "let newest_employees = (from employees)"
         ).unwrap(), @r###"
@@ -1668,11 +1669,15 @@ Canada
             let e = s"SELECT * FROM employees"
             "#).unwrap(), @r###"
         ---
-        - VarDef:
-            name: e
-            value:
-              SString:
-                - String: SELECT * FROM employees
+        - Main:
+            FuncCall:
+              name:
+                Ident:
+                  - let
+              args:
+                - SString:
+                    - String: SELECT * FROM employees
+                  alias: e
         "###);
 
         assert_yaml_snapshot!(parse(
@@ -1734,7 +1739,7 @@ Canada
                   - Literal:
                       Integer: 50
         "###);
-        assert_yaml_snapshot!(parse("func median x -> (x | percentile 50)").unwrap(), @r###"
+        assert_yaml_snapshot!(parse("func median x -> (x | percentile 50)\n").unwrap(), @r###"
         ---
         - FuncDef:
             name: median
