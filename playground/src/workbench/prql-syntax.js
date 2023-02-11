@@ -1,16 +1,17 @@
 const TRANSFORMS = [
-  "from",
-  "select",
+  "aggregate",
+  "append",
   "derive",
   "filter",
-  "take",
-  "sort",
-  "join",
-  "aggregate",
+  "from_text",
+  "from",
   "group",
-  "window",
-  "append",
+  "join",
+  "select",
+  "sort",
+  "take",
   "union",
+  "window",
 ];
 const BUILTIN_FUNCTIONS = ["switch"]; // "in", "as"
 const KEYWORDS = ["func", "let", "prql"];

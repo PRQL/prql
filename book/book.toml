@@ -5,7 +5,7 @@ multilingual = false
 title = "PRQL Language Book"
 
 [output.html]
-additional-css = ["comparison-table.css", "mdbook-admonish.css", "././mdbook-admonish.css"]
+additional-css = ["comparison-table.css", "mdbook-admonish.css"]
 additional-js = ["highlight-prql.js"]
 git-repository-url = "https://github.com/PRQL/prql"
 
