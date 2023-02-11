@@ -16,6 +16,7 @@ use crate::ast::pl::{BinOp, Literal, RelationLiteral};
 use crate::ast::rq::{CId, Expr, ExprKind, Query, Relation, RelationKind, TableDecl, Transform};
 use crate::error::{Error, Reason};
 use crate::utils::{BreakUp, IntoOnly, Pluck};
+use crate::Target;
 
 use super::context::AnchorContext;
 use super::gen_expr::*;
@@ -28,18 +29,18 @@ pub fn translate_query(query: Query, dialect: Option<Dialect>) -> Result<sql_ast
         dialect
     } else {
         let target = query.def.other.get("target");
-        target
-            .and_then(|target| target.strip_prefix("sql."))
-            .map(|dialect| {
-                super::Dialect::from_str(dialect).map_err(|_| {
+        let Target::Sql(maybe_dialect) = target
+            .map(|target| {
+                Target::from_str(target).map_err(|_| {
                     Error::new(Reason::NotFound {
-                        name: format!("{dialect:?}"),
-                        namespace: "dialect".to_string(),
+                        name: format!("{target:?}"),
+                        namespace: "target".to_string(),
                     })
                 })
             })
             .transpose()?
-            .unwrap_or_default()
+            .unwrap_or_default();
+        maybe_dialect.unwrap_or_default()
     };
     let dialect = dialect.handler();
 
