@@ -89,7 +89,16 @@ impl ExprKind {
 }
 
 #[derive(
-    Debug, PartialEq, Eq, Clone, Copy, Serialize, Deserialize, strum::Display, strum::EnumString,
+    Debug,
+    PartialEq,
+    Eq,
+    Clone,
+    Copy,
+    Hash,
+    Serialize,
+    Deserialize,
+    strum::Display,
+    strum::EnumString,
 )]
 pub enum BinOp {
     #[strum(to_string = "*")]
@@ -122,7 +131,7 @@ pub enum BinOp {
     Coalesce,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Serialize, Deserialize, strum::EnumString)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash, Serialize, Deserialize, strum::EnumString)]
 pub enum UnOp {
     #[strum(to_string = "-")]
     Neg,
@@ -142,7 +151,7 @@ pub struct ListItem(pub Expr);
 pub struct FuncCall {
     pub name: Box<Expr>,
     pub args: Vec<Expr>,
-    #[serde(skip_serializing_if="HashMap::is_empty")]
+    #[serde(skip_serializing_if = "HashMap::is_empty")]
     pub named_args: HashMap<String, Expr>,
 }
 

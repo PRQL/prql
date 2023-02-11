@@ -3,11 +3,13 @@
 //! pest to get the parse tree / concrete syntax tree, and then a large
 //! function for turning that into PRQL AST.
 mod chumsky;
+mod lexer;
 
 use std::collections::HashMap;
 use std::str::FromStr;
 
 use ::chumsky::error::SimpleReason;
+use ::chumsky::Stream;
 use anyhow::bail;
 use anyhow::{anyhow, Result};
 use itertools::Itertools;
@@ -15,6 +17,8 @@ use pest::iterators::Pair;
 use pest::iterators::Pairs;
 use pest::Parser;
 use pest_derive::Parser;
+
+use self::lexer::Token;
 
 use super::ast::pl::*;
 use super::utils::*;
@@ -29,13 +33,19 @@ pub(crate) type PestRule = Rule;
 
 /// Build PL AST from a PRQL query string.
 pub fn parse(string: &str) -> Result<Vec<Stmt>> {
-    ::chumsky::Parser::parse(&chumsky::source(), string)
+    let tokens = ::chumsky::Parser::parse(&lexer::lexer(), string).unwrap();
+    dbg!(&tokens);
+
+    let len = string.chars().count();
+    let stream = Stream::from_iter(len..len + 1, tokens.into_iter());
+
+    ::chumsky::Parser::parse(&chumsky::source(), stream)
         .map_err(|errors| errors.into_iter().map(convert_error).collect_vec())
         .map_err(Errors)
         .map_err(|e| anyhow!(e))
 }
 
-fn convert_error(e: ::chumsky::prelude::Simple<char>) -> Error {
+fn convert_error(e: ::chumsky::prelude::Simple<Token>) -> Error {
     let span = Some(Span {
         start: e.span().start,
         end: e.span().end,
@@ -49,7 +59,7 @@ fn convert_error(e: ::chumsky::prelude::Simple<char>) -> Error {
 
     let expected = e
         .expected()
-        .filter_map(|e| e.map(|e| format!("{e:?}")))
+        .filter_map(|e| e.as_ref().map(|e| format!("{e:?}")))
         .collect_vec();
 
     let found = e.found().map(|c| format!("{c:?}")).unwrap_or_default();
@@ -279,9 +289,7 @@ fn expr_of_parse_pair(pair: Pair<Rule>) -> Result<Expr> {
         }
         Rule::ident => {
             // Pest has already parsed, so Chumsky should never fail
-            let ident = ::chumsky::Parser::parse(&chumsky::ident(), pair.as_str()).unwrap();
-
-            ExprKind::Ident(ident)
+            panic!();
         }
 
         Rule::number => {
@@ -483,8 +491,10 @@ mod test {
         stmts_of_parse_pairs(pairs)
     }
 
-    fn expr_of_string(string: &str) -> Result<Expr, Vec<::chumsky::prelude::Simple<char>>> {
-        ::chumsky::Parser::parse(&chumsky::expr_call().then_ignore(end()), string)
+    fn expr_of_string(string: &str) -> Result<Expr, Vec<::chumsky::prelude::Simple<Token>>> {
+        let tokens = ::chumsky::Parser::parse(&lexer::lexer(), string).unwrap();
+
+        ::chumsky::Parser::parse(&chumsky::expr_call().then_ignore(end()), tokens)
     }
 
     #[test]
@@ -1044,7 +1054,7 @@ Canada
         // Underscores at the beginning are parsed as ident
         expr_of_string("_2").unwrap().kind.into_ident().unwrap();
         expr_of_string("_").unwrap().kind.into_ident().unwrap();
-        
+
         expr_of_string("_2.3").unwrap_err();
 
         // We need to test these with `stmts_of_string` because they start with
