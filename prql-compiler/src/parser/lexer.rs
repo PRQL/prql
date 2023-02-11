@@ -4,48 +4,16 @@ use chumsky::prelude::*;
 
 use crate::ast::pl::*;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub enum Token {
     Whitespace,
     NewLine,
 
-    // Unary and binary operators could be repeated here, but for convenience,
-    // let's just embed them. And let's not do that for +, - and *, because they
-    // could be either UnOp or BinOp.
-    UnOp(UnOp),
-    BinOp(BinOp),
-
     Ident(String),
     Literal(Literal),
 
-    // ->
-    Arrow,
-    // =>
-    ArrowDouble,
-    // =
-    Equals,
-    // +
-    Plus,
-    // -
-    Minus,
-    // *
-    Star,
-    // [
-    BracketL,
-    // ]
-    BracketR,
-    // (
-    ParenthesisL,
-    // )
-    ParenthesisR,
-    // .
-    Dot,
-    // ,
-    Comma,
-    // :
-    Colon,
-    // |
-    Pipe,
+    // this contains 3 bytes at most, we should replace it with SmallStr
+    Control(String),
 }
 
 pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error = Simple<char>> {
@@ -55,55 +23,33 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
         .at_least(1)
         .to(Token::Whitespace);
 
-    let arrows = (just("->").to(Token::Arrow)).or(just("=>").to(Token::ArrowDouble));
-
-    let un_op = just('-')
-        .to(UnOp::Neg)
-        .or(just("==").to(UnOp::EqSelf))
-        .map(Token::UnOp);
-
-    let bin_op = just("==")
-        .to(BinOp::Eq)
-        .or(just("!=").to(BinOp::Ne))
-        .or(just(">=").to(BinOp::Gte))
-        .or(just("<=").to(BinOp::Lte))
-        .or(just(">").to(BinOp::Gt))
-        .or(just("<").to(BinOp::Lt))
-        .or(just('/').to(BinOp::Div))
-        .or(just('%').to(BinOp::Mod))
-        .or(just("and").to(BinOp::And)) // TODO: negative lookahead for whitespace
-        .or(just("or").to(BinOp::Or)) // TODO: negative lookahead for whitespace
-        .or(just("??").to(BinOp::Coalesce))
-        .map(Token::BinOp);
-
     let new_line = just('\r').or_not().then(just('\n')).to(Token::NewLine);
 
-    let control = (just("=").to(Token::Equals))
-        .or(just("+").to(Token::Plus))
-        .or(just("-").to(Token::Minus))
-        .or(just("*").to(Token::Star))
-        .or(just("[").to(Token::BracketL))
-        .or(just("]").to(Token::BracketR))
-        .or(just("(").to(Token::ParenthesisL))
-        .or(just(")").to(Token::ParenthesisR))
-        .or(just(".").to(Token::Dot))
-        .or(just(",").to(Token::Comma))
-        .or(just(":").to(Token::Colon))
-        .or(just("|").to(Token::Pipe));
+    let control_multi = just("->")
+        .or(just("=>"))
+        .or(just("=="))
+        .or(just("!="))
+        .or(just(">="))
+        .or(just("<="))
+        .or(just("and")) // TODO: negative lookahead for whitespace
+        .or(just("or")) // TODO: negative lookahead for whitespace
+        .or(just("??"))
+        .map(|x| x.to_string())
+        .map(Token::Control);
+
+    let control = one_of("></%=+-*[]().,:|")
+        .map(|c: char| c.to_string())
+        .map(Token::Control);
 
     let ident = ident_part().map(Token::Ident);
 
     let literal = literal().map(Token::Literal);
 
-    let comment = just('#')
-        .then(filter(|c: &char| *c != '\n').repeated())
-        .then(just('\n'));
+    let comment = just('#').then(filter(|c: &char| *c != '\n').repeated());
 
     whitespace
-        .or(arrows)
-        .or(un_op)
-        .or(bin_op)
         .or(new_line)
+        .or(control_multi)
         .or(control)
         .or(literal)
         .or(ident)
@@ -138,8 +84,7 @@ fn literal() -> impl Parser<char, Literal, Error = Simple<char>> {
     );
 
     let number_part = filter(|c: &char| c.is_digit(10) && *c != '0')
-        .map(Some)
-        .chain::<_, Vec<_>, _>(filter(move |c: &char| c.is_digit(10) || *c == '_').repeated())
+        .chain::<_, Vec<char>, _>(filter(|c: &char| c.is_digit(10) || *c == '_').repeated())
         .collect()
         .or(just('0').map(|c| vec![c]));
 
@@ -250,3 +195,15 @@ impl std::hash::Hash for Token {
 }
 
 impl std::cmp::Eq for Token {}
+
+impl std::fmt::Display for Token {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Whitespace => write!(f, "whitespace"),
+            Self::NewLine => write!(f, "new line"),
+            Self::Ident(arg0) => write!(f, "`{arg0}`"),
+            Self::Literal(arg0) => write!(f, "{arg0}"),
+            Self::Control(arg0) => write!(f, "{arg0}"),
+        }
+    }
+}

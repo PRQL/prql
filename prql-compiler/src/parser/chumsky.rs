@@ -9,33 +9,20 @@ use super::lexer::Token;
 use crate::{ast::pl::*, Span};
 
 pub fn source() -> impl Parser<Token, Vec<Stmt>, Error = Simple<Token>> {
-    let stmt = query_def().or(main_pipeline());
-
-    stmt.separated_by(just(Token::NewLine))
-        .padded_by(just(Token::Whitespace).or(just(Token::NewLine)).repeated())
+    query_def()
+        .or_not()
+        .chain(main_pipeline().or_not())
         .then_ignore(end())
+        .labelled("source file")
 }
 
 fn main_pipeline() -> impl Parser<Token, Stmt, Error = Simple<Token>> {
-    expr_call()
-        .separated_by(
-            just(Token::Pipe).or(just(Token::NewLine)
-                .repeated()
-                .at_least(1)
-                .to(Token::NewLine)),
-        )
-        .at_least(1)
-        .map(|mut exprs| {
-            if exprs.len() == 1 {
-                exprs.remove(0).kind
-            } else {
-                ExprKind::Pipeline(Pipeline { exprs })
-            }
-        })
+    pipeline(expr_call())
         .map_with_span(into_expr)
         .map(Box::new)
         .map(StmtKind::Main)
         .map_with_span(into_stmt)
+        .labelled("main pipeline")
 }
 
 fn query_def() -> impl Parser<Token, Stmt, Error = Simple<Token>> {
@@ -43,10 +30,11 @@ fn query_def() -> impl Parser<Token, Stmt, Error = Simple<Token>> {
         .ignore_then(
             // named arg
             ident_part()
-                .then_ignore(just(Token::Colon).padded_by(just(Token::Whitespace).or_not()))
+                .then_ignore(ctrl(":").padded_by(whitespace().or_not()))
                 .then(expr_call())
                 .repeated(),
         )
+        .then_ignore(whitespace().or_not().then(new_line()))
         .try_map(|args, span| {
             let mut params: HashMap<_, _> = args.into_iter().collect();
 
@@ -72,43 +60,38 @@ fn query_def() -> impl Parser<Token, Stmt, Error = Simple<Token>> {
             Ok(StmtKind::QueryDef(QueryDef { version, other }))
         })
         .map_with_span(into_stmt)
+        .labelled("query header")
 }
 
 pub fn expr_call() -> impl Parser<Token, Expr, Error = Simple<Token>> {
+    func_call(expr())
+}
+
+pub fn expr() -> impl Parser<Token, Expr, Error = Simple<Token>> + Clone {
     recursive(|expr| {
         let literal = select! { Token::Literal(lit) => lit }.map(ExprKind::Literal);
 
         let ident_kind = ident().map(ExprKind::Ident);
 
-        let list = just(Token::BracketL)
+        let list = ctrl("[")
             .ignore_then(
                 ident_part()
-                    .then_ignore(just(Token::Equals).padded_by(just(Token::Whitespace).or_not()))
+                    .then_ignore(ctrl("=").padded_by(whitespace().or_not()))
                     .or_not()
-                    .then(expr.clone())
+                    .then(func_call(expr.clone()))
                     .map(|(alias, expr)| Expr { alias, ..expr })
-                    .padded_by(just(Token::Whitespace).or(just(Token::NewLine)).repeated())
-                    .separated_by(just(Token::Comma))
+                    .padded_by(whitespace().or(new_line()).repeated())
+                    .separated_by(ctrl(","))
                     .allow_trailing(),
             )
-            .then_ignore(just(Token::BracketR))
+            .then_ignore(whitespace().or(new_line()).repeated())
+            .then_ignore(ctrl("]"))
             .map(ExprKind::List)
             .labelled("list");
 
-        let pipeline = just(Token::ParenthesisL)
-            .ignore_then(
-                expr.clone()
-                    .padded_by(just(Token::Whitespace).or_not())
-                    .separated_by(just(Token::Pipe).or(just(Token::NewLine))),
-            )
-            .then_ignore(just(Token::ParenthesisR))
-            .map(|mut exprs| {
-                if exprs.len() == 1 {
-                    exprs.remove(0).kind
-                } else {
-                    ExprKind::Pipeline(Pipeline { exprs })
-                }
-            });
+        let pipeline = ctrl("(")
+            .ignore_then(pipeline(func_call(expr)))
+            .then_ignore(ctrl(")"));
 
         // TODO: switch
         // TODO: s_string
@@ -138,10 +121,31 @@ pub fn expr_call() -> impl Parser<Token, Expr, Error = Simple<Token>> {
 
         let expr_coalesce = binary_op_parser(expr_compare, operator_coalesce());
 
-        let expr_logical = binary_op_parser(expr_coalesce, operator_logical());
-
-        func_call(expr).map_with_span(into_expr).or(expr_logical)
+        binary_op_parser(expr_coalesce, operator_logical())
     })
+}
+
+fn pipeline<E>(expr: E) -> impl Parser<Token, ExprKind, Error = Simple<Token>>
+where
+    E: Parser<Token, Expr, Error = Simple<Token>>,
+{
+    // expr is a param, so I can be either a normal expr() or
+    // a recursive expr called from within expr()
+
+    (new_line().or(whitespace()).repeated())
+        .ignore_then(
+            expr.padded_by(whitespace().or_not())
+                .separated_by(ctrl("|").or(new_line().repeated().at_least(1).to(())))
+                .map(|mut exprs| {
+                    if exprs.len() == 1 {
+                        exprs.remove(0).kind
+                    } else {
+                        ExprKind::Pipeline(Pipeline { exprs })
+                    }
+                }),
+        )
+        .then_ignore(new_line().or(whitespace()).repeated())
+        .labelled("pipeline")
 }
 
 fn binary_op_parser<'a, Term, Op>(
@@ -155,11 +159,7 @@ where
     let term = term.map_with_span(|e, s| (e, s)).boxed();
 
     (term.clone())
-        .then(
-            op.padded_by(just(Token::Whitespace).or_not())
-                .then(term)
-                .repeated(),
-        )
+        .then(op.padded_by(whitespace().or_not()).then(term).repeated())
         .foldl(|left, (op, right)| {
             let span = left.1.start..right.1.end;
             let kind = ExprKind::Binary {
@@ -173,21 +173,19 @@ where
         .boxed()
 }
 
-fn func_call(
-    expr: Recursive<Token, Expr, Simple<Token>>,
-) -> impl Parser<Token, ExprKind, Error = Simple<Token>> + '_ {
-    let name = ident()
-        .boxed()
-        .map(ExprKind::Ident)
-        .map_with_span(into_expr);
+fn func_call<E>(expr: E) -> impl Parser<Token, Expr, Error = Simple<Token>>
+where
+    E: Parser<Token, Expr, Error = Simple<Token>> + Clone,
+{
+    let name = expr.clone();
 
     let named_arg = ident_part()
         .map(Some)
-        .then_ignore(just(Token::Colon).padded_by(just(Token::Whitespace).or_not()))
+        .then_ignore(ctrl(":").padded_by(whitespace().or_not()))
         .then(expr.clone());
 
     let assign_call = ident_part()
-        .then_ignore(just(Token::Equals).padded_by(just(Token::Whitespace).or_not()))
+        .then_ignore(ctrl("=").padded_by(whitespace().or_not()))
         .then(expr.clone())
         .map(|(alias, expr)| Expr {
             alias: Some(alias),
@@ -195,83 +193,96 @@ fn func_call(
         });
     let positional_arg = assign_call.or(expr.clone()).map(|expr| (None, expr));
 
-    let args = just(Token::Whitespace)
+    let args = whitespace()
         .ignore_then(named_arg.or(positional_arg))
-        .repeated()
-        .at_least(1);
+        .repeated();
 
-    name.then(args).map(|(name, args)| {
-        let mut named_args = HashMap::new();
-        let mut positional = Vec::new();
-        for (name, arg) in args {
-            if let Some(name) = name {
-                named_args.insert(name, arg);
-            } else {
-                positional.push(arg);
+    name.then(args)
+        .map(|(name, args)| {
+            if args.is_empty() {
+                return name.kind;
             }
-        }
 
-        ExprKind::FuncCall(FuncCall {
-            name: Box::new(name),
-            args: positional,
-            named_args,
+            let mut named_args = HashMap::new();
+            let mut positional = Vec::new();
+            for (name, arg) in args {
+                if let Some(name) = name {
+                    named_args.insert(name, arg);
+                } else {
+                    positional.push(arg);
+                }
+            }
+
+            ExprKind::FuncCall(FuncCall {
+                name: Box::new(name),
+                args: positional,
+                named_args,
+            })
         })
-    })
+        .map_with_span(into_expr)
+        .padded_by(whitespace().or_not())
+        .labelled("function call")
 }
 
 pub fn ident() -> impl Parser<Token, Ident, Error = Simple<Token>> {
-    let star = just(Token::Star).to("*".to_string());
+    let star = ctrl("*").to("*".to_string());
 
     // TODO: !operator ~ !(keyword ~ WHITESPACE)
     //  we probably need combinator::Not, which has not been released yet.
 
     ident_part()
-        .chain(
-            just(Token::Dot)
-                .ignore_then(ident_part().or(star))
-                .repeated(),
-        )
+        .chain(ctrl(".").ignore_then(ident_part().or(star)).repeated())
         .map(Ident::from_path::<String>)
+        .labelled("identifier")
 }
 
 fn operator_unary() -> impl Parser<Token, UnOp, Error = Simple<Token>> {
-    select! {
-        Token::UnOp(op) => op,
-        Token::Plus => UnOp::Add,
-        Token::Minus => UnOp::Neg,
-    }
+    (ctrl("+").to(UnOp::Add))
+        .or(ctrl("-").to(UnOp::Neg))
+        .or(ctrl("!").to(UnOp::Not))
+        .or(ctrl("==").to(UnOp::EqSelf))
 }
 fn operator_mul() -> impl Parser<Token, BinOp, Error = Simple<Token>> {
-    select! {
-        Token::BinOp(op) if op == BinOp::Div || op == BinOp::Mod => op,
-        Token::Star => BinOp::Mul,
-    }
+    (ctrl("*").to(BinOp::Mul))
+        .or(ctrl("/").to(BinOp::Div))
+        .or(ctrl("%").to(BinOp::Mod))
 }
 fn operator_add() -> impl Parser<Token, BinOp, Error = Simple<Token>> {
-    select! {
-        Token::Plus => BinOp::Add,
-        Token::Minus => BinOp::Sub,
-    }
+    (ctrl("+").to(BinOp::Add)).or(ctrl("-").to(BinOp::Sub))
 }
 fn operator_compare() -> impl Parser<Token, BinOp, Error = Simple<Token>> {
-    use BinOp::*;
-    select! {
-        Token::BinOp(op) if matches!(op, Eq | Ne | Gte | Lte | Gt | Lt) => op
-    }
+    (ctrl("==").to(BinOp::Eq))
+        .or(ctrl("!=").to(BinOp::Ne))
+        .or(ctrl("<=").to(BinOp::Lte))
+        .or(ctrl(">=").to(BinOp::Gte))
+        .or(ctrl("<").to(BinOp::Lt))
+        .or(ctrl(">").to(BinOp::Gt))
 }
 fn operator_logical() -> impl Parser<Token, BinOp, Error = Simple<Token>> {
-    select! { Token::BinOp(op) if op == BinOp::And || op == BinOp::Or => op }
+    (ctrl("and").to(BinOp::And)).or(ctrl("or").to(BinOp::Or))
 }
 fn operator_coalesce() -> impl Parser<Token, BinOp, Error = Simple<Token>> {
-    select! { Token::BinOp(op) if op == BinOp::Coalesce => op }
+    ctrl("??").to(BinOp::Coalesce)
 }
 
 fn ident_part() -> impl Parser<Token, String, Error = Simple<Token>> {
     select! { Token::Ident(ident) => ident }
 }
 
-fn keyword(kw: &str) -> impl Parser<Token, String, Error = Simple<Token>> + '_ {
-    select! { Token::Ident(ident) if ident == kw => ident }
+fn keyword(kw: &str) -> impl Parser<Token, (), Error = Simple<Token>> + '_ {
+    select! { Token::Ident(ident) if ident == kw => () }
+}
+
+fn whitespace() -> impl Parser<Token, (), Error = Simple<Token>> + Clone {
+    just(Token::Whitespace).repeated().at_least(1).to(())
+}
+
+fn new_line() -> impl Parser<Token, (), Error = Simple<Token>> + Clone {
+    just(Token::NewLine).to(())
+}
+
+fn ctrl(chars: &'static str) -> impl Parser<Token, (), Error = Simple<Token>> {
+    select! { Token::Control(str) if str == chars => () }
 }
 
 fn into_stmt(kind: StmtKind, span: std::ops::Range<usize>) -> Stmt {
