@@ -16,7 +16,7 @@ menu:
       weight: 1
     - identifier: Playground
       name: Playground
-      url: /playground_integrated/
+      url: /playground/
       weight: 2
     - identifier: Roadmap
       name: Roadmap

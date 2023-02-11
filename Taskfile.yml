@@ -263,8 +263,11 @@ tasks:
       # symlink. Refer to https://github.com/PRQL/prql/pull/1296.
       - cd playground && npm install --install-links=false
       - cd playground && npm run build
+      # We place the playground app in a nested path, because we want to use
+      # prql-lang.org/playground with an iframe containing the playground.
+      # Possibly there's a more elegant way of doing this...
       - rsync -ai --checksum --delete playground/build/
-        website/public/playground/
+        website/public/playground/playground
 
   test-js:
     # These are mostly copied from the tasks in `test-all.yaml`
