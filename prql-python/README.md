@@ -1,12 +1,12 @@
 # prql-python
 
-`prql-python` offers rust bindings to the `prql-compiler` rust library. It
-exposes a python method `compile(query: str) -> str`.
+`prql-python` offers Rust bindings to the `prql-compiler` Rust library. It
+exposes a Python method `compile(query: str) -> str`.
 
 This is consumed by [PyPrql](https://github.com/prql/PyPrql) &
 [dbt-prql](https://github.com/prql/dbt-prql).
 
-The crate is not published to crates.io; only to PyPI.
+The crate is not published to crates.io; only to PyPI at https://pypi.org/project/prql-python/.
 
 ## Installation
 
