@@ -8,7 +8,7 @@
 
   - [Pipelines](./queries/pipelines.md)
   - [Functions](./queries/functions.md)
-  - [Tables](./queries/tables.md)
+  - [Variables](./queries/variables.md)
 
 - [Transforms](./transforms/README.md)
 
