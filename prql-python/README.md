@@ -29,7 +29,8 @@ prql_query = """
 """
 
 options = prql.CompileOptions(
-    format=True, signature_comment=True, target="sql.postgres")
+    format=True, signature_comment=True, target="sql.postgres"
+)
 
 sql = prql.compile(prql_query)
 sql_postgres = prql.compile(prql_query, options)
