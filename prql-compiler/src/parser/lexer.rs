@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 
 use chumsky::prelude::*;
+use itertools::Itertools;
 
 use crate::ast::pl::*;
 
@@ -12,8 +13,16 @@ pub enum Token {
     Ident(String),
     Literal(Literal),
 
+    Interpolation(char, Vec<InterpolItem>),
+
     // this contains 3 bytes at most, we should replace it with SmallStr
     Control(String),
+}
+
+#[derive(Clone, PartialEq, Debug)]
+pub enum InterpolItem {
+    String(String),
+    Expr(String),
 }
 
 pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error = Simple<char>> {
@@ -47,9 +56,32 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
 
     let comment = just('#').then(filter(|c: &char| *c != '\n').repeated());
 
+    // s-string and f-strings
+    let interpol_string = filter(|c| *c != '"' && *c != '{')
+        .repeated()
+        .collect::<String>()
+        .map(InterpolItem::String);
+    let interpolation = one_of("sf")
+        .then_ignore(just('"'))
+        .then(
+            interpol_string.chain(
+                just('{')
+                    .ignore_then(filter(|c| *c != '}').repeated().collect::<String>())
+                    .then_ignore(just('}'))
+                    .map(InterpolItem::Expr)
+                    .then(interpol_string)
+                    .map(|(e, s)| vec![e, s])
+                    .repeated()
+                    .flatten(),
+            ),
+        )
+        .then_ignore(just('"'))
+        .map(|(c, s)| Token::Interpolation(c, s));
+
     whitespace
         .or(new_line)
         .or(control_multi)
+        .or(interpolation)
         .or(control)
         .or(literal)
         .or(ident)
@@ -204,6 +236,20 @@ impl std::fmt::Display for Token {
             Self::Ident(arg0) => write!(f, "`{arg0}`"),
             Self::Literal(arg0) => write!(f, "{arg0}"),
             Self::Control(arg0) => write!(f, "{arg0}"),
+            Self::Interpolation(c, s) => write!(
+                f,
+                "{c}\"{}\"",
+                s.into_iter().map(|s| s.to_string()).join("")
+            ),
+        }
+    }
+}
+
+impl std::fmt::Display for InterpolItem {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            InterpolItem::String(s) => f.write_str(s),
+            InterpolItem::Expr(s) => write!(f, "{{{s}}}"),
         }
     }
 }

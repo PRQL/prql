@@ -764,44 +764,28 @@ mod test {
         expr_of_string(r#"" U S A"#).unwrap_err();
         expr_of_string(r#"" U S A '"#).unwrap_err();
 
-        // Escapes get passed through (the insta snapshot has them escaped I
-        // think, which isn't that clear, so repeated below).
         let escaped_string = expr_of_string(r#"" \nU S A ""#).unwrap();
         assert_yaml_snapshot!(escaped_string, @r###"
         ---
         Literal:
           String: " \nU S A "
         "###);
-        assert_eq!(
-            escaped_string
-                .kind
-                .as_literal()
-                .unwrap()
-                .as_string()
-                .unwrap(),
-            r#" \U S A "#
-        );
+        let escaped_string = escaped_string.kind.as_literal().unwrap().as_string().unwrap();
+        assert_eq!(escaped_string, " \nU S A ");
 
         // Currently we don't allow escaping closing quotes — because it's not
         // trivial to do in pest, and I'm not sure it's a great idea either — we
         // should arguably encourage multiline-strings. (Though no objection if
         // someone wants to implement it, this test is recording current
         // behavior rather than maintaining a contract).
-        let escaped_quotes = expr_of_string(r#"" Canada \""#).unwrap();
+        let escaped_quotes = expr_of_string(r#"" Canada \"""#).unwrap();
         assert_yaml_snapshot!(escaped_quotes, @r###"
         ---
         Literal:
-          String: " Canada \\"
+          String: " Canada \""
         "###);
-        assert_eq!(
-            escaped_quotes
-                .kind
-                .as_literal()
-                .unwrap()
-                .as_string()
-                .unwrap(),
-            r#" Canada \"#
-        );
+        let escaped_quotes = escaped_quotes.kind.as_literal().unwrap().as_string().unwrap();
+        assert_eq!(escaped_quotes, r#" Canada ""#);
 
         let multi_double = expr_of_string(
             r#""""

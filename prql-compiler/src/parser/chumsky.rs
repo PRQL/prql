@@ -1,9 +1,10 @@
 use std::{collections::HashMap, str::FromStr};
 
 use chumsky::prelude::*;
+use itertools::Itertools;
 use semver::VersionReq;
 
-use super::lexer::Token;
+use super::lexer::{InterpolItem, Token};
 use crate::{ast::pl::*, Span};
 
 pub fn source() -> impl Parser<Token, Vec<Stmt>, Error = Simple<Token>> {
@@ -192,14 +193,36 @@ pub fn expr() -> impl Parser<Token, Expr, Error = Simple<Token>> + Clone {
             .ignore_then(pipeline(func_call(expr)))
             .then_ignore(ctrl(")"));
 
+        let s_string = select! { Token::Interpolation('s', string) => string }
+            .map(|s| {
+                s.into_iter()
+                    .map(|i| match i {
+                        InterpolItem::String(s) => InterpolateItem::String(s),
+                        InterpolItem::Expr(s) => InterpolateItem::String(s),
+                    })
+                    .collect_vec()
+            })
+            .map(ExprKind::SString);
+
+        let f_string = select! { Token::Interpolation('f', string) => string }
+            .map(|s| {
+                s.into_iter()
+                    .map(|i| match i {
+                        InterpolItem::String(s) => InterpolateItem::String(s),
+                        InterpolItem::Expr(s) => InterpolateItem::String(s),
+                    })
+                    .collect_vec()
+            })
+            .map(ExprKind::FString);
+
         // TODO: switch
-        // TODO: s_string
-        // TODO: f_string
         // TODO: range
 
         let term = literal
             .or(list)
             .or(pipeline)
+            .or(s_string)
+            .or(f_string)
             .or(ident_kind)
             .map_with_span(into_expr)
             .boxed();
