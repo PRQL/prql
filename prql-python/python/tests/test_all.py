@@ -39,3 +39,14 @@ def test_all():
 
     assert prql.compile(prql_query)
     assert prql.compile(prql_query, options)
+
+
+def test_compile_options():
+    """
+    Test the CompileOptions
+    """
+    query_mssql = "prql target:sql.mssql\nfrom a | take 3"
+    options = prql.CompileOptions(format=False, signature_comment=False, target="foo")
+
+    assert prql.compile(query_mssql).startswith("SELECT\n  TOP (3) *\nFROM\n  a")
+    assert prql.compile(query_mssql, options) == "SELECT * FROM a LIMIT 3"
