@@ -33,4 +33,8 @@ def test_all():
         )
     """
 
+    options = prql.CompileOptions(
+        format=True, signature_comment=True, target="sql.postgres")
+
     assert prql.compile(prql_query)
+    assert prql.compile(prql_query, options)
