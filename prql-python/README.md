@@ -6,7 +6,8 @@ exposes a Python method `compile(query: str) -> str`.
 This is consumed by [PyPrql](https://github.com/prql/PyPrql) &
 [dbt-prql](https://github.com/prql/dbt-prql).
 
-The crate is not published to crates.io; only to PyPI at https://pypi.org/project/prql-python/.
+The crate is not published to crates.io; only to PyPI at
+https://pypi.org/project/prql-python/.
 
 ## Installation
 
