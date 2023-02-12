@@ -4,6 +4,8 @@
 
 **Features**:
 
+- Compilation options can now be specified from Python. (@eitsupi, #1807)
+
 **Fixes**:
 
 - Delegate dividing literal integers to the DB. Previously integer division was
