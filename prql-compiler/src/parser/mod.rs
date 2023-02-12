@@ -2,8 +2,9 @@
 //! of pest pairs into a tree of AST Items. It has a small function to call into
 //! pest to get the parse tree / concrete syntax tree, and then a large
 //! function for turning that into PRQL AST.
-mod chumsky;
+mod expr;
 mod lexer;
+mod stmt;
 
 use std::collections::HashMap;
 use std::str::FromStr;
@@ -24,6 +25,54 @@ use super::ast::pl::*;
 use super::utils::*;
 use crate::error::{Error, Errors, Reason, Span};
 
+mod common {
+    use chumsky::prelude::*;
+
+    use super::lexer::Token;
+    use crate::{ast::pl::*, Span};
+
+    pub fn ident_part() -> impl Parser<Token, String, Error = Simple<Token>> {
+        select! { Token::Ident(ident) => ident }
+    }
+
+    pub fn keyword(kw: &str) -> impl Parser<Token, (), Error = Simple<Token>> + '_ {
+        select! { Token::Ident(ident) if ident == kw => () }
+    }
+
+    pub fn whitespace() -> impl Parser<Token, (), Error = Simple<Token>> + Clone {
+        just(Token::Whitespace).repeated().at_least(1).to(())
+    }
+
+    pub fn new_line() -> impl Parser<Token, (), Error = Simple<Token>> + Clone {
+        just(Token::NewLine).to(())
+    }
+
+    pub fn ctrl(chars: &'static str) -> impl Parser<Token, (), Error = Simple<Token>> {
+        select! { Token::Control(str) if str == chars => () }
+    }
+
+    pub fn into_stmt(kind: StmtKind, span: std::ops::Range<usize>) -> Stmt {
+        Stmt {
+            span: into_span(span),
+            ..Stmt::from(kind)
+        }
+    }
+
+    pub fn into_expr(kind: ExprKind, span: std::ops::Range<usize>) -> Expr {
+        Expr {
+            span: into_span(span),
+            ..Expr::from(kind)
+        }
+    }
+
+    pub fn into_span(span: std::ops::Range<usize>) -> Option<Span> {
+        Some(Span {
+            start: span.start,
+            end: span.end,
+        })
+    }
+}
+
 #[derive(Parser)]
 #[grammar = "parser/prql.pest"]
 struct PrqlParser;
@@ -39,7 +88,7 @@ pub fn parse(string: &str) -> Result<Vec<Stmt>> {
     let len = string.chars().count();
     let stream = Stream::from_iter(len..len + 1, tokens.into_iter());
 
-    ::chumsky::Parser::parse(&chumsky::source(), stream)
+    ::chumsky::Parser::parse(&stmt::source(), stream)
         .map_err(|errors| errors.into_iter().map(convert_error).collect_vec())
         .map_err(Errors)
         .map_err(|e| anyhow!(e))
@@ -503,7 +552,7 @@ mod test {
 
         let len = string.chars().count();
         let stream = Stream::from_iter(len..len + 1, tokens.into_iter());
-        ::chumsky::Parser::parse(&chumsky::expr_call().then_ignore(end()), stream)
+        ::chumsky::Parser::parse(&expr::expr_call().then_ignore(end()), stream)
             .map_err(|errs| errs.into_iter().map(|e| anyhow!(e)).collect_vec())
     }
 
@@ -770,7 +819,12 @@ mod test {
         Literal:
           String: " \nU S A "
         "###);
-        let escaped_string = escaped_string.kind.as_literal().unwrap().as_string().unwrap();
+        let escaped_string = escaped_string
+            .kind
+            .as_literal()
+            .unwrap()
+            .as_string()
+            .unwrap();
         assert_eq!(escaped_string, " \nU S A ");
 
         // Currently we don't allow escaping closing quotes — because it's not
@@ -784,7 +838,12 @@ mod test {
         Literal:
           String: " Canada \""
         "###);
-        let escaped_quotes = escaped_quotes.kind.as_literal().unwrap().as_string().unwrap();
+        let escaped_quotes = escaped_quotes
+            .kind
+            .as_literal()
+            .unwrap()
+            .as_string()
+            .unwrap();
         assert_eq!(escaped_quotes, r#" Canada ""#);
 
         let multi_double = expr_of_string(

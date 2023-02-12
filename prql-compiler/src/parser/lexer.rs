@@ -19,7 +19,7 @@ pub enum Token {
     Control(String),
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub enum InterpolItem {
     String(String),
     Expr(String),
@@ -115,8 +115,8 @@ fn literal() -> impl Parser<char, Literal, Error = Simple<char>> {
             .chain::<char, _, _>(text::digits(10)),
     );
 
-    let number_part = filter(|c: &char| c.is_digit(10) && *c != '0')
-        .chain::<_, Vec<char>, _>(filter(|c: &char| c.is_digit(10) || *c == '_').repeated())
+    let number_part = filter(|c: &char| c.is_ascii_digit() && *c != '0')
+        .chain::<_, Vec<char>, _>(filter(|c: &char| c.is_ascii_digit() || *c == '_').repeated())
         .collect()
         .or(just('0').map(|c| vec![c]));
 
@@ -193,7 +193,7 @@ fn string() -> impl Parser<char, Literal, Error = Simple<char>> {
             .or(just('r').to('\r'))
             .or(just('t').to('\t'))
             .or(just('u').ignore_then(
-                filter(|c: &char| c.is_digit(16))
+                filter(|c: &char| c.is_ascii_hexdigit())
                     .repeated()
                     .exactly(4)
                     .collect::<String>()
@@ -236,11 +236,9 @@ impl std::fmt::Display for Token {
             Self::Ident(arg0) => write!(f, "`{arg0}`"),
             Self::Literal(arg0) => write!(f, "{arg0}"),
             Self::Control(arg0) => write!(f, "{arg0}"),
-            Self::Interpolation(c, s) => write!(
-                f,
-                "{c}\"{}\"",
-                s.into_iter().map(|s| s.to_string()).join("")
-            ),
+            Self::Interpolation(c, s) => {
+                write!(f, "{c}\"{}\"", s.iter().map(|s| s.to_string()).join(""))
+            }
         }
     }
 }
