@@ -21,14 +21,14 @@ pub fn expr() -> impl Parser<Token, Expr, Error = Simple<Token>> + Clone {
         let nested_expr = pipeline(func_call(expr.clone())).boxed();
 
         let list = ident_part()
-            .then_ignore(ctrl("=").padded_by(whitespace().or_not()))
+            .then_ignore(ctrl("="))
             .or_not()
             .then(nested_expr.clone().map_with_span(into_expr))
             .map(|(alias, expr)| Expr { alias, ..expr })
-            .padded_by(whitespace().or(new_line()).repeated())
+            .padded_by(new_line().repeated())
             .separated_by(ctrl(","))
             .allow_trailing()
-            .then_ignore(whitespace().or(new_line()).repeated())
+            .then_ignore(new_line().repeated())
             .delimited_by(ctrl("["), ctrl("]"))
             .recover_with(nested_delimiters(
                 Token::ctrl("["),
@@ -73,16 +73,15 @@ pub fn expr() -> impl Parser<Token, Expr, Error = Simple<Token>> + Clone {
             });
 
         let switch = keyword("switch")
-            .then(whitespace())
             .ignore_then(
                 func_call(expr.clone())
                     .then_ignore(ctrl("->"))
                     .then(func_call(expr))
                     .map(|(condition, value)| SwitchCase { condition, value })
-                    .padded_by(whitespace().or(new_line()).repeated())
+                    .padded_by(new_line().repeated())
                     .separated_by(ctrl(","))
                     .allow_trailing()
-                    .then_ignore(whitespace().or(new_line()).repeated())
+                    .then_ignore(new_line().repeated())
                     .delimited_by(ctrl("["), ctrl("]")),
             )
             .map(ExprKind::Switch);
@@ -95,7 +94,6 @@ pub fn expr() -> impl Parser<Token, Expr, Error = Simple<Token>> + Clone {
         let term = term
             .clone()
             .or(operator_unary()
-                .padded_by(whitespace().or_not())
                 .then(term.map(Box::new))
                 .map(|(op, expr)| ExprKind::Unary { op, expr })
                 .map_with_span(into_expr))
@@ -152,16 +150,10 @@ where
     // expr is a param, so it can be either a normal expr() or
     // a recursive expr called from within expr()
 
-    (new_line().or(whitespace()).repeated())
+    new_line()
+        .repeated()
         .ignore_then(
-            expr.padded_by(whitespace().or_not())
-                .separated_by(
-                    ctrl("|").or(new_line()
-                        .padded_by(whitespace().or_not())
-                        .repeated()
-                        .at_least(1)
-                        .ignored()),
-                )
+            expr.separated_by(ctrl("|").or(new_line().repeated().at_least(1).ignored()))
                 .at_least(1)
                 .map(|mut exprs| {
                     if exprs.len() == 1 {
@@ -171,7 +163,7 @@ where
                     }
                 }),
         )
-        .then_ignore(new_line().or(whitespace()).repeated())
+        .then_ignore(new_line().repeated())
         .labelled("pipeline")
 }
 
@@ -186,7 +178,7 @@ where
     let term = term.map_with_span(|e, s| (e, s)).boxed();
 
     (term.clone())
-        .then(op.padded_by(whitespace().or_not()).then(term).repeated())
+        .then(op.then(term).repeated())
         .foldl(|left, (op, right)| {
             let span = left.1.start..right.1.end;
             let kind = ExprKind::Binary {
@@ -208,21 +200,20 @@ where
 
     let named_arg = ident_part()
         .map(Some)
-        .then_ignore(ctrl(":").padded_by(whitespace().or_not()))
+        .then_ignore(ctrl(":"))
         .then(expr.clone());
 
-    let assign_call = ident_part()
-        .then_ignore(ctrl("=").padded_by(whitespace().or_not()))
-        .then(expr.clone())
-        .map(|(alias, expr)| Expr {
-            alias: Some(alias),
-            ..expr
-        });
+    let assign_call =
+        ident_part()
+            .then_ignore(ctrl("="))
+            .then(expr.clone())
+            .map(|(alias, expr)| Expr {
+                alias: Some(alias),
+                ..expr
+            });
     let positional_arg = assign_call.or(expr).map(|expr| (None, expr));
 
-    let args = whitespace()
-        .ignore_then(named_arg.or(positional_arg))
-        .repeated();
+    let args = named_arg.or(positional_arg).repeated();
 
     func.then(args)
         .validate(|(name, args), span, emit| {
@@ -251,7 +242,6 @@ where
             })
         })
         .map_with_span(into_expr)
-        .padded_by(whitespace().or_not())
         .labelled("function call")
 }
 

@@ -15,7 +15,7 @@ pub fn source() -> impl Parser<Token, Vec<Stmt>, Error = Simple<Token>> {
         .chain::<Stmt, _, _>(
             var_def()
                 .or(function_def())
-                .separated_by(new_line().or(whitespace()).repeated())
+                .separated_by(new_line().repeated())
                 .allow_leading()
                 .allow_trailing(),
         )
@@ -34,17 +34,14 @@ fn main_pipeline() -> impl Parser<Token, Stmt, Error = Simple<Token>> {
 }
 
 fn query_def() -> impl Parser<Token, Stmt, Error = Simple<Token>> {
-    (new_line().or(whitespace()).repeated())
+    new_line()
+        .repeated()
         .ignore_then(keyword("prql"))
         .ignore_then(
             // named arg
-            whitespace()
-                .ignore_then(ident_part())
-                .then_ignore(ctrl(":").padded_by(whitespace().or_not()))
-                .then(expr())
-                .repeated(),
+            ident_part().then_ignore(ctrl(":")).then(expr()).repeated(),
         )
-        .then_ignore(whitespace().or_not().then(new_line()))
+        .then_ignore(new_line())
         .try_map(|args, span| {
             let mut args: HashMap<_, _> = args.into_iter().collect();
 
@@ -75,9 +72,8 @@ fn query_def() -> impl Parser<Token, Stmt, Error = Simple<Token>> {
 
 fn var_def() -> impl Parser<Token, Stmt, Error = Simple<Token>> {
     keyword("let")
-        .ignore_then(whitespace())
         .ignore_then(ident_part())
-        .then_ignore(ctrl("=").padded_by(whitespace().or_not()))
+        .then_ignore(ctrl("="))
         .then(expr_call().map(Box::new))
         .map(|(name, value)| VarDef { name, value })
         .map(StmtKind::VarDef)
@@ -87,33 +83,19 @@ fn var_def() -> impl Parser<Token, Stmt, Error = Simple<Token>> {
 
 fn function_def() -> impl Parser<Token, Stmt, Error = Simple<Token>> {
     keyword("func")
-        .ignore_then(whitespace())
         .ignore_then(
             // func name
-            ident_part()
-                .then_ignore(whitespace().or_not())
-                .then(type_expr().or_not())
-                .then_ignore(whitespace().or_not()),
+            ident_part().then(type_expr().or_not()),
         )
         .then(
             // params
             ident_part()
-                .then_ignore(whitespace().or_not())
                 .then(type_expr().or_not())
-                .then_ignore(whitespace().or_not())
-                .then(
-                    ctrl(":")
-                        .ignore_then(whitespace().or_not())
-                        .ignore_then(expr())
-                        .or_not(),
-                )
-                .then_ignore(whitespace().or_not())
+                .then(ctrl(":").ignore_then(expr()).or_not())
                 .repeated(),
         )
-        .then_ignore(whitespace().or_not())
         .then_ignore(ctrl("->"))
         .then(expr_call().map(Box::new))
-        .then_ignore(whitespace().or_not())
         .then_ignore(new_line())
         .map(|(((name, return_ty), params), body)| {
             let (pos, nam) = params
@@ -158,7 +140,7 @@ pub fn type_expr() -> impl Parser<Token, Ty, Error = Simple<Token>> {
         });
 
         type_term
-            .separated_by(ctrl("|").padded_by(whitespace().or_not()))
+            .separated_by(ctrl("|"))
             .delimited_by(ctrl("<"), ctrl(">"))
             .map(|mut terms| {
                 if terms.len() == 1 {
