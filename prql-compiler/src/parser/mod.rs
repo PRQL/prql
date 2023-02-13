@@ -10,6 +10,7 @@ use std::collections::HashMap;
 use std::str::FromStr;
 
 use ::chumsky::error::SimpleReason;
+use ::chumsky::prelude::Simple;
 use ::chumsky::Stream;
 use anyhow::bail;
 use anyhow::{anyhow, Result};
@@ -32,11 +33,17 @@ mod common {
     use crate::{ast::pl::*, Span};
 
     pub fn ident_part() -> impl Parser<Token, String, Error = Simple<Token>> {
-        select! { Token::Ident(ident) => ident }
+        select! { Token::Ident(ident) => ident }.map_err(|e: Simple<Token>| {
+            Simple::expected_input_found(
+                e.span(),
+                [Some(Token::Ident("".to_string()))],
+                e.found().cloned(),
+            )
+        })
     }
 
-    pub fn keyword(kw: &str) -> impl Parser<Token, (), Error = Simple<Token>> + '_ {
-        select! { Token::Ident(ident) if ident == kw => () }
+    pub fn keyword(kw: &'static str) -> impl Parser<Token, (), Error = Simple<Token>> + Clone {
+        just(Token::Keyword(kw.to_string())).ignored()
     }
 
     pub fn whitespace() -> impl Parser<Token, (), Error = Simple<Token>> + Clone {
@@ -47,8 +54,8 @@ mod common {
         just(Token::NewLine).ignored()
     }
 
-    pub fn ctrl(chars: &'static str) -> impl Parser<Token, (), Error = Simple<Token>> {
-        select! { Token::Control(str) if str == chars => () }
+    pub fn ctrl(chars: &'static str) -> impl Parser<Token, (), Error = Simple<Token>> + Clone {
+        just(Token::ctrl(chars)).ignored()
     }
 
     pub fn into_stmt(kind: StmtKind, span: std::ops::Range<usize>) -> Stmt {
@@ -98,6 +105,8 @@ pub fn parse(string: &str) -> Result<Vec<Stmt>> {
 
         errors.extend(parse_errors.into_iter().map(convert_token_error));
 
+        dbg!(&ast);
+
         ast
     } else {
         None
@@ -110,44 +119,22 @@ pub fn parse(string: &str) -> Result<Vec<Stmt>> {
     }
 }
 
-fn convert_char_error(e: ::chumsky::prelude::Simple<char>) -> Error {
-    dbg!(&e);
-
-    let span = common::into_span(e.span());
-
-    if let SimpleReason::Custom(message) = e.reason() {
-        return Error::new_simple(message).with_span(span);
-    }
-
+fn convert_char_error(e: Simple<char>) -> Error {
     let expected = e
         .expected()
         .filter_map(|t| t.as_ref().map(|c| format!("{c:?}")))
         .collect_vec();
 
-    let found = e.found().map(|c| c.to_string()).unwrap_or_default();
+    let found = match e.found() {
+        Some(x) => x.to_string(),
+        None => "end of input".to_string(),
+    };
 
-    if expected.is_empty() {
-        Error::new(Reason::Unexpected { found })
-    } else {
-        let expected = expected.join(", ");
-
-        Error::new(Reason::Expected {
-            who: None,
-            expected,
-            found,
-        })
-    }
-    .with_span(span)
+    convert_error(e, found, expected)
 }
 
-fn convert_token_error(e: ::chumsky::prelude::Simple<Token>) -> Error {
+fn convert_token_error(e: Simple<Token>) -> Error {
     dbg!(&e);
-
-    let span = common::into_span(e.span());
-
-    if let SimpleReason::Custom(message) = e.reason() {
-        return Error::new_simple(message).with_span(span);
-    }
 
     let just_whitespace = e
         .expected()
@@ -158,21 +145,44 @@ fn convert_token_error(e: ::chumsky::prelude::Simple<Token>) -> Error {
             if just_whitespace {
                 true
             } else {
-                !matches!(t, Some(Token::Whitespace | Token::NewLine))
+                !matches!(t, None | Some(Token::Whitespace | Token::NewLine))
             }
         })
-        .filter_map(|t| t.as_ref().map(|e| e.to_string()))
+        .map(|t| match t {
+            Some(t) => t.to_string(),
+            None => "end of input".to_string(),
+        })
         .collect_vec();
 
     let found = e.found().map(|c| c.to_string()).unwrap_or_default();
+    convert_error(e, found, expected)
+}
 
-    if expected.is_empty() {
+fn convert_error<T: std::hash::Hash + PartialEq + Eq>(
+    e: Simple<T>,
+    found: String,
+    mut expected: Vec<String>,
+) -> Error {
+    let span = common::into_span(e.span());
+
+    if let SimpleReason::Custom(message) = e.reason() {
+        return Error::new_simple(message).with_span(span);
+    }
+
+    if expected.is_empty() || expected.len() > 10 {
         Error::new(Reason::Unexpected { found })
     } else {
-        let expected = expected.join(", ");
+        let expected = match expected.len() {
+            1 => expected.remove(0),
+            2 => expected.join(" or "),
+            _ => {
+                let last = expected.pop().unwrap();
+                format!("one of {} or {last}", expected.join(", "))
+            }
+        };
 
         Error::new(Reason::Expected {
-            who: None,
+            who: e.label().map(|x| x.to_string()),
             expected,
             found,
         })

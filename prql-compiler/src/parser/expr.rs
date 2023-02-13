@@ -26,12 +26,30 @@ pub fn expr() -> impl Parser<Token, Expr, Error = Simple<Token>> + Clone {
             .separated_by(ctrl(","))
             .allow_trailing()
             .then_ignore(whitespace().or(new_line()).repeated())
-            .delimited_by(ctrl("[").boxed(), ctrl("]").boxed())
+            .delimited_by(ctrl("["), ctrl("]"))
+            .recover_with(nested_delimiters(
+                Token::ctrl("["),
+                Token::ctrl("]"),
+                [
+                    (Token::ctrl("["), Token::ctrl("]")),
+                    (Token::ctrl("("), Token::ctrl(")")),
+                ],
+                |_| vec![],
+            ))
             .map(ExprKind::List)
             .labelled("list");
 
-        let pipeline =
-            pipeline(func_call(expr.clone())).delimited_by(ctrl("(").boxed(), ctrl(")").boxed());
+        let pipeline = pipeline(func_call(expr.clone()))
+            .delimited_by(ctrl("("), ctrl(")"))
+            .recover_with(nested_delimiters(
+                Token::ctrl("("),
+                Token::ctrl(")"),
+                [
+                    (Token::ctrl("["), Token::ctrl("]")),
+                    (Token::ctrl("("), Token::ctrl(")")),
+                ],
+                |_| Expr::null().kind,
+            ));
 
         let s_string = select! { Token::Interpolation('s', string) => string }
             .map(|s| {
