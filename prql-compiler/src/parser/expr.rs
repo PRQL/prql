@@ -87,7 +87,9 @@ pub fn expr() -> impl Parser<Token, Expr, Error = Simple<Token>> + Clone {
 
         let expr_coalesce = binary_op_parser(expr_compare, operator_coalesce());
 
-        binary_op_parser(expr_coalesce, operator_logical())
+        let expr_and = binary_op_parser(expr_coalesce, operator_and());
+
+        binary_op_parser(expr_and, operator_or())
     })
 }
 
@@ -225,8 +227,11 @@ fn operator_compare() -> impl Parser<Token, BinOp, Error = Simple<Token>> {
         .or(ctrl("<").to(BinOp::Lt))
         .or(ctrl(">").to(BinOp::Gt))
 }
-fn operator_logical() -> impl Parser<Token, BinOp, Error = Simple<Token>> {
-    (ctrl("and").to(BinOp::And)).or(ctrl("or").to(BinOp::Or))
+fn operator_and() -> impl Parser<Token, BinOp, Error = Simple<Token>> {
+    ctrl("and").to(BinOp::And)
+}
+fn operator_or() -> impl Parser<Token, BinOp, Error = Simple<Token>> {
+    ctrl("or").to(BinOp::Or)
 }
 fn operator_coalesce() -> impl Parser<Token, BinOp, Error = Simple<Token>> {
     ctrl("??").to(BinOp::Coalesce)

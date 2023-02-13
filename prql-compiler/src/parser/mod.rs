@@ -1644,57 +1644,6 @@ Canada
               - String: "*"
         "###);
 
-        assert_yaml_snapshot!(parse(r#"from mytable | select [a and b + c or (d e) and f]"#).unwrap(), @r###"
-        ---
-        - Main:
-            Pipeline:
-              exprs:
-                - FuncCall:
-                    name:
-                      Ident:
-                        - from
-                    args:
-                      - Ident:
-                          - mytable
-                - FuncCall:
-                    name:
-                      Ident:
-                        - select
-                    args:
-                      - List:
-                          - Binary:
-                              left:
-                                Ident:
-                                  - a
-                              op: And
-                              right:
-                                Binary:
-                                  left:
-                                    Binary:
-                                      left:
-                                        Ident:
-                                          - b
-                                      op: Add
-                                      right:
-                                        Ident:
-                                          - c
-                                  op: Or
-                                  right:
-                                    Binary:
-                                      left:
-                                        FuncCall:
-                                          name:
-                                            Ident:
-                                              - d
-                                          args:
-                                            - Ident:
-                                                - e
-                                      op: And
-                                      right:
-                                        Ident:
-                                          - f
-        "###);
-
         let ast = expr_of_string(r#"add bar to=3"#).unwrap();
         assert_yaml_snapshot!(
             ast, @r###"
@@ -1709,6 +1658,122 @@ Canada
             - Literal:
                 Integer: 3
               alias: to
+        "###);
+    }
+
+    #[test]
+    fn test_parse_op_precedence() {
+        assert_yaml_snapshot!(expr_of_string(r#"1 + 2 - 3 - 4"#).unwrap(), @r###"
+        ---
+        Binary:
+          left:
+            Binary:
+              left:
+                Binary:
+                  left:
+                    Literal:
+                      Integer: 1
+                  op: Add
+                  right:
+                    Literal:
+                      Integer: 2
+              op: Sub
+              right:
+                Literal:
+                  Integer: 3
+          op: Sub
+          right:
+            Literal:
+              Integer: 4
+        "###);
+
+        assert_yaml_snapshot!(expr_of_string(r#"1 / 2 - 3 * 4 + 1"#).unwrap(), @r###"
+        ---
+        Binary:
+          left:
+            Binary:
+              left:
+                Binary:
+                  left:
+                    Literal:
+                      Integer: 1
+                  op: Div
+                  right:
+                    Literal:
+                      Integer: 2
+              op: Sub
+              right:
+                Binary:
+                  left:
+                    Literal:
+                      Integer: 3
+                  op: Mul
+                  right:
+                    Literal:
+                      Integer: 4
+          op: Add
+          right:
+            Literal:
+              Integer: 1
+        "###);
+
+        assert_yaml_snapshot!(expr_of_string(r#"a and b or c and d"#).unwrap(), @r###"
+        ---
+        Binary:
+          left:
+            Binary:
+              left:
+                Ident:
+                  - a
+              op: And
+              right:
+                Ident:
+                  - b
+          op: Or
+          right:
+            Binary:
+              left:
+                Ident:
+                  - c
+              op: And
+              right:
+                Ident:
+                  - d
+        "###);
+
+        assert_yaml_snapshot!(expr_of_string(r#"a and b + c or (d e) and f"#).unwrap(), @r###"
+        ---
+        Binary:
+          left:
+            Binary:
+              left:
+                Ident:
+                  - a
+              op: And
+              right:
+                Binary:
+                  left:
+                    Ident:
+                      - b
+                  op: Add
+                  right:
+                    Ident:
+                      - c
+          op: Or
+          right:
+            Binary:
+              left:
+                FuncCall:
+                  name:
+                    Ident:
+                      - d
+                  args:
+                    - Ident:
+                        - e
+              op: And
+              right:
+                Ident:
+                  - f
         "###);
     }
 
