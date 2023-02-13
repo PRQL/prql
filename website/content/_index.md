@@ -96,45 +96,34 @@ showcase_section:
     - id: friendly-syntax
       label: Friendly syntax
       prql: |
-        from orders               # This is a comment
-        filter status == "done"
-        sort [-amount]           # sort orders
+        from tracks
+        filter plays > 100_000               # Readable numbers
+        filter recorded > @2008-01-01        # Simple date literals
+        filter released - recorded < 180days # Nice interval literals
+        sort [-length]                       # Concise order direction
+
       sql: |
         SELECT
           *
         FROM
-          orders
+          tracks
         WHERE
-          status = 'done'
+          plays > 100000
+          AND recorded > DATE '2008-01-01'
+          AND released - recorded < INTERVAL 180 DAY
         ORDER BY
-          amount DESC
-
-    - id: dates
-      label: Dates
-      prql: |
-        from employees
-        derive [
-          age_at_year_end = (@2022-12-31 - dob),
-          first_check_in = start + 10days,
-        ]
-      sql: |
-        SELECT
-          *,
-          DATE '2022-12-31' - dob AS age_at_year_end,
-          start + INTERVAL 10 DAY AS first_check_in
-        FROM
-          employees
+          length DESC
 
     - id: orthogonal
       label: Orthogonality
       prql: |
         from employees
-        # Filter before aggregations
+        # `filter` before aggregations...
         filter start_date > @2021-01-01
         group country (
           aggregate [max_salary = max salary]
         )
-        # And filter after aggregations!
+        # ...and `filter` after aggregations!
         filter max_salary > 100_000
       sql: |
         SELECT
@@ -148,6 +137,40 @@ showcase_section:
           country
         HAVING
           MAX(salary) > 100000
+
+    # Currently excluded because it's lots of text
+    # prql: |
+    #   # Check out how much simpler this is relative to the SQL...
+
+    #   let track_plays = (                     # Assign with `let`
+    #     from plays
+    #     group [track] (
+    #       aggregate [
+    #         total = count,
+    #         unfinished = sum is_unfinished,
+    #         started = sum is_started,
+    #       ]
+    #     )
+    #   )
+
+    - id: expressions
+      label: Expressions
+      prql: |
+        from track_plays
+        derive [
+          finished = started + unfinished,
+          fin_share = finished / started,        # Use previous definitions
+          fin_ratio = fin_share / (1-fin_share), # BTW, hanging commas are optional!
+        ]
+
+      sql: |
+        SELECT
+          *,
+          started + unfinished AS finished,
+          (started + unfinished) / started AS fin_share,
+          (started + unfinished) / started / (1 - (started + unfinished) / started) AS fin_ratio
+        FROM
+          track_plays
 
     # markdown-link-check-disable
     - id: f-strings
@@ -197,7 +220,7 @@ showcase_section:
           weather
 
     - id: top-n
-      label: Top n items
+      label: Top N by group
       prql: |
         # Most recent employee in each role
         # Quite difficult in SQL...
@@ -228,10 +251,10 @@ showcase_section:
     - id: s-string
       label: S-strings
       prql: |
-        # There's no `version` in PRQL, but
-        # we have an escape hatch:
+        # There's no `version` in PRQL, but s-strings
+        # let us embed SQL as an escape hatch:
         from x
-          derive db_version = s"version()"
+        derive db_version = s"version()"
       sql: |
         SELECT
           *,
