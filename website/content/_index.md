@@ -96,7 +96,7 @@ showcase_section:
     - id: friendly-syntax
       label: Friendly syntax
       prql: |
-        from tracks 
+        from tracks
         filter plays > 100_000               # Readable numbers
         filter recorded > @2008-01-01        # Simple date literals
         filter released - recorded < 180days # Nice interval literals
@@ -156,7 +156,7 @@ showcase_section:
     - id: expressions
       label: Expressions
       prql: |
-        from track_plays                               
+        from track_plays
         derive [
           finished = started + unfinished,
           fin_share = finished / started,        # Use previous definitions
@@ -251,7 +251,7 @@ showcase_section:
     - id: s-string
       label: S-strings
       prql: |
-        # There's no `version` in PRQL, but s-strings 
+        # There's no `version` in PRQL, but s-strings
         # let us embed SQL as an escape hatch:
         from x
         derive db_version = s"version()"
