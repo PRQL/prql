@@ -13,29 +13,25 @@ pub fn expr_call() -> impl Parser<Token, Expr, Error = Simple<Token>> {
 
 pub fn expr() -> impl Parser<Token, Expr, Error = Simple<Token>> + Clone {
     recursive(|expr| {
-        let literal = select! { Token::Literal(lit) => lit }.map(ExprKind::Literal);
+        let literal = select! { Token::Literal(lit) => ExprKind::Literal(lit) };
 
         let ident_kind = ident().map(ExprKind::Ident);
 
-        let list = ctrl("[")
-            .ignore_then(
-                ident_part()
-                    .then_ignore(ctrl("=").padded_by(whitespace().or_not()))
-                    .or_not()
-                    .then(func_call(expr.clone()))
-                    .map(|(alias, expr)| Expr { alias, ..expr })
-                    .padded_by(whitespace().or(new_line()).repeated())
-                    .separated_by(ctrl(","))
-                    .allow_trailing(),
-            )
+        let list = ident_part()
+            .then_ignore(ctrl("=").padded_by(whitespace().or_not()))
+            .or_not()
+            .then(func_call(expr.clone()))
+            .map(|(alias, expr)| Expr { alias, ..expr })
+            .padded_by(whitespace().or(new_line()).repeated())
+            .separated_by(ctrl(","))
+            .allow_trailing()
             .then_ignore(whitespace().or(new_line()).repeated())
-            .then_ignore(ctrl("]"))
+            .delimited_by(ctrl("[").boxed(), ctrl("]").boxed())
             .map(ExprKind::List)
             .labelled("list");
 
-        let pipeline = ctrl("(")
-            .ignore_then(pipeline(func_call(expr.clone())))
-            .then_ignore(ctrl(")"));
+        let pipeline =
+            pipeline(func_call(expr.clone())).delimited_by(ctrl("(").boxed(), ctrl(")").boxed());
 
         let s_string = select! { Token::Interpolation('s', string) => string }
             .map(|s| {
@@ -61,12 +57,7 @@ pub fn expr() -> impl Parser<Token, Expr, Error = Simple<Token>> + Clone {
 
         // TODO: switch
 
-        let term = literal
-            .or(list)
-            .or(pipeline)
-            .or(s_string)
-            .or(f_string)
-            .or(ident_kind)
+        let term = choice((literal, list, pipeline, s_string, f_string, ident_kind))
             .map_with_span(into_expr)
             .boxed();
 
@@ -133,7 +124,7 @@ where
     (new_line().or(whitespace()).repeated())
         .ignore_then(
             expr.padded_by(whitespace().or_not())
-                .separated_by(ctrl("|").or(new_line().repeated().at_least(1).to(())))
+                .separated_by(ctrl("|").or(new_line().repeated().at_least(1).ignored()))
                 .at_least(1)
                 .map(|mut exprs| {
                     if exprs.len() == 1 {
@@ -197,7 +188,7 @@ where
         .repeated();
 
     func.then(args)
-        .map(|(name, args)| {
+        .validate(|(name, args), span, emit| {
             if args.is_empty() {
                 return name.kind;
             }
@@ -206,6 +197,10 @@ where
             let mut positional = Vec::new();
             for (name, arg) in args {
                 if let Some(name) = name {
+                    if named_args.contains_key(&name) {
+                        let err = Simple::custom(span.clone(), "argument is used multiple times");
+                        emit(err)
+                    }
                     named_args.insert(name, arg);
                 } else {
                     positional.push(arg);

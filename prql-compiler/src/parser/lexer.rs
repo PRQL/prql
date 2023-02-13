@@ -34,18 +34,20 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
 
     let new_line = just('\r').or_not().then(just('\n')).to(Token::NewLine);
 
-    let control_multi = just("->")
-        .or(just("=>"))
-        .or(just("=="))
-        .or(just("!="))
-        .or(just(">="))
-        .or(just("<="))
-        .or(just("and")) // TODO: negative lookahead for whitespace
-        .or(just("or")) // TODO: negative lookahead for whitespace
-        .or(just("??"))
-        .or(just(".."))
-        .map(|x| x.to_string())
-        .map(Token::Control);
+    let control_multi = choice((
+        just("->"),
+        just("=>"),
+        just("=="),
+        just("!="),
+        just(">="),
+        just("<="),
+        just("and"), // TODO: negative lookahead for whitespace
+        just("or"),  // TODO: negative lookahead for whitespace
+        just("??"),
+        just(".."),
+    ))
+    .map(|x| x.to_string())
+    .map(Token::Control);
 
     let control = one_of("></%=+-*[]().,:|!")
         .map(|c: char| c.to_string())
@@ -55,20 +57,21 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
 
     let literal = literal().map(Token::Literal);
 
-    let comment = just('#').then(filter(|c: &char| *c != '\n').repeated());
+    let comment = just('#').then(none_of('\n').repeated());
 
     // s-string and f-strings
-    let interpol_string = filter(|c| *c != '"' && *c != '{')
+    let interpol_string = none_of(r#""{"#)
         .repeated()
         .collect::<String>()
         .map(InterpolItem::String);
     let interpolation = one_of("sf")
         .then_ignore(just('"'))
         .then(
-            interpol_string.chain(
-                just('{')
-                    .ignore_then(filter(|c| *c != '}').repeated().collect::<String>())
-                    .then_ignore(just('}'))
+            interpol_string.clone().chain(
+                none_of('}')
+                    .repeated()
+                    .collect::<String>()
+                    .delimited_by(just('{'), just('}'))
                     .map(InterpolItem::Expr)
                     .then(interpol_string)
                     .map(|(e, s)| vec![e, s])
@@ -79,17 +82,19 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
         .then_ignore(just('"'))
         .map(|(c, s)| Token::Interpolation(c, s));
 
-    whitespace
-        .or(new_line)
-        .or(control_multi)
-        .or(interpolation)
-        .or(control)
-        .or(literal)
-        .or(ident)
-        .map_with_span(|tok, span| (tok, span))
-        .padded_by(comment.repeated())
-        .repeated()
-        .then_ignore(end())
+    choice((
+        whitespace,
+        new_line,
+        control_multi,
+        interpolation,
+        control,
+        literal,
+        ident,
+    ))
+    .map_with_span(|tok, span| (tok, span))
+    .padded_by(comment.repeated())
+    .repeated()
+    .then_ignore(end())
 }
 
 fn ident_part() -> impl Parser<char, String, Error = Simple<char>> {
@@ -101,7 +106,7 @@ fn ident_part() -> impl Parser<char, String, Error = Simple<char>> {
         .collect();
 
     let backticks = just('`')
-        .ignore_then(filter(|c| *c != '`').repeated())
+        .ignore_then(none_of('`').repeated())
         .then_ignore(just('`'))
         .collect::<String>();
 
@@ -151,17 +156,17 @@ fn literal() -> impl Parser<char, Literal, Error = Simple<char>> {
     let null = just("null").to(Literal::Null);
 
     let value_and_unit = number_part
-        .then(
-            just("microseconds")
-                .or(just("milliseconds"))
-                .or(just("seconds"))
-                .or(just("minutes"))
-                .or(just("hours"))
-                .or(just("days"))
-                .or(just("weeks"))
-                .or(just("months"))
-                .or(just("years")),
-        )
+        .then(choice((
+            just("microseconds"),
+            just("milliseconds"),
+            just("seconds"),
+            just("minutes"),
+            just("hours"),
+            just("days"),
+            just("weeks"),
+            just("months"),
+            just("years"),
+        )))
         .try_map(|(number, unit), span| {
             let str = number.into_iter().filter(|c| *c != '_').collect::<String>();
             if let Ok(n) = str.parse::<i64>() {
@@ -236,14 +241,16 @@ fn literal() -> impl Parser<char, Literal, Error = Simple<char>> {
         .collect::<String>()
         .map(Literal::Timestamp);
 
-    string
-        .or(value_and_unit)
-        .or(number)
-        .or(bool)
-        .or(null)
-        .or(datetime)
-        .or(date)
-        .or(time)
+    choice((
+        string,
+        value_and_unit,
+        number,
+        bool,
+        null,
+        datetime,
+        date,
+        time,
+    ))
 }
 
 fn string() -> impl Parser<char, Literal, Error = Simple<char>> {
@@ -274,10 +281,10 @@ fn string() -> impl Parser<char, Literal, Error = Simple<char>> {
 
     // TODO: multi-quoted strings (this is just parsing JSON strings)
     (just('\'')
-        .ignore_then(filter(|c| *c != '\\' && *c != '\'').or(escape).repeated())
+        .ignore_then(none_of(r"'\").or(escape).repeated())
         .then_ignore(just('\'')))
     .or(just('"')
-        .ignore_then(filter(|c| *c != '\\' && *c != '"').or(escape).repeated())
+        .ignore_then(none_of(r#""\"#).or(escape).repeated())
         .then_ignore(just('"')))
     .collect::<String>()
     .map(Literal::String)
