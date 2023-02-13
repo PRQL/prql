@@ -15,7 +15,9 @@ pub fn source() -> impl Parser<Token, Vec<Stmt>, Error = Simple<Token>> {
         .chain(
             var_def()
                 .or(function_def())
-                .separated_by(new_line().or(whitespace()).repeated()),
+                .separated_by(new_line().or(whitespace()).repeated())
+                .allow_leading()
+                .allow_trailing(),
         )
         .chain(main_pipeline().or_not())
         .then_ignore(end())

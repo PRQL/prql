@@ -82,25 +82,68 @@ pub(crate) type PestRule = Rule;
 
 /// Build PL AST from a PRQL query string.
 pub fn parse(string: &str) -> Result<Vec<Stmt>> {
-    let tokens = ::chumsky::Parser::parse(&lexer::lexer(), string).unwrap();
+    let mut errors = Vec::new();
+
+    let (tokens, lex_errors) = ::chumsky::Parser::parse_recovery_verbose(&lexer::lexer(), string);
     dbg!(&tokens);
 
-    let len = string.chars().count();
-    let stream = Stream::from_iter(len..len + 1, tokens.into_iter());
+    errors.extend(lex_errors.into_iter().map(convert_char_error));
 
-    ::chumsky::Parser::parse(&stmt::source(), stream)
-        .map_err(|errors| errors.into_iter().map(convert_error).collect_vec())
-        .map_err(Errors)
-        .map_err(|e| anyhow!(e))
+    let ast = if let Some(tokens) = tokens {
+        let len = string.chars().count();
+        let stream = Stream::from_iter(len..len + 1, tokens.into_iter());
+
+        let (ast, parse_errors) =
+            ::chumsky::Parser::parse_recovery_verbose(&stmt::source(), stream);
+
+        errors.extend(parse_errors.into_iter().map(convert_token_error));
+
+        ast
+    } else {
+        None
+    };
+
+    return if errors.is_empty() {
+        Ok(ast.unwrap_or_default())
+    } else {
+        Err(Errors(errors).into())
+    };
 }
 
-fn convert_error(e: ::chumsky::prelude::Simple<Token>) -> Error {
-    let span = Some(Span {
-        start: e.span().start,
-        end: e.span().end,
-    });
-
+fn convert_char_error(e: ::chumsky::prelude::Simple<char>) -> Error {
     dbg!(&e);
+
+    let span = common::into_span(e.span());
+
+    if let SimpleReason::Custom(message) = e.reason() {
+        return Error::new_simple(message).with_span(span);
+    }
+
+    let expected = e
+        .expected()
+        .filter_map(|t| t.as_ref().map(|c| format!("{c:?}")))
+        .collect_vec();
+
+    let found = e.found().map(|c| c.to_string()).unwrap_or_default();
+
+    if expected.is_empty() {
+        Error::new(Reason::Unexpected { found })
+    } else {
+        let expected = expected.join(", ");
+
+        Error::new(Reason::Expected {
+            who: None,
+            expected,
+            found,
+        })
+    }
+    .with_span(span)
+}
+
+fn convert_token_error(e: ::chumsky::prelude::Simple<Token>) -> Error {
+    dbg!(&e);
+
+    let span = common::into_span(e.span());
 
     if let SimpleReason::Custom(message) = e.reason() {
         return Error::new_simple(message).with_span(span);
@@ -1479,7 +1522,8 @@ Canada
                 Integer: 42
             return_ty: ~
         "###);
-        assert_yaml_snapshot!(parse(r#"func count X ->  s"SUM({X})"
+
+        assert_yaml_snapshot!(parse(r#"func count X -> s"SUM({X})"
         "#).unwrap(), @r###"
         ---
         - FuncDef:
@@ -1498,22 +1542,57 @@ Canada
             return_ty: ~
         "###);
 
-        /* TODO: Does not yet parse because `window` not yet implemented.
-            assert_debug_snapshot!(ast_of_parse_tree(
-                parse_tree_of_str(
-                    r#"
-        func lag_day x ->  (
-          window x
-          by sec_id
-          sort date
-          lag 1
+        assert_yaml_snapshot!(parse(
+            r#"
+            func lag_day x ->  (
+                window x
+                by sec_id
+                sort date
+                lag 1
+            )
+        "#
         )
-                    "#,
-                    Rule::func_def
-                )
-                .unwrap()
-            ));
-            */
+        .unwrap(), @r###"
+        ---
+        - FuncDef:
+            name: lag_day
+            positional_params:
+              - name: x
+                default_value: ~
+            named_params: []
+            body:
+              Pipeline:
+                exprs:
+                  - FuncCall:
+                      name:
+                        Ident:
+                          - window
+                      args:
+                        - Ident:
+                            - x
+                  - FuncCall:
+                      name:
+                        Ident:
+                          - by
+                      args:
+                        - Ident:
+                            - sec_id
+                  - FuncCall:
+                      name:
+                        Ident:
+                          - sort
+                      args:
+                        - Ident:
+                            - date
+                  - FuncCall:
+                      name:
+                        Ident:
+                          - lag
+                      args:
+                        - Literal:
+                            Integer: 1
+            return_ty: ~
+        "###);
 
         assert_yaml_snapshot!(parse("func add x to:a ->  x + to\n").unwrap(), @r###"
         ---
@@ -1718,15 +1797,11 @@ Canada
             let e = s"SELECT * FROM employees"
             "#).unwrap(), @r###"
         ---
-        - Main:
-            FuncCall:
-              name:
-                Ident:
-                  - let
-              args:
-                - SString:
-                    - String: SELECT * FROM employees
-                  alias: e
+        - VarDef:
+            name: e
+            value:
+              SString:
+                - String: SELECT * FROM employees
         "###);
 
         assert_yaml_snapshot!(parse(
