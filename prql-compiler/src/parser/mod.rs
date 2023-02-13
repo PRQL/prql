@@ -2610,4 +2610,31 @@ join s=salaries [==id]
               Boolean: false
         "###);
     }
+
+    #[test]
+    fn test_switch() {
+        assert_yaml_snapshot!(parse_expr(r#"switch [
+            nickname != null -> nickname,
+            true -> null
+        ]"#).unwrap(), @r###"
+        ---
+        Switch:
+          - condition:
+              Binary:
+                left:
+                  Ident:
+                    - nickname
+                op: Ne
+                right:
+                  Literal: "Null"
+            value:
+              Ident:
+                - nickname
+          - condition:
+              Literal:
+                Boolean: true
+            value:
+              Literal: "Null"
+        "###);
+    }
 }

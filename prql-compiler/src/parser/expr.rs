@@ -73,12 +73,26 @@ pub fn expr() -> impl Parser<Token, Expr, Error = Simple<Token>> + Clone {
             })
             .map(ExprKind::FString);
 
-        // TODO: switch
+        let switch = keyword("switch")
+            .then(whitespace())
+            .ignore_then(
+                func_call(expr.clone())
+                    .then_ignore(ctrl("->"))
+                    .then(func_call(expr))
+                    .map(|(condition, value)| SwitchCase { condition, value })
+                    .padded_by(whitespace().or(new_line()).repeated())
+                    .separated_by(ctrl(","))
+                    .allow_trailing()
+                    .then_ignore(whitespace().or(new_line()).repeated())
+                    .delimited_by(ctrl("["), ctrl("]")),
+            )
+            .map(ExprKind::Switch);
 
-
-        let term = choice((literal, list, pipeline, s_string, f_string, ident_kind))
-            .map_with_span(into_expr)
-            .boxed();
+        let term = choice((
+            literal, list, pipeline, s_string, f_string, ident_kind, switch,
+        ))
+        .map_with_span(into_expr)
+        .boxed();
 
         // Unary operators
         let term = term
