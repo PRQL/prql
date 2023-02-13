@@ -12,7 +12,7 @@ use super::lexer::Token;
 pub fn source() -> impl Parser<Token, Vec<Stmt>, Error = Simple<Token>> {
     query_def()
         .or_not()
-        .chain(
+        .chain::<Stmt, _, _>(
             var_def()
                 .or(function_def())
                 .separated_by(new_line().or(whitespace()).repeated())
