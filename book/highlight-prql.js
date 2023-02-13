@@ -68,6 +68,13 @@ formatting = function (hljs) {
         relevance: 10,
       },
       {
+        // interval
+        scope: "string",
+        // Add more as needed
+        match: /\d+(days|hours|minutes|seconds|milliseconds)/,
+        relevance: 10,
+      },
+      {
         // interpolation strings: s-strings are variables and f-strings are
         // strings? (Though possibly that's too cute, open to adjusting)
         //
@@ -110,12 +117,17 @@ formatting = function (hljs) {
         ],
         contains: [
           {
-            // scope: "title.function",
             scope: "variable",
             begin: "f",
             end: '"',
             // excludesEnd: true,
           },
+          // TODO: would be nice to have this be a different color, but I don't
+          // think it's possible to have a subscope within the begin / end.
+          // {
+          //   scope: "punctuation",
+          //   match: /{|}/,
+          // },
           {
             scope: "variable",
             begin: /\{/,
@@ -148,18 +160,25 @@ formatting = function (hljs) {
           },
         ],
       },
+      { scope: "punctuation", match: /[\[\]{}(),]/ },
+      {
+        scope: "operator",
+        match:
+          /(>)|(<)|(==)|(\+)|(\-)|(\/)|(\*)|(!=)|(<=)|(>=)|(\band\b)|(\bor\b)/,
+        relevance: 10,
+      },
       {
         // number
         scope: "number",
         // Slightly modified from https://stackoverflow.com/a/23872060/3064736;
         // it requires a number after a decimal point, so ranges appear as
         // ranges.
-        // We disallow a leading word character, so that we don't highlight
-        // a number in `foo_1`,
         // We allow underscores, a bit more liberally than PRQL, which doesn't
-        // allow them at the start or end (but that's difficult to express with
+        // allow them at the end (but that's difficult to express with
         // regex; contributions welcome).
-        match: /[+-]?[^\w](([\d_]+(\.[\d_]+])?)|(\.[\d_]+))/,
+        // We force a leading break, so that we don't highlight a
+        // number in `foo_1`.
+        match: /\b((\d[\d_]*(\.[\d_]+])?)|(\.[\d_]+))/,
         relevance: 10,
       },
       {
@@ -168,14 +187,6 @@ formatting = function (hljs) {
         match: /\.{2}/,
         relevance: 10,
       },
-      {
-        // operator
-        scope: "operator",
-        match:
-          /(>)|(<)|(==)|(\+)|(\-)|(!=)|(<=)|(>=)|(\?\?)|(\band\b)|(\bor\b)/,
-        relevance: 10,
-      },
-
       // Unfortunately this just overrides any keywords. It's also not
       // complete — it only handles functions at the beginning of a line.
       // I spent several hours trying to get hljs to handle this, but
@@ -188,12 +199,6 @@ formatting = function (hljs) {
       //     begin: [/^\s*[a-zA-Z]+/, /(\s+[a-zA-Z]+)+/],
       //     relevance: 10
       // },
-
-      // I couldn't seem to get this working, and other languages don't seem
-      // to use it.
-      // { // operator
-      //     match: [/-/, /\*/], //,'/', '%', '+', '-', '==', '!=', '>', '<', '>=', '<=', '??']
-      // {
     ],
   };
 };
