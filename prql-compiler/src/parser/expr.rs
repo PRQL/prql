@@ -18,10 +18,12 @@ pub fn expr() -> impl Parser<Token, Expr, Error = Simple<Token>> + Clone {
 
         let ident_kind = ident().map(ExprKind::Ident);
 
+        let nested_expr = pipeline(func_call(expr.clone())).boxed();
+
         let list = ident_part()
             .then_ignore(ctrl("=").padded_by(whitespace().or_not()))
             .or_not()
-            .then(func_call(expr.clone()))
+            .then(nested_expr.clone().map_with_span(into_expr))
             .map(|(alias, expr)| Expr { alias, ..expr })
             .padded_by(whitespace().or(new_line()).repeated())
             .separated_by(ctrl(","))
@@ -40,17 +42,18 @@ pub fn expr() -> impl Parser<Token, Expr, Error = Simple<Token>> + Clone {
             .map(ExprKind::List)
             .labelled("list");
 
-        let pipeline = pipeline(func_call(expr.clone()))
-            .delimited_by(ctrl("("), ctrl(")"))
-            .recover_with(nested_delimiters(
-                Token::ctrl("("),
-                Token::ctrl(")"),
-                [
-                    (Token::ctrl("["), Token::ctrl("]")),
-                    (Token::ctrl("("), Token::ctrl(")")),
-                ],
-                |_| Expr::null().kind,
-            ));
+        let pipeline =
+            nested_expr
+                .delimited_by(ctrl("("), ctrl(")"))
+                .recover_with(nested_delimiters(
+                    Token::ctrl("("),
+                    Token::ctrl(")"),
+                    [
+                        (Token::ctrl("["), Token::ctrl("]")),
+                        (Token::ctrl("("), Token::ctrl(")")),
+                    ],
+                    |_| Expr::null().kind,
+                ));
 
         let interpolation =
             select! {
@@ -58,7 +61,7 @@ pub fn expr() -> impl Parser<Token, Expr, Error = Simple<Token>> + Clone {
                 Token::Interpolation('f', string) => (ExprKind::FString as fn(_) -> _, string),
             }
             .validate(|(finish, string), span: std::ops::Range<usize>, emit| {
-                match interpolation::parse(string, span.start) {
+                match interpolation::parse(string, span.start + 2) {
                     Ok(items) => finish(items),
                     Err(errors) => {
                         for err in errors {
@@ -92,6 +95,7 @@ pub fn expr() -> impl Parser<Token, Expr, Error = Simple<Token>> + Clone {
         let term = term
             .clone()
             .or(operator_unary()
+                .padded_by(whitespace().or_not())
                 .then(term.map(Box::new))
                 .map(|(op, expr)| ExprKind::Unary { op, expr })
                 .map_with_span(into_expr))
@@ -151,7 +155,13 @@ where
     (new_line().or(whitespace()).repeated())
         .ignore_then(
             expr.padded_by(whitespace().or_not())
-                .separated_by(ctrl("|").or(new_line().repeated().at_least(1).ignored()))
+                .separated_by(
+                    ctrl("|").or(new_line()
+                        .padded_by(whitespace().or_not())
+                        .repeated()
+                        .at_least(1)
+                        .ignored()),
+                )
                 .at_least(1)
                 .map(|mut exprs| {
                     if exprs.len() == 1 {

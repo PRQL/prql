@@ -104,17 +104,18 @@ fn literal() -> impl Parser<char, Literal, Error = Simple<char>> {
             .chain::<char, _, _>(text::digits(10)),
     );
 
-    let number_part = filter(|c: &char| c.is_ascii_digit() && *c != '0')
+    let integer = filter(|c: &char| c.is_ascii_digit() && *c != '0')
         .chain::<_, Vec<char>, _>(filter(|c: &char| c.is_ascii_digit() || *c == '_').repeated())
-        .collect()
         .or(just('0').map(|c| vec![c]));
 
-    let frac = just('.').chain(number_part);
+    let frac = just('.')
+        .chain::<char, _, _>(filter(|c: &char| c.is_ascii_digit()))
+        .chain::<char, _, _>(filter(|c: &char| c.is_ascii_digit() || *c == '_').repeated());
 
     let number = just('+')
         .or(just('-'))
         .or_not()
-        .chain::<char, _, _>(number_part)
+        .chain::<char, _, _>(integer)
         .chain::<char, _, _>(frac.or_not().flatten())
         .chain::<char, _, _>(exp.or_not().flatten())
         .try_map(|chars, span| {
@@ -145,7 +146,7 @@ fn literal() -> impl Parser<char, Literal, Error = Simple<char>> {
         .to(Literal::Null)
         .then_ignore(not_alphanumeric());
 
-    let value_and_unit = number_part
+    let value_and_unit = integer
         .then(choice((
             just("microseconds"),
             just("milliseconds"),
