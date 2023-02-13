@@ -177,7 +177,72 @@ fn literal() -> impl Parser<char, Literal, Error = Simple<char>> {
     // TODO: time
     // TODO: "(" ~ literal ~ ")" }  --- should this even be here?
 
-    string.or(number).or(bool).or(null).or(value_and_unit)
+    let date_inner = digits(4)
+        .chain(just('-'))
+        .chain(digits(2))
+        .chain(just('-'))
+        .chain::<char, _, _>(digits(2))
+        .boxed();
+
+    let time_inner = digits(2)
+        // minutes
+        .chain(just(':').chain(digits(2)).or_not().flatten())
+        // seconds
+        .chain(just(':').chain(digits(2)).or_not().flatten())
+        // milliseconds
+        .chain(
+            just('.')
+                .chain(
+                    filter(|c: &char| c.is_ascii_digit())
+                        .repeated()
+                        .at_least(1)
+                        .at_most(6),
+                )
+                .or_not()
+                .flatten(),
+        )
+        // timezone offset
+        .chain::<char, _, _>(
+            one_of("-+")
+                .chain(
+                    digits(2)
+                        .chain(just(':'))
+                        .chain(digits(2))
+                        .or(just('Z').map(|x| vec![x])),
+                )
+                .or_not()
+                .flatten(),
+        )
+        .boxed();
+
+    // TODO: positive lookahead for end of expr
+    let date = just('@')
+        .ignore_then(date_inner.clone())
+        .collect::<String>()
+        .map(Literal::Date);
+
+    // TODO: positive lookahead for end of expr
+    let time = just('@')
+        .ignore_then(time_inner.clone())
+        .collect::<String>()
+        .map(Literal::Time);
+
+    // TODO: positive lookahead for end of expr
+    let datetime = just('@')
+        .ignore_then(date_inner)
+        .chain(just('T'))
+        .chain::<char, _, _>(time_inner)
+        .collect::<String>()
+        .map(Literal::Timestamp);
+
+    string
+        .or(value_and_unit)
+        .or(number)
+        .or(bool)
+        .or(null)
+        .or(datetime)
+        .or(date)
+        .or(time)
 }
 
 fn string() -> impl Parser<char, Literal, Error = Simple<char>> {
@@ -216,6 +281,12 @@ fn string() -> impl Parser<char, Literal, Error = Simple<char>> {
     .collect::<String>()
     .map(Literal::String)
     .labelled("string")
+}
+
+fn digits(count: usize) -> impl Parser<char, Vec<char>, Error = Simple<char>> {
+    filter(|c: &char| c.is_ascii_digit())
+        .repeated()
+        .exactly(count)
 }
 
 impl std::hash::Hash for Token {
