@@ -42,8 +42,8 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
         just("!="),
         just(">="),
         just("<="),
-        just("and"), // TODO: negative lookahead for whitespace
-        just("or"),  // TODO: negative lookahead for whitespace
+        just("and").then_ignore(not_alphanumeric()),
+        just("or").then_ignore(not_alphanumeric()),
         just("??"),
         just(".."),
     ))
@@ -57,6 +57,7 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
     let ident = ident_part().map(Token::Ident);
 
     let keyword = choice((just("func"), just("let"), just("switch"), just("prql")))
+        .then_ignore(not_alphanumeric())
         .map(|x| x.to_string())
         .map(Token::Keyword);
 
@@ -95,7 +96,7 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
         keyword,
         ident,
     ))
-    .recover_with(skip_then_retry_until([]));
+    .recover_with(skip_then_retry_until([]).skip_start());
 
     let comment = just('#').then(none_of('\n').repeated());
 
@@ -160,9 +161,10 @@ fn literal() -> impl Parser<char, Literal, Error = Simple<char>> {
 
     let bool = (just("true").to(true))
         .or(just("false").to(false))
+        .then_ignore(not_alphanumeric())
         .map(Literal::Boolean);
 
-    let null = just("null").to(Literal::Null);
+    let null = just("null").to(Literal::Null).then_ignore(not_alphanumeric());
 
     let value_and_unit = number_part
         .then(choice((
@@ -176,6 +178,7 @@ fn literal() -> impl Parser<char, Literal, Error = Simple<char>> {
             just("months"),
             just("years"),
         )))
+        .then_ignore(not_alphanumeric())
         .try_map(|(number, unit), span| {
             let str = number.into_iter().filter(|c| *c != '_').collect::<String>();
             if let Ok(n) = str.parse::<i64>() {
@@ -186,11 +189,6 @@ fn literal() -> impl Parser<char, Literal, Error = Simple<char>> {
             }
         })
         .map(Literal::ValueAndUnit);
-
-    // TODO: timestamp
-    // TODO: date
-    // TODO: time
-    // TODO: "(" ~ literal ~ ")" }  --- should this even be here?
 
     let date_inner = digits(4)
         .chain(just('-'))
@@ -304,6 +302,10 @@ fn digits(count: usize) -> impl Parser<char, Vec<char>, Error = Simple<char>> {
     filter(|c: &char| c.is_ascii_digit())
         .repeated()
         .exactly(count)
+}
+
+fn not_alphanumeric() -> impl Parser<char, (), Error = Simple<char>> {
+    filter(|c: &char| !c.is_alphanumeric()).rewind().ignored()
 }
 
 impl Token {

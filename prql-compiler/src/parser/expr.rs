@@ -240,9 +240,6 @@ where
 pub fn ident() -> impl Parser<Token, Ident, Error = Simple<Token>> {
     let star = ctrl("*").to("*".to_string());
 
-    // TODO: !operator ~ !(keyword ~ WHITESPACE)
-    //  we probably need combinator::Not, which has not been released yet.
-
     ident_part()
         .chain(ctrl(".").ignore_then(ident_part().or(star)).repeated())
         .map(Ident::from_path::<String>)
