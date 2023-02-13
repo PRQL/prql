@@ -96,8 +96,9 @@ showcase_section:
     - id: friendly-syntax
       label: Friendly syntax
       prql: |
-        from tracks
-        filter plays > 100_000               # Readable numbers
+        from track_plays
+        filter plays > 10_000                # Readable numbers
+        filter (length | in 60..240)         # Ranges with `..`
         filter recorded > @2008-01-01        # Simple date literals
         filter released - recorded < 180days # Nice interval literals
         sort [-length]                       # Concise order direction
@@ -106,9 +107,10 @@ showcase_section:
         SELECT
           *
         FROM
-          tracks
+          track_plays
         WHERE
-          plays > 100000
+          plays > 10000
+          AND length BETWEEN 60 AND 240
           AND recorded > DATE '2008-01-01'
           AND released - recorded < INTERVAL 180 DAY
         ORDER BY
