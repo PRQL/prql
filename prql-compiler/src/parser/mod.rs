@@ -2580,4 +2580,34 @@ join s=salaries [==id]
                                   - id
         "###);
     }
+
+    #[test]
+    fn test_ident_with_keywords() {
+        assert_yaml_snapshot!(parse_expr(r"select [andrew, orion, lettuce, falsehood, null0]").unwrap(), @r###"
+        ---
+        FuncCall:
+          name:
+            Ident:
+              - select
+          args:
+            - List:
+                - Ident:
+                    - andrew
+                - Ident:
+                    - orion
+                - Ident:
+                    - lettuce
+                - Ident:
+                    - falsehood
+                - Ident:
+                    - null0
+        "###);
+
+        assert_yaml_snapshot!(parse_expr(r"[false]").unwrap(), @r###"
+        ---
+        List:
+          - Literal:
+              Boolean: false
+        "###);
+    }
 }
