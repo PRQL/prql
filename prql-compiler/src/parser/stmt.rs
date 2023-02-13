@@ -155,7 +155,7 @@ pub fn type_expr() -> impl Parser<Token, Ty, Error = Simple<Token>> {
 
         type_term
             .separated_by(ctrl("|").padded_by(whitespace().or_not()))
-            .delimited_by(ctrl("<").boxed(), ctrl(">").boxed())
+            .delimited_by(ctrl("<"), ctrl(">"))
             .map(|mut terms| {
                 if terms.len() == 1 {
                     terms.remove(0)

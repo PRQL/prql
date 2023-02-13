@@ -11,6 +11,7 @@ pub enum Token {
     NewLine,
 
     Ident(String),
+    Keyword(String),
     Literal(Literal),
 
     Interpolation(char, Vec<InterpolItem>),
@@ -55,9 +56,11 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
 
     let ident = ident_part().map(Token::Ident);
 
-    let literal = literal().map(Token::Literal);
+    let keyword = choice((just("func"), just("let"), just("switch"), just("prql")))
+        .map(|x| x.to_string())
+        .map(Token::Keyword);
 
-    let comment = just('#').then(none_of('\n').repeated());
+    let literal = literal().map(Token::Literal);
 
     // s-string and f-strings
     let interpol_string = none_of(r#""{"#)
@@ -82,19 +85,25 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
         .then_ignore(just('"'))
         .map(|(c, s)| Token::Interpolation(c, s));
 
-    choice((
+    let token = choice((
         whitespace,
-        new_line,
+        new_line.clone(),
         control_multi,
         interpolation,
         control,
         literal,
+        keyword,
         ident,
     ))
-    .map_with_span(|tok, span| (tok, span))
-    .padded_by(comment.repeated())
-    .repeated()
-    .then_ignore(end())
+    .recover_with(skip_then_retry_until([]));
+
+    let comment = just('#').then(none_of('\n').repeated());
+
+    token
+        .map_with_span(|tok, span| (tok, span))
+        .padded_by(comment.separated_by(new_line))
+        .repeated()
+        .then_ignore(end())
 }
 
 fn ident_part() -> impl Parser<char, String, Error = Simple<char>> {
@@ -297,6 +306,12 @@ fn digits(count: usize) -> impl Parser<char, Vec<char>, Error = Simple<char>> {
         .exactly(count)
 }
 
+impl Token {
+    pub fn ctrl<S: ToString>(s: S) -> Self {
+        Token::Control(s.to_string())
+    }
+}
+
 impl std::hash::Hash for Token {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         core::mem::discriminant(self).hash(state);
@@ -310,7 +325,14 @@ impl std::fmt::Display for Token {
         match self {
             Self::Whitespace => write!(f, "whitespace"),
             Self::NewLine => write!(f, "new line"),
-            Self::Ident(arg0) => write!(f, "`{arg0}`"),
+            Self::Ident(arg0) => {
+                if arg0.is_empty() {
+                    write!(f, "an identifier")
+                } else {
+                    write!(f, "`{arg0}`")
+                }
+            }
+            Self::Keyword(arg0) => write!(f, "keyword {arg0}"),
             Self::Literal(arg0) => write!(f, "{arg0}"),
             Self::Control(arg0) => write!(f, "{arg0}"),
             Self::Interpolation(c, s) => {
