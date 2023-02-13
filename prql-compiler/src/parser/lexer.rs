@@ -43,6 +43,7 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
         .or(just("and")) // TODO: negative lookahead for whitespace
         .or(just("or")) // TODO: negative lookahead for whitespace
         .or(just("??"))
+        .or(just(".."))
         .map(|x| x.to_string())
         .map(Token::Control);
 

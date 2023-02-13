@@ -103,11 +103,11 @@ pub fn parse(string: &str) -> Result<Vec<Stmt>> {
         None
     };
 
-    return if errors.is_empty() {
+    if errors.is_empty() {
         Ok(ast.unwrap_or_default())
     } else {
         Err(Errors(errors).into())
-    };
+    }
 }
 
 fn convert_char_error(e: ::chumsky::prelude::Simple<char>) -> Error {
@@ -600,6 +600,28 @@ mod test {
     }
 
     #[test]
+    fn test_parse_pipeline_parse_tree() {
+        assert_yaml_snapshot!(parse(
+            // It's useful to have canonical examples rather than copy-pasting
+            // everything, so we reference the prql file here. But a downside of
+            // this implementation is: if there's an error in extracting the
+            // example from the docs into the file specified here, this test
+            // won't compile. Because `cargo insta test --accept` on the
+            // workspace — which extracts the example — requires compiling this,
+            // we can get stuck.
+            //
+            // Breaking out of that requires running this `cargo insta test
+            // --accept` within `book`, and then running it on the workspace.
+            // `task test-all` does this.
+            //
+            // If we change this, it would great if we can retain having
+            // examples tested in the docs.
+            &include_str!("../../../book/tests/prql/examples/variables-0.prql"),
+        )
+        .unwrap());
+    }
+
+    #[test]
     fn test_parse_take() {
         parse("take 10").unwrap();
 
@@ -634,25 +656,119 @@ mod test {
     }
 
     #[test]
-    fn test_parse_pipeline_parse_tree() {
-        assert_yaml_snapshot!(parse(
-            // It's useful to have canonical examples rather than copy-pasting
-            // everything, so we reference the prql file here. But a downside of
-            // this implementation is: if there's an error in extracting the
-            // example from the docs into the file specified here, this test
-            // won't compile. Because `cargo insta test --accept` on the
-            // workspace — which extracts the example — requires compiling this,
-            // we can get stuck.
-            //
-            // Breaking out of that requires running this `cargo insta test
-            // --accept` within `book`, and then running it on the workspace.
-            // `task test-all` does this.
-            //
-            // If we change this, it would great if we can retain having
-            // examples tested in the docs.
-            &include_str!("../../../book/tests/prql/examples/variables-0.prql"),
-        )
-        .unwrap());
+    fn test_parse_ranges() {
+        assert_yaml_snapshot!(parse_expr(r#"3..5"#).unwrap(), @r###"
+        ---
+        Range:
+          start:
+            Literal:
+              Integer: 3
+          end:
+            Literal:
+              Integer: 5
+        "###);
+
+        assert_yaml_snapshot!(parse_expr(r#"-2..-5"#).unwrap(), @r###"
+        ---
+        Range:
+          start:
+            Unary:
+              op: Neg
+              expr:
+                Literal:
+                  Integer: 2
+          end:
+            Unary:
+              op: Neg
+              expr:
+                Literal:
+                  Integer: 5
+        "###);
+
+        assert_yaml_snapshot!(parse_expr(r#"(-2..(-5 | abs))"#).unwrap(), @r###"
+        ---
+        Range:
+          start:
+            Unary:
+              op: Neg
+              expr:
+                Literal:
+                  Integer: 2
+          end:
+            Pipeline:
+              exprs:
+                - Unary:
+                    op: Neg
+                    expr:
+                      Literal:
+                        Integer: 5
+                - Ident:
+                    - abs
+        "###);
+
+        assert_yaml_snapshot!(parse_expr(r#"(2 + 5)..'a'"#).unwrap(), @r###"
+        ---
+        Range:
+          start:
+            Binary:
+              left:
+                Literal:
+                  Integer: 2
+              op: Add
+              right:
+                Literal:
+                  Integer: 5
+          end:
+            Literal:
+              String: a
+        "###);
+
+        assert_yaml_snapshot!(parse_expr(r#"1.6..rel.col"#).unwrap(), @r###"
+        ---
+        Range:
+          start:
+            Literal:
+              Float: 1.6
+          end:
+            Ident:
+              - rel
+              - col
+        "###);
+
+        assert_yaml_snapshot!(parse_expr(r#"6.."#).unwrap(), @r###"
+        ---
+        Range:
+          start:
+            Literal:
+              Integer: 6
+          end: ~
+        "###);
+        assert_yaml_snapshot!(parse_expr(r#"..7"#).unwrap(), @r###"
+        ---
+        Range:
+          start: ~
+          end:
+            Literal:
+              Integer: 7
+        "###);
+
+        assert_yaml_snapshot!(parse_expr(r#".."#).unwrap(), @r###"
+        ---
+        Range:
+          start: ~
+          end: ~
+        "###);
+
+        assert_yaml_snapshot!(parse_expr(r#"@2020-01-01..@2021-01-01"#).unwrap(), @r###"
+        ---
+        Range:
+          start:
+            Literal:
+              Date: 2020-01-01
+          end:
+            Literal:
+              Date: 2021-01-01
+        "###);
     }
 
     #[test]
@@ -2147,121 +2263,6 @@ join `my-proj`.`dataset`.`table`
                               expr:
                                 Ident:
                                   - num_of_articles
-        "###);
-    }
-
-    #[test]
-    fn test_range() {
-        assert_yaml_snapshot!(parse("
-        from employees
-        filter (distance | in 0..40)
-        filter (distance | in (0)..40)
-        derive [
-          greater_than_ten = 11..,
-          less_than_ten = ..9,
-          negative = (-5..),
-          more_negative = -10..,
-          dates_open = @2020-01-01..,
-          dates = @2020-01-01..@2021-01-01,
-        ]
-        ").unwrap(), @r###"
-        ---
-        - Main:
-            Pipeline:
-              exprs:
-                - FuncCall:
-                    name:
-                      Ident:
-                        - from
-                    args:
-                      - Ident:
-                          - employees
-                - FuncCall:
-                    name:
-                      Ident:
-                        - filter
-                    args:
-                      - Pipeline:
-                          exprs:
-                            - Ident:
-                                - distance
-                            - FuncCall:
-                                name:
-                                  Ident:
-                                    - in
-                                args:
-                                  - Range:
-                                      start:
-                                        Literal:
-                                          Integer: 0
-                                      end:
-                                        Literal:
-                                          Integer: 40
-                - FuncCall:
-                    name:
-                      Ident:
-                        - filter
-                    args:
-                      - Pipeline:
-                          exprs:
-                            - Ident:
-                                - distance
-                            - FuncCall:
-                                name:
-                                  Ident:
-                                    - in
-                                args:
-                                  - Range:
-                                      start:
-                                        Literal:
-                                          Integer: 0
-                                      end:
-                                        Literal:
-                                          Integer: 40
-                - FuncCall:
-                    name:
-                      Ident:
-                        - derive
-                    args:
-                      - List:
-                          - Range:
-                              start:
-                                Literal:
-                                  Integer: 11
-                              end: ~
-                            alias: greater_than_ten
-                          - Range:
-                              start: ~
-                              end:
-                                Literal:
-                                  Integer: 9
-                            alias: less_than_ten
-                          - Range:
-                              start:
-                                Literal:
-                                  Integer: -5
-                              end: ~
-                            alias: negative
-                          - Range:
-                              start:
-                                Literal:
-                                  Integer: -10
-                              end: ~
-                            alias: more_negative
-                          - Range:
-                              start:
-                                Literal:
-                                  Date: 2020-01-01
-                              end: ~
-                            alias: dates_open
-                          - Range:
-                              start:
-                                Literal:
-                                  Date: 2020-01-01
-                              end:
-                                Literal:
-                                  Date: 2021-01-01
-                            alias: dates
         "###);
     }
 

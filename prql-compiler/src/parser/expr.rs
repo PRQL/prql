@@ -34,7 +34,7 @@ pub fn expr() -> impl Parser<Token, Expr, Error = Simple<Token>> + Clone {
             .labelled("list");
 
         let pipeline = ctrl("(")
-            .ignore_then(pipeline(func_call(expr)))
+            .ignore_then(pipeline(func_call(expr.clone())))
             .then_ignore(ctrl(")"));
 
         let s_string = select! { Token::Interpolation('s', string) => string }
@@ -60,7 +60,6 @@ pub fn expr() -> impl Parser<Token, Expr, Error = Simple<Token>> + Clone {
             .map(ExprKind::FString);
 
         // TODO: switch
-        // TODO: range
 
         let term = literal
             .or(list)
@@ -71,7 +70,8 @@ pub fn expr() -> impl Parser<Token, Expr, Error = Simple<Token>> + Clone {
             .map_with_span(into_expr)
             .boxed();
 
-        let unary_op = term
+        // Unary operators
+        let term = term
             .clone()
             .or(operator_unary()
                 .then(term.map(Box::new))
@@ -79,17 +79,47 @@ pub fn expr() -> impl Parser<Token, Expr, Error = Simple<Token>> + Clone {
                 .map_with_span(into_expr))
             .boxed();
 
-        let expr_mul = binary_op_parser(unary_op, operator_mul());
+        // Ranges have five cases we need to parse:
+        // x     -- a simple no-op
+        // x..y
+        // x..
+        //  ..y
+        //  ..
+        enum RangeCase {
+            NoOp(Expr),
+            Range(Option<Expr>, Option<Expr>),
+        }
+        let term = (term.clone())
+            .then(ctrl("..").ignore_then(term.clone().or_not()).or_not())
+            .map(|(start, range)| {
+                if let Some(range) = range {
+                    RangeCase::Range(Some(start), range)
+                } else {
+                    RangeCase::NoOp(start)
+                }
+            })
+            .or(ctrl("..")
+                .ignore_then(term.or_not())
+                .map(|range| RangeCase::Range(None, range)))
+            .map(|case| match case {
+                RangeCase::NoOp(x) => x.kind,
+                RangeCase::Range(start, end) => ExprKind::Range(Range {
+                    start: start.map(Box::new),
+                    end: end.map(Box::new),
+                }),
+            })
+            .map_with_span(into_expr)
+            .boxed();
 
-        let expr_add = binary_op_parser(expr_mul, operator_add());
+        // Binary operators
+        let expr = term;
+        let expr = binary_op_parser(expr, operator_mul());
+        let expr = binary_op_parser(expr, operator_add());
+        let expr = binary_op_parser(expr, operator_compare());
+        let expr = binary_op_parser(expr, operator_coalesce());
+        let expr = binary_op_parser(expr, operator_and());
 
-        let expr_compare = binary_op_parser(expr_add, operator_compare());
-
-        let expr_coalesce = binary_op_parser(expr_compare, operator_coalesce());
-
-        let expr_and = binary_op_parser(expr_coalesce, operator_and());
-
-        binary_op_parser(expr_and, operator_or())
+        binary_op_parser(expr, operator_or())
     })
 }
 
