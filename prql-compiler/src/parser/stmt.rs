@@ -153,9 +153,9 @@ pub fn type_expr() -> impl Parser<Token, Ty, Error = Simple<Token>> {
             }
         });
 
-        ctrl("<")
-            .ignore_then(type_term.separated_by(ctrl("|").padded_by(whitespace().or_not())))
-            .then_ignore(ctrl(">"))
+        type_term
+            .separated_by(ctrl("|").padded_by(whitespace().or_not()))
+            .delimited_by(ctrl("<").boxed(), ctrl(">").boxed())
             .map(|mut terms| {
                 if terms.len() == 1 {
                     terms.remove(0)

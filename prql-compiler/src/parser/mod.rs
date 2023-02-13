@@ -40,11 +40,11 @@ mod common {
     }
 
     pub fn whitespace() -> impl Parser<Token, (), Error = Simple<Token>> + Clone {
-        just(Token::Whitespace).repeated().at_least(1).to(())
+        just(Token::Whitespace).repeated().at_least(1).ignored()
     }
 
     pub fn new_line() -> impl Parser<Token, (), Error = Simple<Token>> + Clone {
-        just(Token::NewLine).to(())
+        just(Token::NewLine).ignored()
     }
 
     pub fn ctrl(chars: &'static str) -> impl Parser<Token, (), Error = Simple<Token>> {
@@ -1581,6 +1581,9 @@ Canada
                     Integer: 1
             return_ty: ~
         "###);
+
+        parse("func plus_one x:0 y:0 -> x + 1\n").unwrap_err();
+
         assert_yaml_snapshot!(parse("func foo x -> some_func (foo bar + 1) (plax) - baz\n").unwrap()
         , @r###"
         ---
