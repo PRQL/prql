@@ -827,25 +827,6 @@ mod test {
             .unwrap();
         assert_eq!(escaped_string, " \nU S A ");
 
-        // Currently we don't allow escaping closing quotes — because it's not
-        // trivial to do in pest, and I'm not sure it's a great idea either — we
-        // should arguably encourage multiline-strings. (Though no objection if
-        // someone wants to implement it, this test is recording current
-        // behavior rather than maintaining a contract).
-        let escaped_quotes = expr_of_string(r#"" Canada \"""#).unwrap();
-        assert_yaml_snapshot!(escaped_quotes, @r###"
-        ---
-        Literal:
-          String: " Canada \""
-        "###);
-        let escaped_quotes = escaped_quotes
-            .kind
-            .as_literal()
-            .unwrap()
-            .as_string()
-            .unwrap();
-        assert_eq!(escaped_quotes, r#" Canada ""#);
-
         let multi_double = expr_of_string(
             r#""""
 ''

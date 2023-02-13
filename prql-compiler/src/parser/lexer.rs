@@ -129,8 +129,6 @@ fn literal() -> impl Parser<char, Literal, Error = Simple<char>> {
         .chain::<char, _, _>(frac.or_not().flatten())
         .chain::<char, _, _>(exp.or_not().flatten())
         .try_map(|chars, span| {
-            // pest is responsible for ensuring these are in the correct place,
-            // so we just need to remove them.
             let str = chars.into_iter().filter(|c| *c != '_').collect::<String>();
 
             if let Ok(i) = str.parse::<i64>() {
