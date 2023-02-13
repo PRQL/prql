@@ -580,24 +580,24 @@ fn ast_of_interpolate_items(pair: Pair<Rule>) -> Result<Vec<InterpolateItem>> {
 mod test {
 
     use super::*;
-    use ::chumsky::{prelude::*, Parser};
+    use chumsky::{prelude::*, Parser};
     use insta::assert_yaml_snapshot;
 
-    fn expr_of_string(string: &str) -> Result<Expr, Vec<anyhow::Error>> {
-        let tokens = ::chumsky::Parser::parse(&lexer::lexer(), string)
+    fn parse_expr(string: &str) -> Result<Expr, Vec<anyhow::Error>> {
+        let tokens = Parser::parse(&lexer::lexer(), string)
             .map_err(|errs| errs.into_iter().map(|e| anyhow!(e)).collect_vec())?;
 
         dbg!(&tokens);
 
         let len = string.chars().count();
         let stream = Stream::from_iter(len..len + 1, tokens.into_iter());
-        ::chumsky::Parser::parse(&expr::expr_call().then_ignore(end()), stream)
+        Parser::parse(&expr::expr_call().then_ignore(end()), stream)
             .map_err(|errs| errs.into_iter().map(|e| anyhow!(e)).collect_vec())
     }
 
     #[test]
     fn test_parse_take() {
-        parse_tree_of_str("take 10", Rule::statements).unwrap();
+        parse("take 10").unwrap();
 
         assert_yaml_snapshot!(parse(r#"take 10"#).unwrap(), @r###"
         ---
@@ -631,36 +631,29 @@ mod test {
 
     #[test]
     fn test_parse_pipeline_parse_tree() {
-        assert_yaml_snapshot!(stmts_of_parse_pairs(
-            parse_tree_of_str(
-                // It's useful to have canonical examples rather than copy-pasting
-                // everything, so we reference the prql file here. But a downside of
-                // this implementation is: if there's an error in extracting the
-                // example from the docs into the file specified here, this test
-                // won't compile. Because `cargo insta test --accept` on the
-                // workspace — which extracts the example — requires compiling this,
-                // we can get stuck.
-                //
-                // Breaking out of that requires running this `cargo insta test
-                // --accept` within `book`, and then running it on the workspace.
-                // `task test-all` does this.
-                //
-                // If we change this, it would great if we can retain having
-                // examples tested in the docs.
-                &include_str!("../../../book/tests/prql/examples/variables-0.prql")
-                    .trim()
-                    // Required for Windows
-                    .replace("\r\n", "\n"),
-                Rule::statements
-            )
-            .unwrap()
+        assert_yaml_snapshot!(parse(
+            // It's useful to have canonical examples rather than copy-pasting
+            // everything, so we reference the prql file here. But a downside of
+            // this implementation is: if there's an error in extracting the
+            // example from the docs into the file specified here, this test
+            // won't compile. Because `cargo insta test --accept` on the
+            // workspace — which extracts the example — requires compiling this,
+            // we can get stuck.
+            //
+            // Breaking out of that requires running this `cargo insta test
+            // --accept` within `book`, and then running it on the workspace.
+            // `task test-all` does this.
+            //
+            // If we change this, it would great if we can retain having
+            // examples tested in the docs.
+            &include_str!("../../../book/tests/prql/examples/variables-0.prql"),
         )
         .unwrap());
     }
 
     #[test]
     fn test_parse_basic_exprs() {
-        assert_yaml_snapshot!(expr_of_string(r#"country == "USA""#).unwrap(), @r###"
+        assert_yaml_snapshot!(parse_expr(r#"country == "USA""#).unwrap(), @r###"
         ---
         Binary:
           left:
@@ -671,7 +664,7 @@ mod test {
             Literal:
               String: USA
         "###);
-        assert_yaml_snapshot!(expr_of_string("select [a, b, c]").unwrap(), @r###"
+        assert_yaml_snapshot!(parse_expr("select [a, b, c]").unwrap(), @r###"
         ---
         FuncCall:
           name:
@@ -686,7 +679,7 @@ mod test {
                 - Ident:
                     - c
         "###);
-        assert_yaml_snapshot!(expr_of_string(
+        assert_yaml_snapshot!(parse_expr(
             "group [title, country] (
                 aggregate [sum salary]
             )"
@@ -716,7 +709,7 @@ mod test {
                             - Ident:
                                 - salary
         "###);
-        assert_yaml_snapshot!(expr_of_string(
+        assert_yaml_snapshot!(parse_expr(
             r#"    filter country == "USA""#
         ).unwrap(), @r###"
         ---
@@ -734,7 +727,7 @@ mod test {
                   Literal:
                     String: USA
         "###);
-        assert_yaml_snapshot!(expr_of_string("[a, b, c,]").unwrap(), @r###"
+        assert_yaml_snapshot!(parse_expr("[a, b, c,]").unwrap(), @r###"
         ---
         List:
           - Ident:
@@ -744,7 +737,7 @@ mod test {
           - Ident:
               - c
         "###);
-        assert_yaml_snapshot!(expr_of_string(
+        assert_yaml_snapshot!(parse_expr(
             r#"[
   gross_salary = salary + payroll_tax,
   gross_cost   = gross_salary + benefits_cost
@@ -786,7 +779,7 @@ mod test {
                 - Ident:
                     - a
         "###);
-        assert_yaml_snapshot!(expr_of_string(
+        assert_yaml_snapshot!(parse_expr(
             "join side:left country [id==employee_id]"
         ).unwrap(), @r###"
         ---
@@ -811,7 +804,7 @@ mod test {
               Ident:
                 - left
         "###);
-        assert_yaml_snapshot!(expr_of_string("1  + 2").unwrap(), @r###"
+        assert_yaml_snapshot!(parse_expr("1  + 2").unwrap(), @r###"
         ---
         Binary:
           left:
@@ -826,33 +819,33 @@ mod test {
 
     #[test]
     fn test_parse_string() {
-        let double_quoted_ast = expr_of_string(r#"" U S A ""#).unwrap();
+        let double_quoted_ast = parse_expr(r#"" U S A ""#).unwrap();
         assert_yaml_snapshot!(double_quoted_ast, @r###"
         ---
         Literal:
           String: " U S A "
         "###);
 
-        let single_quoted_ast = expr_of_string(r#"' U S A '"#).unwrap();
+        let single_quoted_ast = parse_expr(r#"' U S A '"#).unwrap();
         assert_eq!(single_quoted_ast, double_quoted_ast);
 
         // Single quotes within double quotes should produce a string containing
         // the single quotes (and vice versa).
-        assert_yaml_snapshot!(expr_of_string(r#""' U S A '""#).unwrap(), @r###"
+        assert_yaml_snapshot!(parse_expr(r#""' U S A '""#).unwrap(), @r###"
         ---
         Literal:
           String: "' U S A '"
         "###);
-        assert_yaml_snapshot!(expr_of_string(r#"'" U S A "'"#).unwrap(), @r###"
+        assert_yaml_snapshot!(parse_expr(r#"'" U S A "'"#).unwrap(), @r###"
         ---
         Literal:
           String: "\" U S A \""
         "###);
 
-        expr_of_string(r#"" U S A"#).unwrap_err();
-        expr_of_string(r#"" U S A '"#).unwrap_err();
+        parse_expr(r#"" U S A"#).unwrap_err();
+        parse_expr(r#"" U S A '"#).unwrap_err();
 
-        let escaped_string = expr_of_string(r#"" \nU S A ""#).unwrap();
+        let escaped_string = parse_expr(r#"" \nU S A ""#).unwrap();
         assert_yaml_snapshot!(escaped_string, @r###"
         ---
         Literal:
@@ -866,7 +859,7 @@ mod test {
             .unwrap();
         assert_eq!(escaped_string, " \nU S A ");
 
-        let multi_double = expr_of_string(
+        let multi_double = parse_expr(
             r#""""
 ''
 Canada
@@ -881,7 +874,7 @@ Canada
           String: "\n''\nCanada\n\"\n\n"
         "###);
 
-        let multi_single = expr_of_string(
+        let multi_single = parse_expr(
             r#"'''
 Canada
 "
@@ -897,7 +890,7 @@ Canada
         "###);
 
         assert_yaml_snapshot!(
-          expr_of_string("''").unwrap(),
+          parse_expr("''").unwrap(),
           @r###"
         ---
         Literal:
@@ -907,7 +900,7 @@ Canada
 
     #[test]
     fn test_parse_s_string() {
-        assert_yaml_snapshot!(expr_of_string(r#"s"SUM({col})""#).unwrap(), @r###"
+        assert_yaml_snapshot!(parse_expr(r#"s"SUM({col})""#).unwrap(), @r###"
         ---
         SString:
           - String: SUM(
@@ -916,7 +909,7 @@ Canada
                 - col
           - String: )
         "###);
-        assert_yaml_snapshot!(expr_of_string(r#"s"SUM({2 + 2})""#).unwrap(), @r###"
+        assert_yaml_snapshot!(parse_expr(r#"s"SUM({2 + 2})""#).unwrap(), @r###"
         ---
         SString:
           - String: SUM(
@@ -935,14 +928,14 @@ Canada
 
     #[test]
     fn test_parse_s_string_braces() {
-        assert_yaml_snapshot!(expr_of_string(r#"s"{{?crystal_var}}""#).unwrap(), @r###"
+        assert_yaml_snapshot!(parse_expr(r#"s"{{?crystal_var}}""#).unwrap(), @r###"
         ---
         SString:
           - String: "{"
           - String: "?crystal_var"
           - String: "}"
         "###);
-        assert_yaml_snapshot!(expr_of_string(r#"s"foo{{bar""#).unwrap(), @r###"
+        assert_yaml_snapshot!(parse_expr(r#"s"foo{{bar""#).unwrap(), @r###"
         ---
         SString:
           - String: foo
@@ -964,7 +957,7 @@ Canada
 
     #[test]
     fn test_parse_list() {
-        assert_yaml_snapshot!(expr_of_string(r#"[1 + 1, 2]"#).unwrap(), @r###"
+        assert_yaml_snapshot!(parse_expr(r#"[1 + 1, 2]"#).unwrap(), @r###"
         ---
         List:
           - Binary:
@@ -978,7 +971,7 @@ Canada
           - Literal:
               Integer: 2
         "###);
-        assert_yaml_snapshot!(expr_of_string(r#"[1 + (f 1), 2]"#).unwrap(), @r###"
+        assert_yaml_snapshot!(parse_expr(r#"[1 + (f 1), 2]"#).unwrap(), @r###"
         ---
         List:
           - Binary:
@@ -998,7 +991,7 @@ Canada
               Integer: 2
         "###);
         // Line breaks
-        assert_yaml_snapshot!(expr_of_string(
+        assert_yaml_snapshot!(parse_expr(
             r#"[1,
 
                 2]"#
@@ -1011,8 +1004,8 @@ Canada
               Integer: 2
         "###);
         // Function call in a list
-        let ab = expr_of_string(r#"[a b]"#).unwrap();
-        let a_comma_b = expr_of_string(r#"[a, b]"#).unwrap();
+        let ab = parse_expr(r#"[a b]"#).unwrap();
+        let a_comma_b = parse_expr(r#"[a, b]"#).unwrap();
         assert_yaml_snapshot!(ab, @r###"
         ---
         List:
@@ -1034,7 +1027,7 @@ Canada
         "###);
         assert_ne!(ab, a_comma_b);
 
-        assert_yaml_snapshot!(expr_of_string(r#"[amount, +amount, -amount]"#).unwrap(), @r###"
+        assert_yaml_snapshot!(parse_expr(r#"[amount, +amount, -amount]"#).unwrap(), @r###"
         ---
         List:
           - Ident:
@@ -1051,7 +1044,7 @@ Canada
                   - amount
         "###);
         // Operators in list items
-        assert_yaml_snapshot!(expr_of_string(r#"[amount, +amount, -amount]"#).unwrap(), @r###"
+        assert_yaml_snapshot!(parse_expr(r#"[amount, +amount, -amount]"#).unwrap(), @r###"
         ---
         List:
           - Ident:
@@ -1071,27 +1064,27 @@ Canada
 
     #[test]
     fn test_parse_number() {
-        assert_yaml_snapshot!(expr_of_string(r#"23"#).unwrap(), @r###"
+        assert_yaml_snapshot!(parse_expr(r#"23"#).unwrap(), @r###"
         ---
         Literal:
           Integer: 23
         "###);
-        assert_yaml_snapshot!(expr_of_string(r#"2_3_4.5_6"#).unwrap(), @r###"
+        assert_yaml_snapshot!(parse_expr(r#"2_3_4.5_6"#).unwrap(), @r###"
         ---
         Literal:
           Float: 234.56
         "###);
-        assert_yaml_snapshot!(expr_of_string(r#"23.6"#).unwrap(), @r###"
+        assert_yaml_snapshot!(parse_expr(r#"23.6"#).unwrap(), @r###"
         ---
         Literal:
           Float: 23.6
         "###);
-        assert_yaml_snapshot!(expr_of_string(r#"23.0"#).unwrap(), @r###"
+        assert_yaml_snapshot!(parse_expr(r#"23.0"#).unwrap(), @r###"
         ---
         Literal:
           Float: 23
         "###);
-        assert_yaml_snapshot!(expr_of_string(r#"2 + 2"#).unwrap(), @r###"
+        assert_yaml_snapshot!(parse_expr(r#"2 + 2"#).unwrap(), @r###"
         ---
         Binary:
           left:
@@ -1104,10 +1097,10 @@ Canada
         "###);
 
         // Underscores at the beginning are parsed as ident
-        expr_of_string("_2").unwrap().kind.into_ident().unwrap();
-        expr_of_string("_").unwrap().kind.into_ident().unwrap();
+        parse_expr("_2").unwrap().kind.into_ident().unwrap();
+        parse_expr("_").unwrap().kind.into_ident().unwrap();
 
-        expr_of_string("_2.3").unwrap_err();
+        parse_expr("_2.3").unwrap_err();
         // expr_of_string("2_").unwrap_err(); // TODO
         // expr_of_string("2.3_").unwrap_err(); // TODO
     }
@@ -1232,7 +1225,7 @@ Canada
     #[test]
     fn test_parse_derive() {
         assert_yaml_snapshot!(
-            expr_of_string(r#"derive [x = 5, y = (-x)]"#).unwrap()
+            parse_expr(r#"derive [x = 5, y = (-x)]"#).unwrap()
         , @r###"
         ---
         FuncCall:
@@ -1256,7 +1249,7 @@ Canada
     #[test]
     fn test_parse_select() {
         assert_yaml_snapshot!(
-            expr_of_string(r#"select x"#).unwrap()
+            parse_expr(r#"select x"#).unwrap()
         , @r###"
         ---
         FuncCall:
@@ -1269,7 +1262,7 @@ Canada
         "###);
 
         assert_yaml_snapshot!(
-            expr_of_string(r#"select ![x]"#).unwrap()
+            parse_expr(r#"select ![x]"#).unwrap()
         , @r###"
         ---
         FuncCall:
@@ -1286,7 +1279,7 @@ Canada
         "###);
 
         assert_yaml_snapshot!(
-            expr_of_string(r#"select [x, y]"#).unwrap()
+            parse_expr(r#"select [x, y]"#).unwrap()
         , @r###"
         ---
         FuncCall:
@@ -1305,7 +1298,7 @@ Canada
     #[test]
     fn test_parse_expr() {
         assert_yaml_snapshot!(
-            expr_of_string(r#"country == "USA""#).unwrap()
+            parse_expr(r#"country == "USA""#).unwrap()
         , @r###"
         ---
         Binary:
@@ -1317,7 +1310,7 @@ Canada
             Literal:
               String: USA
         "###);
-        assert_yaml_snapshot!(expr_of_string(
+        assert_yaml_snapshot!(parse_expr(
                 r#"[
   gross_salary = salary + payroll_tax,
   gross_cost   = gross_salary + benefits_cost,
@@ -1344,7 +1337,7 @@ Canada
             alias: gross_cost
         "###);
         assert_yaml_snapshot!(
-            expr_of_string(
+            parse_expr(
                 "(salary + payroll_tax) * (1 + tax_rate)"
             ).unwrap(),
             @r###"
@@ -1597,7 +1590,7 @@ Canada
     #[test]
     fn test_parse_func_call() {
         // Function without argument
-        let ast = expr_of_string(r#"count"#).unwrap();
+        let ast = parse_expr(r#"count"#).unwrap();
         let ident = ast.kind.into_ident().unwrap();
         assert_yaml_snapshot!(
             ident, @r###"
@@ -1606,7 +1599,7 @@ Canada
         "###);
 
         // A non-friendly option for #154
-        let ast = expr_of_string(r#"count s'*'"#).unwrap();
+        let ast = parse_expr(r#"count s'*'"#).unwrap();
         let func_call: FuncCall = ast.kind.into_func_call().unwrap();
         assert_yaml_snapshot!(
             func_call, @r###"
@@ -1619,7 +1612,7 @@ Canada
               - String: "*"
         "###);
 
-        let ast = expr_of_string(r#"add bar to=3"#).unwrap();
+        let ast = parse_expr(r#"add bar to=3"#).unwrap();
         assert_yaml_snapshot!(
             ast, @r###"
         ---
@@ -1638,7 +1631,7 @@ Canada
 
     #[test]
     fn test_parse_op_precedence() {
-        assert_yaml_snapshot!(expr_of_string(r#"1 + 2 - 3 - 4"#).unwrap(), @r###"
+        assert_yaml_snapshot!(parse_expr(r#"1 + 2 - 3 - 4"#).unwrap(), @r###"
         ---
         Binary:
           left:
@@ -1662,7 +1655,7 @@ Canada
               Integer: 4
         "###);
 
-        assert_yaml_snapshot!(expr_of_string(r#"1 / 2 - 3 * 4 + 1"#).unwrap(), @r###"
+        assert_yaml_snapshot!(parse_expr(r#"1 / 2 - 3 * 4 + 1"#).unwrap(), @r###"
         ---
         Binary:
           left:
@@ -1692,7 +1685,7 @@ Canada
               Integer: 1
         "###);
 
-        assert_yaml_snapshot!(expr_of_string(r#"a and b or c and d"#).unwrap(), @r###"
+        assert_yaml_snapshot!(parse_expr(r#"a and b or c and d"#).unwrap(), @r###"
         ---
         Binary:
           left:
@@ -1716,7 +1709,7 @@ Canada
                   - d
         "###);
 
-        assert_yaml_snapshot!(expr_of_string(r#"a and b + c or (d e) and f"#).unwrap(), @r###"
+        assert_yaml_snapshot!(parse_expr(r#"a and b + c or (d e) and f"#).unwrap(), @r###"
         ---
         Binary:
           left:
@@ -1889,7 +1882,7 @@ Canada
 
     #[test]
     fn test_inline_pipeline() {
-        assert_yaml_snapshot!(expr_of_string("(salary | percentile 50)").unwrap(), @r###"
+        assert_yaml_snapshot!(parse_expr("(salary | percentile 50)").unwrap(), @r###"
         ---
         Pipeline:
           exprs:
