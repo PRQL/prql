@@ -19,6 +19,9 @@
 
 **Integrations**:
 
+- [prql-python] Compilation options can now be specified from Python. (@eitsupi,
+  #1807)
+
 **Internal changes**:
 
 **New Contributors**:
