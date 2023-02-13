@@ -34,19 +34,21 @@ fn main_pipeline() -> impl Parser<Token, Stmt, Error = Simple<Token>> {
 }
 
 fn query_def() -> impl Parser<Token, Stmt, Error = Simple<Token>> {
-    keyword("prql")
+    (new_line().or(whitespace()).repeated())
+        .ignore_then(keyword("prql"))
         .ignore_then(
             // named arg
-            ident_part()
+            whitespace()
+                .ignore_then(ident_part())
                 .then_ignore(ctrl(":").padded_by(whitespace().or_not()))
-                .then(expr_call())
+                .then(expr())
                 .repeated(),
         )
         .then_ignore(whitespace().or_not().then(new_line()))
         .try_map(|args, span| {
-            let mut params: HashMap<_, _> = args.into_iter().collect();
+            let mut args: HashMap<_, _> = args.into_iter().collect();
 
-            let version = params
+            let version = args
                 .remove("version")
                 .map(|v| match v.kind {
                     ExprKind::Literal(Literal::String(v)) => {
@@ -57,7 +59,7 @@ fn query_def() -> impl Parser<Token, Stmt, Error = Simple<Token>> {
                 .transpose()
                 .map_err(|msg| Simple::custom(span, msg))?;
 
-            let other = params
+            let other = args
                 .into_iter()
                 .flat_map(|(key, value)| match value.kind {
                     ExprKind::Ident(value) => Some((key, value.to_string())),
@@ -90,7 +92,8 @@ fn function_def() -> impl Parser<Token, Stmt, Error = Simple<Token>> {
             // func name
             ident_part()
                 .then_ignore(whitespace().or_not())
-                .then(type_expr().or_not()),
+                .then(type_expr().or_not())
+                .then_ignore(whitespace().or_not()),
         )
         .then(
             // params
@@ -104,6 +107,7 @@ fn function_def() -> impl Parser<Token, Stmt, Error = Simple<Token>> {
                         .ignore_then(expr())
                         .or_not(),
                 )
+                .then_ignore(whitespace().or_not())
                 .repeated(),
         )
         .then_ignore(whitespace().or_not())

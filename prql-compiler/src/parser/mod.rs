@@ -93,7 +93,6 @@ pub fn parse(string: &str) -> Result<Vec<Stmt>> {
     let mut errors = Vec::new();
 
     let (tokens, lex_errors) = ::chumsky::Parser::parse_recovery_verbose(&lexer::lexer(), string);
-    dbg!(&tokens);
 
     errors.extend(lex_errors.into_iter().map(convert_char_error));
 
@@ -105,8 +104,6 @@ pub fn parse(string: &str) -> Result<Vec<Stmt>> {
             ::chumsky::Parser::parse_recovery_verbose(&stmt::source(), stream);
 
         errors.extend(parse_errors.into_iter().map(convert_token_error));
-
-        dbg!(&ast);
 
         ast
     } else {
@@ -135,8 +132,6 @@ fn convert_char_error(e: Simple<char>) -> Error {
 }
 
 fn convert_token_error(e: Simple<Token>) -> Error {
-    dbg!(&e);
-
     let just_whitespace = e
         .expected()
         .all(|t| matches!(t, None | Some(Token::Whitespace | Token::NewLine)));
@@ -601,8 +596,6 @@ mod test {
     fn parse_expr(string: &str) -> Result<Expr, Vec<anyhow::Error>> {
         let tokens = Parser::parse(&lexer::lexer(), string)
             .map_err(|errs| errs.into_iter().map(|e| anyhow!(e)).collect_vec())?;
-
-        dbg!(&tokens);
 
         let len = string.chars().count();
         let stream = Stream::from_iter(len..len + 1, tokens.into_iter());
@@ -1579,8 +1572,6 @@ Canada
             return_ty: ~
         "###);
 
-        parse("func plus_one x:0 y:0 -> x + 1\n").unwrap_err();
-
         assert_yaml_snapshot!(parse("func foo x -> some_func (foo bar + 1) (plax) - baz\n").unwrap()
         , @r###"
         ---
@@ -1752,6 +1743,8 @@ Canada
           - SString:
               - String: "*"
         "###);
+
+        parse_expr("plus_one x:0 x:0 ").unwrap_err();
 
         let ast = parse_expr(r#"add bar to=3"#).unwrap();
         assert_yaml_snapshot!(

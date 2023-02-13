@@ -228,6 +228,11 @@ impl AstFold for Resolver {
             }
 
             ExprKind::Unary {
+                op: UnOp::Add,
+                expr,
+            } => self.fold_expr(*expr)?,
+
+            ExprKind::Unary {
                 op: UnOp::Not,
                 expr,
             } if matches!(expr.kind, ExprKind::List(_)) => self.resolve_column_exclusion(*expr)?,

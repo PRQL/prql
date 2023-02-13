@@ -8,48 +8,48 @@ expression: "resolve_derive(r#\"\n            func lag_day x -> s\"lag_day_todo(
       id: 15
       Binary:
         left:
-          id: 12
-          Ident:
-            - _frame
-            - a
-            - b
-          target_id: 6
+          id: 16
+          Binary:
+            left:
+              id: 12
+              Ident:
+                - _frame
+                - a
+                - b
+              target_id: 6
+              ty: Infer
+            op: Div
+            right:
+              id: 21
+              SString:
+                - String: lag_day_todo(
+                - Expr:
+                    id: 12
+                    Ident:
+                      - _frame
+                      - a
+                      - b
+                    target_id: 6
+                    ty: Infer
+                - String: )
+              ty: Infer
           ty: Infer
-        op: Div
+        op: Sub
         right:
-          id: 20
-          SString:
-            - String: lag_day_todo(
-            - Expr:
-                id: 12
-                Ident:
-                  - _frame
-                  - a
-                  - b
-                target_id: 6
-                ty: Infer
-            - String: )
-          ty: Infer
-      ty: Infer
-    op: Sub
-    right:
-      id: 22
-      Binary:
-        left:
           id: 23
           Literal:
             Integer: 1
           ty:
             Literal: Integer
-        op: Add
-        right:
-          id: 13
-          Ident:
-            - _frame
-            - a
-            - c
-          target_id: 6
-          ty: Infer
+      ty: Infer
+    op: Add
+    right:
+      id: 13
+      Ident:
+        - _frame
+        - a
+        - c
+      target_id: 6
       ty: Infer
   ty:
     Literal: Column
