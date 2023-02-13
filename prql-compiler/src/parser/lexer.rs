@@ -4,7 +4,6 @@ use crate::ast::pl::*;
 
 #[derive(Clone, PartialEq, Debug)]
 pub enum Token {
-    Whitespace,
     NewLine,
 
     Ident(String),
@@ -18,12 +17,6 @@ pub enum Token {
 }
 
 pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error = Simple<char>> {
-    let whitespace = just('\t')
-        .or(just(' '))
-        .repeated()
-        .at_least(1)
-        .to(Token::Whitespace);
-
     let new_line = just('\r').or_not().then(just('\n')).to(Token::NewLine);
 
     let control_multi = choice((
@@ -33,8 +26,8 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
         just("!="),
         just(">="),
         just("<="),
-        just("and").then_ignore(not_alphanumeric()),
-        just("or").then_ignore(not_alphanumeric()),
+        just("and").then_ignore(end_expr()),
+        just("or").then_ignore(end_expr()),
         just("??"),
         just(".."),
     ))
@@ -48,7 +41,7 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
     let ident = ident_part().map(Token::Ident);
 
     let keyword = choice((just("func"), just("let"), just("switch"), just("prql")))
-        .then_ignore(not_alphanumeric())
+        .then_ignore(end_expr())
         .map(|x| x.to_string())
         .map(Token::Keyword);
 
@@ -60,7 +53,6 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
         .map(|(c, s)| Token::Interpolation(c, s));
 
     let token = choice((
-        whitespace,
         new_line.clone(),
         control_multi,
         interpolation,
@@ -71,11 +63,16 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
     ))
     .recover_with(skip_then_retry_until([]).skip_start());
 
+    let whitespace = just('\t').or(just(' ')).repeated().at_least(1).ignored();
     let comment = just('#').then(none_of('\n').repeated());
+    let comments = comment
+        .separated_by(new_line.then(whitespace.clone().or_not()))
+        .at_least(1)
+        .ignored();
 
     token
         .map_with_span(|tok, span| (tok, span))
-        .padded_by(comment.separated_by(new_line))
+        .padded_by(comments.or(whitespace).repeated())
         .repeated()
         .then_ignore(end())
 }
@@ -139,12 +136,10 @@ fn literal() -> impl Parser<char, Literal, Error = Simple<char>> {
 
     let bool = (just("true").to(true))
         .or(just("false").to(false))
-        .then_ignore(not_alphanumeric())
+        .then_ignore(end_expr())
         .map(Literal::Boolean);
 
-    let null = just("null")
-        .to(Literal::Null)
-        .then_ignore(not_alphanumeric());
+    let null = just("null").to(Literal::Null).then_ignore(end_expr());
 
     let value_and_unit = integer
         .then(choice((
@@ -158,7 +153,7 @@ fn literal() -> impl Parser<char, Literal, Error = Simple<char>> {
             just("months"),
             just("years"),
         )))
-        .then_ignore(not_alphanumeric())
+        .then_ignore(end_expr())
         .try_map(|(number, unit), span| {
             let str = number.into_iter().filter(|c| *c != '_').collect::<String>();
             if let Ok(n) = str.parse::<i64>() {
@@ -210,11 +205,13 @@ fn literal() -> impl Parser<char, Literal, Error = Simple<char>> {
 
     let date = just('@')
         .ignore_then(date_inner.clone())
+        .then_ignore(end_expr())
         .collect::<String>()
         .map(Literal::Date);
 
     let time = just('@')
         .ignore_then(time_inner.clone())
+        .then_ignore(end_expr())
         .collect::<String>()
         .map(Literal::Time);
 
@@ -222,6 +219,7 @@ fn literal() -> impl Parser<char, Literal, Error = Simple<char>> {
         .ignore_then(date_inner)
         .chain(just('T'))
         .chain::<char, _, _>(time_inner)
+        .then_ignore(end_expr())
         .collect::<String>()
         .map(Literal::Timestamp);
 
@@ -298,8 +296,11 @@ fn digits(count: usize) -> impl Parser<char, Vec<char>, Error = Simple<char>> {
         .exactly(count)
 }
 
-fn not_alphanumeric() -> impl Parser<char, (), Error = Simple<char>> {
-    filter(|c: &char| !c.is_alphanumeric()).rewind().ignored()
+fn end_expr() -> impl Parser<char, (), Error = Simple<char>> {
+    end()
+        .or(one_of(",)]\n\t ").ignored())
+        .or(just("..").ignored())
+        .rewind()
 }
 
 impl Token {
@@ -308,6 +309,7 @@ impl Token {
     }
 }
 
+#[deny(clippy::derive_hash_xor_eq)]
 impl std::hash::Hash for Token {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         core::mem::discriminant(self).hash(state);
@@ -319,7 +321,6 @@ impl std::cmp::Eq for Token {}
 impl std::fmt::Display for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Whitespace => write!(f, "whitespace"),
             Self::NewLine => write!(f, "new line"),
             Self::Ident(arg0) => {
                 if arg0.is_empty() {

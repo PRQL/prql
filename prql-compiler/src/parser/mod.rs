@@ -47,10 +47,6 @@ mod common {
         just(Token::Keyword(kw.to_string())).ignored()
     }
 
-    pub fn whitespace() -> impl Parser<Token, (), Error = Simple<Token>> + Clone {
-        just(Token::Whitespace).repeated().at_least(1).ignored()
-    }
-
     pub fn new_line() -> impl Parser<Token, (), Error = Simple<Token>> + Clone {
         just(Token::NewLine).ignored()
     }
@@ -134,14 +130,14 @@ fn convert_char_error(e: Simple<char>) -> Error {
 fn convert_token_error(e: Simple<Token>) -> Error {
     let just_whitespace = e
         .expected()
-        .all(|t| matches!(t, None | Some(Token::Whitespace | Token::NewLine)));
+        .all(|t| matches!(t, None | Some(Token::NewLine)));
     let expected = e
         .expected()
         .filter(|t| {
             if just_whitespace {
                 true
             } else {
-                !matches!(t, None | Some(Token::Whitespace | Token::NewLine))
+                !matches!(t, None | Some(Token::NewLine))
             }
         })
         .map(|t| match t {
