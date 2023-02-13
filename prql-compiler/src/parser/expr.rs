@@ -1,11 +1,12 @@
 use std::collections::HashMap;
 
 use chumsky::prelude::*;
-use itertools::Itertools;
+
+use crate::ast::pl::*;
 
 use super::common::*;
-use super::lexer::{InterpolItem, Token};
-use crate::ast::pl::*;
+use super::interpolation;
+use super::lexer::Token;
 
 pub fn expr_call() -> impl Parser<Token, Expr, Error = Simple<Token>> {
     func_call(expr())
@@ -51,27 +52,22 @@ pub fn expr() -> impl Parser<Token, Expr, Error = Simple<Token>> + Clone {
                 |_| Expr::null().kind,
             ));
 
-        let s_string = select! { Token::Interpolation('s', string) => string }
-            .map(|s| {
-                s.into_iter()
-                    .map(|i| match i {
-                        InterpolItem::String(s) => InterpolateItem::String(s),
-                        InterpolItem::Expr(s) => InterpolateItem::String(s),
-                    })
-                    .collect_vec()
-            })
-            .map(ExprKind::SString);
-
-        let f_string = select! { Token::Interpolation('f', string) => string }
-            .map(|s| {
-                s.into_iter()
-                    .map(|i| match i {
-                        InterpolItem::String(s) => InterpolateItem::String(s),
-                        InterpolItem::Expr(s) => InterpolateItem::String(s),
-                    })
-                    .collect_vec()
-            })
-            .map(ExprKind::FString);
+        let interpolation =
+            select! {
+                Token::Interpolation('s', string) => (ExprKind::SString as fn(_) -> _, string),
+                Token::Interpolation('f', string) => (ExprKind::FString as fn(_) -> _, string),
+            }
+            .validate(|(finish, string), span: std::ops::Range<usize>, emit| {
+                match interpolation::parse(string, span.start) {
+                    Ok(items) => finish(items),
+                    Err(errors) => {
+                        for err in errors {
+                            emit(err)
+                        }
+                        finish(vec![])
+                    }
+                }
+            });
 
         let switch = keyword("switch")
             .then(whitespace())
@@ -88,11 +84,9 @@ pub fn expr() -> impl Parser<Token, Expr, Error = Simple<Token>> + Clone {
             )
             .map(ExprKind::Switch);
 
-        let term = choice((
-            literal, list, pipeline, s_string, f_string, ident_kind, switch,
-        ))
-        .map_with_span(into_expr)
-        .boxed();
+        let term = choice((literal, list, pipeline, interpolation, ident_kind, switch))
+            .map_with_span(into_expr)
+            .boxed();
 
         // Unary operators
         let term = term
