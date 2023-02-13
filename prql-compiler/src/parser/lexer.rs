@@ -228,19 +228,16 @@ fn literal() -> impl Parser<char, Literal, Error = Simple<char>> {
         )
         .boxed();
 
-    // TODO: positive lookahead for end of expr
     let date = just('@')
         .ignore_then(date_inner.clone())
         .collect::<String>()
         .map(Literal::Date);
 
-    // TODO: positive lookahead for end of expr
     let time = just('@')
         .ignore_then(time_inner.clone())
         .collect::<String>()
         .map(Literal::Time);
 
-    // TODO: positive lookahead for end of expr
     let datetime = just('@')
         .ignore_then(date_inner)
         .chain(just('T'))
