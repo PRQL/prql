@@ -95,7 +95,7 @@ pub fn pipeline<E>(expr: E) -> impl Parser<Token, ExprKind, Error = Simple<Token
 where
     E: Parser<Token, Expr, Error = Simple<Token>>,
 {
-    // expr is a param, so I can be either a normal expr() or
+    // expr is a param, so it can be either a normal expr() or
     // a recursive expr called from within expr()
 
     (new_line().or(whitespace()).repeated())
