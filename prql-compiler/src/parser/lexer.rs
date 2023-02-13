@@ -194,18 +194,18 @@ fn literal() -> impl Parser<char, Literal, Error = Simple<char>> {
 
     let date_inner = digits(4)
         .chain(just('-'))
-        .chain(digits(2))
-        .chain(just('-'))
+        .chain::<char, _, _>(digits(2))
+        .chain::<char, _, _>(just('-'))
         .chain::<char, _, _>(digits(2))
         .boxed();
 
     let time_inner = digits(2)
         // minutes
-        .chain(just(':').chain(digits(2)).or_not().flatten())
+        .chain::<char, _, _>(just(':').chain(digits(2)).or_not().flatten())
         // seconds
-        .chain(just(':').chain(digits(2)).or_not().flatten())
+        .chain::<char, _, _>(just(':').chain(digits(2)).or_not().flatten())
         // milliseconds
-        .chain(
+        .chain::<char, _, _>(
             just('.')
                 .chain(
                     filter(|c: &char| c.is_ascii_digit())

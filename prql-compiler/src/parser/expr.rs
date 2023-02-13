@@ -75,6 +75,7 @@ pub fn expr() -> impl Parser<Token, Expr, Error = Simple<Token>> + Clone {
 
         // TODO: switch
 
+
         let term = choice((literal, list, pipeline, s_string, f_string, ident_kind))
             .map_with_span(into_expr)
             .boxed();
