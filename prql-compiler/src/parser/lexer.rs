@@ -1,7 +1,4 @@
-#![allow(dead_code)]
-
 use chumsky::prelude::*;
-use itertools::Itertools;
 
 use crate::ast::pl::*;
 
@@ -14,16 +11,10 @@ pub enum Token {
     Keyword(String),
     Literal(Literal),
 
-    Interpolation(char, Vec<InterpolItem>),
+    Interpolation(char, String),
 
     // this contains 3 bytes at most, we should replace it with SmallStr
     Control(String),
-}
-
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub enum InterpolItem {
-    String(String),
-    Expr(String),
 }
 
 pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error = Simple<char>> {
@@ -64,26 +55,8 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
     let literal = literal().map(Token::Literal);
 
     // s-string and f-strings
-    let interpol_string = none_of(r#""{"#)
-        .repeated()
-        .collect::<String>()
-        .map(InterpolItem::String);
     let interpolation = one_of("sf")
-        .then_ignore(just('"'))
-        .then(
-            interpol_string.clone().chain(
-                none_of('}')
-                    .repeated()
-                    .collect::<String>()
-                    .delimited_by(just('{'), just('}'))
-                    .map(InterpolItem::Expr)
-                    .then(interpol_string)
-                    .map(|(e, s)| vec![e, s])
-                    .repeated()
-                    .flatten(),
-            ),
-        )
-        .then_ignore(just('"'))
+        .then(quoted_string(true))
         .map(|(c, s)| Token::Interpolation(c, s));
 
     let token = choice((
@@ -107,7 +80,7 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
         .then_ignore(end())
 }
 
-fn ident_part() -> impl Parser<char, String, Error = Simple<char>> {
+pub fn ident_part() -> impl Parser<char, String, Error = Simple<char>> {
     let plain = filter(|c: &char| c.is_ascii_alphabetic() || *c == '_' || *c == '$')
         .map(Some)
         .chain::<char, Vec<_>, _>(
@@ -157,14 +130,20 @@ fn literal() -> impl Parser<char, Literal, Error = Simple<char>> {
         })
         .labelled("number");
 
-    let string = string();
+    let string = quoted_string(true).map(Literal::String);
+
+    let raw_string = just("r")
+        .ignore_then(quoted_string(false))
+        .map(Literal::String);
 
     let bool = (just("true").to(true))
         .or(just("false").to(false))
         .then_ignore(not_alphanumeric())
         .map(Literal::Boolean);
 
-    let null = just("null").to(Literal::Null).then_ignore(not_alphanumeric());
+    let null = just("null")
+        .to(Literal::Null)
+        .then_ignore(not_alphanumeric());
 
     let value_and_unit = number_part
         .then(choice((
@@ -247,6 +226,7 @@ fn literal() -> impl Parser<char, Literal, Error = Simple<char>> {
 
     choice((
         string,
+        raw_string,
         value_and_unit,
         number,
         bool,
@@ -257,42 +237,58 @@ fn literal() -> impl Parser<char, Literal, Error = Simple<char>> {
     ))
 }
 
-fn string() -> impl Parser<char, Literal, Error = Simple<char>> {
-    let escape = just('\\').ignore_then(
-        just('\\')
-            .or(just('/'))
-            .or(just('"'))
-            .or(just('b').to('\x08'))
-            .or(just('f').to('\x0C'))
-            .or(just('n').to('\n'))
-            .or(just('r').to('\r'))
-            .or(just('t').to('\t'))
-            .or(just('u').ignore_then(
-                filter(|c: &char| c.is_ascii_hexdigit())
-                    .repeated()
-                    .exactly(4)
-                    .collect::<String>()
-                    .validate(|digits, span, emit| {
-                        char::from_u32(u32::from_str_radix(&digits, 16).unwrap()).unwrap_or_else(
-                            || {
-                                emit(Simple::custom(span, "invalid unicode character"));
-                                '\u{FFFD}' // unicode replacement character
-                            },
-                        )
-                    }),
-            )),
-    );
-
-    // TODO: multi-quoted strings (this is just parsing JSON strings)
-    (just('\'')
-        .ignore_then(none_of(r"'\").or(escape).repeated())
-        .then_ignore(just('\'')))
-    .or(just('"')
-        .ignore_then(none_of(r#""\"#).or(escape).repeated())
-        .then_ignore(just('"')))
+fn quoted_string(escaped: bool) -> impl Parser<char, String, Error = Simple<char>> {
+    choice((
+        quoted_string_inner(r#"""""#, escaped),
+        quoted_string_inner(r#"'''"#, escaped),
+        quoted_string_inner(r#"""#, escaped),
+        quoted_string_inner(r#"'"#, escaped),
+    ))
     .collect::<String>()
-    .map(Literal::String)
     .labelled("string")
+}
+
+fn quoted_string_inner(
+    quotes: &str,
+    escaping: bool,
+) -> impl Parser<char, Vec<char>, Error = Simple<char>> + '_ {
+    let mut forbidden = just(quotes).boxed();
+
+    if escaping {
+        forbidden = just(quotes).or(just("\\")).boxed()
+    };
+
+    let mut inner = forbidden.not().boxed();
+
+    if escaping {
+        inner = inner
+            .or(just('\\').ignore_then(
+                just('\\')
+                    .or(just('/'))
+                    .or(just('"'))
+                    .or(just('b').to('\x08'))
+                    .or(just('f').to('\x0C'))
+                    .or(just('n').to('\n'))
+                    .or(just('r').to('\r'))
+                    .or(just('t').to('\t'))
+                    .or(just('u').ignore_then(
+                        filter(|c: &char| c.is_ascii_hexdigit())
+                            .repeated()
+                            .exactly(4)
+                            .collect::<String>()
+                            .validate(|digits, span, emit| {
+                                char::from_u32(u32::from_str_radix(&digits, 16).unwrap())
+                                    .unwrap_or_else(|| {
+                                        emit(Simple::custom(span, "invalid unicode character"));
+                                        '\u{FFFD}' // unicode replacement character
+                                    })
+                            }),
+                    )),
+            ))
+            .boxed();
+    }
+
+    inner.repeated().delimited_by(just(quotes), just(quotes))
 }
 
 fn digits(count: usize) -> impl Parser<char, Vec<char>, Error = Simple<char>> {
@@ -335,17 +331,8 @@ impl std::fmt::Display for Token {
             Self::Literal(arg0) => write!(f, "{arg0}"),
             Self::Control(arg0) => write!(f, "{arg0}"),
             Self::Interpolation(c, s) => {
-                write!(f, "{c}\"{}\"", s.iter().map(|s| s.to_string()).join(""))
+                write!(f, "{c}\"{}\"", s)
             }
-        }
-    }
-}
-
-impl std::fmt::Display for InterpolItem {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            InterpolItem::String(s) => f.write_str(s),
-            InterpolItem::Expr(s) => write!(f, "{{{s}}}"),
         }
     }
 }
