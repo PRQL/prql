@@ -144,7 +144,7 @@ fn func_call<E>(expr: E) -> impl Parser<Token, Expr, Error = Simple<Token>>
 where
     E: Parser<Token, Expr, Error = Simple<Token>> + Clone,
 {
-    let name = expr.clone();
+    let func = expr.clone();
 
     let named_arg = ident_part()
         .map(Some)
@@ -164,7 +164,7 @@ where
         .ignore_then(named_arg.or(positional_arg))
         .repeated();
 
-    name.then(args)
+    func.then(args)
         .map(|(name, args)| {
             if args.is_empty() {
                 return name.kind;
