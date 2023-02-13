@@ -610,7 +610,7 @@ mod test {
     }
 
     #[test]
-    fn test_parse_pipeline_parse_tree() {
+    fn test_pipeline_parse_tree() {
         assert_yaml_snapshot!(parse(
             // It's useful to have canonical examples rather than copy-pasting
             // everything, so we reference the prql file here. But a downside of
@@ -632,7 +632,7 @@ mod test {
     }
 
     #[test]
-    fn test_parse_take() {
+    fn test_take() {
         parse("take 10").unwrap();
 
         assert_yaml_snapshot!(parse(r#"take 10"#).unwrap(), @r###"
@@ -666,7 +666,7 @@ mod test {
     }
 
     #[test]
-    fn test_parse_ranges() {
+    fn test_ranges() {
         assert_yaml_snapshot!(parse_expr(r#"3..5"#).unwrap(), @r###"
         ---
         Range:
@@ -782,7 +782,7 @@ mod test {
     }
 
     #[test]
-    fn test_parse_basic_exprs() {
+    fn test_basic_exprs() {
         assert_yaml_snapshot!(parse_expr(r#"country == "USA""#).unwrap(), @r###"
         ---
         Binary:
@@ -948,7 +948,7 @@ mod test {
     }
 
     #[test]
-    fn test_parse_string() {
+    fn test_string() {
         let double_quoted_ast = parse_expr(r#"" U S A ""#).unwrap();
         assert_yaml_snapshot!(double_quoted_ast, @r###"
         ---
@@ -1029,7 +1029,7 @@ Canada
     }
 
     #[test]
-    fn test_parse_s_string() {
+    fn test_s_string() {
         assert_yaml_snapshot!(parse_expr(r#"s"SUM({col})""#).unwrap(), @r###"
         ---
         SString:
@@ -1057,7 +1057,7 @@ Canada
     }
 
     #[test]
-    fn test_parse_s_string_braces() {
+    fn test_s_string_braces() {
         assert_yaml_snapshot!(parse_expr(r#"s"{{?crystal_var}}""#).unwrap(), @r###"
         ---
         SString:
@@ -1075,7 +1075,7 @@ Canada
     }
 
     #[test]
-    fn test_parse_jinja() {
+    fn test_jinja() {
         assert_yaml_snapshot!(parse(r#"
         from {{ ref('stg_orders') }}
         aggregate (sum order_id)
@@ -1107,7 +1107,7 @@ Canada
     }
 
     #[test]
-    fn test_parse_list() {
+    fn test_list() {
         assert_yaml_snapshot!(parse_expr(r#"[1 + 1, 2]"#).unwrap(), @r###"
         ---
         List:
@@ -1214,7 +1214,7 @@ Canada
     }
 
     #[test]
-    fn test_parse_number() {
+    fn test_number() {
         assert_yaml_snapshot!(parse_expr(r#"23"#).unwrap(), @r###"
         ---
         Literal:
@@ -1257,7 +1257,7 @@ Canada
     }
 
     #[test]
-    fn test_parse_filter() {
+    fn test_filter() {
         assert_yaml_snapshot!(
             parse(r#"filter country == "USA""#).unwrap(), @r###"
         ---
@@ -1304,7 +1304,7 @@ Canada
     }
 
     #[test]
-    fn test_parse_aggregate() {
+    fn test_aggregate() {
         let aggregate = parse(
             r"group [title] (
                 aggregate [sum salary, count]
@@ -1374,7 +1374,7 @@ Canada
     }
 
     #[test]
-    fn test_parse_derive() {
+    fn test_derive() {
         assert_yaml_snapshot!(
             parse_expr(r#"derive [x = 5, y = (-x)]"#).unwrap()
         , @r###"
@@ -1398,7 +1398,7 @@ Canada
     }
 
     #[test]
-    fn test_parse_select() {
+    fn test_select() {
         assert_yaml_snapshot!(
             parse_expr(r#"select x"#).unwrap()
         , @r###"
@@ -1447,7 +1447,7 @@ Canada
     }
 
     #[test]
-    fn test_parse_expr() {
+    fn test_expr() {
         assert_yaml_snapshot!(
             parse_expr(r#"country == "USA""#).unwrap()
         , @r###"
@@ -1517,7 +1517,7 @@ Canada
     }
 
     #[test]
-    fn test_parse_function() {
+    fn test_function() {
         assert_yaml_snapshot!(parse("func plus_one x ->  x + 1\n").unwrap(), @r###"
         ---
         - FuncDef:
@@ -1742,7 +1742,7 @@ Canada
     }
 
     #[test]
-    fn test_parse_func_call() {
+    fn test_func_call() {
         // Function without argument
         let ast = parse_expr(r#"count"#).unwrap();
         let ident = ast.kind.into_ident().unwrap();
@@ -1784,7 +1784,7 @@ Canada
     }
 
     #[test]
-    fn test_parse_op_precedence() {
+    fn test_op_precedence() {
         assert_yaml_snapshot!(parse_expr(r#"1 + 2 - 3 - 4"#).unwrap(), @r###"
         ---
         Binary:
@@ -1900,7 +1900,7 @@ Canada
     }
 
     #[test]
-    fn test_parse_var_def() {
+    fn test_var_def() {
         assert_yaml_snapshot!(parse(
             "let newest_employees = (from employees)"
         ).unwrap(), @r###"
@@ -2075,7 +2075,7 @@ Canada
     }
 
     #[test]
-    fn test_parse_sql_parameters() {
+    fn test_sql_parameters() {
         assert_yaml_snapshot!(parse(r#"
         from mytable
         filter [
@@ -2135,7 +2135,7 @@ select [
     }
 
     #[test]
-    fn test_parse_backticks() {
+    fn test_backticks() {
         let prql = "
 from `a/*.parquet`
 aggregate [max c]
@@ -2202,7 +2202,7 @@ join `my-proj`.`dataset`.`table`
     }
 
     #[test]
-    fn test_parse_sort() {
+    fn test_sort() {
         assert_yaml_snapshot!(parse("
         from invoices
         sort issued_at
@@ -2315,34 +2315,28 @@ join `my-proj`.`dataset`.`table`
                             alias: age_plus_two_years
         "###);
 
-        assert_yaml_snapshot!(parse("
-        derive [
-            date = @2011-02-01,
-            timestamp = @2011-02-01T10:00,
-            time = @14:00,
-            # datetime = @2011-02-01T10:00<datetime>,
-        ]
-        ").unwrap(), @r###"
+        assert_yaml_snapshot!(parse_expr("@2011-02-01").unwrap(), @r###"
         ---
-        - Main:
-            FuncCall:
-              name:
-                Ident:
-                  - derive
-              args:
-                - List:
-                    - Literal:
-                        Date: 2011-02-01
-                      alias: date
-                    - Literal:
-                        Timestamp: "2011-02-01T10:00"
-                      alias: timestamp
-                    - Literal:
-                        Time: "14:00"
-                      alias: time
+        Literal:
+          Date: 2011-02-01
         "###);
+        assert_yaml_snapshot!(parse_expr("@2011-02-01T10:00").unwrap(), @r###"
+        ---
+        Literal:
+          Timestamp: "2011-02-01T10:00"
+        "###);
+        assert_yaml_snapshot!(parse_expr("@14:00").unwrap(), @r###"
+        ---
+        Literal:
+          Time: "14:00"
+        "###);
+        // assert_yaml_snapshot!(parse_expr("@2011-02-01T10:00<datetime>").unwrap(), @"");
 
-        parse("derive x = @2020-01-0").unwrap_err();
+        parse_expr("@2020-01-0").unwrap_err();
+
+        parse_expr("@2020-01-011").unwrap_err();
+
+        parse_expr("@2020-01-01T111").unwrap_err();
     }
 
     #[test]
@@ -2364,7 +2358,7 @@ join `my-proj`.`dataset`.`table`
     }
 
     #[test]
-    fn test_parse_coalesce() {
+    fn test_coalesce() {
         assert_yaml_snapshot!(parse(r###"
         from employees
         derive amount = amount ?? 0
@@ -2398,7 +2392,7 @@ join `my-proj`.`dataset`.`table`
     }
 
     #[test]
-    fn test_parse_literal() {
+    fn test_literal() {
         assert_yaml_snapshot!(parse(r###"
         derive x = true
         "###).unwrap(), @r###"
@@ -2416,7 +2410,7 @@ join `my-proj`.`dataset`.`table`
     }
 
     #[test]
-    fn test_parse_allowed_idents() {
+    fn test_allowed_idents() {
         assert_yaml_snapshot!(parse(r###"
         from employees
         join _salary [==employee_id] # table with leading underscore
@@ -2473,7 +2467,7 @@ join `my-proj`.`dataset`.`table`
     }
 
     #[test]
-    fn test_parse_gt_lt_gte_lte() {
+    fn test_gt_lt_gte_lte() {
         assert_yaml_snapshot!(parse(r###"
         from people
         filter age >= 100
