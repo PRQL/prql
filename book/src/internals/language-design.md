@@ -16,7 +16,7 @@ This is flawed because:
   operations).
 
 Instead, we should think of PRQL features in terms of how they affect PRQL
-expressions, which in most cases means relation.
+expressions, which in most cases means how they affect relations.
 
 ```
 PRQL feature -> relation
