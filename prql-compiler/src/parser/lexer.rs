@@ -309,7 +309,11 @@ impl Token {
     }
 }
 
-#[deny(clippy::derive_hash_xor_eq)]
+// This is here because Literal::Float(f64) does not implement Hash, so we cannot simply derive it.
+// There are reasons for that, but chumsky::Error needs Hash for the Token, so it can deduplicate
+// tokens in error.
+// So this hack could lead to duplicated tokens in error messages. Oh no.
+#[allow(clippy::derive_hash_xor_eq)]
 impl std::hash::Hash for Token {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         core::mem::discriminant(self).hash(state);
