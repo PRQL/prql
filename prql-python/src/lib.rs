@@ -107,7 +107,7 @@ impl From<CompileOptions> for prql_compiler::Options {
 
 #[pyfunction]
 pub fn get_targets() -> Vec<String> {
-    prql_compiler::Target::names()
+    Target::names()
 }
 
 #[cfg(not(feature = "extension-module"))]
