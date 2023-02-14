@@ -38,8 +38,11 @@ join s=salaries side:left [
 
 For those who have used python, s-strings are similar to python's f-strings, but
 the result is SQL code, rather than a string literal. For example, a python
-f-string of `f"average{col}"` would produce `"average(salary)"`, with quotes;
-while in PRQL, `s"average{col}"` produces `average(salary)`, without quotes.
+f-string of `f"average({col})"` would produce `"average(salary)"`, with quotes;
+while in PRQL, `s"average({col})"` produces `average(salary)`, without quotes.
+
+Note that interpolations can only contain plain variable names and not whole
+expression like Python.
 
 We can also use s-strings to produce a full table:
 

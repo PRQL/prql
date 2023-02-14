@@ -16,6 +16,9 @@ from web
 select url = f"http{tls}://www.{domain}.{tld}/{page}"
 ```
 
+Note that interpolations can only contain plain variable names and not whole
+expression like Python.
+
 ## Roadmap
 
 In the future, f-strings may incorporate string formatting such as datetimes,

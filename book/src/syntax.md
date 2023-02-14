@@ -166,6 +166,23 @@ sort (-distance)
 sort [-distance]
 ```
 
+For a more formal definition, refer to this precedence table. Because function
+call has the lowest precedence, nested function calls or arguments that start or
+end with an operator require parenthesis.
+
+| Group          | Operators         | Precedence | Associativity |
+| -------------- | ----------------- | ---------- | ------------- |
+| identifier dot | `.`               | 1          |               |
+| unary          | `- + ! ==`        | 2          |               |
+| range          | `..`              | 3          |               |
+| mul            | `* / %`           | 4          | left-to-right |
+| add            | `+ -`             | 5          | left-to-right |
+| compare        | `== != <= >= < >` | 6          | left-to-right |
+| coalesce       | `??`              | 7          | left-to-right |
+| and            | `and`             | 8          | left-to-right |
+| or             | `or`              | 9          | left-to-right |
+| function call  |                   | 10         |               |
+
 ## Inner Transforms
 
 Parentheses are also used for transforms (such as `group` and `window`) that
@@ -260,4 +277,30 @@ select [
     small = 1.000_000_1,
     big = 5_000_000,
 ]
+```
+
+## Keywords
+
+At the moment, PRQL uses only four keywords:
+
+- `prql`
+- `let`
+- `func`
+- `switch`
+
+If you want to use these names as your columns or relations, use backticks:
+`` `switch` ``.
+
+It may seem that transforms are also keywords, but they are normal function
+within std namespace:
+
+```
+std.from my_table
+std.select [from = my_table.a, take = my_table.b]
+std.take 3
+```
+
+```adonish
+Note that new keywords will be added before 1.0 release, so your builds may break.
+You can guard against that by using backticks.
 ```

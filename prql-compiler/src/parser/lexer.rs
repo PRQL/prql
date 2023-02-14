@@ -237,10 +237,17 @@ fn literal() -> impl Parser<char, Literal, Error = Simple<char>> {
 }
 
 fn quoted_string(escaped: bool) -> impl Parser<char, String, Error = Simple<char>> {
+    // I don't know how this could be simplified and implemented for n>3 in general
     choice((
+        quoted_string_inner(r#""""""""#, escaped),
+        quoted_string_inner(r#"""""""#, escaped),
+        quoted_string_inner(r#""""""#, escaped),
         quoted_string_inner(r#"""""#, escaped),
-        quoted_string_inner(r#"'''"#, escaped),
         quoted_string_inner(r#"""#, escaped),
+        quoted_string_inner(r#"''''''"#, escaped),
+        quoted_string_inner(r#"'''''"#, escaped),
+        quoted_string_inner(r#"''''"#, escaped),
+        quoted_string_inner(r#"'''"#, escaped),
         quoted_string_inner(r#"'"#, escaped),
     ))
     .collect::<String>()

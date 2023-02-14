@@ -7,7 +7,7 @@ from employees
 sort [
   age,
   -tenure,
-  salary,
+  +salary,
 ]
 
 

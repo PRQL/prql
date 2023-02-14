@@ -4,6 +4,20 @@
 
 **Features**:
 
+- Convert parser from PEST to Chumsky (@aljazerzen, #1818)
+  - Error recovery in some cases and more readable errors in general.
+  - String escapes (` \n \t `).
+  - Raw strings that don't escape backslashes.
+  - String interpolations can only contain identifiers and not any expression.
+  - Operator associativity has been changed from right-to-left to left-to-right
+    to be more similar to other conventional languages.
+  - `and` now has a higher precedence than `or` (of same reason as the previous point).
+  - Dates, times and timestamps have a stricter parsing rules.
+  - Ranges are now parsed as normal binary operators, which sometimes requires adding parenthesis
+    to existing expressions.
+  - Jinja expressions have been removed.
+  - `let`, `func`, `prql`, `switch` are now treated as keywords.
+
 **Fixes**:
 
 - Delegate dividing literal integers to the DB. Previously integer division was
@@ -12,6 +26,8 @@
   compilation. (@max-sixty #1747)
 
 **Documentation**:
+
+- Operator precedence
 
 **Web**:
 
