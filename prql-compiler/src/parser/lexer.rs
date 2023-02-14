@@ -66,7 +66,7 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
     let whitespace = just('\t').or(just(' ')).repeated().at_least(1).ignored();
     let comment = just('#').then(none_of('\n').repeated());
     let comments = comment
-        .separated_by(new_line.then(whitespace.clone().or_not()))
+        .separated_by(new_line.then(whitespace.or_not()))
         .at_least(1)
         .ignored();
 

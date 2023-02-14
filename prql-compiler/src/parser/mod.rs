@@ -616,7 +616,7 @@ mod test {
             //
             // If we change this, it would great if we can retain having
             // examples tested in the docs.
-            &include_str!("../../../book/tests/prql/examples/variables-0.prql"),
+            include_str!("../../../book/tests/prql/examples/variables-0.prql"),
         )
         .unwrap());
     }
