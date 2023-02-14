@@ -1,6 +1,6 @@
 # Language design
 
-In a way PRQL is just a transpiler to SQL, this causes its language design to
+In a way PRQL is just a transpiler to SQL. This can cause its language design to
 gravitate toward thinking about PRQL features in terms of how they translate to
 SQL.
 
