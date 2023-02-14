@@ -7,82 +7,15 @@ mod interpolation;
 mod lexer;
 mod stmt;
 
-use std::collections::HashMap;
-use std::str::FromStr;
-
-use ::chumsky::error::SimpleReason;
-use ::chumsky::prelude::Simple;
-use ::chumsky::Stream;
-use anyhow::bail;
-use anyhow::{anyhow, Result};
+use anyhow::Result;
+use chumsky::{error::SimpleReason, prelude::*, Stream};
 use itertools::Itertools;
-use pest::iterators::Pair;
-use pest::iterators::Pairs;
-use pest::Parser;
-use pest_derive::Parser;
 
 use self::lexer::Token;
 
 use super::ast::pl::*;
-use super::utils::*;
-use crate::error::{Error, Errors, Reason, Span};
 
-mod common {
-    use chumsky::prelude::*;
-
-    use super::lexer::Token;
-    use crate::{ast::pl::*, Span};
-
-    pub fn ident_part() -> impl Parser<Token, String, Error = Simple<Token>> {
-        select! { Token::Ident(ident) => ident }.map_err(|e: Simple<Token>| {
-            Simple::expected_input_found(
-                e.span(),
-                [Some(Token::Ident("".to_string()))],
-                e.found().cloned(),
-            )
-        })
-    }
-
-    pub fn keyword(kw: &'static str) -> impl Parser<Token, (), Error = Simple<Token>> + Clone {
-        just(Token::Keyword(kw.to_string())).ignored()
-    }
-
-    pub fn new_line() -> impl Parser<Token, (), Error = Simple<Token>> + Clone {
-        just(Token::NewLine).ignored()
-    }
-
-    pub fn ctrl(chars: &'static str) -> impl Parser<Token, (), Error = Simple<Token>> + Clone {
-        just(Token::ctrl(chars)).ignored()
-    }
-
-    pub fn into_stmt(kind: StmtKind, span: std::ops::Range<usize>) -> Stmt {
-        Stmt {
-            span: into_span(span),
-            ..Stmt::from(kind)
-        }
-    }
-
-    pub fn into_expr(kind: ExprKind, span: std::ops::Range<usize>) -> Expr {
-        Expr {
-            span: into_span(span),
-            ..Expr::from(kind)
-        }
-    }
-
-    pub fn into_span(span: std::ops::Range<usize>) -> Option<Span> {
-        Some(Span {
-            start: span.start,
-            end: span.end,
-        })
-    }
-}
-
-#[derive(Parser)]
-#[grammar = "parser/prql.pest"]
-struct PrqlParser;
-
-pub(crate) type PestError = pest::error::Error<Rule>;
-pub(crate) type PestRule = Rule;
+use crate::error::{Error, Errors, Reason};
 
 /// Build PL AST from a PRQL query string.
 pub fn parse(string: &str) -> Result<Vec<Stmt>> {
@@ -182,411 +115,61 @@ fn convert_error<T: std::hash::Hash + PartialEq + Eq>(
     .with_span(span)
 }
 
-/// Parse a string into a parse tree / concrete syntax tree, made up of pest Pairs.
-#[allow(dead_code)]
-fn parse_tree_of_str(source: &str, rule: Rule) -> Result<Pairs<Rule>> {
-    Ok(PrqlParser::parse(rule, source)?)
-}
+mod common {
+    use chumsky::prelude::*;
 
-/// Parses a parse tree of pest Pairs into a list of statements.
-#[allow(dead_code)]
-fn stmts_of_parse_pairs(pairs: Pairs<Rule>) -> Result<Vec<Stmt>> {
-    pairs
-        .filter(|p| !matches!(p.as_rule(), Rule::EOI))
-        .map(stmt_of_parse_pair)
-        .collect()
-}
+    use super::lexer::Token;
+    use crate::{ast::pl::*, Span};
 
-#[allow(dead_code)]
-fn stmt_of_parse_pair(pair: Pair<Rule>) -> Result<Stmt> {
-    let span = pair.as_span();
-    let rule = pair.as_rule();
-
-    let kind = match rule {
-        Rule::pipeline_stmt => {
-            let pipeline = expr_of_parse_pair(pair.into_inner().next().unwrap())?;
-            StmtKind::Main(Box::new(pipeline))
-        }
-        Rule::query_def => {
-            let mut params: HashMap<_, _> = pair
-                .into_inner()
-                .map(|x| parse_named(x.into_inner()))
-                .try_collect()?;
-
-            let version = params
-                .remove("version")
-                .map(|v| v.try_cast(|i| i.parse_version(), None, "semver version number string"))
-                .transpose()?;
-
-            let other = params
-                .into_iter()
-                .flat_map(|(key, value)| match value.kind {
-                    ExprKind::Ident(value) => Some((key, value.to_string())),
-                    _ => None,
-                })
-                .collect();
-
-            StmtKind::QueryDef(QueryDef { version, other })
-        }
-        Rule::func_def => {
-            let mut pairs = pair.into_inner();
-            let name = pairs.next().unwrap();
-            let params = pairs.next().unwrap();
-            let body = pairs.next().unwrap();
-
-            let (name, return_type, _) = parse_typed_ident(name)?;
-
-            let params: Vec<_> = params
-                .into_inner()
-                .into_iter()
-                .map(parse_typed_ident)
-                .try_collect()?;
-
-            let mut positional_params = vec![];
-            let mut named_params = vec![];
-            for (name, ty, default_value) in params {
-                let param = FuncParam {
-                    name,
-                    ty,
-                    default_value,
-                };
-                if param.default_value.is_some() {
-                    named_params.push(param)
-                } else {
-                    positional_params.push(param)
-                }
-            }
-
-            StmtKind::FuncDef(FuncDef {
-                name,
-                positional_params,
-                named_params,
-                body: Box::from(expr_of_parse_pair(body)?),
-                return_ty: return_type,
-            })
-        }
-        Rule::var_def => {
-            let mut pairs = pair.into_inner();
-
-            let name = parse_ident_part(pairs.next().unwrap());
-            let value = Box::new(expr_of_parse_pair(pairs.next().unwrap())?);
-
-            StmtKind::VarDef(VarDef { name, value })
-        }
-        _ => unreachable!("{pair}"),
-    };
-    let mut stmt = Stmt::from(kind);
-    stmt.span = Some(Span {
-        start: span.start(),
-        end: span.end(),
-    });
-    Ok(stmt)
-}
-
-/// Parses a parse tree of pest Pairs into an AST.
-#[allow(dead_code)]
-fn exprs_of_parse_pairs(pairs: Pairs<Rule>) -> Result<Vec<Expr>> {
-    pairs
-        .filter(|p| !matches!(p.as_rule(), Rule::EOI))
-        .map(expr_of_parse_pair)
-        .collect()
-}
-
-#[allow(dead_code)]
-fn expr_of_parse_pair(pair: Pair<Rule>) -> Result<Expr> {
-    let span = pair.as_span();
-    let rule = pair.as_rule();
-    let mut alias = None;
-
-    let kind = match rule {
-        Rule::list => ExprKind::List(exprs_of_parse_pairs(pair.into_inner())?),
-        Rule::expr_mul | Rule::expr_add | Rule::expr_compare | Rule::expr => {
-            let mut pairs = pair.into_inner();
-
-            let mut expr = expr_of_parse_pair(pairs.next().unwrap())?;
-            if let Some(op) = pairs.next() {
-                let op = BinOp::from_str(op.as_str())?;
-
-                expr = Expr::from(ExprKind::Binary {
-                    op,
-                    left: Box::new(expr),
-                    right: Box::new(expr_of_parse_pair(pairs.next().unwrap())?),
-                });
-            }
-
-            expr.kind
-        }
-        Rule::expr_unary => {
-            let mut pairs = pair.into_inner();
-
-            let op = pairs.next().unwrap();
-
-            let expr = expr_of_parse_pair(pairs.next().unwrap())?;
-            let op = UnOp::from_str(op.as_str()).unwrap();
-            match op {
-                UnOp::Add => expr.kind,
-                _ => ExprKind::Unary {
-                    op,
-                    expr: Box::new(expr),
-                },
-            }
-        }
-
-        // With coalesce, we need to grab the left and the right,
-        // because we're transforming it into a function call rather
-        // than passing along the operator. So this is unlike the rest
-        // of the parsing (and maybe isn't optimal).
-        Rule::expr_coalesce => {
-            let mut pairs = pair.into_inner();
-            let left = expr_of_parse_pair(pairs.next().unwrap())?;
-
-            if pairs.next().is_none() {
-                // If there's no coalescing, just return the single expression.
-                left.kind
-            } else {
-                let right = expr_of_parse_pair(pairs.next().unwrap())?;
-                ExprKind::Binary {
-                    left: Box::new(left),
-                    op: BinOp::Coalesce,
-                    right: Box::new(right),
-                }
-            }
-        }
-        // This makes the previous parsing a bit easier, but is hacky;
-        // ideally find a better way (but it doesn't seem that easy to
-        // parse parts of a Pairs).
-        Rule::operator_coalesce => ExprKind::Ident(Ident::from_name("-")),
-
-        Rule::assign | Rule::assign_call => {
-            let (a, expr) = parse_named(pair.into_inner())?;
-            alias = Some(a);
-            expr.kind
-        }
-        Rule::func_call => {
-            let mut pairs = pair.into_inner();
-
-            let name = expr_of_parse_pair(pairs.next().unwrap())?;
-
-            let mut named = HashMap::new();
-            let mut positional = Vec::new();
-            for arg in pairs {
-                match arg.as_rule() {
-                    Rule::named_arg => {
-                        let (a, expr) = parse_named(arg.into_inner())?;
-                        named.insert(a, expr);
-                    }
-                    _ => {
-                        positional.push(expr_of_parse_pair(arg)?);
-                    }
-                }
-            }
-
-            ExprKind::FuncCall(FuncCall {
-                name: Box::new(name),
-                args: positional,
-                named_args: named,
-            })
-        }
-        Rule::jinja => {
-            let inner = pair.as_str();
-            ExprKind::Ident(Ident::from_name(inner))
-        }
-        Rule::ident => {
-            // Pest has already parsed, so Chumsky should never fail
-            panic!();
-        }
-
-        Rule::number => {
-            // pest is responsible for ensuring these are in the correct place,
-            // so we just need to remove them.
-            let str = pair.as_str().replace('_', "");
-
-            let lit = if let Ok(i) = str.parse::<i64>() {
-                Literal::Integer(i)
-            } else if let Ok(f) = str.parse::<f64>() {
-                Literal::Float(f)
-            } else {
-                bail!("cannot parse {str} as number")
-            };
-            ExprKind::Literal(lit)
-        }
-        Rule::null => ExprKind::Literal(Literal::Null),
-        Rule::boolean => ExprKind::Literal(Literal::Boolean(pair.as_str() == "true")),
-        Rule::string => {
-            // Takes the string_inner, without the quotes
-            let inner = pair.into_inner().into_only();
-            let inner = inner.map(|x| x.as_str().to_string()).unwrap_or_default();
-            ExprKind::Literal(Literal::String(inner))
-        }
-        Rule::s_string => ExprKind::SString(ast_of_interpolate_items(pair)?),
-        Rule::f_string => ExprKind::FString(ast_of_interpolate_items(pair)?),
-        Rule::pipeline => {
-            let mut nodes = exprs_of_parse_pairs(pair.into_inner())?;
-            match nodes.len() {
-                0 => unreachable!(),
-                1 => nodes.remove(0).kind,
-                _ => ExprKind::Pipeline(Pipeline { exprs: nodes }),
-            }
-        }
-        Rule::nested_pipeline => {
-            if let Some(pipeline) = pair.into_inner().next() {
-                expr_of_parse_pair(pipeline)?.kind
-            } else {
-                ExprKind::Literal(Literal::Null)
-            }
-        }
-        Rule::range => {
-            let [start, end]: [Option<Box<Expr>>; 2] = pair
-                .into_inner()
-                // Iterate over `start` & `end` (separator is not a term).
-                .into_iter()
-                .map(|x| {
-                    // Parse & Box each one.
-                    exprs_of_parse_pairs(x.into_inner())
-                        .and_then(|x| x.into_only())
-                        .map(Box::new)
-                        .ok()
-                })
-                .collect::<Vec<_>>()
-                .try_into()
-                .map_err(|e| anyhow!("Expected start, separator, end; {e:?}"))?;
-            ExprKind::Range(Range { start, end })
-        }
-
-        Rule::value_and_unit => {
-            let pairs: Vec<_> = pair.into_inner().into_iter().collect();
-            let [n, unit]: [Pair<Rule>; 2] = pairs
-                .try_into()
-                .map_err(|e| anyhow!("Expected two items; {e:?}"))?;
-
-            ExprKind::Literal(Literal::ValueAndUnit(ValueAndUnit {
-                n: n.as_str().parse()?,
-                unit: unit.as_str().to_owned(),
-            }))
-        }
-
-        Rule::date | Rule::time | Rule::timestamp => {
-            let inner = pair.into_inner().into_only()?.as_str().to_string();
-
-            ExprKind::Literal(match rule {
-                Rule::date => Literal::Date(inner),
-                Rule::time => Literal::Time(inner),
-                Rule::timestamp => Literal::Timestamp(inner),
-                _ => unreachable!(),
-            })
-        }
-
-        Rule::switch => {
-            let cases = pair
-                .into_inner()
-                .map(|pair| -> Result<_> {
-                    let [condition, value]: [Expr; 2] = pair
-                        .into_inner()
-                        .map(expr_of_parse_pair)
-                        .collect::<Result<Vec<_>>>()?
-                        .try_into()
-                        .unwrap();
-                    Ok(SwitchCase { condition, value })
-                })
-                .try_collect()?;
-
-            ExprKind::Switch(cases)
-        }
-
-        _ => unreachable!("{pair}"),
-    };
-    Ok(Expr {
-        span: Some(Span {
-            start: span.start(),
-            end: span.end(),
-        }),
-        alias,
-        ..Expr::from(kind)
-    })
-}
-
-fn type_of_parse_pair(pair: Pair<Rule>) -> Result<Ty> {
-    let any_of_terms: Vec<_> = pair
-        .into_inner()
-        .into_iter()
-        .map(|pair| -> Result<Ty> {
-            let mut pairs = pair.into_inner();
-            let name = parse_ident_part(pairs.next().unwrap());
-            let typ = match TyLit::from_str(&name) {
-                Ok(t) => Ty::from(t),
-                Err(_) if name == "table" => Ty::Table(Frame::default()),
-                Err(_) => {
-                    eprintln!("named type: {}", name);
-                    Ty::Named(name.to_string())
-                }
-            };
-
-            let param = pairs.next().map(type_of_parse_pair).transpose()?;
-
-            Ok(if let Some(param) = param {
-                Ty::Parameterized(Box::new(typ), Box::new(param))
-            } else {
-                typ
-            })
+    pub fn ident_part() -> impl Parser<Token, String, Error = Simple<Token>> {
+        select! { Token::Ident(ident) => ident }.map_err(|e: Simple<Token>| {
+            Simple::expected_input_found(
+                e.span(),
+                [Some(Token::Ident("".to_string()))],
+                e.found().cloned(),
+            )
         })
-        .try_collect()?;
+    }
 
-    // is there only a single element?
-    Ok(match <[_; 1]>::try_from(any_of_terms) {
-        Ok([only]) => only,
-        Err(many) => Ty::AnyOf(many),
-    })
-}
+    pub fn keyword(kw: &'static str) -> impl Parser<Token, (), Error = Simple<Token>> + Clone {
+        just(Token::Keyword(kw.to_string())).ignored()
+    }
 
-fn parse_typed_ident(pair: Pair<Rule>) -> Result<(String, Option<Ty>, Option<Expr>)> {
-    let mut pairs = pair.into_inner();
+    pub fn new_line() -> impl Parser<Token, (), Error = Simple<Token>> + Clone {
+        just(Token::NewLine).ignored()
+    }
 
-    let name = parse_ident_part(pairs.next().unwrap());
+    pub fn ctrl(chars: &'static str) -> impl Parser<Token, (), Error = Simple<Token>> + Clone {
+        just(Token::ctrl(chars)).ignored()
+    }
 
-    let mut ty = None;
-    let mut default = None;
-    for pair in pairs {
-        if matches!(pair.as_rule(), Rule::type_def) {
-            ty = Some(type_of_parse_pair(pair)?);
-        } else {
-            default = Some(expr_of_parse_pair(pair)?);
+    pub fn into_stmt(kind: StmtKind, span: std::ops::Range<usize>) -> Stmt {
+        Stmt {
+            span: into_span(span),
+            ..Stmt::from(kind)
         }
     }
 
-    Ok((name, ty, default))
-}
+    pub fn into_expr(kind: ExprKind, span: std::ops::Range<usize>) -> Expr {
+        Expr {
+            span: into_span(span),
+            ..Expr::from(kind)
+        }
+    }
 
-fn parse_named(mut pairs: Pairs<Rule>) -> Result<(String, Expr)> {
-    let alias = parse_ident_part(pairs.next().unwrap());
-    let expr = expr_of_parse_pair(pairs.next().unwrap())?;
-
-    Ok((alias, expr))
-}
-
-fn parse_ident_part(pair: Pair<Rule>) -> String {
-    pair.into_inner().next().unwrap().as_str().to_string()
-}
-
-fn ast_of_interpolate_items(pair: Pair<Rule>) -> Result<Vec<InterpolateItem>> {
-    pair.into_inner()
-        .map(|x| {
-            Ok(match x.as_rule() {
-                Rule::interpolate_string_inner_literal => {
-                    InterpolateItem::String(x.as_str().to_string())
-                }
-                Rule::double_open_bracket => InterpolateItem::String("{".to_string()),
-                Rule::double_close_bracket => InterpolateItem::String("}".to_string()),
-                _ => InterpolateItem::Expr(Box::new(expr_of_parse_pair(x)?)),
-            })
+    pub fn into_span(span: std::ops::Range<usize>) -> Option<Span> {
+        Some(Span {
+            start: span.start,
+            end: span.end,
         })
-        .collect::<Result<_>>()
+    }
 }
 
 #[cfg(test)]
 mod test {
 
     use super::*;
-    use chumsky::{prelude::*, Parser};
+    use anyhow::anyhow;
     use insta::assert_yaml_snapshot;
 
     fn parse_expr(string: &str) -> Result<Expr, Vec<anyhow::Error>> {

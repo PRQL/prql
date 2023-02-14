@@ -2177,8 +2177,6 @@ dependencies = [
  "lazy_static",
  "log",
  "once_cell",
- "pest",
- "pest_derive",
  "postgres",
  "pretty_assertions",
  "regex",
