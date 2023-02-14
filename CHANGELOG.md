@@ -23,15 +23,19 @@
 - Delegate dividing literal integers to the DB. Previously integer division was
   executed during PRQL compilation, which could be confusing given that behavior
   is different across DBs. Other arithmetic operations are still executed during
-  compilation. (@max-sixty #1747)
+  compilation. (@max-sixty, #1747)
 
 **Documentation**:
 
-- Operator precedence
+- Add docs on the `from_text` transform (@max-sixty, #1756)
+- Operator precedence and keywords (@aljazerzen, #1818)
 
 **Web**:
 
 **Integrations**:
+
+- [prql-python] Compilation options can now be specified from Python. (@eitsupi,
+  #1807)
 
 **Internal changes**:
 
@@ -161,7 +165,7 @@ below in this release).
 
 - Defining a temporary table is now expressed as `let` rather than `table`
   (@aljazerzen, #1315). See the
-  [tables docs](https://prql-lang.org/book/queries/tables.html) for details.
+  [tables docs](https://prql-lang.org/book/queries/variables.html) for details.
 
 - _Experimental:_ The
   [`switch`](https://prql-lang.org/book/language-features/switch.html) function

@@ -3214,3 +3214,16 @@ a,b,c
     "###
     );
 }
+
+#[test]
+fn test_header_target_error() {
+    assert_display_snapshot!(compile(r#"
+    prql target:foo
+    from a
+    "#).unwrap_err(),@r###"target `"foo"` not found"###);
+
+    assert_display_snapshot!(compile(r#"
+    prql target:sql.foo
+    from a
+    "#).unwrap_err(),@r###"target `"sql.foo"` not found"###)
+}

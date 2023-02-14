@@ -4,24 +4,24 @@
 
 ## Implementation
 
-We implement rust bindings to java with
-[jni](https://docs.oracle.com/javase/8/docs/technotes/guides/jni/).
+We implement Rust bindings to Java with
+[JNI](https://docs.oracle.com/javase/8/docs/technotes/guides/jni/).
 
 First, define a native method --
 `public static native String toSql(String query)` for PrqlCompiler, `toJson` is
 same.
 
-And then implement it in rust with this
+And then implement it in Rust with this
 [crate](https://docs.rs/jni/latest/jni/).
 
 ## Build
 
 For ease of use to users, we need pre-build dynamic libs for different
-platforms. This process is combined into the build of java module.
+platforms. This process is combined into the build of Java module.
 
-We use [maven](https://maven.apache.org/) to build the java lib. To add the rust
-cross compilation into the maven build process, we add the following xml segment
-to the `pom.xml`:
+We use [Maven](https://maven.apache.org/) to build the Java library. To add the
+rust cross compilation into the maven build process, we add the following XML
+segment to the `pom.xml`:
 
 ```xml
 <plugin>
@@ -46,16 +46,16 @@ to the `pom.xml`:
 </plugin>
 ```
 
-When we build, it will execute the `cross.sh` script to get all the rust
-cdylibs. This process is time-consuming.
+When we build, it will execute the `cross.sh` script to get all the Rust
+cdylibs. This process is time consuming.
 
 As to cross compilation toolchains, we use
 [cross](https://github.com/cross-rs/cross).
 
-## Publish(for maintainer)
+## Publish (for maintainer)
 
-To publish the java lib to maven public repo, project maintainer need first
-register a project in the maven nexus repo, by the doc:
+To publish the Java library to Maven public repo, project maintainer need first
+register a project in the Maven Nexus repository, by the doc:
 <https://central.sonatype.org/publish/publish-guide/>.
 
 And then, we can release our artifact in the `release` workflow. The action we

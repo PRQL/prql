@@ -1,5 +1,7 @@
 #![cfg(not(target_family = "wasm"))]
-use prql_compiler::{self, sql::Dialect, IntoOnly};
+use std::str::FromStr;
+
+use prql_compiler::{self, sql::Dialect, IntoOnly, Target};
 use pyo3::{exceptions, prelude::*};
 
 #[pyfunction]
@@ -43,6 +45,7 @@ fn prql_python(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(prql_to_pl, m)?)?;
     m.add_function(wrap_pyfunction!(pl_to_rq, m)?)?;
     m.add_function(wrap_pyfunction!(rq_to_sql, m)?)?;
+    m.add_class::<CompileOptions>()?;
     // From https://github.com/PyO3/maturin/issues/100
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
 
@@ -69,7 +72,7 @@ pub struct CompileOptions {
     ///
     /// If `None` is used, the `target` argument from the query header is used.
     /// If it does not exist, [Dialect::Generic] is used.
-    pub target: Option<Dialect>,
+    pub target: String,
 
     /// Emits the compiler signature as a comment after generated SQL
     ///
@@ -77,11 +80,25 @@ pub struct CompileOptions {
     pub signature_comment: bool,
 }
 
+#[pymethods]
+impl CompileOptions {
+    #[new]
+    pub fn new(format: bool, target: String, signature_comment: bool) -> Self {
+        CompileOptions {
+            format,
+            target,
+            signature_comment,
+        }
+    }
+}
+
 impl From<CompileOptions> for prql_compiler::Options {
     fn from(o: CompileOptions) -> Self {
+        let target = Target::from_str(&o.target).unwrap_or(Target::Sql(Some(Dialect::Generic)));
+
         prql_compiler::Options {
             format: o.format,
-            target: prql_compiler::Target::Sql(o.target),
+            target,
             signature_comment: o.signature_comment,
         }
     }
@@ -97,7 +114,7 @@ mod test {
     fn parse_for_python() {
         let opts = Some(CompileOptions {
             format: true,
-            target: None,
+            target: String::new(),
             signature_comment: false,
         });
 
