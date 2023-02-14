@@ -637,6 +637,20 @@ mod test {
                     Integer: 10
         "###);
 
+        // TODO: this shouldn't be `take` at the start of the range; the
+        // whitespace matters
+        assert_yaml_snapshot!(parse(r#"take ..10"#).unwrap(), @r###"
+        ---
+        - Main:
+            Range:
+              start:
+                Ident:
+                  - take
+              end:
+                Literal:
+                  Integer: 10
+        "###);
+
         assert_yaml_snapshot!(parse(r#"take 1..10"#).unwrap(), @r###"
         ---
         - Main:
