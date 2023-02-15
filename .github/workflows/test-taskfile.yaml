@@ -35,3 +35,4 @@ jobs:
       - run: task setup-dev
       # This also encompasses `build-all`
       - run: task test-all
+      - run: task test-rust-fast
