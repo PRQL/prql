@@ -321,7 +321,7 @@ fn digits(count: usize) -> impl Parser<char, Vec<char>, Error = Simple<char>> {
 
 fn end_expr() -> impl Parser<char, (), Error = Simple<char>> {
     end()
-        .or(one_of(",)]\n\t ").ignored())
+        .or(one_of(",)]\r\n\t ").ignored())
         .or(just("..").ignored())
         .rewind()
 }
