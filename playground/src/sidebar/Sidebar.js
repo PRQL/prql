@@ -44,7 +44,7 @@ function Sidebar({ library, onLoadFile }) {
           rel="noopener noreferrer"
           href="https://prql-lang.org"
         >
-          PRQL Website &#x1F855;
+          PRQL Website &#8599;
         </a>
         <a
           className="fileRow"
@@ -52,7 +52,7 @@ function Sidebar({ library, onLoadFile }) {
           rel="noopener noreferrer"
           href="https://prql-lang.org/book/"
         >
-          Book &#x1F855;
+          Book &#8599;
         </a>
       </section>
 
