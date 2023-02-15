@@ -1,4 +1,4 @@
-# S-Strings
+# S-strings
 
 An s-string inserts SQL directly, as an escape hatch when there's something that
 PRQL doesn't yet implement. For example, there's no `version()` function in SQL

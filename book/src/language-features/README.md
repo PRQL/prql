@@ -13,7 +13,7 @@ language.
 | Regex            | [Handle regular expressions](./regex.md)                                  |
 | Stdlib           | [PRQL's "builtin" set of functions](./standard-library.md)                |
 | Strings          | [Rules for creating strings](./strings.md)                                |
-| S-Strings        | [Insert SQL directly into a query with an S-string](./s-strings.md)       |
-| F-Strings        | [Combine several column's data with F-strings](./f-strings.md)            |
+| S-strings        | [Insert SQL directly into a query with an S-string](./s-strings.md)       |
+| F-ftrings        | [Combine several column's data with F-strings](./f-strings.md)            |
 | Switch           | [Create a new column based on the contents of other columns](./switch.md) |
 | Target & Version | [Specify a target SQL engine and PRQL version](./target.md)               |

@@ -38,8 +38,8 @@
   - [Regex](./language-features/regex.md)
   - [Stdlib](./language-features/standard-library.md)
   - [Strings](./language-features/strings.md)
-  - [S-Strings](./language-features/s-strings.md)
-  - [F-Strings](./language-features/f-strings.md)
+  - [S-strings](./language-features/s-strings.md)
+  - [F-ftrings](./language-features/f-strings.md)
   - [Switch](./language-features/switch.md)
   - [Target & Version](./language-features/target.md)
 
