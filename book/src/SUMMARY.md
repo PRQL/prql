@@ -57,7 +57,7 @@
   - [dbt](./integrations/dbt.md)
   - [Jupyter](./integrations/jupyter.md)
   - [Prefect](./integrations/prefect.md)
-  - [VSCode](./integrations/vscode.md)
+  - [VS Code](./integrations/vscode.md)
   - [Rill](./integrations/rill.md)
 
 - [Examples](./examples/README.md)

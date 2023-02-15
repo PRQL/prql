@@ -1,10 +1,12 @@
-# VSCode extension
+# Visual Studio Code Code extension
 
-PRQL has a VSCode Extension that compiles a PRQL query in a VSCode editor and
+PRQL has a Visual Studio Code extension that compiles a PRQL query in a VS Code editor and
 displays the resulting SQL code in a second pane on the side. This is very handy
-for editing, saving, and reusing PRQL queries in VScode.
+for editing, saving, and reusing PRQL queries in VS Code.
 
-To install the VSCode extension, open VSCode and type Ctl-Shift-P (Cmd-Shift-P
+To install the VS Code extension, open VS Code and type Ctl-Shift-P (Cmd-Shift-P
 on a Mac) and type `PRQL`. Install the extension as usual.
 
-[Repo for the PRQL VScode Extension](https://github.com/PRQL/prql-vscode)
+[Repo for the PRQL VS Code extension](https://github.com/PRQL/prql-vscode)
+
+[Extension on VS Marketplace](https://marketplace.visualstudio.com/items?itemName=PRQL-lang.prql-vscode)

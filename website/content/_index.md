@@ -62,7 +62,7 @@ why_prql_section:
         - PRQL is easy for machines to read & write
     - title: For HackerNews enthusiasts
       content:
-        - The PRQL compiler is written in rust
+        - The PRQL compiler is written in Rust
         - We talk about "orthogonal language features" a lot
 
 showcase_section:

@@ -36,8 +36,8 @@ join s=salaries side:left [
 ]
 ```
 
-For those who have used python, s-strings are similar to python's f-strings, but
-the result is SQL code, rather than a string literal. For example, a python
+For those who have used Python, s-strings are similar to Python's f-strings, but
+the result is SQL code, rather than a string literal. For example, a Python
 f-string of `f"average{col}"` would produce `"average(salary)"`, with quotes;
 while in PRQL, `s"average{col}"` produces `average(salary)`, without quotes.
 
