@@ -13,7 +13,7 @@ let top_50 = (
 from top_50      # Starts a new pipeline
 ```
 
-We can even place a whole CTE in an s-string, enabling us to use features which
+We can even place a whole CTE in an [s-string](../language-features/s-strings.md), enabling us to use features which
 PRQL doesn't yet support.
 
 ```prql
