@@ -19,7 +19,7 @@ an index.
     [`website/themes/prql-theme/static/plugins/highlight/prql.js`](https://github.com/PRQL/prql/blob/main/book/highlight-prql.js)
 
 - [Textmate](https://macromates.com/manual/en/language_grammars) — used by the
-  VSCode Extension. It's in the `prql-vscode` repo in
+  VS Code extension. It's in the `prql-vscode` repo in
   [`prql-vscode/syntaxes/prql.tmLanguage.json`](https://github.com/PRQL/prql-vscode/blob/main/syntaxes/prql.tmLanguage.json).
 
 - [Monarch](https://microsoft.github.io/monaco-editor/monarch.html) — used by
