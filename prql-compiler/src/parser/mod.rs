@@ -220,7 +220,7 @@ mod test {
                     Integer: 10
         "###);
 
-        assert_yaml_snapshot!(parse(r#"take (..10)"#).unwrap(), @r###"
+        assert_yaml_snapshot!(parse(r#"take ..10"#).unwrap(), @r###"
         ---
         - Main:
             FuncCall:
