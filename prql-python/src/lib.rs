@@ -45,6 +45,7 @@ fn prql_python(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(prql_to_pl, m)?)?;
     m.add_function(wrap_pyfunction!(pl_to_rq, m)?)?;
     m.add_function(wrap_pyfunction!(rq_to_sql, m)?)?;
+    m.add_function(wrap_pyfunction!(get_targets, m)?)?;
     m.add_class::<CompileOptions>()?;
     // From https://github.com/PyO3/maturin/issues/100
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
@@ -102,6 +103,11 @@ impl From<CompileOptions> for prql_compiler::Options {
             signature_comment: o.signature_comment,
         }
     }
+}
+
+#[pyfunction]
+pub fn get_targets() -> Vec<String> {
+    Target::names()
 }
 
 #[cfg(not(feature = "extension-module"))]
