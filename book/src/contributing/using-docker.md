@@ -1,8 +1,8 @@
 # Using the Dockerfile
 
 The `Dockerfile` in this repo builds a Docker image that has current versions of
-our rust development tools. This can be the lowest-effort way of setting up a
-rust environment for those that don't have one already.
+our Rust development tools. This can be the lowest-effort way of setting up a
+Rust environment for those that don't have one already.
 
 ## Development cycle
 
@@ -55,7 +55,7 @@ docker run --rm -it -v $(pwd)/:/src -p 3000:3000 prql
 
 ## Running code with Docker
 
-Currently our Docker image only supports running rust dependencies. (adding
+Currently our Docker image only supports running Rust dependencies. (adding
 `hugo` & `nodejs` so that the playground can run would be a welcome
 contribution.)
 
@@ -97,7 +97,7 @@ hugo server --bind 0.0.0.0 -p 3000
 When making updates to the Dockerfile, we have automated testing that the
 Dockerfile builds on each merge in
 [**`test-all.yaml`**](https://github.com/PRQL/prql/blob/main/.github/workflows/test-all.yaml),
-and automated testing that the confirms all rust tests pass, in
+and automated testing that the confirms all Rust tests pass, in
 [**`nightly.yaml`**](https://github.com/PRQL/prql/blob/main/.github/workflows/nightly.yaml).
 
 Add a label to the PR `pr-test-all` or `pr-cron` to run these tests on a PR.

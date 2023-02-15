@@ -19,9 +19,9 @@ And then implement it in rust with this
 For ease of use to users, we need pre-build dynamic libs for different
 platforms. This process is combined into the build of java module.
 
-We use [maven](https://maven.apache.org/) to build the java lib. To add the rust
-cross compilation into the maven build process, we add the following xml segment
-to the `pom.xml`:
+We use [Maven](https://maven.apache.org/) to build the Java library. To add the
+Rust cross compilation into the Maven build process, we add the following XML
+segment to the `pom.xml`:
 
 ```xml
 <plugin>
