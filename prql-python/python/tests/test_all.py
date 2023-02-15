@@ -20,6 +20,8 @@ def test_all():
     res = prql.rq_to_sql(res)
     assert res is not None
 
+    assert len(prql.get_targets())
+
     assert prql.__version__ is not None
 
     # Example from readme
