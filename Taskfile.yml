@@ -58,13 +58,12 @@ tasks:
     cmds:
       # `--locked` installs from the underlying lock files (which is not the
       # default?!)
-      - cargo install --locked cargo-audit cargo-insta cargo-release
-        default-target mdbook mdbook-admonish mdbook-toc wasm-bindgen-cli
-        wasm-pack
+      - cargo install --locked cargo-audit cargo-insta cargo-release mdbook
+        mdbook-admonish mdbook-toc wasm-bindgen-cli wasm-pack
         # Can't install atm with `--locked`
       - cargo install mdbook-footnote
       - cmd: |
-          [ "$(which default-target)" ] || echo "🔴 Can't find a binary that cargo just installed. Is the cargo bin path (generally at ~/.cargo/bin) on the \$PATH?"
+          [ "$(which cargo-insta)" ] || echo "🔴 Can't find a binary that cargo just installed. Is the cargo bin path (generally at ~/.cargo/bin) on the \$PATH?"
         silent: true
 
   install-maturin:
@@ -151,17 +150,9 @@ tasks:
       Build everything.
 
       Running this isn't required when developing; it's for caching or as a reference.
-    vars:
-      default_target:
-        sh: default-target
-      targets: |
-        {{ .default_target }}
-        wasm32-unknown-unknown
     cmds:
-      - |
-        {{ range ( .targets | trim | splitLines ) -}}
-        cargo build --all-targets --target={{.}}
-        {{ end -}}
+      - cargo build --all-targets
+      - cargo build --all-targets --target=wasm32-unknown-unknown
       - task: build-web
 
   test-all:
@@ -182,9 +173,6 @@ tasks:
 
   test-rust:
     desc: Test all rust code, accepting snapshots.
-    vars:
-      default_target:
-        sh: default-target
     # Commenting out the ability to watch, since Task seems to trip over itself,
     # starting a new process before the old one has finished when a process
     # changes output files.
@@ -212,13 +200,11 @@ tasks:
       # tests to extract them, which include compiling prql-compiler, c) not
       # fail other compilation steps if they can't be extracted.
       - cargo insta test --accept -p mdbook-prql --test snapshot
-        --target={{.default_target}}
       # Only delete unreferenced snapshots on the default target — lots are
       # excluded under wasm. Note that this will also over-delete on Windows.
       # Note that we need to pass the target explicitly to manage
       # https://github.com/rust-lang/cargo/issues/8899
-      - cargo insta test --accept --target={{.default_target}}
-        --unreferenced=auto
+      - cargo insta test --accept --unreferenced=auto
       - cargo insta test --accept --target=wasm32-unknown-unknown
       # We build the book too, because that acts as a test
       - cd book && mdbook build
@@ -247,8 +233,7 @@ tasks:
       - "prql-compiler/**/*.pest"
       - "prql-compiler/**/*.snap"
     cmds:
-      - cargo insta test --accept -p prql-compiler --lib --target=$(cargo
-        default-target)
+      - cargo insta test --accept -p prql-compiler --lib
 
   build-web:
     desc: Build the website, including the book & playground.
