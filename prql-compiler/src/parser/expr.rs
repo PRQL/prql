@@ -99,37 +99,27 @@ pub fn expr() -> impl Parser<Token, Expr, Error = Simple<Token>> + Clone {
                 .map_with_span(into_expr))
             .boxed();
 
-        // Ranges have five cases we need to parse:
-        // x     -- a simple no-op
-        // x..y
-        // x..
-        //  ..y
-        //  ..
-        enum RangeCase {
-            NoOp(Expr),
-            Range(Option<Expr>, Option<Expr>),
-        }
-        let term = (term.clone())
-            .then(ctrl("..").ignore_then(term.clone().or_not()).or_not())
-            .map(|(start, range)| {
-                if let Some(range) = range {
-                    RangeCase::Range(Some(start), range)
-                } else {
-                    RangeCase::NoOp(start)
-                }
-            })
-            .or(ctrl("..")
-                .ignore_then(term.or_not())
-                .map(|range| RangeCase::Range(None, range)))
-            .map(|case| match case {
-                RangeCase::NoOp(x) => x.kind,
-                RangeCase::Range(start, end) => ExprKind::Range(Range {
-                    start: start.map(Box::new),
-                    end: end.map(Box::new),
-                }),
-            })
-            .map_with_span(into_expr)
-            .boxed();
+        // Range
+        let term_box = term.clone().map(Box::new).map(Some);
+        let term = choice((
+            // x..y
+            term_box
+                .clone()
+                .then_ignore(select! { Token::Range { bind_left: true, bind_right: true } => () })
+                .then(term_box.clone()),
+            // x..
+            term_box
+                .clone()
+                .then(select! { Token::Range { bind_left: true, .. } => None }),
+            // ..y
+            select! { Token::Range { bind_right: true, .. } => None }.then(term_box),
+            // ..
+            select! { Token::Range { .. } => (None, None) },
+        ))
+        .map(|(start, end)| Range { start, end })
+        .map(ExprKind::Range)
+        .map_with_span(into_expr)
+        .or(term);
 
         // Binary operators
         let expr = term;

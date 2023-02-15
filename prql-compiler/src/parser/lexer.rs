@@ -10,6 +10,7 @@ pub enum Token {
     Keyword(String),
     Literal(Literal),
 
+    Range { bind_left: bool, bind_right: bool },
     Interpolation(char, String),
 
     // this contains 3 bytes at most, we should replace it with SmallStr
@@ -18,6 +19,7 @@ pub enum Token {
 
 pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error = Simple<char>> {
     let new_line = just('\r').or_not().then(just('\n')).to(Token::NewLine);
+    let whitespace = just('\t').or(just(' ')).repeated().at_least(1).ignored();
 
     let control_multi = choice((
         just("->"),
@@ -29,7 +31,6 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
         just("and").then_ignore(end_expr()),
         just("or").then_ignore(end_expr()),
         just("??"),
-        just(".."),
     ))
     .map(|x| x.to_string())
     .map(Token::Control);
@@ -63,17 +64,32 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
     ))
     .recover_with(skip_then_retry_until([]).skip_start());
 
-    let whitespace = just('\t').or(just(' ')).repeated().at_least(1).ignored();
     let comment = just('#').then(none_of('\n').repeated());
     let comments = comment
         .separated_by(new_line.then(whitespace.or_not()))
         .at_least(1)
         .ignored();
 
-    token
-        .map_with_span(|tok, span| (tok, span))
-        .padded_by(comments.or(whitespace).repeated())
+    let range = whitespace
+        .or_not()
+        .then(just(".."))
+        .then(whitespace.or_not())
+        .map(|((left, _), right)| Token::Range {
+            bind_left: left.is_none(),
+            bind_right: right.is_none(),
+        })
+        .map_with_span(|tok, span| (tok, span));
+
+    // range needs to consume leading whitespace,
+    // so whitespace following a token must not be consumed
+    let ignored = comments.or(whitespace).repeated();
+
+    range
+        .or(ignored
+            .clone()
+            .ignore_then(token.map_with_span(|tok, span| (tok, span))))
         .repeated()
+        .then_ignore(ignored)
         .then_ignore(end())
 }
 
@@ -343,6 +359,15 @@ impl std::fmt::Display for Token {
             Self::Keyword(arg0) => write!(f, "keyword {arg0}"),
             Self::Literal(arg0) => write!(f, "{arg0}"),
             Self::Control(arg0) => write!(f, "{arg0}"),
+            Self::Range {
+                bind_left,
+                bind_right,
+            } => write!(
+                f,
+                "'{}..{}'",
+                if *bind_left { "" } else { " " },
+                if *bind_right { "" } else { " " }
+            ),
             Self::Interpolation(c, s) => {
                 write!(f, "{c}\"{}\"", s)
             }

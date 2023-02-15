@@ -1185,7 +1185,7 @@ fn test_nulls() {
 fn test_take() {
     assert_display_snapshot!((compile(r###"
     from employees
-    take (..10)
+    take ..10
     "###).unwrap()), @r###"
     SELECT
       *
