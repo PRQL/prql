@@ -1,4 +1,4 @@
-# Visual Studio Code Code extension
+# Visual Studio Code extension
 
 PRQL has a Visual Studio Code extension that compiles a PRQL query in a VS Code
 editor and displays the resulting SQL code in a second pane on the side. This is
