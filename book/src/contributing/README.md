@@ -3,7 +3,7 @@
 If you're interested in joining the community to build a better SQL, here are
 ways to start:
 
-- Star this repository.
+- Star this repo.
 - Send a link to PRQL to a couple of people whose opinion you respect.
 - Subscribe to [Issue #1](https://github.com/PRQL/prql/issues/1) for updates.
 - Join our [Discord](https://discord.gg/eQcfaCmsNc).
