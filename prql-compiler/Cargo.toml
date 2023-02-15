@@ -15,7 +15,7 @@ metadata.msrv = "1.65.0"
 [dependencies]
 anyhow = {version = "1.0.57", features = ["backtrace"]}
 ariadne = "0.1.5"
-chumsky = {version = "0.9.0", features = ["ahash", "std"]}
+chumsky = "0.9.0"
 csv = "1.2.0"
 enum-as-inner = "0.5.0"
 itertools = "0.10.3"
