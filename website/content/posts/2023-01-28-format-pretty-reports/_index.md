@@ -134,8 +134,8 @@ The image below shows the result of that query:
 ![First rows](./query_result.png)
 
 [^1]:
-    **My Tools:** I use [Visual Studio Code](https://code.visualstudio.com/) to maintain a
-    folder of PRQL queries for re-use. I use the
+    **My Tools:** I use [Visual Studio Code](https://code.visualstudio.com/) to
+    maintain a folder of PRQL queries for re-use. I use the
     [PRQL VS Code extension](https://marketplace.visualstudio.com/items?itemName=PRQL-lang.prql-vscode)
     to compile PRQL into SQL. My data is in a SQLite database, and I use
     [DB Browser for SQLite](https://sqlitebrowser.org/) to run queries.
