@@ -30,14 +30,14 @@ from my_table
 select x = """""I said """hello world"""!"""""
 ```
 
-## F-Strings and S-Strings
+## F-strings and s-strings
 
 These special case strings can be used to:
 
-[F-Strings](./f-strings.md) - Build up a new string from a set of columns or
+[F-strings](./f-strings.md) - Build up a new string from a set of columns or
 values
 
-[S-Strings](./s-strings.md) - Insert SQL statements directly into the query. Use
+[S-strings](./s-strings.md) - Insert SQL statements directly into the query. Use
 when PRQL doesn't have an equivalent facility.
 
 ```admonish note

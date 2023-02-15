@@ -24,7 +24,7 @@ looking for collaborators to lead that growth with us.
 ### Compiler
 
 The compiler is written in Rust, and there's enough to do such that any level of
-experience with rust is sufficient.
+experience with Rust is sufficient.
 
 We try to keep a few onboarding issues on hand under the
 ["good first issue" label](https://github.com/PRQL/prql/labels/good%20first%20issue).

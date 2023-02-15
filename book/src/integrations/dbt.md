@@ -18,7 +18,7 @@ combines the benefits of PRQL's power & simplicity _within_ queries, with dbt's
 version control, lineage & testing _across_ queries.
 
 Once `dbt-prql` in installed, dbt commands compile PRQL between `{% prql %}` &
-`{% endprql %}` jinja tags to SQL as part of dbt's compilation. No additional
+`{% endprql %}` Jinja tags to SQL as part of dbt's compilation. No additional
 config is required.
 
 ## Examples
@@ -95,7 +95,7 @@ from {{ ref('raw_payments') }}
 group by 1
 ```
 
-Here's that model using PRQL[^1], including the prql jinja tags.
+Here's that model using PRQL[^1], including the prql Jinja tags.
 
 ```elm
 {% prql %}
@@ -154,7 +154,7 @@ When dbt compiles models to SQL queries:
 - Any text in a dbt model between `{% prql %}` and `{% endprql %}` tags is
   compiled from PRQL to SQL before being passed to dbt.
 - The PRQL compiler passes text that's containing `{{` & `}}` through to dbt
-  without modification, which allows us to embed jinja expressions in PRQL.
+  without modification, which allows us to embed Jinja expressions in PRQL.
   (This was added to PRQL specifically for this use-case.)
 - dbt will then compile the resulting model into its final form of raw SQL, and
   dispatch it to the database, as per usual.
@@ -178,9 +178,9 @@ supported — if there are any problems, please open an issue.
 It's some dark magic, unfortunately.
 
 dbt doesn't allow adding behavior beyond the database adapters (e.g.
-`dbt-bigquery`) or jinja-only plugins (e.g. `dbt-utils`). So this library hacks
-the python import system to monkeypatch dbt's jinja environment with an
-additional jinja extension on python's startup[^2].
+`dbt-bigquery`) or Jinja-only plugins (e.g. `dbt-utils`). So this library hacks
+the Python import system to monkeypatch dbt's Jinja environment with an
+additional Jinja extension on Python's startup[^2].
 
 [^2]:
     Thanks to
@@ -193,7 +193,7 @@ This approach was discussed with the dbt team
 
 This isn't stable between dbt versions, since it relies on internal dbt APIs.
 The technique is also normatively bad — it runs a few lines of code every time
-the python interpreter starts — whose errors could lead to very confusing bugs
+the Python interpreter starts — whose errors could lead to very confusing bugs
 beyond the domain of the problem (though in the case of this library, it's small
 and well-constructed™).
 

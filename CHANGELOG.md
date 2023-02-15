@@ -469,12 +469,12 @@ fix rather than a breaking change in semantic versioning.
 
 **Integrations**:
 
-- Expose a shortened error message, in particular for the VSCode extension
+- Expose a shortened error message, in particular for the VS Code extension
   (@aljazerzen, #1005)
 
 **Internal changes**:
 
-- Specify 1.60.0 as minimum rust version (@max-sixty, #1011)
+- Specify 1.60.0 as minimum Rust version (@max-sixty, #1011)
 - Remove old `wee-alloc` code (@max-sixty, #1013)
 - Upgrade clap to version 4 (@aj-bagwell, #1004)
 - Improve book-building script in Taskfile (@max-sixty, #989)
@@ -488,7 +488,7 @@ significant features, including a `union` operator and an overhaul of our type
 system, as open PRs which will follow in future releases.
 
 We also have new features in the
-[VSCode extension](https://github.com/PRQL/prql-code), courtesy of
+[VS Code extension](https://github.com/PRQL/prql-code), courtesy of
 @jiripospisil, including a live output panel.
 
 **Fixes**:
@@ -554,7 +554,7 @@ includes:
   columns in generated SQL (@charlie-sanders )
 - Fix BigQuery quoting of identifiers in `SELECT` statements (@max-sixty )
 - Some internal changes — reorganize top-level functions (@aljazerzen ), add a
-  workflow to track our rust compilation time (@max-sixty ), simplify our simple
+  workflow to track our Rust compilation time (@max-sixty ), simplify our simple
   prql-to-sql tests (@max-sixty )
 
 Thanks to @ankane, `prql-compiler` is now available from homebrew core;
@@ -688,8 +688,8 @@ Keep in touch with PRQL by following the project on
 
 [Contribute](https://github.com/PRQL/prql/blob/main/CONTRIBUTING.md) to the
 project — we're a really friendly community, whether you're a recent SQL user or
-an advanced rust programmer. We need bug reports, documentation tweaks & feature
-requests — just as much as we need compiler improvements written in rust.
+an advanced Rust programmer. We need bug reports, documentation tweaks & feature
+requests — just as much as we need compiler improvements written in Rust.
 
 ---
 
