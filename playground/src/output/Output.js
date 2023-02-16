@@ -3,6 +3,11 @@ import "./Output.css";
 import React from "react";
 
 import { Light as SyntaxHighlighter } from "react-syntax-highlighter";
+import sql from "react-syntax-highlighter/dist/esm/languages/hljs/sql";
+import yaml from "react-syntax-highlighter/dist/esm/languages/hljs/yaml";
+
+SyntaxHighlighter.registerLanguage("sql", sql);
+SyntaxHighlighter.registerLanguage("yaml", yaml);
 
 function Tab(props) {
   return (
@@ -26,8 +31,8 @@ class Output extends React.Component {
         <div className="tab-top">
           <Tab text="output.sql" name="sql" parent={this.props} />
           <Tab text="output.arrow" name="arrow" parent={this.props} />
-          <Tab text="output.pl.json" name="pl" parent={this.props} />
-          <Tab text="output.rq.json" name="rq" parent={this.props} />
+          <Tab text="output.pl.yaml" name="pl" parent={this.props} />
+          <Tab text="output.rq.yaml" name="rq" parent={this.props} />
 
           <div className="spacer"></div>
 
@@ -103,18 +108,16 @@ class Output extends React.Component {
       );
     }
     if (this.props.tab === "pl" && this.props.content.pl) {
-      const pl = JSON.stringify(JSON.parse(this.props.content.pl), null, 4);
       return (
-        <SyntaxHighlighter language="json" useInlineStyles={false}>
-          {pl}
+        <SyntaxHighlighter language="yaml" useInlineStyles={false}>
+          {this.props.content.pl}
         </SyntaxHighlighter>
       );
     }
     if (this.props.tab === "rq" && this.props.content.rq) {
-      const rq = JSON.stringify(JSON.parse(this.props.content.rq), null, 4);
       return (
-        <SyntaxHighlighter language="json" useInlineStyles={false}>
-          {rq}
+        <SyntaxHighlighter language="yaml" useInlineStyles={false}>
+          {this.props.content.rq}
         </SyntaxHighlighter>
       );
     }
@@ -123,7 +126,7 @@ class Output extends React.Component {
 
   async copyOutput() {
     try {
-      await navigator.clipboard.writeText(this.props.content.sql);
+      await navigator.clipboard.writeText(this.props.content[this.props.tab]);
 
       this.setState({ justCopied: true });
 

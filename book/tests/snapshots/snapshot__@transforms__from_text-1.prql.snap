@@ -1,0 +1,40 @@
+---
+source: book/tests/snapshot.rs
+expression: "let temp_format_lookup = from_text format:csv \"\"\"\ncountry_code,format\nuk,C\nus,F\nlr,F\nde,C\n\"\"\"\n\nfrom temperatures\njoin temp_format_lookup [==country_code]\n"
+input_file: book/tests/prql/transforms/from_text-1.prql
+---
+WITH table_0 AS (
+  SELECT
+    'uk' AS country_code,
+    'C' AS format
+  UNION
+  ALL
+  SELECT
+    'us' AS country_code,
+    'F' AS format
+  UNION
+  ALL
+  SELECT
+    'lr' AS country_code,
+    'F' AS format
+  UNION
+  ALL
+  SELECT
+    'de' AS country_code,
+    'C' AS format
+),
+temp_format_lookup AS (
+  SELECT
+    country_code,
+    format
+  FROM
+    table_0 AS table_1
+)
+SELECT
+  temperatures.*,
+  temp_format_lookup.country_code,
+  temp_format_lookup.format
+FROM
+  temperatures
+  JOIN temp_format_lookup ON temperatures.country_code = temp_format_lookup.country_code
+

@@ -9,6 +9,7 @@ members = [
   "prql-js",
   "prql-python",
   "book",
+  "prql-elixir/native/prql",
 ]
 # Note we don't have a `default-members = ["prql-compiler"]`, since that causes
 # commands like `cargo test` to only run tests from the default package. And
@@ -19,12 +20,13 @@ edition = "2021"
 license = "Apache-2.0"
 repository = "https://github.com/PRQL/prql"
 rust-version = "1.65.0"
-version = "0.4.2"
+version = "0.5.0"
 
 [profile.release.package.prql-js]
 # Tell `rustc` to optimize for small code size.
 opt-level = "s"
 
 [workspace.metadata.release]
+allow_branch = ["*"]
 consolidate-commits = true
 pre-release-commit-message = "chore: Release {{version}}"

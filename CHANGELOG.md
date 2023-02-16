@@ -1,20 +1,71 @@
 # PRQL Changelog
 
-## 0.4.3 — [unreleased]
+## 0.5.1 — [unreleased]
 
 **Features**:
 
 **Fixes**:
 
+- Delegate dividing literal integers to the DB. Previously integer division was
+  executed during PRQL compilation, which could be confusing given that behavior
+  is different across DBs. Other arithmetic operations are still executed during
+  compilation. (@max-sixty, #1747)
+
 **Documentation**:
+
+- Add docs on the `from_text` transform (@max-sixty, #1756)
 
 **Web**:
 
 **Integrations**:
 
+- [prql-python] Compilation options can now be specified from Python. (@eitsupi,
+  #1807)
+
 **Internal changes**:
 
 **New Contributors**:
+
+## 0.5.0 — 2022-02-08
+
+0.5.0 contains a few fixes, some improvements to bindings, lots of docs
+improvements, and some work on forthcoming features. It contains one breaking
+change in the compiler's `Options` interface.
+
+This release has 74 commits from 12 contributors. Selected changes:
+
+**Features**:
+
+- Change public API to use target instead of dialect in preparation for feature
+  work (@aljazerzen, #1684)
+
+- `prqlc watch` command which watches filesystem for changes and compiles .prql
+  files to .sql (@aljazerzen, #1708)
+
+**Fixes**:
+
+- Support double brackets in s-strings which aren't symmetric (@max-sixty,
+  #1650)
+- Support Postgres's Interval syntax (@max-sixty, #1649)
+- Fixed tests for `prql-elixir` with MacOS (@kasvith, #1707)
+
+**Documentation**:
+
+- Add a documentation test for prql-compiler, update prql-compiler README, and
+  include the README in the prql book section for Rust bindings. The code
+  examples in the README are included and tested as doctests in the
+  prql-compiler (@nkicg6, #1679)
+
+**Internal changes**:
+
+- Add tests for all PRQL website examples to prql-python to ensure compiled
+  results match expected SQL (@nkicg6, #1719)
+
+**New Contributors**:
+
+- @ruslandoga, with #1628
+- @RalfNorthman, with #1632
+- @nicot, with #1662
 
 ## 0.4.2 — 2022-01-25
 
@@ -99,7 +150,7 @@ below in this release).
 
 - Defining a temporary table is now expressed as `let` rather than `table`
   (@aljazerzen, #1315). See the
-  [tables docs](https://prql-lang.org/book/queries/tables.html) for details.
+  [tables docs](https://prql-lang.org/book/queries/variables.html) for details.
 
 - _Experimental:_ The
   [`switch`](https://prql-lang.org/book/language-features/switch.html) function
@@ -421,12 +472,12 @@ fix rather than a breaking change in semantic versioning.
 
 **Integrations**:
 
-- Expose a shortened error message, in particular for the VSCode extension
+- Expose a shortened error message, in particular for the VS Code extension
   (@aljazerzen, #1005)
 
 **Internal changes**:
 
-- Specify 1.60.0 as minimum rust version (@max-sixty, #1011)
+- Specify 1.60.0 as minimum Rust version (@max-sixty, #1011)
 - Remove old `wee-alloc` code (@max-sixty, #1013)
 - Upgrade clap to version 4 (@aj-bagwell, #1004)
 - Improve book-building script in Taskfile (@max-sixty, #989)
@@ -440,7 +491,7 @@ significant features, including a `union` operator and an overhaul of our type
 system, as open PRs which will follow in future releases.
 
 We also have new features in the
-[VSCode extension](https://github.com/PRQL/prql-code), courtesy of
+[VS Code extension](https://github.com/PRQL/prql-code), courtesy of
 @jiripospisil, including a live output panel.
 
 **Fixes**:
@@ -506,7 +557,7 @@ includes:
   columns in generated SQL (@charlie-sanders )
 - Fix BigQuery quoting of identifiers in `SELECT` statements (@max-sixty )
 - Some internal changes — reorganize top-level functions (@aljazerzen ), add a
-  workflow to track our rust compilation time (@max-sixty ), simplify our simple
+  workflow to track our Rust compilation time (@max-sixty ), simplify our simple
   prql-to-sql tests (@max-sixty )
 
 Thanks to @ankane, `prql-compiler` is now available from homebrew core;
@@ -640,8 +691,8 @@ Keep in touch with PRQL by following the project on
 
 [Contribute](https://github.com/PRQL/prql/blob/main/CONTRIBUTING.md) to the
 project — we're a really friendly community, whether you're a recent SQL user or
-an advanced rust programmer. We need bug reports, documentation tweaks & feature
-requests — just as much as we need compiler improvements written in rust.
+an advanced Rust programmer. We need bug reports, documentation tweaks & feature
+requests — just as much as we need compiler improvements written in Rust.
 
 ---
 

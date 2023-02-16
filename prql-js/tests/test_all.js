@@ -38,6 +38,16 @@ describe("prql-js", () => {
         prql.compile("Mississippi has four S’s and four I’s.")
       ).to.throw("Error");
     });
+
+    it("should compile to dialect", () => {
+      const opts = new prql.CompileOptions();
+      opts.target = "sql.mssql";
+      opts.format = false;
+      opts.signature_comment = false;
+
+      const res = prql.compile("from a | take 10", opts);
+      assert.equal(res, "SELECT TOP (10) * FROM a");
+    });
   });
 
   describe("prql_to_pl", () => {
@@ -51,21 +61,40 @@ describe("prql-js", () => {
     });
   });
 
-  describe("SQLCompileOptions", () => {
-    it("should be able to create from default_compile_options", () => {
-      const opts = prql.default_compile_options();
-      expect(() => {
-        opts.dialect = prql.Dialect.Sqlite;
-        assert.equal(opts.dialect, prql.Dialect.Sqlite);
-      });
+  describe("CompileOptions", () => {
+    it("should be able to create from constructor", () => {
+      const opts = new prql.CompileOptions();
+
+      opts.target = "sql.sqlite";
+      assert.equal(opts.target, "sql.sqlite");
     });
 
-    it("should be able to create from constructor", () => {
-      const opts = new prql.SQLCompileOptions();
-      expect(() => {
-        opts.dialect = prql.Dialect.Sqlite;
-        assert.equal(opts.dialect, prql.Dialect.Sqlite);
-      });
+    it("should fallback to generic dialect", () => {
+      const opts = new prql.CompileOptions();
+
+      opts.target = "sql.not_existing";
+      const res = prql.compile("from a", opts);
+
+      // target should appear in signature comment
+      assert(res.includes("target:sql.generic"));
+    });
+  });
+
+  describe("get_targets", () => {
+    it("return a list of targets", () => {
+      const targets = new prql.get_targets();
+      assert(targets.length > 0);
+      assert(targets.includes("sql.sqlite"));
+    });
+
+    it("should fallback to generic dialect", () => {
+      const opts = new prql.CompileOptions();
+
+      opts.target = "sql.not_existing";
+      const res = prql.compile("from a", opts);
+
+      // target should appear in signature comment
+      assert(res.includes("target:sql.generic"));
     });
   });
 });

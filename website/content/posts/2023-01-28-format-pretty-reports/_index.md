@@ -79,8 +79,8 @@ formatting the column headings and contents (using aliases and
 
 Here is my workflow for a typical query using the tools listed below: [^1]
 
-- Enter the PRQL query in the VSCode editor. Use a `.prql` suffix for the file.
-- Open the PRQL VSCode extension (Ctl-Shift-P, or Cmd-Shift-P on Mac). It'll
+- Enter the PRQL query in the VS Code editor. Use a `.prql` suffix for the file.
+- Open the PRQL VS Code extension (Ctl-Shift-P, or Cmd-Shift-P on Mac). It'll
   appear and display the compiled SQL in a second pane on the right.
 - Copy the SQL from the right pane and paste it into the DBM program. Run the
   query. That's it!
@@ -134,8 +134,8 @@ The image below shows the result of that query:
 ![First rows](./query_result.png)
 
 [^1]:
-    **My Tools:** I use [VSCode](https://code.visualstudio.com/) to maintain a
-    folder of PRQL queries for re-use. I use the
-    [VSCode Extension](https://marketplace.visualstudio.com/items?itemName=PRQL-lang.prql-vscode)
+    **My Tools:** I use [Visual Studio Code](https://code.visualstudio.com/) to
+    maintain a folder of PRQL queries for re-use. I use the
+    [PRQL VS Code extension](https://marketplace.visualstudio.com/items?itemName=PRQL-lang.prql-vscode)
     to compile PRQL into SQL. My data is in a SQLite database, and I use
     [DB Browser for SQLite](https://sqlitebrowser.org/) to run queries.

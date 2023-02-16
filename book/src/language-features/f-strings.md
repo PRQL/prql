@@ -1,4 +1,4 @@
-# F-Strings
+# F-strings
 
 F-strings are a readable approach to building new strings from existing strings.
 Currently PRQL supports this for concatenating strings:

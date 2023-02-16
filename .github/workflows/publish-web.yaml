@@ -2,7 +2,7 @@ name: publish-web
 on:
   push:
     branches:
-      - main
+      - web
   # Called by pull-request when specifically requested
   workflow_call:
 
@@ -30,14 +30,20 @@ jobs:
       - name: Setup hugo
         uses: peaceiris/actions-hugo@v2.6.0
 
-      # Book setup
+      # Book setup, duplicated from `pull-request.yaml`
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
-      - uses: peaceiris/actions-mdbook@v1
+        with:
+          save-if: ${{ github.ref == 'refs/heads/web' }}
+      - uses: baptiste0928/cargo-install@next
+        with:
+          crate: mdbook
+      - uses: baptiste0928/cargo-install@next
+        with:
+          crate: mdbook-footnote
       - uses: baptiste0928/cargo-install@next
         with:
           crate: mdbook-admonish
-          version: "1.7.0"
 
       - uses: ./.github/actions/build-prql-js
 
@@ -57,4 +63,4 @@ jobs:
         # on a fork (it'll fail the workflow even if it otherwise builds successfully)
         if: "!github.event.pull_request.head.repo.fork"
         id: deployment
-        uses: actions/deploy-pages@v1.2.3
+        uses: actions/deploy-pages@v1.2.4

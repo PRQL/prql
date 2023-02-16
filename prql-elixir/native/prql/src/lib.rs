@@ -1,3 +1,9 @@
+// These bindings aren't relevant on wasm
+#![cfg(not(target_family = "wasm"))]
+// TODO: unclear why we need this `allow`; it's required in `CompileOptions`,
+// likely because of the `NifStruct` derive.
+#![allow(clippy::needless_borrow)]
+
 use rustler::{Atom, NifResult, NifStruct, NifTuple};
 
 mod atoms {
@@ -33,11 +39,11 @@ fn to_result_tuple(result: Result<String, prql_compiler::ErrorMessages>) -> NifR
     }
 }
 
-/// Get the dialect from an atom. By default `Generic` dialect will be used
-fn dialect_from_atom(a: Atom) -> prql_compiler::sql::Dialect {
+/// Get the target from an atom. By default `Generic` SQL dialect will be used
+fn target_from_atom(a: Atom) -> prql_compiler::Target {
     use prql_compiler::sql::Dialect as D;
 
-    if a == atoms::ansi() {
+    prql_compiler::Target::Sql(Some(if a == atoms::ansi() {
         D::Ansi
     } else if a == atoms::bigquery() {
         D::BigQuery
@@ -59,15 +65,15 @@ fn dialect_from_atom(a: Atom) -> prql_compiler::sql::Dialect {
         D::Snowflake
     } else {
         D::Generic
-    }
+    }))
 }
 
-impl From<CompileOptions> for prql_compiler::sql::Options {
-    /// Get `prql_compiler::sql::Options` options from `CompileOptions`
+impl From<CompileOptions> for prql_compiler::Options {
+    /// Get `prql_compiler::Options` options from `CompileOptions`
     fn from(o: CompileOptions) -> Self {
-        prql_compiler::sql::Options {
+        prql_compiler::Options {
             format: o.format,
-            dialect: Some(dialect_from_atom(o.dialect)),
+            target: target_from_atom(o.target),
             signature_comment: o.signature_comment,
         }
     }
@@ -82,18 +88,17 @@ pub struct CompileOptions {
     /// Defaults to true.
     pub format: bool,
 
-    /// Target dialect you want to compile for.
+    /// Target dialect to compile to.
     ///
-    /// Because PRQL compiles to a subset of SQL, not all SQL features are
-    /// required for PRQL. This means that generic dialect may work with most
-    /// databases.
+    /// This is only changes the output for a relatively small subset of
+    /// features.
     ///
-    /// If something does not work in dialect you need, please report it at
-    /// GitHub issues.
+    /// If something does not work in a specific dialect, please raise in a
+    /// GitHub issue.
     ///
-    /// If None is used, `sql_dialect` flag from query definition is used.
+    /// If `None` is used, the `target` argument from the query header is used.
     /// If it does not exist, [Dialect::Generic] is used.
-    pub dialect: Atom,
+    pub target: Atom,
 
     /// Emits the compiler signature as a comment after generated SQL
     ///
@@ -113,7 +118,7 @@ pub struct Response {
 #[rustler::nif]
 /// compile a prql query into sql
 pub fn compile(prql_query: &str, options: CompileOptions) -> NifResult<Response> {
-    to_result_tuple(prql_compiler::compile(prql_query, Some(options.into())))
+    to_result_tuple(prql_compiler::compile(prql_query, options.into()))
 }
 
 #[rustler::nif]
@@ -143,7 +148,9 @@ pub fn rq_to_sql(rq_json: &str) -> NifResult<Response> {
     to_result_tuple(
         Ok(rq_json)
             .and_then(prql_compiler::json::to_rq)
-            .and_then(|x| prql_compiler::rq_to_sql(x, None)),
+            // Currently just using default options here; probably should pass
+            // an argument from this func.
+            .and_then(|x| prql_compiler::rq_to_sql(x, prql_compiler::Options::default())),
     )
 }
 

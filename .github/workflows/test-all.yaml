@@ -41,6 +41,9 @@ jobs:
   test-js:
     uses: ./.github/workflows/test-js.yaml
 
+  test-elixir:
+    uses: ./.github/workflows/test-elixir.yaml
+
   measure-code-cov:
     # Currently disabled due to https://github.com/actions-rs/tarpaulin/issues/21
     if: false

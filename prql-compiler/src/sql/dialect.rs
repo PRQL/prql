@@ -1,10 +1,39 @@
+//! Feature map for SQL dialects.
+//!
+//! The general principle with is to strive to target only the generic (i.e. default) dialect.
+//!
+//! This means that we prioritize common dialects and old dialect versions, because such
+//! implementations would also be supported by newer versions.
+//!
+//! Dialect-specifics should be added only if:
+//! - the generic dialect is not supported (i.e. LIMIT is not supported in MS SQL),
+//! - dialect-specific impl is more performant than generic impl.
+//!
+//! As a consequence, generated SQL may be verbose, since it will avoid newer or less adopted SQL
+//! constructs. The upside is much less complex translator.
+
 use core::fmt::Debug;
 use serde::{Deserialize, Serialize};
-use strum;
+use strum::{EnumMessage, IntoEnumIterator};
 
+/// SQL dialect.
+///
+/// This is only changes the output for a relatively small subset of features.
+///
+/// If something does not work in a specific dialect, please raise in a
+/// GitHub issue.
 // Make sure to update Python bindings, JS bindings & docs in the book.
 #[derive(
-    Debug, PartialEq, Eq, Clone, Serialize, Deserialize, strum::EnumString, strum::Display,
+    Debug,
+    PartialEq,
+    Eq,
+    Clone,
+    Serialize,
+    Deserialize,
+    strum::Display,
+    strum::EnumIter,
+    strum::EnumMessage,
+    strum::EnumString,
 )]
 pub enum Dialect {
     #[strum(serialize = "ansi")]
@@ -48,6 +77,12 @@ impl Dialect {
             Dialect::PostgreSql => Box::new(PostgresDialect),
             Dialect::Ansi | Dialect::Generic | Dialect::Hive => Box::new(GenericDialect),
         }
+    }
+
+    pub fn names() -> Vec<&'static str> {
+        Dialect::iter()
+            .flat_map(|d| d.get_serializations().to_vec())
+            .collect::<Vec<&'static str>>()
     }
 }
 
@@ -203,6 +238,28 @@ impl DialectHandler for DuckDbDialect {
     fn except_all(&self) -> bool {
         // https://duckdb.org/docs/sql/query_syntax/setops.html
         false
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Dialect;
+    use insta::assert_debug_snapshot;
+    use std::str::FromStr;
+
+    #[test]
+    fn test_dialect_from_str() {
+        assert_debug_snapshot!(Dialect::from_str("postgres"), @r###"
+        Ok(
+            PostgreSql,
+        )
+        "###);
+
+        assert_debug_snapshot!(Dialect::from_str("foo"), @r###"
+        Err(
+            VariantNotFound,
+        )
+        "###);
     }
 }
 

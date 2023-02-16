@@ -61,16 +61,18 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-  # Possibly we roll this into a more complete approach, possibly with cargo-release.
-  publish-prql-compiler:
+  publish-to-cargo:
     runs-on: ubuntu-latest
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
+      - uses: baptiste0928/cargo-install@next
+        with:
+          crate: cargo-release
       - uses: richb-hanover/cargo@v1.1.0
         with:
-          command: publish
-          args: -p prql-compiler
+          command: release
+          args: publish -x
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
@@ -92,3 +94,10 @@ jobs:
   #         nexus_username: ${{ secrets.nexus_username }}
   #         nexus_password: ${{ secrets.nexus_password }}
   #         directory: prql-java/java/
+
+  push-web-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v3
+      - run: git push origin HEAD:web --force

@@ -20,6 +20,8 @@ def test_all():
     res = prql.rq_to_sql(res)
     assert res is not None
 
+    assert len(prql.get_targets())
+
     assert prql.__version__ is not None
 
     # Example from readme
@@ -33,4 +35,21 @@ def test_all():
         )
     """
 
+    options = prql.CompileOptions(
+        format=True, signature_comment=True, target="sql.postgres"
+    )
+
     assert prql.compile(prql_query)
+    assert prql.compile(prql_query, options)
+
+
+def test_compile_options():
+    """
+    Test the CompileOptions
+    """
+    query_mssql = "prql target:sql.mssql\nfrom a | take 3"
+    options = prql.CompileOptions(format=False, signature_comment=False, target="foo")
+
+    assert prql.compile(query_mssql).startswith("SELECT\n  TOP (3) *\nFROM\n  a")
+    # TODO: This should be unknown target error?
+    assert prql.compile(query_mssql, options) == "SELECT * FROM a LIMIT 3"

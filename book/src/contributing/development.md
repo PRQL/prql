@@ -50,11 +50,11 @@ website, we have two options:
 > Windows.
 
 - Install Task; either `brew install go-task/tap/go-task` or as described on
-  [Task](https://taskfile.dev/#/installation)
+  [Task](https://taskfile.dev/#/installation).
 - Then run the `setup-dev` task. This runs commands from our
   [Taskfile.yml](https://github.com/PRQL/prql/blob/main/Taskfile.yml),
   installing dependencies with `cargo`, `brew`, `npm` & `pip`, and suggests some
-  VSCode extensions.
+  VS Code extensions.
 
   ```sh
   task setup-dev
@@ -81,7 +81,7 @@ website, we have two options:
   - A clang compiler, to compile the DuckDB integration tests, since we use
     [`duckdb-rs'](https://github.com/wangfenjin/duckdb-rs). To install one:
 
-    - On MacOS, install xcode with `xcode-select --install`
+    - On macOS, install xcode with `xcode-select --install`
     - On Debian Linux, `apt-get update && apt-get install clang`
     - On Windows, `duckdb-rs` isn't supported, so these tests are excluded
 
@@ -97,7 +97,7 @@ website, we have two options:
 <!--
 
 Until we set up a Codespaces, I don't think this is that helpful — it can't run any code,
-including navigating rust code with rust-analyzer. We'd def take a contribution for a
+including navigating Rust code with rust-analyzer. We'd def take a contribution for a
 codespaces template, though.
 
 ### github.dev
@@ -142,21 +142,18 @@ change!
   with `{message}, ({@contributor, #X})` where `X` is the PR number.
   - If there's a missing entry, a follow-up PR containing just the changelog
     entry is welcome.
-- We're experimenting with using the
-  [Conventional Commits](https://www.conventionalcommits.org) message format,
-  enforced through
+- We're using [Conventional Commits](https://www.conventionalcommits.org)
+  message format, enforced through
   [action-semantic-pull-request](https://github.com/amannn/action-semantic-pull-request).
-  This would let us generate Changelogs automatically. The check is not required
-  to pass at the moment.
 
 ### Merges
 
 - **We merge any code that makes PRQL better**
 - A PR doesn't need to be perfect to be merged; it doesn't need to solve a big
   problem. It needs to:
-  - be in the right direction
-  - make incremental progress
-  - be explicit on its current state, so others can continue the progress
+  - be in the right direction,
+  - make incremental progress,
+  - be explicit on its current state, so others can continue the progress.
 - If you have merge permissions, and are reasonably confident that a PR is
   suitable to merge (whether or not you're the author), feel free to merge.
   - If you don't have merge permissions and have authored a few PRs, ask and ye
@@ -166,6 +163,9 @@ change!
     progress.
   - If a change breaks functionality without breaking tests, our tests were
     insufficient.
+  - If a change breaks existing tests (for example, changing an external API),
+    that indicates we should be careful about merging a change, including
+    soliciting others' views.
 - We use PR reviews to give general context, offer specific assistance, and
   collaborate on larger decisions.
   - Reviews around 'nits' like code formatting / idioms / etc are very welcome.
@@ -201,17 +201,17 @@ Installation and usage instructions for building and running the
 `prql-compiler`.
 
 **[prql-java](https://github.com/PRQL/prql/blob/main/prql-java/README.md)**:
-Rust bindings to the `prql-compiler` rust library.
+Rust bindings to the `prql-compiler` Rust library.
 
 **[prql-js](https://github.com/PRQL/prql/blob/main/prql-js/README.md)**:
-Javascript bindings to the `prql-compiler` rust library.
+Javascript bindings to the `prql-compiler` Rust library.
 
 **[prql-lib](https://github.com/PRQL/prql/blob/main/prql-lib/README.md)**:
-Generates `.a` and `.so` libraries from the `prql-compiler` rust library for
+Generates `.a` and `.so` libraries from the `prql-compiler` Rust library for
 bindings to other languages
 
 **[prql-python](https://github.com/PRQL/prql/blob/main/prql-python/README.md)**:
-Python bindings to the `prql-compiler` rust library.
+Python bindings to the `prql-compiler` Rust library.
 
 **[website](https://github.com/PRQL/prql/blob/main/website/README.md)**: Our
 website, hosted at <https://prql-lang.org>, built with `hugo`.
@@ -220,14 +220,13 @@ website, hosted at <https://prql-lang.org>, built with `hugo`.
 
 We use a pyramid of tests — we have fast, focused tests at the bottom of the
 pyramid, which give us low latency feedback when developing, and then slower,
-broader tests which ensure that we don't miss anything as PRQL develops[^1].
+broader tests which ensure that we don't miss anything as PRQL
+develops{{footnote: Our approach is very consistent with
+**[@matklad](https://github.com/matklad)**'s advice, in his excellent blog
+post [How to
+Test](https://matklad.github.io//2021/05/31/how-to-test.html).}}.
 
 <!-- markdownlint-disable MD053 -->
-
-[^1]:
-    Our approach is very consistent with
-    **[@matklad](https://github.com/matklad)**'s advice, in his excellent blog
-    post [How to Test](https://matklad.github.io//2021/05/31/how-to-test.html).
 
 > **Note**
 >
@@ -252,18 +251,23 @@ Our tests, from the bottom of the pyramid to the top:
   on GitHub on every commit; any changes they make are added onto the branch
   automatically in an additional commit.
 
-- **Unit tests & inline insta snapshots** — like most projects, we rely on unit
-  tests to rapidly check that our code basically works. We extensively use
+- **Unit tests & inline insta snapshots** — we rely on unit tests to rapidly
+  check that our code basically works. We extensively use
   [Insta](https://insta.rs/), a snapshot testing tool which writes out the
   values generated by our code, making it fast & simple to write and modify
-  tests[^3].
+  tests{{footnote:
+  [Here's an example of an insta test](https://github.com/PRQL/prql/blob/0.2.2/prql-compiler/src/parser.rs#L580-L605)
+  — note that only the initial line of each test is written by us; the
+  remainder is filled in by insta.}}
 
   These are the fastest tests which run our code; they're designed to run on
-  every save while you're developing. We include a `task` which does this (thy
-  full command run on every save is
-  `cargo insta test --accept -p prql-compiler --lib`):
+  every save while you're developing. We include a `task` which does this:
 
   ```sh
+  task test-rust-fast
+  # or
+  cargo insta test --accept -p prql-compiler --lib
+  # or, to run on every change:
   task -w test-rust-fast
   ```
 
@@ -282,7 +286,7 @@ inconsistent in watchexec. Let's revert back if it gets solved.
     Breaking this down:
 
     - `RUST_BACKTRACE=1` will print a full backtrace, including where an error
-      value was created, for rust tests which return `Result`s.
+      value was created, for Rust tests which return `Result`s.
     - `watchexec -e rs,toml,pest,md -cr --ignore='target/**' --` will run the
       subsequent command on any change to files with extensions which we are
       generally editing.
@@ -297,31 +301,25 @@ inconsistent in watchexec. Let's revert back if it gets solved.
       get into a loop of writing snapshot files, triggering a change, writing a
       snapshot file, etc. -->
 
-[^3]:
-    [Here's an example of an insta test](https://github.com/PRQL/prql/blob/0.2.2/prql-compiler/src/parser.rs#L580-L605)
-    — note that only the initial line of each test is written by us; the
-    remainder is filled in by insta.
-
-- **[Integration tests](https://github.com/PRQL/prql/blob/main/book/src/integrations/README.md)**
-  — these run tests against real databases, to ensure we're producing correct
-  SQL.
-
 - **[Examples](https://github.com/PRQL/prql/blob/main/book/tests/snapshot.rs)**
   — we compile all examples in the PRQL Book, to test that they produce the SQL
   we expect, and that changes to our code don't cause any unexpected
   regressions.
 
-- **[GitHub Actions on every commit](https://github.com/PRQL/prql/blob/main/.github/workflows/pull-request.yaml)**
-  — we run tests on `prql-compiler` for standard & wasm targets, and the
-  examples in the book on every pull request every time a commit is pushed.
-  These are designed to run in under two minutes, and we should be reassessing
-  their scope if they grow beyond that. Once these pass, a pull request can be
-  merged.
+- **[Integration tests](https://github.com/PRQL/prql/blob/main/book/src/integrations/README.md)**
+  — these run tests against real databases, to ensure we're producing correct
+  SQL.
 
-  All tests up to this point can be run with:
+- **[GitHub Actions on every commit](https://github.com/PRQL/prql/blob/main/.github/workflows/pull-request.yaml)**
+  — we run the tests described up to this point on every commit to a pull
+  request. These are designed to run in under two minutes, and we should be
+  reassessing their scope if they grow beyond that. Once these pass, a pull
+  request can be merged.
+
+  These can be run locally with:
 
   ```sh
-  task test-all
+  task test-rust
   ```
 
 - **[GitHub Actions on specific changes](https://github.com/PRQL/prql/blob/main/.github/workflows/)**
@@ -331,7 +329,7 @@ inconsistent in watchexec. Let's revert back if it gets solved.
 - **[GitHub Actions on merge](https://github.com/PRQL/prql/blob/main/.github/workflows/test-all.yaml)**
   — we run many more tests on every merge to main. This includes testing across
   OSs, all our language bindings, our `task` tasks, a measure of test code
-  coverage, and some performance benchmarks.[^6]
+  coverage, and some performance benchmarks.
 
   We can run these tests before a merge by adding a label `pr-test-all` to the
   PR.
@@ -339,26 +337,11 @@ inconsistent in watchexec. Let's revert back if it gets solved.
   If these tests fail after merging, we revert the merged commit before fixing
   the test and then re-reverting.
 
-[^6]:
-    We reference "actions", such as
-    [`build-prql-python`](https://github.com/PRQL/prql/blob/main/.github/actions/build-prql-python/action.yaml)
-    from workflows. We need to use these actions since workflow calls can only
-    have a depth of 2 (i.e. workflow can call workflows, but those workflows
-    can't call other workflows). We occasionally copy & paste small amounts of
-    yaml where we don't want to abstract something tiny into another action.
+  Most of these will run locally with:
 
-    An alternative approach would be to have all jobs in a single workflow which
-    is called on every change, and then each job contains all its filtering
-    logic. So `pull-request.yaml` and `test-all.yaml` would be a single file,
-    and `test-python` would a job that has an `if` containing a) path changes,
-    b) a branch condition for `main`, and c) a PR label filter. That would be a
-    "flatter" approach — each job contains all its own criteria. The downside
-    would less abstraction, more verbose jobs, and a long list of ~25/30 skipped
-    jobs on every PR (since each job is skipped, rather than never started).
-
-    Ideally we wouldn't have to make these tradeoffs — GHA would offer an
-    arbitrary DAG of workflows, with filters at each level, and a UI that less
-    prominently displays workflows which aren't designed to run.
+  ```sh
+  task test-all
+  ```
 
 - **[GitHub Actions nightly](https://github.com/PRQL/prql/blob/main/.github/workflows/nightly.yaml)**
   — we run tests that take a long time or are unrelated to code changes, such as
@@ -373,6 +356,21 @@ raise an issue.
 
 ---
 
+## Website
+
+The website is published together with the book and the playground, and is
+automatically built and released on any push to the `web` branch.
+
+The `web` branch points to the latest release plus any website-specific fixes.
+That way, the compiler behavior in the playground matches the latest release
+while allowing us to fix mistakes with a tighter loop than every release.
+
+Fixes to the playground, book, or website should have a `pr-backport-web` label
+added to their PR — a bot will then open another PR onto the `web` branch once
+the initial branch merges.
+
+---
+
 ## Releasing
 
 Currently we release in a semi-automated way:
@@ -381,19 +379,32 @@ Currently we release in a semi-automated way:
    [Changelog](https://github.com/PRQL/prql/blob/main/CHANGELOG.md). GitHub will
    produce a draft version at <https://github.com/PRQL/prql/releases/new>,
    including "New Contributors".
+
+   We can use this script to generate the first line:
+
+   ```sh
+   echo "This release has $(git rev-list --count $(git rev-list --tags --max-count=1)..) commits from $(git shortlog --summary $(git rev-list --tags --max-count=1).. | wc -l | tr -d '[:space:]') contributors. Selected changes:"
+   ```
+
 2. Run `cargo release version patch -x && cargo release replace -x` to bump the
    versions, then PR the resulting commit.
 3. After merging, go to
-   [Draft a new release](https://github.com/PRQL/prql/releases/new)[^perms],
-   copy the changelog entry into the release description[^wrap], enter the tag
-   to be created, and hit "Publish".
+   [Draft a new release](https://github.com/PRQL/prql/releases/new){{footnote: Only
+   maintainers have access to this page.}}, copy the changelog entry into the release
+   description{{footnote: Unfortunately GitHub's markdown parser
+    interprets linebreaks as newlines. I haven't found a better way of editing
+    the markdown to look reasonable than manually editing the text.}}, enter the
+   tag to be created, and hit "Publish".
 4. From there, both the tag and release is created and all packages are
    published automatically based on our
    [release workflow](https://github.com/PRQL/prql/blob/main/.github/workflows/release.yaml).
-5. Add in the sections for a new Changelog:
+5. Update Issue <https://github.com/PRQL/prql/issues/1> so that people will be
+   notified of the change.
+
+6. Add in the sections for a new Changelog:
 
    ```md
-   ## 0.4.X — [unreleased]
+   ## 0.5.X — [unreleased]
 
    **Features**:
 
@@ -413,8 +424,4 @@ Currently we release in a semi-automated way:
 We may make this more automated in future; e.g. automatic changelog creation.
 
 [^wrap]:
-    Unfortunately GitHub's markdown parser interprets linebreaks as newlines. I
-    haven't found a better way of editing the markdown to look reasonable than
-    manually editing the text.
-
-[^perms]: Only maintainers have access to this page.
+[^perms]:
