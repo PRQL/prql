@@ -48,6 +48,17 @@ describe("prql-js", () => {
       const res = prql.compile("from a | take 10", opts);
       assert.equal(res, "SELECT TOP (10) * FROM a");
     });
+
+    it("CompileOptions should be preferred and should ignore target in header", () => {
+      const opts = new prql.CompileOptions();
+      opts.target = "sql.mssql";
+      opts.format = false;
+      opts.signature_comment = false;
+
+      const res = prql.compile("prql target:sql.sqlite\nfrom a | take 10", opts);
+      assert(res.includes("SELECT TOP (10) * FROM a"));
+      assert(res.includes("target:sql.mssql"));
+    });
   });
 
   describe("prql_to_pl", () => {
