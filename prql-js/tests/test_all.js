@@ -55,7 +55,10 @@ describe("prql-js", () => {
       opts.format = false;
       opts.signature_comment = true;
 
-      const res = prql.compile("prql target:sql.sqlite\nfrom a | take 10", opts);
+      const res = prql.compile(
+        "prql target:sql.sqlite\nfrom a | take 10",
+        opts
+      );
       assert(res.includes("SELECT TOP (10) * FROM a"));
       assert(res.includes("target:sql.mssql"));
     });
