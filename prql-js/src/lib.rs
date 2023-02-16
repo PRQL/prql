@@ -4,7 +4,7 @@ mod utils;
 
 use std::str::FromStr;
 
-use prql_compiler::{sql::Dialect, Target};
+use prql_compiler::Target;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
