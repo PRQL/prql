@@ -6,15 +6,14 @@ use crate::ast::pl::*;
 pub enum Token {
     NewLine,
 
-    Ident(String),
-    Keyword(String),
-    Literal(Literal),
+    Ident,
+    Keyword,
+    Literal,
 
-    Range { bind_left: bool, bind_right: bool },
-    Interpolation(char, String),
+    Interpolation,
 
     // this contains 3 bytes at most, we should replace it with SmallStr
-    Control(String),
+    Control,
 }
 
 pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error = Simple<char>> {
@@ -32,43 +31,32 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
         just("or").then_ignore(end_expr()),
         just("??"),
     ))
-    .map(|x| x.to_string())
-    .map(Token::Control);
+    .to(Token::Control);
 
-    let control = one_of("></%=+-*[]().,:|!")
-        .map(|c: char| c.to_string())
-        .map(Token::Control);
+    let control = one_of("></%=+-*[]().,:|!").to(Token::Control);
 
-    let ident = ident_part().map(Token::Ident);
+    let ident = ident_part().to(Token::Ident);
 
     let keyword = choice((just("func"), just("let"), just("switch"), just("prql")))
         .then_ignore(end_expr())
-        .map(|x| x.to_string())
-        .map(Token::Keyword);
+        .to(Token::Keyword);
 
-    let literal = literal().map(Token::Literal);
+    let literal = literal().to(Token::Literal);
 
     // s-string and f-strings
     let interpolation = one_of("sf")
         .then(quoted_string(true))
-        .map(|(c, s)| Token::Interpolation(c, s));
-
-    let range = just("..").to(Token::Range {
-        bind_left: true,
-        bind_right: true,
-    });
+        .to(Token::Interpolation);
 
     let token = choice((
         new_line.clone(),
         control_multi,
-        range,
         interpolation,
         control,
         literal,
         keyword,
         ident,
-    ))
-    .recover_with(skip_then_retry_until([]).skip_start());
+    ));
 
     let comment = just('#').then(none_of('\n').repeated());
     let comments = comment
@@ -87,18 +75,18 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
         .then_ignore(end())
 }
 
-pub fn ident_part() -> impl Parser<char, String, Error = Simple<char>> {
+pub fn ident_part() -> impl Parser<char, (), Error = Simple<char>> {
     let plain = filter(|c: &char| c.is_ascii_alphabetic() || *c == '_' || *c == '$')
         .map(Some)
         .chain::<char, Vec<_>, _>(
             filter(|c: &char| c.is_ascii_alphanumeric() || *c == '_').repeated(),
         )
-        .collect();
+        .ignored();
 
     let backticks = just('`')
         .ignore_then(none_of('`').repeated())
         .then_ignore(just('`'))
-        .collect::<String>();
+        .ignored();
 
     plain.or(backticks)
 }
@@ -125,24 +113,14 @@ fn literal() -> impl Parser<char, Literal, Error = Simple<char>> {
         .chain::<char, _, _>(integer)
         .chain::<char, _, _>(frac.or_not().flatten())
         .chain::<char, _, _>(exp.or_not().flatten())
-        .try_map(|chars, span| {
-            let str = chars.into_iter().filter(|c| *c != '_').collect::<String>();
-
-            if let Ok(i) = str.parse::<i64>() {
-                Ok(Literal::Integer(i))
-            } else if let Ok(f) = str.parse::<f64>() {
-                Ok(Literal::Float(f))
-            } else {
-                Err(Simple::custom(span, "invalid number"))
-            }
-        })
+        .try_map(|chars, span| Ok(Literal::Null))
         .labelled("number");
 
-    let string = quoted_string(true).map(Literal::String);
+    let string = quoted_string(true).to(Literal::Null);
 
     let raw_string = just("r")
         .ignore_then(quoted_string(false))
-        .map(Literal::String);
+        .to(Literal::Null);
 
     let bool = (just("true").to(true))
         .or(just("false").to(false))
@@ -164,16 +142,7 @@ fn literal() -> impl Parser<char, Literal, Error = Simple<char>> {
             just("years"),
         )))
         .then_ignore(end_expr())
-        .try_map(|(number, unit), span| {
-            let str = number.into_iter().filter(|c| *c != '_').collect::<String>();
-            if let Ok(n) = str.parse::<i64>() {
-                let unit = unit.to_string();
-                Ok(ValueAndUnit { n, unit })
-            } else {
-                Err(Simple::custom(span, "invalid number"))
-            }
-        })
-        .map(Literal::ValueAndUnit);
+        .to(Literal::Null);
 
     let date_inner = digits(4)
         .chain(just('-'))
@@ -216,22 +185,19 @@ fn literal() -> impl Parser<char, Literal, Error = Simple<char>> {
     let date = just('@')
         .ignore_then(date_inner.clone())
         .then_ignore(end_expr())
-        .collect::<String>()
-        .map(Literal::Date);
+        .to(Literal::Null);
 
     let time = just('@')
         .ignore_then(time_inner.clone())
         .then_ignore(end_expr())
-        .collect::<String>()
-        .map(Literal::Time);
+        .to(Literal::Null);
 
     let datetime = just('@')
         .ignore_then(date_inner)
         .chain(just('T'))
         .chain::<char, _, _>(time_inner)
         .then_ignore(end_expr())
-        .collect::<String>()
-        .map(Literal::Timestamp);
+        .to(Literal::Null);
 
     choice((
         string,
@@ -246,7 +212,7 @@ fn literal() -> impl Parser<char, Literal, Error = Simple<char>> {
     ))
 }
 
-fn quoted_string(escaped: bool) -> impl Parser<char, String, Error = Simple<char>> {
+fn quoted_string(escaped: bool) -> impl Parser<char, (), Error = Simple<char>> {
     // I don't know how this could be simplified and implemented for n>3 in general
     choice((
         quoted_string_inner(r#""""""""#, escaped),
@@ -260,7 +226,7 @@ fn quoted_string(escaped: bool) -> impl Parser<char, String, Error = Simple<char
         quoted_string_inner(r#"'''"#, escaped),
         quoted_string_inner(r#"'"#, escaped),
     ))
-    .collect::<String>()
+    .ignored()
     .labelled("string")
 }
 
@@ -322,7 +288,7 @@ fn end_expr() -> impl Parser<char, (), Error = Simple<char>> {
 
 impl Token {
     pub fn ctrl<S: ToString>(s: S) -> Self {
-        Token::Control(s.to_string())
+        Token::Control
     }
 }
 
@@ -343,27 +309,14 @@ impl std::fmt::Display for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::NewLine => write!(f, "new line"),
-            Self::Ident(arg0) => {
-                if arg0.is_empty() {
-                    write!(f, "an identifier")
-                } else {
-                    write!(f, "`{arg0}`")
-                }
+            Self::Ident => {
+                write!(f, "an identifier")
             }
-            Self::Keyword(arg0) => write!(f, "keyword {arg0}"),
-            Self::Literal(arg0) => write!(f, "{arg0}"),
-            Self::Control(arg0) => write!(f, "{arg0}"),
-            Self::Range {
-                bind_left,
-                bind_right,
-            } => write!(
-                f,
-                "'{}..{}'",
-                if *bind_left { "" } else { " " },
-                if *bind_right { "" } else { " " }
-            ),
-            Self::Interpolation(c, s) => {
-                write!(f, "{c}\"{}\"", s)
+            Self::Keyword => write!(f, "keyword"),
+            Self::Literal => write!(f, "literal"),
+            Self::Control => write!(f, "control"),
+            Self::Interpolation => {
+                write!(f, "Interpolation")
             }
         }
     }

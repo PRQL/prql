@@ -21,11 +21,9 @@ use crate::error::{Error, Errors, Reason};
 pub fn parse(string: &str) -> Result<Vec<Stmt>> {
     let mut errors = Vec::new();
 
-    let (tokens, lex_errors) = Parser::parse_recovery(&lexer::lexer(), string);
+    let tokens = Parser::parse(&lexer::lexer(), string).unwrap();
 
     let tokens: Option<Vec<(_, _)>> = None;
-
-    errors.extend(lex_errors.into_iter().map(convert_char_error));
 
     let ast = if let Some(tokens) = tokens {
         let len = string.chars().count();
@@ -125,17 +123,15 @@ mod common {
     use crate::{ast::pl::*, Span};
 
     pub fn ident_part() -> impl Parser<Token, String, Error = Simple<Token>> {
-        select! { Token::Ident(ident) => ident }.map_err(|e: Simple<Token>| {
-            Simple::expected_input_found(
-                e.span(),
-                [Some(Token::Ident("".to_string()))],
-                e.found().cloned(),
-            )
-        })
+        select! { Token::Ident => () }
+            .map(|()| "".to_string())
+            .map_err(|e: Simple<Token>| {
+                Simple::expected_input_found(e.span(), [Some(Token::Ident)], e.found().cloned())
+            })
     }
 
     pub fn keyword(kw: &'static str) -> impl Parser<Token, (), Error = Simple<Token>> + Clone {
-        just(Token::Keyword(kw.to_string())).ignored()
+        just(Token::Keyword).ignored()
     }
 
     pub fn new_line() -> impl Parser<Token, (), Error = Simple<Token>> + Clone {

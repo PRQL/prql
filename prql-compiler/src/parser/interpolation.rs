@@ -21,9 +21,9 @@ pub fn parse(
                     offset_span(err.span(), span_offset),
                     err.expected()
                         .cloned()
-                        .map(|ch| ch.map(|c| Token::Control(c.to_string())))
+                        .map(|ch| ch.map(|c| Token::Control))
                         .collect_vec(),
-                    err.found().cloned().map(|c| Token::Control(c.to_string())),
+                    err.found().cloned().map(|c| Token::Control),
                 )
             })
             .collect_vec()),
@@ -34,25 +34,21 @@ fn parser(span_offset: usize) -> impl Parser<char, Vec<InterpolateItem>, Error =
     let expr = ident_part()
         .separated_by(just('.'))
         .delimited_by(just('{'), just('}'))
-        .map(Ident::from_path)
-        .map(ExprKind::Ident)
-        .map_with_span(move |e, s| into_expr(e, offset_span(s, span_offset)))
-        .map(Box::new)
-        .map(InterpolateItem::Expr);
+        .ignored();
 
     let escape = (just("{{").to('{'))
         .chain(just("}}").not().repeated())
         .chain(just("}}").to('}'))
-        .collect::<String>()
-        .map(InterpolateItem::String);
+        .ignored();
 
-    let string = none_of('{')
+    let string = none_of('{').repeated().at_least(1).ignored();
+
+    escape
+        .or(expr)
+        .or(string)
         .repeated()
-        .at_least(1)
-        .collect::<String>()
-        .map(InterpolateItem::String);
-
-    escape.or(expr).or(string).repeated().then_ignore(end())
+        .then_ignore(end())
+        .to(vec![])
 }
 
 fn offset_span(mut span: std::ops::Range<usize>, span_offset: usize) -> std::ops::Range<usize> {
