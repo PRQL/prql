@@ -6,7 +6,7 @@ A summary of PRQL syntax
 
 <!-- markdownlint-disable MD033 — the `|` characters need to be escaped, and surrounded with tags rather than backticks   -->
 
-<!-- I can't seem to get "Quoted identifies" to work without a space between the backticks. VSCode will preview ` `` ` correctly, but not mdbook -->
+<!-- I can't seem to get "Quoted identifies" to work without a space between the backticks. VS Code will preview ` `` ` correctly, but not mdbook -->
 
 <!-- TODO: assigns links to select, aliases to join, potentially we should have explicit sections for them?  -->
 

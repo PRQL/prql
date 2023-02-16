@@ -14,7 +14,7 @@ pub fn expr_call() -> impl Parser<Token, Expr, Error = Simple<Token>> {
 
 pub fn expr() -> impl Parser<Token, Expr, Error = Simple<Token>> + Clone {
     recursive(|expr| {
-        let literal = select! { Token::Literal(lit) => ExprKind::Literal(lit) };
+        let literal = select! { Token::Literal => ExprKind::Literal(Literal::Null) };
 
         let ident_kind = ident().map(ExprKind::Ident);
 
@@ -57,8 +57,7 @@ pub fn expr() -> impl Parser<Token, Expr, Error = Simple<Token>> + Clone {
 
         let interpolation =
             select! {
-                Token::Interpolation('s', string) => (ExprKind::SString as fn(_) -> _, string),
-                Token::Interpolation('f', string) => (ExprKind::FString as fn(_) -> _, string),
+                Token::Interpolation => (ExprKind::SString as fn(_) -> _, "".to_string()),
             }
             .validate(|(finish, string), span: std::ops::Range<usize>, emit| {
                 match interpolation::parse(string, span.start + 2) {
@@ -100,26 +99,7 @@ pub fn expr() -> impl Parser<Token, Expr, Error = Simple<Token>> + Clone {
             .boxed();
 
         // Range
-        let term_box = term.clone().map(Box::new).map(Some);
-        let term = choice((
-            // x..y
-            term_box
-                .clone()
-                .then_ignore(select! { Token::Range { bind_left: true, bind_right: true } => () })
-                .then(term_box.clone()),
-            // x..
-            term_box
-                .clone()
-                .then(select! { Token::Range { bind_left: true, .. } => None }),
-            // ..y
-            select! { Token::Range { bind_right: true, .. } => None }.then(term_box),
-            // ..
-            select! { Token::Range { .. } => (None, None) },
-        ))
-        .map(|(start, end)| Range { start, end })
-        .map(ExprKind::Range)
-        .map_with_span(into_expr)
-        .or(term);
+        // yanked
 
         // Binary operators
         let expr = term;

@@ -20,7 +20,7 @@ For ease of use to users, we need pre-build dynamic libs for different
 platforms. This process is combined into the build of Java module.
 
 We use [Maven](https://maven.apache.org/) to build the Java library. To add the
-rust cross compilation into the maven build process, we add the following XML
+Rust cross compilation into the Maven build process, we add the following XML
 segment to the `pom.xml`:
 
 ```xml

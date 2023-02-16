@@ -52,7 +52,7 @@ group [title, country] (                      # `group` runs a pipeline over eac
   ]
 )
 filter sum_gross_cost > 100_000               # `filter` replaces both of SQL's `WHERE` & `HAVING`
-derive id = f"{title}_{country}"              # F-strings like python
+derive id = f"{title}_{country}"              # F-strings like Python
 derive country_code = s"LEFT(country, 2)"     # S-strings allow using SQL as an escape hatch
 sort [sum_gross_cost, -country]               # `-country` means descending order
 take 1..20                                    # Range expressions (also valid here as `take 20`)
@@ -102,8 +102,8 @@ To stay in touch with PRQL:
   run PRQL in Jupyter, either against a DB, or a Pandas DataFrame / CSV /
   Parquet file through DuckDB.
 - [pyprql Docs](https://pyprql.readthedocs.io) — the pyprql documentation, the
-  python bindings to PRQL, including Jupyter magic.
-- [PRQL VSCode Extension](https://marketplace.visualstudio.com/items?itemName=prql-lang.prql-vscode)
+  Python bindings to PRQL, including Jupyter magic.
+- [PRQL VS Code extension](https://marketplace.visualstudio.com/items?itemName=prql-lang.prql-vscode)
 - [prql-js](https://www.npmjs.com/package/prql-js) — JavaScript bindings for
   PRQL.
 

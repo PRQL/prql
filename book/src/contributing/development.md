@@ -54,7 +54,7 @@ website, we have two options:
 - Then run the `setup-dev` task. This runs commands from our
   [Taskfile.yml](https://github.com/PRQL/prql/blob/main/Taskfile.yml),
   installing dependencies with `cargo`, `brew`, `npm` & `pip`, and suggests some
-  VSCode extensions.
+  VS Code extensions.
 
   ```sh
   task setup-dev
@@ -81,7 +81,7 @@ website, we have two options:
   - A clang compiler, to compile the DuckDB integration tests, since we use
     [`duckdb-rs'](https://github.com/wangfenjin/duckdb-rs). To install one:
 
-    - On MacOS, install xcode with `xcode-select --install`
+    - On macOS, install xcode with `xcode-select --install`
     - On Debian Linux, `apt-get update && apt-get install clang`
     - On Windows, `duckdb-rs` isn't supported, so these tests are excluded
 
@@ -97,7 +97,7 @@ website, we have two options:
 <!--
 
 Until we set up a Codespaces, I don't think this is that helpful — it can't run any code,
-including navigating rust code with rust-analyzer. We'd def take a contribution for a
+including navigating Rust code with rust-analyzer. We'd def take a contribution for a
 codespaces template, though.
 
 ### github.dev
@@ -201,17 +201,17 @@ Installation and usage instructions for building and running the
 `prql-compiler`.
 
 **[prql-java](https://github.com/PRQL/prql/blob/main/prql-java/README.md)**:
-Rust bindings to the `prql-compiler` rust library.
+Rust bindings to the `prql-compiler` Rust library.
 
 **[prql-js](https://github.com/PRQL/prql/blob/main/prql-js/README.md)**:
-Javascript bindings to the `prql-compiler` rust library.
+Javascript bindings to the `prql-compiler` Rust library.
 
 **[prql-lib](https://github.com/PRQL/prql/blob/main/prql-lib/README.md)**:
-Generates `.a` and `.so` libraries from the `prql-compiler` rust library for
+Generates `.a` and `.so` libraries from the `prql-compiler` Rust library for
 bindings to other languages
 
 **[prql-python](https://github.com/PRQL/prql/blob/main/prql-python/README.md)**:
-Python bindings to the `prql-compiler` rust library.
+Python bindings to the `prql-compiler` Rust library.
 
 **[website](https://github.com/PRQL/prql/blob/main/website/README.md)**: Our
 website, hosted at <https://prql-lang.org>, built with `hugo`.
@@ -286,7 +286,7 @@ inconsistent in watchexec. Let's revert back if it gets solved.
     Breaking this down:
 
     - `RUST_BACKTRACE=1` will print a full backtrace, including where an error
-      value was created, for rust tests which return `Result`s.
+      value was created, for Rust tests which return `Result`s.
     - `watchexec -e rs,toml,pest,md -cr --ignore='target/**' --` will run the
       subsequent command on any change to files with extensions which we are
       generally editing.

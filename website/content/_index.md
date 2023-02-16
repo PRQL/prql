@@ -62,7 +62,7 @@ why_prql_section:
         - PRQL is easy for machines to read & write
     - title: For HackerNews enthusiasts
       content:
-        - The PRQL compiler is written in rust
+        - The PRQL compiler is written in Rust
         - We talk about "orthogonal language features" a lot
 
 showcase_section:
@@ -347,7 +347,7 @@ principles_section:
         PRQL has abstractions which make it a great platform to build on. Its
         explicit versioning allows changes without breaking
         backward-compatibility. And in the cases where PRQL doesn't yet have an
-        implementation, it allows embedding SQL with S-Strings.
+        implementation, it allows embedding SQL with s-strings.
 
     - title: "Analytical"
       main_text: "PRQL's focus is analytical queries"
