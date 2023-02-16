@@ -24,4 +24,4 @@ serde_yaml = "0.9.1"
 walkdir = "^2.3.2"
 
 [target.'cfg(not(target_family="wasm"))'.dev-dependencies]
-insta = {version = "1.26", features = ["colors", "glob", "yaml"]}
+insta = {version = "1.28", features = ["colors", "glob", "yaml"]}
