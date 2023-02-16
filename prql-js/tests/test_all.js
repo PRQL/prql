@@ -69,14 +69,13 @@ describe("prql-js", () => {
       assert.equal(opts.target, "sql.sqlite");
     });
 
-    it("should fallback to generic dialect", () => {
+    it("should fallback to the target in header", () => {
       const opts = new prql.CompileOptions();
 
       opts.target = "sql.not_existing";
-      const res = prql.compile("from a", opts);
+      const res = prql.compile("prql target:mssql\nfrom a | take 1", opts);
 
-      // target should appear in signature comment
-      assert(res.includes("target:sql.generic"));
+      assert(res.includes("TOP (1)"));
     });
   });
 
