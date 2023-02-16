@@ -247,8 +247,8 @@ tasks:
       - "prql-compiler/**/*.pest"
       - "prql-compiler/**/*.snap"
     cmds:
-      - cargo insta test --accept -p prql-compiler --lib --target=$(cargo
-        default-target)
+      - cargo insta test --accept -p prql-compiler --lib
+        --target=$(default-target)
 
   build-web:
     desc: Build the website, including the book & playground.
