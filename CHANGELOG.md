@@ -14,8 +14,6 @@
   - `and` now has a higher precedence than `or` (of same reason as the previous
     point).
   - Dates, times and timestamps have a stricter parsing rules.
-  - Ranges are now parsed as normal binary operators, which sometimes requires
-    adding parenthesis to existing expressions.
   - Jinja expressions have been removed.
   - `let`, `func`, `prql`, `switch` are now treated as keywords.
 
