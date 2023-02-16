@@ -62,7 +62,4 @@ jobs:
           runner.os == 'Linux') }}
         with:
           command: insta
-          # FIXME; for debugging
-          # args: test ${{ inputs.target_option }}
-          args: test ${{ inputs.target_option }} --accept
-      - run: git diff
+          args: test ${{ inputs.target_option }}
