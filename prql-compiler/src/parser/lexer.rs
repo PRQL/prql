@@ -53,9 +53,15 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
         .then(quoted_string(true))
         .map(|(c, s)| Token::Interpolation(c, s));
 
+    let range = just("..").to(Token::Range {
+        bind_left: true,
+        bind_right: true,
+    });
+
     let token = choice((
         new_line.clone(),
         control_multi,
+        range,
         interpolation,
         control,
         literal,
@@ -70,26 +76,14 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
         .at_least(1)
         .ignored();
 
-    let range = whitespace
-        .or_not()
-        .then(just(".."))
-        .then(whitespace.or_not())
-        .map(|((left, _), right)| Token::Range {
-            bind_left: left.is_none(),
-            bind_right: right.is_none(),
-        })
-        .map_with_span(|tok, span| (tok, span));
-
     // range needs to consume leading whitespace,
     // so whitespace following a token must not be consumed
     let ignored = comments.or(whitespace).repeated();
 
-    range
-        .or(ignored
-            .clone()
-            .ignore_then(token.map_with_span(|tok, span| (tok, span))))
+    token
+        .map_with_span(|tok, span| (tok, span))
+        .padded_by(ignored)
         .repeated()
-        .then_ignore(ignored)
         .then_ignore(end())
 }
 
