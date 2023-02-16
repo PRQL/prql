@@ -21,21 +21,21 @@ pub fn expr() -> impl Parser<Token, Expr, Error = Simple<Token>> + Clone {
         let nested_expr = pipeline(func_call(expr.clone())).boxed();
 
         let list = ident_part()
-            .then_ignore(ctrl("="))
+            .then_ignore(ctrl('='))
             .or_not()
             .then(nested_expr.clone().map_with_span(into_expr))
             .map(|(alias, expr)| Expr { alias, ..expr })
             .padded_by(new_line().repeated())
-            .separated_by(ctrl(","))
+            .separated_by(ctrl(','))
             .allow_trailing()
             .then_ignore(new_line().repeated())
-            .delimited_by(ctrl("["), ctrl("]"))
+            .delimited_by(ctrl('['), ctrl(']'))
             .recover_with(nested_delimiters(
-                Token::ctrl("["),
-                Token::ctrl("]"),
+                Token::Control('['),
+                Token::Control(']'),
                 [
-                    (Token::ctrl("["), Token::ctrl("]")),
-                    (Token::ctrl("("), Token::ctrl(")")),
+                    (Token::Control('['), Token::Control(']')),
+                    (Token::Control('('), Token::Control(')')),
                 ],
                 |_| vec![],
             ))
@@ -44,13 +44,13 @@ pub fn expr() -> impl Parser<Token, Expr, Error = Simple<Token>> + Clone {
 
         let pipeline =
             nested_expr
-                .delimited_by(ctrl("("), ctrl(")"))
+                .delimited_by(ctrl('('), ctrl(')'))
                 .recover_with(nested_delimiters(
-                    Token::ctrl("("),
-                    Token::ctrl(")"),
+                    Token::Control('('),
+                    Token::Control(')'),
                     [
-                        (Token::ctrl("["), Token::ctrl("]")),
-                        (Token::ctrl("("), Token::ctrl(")")),
+                        (Token::Control('['), Token::Control(']')),
+                        (Token::Control('('), Token::Control(')')),
                     ],
                     |_| Expr::null().kind,
                 ));
@@ -75,14 +75,14 @@ pub fn expr() -> impl Parser<Token, Expr, Error = Simple<Token>> + Clone {
         let switch = keyword("switch")
             .ignore_then(
                 func_call(expr.clone())
-                    .then_ignore(ctrl("->"))
+                    .then_ignore(just(Token::Arrow))
                     .then(func_call(expr))
                     .map(|(condition, value)| SwitchCase { condition, value })
                     .padded_by(new_line().repeated())
-                    .separated_by(ctrl(","))
+                    .separated_by(ctrl(','))
                     .allow_trailing()
                     .then_ignore(new_line().repeated())
-                    .delimited_by(ctrl("["), ctrl("]")),
+                    .delimited_by(ctrl('['), ctrl(']')),
             )
             .map(ExprKind::Switch);
 
@@ -171,7 +171,7 @@ where
     new_line()
         .repeated()
         .ignore_then(
-            expr.separated_by(ctrl("|").or(new_line().repeated().at_least(1).ignored()))
+            expr.separated_by(ctrl('|').or(new_line().repeated().at_least(1).ignored()))
                 .at_least(1)
                 .map(|mut exprs| {
                     if exprs.len() == 1 {
@@ -218,12 +218,12 @@ where
 
     let named_arg = ident_part()
         .map(Some)
-        .then_ignore(ctrl(":"))
+        .then_ignore(ctrl(':'))
         .then(expr.clone());
 
     let assign_call =
         ident_part()
-            .then_ignore(ctrl("="))
+            .then_ignore(ctrl('='))
             .then(expr.clone())
             .map(|(alias, expr)| Expr {
                 alias: Some(alias),
@@ -264,42 +264,42 @@ where
 }
 
 pub fn ident() -> impl Parser<Token, Ident, Error = Simple<Token>> {
-    let star = ctrl("*").to("*".to_string());
+    let star = ctrl('*').to("*".to_string());
 
     ident_part()
-        .chain(ctrl(".").ignore_then(ident_part().or(star)).repeated())
+        .chain(ctrl('.').ignore_then(ident_part().or(star)).repeated())
         .map(Ident::from_path::<String>)
         .labelled("identifier")
 }
 
 fn operator_unary() -> impl Parser<Token, UnOp, Error = Simple<Token>> {
-    (ctrl("+").to(UnOp::Add))
-        .or(ctrl("-").to(UnOp::Neg))
-        .or(ctrl("!").to(UnOp::Not))
-        .or(ctrl("==").to(UnOp::EqSelf))
+    (ctrl('+').to(UnOp::Add))
+        .or(ctrl('-').to(UnOp::Neg))
+        .or(ctrl('!').to(UnOp::Not))
+        .or(just(Token::Eq).to(UnOp::EqSelf))
 }
 fn operator_mul() -> impl Parser<Token, BinOp, Error = Simple<Token>> {
-    (ctrl("*").to(BinOp::Mul))
-        .or(ctrl("/").to(BinOp::Div))
-        .or(ctrl("%").to(BinOp::Mod))
+    (ctrl('*').to(BinOp::Mul))
+        .or(ctrl('/').to(BinOp::Div))
+        .or(ctrl('%').to(BinOp::Mod))
 }
 fn operator_add() -> impl Parser<Token, BinOp, Error = Simple<Token>> {
-    (ctrl("+").to(BinOp::Add)).or(ctrl("-").to(BinOp::Sub))
+    (ctrl('+').to(BinOp::Add)).or(ctrl('-').to(BinOp::Sub))
 }
 fn operator_compare() -> impl Parser<Token, BinOp, Error = Simple<Token>> {
-    (ctrl("==").to(BinOp::Eq))
-        .or(ctrl("!=").to(BinOp::Ne))
-        .or(ctrl("<=").to(BinOp::Lte))
-        .or(ctrl(">=").to(BinOp::Gte))
-        .or(ctrl("<").to(BinOp::Lt))
-        .or(ctrl(">").to(BinOp::Gt))
+    (just(Token::Eq).to(BinOp::Eq))
+        .or(just(Token::Ne).to(BinOp::Ne))
+        .or(just(Token::Lte).to(BinOp::Lte))
+        .or(just(Token::Gte).to(BinOp::Gte))
+        .or(ctrl('<').to(BinOp::Lt))
+        .or(ctrl('>').to(BinOp::Gt))
 }
 fn operator_and() -> impl Parser<Token, BinOp, Error = Simple<Token>> {
-    ctrl("and").to(BinOp::And)
+    just(Token::And).to(BinOp::And)
 }
 fn operator_or() -> impl Parser<Token, BinOp, Error = Simple<Token>> {
-    ctrl("or").to(BinOp::Or)
+    just(Token::Or).to(BinOp::Or)
 }
 fn operator_coalesce() -> impl Parser<Token, BinOp, Error = Simple<Token>> {
-    ctrl("??").to(BinOp::Coalesce)
+    just(Token::Coalesce).to(BinOp::Coalesce)
 }

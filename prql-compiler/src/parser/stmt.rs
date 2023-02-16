@@ -39,7 +39,7 @@ fn query_def() -> impl Parser<Token, Stmt, Error = Simple<Token>> {
         .ignore_then(keyword("prql"))
         .ignore_then(
             // named arg
-            ident_part().then_ignore(ctrl(":")).then(expr()).repeated(),
+            ident_part().then_ignore(ctrl(':')).then(expr()).repeated(),
         )
         .then_ignore(new_line())
         .try_map(|args, span| {
@@ -73,7 +73,7 @@ fn query_def() -> impl Parser<Token, Stmt, Error = Simple<Token>> {
 fn var_def() -> impl Parser<Token, Stmt, Error = Simple<Token>> {
     keyword("let")
         .ignore_then(ident_part())
-        .then_ignore(ctrl("="))
+        .then_ignore(ctrl('='))
         .then(expr_call().map(Box::new))
         .map(|(name, value)| VarDef { name, value })
         .map(StmtKind::VarDef)
@@ -91,10 +91,10 @@ fn function_def() -> impl Parser<Token, Stmt, Error = Simple<Token>> {
             // params
             ident_part()
                 .then(type_expr().or_not())
-                .then(ctrl(":").ignore_then(expr()).or_not())
+                .then(ctrl(':').ignore_then(expr()).or_not())
                 .repeated(),
         )
-        .then_ignore(ctrl("->"))
+        .then_ignore(just(Token::Arrow))
         .then(expr_call().map(Box::new))
         .then_ignore(new_line())
         .map(|(((name, return_ty), params), body)| {
@@ -140,8 +140,8 @@ pub fn type_expr() -> impl Parser<Token, Ty, Error = Simple<Token>> {
         });
 
         type_term
-            .separated_by(ctrl("|"))
-            .delimited_by(ctrl("<"), ctrl(">"))
+            .separated_by(ctrl('|'))
+            .delimited_by(ctrl('<'), ctrl('>'))
             .map(|mut terms| {
                 if terms.len() == 1 {
                     terms.remove(0)

@@ -13,7 +13,17 @@ pub enum Token {
     Range { bind_left: bool, bind_right: bool },
     Interpolation(char, String),
 
-    Control(String),
+    Control(char),
+
+    Arrow,       // ->
+    ArrowDouble, // =>
+    Eq,          // ==
+    Ne,          // !=
+    Gte,         // >=
+    Lte,         // <=
+    And,         // and
+    Or,          // or
+    Coalesce,    // ??
 }
 
 pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error = Cheap<char>> {
@@ -21,22 +31,18 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
     let whitespace = one_of("\t \r").repeated().at_least(1).ignored();
 
     let control_multi = choice((
-        just("->"),
-        just("=>"),
-        just("=="),
-        just("!="),
-        just(">="),
-        just("<="),
-        just("and").then_ignore(end_expr()),
-        just("or").then_ignore(end_expr()),
-        just("??"),
-    ))
-    .map(|x| x.to_string())
-    .map(Token::Control);
+        just("->").to(Token::Arrow),
+        just("=>").to(Token::ArrowDouble),
+        just("==").to(Token::Eq),
+        just("!=").to(Token::Ne),
+        just(">=").to(Token::Gte),
+        just("<=").to(Token::Lte),
+        just("and").then_ignore(end_expr()).to(Token::And),
+        just("or").then_ignore(end_expr()).to(Token::Or),
+        just("??").to(Token::Coalesce),
+    ));
 
-    let control = one_of("></%=+-*[]().,:|!")
-        .map(|c: char| c.to_string())
-        .map(Token::Control);
+    let control = one_of("></%=+-*[]().,:|!").map(Token::Control);
 
     let ident = ident_part().map(Token::Ident);
 
@@ -326,10 +332,6 @@ fn end_expr() -> impl Parser<char, (), Error = Cheap<char>> {
 }
 
 impl Token {
-    pub fn ctrl<S: ToString>(s: S) -> Self {
-        Token::Control(s.to_string())
-    }
-
     pub fn range(bind_left: bool, bind_right: bool) -> Self {
         Token::Range {
             bind_left,
@@ -365,6 +367,17 @@ impl std::fmt::Display for Token {
             Self::Keyword(arg0) => write!(f, "keyword {arg0}"),
             Self::Literal(arg0) => write!(f, "{arg0}"),
             Self::Control(arg0) => write!(f, "{arg0}"),
+
+            Self::Arrow => f.write_str("->"),
+            Self::ArrowDouble => f.write_str("=>"),
+            Self::Eq => f.write_str("=="),
+            Self::Ne => f.write_str("!="),
+            Self::Gte => f.write_str(">="),
+            Self::Lte => f.write_str("<="),
+            Self::And => f.write_str("and"),
+            Self::Or => f.write_str("or"),
+            Self::Coalesce => f.write_str("??"),
+
             Self::Range {
                 bind_left,
                 bind_right,

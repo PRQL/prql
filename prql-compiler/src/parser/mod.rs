@@ -133,8 +133,8 @@ mod common {
         just(Token::NewLine).ignored()
     }
 
-    pub fn ctrl(chars: &'static str) -> impl Parser<Token, (), Error = Simple<Token>> + Clone {
-        just(Token::ctrl(chars)).ignored()
+    pub fn ctrl(char: char) -> impl Parser<Token, (), Error = Simple<Token>> + Clone {
+        just(Token::Control(char)).ignored()
     }
 
     pub fn into_stmt(kind: StmtKind, span: std::ops::Range<usize>) -> Stmt {
