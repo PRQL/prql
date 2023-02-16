@@ -103,7 +103,7 @@ impl CompileOptions {
 
 impl From<CompileOptions> for prql_compiler::Options {
     fn from(o: CompileOptions) -> Self {
-        let target = Target::from_str(&o.target).unwrap_or(Target::Sql(Some(Dialect::Generic)));
+        let target = Target::from_str(&o.target).unwrap_or_default();
 
         prql_compiler::Options {
             format: o.format,
