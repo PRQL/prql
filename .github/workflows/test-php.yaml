@@ -16,9 +16,6 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-    defaults:
-      run:
-        working-directory: ./prql-php
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
