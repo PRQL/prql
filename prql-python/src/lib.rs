@@ -84,7 +84,8 @@ pub struct CompileOptions {
 #[pymethods]
 impl CompileOptions {
     #[new]
-    pub fn new(format: bool, target: String, signature_comment: bool) -> Self {
+    pub fn new(format: bool, signature_comment: bool, target: Option<String>) -> Self {
+        let target = target.unwrap_or_default();
         CompileOptions {
             format,
             target,
