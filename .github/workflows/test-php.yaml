@@ -22,6 +22,7 @@ jobs:
       - name: 📦 Install dependencies using Composer
         uses: php-actions/composer@v6
         with:
+          args: --working-dir=prql-php
           php_extensions: FFI
 #      - name: 🧪 PHPUnit Tests
 #        uses: php-actions/phpunit@v3
