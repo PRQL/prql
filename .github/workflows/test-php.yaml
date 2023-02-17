@@ -16,10 +16,13 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
+    defaults:
+      run:
+        working-directory: ./prql-php
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
-      - name: Composer
+      - name: Install dependencies using Composer
         uses: php-actions/composer@v6
         with:
           php_extensions: FFI
