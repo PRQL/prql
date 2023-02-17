@@ -1,0 +1,27 @@
+name: test-php
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    paths:
+      - "prql-php/**"
+      - ".github/workflows/test-php.yaml"
+  workflow_call:
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v3
+      - name: Composer
+        uses: php-actions/composer@v6
+      - name: PHPUnit Tests
+        uses: php-actions/phpunit@v3
+        with:
+          php_extensions: "FFI"
