@@ -1,5 +1,21 @@
 # PRQL Changelog
 
+## 0.5.2 — [unreleased]
+
+**Features**:
+
+**Fixes**:
+
+**Documentation**:
+
+**Web**:
+
+**Integrations**:
+
+**Internal changes**:
+
+**New Contributors**:
+
 ## 0.5.1 — [unreleased]
 
 **Features**:
