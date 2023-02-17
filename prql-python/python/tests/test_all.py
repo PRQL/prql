@@ -48,8 +48,25 @@ def test_compile_options():
     Test the CompileOptions
     """
     query_mssql = "prql target:sql.mssql\nfrom a | take 3"
-    options = prql.CompileOptions(format=False, signature_comment=False, target="foo")
+
+    options_with_known_target = prql.CompileOptions(
+        format=False, signature_comment=False, target="sql.sqlite"
+    )
+    options_without_target = prql.CompileOptions(format=False, signature_comment=False)
+    options_with_unknown_target = prql.CompileOptions(
+        format=False, signature_comment=False, target="foo"
+    )
 
     assert prql.compile(query_mssql).startswith("SELECT\n  TOP (3) *\nFROM\n  a")
+    assert (
+        prql.compile(query_mssql, options_with_known_target)
+        == "SELECT * FROM a LIMIT 3"
+    )
+    assert (
+        prql.compile(query_mssql, options_without_target) == "SELECT TOP (3) * FROM a"
+    )
     # TODO: This should be unknown target error?
-    assert prql.compile(query_mssql, options) == "SELECT * FROM a LIMIT 3"
+    assert (
+        prql.compile(query_mssql, options_with_unknown_target)
+        == "SELECT TOP (3) * FROM a"
+    )

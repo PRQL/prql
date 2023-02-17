@@ -12,10 +12,10 @@
     ]
   },
   "dependencies": {
-    "@duckdb/duckdb-wasm": "^1.20.0",
+    "@duckdb/duckdb-wasm": "^1.21.0",
     "@monaco-editor/react": "^4.4.6",
     "@testing-library/jest-dom": "^5.16.5",
-    "@testing-library/react": "^13.4.0",
+    "@testing-library/react": "^14.0.0",
     "@testing-library/user-event": "^14.4.3",
     "monaco-editor": "^0.35.0",
     "prql-js": "file:../prql-js",
