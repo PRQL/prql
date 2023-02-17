@@ -2,7 +2,7 @@
     "name": "prql/compiler",
     "description": "PRQL compiler bindings.",
     "keywords": ["prql", "sql"],
-    "homepage:" "https://prql-lang.org/",
+    "homepage": "https://prql-lang.org/",
     "type": "library",
     "license": "Apache-2.0",
     "autoload": {
