@@ -36,7 +36,7 @@
   },
   "scripts": {
     "post-install-cmd": [
-      "cd prql-php && composer install",
+      "cd prql-php && composer install"
     ]
   }
 }
