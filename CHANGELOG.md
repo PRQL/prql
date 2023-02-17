@@ -1,8 +1,11 @@
 # PRQL Changelog
 
-## 0.5.1 — [unreleased]
+## 0.5.1 — 2022-02-17
 
-**Features**:
+0.5.1 contains a few fixes, and another change to how bindings handle default
+target / dialects.
+
+This release has 53 commits from 7 contributors. Selected changes:
 
 **Fixes**:
 
@@ -15,8 +18,6 @@
 
 - Add docs on the `from_text` transform (@max-sixty, #1756)
 
-**Web**:
-
 **Integrations**:
 
 - [prql-js] Default compile target changed from `Sql(Generic)` to `Sql(None)`.
@@ -26,9 +27,9 @@
 - [prql-python] Default compile target changed from `Sql(Generic)` to
   `Sql(None)`. (@eitsupi, #1861)
 
-**Internal changes**:
-
 **New Contributors**:
+
+- @vanillajonathan, with #1766
 
 ## 0.5.0 — 2022-02-08
 
