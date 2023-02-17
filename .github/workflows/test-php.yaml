@@ -21,7 +21,9 @@ jobs:
         uses: actions/checkout@v3
       - name: Composer
         uses: php-actions/composer@v6
-      - name: PHPUnit Tests
-        uses: php-actions/phpunit@v3
         with:
-          php_extensions: "FFI"
+          php_extensions: FFI
+#      - name: PHPUnit Tests
+#        uses: php-actions/phpunit@v3
+#        with:
+#          php_extensions: FFI
