@@ -21,7 +21,7 @@ declare(strict_types=1);
 namespace Prql\Compiler;
 
 /**
- * Compilation options for SQL backend of the compiler.
+ * The PRQL compiler transpiles PRQL queries.
  *
  * @package Prql\Compiler
  * @author  PRQL
