@@ -20,13 +20,13 @@ edition = "2021"
 license = "Apache-2.0"
 repository = "https://github.com/PRQL/prql"
 rust-version = "1.65.0"
-version = "0.5.0"
+version = "0.5.1"
 
 [profile.release.package.prql-js]
 # Tell `rustc` to optimize for small code size.
 opt-level = "s"
 
 [workspace.metadata.release]
-allow_branch = ["*"]
+allow-branch = ["*"]
 consolidate-commits = true
 pre-release-commit-message = "chore: Release {{version}}"
