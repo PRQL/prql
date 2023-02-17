@@ -1,7 +1,7 @@
 #![cfg(not(target_family = "wasm"))]
 use std::str::FromStr;
 
-use prql_compiler::{self, sql::Dialect, IntoOnly, Target};
+use prql_compiler::{self, IntoOnly, Target};
 use pyo3::{exceptions, prelude::*};
 
 #[pyfunction]
