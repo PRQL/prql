@@ -24,7 +24,7 @@ jobs:
         with:
           args: --working-dir=prql-php
           php_extensions: FFI
-#      - name: 🧪 PHPUnit Tests
-#        uses: php-actions/phpunit@v3
-#        with:
-#          php_extensions: FFI
+      - name: 🧪 PHPUnit Tests
+        uses: php-actions/phpunit@v3
+        with:
+          php_extensions: FFI
