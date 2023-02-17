@@ -33,10 +33,5 @@
   },
   "require-dev": {
     "phpunit/phpunit": "^10"
-  },
-  "scripts": {
-    "post-install-cmd": [
-      "cd prql-php && composer install"
-    ]
   }
 }
