@@ -19,10 +19,12 @@
 
 **Integrations**:
 
-- [prql-python] Compilation options can now be specified from Python. (@eitsupi,
-  #1807)
 - [prql-js] Default compile target changed from `Sql(Generic)` to `Sql(None)`.
   (@eitsupi, #1856)
+- [prql-python] Compilation options can now be specified from Python. (@eitsupi,
+  #1807)
+- [prql-python] Default compile target changed from `Sql(Generic)` to `Sql(None)`.
+  (@eitsupi, #1861)
 
 **Internal changes**:
 
