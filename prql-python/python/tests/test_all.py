@@ -52,4 +52,4 @@ def test_compile_options():
 
     assert prql.compile(query_mssql).startswith("SELECT\n  TOP (3) *\nFROM\n  a")
     # TODO: This should be unknown target error?
-    assert prql.compile(query_mssql, options) == "SELECT * FROM a LIMIT 3"
+    assert prql.compile(query_mssql, options) == "SELECT TOP (3) * FROM a"
