@@ -81,12 +81,12 @@ final class Compiler
             FFI::memcpy($ffi_options->target, $options->target, $target_len);
             FFI::free($ffi_options->target);
         }
-        
+
         $out = str_pad("", 1024);
         if ($libprql->compile($prql_query, \FFI::addr($$ffi_options)) !== 0) {
             throw new \InvalidArgumentException("Could not compile query.");
         }
-        
+
         return trim($out);
     }
 
@@ -116,7 +116,7 @@ final class Compiler
             "int to_json(char *prql_query, char *json_query);",
             __DIR__ . $library
         );
-        
+
         $out = str_pad("", 1024);
         if ($libprql->to_json($prql_query, $out) !== 0) {
             throw new \InvalidArgumentException("Could not compile query.");
@@ -151,12 +151,12 @@ final class Compiler
             "int to_sql(char *prql_query, char *sql_query);",
             __DIR__ . $library
         );
-        
+
         $out = str_pad("", 1024);
         if ($libprql->to_sql($prql_query, $out) !== 0) {
             throw new \InvalidArgumentException("Could not compile query.");
         }
-        
+
         return trim($out);
     }
 }
