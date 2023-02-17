@@ -28,6 +28,9 @@
     "source": "https://github.com/PRQL/prql",
     "docs": "https://prql-lang.org/book/"
   },
+  "require": {
+    "ext-ffi": "*"
+  },
   "require-dev": {
     "phpunit/phpunit": "^10"
   }
