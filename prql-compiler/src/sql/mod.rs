@@ -70,6 +70,8 @@ struct Context {
     /// - WHERE needs `pre_projection=true`, but
     /// - ORDER BY needs `pre_projection=false`.
     pub pre_projection: bool,
+
+    pub ctes: Vec<sqlparser::ast::Cte>
 }
 
 #[cfg(test)]

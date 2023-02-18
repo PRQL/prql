@@ -6,8 +6,7 @@ use lazy_static::lazy_static;
 use regex::Regex;
 use sqlparser::ast::{
     self as sql_ast, BinaryOperator, DateTimeField, Function, FunctionArg, FunctionArgExpr, Ident,
-    Join, JoinConstraint, JoinOperator, ObjectName, OrderByExpr, SelectItem, TableAlias,
-    TableFactor, Top, UnaryOperator, Value, WindowFrameBound, WindowSpec,
+    ObjectName, OrderByExpr, SelectItem, Top, UnaryOperator, Value, WindowFrameBound, WindowSpec,
 };
 use sqlparser::keywords::{
     Keyword, ALL_KEYWORDS, ALL_KEYWORDS_INDEX, RESERVED_FOR_COLUMN_ALIAS, RESERVED_FOR_TABLE_ALIAS,
@@ -15,8 +14,7 @@ use sqlparser::keywords::{
 use std::collections::HashSet;
 
 use crate::ast::pl::{
-    BinOp, ColumnSort, InterpolateItem, JoinSide, Literal, Range, SortDirection, TableExternRef,
-    WindowFrame, WindowKind,
+    BinOp, ColumnSort, InterpolateItem, Literal, Range, SortDirection, WindowFrame, WindowKind,
 };
 use crate::ast::rq::*;
 use crate::error::{Error, Span};
@@ -231,7 +229,7 @@ pub(super) fn translate_cid(cid: CId, ctx: &mut Context) -> Result<sql_ast::Expr
 
             _ => {
                 let name = ctx.anchor.column_names.get(&cid).cloned();
-                name.expect("a name of this column to be set before generating SQL")
+                name.expect("name of this column has not been to be set before generating SQL")
             }
         };
 
@@ -241,38 +239,6 @@ pub(super) fn translate_cid(cid: CId, ctx: &mut Context) -> Result<sql_ast::Expr
 
         let ident = sql_ast::Expr::CompoundIdentifier(ident);
         Ok(ident)
-    }
-}
-
-pub(super) fn table_factor_of_tid(table_ref: TableRef, ctx: &Context) -> TableFactor {
-    let decl = ctx.anchor.table_decls.get(&table_ref.source).unwrap();
-
-    let name = match &decl.relation.kind {
-        // special case for anchor
-        RelationKind::ExternRef(TableExternRef::Anchor(anchor_id)) => {
-            sql_ast::ObjectName(vec![Ident::new(anchor_id.clone())])
-        }
-
-        // base case
-        _ => {
-            let decl_name = decl.name.clone().unwrap();
-
-            sql_ast::ObjectName(translate_ident(Some(decl_name), None, ctx))
-        }
-    };
-
-    TableFactor::Table {
-        name,
-        alias: if decl.name == table_ref.name {
-            None
-        } else {
-            table_ref.name.map(|ident| TableAlias {
-                name: translate_ident_part(ident, ctx),
-                columns: vec![],
-            })
-        },
-        args: None,
-        with_hints: vec![],
     }
 }
 
@@ -623,23 +589,6 @@ pub(super) fn translate_column_sort(
     })
 }
 
-pub(super) fn translate_join(
-    (side, with, filter): (JoinSide, TableRef, Expr),
-    ctx: &mut Context,
-) -> Result<Join> {
-    let constraint = JoinConstraint::On(translate_expr_kind(filter.kind, ctx)?);
-
-    Ok(Join {
-        relation: table_factor_of_tid(with, ctx),
-        join_operator: match side {
-            JoinSide::Inner => JoinOperator::Inner(constraint),
-            JoinSide::Left => JoinOperator::LeftOuter(constraint),
-            JoinSide::Right => JoinOperator::RightOuter(constraint),
-            JoinSide::Full => JoinOperator::FullOuter(constraint),
-        },
-    })
-}
-
 /// Translate a PRQL Ident to a Vec of SQL Idents.
 // We return a vec of SQL Idents because sqlparser sometimes uses
 // [ObjectName](sql_ast::ObjectName) and sometimes uses
@@ -962,6 +911,7 @@ mod test {
                 anchor,
                 omit_ident_prefix: false,
                 pre_projection: false,
+                ctes: Vec::new(),
             };
         }
         {
@@ -972,6 +922,7 @@ mod test {
                 anchor,
                 omit_ident_prefix: false,
                 pre_projection: false,
+                ctes: Vec::new(),
             };
         }
 

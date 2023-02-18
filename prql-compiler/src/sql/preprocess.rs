@@ -10,13 +10,26 @@ use crate::ast::pl::{
     BinOp, ColumnSort, InterpolateItem, JoinSide, Literal, Range, WindowFrame, WindowKind,
 };
 use crate::ast::rq::{
-    self, new_binop, CId, Compute, Expr, ExprKind, RqFold, TableRef, Transform, Window,
+    self, new_binop, CId, Compute, Expr, ExprKind, Relation, RelationColumn, RelationKind, RqFold,
+    TableRef, Transform, Window,
 };
 use crate::error::Error;
 use crate::sql::context::AnchorContext;
 
 use super::anchor::{infer_complexity, CidCollector, Complexity};
 use super::Context;
+
+#[derive(Debug, EnumAsInner)]
+pub(super) enum SqlRelationKind {
+    Super(RelationKind),
+    PreprocessedPipeline(Vec<SqlTransform>),
+}
+
+#[derive(Debug)]
+pub(super) struct SqlRelation {
+    pub kind: SqlRelationKind,
+    pub columns: Vec<RelationColumn>,
+}
 
 #[derive(Debug, EnumAsInner, strum::AsRefStr)]
 pub(super) enum SqlTransform {
@@ -560,6 +573,15 @@ impl SqlTransform {
     ) -> Result<T, SqlTransform> {
         self.into_super()
             .and_then(|t| f(t).map_err(SqlTransform::Super))
+    }
+}
+
+impl From<Relation> for SqlRelation {
+    fn from(rel: Relation) -> Self {
+        SqlRelation {
+            kind: SqlRelationKind::Super(rel.kind),
+            columns: rel.columns,
+        }
     }
 }
 

@@ -3,27 +3,27 @@ use itertools::Itertools;
 use std::collections::{HashMap, HashSet};
 
 use crate::ast::rq::{
-    self, fold_transform, CId, Compute, Expr, Relation, RelationColumn, RelationKind, RqFold,
-    TableDecl, TableRef, Transform,
+    self, fold_transform, CId, Compute, Expr, RelationColumn, RqFold, TableRef, Transform,
 };
+use crate::sql::context::SqlTableDecl;
+use crate::sql::preprocess::{SqlRelation, SqlRelationKind};
 
 use super::{
     context::{AnchorContext, ColumnDecl},
     preprocess::{SqlFold, SqlTransform},
 };
 
-type RemainingPipeline = (Vec<SqlTransform>, Vec<CId>);
-
 /// Splits pipeline into two parts, such that the second part contains
 /// maximum number of transforms while "fitting" into a SELECT query.
 pub(super) fn split_off_back(
-    ctx: &mut AnchorContext,
-    output: Vec<CId>,
     mut pipeline: Vec<SqlTransform>,
-) -> (Option<RemainingPipeline>, Vec<SqlTransform>) {
+    ctx: &mut AnchorContext,
+) -> (Option<Vec<SqlTransform>>, Vec<SqlTransform>) {
     if pipeline.is_empty() {
         return (None, Vec::new());
     }
+
+    let output = AnchorContext::determine_select_columns(&pipeline);
 
     log::debug!("traversing pipeline to obtain columns: {output:?}");
 
@@ -137,8 +137,9 @@ pub(super) fn split_off_back(
         None
     } else {
         // drop inputs that were satisfied in current pipeline
+        pipeline.push(SqlTransform::Super(Transform::Select(missing)));
 
-        Some((pipeline, missing))
+        Some(pipeline)
     };
 
     curr_pipeline_rev.reverse();
@@ -166,20 +167,23 @@ fn can_materialize(compute: &Compute, inputs_required: &[Requirement]) -> bool {
 }
 
 /// Applies adjustments to second part of a pipeline when it's split:
-/// - prepend pipeline with From
-/// - redefine columns materialized in preceding pipeline
+/// - append Select to proceeding pipeline
+/// - prepend From to atomic pipeline
+/// - redefine columns materialized in atomic pipeline
 /// - redirect all references to original columns to the new ones
 pub(super) fn anchor_split(
     ctx: &mut AnchorContext,
-    first_table_name: &str,
-    cols_at_split: &[CId],
-    second_pipeline: Vec<SqlTransform>,
+    preceding: Vec<SqlTransform>,
+    atomic: Vec<SqlTransform>,
 ) -> Vec<SqlTransform> {
     let new_tid = ctx.tid.gen();
 
+    let preceding_select = &preceding.last().unwrap().as_super().unwrap();
+    let cols_at_split = preceding_select.as_select().unwrap();
+
     log::debug!("split pipeline, first pipeline output: {cols_at_split:?}");
 
-    // define columns of the new CTE
+    // redefine columns of the atomic pipeline
     let mut cid_redirects = HashMap::<CId, CId>::new();
     let mut new_columns = Vec::new();
     for old_cid in cols_at_split {
@@ -204,28 +208,28 @@ pub(super) fn anchor_split(
     // define a new table
     ctx.table_decls.insert(
         new_tid,
-        TableDecl {
-            id: new_tid,
-            name: Some(first_table_name.to_string()),
-            // here we should put the pipeline, but because how this function is called,
-            // we need to return the pipeline directly, so we just insert dummy expr instead
-            relation: Relation {
-                kind: RelationKind::SString(vec![]),
-                columns: vec![],
-            },
+        SqlTableDecl {
+            name: None,
+            relation: Some(SqlRelation {
+                columns: cols_at_split
+                    .iter()
+                    .map(|_| RelationColumn::Single(None))
+                    .collect_vec(),
+                kind: SqlRelationKind::PreprocessedPipeline(preceding),
+            }),
         },
     );
 
     // define instance of that table
     let table_ref = TableRef {
         source: new_tid,
-        name: Some(first_table_name.to_string()),
+        name: None,
         columns: new_columns,
     };
     ctx.create_table_instance(table_ref.clone());
 
     // adjust second part: prepend from and rewrite expressions to use new columns
-    let mut second = second_pipeline;
+    let mut second = atomic;
     second.insert(0, SqlTransform::Super(Transform::From(table_ref)));
 
     let mut redirector = CidRedirector { ctx, cid_redirects };
