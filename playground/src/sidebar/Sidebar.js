@@ -33,27 +33,18 @@ function Sidebar({ library, onLoadFile }) {
 
   return (
     <div className="sidebar">
-      <section className="padded">
+      <section>
         <h1>PRQL Playground</h1>
-        <p>
-          Try out PRQL in your browser, using wasm-compiled library{" "}
-          <a
-            target="_blank"
-            rel="noopener noreferrer"
-            href="https://npmjs.org/package/prql-js"
-          >
-            prql-js
-          </a>
-          .
-        </p>
-
+      </section>
+      <section>
+        <h2>External links</h2>
         <a
           className="fileRow"
           target="_blank"
           rel="noopener noreferrer"
           href="https://prql-lang.org"
         >
-          PRQL Website
+          PRQL Website &#8599;
         </a>
         <a
           className="fileRow"
@@ -61,7 +52,7 @@ function Sidebar({ library, onLoadFile }) {
           rel="noopener noreferrer"
           href="https://prql-lang.org/book/"
         >
-          Language Reference
+          Book &#8599;
         </a>
       </section>
 

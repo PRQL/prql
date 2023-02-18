@@ -12,7 +12,7 @@ npm install prql-js
 
 Currently these functions are exposed
 
-```javascript
+```typescript
 function compile(prql_query: string, options?: CompileOptions): string;
 
 function prql_to_pl(prql_query: string): string;
@@ -22,7 +22,7 @@ function pl_to_rq(pl_json: string): string;
 function rq_to_sql(rq_json: string): string;
 ```
 
-### From NodeJS
+### From Node.js
 
 Direct usage
 
@@ -30,7 +30,19 @@ Direct usage
 const prqljs = require("prql-js");
 
 const sql = prqljs.compile(`from employees | select first_name`);
-console.log(sql.sql);
+console.log(sql);
+```
+
+Options
+
+```javascript
+const opts = new prql.CompileOptions();
+opts.target = "sql.mssql";
+opts.format = false;
+opts.signature_comment = false;
+
+const sql = prqljs.compile(`from employees | take 10`, opts);
+console.log(sql);
 ```
 
 Template literal
@@ -40,7 +52,7 @@ const prqljs = require("prql-js");
 const prql = (string) => prqljs.compile(string[0] || "");
 
 const sql = prql`from employees | select first_name`;
-console.log(sql.sql);
+console.log(sql);
 ```
 
 Template literal with newlines
@@ -53,10 +65,10 @@ const sql = prql`
     from employees
     select first_name
 `;
-console.log(sql.sql);
+console.log(sql);
 ```
 
-### From a Browser
+### From a browser
 
 ```html
 <html>
@@ -80,7 +92,7 @@ console.log(sql.sql);
 </html>
 ```
 
-### From a Framework or a Bundler
+### From a framework or a bundler
 
 ```typescript
 import compile from "prql-js/dist/bundler";
@@ -93,7 +105,7 @@ console.log(sql);
 
 Errors are returned as following object, serialized as a JSON array:
 
-```ts
+```typescript
 interface ErrorMessage {
   /// Plain text of the error
   reason: string;

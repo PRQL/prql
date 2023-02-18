@@ -18,7 +18,7 @@ cfg_if::cfg_if! {
 
         const CONTENT: &str = include_str!("../../book/tests/prql/examples/variables-0.prql");
         fn compile_query() -> Result<String, ErrorMessages> {
-            compile(CONTENT, None)
+            compile(CONTENT, Options::default())
         }
 
         fn criterion_benchmark(c: &mut Criterion) {

@@ -25,8 +25,7 @@ jobs:
   test:
     strategy:
       matrix:
-        # TODO: add mac runner when availiable
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
         otp: ["25.1.2"]
         elixir: ["1.14.2"]
     runs-on: ${{matrix.os}}
@@ -41,11 +40,18 @@ jobs:
         uses: actions/checkout@v3
 
       # Step: Setup Elixir + Erlang image as the base.
-      - name: Set up Elixir
+      - name: Set up Elixir on Windows or Linux
+        if: runner.os != 'macOS'
         uses: erlef/setup-beam@v1
         with:
           otp-version: ${{matrix.otp}}
           elixir-version: ${{matrix.elixir}}
+
+      - name: Install Erlang/Elixir on Mac
+        if: runner.os == 'macOS'
+        run: |
+          brew install elixir
+          mix local.hex --force
 
       # Step: Define how to cache deps. Restores existing cache if present.
       - name: Cache deps

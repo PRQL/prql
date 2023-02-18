@@ -419,12 +419,11 @@ fn ast_of_interpolate_items(pair: Pair<Rule>) -> Result<Vec<InterpolateItem>> {
     pair.into_inner()
         .map(|x| {
             Ok(match x.as_rule() {
-                Rule::interpolate_string_inner_literal
-                // The double bracket literals are already stripped of their
-                // outer brackets by pest, so we pass them through as strings.
-                | Rule::interpolate_double_bracket_literal => {
+                Rule::interpolate_string_inner_literal => {
                     InterpolateItem::String(x.as_str().to_string())
                 }
+                Rule::double_open_bracket => InterpolateItem::String("{".to_string()),
+                Rule::double_close_bracket => InterpolateItem::String("}".to_string()),
                 _ => InterpolateItem::Expr(Box::new(expr_of_parse_pair(x)?)),
             })
         })
@@ -831,12 +830,20 @@ Canada
     }
 
     #[test]
-    fn test_parse_s_string_brackets() -> Result<()> {
-        // For crystal variables
+    fn test_parse_s_string_braces() -> Result<()> {
         assert_yaml_snapshot!(expr_of_string(r#"s"{{?crystal_var}}""#, Rule::expr_call)?, @r###"
         ---
         SString:
-          - String: "{?crystal_var}"
+          - String: "{"
+          - String: "?crystal_var"
+          - String: "}"
+        "###);
+        assert_yaml_snapshot!(expr_of_string(r#"s"foo{{bar""#, Rule::expr_call)?, @r###"
+        ---
+        SString:
+          - String: foo
+          - String: "{"
+          - String: bar
         "###);
 
         Ok(())

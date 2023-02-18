@@ -60,9 +60,10 @@ fn eval(kind: ExprKind) -> ExprKind {
                     (BinOp::Mul, Literal::Float(left), Literal::Float(right)) => {
                         Some(Literal::Float(left * right))
                     }
-                    (BinOp::Div, Literal::Integer(left), Literal::Integer(right)) => {
-                        Some(Literal::Integer(left / right))
-                    }
+                    // Don't do int division yet; https://github.com/PRQL/prql/issues/1733
+                    // (BinOp::Div, Literal::Integer(left), Literal::Integer(right)) => {
+                    //     Some(Literal::Integer(left / right))
+                    // }
                     (BinOp::Div, Literal::Float(left), Literal::Float(right)) => {
                         Some(Literal::Float(left / right))
                     }

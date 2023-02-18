@@ -52,7 +52,7 @@ group [title, country] (                      # `group` runs a pipeline over eac
   ]
 )
 filter sum_gross_cost > 100_000               # `filter` replaces both of SQL's `WHERE` & `HAVING`
-derive id = f"{title}_{country}"              # F-strings like python
+derive id = f"{title}_{country}"              # F-strings like Python
 derive country_code = s"LEFT(country, 2)"     # S-strings allow using SQL as an escape hatch
 sort [sum_gross_cost, -country]               # `-country` means descending order
 take 1..20                                    # Range expressions (also valid here as `take 20`)
@@ -62,14 +62,14 @@ For more on the language, more examples & comparisons with SQL, visit
 [prql-lang.org][prql website]. To experiment with PRQL in the browser, check out
 [PRQL Playground][prql playground].
 
-## Current Status - January 2023
+## Current Status - February 2023
 
 PRQL is being actively developed by a growing community. It's ready to use by
 the intrepid, either as part of one of our supported extensions, or within your
 own tools, using one of our supported language bindings.
 
 PRQL continues to evolve toward the
-[0.4 Milestone.](https://github.com/PRQL/prql/milestone/4) The
+[0.5 Milestone.](https://github.com/PRQL/prql/milestone/5) The
 [CHANGELOG.md](https://github.com/PRQL/prql/blob/main/CHANGELOG.md) gives more
 information.
 
@@ -102,8 +102,8 @@ To stay in touch with PRQL:
   run PRQL in Jupyter, either against a DB, or a Pandas DataFrame / CSV /
   Parquet file through DuckDB.
 - [pyprql Docs](https://pyprql.readthedocs.io) — the pyprql documentation, the
-  python bindings to PRQL, including Jupyter magic.
-- [PRQL VSCode Extension](https://marketplace.visualstudio.com/items?itemName=prql-lang.prql-vscode)
+  Python bindings to PRQL, including Jupyter magic.
+- [PRQL VS Code extension](https://marketplace.visualstudio.com/items?itemName=prql-lang.prql-vscode)
 - [prql-js](https://www.npmjs.com/package/prql-js) — JavaScript bindings for
   PRQL.
 
@@ -112,8 +112,6 @@ To stay in touch with PRQL:
 Many thanks to those who've made our progress possible:
 
 [![Contributors](https://contrib.rocks/image?repo=PRQL/prql)](https://github.com/PRQL/prql/graphs/contributors)
-
-We welcome others to join who have a track record of contributions.
 
 [prql book]: https://prql-lang.org/book
 [prql website]: https://prql-lang.org

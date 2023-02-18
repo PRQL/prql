@@ -4,16 +4,11 @@ description: Time the cargo compilation, outputting an HTML file.
 inputs:
   use_cache:
     required: true
-    type: boolean
+    description: Whether to use the cache of dependencies
 
 runs:
   using: composite
   steps:
-    # We need to pin the toolchain so caching works across days; and it requires nightly atm.
-    - name: 🔗 Setup toolchain
-      shell: bash
-      # Doing this ourselves since https://github.com/dtolnay/rust-toolchain/issues/29
-      run: rustup override set nightly-2022-10-22
     - name: 💰 Cache
       id: cache
       uses: Swatinem/rust-cache@v2
@@ -30,7 +25,7 @@ runs:
       uses: richb-hanover/cargo@v1.1.0
       with:
         command: build
-        args: --timings=html --all-targets -Z unstable-options
+        args: --timings --all-targets
     - uses: actions/upload-artifact@v3
       with:
         name: cargo-timing.html

@@ -1,16 +1,12 @@
 name: test-rust
 
 on:
-  # Currently we only run this as `workflow_call`, since it's always called from `pull-request`.
+  # Currently we only run this as `workflow_call`, since `pull-request` always calls it.
   workflow_call:
     inputs:
       os:
-        required: false
-        default: ubuntu-latest
         type: string
       target_option:
-        required: false
-        default: ""
         type: string
 
 jobs:
@@ -22,9 +18,7 @@ jobs:
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
         with:
-          # Without inputs.target, it seems to select linux x64 in the wasm32
-          # tests, though in the docs it says it uses the target as the key?
-          key: ${{ inputs.target_option }}
+          key: ${{ inputs.os }}-${{ inputs.target_option }}
           save-if: ${{ github.ref == 'refs/heads/main' }}
       - uses: jetli/wasm-bindgen-action@v0.2.0
         if: inputs.target_option == '--target=wasm32-unknown-unknown'

@@ -1,6 +1,6 @@
-# Tables
+# Variables
 
-We can define a temporary table — similar to a CTE in SQL — with `let`:
+We can define a relation — similar to a CTE in SQL — as a variable with `let`:
 
 ```prql
 let top_50 = (
@@ -13,7 +13,8 @@ let top_50 = (
 from top_50      # Starts a new pipeline
 ```
 
-We can even place a whole CTE in an s-string, enabling us to use features which
+We can even place a whole CTE in an
+[s-string](../language-features/s-strings.md), enabling us to use features which
 PRQL doesn't yet support.
 
 ```prql
@@ -32,6 +33,9 @@ from grouping
 In PRQL `table`s are far less common than CTEs are in SQL, since a linear series
 of CTEs can be represented with a single pipeline.
 ```
+
+Currently defining variables with `let` is restricted to relations. We'd like to
+extend this to expressions that evaluate to scalars.
 
 <!--
 , like recursive queries:

@@ -12,7 +12,7 @@ export async function init() {
     })
   );
 
-  // Instantiate the asynchronus version of DuckDB-wasm
+  // Instantiate the asynchronous version of DuckDB-wasm
   const worker = new Worker(worker_url);
   const logger = new duckdb.ConsoleLogger();
   const db = new duckdb.AsyncDuckDB(logger, worker);
@@ -40,15 +40,13 @@ export const CHINOOK_TABLES = [
 
 async function registerChinook(db) {
   const baseUrl = `${window.location.href}/data/chinook`;
+  const http = duckdb.DuckDBDataProtocol.HTTP;
 
-  for (const table of CHINOOK_TABLES) {
-    await db.registerFileURL(
-      `${table}.csv`,
-      `${baseUrl}/${table}.csv`,
-      duckdb.DuckDBDataProtocol.HTTP,
-      false
-    );
-  }
+  await Promise.all(
+    CHINOOK_TABLES.map((table) =>
+      db.registerFileURL(`${table}.csv`, `${baseUrl}/${table}.csv`, http, false)
+    )
+  );
 
   const c = await db.connect();
   for (const table of CHINOOK_TABLES) {

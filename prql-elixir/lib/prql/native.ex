@@ -17,7 +17,7 @@ defmodule PRQL.Native.CompileOptions do
   @typedoc """
   Dialect used for SQL generation
   """
-  @type dialect() ::
+  @type target() ::
           :generic
           | :mssql
           | :mysql
@@ -26,14 +26,14 @@ defmodule PRQL.Native.CompileOptions do
           | :bigquery
           | :clickhouse
           | :hive
-          | :sqllite
+          | :sqlite
           | :snowflake
 
   @type t :: %__MODULE__{
-          dialect: dialect(),
+          target: target(),
           format: boolean(),
           signature_comment: boolean()
         }
 
-  defstruct dialect: :generic, format: true, signature_comment: true
+  defstruct target: :generic, format: true, signature_comment: true
 end

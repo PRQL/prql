@@ -12,24 +12,28 @@ hero_section:
     link: https://prql-lang.org/book/
     label: "Reference"
   prql_example: |
-    from employees
-    filter start_date > @2021-01-01
+    from invoices
+    filter invoice_date >= @1970-01-16
     derive [
-      gross_salary = salary + (tax ?? 0),
-      gross_cost = gross_salary + benefits_cost,
+      transaction_fees = 0.8,
+      income = total - transaction_fees
     ]
-    filter gross_cost > 0
-    group [title, country] (
+    filter income > 1
+    group customer_id (
       aggregate [
-        average gross_salary,
-        sum_gross_cost = sum gross_cost,
+        average total,
+        sum_income = sum income,
+        ct = count,
       ]
     )
-    filter sum_gross_cost > 100_000
-    derive id = f"{title}_{country}"
-    derive country_code = s"LEFT(country, 2)"
-    sort [sum_gross_cost, -country]
-    take 1..20
+    sort [-sum_income]
+    take 10
+    join c=customers [==customer_id]
+    derive name = f"{c.last_name}, {c.first_name}"
+    select [
+      c.customer_id, name, sum_income
+    ]
+    derive db_version = s"version()"
 
 why_prql_section:
   enable: true
@@ -58,7 +62,7 @@ why_prql_section:
         - PRQL is easy for machines to read & write
     - title: For HackerNews enthusiasts
       content:
-        - The PRQL compiler is written in rust
+        - The PRQL compiler is written in Rust
         - We talk about "orthogonal language features" a lot
 
 showcase_section:
@@ -92,45 +96,36 @@ showcase_section:
     - id: friendly-syntax
       label: Friendly syntax
       prql: |
-        from order               # This is a comment
-        filter status == "done"
-        sort [-amount]           # sort order
-      sql: |
-        SELECT
-          order.*
-        FROM
-          order
-        WHERE
-          status = 'done'
-        ORDER BY
-          amount DESC
+        from track_plays
+        filter plays > 10_000                # Readable numbers
+        filter (length | in 60..240)         # Ranges with `..`
+        filter recorded > @2008-01-01        # Simple date literals
+        filter released - recorded < 180days # Nice interval literals
+        sort [-length]                       # Concise order direction
 
-    - id: dates
-      label: Dates
-      prql: |
-        from employees
-        derive [
-          age_at_year_end = (@2022-12-31 - dob),
-          first_check_in = start + 10days,
-        ]
       sql: |
         SELECT
-          employees.*,
-          DATE '2022-12-31' - dob AS age_at_year_end,
-          start + INTERVAL '10' DAY AS first_check_in
+          *
         FROM
-          employees
+          track_plays
+        WHERE
+          plays > 10000
+          AND length BETWEEN 60 AND 240
+          AND recorded > DATE '2008-01-01'
+          AND released - recorded < INTERVAL 180 DAY
+        ORDER BY
+          length DESC
 
     - id: orthogonal
       label: Orthogonality
       prql: |
         from employees
-        # Filter before aggregations
+        # `filter` before aggregations...
         filter start_date > @2021-01-01
         group country (
           aggregate [max_salary = max salary]
         )
-        # And filter after aggregations!
+        # ...and `filter` after aggregations!
         filter max_salary > 100_000
       sql: |
         SELECT
@@ -143,7 +138,41 @@ showcase_section:
         GROUP BY
           country
         HAVING
-          MAX(salary) > 100_000
+          MAX(salary) > 100000
+
+    # Currently excluded because it's lots of text
+    # prql: |
+    #   # Check out how much simpler this is relative to the SQL...
+
+    #   let track_plays = (                     # Assign with `let`
+    #     from plays
+    #     group [track] (
+    #       aggregate [
+    #         total = count,
+    #         unfinished = sum is_unfinished,
+    #         started = sum is_started,
+    #       ]
+    #     )
+    #   )
+
+    - id: expressions
+      label: Expressions
+      prql: |
+        from track_plays
+        derive [
+          finished = started + unfinished,
+          fin_share = finished / started,        # Use previous definitions
+          fin_ratio = fin_share / (1-fin_share), # BTW, hanging commas are optional!
+        ]
+
+      sql: |
+        SELECT
+          *,
+          started + unfinished AS finished,
+          (started + unfinished) / started AS fin_share,
+          (started + unfinished) / started / (1 - (started + unfinished) / started) AS fin_ratio
+        FROM
+          track_plays
 
     # markdown-link-check-disable
     - id: f-strings
@@ -151,9 +180,9 @@ showcase_section:
       prql: |
         from web
         # Just like Python
-        select url = f"http://www.{domain}.{tld}/{page}"
+        select url = f"https://www.{domain}.{tld}/{page}"
       sql: |
-        SELECT CONCAT('http://www.', domain, '.', tld,
+        SELECT CONCAT('https://www.', domain, '.', tld,
           '/', page) AS url
         FROM web
     # markdown-link-check-enable
@@ -169,7 +198,7 @@ showcase_section:
         )
       sql: |
         SELECT
-          employees.*,
+          *,
           SUM(paycheck) OVER (
             PARTITION BY employee_id
             ORDER BY
@@ -188,12 +217,12 @@ showcase_section:
         select temp_f = (fahrenheit_from_celsius temp_c)
       sql: |
         SELECT
-          temp_c * 9/5 + 32 AS temp_f
+          temp_c * 9 / 5 + 32 AS temp_f
         FROM
           weather
 
     - id: top-n
-      label: Top n items
+      label: Top N by group
       prql: |
         # Most recent employee in each role
         # Quite difficult in SQL...
@@ -203,33 +232,36 @@ showcase_section:
           take 1
         )
       sql: |
-        WITH table_0 AS (
+        WITH table_1 AS (
           SELECT
-            employees.*,
+            *,
             ROW_NUMBER() OVER (
               PARTITION BY role
               ORDER BY
                 join_date
-            ) AS _rn
+            ) AS _expr_0
           FROM
             employees
         )
         SELECT
-          table_0.*
+          *
         FROM
-          table_0
+          table_1
         WHERE
-          _rn <= 1
+          _expr_0 <= 1
 
     - id: s-string
       label: S-strings
       prql: |
-        # There's no `version` in PRQL, but
-        # we have an escape hatch:
+        # There's no `version` in PRQL, but s-strings
+        # let us embed SQL as an escape hatch:
+        from x
         derive db_version = s"version()"
       sql: |
         SELECT
+          *,
           version() AS db_version
+        FROM x
 
     - id: joins
       label: Joins
@@ -257,7 +289,7 @@ showcase_section:
         derive channel = channel ?? "unknown"
       sql: |
         SELECT
-          users.*,
+          *,
           COALESCE(channel, 'unknown') AS channel
         FROM
           users
@@ -268,14 +300,14 @@ showcase_section:
     - id: dialects
       label: Dialects
       prql: |
-        prql sql_dialect:mssql  # Will generate TOP rather than LIMIT
+        prql target:sql.mssql  # Will generate TOP rather than LIMIT
 
         from employees
         sort age
         take 10
       sql: |
         SELECT
-          TOP (10) employees.*
+          TOP (10) *
         FROM
           employees
         ORDER BY
@@ -315,7 +347,7 @@ principles_section:
         PRQL has abstractions which make it a great platform to build on. Its
         explicit versioning allows changes without breaking
         backward-compatibility. And in the cases where PRQL doesn't yet have an
-        implementation, it allows embedding SQL with S-Strings.
+        implementation, it allows embedding SQL with s-strings.
 
     - title: "Analytical"
       main_text: "PRQL's focus is analytical queries"

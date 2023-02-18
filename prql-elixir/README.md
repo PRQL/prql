@@ -27,9 +27,9 @@ end
 
 We are in the early stages of developing Elixir bindings.
 
-We're using `Rustler` to provide rust bindings for `prql-compiler`.
+We're using `Rustler` to provide Rust bindings for `prql-compiler`.
 
-Currently using the bindings in an Elixir project requires compiling the rust
+Currently using the bindings in an Elixir project requires compiling the Rust
 crate from this repo:
 
 - Install dependencies with `mix deps.get`
@@ -37,4 +37,4 @@ crate from this repo:
 - Run tests `mix test`
 
 Future work includes publishing pre-compiled artifacts, so Elixir projects can
-run PRQL without needing a rust toolchain.
+run PRQL without needing a Rust toolchain.

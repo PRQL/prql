@@ -6,7 +6,7 @@ A summary of PRQL syntax
 
 <!-- markdownlint-disable MD033 — the `|` characters need to be escaped, and surrounded with tags rather than backticks   -->
 
-<!-- I can't seem to get "Quoted identifies" to work without a space between the backticks. VSCode will preview ` `` ` correctly, but not mdbook -->
+<!-- I can't seem to get "Quoted identifies" to work without a space between the backticks. VS Code will preview ` `` ` correctly, but not mdbook -->
 
 <!-- TODO: assigns links to select, aliases to join, potentially we should have explicit sections for them?  -->
 
@@ -125,15 +125,15 @@ Parentheses are required around:
 - Any nested function call containing a pipe, either the `|` symbol or a new
   line. "Nested" means within a transform; i.e. not just the main pipeline.
 - Any function call that isn't a single item in a list or a pipeline, like
-  `sum distance` in `round 0 (sum distance)`[^1].
+  `sum distance` in
+  `round 0 (sum distance)`{{footnote: or, technically, it's on the right
+  side of an assignment in a list...}}.
 - A minus sign in a function argument, like in `add (-1) (-3)`
 - [Inner transforms](#inner-transforms) for `group`, `window`, and other
   transforms.
 
 Parentheses are not required around expressions which use operators but no
 function call, like `foo + bar`.
-
-[^1]: or, technically, it's on the right side of an assignment in a list...
 
 Here's a full rundown of times this applier:
 
@@ -242,7 +242,7 @@ from `music.albums`
 ## Parameters
 
 PRQL will retain parameters like `$1` in SQL output, which can then be supplied
-to the SQL query:
+to the SQL query as a prepared query:
 
 ```prql
 from employees

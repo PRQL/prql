@@ -1,3 +1,4 @@
+# Jobs that run on every pull-request, regardless of its contents.
 name: pull-request
 
 on:
@@ -12,13 +13,14 @@ on:
       - main
 
 concurrency:
-  # This seems to require a suffix on the end; I _think_ because this calls
+  # This seems to require a custom suffix; I _think_ because this calls
   # `test-all`, which calls `test-python`, and if `test-python` runs too, then
   # we have two workflows with the same concurrency group, which GitHub calls a
   # deadlock. Here's an example:
   # https://github.com/PRQL/prql/actions/runs/3945798229. By adding
   # `-pull-request` here, the job that runs under `test-all` (called from here)
-  # will have the suffix, and so won't deadlock.
+  # will have the suffix, and so won't deadlock. But I'm not certain, and it
+  # doesn't seem possible to inspect these values to understand the true cause.
   group: ${{ github.workflow }}-${{ github.ref }}-pull-request
   cancel-in-progress: true
 
@@ -26,9 +28,12 @@ jobs:
   test-rust:
     strategy:
       matrix:
+        # We use a matrix here to mirror `test-all`, so they share a cache.
+        os: [ubuntu-latest]
         target_option: ["", "--target=wasm32-unknown-unknown"]
     uses: ./.github/workflows/test-rust.yaml
     with:
+      os: ${{ matrix.os }}
       target_option: ${{ matrix.target_option }}
 
   test-book:
@@ -36,23 +41,34 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
+        # Duplicated in `publish-web.yaml`
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
         with:
           save-if: ${{ github.ref == 'refs/heads/main' }}
-      - uses: peaceiris/actions-mdbook@v1
+      - uses: baptiste0928/cargo-install@next
+        with:
+          crate: mdbook
+      - uses: baptiste0928/cargo-install@next
+        with:
+          crate: mdbook-footnote
       - uses: baptiste0928/cargo-install@next
         with:
           crate: mdbook-admonish
-          version: "1.7.0"
       - name: 🔨 Build
         run: mdbook build
         working-directory: book/
 
-  # Run Mac & Windows & other tests on a `pr-test-all` label (as well as the other conditions in `test-all.yaml`).
+  # Run Mac & Windows & bindings' other tests on a `pr-test-all` label or a `!`
+  # (meanting a breaking change) in the PR title. (We also run on other
+  # conditions defined in `test-all.yaml`; the conditions defined here aren't
+  # possible to use as conditions for running a workflow, only a job, so we use
+  # this approach.)
   test-all:
     uses: ./.github/workflows/test-all.yaml
-    if: contains(github.event.pull_request.labels.*.name, 'pr-test-all')
+    if:
+      contains(github.event.pull_request.labels.*.name, 'pr-test-all') ||
+      contains(github.event.pull_request.title, '!')
 
   publish:
     uses: ./.github/workflows/publish-web.yaml

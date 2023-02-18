@@ -1,21 +1,19 @@
 .sidebar {
-  padding-top: 2rem;
+  padding-top: 1rem;
 }
 section:not(:last-child) {
   border-bottom: 1px solid #666;
   padding-bottom: 1rem;
+}
+section h1 {
+  font-size: 16px;
+  margin: 0;
 }
 section h2 {
   text-transform: uppercase;
   font-weight: bold;
   font-size: 12px;
   margin: 0;
-  padding: 2px 1rem 2px 1rem;
-}
-
-.fileRow {
-  display: block;
-  padding: 2px 1rem 2px 1rem;
 }
 .fileRow:hover {
   cursor: pointer;
@@ -23,8 +21,12 @@ section h2 {
 }
 
 section h1,
-section p {
+section h2,
+section p,
+.fileRow {
   padding: 2px 1rem 2px 1rem;
+  display: block;
+  line-height: 1;
 }
 
 section ul {

@@ -2,7 +2,11 @@ name: pull-request-target
 
 on:
   pull_request_target:
-    types: [opened, edited, synchronize]
+    types: [opened, edited, synchronize, labeled, closed]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   main:
@@ -14,6 +18,25 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           requireScope: false
-          ignoreLabels: |
-            bot
-            pr-ignore-pull-request-check
+
+  backport:
+    runs-on: ubuntu-latest
+    # Confirm that it's merged and has a label to ensure nothing is merged without oversight
+    if: |
+      github.event.pull_request.merged
+      && (
+        github.event.action == 'closed'
+        || (
+          github.event.action == 'labeled'
+          && contains(github.event.label.name, 'pr-backport-web')
+        )
+      )
+    steps:
+      - uses: tibdex/backport@v2
+        with:
+          # This is a personal access token from the @prql-bot
+          github_token: ${{ secrets.BACKPORT_GITHUB_TOKEN }}
+          # Docs are at https://github.com/tibdex/backport/blob/main/action.yml
+          # We only use `website` atm
+          label_pattern: "^pr-backport-(?<base>([^ ]+))$"
+          title_template: "chore: Backport #<%= number%> to `web`"

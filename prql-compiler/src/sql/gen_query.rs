@@ -14,8 +14,8 @@ use sqlparser::ast::{
 
 use crate::ast::pl::{BinOp, Literal, RelationLiteral};
 use crate::ast::rq::{CId, Expr, ExprKind, Query, Relation, RelationKind, TableDecl, Transform};
-use crate::error::{Error, Reason};
 use crate::utils::{BreakUp, IntoOnly, Pluck};
+use crate::Target;
 
 use super::context::AnchorContext;
 use super::gen_expr::*;
@@ -28,18 +28,11 @@ pub fn translate_query(query: Query, dialect: Option<Dialect>) -> Result<sql_ast
         dialect
     } else {
         let target = query.def.other.get("target");
-        target
-            .and_then(|target| target.strip_prefix("sql."))
-            .map(|dialect| {
-                super::Dialect::from_str(dialect).map_err(|_| {
-                    Error::new(Reason::NotFound {
-                        name: format!("{dialect:?}"),
-                        namespace: "dialect".to_string(),
-                    })
-                })
-            })
+        let Target::Sql(maybe_dialect) = target
+            .map(|s| Target::from_str(s))
             .transpose()?
-            .unwrap_or_default()
+            .unwrap_or_default();
+        maybe_dialect.unwrap_or_default()
     };
     let dialect = dialect.handler();
 
@@ -165,7 +158,7 @@ fn sql_query_of_relation(relation: SqlRelation, context: &mut Context) -> Result
     match relation {
         SqlRelation::Super(ExternRef(_)) | SqlRelation::Super(Pipeline(_)) => unreachable!(),
         SqlRelation::Pipeline(pipeline) => sql_query_of_pipeline(pipeline, context),
-        SqlRelation::Super(Literal(lit)) => Ok(sql_of_sample_data(lit)?),
+        SqlRelation::Super(Literal(lit)) => Ok(sql_of_sample_data(lit, context)?),
         SqlRelation::Super(SString(items)) => translate_query_sstring(items, context),
     }
 }
@@ -388,7 +381,7 @@ fn sql_set_ops_of_pipeline(
     Ok(top)
 }
 
-fn sql_of_sample_data(data: RelationLiteral) -> Result<sql_ast::Query> {
+fn sql_of_sample_data(data: RelationLiteral, ctx: &Context) -> Result<sql_ast::Query> {
     // TODO: this could be made to use VALUES instead of SELECT UNION ALL SELECT
     //       I'm not sure about compatibility though.
 
@@ -399,7 +392,7 @@ fn sql_of_sample_data(data: RelationLiteral) -> Result<sql_ast::Query> {
             projection: std::iter::zip(data.columns.clone(), row)
                 .map(|(col, value)| -> Result<_> {
                     Ok(SelectItem::ExprWithAlias {
-                        expr: translate_literal(value)?,
+                        expr: translate_literal(value, ctx)?,
                         alias: sql_ast::Ident::new(col),
                     })
                 })

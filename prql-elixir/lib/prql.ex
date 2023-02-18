@@ -8,7 +8,7 @@ defmodule PRQL do
   """
   alias PRQL.Native.CompileOptions
 
-  @type dialect() ::
+  @type target() ::
           :generic
           | :mssql
           | :mysql
@@ -17,12 +17,12 @@ defmodule PRQL do
           | :bigquery
           | :clickhouse
           | :hive
-          | :sqllite
+          | :sqlite
           | :snowflake
   @type format_opt :: {:format, boolean()}
   @type signature_comment_opt :: {:signature_comment, boolean()}
-  @type dialect_opt :: {:dialect, dialect()}
-  @type compile_opts :: format_opt() | signature_comment_opt() | dialect_opt()
+  @type target_opt :: {:target, target()}
+  @type compile_opts :: format_opt() | signature_comment_opt() | target_opt()
 
   @doc ~S"""
   Compile a `PRQL` query to `SQL` query.
@@ -35,9 +35,9 @@ defmodule PRQL do
 
   ## Options
 
-    * `:dialect` - Dialect used for generate SQL. Accepted values are
+    * `:target` - Dialect used for generate SQL. Accepted values are
     `:generic`, `:mssql`, `:mysql`, `:postgres`, `:ansi`, `:bigquery`,
-    `:clickhouse`, `:hive`, `:sqllite`, `:snowflake`
+    `:clickhouse`, `:hive`, `:sqlite`, `:snowflake`
 
     * `:format` - Formats the output, defaults to `true`
 
@@ -46,14 +46,14 @@ defmodule PRQL do
 
   ## Examples
 
-  Using default `Generic` dialect:
+  Using default `Generic` target:
       iex> PRQL.compile("from customers", signature_comment: false)
-      {:ok, "SELECT\n  *\nFROM\n  customers"}
+      {:ok, "SELECT\n  *\nFROM\n  customers\n"}
 
 
-  Using `MSSQL` dialect:
-      iex> PRQL.compile("from customers\ntake 10", dialect: :mssql, signature_comment: false)
-      {:ok, "SELECT\n  TOP (10) *\nFROM\n  customers"}
+  Using `MSSQL` target:
+      iex> PRQL.compile("from customers\ntake 10", target: :mssql, signature_comment: false)
+      {:ok, "SELECT\n  TOP (10) *\nFROM\n  customers\n"}
   """
   @spec compile(binary(), [compile_opts()]) :: {:ok, binary()} | {:error, binary()}
   def compile(prql_query, opts \\ []) when is_binary(prql_query) and is_list(opts) do

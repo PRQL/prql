@@ -7,4 +7,4 @@ The major items of a _query_ are listed at the left:
 
 - [Pipelines](./pipelines.md)
 - [Functions](./functions.md)
-- [Tables](./tables.md)
+- [Variables](./variables.md)

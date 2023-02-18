@@ -1,2 +1,9 @@
 [target.wasm32-unknown-unknown]
 runner = 'wasm-bindgen-test-runner'
+
+[target.'cfg(target_os = "macos")']
+# Required for prql-elixir on Mac
+rustflags = [
+    "-C", "link-arg=-undefined",
+    "-C", "link-arg=dynamic_lookup",
+]
