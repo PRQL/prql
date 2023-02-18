@@ -19,6 +19,12 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - run: cargo build
+        working-directory: prql-lib
+      - run: mv ../target/debug/libprql_lib.so ../prql-php/src/libprql_lib.so
       - name: 📦 Install dependencies using Composer
         uses: php-actions/composer@v6
         with:
