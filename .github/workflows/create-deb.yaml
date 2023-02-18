@@ -19,13 +19,11 @@ jobs:
           toolchain: stable
       - name: "👷 Build prql-compiler"
         run: cargo build --release
-        working-directory: prql-compiler
       - name: Copy files into .deb package
         run: |
           mkdir -p .debpkg/usr/bin
-          cp ../target/release/prqlc .debpkg/usr/bin/prqlc
+          cp target/release/prqlc .debpkg/usr/bin/prqlc
           chmod +x .debpkg/usr/bin/prqlc
-        working-directory: prql-compiler
       - name: "📦 Build .deb package"
         uses: jiro4989/build-deb-action@v2
         with:
