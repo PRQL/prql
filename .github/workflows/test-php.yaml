@@ -27,4 +27,5 @@ jobs:
       - name: 🧪 PHPUnit Tests
         uses: php-actions/phpunit@v3
         with:
+          args: prql-php/tests
           php_extensions: FFI
