@@ -3203,15 +3203,15 @@ a,b,c
         @r###"
     WITH table_0 AS (
       SELECT
-        '1' AS a,
-        '2' AS b,
-        '3' AS c
+        1 AS a,
+        2 AS b,
+        3 AS c
       UNION
       ALL
       SELECT
-        '4' AS a,
-        '5' AS b,
-        '6' AS c
+        4 AS a,
+        5 AS b,
+        6 AS c
     )
     SELECT
       b,
