@@ -18,7 +18,7 @@ jobs:
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
         with:
-          key: ${{ inputs.os }}-${{ inputs.target_option }}
+          key: ${{ inputs.target_option }}
           save-if: ${{ github.ref == 'refs/heads/main' }}
       - uses: jetli/wasm-bindgen-action@v0.2.0
         if: inputs.target_option == '--target=wasm32-unknown-unknown'

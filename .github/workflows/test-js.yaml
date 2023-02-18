@@ -11,16 +11,15 @@ on:
   workflow_call:
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}-js
   cancel-in-progress: true
 
 jobs:
   test:
-    # This is copy & pasted into test-all.yaml
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
