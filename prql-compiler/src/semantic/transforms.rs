@@ -915,16 +915,16 @@ mod from_text {
                                 kind: StmtKind::Main(expr),
                                 span: _,
                             } => match &expr.kind {
-                                ExprKind::Literal(literal) => Ok(literal.clone()),
-                                _ => Err(Literal::String(x.to_string())),
+                                ExprKind::Literal(literal) => Some(literal.clone()),
+                                _ => None,
                             },
-                            _ => Err(Literal::String(x.to_string())),
+                            _ => None,
                         })
-                        .fold_ok(vec![], |mut acc, literal| {
+                        .fold_options(vec![], |mut acc, literal| {
                             acc.push(literal);
                             acc
                         })
-                        .unwrap_or_else(|_| vec![Literal::String(x.to_string())]),
+                        .unwrap_or_else(|| vec![Literal::String(x.to_string())]),
                     _ => vec![Literal::String(x.to_string())],
                 })
                 .collect()
