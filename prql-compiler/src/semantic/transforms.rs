@@ -906,18 +906,26 @@ mod from_text {
 
         fn parse_row(row: csv::StringRecord) -> Vec<Literal> {
             row.into_iter()
-                .map(|x| match crate::parser::parse(x).as_deref() {
-                    Ok(
-                        [Stmt {
-                            id: _,
-                            kind: StmtKind::Main(expr),
-                            span: _,
-                        }],
-                    ) => match &expr.kind {
-                        ExprKind::Literal(literal) => literal.clone(),
-                        _ => Literal::String(x.to_string()),
-                    },
-                    _ => Literal::String(x.to_string()),
+                .flat_map(|x| match crate::parser::parse(x).as_deref() {
+                    Ok(stmts) => stmts
+                        .iter()
+                        .map(|stmt| match stmt {
+                            Stmt {
+                                id: _,
+                                kind: StmtKind::Main(expr),
+                                span: _,
+                            } => match &expr.kind {
+                                ExprKind::Literal(literal) => Ok(literal.clone()),
+                                _ => Err(Literal::String(x.to_string())),
+                            },
+                            _ => Err(Literal::String(x.to_string())),
+                        })
+                        .fold_ok(vec![], |mut acc, literal| {
+                            acc.push(literal);
+                            acc
+                        })
+                        .unwrap_or_else(|_| vec![Literal::String(x.to_string())]),
+                    _ => vec![Literal::String(x.to_string())],
                 })
                 .collect()
         }
