@@ -75,7 +75,7 @@ because fast iteration cycle can drastically decrease frustrations caused by
 banal misspellings.
 
 This requires development across multiple dimensions — writing an
-[LSP server](https://langserver.org/), better support for typing in the
+[LSP server,](https://langserver.org/) better support for typing in the
 compiler, and possibly database cohesion.
 
 While PRQL compiler will never depend on a database to compile queries, LPS
