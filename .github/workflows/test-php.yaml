@@ -24,7 +24,7 @@ jobs:
           toolchain: stable
       - run: cargo build
         working-directory: prql-lib
-      - run: mv ../target/debug/libprql_lib.so ../prql-php/src/libprql_lib.so
+      - run: mv ../target/debug/libprql_lib.so /app/prql-php/src/libprql_lib.so
         working-directory: prql-lib
       - name: 📦 Install dependencies using Composer
         uses: php-actions/composer@v6
