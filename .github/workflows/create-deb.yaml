@@ -1,0 +1,36 @@
+name: create-deb
+
+on:
+  release:
+    types: [released]
+  pull_request:
+    paths:
+      - ".github/workflows/create-deb.yaml"
+  workflow_call:
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - name: 👷 Build prql-compiler
+        run: cargo build --release
+        working-directory: prql-compiler
+      - name: Copy files into .deb package
+        run: |
+          mkdir -p .debpkg/usr/bin
+          cp ../target/debug/prqlc .debpkg/usr/bin/prqlc
+          chmod +x .debpkg/usr/bin/prqlc
+        working-directory: prql-compiler
+      - name: 📦 Build .deb package
+      - uses: jiro4989/build-deb-action@v2
+        with:
+          package: prqlc
+          package_root: .debpkg
+          maintainer: The PRQL Project
+          version: ${{ github.ref }} # refs/tags/v*.*.*
+          desc: 'PRQL compiler transpiles PRQL queries into SQL queries.'
