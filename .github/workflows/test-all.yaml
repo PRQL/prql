@@ -18,7 +18,7 @@ on:
 
 concurrency:
   # See notes in `pull-request.yaml`
-  group: ${{ github.workflow }}-${{ github.ref }}-test-all
+  group: ${{ github.workflow }}-${{ github.ref }}-all
   cancel-in-progress: true
 
 jobs:
