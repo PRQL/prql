@@ -27,7 +27,7 @@ jobs:
           chmod +x .debpkg/usr/bin/prqlc
         working-directory: prql-compiler
       - name: 📦 Build .deb package
-      - uses: jiro4989/build-deb-action@v2
+        uses: jiro4989/build-deb-action@v2
         with:
           package: prqlc
           package_root: .debpkg
