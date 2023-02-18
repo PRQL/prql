@@ -1,0 +1,26 @@
+name: publish-snap
+on:
+  release:
+    types: [published]
+
+jobs:
+  publish-snap:
+    runs-on: ubuntu-latest
+
+    # Skip running workflow on forks
+    if: github.repository_owner == 'prql'
+
+    steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v3
+      - name: 📦 Snapcraft
+        uses: snapcore/action-build@v1
+        with:
+          path: prql-compiler
+      - name: 🆙 Publish Snap
+        uses: snapcore/action-publish@v1
+        env:
+          SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.STORE_LOGIN }}
+        with:
+          snap: ${{ steps.build.outputs.snap }}
+          release: edge
