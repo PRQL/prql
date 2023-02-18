@@ -10,7 +10,7 @@ source-code: https://github.com/PRQL/prql
 website: https://prql-lang.org/
 license: Apache-2.0
 grade: devel # must be 'stable' to release into candidate/stable channels
-confinement: devmode # use 'strict' once you have the right plugs and slots
+confinement: strict
 
 parts:
   prqlc:
