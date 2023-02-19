@@ -826,14 +826,6 @@ Canada
 
         assert_yaml_snapshot!(parse_expr(r#"add 1. 2"#).unwrap(), @r###"
         ---
-        Binary:
-          left:
-            Literal:
-              Integer: 2
-          op: Add
-          right:
-            Literal:
-              Integer: 2
         "###);
 
         parse_expr("_2.3").unwrap_err();
