@@ -1,20 +1,10 @@
 # PRQL Changelog
 
-## 0.5.2 — [unreleased]
+## 0.5.2 — 2022-02-18
 
-**Features**:
+0.5.2 fixes an issue with `prql-js`'s build.
 
-**Fixes**:
-
-**Documentation**:
-
-**Web**:
-
-**Integrations**:
-
-**Internal changes**:
-
-**New Contributors**:
+This release has 7 commits from 2 contributors.
 
 ## 0.5.1 — 2022-02-17
 
