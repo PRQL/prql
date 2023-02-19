@@ -6,6 +6,10 @@
 
 This release has 7 commits from 2 contributors.
 
+**New Contributors**:
+
+- @matthias-Q, with #1873
+
 ## 0.5.1 — 2022-02-17
 
 0.5.1 contains a few fixes, and another change to how bindings handle default
