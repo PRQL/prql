@@ -2,6 +2,9 @@ name: publish-snap
 on:
   release:
     types: [published]
+  pull_request:
+    paths:
+      - .github/workflows/publish-snap.yaml
 
 jobs:
   publish-snap:
