@@ -185,7 +185,7 @@ pub(super) fn translate_literal(l: Literal, ctx: &Context) -> Result<sql_ast::Ex
 }
 
 pub(super) fn translate_cid(cid: CId, ctx: &mut Context) -> Result<sql_ast::Expr> {
-    if ctx.pre_projection {
+    if ctx.query.pre_projection {
         log::debug!("translating {cid:?} pre projection");
         let decl = ctx.anchor.column_decls.get(&cid).expect("bad RQ ids");
 
@@ -600,7 +600,7 @@ pub(super) fn translate_ident(
     ctx: &Context,
 ) -> Vec<sql_ast::Ident> {
     let mut parts = Vec::with_capacity(4);
-    if !ctx.omit_ident_prefix || column.is_none() {
+    if !ctx.query.omit_ident_prefix || column.is_none() {
         if let Some(table) = table_name {
             #[allow(clippy::if_same_then_else)]
             if ctx.dialect.big_query_quoting() {
@@ -906,24 +906,12 @@ mod test {
         {
             let query = resolve(parse("from foo")?)?;
             let (anchor, _) = AnchorContext::of(query);
-            context_with_concat_function = Context {
-                dialect: Box::new(GenericDialect {}),
-                anchor,
-                omit_ident_prefix: false,
-                pre_projection: false,
-                ctes: Vec::new(),
-            };
+            context_with_concat_function = Context::new(Box::new(GenericDialect {}), anchor);
         }
         {
             let query = resolve(parse("from foo")?)?;
             let (anchor, _) = AnchorContext::of(query);
-            context_without_concat_function = Context {
-                dialect: Box::new(SQLiteDialect {}),
-                anchor,
-                omit_ident_prefix: false,
-                pre_projection: false,
-                ctes: Vec::new(),
-            };
+            context_without_concat_function = Context::new(Box::new(SQLiteDialect {}), anchor);
         }
 
         fn str_lit(s: &str) -> InterpolateItem<Expr> {

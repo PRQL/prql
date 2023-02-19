@@ -14,6 +14,7 @@ use sqlparser::ast::{
 
 use crate::ast::pl::{BinOp, JoinSide, Literal, RelationLiteral};
 use crate::ast::rq::{CId, Expr, ExprKind, Query, RelationKind, TableRef, Transform};
+use crate::sql::anchor::anchor_split;
 use crate::sql::preprocess::SqlRelationKind;
 use crate::utils::{BreakUp, IntoOnly, Pluck};
 use crate::Target;
@@ -39,15 +40,9 @@ pub fn translate_query(query: Query, dialect: Option<Dialect>) -> Result<sql_ast
 
     let (anchor, main_relation) = AnchorContext::of(query);
 
-    let mut ctx = Context {
-        dialect,
-        anchor,
-        omit_ident_prefix: false,
-        pre_projection: false,
-        ctes: Vec::new(),
-    };
+    let mut ctx = Context::new(dialect, anchor);
 
-    // extract tables and the pipeline
+    // compile main relation that will recursively compile CTEs
     let mut main_query = sql_query_of_sql_relation(main_relation.into(), &mut ctx)?;
 
     // attach CTEs
@@ -67,10 +62,6 @@ fn sql_query_of_sql_relation(
 ) -> Result<sql_ast::Query> {
     use RelationKind::*;
 
-    // let name = table
-    //     .name
-    //     .unwrap_or_else(|| context.anchor.table_name.gen());
-
     // preprocess & split into atomics
     match sql_relation.kind {
         // base case
@@ -78,7 +69,6 @@ fn sql_query_of_sql_relation(
             // preprocess
             let pipeline = Ok(pipeline)
                 .map(preprocess::normalize)
-                .map(preprocess::push_down_selects)
                 .map(preprocess::prune_inputs)
                 .map(preprocess::wrap)
                 .and_then(|p| preprocess::distinct(p, ctx))
@@ -90,14 +80,11 @@ fn sql_query_of_sql_relation(
             // load names of output columns
             ctx.anchor.load_names(&pipeline, sql_relation.columns);
 
-            // split of back and stash preceding part into context
-            let atomic = split_into_atomics(pipeline, &mut ctx.anchor);
-
-            sql_query_of_pipeline(atomic, ctx)
+            sql_query_of_pipeline(pipeline, ctx)
         }
 
         // no need to preprocess, has been done already
-        SqlRelationKind::PreprocessedPipeline(atomic) => sql_query_of_pipeline(atomic, ctx),
+        SqlRelationKind::PreprocessedPipeline(pipeline) => sql_query_of_pipeline(pipeline, ctx),
 
         // special case: literals
         SqlRelationKind::Super(Literal(lit)) => sql_of_sample_data(lit, ctx),
@@ -111,8 +98,13 @@ fn sql_query_of_sql_relation(
 }
 
 fn table_factor_of_table_ref(table_ref: TableRef, ctx: &mut Context) -> Result<TableFactor> {
+    let table_ref_alias = (table_ref.name.clone())
+        .map(|ident| translate_ident_part(ident, ctx))
+        .map(simple_table_alias);
+
     let decl = ctx.anchor.table_decls.get_mut(&table_ref.source).unwrap();
 
+    // prepare names
     let table_name = match &decl.name {
         None => {
             decl.name = Some(ctx.anchor.table_name.gen());
@@ -123,11 +115,26 @@ fn table_factor_of_table_ref(table_ref: TableRef, ctx: &mut Context) -> Result<T
 
     // ensure that the table is declared
     if let Some(sql_relation) = decl.relation.take() {
+        // if we cannot use CTEs
+        if ctx.query.forbid_ctes {
+            // restore relation for other references
+            decl.relation = Some(sql_relation.clone());
+
+            // return a sub-query
+            let query = sql_query_of_sql_relation(sql_relation, ctx)?;
+            return Ok(TableFactor::Derived {
+                lateral: false,
+                subquery: Box::new(query),
+                alias: table_ref_alias,
+            });
+        }
+
         let query = sql_query_of_sql_relation(sql_relation, ctx)?;
         let alias = sql_ast::TableAlias {
             name: translate_ident_part(table_name.clone(), ctx),
             columns: vec![],
         };
+
         ctx.ctes.push(sql_ast::Cte {
             alias,
             query: Box::new(query),
@@ -148,18 +155,14 @@ fn table_factor_of_table_ref(table_ref: TableRef, ctx: &mut Context) -> Result<T
     //     }
     // };
 
-    let decl_name = table_name.clone();
-    let name = sql_ast::ObjectName(translate_ident(Some(decl_name), None, ctx));
+    let name = sql_ast::ObjectName(translate_ident(Some(table_name.clone()), None, ctx));
 
     Ok(TableFactor::Table {
         name,
         alias: if Some(table_name) == table_ref.name {
             None
         } else {
-            table_ref.name.map(|ident| TableAlias {
-                name: translate_ident_part(ident, ctx),
-                columns: vec![],
-            })
+            table_ref_alias
         },
         args: None,
         with_hints: vec![],
@@ -170,10 +173,12 @@ fn translate_join(
     (side, with, filter): (JoinSide, TableRef, Expr),
     ctx: &mut Context,
 ) -> Result<Join> {
+    let relation = table_factor_of_table_ref(with, ctx)?;
+
     let constraint = JoinConstraint::On(translate_expr_kind(filter.kind, ctx)?);
 
     Ok(Join {
-        relation: table_factor_of_table_ref(with, ctx)?,
+        relation,
         join_operator: match side {
             JoinSide::Inner => JoinOperator::Inner(constraint),
             JoinSide::Left => JoinOperator::LeftOuter(constraint),
@@ -184,77 +189,21 @@ fn translate_join(
 }
 
 fn sql_query_of_pipeline(
-    pipeline: Vec<SqlTransform>,
+    mut pipeline: Vec<SqlTransform>,
     ctx: &mut Context,
 ) -> Result<sql_ast::Query> {
     use SqlTransform::*;
 
+    // special case: loop
+    if pipeline.iter().any(|t| matches!(t, Loop(_))) {
+        pipeline = sql_of_loop(pipeline, ctx)?;
+    }
+
+    // extract an atomic pipeline from back of the pipeline and stash preceding part into context
+    let pipeline = extract_atomic(pipeline, &mut ctx.anchor);
+
     // ensure names for all columns that need it
     ensure_names(&pipeline, &mut ctx.anchor);
-
-    if let Some(Loop(_)) = pipeline.last() {
-        let mut first = pipeline;
-        let loop_ = first.pop().unwrap();
-        let mut second = loop_.into_loop().unwrap();
-
-        let tid = ctx.anchor.tid.gen();
-
-        // TODO
-        // let table_decl = SqlTableDecl {
-        //     name: Some("loop".to_string()),
-        //     relation: Some(SqlRelationKind::PreprocessedPipeline(Vec::new())),
-        //     is_declared: true,
-        // };
-        // context.anchor.table_decls.insert(tid, table_decl);
-
-        second.push(Super(Transform::From(crate::ast::rq::TableRef {
-            source: tid,
-            columns: Vec::new(),
-            name: None,
-        })));
-
-        let first = sql_select_query_of_pipeline(first, ctx)?;
-        let second = sql_select_query_of_pipeline(second, ctx)?;
-
-        let first = query_to_set_expr(first, ctx);
-        let second = query_to_set_expr(second, ctx);
-
-        let cte = sql_ast::Cte {
-            alias: TableAlias {
-                name: Ident::new("loop"),
-                columns: Vec::new(),
-            },
-            query: Box::new(default_query(SetExpr::SetOperation {
-                op: sql_ast::SetOperator::Union,
-                set_quantifier: sql_ast::SetQuantifier::All,
-                left: first,
-                right: second,
-            })),
-            from: None,
-        };
-
-        return Ok(sql_ast::Query {
-            with: Some(sql_ast::With {
-                recursive: true,
-                cte_tables: vec![cte],
-            }),
-            ..default_query(sql_ast::SetExpr::Select(Box::new(sql_ast::Select {
-                projection: vec![SelectItem::Wildcard(
-                    sql_ast::WildcardAdditionalOptions::default(),
-                )],
-                from: vec![TableWithJoins {
-                    relation: TableFactor::Table {
-                        name: sql_ast::ObjectName(vec![Ident::new("loop")]),
-                        alias: None,
-                        args: None,
-                        with_hints: Vec::new(),
-                    },
-                    joins: vec![],
-                }],
-                ..default_select()
-            })))
-        });
-    };
 
     let (select, set_ops) =
         pipeline.break_up(|t| matches!(t, Union { .. } | Except { .. } | Intersect { .. }));
@@ -270,16 +219,9 @@ fn sql_select_query_of_pipeline(
 ) -> Result<sql_ast::Query> {
     let table_count = count_tables(&pipeline);
     log::debug!("atomic query contains {table_count} tables");
-    ctx.omit_ident_prefix = table_count == 1;
-
-    ctx.pre_projection = true;
-
-    let projection = pipeline
-        .pluck(|t| t.into_super_and(|t| t.into_select()))
-        .into_only()
-        .unwrap();
-    let projection = translate_wildcards(&ctx.anchor, projection);
-    let projection = translate_select_items(projection.0, projection.1, ctx)?;
+    ctx.push_query();
+    ctx.query.omit_ident_prefix = table_count == 1;
+    ctx.query.pre_projection = true;
 
     let mut from: Vec<_> = pipeline
         .pluck(|t| t.into_super_and(|t| t.into_from()))
@@ -304,6 +246,13 @@ fn sql_select_query_of_pipeline(
             return Err(anyhow!("Cannot use `join` without `from`"));
         }
     }
+
+    let projection = pipeline
+        .pluck(|t| t.into_super_and(|t| t.into_select()))
+        .into_only()
+        .unwrap();
+    let projection = translate_wildcards(&ctx.anchor, projection);
+    let projection = translate_select_items(projection.0, projection.1, ctx)?;
 
     let sorts = pipeline.pluck(|t| t.into_super_and(|t| t.into_sort()));
     let takes = pipeline.pluck(|t| t.into_super_and(|t| t.into_take()));
@@ -335,7 +284,7 @@ fn sql_select_query_of_pipeline(
     let group_by: Vec<CId> = aggregate.map(|(part, _)| part).unwrap_or_default();
     let group_by = try_into_exprs(group_by, ctx, None)?;
 
-    ctx.pre_projection = false;
+    ctx.query.pre_projection = false;
 
     let ranges = takes.into_iter().map(|x| x.range).collect();
     let take = range_of_ranges(ranges)?;
@@ -368,6 +317,9 @@ fn sql_select_query_of_pipeline(
     } else {
         (None, limit.map(expr_of_i64))
     };
+
+    ctx.pop_query();
+
     Ok(sql_ast::Query {
         order_by,
         limit,
@@ -441,6 +393,99 @@ fn sql_set_ops_of_pipeline(
     Ok(top)
 }
 
+fn sql_of_loop(pipeline: Vec<SqlTransform>, ctx: &mut Context) -> Result<Vec<SqlTransform>> {
+    // split the pipeline
+    let (mut initial, mut following) = pipeline.break_up(|t| matches!(t, SqlTransform::Loop(_)));
+    let loop_ = following.remove(0);
+    let step = loop_.into_loop().unwrap();
+
+    // RECURSIVE can only follow WITH directly, which means that if we want to use it for
+    // an arbitrary query, we have to defined a *nested* WITH RECURSIVE and not use
+    // the top-level list of CTEs.
+
+    // determine columns of the initial table
+    let recursive_columns = AnchorContext::determine_select_columns(&initial);
+
+    // do the same thing we do when splitting a pipeline
+    // (defining new columns, redirecting cids)
+    let recursive_columns = SqlTransform::Super(Transform::Select(recursive_columns));
+    initial.push(recursive_columns.clone());
+    let step = anchor_split(&mut ctx.anchor, initial, step);
+    let from = step.first().unwrap().as_super().unwrap().as_from().unwrap();
+
+    let initial = ctx.anchor.table_decls.get_mut(&from.source).unwrap();
+    initial.name = Some("loop".to_string());
+    let initial_relation = initial.relation.take().unwrap();
+
+    let initial = initial_relation.kind.into_preprocessed_pipeline().unwrap();
+
+    // compile initial
+    let initial = query_to_set_expr(sql_query_of_pipeline(initial, ctx)?, ctx);
+
+    // compile step (without producing CTEs)
+    ctx.push_query();
+    ctx.query.forbid_ctes = true;
+
+    let step = query_to_set_expr(sql_query_of_pipeline(step, ctx)?, ctx);
+
+    ctx.pop_query();
+
+    // build CTE and it's SELECT
+    let cte = sql_ast::Cte {
+        alias: simple_table_alias(Ident::new("loop")),
+        query: Box::new(default_query(SetExpr::SetOperation {
+            op: sql_ast::SetOperator::Union,
+            set_quantifier: sql_ast::SetQuantifier::All,
+            left: initial,
+            right: step,
+        })),
+        from: None,
+    };
+    let query = Box::new(sql_ast::Query {
+        with: Some(sql_ast::With {
+            recursive: true,
+            cte_tables: vec![cte],
+        }),
+        ..default_query(sql_ast::SetExpr::Select(Box::new(sql_ast::Select {
+            projection: vec![SelectItem::Wildcard(
+                sql_ast::WildcardAdditionalOptions::default(),
+            )],
+            from: vec![TableWithJoins {
+                relation: TableFactor::Table {
+                    name: sql_ast::ObjectName(vec![Ident::new("loop")]),
+                    alias: None,
+                    args: None,
+                    with_hints: Vec::new(),
+                },
+                joins: vec![],
+            }],
+            ..default_select()
+        })))
+    });
+
+    // create a split between the loop SELECT statement and the following pipeline
+    let mut following = anchor_split(&mut ctx.anchor, vec![recursive_columns], following);
+
+    let from = following.first_mut().unwrap();
+    let from = from.as_super().unwrap().as_from().unwrap();
+
+    // this will be table decl that references the whole loop expression
+    let loop_decl = ctx.anchor.table_decls.get_mut(&from.source).unwrap();
+
+    let loop_name = ctx.anchor.table_name.gen();
+    loop_decl.name = Some(loop_name.clone());
+    loop_decl.relation = None;
+
+    // push the whole thing into WITH of the main query
+    ctx.ctes.push(sql_ast::Cte {
+        alias: simple_table_alias(Ident::new(loop_name)),
+        query,
+        from: None,
+    });
+
+    Ok(following)
+}
+
 fn sql_of_sample_data(data: RelationLiteral, ctx: &Context) -> Result<sql_ast::Query> {
     // TODO: this could be made to use VALUES instead of SELECT UNION ALL SELECT
     //       I'm not sure about compatibility though.
@@ -478,7 +523,7 @@ fn sql_of_sample_data(data: RelationLiteral, ctx: &Context) -> Result<sql_ast::Q
 
 /// Extract last part of pipeline that is able to "fit" into a single SELECT statement.
 /// Remaining proceeding pipeline is declared as a table and stored in AnchorContext.
-fn split_into_atomics(pipeline: Vec<SqlTransform>, ctx: &mut AnchorContext) -> Vec<SqlTransform> {
+fn extract_atomic(pipeline: Vec<SqlTransform>, ctx: &mut AnchorContext) -> Vec<SqlTransform> {
     let (preceding, atomic) = anchor::split_off_back(pipeline, ctx);
 
     if let Some(preceding) = preceding {
@@ -588,6 +633,13 @@ fn default_select() -> Select {
     }
 }
 
+fn simple_table_alias(name: Ident) -> TableAlias {
+    TableAlias {
+        name,
+        columns: Vec::new(),
+    }
+}
+
 fn query_to_set_expr(query: sql_ast::Query, context: &mut Context) -> Box<SetExpr> {
     let is_simple = query.with.is_none()
         && query.order_by.is_empty()
@@ -610,10 +662,9 @@ fn query_to_set_expr(query: sql_ast::Query, context: &mut Context) -> Box<SetExp
             relation: TableFactor::Derived {
                 lateral: false,
                 subquery: Box::new(query),
-                alias: Some(TableAlias {
-                    name: Ident::new(context.anchor.table_name.gen()),
-                    columns: Vec::new(),
-                }),
+                alias: Some(simple_table_alias(Ident::new(
+                    context.anchor.table_name.gen(),
+                ))),
             },
             joins: vec![],
         }],
@@ -641,72 +692,80 @@ mod test {
     fn parse_and_resolve(prql: &str) -> Result<(Vec<SqlTransform>, Context)> {
         let query = resolve(parse(prql)?)?;
         let (anchor, main_relation) = AnchorContext::of(query);
-        let context = Context {
-            dialect: Box::new(GenericDialect {}),
-            anchor,
-            omit_ident_prefix: false,
-            pre_projection: false,
-            ctes: Vec::new(),
-        };
+        let context = Context::new(Box::new(GenericDialect {}), anchor);
 
         let pipeline = main_relation.kind.into_pipeline().unwrap();
 
         Ok((preprocess::reorder(preprocess::wrap(pipeline)), context))
     }
 
-    // #[test]
-    // fn test_ctes_of_pipeline() {
-    //     // One aggregate, take at the end
-    //     let prql: &str = r###"
-    //     from employees
-    //     filter country == "USA"
-    //     aggregate [sal = average salary]
-    //     sort sal
-    //     take 20
-    //     "###;
+    fn count_atomics(prql: &str) -> usize {
+        let (mut pipeline, mut context) = parse_and_resolve(prql).unwrap();
+        context.anchor.table_decls.clear();
 
-    //     let (pipeline, mut context) = parse_and_resolve(prql).unwrap();
-    //     let queries = split_into_atomics("".to_string(), pipeline, &mut context.anchor);
-    //     assert_eq!(queries.len(), 1);
+        let mut atomics = 0;
+        loop {
+            let _ = extract_atomic(pipeline, &mut context.anchor);
+            atomics += 1;
 
-    //     // One aggregate, but take at the top
-    //     let prql: &str = r###"
-    //     from employees
-    //     take 20
-    //     filter country == "USA"
-    //     aggregate [sal = average salary]
-    //     sort sal
-    //     "###;
+            if let Some((_, decl)) = context.anchor.table_decls.drain().next() {
+                if let Some(relation) = decl.relation {
+                    if let SqlRelationKind::PreprocessedPipeline(p) = relation.kind {
+                        pipeline = p;
+                        continue;
+                    }
+                }
+            }
+            break;
+        }
+        atomics
+    }
 
-    //     let (pipeline, mut context) = parse_and_resolve(prql).unwrap();
-    //     let queries = split_into_atomics("".to_string(), pipeline, &mut context.anchor);
-    //     assert_eq!(queries.len(), 2);
+    #[test]
+    fn test_ctes_of_pipeline() {
+        // One aggregate, take at the end
+        let prql: &str = r###"
+        from employees
+        filter country == "USA"
+        aggregate [sal = average salary]
+        sort sal
+        take 20
+        "###;
 
-    //     // A take, then two aggregates
-    //     let prql: &str = r###"
-    //     from employees
-    //     take 20
-    //     filter country == "USA"
-    //     aggregate [sal = average salary]
-    //     aggregate [sal2 = average sal]
-    //     sort sal2
-    //     "###;
+        assert_eq!(count_atomics(prql), 1);
 
-    //     let (pipeline, mut context) = parse_and_resolve(prql).unwrap();
-    //     let queries = split_into_atomics("".to_string(), pipeline, &mut context.anchor);
-    //     assert_eq!(queries.len(), 3);
+        // One aggregate, but take at the top
+        let prql: &str = r###"
+        from employees
+        take 20
+        filter country == "USA"
+        aggregate [sal = average salary]
+        sort sal
+        "###;
 
-    //     // A take, then a select
-    //     let prql: &str = r###"
-    //     from employees
-    //     take 20
-    //     select first_name
-    //     "###;
+        assert_eq!(count_atomics(prql), 2);
 
-    //     let (pipeline, mut context) = parse_and_resolve(prql).unwrap();
-    //     let queries = split_into_atomics("".to_string(), pipeline, &mut context.anchor);
-    //     assert_eq!(queries.len(), 1);
-    // }
+        // A take, then two aggregates
+        let prql: &str = r###"
+        from employees
+        take 20
+        filter country == "USA"
+        aggregate [sal = average salary]
+        aggregate [sal2 = average sal]
+        sort sal2
+        "###;
+
+        assert_eq!(count_atomics(prql), 3);
+
+        // A take, then a select
+        let prql: &str = r###"
+        from employees
+        take 20
+        select first_name
+        "###;
+
+        assert_eq!(count_atomics(prql), 1);
+    }
 
     #[test]
     fn test_variable_after_aggregate() {
@@ -757,7 +816,7 @@ mod test {
           *,
           RANK() OVER () AS rank
         FROM
-          table_1
+          table_1 AS table_0
         WHERE
           country = 'USA'
         "###);
@@ -782,7 +841,7 @@ mod test {
         SELECT
           *
         FROM
-          table_1
+          table_1 AS table_0
         WHERE
           _expr_0 > 3
         "###);

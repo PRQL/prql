@@ -19,19 +19,19 @@ use crate::sql::context::AnchorContext;
 use super::anchor::{infer_complexity, CidCollector, Complexity};
 use super::Context;
 
-#[derive(Debug, EnumAsInner)]
+#[derive(Debug, Clone, EnumAsInner)]
 pub(super) enum SqlRelationKind {
     Super(RelationKind),
     PreprocessedPipeline(Vec<SqlTransform>),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(super) struct SqlRelation {
     pub kind: SqlRelationKind,
     pub columns: Vec<RelationColumn>,
 }
 
-#[derive(Debug, EnumAsInner, strum::AsRefStr)]
+#[derive(Debug, Clone, EnumAsInner, strum::AsRefStr)]
 pub(super) enum SqlTransform {
     Super(Transform),
     Distinct,
@@ -41,22 +41,23 @@ pub(super) enum SqlTransform {
     Loop(Vec<SqlTransform>),
 }
 
-/// Pushes all [Transform::Select]s to the back of the pipeline.
-pub(super) fn push_down_selects(pipeline: Vec<Transform>) -> Vec<Transform> {
-    let mut select = None;
-    let mut res = Vec::with_capacity(pipeline.len());
-    for t in pipeline {
-        if let Transform::Select(_) = t {
-            select = Some(t);
-        } else {
-            res.push(t);
-        }
-    }
-    if let Some(select) = select {
-        res.push(select);
-    }
-    res
-}
+// This function was disabled because it changes semantics of the pipeline in some cases.
+// /// Pushes all [Transform::Select]s to the back of the pipeline.
+// pub(super) fn push_down_selects(pipeline: Vec<Transform>) -> Vec<Transform> {
+//     let mut select = None;
+//     let mut res = Vec::with_capacity(pipeline.len());
+//     for t in pipeline {
+//         if let Transform::Select(_) = t {
+//             select = Some(t);
+//         } else {
+//             res.push(t);
+//         }
+//     }
+//     if let Some(select) = select {
+//         res.push(select);
+//     }
+//     res
+// }
 
 /// Removes unused relation inputs
 pub(super) fn prune_inputs(mut pipeline: Vec<Transform>) -> Vec<Transform> {

@@ -700,9 +700,10 @@ impl Lowerer {
                 let name = match name {
                     Some(v) => RelationColumn::Single(Some(v.clone())),
                     None => return Err(Error::new_simple(
-                        "This table contains unnamed columns, that need to be referenced by name",
+                        "This table contains unnamed columns that need to be referenced by name",
                     )
                     .with_span(self.context.span_map.get(&id).cloned())
+                    .with_help("The name may have been overridden later in the pipeline.")
                     .into()),
                 };
                 log::trace!("lookup cid of name={name:?} in input {input_columns:?}");

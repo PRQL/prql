@@ -589,12 +589,7 @@ impl TransformCall {
                 let bottom = ty_frame_or_default(bottom)?;
                 append(top, bottom)?
             }
-            Loop(pipeline) => {
-                // pipeline's body is resolved, just use its type
-                let Closure { body, .. } = pipeline.kind.as_closure().unwrap().as_ref();
-
-                body.ty.clone().unwrap().into_table().unwrap()
-            }
+            Loop(_) => ty_frame_or_default(&self.input)?,
             Sort { .. } | Filter { .. } | Take { .. } => ty_frame_or_default(&self.input)?,
         })
     }

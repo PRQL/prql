@@ -34,9 +34,16 @@ pub struct AnchorContext {
     pub(super) tiid: IdGenerator<TIId>,
 }
 
+#[derive(Debug, Clone)]
 pub(super) struct SqlTableDecl {
+    #[allow(dead_code)]
+    pub id: TId,
+
     pub name: Option<String>,
 
+    /// Relation that still needs to be defined (usually as CTE) so it can be referenced by name.
+    /// None means that it has already been defined, or was not needed to be defined in the
+    /// first place.
     pub relation: Option<SqlRelation>,
 }
 
@@ -85,7 +92,7 @@ impl AnchorContext {
         self.column_decls.insert(id, decl);
     }
 
-    pub fn create_table_instance(&mut self, mut table_ref: TableRef) {
+    pub fn create_table_instance(&mut self, mut table_ref: TableRef) -> TableRef {
         let tiid = self.tiid.gen();
 
         for (col, cid) in &table_ref.columns {
@@ -97,7 +104,8 @@ impl AnchorContext {
             table_ref.name = Some(self.table_name.gen())
         }
 
-        self.table_instances.insert(tiid, table_ref);
+        self.table_instances.insert(tiid, table_ref.clone());
+        table_ref
     }
 
     pub(crate) fn ensure_column_name(&mut self, cid: CId) -> Option<&String> {
@@ -224,6 +232,7 @@ impl QueryLoader {
         }
 
         let sql_decl = SqlTableDecl {
+            id: decl.id,
             name: decl.name,
             relation: if matches!(decl.relation.kind, RelationKind::ExternRef(_)) {
                 None

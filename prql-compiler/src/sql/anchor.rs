@@ -209,6 +209,7 @@ pub(super) fn anchor_split(
     ctx.table_decls.insert(
         new_tid,
         SqlTableDecl {
+            id: new_tid,
             name: None,
             relation: Some(SqlRelation {
                 columns: cols_at_split
@@ -221,19 +222,17 @@ pub(super) fn anchor_split(
     );
 
     // define instance of that table
-    let table_ref = TableRef {
+    let table_ref = ctx.create_table_instance(TableRef {
         source: new_tid,
         name: None,
         columns: new_columns,
-    };
-    ctx.create_table_instance(table_ref.clone());
+    });
 
     // adjust second part: prepend from and rewrite expressions to use new columns
     let mut second = atomic;
     second.insert(0, SqlTransform::Super(Transform::From(table_ref)));
 
-    let mut redirector = CidRedirector { ctx, cid_redirects };
-    redirector.fold_sql_transforms(second).unwrap()
+    CidRedirector::redirect(second, cid_redirects, ctx)
 }
 
 /// Determines whether a pipeline must be split at a transform to
@@ -509,9 +508,20 @@ impl RqFold for CidCollector {
     }
 }
 
-struct CidRedirector<'a> {
-    ctx: &'a mut AnchorContext,
-    cid_redirects: HashMap<CId, CId>,
+pub(super) struct CidRedirector<'a> {
+    pub ctx: &'a mut AnchorContext,
+    pub cid_redirects: HashMap<CId, CId>,
+}
+
+impl<'a> CidRedirector<'a> {
+    pub fn redirect(
+        pipeline: Vec<SqlTransform>,
+        cid_redirects: HashMap<CId, CId>,
+        ctx: &mut AnchorContext,
+    ) -> Vec<SqlTransform> {
+        let mut redirector = CidRedirector { ctx, cid_redirects };
+        redirector.fold_sql_transforms(pipeline).unwrap()
+    }
 }
 
 impl<'a> RqFold for CidRedirector<'a> {
