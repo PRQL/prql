@@ -1,4 +1,4 @@
-# Standard Library
+# Standard library
 
 The standard library currently contains commonly used functions that are used in
 SQL. It's not yet as broad as we'd like, and we're very open to expanding it.

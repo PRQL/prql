@@ -63,6 +63,18 @@ struct Context {
     pub dialect: Box<dyn DialectHandler>,
     pub anchor: AnchorContext,
 
+    // stuff regarding current query
+    query: QueryOpts,
+
+    // stuff regarding parent queries
+    query_stack: Vec<QueryOpts>,
+
+    pub ctes: Vec<sqlparser::ast::Cte>,
+}
+
+#[derive(Default, Clone)]
+struct QueryOpts {
+    /// When true, column references will not include table names prefixes.
     pub omit_ident_prefix: bool,
 
     /// True iff codegen should generate expressions before SELECT's projection is applied.
@@ -70,6 +82,29 @@ struct Context {
     /// - WHERE needs `pre_projection=true`, but
     /// - ORDER BY needs `pre_projection=false`.
     pub pre_projection: bool,
+
+    /// When true, queries will contain nested sub-queries instead of WITH CTEs.
+    pub forbid_ctes: bool,
+}
+
+impl Context {
+    fn new(dialect: Box<dyn DialectHandler>, anchor: AnchorContext) -> Self {
+        Context {
+            dialect,
+            anchor,
+            query: QueryOpts::default(),
+            query_stack: Vec::new(),
+            ctes: Vec::new(),
+        }
+    }
+
+    fn push_query(&mut self) {
+        self.query_stack.push(self.query.clone());
+    }
+
+    fn pop_query(&mut self) {
+        self.query = self.query_stack.pop().unwrap();
+    }
 }
 
 #[cfg(test)]
