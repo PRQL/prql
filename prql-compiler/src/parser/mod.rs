@@ -233,10 +233,6 @@ fn expr_of_parse_pair(pair: Pair<Rule>) -> Result<Expr> {
                 named_args: named,
             })
         }
-        Rule::jinja => {
-            let inner = pair.as_str();
-            ExprKind::Ident(Ident::from_name(inner))
-        }
         Rule::ident => {
             // Pest has already parsed, so Chumsky should never fail
             let ident = ::chumsky::Parser::parse(&chumsky::ident(), pair.as_str()).unwrap();
@@ -850,39 +846,11 @@ Canada
     }
 
     #[test]
-    fn test_parse_jinja() -> Result<()> {
-        assert_yaml_snapshot!(stmts_of_string(r#"
+    fn test_parse_jinja() {
+        stmts_of_string(r#"
         from {{ ref('stg_orders') }}
         aggregate (sum order_id)
-        "#)?, @r###"
-        ---
-        - Main:
-            Pipeline:
-              exprs:
-                - FuncCall:
-                    name:
-                      Ident:
-                        - from
-                    args:
-                      - Ident:
-                          - "{{ ref('stg_orders') }}"
-                    named_args: {}
-                - FuncCall:
-                    name:
-                      Ident:
-                        - aggregate
-                    args:
-                      - FuncCall:
-                          name:
-                            Ident:
-                              - sum
-                          args:
-                            - Ident:
-                                - order_id
-                          named_args: {}
-                    named_args: {}
-        "###);
-        Ok(())
+        "#).unwrap_err();
     }
 
     #[test]
