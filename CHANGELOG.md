@@ -2,7 +2,8 @@
 
 ## 0.5.2 — 2022-02-18
 
-0.5.2 fixes an issue with `prql-js`'s build.
+0.5.2 is a tiny release to fixes an issue with `prql-js`'s build in yesterday's
+0.5.1 release.
 
 This release has 7 commits from 2 contributors.
 
