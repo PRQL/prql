@@ -1,0 +1,31 @@
+// Dev Container for Rust, website, prql-js and prql-python
+{
+  "image": "mcr.microsoft.com/devcontainers/rust:0-1-bullseye",
+  "features": {
+    "ghcr.io/eitsupi/devcontainer-features/go-task:1": {},
+    "ghcr.io/devcontainers/features/hugo:1": {},
+    "ghcr.io/devcontainers/features/python:1": {},
+    "ghcr.io/devcontainers/features/node:1": {},
+    "ghcr.io/rocker-org/devcontainer-features/apt-packages:1": {
+      "packages": "clang"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "budparr.language-hugo-vscode",
+        "mitsuhiko.insta",
+        "prql-lang.prql-vscode",
+        "esbenp.prettier-vscode"
+      ]
+    }
+  },
+  "mounts": [
+    {
+      "source": "devcontainer-cargo-cache",
+      "target": "/usr/local/cargo",
+      "type": "volume"
+    }
+  ],
+  "postCreateCommand": "task setup-devcontainer"
+}
