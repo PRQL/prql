@@ -3194,24 +3194,53 @@ fn test_name_inference() {
 fn test_from_text() {
     assert_display_snapshot!(compile(r#"
     from_text format:csv """
-a,b,c
-1,2,3
-4,5,6
+    a,b,c
+    '1','2','3'
+    '4','5','6'
     """
     select [b, c]
     "#).unwrap(),
         @r###"
     WITH table_0 AS (
       SELECT
-        1 AS a,
-        2 AS b,
-        3 AS c
+        '1' AS a,
+        '2' AS b,
+        '3' AS c
+      UNION
+      ALL
+      SELECT
+        '4' AS a,
+        '5' AS b,
+        '6' AS c
+    )
+    SELECT
+      b,
+      c
+    FROM
+      table_1 AS table_0
+    "###
+    );
+
+    assert_display_snapshot!(compile(r#"
+    from_text format:csv """
+    a,b,c
+    '1',null,3.14
+    4,'5',false
+    """
+    select [b, c]
+    "#).unwrap(),
+        @r###"
+    WITH table_1 AS (
+      SELECT
+        '1' AS a,
+        NULL AS b,
+        3.14 AS c
       UNION
       ALL
       SELECT
         4 AS a,
-        5 AS b,
-        6 AS c
+        '5' AS b,
+        false AS c
     )
     SELECT
       b,
