@@ -14,6 +14,8 @@
 
 **Integrations**:
 
+- [prql-lib] Added C header file (@vanillajonathan, #1879)
+
 **Internal changes**:
 
 **New Contributors**:
