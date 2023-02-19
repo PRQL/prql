@@ -847,10 +847,13 @@ Canada
 
     #[test]
     fn test_parse_jinja() {
-        stmts_of_string(r#"
+        stmts_of_string(
+            r#"
         from {{ ref('stg_orders') }}
         aggregate (sum order_id)
-        "#).unwrap_err();
+        "#,
+        )
+        .unwrap_err();
     }
 
     #[test]

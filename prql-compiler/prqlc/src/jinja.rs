@@ -21,7 +21,7 @@ use anyhow::Result;
 use minijinja::compiler::tokens::{Span, Token};
 use regex::Regex;
 
-const ANCHOR_PREFIX: &'static str = "_jinja_";
+const ANCHOR_PREFIX: &str = "_jinja_";
 
 #[derive(Debug)]
 pub enum JinjaBlock<'a> {
@@ -75,7 +75,7 @@ pub fn pre_process(source: &str) -> Result<(String, JinjaContext)> {
                     let id = format!("{ANCHOR_PREFIX}{next_anchor_id}");
                     next_anchor_id += 1;
 
-                    anchored_source += &format!("{id}");
+                    anchored_source += &id;
 
                     context.anchor_map.insert(id, source_span);
                 }
@@ -126,7 +126,11 @@ pub fn post_process(source: &str, context: JinjaContext) -> String {
     let re = Regex::new(&format!(r"{ANCHOR_PREFIX}\d+")).unwrap();
 
     let mut last_index = 0;
-    for (index, anchor_id) in source.match_indices(&re) {
+    for cap in re.captures_iter(source) {
+        let cap = cap.get(0).unwrap();
+        let index = cap.start();
+        let anchor_id = cap.as_str();
+
         res += &source[last_index..index];
         res += context.anchor_map.get(anchor_id).unwrap_or(&anchor_id);
 
