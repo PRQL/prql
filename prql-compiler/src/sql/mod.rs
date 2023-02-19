@@ -32,10 +32,7 @@ pub fn compile(query: Query, options: Options) -> Result<String> {
             sqlformat::FormatOptions::default(),
         );
 
-        // The sql formatter turns `{{` into `{ {`, and while that's reasonable SQL,
-        // we want to allow jinja expressions through. So we (somewhat hackily) replace
-        // any `{ {` with `{{`.
-        formatted.replace("{ {", "{{").replace("} }", "}}") + "\n"
+        formatted + "\n"
     } else {
         sql
     };

@@ -57,7 +57,7 @@ expr_compare = { expr_add ~ (operator_compare ~ expr_add)? }
 expr_add = { expr_mul ~ (operator_add ~ expr_add)? }
 expr_mul = { term ~ (operator_mul ~ expr_mul)? }
 
-term = _{ ( switch | s_string | f_string | range | literal | ident | nested_pipeline | expr_unary | list | jinja ) }
+term = _{ ( switch | s_string | f_string | range | literal | ident | nested_pipeline | expr_unary | list ) }
 expr_unary = { ( operator_unary ~ ( nested_pipeline | ident | list )) }
 literal = _{ value_and_unit | number | boolean | null | string | timestamp | date | time | "(" ~ literal ~ ")" }
 // `assign | pipeline` based on discussion in #648
@@ -145,9 +145,6 @@ timestamp_inner = ${ date_inner ~ "T" ~ time_inner }
 // free to demote it to those items if `end_expr` is used somewhere where it's
 // not supported)
 end_expr = _{ WHITESPACE | "," | ")" | "]" | EOI | NEWLINE | ".." }
-
-// We pass text between `{{` and `}}` through, so dbt can use Jinja.
-jinja = { ("{{" ~ (!"}}" ~ ANY)* ~ "}}") }
 
 switch = { "switch" ~ "[" ~ (NEWLINE* ~ switch_case ~ ("," ~ NEWLINE* ~ switch_case )* ~ ","?)? ~ NEWLINE* ~ "]" }
 switch_case = { expr_call ~ "->" ~ expr_call }
