@@ -25,7 +25,8 @@ jobs:
       - run: cargo build
         working-directory: prql-lib
       - run: |
-          mkdir -p /app/prql-php
+          cd /app
+          mkdir -p prql-php/src
           mv ../target/debug/libprql_lib.so /app/prql-php/src/libprql_lib.so
         working-directory: prql-lib
       - name: 📦 Install dependencies using Composer
