@@ -12,8 +12,9 @@ WITH table_1 AS (
     tenure
 )
 SELECT
-  table_1.*,
+  table_0.*,
   locations.*
 FROM
-  table_1
-  JOIN locations ON table_1.employee_id = locations.employee_id
+  table_1 AS table_0
+  JOIN locations ON table_0.employee_id = locations.employee_id
+
