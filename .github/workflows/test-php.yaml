@@ -35,6 +35,9 @@ jobs:
         with:
           args: --working-dir=prql-php
           php_extensions: FFI
+      - name: 🧪 Run tests using PHPUnit
+        run: vendor/bin/phpunit tests
+        working-directory: prql-php
       - name: 🧪 PHPUnit Tests
         uses: php-actions/phpunit@v3
         with:
