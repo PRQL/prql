@@ -5,6 +5,23 @@ use PHPUnit\Framework\TestCase;
 
 final class CompilerTest extends TestCase
 {
+    public function testListFiles(): void
+    {
+        var_dump(scandir("."));
+        ob_flush();
+    }
+
+    public function testListSrcFiles(): void
+    {
+        var_dump(scandir("src"));
+        ob_flush();
+    }
+
+    public function testPrqlCompilerFileExists(): void
+    {
+        $this->assertFileExists("src/Compiler.php");
+    }
+
     public function testFfiExtensionIsLoaded(): void
     {
         $this->assertTrue(extension_loaded("ffi"));
