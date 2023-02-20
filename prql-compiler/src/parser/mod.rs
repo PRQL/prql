@@ -801,6 +801,10 @@ Canada
         parse_expr("_2").unwrap().kind.into_ident().unwrap();
         parse_expr("_").unwrap().kind.into_ident().unwrap();
 
+        assert_yaml_snapshot!(parse_expr(r#"add 1. 2"#).unwrap(), @r###"
+        ---
+        "###);
+
         parse_expr("_2.3").unwrap_err();
         // expr_of_string("2_").unwrap_err(); // TODO
         // expr_of_string("2.3_").unwrap_err(); // TODO
@@ -1298,6 +1302,19 @@ Canada
             ident, @r###"
         ---
         - count
+        "###);
+
+        let ast = parse_expr(r#"s 'foo'"#).unwrap();
+        assert_yaml_snapshot!(
+            ast, @r###"
+        ---
+        FuncCall:
+          name:
+            Ident:
+              - s
+          args:
+            - Literal:
+                String: foo
         "###);
 
         // A non-friendly option for #154
