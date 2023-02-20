@@ -10,6 +10,11 @@ on:
       - ".github/workflows/test-php.yaml"
   workflow_call:
 
+concurrency:
+  # See notes in `pull-request.yaml`
+  group: ${{ github.workflow }}-${{ github.ref }}-php
+  cancel-in-progress: true
+  
 jobs:
   test:
     runs-on: ${{ matrix.os }}
