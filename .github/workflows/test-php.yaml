@@ -43,8 +43,3 @@ jobs:
       - name: 🧪 Run tests using PHPUnit
         run: vendor/bin/phpunit tests
         working-directory: prql-php
-#      - name: 🧪 Run tests using PHPUnit (php-actions/phpunit)
-#        uses: php-actions/phpunit@v3
-#        with:
-#          args: --bootstrap prql-php/vendor/autoload.php prql-php/tests
-#          php_extensions: FFI
