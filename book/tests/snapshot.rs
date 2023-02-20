@@ -112,7 +112,7 @@ fn collect_snapshot_examples() -> Result<HashMap<PathBuf, String>> {
 
 // On Windows, we grab them from the written files, because of the markdown issue.
 #[cfg(target_family = "windows")]
-fn collect_book_examples() -> Result<HashMap<PathBuf, String>> {
+fn collect_snapshot_examples() -> Result<HashMap<PathBuf, String>> {
     collect_snapshot_examples()
 }
 
