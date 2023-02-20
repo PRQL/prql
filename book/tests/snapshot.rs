@@ -21,7 +21,6 @@
 use anyhow::{bail, Error, Result};
 use globset::Glob;
 use insta::{assert_snapshot, glob};
-use itertools::Itertools;
 use log::warn;
 use prql_compiler::*;
 use pulldown_cmark::{CodeBlockKind, Event, Parser, Tag};
@@ -99,6 +98,7 @@ fn collect_book_examples() -> Result<HashMap<PathBuf, String>> {
 /// Collect examples which we've already written to disk, as a map of <Path, PRQL>.
 #[cfg(not(target_family = "windows"))]
 fn collect_snapshot_examples() -> Result<HashMap<PathBuf, String>> {
+    use itertools::Itertools;
     let glob = Glob::new("**/*.prql")?.compile_matcher();
     let existing_examples = WalkDir::new(Path::new(ROOT_EXAMPLES_PATH))
         .into_iter()
