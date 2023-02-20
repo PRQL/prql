@@ -23,7 +23,6 @@ use globset::Glob;
 use insta::{assert_snapshot, glob};
 use log::warn;
 use prql_compiler::*;
-use pulldown_cmark::{CodeBlockKind, Event, Parser, Tag};
 use std::path::{Path, PathBuf};
 use std::{collections::HashMap, fs};
 use walkdir::WalkDir;
@@ -44,6 +43,7 @@ const ROOT_EXAMPLES_PATH: &str = "tests/prql";
 /// Collect all the PRQL examples in the book, as a map of <Path, PRQL>.
 #[cfg(not(target_family = "windows"))]
 fn collect_book_examples() -> Result<HashMap<PathBuf, String>> {
+    use pulldown_cmark::{CodeBlockKind, Event, Parser, Tag};
     let glob = Glob::new("**/*.md")?.compile_matcher();
     let examples_in_book: HashMap<PathBuf, String> = WalkDir::new(Path::new("./src/"))
         .into_iter()
@@ -96,7 +96,6 @@ fn collect_book_examples() -> Result<HashMap<PathBuf, String>> {
 }
 
 /// Collect examples which we've already written to disk, as a map of <Path, PRQL>.
-#[cfg(not(target_family = "windows"))]
 fn collect_snapshot_examples() -> Result<HashMap<PathBuf, String>> {
     use itertools::Itertools;
     let glob = Glob::new("**/*.prql")?.compile_matcher();
@@ -112,7 +111,7 @@ fn collect_snapshot_examples() -> Result<HashMap<PathBuf, String>> {
 
 // On Windows, we grab them from the written files, because of the markdown issue.
 #[cfg(target_family = "windows")]
-fn collect_snapshot_examples() -> Result<HashMap<PathBuf, String>> {
+fn collect_book_examples() -> Result<HashMap<PathBuf, String>> {
     collect_snapshot_examples()
 }
 
