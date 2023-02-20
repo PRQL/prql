@@ -1,0 +1,9 @@
+---
+source: book/tests/snapshot.rs
+expression: "from orders\nderive amount ?? 0\n"
+---
+from orders
+derive amount ?? 0
+
+
+
