@@ -72,7 +72,7 @@ jobs:
       - uses: richb-hanover/cargo@v1.1.0
         with:
           command: release
-          args: publish -x
+          args: publish --no-confirm -x
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 

@@ -1,5 +1,5 @@
 # Workflow to check that the workflows in Taskfile pass.
-name: taskfile
+name: test-taskfile
 
 on:
   push:
@@ -12,7 +12,7 @@ on:
       - .github/workflows/test-taskfile.yaml
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}-taskfile
   cancel-in-progress: true
 
 jobs:

@@ -1,6 +1,6 @@
 # PRQL Changelog
 
-## 0.5.2 — [unreleased]
+## 0.5.3 — [unreleased]
 
 **Features**:
 
@@ -12,9 +12,22 @@
 
 **Integrations**:
 
+- [prql-lib] Added C header file (@vanillajonathan, #1879)
+
 **Internal changes**:
 
 **New Contributors**:
+
+## 0.5.2 — 2022-02-18
+
+0.5.2 is a tiny release to fix an build issue in yesterday's `prql-js` 0.5.1
+release.
+
+This release has 7 commits from 2 contributors.
+
+**New Contributors**:
+
+- @matthias-Q, with #1873
 
 ## 0.5.1 — 2022-02-17
 

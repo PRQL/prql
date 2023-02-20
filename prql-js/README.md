@@ -173,4 +173,4 @@ npm test
 [^1]:
     Though we would be very open to other approaches, given wasm-pack does not
     seem maintained, and we're eliding many of its features to build for three
-    targets.
+    targets. See <https://github.com/PRQL/prql/issues/1836> for more details.

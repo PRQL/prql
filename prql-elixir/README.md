@@ -38,3 +38,34 @@ crate from this repo:
 
 Future work includes publishing pre-compiled artifacts, so Elixir projects can
 run PRQL without needing a Rust toolchain.
+
+## Mac
+
+We currently don't enable compilation for Mac. This is possible to enable, but
+causes some issues with cargo's compilation cache. Briefly: it requires
+`RUST_FLAGS` to be set, and because of
+<https://github.com/rust-lang/cargo/issues/8716> &
+<https://github.com/rust-lang/cargo/issues/8899>, any compilation of a different
+target will bust the cache.
+
+The possible future workarounds include:
+
+- Passing `--target=aarch64-apple-darwin` to every cargo call, which is
+  inconvenient and can be difficult in some situations; e.g. Rust Analyzer. This
+  disables passing `RUST_FLAGS` (I'm actually unclear why `prql-elixir` builds
+  successfully in that case...)
+- Directing other cargo calls to different paths, such as `/target-ra` for Rust
+  Analyzer and `/target-book` for the book building. But one `cargo build` from
+  the terminal without either the `target` or `target_dir` specified will bust
+  the cache!
+- Never compiling for other targets. But our standard tests run for
+  `--target=wasm32-unknown-unknown`, so this requires refraining from using
+  them.
+- Removing `prql-elixir` from our workspace, so that `cargo` commands in the
+  PRQL workspace don't require rust flags. This would work well, but means we
+  need separate test coverage for this crate, which adds some weight to the
+  tests.
+
+If `prql-elixir` becomes more used (for example, we start publishing to Hex, or
+Mac developers want to work on it), then we can re-enable and deal with the
+caching issues. We can also re-enable them if the `cargo` issue is resolved.
