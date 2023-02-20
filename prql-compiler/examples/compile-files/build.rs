@@ -19,7 +19,7 @@ fn main() {
         let prql_string = fs::read_to_string(prql_path).unwrap();
 
         // compile
-        let sql_string = compile(&prql_string, Options::default()).unwrap();
+        let sql_string = compile(&prql_string, &Options::default()).unwrap();
 
         // write file
         fs::write(sql_path, sql_string).unwrap();

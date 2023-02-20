@@ -109,7 +109,7 @@ pub static PRQL_VERSION: Lazy<Version> =
 /// ```
 /// use prql_compiler::{compile, Options, Target, sql::Dialect};
 ///
-/// let prql = "from employees | select [name,age] ";
+/// let prql = "from employees | select [name,age]";
 /// let opt = Options {
 ///     format: false,
 ///     target: Target::Sql(Some(Dialect::SQLite)),
@@ -121,7 +121,7 @@ pub static PRQL_VERSION: Lazy<Version> =
 ///
 /// ```
 /// See [`sql::Options`](sql/struct.Options.html) and [`sql::Dialect`](sql/enum.Dialect.html) for options and supported SQL dialects.
-pub fn compile(prql: &str, options: Options) -> Result<String, ErrorMessages> {
+pub fn compile(prql: &str, options: &Options) -> Result<String, ErrorMessages> {
     parser::parse(prql)
         .and_then(semantic::resolve)
         .and_then(|rq| sql::compile(rq, options))
@@ -237,7 +237,7 @@ pub fn pl_to_rq(pl: Vec<ast::pl::Stmt>) -> Result<ast::rq::Query, ErrorMessages>
 }
 
 /// Generate SQL from RQ.
-pub fn rq_to_sql(rq: ast::rq::Query, options: Options) -> Result<String, ErrorMessages> {
+pub fn rq_to_sql(rq: ast::rq::Query, options: &Options) -> Result<String, ErrorMessages> {
     sql::compile(rq, options).map_err(error::downcast)
 }
 
