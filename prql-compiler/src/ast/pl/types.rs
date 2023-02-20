@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use super::Frame;
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, EnumAsInner)]
+#[derive(Clone, PartialEq, Serialize, Deserialize, EnumAsInner)]
 pub enum Ty {
     Empty,
     Literal(TyLit),
@@ -160,5 +160,11 @@ impl Display for Ty {
                 Ok(())
             }
         }
+    }
+}
+
+impl Debug for Ty {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        Display::fmt(self, f)
     }
 }

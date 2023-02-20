@@ -16,10 +16,9 @@ WITH table_1 AS (
     10
 )
 SELECT
-  table_0.name,
-  table_0.gross_salary,
+  table_1.name,
+  table_1.gross_salary,
   d.name
 FROM
-  table_1 AS table_0
-  JOIN department AS d ON table_0.dept_no = d.dept_no
-
+  table_1
+  JOIN department AS d ON table_1.dept_no = d.dept_no

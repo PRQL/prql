@@ -166,7 +166,7 @@ sort (-distance)
 sort [-distance]
 ```
 
-## Inner transforms
+## Inner Transforms
 
 Parentheses are also used for transforms (such as `group` and `window`) that
 pass their result to an "inner transform". The example below applies the

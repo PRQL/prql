@@ -17,12 +17,11 @@ WITH table_1 AS (
     de.dept_no
 )
 SELECT
-  table_0.dept_no,
-  table_0.salary,
+  table_1.dept_no,
+  table_1.salary,
   employees.gender,
   titles.title
 FROM
-  table_1 AS table_0
-  JOIN employees ON table_0.emp_no = employees.emp_no
-  JOIN titles ON table_0.emp_no = titles.emp_no
-
+  table_1
+  JOIN employees ON table_1.emp_no = employees.emp_no
+  JOIN titles ON table_1.emp_no = titles.emp_no

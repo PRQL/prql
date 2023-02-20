@@ -25,7 +25,6 @@ pub enum Transform {
         filter: Expr,
     },
     Append(TableRef),
-    Loop(Vec<Transform>),
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]

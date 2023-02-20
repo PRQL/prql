@@ -10,19 +10,19 @@ use itertools::Itertools;
 
 use crate::ast::pl::TableExternRef;
 use crate::ast::rq::{
-    fold_table, CId, Compute, Query, Relation, RelationColumn, RelationKind, RqFold, TId,
-    TableDecl, TableRef, Transform,
+    fold_table, CId, Compute, Query, RelationColumn, RelationKind, RqFold, TId, TableDecl,
+    TableRef, Transform,
 };
 use crate::utils::{IdGenerator, NameGenerator};
 
-use super::preprocess::{SqlRelation, SqlTransform};
+use super::preprocess::SqlTransform;
 
 #[derive(Default)]
 pub struct AnchorContext {
     pub(super) column_decls: HashMap<CId, ColumnDecl>,
     pub(super) column_names: HashMap<CId, String>,
 
-    pub(super) table_decls: HashMap<TId, SqlTableDecl>,
+    pub(super) table_decls: HashMap<TId, TableDecl>,
 
     pub(super) table_instances: HashMap<TIId, TableRef>,
 
@@ -33,20 +33,6 @@ pub struct AnchorContext {
     pub(super) tid: IdGenerator<TId>,
     pub(super) tiid: IdGenerator<TIId>,
 }
-
-#[derive(Debug, Clone)]
-pub(super) struct SqlTableDecl {
-    #[allow(dead_code)]
-    pub id: TId,
-
-    pub name: Option<String>,
-
-    /// Relation that still needs to be defined (usually as CTE) so it can be referenced by name.
-    /// None means that it has already been defined, or was not needed to be defined in the
-    /// first place.
-    pub relation: Option<SqlRelation>,
-}
-
 /// Table instance id
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct TIId(usize);
@@ -65,7 +51,7 @@ pub enum ColumnDecl {
 }
 
 impl AnchorContext {
-    pub fn of(query: Query) -> (Self, Relation) {
+    pub fn of(query: Query) -> (Self, Query) {
         let (cid, tid, query) = IdGenerator::load(query);
 
         let context = AnchorContext {
@@ -92,7 +78,7 @@ impl AnchorContext {
         self.column_decls.insert(id, decl);
     }
 
-    pub fn create_table_instance(&mut self, mut table_ref: TableRef) -> TableRef {
+    pub fn create_table_instance(&mut self, mut table_ref: TableRef) {
         let tiid = self.tiid.gen();
 
         for (col, cid) in &table_ref.columns {
@@ -104,8 +90,7 @@ impl AnchorContext {
             table_ref.name = Some(self.table_name.gen())
         }
 
-        self.table_instances.insert(tiid, table_ref.clone());
-        table_ref
+        self.table_instances.insert(tiid, table_ref);
     }
 
     pub(crate) fn ensure_column_name(&mut self, cid: CId) -> Option<&String> {
@@ -208,45 +193,29 @@ struct QueryLoader {
 }
 
 impl QueryLoader {
-    fn load(context: AnchorContext, query: Query) -> (AnchorContext, Relation) {
+    fn load(context: AnchorContext, query: Query) -> (AnchorContext, Query) {
         let mut loader = QueryLoader { context };
-
-        for t in query.tables {
-            loader.load_table(t).unwrap();
-        }
-        let relation = loader.fold_relation(query.relation).unwrap();
-        (loader.context, relation)
-    }
-
-    fn load_table(&mut self, table: TableDecl) -> Result<()> {
-        let mut decl = fold_table(self, table)?;
-
-        // assume name of the LocalTable that the relation is referencing
-        if let RelationKind::ExternRef(TableExternRef::LocalTable(table)) = &decl.relation.kind {
-            decl.name = Some(table.clone());
-        }
-
-        // generate name (if not present)
-        if decl.name.is_none() && decl.relation.kind.as_extern_ref().is_none() {
-            decl.name = Some(self.context.table_name.gen());
-        }
-
-        let sql_decl = SqlTableDecl {
-            id: decl.id,
-            name: decl.name,
-            relation: if matches!(decl.relation.kind, RelationKind::ExternRef(_)) {
-                None
-            } else {
-                Some(decl.relation.into())
-            },
-        };
-
-        self.context.table_decls.insert(decl.id, sql_decl);
-        Ok(())
+        let query = loader.fold_query(query).unwrap();
+        (loader.context, query)
     }
 }
 
 impl RqFold for QueryLoader {
+    fn fold_table(&mut self, table: TableDecl) -> Result<TableDecl> {
+        let mut decl = fold_table(self, table)?;
+
+        if let RelationKind::ExternRef(TableExternRef::LocalTable(table)) = &decl.relation.kind {
+            decl.name = Some(table.clone());
+        }
+
+        if decl.name.is_none() && decl.relation.kind.as_extern_ref().is_none() {
+            decl.name = Some(self.context.table_name.gen());
+        }
+
+        self.context.table_decls.insert(decl.id, decl.clone());
+        Ok(decl)
+    }
+
     fn fold_compute(&mut self, compute: Compute) -> Result<Compute> {
         self.context.register_compute(compute.clone());
         Ok(compute)
