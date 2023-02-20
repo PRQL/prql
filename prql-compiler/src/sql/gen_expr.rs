@@ -715,9 +715,6 @@ fn is_keyword(ident: &str) -> bool {
 }
 
 pub(super) fn translate_ident_part(ident: String, ctx: &Context) -> sql_ast::Ident {
-    // We'll remove this when we get the new dbt plugin working (so no need to
-    // integrate into the regex)
-    let is_jinja = ident.starts_with("{{") && ident.ends_with("}}");
     lazy_static! {
         // One of:
         // - `*`
@@ -730,7 +727,7 @@ pub(super) fn translate_ident_part(ident: String, ctx: &Context) -> sql_ast::Ide
 
     let is_bare = VALID_BARE_IDENT.is_match(&ident);
 
-    if is_jinja || is_bare && !is_keyword(&ident) {
+    if is_bare && !is_keyword(&ident) {
         sql_ast::Ident::new(ident)
     } else {
         sql_ast::Ident::with_quote(ctx.dialect.ident_quote(), ident)

@@ -1450,19 +1450,6 @@ fn test_distinct() {
 }
 
 #[test]
-fn test_dbt_query() {
-    assert_display_snapshot!((compile(r###"
-    from {{ ref('stg_orders') }}
-    aggregate (min order_id)
-    "###).unwrap()), @r###"
-    SELECT
-      MIN(order_id)
-    FROM
-      {{ ref('stg_orders') }}
-    "###);
-}
-
-#[test]
 fn test_join() {
     assert_display_snapshot!((compile(r###"
     from x
