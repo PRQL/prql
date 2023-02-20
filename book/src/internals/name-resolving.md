@@ -50,7 +50,7 @@ three things can happen:
 
 ## Translating to SQL
 
-When translating into an SQL statement which references only one table, there is
+When translating into a SQL statement which references only one table, there is
 no need to reference column names with table prefix.
 
 ```prql

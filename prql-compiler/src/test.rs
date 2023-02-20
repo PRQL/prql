@@ -205,7 +205,7 @@ fn test_append() {
         take 10
     )
     "###).unwrap(), @r###"
-    WITH table_0 AS (
+    WITH table_1 AS (
       SELECT
         *,
         name,
@@ -227,13 +227,13 @@ fn test_append() {
           employees
         LIMIT
           3
-      ) AS table_2
+      ) AS table_3
     UNION
     ALL
     SELECT
       *
     FROM
-      table_0 AS table_1
+      table_1 AS table_0
     "###);
 
     assert_display_snapshot!(compile(r###"
@@ -310,7 +310,7 @@ fn test_remove() {
     )
     "#).unwrap(),
         @r###"
-    WITH table_0 AS (
+    WITH table_1 AS (
       SELECT
         artist_id
       FROM
@@ -325,7 +325,7 @@ fn test_remove() {
     SELECT
       *
     FROM
-      table_0 AS table_1
+      table_1 AS table_0
     "###
     );
 
@@ -337,7 +337,7 @@ fn test_remove() {
     )
     "#).unwrap(),
         @r###"
-    WITH table_0 AS (
+    WITH table_1 AS (
       SELECT
         artist_id
       FROM
@@ -348,9 +348,9 @@ fn test_remove() {
       album.title
     FROM
       album
-      LEFT JOIN table_0 AS table_1 ON album.artist_id = table_1.artist_id
+      LEFT JOIN table_1 AS table_0 ON album.artist_id = table_0.artist_id
     WHERE
-      table_1.artist_id IS NULL
+      table_0.artist_id IS NULL
     "###
     );
 
@@ -382,11 +382,11 @@ fn test_remove() {
         album
     )
     SELECT
-      table_0.artist_id,
-      table_0.title
+      table_1.artist_id,
+      table_1.title
     FROM
-      table_1 AS table_0
-      LEFT JOIN bottom AS b ON table_0.artist_id = b.*
+      table_1
+      LEFT JOIN bottom AS b ON table_1.artist_id = b.*
     WHERE
       b.* IS NULL
     "###
@@ -443,7 +443,7 @@ fn test_intersect() {
     )
     "#).unwrap(),
         @r###"
-    WITH table_0 AS (
+    WITH table_1 AS (
       SELECT
         artist_id
       FROM
@@ -458,7 +458,7 @@ fn test_intersect() {
     SELECT
       *
     FROM
-      table_0 AS table_1
+      table_1 AS table_0
     "###
     );
 
@@ -474,79 +474,7 @@ fn test_intersect() {
     distinct
     "#).unwrap(),
         @r###"
-    WITH table_0 AS (
-      SELECT
-        artist_id
-      FROM
-        artist
-    ),
-    table_3 AS (
-      SELECT
-        artist_id
-      FROM
-        album
-      INTERSECT
-      DISTINCT
-      SELECT
-        *
-      FROM
-        table_0 AS table_1
-    )
-    SELECT
-      DISTINCT artist_id
-    FROM
-      table_3 AS table_2
-    "###
-    );
-
-    assert_display_snapshot!(compile(r#"
-    func distinct rel -> (from t = _param.rel | group [t.*] (take 1))
-
-    from album
-    select artist_id
-    intersect (
-        from artist | select artist_id
-    )
-    distinct
-    "#).unwrap(),
-        @r###"
-    WITH table_0 AS (
-      SELECT
-        artist_id
-      FROM
-        artist
-    ),
-    table_3 AS (
-      SELECT
-        artist_id
-      FROM
-        album
-      INTERSECT
-      ALL
-      SELECT
-        *
-      FROM
-        table_0 AS table_1
-    )
-    SELECT
-      DISTINCT artist_id
-    FROM
-      table_3 AS table_2
-    "###
-    );
-
-    assert_display_snapshot!(compile(r#"
-    func distinct rel -> (from t = _param.rel | group [t.*] (take 1))
-
-    from album
-    select artist_id
-    distinct
-    intersect (
-        from artist | select artist_id
-    )
-    "#).unwrap(),
-        @r###"
-    WITH table_0 AS (
+    WITH table_1 AS (
       SELECT
         artist_id
       FROM
@@ -561,7 +489,67 @@ fn test_intersect() {
     SELECT
       *
     FROM
-      table_0 AS table_1
+      table_1 AS table_0
+    "###
+    );
+
+    assert_display_snapshot!(compile(r#"
+    func distinct rel -> (from t = _param.rel | group [t.*] (take 1))
+
+    from album
+    select artist_id
+    intersect (
+        from artist | select artist_id
+    )
+    distinct
+    "#).unwrap(),
+        @r###"
+    WITH table_1 AS (
+      SELECT
+        artist_id
+      FROM
+        artist
+    )
+    SELECT
+      artist_id
+    FROM
+      album
+    INTERSECT
+    DISTINCT
+    SELECT
+      *
+    FROM
+      table_1 AS table_0
+    "###
+    );
+
+    assert_display_snapshot!(compile(r#"
+    func distinct rel -> (from t = _param.rel | group [t.*] (take 1))
+
+    from album
+    select artist_id
+    distinct
+    intersect (
+        from artist | select artist_id
+    )
+    "#).unwrap(),
+        @r###"
+    WITH table_1 AS (
+      SELECT
+        artist_id
+      FROM
+        artist
+    )
+    SELECT
+      artist_id
+    FROM
+      album
+    INTERSECT
+    DISTINCT
+    SELECT
+      *
+    FROM
+      table_1 AS table_0
     "###
     );
 
@@ -586,28 +574,28 @@ fn test_rn_ids_are_unique() {
         take 3
     )
     "###).unwrap()), @r###"
-    WITH table_3 AS (
+    WITH table_1 AS (
       SELECT
         *,
-        ROW_NUMBER() OVER (PARTITION BY y_id) AS _expr_1
+        ROW_NUMBER() OVER (PARTITION BY y_id) AS _expr_0
       FROM
         y_orig
     ),
-    table_1 AS (
+    table_2 AS (
       SELECT
         *,
-        ROW_NUMBER() OVER (PARTITION BY x_id) AS _expr_0
+        ROW_NUMBER() OVER (PARTITION BY x_id) AS _expr_1
       FROM
-        table_3 AS table_2
+        table_1
       WHERE
-        _expr_1 <= 2
+        _expr_0 <= 2
     )
     SELECT
       *
     FROM
-      table_1 AS table_0
+      table_2
     WHERE
-      _expr_0 <= 3
+      _expr_1 <= 3
     "###);
 }
 
@@ -702,13 +690,19 @@ fn test_sorts() {
     select [renamed = somefield]
     "###
     ).unwrap()), @r###"
+    WITH table_1 AS (
+      SELECT
+        'something' AS renamed,
+        'something' AS _expr_0
+      FROM
+        x
+      ORDER BY
+        _expr_0
+    )
     SELECT
-      'something' AS renamed,
-      'something' AS _expr_0
+      renamed
     FROM
-      x
-    ORDER BY
-      _expr_0
+      table_1
     "###);
 }
 
@@ -883,7 +877,7 @@ fn test_window_functions_02() {
           order_day ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
       ) AS num_books_last_week
     FROM
-      table_1 AS table_0
+      table_1
     ORDER BY
       order_day
     "###);
@@ -1267,7 +1261,7 @@ fn test_take() {
     SELECT
       *
     FROM
-      table_1 AS table_0
+      table_1
     ORDER BY
       name
     LIMIT
@@ -1346,7 +1340,7 @@ fn test_distinct() {
     SELECT
       *
     FROM
-      table_1 AS table_0
+      table_1
     WHERE
       rn > 2
     "###);
@@ -1403,7 +1397,7 @@ fn test_distinct() {
     SELECT
       *
     FROM
-      table_1 AS table_0
+      table_1
     WHERE
       _expr_0 <= 3
     "###);
@@ -1426,7 +1420,7 @@ fn test_distinct() {
     SELECT
       *
     FROM
-      table_1 AS table_0
+      table_1
     WHERE
       _expr_0 BETWEEN 2 AND 3
     "###);
@@ -1449,7 +1443,7 @@ fn test_distinct() {
     SELECT
       *
     FROM
-      table_1 AS table_0
+      table_1
     WHERE
       _expr_0 = 4
     "###);
@@ -1825,7 +1819,16 @@ fn test_prql_to_sql_table() {
     let sql = compile(query).unwrap();
     assert_display_snapshot!(sql,
         @r###"
-    WITH newest_employees AS (
+    WITH average_salaries AS (
+      SELECT
+        country,
+        AVG(salary) AS average_country_salary
+      FROM
+        salaries
+      GROUP BY
+        country
+    ),
+    newest_employees AS (
       SELECT
         *
       FROM
@@ -1834,14 +1837,6 @@ fn test_prql_to_sql_table() {
         tenure
       LIMIT
         50
-    ), average_salaries AS (
-      SELECT
-        country,
-        AVG(salary) AS average_country_salary
-      FROM
-        salaries
-      GROUP BY
-        country
     )
     SELECT
       newest_employees.name,
@@ -1875,7 +1870,7 @@ fn test_nonatomic() {
     "###;
 
     assert_display_snapshot!((compile(query).unwrap()), @r###"
-    WITH table_3 AS (
+    WITH table_1 AS (
       SELECT
         title,
         country,
@@ -1884,13 +1879,13 @@ fn test_nonatomic() {
         employees
       LIMIT
         20
-    ), table_1 AS (
+    ), table_2 AS (
       SELECT
         title,
         country,
         AVG(salary) AS _expr_0
       FROM
-        table_3 AS table_2
+        table_1
       WHERE
         country = 'USA'
       GROUP BY
@@ -1902,7 +1897,7 @@ fn test_nonatomic() {
       country,
       AVG(_expr_0) AS sum_gross_cost
     FROM
-      table_1 AS table_0
+      table_2
     GROUP BY
       title,
       country
@@ -1955,7 +1950,7 @@ fn test_nonatomic_table() {
 "###;
 
     assert_display_snapshot!((compile(query).unwrap()), @r###"
-    WITH table_1 AS (
+    WITH table_0 AS (
       SELECT
         country
       FROM
@@ -1967,7 +1962,7 @@ fn test_nonatomic_table() {
         country,
         count(*)
       FROM
-        table_1 AS table_0
+        table_0
       GROUP BY
         country
     )
@@ -2004,12 +1999,12 @@ fn test_table_names_between_splits() {
         10
     )
     SELECT
-      table_0.emp_no,
-      table_0.name,
+      table_1.emp_no,
+      table_1.name,
       s.salary
     FROM
-      table_1 AS table_0
-      JOIN salaries AS s ON table_0.emp_no = s.emp_no
+      table_1
+      JOIN salaries AS s ON table_1.emp_no = s.emp_no
     "###);
 
     let prql = r###"
@@ -2029,11 +2024,11 @@ fn test_table_names_between_splits() {
         10
     )
     SELECT
-      table_0.*,
+      table_1.*,
       salaries.salary
     FROM
-      table_1 AS table_0
-      JOIN salaries ON table_0.emp_no = salaries.emp_no
+      table_1
+      JOIN salaries ON table_1.emp_no = salaries.emp_no
     "###);
 }
 
@@ -2313,6 +2308,12 @@ fn test_toposort() {
         *
       FROM
         somesource
+    ),
+    a AS (
+      SELECT
+        *
+      FROM
+        b
     )
     SELECT
       *
@@ -2332,7 +2333,7 @@ fn test_inline_tables() {
     join s = (from salaries | select [emp_id, salary]) [==emp_id]
     "###).unwrap(),
         @r###"
-    WITH table_0 AS (
+    WITH table_1 AS (
       SELECT
         emp_id,
         salary
@@ -2345,11 +2346,11 @@ fn test_inline_tables() {
       employees.surname,
       employees.type,
       employees.amount,
-      table_1.emp_id,
-      table_1.salary
+      table_0.emp_id,
+      table_0.salary
     FROM
       employees
-      JOIN table_0 AS table_1 ON employees.emp_id = table_1.emp_id
+      JOIN table_1 AS table_0 ON employees.emp_id = table_0.emp_id
     "###
     );
 }
@@ -2434,7 +2435,7 @@ fn test_table_s_string() {
     s"SELECT DISTINCT ON first_name, age FROM employees ORDER BY age ASC"
     "###).unwrap(),
         @r###"
-    WITH table_0 AS (
+    WITH table_1 AS (
       SELECT
         DISTINCT ON first_name,
         age
@@ -2445,7 +2446,7 @@ fn test_table_s_string() {
     )
     SELECT
     FROM
-      table_0 AS table_1
+      table_1 AS table_0
     "###
     );
 
@@ -2456,7 +2457,7 @@ fn test_table_s_string() {
     join s = s"SELECT * FROM salaries" [==id]
     "###).unwrap(),
         @r###"
-    WITH table_0 AS (
+    WITH table_2 AS (
       SELECT
         DISTINCT ON first_name,
         id,
@@ -2466,18 +2467,18 @@ fn test_table_s_string() {
       ORDER BY
         age ASC
     ),
-    table_1 AS (
+    table_3 AS (
       SELECT
         *
       FROM
         salaries
     )
     SELECT
-      table_2.*,
-      table_3.*
+      table_0.*,
+      table_1.*
     FROM
-      table_0 AS table_2
-      JOIN table_1 AS table_3 ON table_2.id = table_3.id
+      table_2 AS table_0
+      JOIN table_3 AS table_1 ON table_0.id = table_1.id
     "###
     );
 
@@ -2486,7 +2487,7 @@ fn test_table_s_string() {
     filter country == "USA"
     "###).unwrap(),
         @r###"
-    WITH table_0 AS (
+    WITH table_1 AS (
       SELECT
         *
       FROM
@@ -2495,7 +2496,7 @@ fn test_table_s_string() {
     SELECT
       *
     FROM
-      table_0 AS table_1
+      table_1 AS table_0
     WHERE
       country = 'USA'
     "###
@@ -2506,7 +2507,7 @@ fn test_table_s_string() {
     filter e.country == "USA"
     "###).unwrap(),
         @r###"
-    WITH table_0 AS (
+    WITH table_1 AS (
       SELECT
         *
       FROM
@@ -2515,7 +2516,7 @@ fn test_table_s_string() {
     SELECT
       *
     FROM
-      table_0 AS table_1
+      table_1 AS table_0
     WHERE
       country = 'USA'
     "###
@@ -2528,7 +2529,7 @@ fn test_table_s_string() {
     weeks_between @2022-06-03 (current_week + 4)
     "###).unwrap(),
         @r###"
-    WITH table_0 AS (
+    WITH table_1 AS (
       SELECT
         generate_series(
           DATE '2022-06-03',
@@ -2538,7 +2539,7 @@ fn test_table_s_string() {
     )
     SELECT
     FROM
-      table_0 AS table_1
+      table_1 AS table_0
     "###
     );
 
@@ -2546,7 +2547,7 @@ fn test_table_s_string() {
     s"SELECT * FROM {default_db.x}"
     "###).unwrap(),
         @r###"
-    WITH table_0 AS (
+    WITH table_1 AS (
       SELECT
         *
       FROM
@@ -2554,7 +2555,7 @@ fn test_table_s_string() {
     )
     SELECT
     FROM
-      table_0 AS table_1
+      table_1 AS table_0
     "###
     );
 }
@@ -2654,13 +2655,13 @@ fn test_group_all() {
         10
     )
     SELECT
-      table_0.*,
+      table_1.*,
       SUM(salaries.salary) AS sal
     FROM
-      table_1 AS table_0
-      JOIN salaries ON table_0.emp_no = salaries.emp_no
+      table_1
+      JOIN salaries ON table_1.emp_no = salaries.emp_no
     GROUP BY
-      table_0.*
+      table_1.*
     "###
     );
 
@@ -2691,7 +2692,7 @@ fn test_output_column_deduplication() {
     SELECT
       *
     FROM
-      table_1 AS table_0
+      table_1
     WHERE
       r = 1
     "###
@@ -2765,7 +2766,7 @@ fn test_switch() {
       category,
       COUNT(*)
     FROM
-      table_1 AS table_0
+      table_1
     GROUP BY
       category
     "###
@@ -3121,7 +3122,7 @@ a,b,c
     select [b, c]
     "#).unwrap(),
         @r###"
-    WITH table_0 AS (
+    WITH table_1 AS (
       SELECT
         '1' AS a,
         '2' AS b,
@@ -3137,7 +3138,7 @@ a,b,c
       b,
       c
     FROM
-      table_0 AS table_1
+      table_1 AS table_0
     "###
     );
 
@@ -3148,7 +3149,7 @@ a,b,c
     select [b, c]
     "#).unwrap(),
         @r###"
-    WITH table_0 AS (
+    WITH table_1 AS (
       SELECT
         1 AS a,
         'x' AS b,
@@ -3164,7 +3165,7 @@ a,b,c
       b,
       c
     FROM
-      table_0 AS table_1
+      table_1 AS table_0
     "###
     );
 
@@ -3179,7 +3180,7 @@ a,b,c
     select [b, c]
     "#).unwrap(),
         @r###"
-    WITH table_0 AS (
+    WITH table_1 AS (
       SELECT
         1 AS a,
         'x' AS b,
@@ -3195,7 +3196,7 @@ a,b,c
       b,
       c
     FROM
-      table_0 AS table_1
+      table_1 AS table_0
     "###
     );
 }
@@ -3211,56 +3212,4 @@ fn test_header_target_error() {
     prql target:sql.foo
     from a
     "#).unwrap_err(),@r###"target `"sql.foo"` not found"###)
-}
-
-#[test]
-fn test_loop() {
-    assert_display_snapshot!(compile(r#"
-    from_text format:json '[{"n": 1 }]'
-    select n = n - 2
-    loop (
-        select n = n+1
-        filter n<5
-    )
-    select n = n * 2
-    take 4
-    "#).unwrap(),
-        @r###"
-    WITH table_0 AS (
-      SELECT
-        1 AS n
-    ),
-    table_6 AS (
-      WITH RECURSIVE loop AS (
-        SELECT
-          n - 2 AS _expr_0
-        FROM
-          table_0 AS table_1
-        UNION
-        ALL
-        SELECT
-          _expr_1
-        FROM
-          (
-            SELECT
-              _expr_0 + 1 AS _expr_1
-            FROM
-              loop AS table_2
-          ) AS table_3
-        WHERE
-          _expr_1 < 5
-      )
-      SELECT
-        *
-      FROM
-        loop
-    )
-    SELECT
-      _expr_0 * 2 AS n
-    FROM
-      table_6 AS table_5
-    LIMIT
-      4
-    "###
-    );
 }

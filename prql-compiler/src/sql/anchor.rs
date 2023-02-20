@@ -3,27 +3,27 @@ use itertools::Itertools;
 use std::collections::{HashMap, HashSet};
 
 use crate::ast::rq::{
-    self, fold_transform, CId, Compute, Expr, RelationColumn, RqFold, TableRef, Transform,
+    self, fold_transform, CId, Compute, Expr, Relation, RelationColumn, RelationKind, RqFold,
+    TableDecl, TableRef, Transform,
 };
-use crate::sql::context::SqlTableDecl;
-use crate::sql::preprocess::{SqlRelation, SqlRelationKind};
 
 use super::{
     context::{AnchorContext, ColumnDecl},
     preprocess::{SqlFold, SqlTransform},
 };
 
+type RemainingPipeline = (Vec<SqlTransform>, Vec<CId>);
+
 /// Splits pipeline into two parts, such that the second part contains
 /// maximum number of transforms while "fitting" into a SELECT query.
 pub(super) fn split_off_back(
-    mut pipeline: Vec<SqlTransform>,
     ctx: &mut AnchorContext,
-) -> (Option<Vec<SqlTransform>>, Vec<SqlTransform>) {
+    output: Vec<CId>,
+    mut pipeline: Vec<SqlTransform>,
+) -> (Option<RemainingPipeline>, Vec<SqlTransform>) {
     if pipeline.is_empty() {
         return (None, Vec::new());
     }
-
-    let output = AnchorContext::determine_select_columns(&pipeline);
 
     log::debug!("traversing pipeline to obtain columns: {output:?}");
 
@@ -137,9 +137,8 @@ pub(super) fn split_off_back(
         None
     } else {
         // drop inputs that were satisfied in current pipeline
-        pipeline.push(SqlTransform::Super(Transform::Select(missing)));
 
-        Some(pipeline)
+        Some((pipeline, missing))
     };
 
     curr_pipeline_rev.reverse();
@@ -167,23 +166,20 @@ fn can_materialize(compute: &Compute, inputs_required: &[Requirement]) -> bool {
 }
 
 /// Applies adjustments to second part of a pipeline when it's split:
-/// - append Select to proceeding pipeline
-/// - prepend From to atomic pipeline
-/// - redefine columns materialized in atomic pipeline
+/// - prepend pipeline with From
+/// - redefine columns materialized in preceding pipeline
 /// - redirect all references to original columns to the new ones
 pub(super) fn anchor_split(
     ctx: &mut AnchorContext,
-    preceding: Vec<SqlTransform>,
-    atomic: Vec<SqlTransform>,
+    first_table_name: &str,
+    cols_at_split: &[CId],
+    second_pipeline: Vec<SqlTransform>,
 ) -> Vec<SqlTransform> {
     let new_tid = ctx.tid.gen();
 
-    let preceding_select = &preceding.last().unwrap().as_super().unwrap();
-    let cols_at_split = preceding_select.as_select().unwrap();
-
     log::debug!("split pipeline, first pipeline output: {cols_at_split:?}");
 
-    // redefine columns of the atomic pipeline
+    // define columns of the new CTE
     let mut cid_redirects = HashMap::<CId, CId>::new();
     let mut new_columns = Vec::new();
     for old_cid in cols_at_split {
@@ -208,31 +204,32 @@ pub(super) fn anchor_split(
     // define a new table
     ctx.table_decls.insert(
         new_tid,
-        SqlTableDecl {
+        TableDecl {
             id: new_tid,
-            name: None,
-            relation: Some(SqlRelation {
-                columns: cols_at_split
-                    .iter()
-                    .map(|_| RelationColumn::Single(None))
-                    .collect_vec(),
-                kind: SqlRelationKind::PreprocessedPipeline(preceding),
-            }),
+            name: Some(first_table_name.to_string()),
+            // here we should put the pipeline, but because how this function is called,
+            // we need to return the pipeline directly, so we just insert dummy expr instead
+            relation: Relation {
+                kind: RelationKind::SString(vec![]),
+                columns: vec![],
+            },
         },
     );
 
     // define instance of that table
-    let table_ref = ctx.create_table_instance(TableRef {
+    let table_ref = TableRef {
         source: new_tid,
-        name: None,
+        name: Some(first_table_name.to_string()),
         columns: new_columns,
-    });
+    };
+    ctx.create_table_instance(table_ref.clone());
 
     // adjust second part: prepend from and rewrite expressions to use new columns
-    let mut second = atomic;
+    let mut second = second_pipeline;
     second.insert(0, SqlTransform::Super(Transform::From(table_ref)));
 
-    CidRedirector::redirect(second, cid_redirects, ctx)
+    let mut redirector = CidRedirector { ctx, cid_redirects };
+    redirector.fold_sql_transforms(second).unwrap()
 }
 
 /// Determines whether a pipeline must be split at a transform to
@@ -251,7 +248,6 @@ fn is_split_required(transform: &SqlTransform, following: &mut HashSet<String>) 
     // - take (no limit)
     // - distinct
     // - append/except/intersect (no limit)
-    // - loop (max 1x)
     //
     // Select is not affected by the order.
     use SqlTransform::*;
@@ -310,7 +306,6 @@ fn is_split_required(transform: &SqlTransform, following: &mut HashSet<String>) 
                 "Distinct",
             ],
         ),
-        SqlTransform::Loop(_) => !following.is_empty(),
         _ => false,
     };
 
@@ -392,13 +387,12 @@ pub(super) fn get_requirements(
             cids
         }
 
-        Super(Aggregate { .. } | Append(_) | Transform::Loop(_)) => unreachable!(),
-        Super(Select(_) | From(_))
+        Super(Append(_)) => unreachable!(),
+        Super(Select(_) | From(_) | Aggregate { .. })
         | Distinct
         | Union { .. }
         | Except { .. }
-        | Intersect { .. }
-        | SqlTransform::Loop(_) => return Vec::new(),
+        | Intersect { .. } => return Vec::new(),
     };
 
     // general case: determine complexity
@@ -508,20 +502,9 @@ impl RqFold for CidCollector {
     }
 }
 
-pub(super) struct CidRedirector<'a> {
-    pub ctx: &'a mut AnchorContext,
-    pub cid_redirects: HashMap<CId, CId>,
-}
-
-impl<'a> CidRedirector<'a> {
-    pub fn redirect(
-        pipeline: Vec<SqlTransform>,
-        cid_redirects: HashMap<CId, CId>,
-        ctx: &mut AnchorContext,
-    ) -> Vec<SqlTransform> {
-        let mut redirector = CidRedirector { ctx, cid_redirects };
-        redirector.fold_sql_transforms(pipeline).unwrap()
-    }
+struct CidRedirector<'a> {
+    ctx: &'a mut AnchorContext,
+    cid_redirects: HashMap<CId, CId>,
 }
 
 impl<'a> RqFold for CidRedirector<'a> {

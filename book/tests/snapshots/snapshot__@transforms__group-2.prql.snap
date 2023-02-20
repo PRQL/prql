@@ -17,7 +17,6 @@ WITH table_1 AS (
 SELECT
   *
 FROM
-  table_1 AS table_0
+  table_1
 WHERE
   _expr_0 <= 1
-

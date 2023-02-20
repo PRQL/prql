@@ -273,7 +273,6 @@ pub fn fold_transform_kind<T: ?Sized + AstFold>(
             range: fold_range(fold, range)?,
             pipeline: Box::new(fold.fold_expr(*pipeline)?),
         },
-        Loop(pipeline) => Loop(Box::new(fold.fold_expr(*pipeline)?)),
     })
 }
 
