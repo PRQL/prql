@@ -1,8 +1,12 @@
 #![cfg(not(target_family = "wasm"))]
 /// This test:
-/// - Extracts PRQL code blocks into files in the `examples` path
-/// - Converts them to SQL using insta, raising an error if there's a diff.
-/// - Replaces the PRQL code block with a comparison table.
+/// - Extracts PRQL code blocks into files in the `examples` path, skipping
+///   where the matching example is already present.
+/// - Compiles them to SQL, comparing to a snapshot. Insta raises an error if
+///   there's a diff.
+///
+/// Then, when the book is built, the PRQL code block in the book is replaced
+/// with a comparison table.
 ///
 /// We also use this test to run tests on our Display trait output, currently as
 /// another set of snapshots (more comments inline).
@@ -29,10 +33,11 @@ use walkdir::WalkDir;
 
 #[test]
 fn test_examples() -> Result<()> {
-    // Note that on windows, markdown is read differently, and so
-    // writing on Windows. ref https://github.com/PRQL/prql/issues/356
-    #[cfg(not(target_family = "windows"))]
-    write_prql_snapshots()?;
+    // Note that on windows, markdown is read differently, and so we don't write
+    // on Windows (we write from the same place we read as a workaround). ref
+    // https://github.com/PRQL/prql/issues/356
+
+    write_prql_examples(collect_book_examples()?)?;
     test_prql_examples();
 
     Ok(())
@@ -115,36 +120,29 @@ fn collect_book_examples() -> Result<HashMap<PathBuf, String>> {
     collect_snapshot_examples()
 }
 
-/// Extract reference examples from the PRQL docs and write them to the
-/// `tests/prql` path, one in each file.
+/// Write the passed examples as snapshots to the `tests/prql` path, one in each file.
 // We could alternatively have used something like
 // https://github.com/earldouglas/codedown, but it's not much code, and it
 // requires no dependencies.
-//
-// We allow dead_code because of the window issue described above. (Can we allow
-// it only for windows?)
-#[allow(dead_code)]
-fn write_prql_snapshots() -> Result<()> {
+fn write_prql_examples(examples: HashMap<PathBuf, String>) -> Result<()> {
     // If we have to modify any files, raise an error at the end, so it fails in CI.
     let mut is_snapshots_updated = false;
 
     let mut existing_snapshots: HashMap<_, _> = collect_snapshot_examples()?;
-    // Write any new snapshots, or update any that have changed. =
-    collect_book_examples()?
-        .iter()
-        .try_for_each(|(prql_path, example)| {
-            if existing_snapshots
-                .remove(prql_path)
-                .map(|existing| existing != *example)
-                .unwrap_or(true)
-            {
-                is_snapshots_updated = true;
-                fs::create_dir_all(Path::new(prql_path).parent().unwrap())?;
-                fs::write(prql_path, example)?;
-            }
+    // Write any new snapshots, or update any that have changed
+    examples.iter().try_for_each(|(prql_path, example)| {
+        if existing_snapshots
+            .remove(prql_path)
+            .map(|existing| existing != *example)
+            .unwrap_or(true)
+        {
+            is_snapshots_updated = true;
+            fs::create_dir_all(Path::new(prql_path).parent().unwrap())?;
+            fs::write(prql_path, example)?;
+        }
 
-            Ok::<(), anyhow::Error>(())
-        })?;
+        Ok::<(), anyhow::Error>(())
+    })?;
 
     // If there are any files left in `existing_snapshots`, we remove them, since
     // they don't reference anything.
