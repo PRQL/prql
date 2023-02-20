@@ -1,0 +1,8 @@
+---
+source: book/tests/snapshot.rs
+expression: "from `music.albums`\n"
+---
+from `music.albums`
+
+
+
