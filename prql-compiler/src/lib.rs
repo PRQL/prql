@@ -42,7 +42,7 @@
 //!     # fn main() -> Result<(), prql_compiler::ErrorMessages> {
 //!     let sql = prql_compiler::compile(
 //!         "from albums | select [title, artist_id]",
-//!          prql_compiler::Options::default().no_format()
+//!          &prql_compiler::Options::default().no_format()
 //!     )?;
 //!     assert_eq!(&sql[..35], "SELECT title, artist_id FROM albums");
 //!     # Ok(())
@@ -110,12 +110,12 @@ pub static PRQL_VERSION: Lazy<Version> =
 /// use prql_compiler::{compile, Options, Target, sql::Dialect};
 ///
 /// let prql = "from employees | select [name,age]";
-/// let opt = Options {
+/// let opts = Options {
 ///     format: false,
 ///     target: Target::Sql(Some(Dialect::SQLite)),
 ///     signature_comment: false
 /// };
-/// let sql = compile(&prql, opt).unwrap();
+/// let sql = compile(&prql, &opts).unwrap();
 /// println!("PRQL: {}\nSQLite: {}", prql, &sql);
 /// assert_eq!("SELECT name, age FROM employees", sql)
 ///
