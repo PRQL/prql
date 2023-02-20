@@ -181,6 +181,12 @@ pub fn downcast(error: anyhow::Error) -> ErrorMessages {
     .into()
 }
 
+impl From<anyhow::Error> for ErrorMessages {
+    fn from(e: anyhow::Error) -> Self {
+        downcast(e)
+    }
+}
+
 impl ErrorMessages {
     pub fn to_json(&self) -> String {
         serde_json::to_string(self).unwrap()
