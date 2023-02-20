@@ -1,0 +1,26 @@
+---
+source: book/tests/snapshot.rs
+expression: prql_to_pl(&prql).and_then(pl_to_prql).unwrap()
+input_file: book/tests/prql/examples/employees-0.prql
+---
+from salaries
+group [emp_no] (
+  aggregate [emp_salary = average salary]
+)
+join t = titles [==emp_no]
+join side:left dept_emp [==emp_no]
+group [
+  dept_emp.dept_no,
+  t.title,
+] (
+  aggregate [avg_salary = average emp_salary]
+)
+join departments [==dept_no]
+select [
+  dept_name,
+  title,
+  avg_salary,
+]
+
+
+
