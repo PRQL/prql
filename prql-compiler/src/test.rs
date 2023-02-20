@@ -3195,23 +3195,23 @@ fn test_from_text() {
     assert_display_snapshot!(compile(r#"
     from_text format:csv """
     a,b,c
-    '1','2','3'
-    '4','5','6'
+    1,2,3
+    4,5,6
     """
     select [b, c]
     "#).unwrap(),
         @r###"
     WITH table_0 AS (
       SELECT
-        '1' AS a,
-        '2' AS b,
-        '3' AS c
+        1 AS a,
+        2 AS b,
+        3 AS c
       UNION
       ALL
       SELECT
-        '4' AS a,
-        '5' AS b,
-        '6' AS c
+        4 AS a,
+        5 AS b,
+        6 AS c
     )
     SELECT
       b,

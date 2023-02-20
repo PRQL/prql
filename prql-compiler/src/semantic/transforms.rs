@@ -891,6 +891,8 @@ impl AstFold for Flattener {
 }
 
 mod from_text {
+    use anyhow::Context;
+
     use super::*;
 
     // TODO: Can we dynamically get the types, like in pandas? We need to put
@@ -904,30 +906,25 @@ mod from_text {
             row.into_iter().map(|x| x.to_string()).collect()
         }
 
-        fn parse_row(row: csv::StringRecord) -> Vec<Literal> {
+        fn parse_row(row: csv::StringRecord) -> Result<Vec<Literal>> {
             row.into_iter()
-                .flat_map(|x| match crate::parser::parse(x).as_deref() {
-                    Ok(stmts) => stmts
-                        .iter()
-                        .map(|stmt| match stmt {
-                            Stmt {
-                                id: _,
-                                kind: StmtKind::Main(expr),
-                                span: _,
-                            } => match &expr.kind {
-                                ExprKind::Literal(literal) => Some(literal.clone()),
-                                _ => None,
-                            },
-                            _ => None,
-                        })
-                        .fold_options(vec![], |mut acc, literal| {
-                            acc.push(literal);
-                            acc
-                        })
-                        .unwrap_or_else(|| vec![Literal::String(x.to_string())]),
-                    _ => vec![Literal::String(x.to_string())],
+                .map(|x| {
+                    // We use our own parser here, but possibly the code is no
+                    // simpler than if we wrote a mini-parser to understand
+                    // whether we need to parse a string or a number.
+                    Ok(crate::parser::parse(x)?
+                        .into_iter()
+                        .exactly_one()?
+                        .kind
+                        .as_main()
+                        .context("Expected main expr")?
+                        .as_ref()
+                        .kind
+                        .as_literal()
+                        .context("Expected literal expr")?
+                        .clone())
                 })
-                .collect()
+                .try_collect()
         }
 
         Ok(RelationLiteral {
@@ -935,7 +932,8 @@ mod from_text {
             rows: rdr
                 .records()
                 .into_iter()
-                .map(|row_result| row_result.map(parse_row))
+                // .map(|row_result| row_result.map(|r| r.map(parse_row)))
+                .map(|row_result| row_result.map(parse_row)?)
                 .try_collect()?,
         })
     }
