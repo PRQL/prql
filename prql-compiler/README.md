@@ -8,7 +8,7 @@ For more on PRQL, check out the [PRQL website](https://prql-lang.org) or the
 For more usage examples and the library documentation, check out the
 [`prql-compiler` documentation](https://docs.rs/prql-compiler/latest/prql_compiler/).
 
-# Installation
+## Installation
 
 ```shell
 cargo add prql-compiler
