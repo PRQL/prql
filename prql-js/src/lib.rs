@@ -10,7 +10,7 @@ use wasm_bindgen::prelude::*;
 #[wasm_bindgen]
 pub fn compile(prql_query: &str, options: Option<CompileOptions>) -> Option<String> {
     return_or_throw(
-        prql_compiler::compile(prql_query, options.map(|x| x.into()).unwrap_or_default())
+        prql_compiler::compile(prql_query, &options.map(|x| x.into()).unwrap_or_default())
             .map_err(|e| e.composed("", prql_query, false)),
     )
 }
@@ -39,7 +39,7 @@ pub fn rq_to_sql(rq_json: &str) -> Option<String> {
     return_or_throw(
         Ok(rq_json)
             .and_then(prql_compiler::json::to_rq)
-            .and_then(|x| prql_compiler::rq_to_sql(x, prql_compiler::Options::default())),
+            .and_then(|x| prql_compiler::rq_to_sql(x, &prql_compiler::Options::default())),
     )
 }
 

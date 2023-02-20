@@ -160,6 +160,7 @@ fn write_prql_examples(examples: HashMap<PathBuf, String>) -> Result<()> {
 
 /// Snapshot the SQL output of each example.
 fn test_prql_examples() {
+    let opts = Options::default().no_signature();
     glob!("prql/**/*.prql", |path| {
         let prql = fs::read_to_string(path).unwrap();
 
@@ -167,8 +168,7 @@ fn test_prql_examples() {
             return;
         }
 
-        let opts = Options::default().no_signature();
-        let sql = compile(&prql, opts).unwrap_or_else(|e| format!("{prql}\n\n{e}"));
+        let sql = compile(&prql, &opts).unwrap_or_else(|e| format!("{prql}\n\n{e}"));
         // `glob!` gives us the file path in the test name anyway, so we pass an
         // empty name. We pass `&prql` so the prql is in the snapshot (albeit in
         // a single line, and, in the rare case that the SQL doesn't change, the

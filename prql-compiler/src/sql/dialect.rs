@@ -28,6 +28,7 @@ use strum::{EnumMessage, IntoEnumIterator};
     PartialEq,
     Eq,
     Clone,
+    Copy,
     Serialize,
     Deserialize,
     strum::Display,
