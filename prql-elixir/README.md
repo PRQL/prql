@@ -69,3 +69,34 @@ The possible future workarounds include:
 If `prql-elixir` becomes more used (for example, we start publishing to Hex, or
 Mac developers want to work on it), then we can re-enable and deal with the
 caching issues. We can also re-enable them if the `cargo` issue is resolved.
+
+To test on Mac temporarily — for example if there's an error in GHA and we're on
+a Mac locally — apply a diff like this, and then run `cargo build` from the
+`prql-elixir` path, which will enable the local
+[`.cargo/config.toml`](native/prql/.cargo/config.toml)). (We could also make a
+feature like `elixir-mac` which enabled building on Mac).
+
+```diff
+diff --git a/prql-elixir/native/prql/Cargo.toml b/prql-elixir/native/prql/Cargo.toml
+index a39a9ee..218abad 100644
+--- a/prql-elixir/native/prql/Cargo.toml
++++ b/prql-elixir/native/prql/Cargo.toml
+@@ -17,7 +17,4 @@ path = "src/lib.rs"
+
+ [dependencies]
+ prql-compiler = {path = "../../../prql-compiler", default-features = false, version = "0.5.2"}
+-
+-# See Readme for details on Mac
+-[target.'cfg(not(any(target_family="wasm", target_os = "macos")))'.dependencies]
+ rustler = "0.27.0"
+diff --git a/prql-elixir/native/prql/src/lib.rs b/prql-elixir/native/prql/src/lib.rs
+index 97eaa11..7525479 100644
+--- a/prql-elixir/native/prql/src/lib.rs
++++ b/prql-elixir/native/prql/src/lib.rs
+@@ -1,5 +1,3 @@
+-// See Readme for more information on Mac compiling
+-#![cfg(not(target_os = "macos"))]
+ // These bindings aren't relevant on wasm
+ #![cfg(not(target_family = "wasm"))]
+ // TODO: unclear why we need this `allow`; it's required in `CompileOptions`,
+```
