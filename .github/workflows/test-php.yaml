@@ -1,9 +1,6 @@
 name: test-php
 
 on:
-  push:
-    branches:
-      - main
   pull_request:
     paths:
       - "prql-php/**"
