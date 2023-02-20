@@ -1,9 +1,0 @@
----
-source: book/tests/snapshot.rs
-expression: "from employees  # Comment 1\n# Comment 2\naggregate [average salary]\n"
----
-from employees
-aggregate [average salary]
-
-
-

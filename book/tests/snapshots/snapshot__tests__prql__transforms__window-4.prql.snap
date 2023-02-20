@@ -1,9 +1,0 @@
----
-source: book/tests/snapshot.rs
-expression: "from employees\nfilter salary < (average salary)\n"
----
-from employees
-filter salary < ( average salary )
-
-
-
