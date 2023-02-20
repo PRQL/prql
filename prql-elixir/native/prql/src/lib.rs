@@ -1,5 +1,3 @@
-// See Readme for more information on Mac compiling
-#![cfg(not(target_os = "macos"))]
 // These bindings aren't relevant on wasm
 #![cfg(not(target_family = "wasm"))]
 // TODO: unclear why we need this `allow`; it's required in `CompileOptions`,
