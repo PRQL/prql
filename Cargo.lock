@@ -627,7 +627,7 @@ dependencies = [
 
 [[package]]
 name = "compile-files"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "prql-compiler",
 ]
@@ -1626,7 +1626,7 @@ dependencies = [
 
 [[package]]
 name = "mdbook-prql"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "anyhow",
  "clap 4.1.1",
@@ -1667,6 +1667,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d61c719bcfbcf5d62b3a09efa6088de8c54bc0bfcd3ea7ae39fcc186108b8de1"
 dependencies = [
  "autocfg",
+]
+
+[[package]]
+name = "minijinja"
+version = "0.30.2"
+source = "git+https://github.com/aljazerzen/minijinja#af5a4fd89e5ee5455d673a23098dcbc3d8444229"
+dependencies = [
+ "serde",
 ]
 
 [[package]]
@@ -2120,7 +2128,7 @@ dependencies = [
 
 [[package]]
 name = "prql"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "prql-compiler",
  "rustler",
@@ -2128,7 +2136,7 @@ dependencies = [
 
 [[package]]
 name = "prql-compiler"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "anyhow",
  "ariadne",
@@ -2161,7 +2169,7 @@ dependencies = [
 
 [[package]]
 name = "prql-compiler-macros"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "prql-compiler",
  "syn",
@@ -2169,7 +2177,7 @@ dependencies = [
 
 [[package]]
 name = "prql-java"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "jni",
  "prql-compiler",
@@ -2177,7 +2185,7 @@ dependencies = [
 
 [[package]]
 name = "prql-js"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "console_error_panic_hook",
  "prql-compiler",
@@ -2187,7 +2195,7 @@ dependencies = [
 
 [[package]]
 name = "prql-lib"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "libc",
  "prql-compiler",
@@ -2196,7 +2204,7 @@ dependencies = [
 
 [[package]]
 name = "prql-python"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "insta",
  "prql-compiler",
@@ -2206,7 +2214,7 @@ dependencies = [
 
 [[package]]
 name = "prqlc"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "anyhow",
  "ariadne",
@@ -2217,8 +2225,11 @@ dependencies = [
  "env_logger 0.9.3",
  "insta",
  "itertools",
+ "minijinja",
  "notify",
  "prql-compiler",
+ "regex",
+ "serde",
  "serde_json",
  "serde_yaml",
  "walkdir",
@@ -2397,9 +2408,9 @@ dependencies = [
 
 [[package]]
 name = "regex"
-version = "1.7.0"
+version = "1.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e076559ef8e241f2ae3479e36f97bd5741c0330689e217ad51ce2c76808b868a"
+checksum = "48aaa5748ba571fb95cd2c85c09f629215d3a6ece942baa100950af03a34f733"
 dependencies = [
  "aho-corasick",
  "memchr",

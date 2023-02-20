@@ -8,6 +8,8 @@ use notify::{Config, RecommendedWatcher, RecursiveMode, Watcher};
 use prql_compiler::downcast;
 use walkdir::WalkDir;
 
+use crate::jinja;
+
 #[derive(Parser)]
 pub struct WatchCommand {
     /// Directory or file to watch for changes
@@ -33,7 +35,7 @@ pub fn run(command: &mut WatchCommand) -> Result<()> {
 
     // watch and compile
     println!("Watching path \"{}\"", path.display());
-    watch_and_compile(path, &opt).unwrap();
+    watch_and_compile(path, &opt)?;
 
     Ok(())
 }
@@ -108,6 +110,9 @@ fn compile_path(path: &Path, opt: &prql_compiler::Options) -> Result<()> {
         return Ok(());
     }
 
+    // pre-process Jinja
+    let (prql_string, jinja_context) = jinja::pre_process(&prql_string)?;
+
     // compile
     println!("Compiling {}", prql_path.display());
     let sql_string = match prql_compiler::compile(&prql_string, opt.clone()) {
@@ -118,6 +123,9 @@ fn compile_path(path: &Path, opt: &prql_compiler::Options) -> Result<()> {
             return Err(anyhow!("failed to compile"));
         }
     };
+
+    // post-process Jinja
+    let sql_string = jinja::post_process(&sql_string, jinja_context);
 
     // write
     fs::write(sql_path, sql_string)?;
