@@ -1,9 +1,0 @@
----
-source: book/tests/snapshot.rs
-expression: "from employees\nfilter id == $1\n"
----
-from employees
-filter id == $1
-
-
-

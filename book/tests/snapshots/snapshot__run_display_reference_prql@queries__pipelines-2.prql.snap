@@ -1,0 +1,18 @@
+---
+source: book/tests/snapshot.rs
+expression: prql_to_pl(&prql).and_then(pl_to_prql).unwrap()
+input_file: book/tests/prql/queries/pipelines-2.prql
+---
+from e = employees
+derive gross_salary = salary + payroll_tax
+sort gross_salary
+take 10
+join d = department [==dept_no]
+select [
+  e.name,
+  gross_salary,
+  d.name,
+]
+
+
+

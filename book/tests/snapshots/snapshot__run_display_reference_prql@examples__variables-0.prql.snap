@@ -1,0 +1,32 @@
+---
+source: book/tests/snapshot.rs
+expression: prql_to_pl(&prql).and_then(pl_to_prql).unwrap()
+input_file: book/tests/prql/examples/variables-0.prql
+---
+from employees
+filter country == "USA"
+derive [
+  gross_salary = salary + payroll_tax,
+  gross_cost = gross_salary + benefits_cost,
+]
+filter gross_cost > 0
+group [
+  title,
+  country,
+] (
+  aggregate [
+  average salary,
+  average gross_salary,
+  sum salary,
+  sum gross_salary,
+  average gross_cost,
+  sum_gross_cost = sum gross_cost,
+  ct = count,
+]
+)
+sort sum_gross_cost
+filter ct > 200
+take 20
+
+
+

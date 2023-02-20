@@ -1,9 +1,0 @@
----
-source: book/tests/snapshot.rs
-expression: "from employees_1\nintersect employees_2\n"
----
-from employees_1
-intersect employees_2
-
-
-
