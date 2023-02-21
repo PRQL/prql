@@ -24,15 +24,16 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
-      - run: cargo build
+      - name: 🏗 Build prql-lib
+        run: cargo build
         working-directory: prql-lib
-      - run: |
-          cp ../target/debug/libprql_lib.so ../prql-net/PrqlCompiler/bin/Debug/net*/
-          cp ../target/debug/libprql_lib.so ../prql-net/PrqlCompiler.Tests/bin/Debug/net*/
-        working-directory: prql-lib
-      - name: Setup dotnet
+      - name: 🔧 Setup dotnet
         uses: actions/setup-dotnet@v3
         with:
           dotnet-version: 7
-      - run: dotnet test
-        working-directory: prql-net/PrqlCompiler.Tests
+      - name: 🧪 Build and test
+        run: |
+          dotnet build prql-net
+          cp target/debug/libprql_lib.so prql-net/PrqlCompiler/bin/Debug/net*/
+          cp target/debug/libprql_lib.so prql-net/PrqlCompiler.Tests/bin/Debug/net*/
+          dotnet test prql-net
