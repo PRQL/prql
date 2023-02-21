@@ -45,8 +45,10 @@ jobs:
           package_root: .debpkg
           maintainer: The PRQL Project
           version: "${{ github.ref }}"
-          desc:
-            prqlc is the CLI for PRQL, a modern language for transforming data
+          desc: |
+            prqlc is the CLI for the PRQL compiler. It compiles PRQL to SQL, and offers various diagnostics.
+
+            PRQL is a modern language for transforming data — a simple, powerful, pipelined SQL replacement.
 
   build-and-publish-snap:
     runs-on: ubuntu-latest

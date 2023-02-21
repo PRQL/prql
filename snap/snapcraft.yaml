@@ -2,10 +2,11 @@ name: prqlc # you probably want to 'snapcraft register <name>'
 title: PRQL Compiler
 base: core20 # the base snap is the execution environment for this snap
 version: git
-summary: PRQL is a modern language for transforming data
+summary: CLI for PRQL, a modern language for transforming data
 description: |
-  PRQL is a modern language for transforming data — a simple, powerful,
-  pipelined SQL replacement.
+  prqlc is the CLI for the PRQL compiler. It compiles PRQL to SQL, and offers various diagnostics.
+
+  PRQL is a modern language for transforming data — a simple, powerful, pipelined SQL replacement.
 issues: https://github.com/PRQL/prql/issues
 source-code: https://github.com/PRQL/prql
 contact: https://twitter.com/prql_lang

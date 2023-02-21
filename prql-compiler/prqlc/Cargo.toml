@@ -1,5 +1,5 @@
 [package]
-description = "CLI interface for the PRQL compiler"
+description = "CLI for the PRQL compiler"
 name = "prqlc"
 
 edition.workspace = true
@@ -17,13 +17,13 @@ clio = {version = "0.2.4", features = ['clap-parse']}
 color-eyre = "0.6.1"
 env_logger = {version = "0.9.1", features = ["termcolor"]}
 itertools = "0.10.3"
-notify = "^5.1.0"
 minijinja = {version = "0.30.4", features = ["unstable_machinery"]}
+notify = "^5.1.0"
 prql-compiler = {path = '..', version = "0.5.2"}
 regex = {version = "1.7.1", features = ["std", "unicode"]}
+serde = "^1"
 serde_json = "1.0.81"
 serde_yaml = "0.9.1"
-serde = "^1"
 walkdir = "^2.3.2"
 
 [target.'cfg(not(target_family="wasm"))'.dev-dependencies]
