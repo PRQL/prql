@@ -3,7 +3,7 @@ name: test-dotnet
 on:
   pull_request:
     paths:
-      - "prql-net/**"
+      - "prql-dotnet/**"
       - ".github/workflows/test-dotnet.yaml"
   workflow_call:
 
@@ -27,7 +27,7 @@ jobs:
           dotnet-version: 7
       - name: 🧪 Build and test
         run: |
-          dotnet build prql-net
-          cp target/debug/libprql_lib.* prql-net/PrqlCompiler/bin/Debug/net*/
-          cp target/debug/libprql_lib.* prql-net/PrqlCompiler.Tests/bin/Debug/net*/
-          dotnet test prql-net
+          dotnet build prql-dotnet
+          cp target/debug/libprql_lib.* prql-dotnet/PrqlCompiler/bin/Debug/net*/
+          cp target/debug/libprql_lib.* prql-dotnet/PrqlCompiler.Tests/bin/Debug/net*/
+          dotnet test prql-dotnet
