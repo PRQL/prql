@@ -46,7 +46,7 @@ jobs:
           package_root: .debpkg
           maintainer: The PRQL Project
           version: '${{ github.ref }}'
-          desc: PRQL compiler transpiles PRQL queries into SQL queries.
+          desc:  prqlc is the CLI for PRQL, a modern language for transforming data
 
   build-python-wheels:
     runs-on: ${{ matrix.os }}
