@@ -34,6 +34,6 @@ jobs:
       - name: 🧪 Build and test
         run: |
           dotnet build prql-net
-          cp target/debug/libprql_lib.so prql-net/PrqlCompiler/bin/Debug/net*/
-          cp target/debug/libprql_lib.so prql-net/PrqlCompiler.Tests/bin/Debug/net*/
+          cp target/debug/libprql_lib.* prql-net/PrqlCompiler/bin/Debug/net*/
+          cp target/debug/libprql_lib.* prql-net/PrqlCompiler.Tests/bin/Debug/net*/
           dotnet test prql-net
