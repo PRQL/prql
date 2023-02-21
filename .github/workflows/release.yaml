@@ -25,8 +25,8 @@ jobs:
             })
 
   build-deb-package:
-  # TODO: currently this doesn't publish it as an artifact; would be a welcome contribution
-  # to add that (and eventually as a release asset)
+    # TODO: currently this doesn't publish it as an artifact; would be a welcome contribution
+    # to add that (and eventually as a release asset)
     runs-on: ubuntu-latest
     steps:
       - name: 📂 Checkout code
@@ -44,8 +44,9 @@ jobs:
           package: prqlc
           package_root: .debpkg
           maintainer: The PRQL Project
-          version: '${{ github.ref }}'
-          desc:  prqlc is the CLI for PRQL, a modern language for transforming data
+          version: "${{ github.ref }}"
+          desc:
+            prqlc is the CLI for PRQL, a modern language for transforming data
 
   build-python-wheels:
     runs-on: ${{ matrix.os }}
