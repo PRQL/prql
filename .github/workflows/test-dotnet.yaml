@@ -31,9 +31,16 @@ jobs:
         uses: actions/setup-dotnet@v3
         with:
           dotnet-version: 7
-      - name: 🧪 Build and test
-        run: |
-          dotnet build prql-net
-          cp -v target/debug/libprql_lib.* prql-net/PrqlCompiler/bin/Debug/net*/
-          cp -v target/debug/libprql_lib.* prql-net/PrqlCompiler.Tests/bin/Debug/net*/
-          dotnet test prql-net
+#      - name: 🧪 Build and test
+#        run: |
+#          dotnet build prql-net
+#          cp -v target/debug/libprql_lib.* prql-net/PrqlCompiler/bin/Debug/net*/
+#          cp -v target/debug/libprql_lib.* prql-net/PrqlCompiler.Tests/bin/Debug/net*/
+#          dotnet test prql-net
+      - run: dotnet build prql-net
+      - run: cp -v target/debug/libprql_lib.* prql-net/PrqlCompiler/bin/Debug/net*/
+      - run: cp -v target/debug/libprql_lib.* prql-net/PrqlCompiler.Tests/bin/Debug/net*/
+      - run: ls -l target/debug/
+      - run: ls -l prql-net/PrqlCompiler/bin/Debug/net*/
+      - run: ls -l prql-net/PrqlCompiler.Tests/bin/Debug/net*/
+      - run: dotnet test prql-net
