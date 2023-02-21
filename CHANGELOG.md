@@ -16,7 +16,8 @@
 - [prql-lib] Added C header file. (@vanillajonathan, #1879)
 - Added a workflow building a `.deb` on each release. (Note that it's not yet
   published on each release). (@vanillajonathan, #1883)
-- Added a workflow building a Snap package on each release. (@vanillajonathan, #1881)
+- Added a workflow building a Snap package on each release. (@vanillajonathan,
+  #1881)
 
 **Internal changes**:
 
