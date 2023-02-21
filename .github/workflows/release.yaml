@@ -53,8 +53,8 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
-      - name: 👷 Build prql-compiler
-        run: cargo build --release
+      - name: 👷 Build prqlc
+        run: cargo build --bin prqlc --release
       - name: Copy files into .rpm package
         run: |
           mkdir -p .rpmpkg/usr/bin
