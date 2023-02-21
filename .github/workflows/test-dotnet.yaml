@@ -1,0 +1,38 @@
+name: test-dotnet
+
+on:
+  pull_request:
+    paths:
+      - "prql-net/**"
+      - ".github/workflows/test-dotnet.yaml"
+  workflow_call:
+
+concurrency:
+  # See notes in `pull-request.yaml`
+  group: ${{ github.workflow }}-${{ github.ref }}-dotnet
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - run: cargo build
+        working-directory: prql-lib
+      - run: |
+          cp ../target/debug/libprql_lib.so ../prql-net/PrqlCompiler/bin/Debug/net*/
+          cp ../target/debug/libprql_lib.so ../prql-net/PrqlCompiler.Tests/bin/Debug/net*/
+        working-directory: prql-lib
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: 7
+      - run: dotnet test
+        working-directory: prql-net/PrqlCompiler.Tests
