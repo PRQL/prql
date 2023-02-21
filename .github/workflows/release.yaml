@@ -29,9 +29,6 @@ jobs:
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
       - name: 👷 Build prql-compiler
         run: cargo build --release
       - name: Copy files into .rpm package
