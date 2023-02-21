@@ -18,7 +18,7 @@ color-eyre = "0.6.1"
 env_logger = {version = "0.9.1", features = ["termcolor"]}
 itertools = "0.10.3"
 notify = "^5.1.0"
-minijinja = {git = "https://github.com/aljazerzen/minijinja"}
+minijinja = {version = "0.30.4", features = ["unstable_machinery"]}
 prql-compiler = {path = '..', version = "0.5.2"}
 regex = {version = "1.7.1", features = ["std", "unicode"]}
 serde_json = "1.0.81"

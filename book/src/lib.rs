@@ -109,7 +109,7 @@ fn replace_examples(text: &str) -> Result<String> {
                     let options = prql_compiler::Options::default().no_signature();
                     let html = table_of_comparison(
                         text.as_str().unwrap(),
-                        &compile(&prql, options).unwrap(),
+                        &compile(&prql, &options).unwrap(),
                     );
                     cmark_acc.push(Event::Html(html.into()));
 

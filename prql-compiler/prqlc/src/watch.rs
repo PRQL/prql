@@ -115,7 +115,7 @@ fn compile_path(path: &Path, opt: &prql_compiler::Options) -> Result<()> {
 
     // compile
     println!("Compiling {}", prql_path.display());
-    let sql_string = match prql_compiler::compile(&prql_string, opt.clone()) {
+    let sql_string = match prql_compiler::compile(&prql_string, opt) {
         Ok(sql_string) => sql_string,
         Err(err) => {
             let source_id = &prql_path.to_str().unwrap_or_default();

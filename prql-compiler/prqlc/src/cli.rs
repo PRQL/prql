@@ -136,7 +136,7 @@ impl Cli {
 
                 serde_json::to_string_pretty(&ir)?.into_bytes()
             }
-            Cli::Compile(_) => compile(source, Options::default())
+            Cli::Compile(_) => compile(source, &Options::default())
                 .map_or_else(|x| x.to_string(), |x| x)
                 .as_bytes()
                 .to_vec(),

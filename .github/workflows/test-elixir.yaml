@@ -1,9 +1,6 @@
 name: test-elixir
 
 on:
-  push:
-    branches:
-      - main
   pull_request:
     paths:
       - "prql-elixir/**"

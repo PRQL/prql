@@ -1,9 +1,6 @@
 name: test-java
 
 on:
-  push:
-    branches:
-      - main
   pull_request:
     paths:
       - "prql-java/**"

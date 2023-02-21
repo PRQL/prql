@@ -2,11 +2,7 @@
 name: test-taskfile
 
 on:
-  push:
-    branches:
-      - main
   pull_request:
-    types: [opened, reopened, synchronize, labeled]
     paths:
       - Taskfile.yml
       - .github/workflows/test-taskfile.yaml
