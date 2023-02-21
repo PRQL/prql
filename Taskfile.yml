@@ -233,7 +233,7 @@ tasks:
       - "prql-compiler/**/*.pest"
       - "prql-compiler/**/*.snap"
     cmds:
-      - cargo insta test --accept -p prql-compiler --lib
+      - cargo insta test --accept -p prql-compiler --lib -- --quiet
 
   build-web:
     desc: Build the website, including the book & playground.
