@@ -12,6 +12,7 @@
 
 **Integrations**:
 
+- [prql-php] Added PHP bindings (@vanillajonathan, #1860)
 - [prql-lib] Added C header file (@vanillajonathan, #1879)
 
 **Internal changes**:
