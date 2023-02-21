@@ -48,6 +48,25 @@ jobs:
           desc:
             prqlc is the CLI for PRQL, a modern language for transforming data
 
+  build-and-publish-snap:
+    runs-on: ubuntu-latest
+
+    # Skip running workflow on forks
+    if: github.repository_owner == 'prql'
+
+    steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v3
+      - name: 📦 Build Snap
+        uses: snapcore/action-build@v1
+      - name: 🆙 Publish Snap
+        uses: snapcore/action-publish@v1
+        env:
+          SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.STORE_LOGIN }}
+        with:
+          snap: ${{ steps.build.outputs.snap }}
+          release: edge
+
   build-python-wheels:
     runs-on: ${{ matrix.os }}
     strategy:
