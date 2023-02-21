@@ -6,7 +6,6 @@ summary: PRQL is a modern language for transforming data
 description: |
   PRQL is a modern language for transforming data — a simple, powerful,
   pipelined SQL replacement.
-  It lets you transpile PRQL queries into SQL queries.
 issues: https://github.com/PRQL/prql/issues
 source-code: https://github.com/PRQL/prql
 contact: https://twitter.com/prql_lang
