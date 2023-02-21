@@ -31,6 +31,6 @@ jobs:
           package: prqlc
           package_root: .rpmpkg
           maintainer: The PRQL Project
-          version: ${{ github.ref }}
+          version: '${{ github.ref }}'
           desc: PRQL is a modern language for transforming data — a simple, powerful, pipelined SQL replacement
           license: Apache-2.0
