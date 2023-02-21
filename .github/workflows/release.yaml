@@ -39,7 +39,7 @@ jobs:
       - name: 📦 Build .rpm package
         uses: jiro4989/build-rpm-action@v2
         with:
-          summary: PRQL Compiler
+          summary: CLI for PRQL, a modern language for transforming data
           package: prqlc
           package_root: .rpmpkg
           maintainer: The PRQL Project
