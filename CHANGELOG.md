@@ -13,6 +13,7 @@
 **Integrations**:
 
 - [prql-php] Added PHP bindings. (@vanillajonathan, #1860)
+- [prql-dotnet] Added .NET bindings. (@vanillajonathan, #1917)
 - [prql-lib] Added C header file. (@vanillajonathan, #1879)
 - Added a workflow building a `.deb` on each release. (Note that it's not yet
   published on each release). (@vanillajonathan, #1883)
