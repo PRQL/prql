@@ -28,4 +28,6 @@ Console.WriteLine(sql);
 
 # TODO
 
-This is currently at 0.1.0 because we're waiting to update prql-lib for the latest API. When we've done that, we can match the version here with the broader PRQL version.
+This is currently at 0.1.0 because we're waiting to update prql-lib for the
+latest API. When we've done that, we can match the version here with the broader
+PRQL version.
