@@ -49,7 +49,7 @@ jobs:
             prqlc is the CLI for PRQL, a modern language for transforming data
 
   build-rpm-package:
-  # TODO: This doesn't publish the rpm yet, that would be a welcome follow-up (even as a CI artifact)
+    # TODO: This doesn't publish the rpm yet, that would be a welcome follow-up (even as a CI artifact)
     runs-on: ubuntu-latest
     steps:
       - name: 📂 Checkout code
