@@ -1,12 +1,11 @@
 pub use anyhow::Result;
 
 use ariadne::{Cache, Config, Label, Report, ReportKind, Source};
+use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use std::error::Error as StdError;
 use std::fmt::{self, Debug, Display, Formatter};
 use std::ops::{Add, Range};
-
-use crate::utils::IntoOnly;
 
 #[derive(Clone, PartialEq, Eq, Copy, Serialize, Deserialize)]
 pub struct Span {
@@ -216,13 +215,9 @@ impl ErrorMessages {
         }
         self
     }
-}
 
-impl IntoOnly for ErrorMessages {
-    type Item = ErrorMessage;
-
-    fn into_only(self) -> Result<Self::Item> {
-        self.inner.into_only()
+    fn exactly_one(self) -> Result<ErrorMessage> {
+        Ok(self.inner.into_iter().exactly_one()?)
     }
 }
 

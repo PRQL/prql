@@ -16,7 +16,8 @@ use crate::ast::pl::{BinOp, JoinSide, Literal, RelationLiteral};
 use crate::ast::rq::{CId, Expr, ExprKind, Query, RelationKind, TableRef, Transform};
 use crate::sql::anchor::anchor_split;
 use crate::sql::preprocess::SqlRelationKind;
-use crate::utils::{BreakUp, IntoOnly, Pluck};
+use crate::utils::{BreakUp, Pluck};
+
 use crate::Target;
 
 use super::context::AnchorContext;
@@ -249,7 +250,8 @@ fn sql_select_query_of_pipeline(
 
     let projection = pipeline
         .pluck(|t| t.into_super_and(|t| t.into_select()))
-        .into_only()
+        .into_iter()
+        .exactly_one()
         .unwrap();
     let projection = translate_wildcards(&ctx.anchor, projection);
     let projection = translate_select_items(projection.0, projection.1, ctx)?;
