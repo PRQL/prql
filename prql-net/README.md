@@ -1,4 +1,4 @@
-# prql-net
+# prql-dotnet
 
 `prql-net` offers PRQL bindings for .NET bindings as a `netstandard2.0` library.
 
