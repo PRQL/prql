@@ -1,0 +1,36 @@
+name: create-rpm
+
+on:
+  release:
+    types: [released]
+  pull_request:
+    paths:
+      - .github/workflows/create-rpm.yaml
+  workflow_call:
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - name: 👷 Build prql-compiler
+        run: cargo build --release
+      - name: Copy files into .rpm package
+        run: |
+          mkdir -p .rpmpkg/usr/bin
+          cp target/release/prqlc .rpmpkg/usr/bin/prqlc
+          chmod +x .rpmpkg/usr/bin/prqlc
+      - name: 📦 Build .rpm package
+        uses: jiro4989/build-rpm-action@v2
+        with:
+          summary: PRQL Compiler
+          package: prqlc
+          package_root: .rpmpkg
+          maintainer: The PRQL Project
+          version: ${{ github.ref }}
+          desc: PRQL is a modern language for transforming data — a simple, powerful, pipelined SQL replacement
+          license: Apache-2.0
