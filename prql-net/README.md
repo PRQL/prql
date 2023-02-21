@@ -2,15 +2,18 @@
 
 `prql-net` offers PRQL bindings for .NET bindings as a `netstandard2.0` library.
 
-It provides the `PrqlCompiler` class which contains the `ToJson` and `ToSql` static methods.
+It provides the `PrqlCompiler` class which contains the `ToJson` and `ToSql`
+static methods.
 
-It's still at an early stage, and isn't published to NuGet. Contributions are welcome.
+It's still at an early stage, and isn't published to NuGet. Contributions are
+welcome.
 
 ## Installation
 
-Make sure that `libprql_lib.so` (Linux), `libprql_lib.dylib` (macOS) or `libprql_lib.dll` (Windows)
-is in your project's `bin` directory together with `PrqlCompiler.dll` and the rest of your project's
-compiled files. I.e. `{your_project}/bin/Debug/net7.0/`.
+Make sure that `libprql_lib.so` (Linux), `libprql_lib.dylib` (macOS) or
+`libprql_lib.dll` (Windows) is in your project's `bin` directory together with
+`PrqlCompiler.dll` and the rest of your project's compiled files. I.e.
+`{your_project}/bin/Debug/net7.0/`.
 
 The `libprql_lib` library gets dynamically imported at runtime.
 

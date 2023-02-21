@@ -11,12 +11,12 @@ namespace Prql.Compiler
         /// </summary>
         /// <remarks>Defaults to <c>true</c>.</remarks>
         public bool Format { get; set; } = true;
-    
+
         /// <summary>
         /// Target and dialect to compile to.
         /// </summary>
         public string Target { get; set; }
-    
+
         /// <summary>
         /// Emits the compiler signature as a comment after generated SQL.
         /// </summary>
