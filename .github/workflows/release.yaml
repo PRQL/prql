@@ -25,6 +25,8 @@ jobs:
             })
 
   build-deb-package:
+  # TODO: currently this doesn't publish it as an artifact; would be a welcome contribution
+  # to add that (and eventually as a release asset)
     runs-on: ubuntu-latest
     steps:
       - name: 📂 Checkout code
