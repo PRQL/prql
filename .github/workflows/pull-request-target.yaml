@@ -19,6 +19,21 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           requireScope: false
+          # The standard ones plus "internal", for code quality / ergonomics improvements
+          types: |
+            feat
+            fix
+            docs
+            style
+            refactor
+            perf
+            test
+            build
+            ci
+            chore
+            revert
+            internal
+            devops
 
   backport:
     # Backport to `web` branch on `pr-backport-web`
