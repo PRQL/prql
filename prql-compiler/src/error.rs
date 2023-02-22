@@ -120,6 +120,7 @@ impl Display for Error {
 pub struct ErrorMessages {
     pub inner: Vec<ErrorMessage>,
 }
+impl StdError for ErrorMessages {}
 
 impl From<ErrorMessage> for ErrorMessages {
     fn from(e: ErrorMessage) -> Self {
