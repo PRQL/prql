@@ -274,8 +274,9 @@ group a_column (take 10 | sort b_column | derive [the_number = rank, last = lag 
     fn compile() {
         // Check we get an error on a bad input
         let input = "asdf";
-        assert!(Cli::execute(&Cli::Compile(CommandIO::default()), input).is_err());
-        assert_display_snapshot!(Cli::execute(&Cli::Compile(CommandIO::default()), input).unwrap_err(), @r###"
+        let result = Cli::execute(&Cli::Compile(CommandIO::default()), input);
+        assert!(result.is_err());
+        assert_display_snapshot!(result.unwrap_err(), @r###"
         Error:
            ╭─[:1:1]
            │
