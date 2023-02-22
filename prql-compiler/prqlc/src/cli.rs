@@ -210,7 +210,7 @@ fn combine_prql_and_frames(source: &str, frames: Vec<(Span, Frame)>) -> String {
 
 #[cfg(test)]
 mod tests {
-    use insta::assert_snapshot;
+    use insta::{assert_display_snapshot, assert_snapshot};
 
     use super::*;
 
@@ -275,5 +275,14 @@ group a_column (take 10 | sort b_column | derive [the_number = rank, last = lag 
         // Check we get an error on a bad input
         let input = "asdf";
         assert!(Cli::execute(&Cli::Compile(CommandIO::default()), input).is_err());
+        assert_display_snapshot!(Cli::execute(&Cli::Compile(CommandIO::default()), input).unwrap_err(), @r###"
+        Error:
+           ╭─[:1:1]
+           │
+         1 │ asdf
+           · ──┬─
+           ·   ╰─── Unknown name asdf
+        ───╯
+        "###);
     }
 }
