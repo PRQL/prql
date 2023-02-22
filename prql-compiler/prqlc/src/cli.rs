@@ -19,7 +19,7 @@ pub fn main() -> color_eyre::eyre::Result<()> {
     color_eyre::install()?;
     let mut cli = Cli::parse();
 
-    if let Err(error) = cli.run() {
+    if let Err(error) = dbg!(cli.run()) {
         eprintln!("{error}");
         exit(1)
     }
@@ -78,14 +78,14 @@ impl Cli {
     fn run_io_command(&mut self) -> std::result::Result<(), anyhow::Error> {
         let (source, source_id) = self.read_input()?;
 
-        let res = self.execute(&source);
+        let res = dbg!(self.execute(&source));
 
-        match res {
+        match dbg!(res) {
             Ok(buf) => {
                 self.write_output(&buf)?;
             }
             Err(e) => {
-                print!("{:}", downcast(e).composed(&source_id, &source, true));
+                print!("{:}", downcast(dbg!(e)).composed(&source_id, &source, true));
                 std::process::exit(1)
             }
         }
@@ -94,6 +94,8 @@ impl Cli {
     }
 
     fn execute(&self, source: &str) -> Result<Vec<u8>> {
+        // TODO: there's some repetiton here around converting strings to bytes;
+        // we could possibly extract that, but not sure it would neatly extract.
         Ok(match self {
             Cli::Parse(_) => {
                 let ast = prql_to_pl(source).map_err(|e| anyhow!(e))?;
@@ -137,7 +139,7 @@ impl Cli {
                 serde_json::to_string_pretty(&ir)?.into_bytes()
             }
             Cli::Compile(_) => compile(source, &Options::default())
-                .map_or_else(|x| x.to_string(), |x| x)
+                .map_err(|x| anyhow!(x))?
                 .as_bytes()
                 .to_vec(),
             Cli::Watch(_) => unreachable!(),
@@ -266,5 +268,12 @@ group a_column (take 10 | sort b_column | derive [the_number = rank, last = lag 
         ]
         )
         "###);
+    }
+
+    #[test]
+    fn compile() {
+        // Check we get an error on a bad input
+        let input = "asdf";
+        assert!(Cli::execute(&Cli::Compile(CommandIO::default()), input).is_err());
     }
 }
