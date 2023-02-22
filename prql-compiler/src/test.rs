@@ -2884,6 +2884,11 @@ fn test_closures_and_pipelines() {
 // It's also fine to put errors by the things that they're testing.
 fn test_errors() {
     assert_display_snapshot!(compile(r###"
+    from a select b
+    "###).unwrap_err(),
+        @"std.from expected 1 arguments, but found 3");
+
+    assert_display_snapshot!(compile(r###"
     from x
     select a
     select b
