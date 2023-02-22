@@ -19,7 +19,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           requireScope: false
-          # The standard ones plus "internal", for code quality / ergonomics improvements
+          # The standard ones plus "internal", for code quality / ergonomics
+          # improvements, and "devops" for developer ergonomics.
           types: |
             feat
             fix
