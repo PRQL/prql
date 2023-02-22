@@ -6,6 +6,9 @@
 
 **Fixes**:
 
+- `prqlc compile` returns a non-zero exit code for invalid queries. (@max-sixty,
+  #1924)
+
 **Documentation**:
 
 **Web**:
