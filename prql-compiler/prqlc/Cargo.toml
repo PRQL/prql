@@ -1,5 +1,5 @@
 [package]
-description = "CLI interface for the PRQL compiler"
+description = "CLI for the PRQL compiler"
 name = "prqlc"
 
 edition.workspace = true
