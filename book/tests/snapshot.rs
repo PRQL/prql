@@ -185,9 +185,7 @@ fn test_prql_examples() {
 // which seems very strict)
 #[test]
 fn test_display() -> Result<(), ErrorMessages> {
-    use prql_compiler::downcast;
-    collect_book_examples()
-        .map_err(downcast)?
+    collect_book_examples()?
         .iter()
         .try_for_each(|(path, example)| {
             assert_snapshot!(
