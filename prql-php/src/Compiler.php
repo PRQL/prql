@@ -34,7 +34,7 @@ final class Compiler
 
     /**
      * Initializes a new instance of the Compiler.
-     * 
+     *
      * @param ?string|null $lib_path Path to the libprql library.
      */
     function __construct(?string $lib_path = null)
