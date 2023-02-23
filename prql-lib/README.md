@@ -7,7 +7,7 @@ allows embedding in languages that support FFI - looking at Golang.
 
 ## Linking
 
-See [examples/basic-c/Makefile](examples/basic-c/Makefile).
+See [examples/minimal-c/Makefile](examples/minimal-c/Makefile).
 
 Copy the `.a` and `.so` files in a convenient place and add the following
 compile flags to Go (cgo):
@@ -16,7 +16,8 @@ compile flags to Go (cgo):
 
 ## Examples
 
-For a minimal example, see [examples/basic-c/main.c](examples/basic-c/main.c).
+For a minimal example, see
+[examples/minimal-c/main.c](examples/minimal-c/main.c).
 
 Below is an example from an actual application that is using PRQL in Go.
 
