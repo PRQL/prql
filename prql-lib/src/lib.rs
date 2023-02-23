@@ -3,8 +3,8 @@
 extern crate libc;
 
 use libc::{c_char, c_int};
-use prql_compiler::{Options, Target};
 use prql_compiler::{json, prql_to_pl};
+use prql_compiler::{Options, Target};
 use std::ffi::CStr;
 use std::ffi::CString;
 use std::str::FromStr;
@@ -55,7 +55,7 @@ pub unsafe extern "C" fn compile(query: *const c_char, options: CompileOptions) 
 
     let result = match prql_compiler::compile(&prql_query, &Options::from(options)) {
         Ok(sql_str) => sql_str,
-        Err(_) => "".to_string()
+        Err(_) => "".to_string(),
     };
 
     let c_string = CString::new(result).unwrap();
