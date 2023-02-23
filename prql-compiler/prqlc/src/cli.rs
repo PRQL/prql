@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use ariadne::Source;
 use clap::Parser;
 use clio::{Input, Output};
@@ -94,19 +94,17 @@ impl Cli {
     }
 
     fn execute(&self, source: &str) -> Result<Vec<u8>> {
+        // TODO: there's some repetiton here around converting strings to bytes;
+        // we could possibly extract that, but not sure it would neatly .
         Ok(match self {
             Cli::Parse(_) => {
-                let ast = prql_to_pl(source).map_err(|e| anyhow!(e))?;
+                let ast = prql_to_pl(source)?;
 
                 serde_yaml::to_string(&ast)?.into_bytes()
             }
-            Cli::Format(_) => prql_to_pl(source)
-                .and_then(pl_to_prql)
-                .map_err(|x| anyhow!(x))?
-                .as_bytes()
-                .to_vec(),
+            Cli::Format(_) => prql_to_pl(source).and_then(pl_to_prql)?.as_bytes().to_vec(),
             Cli::Debug(_) => {
-                let stmts = prql_to_pl(source).map_err(|x| anyhow!(x))?;
+                let stmts = prql_to_pl(source)?;
                 let (stmts, context) = semantic::resolve_only(stmts, None)?;
 
                 let (references, stmts) =
@@ -120,7 +118,7 @@ impl Cli {
                 .concat()
             }
             Cli::Annotate(_) => {
-                let stmts = prql_to_pl(source).map_err(|x| anyhow!(x))?;
+                let stmts = prql_to_pl(source)?;
 
                 // resolve
                 let (stmts, _) = semantic::resolve_only(stmts, None)?;
@@ -131,15 +129,12 @@ impl Cli {
                 combine_prql_and_frames(source, frames).as_bytes().to_vec()
             }
             Cli::Resolve(_) => {
-                let ast = prql_to_pl(source).map_err(|x| anyhow!(x))?;
+                let ast = prql_to_pl(source)?;
                 let ir = semantic::resolve(ast)?;
 
                 serde_json::to_string_pretty(&ir)?.into_bytes()
             }
-            Cli::Compile(_) => compile(source, Options::default())
-                .map_or_else(|x| x.to_string(), |x| x)
-                .as_bytes()
-                .to_vec(),
+            Cli::Compile(_) => compile(source, &Options::default())?.as_bytes().to_vec(),
             Cli::Watch(_) => unreachable!(),
         })
     }
@@ -208,7 +203,7 @@ fn combine_prql_and_frames(source: &str, frames: Vec<(Span, Frame)>) -> String {
 
 #[cfg(test)]
 mod tests {
-    use insta::assert_snapshot;
+    use insta::{assert_display_snapshot, assert_snapshot};
 
     use super::*;
 
@@ -265,6 +260,23 @@ group a_column (take 10 | sort b_column | derive [the_number = rank, last = lag 
           last = lag 1 c_column,
         ]
         )
+        "###);
+    }
+
+    #[test]
+    fn compile() {
+        // Check we get an error on a bad input
+        let input = "asdf";
+        let result = Cli::execute(&Cli::Compile(CommandIO::default()), input);
+        assert!(result.is_err());
+        assert_display_snapshot!(result.unwrap_err(), @r###"
+        Error:
+           ╭─[:1:1]
+           │
+         1 │ asdf
+           · ──┬─
+           ·   ╰─── Unknown name asdf
+        ───╯
         "###);
     }
 }

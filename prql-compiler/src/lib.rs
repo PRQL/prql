@@ -42,7 +42,7 @@
 //!     # fn main() -> Result<(), prql_compiler::ErrorMessages> {
 //!     let sql = prql_compiler::compile(
 //!         "from albums | select [title, artist_id]",
-//!          prql_compiler::Options::default().no_format()
+//!          &prql_compiler::Options::default().no_format()
 //!     )?;
 //!     assert_eq!(&sql[..35], "SELECT title, artist_id FROM albums");
 //!     # Ok(())
@@ -109,19 +109,19 @@ pub static PRQL_VERSION: Lazy<Version> =
 /// ```
 /// use prql_compiler::{compile, Options, Target, sql::Dialect};
 ///
-/// let prql = "from employees | select [name,age] ";
-/// let opt = Options {
+/// let prql = "from employees | select [name,age]";
+/// let opts = Options {
 ///     format: false,
 ///     target: Target::Sql(Some(Dialect::SQLite)),
 ///     signature_comment: false
 /// };
-/// let sql = compile(&prql, opt).unwrap();
+/// let sql = compile(&prql, &opts).unwrap();
 /// println!("PRQL: {}\nSQLite: {}", prql, &sql);
 /// assert_eq!("SELECT name, age FROM employees", sql)
 ///
 /// ```
 /// See [`sql::Options`](sql/struct.Options.html) and [`sql::Dialect`](sql/enum.Dialect.html) for options and supported SQL dialects.
-pub fn compile(prql: &str, options: Options) -> Result<String, ErrorMessages> {
+pub fn compile(prql: &str, options: &Options) -> Result<String, ErrorMessages> {
     parser::parse(prql)
         .and_then(semantic::resolve)
         .and_then(|rq| sql::compile(rq, options))
@@ -237,7 +237,7 @@ pub fn pl_to_rq(pl: Vec<ast::pl::Stmt>) -> Result<ast::rq::Query, ErrorMessages>
 }
 
 /// Generate SQL from RQ.
-pub fn rq_to_sql(rq: ast::rq::Query, options: Options) -> Result<String, ErrorMessages> {
+pub fn rq_to_sql(rq: ast::rq::Query, options: &Options) -> Result<String, ErrorMessages> {
     sql::compile(rq, options).map_err(error::downcast)
 }
 

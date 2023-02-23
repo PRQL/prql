@@ -18,7 +18,7 @@
 use std::collections::HashMap;
 
 use anyhow::Result;
-use minijinja::compiler::tokens::{Span, Token};
+use minijinja::machinery::{Span, Token};
 use regex::Regex;
 
 const ANCHOR_PREFIX: &str = "_jinja_";
@@ -41,7 +41,7 @@ pub fn pre_process(source: &str) -> Result<(String, JinjaContext)> {
     let mut blocks = Vec::new();
     let mut current_block = Vec::new();
 
-    for res in minijinja::compiler::lexer::tokenize(source, false) {
+    for res in minijinja::machinery::tokenize(source, false) {
         let (token, span) = res?;
 
         if let Token::TemplateData(data) = token {

@@ -1,9 +1,6 @@
 name: test-js
 
 on:
-  push:
-    branches:
-      - main
   pull_request:
     paths:
       - "prql-js/**"

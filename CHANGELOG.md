@@ -6,13 +6,22 @@
 
 **Fixes**:
 
+- `prqlc compile` returns a non-zero exit code for invalid queries. (@max-sixty,
+  #1924)
+
 **Documentation**:
 
 **Web**:
 
 **Integrations**:
 
-- [prql-lib] Added C header file (@vanillajonathan, #1879)
+- [prql-php] Added PHP bindings. (@vanillajonathan, #1860)
+- [prql-dotnet] Added .NET bindings. (@vanillajonathan, #1917)
+- [prql-lib] Added C header file. (@vanillajonathan, #1879)
+- Added a workflow building a `.deb` on each release. (Note that it's not yet
+  published on each release). (@vanillajonathan, #1883)
+- Added a workflow building a Snap package on each release. (@vanillajonathan,
+  #1881)
 
 **Internal changes**:
 

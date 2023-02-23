@@ -1,9 +1,6 @@
 name: test-python
 
 on:
-  push:
-    branches:
-      - main
   pull_request:
     paths:
       - "prql-python/**"
