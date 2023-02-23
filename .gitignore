@@ -20,3 +20,6 @@ _*.prql
 **/node_modules/
 
 .task
+
+prql-dotnet/**/bin
+prql-dotnet/**/obj
