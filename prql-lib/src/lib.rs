@@ -35,7 +35,7 @@ impl From<CompileOptions> for Options {
             ""
         };
 
-        let target = Target::from_str(&target_str).unwrap_or_default();
+        let target = Target::from_str(target_str).unwrap_or_default();
 
         Options {
             format: o.format,
