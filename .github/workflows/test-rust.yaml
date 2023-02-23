@@ -36,6 +36,17 @@ jobs:
           args: --all --check
         # We split up the test compilation as recommended in
         # https://matklad.github.io/2021/09/04/fast-rust-builds.html
+
+      # Builds on macos were failing with "failed to build archive: section too large"
+      # This clean is the workaround.
+      - name: Clean
+        uses: richb-hanover/cargo@v1.1.0
+        if:
+          ${{ (inputs.target_option == '--target=wasm32-unknown-unknown' &&
+          inputs.os == 'macos-latest' )}}
+        with:
+          command: clean
+
       - name: 🏭 Compile
         uses: richb-hanover/cargo@v1.1.0
         with:
