@@ -59,7 +59,7 @@ pub unsafe extern "C" fn compile(query: *const c_char, options: CompileOptions) 
     };
 
     let c_string = CString::new(result).unwrap();
-    
+
     c_string.into_raw()
 }
 
