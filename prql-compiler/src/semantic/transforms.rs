@@ -26,36 +26,36 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
 
     let (kind, input) = match name.as_str() {
         "std.from" => {
-            let [source] = unpack::<1>(closure)?;
+            let [source] = unpack::<1>(closure);
 
             return Ok(Ok(source));
         }
         "std.select" => {
-            let [assigns, tbl] = unpack::<2>(closure)?;
+            let [assigns, tbl] = unpack::<2>(closure);
 
             let assigns = coerce_and_flatten(assigns)?;
             (TransformKind::Select { assigns }, tbl)
         }
         "std.filter" => {
-            let [filter, tbl] = unpack::<2>(closure)?;
+            let [filter, tbl] = unpack::<2>(closure);
 
             let filter = Box::new(filter);
             (TransformKind::Filter { filter }, tbl)
         }
         "std.derive" => {
-            let [assigns, tbl] = unpack::<2>(closure)?;
+            let [assigns, tbl] = unpack::<2>(closure);
 
             let assigns = coerce_and_flatten(assigns)?;
             (TransformKind::Derive { assigns }, tbl)
         }
         "std.aggregate" => {
-            let [assigns, tbl] = unpack::<2>(closure)?;
+            let [assigns, tbl] = unpack::<2>(closure);
 
             let assigns = coerce_and_flatten(assigns)?;
             (TransformKind::Aggregate { assigns }, tbl)
         }
         "std.sort" => {
-            let [by, tbl] = unpack::<2>(closure)?;
+            let [by, tbl] = unpack::<2>(closure);
 
             let by = coerce_and_flatten(by)?
                 .into_iter()
@@ -74,7 +74,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
             (TransformKind::Sort { by }, tbl)
         }
         "std.take" => {
-            let [expr, tbl] = unpack::<2>(closure)?;
+            let [expr, tbl] = unpack::<2>(closure);
 
             let range = match expr.kind {
                 ExprKind::Literal(Literal::Integer(n)) => Range::from_ints(None, Some(n)),
@@ -95,7 +95,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
             (TransformKind::Take { range }, tbl)
         }
         "std.join" => {
-            let [side, with, filter, tbl] = unpack::<4>(closure)?;
+            let [side, with, filter, tbl] = unpack::<4>(closure);
 
             let side = {
                 let span = side.span;
@@ -121,7 +121,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
             (TransformKind::Join { side, with, filter }, tbl)
         }
         "std.group" => {
-            let [by, pipeline, tbl] = unpack::<3>(closure)?;
+            let [by, pipeline, tbl] = unpack::<3>(closure);
 
             let by = coerce_and_flatten(by)?;
 
@@ -131,7 +131,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
             (TransformKind::Group { by, pipeline }, tbl)
         }
         "std.window" => {
-            let [rows, range, expanding, rolling, pipeline, tbl] = unpack::<6>(closure)?;
+            let [rows, range, expanding, rolling, pipeline, tbl] = unpack::<6>(closure);
 
             let expanding = {
                 let as_bool = expanding.kind.as_literal().and_then(|l| l.as_boolean());
@@ -188,7 +188,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
             (transform_kind, tbl)
         }
         "std.append" => {
-            let [bottom, top] = unpack::<2>(closure)?;
+            let [bottom, top] = unpack::<2>(closure);
 
             (TransformKind::Append(Box::new(bottom)), top)
         }
@@ -196,7 +196,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
         "std.in" => {
             // yes, this is not a transform, but this is the most appropriate place for it
 
-            let [pattern, value] = unpack::<2>(closure)?;
+            let [pattern, value] = unpack::<2>(closure);
 
             match pattern.kind {
                 ExprKind::Range(Range { start, end }) => {
@@ -239,7 +239,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
         "std.all" => {
             // yes, this is not a transform, but this is the most appropriate place for it
 
-            let [list] = unpack::<1>(closure)?;
+            let [list] = unpack::<1>(closure);
             let list = list.kind.into_list().unwrap();
 
             let mut res = None;
@@ -254,7 +254,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
         "std.map" => {
             // yes, this is not a transform, but this is the most appropriate place for it
 
-            let [func, list] = unpack::<2>(closure)?;
+            let [func, list] = unpack::<2>(closure);
             let list_items = list.kind.into_list().unwrap();
 
             let list_items = list_items
@@ -277,7 +277,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
         "std.zip" => {
             // yes, this is not a transform, but this is the most appropriate place for it
 
-            let [a, b] = unpack::<2>(closure)?;
+            let [a, b] = unpack::<2>(closure);
             let a = a.kind.into_list().unwrap();
             let b = b.kind.into_list().unwrap();
 
@@ -292,7 +292,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
         "std._eq" => {
             // yes, this is not a transform, but this is the most appropriate place for it
 
-            let [list] = unpack::<1>(closure)?;
+            let [list] = unpack::<1>(closure);
             let list = list.kind.into_list().unwrap();
             let [a, b]: [Expr; 2] = list.try_into().unwrap();
 
@@ -303,7 +303,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
         "std.from_text" => {
             // yes, this is not a transform, but this is the most appropriate place for it
 
-            let [format, text_expr] = unpack::<2>(closure)?;
+            let [format, text_expr] = unpack::<2>(closure);
 
             let text = match text_expr.kind {
                 ExprKind::Literal(Literal::String(text)) => text,
@@ -371,7 +371,7 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
         "std.anchor" => {
             // yes, this is not a transform, but this is the most appropriate place for it
 
-            let [id_expr] = unpack::<1>(closure)?;
+            let [id_expr] = unpack::<1>(closure);
 
             let id = match id_expr.kind {
                 ExprKind::Literal(Literal::String(text)) => text,
@@ -775,17 +775,8 @@ impl FrameInput {
 
 // Expects closure's args to be resolved.
 // Note that named args are before positional args, in order of declaration.
-fn unpack<const P: usize>(closure: Closure) -> Result<[Expr; P]> {
-    closure.args.clone().try_into().map_err(|_| {
-        Error::new(Reason::Expected {
-            who: closure.name.map(|x| x.to_string()),
-            expected: format!("{P} arguments"),
-            found: closure.args.len().to_string(),
-        })
-        // TODO: can we get the span of the closure?
-        // .with_span(closure.body.span)
-        .into()
-    })
+fn unpack<const P: usize>(closure: Closure) -> [Expr; P] {
+    closure.args.try_into().expect("bad transform cast")
 }
 
 /// Flattens group and window [TransformCall]s into a single pipeline.

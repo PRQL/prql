@@ -2884,9 +2884,33 @@ fn test_closures_and_pipelines() {
 // It's also fine to put errors by the things that they're testing.
 fn test_errors() {
     assert_display_snapshot!(compile(r###"
+    func addadd a b -> a + b
+
+    from x
+    derive y = (addadd 4 5 6)
+    "###).unwrap_err(),
+        @r###"
+    Error:
+       ╭─[:5:12]
+       │
+     5 │     derive y = (addadd 4 5 6)
+       ·            ─────────┬────────
+       ·                     ╰────────── Too many arguments to function `addadd`
+    ───╯
+    "###);
+
+    assert_display_snapshot!(compile(r###"
     from a select b
     "###).unwrap_err(),
-        @"std.from expected 1 arguments, but found 3");
+        @r###"
+    Error:
+       ╭─[:2:5]
+       │
+     2 │     from a select b
+       ·     ───────┬───────
+       ·            ╰───────── Too many arguments to function `from`
+    ───╯
+    "###);
 
     assert_display_snapshot!(compile(r###"
     from x
