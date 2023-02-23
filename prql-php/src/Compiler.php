@@ -30,6 +30,45 @@ namespace Prql\Compiler;
  */
 final class Compiler
 {
+    private \FFI $_libprql;
+
+    /**
+     * Initializes a new instance of the Compiler.
+     * 
+     * @param ?string|null $lib_path Path to the libprql library.
+     */
+    function __construct(?string $lib_path = null)
+    {
+        $library = $lib_path;
+
+        if ($lib_path === null) {
+            $library = __DIR__;
+        }
+
+        if (PHP_OS_FAMILY === "Windows") {
+            $library .= "\libprql_lib.dll";
+        } elseif (PHP_OS_FAMILY === "Darwin") {
+            $library .= "/libprql_lib.dylib";
+        } else {
+            $library .= "/libprql_lib.so";
+        }
+
+        $this->_libprql = \FFI::cdef(
+            "
+            typedef struct Options {
+                bool format;
+                char *target;
+                bool signature_comment;
+            } Options;
+
+            int compile(const char *prql_query, const struct Options *options, char *out);
+            int prql_to_pl(const char *prql_query, char *out);
+            int pl_to_rq(const char *pl_json, char *out);
+            int rq_to_sql(const char *rq_json, char *out);
+        ", $library
+        );
+    }
+
     /**
      * Compile a PRQL string into a SQL string.
      *
@@ -37,9 +76,9 @@ final class Compiler
      * @param Options|null $options    PRQL compiler options.
      *
      * @return string SQL query.
-     * @throws \InvalidArgumentException If no query is given or the query cannot
-     * @api
+     * @throws \InvalidArgumentException If no query is given or the query canno
      * be compiled.
+     * @api
      * @todo   FIX THIS. THIS DOES NOT WORK!
      * @ignore Ignore this function until fixed.
      */
@@ -53,37 +92,45 @@ final class Compiler
             $options = new Options();
         }
 
-        $library = "/libprql_lib.so";
-
-        if (PHP_OS_FAMILY === "Windows") {
-            $library = "\libprql_lib.dll";
-        }
-
-        $libprql = \FFI::cdef(
-            "
-            struct options {
-                bool format;
-                char* target;
-                bool signature_comment;
-            };
-
-            char* compile(const char *prql_query, struct options *opt);
-        ", __DIR__ . $library
-        );
-
-        $ffi_options = $libprql->new("struct options");
+        $ffi_options = $this->_libprql->new("struct Options");
         $ffi_options->format = $options->format;
         $ffi_options->signature_comment = $options->signature_comment;
 
         if (isset($options->target)) {
             $target_len = strlen($options->target);
-            $ffi_options->target = $ffi->new('char[$target_len]', 0);
-            FFI::memcpy($ffi_options->target, $options->target, $target_len);
-            FFI::free($ffi_options->target);
+            $ffi_options->target = \FFI::new("char[$target_len]", false);
+            \FFI::memcpy($ffi_options->target, $options->target, $target_len);
+            \FFI::free($ffi_options->target);
         }
 
         $out = str_pad("", 1024);
-        if ($libprql->compile($prql_query, \FFI::addr($$ffi_options)) !== 0) {
+        if ($this->_libprql->compile($prql_query, \FFI::addr($ffi_options), $out) !== 0) {
+            throw new \InvalidArgumentException("Could not compile query.");
+        }
+
+        unset($ffi_options);
+
+        return trim($out);
+    }
+
+    /**
+     * Compile a PRQL string into PL.
+     *
+     * @param string $prql_query A PRQL query.
+     *
+     * @return string Pipelined Language (PL) JSON string.
+     * @throws \InvalidArgumentException If no query is given or the query cannot
+     * be compiled.
+     * @api
+     */
+    function prqlToPL(string $prql_query): string
+    {
+        if (!$prql_query) {
+            throw new \InvalidArgumentException("No query given.");
+        }
+
+        $out = str_pad("", 1024);
+        if ($this->_libprql->prql_to_pl($prql_query, $out) !== 0) {
             throw new \InvalidArgumentException("Could not compile query.");
         }
 
@@ -91,70 +138,48 @@ final class Compiler
     }
 
     /**
-     * Compile a PRQL string into a JSON string.
+     * Converts PL to RQ.
      *
-     * @param string $prql_query A PRQL query.
+     * @param string $pl_json PL in JSON format.
      *
-     * @return string JSON string.
+     * @return string RQ string.
      * @throws \InvalidArgumentException If no query is given or the query cannot
      * be compiled.
      * @api
      */
-    function toJson(string $prql_query): string
+    function pLToRQ(string $pl_json): string
     {
         if (!$prql_query) {
             throw new \InvalidArgumentException("No query given.");
         }
 
-        $library = "/libprql_lib.so";
-
-        if (PHP_OS_FAMILY === "Windows") {
-            $library = "\libprql_lib.dll";
-        }
-
-        $libprql = \FFI::cdef(
-            "int to_json(char *prql_query, char *json_query);",
-            __DIR__ . $library
-        );
-
         $out = str_pad("", 1024);
-        if ($libprql->to_json($prql_query, $out) !== 0) {
-            throw new \InvalidArgumentException("Could not compile query.");
+        if ($this->_libprql->pl_to_rq($pl_json, $out) !== 0) {
+            throw new \InvalidArgumentException("Could not convert PL.");
         }
 
         return trim($out);
     }
 
     /**
-     * Compile a PRQL string into a SQL string.
+     * Converts RQ to SQL.
      *
-     * @param string $prql_query A PRQL query.
+     * @param string $rq_json PL in JSON format.
      *
-     * @return string SQL query.
+     * @return string SQL string.
      * @throws \InvalidArgumentException If no query is given or the query cannot
      * be compiled.
      * @api
      */
-    function toSql(string $prql_query): string
+    function rQToSql(string $rq_json): string
     {
         if (!$prql_query) {
             throw new \InvalidArgumentException("No query given.");
         }
 
-        $library = "/libprql_lib.so";
-
-        if (PHP_OS_FAMILY === "Windows") {
-            $library = "\libprql_lib.dll";
-        }
-
-        $libprql = \FFI::cdef(
-            "int to_sql(char *prql_query, char *sql_query);",
-            __DIR__ . $library
-        );
-
         $out = str_pad("", 1024);
-        if ($libprql->to_sql($prql_query, $out) !== 0) {
-            throw new \InvalidArgumentException("Could not compile query.");
+        if ($this->_libprql->rq_to_sql($rq_json, $out) !== 0) {
+            throw new \InvalidArgumentException("Could not convert RQ.");
         }
 
         return trim($out);
