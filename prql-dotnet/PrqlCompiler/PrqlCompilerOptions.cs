@@ -1,8 +1,11 @@
+using System.Runtime.InteropServices;
+
 namespace Prql.Compiler
 {
     /// <summary>
     /// Compilation options for SQL backend of the compiler.
     /// </summary>
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
     public class PrqlCompilerOptions
     {
         /// <summary>
