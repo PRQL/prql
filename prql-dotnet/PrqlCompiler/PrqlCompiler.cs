@@ -24,7 +24,9 @@ namespace Prql.Compiler
                 throw new ArgumentException(nameof(prqlQuery));
             }
 
-            return CompileExtern(prqlQuery);
+            var options = new PrqlCompilerOptions();
+
+            return Compile(prqlQuery, options);
         }
 
         /// <summary>
@@ -43,12 +45,15 @@ namespace Prql.Compiler
                 throw new ArgumentException(nameof(prqlQuery));
             }
 
-            if (options == null)
+            byte[] bytes = new byte[1024];
+            if (CompileExtern(prqlQuery, ref options, bytes) != 0)
             {
-                throw new ArgumentNullException(nameof(options));
+                throw new FormatException("Could not compile query.");
             }
 
-            return CompileExtern(prqlQuery);
+            bytes = bytes.TakeWhile(x => ((char)x) != '\0').ToArray();
+
+            return Encoding.UTF8.GetString(bytes);
         }
 
         /// <summary>
@@ -76,38 +81,10 @@ namespace Prql.Compiler
             return Encoding.UTF8.GetString(bytes);
         }
 
-        /// <summary>
-        /// Compile a PRQL string into a SQL query.
-        /// </summary>
-        /// <param name="prqlQuery">A PRQL query.</param>
-        /// <returns>SQL query.</returns>
-        /// <exception cref="ArgumentException"><paramref name="prqlQuery"/> is null or empty.</exception>
-        /// <exception cref="FormatException"><paramref name="prqlQuery"/> cannot be compiled.</exception>
-        public static string ToSql(string prqlQuery)
-        {
-            if (string.IsNullOrEmpty(prqlQuery))
-            {
-                throw new ArgumentException(nameof(prqlQuery));
-            }
-
-            byte[] bytes = new byte[1024];
-            if (ToSqlExtern(prqlQuery, bytes) != 0)
-            {
-                throw new FormatException("Could not compile query.");
-            }
-
-            bytes = bytes.TakeWhile(x => ((char)x) != '\0').ToArray();
-
-            return Encoding.UTF8.GetString(bytes);
-        }
-
         [DllImport("libprql_lib", EntryPoint = "compile")]
-        private static extern string CompileExtern(string prql_query);
+        private static extern int CompileExtern(string prql_query, ref PrqlCompilerOptions options, byte[] sql_query);
 
         [DllImport("libprql_lib", EntryPoint = "to_json")]
         private static extern int ToJsonExtern(string prql_query, byte[] json);
-
-        [DllImport("libprql_lib", EntryPoint = "to_sql")]
-        private static extern int ToSqlExtern(string prql_query, byte[] sql_query);
     }
 }

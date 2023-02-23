@@ -22,7 +22,12 @@ The `libprql_lib` library gets dynamically imported at runtime.
 ```csharp
 using Prql.Compiler;
 
-var sql = PrqlCompiler.ToSql("from employees");
+var options = new PrqlCompilerOptions
+{
+    Format = false,
+    SignatureComment = false,
+};
+var sql = PrqlCompiler.Compile("from employees", options);
 Console.WriteLine(sql);
 ```
 
