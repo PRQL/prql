@@ -2,6 +2,7 @@
 
 dist
 target*
+*.out
 
 lcov.info
 
