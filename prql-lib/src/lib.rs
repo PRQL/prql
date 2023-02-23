@@ -38,7 +38,8 @@ pub unsafe extern "C" fn compile(
     result_into_c_str(result, out)
 }
 
-/// Build PL AST from a PRQL string
+/// Build PL AST from a PRQL string. PL in documented in the
+/// [prql-compiler Rust crate](https://docs.rs/prql-compiler/latest/prql_compiler/ast/pl).
 ///
 /// Takes PRQL source buffer and writes PL serialized as JSON to `out` buffer.
 ///
@@ -58,6 +59,8 @@ pub unsafe extern "C" fn prql_to_pl(prql_query: *const c_char, out: *mut c_char)
 }
 
 /// Finds variable references, validates functions calls, determines frames and converts PL to RQ.
+/// PL and RQ are documented in the
+/// [prql-compiler Rust crate](https://docs.rs/prql-compiler/latest/prql_compiler/ast).
 ///
 /// Takes PL serialized as JSON buffer and writes RQ serialized as JSON to `out` buffer.
 ///
@@ -77,7 +80,8 @@ pub unsafe extern "C" fn pl_to_rq(pl_json: *const c_char, out: *mut c_char) -> c
     result_into_c_str(result, out)
 }
 
-/// Convert RQ AST into an SQL string.
+/// Convert RQ AST into an SQL string. RQ is documented in the
+/// [prql-compiler Rust crate](https://docs.rs/prql-compiler/latest/prql_compiler/ast/rq).
 ///
 /// Takes RQ serialized as JSON buffer and writes SQL source to `out` buffer.
 ///
