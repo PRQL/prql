@@ -5,8 +5,9 @@
 **Features**:
 
 - `loop`, which translates to `WITH RECURSIVE` (#1642, @aljazerzen)
-- Convert parser from PEST to Chumsky (@aljazerzen, #1818)
-  - Error recovery in some cases and more readable errors in general.
+- Convert parser from pest to Chumsky (@aljazerzen, #1818)
+  - Improved error messages, and the potential to make even better in the
+    future. Many of these improvements come from error recovery.
   - String escapes (`\n \t`).
   - Raw strings that don't escape backslashes.
   - String interpolations can only contain identifiers and not any expression.
@@ -25,7 +26,7 @@
 
 **Documentation**:
 
-- Operator precedence
+- Operator precedence (@aljazerzen, #1818)
 
 **Web**:
 

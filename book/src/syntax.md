@@ -288,19 +288,13 @@ At the moment, PRQL uses only four keywords:
 - `func`
 - `switch`
 
-If you want to use these names as your columns or relations, use backticks:
-`` `switch` ``.
+To use these names as columns or relations, use backticks: `` `switch` ``.
 
 It may seem that transforms are also keywords, but they are normal function
 within std namespace:
 
-```
+```prql
 std.from my_table
 std.select [from = my_table.a, take = my_table.b]
 std.take 3
-```
-
-```adonish
-Note that new keywords will be added before 1.0 release, so your builds may break.
-You can guard against that by using backticks.
 ```

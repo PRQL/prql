@@ -80,9 +80,9 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
         .ignored();
 
     let range = (whitespace.clone().or_not())
-        .then(just(".."))
+        .then_ignore(just(".."))
         .then(whitespace.clone().or_not())
-        .map(|((left, _), right)| Token::Range {
+        .map(|(left, right)| Token::Range {
             bind_left: left.is_none(),
             bind_right: right.is_none(),
         })
