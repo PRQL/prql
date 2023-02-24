@@ -51,7 +51,7 @@ fn query_def() -> impl Parser<Token, Stmt, Error = Simple<Token>> {
                     ExprKind::Literal(Literal::String(v)) => {
                         VersionReq::parse(&v).map_err(|e| e.to_string())
                     }
-                    _ => Err("version must be a sting literal".to_string()),
+                    _ => Err("version must be a string literal".to_string()),
                 })
                 .transpose()
                 .map_err(|msg| Simple::custom(span, msg))?;

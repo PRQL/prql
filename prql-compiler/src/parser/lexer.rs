@@ -6,7 +6,7 @@ use crate::ast::pl::*;
 pub enum Token {
     NewLine,
 
-    Ident(String),
+    Ident(Ident),
     Keyword(String),
     Literal(Literal),
     Param(String),
@@ -47,9 +47,9 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
         just("??").to(Token::Coalesce),
     ));
 
-    let control = one_of("></%=+-*[]().,:|!").map(Token::Control);
+    let control = one_of("></%=+-*[](),:|!").map(Token::Control);
 
-    let ident = ident_part().map(Token::Ident);
+    let ident = ident().map(Token::Ident);
 
     let keyword = choice((just("func"), just("let"), just("switch"), just("prql")))
         .then_ignore(end_expr())
@@ -114,7 +114,7 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
         .then_ignore(end())
 }
 
-pub fn ident_part() -> impl Parser<char, String, Error = Cheap<char>> {
+pub fn ident() -> impl Parser<char, Ident, Error = Cheap<char>> {
     let plain = filter(|c: &char| c.is_ascii_alphabetic() || *c == '_')
         .map(Some)
         .chain::<char, Vec<_>, _>(
@@ -127,7 +127,27 @@ pub fn ident_part() -> impl Parser<char, String, Error = Cheap<char>> {
         .then_ignore(just('`'))
         .collect::<String>();
 
-    plain.or(backticks)
+    let ident_part = plain.or(backticks);
+
+    let star = just('*').to("*".to_string());
+
+    choice((
+        // relative
+        just('.').to(true).then(ident_part.clone().or(star.clone())),
+        // non-relative
+        empty().to(false).then(ident_part.clone()),
+    ))
+    .then(just('.').ignore_then(ident_part.or(star)).repeated())
+    .map(|((relative, first), mut path)| {
+        path.insert(0, first);
+        let name = path.pop().unwrap();
+        Ident {
+            relative,
+            path,
+            name,
+        }
+    })
+    .labelled("identifier")
 }
 
 fn literal() -> impl Parser<char, Literal, Error = Cheap<char>> {
@@ -377,7 +397,7 @@ impl std::fmt::Display for Token {
         match self {
             Self::NewLine => write!(f, "new line"),
             Self::Ident(arg0) => {
-                if arg0.is_empty() {
+                if arg0.name.is_empty() {
                     write!(f, "an identifier")
                 } else {
                     write!(f, "`{arg0}`")

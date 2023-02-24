@@ -24,10 +24,8 @@ pub fn parse(
 }
 
 fn parser(span_offset: usize) -> impl Parser<char, Vec<InterpolateItem>, Error = Cheap<char>> {
-    let expr = ident_part()
-        .separated_by(just('.'))
+    let expr = ident()
         .delimited_by(just('{'), just('}'))
-        .map(Ident::from_path)
         .map(ExprKind::Ident)
         .map_with_span(move |e, s| into_expr(e, offset_span(s, span_offset)))
         .map(Box::new)

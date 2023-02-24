@@ -121,14 +121,18 @@ mod common {
     use super::lexer::Token;
     use crate::{ast::pl::*, Span};
 
-    pub fn ident_part() -> impl Parser<Token, String, Error = Simple<Token>> {
+    pub fn ident() -> impl Parser<Token, Ident, Error = Simple<Token>> {
         select! { Token::Ident(ident) => ident }.map_err(|e: Simple<Token>| {
             Simple::expected_input_found(
                 e.span(),
-                [Some(Token::Ident("".to_string()))],
+                [Some(Token::Ident(Ident::from_name("")))],
                 e.found().cloned(),
             )
         })
+    }
+
+    pub fn ident_part() -> impl Parser<Token, String, Error = Simple<Token>> {
+        ident().map(|i| i.to_string())
     }
 
     pub fn keyword(kw: &'static str) -> impl Parser<Token, (), Error = Simple<Token>> + Clone {
