@@ -330,6 +330,10 @@ impl Token {
     pub fn ctrl<S: ToString>(s: S) -> Self {
         Token::Control(s.to_string())
     }
+
+    pub fn range(bind_left: bool, bind_right: bool) -> Self {
+        Token::Range { bind_left, bind_right }
+    }
 }
 
 // This is here because Literal::Float(f64) does not implement Hash, so we cannot simply derive it.

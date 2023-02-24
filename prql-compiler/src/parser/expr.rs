@@ -99,27 +99,55 @@ pub fn expr() -> impl Parser<Token, Expr, Error = Simple<Token>> + Clone {
                 .map_with_span(into_expr))
             .boxed();
 
-        // Range
-        let term_box = term.clone().map(Box::new).map(Some);
+        // Ranges have five cases we need to parse:
+        // x..y (bounded)
+        // x..  (only start bound)
+        // x    (no-op)
+        //  ..y (only end bound)
+        //  ..  (unbounded)
+        #[derive(Clone)]
+        enum RangeCase {
+            NoOp(Expr),
+            Range(Option<Expr>, Option<Expr>),
+        }
         let term = choice((
-            // x..y
-            term_box
-                .clone()
-                .then_ignore(select! { Token::Range { bind_left: true, bind_right: true } => () })
-                .then(term_box.clone()),
-            // x..
-            term_box
-                .clone()
-                .then(select! { Token::Range { bind_left: true, .. } => None }),
-            // ..y
-            select! { Token::Range { bind_right: true, .. } => None }.then(term_box),
-            // ..
-            select! { Token::Range { .. } => (None, None) },
+            // with start bound (first 3 cases)
+            term.clone()
+                .then(choice((
+                    // range and end bound
+                    just(Token::range(true, true))
+                        .ignore_then(term.clone())
+                        .map(|x| Some(Some(x))),
+                    // range and no end bound
+                    select! { Token::Range { bind_left: true, .. } => Some(None) },
+                    // no range
+                    empty().to(None),
+                )))
+                .map(|(start, range)| {
+                    if let Some(end) = range {
+                        RangeCase::Range(Some(start), end)
+                    } else {
+                        RangeCase::NoOp(start)
+                    }
+                }),
+            // only end bound
+            select! { Token::Range { bind_right: true, .. } => () }
+                .ignore_then(term)
+                .map(|range| RangeCase::Range(None, Some(range))),
+            // unbounded
+            select! { Token::Range { .. } => RangeCase::Range(None, None) },
         ))
-        .map(|(start, end)| Range { start, end })
-        .map(ExprKind::Range)
-        .map_with_span(into_expr)
-        .or(term);
+        .map_with_span(|case, span| match case {
+            RangeCase::NoOp(x) => x,
+            RangeCase::Range(start, end) => {
+                let kind = ExprKind::Range(Range {
+                    start: start.map(Box::new),
+                    end: end.map(Box::new),
+                });
+                into_expr(kind, span)
+            }
+        })
+        .boxed();
 
         // Binary operators
         let expr = term;
@@ -137,7 +165,7 @@ pub fn pipeline<E>(expr: E) -> impl Parser<Token, ExprKind, Error = Simple<Token
 where
     E: Parser<Token, Expr, Error = Simple<Token>>,
 {
-    // expr is a param, so it can be either a normal expr() or
+    // expr has to be a param, because it can be either a normal expr() or
     // a recursive expr called from within expr()
 
     new_line()
