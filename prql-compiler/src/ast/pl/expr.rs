@@ -310,6 +310,7 @@ pub enum TransformKind {
         pipeline: Box<Expr>,
     },
     Append(Box<Expr>),
+    Loop(Box<Expr>),
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]

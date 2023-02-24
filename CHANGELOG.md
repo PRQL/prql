@@ -4,6 +4,8 @@
 
 **Features**:
 
+- `loop`, which translates to `WITH RECURSIVE` (#1642, @aljazerzen)
+
 **Fixes**:
 
 - `prqlc compile` returns a non-zero exit code for invalid queries. (@max-sixty,

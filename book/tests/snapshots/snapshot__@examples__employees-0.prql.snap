@@ -3,7 +3,7 @@ source: book/tests/snapshot.rs
 expression: "from salaries\ngroup [emp_no] (\n  aggregate [emp_salary = average salary]\n)\njoin t=titles [==emp_no]\njoin dept_emp side:left [==emp_no]\ngroup [dept_emp.dept_no, t.title] (\n  aggregate [avg_salary = average emp_salary]\n)\njoin departments [==dept_no]\nselect [dept_name, title, avg_salary]\n"
 input_file: book/tests/prql/examples/employees-0.prql
 ---
-WITH table_1 AS (
+WITH table_3 AS (
   SELECT
     AVG(salary) AS _expr_0,
     emp_no
@@ -12,23 +12,24 @@ WITH table_1 AS (
   GROUP BY
     emp_no
 ),
-table_2 AS (
+table_1 AS (
   SELECT
     t.title,
-    AVG(table_1._expr_0) AS avg_salary,
+    AVG(table_2._expr_0) AS avg_salary,
     dept_emp.dept_no
   FROM
-    table_1
-    JOIN titles AS t ON table_1.emp_no = t.emp_no
-    LEFT JOIN dept_emp ON table_1.emp_no = dept_emp.emp_no
+    table_3 AS table_2
+    JOIN titles AS t ON table_2.emp_no = t.emp_no
+    LEFT JOIN dept_emp ON table_2.emp_no = dept_emp.emp_no
   GROUP BY
     dept_emp.dept_no,
     t.title
 )
 SELECT
   departments.dept_name,
-  table_2.title,
-  table_2.avg_salary
+  table_0.title,
+  table_0.avg_salary
 FROM
-  table_2
-  JOIN departments ON table_2.dept_no = departments.dept_no
+  table_1 AS table_0
+  JOIN departments ON table_0.dept_no = departments.dept_no
+

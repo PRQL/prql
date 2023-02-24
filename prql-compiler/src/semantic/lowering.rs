@@ -269,7 +269,7 @@ impl Lowerer {
         let ty = expr.ty.clone();
         let prev_pipeline = self.pipeline.drain(..).collect_vec();
 
-        self.lower_pipeline(expr)?;
+        self.lower_pipeline(expr, None)?;
 
         let mut transforms = self.pipeline.drain(..).collect_vec();
         let columns = self.push_select(ty, &mut transforms)?;
@@ -284,10 +284,22 @@ impl Lowerer {
     }
 
     // Result is stored in self.pipeline
-    fn lower_pipeline(&mut self, ast: pl::Expr) -> Result<()> {
+    fn lower_pipeline(&mut self, ast: pl::Expr, closure_param: Option<usize>) -> Result<()> {
         let transform_call = match ast.kind {
             pl::ExprKind::TransformCall(transform) => transform,
+            pl::ExprKind::Closure(closure) => {
+                let param = closure.params.first();
+                let param = param.and_then(|p| p.name.parse::<usize>().ok());
+                return self.lower_pipeline(*closure.body, param);
+            }
             _ => {
+                if let Some(target) = ast.target_id {
+                    if Some(target) == closure_param {
+                        // ast is a closure param, so we can skip pushing From
+                        return Ok(());
+                    }
+                }
+
                 let table_ref = self.lower_table_ref(ast)?;
                 self.pipeline.push(Transform::From(table_ref));
                 return Ok(());
@@ -295,7 +307,7 @@ impl Lowerer {
         };
 
         // lower input table
-        self.lower_pipeline(*transform_call.input)?;
+        self.lower_pipeline(*transform_call.input, closure_param)?;
 
         // ... and continues with transforms created in this function
 
@@ -362,8 +374,16 @@ impl Lowerer {
             pl::TransformKind::Append(bottom) => {
                 let bottom = self.lower_table_ref(*bottom)?;
 
-                let transform = Transform::Append(bottom);
-                self.pipeline.push(transform);
+                self.pipeline.push(Transform::Append(bottom));
+            }
+            pl::TransformKind::Loop(pipeline) => {
+                let relation = self.lower_relation(*pipeline)?;
+                let mut pipeline = relation.kind.into_pipeline().unwrap();
+
+                // last select is not needed here
+                pipeline.pop();
+
+                self.pipeline.push(Transform::Loop(pipeline));
             }
             pl::TransformKind::Group { .. } | pl::TransformKind::Window { .. } => unreachable!(
                 "transform `{}` cannot be lowered.",
@@ -680,9 +700,10 @@ impl Lowerer {
                 let name = match name {
                     Some(v) => RelationColumn::Single(Some(v.clone())),
                     None => return Err(Error::new_simple(
-                        "This table contains unnamed columns, that need to be referenced by name",
+                        "This table contains unnamed columns that need to be referenced by name",
                     )
                     .with_span(self.context.span_map.get(&id).cloned())
+                    .with_help("The name may have been overridden later in the pipeline.")
                     .into()),
                 };
                 log::trace!("lookup cid of name={name:?} in input {input_columns:?}");

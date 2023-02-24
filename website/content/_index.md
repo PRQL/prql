@@ -246,7 +246,7 @@ showcase_section:
         SELECT
           *
         FROM
-          table_1
+          table_1 AS table_0
         WHERE
           _expr_0 <= 1
 

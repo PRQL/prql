@@ -36,7 +36,9 @@
   - [Ranges](./language-features/ranges.md)
     <!--   - Regex — `REGEX_MATCH(foo, "\\w{3}")` -> `foo ~ r"\w{3}"`? Or -> `regex foo r"\w{3}"`? -->
   - [Regex](./language-features/regex.md)
-  - [Stdlib](./language-features/standard-library.md)
+  - [Standard library](./language-features/standard-library/README.md)
+    - [From text](./language-features/standard-library/from-text.md)
+    - [Loop](./language-features/standard-library/loop.md)
   - [Strings](./language-features/strings.md)
   - [S-strings](./language-features/s-strings.md)
   - [F-strings](./language-features/f-strings.md)
