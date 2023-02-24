@@ -182,7 +182,9 @@ change!
 - We should revert quickly if the impact of a PR turns out not to be consistent
   with our expectations, or there isn't as much consensus on a decision as we
   had hoped. It's very easy to revert code and then re-revert when we've
-  resolved the issue; it's a sign of moving quickly.
+  resolved the issue; it's a sign of moving quickly. Other options which resolve
+  the build immediately are also fine, such as commenting out an incorrect test
+  or adding a quick fix for the underlying issue.
 
 ## Components of PRQL
 
