@@ -8,7 +8,11 @@ mod lexer;
 mod stmt;
 
 use anyhow::Result;
-use chumsky::{error::SimpleReason, prelude::*, Stream};
+use chumsky::{
+    error::{Cheap, SimpleReason},
+    prelude::*,
+    Stream,
+};
 use itertools::Itertools;
 
 use self::lexer::Token;
@@ -18,21 +22,24 @@ use super::ast::pl::*;
 use crate::error::{Error, Errors, Reason};
 
 /// Build PL AST from a PRQL query string.
-pub fn parse(string: &str) -> Result<Vec<Stmt>> {
+pub fn parse(source: &str) -> Result<Vec<Stmt>> {
     let mut errors = Vec::new();
 
-    let (tokens, lex_errors) = ::chumsky::Parser::parse_recovery(&lexer::lexer(), string);
+    let (tokens, lex_errors) = ::chumsky::Parser::parse_recovery(&lexer::lexer(), source);
 
-    errors.extend(lex_errors.into_iter().map(convert_char_error));
+    errors.extend(
+        lex_errors
+            .into_iter()
+            .map(|e| convert_lexer_error(source, e)),
+    );
 
     let ast = if let Some(tokens) = tokens {
-        let len = string.chars().count();
+        let len = source.chars().count();
         let stream = Stream::from_iter(len..len + 1, tokens.into_iter());
 
-        let (ast, parse_errors) =
-            ::chumsky::Parser::parse_recovery(&stmt::source(), stream);
+        let (ast, parse_errors) = ::chumsky::Parser::parse_recovery(&stmt::source(), stream);
 
-        errors.extend(parse_errors.into_iter().map(convert_token_error));
+        errors.extend(parse_errors.into_iter().map(convert_parser_error));
 
         ast
     } else {
@@ -46,21 +53,14 @@ pub fn parse(string: &str) -> Result<Vec<Stmt>> {
     }
 }
 
-fn convert_char_error(e: Simple<char>) -> Error {
-    let expected = e
-        .expected()
-        .filter_map(|t| t.as_ref().map(|c| format!("{c:?}")))
-        .collect_vec();
+fn convert_lexer_error(source: &str, e: Cheap<char>) -> Error {
+    let found = source[e.span()].to_string();
+    let span = common::into_span(e.span());
 
-    let found = match e.found() {
-        Some(x) => x.to_string(),
-        None => "end of input".to_string(),
-    };
-
-    convert_error(e, found, expected)
+    Error::new(Reason::Unexpected { found }).with_span(span)
 }
 
-fn convert_token_error(e: Simple<Token>) -> Error {
+fn convert_parser_error(e: Simple<Token>) -> Error {
     let just_whitespace = e
         .expected()
         .all(|t| matches!(t, None | Some(Token::NewLine)));
@@ -80,14 +80,7 @@ fn convert_token_error(e: Simple<Token>) -> Error {
         .collect_vec();
 
     let found = e.found().map(|c| c.to_string()).unwrap_or_default();
-    convert_error(e, found, expected)
-}
 
-fn convert_error<T: std::hash::Hash + PartialEq + Eq>(
-    e: Simple<T>,
-    found: String,
-    mut expected: Vec<String>,
-) -> Error {
     let span = common::into_span(e.span());
 
     if let SimpleReason::Custom(message) = e.reason() {
@@ -97,6 +90,7 @@ fn convert_error<T: std::hash::Hash + PartialEq + Eq>(
     if expected.is_empty() || expected.len() > 10 {
         Error::new(Reason::Unexpected { found })
     } else {
+        let mut expected = expected;
         let expected = match expected.len() {
             1 => expected.remove(0),
             2 => expected.join(" or "),
@@ -172,11 +166,14 @@ mod test {
     use anyhow::anyhow;
     use insta::assert_yaml_snapshot;
 
-    fn parse_expr(string: &str) -> Result<Expr, Vec<anyhow::Error>> {
-        let tokens = Parser::parse(&lexer::lexer(), string)
-            .map_err(|errs| errs.into_iter().map(|e| anyhow!(e)).collect_vec())?;
+    fn parse_expr(source: &str) -> Result<Expr, Vec<anyhow::Error>> {
+        let tokens = Parser::parse(&lexer::lexer(), source).map_err(|errs| {
+            errs.into_iter()
+                .map(|e| anyhow!(convert_lexer_error(source, e)))
+                .collect_vec()
+        })?;
 
-        let len = string.chars().count();
+        let len = source.chars().count();
         let stream = Stream::from_iter(len..len + 1, tokens.into_iter());
         Parser::parse(&expr::expr_call().then_ignore(end()), stream)
             .map_err(|errs| errs.into_iter().map(|e| anyhow!(e)).collect_vec())

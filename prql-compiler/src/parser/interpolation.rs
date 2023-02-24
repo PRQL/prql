@@ -1,4 +1,4 @@
-use chumsky::prelude::*;
+use chumsky::{error::Cheap, prelude::*};
 use itertools::Itertools;
 
 use crate::ast::pl::*;
@@ -17,20 +17,13 @@ pub fn parse(
         Err(errors) => Err(errors
             .into_iter()
             .map(|err| {
-                Simple::expected_input_found(
-                    offset_span(err.span(), span_offset),
-                    err.expected()
-                        .cloned()
-                        .map(|ch| ch.map(|c| Token::Control(c.to_string())))
-                        .collect_vec(),
-                    err.found().cloned().map(|c| Token::Control(c.to_string())),
-                )
+                Simple::expected_input_found(offset_span(err.span(), span_offset), None, None)
             })
             .collect_vec()),
     }
 }
 
-fn parser(span_offset: usize) -> impl Parser<char, Vec<InterpolateItem>, Error = Simple<char>> {
+fn parser(span_offset: usize) -> impl Parser<char, Vec<InterpolateItem>, Error = Cheap<char>> {
     let expr = ident_part()
         .separated_by(just('.'))
         .delimited_by(just('{'), just('}'))

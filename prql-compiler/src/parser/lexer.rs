@@ -1,4 +1,4 @@
-use chumsky::prelude::*;
+use chumsky::{prelude::*, error::Cheap};
 
 use crate::ast::pl::*;
 
@@ -13,11 +13,10 @@ pub enum Token {
     Range { bind_left: bool, bind_right: bool },
     Interpolation(char, String),
 
-    // this contains 3 bytes at most, we should replace it with SmallStr
     Control(String),
 }
 
-pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error = Simple<char>> {
+pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error = Cheap<char>> {
     let new_line = just('\n').to(Token::NewLine);
     let whitespace = one_of("\t \r").repeated().at_least(1).ignored();
 
@@ -96,7 +95,7 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
         .then_ignore(end())
 }
 
-pub fn ident_part() -> impl Parser<char, String, Error = Simple<char>> {
+pub fn ident_part() -> impl Parser<char, String, Error = Cheap<char>> {
     let plain = filter(|c: &char| c.is_ascii_alphabetic() || *c == '_' || *c == '$')
         .map(Some)
         .chain::<char, Vec<_>, _>(
@@ -112,7 +111,7 @@ pub fn ident_part() -> impl Parser<char, String, Error = Simple<char>> {
     plain.or(backticks)
 }
 
-fn literal() -> impl Parser<char, Literal, Error = Simple<char>> {
+fn literal() -> impl Parser<char, Literal, Error = Cheap<char>> {
     let exp = just('e').or(just('E')).ignore_then(
         just('+')
             .or(just('-'))
@@ -142,7 +141,7 @@ fn literal() -> impl Parser<char, Literal, Error = Simple<char>> {
             } else if let Ok(f) = str.parse::<f64>() {
                 Ok(Literal::Float(f))
             } else {
-                Err(Simple::custom(span, "invalid number"))
+                Err(Cheap::expected_input_found(span, None, None))
             }
         })
         .labelled("number");
@@ -179,7 +178,7 @@ fn literal() -> impl Parser<char, Literal, Error = Simple<char>> {
                 let unit = unit.to_string();
                 Ok(ValueAndUnit { n, unit })
             } else {
-                Err(Simple::custom(span, "invalid number"))
+                Err(Cheap::expected_input_found(span, None, None))
             }
         })
         .map(Literal::ValueAndUnit);
@@ -255,7 +254,7 @@ fn literal() -> impl Parser<char, Literal, Error = Simple<char>> {
     ))
 }
 
-fn quoted_string(escaped: bool) -> impl Parser<char, String, Error = Simple<char>> {
+fn quoted_string(escaped: bool) -> impl Parser<char, String, Error = Cheap<char>> {
     // I don't know how this could be simplified and implemented for n>3 in general
     choice((
         quoted_string_inner(r#""""""""#, escaped),
@@ -276,7 +275,7 @@ fn quoted_string(escaped: bool) -> impl Parser<char, String, Error = Simple<char
 fn quoted_string_inner(
     quotes: &str,
     escaping: bool,
-) -> impl Parser<char, Vec<char>, Error = Simple<char>> + '_ {
+) -> impl Parser<char, Vec<char>, Error = Cheap<char>> + '_ {
     let mut forbidden = just(quotes).boxed();
 
     if escaping {
@@ -304,7 +303,7 @@ fn quoted_string_inner(
                             .validate(|digits, span, emit| {
                                 char::from_u32(u32::from_str_radix(&digits, 16).unwrap())
                                     .unwrap_or_else(|| {
-                                        emit(Simple::custom(span, "invalid unicode character"));
+                                        emit(Cheap::expected_input_found(span, None, None));
                                         '\u{FFFD}' // unicode replacement character
                                     })
                             }),
@@ -316,13 +315,13 @@ fn quoted_string_inner(
     inner.repeated().delimited_by(just(quotes), just(quotes))
 }
 
-fn digits(count: usize) -> impl Parser<char, Vec<char>, Error = Simple<char>> {
+fn digits(count: usize) -> impl Parser<char, Vec<char>, Error = Cheap<char>> {
     filter(|c: &char| c.is_ascii_digit())
         .repeated()
         .exactly(count)
 }
 
-fn end_expr() -> impl Parser<char, (), Error = Simple<char>> {
+fn end_expr() -> impl Parser<char, (), Error = Cheap<char>> {
     choice((end(), one_of(",)]\r\n\t ").ignored(), just("..").ignored())).rewind()
 }
 
