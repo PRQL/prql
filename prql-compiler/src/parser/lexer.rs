@@ -1,4 +1,4 @@
-use chumsky::{prelude::*, error::Cheap};
+use chumsky::{error::Cheap, prelude::*};
 
 use crate::ast::pl::*;
 
@@ -13,6 +13,7 @@ pub enum Token {
     Range { bind_left: bool, bind_right: bool },
     Interpolation(char, String),
 
+    /// single-char control tokens
     Control(char),
 
     Arrow,       // ->
