@@ -21,7 +21,7 @@ use crate::error::{Error, Errors, Reason};
 pub fn parse(string: &str) -> Result<Vec<Stmt>> {
     let mut errors = Vec::new();
 
-    let (tokens, lex_errors) = ::chumsky::Parser::parse_recovery_verbose(&lexer::lexer(), string);
+    let (tokens, lex_errors) = ::chumsky::Parser::parse_recovery(&lexer::lexer(), string);
 
     errors.extend(lex_errors.into_iter().map(convert_char_error));
 
@@ -30,7 +30,7 @@ pub fn parse(string: &str) -> Result<Vec<Stmt>> {
         let stream = Stream::from_iter(len..len + 1, tokens.into_iter());
 
         let (ast, parse_errors) =
-            ::chumsky::Parser::parse_recovery_verbose(&stmt::source(), stream);
+            ::chumsky::Parser::parse_recovery(&stmt::source(), stream);
 
         errors.extend(parse_errors.into_iter().map(convert_token_error));
 
