@@ -11,6 +11,7 @@ use super::context::{Decl, DeclKind, TableDecl, TableExpr};
 use super::{Frame, FrameColumn};
 
 pub const NS_STD: &str = "std";
+pub const NS_RELATIVE: &str = "_relative";
 pub const NS_FRAME: &str = "_frame";
 pub const NS_FRAME_RIGHT: &str = "_right";
 pub const NS_PARAM: &str = "_param";
@@ -41,7 +42,11 @@ impl Module {
         }
     }
 
-    pub fn new() -> Module {
+    pub fn empty() -> Module {
+        Module::default()
+    }
+
+    pub fn init_root() -> Module {
         Module {
             names: HashMap::from([
                 (
@@ -59,14 +64,20 @@ impl Module {
                     })),
                 ),
                 (NS_STD.to_string(), Decl::from(DeclKind::default())),
+                (
+                    NS_RELATIVE.to_string(),
+                    Decl::from(DeclKind::Module(Module {
+                        names: HashMap::new(),
+                        redirects: vec![
+                            Ident::from_name(NS_FRAME),
+                            Ident::from_name(NS_FRAME_RIGHT),
+                        ],
+                        shadowed: None,
+                    })),
+                ),
             ]),
             shadowed: None,
-            redirects: vec![
-                Ident::from_name(NS_FRAME),
-                Ident::from_name(NS_FRAME_RIGHT),
-                Ident::from_name(NS_PARAM),
-                Ident::from_name(NS_STD),
-            ],
+            redirects: vec![Ident::from_name(NS_PARAM), Ident::from_name(NS_STD)],
         }
     }
 
@@ -184,16 +195,24 @@ impl Module {
             HashSet::new()
         }
 
+        let mut ident = ident.clone();
+        if ident.relative {
+            ident.path.insert(0, NS_RELATIVE.to_string());
+            ident.relative = false;
+        }
+
         log::trace!("lookup {ident}");
 
         let mut res = HashSet::new();
-
-        res.extend(lookup_in(self, ident.clone()));
 
         for redirect in &self.redirects {
             log::trace!("... following redirect {redirect}");
             res.extend(lookup_in(self, redirect.clone() + ident.clone()));
         }
+        res.extend(lookup_in(self, ident));
+
+        log::trace!("... found {res:?}");
+
         res
     }
 
@@ -217,7 +236,7 @@ impl Module {
                         namespace.redirects.push(Ident::from_name(input_name));
 
                         let input = frame.find_input(input_name).unwrap();
-                        let mut sub_ns = Module::default();
+                        let mut sub_ns = Module::empty();
                         if let Some(fq_table) = input.table.clone() {
                             let self_decl = Decl {
                                 declared_at: Some(input.id),

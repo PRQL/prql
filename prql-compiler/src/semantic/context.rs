@@ -2,10 +2,11 @@ use anyhow::Result;
 use enum_as_inner::EnumAsInner;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
 use std::{collections::HashMap, fmt::Debug};
 
-use super::module::{Module, NS_DEFAULT_DB, NS_FRAME, NS_FRAME_RIGHT, NS_INFER, NS_SELF, NS_STD};
+use super::module::{
+    Module, NS_DEFAULT_DB, NS_FRAME, NS_FRAME_RIGHT, NS_INFER, NS_RELATIVE, NS_SELF, NS_STD,
+};
 use super::type_resolver::validate_type;
 use crate::ast::pl::*;
 use crate::ast::rq::RelationColumn;
@@ -154,7 +155,14 @@ impl Context {
         Ok(())
     }
 
-    pub fn resolve_ident(&mut self, ident: &Ident) -> Result<Ident, String> {
+    pub fn relative_mod(&mut self) -> &mut Module {
+        // this module will always exists because it's created in [Module::init_root]
+        let rel = Ident::from_name(NS_RELATIVE);
+        let decl = self.root_mod.get_mut(&rel).unwrap();
+        decl.kind.as_module_mut().unwrap()
+    }
+
+    pub fn resolve_ident(&mut self, ident: Ident) -> Result<Ident, String> {
         // special case: wildcard
         if ident.name == "*" {
             // TODO: we may want to raise an error if someone has passed `download*` in
@@ -166,11 +174,11 @@ impl Context {
             // if ident.name != "*" {
             //     return Err("Unsupported feature: advanced wildcard column matching".to_string());
             // }
-            return self.resolve_ident_wildcard(ident);
+            return self.resolve_ident_wildcard(&ident);
         }
 
         // base case: direct lookup
-        let decls = self.root_mod.lookup(ident);
+        let decls = self.root_mod.lookup(&ident);
         match decls.len() {
             // no match: try match *
             0 => {}
@@ -186,12 +194,12 @@ impl Context {
         }
 
         // fallback case: this variable can be from a namespace that we don't know all columns of
-        let decls = if ident.name != "*" {
-            let ident = Ident::new(ident.path.clone(), NS_INFER.to_string());
-            self.root_mod.lookup(&ident)
-        } else {
-            HashSet::new()
+        let decls = {
+            let mut infer = ident.clone();
+            infer.name = NS_INFER.to_string();
+            self.root_mod.lookup(&infer)
         };
+
         match decls.len() {
             0 => Err(format!("Unknown name {ident}")),
 
@@ -365,7 +373,7 @@ impl Context {
 
 impl Default for DeclKind {
     fn default() -> Self {
-        DeclKind::Module(Module::default())
+        DeclKind::Module(Module::empty())
     }
 }
 

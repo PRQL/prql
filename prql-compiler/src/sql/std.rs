@@ -18,7 +18,7 @@ fn load_std_impl() -> semantic::Module {
     let statements = parse(std_lib).unwrap();
 
     let context = semantic::Context {
-        root_mod: semantic::Module::new(),
+        root_mod: semantic::Module::init_root(),
         ..semantic::Context::default()
     };
 

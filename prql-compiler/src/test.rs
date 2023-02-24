@@ -12,7 +12,7 @@ fn test_stdlib() {
     assert_snapshot!(compile(r###"
     from employees
     aggregate (
-        [salary_usd = min salary]
+        [salary_usd = min .salary]
     )
     "###).unwrap(),
         @r###"
@@ -26,7 +26,7 @@ fn test_stdlib() {
     assert_snapshot!(compile(r###"
     from employees
     aggregate (
-        [salary_usd = (round 2 salary)]
+        [salary_usd = (round 2 .salary)]
     )
     "###).unwrap(),
         @r###"
@@ -53,10 +53,10 @@ fn test_precedence() {
     assert_display_snapshot!((compile(r###"
     from x
     derive [
-        n = a + b,
-        r = a/n,
+        n = .a + .b,
+        r = .a/.n,
     ]
-    select temp_c = (temp - 32) / 1.8
+    select temp_c = (.temp - 32) / 1.8
     "###).unwrap()), @r###"
     SELECT
       (temp - 32) / 1.8 AS temp_c
@@ -68,8 +68,8 @@ fn test_precedence() {
     func add x y -> x + y
 
     from numbers
-    derive [sum_1 = a + b, sum_2 = add a b]
-    select [result = c * sum_1 + sum_2]
+    derive [sum_1 = .a + .b, sum_2 = add .a .b]
+    select [result = .c * .sum_1 + .sum_2]
     "###).unwrap()), @r###"
     SELECT
       c * (a + b) + a + b AS result
@@ -79,8 +79,8 @@ fn test_precedence() {
 
     assert_display_snapshot!((compile(r###"
     from numbers
-    derive [g = -a]
-    select a * g
+    derive [g = -.a]
+    select .a * .g
     "###).unwrap()), @r###"
     SELECT
       a * - a
@@ -90,7 +90,7 @@ fn test_precedence() {
 
     assert_display_snapshot!((compile(r###"
     from numbers
-    select negated_is_null = (!a) == null
+    select negated_is_null = (!.a) == null
     "###).unwrap()), @r###"
     SELECT
       (NOT a) IS NULL AS negated_is_null
@@ -100,7 +100,7 @@ fn test_precedence() {
 
     assert_display_snapshot!((compile(r###"
     from numbers
-    select is_not_null = !(a == null)
+    select is_not_null = !(.a == null)
     "###).unwrap()), @r###"
     SELECT
       NOT a IS NULL AS is_not_null
@@ -111,7 +111,7 @@ fn test_precedence() {
     assert_display_snapshot!(compile(
         r###"
     from numbers
-    select (a + b) == null
+    select (.a + .b) == null
     "###
     ).unwrap(), @r###"
     SELECT

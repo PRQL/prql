@@ -105,8 +105,10 @@ impl AstFold for Resolver {
 
         let mut r = match node.kind {
             ExprKind::Ident(ident) => {
+                let ident_name = ident.name.clone();
+
                 log::debug!("resolving ident {ident}...");
-                let fq_ident = self.resolve_ident(&ident, node.span)?;
+                let fq_ident = self.resolve_ident(ident, node.span)?;
                 log::debug!("... resolved to {fq_ident}");
                 let entry = self.context.root_mod.get(&fq_ident).unwrap();
                 log::debug!("... which is {entry}");
@@ -135,19 +137,17 @@ impl AstFold for Resolver {
                     },
 
                     DeclKind::TableDecl(TableDecl { columns, .. }) => {
-                        let rel_name = ident.name.clone();
-
                         let instance_frame = Frame {
                             inputs: vec![FrameInput {
                                 id,
-                                name: rel_name.clone(),
+                                name: ident_name.clone(),
                                 table: Some(fq_ident.clone()),
                             }],
                             columns: columns
                                 .iter()
                                 .map(|col| match col {
                                     RelationColumn::Wildcard => FrameColumn::All {
-                                        input_name: rel_name.clone(),
+                                        input_name: ident_name.clone(),
                                         except: columns
                                             .iter()
                                             .flat_map(|c| c.as_single().cloned().flatten())
@@ -155,7 +155,7 @@ impl AstFold for Resolver {
                                     },
                                     RelationColumn::Single(col_name) => FrameColumn::Single {
                                         name: col_name.clone().map(|col_name| {
-                                            Ident::from_path(vec![rel_name.clone(), col_name])
+                                            Ident::from_path(vec![ident_name.clone(), col_name])
                                         }),
                                         expr_id: id,
                                     },
@@ -381,20 +381,17 @@ impl Resolver {
         self.fold_expr(value)
     }
 
-    pub fn resolve_ident(&mut self, ident: &Ident, span: Option<Span>) -> Result<Ident> {
+    pub fn resolve_ident(&mut self, mut ident: Ident, span: Option<Span>) -> Result<Ident> {
         let res = if ident.path.is_empty() && self.default_namespace.is_some() {
-            let defaulted = Ident::new(
-                vec![self.default_namespace.clone().unwrap()],
-                ident.name.clone(),
-            );
-            self.context.resolve_ident(&defaulted)
+            ident.path.push(self.default_namespace.clone().unwrap());
+            self.context.resolve_ident(ident)
         } else {
             self.context.resolve_ident(ident)
         };
 
         res.map_err(|e| {
             log::debug!("cannot resolve: `{e}`, context={:#?}", self.context);
-            anyhow!(Error::new_simple(e).with_span(span))
+            Error::new_simple(e).with_span(span).into()
         })
     }
 
@@ -591,8 +588,9 @@ impl Resolver {
 
         // resolve tables
         if has_tables {
-            self.context.root_mod.shadow(NS_FRAME);
-            self.context.root_mod.shadow(NS_FRAME_RIGHT);
+            let relative = self.context.relative_mod();
+            relative.shadow(NS_FRAME);
+            relative.shadow(NS_FRAME_RIGHT);
 
             for pos in tables.into_iter().with_position() {
                 let is_last = matches!(pos, Position::Last(_) | Position::Only(_));
@@ -604,10 +602,11 @@ impl Resolver {
 
                 // add table's frame into scope
                 if let Some(Ty::Table(frame)) = &arg.ty {
+                    let relative = self.context.relative_mod();
                     if is_last {
-                        self.context.root_mod.insert_frame(frame, NS_FRAME);
+                        relative.insert_frame(frame, NS_FRAME);
                     } else {
-                        self.context.root_mod.insert_frame(frame, NS_FRAME_RIGHT);
+                        relative.insert_frame(frame, NS_FRAME_RIGHT);
                     }
                 }
 
@@ -645,8 +644,9 @@ impl Resolver {
         }
 
         if has_tables {
-            self.context.root_mod.unshadow(NS_FRAME);
-            self.context.root_mod.unshadow(NS_FRAME_RIGHT);
+            let relative = self.context.relative_mod();
+            relative.unshadow(NS_FRAME);
+            relative.unshadow(NS_FRAME_RIGHT);
         }
 
         Ok(closure)
@@ -699,15 +699,17 @@ impl Resolver {
         if !ident.path.is_empty() {
             bail!("you cannot use namespace prefix with self-equality operator.");
         }
-        let mut left = Expr::from(ExprKind::Ident(Ident::new(
-            vec![NS_FRAME.to_string()],
-            ident.name.clone(),
-        )));
+        let mut left = Expr::from(ExprKind::Ident(Ident {
+            path: vec![NS_FRAME.to_string()],
+            name: ident.name.clone(),
+            relative: true,
+        }));
         left.span = span;
-        let mut right = Expr::from(ExprKind::Ident(Ident::new(
-            vec![NS_FRAME_RIGHT.to_string()],
-            ident.name,
-        )));
+        let mut right = Expr::from(ExprKind::Ident(Ident {
+            path: vec![NS_FRAME_RIGHT.to_string()],
+            name: ident.name,
+            relative: true,
+        }));
         right.span = span;
         let kind = ExprKind::Binary {
             left: Box::new(left),
@@ -741,7 +743,7 @@ impl Resolver {
 }
 
 fn env_of_closure(closure: Closure) -> (Module, Expr) {
-    let mut func_env = Module::default();
+    let mut func_env = Module::empty();
 
     for (param, arg) in zip(closure.params, closure.args) {
         let v = Decl {
