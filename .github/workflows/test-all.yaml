@@ -47,6 +47,12 @@ jobs:
   test-elixir:
     uses: ./.github/workflows/test-elixir.yaml
 
+  test-dotnet:
+    uses: ./.github/workflows/test-dotnet.yaml
+
+  test-lib:
+    uses: ./.github/workflows/test-lib.yaml
+
   measure-code-cov:
     # Currently disabled due to https://github.com/actions-rs/tarpaulin/issues/21
     if: false

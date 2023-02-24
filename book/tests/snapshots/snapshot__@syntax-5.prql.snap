@@ -14,7 +14,8 @@ SELECT
   circumference,
   color
 FROM
-  table_1
+  table_1 AS table_0
 WHERE
   circumference > 10
   AND color <> 'red'
+

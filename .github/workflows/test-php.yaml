@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - "prql-php/**"
+      - "prql-lib/**"
       - ".github/workflows/test-php.yaml"
   workflow_call:
 

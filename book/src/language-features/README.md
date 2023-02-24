@@ -11,7 +11,6 @@ language.
 | Null handling    | [Handle `NULL` values](./null.md)                                         |
 | Ranges           | [Syntax for all forms of ranges](./ranges.md)                             |
 | Regex            | [Handle regular expressions](./regex.md)                                  |
-| Stdlib           | [PRQL's "builtin" set of functions](./standard-library.md)                |
 | Strings          | [Rules for creating strings](./strings.md)                                |
 | S-strings        | [Insert SQL directly into a query with an S-string](./s-strings.md)       |
 | F-strings        | [Combine several column's data with F-strings](./f-strings.md)            |

@@ -48,6 +48,7 @@ func remove<table> `default_db.bottom`<table> top<table> -> (
     filter (all (map _is_null b.*))
     select t.*
 )
+func loop<table> pipeline top<table> -> null
 
 # List functions
 func all<bool> list<list> -> null
