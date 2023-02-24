@@ -28,7 +28,7 @@ namespace Prql\Compiler;
  * @license https://spdx.org/licenses/Apache-2.0.html Apache License 2.0
  * @link    https://prql-lang.org/
  */
-class Options
+final class Options
 {
     /**
      * Pass generated SQL string trough a formatter that splits it into
