@@ -20,7 +20,7 @@ Once it's running, though, startup is fairly fast.
 
 The Dev Container wraps up all the developer tools into a single bundle. Those tools watch the PRQL repository that lives on your hard drive. 
 
-As you develop PRQL, edit files locally (say, using VS Code) and the tools will detect changed files and rebuild the part of the project as needed.
+As you develop PRQL, edit files locally (say, using VS Code) and the tools detects changed files and rebuilds the part of the project as needed.
 
 ## Starting and stopping the Dev Container
 
@@ -28,7 +28,7 @@ _Instructions needed - both from VS Code and maybe from CLI?._
 
 ## Using PRQL in a Dev Container
 
-After the installation process is complete, the VS Code Terminal pane will show this Dev Container command line:
+After the installation process is complete, the VS Code Terminal pane shows this Dev Container command line:
 
 ```bash
  /workspaces/dc-prql (main) $
