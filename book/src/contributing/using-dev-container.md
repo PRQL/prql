@@ -20,7 +20,7 @@ Once it's running, though, startup is fairly fast.
 
 The Dev Container wraps up all the developer tools into a single bundle. Those tools watch the PRQL repository that lives on your hard drive. 
 
-As you develop PRQL, edit files locally (say, using VS Code) and the tools detects changed files and rebuilds the part of the project as needed.
+As you develop PRQL, edit files locally (say, using VS Code) and the tools detect changed files and rebuild the part of the project as needed.
 
 ## Starting and stopping the Dev Container
 
