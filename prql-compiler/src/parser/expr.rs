@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use chumsky::prelude::*;
 
 use crate::ast::pl::*;
+use crate::parser::lexer::Keyword;
 
 use super::common::*;
 use super::interpolation;
@@ -72,7 +73,7 @@ pub fn expr() -> impl Parser<Token, Expr, Error = Simple<Token>> + Clone {
                 }
             });
 
-        let switch = keyword("switch")
+        let switch = keyword(Keyword::Switch)
             .ignore_then(
                 func_call(expr.clone())
                     .then_ignore(just(Token::Arrow))

@@ -7,6 +7,7 @@ use crate::ast::pl::*;
 
 use super::common::*;
 use super::expr::*;
+use super::lexer::Keyword;
 use super::lexer::Token;
 
 pub fn source() -> impl Parser<Token, Vec<Stmt>, Error = Simple<Token>> {
@@ -36,7 +37,7 @@ fn main_pipeline() -> impl Parser<Token, Stmt, Error = Simple<Token>> {
 fn query_def() -> impl Parser<Token, Stmt, Error = Simple<Token>> {
     new_line()
         .repeated()
-        .ignore_then(keyword("prql"))
+        .ignore_then(keyword(Keyword::Prql))
         .ignore_then(
             // named arg
             ident_part().then_ignore(ctrl(':')).then(expr()).repeated(),
@@ -71,7 +72,7 @@ fn query_def() -> impl Parser<Token, Stmt, Error = Simple<Token>> {
 }
 
 fn var_def() -> impl Parser<Token, Stmt, Error = Simple<Token>> {
-    keyword("let")
+    keyword(Keyword::Let)
         .ignore_then(ident_part())
         .then_ignore(ctrl('='))
         .then(expr_call().map(Box::new))
@@ -82,7 +83,7 @@ fn var_def() -> impl Parser<Token, Stmt, Error = Simple<Token>> {
 }
 
 fn function_def() -> impl Parser<Token, Stmt, Error = Simple<Token>> {
-    keyword("func")
+    keyword(Keyword::Func)
         .ignore_then(
             // func name
             ident_part().then(type_expr().or_not()),

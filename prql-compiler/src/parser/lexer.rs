@@ -7,7 +7,7 @@ pub enum Token {
     NewLine,
 
     Ident(String),
-    Keyword(String),
+    Keyword(Keyword),
     Literal(Literal),
 
     Range { bind_left: bool, bind_right: bool },
@@ -25,6 +25,14 @@ pub enum Token {
     And,         // and
     Or,          // or
     Coalesce,    // ??
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Keyword {
+    Prql,
+    Let,
+    Func,
+    Switch,
 }
 
 pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error = Cheap<char>> {
@@ -47,10 +55,14 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
 
     let ident = ident_part().map(Token::Ident);
 
-    let keyword = choice((just("func"), just("let"), just("switch"), just("prql")))
-        .then_ignore(end_expr())
-        .map(|x| x.to_string())
-        .map(Token::Keyword);
+    let keyword = choice((
+        just("func").to(Keyword::Func),
+        just("let").to(Keyword::Let),
+        just("switch").to(Keyword::Switch),
+        just("prql").to(Keyword::Prql),
+    ))
+    .then_ignore(end_expr())
+    .map(Token::Keyword);
 
     let literal = literal().map(Token::Literal);
 
@@ -366,6 +378,7 @@ impl std::fmt::Display for Token {
                 }
             }
             Self::Keyword(arg0) => write!(f, "keyword {arg0}"),
+
             Self::Literal(arg0) => write!(f, "{arg0}"),
             Self::Control(arg0) => write!(f, "{arg0}"),
 
@@ -391,6 +404,17 @@ impl std::fmt::Display for Token {
             Self::Interpolation(c, s) => {
                 write!(f, "{c}\"{}\"", s)
             }
+        }
+    }
+}
+
+impl std::fmt::Display for Keyword {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Keyword::Prql => f.write_str("prql"),
+            Keyword::Let => f.write_str("let"),
+            Keyword::Func => f.write_str("func"),
+            Keyword::Switch => f.write_str("switch"),
         }
     }
 }

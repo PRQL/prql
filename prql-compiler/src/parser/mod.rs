@@ -112,7 +112,7 @@ fn convert_parser_error(e: Simple<Token>) -> Error {
 mod common {
     use chumsky::prelude::*;
 
-    use super::lexer::Token;
+    use super::lexer::{Keyword, Token};
     use crate::{ast::pl::*, Span};
 
     pub fn ident_part() -> impl Parser<Token, String, Error = Simple<Token>> {
@@ -125,8 +125,8 @@ mod common {
         })
     }
 
-    pub fn keyword(kw: &'static str) -> impl Parser<Token, (), Error = Simple<Token>> + Clone {
-        just(Token::Keyword(kw.to_string())).ignored()
+    pub fn keyword(kw: Keyword) -> impl Parser<Token, (), Error = Simple<Token>> + Clone {
+        just(Token::Keyword(kw)).ignored()
     }
 
     pub fn new_line() -> impl Parser<Token, (), Error = Simple<Token>> + Clone {
