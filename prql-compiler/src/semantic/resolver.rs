@@ -383,10 +383,10 @@ impl Resolver {
 
     pub fn resolve_ident(&mut self, ident: &Ident, span: Option<Span>) -> Result<Ident> {
         let res = if ident.path.is_empty() && self.default_namespace.is_some() {
-            let defaulted = Ident {
-                path: vec![self.default_namespace.clone().unwrap()],
-                name: ident.name.clone(),
-            };
+            let defaulted = Ident::new(
+                vec![self.default_namespace.clone().unwrap()],
+                ident.name.clone(),
+            );
             self.context.resolve_ident(&defaulted)
         } else {
             self.context.resolve_ident(ident)
@@ -699,15 +699,15 @@ impl Resolver {
         if !ident.path.is_empty() {
             bail!("you cannot use namespace prefix with self-equality operator.");
         }
-        let mut left = Expr::from(ExprKind::Ident(Ident {
-            path: vec![NS_FRAME.to_string()],
-            name: ident.name.clone(),
-        }));
+        let mut left = Expr::from(ExprKind::Ident(Ident::new(
+            vec![NS_FRAME.to_string()],
+            ident.name.clone(),
+        )));
         left.span = span;
-        let mut right = Expr::from(ExprKind::Ident(Ident {
-            path: vec![NS_FRAME_RIGHT.to_string()],
-            name: ident.name,
-        }));
+        let mut right = Expr::from(ExprKind::Ident(Ident::new(
+            vec![NS_FRAME_RIGHT.to_string()],
+            ident.name,
+        )));
         right.span = span;
         let kind = ExprKind::Binary {
             left: Box::new(left),

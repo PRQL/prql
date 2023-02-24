@@ -1984,7 +1984,7 @@ join `my-proj`.`dataset`.`table`
         from employees
         join _salary [==employee_id] # table with leading underscore
         filter first_name == $1
-        select [_employees._underscored_column]
+        select [_employees._underscored_column, .relative.ident, .another, .*]
         "###).unwrap(), @r###"
         ---
         - Main:
@@ -2031,6 +2031,16 @@ join `my-proj`.`dataset`.`table`
                           - Ident:
                               - _employees
                               - _underscored_column
+                          - Ident:
+                              - "."
+                              - relative
+                              - ident
+                          - Ident:
+                              - "."
+                              - another
+                          - Ident:
+                              - "."
+                              - "*"
         "###)
     }
 

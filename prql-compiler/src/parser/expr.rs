@@ -276,10 +276,23 @@ where
 pub fn ident() -> impl Parser<Token, Ident, Error = Simple<Token>> {
     let star = ctrl('*').to("*".to_string());
 
-    ident_part()
-        .chain(ctrl('.').ignore_then(ident_part().or(star)).repeated())
-        .map(Ident::from_path::<String>)
-        .labelled("identifier")
+    choice((
+        // relative
+        ctrl('.').to(true).then(ident_part().or(star.clone())),
+        // non-relative
+        empty().to(false).then(ident_part()),
+    ))
+    .then(ctrl('.').ignore_then(ident_part().or(star)).repeated())
+    .map(|((relative, first), mut path)| {
+        path.insert(0, first);
+        let name = path.pop().unwrap();
+        Ident {
+            relative,
+            path,
+            name,
+        }
+    })
+    .labelled("identifier")
 }
 
 fn operator_unary() -> impl Parser<Token, UnOp, Error = Simple<Token>> {

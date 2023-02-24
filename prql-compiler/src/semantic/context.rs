@@ -86,10 +86,7 @@ pub enum TableColumn {
 
 impl Context {
     pub fn declare_func(&mut self, func_def: FuncDef, id: Option<usize>) {
-        let name = func_def.name.clone();
-
-        let path = vec![NS_STD.to_string()];
-        let ident = Ident { name, path };
+        let ident = Ident::new(vec![NS_STD.to_string()], func_def.name.clone());
 
         let decl = Decl {
             kind: DeclKind::FuncDef(func_def),
@@ -151,7 +148,7 @@ impl Context {
             order: 0,
         };
 
-        let ident = Ident { name, path };
+        let ident = Ident::new(path, name);
         self.root_mod.insert(ident, decl).unwrap();
 
         Ok(())
@@ -190,10 +187,8 @@ impl Context {
 
         // fallback case: this variable can be from a namespace that we don't know all columns of
         let decls = if ident.name != "*" {
-            self.root_mod.lookup(&Ident {
-                path: ident.path.clone(),
-                name: NS_INFER.to_string(),
-            })
+            let ident = Ident::new(ident.path.clone(), NS_INFER.to_string());
+            self.root_mod.lookup(&ident)
         } else {
             HashSet::new()
         };

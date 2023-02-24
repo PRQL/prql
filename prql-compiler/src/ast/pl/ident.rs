@@ -9,14 +9,22 @@ use serde::{self, ser::SerializeSeq, Deserialize, Deserializer, Serialize, Seria
 pub struct Ident {
     pub path: Vec<String>,
     pub name: String,
+
+    /// Expressed as leading dot
+    pub relative: bool,
 }
 
 impl Ident {
-    pub fn from_name<S: ToString>(name: S) -> Self {
+    pub fn new<S: ToString>(path: Vec<String>, name: S) -> Self {
         Ident {
-            path: Vec::new(),
+            path,
             name: name.to_string(),
+            relative: false,
         }
+    }
+
+    pub fn from_name<S: ToString>(name: S) -> Self {
+        Self::new(Vec::new(), name)
     }
 
     pub fn from_path<S: ToString>(mut path: Vec<S>) -> Self {
@@ -24,12 +32,17 @@ impl Ident {
         Ident {
             path: path.into_iter().map(|x| x.to_string()).collect(),
             name,
+            relative: false,
         }
     }
 
     pub fn pop(self) -> Option<Self> {
         let mut path = self.path;
-        path.pop().map(|name| Ident { path, name })
+        path.pop().map(|name| Ident {
+            path,
+            name,
+            relative: self.relative,
+        })
     }
 
     pub fn pop_front(mut self) -> (String, Option<Ident>) {
@@ -79,9 +92,11 @@ impl std::ops::Add<Ident> for Ident {
     type Output = Ident;
 
     fn add(self, rhs: Ident) -> Self::Output {
+        let relative = self.relative;
         Ident {
             path: self.into_iter().chain(rhs.path).collect(),
             name: rhs.name,
+            relative,
         }
     }
 }
@@ -92,6 +107,9 @@ impl Serialize for Ident {
         S: Serializer,
     {
         let mut seq = serializer.serialize_seq(Some(self.path.len() + 1))?;
+        if self.relative {
+            seq.serialize_element(".")?;
+        }
         for part in &self.path {
             seq.serialize_element(part)?;
         }
@@ -105,11 +123,23 @@ impl<'de> Deserialize<'de> for Ident {
     where
         D: Deserializer<'de>,
     {
-        <Vec<String> as Deserialize>::deserialize(deserializer).map(Ident::from_path)
+        <Vec<String> as Deserialize>::deserialize(deserializer).map(|mut chunks| {
+            let relative = chunks.first().map(|x| x == ".").unwrap_or_default();
+            if relative {
+                chunks.remove(0);
+            }
+            Ident {
+                relative,
+                ..Ident::from_path(chunks)
+            }
+        })
     }
 }
 
 pub fn display_ident(f: &mut std::fmt::Formatter, ident: &Ident) -> Result<(), std::fmt::Error> {
+    if ident.relative {
+        f.write_char('.')?;
+    }
     for part in &ident.path {
         display_ident_part(f, part)?;
         f.write_char('.')?;
