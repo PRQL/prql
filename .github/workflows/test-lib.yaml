@@ -3,9 +3,15 @@ name: test-lib
 on:
   pull_request:
     paths:
+      # We also run the tests for the libraries that depend on this, from their workflow files.
       - "prql-lib/**"
       - ".github/workflows/test-lib.yaml"
   workflow_call:
+
+concurrency:
+  # See notes in `pull-request.yaml`
+  group: ${{ github.workflow }}-${{ github.ref }}-lib
+  cancel-in-progress: true
 
 jobs:
   test:
