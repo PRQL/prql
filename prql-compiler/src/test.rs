@@ -3293,3 +3293,30 @@ fn test_loop() {
     "###
     );
 }
+
+#[test]
+fn test_params() {
+    assert_display_snapshot!(compile(r#"
+    from i = invoices
+    filter $1 <= i.date or i.date <= $2
+    select [
+        i.id,
+        i.total,
+    ]
+    filter i.total > $3
+    "#).unwrap(),
+        @r###"
+    SELECT
+      id,
+      total
+    FROM
+      invoices AS i
+    WHERE
+      (
+        $1 <= date
+        OR date <= $2
+      )
+      AND total > $3
+    "###
+    );
+}

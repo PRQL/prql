@@ -9,6 +9,7 @@ pub enum Token {
     Ident(String),
     Keyword(String),
     Literal(Literal),
+    Param(String),
 
     Range {
         bind_left: bool,
@@ -57,6 +58,11 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
 
     let literal = literal().map(Token::Literal);
 
+    let param = just('$')
+        .ignore_then(filter(|c: &char| c.is_alphanumeric() || *c == '_' || *c == '.').repeated())
+        .collect::<String>()
+        .map(Token::Param);
+
     // s-string and f-strings
     let interpolation = one_of("sf")
         .then(quoted_string(true))
@@ -66,6 +72,7 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
         new_line.clone(),
         control_multi,
         interpolation,
+        param,
         control,
         literal,
         keyword,
@@ -106,7 +113,7 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
 }
 
 pub fn ident_part() -> impl Parser<char, String, Error = Cheap<char>> {
-    let plain = filter(|c: &char| c.is_ascii_alphabetic() || *c == '_' || *c == '$')
+    let plain = filter(|c: &char| c.is_ascii_alphabetic() || *c == '_')
         .map(Some)
         .chain::<char, Vec<_>, _>(
             filter(|c: &char| c.is_ascii_alphanumeric() || *c == '_').repeated(),
@@ -381,6 +388,8 @@ impl std::fmt::Display for Token {
             Self::And => f.write_str("and"),
             Self::Or => f.write_str("or"),
             Self::Coalesce => f.write_str("??"),
+
+            Self::Param(id) => write!(f, "${id}"),
 
             Self::Range {
                 bind_left,
