@@ -801,9 +801,8 @@ Canada
         parse_expr("_2").unwrap().kind.into_ident().unwrap();
         parse_expr("_").unwrap().kind.into_ident().unwrap();
 
-        assert_yaml_snapshot!(parse_expr(r#"add 1. 2"#).unwrap(), @r###"
-        ---
-        "###);
+        // We don't allow empty fractions.
+        parse_expr(r#"add 1. 2"#).unwrap_err();
 
         parse_expr("_2.3").unwrap_err();
         // expr_of_string("2_").unwrap_err(); // TODO

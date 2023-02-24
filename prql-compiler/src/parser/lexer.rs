@@ -10,7 +10,10 @@ pub enum Token {
     Keyword(String),
     Literal(Literal),
 
-    Range { bind_left: bool, bind_right: bool },
+    Range {
+        bind_left: bool,
+        bind_right: bool,
+    },
     Interpolation(char, String),
 
     /// single-char control tokens

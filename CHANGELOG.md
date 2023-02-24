@@ -15,8 +15,8 @@
   - `and` now has a higher precedence than `or` (of same reason as the previous
     point).
   - Dates, times and timestamps have a stricter parsing rules.
-  - Jinja expressions have been removed.
   - `let`, `func`, `prql`, `switch` are now treated as keywords.
+  - Float literals without fraction part are not allowed anymore (`1.`).
 
 **Fixes**:
 
