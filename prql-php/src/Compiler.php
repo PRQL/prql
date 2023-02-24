@@ -147,7 +147,7 @@ final class Compiler
      * be compiled.
      * @api
      */
-    function pLToRQ(string $pl_json): string
+    function plToRQ(string $pl_json): string
     {
         if (!$prql_query) {
             throw new \InvalidArgumentException("No query given.");
