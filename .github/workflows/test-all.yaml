@@ -99,6 +99,8 @@ jobs:
           load: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          # Don't cache if the branch isn't main...
+          no-cache: ${{ github.ref != 'refs/heads/main' }}
 
   test-min-rust-version:
     runs-on: ubuntu-latest
