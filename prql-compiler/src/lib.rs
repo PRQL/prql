@@ -233,12 +233,12 @@ pub fn prql_to_pl(prql: &str) -> Result<Vec<ast::pl::Stmt>, ErrorMessages> {
 
 /// Perform semantic analysis and convert PL to RQ.
 pub fn pl_to_rq(pl: Vec<ast::pl::Stmt>) -> Result<ast::rq::Query, ErrorMessages> {
-    semantic::resolve(pl).map_err(error::downcast)
+    semantic::resolve(pl).map_err(|e| e.into())
 }
 
 /// Generate SQL from RQ.
 pub fn rq_to_sql(rq: ast::rq::Query, options: &Options) -> Result<String, ErrorMessages> {
-    sql::compile(rq, options).map_err(error::downcast)
+    sql::compile(rq, options).map_err(|e| e.into())
 }
 
 /// Generate PRQL code from PL AST
@@ -252,22 +252,22 @@ pub mod json {
 
     /// JSON serialization
     pub fn from_pl(pl: Vec<ast::pl::Stmt>) -> Result<String, ErrorMessages> {
-        serde_json::to_string(&pl).map_err(|e| error::downcast(anyhow::anyhow!(e)))
+        serde_json::to_string(&pl).map_err(|e| anyhow::anyhow!(e).into())
     }
 
     /// JSON deserialization
     pub fn to_pl(json: &str) -> Result<Vec<ast::pl::Stmt>, ErrorMessages> {
-        serde_json::from_str(json).map_err(|e| error::downcast(anyhow::anyhow!(e)))
+        serde_json::from_str(json).map_err(|e| anyhow::anyhow!(e).into())
     }
 
     /// JSON serialization
     pub fn from_rq(rq: ast::rq::Query) -> Result<String, ErrorMessages> {
-        serde_json::to_string(&rq).map_err(|e| error::downcast(anyhow::anyhow!(e)))
+        serde_json::to_string(&rq).map_err(|e| anyhow::anyhow!(e).into())
     }
 
     /// JSON deserialization
     pub fn to_rq(json: &str) -> Result<ast::rq::Query, ErrorMessages> {
-        serde_json::from_str(json).map_err(|e| error::downcast(anyhow::anyhow!(e)))
+        serde_json::from_str(json).map_err(|e| anyhow::anyhow!(e).into())
     }
 }
 
