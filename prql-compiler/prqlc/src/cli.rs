@@ -14,10 +14,11 @@ use prql_compiler::{downcast, Options};
 
 use crate::watch;
 
+/// Entrypoint called by [main::main]
 pub fn main() -> color_eyre::eyre::Result<()> {
     env_logger::builder().format_timestamp(None).init();
     color_eyre::install()?;
-    let mut cli = Cli::parse();
+    let mut cli = dbg!(Cli::parse());
 
     if let Err(error) = cli.run() {
         eprintln!("{error}");
@@ -27,7 +28,7 @@ pub fn main() -> color_eyre::eyre::Result<()> {
     Ok(())
 }
 
-#[derive(Parser)]
+#[derive(Parser, Debug)]
 #[clap(name = env!("CARGO_PKG_NAME"), about, version)]
 pub enum Cli {
     /// Parse PL AST
@@ -53,13 +54,26 @@ pub enum Cli {
     Watch(watch::WatchCommand),
 }
 
-#[derive(clap::Args, Default)]
+// TODO: Should this be named `IoArgs`? IIUC it's just the args; its parent
+// represents the Command. I struggled mapping this to clap docs for a while.
+#[derive(clap::Args, Default, Debug)]
 pub struct CommandIO {
     #[clap(value_parser, default_value = "-")]
     input: Input,
 
     #[clap(value_parser, default_value = "-")]
     output: Output,
+
+    // TODO: This should be only on some commands, is there an elegant way of
+    // doing that in Clap without lots of duplication?
+    #[arg(value_enum, long)]
+    format: Option<Format>,
+}
+
+#[derive(clap::ValueEnum, Clone, Debug)]
+enum Format {
+    Json,
+    Yaml,
 }
 
 fn is_stdin(input: &Input) -> bool {
@@ -67,6 +81,7 @@ fn is_stdin(input: &Input) -> bool {
 }
 
 impl Cli {
+    /// Entrypoint called by [`main`]
     pub fn run(&mut self) -> Result<()> {
         if let Cli::Watch(command) = self {
             return watch::run(command);
@@ -94,13 +109,13 @@ impl Cli {
     }
 
     fn execute(&self, source: &str) -> Result<Vec<u8>> {
-        // TODO: there's some repetiton here around converting strings to bytes;
-        // we could possibly extract that, but not sure it would neatly .
         Ok(match self {
-            Cli::Parse(_) => {
+            Cli::Parse(args) => {
                 let ast = prql_to_pl(source)?;
-
-                serde_yaml::to_string(&ast)?.into_bytes()
+                match args.format {
+                    Some(Format::Json) | None => serde_json::to_string_pretty(&ast)?.into_bytes(),
+                    Some(Format::Yaml) => serde_yaml::to_string(&ast)?.into_bytes(),
+                }
             }
             Cli::Format(_) => prql_to_pl(source).and_then(pl_to_prql)?.as_bytes().to_vec(),
             Cli::Debug(_) => {
@@ -118,6 +133,9 @@ impl Cli {
                 .concat()
             }
             Cli::Annotate(_) => {
+                // TODO: potentially if there is code performing a role beyond
+                // presentation, it should be a library function; and we could
+                // promote it to the `prql-compiler` crate.
                 let stmts = prql_to_pl(source)?;
 
                 // resolve
@@ -128,12 +146,16 @@ impl Cli {
                 // combine with source
                 combine_prql_and_frames(source, frames).as_bytes().to_vec()
             }
-            Cli::Resolve(_) => {
+            Cli::Resolve(args) => {
                 let ast = prql_to_pl(source)?;
                 let ir = semantic::resolve(ast)?;
-
-                serde_json::to_string_pretty(&ir)?.into_bytes()
+                match args.format {
+                    Some(Format::Json) | None => serde_json::to_string_pretty(&ir)?.into_bytes(),
+                    Some(Format::Yaml) => anyhow::bail!("YAML output is not yet supported for PL"),
+                    // Some(Format::Yaml) => serde_yaml::to_string(&ir)?.into_bytes(),
+                }
             }
+            // TODO: Allow passing the `Options` to the CLI; map those through.
             Cli::Compile(_) => compile(source, &Options::default())?.as_bytes().to_vec(),
             Cli::Watch(_) => unreachable!(),
         })
@@ -268,7 +290,6 @@ group a_column (take 10 | sort b_column | derive [the_number = rank, last = lag 
         // Check we get an error on a bad input
         let input = "asdf";
         let result = Cli::execute(&Cli::Compile(CommandIO::default()), input);
-        assert!(result.is_err());
         assert_display_snapshot!(result.unwrap_err(), @r###"
         Error:
            ╭─[:1:1]
@@ -277,6 +298,56 @@ group a_column (take 10 | sort b_column | derive [the_number = rank, last = lag 
            · ──┬─
            ·   ╰─── Unknown name asdf
         ───╯
+        "###);
+    }
+
+    #[test]
+    // Currently failing based on serde_yaml not being able to serialize an
+    // Enum of an Enum; from https://github.com/dtolnay/serde-yaml/blob/68a9e95c9fd639498c85f55b5485f446b3f8465c/tests/test_error.rs#L175
+    #[should_panic]
+    fn resolve() {
+        let _output = Cli::execute(
+            &Cli::Resolve(CommandIO {
+                input: CommandIO::default().input,
+                output: CommandIO::default().output,
+                format: Some(Format::Yaml),
+            }),
+            "from x | select y",
+        )
+        .unwrap();
+    }
+    #[test]
+    fn parse() {
+        let output = Cli::execute(
+            &Cli::Parse(CommandIO {
+                input: CommandIO::default().input,
+                output: CommandIO::default().output,
+                format: Some(Format::Yaml),
+            }),
+            "from x | select y",
+        )
+        .unwrap();
+
+        assert_display_snapshot!(String::from_utf8(output).unwrap().trim(), @r###"
+        - Main:
+            Pipeline:
+              exprs:
+              - FuncCall:
+                  name:
+                    Ident:
+                    - from
+                  args:
+                  - Ident:
+                    - x
+                  named_args: {}
+              - FuncCall:
+                  name:
+                    Ident:
+                    - select
+                  args:
+                  - Ident:
+                    - y
+                  named_args: {}
         "###);
     }
 }
