@@ -846,4 +846,26 @@ mod test {
           _expr_0 > 3
         "###);
     }
+
+    #[test]
+    fn test_sqlite_datetime() {
+        let query = &r#"
+        from test_table
+        select [date = @2022-12-31, time = @08:30, timestamp = @2020-01-01T13:19:55-0800]
+        "#;
+
+        let opts = crate::Options::default()
+            .no_signature()
+            .with_target(crate::Target::Sql(Some(crate::sql::Dialect::SQLite)));
+
+        assert_snapshot!(
+            crate::compile(query, &opts).unwrap(),
+            @r###"SELECT
+  DATE('2022-12-31') AS date,
+  TIME('08:30') AS time,
+  DATETIME('2020-01-01T13:19:55-0800') AS timestamp
+FROM
+  test_tables"###
+        );
+    }
 }
