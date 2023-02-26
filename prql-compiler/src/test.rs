@@ -59,7 +59,7 @@ fn test_precedence() {
     select temp_c = (temp - 32) / 1.8
     "###).unwrap()), @r###"
     SELECT
-      (temp - 32) / 1.8 AS temp_c
+      ("temp" - 32) / 1.8 AS temp_c
     FROM
       x
     "###);
@@ -72,7 +72,7 @@ fn test_precedence() {
     select [result = c * sum_1 + sum_2]
     "###).unwrap()), @r###"
     SELECT
-      c * (a + b) + a + b AS result
+      c * (a + b) + a + b AS "result"
     FROM
       numbers
     "###);
@@ -627,7 +627,7 @@ derive `from` = 5
       SELECT
         *
       FROM
-        lower
+        "lower"
     )
     SELECT
       "UPPER".*,
@@ -674,7 +674,7 @@ select `first name`
     SELECT
       "first name"
     FROM
-      table
+      "table"
     "###);
 }
 
@@ -751,7 +751,7 @@ fn test_ranges() {
     assert_display_snapshot!((compile(query).unwrap()), @r###"
     SELECT
       *,
-      distance BETWEEN 0 AND 100 AS close,
+      distance BETWEEN 0 AND 100 AS "close",
       distance >= 100 AS far,
       country_founding BETWEEN DATE '1776-07-04' AND DATE '1787-09-17'
     FROM
@@ -769,7 +769,7 @@ fn test_interval() {
     assert_display_snapshot!((compile(query).unwrap()), @r###"
     SELECT
       *,
-      start + INTERVAL 10 DAY AS first_check_in
+      "start" + INTERVAL 10 DAY AS first_check_in
     FROM
       projects
     "###);
@@ -783,7 +783,7 @@ fn test_interval() {
     assert_display_snapshot!((compile(query).unwrap()), @r###"
     SELECT
       *,
-      start + INTERVAL '10' DAY AS first_check_in
+      "start" + INTERVAL '10' DAY AS first_check_in
     FROM
       projects
     "###);
@@ -802,9 +802,9 @@ fn test_dates() {
     "###).unwrap()), @r###"
     SELECT
       *,
-      DATE '2011-02-01' AS date,
-      TIMESTAMP '2011-02-01T10:00' AS timestamp,
-      TIME '14:00' AS time
+      DATE '2011-02-01' AS "date",
+      TIMESTAMP '2011-02-01T10:00' AS "timestamp",
+      TIME '14:00' AS "time"
     FROM
       to_do_empty_table
     "###);
@@ -903,7 +903,7 @@ fn test_window_functions_03() {
     SELECT
       *,
       LAG(num_orders, 7) OVER () AS last_week,
-      SUM(num_orders) OVER (PARTITION BY month) AS total_month
+      SUM(num_orders) OVER (PARTITION BY "month") AS total_month
     FROM
       daily_orders
     "###);
@@ -922,7 +922,7 @@ fn test_window_functions_04() {
     assert_display_snapshot!((compile(query).unwrap()), @r###"
     SELECT
       *,
-      RANK() OVER (PARTITION BY month) AS total_month,
+      RANK() OVER (PARTITION BY "month") AS total_month,
       LAG(num_orders, 7) OVER () AS last_week
     FROM
       daily_orders
@@ -942,7 +942,7 @@ fn test_window_functions_05() {
     SELECT
       *,
       RANK() OVER (
-        PARTITION BY month
+        PARTITION BY "month"
         ORDER BY
           num_orders ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
       ),
@@ -1035,12 +1035,12 @@ fn test_window_functions_10() {
       *,
       SUM(b) OVER (
         ORDER BY
-          day RANGE BETWEEN 4 PRECEDING AND 4 FOLLOWING
+          "day" RANGE BETWEEN 4 PRECEDING AND 4 FOLLOWING
       ) AS next_four_days
     FROM
       foo
     ORDER BY
-      day
+      "day"
     "###);
 
     // TODO: add test for preceding
@@ -1617,7 +1617,7 @@ fn test_bare_s_string() {
       GROUP BY
         GROUPING SETS ((b, c, d), (d), (b, d))
     ),
-    grouping AS (
+    "grouping" AS (
       SELECT
         *
       FROM
@@ -1626,7 +1626,7 @@ fn test_bare_s_string() {
     SELECT
       *
     FROM
-      grouping
+      "grouping"
     "###
     );
 
@@ -2262,13 +2262,13 @@ fn test_double_aggregate() {
     assert_display_snapshot!(compile(query).unwrap(),
         @r###"
     SELECT
-      type,
+      "type",
       SUM(amount) AS total_amt,
       MAX(amount)
     FROM
       numbers
     GROUP BY
-      type
+      "type"
     "###
     );
 }
@@ -2343,7 +2343,7 @@ fn test_inline_tables() {
       employees.emp_id,
       employees.name,
       employees.surname,
-      employees.type,
+      employees."type",
       employees.amount,
       table_1.emp_id,
       table_1.salary
@@ -3034,7 +3034,7 @@ fn test_exclude_columns() {
     SELECT
       *
     EXCEPT
-      (milliseconds, bytes)
+      (`milliseconds`, bytes)
     FROM
       tracks
     "###
@@ -3047,7 +3047,7 @@ fn test_exclude_columns() {
     "#).unwrap(),
         @r###"
     SELECT
-      * EXCLUDE (milliseconds, bytes)
+      * EXCLUDE ("milliseconds", bytes)
     FROM
       tracks
     "###
@@ -3060,7 +3060,7 @@ fn test_exclude_columns() {
     "#).unwrap(),
         @r###"
     SELECT
-      * EXCLUDE (milliseconds, bytes)
+      * EXCLUDE ("milliseconds", bytes)
     FROM
       tracks
     "###
@@ -3082,7 +3082,7 @@ fn test_custom_transforms() {
         @r###"
     SELECT
       *,
-      single * 2 AS double
+      single * 2 AS "double"
     FROM
       tab
     ORDER BY

@@ -1,5 +1,8 @@
 //! Contains functions that compile [crate::ast::pl] nodes into [sqlparser] nodes.
 
+// TODO: clean up
+#![allow(unused_imports)]
+
 use anyhow::{bail, Result};
 use itertools::Itertools;
 use lazy_static::lazy_static;
@@ -640,27 +643,30 @@ pub(super) fn translate_ident(
 }
 
 fn is_keyword(ident: &str) -> bool {
-    lazy_static! {
-        /// Keywords which we want to quote when translating to SQL. Currently we're
-        /// being fairly permissive (over-quoting is not a concern), though we don't
-        /// use `ALL_KEYWORDS`, which is quite broad, including words like `temp`
-        /// and `lower`.
-        static ref PRQL_KEYWORDS: HashSet<&'static Keyword> = {
-            let mut m = HashSet::new();
-            m.extend(RESERVED_FOR_COLUMN_ALIAS);
-            m.extend(RESERVED_FOR_TABLE_ALIAS);
-            m
-        };
-    }
+    // TODO: clean up
 
-    // Search for the ident in `ALL_KEYWORDS`, and then look it up in
-    // `ALL_KEYWORDS_INDEX`. There doesn't seem to a simpler
-    // `Keyword::from_string` function.
-    let keyword = ALL_KEYWORDS
-        .binary_search(&ident.to_ascii_uppercase().as_str())
-        .map_or(Keyword::NoKeyword, |x| ALL_KEYWORDS_INDEX[x]);
+    // lazy_static! {
+    //     /// Keywords which we want to quote when translating to SQL. Currently we're
+    //     /// being fairly permissive (over-quoting is not a concern), though we don't
+    //     /// use `ALL_KEYWORDS`, which is quite broad, including words like `temp`
+    //     /// and `lower`.
+    //     static ref PRQL_KEYWORDS: HashSet<&'static Keyword> = {
+    //         let mut m = HashSet::new();
+    //         m.extend(RESERVED_FOR_COLUMN_ALIAS);
+    //         m.extend(RESERVED_FOR_TABLE_ALIAS);
+    //         m
+    //     };
+    // }
 
-    PRQL_KEYWORDS.contains(&keyword)
+    // // Search for the ident in `ALL_KEYWORDS`, and then look it up in
+    // // `ALL_KEYWORDS_INDEX`. There doesn't seem to a simpler
+    // // `Keyword::from_string` function.
+    // let keyword = ALL_KEYWORDS
+    //     .binary_search(&ident.to_ascii_uppercase().as_str())
+    //     .map_or(Keyword::NoKeyword, |x| ALL_KEYWORDS_INDEX[x]);
+
+    ALL_KEYWORDS.contains(&ident.to_ascii_uppercase().as_str())
+    // PRQL_KEYWORDS.contains(&keyword)
 }
 
 pub(super) fn translate_ident_part(ident: String, ctx: &Context) -> sql_ast::Ident {
@@ -892,6 +898,12 @@ mod test {
         end: 5
         "###);
 
+        Ok(())
+    }
+
+    #[test]
+    fn keyword() -> Result<()> {
+        assert!(is_keyword("as"));
         Ok(())
     }
 

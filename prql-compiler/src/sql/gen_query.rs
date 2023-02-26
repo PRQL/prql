@@ -814,7 +814,7 @@ mod test {
         )
         SELECT
           *,
-          RANK() OVER () AS rank
+          RANK() OVER () AS "rank"
         FROM
           table_1 AS table_0
         WHERE
