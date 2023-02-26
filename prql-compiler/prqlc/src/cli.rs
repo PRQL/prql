@@ -158,14 +158,11 @@ impl Command {
                 combine_prql_and_frames(source, frames).as_bytes().to_vec()
             }
             Command::Resolve(_) => {
+                // Currently failing based on serde_yaml not being able to serialize an
+                // Enum of an Enum; from https://github.com/dtolnay/serde-yaml/blob/68a9e95c9fd639498c85f55b5485f446b3f8465c/tests/test_error.rs#L175
                 let ast = prql_to_pl(source)?;
                 let ir = semantic::resolve(ast)?;
                 serde_json::to_string_pretty(&ir)?.into_bytes()
-                // match args.format {
-                //     Some(Format::Json) | None => serde_json::to_string_pretty(&ir)?.into_bytes(),
-                //     Some(Format::Yaml) => anyhow::bail!("YAML output is not yet supported for PL"),
-                //     // Some(Format::Yaml) => serde_yaml::to_string(&ir)?.into_bytes(),
-                // }
             }
             // TODO: Allow passing the `Options` to the CLI; map those through.
             // We already do this in Watch.
@@ -177,7 +174,6 @@ impl Command {
     fn read_input(&mut self) -> Result<(String, String)> {
         use Command::*;
         let mut input = match self {
-            // TODO: are these clones sound?
             Parse { input, .. } => input.clone(),
             Format(io) | Debug(io) | Annotate(io) | Resolve(io) | Compile(io) => io.input.clone(),
             Watch(_) => unreachable!(),
