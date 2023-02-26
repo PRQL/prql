@@ -67,8 +67,6 @@ enum Commands {
     Watch(watch::WatchArgs),
 }
 
-// TODO: Should this be named `IoArgs`? IIUC it's just the args; its parent
-// represents the Command. I struggled mapping this to clap docs for a while.
 #[derive(clap::Args, Default, Debug, Clone)]
 pub struct IoArgs {
     #[clap(value_parser, default_value = "-")]
