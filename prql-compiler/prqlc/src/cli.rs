@@ -31,12 +31,12 @@ pub fn main() -> color_eyre::eyre::Result<()> {
 #[derive(Parser, Debug, Clone)]
 struct Cli {
     #[command(subcommand)]
-    command: Commands,
+    command: Command,
 }
 
 #[derive(Subcommand, Debug, Clone)]
 #[clap(name = env!("CARGO_PKG_NAME"), about, version)]
-enum Commands {
+enum Command {
     /// Parse into PL AST
     Parse {
         #[clap(value_parser, default_value = "-")]
@@ -91,10 +91,10 @@ fn is_stdin(input: &Input) -> bool {
     input.path() == "-"
 }
 
-impl Commands {
+impl Command {
     /// Entrypoint called by [`main`]
     pub fn run(&mut self) -> Result<()> {
-        if let Commands::Watch(command) = self {
+        if let Command::Watch(command) = self {
             return watch::run(command);
         };
 
@@ -121,15 +121,15 @@ impl Commands {
 
     fn execute(&self, source: &str) -> Result<Vec<u8>> {
         Ok(match self {
-            Commands::Parse { format, .. } => {
+            Command::Parse { format, .. } => {
                 let ast = prql_to_pl(source)?;
                 match format {
                     Some(Format::Json) | None => serde_json::to_string_pretty(&ast)?.into_bytes(),
                     Some(Format::Yaml) => serde_yaml::to_string(&ast)?.into_bytes(),
                 }
             }
-            Commands::Format(_) => prql_to_pl(source).and_then(pl_to_prql)?.as_bytes().to_vec(),
-            Commands::Debug(_) => {
+            Command::Format(_) => prql_to_pl(source).and_then(pl_to_prql)?.as_bytes().to_vec(),
+            Command::Debug(_) => {
                 let stmts = prql_to_pl(source)?;
                 let (stmts, context) = semantic::resolve_only(stmts, None)?;
 
@@ -143,7 +143,7 @@ impl Commands {
                 ]
                 .concat()
             }
-            Commands::Annotate(_) => {
+            Command::Annotate(_) => {
                 // TODO: potentially if there is code performing a role beyond
                 // presentation, it should be a library function; and we could
                 // promote it to the `prql-compiler` crate.
@@ -157,7 +157,7 @@ impl Commands {
                 // combine with source
                 combine_prql_and_frames(source, frames).as_bytes().to_vec()
             }
-            Commands::Resolve(_) => {
+            Command::Resolve(_) => {
                 let ast = prql_to_pl(source)?;
                 let ir = semantic::resolve(ast)?;
                 serde_json::to_string_pretty(&ir)?.into_bytes()
@@ -169,13 +169,13 @@ impl Commands {
             }
             // TODO: Allow passing the `Options` to the CLI; map those through.
             // We already do this in Watch.
-            Commands::Compile(_) => compile(source, &Options::default())?.as_bytes().to_vec(),
-            Commands::Watch(_) => unreachable!(),
+            Command::Compile(_) => compile(source, &Options::default())?.as_bytes().to_vec(),
+            Command::Watch(_) => unreachable!(),
         })
     }
 
     fn read_input(&mut self) -> Result<(String, String)> {
-        use Commands::*;
+        use Command::*;
         let mut input = match self {
             // TODO: are these clones sound?
             Parse { input, .. } => input.clone(),
@@ -197,7 +197,7 @@ impl Commands {
     }
 
     fn write_output(&mut self, data: &[u8]) -> std::io::Result<()> {
-        use Commands::*;
+        use Command::*;
         let mut output = match self {
             Parse { output, .. } => output.to_owned(),
             Format(io) | Debug(io) | Annotate(io) | Resolve(io) | Compile(io) => {
@@ -263,8 +263,8 @@ mod tests {
 
     #[test]
     fn layouts() {
-        let output = Commands::execute(
-            &Commands::Annotate(IoArgs::default()),
+        let output = Command::execute(
+            &Command::Annotate(IoArgs::default()),
             r#"
 from initial_table
 select [f = first_name, l = last_name, gender]
@@ -288,8 +288,8 @@ sort full
 
     #[test]
     fn format() {
-        let output = Commands::execute(
-            &Commands::Format(IoArgs::default()),
+        let output = Command::execute(
+            &Command::Format(IoArgs::default()),
             r#"
 from table.subdivision
  derive      `želva_means_turtle`   =    (`column with spaces` + 1) * 3
@@ -321,7 +321,7 @@ group a_column (take 10 | sort b_column | derive [the_number = rank, last = lag 
     fn compile() {
         // Check we get an error on a bad input
         let input = "asdf";
-        let result = Commands::execute(&Commands::Compile(IoArgs::default()), input);
+        let result = Command::execute(&Command::Compile(IoArgs::default()), input);
         assert_display_snapshot!(result.unwrap_err(), @r###"
         Error:
            ╭─[:1:1]
@@ -335,8 +335,8 @@ group a_column (take 10 | sort b_column | derive [the_number = rank, last = lag 
 
     #[test]
     fn parse() {
-        let output = Commands::execute(
-            &Commands::Parse {
+        let output = Command::execute(
+            &Command::Parse {
                 input: IoArgs::default().input,
                 output: IoArgs::default().output,
                 format: Some(Format::Yaml),
