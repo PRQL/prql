@@ -10,7 +10,7 @@ use walkdir::WalkDir;
 
 use crate::jinja;
 
-#[derive(Parser)]
+#[derive(Parser, Debug)]
 pub struct WatchCommand {
     /// Directory or file to watch for changes
     pub path: OsString,
