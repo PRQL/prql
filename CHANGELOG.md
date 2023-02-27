@@ -5,6 +5,8 @@
 **Features**:
 
 - `loop`, which translates to `WITH RECURSIVE` (#1642, @aljazerzen)
+- Add a `--format` option to `prqlc parse` which can return the AST in YAML
+  (@max-sixty, #1962)
 
 **Fixes**:
 
