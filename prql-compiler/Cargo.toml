@@ -15,7 +15,6 @@ metadata.msrv = "1.65.0"
 [dependencies]
 anyhow = {version = "1.0.57", features = ["backtrace"]}
 ariadne = "0.1.5"
-chumsky = "0.9.0"
 csv = "1.2.0"
 enum-as-inner = "0.5.0"
 itertools = "0.10.3"
@@ -35,9 +34,15 @@ strum_macros = "0.24.0"
 cfg-if = "1.0"
 insta = {version = "1.28", features = ["colors", "glob", "yaml"]}
 
+[target.'cfg(not(target_family="macos"))'.dependencies]
+chumsky = "0.9.0"
+
+[target.'cfg(target_family="macos")'.dependencies]
+chumsky = {version = "0.9.0", features = ["ahash", "std"], default-features = false}
+
 # For integration tests
 [target.'cfg(not(target_family="wasm"))'.dev-dependencies]
-chrono = {version = "0.4", features = [], default-features = false }
+chrono = {version = "0.4", features = [], default-features = false}
 criterion = "0.4.0"
 postgres = "0.19.3"
 pretty_assertions = "1.3.0"
