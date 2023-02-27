@@ -10,8 +10,8 @@ use walkdir::WalkDir;
 
 use crate::jinja;
 
-#[derive(Parser)]
-pub struct WatchCommand {
+#[derive(Parser, Debug, Clone)]
+pub struct WatchArgs {
     /// Directory or file to watch for changes
     pub path: OsString,
 
@@ -22,7 +22,7 @@ pub struct WatchCommand {
     pub no_signature: bool,
 }
 
-pub fn run(command: &mut WatchCommand) -> Result<()> {
+pub fn run(command: &mut WatchArgs) -> Result<()> {
     let opt = prql_compiler::Options {
         format: !command.no_format,
         target: prql_compiler::Target::Sql(None),

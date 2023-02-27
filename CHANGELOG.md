@@ -18,6 +18,8 @@
   - Dates, times and timestamps have a stricter parsing rules.
   - `let`, `func`, `prql`, `switch` are now treated as keywords.
   - Float literals without fraction part are not allowed anymore (`1.`).
+- Add a `--format` option to `prqlc parse` which can return the AST in YAML
+  (@max-sixty, #1962)
 
 **Fixes**:
 
