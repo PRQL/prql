@@ -848,7 +848,26 @@ mod test {
     }
 
     #[test]
-    fn test_sqlite_datetime() {
+    fn test_datetime() {
+        let query = &r#"
+        from test_table
+        select [date = @2022-12-31, time = @08:30, timestamp = @2020-01-01T13:19:55-0800]
+        "#;
+
+        assert_snapshot!(
+                    crate::test::compile(query).unwrap(),
+                    @r###"SELECT
+  DATE '2022-12-31' AS date,
+  TIME '08:30' AS time,
+  TIMESTAMP '2020-01-01T13:19:55-0800' AS timestamp
+FROM
+  test_table
+"###
+        )
+    }
+
+    #[test]
+    fn test_datetime_sqlite() {
         let query = &r#"
         from test_table
         select [date = @2022-12-31, time = @08:30, timestamp = @2020-01-01T13:19:55-0800]
@@ -863,9 +882,10 @@ mod test {
             @r###"SELECT
   DATE('2022-12-31') AS date,
   TIME('08:30') AS time,
-  DATETIME('2020-01-01T13:19:55-0800') AS timestamp
+  DATETIME('2020-01-01T13:19:55-08:00') AS timestamp
 FROM
-  test_tables"###
+  test_table
+"###
         );
     }
 }
