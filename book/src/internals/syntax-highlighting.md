@@ -28,5 +28,4 @@ an index.
 
 - [Tree-Sitter](https://tree-sitter.github.io/tree-sitter) — used by the neovim
   and helix. The grammar can be found at
-  [https://github.com/matthias-Q/tree-sitter-prql](https://github.com/matthias-Q/tree-sitter-prql).
-  This is in a very early stage.
+  [https://github.com/PRQL/tree-sitter-prql](https://github.com/PRQL/tree-sitter-prql).
