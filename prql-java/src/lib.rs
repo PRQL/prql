@@ -15,7 +15,7 @@ pub extern "system" fn Java_org_prql_prql4j_PrqlCompiler_toSql(
         .expect("Couldn't get java string!")
         .into();
     let result = prql_compiler::compile(&prql_query, &Options::default());
-    return java_string_with_exception(result, &env);
+    java_string_with_exception(result, &env)
 }
 
 #[no_mangle]
@@ -30,7 +30,7 @@ pub extern "system" fn Java_org_prql_prql4j_PrqlCompiler_format(
         .expect("Couldn't get java string!")
         .into();
     let result = prql_to_pl(&prql_query).and_then(pl_to_prql);
-    return java_string_with_exception(result,&env);
+    java_string_with_exception(result,&env)
 }
 
 #[no_mangle]
