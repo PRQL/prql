@@ -70,7 +70,7 @@ PRQL's type system should also be able to express relation as composed from
 primitive types, but have only one idiomatic way of doing so.
 
 In practice this means that builtin types include only primitives (int, text,
-bool), struct (for product), enum (for sum) and list (for repeating).
+bool, float), struct (for product), enum (for sum) and list (for repeating).
 
 An SQL row would translate to struct, and a relation would translate to a list
 of structs.
