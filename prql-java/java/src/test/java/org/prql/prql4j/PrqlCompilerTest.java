@@ -4,7 +4,7 @@ import org.junit.Test;
 
 public class PrqlCompilerTest {
     @Test
-    public void compile() {
+    public void compile() throws Exception {
         String found = PrqlCompiler.toSql("from table");
 
         // remove signature
