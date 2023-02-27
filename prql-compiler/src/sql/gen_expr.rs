@@ -211,10 +211,7 @@ fn translate_datetime_literal_with_sqlite_function(
         // formalize the timezone indicator to be [+-]HH:MM
         // ref: https://www.sqlite.org/lang_datefunc.html
         timezone_indicator_regex
-            .replace(
-                &value,
-                format!("{}:{}", groups[1].to_string(), groups[2].to_string()).as_str(),
-            )
+            .replace(&value, format!("{}:{}", &groups[1], &groups[2]).as_str())
             .to_string()
     } else {
         value
