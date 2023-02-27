@@ -653,7 +653,7 @@ impl Lowerer {
 
                 rq::ExprKind::BuiltInFunction { name, args }
             }
-
+            pl::ExprKind::Param(id) => rq::ExprKind::Param(id),
             pl::ExprKind::FuncCall(_)
             | pl::ExprKind::Range(_)
             | pl::ExprKind::List(_)
@@ -820,7 +820,7 @@ fn lower_table(lowerer: &mut Lowerer, table: context::TableDecl, fq_ident: Ident
         TableExpr::LocalTable => {
             extern_ref_to_relation(columns, TableExternRef::LocalTable(fq_ident.name))
         }
-        TableExpr::Anchor(id) => extern_ref_to_relation(columns, TableExternRef::Anchor(id)),
+        TableExpr::Param(id) => extern_ref_to_relation(columns, TableExternRef::Param(id)),
     };
 
     log::debug!("lowering table {name:?}, columns = {:?}", relation.columns);

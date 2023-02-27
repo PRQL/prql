@@ -75,7 +75,7 @@ pub enum TableExpr {
     LocalTable,
 
     /// A placeholder for a relation that will be provided later.
-    Anchor(String),
+    Param(String),
 }
 
 #[derive(Clone, Eq, Debug, PartialEq, Serialize, Deserialize)]
