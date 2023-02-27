@@ -1,7 +1,6 @@
 pub use anyhow::Result;
 
 use ariadne::{Cache, Config, Label, Report, ReportKind, Source};
-use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use std::error::Error as StdError;
 use std::fmt::{self, Debug, Display, Formatter};
@@ -214,10 +213,6 @@ impl ErrorMessages {
             e.display = e.compose_display(source_id, cache, color);
         }
         self
-    }
-
-    fn exactly_one(self) -> Result<ErrorMessage> {
-        Ok(self.inner.into_iter().exactly_one()?)
     }
 }
 
