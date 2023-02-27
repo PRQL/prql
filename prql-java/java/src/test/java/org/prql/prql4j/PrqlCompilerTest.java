@@ -16,4 +16,9 @@ public class PrqlCompilerTest {
                 "  table";
         assert expected.equalsIgnoreCase(found);
     }
+
+    @Test(expected = Exception.class)
+    public void compileWithError() throws Exception {
+       PrqlCompiler.toSql("from table | filter id >> 1");
+    }
 }
