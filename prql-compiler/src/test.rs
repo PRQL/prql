@@ -3319,7 +3319,7 @@ fn test_params() {
       AND total > $3
     "###
     )
-  }
+}
 
 // for #1969
 #[test]
