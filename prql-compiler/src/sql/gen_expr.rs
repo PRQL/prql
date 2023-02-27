@@ -195,7 +195,7 @@ fn translate_datetime_literal(
     }
 }
 
-fn translate_dateatime_literal_with_typed_string(
+fn translate_datetime_literal_with_typed_string(
     data_type: sql_ast::DataType,
     value: String,
 ) -> sql_ast::Expr {
