@@ -1672,17 +1672,14 @@ Canada
                                   - first_name
                               op: Eq
                               right:
-                                Ident:
-                                  - $1
+                                Param: "1"
                           - Binary:
                               left:
                                 Ident:
                                   - last_name
                               op: Eq
                               right:
-                                Ident:
-                                  - $2
-                                  - name
+                                Param: 2.name
         "###);
     }
 
@@ -2018,8 +2015,7 @@ join `my-proj`.`dataset`.`table`
                               - first_name
                           op: Eq
                           right:
-                            Ident:
-                              - $1
+                            Param: "1"
                 - FuncCall:
                     name:
                       Ident:
@@ -2195,6 +2191,19 @@ join s=salaries [==id]
                 Boolean: true
             value:
               Literal: "Null"
+        "###);
+    }
+
+    #[test]
+    fn test_params() {
+        assert_yaml_snapshot!(parse_expr(r#"$2"#).unwrap(), @r###"
+        ---
+        Param: "2"
+        "###);
+
+        assert_yaml_snapshot!(parse_expr(r#"$2_any_text"#).unwrap(), @r###"
+        ---
+        Param: 2_any_text
         "###);
     }
 }

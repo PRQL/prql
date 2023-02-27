@@ -86,9 +86,19 @@ pub fn expr() -> impl Parser<Token, Expr, Error = Simple<Token>> + Clone {
             )
             .map(ExprKind::Switch);
 
-        let term = choice((literal, list, pipeline, interpolation, ident_kind, switch))
-            .map_with_span(into_expr)
-            .boxed();
+        let param = select! { Token::Param(id) => ExprKind::Param(id) };
+
+        let term = choice((
+            literal,
+            list,
+            pipeline,
+            interpolation,
+            ident_kind,
+            switch,
+            param,
+        ))
+        .map_with_span(into_expr)
+        .boxed();
 
         // Unary operators
         let term = term

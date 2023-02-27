@@ -20,6 +20,7 @@
   - Float literals without fraction part are not allowed anymore (`1.`).
 - Add a `--format` option to `prqlc parse` which can return the AST in YAML
   (@max-sixty, #1962)
+- Support for SQL parameters with similar syntax (#1957, @aljazerzen)
 
 **Fixes**:
 
