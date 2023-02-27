@@ -191,7 +191,7 @@ fn translate_datetime_literal(
     if ctx.dialect.is::<crate::sql::dialect::SQLiteDialect>() {
         translate_datetime_literal_with_sqlite_function(data_type, value)
     } else {
-        translate_dateatime_literal_with_typed_string(data_type, value)
+        translate_datetime_literal_with_typed_string(data_type, value)
     }
 }
 
