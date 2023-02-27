@@ -206,6 +206,8 @@ fn translate_datetime_literal_with_sqlite_function(
     data_type: sql_ast::DataType,
     value: String,
 ) -> sql_ast::Expr {
+    // TODO: promote parsing timezone handling to the parser; we should be storing
+    // structured data rather than strings in the AST
     let timezone_indicator_regex = Regex::new(r"([+-]\d{2}):?(\d{2})$").unwrap();
     let time_value = if let Some(groups) = timezone_indicator_regex.captures(value.as_str()) {
         // formalize the timezone indicator to be [+-]HH:MM
