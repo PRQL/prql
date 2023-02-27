@@ -24,7 +24,7 @@ I believe this should best be done in two steps:
 2. Define a mapping from the SQL's Type System (STS) into PTS, for each of the
    DBMSs. Ideally we'd want that to be a bijection, so each type in PTS would be
    represented by a single type in STS and vice-versa. Unfortunately this is not
-   extirely possible, as shown below.
+   entirely possible, as shown below.
 
 In practical terms, we want for a user to be able to:
 
@@ -54,7 +54,7 @@ Example of the mapping between PTS and two STSs:
 sum would be an enum and product would be tuple or a struct. In SQL, product
 would be a row, since it can contain different types, all at once. Sum would be
 harder to express, see (this
-post)[https://www.parsonsmatt.org/2019/03/19/sum_types_in_sql.html].
+post)[https://www.parsonsmatt.org/2019/03/19/sum_types_in_sql.html ].
 
 The value proposition here is that algebraic types give a lot modeling
 flexibility, all while being conceptually simple.
@@ -94,6 +94,37 @@ derive is_red = switch [color == 'red' => true, color == 'green' => false]
 It should be possible to infer that `color` is of type `text`, but only when
 equal to `'red'` or `'green'`. This means that the second switch covers all
 possible cases and `is_red` cannot be `null`.
+
+## Physical layout
+
+_Logical type_ is user-facing the notion of a type that is the building block of
+the type system.
+
+_Physical layout_ is the underlying memory layout of the data represented by a
+variable.
+
+In many programming languages, physical layout of a logical type is dependent on
+the target platform. Similarly, physical layout of a PRQL logical type is
+dependent on representation of that type in target STS.
+
+```
+PTS logical type  --->  STS logical type  ---> STS physical layout
+```
+
+Note that STS types do not have a single physical layout. Postgres has a logical
+type `anyelement`, which is a super type of any data type. It can be used a
+function parameter type, but does not have a single physical layout so it cannot
+be used a in column declarations.
+
+For now, PRQL does not define a physical layout of any type. It is not needed
+since PRQL is not used for DDL (see section "Built-in primitives") or does not
+support raw access to underlying memory.
+
+As a consequence, results of a PRQL query cannot be robustly compared across
+DBMSs, since the physical layout of the result will vary.
+
+In the future, PRQL may define a common physical layout of types, probably using
+Apache Arrow.
 
 ## Syntax
 
