@@ -166,6 +166,20 @@ type my_relation = {[
 	title = text,
 	age = int
 ]}
+
+type invoices = {[
+    invoice_id = int64,
+    issued_at = timestamp,
+    labels = {text}
+
+    #[repr(json)]
+    items = [{
+        article_id = int64,
+        count = int16 where x -> x >= 1,
+    }],
+    paid_by_user_id = int64 | null,
+    status = status,
+]}
 ```
 
 ## Built-in primitives
