@@ -30,8 +30,8 @@ jobs:
 
         # Combination of macos and wasm32 has a problem with crate psm, a dependency of chumsky
         exclude:
-        - os: macos-latest
-          target_option: --target=wasm32-unknown-unknown
+          - os: macos-latest
+            target_option: --target=wasm32-unknown-unknown
     uses: ./.github/workflows/test-rust.yaml
     with:
       os: ${{ matrix.os }}

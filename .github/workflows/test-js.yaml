@@ -20,7 +20,7 @@ jobs:
 
         # Combination of macos and wasm32 has a problem with crate psm, a dependency of chumsky
         exclude:
-        - os: macos-latest
+          - os: macos-latest
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
