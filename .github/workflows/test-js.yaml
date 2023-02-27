@@ -17,6 +17,10 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
+
+        # Combination of macos and wasm32 has a problem with crate psm, a dependency of chumsky
+        exclude:
+        - os: macos-latest
     steps:
       - name: 📂 Checkout code
         uses: actions/checkout@v3
