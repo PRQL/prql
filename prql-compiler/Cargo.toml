@@ -34,10 +34,10 @@ strum_macros = "0.24.0"
 cfg-if = "1.0"
 insta = {version = "1.28", features = ["colors", "glob", "yaml"]}
 
-[target.'cfg(not(target_family="macos"))'.dependencies]
+[target.'cfg(not(target_os="macos"))'.dependencies]
 chumsky = "0.9.0"
 
-[target.'cfg(target_family="macos")'.dependencies]
+[target.'cfg(target_os="macos")'.dependencies]
 chumsky = {version = "0.9.0", features = ["ahash", "std"], default-features = false}
 
 # For integration tests
