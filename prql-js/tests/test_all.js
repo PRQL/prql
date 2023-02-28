@@ -33,12 +33,11 @@ describe("prql-js", () => {
       );
     });
 
-    // FIXME
-    // it("should throw an error on invalid prql", () => {
-    //   expect(() =>
-    //     prql.compile("Mississippi has four S’s and four I’s.")
-    //   ).to.throw("Error");
-    // });
+    it("should throw an error on invalid prql", () => {
+      expect(() =>
+        prql.compile("Mississippi has four Ss and four Is.")
+      ).to.throw("Error");
+    });
 
     it("should compile to dialect", () => {
       const opts = new prql.CompileOptions();
