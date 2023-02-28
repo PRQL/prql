@@ -6,8 +6,6 @@ use std::error::Error as StdError;
 use std::fmt::{self, Debug, Display, Formatter};
 use std::ops::{Add, Range};
 
-use crate::utils::IntoOnly;
-
 #[derive(Clone, PartialEq, Eq, Copy, Serialize, Deserialize)]
 pub struct Span {
     pub start: usize,
@@ -215,14 +213,6 @@ impl ErrorMessages {
             e.display = e.compose_display(source_id, cache, color);
         }
         self
-    }
-}
-
-impl IntoOnly for ErrorMessages {
-    type Item = ErrorMessage;
-
-    fn into_only(self) -> Result<Self::Item> {
-        self.inner.into_only()
     }
 }
 

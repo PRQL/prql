@@ -2939,6 +2939,16 @@ fn test_errors() {
        ·           ╰─── `take` expected int or range, but found 1.8
     ───╯
     "###);
+
+    assert_display_snapshot!(compile("Mississippi has four S’s and four I’s.").unwrap_err(), @r###"
+    Error:
+       ╭─[:1:23]
+       │
+     1 │ Mississippi has four S’s and four I’s.
+       ·                       ┬
+       ·                       ╰── unexpected ’
+    ───╯
+    "###);
 }
 
 #[test]
