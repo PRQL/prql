@@ -115,7 +115,7 @@ jobs:
       - uses: baptiste0928/cargo-install@next
         with:
           crate: cargo-msrv
-        # Note this currently uses a manually mantained key in
+        # Note this currently uses a manually maintained key in
         # `prql-compiler/Cargo.toml`, because of
         # https://github.com/foresterre/cargo-msrv/issues/590
       - name: Verify minimum rust version
