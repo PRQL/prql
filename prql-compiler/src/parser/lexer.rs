@@ -77,8 +77,10 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
         literal,
         keyword,
         ident,
-    ))
-    .recover_with(skip_then_retry_until([]).skip_start());
+    ));
+    // TODO: Add this back when https://github.com/zesterer/chumsky/issues/301
+    // is fixed.
+    // .recover_with(skip_then_retry_until([]).skip_start());
 
     let comment = just('#').then(none_of('\n').repeated());
     let comments = comment
