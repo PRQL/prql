@@ -15,17 +15,12 @@ metadata.msrv = "1.65.0"
 [dependencies]
 anyhow = {version = "1.0.57", features = ["backtrace"]}
 ariadne = "0.1.5"
-# We don't include the `spill-stack` feature, since it causes builds in GHA to
-# fail. If that no longer happens, we can re-enable it.
-chumsky = {version = "0.9.0", features = ["ahash", "std"], default-features = false }
 csv = "1.2.0"
 enum-as-inner = "0.5.0"
 itertools = "0.10.3"
 lazy_static = "1.4.0"
 log = "0.4.17"
 once_cell = "1.17.0"
-pest = "2.5.0"
-pest_derive = "2.5.0"
 regex = "1.7.0"
 semver = {version = "1.0.14", features = ["serde"]}
 serde = {version = "1.0.137", features = ["derive"]}
@@ -35,13 +30,19 @@ sqlparser = {version = "0.30.0", features = ["serde"]}
 strum = {version = "0.24.0", features = ["std", "derive"]}# for converting enum variants to string
 strum_macros = "0.24.0"
 
+# Chumsky issues in wasm (though we only see it when compiling on MacOS)
+[target.'cfg(not(target_family="wasm"))'.dependencies]
+chumsky = "0.9.0"
+[target.'cfg(target_family="wasm")'.dependencies]
+chumsky = {version = "0.9.0", features = ["ahash", "std"], default-features = false}
+
 [dev-dependencies]
 cfg-if = "1.0"
 insta = {version = "1.28", features = ["colors", "glob", "yaml"]}
 
 # For integration tests
 [target.'cfg(not(target_family="wasm"))'.dev-dependencies]
-chrono = "0.4"
+chrono = {version = "0.4", features = [], default-features = false}
 criterion = "0.4.0"
 postgres = "0.19.3"
 pretty_assertions = "1.3.0"

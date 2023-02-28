@@ -14,6 +14,7 @@ members = [
 # Note we don't have a `default-members = ["prql-compiler"]`, since that causes
 # commands like `cargo test` to only run tests from the default package. And
 # `cargo insta test` doesn't have a `--workspace` flag.
+resolver = "2"
 
 [workspace.package]
 edition = "2021"
@@ -23,7 +24,7 @@ rust-version = "1.65.0"
 version = "0.5.2"
 
 [profile.release.package.prql-js]
-# Tell `rustc` to optimize for small code size.
+# Tell `rust-js` to optimize for small code size.
 opt-level = "s"
 
 [workspace.metadata.release]
