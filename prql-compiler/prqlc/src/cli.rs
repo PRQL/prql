@@ -356,7 +356,6 @@ group a_column (take 10 | sort b_column | derive [the_number = rank, last = lag 
                   args:
                   - Ident:
                     - x
-                  named_args: {}
               - FuncCall:
                   name:
                     Ident:
@@ -364,7 +363,6 @@ group a_column (take 10 | sort b_column | derive [the_number = rank, last = lag 
                   args:
                   - Ident:
                     - y
-                  named_args: {}
         "###);
     }
 }
