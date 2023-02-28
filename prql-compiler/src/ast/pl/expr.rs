@@ -77,6 +77,9 @@ pub enum ExprKind {
         name: String,
         args: Vec<Expr>,
     },
+
+    /// a placeholder for values provided after query is compiled
+    Param(String),
 }
 
 impl ExprKind {
@@ -338,7 +341,7 @@ pub enum TableExternRef {
     /// Placeholder for a relation that will be provided later.
     /// This is very similar to relational s-strings and may not even be needed for now, so
     /// it's not documented anywhere. But it will be used in the future.
-    Anchor(String),
+    Param(String),
     // TODO: add other sources such as files, URLs
 }
 
@@ -579,6 +582,9 @@ impl Display for Expr {
             }
             ExprKind::BuiltInFunction { .. } => {
                 f.write_str("<built-in>")?;
+            }
+            ExprKind::Param(id) => {
+                writeln!(f, "${id}")?;
             }
         }
 
