@@ -20,7 +20,9 @@ jobs:
         with:
           key: ${{ inputs.target_option }}
           save-if: ${{ github.ref == 'refs/heads/main' }}
-      - uses: jetli/wasm-bindgen-action@v0.2.0
+      - uses: baptiste0928/cargo-install@next
+        with:
+          crate: wasm-bindgen-cli
         if: inputs.target_option == '--target=wasm32-unknown-unknown'
       - name: 📎 Clippy
         uses: richb-hanover/cargo@v1.1.0
