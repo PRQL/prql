@@ -3320,3 +3320,22 @@ fn test_params() {
     "###
     );
 }
+
+// TODO: fix this based on https://github.com/PRQL/prql/pull/1818
+#[test]
+#[should_panic]
+fn test_datetime_parsing() {
+    assert_display_snapshot!(compile(r#"
+    from test_tables
+    select [date = @2022-12-31, time = @08:30, timestamp = @2020-01-01T13:19:55-0800]
+    "#).unwrap(),
+        @r###"
+      SELECT
+        DATE '2022-12-31' AS date,
+        TIME '08:30' AS time,
+        TIMESTAMP '2020-01-01T13:19:55-0800' AS timestamp
+      FROM
+        test_table
+    "###
+    );
+}
