@@ -5,7 +5,7 @@ import org.junit.Test;
 public class PrqlCompilerTest {
     @Test
     public void compile() throws Exception {
-        String found = PrqlCompiler.toSql("from table");
+        String found = PrqlCompiler.toSql("from table", "mysql", true, true);
 
         // remove signature
         found = found.substring(0, found.indexOf("\n\n--"));
@@ -19,6 +19,6 @@ public class PrqlCompilerTest {
 
     @Test(expected = Exception.class)
     public void compileWithError() throws Exception {
-       PrqlCompiler.toSql("from table | filter id >> 1");
+       PrqlCompiler.toSql("from table | filter id >> 1", "mysql", true, true);
     }
 }
