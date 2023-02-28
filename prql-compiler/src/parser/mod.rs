@@ -54,7 +54,13 @@ pub fn parse(source: &str) -> Result<Vec<Stmt>> {
 }
 
 fn convert_lexer_error(source: &str, e: Cheap<char>) -> Error {
-    let found = source[e.span()].to_string();
+    // TODO: is there a neater way of taking a span? We want to take it based on
+    // the chars, not the bytes, so can't just index into the str.
+    let found = source
+        .chars()
+        .skip(e.span().start)
+        .take(e.span().end() - e.span().start)
+        .collect();
     let span = common::into_span(e.span());
 
     Error::new(Reason::Unexpected { found }).with_span(span)
@@ -164,7 +170,7 @@ mod test {
 
     use super::*;
     use anyhow::anyhow;
-    use insta::assert_yaml_snapshot;
+    use insta::{assert_debug_snapshot, assert_yaml_snapshot};
 
     fn parse_expr(source: &str) -> Result<Expr, Vec<anyhow::Error>> {
         let tokens = Parser::parse(&lexer::lexer(), source).map_err(|errs| {
@@ -2209,12 +2215,30 @@ join s=salaries [==id]
 
     #[test]
     fn test_error_unicode_string() {
+        // Test various unicode strings successfully parse errors. We were
+        // getting loops in the lexer before.
         parse("s’ ").unwrap_err();
         parse("s’").unwrap_err();
         parse(" s’").unwrap_err();
+        parse(" ’ s").unwrap_err();
+        parse("’s").unwrap_err();
+        parse("👍 s’").unwrap_err();
 
-        // FIXME: currently blocking
-        let source = "’s ";
-        let (_tokens, _lex_errors) = ::chumsky::Parser::parse_recovery(&lexer::lexer(), source);
+        let source = "Mississippi has four S’s and four I’s.";
+        assert_debug_snapshot!(parse(source).unwrap_err(), @r###"
+        Errors(
+            [
+                Error {
+                    span: Some(
+                        span-chars-22-23,
+                    ),
+                    reason: Unexpected {
+                        found: "’",
+                    },
+                    help: None,
+                },
+            ],
+        )
+        "###);
     }
 }

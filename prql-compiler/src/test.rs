@@ -2940,7 +2940,15 @@ fn test_errors() {
     ───╯
     "###);
 
-    assert_display_snapshot!(compile("Mississippi has four S’s and four I’s.").unwrap_err(), @"");
+    assert_display_snapshot!(compile("Mississippi has four S’s and four I’s.").unwrap_err(), @r###"
+    Error:
+       ╭─[:1:23]
+       │
+     1 │ Mississippi has four S’s and four I’s.
+       ·                       ┬
+       ·                       ╰── unexpected ’
+    ───╯
+    "###);
 }
 
 #[test]
