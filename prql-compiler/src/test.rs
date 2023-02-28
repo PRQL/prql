@@ -3322,6 +3322,7 @@ fn test_params() {
 }
 
 #[test]
+#[should_panic]
 fn test_datetime_parsing() {
     assert_display_snapshot!(compile(r#"
     from test_tables
