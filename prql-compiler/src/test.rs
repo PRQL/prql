@@ -3321,6 +3321,7 @@ fn test_params() {
     );
 }
 
+// TODO: fix this based on https://github.com/PRQL/prql/pull/1818
 #[test]
 #[should_panic]
 fn test_datetime_parsing() {
