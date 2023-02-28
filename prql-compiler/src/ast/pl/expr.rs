@@ -77,6 +77,9 @@ pub enum ExprKind {
         name: String,
         args: Vec<Expr>,
     },
+
+    /// a placeholder for values provided after query is compiled
+    Param(String),
 }
 
 impl ExprKind {
@@ -89,7 +92,16 @@ impl ExprKind {
 }
 
 #[derive(
-    Debug, PartialEq, Eq, Clone, Copy, Serialize, Deserialize, strum::Display, strum::EnumString,
+    Debug,
+    PartialEq,
+    Eq,
+    Clone,
+    Copy,
+    Hash,
+    Serialize,
+    Deserialize,
+    strum::Display,
+    strum::EnumString,
 )]
 pub enum BinOp {
     #[strum(to_string = "*")]
@@ -122,12 +134,12 @@ pub enum BinOp {
     Coalesce,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Serialize, Deserialize, strum::EnumString)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash, Serialize, Deserialize, strum::EnumString)]
 pub enum UnOp {
     #[strum(to_string = "-")]
     Neg,
     #[strum(to_string = "+")]
-    Add,
+    Add, // TODO: rename to Pos
     #[strum(to_string = "!")]
     Not,
     #[strum(to_string = "==")]
@@ -142,6 +154,7 @@ pub struct ListItem(pub Expr);
 pub struct FuncCall {
     pub name: Box<Expr>,
     pub args: Vec<Expr>,
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub named_args: HashMap<String, Expr>,
 }
 
@@ -328,7 +341,7 @@ pub enum TableExternRef {
     /// Placeholder for a relation that will be provided later.
     /// This is very similar to relational s-strings and may not even be needed for now, so
     /// it's not documented anywhere. But it will be used in the future.
-    Anchor(String),
+    Param(String),
     // TODO: add other sources such as files, URLs
 }
 
@@ -569,6 +582,9 @@ impl Display for Expr {
             }
             ExprKind::BuiltInFunction { .. } => {
                 f.write_str("<built-in>")?;
+            }
+            ExprKind::Param(id) => {
+                writeln!(f, "${id}")?;
             }
         }
 

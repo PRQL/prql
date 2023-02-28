@@ -476,6 +476,7 @@ pub fn infer_complexity_expr(expr: &Expr) -> Complexity {
         rq::ExprKind::ColumnRef(_)
         | rq::ExprKind::Literal(_)
         | rq::ExprKind::SString(_)
+        | rq::ExprKind::Param(_)
         | rq::ExprKind::FString(_) => Complexity::Plain,
     }
 }

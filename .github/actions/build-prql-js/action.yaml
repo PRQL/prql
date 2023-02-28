@@ -6,10 +6,9 @@ description: ""
 runs:
   using: composite
   steps:
-    - name: Install wasm-pack
-      uses: jetli/wasm-pack-action@v0.4.0
+    - uses: baptiste0928/cargo-install@next
       with:
-        version: "latest"
+        crate: wasm-pack
 
     - name: Setup Node
       uses: actions/setup-node@v3

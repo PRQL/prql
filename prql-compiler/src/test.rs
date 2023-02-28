@@ -2417,11 +2417,11 @@ fn test_unused_alias() {
     select n = [account.name]
     "###).unwrap_err(), @r###"
     Error:
-       ╭─[:3:12]
+       ╭─[:3:16]
        │
      3 │     select n = [account.name]
-       ·            ─────────┬────────
-       ·                     ╰────────── unexpected assign to `n`
+       ·                ───────┬──────
+       ·                       ╰──────── unexpected assign to `n`
        ·
        · Help: move assign into the list: `[n = ...]`
     ───╯
@@ -2569,11 +2569,11 @@ fn test_direct_table_references() {
     )
     .unwrap_err(), @r###"
     Error:
-       ╭─[:3:15]
+       ╭─[:3:14]
        │
      3 │     select s"{x}.field"
-       ·               ┬
-       ·               ╰── table instance cannot be referenced directly
+       ·              ─┬─
+       ·               ╰─── table instance cannot be referenced directly
        ·
        · Help: did you forget to specify the column name?
     ───╯
@@ -2890,11 +2890,11 @@ fn test_errors() {
     "###).unwrap_err(),
         @r###"
     Error:
-       ╭─[:5:12]
+       ╭─[:5:16]
        │
      5 │     derive y = (addadd 4 5 6)
-       ·            ─────────┬────────
-       ·                     ╰────────── Too many arguments to function `addadd`
+       ·                ───────┬──────
+       ·                       ╰──────── Too many arguments to function `addadd`
     ───╯
     "###);
 
@@ -2906,8 +2906,8 @@ fn test_errors() {
        ╭─[:2:5]
        │
      2 │     from a select b
-       ·     ───────┬───────
-       ·            ╰───────── Too many arguments to function `from`
+       ·     ────────┬───────
+       ·             ╰───────── Too many arguments to function `from`
     ───╯
     "###);
 
@@ -3290,6 +3290,52 @@ fn test_loop() {
       table_6 AS table_5
     LIMIT
       4
+    "###
+    );
+}
+
+#[test]
+fn test_params() {
+    assert_display_snapshot!(compile(r#"
+    from i = invoices
+    filter $1 <= i.date or i.date <= $2
+    select [
+        i.id,
+        i.total,
+    ]
+    filter i.total > $3
+    "#).unwrap(),
+        @r###"
+    SELECT
+      id,
+      total
+    FROM
+      invoices AS i
+    WHERE
+      (
+        $1 <= date
+        OR date <= $2
+      )
+      AND total > $3
+    "###
+    );
+}
+
+// TODO: fix this based on https://github.com/PRQL/prql/pull/1818
+#[test]
+#[should_panic]
+fn test_datetime_parsing() {
+    assert_display_snapshot!(compile(r#"
+    from test_tables
+    select [date = @2022-12-31, time = @08:30, timestamp = @2020-01-01T13:19:55-0800]
+    "#).unwrap(),
+        @r###"
+      SELECT
+        DATE '2022-12-31' AS date,
+        TIME '08:30' AS time,
+        TIMESTAMP '2020-01-01T13:19:55-0800' AS timestamp
+      FROM
+        test_table
     "###
     );
 }

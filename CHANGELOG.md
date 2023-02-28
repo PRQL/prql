@@ -5,6 +5,22 @@
 **Features**:
 
 - `loop`, which translates to `WITH RECURSIVE` (#1642, @aljazerzen)
+- Convert parser from pest to Chumsky (@aljazerzen, #1818)
+  - Improved error messages, and the potential to make even better in the
+    future. Many of these improvements come from error recovery.
+  - String escapes (`\n \t`).
+  - Raw strings that don't escape backslashes.
+  - String interpolations can only contain identifiers and not any expression.
+  - Operator associativity has been changed from right-to-left to left-to-right
+    to be more similar to other conventional languages.
+  - `and` now has a higher precedence than `or` (of same reason as the previous
+    point).
+  - Dates, times and timestamps have a stricter parsing rules.
+  - `let`, `func`, `prql`, `switch` are now treated as keywords.
+  - Float literals without fraction part are not allowed anymore (`1.`).
+- Add a `--format` option to `prqlc parse` which can return the AST in YAML
+  (@max-sixty, #1962)
+- Support for SQL parameters with similar syntax (#1957, @aljazerzen)
 
 **Fixes**:
 
@@ -12,6 +28,8 @@
   #1924)
 
 **Documentation**:
+
+- Operator precedence (@aljazerzen, #1818)
 
 **Web**:
 
