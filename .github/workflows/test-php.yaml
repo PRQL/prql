@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - "prql-php/**"
+      - "prql-lib/**"
       - ".github/workflows/test-php.yaml"
   workflow_call:
 
@@ -38,5 +39,7 @@ jobs:
           args: --working-dir=prql-php
           php_extensions: FFI
       - name: 🧪 Run tests using PHPUnit
+        # TODO: enable when aligned with https://github.com/PRQL/prql/pull/1941
+        if: false
         run: vendor/bin/phpunit tests
         working-directory: prql-php

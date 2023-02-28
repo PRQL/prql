@@ -26,7 +26,7 @@ SELECT
   SUM(_expr_0) AS sum_gross_cost,
   COUNT(*) AS ct
 FROM
-  table_1
+  table_1 AS table_0
 WHERE
   _expr_0 > 0
 GROUP BY
@@ -38,3 +38,4 @@ ORDER BY
   sum_gross_cost
 LIMIT
   20
+

@@ -1,4 +1,4 @@
-# PRQL Language Book
+# PRQL language book
 
 These docs serve as a language book, for users of the language. They should be
 friendly & accessible, at a minimum to those who understand basic SQL.

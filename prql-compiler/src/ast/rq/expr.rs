@@ -40,6 +40,9 @@ pub enum ExprKind {
         name: String,
         args: Vec<Expr>,
     },
+
+    /// Placeholder for
+    Param(String),
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]

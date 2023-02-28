@@ -1,4 +1,4 @@
-# Standard Library
+# Standard library
 
 The standard library currently contains commonly used functions that are used in
 SQL. It's not yet as broad as we'd like, and we're very open to expanding it.
@@ -17,7 +17,7 @@ Here's the source of the current
 [PRQL `std`](https://github.com/PRQL/prql/blob/main/prql-compiler/src/semantic/std.prql):
 
 ```prql_no_test
-{{#include ../../../prql-compiler/src/semantic/std.prql}}
+{{#include ../../../../prql-compiler/src/semantic/std.prql}}
 ```
 
 And a couple of examples:

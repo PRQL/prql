@@ -1,6 +1,6 @@
 const examples = {
   "introduction.prql": [
-    "arrow",
+    "sql",
     `from invoices
 filter invoice_date >= @1970-01-16
 derive [                        # This adds columns
@@ -27,7 +27,7 @@ derive db_version = s"version()" # S-string, escape hatch to SQL
   ],
 
   "let-table-0.prql": [
-    "arrow",
+    "sql",
     `let soundtracks = (
   from playlists
   filter name == 'TV Shows'
@@ -56,7 +56,7 @@ take 10
   ],
 
   "artists-0.prql": [
-    "arrow",
+    "sql",
     `from tracks
 select [album_id, name, unit_price]
 sort [-unit_price, name]

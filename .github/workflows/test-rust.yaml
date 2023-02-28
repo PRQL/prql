@@ -18,9 +18,16 @@ jobs:
       - name: 💰 Cache
         uses: Swatinem/rust-cache@v2
         with:
+          # Based on https://github.com/PRQL/prql/issues/1985, attempting to
+          # reset the cache. If necessary, we could do this on each release and
+          # have this update automatically (there's no variable that contains
+          # the current version unfortunately, though).
+          prefix-key: "0.5.2"
           key: ${{ inputs.target_option }}
           save-if: ${{ github.ref == 'refs/heads/main' }}
-      - uses: jetli/wasm-bindgen-action@v0.2.0
+      - uses: baptiste0928/cargo-install@next
+        with:
+          crate: wasm-bindgen-cli
         if: inputs.target_option == '--target=wasm32-unknown-unknown'
       - name: 📎 Clippy
         uses: richb-hanover/cargo@v1.1.0

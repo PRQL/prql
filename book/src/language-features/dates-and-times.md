@@ -41,7 +41,7 @@ ISO8601 datetime format, which uses `T` to separate date & time.
 
 ```prql
 from commits
-derive first_prql_commit = @2020-01-01T13:19:55-0800
+derive first_prql_commit = @2020-01-01T13:19:55-08:00
 ```
 
 ## Intervals

@@ -6,7 +6,6 @@ use std::error::Error as StdError;
 use std::fmt::{self, Debug, Display, Formatter};
 use std::ops::{Add, Range};
 
-use crate::parser::PestError;
 use crate::utils::IntoOnly;
 
 #[derive(Clone, PartialEq, Eq, Copy, Serialize, Deserialize)]
@@ -21,6 +20,9 @@ pub struct Error {
     pub reason: Reason,
     pub help: Option<String>,
 }
+
+#[derive(Debug, Clone)]
+pub struct Errors(pub Vec<Error>);
 
 /// Location within the source file.
 /// Tuples contain:
@@ -109,8 +111,18 @@ impl Display for ErrorMessage {
 // Needed for anyhow
 impl StdError for Error {}
 
+// Needed for anyhow
+impl StdError for Errors {}
+
 // Needed for StdError
 impl Display for Error {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        Debug::fmt(&self, f)
+    }
+}
+
+// Needed for StdError
+impl Display for Errors {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         Debug::fmt(&self, f)
     }
@@ -146,6 +158,19 @@ pub fn downcast(error: anyhow::Error) -> ErrorMessages {
         Err(error) => error,
     };
 
+    let error = match error.downcast::<Errors>() {
+        Ok(messages) => {
+            return ErrorMessages {
+                inner: messages
+                    .0
+                    .into_iter()
+                    .flat_map(|e| downcast(e.into()).inner)
+                    .collect(),
+            }
+        }
+        Err(error) => error,
+    };
+
     let reason = match error.downcast::<Error>() {
         Ok(error) => {
             span = error.span;
@@ -154,21 +179,8 @@ pub fn downcast(error: anyhow::Error) -> ErrorMessages {
             error.reason.message()
         }
         Err(error) => {
-            match error.downcast::<PestError>() {
-                Ok(error) => {
-                    let range = pest::as_range(&error);
-                    span = Some(Span {
-                        start: range.start,
-                        end: range.end,
-                    });
-
-                    pest::as_message(&error)
-                }
-                Err(error) => {
-                    // default to basic Display
-                    format!("{:#?}", error)
-                }
-            }
+            // default to basic Display
+            format!("{:#?}", error)
         }
     };
 
@@ -263,59 +275,6 @@ impl Reason {
             }
             Reason::Unexpected { found } => format!("unexpected {found}"),
             Reason::NotFound { name, namespace } => format!("{namespace} `{name}` not found"),
-        }
-    }
-}
-
-mod pest {
-    use pest::error::{ErrorVariant, InputLocation};
-    use std::ops::Range;
-
-    use crate::parser::{PestError, PestRule};
-
-    pub fn as_range(error: &PestError) -> Range<usize> {
-        match error.location {
-            InputLocation::Pos(r) => r..r + 1,
-            InputLocation::Span(r) => r.0..r.1,
-        }
-    }
-
-    pub fn as_message(error: &PestError) -> String {
-        match error.variant {
-            ErrorVariant::ParsingError {
-                ref positives,
-                ref negatives,
-            } => parsing_error_message(positives, negatives),
-            ErrorVariant::CustomError { ref message } => message.clone(),
-        }
-    }
-
-    fn parsing_error_message(positives: &[PestRule], negatives: &[PestRule]) -> String {
-        match (negatives.is_empty(), positives.is_empty()) {
-            (false, false) => format!(
-                "unexpected {}; expected {}",
-                enumerate(negatives),
-                enumerate(positives)
-            ),
-            (false, true) => format!("unexpected {}", enumerate(negatives)),
-            (true, false) => format!("expected {}", enumerate(positives)),
-            (true, true) => "unknown parsing error".to_owned(),
-        }
-    }
-
-    fn enumerate(rules: &[PestRule]) -> String {
-        match rules.len() {
-            1 => format!("{:?}", rules[0]),
-            2 => format!("{:?} or {:?}", rules[0], rules[1]),
-            l => {
-                let separated = rules
-                    .iter()
-                    .take(l - 1)
-                    .map(|x| format!("{:?}", x))
-                    .collect::<Vec<_>>()
-                    .join(", ");
-                format!("{}, or {:?}", separated, rules[l - 1])
-            }
         }
     }
 }

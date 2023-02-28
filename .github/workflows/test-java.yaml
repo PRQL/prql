@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - "prql-java/**"
+      - "prql-lib/**"
       - ".github/workflows/test-java.yaml"
   workflow_call:
 

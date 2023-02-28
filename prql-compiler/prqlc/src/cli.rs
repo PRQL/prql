@@ -1,6 +1,6 @@
 use anyhow::Result;
 use ariadne::Source;
-use clap::Parser;
+use clap::{Parser, Subcommand};
 use clio::{Input, Output};
 use itertools::Itertools;
 use std::io::{Read, Write};
@@ -14,12 +14,13 @@ use prql_compiler::{downcast, Options};
 
 use crate::watch;
 
+/// Entrypoint called by [crate::main]
 pub fn main() -> color_eyre::eyre::Result<()> {
     env_logger::builder().format_timestamp(None).init();
     color_eyre::install()?;
     let mut cli = Cli::parse();
 
-    if let Err(error) = cli.run() {
+    if let Err(error) = cli.command.run() {
         eprintln!("{error}");
         exit(1)
     }
@@ -27,48 +28,73 @@ pub fn main() -> color_eyre::eyre::Result<()> {
     Ok(())
 }
 
-#[derive(Parser)]
+#[derive(Parser, Debug, Clone)]
+struct Cli {
+    #[command(subcommand)]
+    command: Command,
+}
+
+#[derive(Subcommand, Debug, Clone)]
 #[clap(name = env!("CARGO_PKG_NAME"), about, version)]
-pub enum Cli {
-    /// Parse PL AST
-    Parse(CommandIO),
+enum Command {
+    /// Parse into PL AST
+    Parse {
+        #[clap(value_parser, default_value = "-")]
+        input: Input,
+        #[clap(value_parser, default_value = "-")]
+        output: Output,
+        #[arg(value_enum, long)]
+        format: Option<Format>,
+    },
 
     /// Parse & generate PRQL code back
     #[clap(name = "fmt")]
-    Format(CommandIO),
+    Format(IoArgs),
 
     /// Parse, resolve & combine source with comments annotating relation type
-    Annotate(CommandIO),
+    Annotate(IoArgs),
 
     /// Parse & resolve, but don't lower into RQ
-    Debug(CommandIO),
+    Debug(IoArgs),
 
     /// Parse, resolve & lower into RQ
-    Resolve(CommandIO),
+    Resolve(IoArgs),
 
     /// Parse, resolve, lower into RQ & compile to SQL
-    Compile(CommandIO),
+    Compile(IoArgs),
 
     /// Watch a directory and compile .prql files to .sql files
-    Watch(watch::WatchCommand),
+    Watch(watch::WatchArgs),
 }
 
-#[derive(clap::Args, Default)]
-pub struct CommandIO {
+#[derive(clap::Args, Default, Debug, Clone)]
+pub struct IoArgs {
     #[clap(value_parser, default_value = "-")]
     input: Input,
 
     #[clap(value_parser, default_value = "-")]
     output: Output,
+
+    // TODO: This should be only on some commands, is there an elegant way of
+    // doing that in Clap without lots of duplication?
+    #[arg(value_enum, long)]
+    format: Option<Format>,
+}
+
+#[derive(clap::ValueEnum, Clone, Debug)]
+enum Format {
+    Json,
+    Yaml,
 }
 
 fn is_stdin(input: &Input) -> bool {
     input.path() == "-"
 }
 
-impl Cli {
+impl Command {
+    /// Entrypoint called by [`main`]
     pub fn run(&mut self) -> Result<()> {
-        if let Cli::Watch(command) = self {
+        if let Command::Watch(command) = self {
             return watch::run(command);
         };
 
@@ -94,16 +120,16 @@ impl Cli {
     }
 
     fn execute(&self, source: &str) -> Result<Vec<u8>> {
-        // TODO: there's some repetiton here around converting strings to bytes;
-        // we could possibly extract that, but not sure it would neatly .
         Ok(match self {
-            Cli::Parse(_) => {
+            Command::Parse { format, .. } => {
                 let ast = prql_to_pl(source)?;
-
-                serde_yaml::to_string(&ast)?.into_bytes()
+                match format {
+                    Some(Format::Json) | None => serde_json::to_string_pretty(&ast)?.into_bytes(),
+                    Some(Format::Yaml) => serde_yaml::to_string(&ast)?.into_bytes(),
+                }
             }
-            Cli::Format(_) => prql_to_pl(source).and_then(pl_to_prql)?.as_bytes().to_vec(),
-            Cli::Debug(_) => {
+            Command::Format(_) => prql_to_pl(source).and_then(pl_to_prql)?.as_bytes().to_vec(),
+            Command::Debug(_) => {
                 let stmts = prql_to_pl(source)?;
                 let (stmts, context) = semantic::resolve_only(stmts, None)?;
 
@@ -117,7 +143,10 @@ impl Cli {
                 ]
                 .concat()
             }
-            Cli::Annotate(_) => {
+            Command::Annotate(_) => {
+                // TODO: potentially if there is code performing a role beyond
+                // presentation, it should be a library function; and we could
+                // promote it to the `prql-compiler` crate.
                 let stmts = prql_to_pl(source)?;
 
                 // resolve
@@ -128,46 +157,55 @@ impl Cli {
                 // combine with source
                 combine_prql_and_frames(source, frames).as_bytes().to_vec()
             }
-            Cli::Resolve(_) => {
+            Command::Resolve(_) => {
+                // We can't currently have `--format=yaml` here, because
+                //  serde_yaml is unable to serialize an Enum of an Enum; from
+                // https://github.com/dtolnay/serde-yaml/blob/68a9e95c9fd639498c85f55b5485f446b3f8465c/tests/test_error.rs#L175
                 let ast = prql_to_pl(source)?;
                 let ir = semantic::resolve(ast)?;
-
                 serde_json::to_string_pretty(&ir)?.into_bytes()
             }
-            Cli::Compile(_) => compile(source, &Options::default())?.as_bytes().to_vec(),
-            Cli::Watch(_) => unreachable!(),
+            // TODO: Allow passing the `Options` to the CLI; map those through.
+            // We already do this in Watch.
+            Command::Compile(_) => compile(source, &Options::default())?.as_bytes().to_vec(),
+            Command::Watch(_) => unreachable!(),
         })
     }
 
     fn read_input(&mut self) -> Result<(String, String)> {
-        use Cli::*;
-        match self {
-            Parse(io) | Format(io) | Debug(io) | Annotate(io) | Resolve(io) | Compile(io) => {
-                // Don't wait without a prompt when running `prql-compiler compile` —
-                // it's confusing whether it's waiting for input or not. This
-                // offers the prompt.
-                if is_stdin(&io.input) && atty::is(atty::Stream::Stdin) {
-                    println!("Enter PRQL, then ctrl-d:");
-                    println!();
-                }
-
-                let mut source = String::new();
-                io.input.read_to_string(&mut source)?;
-                let source_id = (*io.input.path()).to_str().unwrap().to_string();
-                Ok((source, source_id))
-            }
-            Cli::Watch(_) => unreachable!(),
+        // TODO: possibly this should be called by the relevant subcommands
+        // passing in `input`, rather than matching on them and grabbing `input`
+        // from `self`.
+        use Command::*;
+        let mut input = match self {
+            Parse { input, .. } => input.clone(),
+            Format(io) | Debug(io) | Annotate(io) | Resolve(io) | Compile(io) => io.input.clone(),
+            Watch(_) => unreachable!(),
+        };
+        // Don't wait without a prompt when running `prqlc compile` —
+        // it's confusing whether it's waiting for input or not. This
+        // offers the prompt.
+        if is_stdin(&input) && atty::is(atty::Stream::Stdin) {
+            println!("Enter PRQL, then ctrl-d:");
+            println!();
         }
+
+        let mut source = String::new();
+        (input).read_to_string(&mut source)?;
+        let source_id = (input.path()).to_str().unwrap().to_string();
+        Ok((source, source_id))
     }
 
     fn write_output(&mut self, data: &[u8]) -> std::io::Result<()> {
-        use Cli::*;
-        match self {
-            Parse(io) | Format(io) | Debug(io) | Annotate(io) | Resolve(io) | Compile(io) => {
-                io.output.write_all(data)
+        use Command::*;
+        let mut output = match self {
+            Parse { output, .. } => output.to_owned(),
+            Format(io) | Debug(io) | Annotate(io) | Resolve(io) | Compile(io) => {
+                io.output.to_owned()
             }
-            Cli::Watch(_) => unreachable!(),
-        }
+            Watch(_) => unreachable!(),
+        };
+        output.write_all(data)
     }
 }
 
@@ -205,12 +243,28 @@ fn combine_prql_and_frames(source: &str, frames: Vec<(Span, Frame)>) -> String {
 mod tests {
     use insta::{assert_display_snapshot, assert_snapshot};
 
+    // TODO: would be good to test the basic CLI interface — i.e. snapshotting this:
+
+    // $ prqlc parse --help
+    //
+    // Parse PL AST
+    //
+    // Usage: prqlc parse [OPTIONS] [INPUT] [OUTPUT]
+    //
+    // Arguments:
+    //   [INPUT]   [default: -]
+    //   [OUTPUT]  [default: -]
+    //
+    // Options:
+    //       --format <FORMAT>  [possible values: json, yaml]
+    //   -h, --help             Print help
+
     use super::*;
 
     #[test]
     fn layouts() {
-        let output = Cli::execute(
-            &Cli::Annotate(CommandIO::default()),
+        let output = Command::execute(
+            &Command::Annotate(IoArgs::default()),
             r#"
 from initial_table
 select [f = first_name, l = last_name, gender]
@@ -234,8 +288,8 @@ sort full
 
     #[test]
     fn format() {
-        let output = Cli::execute(
-            &Cli::Format(CommandIO::default()),
+        let output = Command::execute(
+            &Command::Format(IoArgs::default()),
             r#"
 from table.subdivision
  derive      `želva_means_turtle`   =    (`column with spaces` + 1) * 3
@@ -267,8 +321,7 @@ group a_column (take 10 | sort b_column | derive [the_number = rank, last = lag 
     fn compile() {
         // Check we get an error on a bad input
         let input = "asdf";
-        let result = Cli::execute(&Cli::Compile(CommandIO::default()), input);
-        assert!(result.is_err());
+        let result = Command::execute(&Command::Compile(IoArgs::default()), input);
         assert_display_snapshot!(result.unwrap_err(), @r###"
         Error:
            ╭─[:1:1]
@@ -277,6 +330,39 @@ group a_column (take 10 | sort b_column | derive [the_number = rank, last = lag 
            · ──┬─
            ·   ╰─── Unknown name asdf
         ───╯
+        "###);
+    }
+
+    #[test]
+    fn parse() {
+        let output = Command::execute(
+            &Command::Parse {
+                input: IoArgs::default().input,
+                output: IoArgs::default().output,
+                format: Some(Format::Yaml),
+            },
+            "from x | select y",
+        )
+        .unwrap();
+
+        assert_display_snapshot!(String::from_utf8(output).unwrap().trim(), @r###"
+        - Main:
+            Pipeline:
+              exprs:
+              - FuncCall:
+                  name:
+                    Ident:
+                    - from
+                  args:
+                  - Ident:
+                    - x
+              - FuncCall:
+                  name:
+                    Ident:
+                    - select
+                  args:
+                  - Ident:
+                    - y
         "###);
     }
 }

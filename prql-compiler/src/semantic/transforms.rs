@@ -10,7 +10,7 @@ use crate::ast::pl::*;
 use crate::ast::rq::RelationColumn;
 use crate::error::{Error, Reason, WithErrorInfo};
 
-use super::context::{Decl, DeclKind, TableDecl, TableExpr};
+use super::context::{Decl, DeclKind};
 use super::module::{Module, NS_FRAME, NS_PARAM};
 use super::resolver::Resolver;
 use super::{Context, Frame};
@@ -192,6 +192,13 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
 
             (TransformKind::Append(Box::new(bottom)), top)
         }
+        "std.loop" => {
+            let [pipeline, tbl] = unpack::<2>(closure);
+
+            let pipeline = fold_by_simulating_eval(resolver, pipeline, tbl.ty.clone().unwrap())?;
+
+            (TransformKind::Loop(Box::new(pipeline)), tbl)
+        }
 
         "std.in" => {
             // yes, this is not a transform, but this is the most appropriate place for it
@@ -365,40 +372,6 @@ pub fn cast_transform(resolver: &mut Resolver, closure: Closure) -> Result<Resul
                 id: text_expr.id,
                 ..res
             };
-            return Ok(Ok(res));
-        }
-
-        "std.anchor" => {
-            // yes, this is not a transform, but this is the most appropriate place for it
-
-            let [id_expr] = unpack::<1>(closure);
-
-            let id = match id_expr.kind {
-                ExprKind::Literal(Literal::String(text)) => text,
-                _ => {
-                    return Err(Error::new(Reason::Expected {
-                        who: Some("std.anchor".to_string()),
-                        expected: "a string literal".to_string(),
-                        found: format!("`{id_expr}`"),
-                    })
-                    .with_span(id_expr.span)
-                    .into());
-                }
-            };
-
-            let ident = Ident::from_path(vec!["_anchor".to_string(), id.clone()]);
-            let entry = Decl {
-                declared_at: id_expr.id,
-                kind: DeclKind::TableDecl(TableDecl {
-                    columns: vec![RelationColumn::Wildcard],
-                    expr: TableExpr::Anchor(id),
-                }),
-                order: 0,
-            };
-            resolver.context.root_mod.insert(ident.clone(), entry)?;
-
-            let mut res = Expr::from(ExprKind::Ident(ident));
-            res.alias = Some("anchor".to_string());
             return Ok(Ok(res));
         }
 
@@ -582,6 +555,7 @@ impl TransformCall {
                 let bottom = ty_frame_or_default(bottom)?;
                 append(top, bottom)?
             }
+            Loop(_) => ty_frame_or_default(&self.input)?,
             Sort { .. } | Filter { .. } | Take { .. } => ty_frame_or_default(&self.input)?,
         })
     }
