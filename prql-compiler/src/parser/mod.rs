@@ -2206,4 +2206,15 @@ join s=salaries [==id]
         Param: 2_any_text
         "###);
     }
+
+    #[test]
+    fn test_error_unicode_string() {
+        parse("s’ ").unwrap_err();
+        parse("s’").unwrap_err();
+        parse(" s’").unwrap_err();
+
+        // FIXME: currently blocking
+        let source = "’s ";
+        let (_tokens, _lex_errors) = ::chumsky::Parser::parse_recovery(&lexer::lexer(), source);
+    }
 }
