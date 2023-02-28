@@ -8,8 +8,10 @@ use notify::{Config, RecommendedWatcher, RecursiveMode, Watcher};
 use prql_compiler::downcast;
 use walkdir::WalkDir;
 
-#[derive(Parser)]
-pub struct WatchCommand {
+use crate::jinja;
+
+#[derive(Parser, Debug, Clone)]
+pub struct WatchArgs {
     /// Directory or file to watch for changes
     pub path: OsString,
 
@@ -20,7 +22,7 @@ pub struct WatchCommand {
     pub no_signature: bool,
 }
 
-pub fn run(command: &mut WatchCommand) -> Result<()> {
+pub fn run(command: &mut WatchArgs) -> Result<()> {
     let opt = prql_compiler::Options {
         format: !command.no_format,
         target: prql_compiler::Target::Sql(None),
@@ -33,7 +35,7 @@ pub fn run(command: &mut WatchCommand) -> Result<()> {
 
     // watch and compile
     println!("Watching path \"{}\"", path.display());
-    watch_and_compile(path, &opt).unwrap();
+    watch_and_compile(path, &opt)?;
 
     Ok(())
 }
@@ -108,9 +110,12 @@ fn compile_path(path: &Path, opt: &prql_compiler::Options) -> Result<()> {
         return Ok(());
     }
 
+    // pre-process Jinja
+    let (prql_string, jinja_context) = jinja::pre_process(&prql_string)?;
+
     // compile
     println!("Compiling {}", prql_path.display());
-    let sql_string = match prql_compiler::compile(&prql_string, opt.clone()) {
+    let sql_string = match prql_compiler::compile(&prql_string, opt) {
         Ok(sql_string) => sql_string,
         Err(err) => {
             let source_id = &prql_path.to_str().unwrap_or_default();
@@ -118,6 +123,9 @@ fn compile_path(path: &Path, opt: &prql_compiler::Options) -> Result<()> {
             return Err(anyhow!("failed to compile"));
         }
     };
+
+    // post-process Jinja
+    let sql_string = jinja::post_process(&sql_string, jinja_context);
 
     // write
     fs::write(sql_path, sql_string)?;

@@ -1,0 +1,37 @@
+{
+  "name": "prql/compiler",
+  "description": "PRQL compiler bindings.",
+  "keywords": [
+    "prql",
+    "sql"
+  ],
+  "homepage": "https://prql-lang.org/",
+  "type": "library",
+  "license": "Apache-2.0",
+  "autoload": {
+    "psr-4": {
+      "Prql\\Compiler\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Prql\\Tests\\": "tests/"
+    }
+  },
+  "authors": [
+    {
+      "name": "Jonathan"
+    }
+  ],
+  "support": {
+    "issues": "https://github.com/PRQL/prql/issues",
+    "source": "https://github.com/PRQL/prql",
+    "docs": "https://prql-lang.org/book/"
+  },
+  "require": {
+    "ext-ffi": "*"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^10"
+  }
+}

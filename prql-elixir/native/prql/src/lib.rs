@@ -1,3 +1,5 @@
+// See Readme for more information on Mac compiling
+#![cfg(not(target_os = "macos"))]
 // These bindings aren't relevant on wasm
 #![cfg(not(target_family = "wasm"))]
 // TODO: unclear why we need this `allow`; it's required in `CompileOptions`,
@@ -118,7 +120,7 @@ pub struct Response {
 #[rustler::nif]
 /// compile a prql query into sql
 pub fn compile(prql_query: &str, options: CompileOptions) -> NifResult<Response> {
-    to_result_tuple(prql_compiler::compile(prql_query, options.into()))
+    to_result_tuple(prql_compiler::compile(prql_query, &options.into()))
 }
 
 #[rustler::nif]
@@ -150,7 +152,7 @@ pub fn rq_to_sql(rq_json: &str) -> NifResult<Response> {
             .and_then(prql_compiler::json::to_rq)
             // Currently just using default options here; probably should pass
             // an argument from this func.
-            .and_then(|x| prql_compiler::rq_to_sql(x, prql_compiler::Options::default())),
+            .and_then(|x| prql_compiler::rq_to_sql(x, &prql_compiler::Options::default())),
     )
 }
 

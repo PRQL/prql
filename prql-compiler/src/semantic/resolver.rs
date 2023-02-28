@@ -228,6 +228,11 @@ impl AstFold for Resolver {
             }
 
             ExprKind::Unary {
+                op: UnOp::Add,
+                expr,
+            } => self.fold_expr(*expr)?,
+
+            ExprKind::Unary {
                 op: UnOp::Not,
                 expr,
             } if matches!(expr.kind, ExprKind::List(_)) => self.resolve_column_exclusion(*expr)?,
@@ -409,7 +414,17 @@ impl Resolver {
             closure.args.len(),
             closure.params.len()
         );
-        let enough_args = closure.args.len() >= closure.params.len();
+
+        if closure.args.len() > closure.params.len() {
+            return Err(Error::new_simple(format!(
+                "Too many arguments to function `{}`",
+                closure.as_debug_name()
+            ))
+            .with_span(span)
+            .into());
+        }
+
+        let enough_args = closure.args.len() == closure.params.len();
 
         let mut r = if enough_args {
             // push the env

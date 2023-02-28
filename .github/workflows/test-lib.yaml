@@ -1,0 +1,34 @@
+name: test-lib
+
+on:
+  pull_request:
+    paths:
+      # We also run the tests for the libraries that depend on this, from their workflow files.
+      - "prql-lib/**"
+      - ".github/workflows/test-lib.yaml"
+  workflow_call:
+
+concurrency:
+  # See notes in `pull-request.yaml`
+  group: ${{ github.workflow }}-${{ github.ref }}-lib
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📂 Checkout code
+        uses: actions/checkout@v3
+      - name: 💰 Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ inputs.target_option }}
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - name: Build
+        uses: richb-hanover/cargo@v1.1.0
+        with:
+          command: build
+          args: --release -p prql-lib
+      - name: Run basic C example
+        working-directory: prql-lib/examples/minimal-c
+        run: make run

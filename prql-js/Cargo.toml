@@ -23,7 +23,12 @@ default = ["console_error_panic_hook"]
 
 [dependencies]
 prql-compiler = {path = "../prql-compiler", default-features = false}
-wasm-bindgen = "0.2.80"
+# This was preventing the playground from working. It's possibly
+# https://github.com/rustwasm/wasm-bindgen/issues/3276
+# If the playground works with a later version, we can unpin this. It's likely
+# related to wasm-pack. So https://github.com/PRQL/prql/issues/1836 would likely
+# solve it, along with simplifying the build process.
+wasm-bindgen = "=0.2.83"
 
 # The `console_error_panic_hook` crate provides better debugging of panics by
 # logging them with `console.error`. This is great for development, but requires
@@ -44,12 +49,19 @@ tag-prefix = ""
 [[package.metadata.release.pre-release-replacements]]
 exactly = 1
 file = "package.json"
-replace = '  "version": "{{version}}"'
-search = '  "version": "(\d+\.\d+\.\d+)"'
+replace = '$1"{{version}}"'
+search = '(  "version": )"(\d+\.\d+\.\d+)"'
+
+[[package.metadata.release.pre-release-replacements]]
+exactly = 2
+file = "package-lock.json"
+replace = '''
+$1
+$2"{{version}}"'''
+search = '(\s+"prql-js",)\n(\s+"version": )"[\d\.]+"'
 
 [[package.metadata.release.pre-release-replacements]]
 exactly = 1
 file = "../playground/package-lock.json"
-replace = '''    "../prql-js": {
-      "version": "{{version}}"'''
-search = '    "../prql-js": \{\n      "version": "[\d\.]+"'
+replace = '''$1"{{version}}"'''
+search = '(    "../prql-js": \{\n      "version": )"[\d\.]+"'

@@ -1,18 +1,23 @@
-# PRQL library target
+# PRQL C library
 
 ## Description
 
 This module compiles PRQL as a library (both `.a` and `.so` are generated). This
 allows embedding in languages that support FFI - looking at Golang.
 
-## Usage
+## Linking
+
+See [examples/minimal-c/Makefile](examples/minimal-c/Makefile).
 
 Copy the `.a` and `.so` files in a convenient place and add the following
 compile flags to Go (cgo):
 
 `CGO_LDFLAGS="-L/path/to/libprql_lib.a -lprql_lib -pthread -ldl" go build`
 
-## Code
+## Examples
+
+For a minimal example, see
+[examples/minimal-c/main.c](examples/minimal-c/main.c).
 
 Below is an example from an actual application that is using PRQL in Go.
 
@@ -82,3 +87,13 @@ func ToJSON(prql string) (string, error) {
     return "", errors.New(C.GoString(cstr))
 }
 ```
+
+## Development
+
+### C header file
+
+The C header file `libprql_lib.h` was generated using
+[cbindgen](https://github.com/eqrion/cbindgen). To generate a new one run:
+
+    cargo install --force cbindgen
+    cbindgen --crate prql-lib --output libprql_lib.h

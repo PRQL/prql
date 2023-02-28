@@ -1,17 +1,15 @@
 name: test-java
 
 on:
-  push:
-    branches:
-      - main
   pull_request:
     paths:
       - "prql-java/**"
+      - "prql-lib/**"
       - ".github/workflows/test-java.yaml"
   workflow_call:
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}-test-java
+  group: ${{ github.workflow }}-${{ github.ref }}-java
   cancel-in-progress: true
 
 jobs:

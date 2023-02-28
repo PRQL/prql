@@ -35,7 +35,7 @@ describe("prql-js", () => {
 
     it("should throw an error on invalid prql", () => {
       expect(() =>
-        prql.compile("Mississippi has four S’s and four I’s.")
+        prql.compile("Mississippi has four Ss and four Is.")
       ).to.throw("Error");
     });
 
@@ -47,6 +47,20 @@ describe("prql-js", () => {
 
       const res = prql.compile("from a | take 10", opts);
       assert.equal(res, "SELECT TOP (10) * FROM a");
+    });
+
+    it("CompileOptions should be preferred and should ignore target in header", () => {
+      const opts = new prql.CompileOptions();
+      opts.target = "sql.mssql";
+      opts.format = false;
+      opts.signature_comment = true;
+
+      const res = prql.compile(
+        "prql target:sql.sqlite\nfrom a | take 10",
+        opts
+      );
+      assert(res.includes("SELECT TOP (10) * FROM a"));
+      assert(res.includes("target:sql.mssql"));
     });
   });
 
@@ -69,14 +83,13 @@ describe("prql-js", () => {
       assert.equal(opts.target, "sql.sqlite");
     });
 
-    it("should fallback to generic dialect", () => {
+    it("should fallback to the target in header", () => {
       const opts = new prql.CompileOptions();
 
       opts.target = "sql.not_existing";
-      const res = prql.compile("from a", opts);
+      const res = prql.compile("prql target:sql.mssql\nfrom a | take 1", opts);
 
-      // target should appear in signature comment
-      assert(res.includes("target:sql.generic"));
+      assert(res.includes("TOP (1)"));
     });
   });
 
@@ -85,16 +98,6 @@ describe("prql-js", () => {
       const targets = new prql.get_targets();
       assert(targets.length > 0);
       assert(targets.includes("sql.sqlite"));
-    });
-
-    it("should fallback to generic dialect", () => {
-      const opts = new prql.CompileOptions();
-
-      opts.target = "sql.not_existing";
-      const res = prql.compile("from a", opts);
-
-      // target should appear in signature comment
-      assert(res.includes("target:sql.generic"));
     });
   });
 });

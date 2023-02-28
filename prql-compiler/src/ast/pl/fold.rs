@@ -110,6 +110,7 @@ pub fn fold_expr_kind<T: ?Sized + AstFold>(fold: &mut T, expr_kind: ExprKind) ->
             name,
             args: fold.fold_exprs(args)?,
         },
+        Param(id) => Param(id),
 
         // None of these capture variables, so we don't need to fold them.
         Literal(_) => expr_kind,
@@ -273,6 +274,7 @@ pub fn fold_transform_kind<T: ?Sized + AstFold>(
             range: fold_range(fold, range)?,
             pipeline: Box::new(fold.fold_expr(*pipeline)?),
         },
+        Loop(pipeline) => Loop(Box::new(fold.fold_expr(*pipeline)?)),
     })
 }
 

@@ -187,6 +187,7 @@ pub fn fold_transform<T: ?Sized + RqFold>(
             filter: fold.fold_expr(filter)?,
         },
         Append(bottom) => Append(fold.fold_table_ref(bottom)?),
+        Loop(transforms) => Loop(fold_transforms(fold, transforms)?),
     };
     Ok(transform)
 }
@@ -232,6 +233,7 @@ pub fn fold_expr_kind<F: ?Sized + RqFold>(fold: &mut F, kind: ExprKind) -> Resul
             name,
             args: args.into_iter().map(|a| fold.fold_expr(a)).try_collect()?,
         },
+        ExprKind::Param(id) => ExprKind::Param(id),
 
         ExprKind::Literal(_) => kind,
     })

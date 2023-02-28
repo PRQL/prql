@@ -246,7 +246,7 @@ showcase_section:
         SELECT
           *
         FROM
-          table_1
+          table_1 AS table_0
         WHERE
           _expr_0 <= 1
 
@@ -380,12 +380,13 @@ tools_section:
 
         `pip install pyprql`
 
-    - link: "https://github.com/PRQL/prql"
-      label: "prql-compiler"
+    - link: https://crates.io/crates/prqlc
+      label: "prqlc"
       text: |
-        Reference compiler implementation. Has a CLI utility that can transpile, format and annotate PRQL queries.
+        A CLI for PRQL compiler, written in Rust.
 
-        `brew install prql/PRQL/prql-compiler`
+        `cargo install prqlc`
+        `brew install prql/PRQL/prqlc`
 
 integrations_section:
   enable: true
@@ -430,12 +431,10 @@ bindings_section:
       label: "prqlr"
       text: "R bindings for prql-compiler."
 
-    - link: https://crates.io/crates/prqlc
-      label: "prqlc"
+    - link: "https://crates.io/crates/prql-compiler"
+      label: "prql-compiler"
       text: |
-        A CLI for PRQL compiler, written in Rust.
-
-        `cargo install prqlc`
+        Reference compiler implementation, written in Rust. Transpile, format and annotate PRQL queries.
 
 comments_section:
   enable: true

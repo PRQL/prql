@@ -1,8 +1,69 @@
 # PRQL Changelog
 
-## 0.5.1 — [unreleased]
+## 0.5.3 — [unreleased]
 
 **Features**:
+
+- `loop`, which translates to `WITH RECURSIVE` (#1642, @aljazerzen)
+- Convert parser from pest to Chumsky (@aljazerzen, #1818)
+  - Improved error messages, and the potential to make even better in the
+    future. Many of these improvements come from error recovery.
+  - String escapes (`\n \t`).
+  - Raw strings that don't escape backslashes.
+  - String interpolations can only contain identifiers and not any expression.
+  - Operator associativity has been changed from right-to-left to left-to-right
+    to be more similar to other conventional languages.
+  - `and` now has a higher precedence than `or` (of same reason as the previous
+    point).
+  - Dates, times and timestamps have a stricter parsing rules.
+  - `let`, `func`, `prql`, `switch` are now treated as keywords.
+  - Float literals without fraction part are not allowed anymore (`1.`).
+- Add a `--format` option to `prqlc parse` which can return the AST in YAML
+  (@max-sixty, #1962)
+- Support for SQL parameters with similar syntax (#1957, @aljazerzen)
+
+**Fixes**:
+
+- `prqlc compile` returns a non-zero exit code for invalid queries. (@max-sixty,
+  #1924)
+
+**Documentation**:
+
+- Operator precedence (@aljazerzen, #1818)
+
+**Web**:
+
+**Integrations**:
+
+- [prql-php] Added PHP bindings. (@vanillajonathan, #1860)
+- [prql-dotnet] Added .NET bindings. (@vanillajonathan, #1917)
+- [prql-lib] Added C header file. (@vanillajonathan, #1879)
+- Added a workflow building a `.deb` on each release. (Note that it's not yet
+  published on each release). (@vanillajonathan, #1883)
+- Added a workflow building a Snap package on each release. (@vanillajonathan,
+  #1881)
+
+**Internal changes**:
+
+**New Contributors**:
+
+## 0.5.2 — 2022-02-18
+
+0.5.2 is a tiny release to fix an build issue in yesterday's `prql-js` 0.5.1
+release.
+
+This release has 7 commits from 2 contributors.
+
+**New Contributors**:
+
+- @matthias-Q, with #1873
+
+## 0.5.1 — 2022-02-17
+
+0.5.1 contains a few fixes, and another change to how bindings handle default
+target / dialects.
+
+This release has 53 commits from 7 contributors. Selected changes:
 
 **Fixes**:
 
@@ -15,16 +76,18 @@
 
 - Add docs on the `from_text` transform (@max-sixty, #1756)
 
-**Web**:
-
 **Integrations**:
 
+- [prql-js] Default compile target changed from `Sql(Generic)` to `Sql(None)`.
+  (@eitsupi, #1856)
 - [prql-python] Compilation options can now be specified from Python. (@eitsupi,
   #1807)
-
-**Internal changes**:
+- [prql-python] Default compile target changed from `Sql(Generic)` to
+  `Sql(None)`. (@eitsupi, #1861)
 
 **New Contributors**:
+
+- @vanillajonathan, with #1766
 
 ## 0.5.0 — 2022-02-08
 

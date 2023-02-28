@@ -1,7 +1,7 @@
 #![cfg(not(target_family = "wasm"))]
 use std::str::FromStr;
 
-use prql_compiler::{self, sql::Dialect, IntoOnly, Target};
+use prql_compiler::{self, IntoOnly, Target};
 use pyo3::{exceptions, prelude::*};
 
 #[pyfunction]
@@ -9,7 +9,7 @@ pub fn compile(prql_query: &str, options: Option<CompileOptions>) -> PyResult<St
     Ok(prql_query)
         .and_then(prql_compiler::prql_to_pl)
         .and_then(prql_compiler::pl_to_rq)
-        .and_then(|rq| prql_compiler::rq_to_sql(rq, options.map(|o| o.into()).unwrap_or_default()))
+        .and_then(|rq| prql_compiler::rq_to_sql(rq, &options.map(|o| o.into()).unwrap_or_default()))
         .map_err(|e| e.composed("", prql_query, false))
         .map_err(|e| (PyErr::new::<exceptions::PySyntaxError, _>(e.into_only().unwrap().reason)))
 }
@@ -35,7 +35,7 @@ pub fn pl_to_rq(pl_json: &str) -> PyResult<String> {
 pub fn rq_to_sql(rq_json: &str) -> PyResult<String> {
     Ok(rq_json)
         .and_then(prql_compiler::json::to_rq)
-        .and_then(|x| prql_compiler::rq_to_sql(x, prql_compiler::Options::default()))
+        .and_then(|x| prql_compiler::rq_to_sql(x, &prql_compiler::Options::default()))
         .map_err(|err| (PyErr::new::<exceptions::PyValueError, _>(err.to_json())))
 }
 
@@ -84,7 +84,8 @@ pub struct CompileOptions {
 #[pymethods]
 impl CompileOptions {
     #[new]
-    pub fn new(format: bool, target: String, signature_comment: bool) -> Self {
+    pub fn new(format: bool, signature_comment: bool, target: Option<String>) -> Self {
+        let target = target.unwrap_or_default();
         CompileOptions {
             format,
             target,
@@ -95,7 +96,7 @@ impl CompileOptions {
 
 impl From<CompileOptions> for prql_compiler::Options {
     fn from(o: CompileOptions) -> Self {
-        let target = Target::from_str(&o.target).unwrap_or(Target::Sql(Some(Dialect::Generic)));
+        let target = Target::from_str(&o.target).unwrap_or_default();
 
         prql_compiler::Options {
             format: o.format,

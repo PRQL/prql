@@ -24,7 +24,7 @@ could to go! We bundle in `IPython` and `pandas`, though you'll need to install
 pip install pyprql
 ```
 
-### Set Up
+### Set up
 
 Open up either an `IPython` terminal or `Jupyter` notebook. First, we need to
 load the extension and connect to a database.
