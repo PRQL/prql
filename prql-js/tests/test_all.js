@@ -35,7 +35,7 @@ describe("prql-js", () => {
 
     it("should throw an error on invalid prql", () => {
       expect(() =>
-        prql.compile("Mississippi has four S’s and four I’s.")
+        prql.compile("Mississippi has four Ss and four Is.")
       ).to.throw("Error");
     });
 
