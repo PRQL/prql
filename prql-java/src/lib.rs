@@ -10,7 +10,7 @@ pub extern "system" fn Java_org_prql_prql4j_PrqlCompiler_toSql(
     env: JNIEnv,
     _class: JClass,
     query: JString,
-    dialect: JString,
+    target: JString,
     format: jboolean,
     signature: jboolean,
 ) -> jstring {
@@ -18,28 +18,28 @@ pub extern "system" fn Java_org_prql_prql4j_PrqlCompiler_toSql(
         .get_string(query)
         .expect("Couldn't get java string!")
         .into();
-    let target_dialect: String = if let Ok(dialect_name) = env.get_string(dialect) {
-        dialect_name.into()
+    let target_dialect: String = if let Ok(target_name) = env.get_string(target) {
+        target_name.into()
     } else {
-        "generic".to_owned()
+        "sql.generic".to_owned()
     };
-    let prql_dialect = match target_dialect.as_str() {
-        "ansi" => Dialect::Ansi,
-        "bigquery" => Dialect::BigQuery,
-        "clickhouse" => Dialect::ClickHouse,
-        "duckdb" => Dialect::DuckDb,
-        "generic" => Dialect::Generic,
-        "hive" => Dialect::Hive,
-        "mssql" => Dialect::MsSql,
-        "mysql" => Dialect::MySql,
-        "postgres" => Dialect::PostgreSql,
-        "sqlite" => Dialect::SQLite,
-        "snowflake" => Dialect::Snowflake,
+    let prql_target = match target_dialect.as_str() {
+        "sql.ansi" => Dialect::Ansi,
+        "sql.bigquery" => Dialect::BigQuery,
+        "sql.clickhouse" => Dialect::ClickHouse,
+        "sql.duckdb" => Dialect::DuckDb,
+        "sql.generic" => Dialect::Generic,
+        "sql.hive" => Dialect::Hive,
+        "sql.mssql" => Dialect::MsSql,
+        "sql.mysql" => Dialect::MySql,
+        "sql.postgres" => Dialect::PostgreSql,
+        "sql.sqlite" => Dialect::SQLite,
+        "sql.snowflake" => Dialect::Snowflake,
         _ => Dialect::Generic,
     };
     let opt = Options {
         format: format != 0,
-        target: Target::Sql(Some(prql_dialect)),
+        target: Target::Sql(Some(prql_target)),
         signature_comment: signature != 0,
     };
     let result = prql_compiler::compile(&prql_query, &opt);
