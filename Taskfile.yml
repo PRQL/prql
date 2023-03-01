@@ -69,7 +69,7 @@ tasks:
     cmds:
       # `--locked` installs from the underlying lock files (which is not the
       # default?!)
-      - cargo install --locked cargo-audit cargo-insta cargo-release
+      - cargo install --locked bacon cargo-audit cargo-insta cargo-release
         default-target mdbook mdbook-admonish mdbook-toc wasm-bindgen-cli
         wasm-pack
         # Can't install atm with `--locked`

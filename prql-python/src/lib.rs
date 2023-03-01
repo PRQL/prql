@@ -1,7 +1,7 @@
 #![cfg(not(target_family = "wasm"))]
 use std::str::FromStr;
 
-use prql_compiler::{self, IntoOnly, Target};
+use prql_compiler::{self, Target};
 use pyo3::{exceptions, prelude::*};
 
 #[pyfunction]
@@ -11,7 +11,7 @@ pub fn compile(prql_query: &str, options: Option<CompileOptions>) -> PyResult<St
         .and_then(prql_compiler::pl_to_rq)
         .and_then(|rq| prql_compiler::rq_to_sql(rq, &options.map(|o| o.into()).unwrap_or_default()))
         .map_err(|e| e.composed("", prql_query, false))
-        .map_err(|e| (PyErr::new::<exceptions::PySyntaxError, _>(e.into_only().unwrap().reason)))
+        .map_err(|e| (PyErr::new::<exceptions::PySyntaxError, _>(e.to_string())))
 }
 
 #[pyfunction]

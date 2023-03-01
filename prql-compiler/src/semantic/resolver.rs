@@ -760,15 +760,15 @@ fn env_of_closure(closure: Closure) -> (Module, Expr) {
 mod test {
     use anyhow::Result;
     use insta::assert_yaml_snapshot;
+    use itertools::Itertools;
 
     use crate::ast::pl::{Expr, Ty};
     use crate::semantic::resolve_only;
-    use crate::utils::IntoOnly;
 
     fn parse_and_resolve(query: &str) -> Result<Expr> {
         let (stmts, _) = resolve_only(crate::parser::parse(query)?, None)?;
 
-        Ok(*stmts.into_only()?.kind.into_main()?)
+        Ok(*stmts.into_iter().exactly_one()?.kind.into_main()?)
     }
 
     fn resolve_type(query: &str) -> Result<Ty> {
