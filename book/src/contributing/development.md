@@ -253,6 +253,9 @@ Our tests, from the bottom of the pyramid to the top:
   on GitHub on every commit; any changes they make are added onto the branch
   automatically in an additional commit.
 
+  - Checking by [MegaLinter](https://megalinter.io/latest/), which includes more
+    Linters, is also done automatically on GitHub. (experimental)
+
 - **Unit tests & inline insta snapshots** — we rely on unit tests to rapidly
   check that our code basically works. We extensively use
   [Insta](https://insta.rs/), a snapshot testing tool which writes out the
