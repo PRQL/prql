@@ -230,9 +230,15 @@ fn literal() -> impl Parser<char, Literal, Error = Cheap<char>> {
         .chain::<char, _, _>(
             one_of("-+")
                 .chain(
-                    digits(2)
-                        .chain(just(':'))
-                        .chain(digits(2))
+                    // TODO: This is repeated without the `:`~ with an `or`
+                    // because using `.or_not` triggers a request for
+                    // type hints, which seems difficult to provide... Is there
+                    // an easier way?
+                    //
+                    //   (digits(2).chain(just(':').or_not()).chain(digits(2)))
+                    //
+                    (digits(2).chain(just(':')).chain(digits(2)))
+                        .or(digits(2).chain(digits(2)))
                         .or(just('Z').map(|x| vec![x])),
                 )
                 .or_not()
