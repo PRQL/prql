@@ -297,6 +297,7 @@ mod tests {
                     namespace: "target",
                 },
                 help: None,
+                code: None,
             },
         )
         "###);
@@ -310,6 +311,7 @@ mod tests {
                     namespace: "target",
                 },
                 help: None,
+                code: None,
             },
         )
         "###);
