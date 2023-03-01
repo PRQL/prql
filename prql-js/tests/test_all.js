@@ -29,7 +29,7 @@ describe("prql-js", () => {
       const sql = prql.compile(employee_prql);
       assert(
         sql.trim().toLowerCase().startsWith("with") ||
-          sql.trim().toLowerCase().startsWith("select")
+        sql.trim().toLowerCase().startsWith("select")
       );
     });
 
@@ -98,6 +98,30 @@ describe("prql-js", () => {
       const targets = new prql.get_targets();
       assert(targets.length > 0);
       assert(targets.includes("sql.sqlite"));
+    });
+  });
+
+  describe("compile error", () => {
+    it("should contain json", () => {
+      try {
+        prql.compile('from x | select a | select b');
+      } catch (error) {
+        const errorMessages = JSON.parse(error.message).inner;
+
+        assert(errorMessages.length > 0);
+        assert(errorMessages[0].display.includes('\n'));
+        assert(!errorMessages[0].reason.includes('\n'));
+      }
+    });
+
+    it("should contain error code", () => {
+      try {
+        prql.compile('let a = (from x)');
+      } catch (error) {
+        const errorMessages = JSON.parse(error.message).inner;
+
+        assert(errorMessages[0].code == 'E0001');
+      }
     });
   });
 });

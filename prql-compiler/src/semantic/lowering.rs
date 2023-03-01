@@ -45,7 +45,8 @@ pub fn lower_ast_to_ir(statements: Vec<pl::Stmt>, context: Context) -> Result<Qu
     Ok(Query {
         def: query_def.unwrap_or_default(),
         tables: l.table_buffer,
-        relation: main_pipeline.ok_or_else(|| Error::new_simple("missing main pipeline"))?,
+        relation: main_pipeline
+            .ok_or_else(|| Error::new_simple("Missing query").with_code("E0001"))?,
     })
 }
 

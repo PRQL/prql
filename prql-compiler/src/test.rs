@@ -360,7 +360,9 @@ fn test_remove() {
     from album
     remove artist
     "#).unwrap_err(),
-        @"Your dialect does not support EXCEPT ALL"
+        @r###"
+    Error: Your dialect does not support EXCEPT ALL
+    "###
     );
 
     assert_display_snapshot!(compile(r#"
@@ -571,7 +573,9 @@ fn test_intersect() {
     from album
     intersect artist
     "#).unwrap_err(),
-        @"Your dialect does not support INTERCEPT ALL"
+        @r###"
+    Error: Your dialect does not support INTERCEPT ALL
+    "###
     );
 }
 
@@ -2668,7 +2672,9 @@ fn test_group_all() {
         r###"
     from e=albums
     group ![genre_id] (aggregate count)
-        "###).unwrap_err(), @"Excluding columns not supported as this position");
+        "###).unwrap_err(), @r###"
+    Error: Excluding columns not supported as this position
+    "###);
 }
 
 #[test]
@@ -2949,6 +2955,14 @@ fn test_errors() {
        ·                       ╰── unexpected ’
     ───╯
     "###);
+    
+    let err = compile(
+        r###"
+    let a = (from x)
+    "###,
+    )
+    .unwrap_err();
+    assert_eq!(err.inner[0].code.as_ref().unwrap(), "E0001");
 }
 
 #[test]
@@ -3244,12 +3258,16 @@ fn test_header_target_error() {
     assert_display_snapshot!(compile(r#"
     prql target:foo
     from a
-    "#).unwrap_err(),@r###"target `"foo"` not found"###);
+    "#).unwrap_err(),@r###"
+    Error: target `"foo"` not found
+    "###);
 
     assert_display_snapshot!(compile(r#"
     prql target:sql.foo
     from a
-    "#).unwrap_err(),@r###"target `"sql.foo"` not found"###)
+    "#).unwrap_err(),@r###"
+    Error: target `"sql.foo"` not found
+    "###)
 }
 
 #[test]
