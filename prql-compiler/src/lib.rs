@@ -142,10 +142,12 @@ impl Default for Target {
 
 impl Target {
     pub fn names() -> Vec<String> {
-        sql::Dialect::names()
-            .into_iter()
-            .map(|d| format!("sql.{d}"))
-            .collect()
+        let mut names = vec!["sql.any".to_string()];
+
+        let dialects = sql::Dialect::names();
+        names.extend(dialects.into_iter().map(|d| format!("sql.{d}")));
+
+        names
     }
 }
 
