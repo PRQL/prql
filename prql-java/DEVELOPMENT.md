@@ -8,7 +8,7 @@ We implement Rust bindings to Java with
 [JNI](https://docs.oracle.com/javase/8/docs/technotes/guides/jni/).
 
 First, define a native method --
-`public static native String toSql(String query)` for PrqlCompiler, `toJson` is
+`public static native String toSql(String query, String target, boolean format, boolean signature)` for PrqlCompiler, `toJson` is
 same.
 
 And then implement it in Rust with this
