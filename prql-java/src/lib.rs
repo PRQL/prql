@@ -1,8 +1,8 @@
 use jni::objects::{JClass, JString};
 use jni::sys::{jboolean, jstring};
 use jni::JNIEnv;
-use prql_compiler::sql::Dialect;
 use prql_compiler::{json, pl_to_prql, prql_to_pl, ErrorMessages, Options, Target};
+use std::str::FromStr;
 
 #[no_mangle]
 #[allow(non_snake_case)]
@@ -18,28 +18,13 @@ pub extern "system" fn Java_org_prql_prql4j_PrqlCompiler_toSql(
         .get_string(query)
         .expect("Couldn't get java string!")
         .into();
-    let target_dialect: String = if let Ok(target_name) = env.get_string(target) {
-        target_name.into()
-    } else {
-        "sql.generic".to_owned()
-    };
-    let prql_target = match target_dialect.as_str() {
-        "sql.ansi" => Dialect::Ansi,
-        "sql.bigquery" => Dialect::BigQuery,
-        "sql.clickhouse" => Dialect::ClickHouse,
-        "sql.duckdb" => Dialect::DuckDb,
-        "sql.generic" => Dialect::Generic,
-        "sql.hive" => Dialect::Hive,
-        "sql.mssql" => Dialect::MsSql,
-        "sql.mysql" => Dialect::MySql,
-        "sql.postgres" => Dialect::PostgreSql,
-        "sql.sqlite" => Dialect::SQLite,
-        "sql.snowflake" => Dialect::Snowflake,
-        _ => Dialect::Generic,
-    };
+    let target_str: String = (env.get_string(target))
+        .expect("Couldn't get java string")
+        .into();
+    let prql_dialect: Target = Target::from_str(&target_str).unwrap_or(Target::Sql(None));
     let opt = Options {
         format: format != 0,
-        target: Target::Sql(Some(prql_target)),
+        target: prql_dialect,
         signature_comment: signature != 0,
     };
     let result = prql_compiler::compile(&prql_query, &opt);
