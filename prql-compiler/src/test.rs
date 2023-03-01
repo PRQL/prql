@@ -3328,24 +3328,66 @@ fn test_params() {
       )
       AND total > $3
     "###
+    )
+}
+
+// for #1969
+#[test]
+fn test_datetime() {
+    let query = &r#"
+        from test_table
+        select [date = @2022-12-31, time = @08:30, timestamp = @2020-01-01T13:19:55-0800]
+        "#;
+
+    assert_snapshot!(
+                compile(query).unwrap(),
+                @r###"SELECT
+  DATE '2022-12-31' AS date,
+  TIME '08:30' AS time,
+  TIMESTAMP '2020-01-01T13:19:55-0800' AS timestamp
+FROM
+  test_table
+"###
+    )
+}
+
+// for #1969
+#[test]
+fn test_datetime_sqlite() {
+    let query = &r#"
+        from test_table
+        select [date = @2022-12-31, time = @08:30, timestamp = @2020-01-01T13:19:55-0800]
+        "#;
+
+    let opts = Options::default()
+        .no_signature()
+        .with_target(Target::Sql(Some(sql::Dialect::SQLite)));
+
+    assert_snapshot!(
+        crate::compile(query, &opts).unwrap(),
+        @r###"SELECT
+  DATE('2022-12-31') AS date,
+  TIME('08:30') AS time,
+  DATETIME('2020-01-01T13:19:55-08:00') AS timestamp
+FROM
+  test_table
+"###
     );
 }
 
-// TODO: fix this based on https://github.com/PRQL/prql/pull/1818
 #[test]
-#[should_panic]
 fn test_datetime_parsing() {
     assert_display_snapshot!(compile(r#"
     from test_tables
     select [date = @2022-12-31, time = @08:30, timestamp = @2020-01-01T13:19:55-0800]
     "#).unwrap(),
         @r###"
-      SELECT
-        DATE '2022-12-31' AS date,
-        TIME '08:30' AS time,
-        TIMESTAMP '2020-01-01T13:19:55-0800' AS timestamp
-      FROM
-        test_table
+    SELECT
+      DATE '2022-12-31' AS date,
+      TIME '08:30' AS time,
+      TIMESTAMP '2020-01-01T13:19:55-0800' AS timestamp
+    FROM
+      test_tables
     "###
     );
 }

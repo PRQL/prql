@@ -87,7 +87,6 @@ mod test;
 mod utils;
 
 pub use error::{downcast, Error, ErrorMessage, ErrorMessages, Reason, SourceLocation, Span};
-pub use utils::IntoOnly;
 
 use once_cell::sync::Lazy;
 use semver::Version;

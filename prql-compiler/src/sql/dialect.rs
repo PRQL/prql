@@ -14,6 +14,7 @@
 
 use core::fmt::Debug;
 use serde::{Deserialize, Serialize};
+use std::any::{Any, TypeId};
 use strum::{EnumMessage, IntoEnumIterator};
 
 /// SQL dialect.
@@ -109,7 +110,7 @@ pub(super) enum ColumnExclude {
     Except,
 }
 
-pub(super) trait DialectHandler {
+pub(super) trait DialectHandler: Any {
     fn use_top(&self) -> bool {
         false
     }
@@ -152,6 +153,13 @@ pub(super) trait DialectHandler {
     /// `INTERVAL '1' HOUR`
     fn requires_quotes_intervals(&self) -> bool {
         false
+    }
+}
+
+impl dyn DialectHandler {
+    #[inline]
+    pub fn is<T: DialectHandler + 'static>(&self) -> bool {
+        TypeId::of::<T>() == self.type_id()
     }
 }
 
