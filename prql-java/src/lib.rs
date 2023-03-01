@@ -18,7 +18,8 @@ pub extern "system" fn Java_org_prql_prql4j_PrqlCompiler_toSql(
         .get_string(query)
         .expect("Couldn't get java string!")
         .into();
-    let target_str: String = (env.get_string(target))
+    let target_str: String = env
+        .get_string(target)
         .expect("Couldn't get java string")
         .into();
     let prql_dialect: Target = Target::from_str(&target_str).unwrap_or(Target::Sql(None));
