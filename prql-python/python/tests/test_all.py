@@ -68,8 +68,7 @@ def test_compile_options():
         format=False, signature_comment=False, target="sql.any"
     )
     assert (
-        prql.compile(query_mssql, options_with_any_target)
-        == "SELECT TOP (3) * FROM a"
+        prql.compile(query_mssql, options_with_any_target) == "SELECT TOP (3) * FROM a"
     )
 
     options_default = prql.CompileOptions()
