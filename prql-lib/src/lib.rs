@@ -159,7 +159,7 @@ fn convert_options(o: &Options) -> Result<prql_compiler::Options, prql_compiler:
         .filter(|x| !x.is_empty())
         .unwrap_or("sql.any");
 
-    let target = Target::from_str(&target).map_err(|e| prql_compiler::downcast(e.into()))?;
+    let target = Target::from_str(target).map_err(|e| prql_compiler::downcast(e.into()))?;
 
     Ok(prql_compiler::Options {
         format: o.format,
