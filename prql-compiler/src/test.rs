@@ -2955,7 +2955,7 @@ fn test_errors() {
        ·                       ╰── unexpected ’
     ───╯
     "###);
-    
+
     let err = compile(
         r###"
     let a = (from x)
