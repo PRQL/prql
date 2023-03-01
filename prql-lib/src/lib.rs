@@ -27,11 +27,14 @@ pub unsafe extern "C" fn compile(
 ) -> c_int {
     let prql_query: String = c_str_to_string(prql_query);
 
-    let result = Ok(prql_query.as_str())
-        .and_then(prql_compiler::prql_to_pl)
-        .and_then(prql_compiler::pl_to_rq)
-        .and_then(|rq| {
-            prql_compiler::rq_to_sql(rq, &options.as_ref().map(|o| o.into()).unwrap_or_default())
+    let options = options.as_ref().map(convert_options).transpose();
+
+    let result = options
+        .and_then(|opts| {
+            Ok(prql_query.as_str())
+                .and_then(prql_compiler::prql_to_pl)
+                .and_then(prql_compiler::pl_to_rq)
+                .and_then(|rq| prql_compiler::rq_to_sql(rq, &opts.unwrap_or_default()))
         })
         .map_err(|e| e.composed("", &prql_query, false));
 
@@ -110,6 +113,9 @@ pub struct Options {
     pub format: bool,
 
     /// Target and dialect to compile to.
+    ///
+    /// Defaults to `sql.any`, which uses `target` argument from the query header to determine
+    /// the SQL dialect.
     pub target: *mut c_char,
 
     /// Emits the compiler signature as a comment after generated SQL
@@ -142,15 +148,22 @@ unsafe fn c_str_to_string(c_str: *const c_char) -> String {
     CStr::from_ptr(c_str).to_string_lossy().into_owned()
 }
 
-impl From<&Options> for prql_compiler::Options {
-    fn from(o: &Options) -> Self {
-        let target = unsafe { c_str_to_string(o.target) };
-        let target = Target::from_str(&target).unwrap_or_default();
+fn convert_options(o: &Options) -> Result<prql_compiler::Options, prql_compiler::ErrorMessages> {
+    let target = if o.target.is_null() {
+        Some(unsafe { c_str_to_string(o.target) })
+    } else {
+        None
+    };
+    let target = target
+        .as_deref()
+        .filter(|x| !x.is_empty())
+        .unwrap_or("sql.any");
 
-        prql_compiler::Options {
-            format: o.format,
-            target,
-            signature_comment: o.signature_comment,
-        }
-    }
+    let target = Target::from_str(target).map_err(|e| prql_compiler::downcast(e.into()))?;
+
+    Ok(prql_compiler::Options {
+        format: o.format,
+        target,
+        signature_comment: o.signature_comment,
+    })
 }

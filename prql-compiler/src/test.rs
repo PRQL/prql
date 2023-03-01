@@ -3267,7 +3267,14 @@ fn test_header_target_error() {
     from a
     "#).unwrap_err(),@r###"
     Error: target `"sql.foo"` not found
-    "###)
+    "###);
+
+    assert_display_snapshot!(compile(r#"
+    prql target:foo.bar
+    from a
+    "#).unwrap_err(),@r###"
+    Error: target `"foo.bar"` not found
+    "###);
 }
 
 #[test]
