@@ -4,8 +4,8 @@ import org.junit.Test;
 
 public class PrqlCompilerTest {
     @Test
-    public void compile() {
-        String found = PrqlCompiler.toSql("from table");
+    public void compile() throws Exception {
+        String found = PrqlCompiler.toSql("from table", "sql.mysql", true, true);
 
         // remove signature
         found = found.substring(0, found.indexOf("\n\n--"));
@@ -15,5 +15,10 @@ public class PrqlCompilerTest {
                 "FROM\n" +
                 "  table";
         assert expected.equalsIgnoreCase(found);
+    }
+
+    @Test(expected = Exception.class)
+    public void compileWithError() throws Exception {
+       PrqlCompiler.toSql("from table | filter id >> 1", "sql.mysql", true, true);
     }
 }
