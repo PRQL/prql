@@ -18,11 +18,12 @@ pub extern "system" fn Java_org_prql_prql4j_PrqlCompiler_toSql(
         .get_string(query)
         .expect("Couldn't get java string!")
         .into();
-    let prql_dialect: String = env
-        .get_string(dialect)
-        .expect("Couldn't get java string!")
-        .into();
-    let dialect = match prql_dialect.as_str() {
+    let target_dialect: String = if let Ok(dialect_name) = env.get_string(dialect) {
+        dialect_name.into()
+    } else {
+        "generic".to_owned()
+    };
+    let prql_dialect = match target_dialect.as_str() {
         "ansi" => Dialect::Ansi,
         "bigquery" => Dialect::BigQuery,
         "clickhouse" => Dialect::ClickHouse,
@@ -38,7 +39,7 @@ pub extern "system" fn Java_org_prql_prql4j_PrqlCompiler_toSql(
     };
     let opt = Options {
         format: format != 0,
-        target: Target::Sql(Some(dialect)),
+        target: Target::Sql(Some(prql_dialect)),
         signature_comment: signature != 0,
     };
     let result = prql_compiler::compile(&prql_query, &opt);
@@ -57,7 +58,7 @@ pub extern "system" fn Java_org_prql_prql4j_PrqlCompiler_format(
         .expect("Couldn't get java string!")
         .into();
     let result = prql_to_pl(&prql_query).and_then(pl_to_prql);
-    java_string_with_exception(result,&env)
+    java_string_with_exception(result, &env)
 }
 
 #[no_mangle]
@@ -72,14 +73,12 @@ pub extern "system" fn Java_org_prql_prql4j_PrqlCompiler_toJson(
         .expect("Couldn't get java string!")
         .into();
     let result = prql_to_pl(&prql_query).and_then(json::from_pl);
-    return java_string_with_exception(result, &env);
+    java_string_with_exception(result, &env)
 }
 
 fn java_string_with_exception(result: Result<String, ErrorMessages>, env: &JNIEnv) -> jstring {
-    if result.is_ok() {
-        env.new_string(result.unwrap())
-            .expect("Couldn't create java string!")
-            .into_raw()
+    if let Ok(text) = result {
+        env.new_string(text).expect("Couldn't create java string!").into_raw()
     } else {
         let exception = env.find_class("java/lang/Exception").unwrap();
         if let Err(e) = env.throw_new(exception, result.err().unwrap().to_string()) {
