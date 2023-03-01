@@ -53,9 +53,6 @@ pub struct CompileOptions {
     /// Defaults to true.
     pub format: bool,
 
-    /// Target to compile to (e.g. sql.postgres)
-    ///
-    /// If `None` is used, the `target` argument from the query header is used.
     #[wasm_bindgen(skip)]
     pub target: String,
 
@@ -90,6 +87,10 @@ impl CompileOptions {
         Self::default()
     }
 
+    /// Target to compile to (e.g. sql.postgres)
+    ///
+    /// Defaults to `sql.any`, which uses `target` argument from the query header to determine
+    /// the SQL dialect.
     #[wasm_bindgen(getter)]
     pub fn target(&self) -> String {
         self.target.clone()

@@ -86,7 +86,7 @@ describe("prql-js", () => {
     it("should fallback to the target in header", () => {
       const opts = new prql.CompileOptions();
 
-      opts.target = "sql.not_existing";
+      opts.target = "sql.any";
       const res = prql.compile("prql target:sql.mssql\nfrom a | take 1", opts);
 
       assert(res.includes("TOP (1)"));
