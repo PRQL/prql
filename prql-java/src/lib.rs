@@ -1,8 +1,8 @@
 use jni::objects::{JClass, JString};
 use jni::sys::{jboolean, jstring};
 use jni::JNIEnv;
-use prql_compiler::{json, prql_to_pl, pl_to_prql, Options, ErrorMessages, Target};
 use prql_compiler::sql::Dialect;
+use prql_compiler::{json, pl_to_prql, prql_to_pl, ErrorMessages, Options, Target};
 
 #[no_mangle]
 #[allow(non_snake_case)]
@@ -35,7 +35,7 @@ pub extern "system" fn Java_org_prql_prql4j_PrqlCompiler_toSql(
         "postgres" => Dialect::PostgreSql,
         "sqlite" => Dialect::SQLite,
         "snowflake" => Dialect::Snowflake,
-        _ => Dialect::Generic
+        _ => Dialect::Generic,
     };
     let opt = Options {
         format: format != 0,
@@ -78,7 +78,9 @@ pub extern "system" fn Java_org_prql_prql4j_PrqlCompiler_toJson(
 
 fn java_string_with_exception(result: Result<String, ErrorMessages>, env: &JNIEnv) -> jstring {
     if let Ok(text) = result {
-        env.new_string(text).expect("Couldn't create java string!").into_raw()
+        env.new_string(text)
+            .expect("Couldn't create java string!")
+            .into_raw()
     } else {
         let exception = env.find_class("java/lang/Exception").unwrap();
         if let Err(e) = env.throw_new(exception, result.err().unwrap().to_string()) {
