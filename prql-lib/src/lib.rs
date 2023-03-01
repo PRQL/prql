@@ -149,7 +149,16 @@ unsafe fn c_str_to_string(c_str: *const c_char) -> String {
 }
 
 fn convert_options(o: &Options) -> Result<prql_compiler::Options, prql_compiler::ErrorMessages> {
-    let target = unsafe { c_str_to_string(o.target) };
+    let target = if o.target.is_null() {
+        Some(unsafe { c_str_to_string(o.target) })
+    } else {
+        None
+    };
+    let target = target
+        .as_deref()
+        .filter(|x| !x.is_empty())
+        .unwrap_or("sql.any");
+
     let target = Target::from_str(&target).map_err(|e| prql_compiler::downcast(e.into()))?;
 
     Ok(prql_compiler::Options {
