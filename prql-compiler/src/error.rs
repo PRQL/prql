@@ -115,14 +115,14 @@ impl StdError for Errors {}
 // Needed for StdError
 impl Display for Error {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        Debug::fmt(&self, f)
+        Display::fmt(&self, f)
     }
 }
 
 // Needed for StdError
 impl Display for Errors {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        Debug::fmt(&self, f)
+        Display::fmt(&self, f)
     }
 }
 
