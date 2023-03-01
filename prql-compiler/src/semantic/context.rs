@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fmt::Debug};
 
 use super::module::{
-    Module, NS_DEFAULT_DB, NS_FRAME, NS_FRAME_RIGHT, NS_INFER, NS_RELATIVE, NS_SELF, NS_STD,
+    Module, NS_DEFAULT_DB, NS_INFER, NS_RELATIVE, NS_SELF, NS_STD,
 };
 use super::type_resolver::validate_type;
 use crate::ast::pl::*;
@@ -174,7 +174,7 @@ impl Context {
             // if ident.name != "*" {
             //     return Err("Unsupported feature: advanced wildcard column matching".to_string());
             // }
-            return self.resolve_ident_wildcard(&ident);
+            return self.resolve_ident_wildcard(ident);
         }
 
         // base case: direct lookup
@@ -254,37 +254,20 @@ impl Context {
         }
     }
 
-    fn resolve_ident_wildcard(&mut self, ident: &Ident) -> Result<Ident, String> {
-        // Try matching ident prefix with a module
-        let (mod_ident, mod_decl) = {
-            if ident.path.len() > 1 {
-                // Ident has specified full path
-                let mod_ident = ident.clone().pop().unwrap();
-                let mod_decl = (self.root_mod.get_mut(&mod_ident))
-                    .ok_or_else(|| format!("Unknown relation {ident}"))?;
+    fn resolve_ident_wildcard(&mut self, ident: Ident) -> Result<Ident, String> {
+        let mod_ident = ident.with_name(NS_SELF);
 
-                (mod_ident, mod_decl)
-            } else {
-                // Ident could be just part of NS_FRAME
-                let mod_ident = (Ident::from_name(NS_FRAME) + ident.clone()).pop().unwrap();
+        let lookup_results = self.root_mod.lookup(&mod_ident);
 
-                if let Some(mod_decl) = self.root_mod.get_mut(&mod_ident) {
-                    (mod_ident, mod_decl)
-                } else {
-                    // ... or part of NS_FRAME_RIGHT
-                    let mod_ident = (Ident::from_name(NS_FRAME_RIGHT) + ident.clone())
-                        .pop()
-                        .unwrap();
-
-                    let mod_decl = self.root_mod.get_mut(&mod_ident);
-
-                    // ... well - I guess not. Throw.
-                    let mod_decl = mod_decl.ok_or_else(|| format!("Unknown relation {ident}"))?;
-
-                    (mod_ident, mod_decl)
-                }
-            }
+        let mut mod_ident = match lookup_results.len() {
+            0 => return Err(format!("Unknown relation {mod_ident}")),
+            1 => lookup_results.into_iter().next().unwrap(),
+            _ => return Err(format!("Ambiguous relation {mod_ident}")),
         };
+        if mod_ident.name == NS_SELF {
+            mod_ident = mod_ident.pop().unwrap();
+        }
+        let mod_decl = self.root_mod.get_mut(&mod_ident).unwrap();
 
         // Unwrap module
         let module = (mod_decl.kind.as_module_mut())

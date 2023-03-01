@@ -1,6 +1,6 @@
 ---
 source: prql-compiler/src/semantic/resolver.rs
-expression: "resolve_derive(r#\"\n            func plus_one x -> x + 1\n            func plus x y -> x + y\n\n            from a\n            derive [b = (sum foo | plus_one | plus 2)]\n            \"#).unwrap()"
+expression: "resolve_derive(r#\"\n            func plus_one x -> x + 1\n            func plus x y -> x + y\n\n            from a\n            derive [b = (sum .foo | plus_one | plus 2)]\n            \"#).unwrap()"
 ---
 - id: 23
   Binary:
@@ -21,6 +21,7 @@ expression: "resolve_derive(r#\"\n            func plus_one x -> x + 1\n        
             args:
               - id: 13
                 Ident:
+                  - _relative
                   - _frame
                   - a
                   - foo

@@ -1,0 +1,8 @@
+{"run_id":"1677682097-752612036","line":84,"new":{"module_name":"prql_compiler__semantic__test","snapshot_name":"resolve_01","metadata":{"source":"prql-compiler/src/semantic/mod.rs","assertion_line":84,"expression":"parse_and_resolve(r###\"\n        from employees\n        select ![.foo]\n        \"###).unwrap().relation.columns"},"snapshot":"---\n[]\n"},"old":{"module_name":"prql_compiler__semantic__test","metadata":{},"snapshot":"---\n- Wildcard"}}
+{"run_id":"1677682097-752612036","line":172,"new":null,"old":null}
+{"run_id":"1677682180-532213724","line":125,"new":null,"old":null}
+{"run_id":"1677682180-532213724","line":95,"new":null,"old":null}
+{"run_id":"1677682180-532213724","line":138,"new":null,"old":null}
+{"run_id":"1677682180-532213724","line":112,"new":null,"old":null}
+{"run_id":"1677682180-532213724","line":84,"new":{"module_name":"prql_compiler__semantic__test","snapshot_name":"resolve_01","metadata":{"source":"prql-compiler/src/semantic/mod.rs","assertion_line":84,"expression":"parse_and_resolve(r###\"\n        from employees\n        select ![.foo]\n        \"###).unwrap().relation.columns"},"snapshot":"---\n[]\n"},"old":{"module_name":"prql_compiler__semantic__test","metadata":{},"snapshot":"---\n- Wildcard"}}
+{"run_id":"1677682180-532213724","line":172,"new":null,"old":null}

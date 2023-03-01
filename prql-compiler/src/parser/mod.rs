@@ -132,7 +132,7 @@ mod common {
     }
 
     pub fn ident_part() -> impl Parser<Token, String, Error = Simple<Token>> {
-        ident().map(|i| i.to_string())
+        ident().map(|i| i.name)
     }
 
     pub fn keyword(kw: &'static str) -> impl Parser<Token, (), Error = Simple<Token>> + Clone {

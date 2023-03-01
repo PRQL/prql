@@ -1,6 +1,6 @@
 ---
 source: prql-compiler/src/semantic/resolver.rs
-expression: "resolve_derive(r#\"\n            func lag_day x -> s\"lag_day_todo({x})\"\n            func ret x dividend_return ->  x / (lag_day x) - 1 + dividend_return\n\n            from a\n            derive (ret b c)\n            \"#).unwrap()"
+expression: "resolve_derive(r#\"\n            func lag_day x -> s\"lag_day_todo({x})\"\n            func ret x dividend_return ->  x / (lag_day x) - 1 + dividend_return\n\n            from a\n            derive (ret .b .c)\n            \"#).unwrap()"
 ---
 - id: 14
   Binary:
@@ -13,6 +13,7 @@ expression: "resolve_derive(r#\"\n            func lag_day x -> s\"lag_day_todo(
             left:
               id: 12
               Ident:
+                - _relative
                 - _frame
                 - a
                 - b
@@ -26,6 +27,7 @@ expression: "resolve_derive(r#\"\n            func lag_day x -> s\"lag_day_todo(
                 - Expr:
                     id: 12
                     Ident:
+                      - _relative
                       - _frame
                       - a
                       - b
@@ -46,6 +48,7 @@ expression: "resolve_derive(r#\"\n            func lag_day x -> s\"lag_day_todo(
     right:
       id: 13
       Ident:
+        - _relative
         - _frame
         - a
         - c

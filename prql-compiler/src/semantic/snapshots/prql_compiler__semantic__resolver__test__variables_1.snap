@@ -1,12 +1,13 @@
 ---
 source: prql-compiler/src/semantic/resolver.rs
-expression: "resolve_derive(r#\"\n            from employees\n            derive [\n                gross_salary = salary + payroll_tax,\n                gross_cost =   gross_salary + benefits_cost\n            ]\n            \"#).unwrap()"
+expression: "resolve_derive(r#\"\n            from employees\n            derive [\n                gross_salary = .salary + .payroll_tax,\n                gross_cost =   .gross_salary + .benefits_cost\n            ]\n            \"#).unwrap()"
 ---
 - id: 8
   Binary:
     left:
       id: 9
       Ident:
+        - _relative
         - _frame
         - employees
         - salary
@@ -16,6 +17,7 @@ expression: "resolve_derive(r#\"\n            from employees\n            derive
     right:
       id: 10
       Ident:
+        - _relative
         - _frame
         - employees
         - payroll_tax
@@ -29,14 +31,17 @@ expression: "resolve_derive(r#\"\n            from employees\n            derive
     left:
       id: 12
       Ident:
+        - _relative
         - _frame
+        - employees
         - gross_salary
-      target_id: 8
+      target_id: 4
       ty: Infer
     op: Add
     right:
       id: 13
       Ident:
+        - _relative
         - _frame
         - employees
         - benefits_cost

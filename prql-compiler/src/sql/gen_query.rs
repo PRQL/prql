@@ -728,9 +728,9 @@ mod test {
         // One aggregate, take at the end
         let prql: &str = r###"
         from employees
-        filter country == "USA"
-        aggregate [sal = average salary]
-        sort sal
+        filter .country == "USA"
+        aggregate [sal = average .salary]
+        sort .sal
         take 20
         "###;
 
@@ -740,9 +740,9 @@ mod test {
         let prql: &str = r###"
         from employees
         take 20
-        filter country == "USA"
-        aggregate [sal = average salary]
-        sort sal
+        filter .country == "USA"
+        aggregate [sal = average .salary]
+        sort .sal
         "###;
 
         assert_eq!(count_atomics(prql), 2);
@@ -751,10 +751,10 @@ mod test {
         let prql: &str = r###"
         from employees
         take 20
-        filter country == "USA"
-        aggregate [sal = average salary]
-        aggregate [sal2 = average sal]
-        sort sal2
+        filter .country == "USA"
+        aggregate [sal = average .salary]
+        aggregate [sal2 = average .sal]
+        sort .sal2
         "###;
 
         assert_eq!(count_atomics(prql), 3);
@@ -763,7 +763,7 @@ mod test {
         let prql: &str = r###"
         from employees
         take 20
-        select first_name
+        select .first_name
         "###;
 
         assert_eq!(count_atomics(prql), 1);
@@ -773,11 +773,11 @@ mod test {
     fn test_variable_after_aggregate() {
         let query = &r#"
         from employees
-        group [title, emp_no] (
-            aggregate [emp_salary = average salary]
+        group [.title, .emp_no] (
+            aggregate [emp_salary = average .salary]
         )
-        group [title] (
-            aggregate [avg_salary = average emp_salary]
+        group [.title] (
+            aggregate [avg_salary = average .emp_salary]
         )
         "#;
 
@@ -800,7 +800,7 @@ mod test {
         let query = &r#"
         from employees
         derive global_rank = rank
-        filter country == "USA"
+        filter .country == "USA"
         derive rank = rank
         "#;
 
@@ -829,7 +829,7 @@ mod test {
         // #806
         let query = &r#"
         from tbl1
-        filter (average bar) > 3
+        filter (average .bar) > 3
         "#;
 
         assert_snapshot!(crate::test::compile(query).unwrap(), @r###"

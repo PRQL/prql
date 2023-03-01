@@ -654,9 +654,12 @@ impl Frame {
         let id = expr.id.unwrap();
 
         let alias = expr.alias.as_ref();
-        let name = alias
-            .map(Ident::from_name)
-            .or_else(|| expr.kind.as_ident().and_then(|i| i.clone().pop_front().1));
+        let name = alias.map(Ident::from_name).or_else(|| {
+            expr.kind
+                .as_ident()
+                // remove _relative and (_frame or _right)
+                .and_then(|i| i.clone().pop_front().1.unwrap().pop_front().1)
+        });
 
         // remove names from columns with the same name
         if name.is_some() {
@@ -1010,8 +1013,8 @@ mod tests {
         let query = parse(
             "
         from c_invoice
-        select invoice_no
-        group invoice_no (
+        select .invoice_no
+        group .invoice_no (
             take 1
         )
         ",
@@ -1067,7 +1070,7 @@ mod tests {
         let query = parse(
             "
         from c_invoice
-        aggregate average amount
+        aggregate average .amount
         ",
         )
         .unwrap();
@@ -1078,7 +1081,7 @@ mod tests {
         let query = parse(
             "
         from c_invoice
-        group date (aggregate average amount)
+        group .date (aggregate average .amount)
         ",
         )
         .unwrap();
@@ -1089,8 +1092,8 @@ mod tests {
         let query = parse(
             "
         from c_invoice
-        group date (
-            aggregate (average amount)
+        group .date (
+            aggregate (average .amount)
         )
         ",
         )
@@ -1127,6 +1130,7 @@ mod tests {
                         args:
                           - id: 17
                             Ident:
+                              - _relative
                               - _frame
                               - c_invoice
                               - amount
@@ -1137,6 +1141,7 @@ mod tests {
               partition:
                 - id: 8
                   Ident:
+                    - _relative
                     - _frame
                     - c_invoice
                     - date
@@ -1167,11 +1172,11 @@ mod tests {
         let query = parse(
             "
         from invoices
-        sort [issued_at, -amount, +num_of_articles]
-        sort issued_at
-        sort (-issued_at)
-        sort [issued_at]
-        sort [-issued_at]
+        sort [.issued_at, -.amount, +.num_of_articles]
+        sort .issued_at
+        sort (-.issued_at)
+        sort [.issued_at]
+        sort [-.issued_at]
         ",
         )
         .unwrap();

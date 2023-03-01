@@ -1,6 +1,6 @@
 ---
 source: prql-compiler/src/semantic/resolver.rs
-expression: "resolve_derive(r#\"\n            from a\n            derive one = (foo | sum)\n            \"#).unwrap()"
+expression: "resolve_derive(r#\"\n            from a\n            derive one = (.foo | sum)\n            \"#).unwrap()"
 ---
 - id: 10
   BuiltInFunction:
@@ -8,6 +8,7 @@ expression: "resolve_derive(r#\"\n            from a\n            derive one = (
     args:
       - id: 9
         Ident:
+          - _relative
           - _frame
           - a
           - foo

@@ -788,8 +788,8 @@ mod test {
             r#"
             from employees
             derive [
-                gross_salary = salary + payroll_tax,
-                gross_cost =   gross_salary + benefits_cost
+                gross_salary = .salary + .payroll_tax,
+                gross_cost =   .gross_salary + .benefits_cost
             ]
             "#
         )
@@ -798,7 +798,7 @@ mod test {
 
     #[test]
     fn test_non_existent_function() {
-        parse_and_resolve(r#"from mytable | filter (myfunc col1)"#).unwrap_err();
+        parse_and_resolve(r#"from mytable | filter (myfunc .col1)"#).unwrap_err();
     }
 
     #[test]
@@ -809,7 +809,7 @@ mod test {
 
             from employees
             derive [
-                net_salary = subtract gross_salary tax
+                net_salary = subtract .gross_salary .tax
             ]
             "#
         )
@@ -824,7 +824,7 @@ mod test {
             func ret x dividend_return ->  x / (lag_day x) - 1 + dividend_return
 
             from a
-            derive (ret b c)
+            derive (ret .b .c)
             "#
         )
         .unwrap());
@@ -835,7 +835,7 @@ mod test {
         assert_yaml_snapshot!(resolve_derive(
             r#"
             from a
-            derive one = (foo | sum)
+            derive one = (.foo | sum)
             "#
         )
         .unwrap());
@@ -846,7 +846,7 @@ mod test {
             func plus x y -> x + y
 
             from a
-            derive [b = (sum foo | plus_one | plus 2)]
+            derive [b = (sum .foo | plus_one | plus 2)]
             "#
         )
         .unwrap());
@@ -859,8 +859,8 @@ mod test {
 
             from foo_table
             derive [
-                added = add bar to:3,
-                added_default = add bar
+                added = add .bar to:3,
+                added_default = add .bar
             ]
             "#
         )
@@ -872,7 +872,7 @@ mod test {
         assert_yaml_snapshot!(resolve_type(
             r#"
             from orders
-            select [customer_no, gross, tax, gross - tax]
+            select [.customer_no, .gross, .tax, .gross - .tax]
             take 20
             "#
         )
@@ -890,9 +890,9 @@ mod test {
             r#"
             from e = employees
             join salaries [==emp_no]
-            group [e.emp_no, e.gender] (
+            group [.e.emp_no, .e.gender] (
                 aggregate [
-                    emp_salary = average salaries.salary
+                    emp_salary = average .salaries.salary
                 ]
             )
             "#
