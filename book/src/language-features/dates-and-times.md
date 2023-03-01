@@ -36,8 +36,8 @@ derive should_have_shipped_today = (order_time < @08:30)
 
 Timestamps are represented by `@{yyyy-mm-ddTHH:mm:ss.SSS±Z}` / `@{date}T{time}`,
 with any time parts not supplied being rounded to zero, including the timezone,
-which is represented by `+HH:mm`, `-HH:mm` or `Z`. This is `@` followed by the
-ISO8601 datetime format, which uses `T` to separate date & time.
+which is represented by `+HH:mm`, `-HH:mm` or `Z` (`:` is optional). This is `@`
+followed by the ISO8601 datetime format, which uses `T` to separate date & time.
 
 ```prql
 from commits
@@ -66,9 +66,9 @@ derive first_check_in = start + 10days
 
 Here's a fuller list of examples:
 
-- `@20221231` is forbidden — it must contain full punctuation (`-` and `:`),
+- `@20221231` is invalid — it must contain full punctuation (`-` and `:`),
 - `@2022-12-31` is a date
-- `@2022-12` or `@2022` are forbidden — SQL can't express a month, only a date
+- `@2022-12` or `@2022` are invalid — SQL can't express a month, only a date
 - `@16:54:32.123456` is a time
 - `@16:54:32`, `@16:54`, `@16` are all allowed, expressing `@16:54:32.000000`,
   `@16:54:00.000000`, `@16:00:00.000000` respectively
@@ -76,8 +76,8 @@ Here's a fuller list of examples:
 - `@2022-12-31T16:54:32.123456Z` is a timestamp in UTC
 - `@2022-12-31T16:54+02` is timestamp in UTC+2
 - `@2022-12-31T16:54+02:00` and `@2022-12-31T16:54+02` are datetimes in UTC+2
-- `@16:54+02` is forbidden — time is always local, so it cannot have a timezone
-- `@2022-12-31+02` is forbidden — date is always local, so it cannot have a
+- `@16:54+02` is invalid — time is always local, so it cannot have a timezone
+- `@2022-12-31+02` is invalid — date is always local, so it cannot have a
   timezone
 
 ## Roadmap
