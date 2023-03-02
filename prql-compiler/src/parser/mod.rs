@@ -2238,6 +2238,30 @@ join s=salaries [==id]
                     help: None,
                     code: None,
                 },
+                Error {
+                    span: Some(
+                        span-chars-35-36,
+                    ),
+                    reason: Unexpected {
+                        found: "’",
+                    },
+                    help: None,
+                    code: None,
+                },
+                Error {
+                    span: Some(
+                        span-chars-38-39,
+                    ),
+                    reason: Expected {
+                        who: Some(
+                            "identifier",
+                        ),
+                        expected: "* or an identifier",
+                        found: "",
+                    },
+                    help: None,
+                    code: None,
+                },
             ],
         )
         "###);
