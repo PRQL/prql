@@ -16,7 +16,7 @@ defmodule PRQLTest do
 
   test "return errors on invalid query" do
     excepted_result =
-      "{\"inner\":[{\"reason\":\"Unknown name invalid\",\"hint\":null,\"span\":{\"start\":0,\"end\":7},\"display\":\"Error: \\n   ╭─[:1:1]\\n   │\\n 1 │ invalid\\n   · ───┬───  \\n   ·    ╰───── Unknown name invalid\\n───╯\\n\",\"location\":{\"start\":[0,0],\"end\":[0,7]}}]}"
+      "{\"inner\":[{\"code\":null,\"reason\":\"Unknown name invalid\",\"hint\":null,\"span\":{\"start\":0,\"end\":7},\"display\":\"Error: \\n   ╭─[:1:1]\\n   │\\n 1 │ invalid\\n   · ───┬───  \\n   ·    ╰───── Unknown name invalid\\n───╯\\n\",\"location\":{\"start\":[0,0],\"end\":[0,7]}}]}"
 
     assert PRQL.compile("invalid", @compile_opts) == {:error, excepted_result}
   end
