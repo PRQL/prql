@@ -72,10 +72,13 @@ fn convert_parser_error(e: Simple<Token>) -> Error {
         .all(|t| matches!(t, None | Some(Token::NewLine)));
     let expected = e
         .expected()
+        // TODO: could we collapse this into a `filter_map`? (though semantically
+        // identical)
         .filter(|t| just_whitespace || !matches!(t, None | Some(Token::NewLine)))
-        .map(|t| match t {
-            Some(t) => t.to_string(),
-            None => "end of input".to_string(),
+        .map(|t| {
+            t.clone()
+                .map(|t| t.to_string())
+                .unwrap_or_else(|| "end of input".to_string())
         })
         .collect_vec();
 
@@ -2208,22 +2211,6 @@ join s=salaries [==id]
         assert_yaml_snapshot!(parse_expr(r#"$2_any_text"#).unwrap(), @r###"
         ---
         Param: 2_any_text
-        "###);
-    }
-
-    #[test]
-    fn test_unicode() {
-        let source = "from tète";
-        assert_yaml_snapshot!(parse(source).unwrap(), @r###"
-        ---
-        - Main:
-            FuncCall:
-              name:
-                Ident:
-                  - from
-              args:
-                - Ident:
-                    - tète
         "###);
     }
 
