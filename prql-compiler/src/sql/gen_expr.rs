@@ -281,7 +281,9 @@ pub(super) fn translate_cid(cid: CId, ctx: &mut Context) -> Result<sql_ast::Expr
         };
 
         let column = match &column_decl {
-            ColumnDecl::RelationColumn(_, _, RelationColumn::Wildcard) => translate_star(ctx, None)?,
+            ColumnDecl::RelationColumn(_, _, RelationColumn::Wildcard) => {
+                translate_star(ctx, None)?
+            }
 
             _ => {
                 let name = ctx.anchor.column_names.get(&cid).cloned();
