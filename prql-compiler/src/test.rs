@@ -2914,6 +2914,20 @@ fn test_errors() {
        ·                       ┬
        ·                       ╰── unexpected ’
     ───╯
+    Error:
+       ╭─[:1:36]
+       │
+     1 │ Mississippi has four S’s and four I’s.
+       ·                                    ┬
+       ·                                    ╰── unexpected ’
+    ───╯
+    Error:
+       ╭─[:1:39]
+       │
+     1 │ Mississippi has four S’s and four I’s.
+       ·                                       ┬
+       ·                                       ╰── identifier expected * or an identifier, but found
+    ───╯
     "###);
 
     let err = compile(

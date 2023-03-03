@@ -97,6 +97,7 @@ fn convert_parser_error(e: Simple<Token>) -> Error {
         Error::new(Reason::Unexpected { found })
     } else {
         let mut expected = expected;
+        expected.sort();
         let expected = match expected.len() {
             1 => expected.remove(0),
             2 => expected.join(" or "),
@@ -2250,6 +2251,30 @@ join s=salaries [==id]
                     ),
                     reason: Unexpected {
                         found: "’",
+                    },
+                    help: None,
+                    code: None,
+                },
+                Error {
+                    span: Some(
+                        span-chars-35-36,
+                    ),
+                    reason: Unexpected {
+                        found: "’",
+                    },
+                    help: None,
+                    code: None,
+                },
+                Error {
+                    span: Some(
+                        span-chars-38-39,
+                    ),
+                    reason: Expected {
+                        who: Some(
+                            "identifier",
+                        ),
+                        expected: "* or an identifier",
+                        found: "",
                     },
                     help: None,
                     code: None,
