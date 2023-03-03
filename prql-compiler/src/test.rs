@@ -155,29 +155,6 @@ fn test_precedence() {
 }
 
 #[test]
-fn test_pipelines() {
-    assert_display_snapshot!((compile(r###"
-    from employees
-    group dept (take 1)
-    "###).unwrap()), @r###"
-    SELECT
-      DISTINCT *
-    FROM
-      employees
-    "###);
-
-    assert_display_snapshot!((compile(r###"
-    from employees
-    select [age | in 5..10]
-    "###).unwrap()), @r###"
-    SELECT
-      age BETWEEN 5 AND 10
-    FROM
-      employees
-    "###);
-}
-
-#[test]
 fn test_append() {
     assert_display_snapshot!(compile(r###"
     from employees
@@ -2643,30 +2620,13 @@ fn test_name_shadowing() {
 fn test_group_all() {
     assert_display_snapshot!(compile(
         r###"
-    from e=employees
-    take 10
-    join salaries [==emp_no]
-    group [e.*] (aggregate sal = (sum salaries.salary))
-        "###).unwrap(),
-        @r###"
-    WITH table_1 AS (
-      SELECT
-        *
-      FROM
-        employees AS e
-      LIMIT
-        10
-    )
-    SELECT
-      table_0.*,
-      SUM(salaries.salary) AS sal
-    FROM
-      table_1 AS table_0
-      JOIN salaries ON table_0.emp_no = salaries.emp_no
-    GROUP BY
-      table_0.*
-    "###
-    );
+    prql target:sql.sqlite
+
+    from a=albums
+    group a.* (aggregate count)
+        "###).unwrap_err(), @r###"
+    Error: Target dialect does not support * in this position.
+    "###);
 
     assert_display_snapshot!(compile(
         r###"

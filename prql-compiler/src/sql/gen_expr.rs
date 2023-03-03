@@ -260,7 +260,7 @@ pub(super) fn translate_cid(cid: CId, ctx: &mut Context) -> Result<sql_ast::Expr
             }
             ColumnDecl::RelationColumn(tiid, _, col) => {
                 let column = match col.clone() {
-                    RelationColumn::Wildcard => "*".to_string(),
+                    RelationColumn::Wildcard => translate_star(ctx, None)?,
                     RelationColumn::Single(name) => name.unwrap(),
                 };
                 let t = &ctx.anchor.table_instances[tiid];
@@ -281,7 +281,7 @@ pub(super) fn translate_cid(cid: CId, ctx: &mut Context) -> Result<sql_ast::Expr
         };
 
         let column = match &column_decl {
-            ColumnDecl::RelationColumn(_, _, RelationColumn::Wildcard) => "*".to_string(),
+            ColumnDecl::RelationColumn(_, _, RelationColumn::Wildcard) => translate_star(ctx, None)?,
 
             _ => {
                 let name = ctx.anchor.column_names.get(&cid).cloned();
@@ -295,6 +295,18 @@ pub(super) fn translate_cid(cid: CId, ctx: &mut Context) -> Result<sql_ast::Expr
 
         let ident = sql_ast::Expr::CompoundIdentifier(ident);
         Ok(ident)
+    }
+}
+
+pub(super) fn translate_star(ctx: &Context, span: Option<Span>) -> Result<String> {
+    if ctx.query.forbid_stars {
+        Err(
+            Error::new_simple("Target dialect does not support * in this position.")
+                .with_span(span)
+                .into(),
+        )
+    } else {
+        Ok("*".to_string())
     }
 }
 
