@@ -86,7 +86,13 @@ mod tests {
         }
 
         pub fn query_csv(conn: &Connection, sql: &str) -> String {
-            let mut statement = conn.prepare(sql).unwrap();
+            let mut statement = conn
+                .prepare(sql)
+                .map_err(|e| {
+                    println!("{e}");
+                    e
+                })
+                .unwrap();
 
             let csv_header = statement.column_names().join(",");
             let column_count = statement.column_count();
@@ -172,6 +178,13 @@ mod tests {
                                 ValueRef::Timestamp(_, _) => {
                                     let dt = DateTime::<Utc>::column_result(value).unwrap();
                                     dt.format("%Y-%m-%d %H:%M:%S").to_string()
+                                }
+                                ValueRef::Boolean(b) => {
+                                    if b {
+                                        "1".to_string()
+                                    } else {
+                                        "0".to_string()
+                                    }
                                 }
                                 t => unimplemented!("{t:?}"),
                             }

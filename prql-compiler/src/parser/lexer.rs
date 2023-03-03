@@ -113,11 +113,9 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
 }
 
 pub fn ident_part() -> impl Parser<char, String, Error = Cheap<char>> {
-    let plain = filter(|c: &char| c.is_ascii_alphabetic() || *c == '_')
+    let plain = filter(|c: &char| c.is_alphabetic() || *c == '_')
         .map(Some)
-        .chain::<char, Vec<_>, _>(
-            filter(|c: &char| c.is_ascii_alphanumeric() || *c == '_').repeated(),
-        )
+        .chain::<char, Vec<_>, _>(filter(|c: &char| c.is_alphanumeric() || *c == '_').repeated())
         .collect();
 
     let backticks = just('`')
