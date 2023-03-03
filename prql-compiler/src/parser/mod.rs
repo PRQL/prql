@@ -2256,7 +2256,7 @@ join s=salaries [==id]
                         who: Some(
                             "identifier",
                         ),
-                        expected: "* or an identifier",
+                        expected: "an identifier or *",
                         found: "",
                     },
                     help: None,
