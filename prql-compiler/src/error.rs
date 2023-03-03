@@ -81,7 +81,7 @@ impl Error {
     }
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Clone, Serialize)]
 pub struct ErrorMessage {
     /// Plain text of the error
     pub code: Option<String>,
@@ -116,6 +116,12 @@ impl Display for ErrorMessage {
             writeln!(f, "{}Error: {}", code, &self.reason)?;
         }
         Ok(())
+    }
+}
+
+impl Debug for ErrorMessage {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        Display::fmt(&self, f)
     }
 }
 
