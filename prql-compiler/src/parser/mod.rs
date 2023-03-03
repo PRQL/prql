@@ -72,20 +72,17 @@ fn convert_parser_error(e: Simple<Token>) -> Error {
         .all(|t| matches!(t, None | Some(Token::NewLine)));
     let expected = e
         .expected()
-        .filter(|t| {
-            if just_whitespace {
-                true
-            } else {
-                !matches!(t, None | Some(Token::NewLine))
-            }
-        })
+        .filter(|t| just_whitespace || !matches!(t, None | Some(Token::NewLine)))
         .map(|t| match t {
             Some(t) => t.to_string(),
             None => "end of input".to_string(),
         })
         .collect_vec();
 
-    let found = e.found().map(|c| c.to_string()).unwrap_or_default();
+    let found = e
+        .found()
+        .map(|c| c.to_string())
+        .unwrap_or_else(|| "end of input".to_owned());
 
     let span = common::into_span(e.span());
 
@@ -2258,7 +2255,7 @@ join s=salaries [==id]
                             "identifier",
                         ),
                         expected: "* or an identifier",
-                        found: "",
+                        found: "end of input",
                     },
                     help: None,
                     code: None,
