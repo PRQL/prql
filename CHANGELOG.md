@@ -28,6 +28,7 @@
 
 - `prqlc compile` returns a non-zero exit code for invalid queries. (@max-sixty,
   #1924)
+- Identifiers can contain any alphabetic unicode characters (@max-sixty, #2003)
 
 **Documentation**:
 
