@@ -59,6 +59,7 @@ need_stdout = true
 a = "job:check-all"
 c = "job:clippy"
 d = "job:doc-open"
-i = "job:initial"
+# i for `insta`
+i = "job:test-rust-fast"
 r = "job:run"
 t = "job:test"
