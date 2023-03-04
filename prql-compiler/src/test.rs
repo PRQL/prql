@@ -2926,7 +2926,7 @@ fn test_errors() {
        │
      1 │ Mississippi has four S’s and four I’s.
        ·                                       ┬
-       ·                                       ╰── identifier expected * or an identifier, but found
+       ·                                       ╰── identifier expected * or an identifier, but found end of input
     ───╯
     "###);
 
