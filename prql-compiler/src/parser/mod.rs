@@ -2215,6 +2215,22 @@ join s=salaries [==id]
     }
 
     #[test]
+    fn test_unicode() {
+        let source = "from tète";
+        assert_yaml_snapshot!(parse(source).unwrap(), @r###"
+        ---
+        - Main:
+            FuncCall:
+              name:
+                Ident:
+                  - from
+              args:
+                - Ident:
+                    - tète
+        "###);
+    }
+
+    #[test]
     fn test_error_unicode_string() {
         // Test various unicode strings successfully parse errors. We were
         // getting loops in the lexer before.
