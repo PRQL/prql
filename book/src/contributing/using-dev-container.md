@@ -4,13 +4,13 @@
 This document is a heavy work in progress and may not contain sufficient information.
 ```
 
-[Dev Containers](https://containers.dev/) are a way to package a number of "developer tools" (compilers,
-bundlers, package managers, loaders, etc.) into a single object. This is helpful
-when many people want to contribute to a project: each person only has to
-install the (single) Dev Container on their own machine to start working. By
-definition, the Dev Container has a consistent set of tools that are known to
-work together. This avoids a fuss with finding the proper versions of each of
-the build tools.
+[Dev Containers](https://containers.dev/) are a way to package a number of
+"developer tools" (compilers, bundlers, package managers, loaders, etc.) into a
+single object. This is helpful when many people want to contribute to a project:
+each person only has to install the (single) Dev Container on their own machine
+to start working. By definition, the Dev Container has a consistent set of tools
+that are known to work together. This avoids a fuss with finding the proper
+versions of each of the build tools.
 
 To use a Dev Container on your local computer with VS Code, you must install the
 [VS Code Dev Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
@@ -23,11 +23,11 @@ full PRQL toolchain. Once it's running, though, startup is fairly fast.
 ## How you use it
 
 1. Clone the git repo onto your hard drive as usual. Then you start the Dev
-  Container (say, using VS Code) that bundles all the developer tools.
+   Container (say, using VS Code) that bundles all the developer tools.
 2. Edit files locally (say, using VS Code) to work on PRQL. The tools in the Dev
-  Container watch for changed files and rebuild the project as needed.
+   Container watch for changed files and rebuild the project as needed.
 3. When you are satisfied with the changes, you can commit them to the repo, and
-  push the changes as usual.
+   push the changes as usual.
 
 ## Starting and stopping the Dev Container
 
