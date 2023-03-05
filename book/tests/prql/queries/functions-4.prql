@@ -1,3 +1,5 @@
+# Error expected
+
 func fahrenheit_to_celsius temp -> (temp - 32) / 1.8
 func interp lower:0 higher x -> (x - lower) / (higher - lower)
 

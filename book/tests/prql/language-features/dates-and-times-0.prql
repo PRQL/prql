@@ -1,2 +1,4 @@
+# Error expected
+
 from employees
 derive age_at_year_end = (@2022-12-31 - dob)

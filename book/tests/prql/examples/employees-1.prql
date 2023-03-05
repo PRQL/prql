@@ -1,3 +1,5 @@
+# Error expected
+
 from e=employees
 join salaries [==emp_no]
 group [e.emp_no, e.gender] (

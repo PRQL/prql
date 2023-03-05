@@ -1,3 +1,5 @@
+# Error expected
+
 prql target:sql.postgres
 
 from employees

@@ -1,3 +1,5 @@
+# Error expected
+
 func interp lower:0 higher x -> (x - lower) / (higher - lower)
 
 from students

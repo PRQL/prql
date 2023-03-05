@@ -1,3 +1,5 @@
+# Error expected
+
 from employees
 select department
 group department (

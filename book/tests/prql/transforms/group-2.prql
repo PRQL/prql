@@ -1,3 +1,5 @@
+# Error expected
+
 from employees
 group role (
   sort join_date  # taken from above

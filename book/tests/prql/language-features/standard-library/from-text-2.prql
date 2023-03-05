@@ -1,3 +1,5 @@
+# Error expected
+
 let x = from_text format:json """{
     "columns": ["a", "b", "c"],
     "data": [

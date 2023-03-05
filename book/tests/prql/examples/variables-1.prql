@@ -1,3 +1,5 @@
+# Error expected
+
 from employees
 group [emp_no] (
   aggregate [

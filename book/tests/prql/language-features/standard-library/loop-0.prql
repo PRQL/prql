@@ -1,3 +1,5 @@
+# Error expected
+
 from_text format:json '[{"n": 1 }]'
 loop (
     filter n<4

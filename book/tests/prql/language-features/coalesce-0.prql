@@ -1,2 +1,4 @@
+# Error expected
+
 from orders
 derive amount ?? 0

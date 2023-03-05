@@ -1,3 +1,5 @@
+# Error expected
+
 from employees
 group employee_id (
   sort month

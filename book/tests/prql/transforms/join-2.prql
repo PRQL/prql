@@ -1,2 +1,4 @@
+# Error expected
+
 from employees
 join positions [==emp_no]

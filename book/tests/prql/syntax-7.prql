@@ -1,2 +1,4 @@
+# Error expected
+
 from employees
 derive total_distance = sum distance
