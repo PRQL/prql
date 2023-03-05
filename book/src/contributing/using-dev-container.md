@@ -4,7 +4,7 @@
 This document is a heavy work in progress and may not contain sufficient information.
 ```
 
-A Dev Container is a way to package a number of "developer tools" (compilers,
+[Dev Containers](https://containers.dev/) are a way to package a number of "developer tools" (compilers,
 bundlers, package managers, loaders, etc.) into a single object. This is helpful
 when many people want to contribute to a project: each person only has to
 install the (single) Dev Container on their own machine to start working. By
