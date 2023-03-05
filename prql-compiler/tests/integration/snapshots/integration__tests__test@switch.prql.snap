@@ -1,0 +1,16 @@
+---
+source: prql-compiler/tests/integration/main.rs
+expression: sqlite_out
+input_file: prql-compiler/tests/integration/queries/switch.prql
+---
+display,milliseconds
+Samuel Rosa,1071
+no composer,4884
+no composer,6373
+no composer,6635
+L. Muggerud,7941
+no composer,11650
+L. Muggerud,21211
+unknown composer,29048
+Gilberto Gil,32287
+Chico Science,33149

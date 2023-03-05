@@ -285,7 +285,9 @@ fn sql_select_query_of_pipeline(
         .into_iter()
         .next();
     let group_by: Vec<CId> = aggregate.map(|(part, _)| part).unwrap_or_default();
+    ctx.query.forbid_stars = !ctx.dialect.stars_in_group();
     let group_by = try_into_exprs(group_by, ctx, None)?;
+    ctx.query.forbid_stars = false;
 
     ctx.query.pre_projection = false;
 

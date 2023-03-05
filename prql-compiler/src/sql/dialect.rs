@@ -154,6 +154,11 @@ pub(super) trait DialectHandler: Any {
     fn requires_quotes_intervals(&self) -> bool {
         false
     }
+
+    /// Support for GROUP BY *
+    fn stars_in_group(&self) -> bool {
+        true
+    }
 }
 
 impl dyn DialectHandler {
@@ -181,6 +186,10 @@ impl DialectHandler for SQLiteDialect {
     }
 
     fn has_concat_function(&self) -> bool {
+        false
+    }
+
+    fn stars_in_group(&self) -> bool {
         false
     }
 }
