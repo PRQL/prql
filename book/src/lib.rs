@@ -164,7 +164,7 @@ fn table_of_error(prql: &str, error: &str) -> String {
 <div>
 <h4>PRQL</h4>
 
-```prql_error
+```prql
 {prql}
 ```
 
