@@ -26,7 +26,7 @@ semver = {version = "1.0.14", features = ["serde"]}
 serde = {version = "1.0.137", features = ["derive"]}
 serde_json = "1.0.81"
 sqlformat = "0.2.0"
-sqlparser = {version = "0.30.0", features = ["serde"]}
+sqlparser = {version = "0.31.0", features = ["serde"]}
 strum = {version = "0.24.0", features = ["std", "derive"]}# for converting enum variants to string
 strum_macros = "0.24.0"
 
