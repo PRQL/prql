@@ -15,7 +15,7 @@
     to be more similar to other conventional languages.
   - `and` now has a higher precedence than `or` (of same reason as the previous
     point).
-  - Dates, times and timestamps have a stricter parsing rules.
+  - Dates, times and timestamps have stricter parsing rules.
   - `let`, `func`, `prql`, `switch` are now treated as keywords.
   - Float literals without fraction part are not allowed anymore (`1.`).
 - Add a `--format` option to `prqlc parse` which can return the AST in YAML
@@ -33,6 +33,8 @@
 **Documentation**:
 
 - Operator precedence (@aljazerzen, #1818)
+- Error messages for invalid queries are displayed in the book (@max-sixty,
+  #2015)
 
 **Web**:
 
