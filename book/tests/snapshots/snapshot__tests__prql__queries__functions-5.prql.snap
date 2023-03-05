@@ -1,0 +1,23 @@
+---
+source: book/tests/snapshot.rs
+expression: "func cost_share cost -> cost / cost_total\n\nfrom costs\nselect [materials, labor, overhead, cost_total]\nderive [\n  materials_share = (cost_share materials),\n  labor_share = (cost_share labor),\n  overhead_share = (cost_share overhead),\n]\n"
+---
+func cost_share cost -> cost / cost_total
+
+
+
+from costs
+select [
+  materials,
+  labor,
+  overhead,
+  cost_total,
+]
+derive [
+  materials_share = cost_share materials,
+  labor_share = cost_share labor,
+  overhead_share = cost_share overhead,
+]
+
+
+

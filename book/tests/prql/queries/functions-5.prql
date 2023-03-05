@@ -1,0 +1,9 @@
+func cost_share cost -> cost / cost_total
+
+from costs
+select [materials, labor, overhead, cost_total]
+derive [
+  materials_share = (cost_share materials),
+  labor_share = (cost_share labor),
+  overhead_share = (cost_share overhead),
+]

@@ -75,21 +75,22 @@ from kettles
 derive boiling_proportion = (temp_c | fahrenheit_to_celsius | interp 100)
 ```
 
-## Roadmap
+## Scope
 
 ### Late binding
 
-Currently, functions require a binding to variables in scope; they can't
-late-bind to column names; so for example:
+Functions can binding to any variables in scope when the function is executed.
+For example, here `cost_total` refers to the column that's introduced in the
+`from`.
 
-```prql_no_test
-func return price -> (price - dividend) / price_yesterday
+```prql
+func cost_share cost -> cost / cost_total
+
+from costs
+select [materials, labor, overhead, cost_total]
+derive [
+  materials_share = (cost_share materials),
+  labor_share = (cost_share labor),
+  overhead_share = (cost_share overhead),
+]
 ```
-
-...isn't yet a valid function, and instead would needs to be:
-
-```prql_no_test
-func return price dividend price_yesterday ->  (price - dividend) / (price_yesterday)
-```
-
-(which makes functions in this case not useful)

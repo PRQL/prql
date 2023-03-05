@@ -1,3 +1,3 @@
-prql target:sql.postgres
+prql target:sql.mysql
 from employees
 select `first name`
