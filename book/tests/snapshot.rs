@@ -154,7 +154,7 @@ fn write_prql_examples(examples: HashMap<PathBuf, String>) -> Result<()> {
 
     if is_snapshots_updated {
         bail!(r###"
-Some book snapshots were not consistent with the queries in the book. 
+Some book snapshots were not consistent with the queries in the book.
 The snapshots have now been updated. Subsequent runs of this test should now pass."###
             .trim());
     }
