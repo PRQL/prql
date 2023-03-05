@@ -1,8 +1,8 @@
 ---
 source: book/tests/snapshot.rs
-expression: "prql target:sql.postgres\nfrom employees\nselect `first name`\n"
+expression: "prql target:sql.mysql\nfrom employees\nselect `first name`\n"
 ---
-prql target:sql.postgres
+prql target:sql.mysql
 
 
 

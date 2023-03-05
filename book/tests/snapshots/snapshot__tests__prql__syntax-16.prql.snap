@@ -1,13 +1,12 @@
 ---
 source: book/tests/snapshot.rs
-expression: "std.from my_table\nstd.select [from = my_table.a, take = my_table.b]\nstd.take 3\n"
+expression: "from numbers\nselect [\n    small = 1.000_000_1,\n    big = 5_000_000,\n]\n"
 ---
-std.from my_table
-std.select [
-  from = my_table.a,
-  take = my_table.b,
+from numbers
+select [
+  small = 1.0000001,
+  big = 5000000,
 ]
-std.take 3
 
 
 

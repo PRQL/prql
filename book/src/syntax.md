@@ -166,9 +166,17 @@ sort (-distance)
 sort [-distance]
 ```
 
+This doesn't work, for example (though it should provide a much better error
+message):
+
+```prql_error
+from employees
+derive total_distance = sum distance
+```
+
 For a more formal definition, refer to this precedence table. Because function
-call has the lowest precedence, nested function calls or arguments that start or
-end with an operator require parenthesis.
+calls have the lowest precedence, nested function calls or arguments that start
+or end with an operator require parenthesis.
 
 | Group          | Operators         | Precedence | Associativity |
 | -------------- | ----------------- | ---------- | ------------- |

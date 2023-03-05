@@ -2914,6 +2914,20 @@ fn test_errors() {
        ·                       ┬
        ·                       ╰── unexpected ’
     ───╯
+    Error:
+       ╭─[:1:36]
+       │
+     1 │ Mississippi has four S’s and four I’s.
+       ·                                    ┬
+       ·                                    ╰── unexpected ’
+    ───╯
+    Error:
+       ╭─[:1:39]
+       │
+     1 │ Mississippi has four S’s and four I’s.
+       ·                                       ┬
+       ·                                       ╰── Expected * or an identifier, but didn't find anything before the end.
+    ───╯
     "###);
 
     let err = compile(
@@ -2923,6 +2937,16 @@ fn test_errors() {
     )
     .unwrap_err();
     assert_eq!(err.inner[0].code.as_ref().unwrap(), "E0001");
+
+    assert_display_snapshot!(compile("Answer: T-H-A-T!").unwrap_err(), @r###"
+    Error:
+       ╭─[:1:7]
+       │
+     1 │ Answer: T-H-A-T!
+       ·       ┬
+       ·       ╰── unexpected :
+    ───╯
+    "###);
 }
 
 #[test]

@@ -1,3 +1,5 @@
-std.from my_table
-std.select [from = my_table.a, take = my_table.b]
-std.take 3
+from numbers
+select [
+    small = 1.000_000_1,
+    big = 5_000_000,
+]

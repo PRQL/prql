@@ -13,7 +13,6 @@ use prql_compiler::compile;
 use pulldown_cmark::{CodeBlockKind, Event, Options, Parser, Tag};
 use pulldown_cmark_to_cmark::cmark;
 use semver::{Version, VersionReq};
-use similar::DiffableStr;
 use std::{io, process};
 
 /// Checks renderer support and runs the preprocessor.
@@ -103,21 +102,50 @@ fn replace_examples(text: &str) -> Result<String> {
 
     while let Some(event) = parser.next() {
         match event.clone() {
-            Event::Start(Tag::CodeBlock(CodeBlockKind::Fenced(lang))) if lang == "prql".into() => {
-                if let Some(Event::Text(text)) = parser.next() {
-                    let prql = text.to_string();
-                    let options = prql_compiler::Options::default().no_signature();
-                    let html = table_of_comparison(
-                        text.as_str().unwrap(),
-                        &compile(&prql, &options).unwrap(),
-                    );
-                    cmark_acc.push(Event::Html(html.into()));
+            // Duplicative repetitive logic here and in
+            // [snapshot.rs/collect_book_examples]; could we unify?
+            Event::Start(Tag::CodeBlock(CodeBlockKind::Fenced(lang)))
+                if lang.starts_with("prql") =>
+            {
+                let Some(Event::Text(text)) = parser.next()
+                else {
+                    bail!("Expected text after PRQL code block")
+                };
+                let prql = text.to_string();
+                let options = prql_compiler::Options::default().no_signature();
+                let result = &compile(&prql, &options);
+                match lang.to_string().as_str() {
+                    "prql" => cmark_acc.push(Event::Html(
+                        table_of_comparison(
+                            &prql,
+                            result
+                                .clone()
+                                .unwrap_or_else(|_| {
+                                    panic!("{}", format!("Query raised an error: {prql}"))
+                                })
+                                .as_str(),
+                        )
+                        .into(),
+                    )),
+                    "prql_error" => cmark_acc.push(Event::Html(
+                        table_of_error(
+                            &prql,
+                            result
+                                .clone()
+                                .expect_err(
+                                    &format!("Query was labeled to raise an error, but succeeded.\n {prql}").to_string(),
+                                )
+                                .to_string()
+                                .as_str(),
+                        )
+                        .into(),
+                    )),
+                    "prql_no_test" => {}
+                    _ => bail!("Unknown code block language: {}", lang),
+                };
 
-                    // Skip ending tag
-                    parser.next();
-                } else {
-                    bail!("Expected text after PRQL code block");
-                }
+                // Skip ending tag
+                parser.next();
             }
             _ => cmark_acc.push(event.to_owned()),
         }
@@ -155,6 +183,39 @@ fn table_of_comparison(prql: &str, sql: &str) -> String {
 "#,
         prql = prql.trim(),
         sql = sql,
+    )
+    .trim_start()
+    .to_string()
+}
+
+// Exactly the same as `table_of_comparison`, but with a different title for the second column.
+fn table_of_error(prql: &str, error: &str) -> String {
+    format!(
+        r#"
+<div class="comparison">
+
+<div>
+<h4>PRQL</h4>
+
+```prql
+{prql}
+```
+
+</div>
+
+<div>
+<h4>Error</h4>
+
+```
+{error}
+```
+
+</div>
+
+</div>
+"#,
+        prql = prql.trim(),
+        error = error,
     )
     .trim_start()
     .to_string()

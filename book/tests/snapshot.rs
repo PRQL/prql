@@ -56,22 +56,27 @@ fn collect_book_examples() -> Result<HashMap<PathBuf, String>> {
         .filter(|x| glob.is_match(x.path()))
         .flat_map(|dir_entry| {
             let text = fs::read_to_string(dir_entry.path())?;
+            // TODO: Duplicative logic here and in [lib.rs/replace_examples];
+            // could we unify?
+            //
+            // Could we have a function that takes text and returns a
+            // Vec<prql_string, result, expected>, where expected is whether it
+            // should succeed or fail?
             let mut parser = Parser::new(&text);
             let mut prql_blocks = vec![];
             while let Some(event) = parser.next() {
                 match event.clone() {
                     // At the start of a PRQL code block, push the _next_ item.
                     // Note that on windows, we only get the next _line_, and so
-                    // we exclude the writing in windows below;
+                    // this is disabled on windows.
                     // https://github.com/PRQL/prql/issues/356
                     Event::Start(Tag::CodeBlock(CodeBlockKind::Fenced(lang)))
-                        if lang == "prql".into() =>
+                        if lang == "prql".into() || lang == "prql_error".into() =>
                     {
-                        if let Some(Event::Text(text)) = parser.next() {
-                            prql_blocks.push(text);
-                        } else {
-                            bail!("Expected text after PRQL code block");
-                        }
+                        let Some(Event::Text(text)) = parser.next() else {
+                            bail!("Expected text after PRQL code block")
+                        };
+                        prql_blocks.push(text);
                     }
                     _ => {}
                 }
@@ -153,7 +158,10 @@ fn write_prql_examples(examples: HashMap<PathBuf, String>) -> Result<()> {
     });
 
     if is_snapshots_updated {
-        bail!("Some book snapshots were not consistent with the queries in the book. The snapshots have now been updated. Subsequent runs should pass.");
+        bail!(r###"
+Some book snapshots were not consistent with the queries in the book.
+The snapshots have now been updated. Subsequent runs of this test should now pass."###
+            .trim());
     }
     Ok(())
 }
@@ -168,7 +176,8 @@ fn test_prql_examples() {
             return;
         }
 
-        let sql = compile(&prql, &opts).unwrap_or_else(|e| format!("{prql}\n\n{e}"));
+        // Whether it's a success or a failure, get the string.
+        let sql = compile(&prql, &opts).unwrap_or_else(|e| e.to_string());
         // `glob!` gives us the file path in the test name anyway, so we pass an
         // empty name. We pass `&prql` so the prql is in the snapshot (albeit in
         // a single line, and, in the rare case that the SQL doesn't change, the
