@@ -3,10 +3,6 @@ source: book/tests/snapshot.rs
 expression: "from employees\nderive total_distance = sum distance\n"
 input_file: book/tests/prql/syntax-7.prql
 ---
-from employees
-derive total_distance = sum distance
-
-
 Error:
    ╭─[:2:29]
    │

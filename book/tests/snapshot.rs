@@ -48,7 +48,6 @@ const ROOT_EXAMPLES_PATH: &str = "tests/prql";
 /// Collect all the PRQL examples in the book, as a map of <Path, PRQL>.
 #[cfg(not(target_family = "windows"))]
 fn collect_book_examples() -> Result<HashMap<PathBuf, String>> {
-    // TODO: Duplicative logic here and in [lib.rs/replace_examples]; could we unify?
     use pulldown_cmark::{CodeBlockKind, Event, Parser, Tag};
     let glob = Glob::new("**/*.md")?.compile_matcher();
     let examples_in_book: HashMap<PathBuf, String> = WalkDir::new(Path::new("./src/"))
@@ -57,6 +56,12 @@ fn collect_book_examples() -> Result<HashMap<PathBuf, String>> {
         .filter(|x| glob.is_match(x.path()))
         .flat_map(|dir_entry| {
             let text = fs::read_to_string(dir_entry.path())?;
+            // TODO: Duplicative logic here and in [lib.rs/replace_examples];
+            // could we unify?
+            //
+            // Could we have a function that takes text and returns a
+            // Vec<prql_string, result, expected>, where expected is whether it
+            // should succeed or fail?
             let mut parser = Parser::new(&text);
             let mut prql_blocks = vec![];
             while let Some(event) = parser.next() {
@@ -171,7 +176,8 @@ fn test_prql_examples() {
             return;
         }
 
-        let sql = compile(&prql, &opts).unwrap_or_else(|e| format!("{prql}\n\n{e}"));
+        // Whether it's a success or a failure, get the string.
+        let sql = compile(&prql, &opts).unwrap_or_else(|e| e.to_string());
         // `glob!` gives us the file path in the test name anyway, so we pass an
         // empty name. We pass `&prql` so the prql is in the snapshot (albeit in
         // a single line, and, in the rare case that the SQL doesn't change, the
