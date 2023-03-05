@@ -1,14 +1,10 @@
 // Dev Container for Rust, website, prql-js and prql-python
 {
-  "image": "mcr.microsoft.com/devcontainers/rust:0-1-bullseye",
+  "image": "ghcr.io/prql/prql-devcontainer-base:latest",
   "features": {
-    "ghcr.io/eitsupi/devcontainer-features/go-task:1": {},
     "ghcr.io/devcontainers/features/hugo:1": {},
     "ghcr.io/devcontainers/features/python:1": {},
-    "ghcr.io/devcontainers/features/node:1": {},
-    "ghcr.io/rocker-org/devcontainer-features/apt-packages:1": {
-      "packages": "clang"
-    }
+    "ghcr.io/devcontainers/features/node:1": {}
   },
   "customizations": {
     "vscode": {
@@ -26,6 +22,5 @@
       "target": "/usr/local/cargo",
       "type": "volume"
     }
-  ],
-  "postCreateCommand": "task setup-devcontainer"
+  ]
 }
