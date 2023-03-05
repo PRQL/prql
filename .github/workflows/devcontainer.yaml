@@ -18,9 +18,9 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/prql-devcontainer-base:latest
     steps:
-      - uses: actions/checkout@v3
-
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v2
         with:
@@ -38,16 +38,22 @@ jobs:
         run: |
           if [ "${{ github.ref }}" = "refs/heads/main" ]; then
             echo "platforms=linux/amd64,linux/arm64" >>$GITHUB_OUTPUT
+            echo "push=true" >>$GITHUB_OUTPUT
           else
             echo "platforms=linux/amd64" >>$GITHUB_OUTPUT
+            echo "push=false" >>$GITHUB_OUTPUT
           fi
 
-      - name: Pre-build dev container image
-        uses: devcontainers/ci@v0.2
+      - name: Build
+        uses: docker/build-push-action@v4
         with:
-          subFolder: .devcontainer/base
-          imageName: ghcr.io/prql/prql-devcontainer
-          cacheFrom: ghcr.io/prql/prql-devcontainer
-          push: filter
-          refFilterForPush: refs/heads/main
-          platform: ${{ steps.set-platforms.outputs.platforms }})
+          file: "./.devcontainer/base-image/Dockerfile"
+          tags: ${{ env.IMAGE_NAME }}
+          platforms: ${{ steps.set-platforms.outputs.platforms }})
+          push: ${{ steps.set-platforms.outputs.push }}
+          cache-from: |
+            ${{ env:IMAGE_NAME }}
+            type=gha
+          cache-to: |
+            type=inline
+            type=gha,mode=max
