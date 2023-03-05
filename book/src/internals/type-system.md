@@ -9,7 +9,7 @@
 Each of the SQL DBMSs has their own type system. Thanks to SQL standard, they
 are very similar, but have key differences. For example, SQLite does not have a
 type for date or time or timestamps, but it has functions for handling date and
-time that take ISO8603 strings or ints representing Unix timestamps. So it does
+time that take ISO 8601 strings or ints representing Unix timestamps. So it does
 support most of what is possible to do with dates, it just stores a different
 data format and uses different functions to achieve that.
 
@@ -66,7 +66,7 @@ structure that would correspond to our idea of "relation". Most of them would be
 an object/struct that has column names and types and then a generic array of
 arrays for rows.
 
-PRQL's type system should also be able to express relation as composed from
+PRQL's type system should also be able to express relations as composed from
 primitive types, but have only one idiomatic way of doing so.
 
 In practice this means that builtin types include only primitives (int, text,
@@ -112,9 +112,9 @@ PTS logical type  --->  STS logical type  ---> STS physical layout
 ```
 
 Note that STS types do not have a single physical layout. Postgres has a logical
-type `anyelement`, which is a super type of any data type. It can be used a
+type `anyelement`, which is a super type of any data type. It can be used as a
 function parameter type, but does not have a single physical layout so it cannot
-be used a in column declarations.
+be used in a column declaration.
 
 For now, PRQL does not define a physical layout of any type. It is not needed
 since PRQL is not used for DDL (see section "Built-in primitives") or does not
@@ -207,17 +207,17 @@ For such cases, we'd want to have something similar to Rust's `#[repr(X)]` which
 says "data in this type is represented as X" (we'd probably want a different
 syntax).
 
-This is needed because translation from PRQL operation to SQL may depend on the
+This is needed because translation from PRQL operations to SQL may depend on the
 representation.
 
 Using SQLite as an example again, users may have some data stored as INTEGER and
 some as TEXT, but would want to define both of them as PTS `timestamp`. They
 would attach `#[repr(INTEGER)]` or `#[repr(TEXT)]` to the type. This would
-effect how `timestamp - timestamp` is translated into SQL. INTEGER can use
+affect how `timestamp - timestamp` is translated into SQL. INTEGER can use
 normal int subtraction, but TEXT must apply `unixepoch` first.
 
-A similar example is a "string array type" in PTS that could be represented by
-an `text[]` (if DBMS supports arrays) or `json` or it's variant `jsonb` in
+A similar example is a "string array type" in PTS that could be represented by a
+`text[]` (if DBMS supports arrays) or `json` or it's variant `jsonb` in
 Postgres. Again, the representation would affect operators: in Postgres arrays
 can be access with `my_array[1]` and json uses `my_json_array -> 1`. This
 example may not be applicable, if we decide that we want a separate JSON type in
