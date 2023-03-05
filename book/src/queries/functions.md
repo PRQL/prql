@@ -24,17 +24,17 @@ derive temp_c = (fahrenheit_to_celsius temp_f)
 ```
 
 This function is named `interp`, and has two positional parameters named
-`higher` and `x`, and one named parameter named `lower` which takes a default
+`high` and `x`, and one named parameter named `low` which takes a default
 argument of `0`. It calculates the proportion of the distance that `x` is
-between `lower` and `higher`.
+between `low` and `high`.
 
 ```prql
-func interp lower:0 higher x -> (x - lower) / (higher - lower)
+func interp low:0 high x -> (x - low) / (high - low)
 
 from students
 derive [
   sat_proportion_1 = (interp 1600 sat_score),
-  sat_proportion_2 = (interp lower:0 1600 sat_score),
+  sat_proportion_2 = (interp low:0 1600 sat_score),
 ]
 ```
 
@@ -47,12 +47,12 @@ positional parameter of the function. Here's the same result as the examples
 above with an alternative construction:
 
 ```prql
-func interp lower:0 higher x -> (x - lower) / (higher - lower)
+func interp low:0 high x -> (x - low) / (high - low)
 
 from students
 derive [
   sat_proportion_1 = (sat_score | interp 1600),
-  sat_proportion_2 = (sat_score | interp lower:0 1600),
+  sat_proportion_2 = (sat_score | interp low:0 1600),
 ]
 ```
 
@@ -69,7 +69,7 @@ We can combine a chain of functions, which makes logic more readable:
 
 ```prql
 func fahrenheit_to_celsius temp -> (temp - 32) / 1.8
-func interp lower:0 higher x -> (x - lower) / (higher - lower)
+func interp low:0 high x -> (x - low) / (high - low)
 
 from kettles
 derive boiling_proportion = (temp_c | fahrenheit_to_celsius | interp 100)
