@@ -2,13 +2,12 @@ name: devcontainer
 
 on:
   push:
+    # ToDo: Add partial Taskfile (only include rust-tools)
     paths:
-      - .devcontainer/base/Dockerfile
-      - .devcontainer/base/devcontainer.json
+      - .devcontainer/base-image/Dockerfile
   pull_request:
     paths:
-      - .devcontainer/base/Dockerfile
-      - .devcontainer/base/devcontainer.json
+      - .devcontainer/base-image/Dockerfile
   workflow_dispatch:
 
 concurrency:
