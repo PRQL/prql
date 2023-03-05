@@ -82,6 +82,9 @@ struct QueryOpts {
 
     /// When true, queries will contain nested sub-queries instead of WITH CTEs.
     pub forbid_ctes: bool,
+
+    /// When true, * are not allowed.
+    pub forbid_stars: bool,
 }
 
 impl Context {

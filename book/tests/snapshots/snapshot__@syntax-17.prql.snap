@@ -1,0 +1,13 @@
+---
+source: book/tests/snapshot.rs
+expression: "std.from my_table\nstd.select [from = my_table.a, take = my_table.b]\nstd.take 3\n"
+input_file: book/tests/prql/syntax-17.prql
+---
+SELECT
+  a AS "from",
+  b AS take
+FROM
+  my_table
+LIMIT
+  3
+

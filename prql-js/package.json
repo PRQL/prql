@@ -21,7 +21,7 @@
     "build:bundler": "wasm-pack build --target bundler --release --out-dir dist/bundler && rm dist/bundler/.gitignore",
     "build:node": "wasm-pack build --target nodejs --release --out-dir dist/node && rm dist/node/.gitignore",
     "build:web": "wasm-pack build --target no-modules --release --out-dir dist/web && rm dist/web/.gitignore",
-    "test": "wasm-pack test --firefox && mocha tests"
+    "test": "mocha tests"
   },
   "types": "dist/node/prql_js.d.ts",
   "version": "0.5.2"

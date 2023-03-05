@@ -16,6 +16,9 @@ typedef struct Options {
   bool format;
   /**
    * Target and dialect to compile to.
+   *
+   * Defaults to `sql.any`, which uses `target` argument from the query header to determine
+   * the SQL dialect.
    */
   char *target;
   /**

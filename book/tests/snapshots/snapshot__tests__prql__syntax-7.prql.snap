@@ -1,17 +1,9 @@
 ---
 source: book/tests/snapshot.rs
-expression: "from employees\ngroup [title, country] (\n  aggregate [\n    average salary,\n    ct = count\n  ]\n)\n"
+expression: "from employees\nderive total_distance = sum distance\n"
 ---
 from employees
-group [
-  title,
-  country,
-] (
-  aggregate [
-  average salary,
-  ct = count,
-]
-)
+derive total_distance = sum distance
 
 
 

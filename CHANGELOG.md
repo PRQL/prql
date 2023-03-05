@@ -15,7 +15,7 @@
     to be more similar to other conventional languages.
   - `and` now has a higher precedence than `or` (of same reason as the previous
     point).
-  - Dates, times and timestamps have a stricter parsing rules.
+  - Dates, times and timestamps have stricter parsing rules.
   - `let`, `func`, `prql`, `switch` are now treated as keywords.
   - Float literals without fraction part are not allowed anymore (`1.`).
 - Add a `--format` option to `prqlc parse` which can return the AST in YAML
@@ -28,10 +28,13 @@
 
 - `prqlc compile` returns a non-zero exit code for invalid queries. (@max-sixty,
   #1924)
+- Identifiers can contain any alphabetic unicode characters (@max-sixty, #2003)
 
 **Documentation**:
 
 - Operator precedence (@aljazerzen, #1818)
+- Error messages for invalid queries are displayed in the book (@max-sixty,
+  #2015)
 
 **Web**:
 

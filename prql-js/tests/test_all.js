@@ -86,7 +86,7 @@ describe("prql-js", () => {
     it("should fallback to the target in header", () => {
       const opts = new prql.CompileOptions();
 
-      opts.target = "sql.not_existing";
+      opts.target = "sql.any";
       const res = prql.compile("prql target:sql.mssql\nfrom a | take 1", opts);
 
       assert(res.includes("TOP (1)"));
@@ -98,6 +98,30 @@ describe("prql-js", () => {
       const targets = new prql.get_targets();
       assert(targets.length > 0);
       assert(targets.includes("sql.sqlite"));
+    });
+  });
+
+  describe("compile error", () => {
+    it("should contain json", () => {
+      try {
+        prql.compile("from x | select a | select b");
+      } catch (error) {
+        const errorMessages = JSON.parse(error.message).inner;
+
+        assert(errorMessages.length > 0);
+        assert(errorMessages[0].display.includes("\n"));
+        assert(!errorMessages[0].reason.includes("\n"));
+      }
+    });
+
+    it("should contain error code", () => {
+      try {
+        prql.compile("let a = (from x)");
+      } catch (error) {
+        const errorMessages = JSON.parse(error.message).inner;
+
+        assert(errorMessages[0].code == "E0001");
+      }
     });
   });
 });

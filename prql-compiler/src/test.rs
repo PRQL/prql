@@ -155,29 +155,6 @@ fn test_precedence() {
 }
 
 #[test]
-fn test_pipelines() {
-    assert_display_snapshot!((compile(r###"
-    from employees
-    group dept (take 1)
-    "###).unwrap()), @r###"
-    SELECT
-      DISTINCT *
-    FROM
-      employees
-    "###);
-
-    assert_display_snapshot!((compile(r###"
-    from employees
-    select [age | in 5..10]
-    "###).unwrap()), @r###"
-    SELECT
-      age BETWEEN 5 AND 10
-    FROM
-      employees
-    "###);
-}
-
-#[test]
 fn test_append() {
     assert_display_snapshot!(compile(r###"
     from employees
@@ -360,7 +337,9 @@ fn test_remove() {
     from album
     remove artist
     "#).unwrap_err(),
-        @"Your dialect does not support EXCEPT ALL"
+        @r###"
+    Error: Your dialect does not support EXCEPT ALL
+    "###
     );
 
     assert_display_snapshot!(compile(r#"
@@ -571,7 +550,9 @@ fn test_intersect() {
     from album
     intersect artist
     "#).unwrap_err(),
-        @"Your dialect does not support INTERCEPT ALL"
+        @r###"
+    Error: Your dialect does not support INTERCEPT ALL
+    "###
     );
 }
 
@@ -2639,36 +2620,21 @@ fn test_name_shadowing() {
 fn test_group_all() {
     assert_display_snapshot!(compile(
         r###"
-    from e=employees
-    take 10
-    join salaries [==emp_no]
-    group [e.*] (aggregate sal = (sum salaries.salary))
-        "###).unwrap(),
-        @r###"
-    WITH table_1 AS (
-      SELECT
-        *
-      FROM
-        employees AS e
-      LIMIT
-        10
-    )
-    SELECT
-      table_0.*,
-      SUM(salaries.salary) AS sal
-    FROM
-      table_1 AS table_0
-      JOIN salaries ON table_0.emp_no = salaries.emp_no
-    GROUP BY
-      table_0.*
-    "###
-    );
+    prql target:sql.sqlite
+
+    from a=albums
+    group a.* (aggregate count)
+        "###).unwrap_err(), @r###"
+    Error: Target dialect does not support * in this position.
+    "###);
 
     assert_display_snapshot!(compile(
         r###"
     from e=albums
     group ![genre_id] (aggregate count)
-        "###).unwrap_err(), @"Excluding columns not supported as this position");
+        "###).unwrap_err(), @r###"
+    Error: Excluding columns not supported as this position
+    "###);
 }
 
 #[test]
@@ -2947,6 +2913,38 @@ fn test_errors() {
      1 │ Mississippi has four S’s and four I’s.
        ·                       ┬
        ·                       ╰── unexpected ’
+    ───╯
+    Error:
+       ╭─[:1:36]
+       │
+     1 │ Mississippi has four S’s and four I’s.
+       ·                                    ┬
+       ·                                    ╰── unexpected ’
+    ───╯
+    Error:
+       ╭─[:1:39]
+       │
+     1 │ Mississippi has four S’s and four I’s.
+       ·                                       ┬
+       ·                                       ╰── Expected * or an identifier, but didn't find anything before the end.
+    ───╯
+    "###);
+
+    let err = compile(
+        r###"
+    let a = (from x)
+    "###,
+    )
+    .unwrap_err();
+    assert_eq!(err.inner[0].code.as_ref().unwrap(), "E0001");
+
+    assert_display_snapshot!(compile("Answer: T-H-A-T!").unwrap_err(), @r###"
+    Error:
+       ╭─[:1:7]
+       │
+     1 │ Answer: T-H-A-T!
+       ·       ┬
+       ·       ╰── unexpected :
     ───╯
     "###);
 }
@@ -3244,12 +3242,23 @@ fn test_header_target_error() {
     assert_display_snapshot!(compile(r#"
     prql target:foo
     from a
-    "#).unwrap_err(),@r###"target `"foo"` not found"###);
+    "#).unwrap_err(),@r###"
+    Error: target `"foo"` not found
+    "###);
 
     assert_display_snapshot!(compile(r#"
     prql target:sql.foo
     from a
-    "#).unwrap_err(),@r###"target `"sql.foo"` not found"###)
+    "#).unwrap_err(),@r###"
+    Error: target `"sql.foo"` not found
+    "###);
+
+    assert_display_snapshot!(compile(r#"
+    prql target:foo.bar
+    from a
+    "#).unwrap_err(),@r###"
+    Error: target `"foo.bar"` not found
+    "###);
 }
 
 #[test]

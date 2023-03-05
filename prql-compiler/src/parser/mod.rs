@@ -67,50 +67,64 @@ fn convert_lexer_error(source: &str, e: Cheap<char>) -> Error {
 }
 
 fn convert_parser_error(e: Simple<Token>) -> Error {
-    let just_whitespace = e
-        .expected()
-        .all(|t| matches!(t, None | Some(Token::NewLine)));
-    let expected = e
-        .expected()
-        .filter(|t| {
-            if just_whitespace {
-                true
-            } else {
-                !matches!(t, None | Some(Token::NewLine))
-            }
-        })
-        .map(|t| match t {
-            Some(t) => t.to_string(),
-            None => "end of input".to_string(),
-        })
-        .collect_vec();
-
-    let found = e.found().map(|c| c.to_string()).unwrap_or_default();
-
     let span = common::into_span(e.span());
 
     if let SimpleReason::Custom(message) = e.reason() {
         return Error::new_simple(message).with_span(span);
     }
 
-    if expected.is_empty() || expected.len() > 10 {
-        Error::new(Reason::Unexpected { found })
-    } else {
-        let mut expected = expected;
-        let expected = match expected.len() {
-            1 => expected.remove(0),
-            2 => expected.join(" or "),
-            _ => {
-                let last = expected.pop().unwrap();
-                format!("one of {} or {last}", expected.join(", "))
-            }
-        };
+    let is_all_whitespace = e
+        .expected()
+        .all(|t| matches!(t, None | Some(Token::NewLine)));
+    let expecteds = e
+        .expected()
+        // TODO: could we collapse this into a `filter_map`? (though semantically
+        // identical)
+        //
+        // Only include whitespace if we're _only_ expecting whitespace
+        .filter(|t| is_all_whitespace || !matches!(t, None | Some(Token::NewLine)))
+        .map(|t| {
+            t.clone()
+                .map(|t| t.to_string())
+                .unwrap_or_else(|| "end of input".to_string())
+        })
+        .collect_vec();
 
-        Error::new(Reason::Expected {
+    let expected = if expecteds.is_empty() || expecteds.len() > 10 {
+        return Error::new(Reason::Unexpected {
+            found: e
+                .found()
+                .map(|c| c.to_string())
+                // I think a rare case where we have both no `expected` and no `found`.
+                // Would be good to know how often this happens; can improve if we are
+                // hitting it.
+                .unwrap_or_else(|| "end of input".to_string()),
+        })
+        .with_span(span);
+    } else {
+        let mut expecteds = expecteds;
+        expecteds.sort();
+
+        match expecteds.len() {
+            1 => expecteds.remove(0),
+            2 => expecteds.join(" or "),
+            _ => {
+                let last = expecteds.pop().unwrap();
+                format!("one of {} or {last}", expecteds.join(", "))
+            }
+        }
+    };
+
+    match e.found() {
+        Some(found) => Error::new(Reason::Expected {
             who: e.label().map(|x| x.to_string()),
             expected,
-            found,
-        })
+            found: found.to_string(),
+        }),
+        // We want a friendlier message than "found end of input"...
+        None => Error::new(Reason::Simple(format!(
+            "Expected {expected}, but didn't find anything before the end."
+        ))),
     }
     .with_span(span)
 }
@@ -2214,6 +2228,22 @@ join s=salaries [==id]
     }
 
     #[test]
+    fn test_unicode() {
+        let source = "from tète";
+        assert_yaml_snapshot!(parse(source).unwrap(), @r###"
+        ---
+        - Main:
+            FuncCall:
+              name:
+                Ident:
+                  - from
+              args:
+                - Ident:
+                    - tète
+        "###);
+    }
+
+    #[test]
     fn test_error_unicode_string() {
         // Test various unicode strings successfully parse errors. We were
         // getting loops in the lexer before.
@@ -2236,6 +2266,47 @@ join s=salaries [==id]
                         found: "’",
                     },
                     help: None,
+                    code: None,
+                },
+                Error {
+                    span: Some(
+                        span-chars-35-36,
+                    ),
+                    reason: Unexpected {
+                        found: "’",
+                    },
+                    help: None,
+                    code: None,
+                },
+                Error {
+                    span: Some(
+                        span-chars-38-39,
+                    ),
+                    reason: Simple(
+                        "Expected * or an identifier, but didn't find anything before the end.",
+                    ),
+                    help: None,
+                    code: None,
+                },
+            ],
+        )
+        "###);
+    }
+
+    #[test]
+    fn test_error_unexpected() {
+        assert_debug_snapshot!(parse("Answer: T-H-A-T!").unwrap_err(), @r###"
+        Errors(
+            [
+                Error {
+                    span: Some(
+                        span-chars-6-7,
+                    ),
+                    reason: Unexpected {
+                        found: ":",
+                    },
+                    help: None,
+                    code: None,
                 },
             ],
         )

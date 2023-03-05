@@ -6,10 +6,15 @@ use pyo3::{exceptions, prelude::*};
 
 #[pyfunction]
 pub fn compile(prql_query: &str, options: Option<CompileOptions>) -> PyResult<String> {
-    Ok(prql_query)
-        .and_then(prql_compiler::prql_to_pl)
-        .and_then(prql_compiler::pl_to_rq)
-        .and_then(|rq| prql_compiler::rq_to_sql(rq, &options.map(|o| o.into()).unwrap_or_default()))
+    let options = options.map(convert_options).transpose();
+
+    options
+        .and_then(|opts| {
+            Ok(prql_query)
+                .and_then(prql_compiler::prql_to_pl)
+                .and_then(prql_compiler::pl_to_rq)
+                .and_then(|rq| prql_compiler::rq_to_sql(rq, &opts.unwrap_or_default()))
+        })
         .map_err(|e| e.composed("", prql_query, false))
         .map_err(|e| (PyErr::new::<exceptions::PySyntaxError, _>(e.to_string())))
 }
@@ -63,16 +68,10 @@ pub struct CompileOptions {
     /// Defaults to true.
     pub format: bool,
 
-    /// Target dialect to compile to.
+    /// Target to compile to.
     ///
-    /// This is only changes the output for a relatively small subset of
-    /// features.
-    ///
-    /// If something does not work in a specific dialect, please raise in a
-    /// GitHub issue.
-    ///
-    /// If `None` is used, the `target` argument from the query header is used.
-    /// If it does not exist, [Dialect::Generic] is used.
+    /// Defaults to "sql.any", which uses the `target` argument from the query
+    /// header to determine The SQL dialect.
     pub target: String,
 
     /// Emits the compiler signature as a comment after generated SQL
@@ -84,8 +83,8 @@ pub struct CompileOptions {
 #[pymethods]
 impl CompileOptions {
     #[new]
-    pub fn new(format: bool, signature_comment: bool, target: Option<String>) -> Self {
-        let target = target.unwrap_or_default();
+    #[pyo3(signature = (*, format=true, signature_comment=true, target="sql.any".to_string()))]
+    pub fn new(format: bool, signature_comment: bool, target: String) -> Self {
         CompileOptions {
             format,
             target,
@@ -94,16 +93,16 @@ impl CompileOptions {
     }
 }
 
-impl From<CompileOptions> for prql_compiler::Options {
-    fn from(o: CompileOptions) -> Self {
-        let target = Target::from_str(&o.target).unwrap_or_default();
+fn convert_options(
+    o: CompileOptions,
+) -> Result<prql_compiler::Options, prql_compiler::ErrorMessages> {
+    let target = Target::from_str(&o.target).map_err(|e| prql_compiler::downcast(e.into()))?;
 
-        prql_compiler::Options {
-            format: o.format,
-            target,
-            signature_comment: o.signature_comment,
-        }
-    }
+    Ok(prql_compiler::Options {
+        format: o.format,
+        target,
+        signature_comment: o.signature_comment,
+    })
 }
 
 #[pyfunction]
@@ -121,7 +120,7 @@ mod test {
     fn parse_for_python() {
         let opts = Some(CompileOptions {
             format: true,
-            target: String::new(),
+            target: "sql.any".to_string(),
             signature_comment: false,
         });
 

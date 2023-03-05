@@ -142,10 +142,12 @@ impl Default for Target {
 
 impl Target {
     pub fn names() -> Vec<String> {
-        sql::Dialect::names()
-            .into_iter()
-            .map(|d| format!("sql.{d}"))
-            .collect()
+        let mut names = vec!["sql.any".to_string()];
+
+        let dialects = sql::Dialect::names();
+        names.extend(dialects.into_iter().map(|d| format!("sql.{d}")));
+
+        names
     }
 }
 
@@ -153,20 +155,20 @@ impl FromStr for Target {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Target, Self::Err> {
-        // We have a closure here because we can't create the error in the
-        // pipeline, since it needs to be in two places, and we'd need to clone.
-        // (Though possibly it's too optimize-y.)
-        let not_found_error = |s| {
-            Error::new(Reason::NotFound {
-                name: format!("{s:?}"),
-                namespace: "target".to_string(),
-            })
-        };
-        s.strip_prefix("sql.")
-            .ok_or_else(|| not_found_error(s))
-            .map(sql::Dialect::from_str)?
-            .map(|x| Target::Sql(Some(x)))
-            .map_err(|_| not_found_error(s))
+        if let Some(dialect) = s.strip_prefix("sql.") {
+            if dialect == "any" {
+                return Ok(Target::Sql(None));
+            }
+
+            if let Ok(dialect) = sql::Dialect::from_str(dialect) {
+                return Ok(Target::Sql(Some(dialect)));
+            }
+        }
+
+        Err(Error::new(Reason::NotFound {
+            name: format!("{s:?}"),
+            namespace: "target".to_string(),
+        }))
     }
 }
 
@@ -297,6 +299,7 @@ mod tests {
                     namespace: "target",
                 },
                 help: None,
+                code: None,
             },
         )
         "###);
@@ -310,6 +313,7 @@ mod tests {
                     namespace: "target",
                 },
                 help: None,
+                code: None,
             },
         )
         "###);

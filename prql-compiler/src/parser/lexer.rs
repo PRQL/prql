@@ -77,10 +77,8 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
         literal,
         keyword,
         ident,
-    ));
-    // TODO: Add this back when https://github.com/zesterer/chumsky/issues/301
-    // is fixed.
-    // .recover_with(skip_then_retry_until([]).skip_start());
+    ))
+    .recover_with(skip_then_retry_until([]).skip_start());
 
     let comment = just('#').then(none_of('\n').repeated());
     let comments = comment
@@ -115,11 +113,9 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, std::ops::Range<usize>)>, Error 
 }
 
 pub fn ident_part() -> impl Parser<char, String, Error = Cheap<char>> {
-    let plain = filter(|c: &char| c.is_ascii_alphabetic() || *c == '_')
+    let plain = filter(|c: &char| c.is_alphabetic() || *c == '_')
         .map(Some)
-        .chain::<char, Vec<_>, _>(
-            filter(|c: &char| c.is_ascii_alphanumeric() || *c == '_').repeated(),
-        )
+        .chain::<char, Vec<_>, _>(filter(|c: &char| c.is_alphanumeric() || *c == '_').repeated())
         .collect();
 
     let backticks = just('`')
