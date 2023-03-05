@@ -1,10 +1,8 @@
-# PRQL in a Dev Container/Codespace
+# Development in Dev Containers
 
-_This is a first-cut description of using Dev Containers. It could use lots more
-info about installing and using Dev Containers with VS Code._
-
-_GitHub Codespaces provide equivalent facilities (and a web-based IDE).
-This document could also describe how to set this up._
+```admonish note
+This document is a heavy work in progress and may not contain sufficient information.
+```
 
 A Dev Container is a way to package a number of "developer tools" (compilers,
 bundlers, package managers, loaders, etc.) into a single object. This is helpful
