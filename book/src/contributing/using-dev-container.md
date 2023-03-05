@@ -3,7 +3,7 @@
 _This is a first-cut description of using Dev Containers. It could use lots more
 info about installing and using Dev Containers with VS Code._
 
-_Codespaces (from Github) provide equivalent facilities (and a web-based IDE).
+_GitHub Codespaces provide equivalent facilities (and a web-based IDE).
 This document could also describe how to set this up._
 
 A Dev Container is a way to package a number of "developer tools" (compilers,
@@ -14,14 +14,9 @@ definition, the Dev Container has a consistent set of tools that are known to
 work together. This avoids a fuss with finding the proper versions of each of
 the build tools.
 
-To use a Dev Container on your local computer, you must install these
-pre-requisites:
-
-- [Docker](https://www.docker.com/) (follow any of the instructions on the
-  internet for your computer)
-- [VS Code](https://code.visualstudio.com/) Interactive development environment
-- [Dev Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
-  extension for VS Code
+To use a Dev Container on your local computer with VS Code, you must install the
+[VS Code Dev Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
+extension and its system requirements.
 
 When you first start the Dev Container, the build process may take a long time
 (as much as 20-40 minutes) as the container collects all the packages of the
