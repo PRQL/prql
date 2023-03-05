@@ -1,8 +1,8 @@
 ---
 source: book/tests/snapshot.rs
-expression: "func interp lower:0 higher x -> (x - lower) / (higher - lower)\n\nfrom students\nderive [\n  sat_proportion_1 = (sat_score | interp 1600),\n  sat_proportion_2 = (sat_score | interp lower:0 1600),\n]\n"
+expression: "func interp low:0 high x -> (x - low) / (high - low)\n\nfrom students\nderive [\n  sat_proportion_1 = (sat_score | interp 1600),\n  sat_proportion_2 = (sat_score | interp low:0 1600),\n]\n"
 ---
-func interp higher x lower:0 -> x - lower / higher - lower
+func interp high x low:0 -> x - low / high - low
 
 
 
@@ -14,7 +14,7 @@ derive [
 ),
   sat_proportion_2 = (
   sat_score
-  interp lower:0 1600
+  interp low:0 1600
 ),
 ]
 

@@ -26,6 +26,8 @@
 - Support for SQL parameters with similar syntax (#1957, @aljazerzen)
 - Allow `:` to be elided in timezones, such as `0800` in
   `@2020-01-01T13:19:55-0800` (@max-sixty, #1991).
+- Add `std.upper` and `std.lower` functions for changing string casing
+  (@Jelenkee, #2019).
 
 **Fixes**:
 
