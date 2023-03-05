@@ -156,38 +156,6 @@ fn replace_examples(text: &str) -> Result<String> {
     Ok(buf)
 }
 
-fn table_of_error(prql: &str, error: &str) -> String {
-    format!(
-        r#"
-<div class="comparison">
-
-<div>
-<h4>PRQL</h4>
-
-```prql
-{prql}
-```
-
-</div>
-
-<div>
-<h4>Error</h4>
-
-```
-{error}
-```
-
-</div>
-
-</div>
-"#,
-        prql = prql.trim(),
-        error = error,
-    )
-    .trim_start()
-    .to_string()
-}
-
 fn table_of_comparison(prql: &str, sql: &str) -> String {
     format!(
         r#"
@@ -215,6 +183,39 @@ fn table_of_comparison(prql: &str, sql: &str) -> String {
 "#,
         prql = prql.trim(),
         sql = sql,
+    )
+    .trim_start()
+    .to_string()
+}
+
+// Exactly the same as `table_of_comparison`, but with a different title for the second column.
+fn table_of_error(prql: &str, error: &str) -> String {
+    format!(
+        r#"
+<div class="comparison">
+
+<div>
+<h4>PRQL</h4>
+
+```prql
+{prql}
+```
+
+</div>
+
+<div>
+<h4>Error</h4>
+
+```
+{error}
+```
+
+</div>
+
+</div>
+"#,
+        prql = prql.trim(),
+        error = error,
     )
     .trim_start()
     .to_string()
