@@ -2937,6 +2937,16 @@ fn test_errors() {
     )
     .unwrap_err();
     assert_eq!(err.inner[0].code.as_ref().unwrap(), "E0001");
+
+    assert_display_snapshot!(compile("Answer: T-H-A-T!").unwrap_err(), @r###"
+    Error:
+       ╭─[:1:7]
+       │
+     1 │ Answer: T-H-A-T!
+       ·       ┬
+       ·       ╰── unexpected :
+    ───╯
+    "###);
 }
 
 #[test]
