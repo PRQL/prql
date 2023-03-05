@@ -3376,3 +3376,35 @@ fn test_datetime_parsing() {
     "###
     );
 }
+
+#[test]
+fn test_lower() {
+    assert_display_snapshot!(compile(r#"
+    from test_tables
+    derive [lower_name = (name | lower)]
+    "#).unwrap(),
+        @r###"
+    SELECT
+      *,
+      LOWER(name) AS lower_name
+    FROM
+      test_tables
+    "###
+    );
+}
+
+#[test]
+fn test_upper() {
+    assert_display_snapshot!(compile(r#"
+    from test_tables
+    derive [upper_name = upper name]
+    select [upper_name]
+    "#).unwrap(),
+        @r###"
+    SELECT
+      UPPER(name) AS upper_name
+    FROM
+      test_tables
+    "###
+    );
+}
