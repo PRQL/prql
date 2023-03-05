@@ -1,3 +1,1 @@
-prql target:sql.bigquery
-from `project-foo.dataset.table`
-join `project-bar.dataset.table` [==col_bax]
+from `dir/*.parquet`

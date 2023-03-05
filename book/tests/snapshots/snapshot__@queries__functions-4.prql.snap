@@ -8,3 +8,4 @@ SELECT
   ((temp_c - 32) / 1.8 - 0) / 100 AS boiling_proportion
 FROM
   kettles
+

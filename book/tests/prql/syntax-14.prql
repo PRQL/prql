@@ -1,2 +1,1 @@
-from employees
-filter id == $1
+from `music.albums`

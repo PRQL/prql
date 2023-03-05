@@ -48,6 +48,7 @@ const ROOT_EXAMPLES_PATH: &str = "tests/prql";
 /// Collect all the PRQL examples in the book, as a map of <Path, PRQL>.
 #[cfg(not(target_family = "windows"))]
 fn collect_book_examples() -> Result<HashMap<PathBuf, String>> {
+    // TODO: Duplicative logic here and in [lib.rs/replace_examples]; could we unify?
     use pulldown_cmark::{CodeBlockKind, Event, Parser, Tag};
     let glob = Glob::new("**/*.md")?.compile_matcher();
     let examples_in_book: HashMap<PathBuf, String> = WalkDir::new(Path::new("./src/"))
@@ -62,16 +63,15 @@ fn collect_book_examples() -> Result<HashMap<PathBuf, String>> {
                 match event.clone() {
                     // At the start of a PRQL code block, push the _next_ item.
                     // Note that on windows, we only get the next _line_, and so
-                    // we exclude the writing in windows below;
+                    // this is disabled on windows.
                     // https://github.com/PRQL/prql/issues/356
                     Event::Start(Tag::CodeBlock(CodeBlockKind::Fenced(lang)))
-                        if lang == "prql".into() =>
+                        if lang == "prql".into() || lang == "prql_error".into() =>
                     {
-                        if let Some(Event::Text(text)) = parser.next() {
-                            prql_blocks.push(text);
-                        } else {
-                            bail!("Expected text after PRQL code block");
-                        }
+                        let Some(Event::Text(text)) = parser.next() else {
+                            bail!("Expected text after PRQL code block")
+                        };
+                        prql_blocks.push(text);
                     }
                     _ => {}
                 }
@@ -153,7 +153,10 @@ fn write_prql_examples(examples: HashMap<PathBuf, String>) -> Result<()> {
     });
 
     if is_snapshots_updated {
-        bail!("Some book snapshots were not consistent with the queries in the book. The snapshots have now been updated. Subsequent runs should pass.");
+        bail!(r###"
+Some book snapshots were not consistent with the queries in the book. 
+The snapshots have now been updated. Subsequent runs of this test should now pass."###
+            .trim());
     }
     Ok(())
 }
