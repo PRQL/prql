@@ -30,7 +30,7 @@ updates:
       prefix: "chore: "
 
   - package-ecosystem: docker
-    directory: .devcontainer/base
+    directory: .devcontainer/base-image
     schedule:
       interval: daily
     commit-message:
