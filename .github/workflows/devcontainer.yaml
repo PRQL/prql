@@ -52,7 +52,7 @@ jobs:
           platforms: ${{ steps.set-platforms.outputs.platforms }})
           push: ${{ steps.set-platforms.outputs.push }}
           cache-from: |
-            ${{ env:IMAGE_NAME }}
+            ${{ env.IMAGE_NAME }}
             type=gha
           cache-to: |
             type=inline
