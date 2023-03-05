@@ -1,5 +1,6 @@
 ---
 source: book/tests/snapshot.rs
+<<<<<<< HEAD
 expression: "# Error expected\n\nfrom employees\nderive total_distance = sum distance\n"
 input_file: book/tests/prql/syntax-7.prql
 ---
@@ -7,6 +8,15 @@ Error:
    ╭─[:4:29]
    │
  4 │ derive total_distance = sum distance
+=======
+expression: "from employees\nderive total_distance = sum distance\n"
+input_file: book/tests/prql/syntax-7.prql
+---
+Error:
+   ╭─[:2:29]
+   │
+ 2 │ derive total_distance = sum distance
+>>>>>>> main
    ·                             ────┬───
    ·                                 ╰───── Unknown name distance
 ───╯

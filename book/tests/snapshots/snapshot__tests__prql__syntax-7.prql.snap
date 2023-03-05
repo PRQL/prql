@@ -1,0 +1,9 @@
+---
+source: book/tests/snapshot.rs
+expression: "from employees\nderive total_distance = sum distance\n"
+---
+from employees
+derive total_distance = sum distance
+
+
+
