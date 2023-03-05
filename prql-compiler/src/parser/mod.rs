@@ -99,7 +99,8 @@ fn convert_parser_error(e: Simple<Token>) -> Error {
                 // Would be good to know how often this happens; can improve if we are
                 // hitting it.
                 .unwrap_or_else(|| "end of input".to_string()),
-        });
+        })
+        .with_span(span);
     } else {
         let mut expecteds = expecteds;
         expecteds.sort();
@@ -2284,6 +2285,26 @@ join s=salaries [==id]
                     reason: Simple(
                         "Expected * or an identifier, but didn't find anything before the end.",
                     ),
+                    help: None,
+                    code: None,
+                },
+            ],
+        )
+        "###);
+    }
+
+    #[test]
+    fn test_error_unexpected() {
+        assert_debug_snapshot!(parse("Answer: T-H-A-T!").unwrap_err(), @r###"
+        Errors(
+            [
+                Error {
+                    span: Some(
+                        span-chars-6-7,
+                    ),
+                    reason: Unexpected {
+                        found: ":",
+                    },
                     help: None,
                     code: None,
                 },
