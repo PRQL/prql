@@ -23,13 +23,11 @@ full PRQL toolchain. Once it's running, though, startup is fairly fast.
 ## How you use it
 
 1. Clone the git repo onto your hard drive as usual. Then you start the Dev
-   Container (say, using VS Code) that bundles all the developer tools.
-
+  Container (say, using VS Code) that bundles all the developer tools.
 2. Edit files locally (say, using VS Code) to work on PRQL. The tools in the Dev
-   Container watch for changed files and rebuild the project as needed.
-
+  Container watch for changed files and rebuild the project as needed.
 3. When you are satisfied with the changes, you can commit them to the repo, and
-   push the changes as usual.
+  push the changes as usual.
 
 ## Starting and stopping the Dev Container
 
@@ -46,16 +44,12 @@ of your changes. When you are done working on that component, hit ^C to abort,
 and return to the Dev Container command line.
 
 - `task -l` lists all the available tasks.
-
 - `task run-book` starts an `mdbook` server. As you edit the files of the
   Language Book (in the `book` directory), `mdbook` rebuilds those pages.
   (Port 3000)
-
 - `task run-website` starts a `hugo` server. As you edit the files (in the
   `website` directory), `hugo` rebuilds those pages. (Port 1313)
-
 - `task run-playground` starts a Node server to build the Playground. As you
   edit the files (in the `playground` directory), the server rebuilds those
   pages. (Port 3000)
-
 - `task WHAT ELSE?` _Provide explanation of other useful commands._
