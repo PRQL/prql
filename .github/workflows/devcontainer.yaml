@@ -49,7 +49,7 @@ jobs:
         with:
           file: "./.devcontainer/base-image/Dockerfile"
           tags: ${{ env.IMAGE_NAME }}
-          platforms: ${{ steps.set-platforms.outputs.platforms }})
+          platforms: ${{ steps.set-platforms.outputs.platforms }}
           push: ${{ steps.set-platforms.outputs.push }}
           cache-from: |
             ${{ env.IMAGE_NAME }}
