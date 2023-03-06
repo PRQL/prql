@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/devcontainers/rust:0.203.7-1
+FROM mcr.microsoft.com/devcontainers/rust:0.203.8-1-bullseye
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
