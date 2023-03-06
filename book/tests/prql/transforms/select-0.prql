@@ -1,4 +1,2 @@
-# Error expected
-
 from employees
 select name = f"{first_name} {last_name}"

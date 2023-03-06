@@ -8,3 +8,4 @@ SELECT
   AVG(salary) OVER () AS avg_sal
 FROM
   employees
+

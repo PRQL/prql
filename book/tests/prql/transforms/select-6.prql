@@ -1,4 +1,4 @@
-# Error expected
+# Can't yet format & compile
 
 from artists
 derive nick = name

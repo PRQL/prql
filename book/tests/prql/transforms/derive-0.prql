@@ -1,4 +1,2 @@
-# Error expected
-
 from employees
 derive gross_salary = salary + payroll_tax

@@ -8,3 +8,4 @@ SELECT
   COALESCE(amount, 0)
 FROM
   orders
+

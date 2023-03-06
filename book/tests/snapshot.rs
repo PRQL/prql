@@ -71,12 +71,18 @@ fn collect_book_examples() -> Result<HashMap<PathBuf, String>> {
                     // this is disabled on windows.
                     // https://github.com/PRQL/prql/issues/356
                     Event::Start(Tag::CodeBlock(CodeBlockKind::Fenced(lang)))
-                        if lang == "prql".into() || lang == "prql_error".into() =>
+                        if lang.starts_with("prql") =>
                     {
                         let Some(Event::Text(text)) = parser.next() else {
                             bail!("Expected text after PRQL code block")
                         };
-                        prql_blocks.push(format!("# Error expected\n\n{text}"));
+                        if lang == "prql".into() {
+                            prql_blocks.push(text.to_string());
+                        } else if lang == "prql_error".into() {
+                            prql_blocks.push(format!("# Error expected\n\n{text}"));
+                        } else if lang == "prql_no_fmt".into() {
+                            prql_blocks.push(format!("# Can't yet format & compile\n\n{text}"));
+                        }
                     }
                     _ => {}
                 }
@@ -199,13 +205,13 @@ fn test_display() -> Result<(), ErrorMessages> {
     collect_book_examples()?
         .iter()
         .try_for_each(|(path, prql)| {
-            if prql.contains("# Error expected") {
+            if prql.contains("# Error expected") || prql.contains("# Can't yet format & compile") {
                 return Ok(());
             }
             prql_to_pl(prql)
                 .and_then(pl_to_prql)
                 .and_then(|formatted| compile(&formatted, &Options::default()))
-                .unwrap_or_else(|_| panic!("Failed compiling the formatted result of {path:?}"));
+                .unwrap_or_else(|_| panic!("Failed compiling the formatted result of {path:?}\n\n. The original PRQL was:\n\n{prql}", path = path, prql = prql));
 
             Ok::<(), ErrorMessages>(())
         })?;

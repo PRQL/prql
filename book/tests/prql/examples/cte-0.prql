@@ -1,4 +1,4 @@
-# Error expected
+# Can't yet format & compile
 
 let newest_employees = (
   from employees

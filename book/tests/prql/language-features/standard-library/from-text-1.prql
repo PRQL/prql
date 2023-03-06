@@ -1,5 +1,3 @@
-# Error expected
-
 let temp_format_lookup = from_text format:csv """
 country_code,format
 uk,C

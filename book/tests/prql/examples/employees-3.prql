@@ -1,4 +1,4 @@
-# Error expected
+# Can't yet format & compile
 
 from de=dept_emp
 join s=salaries side:left [

@@ -10,3 +10,4 @@ FROM
   club_ratings
 WHERE
   rating IS NOT NULL
+

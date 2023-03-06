@@ -1,5 +1,3 @@
-# Error expected
-
 let grouping = s"""
   SELECT SUM(a)
   FROM tbl

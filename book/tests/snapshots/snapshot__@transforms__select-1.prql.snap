@@ -8,3 +8,4 @@ SELECT
   dob - DATE '2022-12-31' AS age_eoy
 FROM
   employees
+

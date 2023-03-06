@@ -1,5 +1,3 @@
-# Error expected
-
 # TODO: this table should have a column `part` with values 1..5,
 # but such data declaration is not yet supported, see #286
 let parts = (

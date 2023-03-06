@@ -1,5 +1,3 @@
-# Error expected
-
 # youngest employee from each department
 from employees
 group department (

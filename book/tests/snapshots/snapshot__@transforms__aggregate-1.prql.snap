@@ -13,3 +13,4 @@ FROM
 GROUP BY
   title,
   country
+

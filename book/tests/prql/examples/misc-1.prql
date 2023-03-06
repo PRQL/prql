@@ -1,5 +1,3 @@
-# Error expected
-
 from club_ratings
 filter rating != null
 # TODO: this is real ugly. `average rating` should not require parenthesis

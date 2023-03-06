@@ -9,3 +9,4 @@ SELECT
   salary + benefits / 365 AS daily_rate
 FROM
   employees
+

@@ -7,3 +7,4 @@ SELECT
   first_name
 FROM
   employees AS e
+

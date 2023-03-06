@@ -13,3 +13,4 @@ SELECT
   *
 FROM
   employees_2 AS b
+

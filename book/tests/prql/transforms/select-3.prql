@@ -1,4 +1,2 @@
-# Error expected
-
 from e=employees
 select [e.first_name, e.last_name]

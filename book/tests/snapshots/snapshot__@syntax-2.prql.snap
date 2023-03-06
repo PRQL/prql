@@ -13,3 +13,4 @@ SELECT
   2 AS d
 FROM
   numbers
+

@@ -10,3 +10,4 @@ FROM
 WHERE
   age > 25
   OR department <> 'IT'
+

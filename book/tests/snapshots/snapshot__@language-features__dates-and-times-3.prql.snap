@@ -8,3 +8,4 @@ SELECT
   start + INTERVAL 10 DAY AS first_check_in
 FROM
   projects
+

@@ -7,3 +7,4 @@ SELECT
   version() AS db_version
 FROM
   my_table
+

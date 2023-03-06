@@ -137,7 +137,7 @@ function call, like `foo + bar`.
 
 Here's a full rundown of times this applier:
 
-```prql
+```prql_no_fmt
 from employees
 # Requires parentheses, because it's contains a pipe
 derive is_proximate = (distance | in 0..20)

@@ -1,4 +1,2 @@
-# Error expected
-
 from orders
 derive should_have_shipped_today = (order_time < @08:30)

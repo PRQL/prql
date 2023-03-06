@@ -1,5 +1,3 @@
-# Error expected
-
 from employees
 filter start_date > @2021-01-01               # Clear date syntax
 derive [                                      # `derive` adds columns / variables

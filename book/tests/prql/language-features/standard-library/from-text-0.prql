@@ -1,5 +1,3 @@
-# Error expected
-
 from_text """
 a,b,c
 1,2,3

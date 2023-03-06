@@ -1,6 +1,6 @@
 ---
 source: book/tests/snapshot.rs
-expression: "from tracks\nselect [track_id, title, composer, bytes]\nselect ![title, composer]\n"
+expression: "# Can't yet format & compile\n\nfrom tracks\nselect [track_id, title, composer, bytes]\nselect ![title, composer]\n"
 input_file: book/tests/prql/transforms/select-5.prql
 ---
 SELECT
@@ -8,3 +8,4 @@ SELECT
   bytes
 FROM
   tracks
+
