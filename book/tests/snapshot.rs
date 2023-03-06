@@ -76,7 +76,7 @@ fn collect_book_examples() -> Result<HashMap<PathBuf, String>> {
                         let Some(Event::Text(text)) = parser.next() else {
                             bail!("Expected text after PRQL code block")
                         };
-                        prql_blocks.push(format!("# Error expected\n\n{text}"));
+                        prql_blocks.push(text);
                     }
                     _ => {}
                 }
@@ -186,27 +186,22 @@ fn test_prql_examples() {
     });
 }
 
-/// Test that the formatted result (the `Display` result) of each example can be compiled.
+/// Snapshot the display trait output of each example.
 //
-// We used to snapshot all the queries. But that was a lot of output, for
-// something we weren't yet looking at.
-//
-// The ideal would be to auto-format the examples themselves, either in the book
-// source or a snapshot (the latter would be easier to do). For that to provide
-// a good output, we need to implement a proper autoformatter.
+// TODO: this involves writing out almost the same PRQL again — instead we could
+// compare the output of Display to the auto-formatted source. But we need an
+// autoformatter for that (unless we want to raise on any non-matching input,
+// which seems very strict)
 #[test]
 fn test_display() -> Result<(), ErrorMessages> {
     collect_book_examples()?
         .iter()
-        .try_for_each(|(path, prql)| {
-            if prql.contains("# Error expected") {
-                return Ok(());
-            }
-            prql_to_pl(prql)
-                .and_then(pl_to_prql)
-                .and_then(|formatted| compile(&formatted, &Options::default()))
-                .unwrap_or_else(|_| panic!("Failed compiling the formatted result of {path:?}"));
-
+        .try_for_each(|(path, example)| {
+            assert_snapshot!(
+                path.to_string_lossy().to_string(),
+                prql_to_pl(example).and_then(pl_to_prql)?,
+                example
+            );
             Ok::<(), ErrorMessages>(())
         })?;
 

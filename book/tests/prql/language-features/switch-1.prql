@@ -1,5 +1,3 @@
-# Error expected
-
 from employees
 derive distance = switch [
   city == "Calgary" -> 0,

@@ -1,5 +1,3 @@
-# Error expected
-
 prql target:sql.mssql
 
 from employees

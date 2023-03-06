@@ -1,5 +1,3 @@
-# Error expected
-
 let top_50 = (
   from employees
   sort salary

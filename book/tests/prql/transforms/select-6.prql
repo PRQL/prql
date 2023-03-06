@@ -1,5 +1,3 @@
-# Error expected
-
 from artists
 derive nick = name
 select ![artists.*]

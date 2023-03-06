@@ -1,4 +1,2 @@
-# Error expected
-
 from my_table
 select x = "hello world"
