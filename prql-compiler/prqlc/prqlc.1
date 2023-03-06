@@ -7,7 +7,7 @@
 .Dt prqlc 1
 .Os Linux
 .Sh NAME
-.Nm prqlc,
+.Nm prqlc
 .Nd PRQL compiler.
 .Sh SYNOPSIS
 .Pp
@@ -78,6 +78,15 @@ do not format the output
 do not print the PRQL signature
 .El
 .Sh FILES                \" File used or created by the topic of the man page
-.Bl -tag -width "/Users/joeuser/Library/really_long_file_name" -compact
+.Bl -tag
 .It Pa /usr/bin/prqlc
-The prqlc executable.
+The
+.Nm
+executable.
+.Sh DIAGNOSTICS
+.Nm
+returns zero on normal operation, 1 on error. 
+.Sh BUGS
+Report any  bugs on https://github.com/PRQL/prql/issues
+.Sh AUTHOR
+PRQL team
