@@ -1,3 +1,5 @@
+# Can't yet format & compile
+
 from de=dept_emp
 join s=salaries side:left [
   (s.emp_no == de.emp_no),

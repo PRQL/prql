@@ -115,7 +115,7 @@ fn replace_examples(text: &str) -> Result<String> {
                 let options = prql_compiler::Options::default().no_signature();
                 let result = &compile(&prql, &options);
                 match lang.to_string().as_str() {
-                    "prql" => cmark_acc.push(Event::Html(
+                    "prql" | "prql_no_fmt" => cmark_acc.push(Event::Html(
                         table_of_comparison(
                             &prql,
                             result

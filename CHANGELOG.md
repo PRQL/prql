@@ -20,9 +20,14 @@
   - Float literals without fraction part are not allowed anymore (`1.`).
 - Add a `--format` option to `prqlc parse` which can return the AST in YAML
   (@max-sixty, #1962)
+- A new compile target `"sql.any"`. When `"sql.any"` is used as the target of
+  the compile function's option, the target contained in the query header will
+  be used. (@aljazerzen, #1995)
 - Support for SQL parameters with similar syntax (#1957, @aljazerzen)
 - Allow `:` to be elided in timezones, such as `0800` in
   `@2020-01-01T13:19:55-0800` (@max-sixty, #1991).
+- Add `std.upper` and `std.lower` functions for changing string casing
+  (@Jelenkee, #2019).
 
 **Fixes**:
 
@@ -49,6 +54,9 @@
   #1881)
 
 **Internal changes**:
+
+- Test that the code our nascent autoformatter generates can be compiled into
+  SQL. Examples where it can't are now labeled. (@max-sixty, #2016)
 
 **New Contributors**:
 

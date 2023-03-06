@@ -1,9 +1,0 @@
----
-source: book/tests/snapshot.rs
-expression: "from commits\nderive first_prql_commit = @2020-01-01T13:19:55-08:00\n"
----
-from commits
-derive first_prql_commit = @2020-01-01T13:19:55-08:00
-
-
-

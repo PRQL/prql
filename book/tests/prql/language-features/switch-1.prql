@@ -1,3 +1,5 @@
+# Can't yet format & compile
+
 from employees
 derive distance = switch [
   city == "Calgary" -> 0,

@@ -14,7 +14,7 @@ A summary of PRQL syntax
 | --------------- | -------------------------------------------------------------------- | ------------------------------------------------------- |
 | <code>\|</code> | [Pipelines](queries/pipelines.md)                                    | <code>from employees \| select first_name</code>        |
 | `=`             | [Assigns](transforms/select.md) & [Aliases](transforms/join.md)      | `from e = employees` <br> `derive total = (sum salary)` |
-| `:`             | [Named args & Parameters](queries/functions.md)                      | `interp lower:0 1600 sat_score`                         |
+| `:`             | [Named args & Parameters](queries/functions.md)                      | `interp low:0 1600 sat_score`                           |
 | `[]`            | [Lists](./syntax.md#lists)                                           | `select [id, amount]`                                   |
 | `()`            | [Precedence & Parentheses](./syntax.md#precedence-and-parentheses)   | `derive celsius = (fahrenheit - 32) / 1.8`              |
 | `''` & `""`     | [Strings](language-features/strings.md)                              | `derive name = 'Mary'`                                  |
@@ -137,7 +137,7 @@ function call, like `foo + bar`.
 
 Here's a full rundown of times this applier:
 
-```prql
+```prql_no_fmt
 from employees
 # Requires parentheses, because it's contains a pipe
 derive is_proximate = (distance | in 0..20)

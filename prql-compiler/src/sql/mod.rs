@@ -69,7 +69,7 @@ struct Context {
     pub ctes: Vec<sqlparser::ast::Cte>,
 }
 
-#[derive(Default, Clone)]
+#[derive(Clone)]
 struct QueryOpts {
     /// When true, column references will not include table names prefixes.
     pub omit_ident_prefix: bool,
@@ -80,11 +80,22 @@ struct QueryOpts {
     /// - ORDER BY needs `pre_projection=false`.
     pub pre_projection: bool,
 
-    /// When true, queries will contain nested sub-queries instead of WITH CTEs.
-    pub forbid_ctes: bool,
+    /// When false, queries will contain nested sub-queries instead of WITH CTEs.
+    pub allow_ctes: bool,
 
-    /// When true, * are not allowed.
-    pub forbid_stars: bool,
+    /// When false, * are not allowed.
+    pub allow_stars: bool,
+}
+
+impl Default for QueryOpts {
+    fn default() -> Self {
+        QueryOpts {
+            omit_ident_prefix: false,
+            pre_projection: false,
+            allow_ctes: true,
+            allow_stars: true,
+        }
+    }
 }
 
 impl Context {

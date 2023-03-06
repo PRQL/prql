@@ -1,3 +1,5 @@
+# Can't yet format & compile
+
 prql target:sql.mssql
 
 from employees

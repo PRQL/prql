@@ -205,6 +205,8 @@ formatting = function (hljs) {
 
 hljs.registerLanguage("prql", formatting);
 hljs.registerLanguage("prql_no_test", formatting);
+hljs.registerLanguage("prql_error", formatting);
+hljs.registerLanguage("prql_no_fmt", formatting);
 hljs.registerLanguage("elm", formatting);
 
 // These lines should only exists in the book, not the website.
