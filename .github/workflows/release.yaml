@@ -38,6 +38,8 @@ jobs:
           mkdir -p .debpkg/usr/bin
           cp target/release/prqlc .debpkg/usr/bin/prqlc
           chmod +x .debpkg/usr/bin/prqlc
+          mkdir -p .rpmpkg/usr/share/man
+          cp prql-compiler/prqlc.1 .rpmpkg/usr/share/man
       - name: 📦 Build .deb package
         uses: jiro4989/build-deb-action@v2
         with:
@@ -63,6 +65,8 @@ jobs:
           mkdir -p .rpmpkg/usr/bin
           cp target/release/prqlc .rpmpkg/usr/bin/prqlc
           chmod +x .rpmpkg/usr/bin/prqlc
+          mkdir -p .rpmpkg/usr/share/man
+          cp prql-compiler/prqlc.1 .rpmpkg/usr/share/man
       - name: 📦 Build .rpm package
         uses: jiro4989/build-rpm-action@v2
         with:
