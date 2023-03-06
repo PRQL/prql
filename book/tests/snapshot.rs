@@ -225,7 +225,11 @@ fn test_display() -> Result<(), ErrorMessages> {
 Failed compiling the formatted result of {path:?}
 To skip this test for an example, use `prql_no_fmt` as the language label.
 
-The original PRQL was:\n\n{prql}",
+The original PRQL was:
+
+{prql}
+
+",
                         path = path.canonicalize().unwrap(),
                         prql = prql
                     )
