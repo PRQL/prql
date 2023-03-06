@@ -9,4 +9,3 @@ FROM
   employees
 WHERE
   age BETWEEN 25 AND 40
-

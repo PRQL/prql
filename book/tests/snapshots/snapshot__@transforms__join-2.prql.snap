@@ -9,4 +9,3 @@ SELECT
 FROM
   employees
   JOIN positions ON employees.emp_no = positions.emp_no
-

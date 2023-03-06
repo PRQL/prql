@@ -9,4 +9,3 @@ FROM
   employees
 ORDER BY
   age DESC
-

@@ -9,4 +9,3 @@ SELECT
   salary + payroll_tax + benefits_cost AS gross_cost
 FROM
   employees
-

@@ -7,4 +7,3 @@ SELECT
   salary
 FROM
   employees
-

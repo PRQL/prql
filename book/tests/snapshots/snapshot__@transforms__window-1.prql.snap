@@ -16,4 +16,3 @@ SELECT
   ) AS monthly_running_total
 FROM
   orders
-

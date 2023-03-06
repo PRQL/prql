@@ -10,4 +10,3 @@ FROM
   employees
 ORDER BY
   tenure
-

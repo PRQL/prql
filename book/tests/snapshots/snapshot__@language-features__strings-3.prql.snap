@@ -7,4 +7,3 @@ SELECT
   'I said "hello world"!' AS x
 FROM
   my_table
-

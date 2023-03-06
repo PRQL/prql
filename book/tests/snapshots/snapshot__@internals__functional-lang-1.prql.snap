@@ -11,4 +11,3 @@ WHERE
   age > 50
 ORDER BY
   name
-
