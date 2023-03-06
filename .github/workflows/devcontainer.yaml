@@ -52,7 +52,8 @@ jobs:
         with:
           file: "./.devcontainer/base-image/Dockerfile"
           tags: ${{ steps.meta.outputs.tags }}
-          platforms: linux/arm64
+          # TODO: add linux/arm64
+          platforms: linux/amd64
           push: ${{ steps.set-options.outputs.push }}
           cache-from: |
             ${{ env.IMAGE_NAME }}
