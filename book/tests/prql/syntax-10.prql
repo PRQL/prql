@@ -1,3 +1,5 @@
+# Error expected
+
 prql target:sql.mysql
 from employees
 select `first name`

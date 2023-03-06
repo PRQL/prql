@@ -1,3 +1,5 @@
+# Error expected
+
 from numbers
 select [
     small = 1.000_000_1,

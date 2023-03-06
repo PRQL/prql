@@ -1,3 +1,5 @@
+# Error expected
+
 from employees
 sort age
 derive rnk = rank

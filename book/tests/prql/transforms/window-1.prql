@@ -1,3 +1,5 @@
+# Error expected
+
 from orders
 sort day
 window rows:-3..3 (

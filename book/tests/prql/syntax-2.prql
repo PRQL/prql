@@ -1,3 +1,5 @@
+# Error expected
+
 from numbers
 derive [x = 1, y = 2]
 derive [

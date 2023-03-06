@@ -1,5 +1,7 @@
+# Error expected
+
 func fahrenheit_to_celsius temp -> (temp - 32) / 1.8
-func interp low:0 high x -> (x - low) / (high - low)
+func interp lower:0 higher x -> (x - lower) / (higher - lower)
 
 from kettles
 derive boiling_proportion = (temp_c | fahrenheit_to_celsius | interp 100)

@@ -1,3 +1,5 @@
+# Error expected
+
 prql target:sql.bigquery
 from tracks
 select ![milliseconds,bytes]

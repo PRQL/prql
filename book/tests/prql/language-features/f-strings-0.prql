@@ -1,2 +1,4 @@
+# Error expected
+
 from employees
 select full_name = f"{first_name} {last_name}"

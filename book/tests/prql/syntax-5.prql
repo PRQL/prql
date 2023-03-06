@@ -1,3 +1,5 @@
+# Error expected
+
 from foo
 select [
   circumference = diameter * 3.14159,

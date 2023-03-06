@@ -1,3 +1,5 @@
+# Error expected
+
 func cost_share cost -> cost / cost_total
 
 from costs

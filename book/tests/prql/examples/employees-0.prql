@@ -1,3 +1,5 @@
+# Error expected
+
 from salaries
 group [emp_no] (
   aggregate [emp_salary = average salary]
