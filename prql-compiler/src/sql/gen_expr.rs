@@ -301,7 +301,7 @@ pub(super) fn translate_cid(cid: CId, ctx: &mut Context) -> Result<sql_ast::Expr
 }
 
 pub(super) fn translate_star(ctx: &Context, span: Option<Span>) -> Result<String> {
-    if ctx.query.forbid_stars {
+    if !ctx.query.allow_stars {
         Err(
             Error::new_simple("Target dialect does not support * in this position.")
                 .with_span(span)
