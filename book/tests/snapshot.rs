@@ -20,6 +20,7 @@
 use anyhow::{bail, Error, Result};
 use globset::Glob;
 use insta::{assert_snapshot, glob};
+use itertools::Itertools;
 use log::warn;
 use prql_compiler::*;
 use std::path::{Path, PathBuf};
@@ -116,7 +117,6 @@ fn collect_book_examples() -> Result<HashMap<PathBuf, String>> {
 
 /// Collect examples which we've already written to disk, as a map of <Path, PRQL>.
 fn collect_snapshot_examples() -> Result<HashMap<PathBuf, String>> {
-    use itertools::Itertools;
     let glob = Glob::new("**/*.prql")?.compile_matcher();
     let existing_examples = WalkDir::new(Path::new(ROOT_EXAMPLES_PATH))
         .into_iter()
@@ -168,13 +168,18 @@ fn write_prql_examples(examples: HashMap<PathBuf, String>) -> Result<()> {
     });
 
     if !snapshots_updated.is_empty() {
-        bail!(r###"
+        let snapshots_updated = snapshots_updated
+            .iter()
+            .map(|x| format!("  - {}", x.to_str().unwrap()))
+            .join("\n");
+        bail!(format!(
+            r###"
 Some book snapshots were not consistent with the queries in the book:
 
 {snapshots_updated}
 
 The snapshots have now been updated. Subsequent runs of this test should now pass."###
-            .trim());
+        ));
     }
     Ok(())
 }
