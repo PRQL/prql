@@ -4,6 +4,59 @@
 #include <stdlib.h>
 
 /**
+ * Location within the source file.
+ * Tuples contain:
+ * - line number (0-based),
+ * - column number within that line (0-based),
+ *
+ */
+typedef struct SourceLocation SourceLocation;
+
+typedef struct Span {
+  size_t start;
+  size_t end;
+} Span;
+
+/**
+ * An error message.
+ *
+ * Calling code is responsible for freeing all memory allocated
+ * for fields as well as strings.
+ */
+typedef struct ErrorMessage {
+  /**
+   * Machine-readable identifier of the error
+   */
+  const int8_t *const *code;
+  /**
+   * Plain text of the error
+   */
+  const int8_t *reason;
+  /**
+   * A list of suggestions of how to fix the error
+   */
+  const int8_t *const *hint;
+  /**
+   * Character offset of error origin within a source file
+   */
+  const struct Span *span;
+  /**
+   * Annotated code, containing cause and hints.
+   */
+  const int8_t *const *display;
+  /**
+   * Line and column number of error origin within a source file
+   */
+  const struct SourceLocation *location;
+} ErrorMessage;
+
+typedef struct CompileResult {
+  const int8_t *output;
+  const struct ErrorMessage *errors;
+  size_t errors_len;
+} CompileResult;
+
+/**
  * Compilation options
  */
 typedef struct Options {
@@ -39,9 +92,9 @@ typedef struct Options {
  *
  * # Safety
  *
- * This function assumes zero-terminated strings and sufficiently large output buffers.
+ * This function assumes zero-terminated input strings.
  */
-int compile(const char *prql_query, const struct Options *options, char *out);
+struct CompileResult compile(const char *prql_query, const struct Options *options);
 
 /**
  * Build PL AST from a PRQL string. PL in documented in the
@@ -55,7 +108,7 @@ int compile(const char *prql_query, const struct Options *options, char *out);
  *
  * This function assumes zero-terminated strings and sufficiently large output buffers.
  */
-int prql_to_pl(const char *prql_query, char *out);
+struct CompileResult prql_to_pl(const char *prql_query);
 
 /**
  * Finds variable references, validates functions calls, determines frames and converts PL to RQ.
@@ -70,7 +123,7 @@ int prql_to_pl(const char *prql_query, char *out);
  *
  * This function assumes zero-terminated strings and sufficiently large output buffers.
  */
-int pl_to_rq(const char *pl_json, char *out);
+struct CompileResult pl_to_rq(const char *pl_json);
 
 /**
  * Convert RQ AST into an SQL string. RQ is documented in the
@@ -84,4 +137,4 @@ int pl_to_rq(const char *pl_json, char *out);
  *
  * This function assumes zero-terminated strings and sufficiently large output buffers.
  */
-int rq_to_sql(const char *rq_json, char *out);
+struct CompileResult rq_to_sql(const char *rq_json);

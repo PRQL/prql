@@ -2,7 +2,7 @@
 
 extern crate libc;
 
-use libc::{c_char, c_int};
+use libc::{c_char, size_t};
 use prql_compiler::ErrorMessages;
 use prql_compiler::Target;
 use std::ffi::CStr;
@@ -18,13 +18,12 @@ use std::str::FromStr;
 ///
 /// # Safety
 ///
-/// This function assumes zero-terminated strings and sufficiently large output buffers.
+/// This function assumes zero-terminated input strings.
 #[no_mangle]
 pub unsafe extern "C" fn compile(
     prql_query: *const c_char,
     options: *const Options,
-    out: *mut c_char,
-) -> c_int {
+) -> CompileResult {
     let prql_query: String = c_str_to_string(prql_query);
 
     let options = options.as_ref().map(convert_options).transpose();
@@ -38,7 +37,7 @@ pub unsafe extern "C" fn compile(
         })
         .map_err(|e| e.composed("", &prql_query, false));
 
-    result_into_c_str(result, out)
+    result_into_c_str(result)
 }
 
 /// Build PL AST from a PRQL string. PL in documented in the
@@ -52,13 +51,13 @@ pub unsafe extern "C" fn compile(
 ///
 /// This function assumes zero-terminated strings and sufficiently large output buffers.
 #[no_mangle]
-pub unsafe extern "C" fn prql_to_pl(prql_query: *const c_char, out: *mut c_char) -> c_int {
+pub unsafe extern "C" fn prql_to_pl(prql_query: *const c_char) -> CompileResult {
     let prql_query: String = c_str_to_string(prql_query);
 
     let result = Ok(prql_query.as_str())
         .and_then(prql_compiler::prql_to_pl)
         .and_then(prql_compiler::json::from_pl);
-    result_into_c_str(result, out)
+    result_into_c_str(result)
 }
 
 /// Finds variable references, validates functions calls, determines frames and converts PL to RQ.
@@ -73,14 +72,14 @@ pub unsafe extern "C" fn prql_to_pl(prql_query: *const c_char, out: *mut c_char)
 ///
 /// This function assumes zero-terminated strings and sufficiently large output buffers.
 #[no_mangle]
-pub unsafe extern "C" fn pl_to_rq(pl_json: *const c_char, out: *mut c_char) -> c_int {
+pub unsafe extern "C" fn pl_to_rq(pl_json: *const c_char) -> CompileResult {
     let pl_json: String = c_str_to_string(pl_json);
 
     let result = Ok(pl_json.as_str())
         .and_then(prql_compiler::json::to_pl)
         .and_then(prql_compiler::pl_to_rq)
         .and_then(prql_compiler::json::from_rq);
-    result_into_c_str(result, out)
+    result_into_c_str(result)
 }
 
 /// Convert RQ AST into an SQL string. RQ is documented in the
@@ -94,13 +93,13 @@ pub unsafe extern "C" fn pl_to_rq(pl_json: *const c_char, out: *mut c_char) -> c
 ///
 /// This function assumes zero-terminated strings and sufficiently large output buffers.
 #[no_mangle]
-pub unsafe extern "C" fn rq_to_sql(rq_json: *const c_char, out: *mut c_char) -> c_int {
+pub unsafe extern "C" fn rq_to_sql(rq_json: *const c_char) -> CompileResult {
     let rq_json: String = c_str_to_string(rq_json);
 
     let result = Ok(rq_json.as_str())
         .and_then(prql_compiler::json::to_rq)
         .and_then(|x| prql_compiler::rq_to_sql(x, &prql_compiler::Options::default()));
-    result_into_c_str(result, out)
+    result_into_c_str(result)
 }
 
 /// Compilation options
@@ -124,22 +123,106 @@ pub struct Options {
     pub signature_comment: bool,
 }
 
-unsafe fn result_into_c_str(result: Result<String, ErrorMessages>, out: *mut c_char) -> i32 {
-    let (is_err, string) = match result {
-        Ok(string) => (false, string),
-        Err(err) => (true, err.to_string()),
-    };
+#[repr(C)]
+pub struct CompileResult {
+    pub output: *const i8,
+    pub errors: *const ErrorMessage,
+    pub errors_len: size_t,
+}
 
-    let copy_len = string.bytes().len();
-    let c_str = CString::new(string).unwrap();
+/// An error message.
+///
+/// Calling code is responsible for freeing all memory allocated
+/// for fields as well as strings.
+// Make sure to keep in sync with prql_compiler::ErrorMessage
+#[repr(C)]
+pub struct ErrorMessage {
+    /// Machine-readable identifier of the error
+    pub code: *const *const i8,
+    /// Plain text of the error
+    pub reason: *const i8,
+    /// A list of suggestions of how to fix the error
+    pub hint: *const *const i8,
+    /// Character offset of error origin within a source file
+    pub span: *const Span,
 
-    out.copy_from(c_str.as_ptr(), copy_len);
-    let end_of_string_ptr = out.add(copy_len);
-    *end_of_string_ptr = 0;
+    /// Annotated code, containing cause and hints.
+    pub display: *const *const i8,
+    /// Line and column number of error origin within a source file
+    pub location: *const SourceLocation,
+}
 
-    match is_err {
-        true => -1,
-        false => 0,
+// Make sure to keep in sync with prql_compiler::Span
+#[repr(C)]
+pub struct Span {
+    pub start: size_t,
+    pub end: size_t,
+}
+
+/// Location within the source file.
+/// Tuples contain:
+/// - line number (0-based),
+/// - column number within that line (0-based),
+///
+// Make sure to keep in sync with prql_compiler::SourceLocation
+#[repr(C)]
+pub struct SourceLocation {
+    pub start: (size_t, size_t),
+
+    pub end: (size_t, size_t),
+}
+
+unsafe fn result_into_c_str(result: Result<String, ErrorMessages>) -> CompileResult {
+    match result {
+        Ok(output) => CompileResult {
+            output: convert_string(output),
+            errors: ::std::ptr::null_mut(),
+            errors_len: 0,
+        },
+        Err(err) => {
+            let mut errors = Vec::with_capacity(err.inner.len());
+            errors.extend(err.inner.into_iter().map(|e| ErrorMessage {
+                code: option_to_ptr(e.code.map(convert_string)),
+                reason: convert_string(e.reason),
+                hint: option_to_ptr(e.hint.map(convert_string)),
+                span: option_to_ptr(e.span.map(convert_span)),
+                display: option_to_ptr(e.display.map(convert_string)),
+                location: option_to_ptr(e.location.map(convert_source_location)),
+            }));
+            CompileResult {
+                output: CString::default().into_raw(),
+                errors_len: errors.len(),
+                errors: errors.leak().as_ptr(),
+            }
+        }
+    }
+}
+
+fn option_to_ptr<T>(o: Option<T>) -> *const T {
+    match o {
+        Some(x) => {
+            let b = Box::new(x);
+            Box::into_raw(b)
+        },
+        None => ::std::ptr::null(),
+    }
+}
+
+fn convert_string(x: String) -> *const i8 {
+    CString::new(x).unwrap_or_default().into_raw()
+}
+
+fn convert_span(x: prql_compiler::Span) -> Span {
+    Span {
+        start: x.start,
+        end: x.end,
+    }
+}
+
+fn convert_source_location(x: prql_compiler::SourceLocation) -> SourceLocation {
+    SourceLocation {
+        start: x.start,
+        end: x.end,
     }
 }
 
