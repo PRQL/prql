@@ -1,7 +1,7 @@
-# Development in Dev Containers
+# Using Dev Container
 
 ```admonish note
-This document is a heavy work in progress and may not contain sufficient information.
+Currently the Dev Container included in this repository only supports the `amd64` platform.
 ```
 
 [Dev Containers](https://containers.dev/) are a way to package a number of
@@ -13,35 +13,20 @@ that are known to work together. This avoids a fuss with finding the proper
 versions of each of the build tools.
 
 To use a Dev Container on your local computer with VS Code, you must install the
-[VS Code Dev Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
-extension and its system requirements.
-
-When you first start the Dev Container, the build process may take a long time
-(as much as 20-40 minutes) as the container collects all the packages of the
-full PRQL toolchain. Once it's running, though, startup is fairly fast.
+[VS Code Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
+and its system requirements.
 
 ## How you use it
 
-1. Clone the git repo onto your hard drive as usual. Then you start the Dev
-   Container (say, using VS Code) that bundles all the developer tools.
-2. Edit files locally (say, using VS Code) to work on PRQL. The tools in the Dev
-   Container watch for changed files and rebuild the project as needed.
-3. When you are satisfied with the changes, you can commit them to the repo, and
-   push the changes as usual.
+While there are a variety of tools that support Dev Containers, the focus here is on developing with VS Code in a container by [GitHub Codespaces](https://docs.github.com/en/codespaces/overview) or [VS Code Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers).
 
-## Starting and stopping the Dev Container
-
-_Instructions needed - both from VS Code and maybe from CLI?._
-
+Please refer to the documents for general instructions on how to use these tools.
 ## Using PRQL in a Dev Container
 
-After the Dev Container starts up, the VS Code Terminal pane shows a Dev
-Container command line. Enter one of the following commands to work on a
-component of PRQL.
+[Task](https://taskfile.dev/) is installed in the container for quick access to tasks defined on the `Taskfiles.yml`.
+Autocompression works when using the `zsh` shell installed in the container.
 
-VS Code offers a link to "Open in Browser" to the proper port to see the results
-of your changes. When you are done working on that component, hit ^C to abort,
-and return to the Dev Container command line.
+Here are some useful commands available in the container.
 
 - `task -l` lists all the available tasks.
 - `task run-book` starts an `mdbook` server. As you edit the files of the

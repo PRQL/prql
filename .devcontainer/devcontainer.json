@@ -4,7 +4,8 @@
   "features": {
     "ghcr.io/devcontainers/features/hugo:1": {},
     "ghcr.io/devcontainers/features/python:1": {},
-    "ghcr.io/devcontainers/features/node:1": {}
+    "ghcr.io/devcontainers/features/node:1": {},
+    "ghcr.io/eitsupi/devcontainer-features/go-task": {}
   },
   "customizations": {
     "vscode": {
