@@ -29,6 +29,13 @@ updates:
     commit-message:
       prefix: "chore: "
 
+  - package-ecosystem: docker
+    directory: .devcontainer/base-image
+    schedule:
+      interval: daily
+    commit-message:
+      prefix: "chore: "
+
   # For actions (rather than workflows), we need to list each directory, ref
   # https://github.com/dependabot/dependabot-core/issues/5137, from https://github.com/dependabot/dependabot-core/issues/4178#issuecomment-1118492006
   - directory: ".github/actions/build-prql-js"
