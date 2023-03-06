@@ -55,6 +55,9 @@
 
 **Internal changes**:
 
+- Test that the code our nascent autoformatter generates can be compiled into
+  SQL. Examples where it can't are now labeled. (@max-sixty, #2016)
+
 **New Contributors**:
 
 ## 0.5.2 — 2022-02-18
