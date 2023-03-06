@@ -39,13 +39,11 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
-      - id: set-platforms
+      - id: set-options
         run: |
           if [ "${{ github.ref }}" = "refs/heads/main" ]; then
-            echo "platforms=linux/amd64,linux/arm64" >>$GITHUB_OUTPUT
             echo "push=true" >>$GITHUB_OUTPUT
           else
-            echo "platforms=linux/amd64" >>$GITHUB_OUTPUT
             echo "push=false" >>$GITHUB_OUTPUT
           fi
 
@@ -54,8 +52,8 @@ jobs:
         with:
           file: "./.devcontainer/base-image/Dockerfile"
           tags: ${{ steps.meta.outputs.tags }}
-          platforms: ${{ steps.set-platforms.outputs.platforms }}
-          push: ${{ steps.set-platforms.outputs.push }}
+          platforms: linux/amd64,linux/arm64
+          push: ${{ steps.set-options.outputs.push }}
           cache-from: |
             ${{ env.IMAGE_NAME }}
             type=gha
