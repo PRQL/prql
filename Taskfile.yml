@@ -55,17 +55,6 @@ tasks:
           🟢 Setup complete! ✅🚀"
         silent: true
 
-  setup-devcontainer:
-    desc: Install tools for PRQL development (Rust, JS, Python).
-    cmds:
-      - task: install-maturin
-      - task: install-npm-dependencies
-      - task: install-cargo-tools
-      - cmd: |
-          echo "
-          🟢 Setup complete! ✅🚀"
-        silent: true
-
   install-cargo-tools:
     # factored this out because it takes a long time to build
     desc: Alias of `cargo-tools:install`
