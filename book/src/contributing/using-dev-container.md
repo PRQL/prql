@@ -18,13 +18,19 @@ and its system requirements.
 
 ## How you use it
 
-While there are a variety of tools that support Dev Containers, the focus here is on developing with VS Code in a container by [GitHub Codespaces](https://docs.github.com/en/codespaces/overview) or [VS Code Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers).
+While there are a variety of tools that support Dev Containers, the focus here
+is on developing with VS Code in a container by
+[GitHub Codespaces](https://docs.github.com/en/codespaces/overview) or
+[VS Code Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers).
 
-Please refer to the documents for general instructions on how to use these tools.
+Please refer to the documents for general instructions on how to use these
+tools.
+
 ## Using PRQL in a Dev Container
 
-[Task](https://taskfile.dev/) is installed in the container for quick access to tasks defined on the `Taskfiles.yml`.
-Autocompression works when using the `zsh` shell installed in the container.
+[Task](https://taskfile.dev/) is installed in the container for quick access to
+tasks defined on the `Taskfiles.yml`. Autocompression works when using the `zsh`
+shell installed in the container.
 
 Here are some useful commands available in the container.
 
