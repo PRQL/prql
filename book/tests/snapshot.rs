@@ -211,7 +211,17 @@ fn test_display() -> Result<(), ErrorMessages> {
             prql_to_pl(prql)
                 .and_then(pl_to_prql)
                 .and_then(|formatted| compile(&formatted, &Options::default()))
-                .unwrap_or_else(|_| panic!("Failed compiling the formatted result of {path:?}\n\n. The original PRQL was:\n\n{prql}", path = path, prql = prql));
+                .unwrap_or_else(|_| {
+                    panic!(
+                        "
+Failed compiling the formatted result of {path:?}
+To skip this test for an example, use `prql_no_fmt` as the language label.
+
+The original PRQL was:\n\n{prql}",
+                        path = path.canonicalize().unwrap(),
+                        prql = prql
+                    )
+                });
 
             Ok::<(), ErrorMessages>(())
         })?;
