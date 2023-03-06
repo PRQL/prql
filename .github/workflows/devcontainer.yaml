@@ -2,12 +2,13 @@ name: devcontainer
 
 on:
   push:
-    # ToDo: Add partial Taskfile (only include rust-tools)
     paths:
       - .devcontainer/base-image/Dockerfile
+      - Taskfile.cargo-tools.yml
   pull_request:
     paths:
       - .devcontainer/base-image/Dockerfile
+      - Taskfile.cargo-tools.yml
   workflow_dispatch:
 
 concurrency:
