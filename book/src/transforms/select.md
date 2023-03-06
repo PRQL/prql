@@ -50,19 +50,19 @@ We can use `!` to exclude a list of columns. This can operate in two ways:
 
 Some examples:
 
-```prql
+```prql_no_fmt
 prql target:sql.bigquery
 from tracks
 select ![milliseconds,bytes]
 ```
 
-```prql
+```prql_no_fmt
 from tracks
 select [track_id, title, composer, bytes]
 select ![title, composer]
 ```
 
-```prql
+```prql_no_fmt
 from artists
 derive nick = name
 select ![artists.*]

@@ -99,7 +99,7 @@ select [mng_name, managers.gender, salary_avg, salary_sd]
 
 > Find distributions of titles, salaries and genders for each department.
 
-```prql
+```prql_no_fmt
 from de=dept_emp
 join s=salaries side:left [
   (s.emp_no == de.emp_no),

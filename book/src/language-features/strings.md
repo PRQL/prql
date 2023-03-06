@@ -33,7 +33,7 @@ select x = """""I said """hello world"""!"""""
 Strings can also contain any escape defined by
 [JSON standard](https://www.ecma-international.org/publications-and-standards/standards/ecma-404/).
 
-```prql
+```prql_no_fmt
 from my_table
 select x = "\t\tline ends here\n \\ "
 ```

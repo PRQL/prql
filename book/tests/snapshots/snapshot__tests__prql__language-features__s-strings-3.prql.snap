@@ -1,9 +1,0 @@
----
-source: book/tests/snapshot.rs
-expression: "from s\"SELECT DISTINCT ON first_name, id, age FROM employees ORDER BY age ASC\"\njoin s = s\"SELECT * FROM salaries\" [==id]\n"
----
-from s"SELECT DISTINCT ON first_name, id, age FROM employees ORDER BY age ASC"
-join s = s"SELECT * FROM salaries" [==id]
-
-
-
