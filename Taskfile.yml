@@ -11,6 +11,9 @@
 
 version: "3"
 
+includes:
+  cargo-tools: ./Taskfile.cargo-tools.yml
+
 vars:
   # Keep in sync with .vscode/extensions.json
   vscode_extensions: |
@@ -38,7 +41,7 @@ tasks:
 
     desc: Install tools for PRQL development.
     cmds:
-      - task: install-cargo-tools
+      - task: cargo-tools:install
       - task: install-brew-dependencies
       - task: install-maturin
       - task: install-pre-commit
@@ -54,18 +57,9 @@ tasks:
 
   install-cargo-tools:
     # factored this out because it takes a long time to build
-    desc: Install cargo tools for PRQL development.
-    cmds:
-      # `--locked` installs from the underlying lock files (which is not the
-      # default?!)
-      - cargo install --locked bacon cargo-audit cargo-insta cargo-release
-        default-target mdbook mdbook-admonish mdbook-toc wasm-bindgen-cli
-        wasm-pack
-        # Can't install atm with `--locked`
-      - cargo install mdbook-footnote
-      - cmd: |
-          [ "$(which cargo-insta)" ] || echo "🔴 Can't find a binary that cargo just installed. Is the cargo bin path (generally at ~/.cargo/bin) on the \$PATH?"
-        silent: true
+    desc: Alias of `cargo-tools:install`
+    deps:
+      - cargo-tools:install
 
   install-maturin:
     desc: Install maturin.
